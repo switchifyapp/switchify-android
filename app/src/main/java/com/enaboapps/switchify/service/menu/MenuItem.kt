@@ -21,6 +21,8 @@ import kotlin.properties.Delegates
  * @property text The text of the menu item
  * @property drawableId The drawable resource id of the menu item
  * @property drawableDescription The description of the drawable
+ * @property showDrawableDescription Whether to show the drawable description
+ * @property isSmall Whether the menu item is small
  * @property closeOnSelect Whether the menu should close when the item is selected
  * @property isLinkToMenu Whether the item is a link to another menu
  * @property isMenuHierarchyManipulator Whether the item manipulates the menu hierarchy
@@ -31,6 +33,8 @@ class MenuItem(
     val text: String = "",
     private val drawableId: Int = 0,
     val drawableDescription: String = "",
+    val showDrawableDescription: Boolean = true,
+    val isSmall: Boolean = false,
     val closeOnSelect: Boolean = true,
     var isLinkToMenu: Boolean = false,
     var isMenuHierarchyManipulator: Boolean = false,
@@ -73,6 +77,17 @@ class MenuItem(
             ScreenUtils.dpToPx(linearLayout.context, menuSizeManager.getMenuSize().itemWidth)
         var heightPx =
             ScreenUtils.dpToPx(linearLayout.context, menuSizeManager.getMenuSize().itemHeight)
+
+        if (isSmall) {
+            widthPx = ScreenUtils.dpToPx(
+                linearLayout.context,
+                menuSizeManager.getMenuSize().itemWidthSmall
+            )
+            heightPx = ScreenUtils.dpToPx(
+                linearLayout.context,
+                menuSizeManager.getMenuSize().itemHeightSmall
+            )
+        }
 
         // If width x itemsPerRow is greater than screen width, adjust the width to fit
         if (widthPx * itemsPerRow > screenWidth) {
@@ -142,7 +157,7 @@ class MenuItem(
             }
         }
 
-        if (drawableDescription.isNotEmpty()) {
+        if (drawableDescription.isNotEmpty() && showDrawableDescription) {
             drawableDescriptionTextView = TextView(linearLayout.context).apply {
                 text = drawableDescription
                 setTextSize(

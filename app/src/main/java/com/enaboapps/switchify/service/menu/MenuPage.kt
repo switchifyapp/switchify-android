@@ -26,7 +26,8 @@ class MenuPage(
     val onMenuPageChanged: (pageIndex: Int) -> Unit
 ) {
     private var baseLayout: LinearLayout = LinearLayout(context)
-    private var menuChangeBtn: MenuItem? = null
+    private var prevPageMenuItem: MenuItem? = null
+    private var nextPageMenuItem: MenuItem? = null
 
     init {
         baseLayout.orientation = LinearLayout.VERTICAL
@@ -50,7 +51,8 @@ class MenuPage(
         if (showNavMenuItems) {
             menuItems.addAll(navItems)
         }
-        menuChangeBtn?.let { menuItems.add(it) }
+        prevPageMenuItem?.let { menuItems.add(it) }
+        nextPageMenuItem?.let { menuItems.add(it) }
         return menuItems
     }
 
@@ -94,26 +96,36 @@ class MenuPage(
      * This function inflates the navigation items of the page
      */
     private fun inflateNavItems() {
+        val rowLayout = createRowLayout()
         val navButtonView = createNavButtonView()
-        val perRow = MenuSizeManager(context).getMenuSize().itemsPerPage / 2
-        var mutableNavItems = navItems.toMutableList()
-        if (maxPageIndex > 0) {
-            menuChangeBtn = MenuItem(
-                id = "change_page",
-                drawableId = R.drawable.ic_change_menu_page,
-                drawableDescription = "Change page",
+        navItems.forEach { menuItem ->
+            menuItem.inflate(rowLayout)
+        }
+        if (pageIndex > 0) {
+            prevPageMenuItem = MenuItem(
+                id = "prevPage",
+                drawableId = R.drawable.ic_previous_menu_page,
+                drawableDescription = "Previous page",
+                showDrawableDescription = false,
+                isSmall = true,
                 closeOnSelect = false,
-                action = { changePage() }
+                action = { previousPage() }
             )
-            mutableNavItems.add(menuChangeBtn!!)
+            prevPageMenuItem?.inflate(rowLayout)
         }
-        mutableNavItems.chunked(perRow).forEach { rowItems ->
-            val rowLayout = createRowLayout()
-            rowItems.forEach { menuItem ->
-                menuItem.inflate(rowLayout)
-            }
-            navButtonView.addView(rowLayout)
+        if (pageIndex < maxPageIndex) {
+            nextPageMenuItem = MenuItem(
+                id = "nextPage",
+                drawableId = R.drawable.ic_next_menu_page,
+                drawableDescription = "Next page",
+                showDrawableDescription = false,
+                isSmall = true,
+                closeOnSelect = false,
+                action = { nextPage() }
+            )
+            nextPageMenuItem?.inflate(rowLayout)
         }
+        navButtonView.addView(rowLayout)
         baseLayout.addView(navButtonView)
     }
 
@@ -149,15 +161,18 @@ class MenuPage(
     }
 
     /**
-     * Change the page
+     * Go to the previous page
      */
-    private fun changePage() {
-        var newPageIndex = pageIndex
-        if (pageIndex == maxPageIndex) {
-            newPageIndex = 0
-        } else {
-            newPageIndex++
-        }
-        onMenuPageChanged(newPageIndex)
+    private fun previousPage() {
+        val pageIndex = if (pageIndex == 0) maxPageIndex else pageIndex - 1
+        onMenuPageChanged(pageIndex)
+    }
+
+    /**
+     * Go to the next page
+     */
+    private fun nextPage() {
+        val pageIndex = if (pageIndex == maxPageIndex) 0 else pageIndex + 1
+        onMenuPageChanged(pageIndex)
     }
 }
