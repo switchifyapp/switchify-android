@@ -6,6 +6,7 @@ import android.content.Intent
 import android.media.AudioManager
 import android.view.accessibility.AccessibilityNodeInfo
 import com.enaboapps.switchify.R
+import com.enaboapps.switchify.backend.iap.IAPHandler
 import com.enaboapps.switchify.service.SwitchifyAccessibilityService
 import com.enaboapps.switchify.service.custom.actions.ActionPerformer
 import com.enaboapps.switchify.service.custom.actions.store.ActionStore
@@ -17,7 +18,6 @@ import com.enaboapps.switchify.service.menu.MenuManager
 import com.enaboapps.switchify.service.methods.nodes.Node
 import com.enaboapps.switchify.service.methods.nodes.NodeExaminer
 import com.enaboapps.switchify.service.scanning.ScanMethod
-import com.enaboapps.switchify.backend.iap.IAPHandler
 import com.enaboapps.switchify.service.window.ServiceMessageHUD
 
 class MenuStructureHolder(private val accessibilityService: SwitchifyAccessibilityService? = null) {
@@ -70,6 +70,8 @@ class MenuStructureHolder(private val accessibilityService: SwitchifyAccessibili
                 id = "previous_menu",
                 drawableId = R.drawable.ic_previous_menu,
                 drawableDescription = "Previous menu",
+                showDrawableDescription = false,
+                isSmall = true,
                 isMenuHierarchyManipulator = true,
                 action = { MenuManager.getInstance().menuHierarchy?.popMenu() }
             )
@@ -78,6 +80,8 @@ class MenuStructureHolder(private val accessibilityService: SwitchifyAccessibili
             id = "close_menu",
             drawableId = R.drawable.ic_close_menu,
             drawableDescription = "Close menu",
+            showDrawableDescription = false,
+            isSmall = true,
             isMenuHierarchyManipulator = true,
             action = { MenuManager.getInstance().closeMenuHierarchy() }
         )
@@ -458,7 +462,8 @@ class MenuStructureHolder(private val accessibilityService: SwitchifyAccessibili
                             accessibilityService?.let { service ->
                                 val audioManager =
                                     service.getSystemService(Context.AUDIO_SERVICE) as AudioManager
-                                val halfVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_ACCESSIBILITY) / 2
+                                val halfVolume =
+                                    audioManager.getStreamMaxVolume(AudioManager.STREAM_ACCESSIBILITY) / 2
                                 audioManager.setStreamVolume(
                                     AudioManager.STREAM_ACCESSIBILITY,
                                     halfVolume,

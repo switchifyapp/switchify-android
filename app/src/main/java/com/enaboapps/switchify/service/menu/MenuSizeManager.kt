@@ -12,6 +12,8 @@ class MenuSizeManager(context: Context) {
         val textSizeWithIcon: Float,
         val itemWidth: Int,
         val itemHeight: Int,
+        val itemWidthSmall: Int,
+        val itemHeightSmall: Int,
         val itemsPerPage: Int
     )
 
@@ -23,6 +25,8 @@ class MenuSizeManager(context: Context) {
                 textSizeWithIcon = 8f,
                 itemWidth = 80,
                 itemHeight = 70,
+                itemWidthSmall = 50,
+                itemHeightSmall = 35,
                 itemsPerPage = 6
             ),
             MenuSize(
@@ -31,6 +35,8 @@ class MenuSizeManager(context: Context) {
                 textSizeWithIcon = 12f,
                 itemWidth = 130,
                 itemHeight = 75,
+                itemWidthSmall = 70,
+                itemHeightSmall = 50,
                 itemsPerPage = 4
             ),
             MenuSize(
@@ -39,6 +45,8 @@ class MenuSizeManager(context: Context) {
                 textSizeWithIcon = 16f,
                 itemWidth = 170,
                 itemHeight = 100,
+                itemWidthSmall = 90,
+                itemHeightSmall = 60,
                 itemsPerPage = 4
             )
         )
