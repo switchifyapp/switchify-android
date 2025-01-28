@@ -5,10 +5,14 @@ import com.enaboapps.switchify.service.gestures.data.GestureData
 import com.enaboapps.switchify.service.gestures.data.GestureType
 import com.enaboapps.switchify.service.scanning.ScanMethod
 import com.enaboapps.switchify.service.window.ServiceMessageHUD
+import java.util.Timer
+import java.util.TimerTask
 
 class GestureLockManager {
     private var isLocked = false
     private var lockedGestureData: GestureData? = null
+    private var timeoutTimer: Timer? = null
+    private val lockTimeout = 10000L
 
     // Function to lock/unlock the gesture lock, showing a message to the user
     fun toggleGestureLock() {
@@ -19,6 +23,8 @@ class GestureLockManager {
             )
             return
         }
+
+        stopTimer()
 
         isLocked = !isLocked
         if (isLocked) {
@@ -56,6 +62,30 @@ class GestureLockManager {
             } else {
                 null
             }
+        if (isLocked) {
+            startTimer()
+        }
+    }
+
+    // Function to start the timer for the gesture lock
+    fun startTimer() {
+        stopTimer()
+        timeoutTimer = Timer()
+        timeoutTimer?.schedule(object : TimerTask() {
+            override fun run() {
+                isLocked = false
+                setLockedGestureData(null)
+                ServiceMessageHUD.instance.showMessage(
+                    "Gesture Lock disabled.",
+                    ServiceMessageHUD.MessageType.DISAPPEARING
+                )
+            }
+        }, lockTimeout)
+    }
+
+    fun stopTimer() {
+        timeoutTimer?.cancel()
+        timeoutTimer = null
     }
 
     // Function to check if a gesture type can be locked
