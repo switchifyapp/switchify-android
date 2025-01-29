@@ -191,6 +191,7 @@ class LockScreenView(
             baseLayout.addView(textView)
 
             val button = Button(accessibilityService).apply {
+                background = null
                 text = "Unlock"
                 setTextColor(accessibilityService.resources.getColor(R.color.white, null))
                 setTextSize(TypedValue.COMPLEX_UNIT_SP, 24f)
