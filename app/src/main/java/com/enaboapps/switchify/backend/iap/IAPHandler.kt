@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import com.enaboapps.switchify.BuildConfig
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
+import com.enaboapps.switchify.utils.Logger
 import com.revenuecat.purchases.*
 import com.revenuecat.purchases.interfaces.ReceiveCustomerInfoCallback
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -59,32 +60,67 @@ object IAPHandler {
 
     /**
      * Refreshes the current purchase status
+     *
+     * @param completion The completion block to be called when the status is refreshed
      */
-    fun refreshPurchaseStatus() {
+    fun refreshPurchaseStatus(completion: ((Boolean) -> Unit)? = null) {
         Purchases.sharedInstance.getCustomerInfo(
             object : ReceiveCustomerInfoCallback {
                 override fun onError(error: PurchasesError) {
                     Log.e(TAG, "Error refreshing status: ${error.message}")
                     _purchaseState.value = PurchaseState.Error
+                    completion?.invoke(false)
                 }
 
                 override fun onReceived(customerInfo: CustomerInfo) {
-                    handlePurchaseSuccess(customerInfo)
+                    checkProPurchase(customerInfo)
+                    completion?.invoke(hasPurchasedPro())
                 }
             }
         )
     }
 
     /**
-     * Handles successful purchase/restore
+     * Checks if the user has purchased the pro version
      *
      * @param customerInfo Customer info from RevenueCat
      */
-    private fun handlePurchaseSuccess(customerInfo: CustomerInfo) {
+    private fun checkProPurchase(customerInfo: CustomerInfo) {
         val hasPro = customerInfo.entitlements[ENTITLEMENT]?.isActive == true
+        val isSubscribed = customerInfo.latestExpirationDate != null
+        if (isSubscribed) {
+            Logger.logEvent("Pro checked via subscription")
+        } else if (hasPro) {
+            Logger.logEvent("Pro checked via purchase")
+        }
         setProStatus(hasPro)
         _purchaseState.value = if (hasPro) PurchaseState.Success else PurchaseState.Initial
-        Log.d(TAG, "Pro status updated: $hasPro")
+    }
+
+    /**
+     * Gets the information in string format about the current status of the pro purchase
+     *
+     * @return The information in string format about the current status of the pro purchase
+     */
+    fun getProStatus(completion: (String) -> Unit) {
+        Purchases.sharedInstance.getCustomerInfo(
+            object : ReceiveCustomerInfoCallback {
+                override fun onError(error: PurchasesError) {
+                    completion("Error getting pro status: ${error.message}")
+                }
+
+                override fun onReceived(customerInfo: CustomerInfo) {
+                    val hasPro = customerInfo.entitlements[ENTITLEMENT]?.isActive == true
+                    val isSubscribed = customerInfo.latestExpirationDate != null
+                    if (isSubscribed) {
+                        completion("Pro subscription active")
+                    } else if (hasPro) {
+                        completion("Pro purchase active")
+                    } else {
+                        completion("Pro not purchased")
+                    }
+                }
+            })
     }
 
     /**

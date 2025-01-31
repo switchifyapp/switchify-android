@@ -16,6 +16,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -23,6 +24,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.enaboapps.switchify.auth.AuthManager
+import com.enaboapps.switchify.backend.iap.IAPHandler
 import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.FullWidthButton
 import com.enaboapps.switchify.nav.NavigationRoute
@@ -35,6 +37,14 @@ fun AccountScreen(navController: NavController) {
     val userEmail = currentUser?.email ?: "Not Logged In"
     val showDeleteAccountDialog = remember { mutableStateOf(false) }
     val context = LocalContext.current
+
+    val proStatus = remember { mutableStateOf("") }
+
+    LaunchedEffect(Unit) {
+        IAPHandler.getProStatus { status ->
+            proStatus.value = status
+        }
+    }
 
     val deleteAccount = {
         authManager.deleteUser(onSuccess = {
@@ -50,6 +60,15 @@ fun AccountScreen(navController: NavController) {
         navController = navController
     ) {
         EmailAddressView(email = userEmail)
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        Text(
+            text = "Pro Status: ${proStatus.value}",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+
         Spacer(modifier = Modifier.height(20.dp))
 
         FullWidthButton(
