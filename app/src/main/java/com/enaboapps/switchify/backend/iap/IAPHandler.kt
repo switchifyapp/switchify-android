@@ -87,7 +87,7 @@ object IAPHandler {
      */
     private fun checkProPurchase(customerInfo: CustomerInfo) {
         val hasPro = customerInfo.entitlements[ENTITLEMENT]?.isActive == true
-        val isSubscribed = customerInfo.latestExpirationDate != null
+        val isSubscribed = customerInfo.activeSubscriptions.isNotEmpty()
         if (isSubscribed) {
             Logger.logEvent("Pro checked via subscription")
         } else if (hasPro) {
@@ -111,13 +111,13 @@ object IAPHandler {
 
                 override fun onReceived(customerInfo: CustomerInfo) {
                     val hasPro = customerInfo.entitlements[ENTITLEMENT]?.isActive == true
-                    val isSubscribed = customerInfo.latestExpirationDate != null
+                    val isSubscribed = customerInfo.activeSubscriptions.isNotEmpty()
                     if (isSubscribed) {
-                        completion("Pro subscription active")
+                        completion("You have an active subscription to Switchify")
                     } else if (hasPro) {
-                        completion("Pro purchase active")
+                        completion("You have purchased Switchify Pro")
                     } else {
-                        completion("Pro not purchased")
+                        completion("You have not purchased Switchify Pro")
                     }
                 }
             })
