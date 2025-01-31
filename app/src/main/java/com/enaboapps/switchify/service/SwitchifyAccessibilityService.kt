@@ -70,6 +70,7 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner {
                 if (switchEventProvider.hasCameraSwitch) {
                     cameraSwitchManager.startCamera(this@SwitchifyAccessibilityService)
                 }
+                IAPHandler.refreshPurchaseStatus()
             },
             onScreenSleep = {
                 externalSwitchListener.reset()

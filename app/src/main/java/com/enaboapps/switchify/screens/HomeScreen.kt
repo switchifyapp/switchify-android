@@ -46,7 +46,7 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
     val isAccessibilityServiceEnabled = serviceUtils.isAccessibilityServiceEnabled(context)
     val isSwitchifyKeyboardEnabled = KeyboardUtils.isSwitchifyKeyboardEnabled(context)
     val isSetupComplete = PreferenceManager(context).isSetupComplete()
-    val isPro = remember { mutableStateOf(false) }
+    val isPro = remember { mutableStateOf(true) }
     val signedIn = AuthManager.instance.isUserSignedIn()
     var showUpdateDialog by remember { mutableStateOf(false) }
 
@@ -56,7 +56,9 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
         } else if (signedIn) {
             PreferenceManager(context).setSetupComplete()
         }
-        isPro.value = IAPHandler.hasPurchasedPro()
+        IAPHandler.refreshPurchaseStatus { proPurchased ->
+            isPro.value = proPurchased
+        }
     }
 
     val appUpdateManager = remember { AppUpdateManagerFactory.create(context) }
