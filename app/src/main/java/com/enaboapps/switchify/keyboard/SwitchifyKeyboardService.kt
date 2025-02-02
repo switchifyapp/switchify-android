@@ -19,7 +19,6 @@ import com.enaboapps.switchify.keyboard.utils.CapsModeHandler
 import com.enaboapps.switchify.keyboard.utils.TextParser
 import com.enaboapps.switchify.service.utils.ScreenUtils
 import com.enaboapps.switchify.utils.Logger
-import com.enaboapps.switchifykeyboardscanlib.KeyboardSwitchifyLink
 
 /**
  * This class is responsible for managing the keyboard service.
@@ -29,9 +28,6 @@ class SwitchifyKeyboardService : InputMethodService(), KeyboardLayoutListener, P
 
     // The main keyboard layout
     private lateinit var keyboardLayout: LinearLayout
-
-    // The keyboard Switchify link
-    private lateinit var keyboardSwitchifyLink: KeyboardSwitchifyLink
 
     // The global layout listener
     private var globalLayoutListener: ViewTreeObserver.OnGlobalLayoutListener? = null
@@ -54,9 +50,6 @@ class SwitchifyKeyboardService : InputMethodService(), KeyboardLayoutListener, P
 
         Logger.init(this)
         Logger.logEvent("Switchify Keyboard Service Created")
-
-        // Initialize the keyboard Switchify link
-        keyboardSwitchifyLink = KeyboardSwitchifyLink(this)
 
         // Initialize IAPHandler
         IAPHandler.initialize(this)
@@ -111,7 +104,6 @@ class SwitchifyKeyboardService : InputMethodService(), KeyboardLayoutListener, P
         super.onStartInputView(info, restarting)
         // Add the global layout listener when the input view is started
         globalLayoutListener = ViewTreeObserver.OnGlobalLayoutListener {
-            keyboardSwitchifyLink.captureAndBroadcastLayoutInfo(keyboardLayout)
         }
         keyboardLayout.viewTreeObserver.addOnGlobalLayoutListener(globalLayoutListener)
 
@@ -124,9 +116,6 @@ class SwitchifyKeyboardService : InputMethodService(), KeyboardLayoutListener, P
         resetKeyboardLayout()
 
         updateTextState()
-
-        // Broadcast keyboard show event
-        keyboardSwitchifyLink.showKeyboard(keyboardLayout)
     }
 
     /**
@@ -137,9 +126,6 @@ class SwitchifyKeyboardService : InputMethodService(), KeyboardLayoutListener, P
         super.onFinishInputView(finishingInput)
         // Remove the global layout listener when the input view is finished
         keyboardLayout.viewTreeObserver.removeOnGlobalLayoutListener(globalLayoutListener)
-
-        // Broadcast keyboard hide event
-        keyboardSwitchifyLink.hideKeyboard()
     }
 
     /**

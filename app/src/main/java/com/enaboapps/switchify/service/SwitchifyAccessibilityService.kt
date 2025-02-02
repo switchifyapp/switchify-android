@@ -100,12 +100,15 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner {
      * It updates the nodes in the active window and the keyboard state.
      */
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
-        rootInActiveWindow?.let { rootNode ->
-            serviceScope.launch {
-                NodeExaminer.findNodes(rootNode, this@SwitchifyAccessibilityService, this)
-            }
+        serviceScope.launch {
+            NodeExaminer.examineAccessibilityTree(
+                rootInActiveWindow,
+                windows,
+                this@SwitchifyAccessibilityService,
+                this
+            )
+            KeyboardBridge.updateKeyboardState(windows)
         }
-        KeyboardBridge.updateKeyboardState(windows, this)
     }
 
     override fun onInterrupt() {}
@@ -137,12 +140,15 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner {
             }
         })
 
-        rootInActiveWindow?.let { rootNode ->
-            serviceScope.launch {
-                NodeExaminer.findNodes(rootNode, this@SwitchifyAccessibilityService, this)
-            }
+        serviceScope.launch {
+            NodeExaminer.examineAccessibilityTree(
+                rootInActiveWindow,
+                windows,
+                this@SwitchifyAccessibilityService,
+                this
+            )
+            KeyboardBridge.updateKeyboardState(windows)
         }
-        KeyboardBridge.updateKeyboardState(windows, this)
 
         // Update the NodeScanner with the current layout info
         serviceScope.launch {
