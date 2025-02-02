@@ -8,7 +8,6 @@ import com.enaboapps.switchify.service.gestures.GesturePoint
 import com.enaboapps.switchify.service.menu.MenuItem
 import com.enaboapps.switchify.service.scanning.ScanNodeInterface
 import com.enaboapps.switchify.service.selection.SelectionHandler
-import com.enaboapps.switchifykeyboardscanlib.KeyboardNodeInfo
 
 /**
  * This class represents a node
@@ -46,23 +45,6 @@ class Node(
             node.centerY = rect.centerY()
             node.width = rect.width()
             node.height = rect.height()
-            return node
-        }
-
-        /**
-         * This function creates a node from a [KeyboardNodeInfo] object
-         * @param keyboardSwitchifyNode The [KeyboardNodeInfo] object
-         * @return The node
-         */
-        fun fromKeyboardSwitchifyNode(keyboardSwitchifyNode: KeyboardNodeInfo): Node {
-            val node = Node()
-            node.x = keyboardSwitchifyNode.x.toInt()
-            node.y = keyboardSwitchifyNode.y.toInt()
-            node.centerX = (keyboardSwitchifyNode.x + keyboardSwitchifyNode.width / 2).toInt()
-            node.centerY = (keyboardSwitchifyNode.y + keyboardSwitchifyNode.height / 2).toInt()
-            node.width = keyboardSwitchifyNode.width.toInt()
-            node.height = keyboardSwitchifyNode.height.toInt()
-            node.contentDescription = keyboardSwitchifyNode.contentDescription
             return node
         }
 

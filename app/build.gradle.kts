@@ -156,7 +156,6 @@ dependencies {
     implementation(libs.play.services.reviews.ktx)
     implementation(libs.credentials)
     implementation(libs.google.id)
-    implementation(libs.switchifykeyboardscanlib)
     implementation(libs.revenuecat)
     implementation(libs.revenuecat.ui)
     implementation(libs.amplitude.analytics)

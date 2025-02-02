@@ -3,6 +3,7 @@ package com.enaboapps.switchify.service.methods.nodes
 import android.content.Context
 import android.graphics.PointF
 import android.view.accessibility.AccessibilityNodeInfo
+import android.view.accessibility.AccessibilityWindowInfo
 import com.enaboapps.switchify.service.utils.ScreenUtils
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -42,41 +43,54 @@ object NodeExaminer {
      * It flattens the accessibility tree starting from the rootNode, filters out nodes not on the screen,
      * and emits an update if the actionable nodes have changed. Includes deep content examination for empty nodes.
      *
-     * @param rootNode The root node to start the examination from.
+     * @param activeWindowRootNode The root node of the active window.
+     * @param windows The list of windows.
      * @param context The current context, used to get screen dimensions for filtering nodes.
      * @param coroutineScope The CoroutineScope in which to perform the node examination.
      */
-    fun findNodes(
-        rootNode: AccessibilityNodeInfo,
+    fun examineAccessibilityTree(
+        activeWindowRootNode: AccessibilityNodeInfo?,
+        windows: List<AccessibilityWindowInfo>,
         context: Context,
         coroutineScope: CoroutineScope
     ) {
+        var rootNode: AccessibilityNodeInfo? = null
+        val inputMethodWindow = windows.firstOrNull { window ->
+            window.type == AccessibilityWindowInfo.TYPE_INPUT_METHOD
+        }
+        rootNode = if (inputMethodWindow != null) {
+            inputMethodWindow.root
+        } else {
+            activeWindowRootNode
+        }
         try {
-            coroutineScope.launch(Dispatchers.Default) {
-                val newNodeInfos = flattenTree(rootNode)
+            rootNode?.let { rootNode ->
+                coroutineScope.launch(Dispatchers.Default) {
+                    val newNodeInfos = flattenTree(rootNode)
 
-                // Enhanced node examination for all nodes
-                allNodes = newNodeInfos.map { nodeInfo ->
-                    examineNodeContent(nodeInfo)
-                }
+                    // Enhanced node examination for all nodes
+                    allNodes = newNodeInfos.map { nodeInfo ->
+                        examineNodeContent(nodeInfo)
+                    }
 
-                // Enhanced node examination for actionable nodes
-                val newActionableNodes = newNodeInfos
-                    .filter { it.isClickable || it.isLongClickable }
-                    .map { examineNodeContent(it) }
+                    // Enhanced node examination for actionable nodes
+                    val newActionableNodes = newNodeInfos
+                        .filter { it.isClickable || it.isLongClickable }
+                        .map { examineNodeContent(it) }
 
-                val width = ScreenUtils.getWidth(context)
-                val height = ScreenUtils.getHeight(context)
+                    val width = ScreenUtils.getWidth(context)
+                    val height = ScreenUtils.getHeight(context)
 
-                val filteredNewActionableNodes = newActionableNodes.filter {
-                    it.getLeft() >= 0 && it.getTop() >= 0 &&
-                            it.getLeft() <= width && it.getTop() <= height &&
-                            it.getWidth() > 0 && it.getHeight() > 0
-                }
+                    val filteredNewActionableNodes = newActionableNodes.filter {
+                        it.getLeft() >= 0 && it.getTop() >= 0 &&
+                                it.getLeft() <= width && it.getTop() <= height &&
+                                it.getWidth() > 0 && it.getHeight() > 0
+                    }
 
-                if (actionableNodes != filteredNewActionableNodes) {
-                    actionableNodes = filteredNewActionableNodes
-                    updateFlow.emit(actionableNodes)
+                    if (actionableNodes != filteredNewActionableNodes) {
+                        actionableNodes = filteredNewActionableNodes
+                        updateFlow.emit(actionableNodes)
+                    }
                 }
             }
         } catch (e: Exception) {

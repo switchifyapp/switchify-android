@@ -94,7 +94,7 @@ class ScanningManager(
      * @param nodes List of Node instances representing the current screen layout.
      */
     fun updateNodes(nodes: List<Node>) {
-        nodeScanner.setScreenNodes(nodes)
+        nodeScanner.updateNodes(nodes)
     }
 
     /**
