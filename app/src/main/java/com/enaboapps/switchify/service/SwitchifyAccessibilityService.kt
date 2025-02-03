@@ -107,7 +107,7 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner {
                 this@SwitchifyAccessibilityService,
                 this
             )
-            KeyboardBridge.updateKeyboardState(windows)
+            KeyboardBridge.updateKeyboardState(windows, scanSettings)
         }
     }
 
@@ -147,7 +147,7 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner {
                 this@SwitchifyAccessibilityService,
                 this
             )
-            KeyboardBridge.updateKeyboardState(windows)
+            KeyboardBridge.updateKeyboardState(windows, scanSettings)
         }
 
         // Update the NodeScanner with the current layout info

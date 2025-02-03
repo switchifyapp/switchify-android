@@ -24,6 +24,7 @@ class PreferenceManager(context: Context) {
         const val PREFERENCE_KEY_PAUSE_ON_FIRST_ITEM_DELAY = "pause_on_first_item_delay"
         const val PREFERENCE_KEY_GROUP_SCAN = "group_scan"
         const val PREFERENCE_KEY_AUTO_SELECT = "auto_select"
+        const val PREFERENCE_KEY_DIRECTLY_SELECT_KEYBOARD_KEYS = "directly_select_keyboard_keys"
         const val PREFERENCE_KEY_AUTO_SELECT_DELAY = "auto_select_delay"
         const val PREFERENCE_KEY_ASSISTED_SELECTION = "assisted_selection"
         const val PREFERENCE_KEY_CURSOR_MODE = "cursor_mode"

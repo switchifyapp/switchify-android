@@ -3,6 +3,8 @@ package com.enaboapps.switchify.service.utils
 import android.util.Log
 import android.view.accessibility.AccessibilityWindowInfo
 import com.enaboapps.switchify.service.scanning.ScanMethod
+import com.enaboapps.switchify.service.scanning.ScanSettings
+import com.enaboapps.switchify.service.selection.SelectionHandler
 
 object KeyboardBridge {
     var isKeyboardVisible = false
@@ -10,7 +12,7 @@ object KeyboardBridge {
     // Track last scan type to go back to it after keyboard is dismissed
     private var lastScanType: String = ScanMethod.getType()
 
-    fun updateKeyboardState(windows: List<AccessibilityWindowInfo>) {
+    fun updateKeyboardState(windows: List<AccessibilityWindowInfo>, scanSettings: ScanSettings) {
         val keyboardWindow = windows.firstOrNull { window ->
             window.type == AccessibilityWindowInfo.TYPE_INPUT_METHOD
         }
@@ -20,12 +22,18 @@ object KeyboardBridge {
                 ScanMethod.setType(ScanMethod.MethodType.ITEM_SCAN)
             }
 
+            if (scanSettings.isDirectlySelectKeyboardKeysEnabled()) {
+                SelectionHandler.setBypassAutoSelect(true)
+            }
+
             isKeyboardVisible = true
         } else {
             if (isKeyboardVisible) {
                 // Go back to last scan type
                 ScanMethod.setType(lastScanType)
             }
+
+            SelectionHandler.setBypassAutoSelect(false)
 
             isKeyboardVisible = false
         }

@@ -22,6 +22,12 @@ class SettingsScreenModel(context: Context) : ViewModel() {
     }
     val autoSelectDelay: LiveData<Long> = _autoSelectDelay
 
+    private val _directlySelectKeyboardKeys = MutableLiveData<Boolean>().apply {
+        value =
+            preferenceManager.getBooleanValue(PreferenceManager.Keys.PREFERENCE_KEY_DIRECTLY_SELECT_KEYBOARD_KEYS)
+    }
+    val directlySelectKeyboardKeys: LiveData<Boolean> = _directlySelectKeyboardKeys
+
     private val _assistedSelection = MutableLiveData<Boolean>().apply {
         value =
             preferenceManager.getBooleanValue(PreferenceManager.Keys.PREFERENCE_KEY_ASSISTED_SELECTION)
@@ -51,6 +57,16 @@ class SettingsScreenModel(context: Context) : ViewModel() {
                 delay
             )
             _autoSelectDelay.postValue(delay)
+        }
+    }
+
+    fun setDirectlySelectKeyboardKeys(value: Boolean) {
+        viewModelScope.launch {
+            preferenceManager.setBooleanValue(
+                PreferenceManager.Keys.PREFERENCE_KEY_DIRECTLY_SELECT_KEYBOARD_KEYS,
+                value
+            )
+            _directlySelectKeyboardKeys.postValue(value)
         }
     }
 
