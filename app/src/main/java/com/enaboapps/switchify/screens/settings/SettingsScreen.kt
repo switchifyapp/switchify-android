@@ -5,6 +5,7 @@ import android.net.Uri
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -205,27 +206,38 @@ private fun ActionsSection(navController: NavController) {
 
 @Composable
 private fun SelectionSection(screenModel: SettingsScreenModel) {
+    val autoSelect = screenModel.autoSelect.observeAsState()
     Section(title = "Selection") {
         PreferenceSwitch(
             title = "Auto select",
-            summary = "Automatically select the item after a delay",
+            summary = "Automatically select the item after a delay. If you press the switch again during the delay, the menu will be opened.",
             checked = screenModel.autoSelect.value == true,
             onCheckedChange = {
                 screenModel.setAutoSelect(it)
             }
         )
-        PreferenceTimeStepper(
-            value = screenModel.autoSelectDelay.value ?: 0,
-            title = "Auto select delay",
-            summary = "The delay before the item is selected",
-            min = 100,
-            max = 100000
-        ) {
-            screenModel.setAutoSelectDelay(it)
+        if (autoSelect.value == true) {
+            PreferenceTimeStepper(
+                value = screenModel.autoSelectDelay.value ?: 0,
+                title = "Auto select delay",
+                summary = "The delay before the item is selected. If you press the switch again during the delay, the menu will be opened.",
+                min = 100,
+                max = 100000
+            ) {
+                screenModel.setAutoSelectDelay(it)
+            }
         }
         PreferenceSwitch(
+            title = "Directly select keyboard keys",
+            summary = "If enabled, the switch will directly select keyboard keys instead of giving the user the option to open the menu.",
+            checked = screenModel.directlySelectKeyboardKeys.value == true,
+            onCheckedChange = {
+                screenModel.setDirectlySelectKeyboardKeys(it)
+            }
+        )
+        PreferenceSwitch(
             title = "Assisted selection",
-            summary = "Assist the user in selecting items by selecting the closest available item to where they tap",
+            summary = "Assist the user in selecting items by selecting the closest available item to where they select.",
             checked = screenModel.assistedSelection.value == true,
             onCheckedChange = {
                 screenModel.setAssistedSelection(it)

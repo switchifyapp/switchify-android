@@ -132,6 +132,14 @@ class ScanSettings(context: Context) {
     }
 
     /**
+     * Check if directly select keyboard keys is enabled
+     * @return true if directly select keyboard keys is enabled, false otherwise
+     */
+    fun isDirectlySelectKeyboardKeysEnabled(): Boolean {
+        return preferenceManager.getBooleanValue(PreferenceManager.Keys.PREFERENCE_KEY_DIRECTLY_SELECT_KEYBOARD_KEYS)
+    }
+
+    /**
      * Check if row column scan is enabled
      * @return true if row column scan is enabled, false otherwise
      */
