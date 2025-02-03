@@ -240,7 +240,6 @@ fun AboutSection() {
     val version = context.packageManager.getPackageInfo(context.packageName, 0).versionName
 
     val websiteUrl = "https://switchifyapp.com"
-    val repositoryUrl = "https://github.com/enaboapps/switchify"
     val privacyPolicyUrl = "https://www.switchifyapp.com/privacy"
 
     ScrollableView {
@@ -279,13 +278,6 @@ fun AboutSection() {
         FullWidthButton(text = "Website", onClick = {
             context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(websiteUrl)))
         })
-        Spacer(modifier = Modifier.height(16.dp))
-        FullWidthButton(
-            text = "View on GitHub",
-            onClick = {
-                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(repositoryUrl)))
-            }
-        )
         Spacer(modifier = Modifier.height(16.dp))
         FullWidthButton(
             text = "Privacy Policy",
