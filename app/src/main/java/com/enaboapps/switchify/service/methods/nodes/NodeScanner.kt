@@ -1,8 +1,10 @@
 package com.enaboapps.switchify.service.methods.nodes
 
 import android.content.Context
+import android.util.Log
 import com.enaboapps.switchify.service.scanning.ScanMethod
 import com.enaboapps.switchify.service.scanning.tree.ScanTree
+import com.enaboapps.switchify.service.scanning.tree.ScanTreeCallback
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -14,7 +16,8 @@ import kotlinx.coroutines.withContext
  * NodeScanner is a class that handles the scanning of nodes.
  * It manages the scanning process using a ScanTree instance and handles updates from NodeExaminer.
  */
-class NodeScanner {
+class NodeScanner : ScanTreeCallback {
+    private val TAG = "NodeScanner"
     private lateinit var context: Context
     lateinit var scanTree: ScanTree
     private var currentNodes: List<Node> = emptyList()
@@ -29,7 +32,12 @@ class NodeScanner {
     fun start(context: Context) {
         this.context = context
         startTimeoutToRevertToCursor()
-        scanTree = ScanTree(context = context, stopScanningOnSelect = true)
+        scanTree = ScanTree(
+            context = context, 
+            stopScanningOnSelect = true,
+            hasExtraCycleStep = true,
+            callback = this
+        )
         NodeSpeaker.init(context)
     }
 
@@ -44,10 +52,10 @@ class NodeScanner {
                 withContext(Dispatchers.Main) {
                     scanTree.reset()
                     ScanMethod.setType(ScanMethod.MethodType.CURSOR)
-                    println("ScanMethod changed to cursor")
+                    Log.d(TAG, "ScanMethod changed to cursor")
                 }
             } else {
-                println("ScanMethod not changed, nodes.size: ${currentNodes.size}")
+                Log.d(TAG, "ScanMethod not changed, nodes.size: ${currentNodes.size}")
             }
         }
     }
@@ -64,5 +72,21 @@ class NodeScanner {
         if (nodes.isEmpty()) {
             startTimeoutToRevertToCursor()
         }
+    }
+
+    override fun onScanTreeCycleExtraStepRequested() {
+        Log.d(TAG, "Extra step requested")
+    }
+
+    override fun onScanTreeCycleExtraStepIgnored() {
+        Log.d(TAG, "Extra step ignored")
+    }
+
+    override fun onScanTreeCycleExtraStepSelected() {
+        Log.d(TAG, "Extra step selected")
+    }
+
+    override fun onSingleCycleCompleted(cycleNumber: Int) {
+        Log.d(TAG, "Cycle completed: $cycleNumber")
     }
 }

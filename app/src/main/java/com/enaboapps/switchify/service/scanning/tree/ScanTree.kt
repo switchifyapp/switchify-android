@@ -8,6 +8,13 @@ import com.enaboapps.switchify.service.scanning.ScanNodeInterface
 import com.enaboapps.switchify.service.scanning.ScanSettings
 import com.enaboapps.switchify.service.scanning.ScanningScheduler
 
+interface ScanTreeCallback {
+    fun onScanTreeCycleExtraStepRequested()
+    fun onScanTreeCycleExtraStepIgnored()
+    fun onScanTreeCycleExtraStepSelected()
+    fun onSingleCycleCompleted(cycleNumber: Int)
+}
+
 /**
  * This class represents the main scanning tree for switch access functionality.
  * It orchestrates the interactions between various components to manage the scanning process.
@@ -17,8 +24,14 @@ import com.enaboapps.switchify.service.scanning.ScanningScheduler
  */
 class ScanTree(
     private val context: Context,
-    private var stopScanningOnSelect: Boolean = false
+    private var stopScanningOnSelect: Boolean = false,
+    private val hasExtraCycleStep: Boolean = false,
+    private val callback: ScanTreeCallback? = null
 ) : ScanMethodBase {
+
+    companion object {
+        private const val TAG = "ScanTree"
+    }
 
     /** The settings for scanning behavior. */
     private val scanSettings = ScanSettings(context)
@@ -52,7 +65,7 @@ class ScanTree(
      * Initializes the navigator, selector, and highlighter components.
      */
     private fun initializeComponents() {
-        navigator = ScanTreeNavigator(tree, scanSettings)
+        navigator = ScanTreeNavigator(tree, scanSettings, hasExtraCycleStep)
         selector = ScanTreeSelector(tree, navigator, scanSettings, stopScanningOnSelect)
         highlighter = ScanTreeHighlighter(tree, scanSettings)
     }
@@ -100,13 +113,20 @@ class ScanTree(
 
             if (scanningScheduler?.isScanning() == false && scanSettings.isAutoScanMode()) {
                 startScanning()
-                Log.d("ScanTree", "Scanning started")
+                Log.d(TAG, "Scanning started")
                 return
             }
 
             unhighlightCurrent()
 
             if (handleEscape(true)) {
+                return
+            }
+
+            if (navigator.isExtraCycleStep) {
+                callback?.onScanTreeCycleExtraStepSelected()
+                stopScanning()
+                Log.d(TAG, "onScanTreeCycleExtraStepSelected")
                 return
             }
 
@@ -119,10 +139,10 @@ class ScanTree(
                 resumeScanning()
             }
             if (!selectionMade) {
-                highlightCurrent() // Ensure we highlight after selecting an item or group
+                highlightCurrent()
             }
         } catch (e: Exception) {
-            Log.e("ScanTree", "Error performing selection: ${e.message}")
+            Log.e(TAG, "Error performing selection: ${e.message}")
         }
     }
 
@@ -246,6 +266,71 @@ class ScanTree(
     }
 
     /**
+     * Handles cycle completion and extra step logic
+     * @param wasInExtraStep Whether we were in extra step before movement
+     * @param shouldPauseOnExtraStep Whether to pause scanning when extra step is requested
+     * @return True if we should return early (e.g., when extra step is requested)
+     */
+    private fun handleCycleCompletion(
+        wasInExtraStep: Boolean,
+        shouldPauseOnExtraStep: Boolean = false
+    ): Boolean {
+        Log.d(
+            TAG,
+            "Cycle completed: hasCompletedCycle=${navigator.hasCompletedCycle()}, wasInExtraStep=$wasInExtraStep, isExtraCycleStep=${navigator.isExtraCycleStep}, isAutoScanMode=${scanSettings.isAutoScanMode()}"
+        )
+        if (navigator.hasCompletedCycle()) {
+            if (navigator.isExtraCycleStep) {
+                callback?.onScanTreeCycleExtraStepRequested()
+                if (shouldPauseOnExtraStep) {
+                    pauseScanning()
+                }
+                return true
+            }
+            callback?.onSingleCycleCompleted(navigator.currentCycle)
+        } else if (wasInExtraStep) {
+            navigator.ignoreExtraCycleStep()
+            callback?.onScanTreeCycleExtraStepIgnored()
+            if (scanSettings.isAutoScanMode()) {
+                resumeScanning()
+            }
+            highlightCurrent()
+            return true
+        }
+        return false
+    }
+
+    /**
+     * Steps through the scanning tree automatically.
+     * This method is called by the scanning scheduler during automatic scanning.
+     */
+    private fun stepAutoScanning() {
+        unhighlightCurrent()
+
+        if (handleCycles()) {
+            return
+        }
+
+        if (handleEscape()) {
+            return
+        }
+
+        val wasInExtraStep = navigator.isExtraCycleStep
+
+        if (handleCycleCompletion(wasInExtraStep, shouldPauseOnExtraStep = true)) {
+            return
+        }
+
+        val movementSuccessful = navigator.moveSelectionToNextOrPrevious()
+
+        if (highlightEscape(!movementSuccessful)) {
+            return
+        }
+
+        highlightCurrent()
+    }
+
+    /**
      * Manually steps forward in the scanning tree.
      * This method is used for manual navigation through the tree.
      */
@@ -255,7 +340,13 @@ class ScanTree(
         }
 
         unhighlightCurrent()
+        val wasInExtraStep = navigator.isExtraCycleStep
         val movementSuccessful = navigator.moveSelectionToNext()
+
+        if (handleCycleCompletion(wasInExtraStep)) {
+            return
+        }
+
         if (highlightEscape(!movementSuccessful)) {
             return
         }
@@ -272,7 +363,13 @@ class ScanTree(
         }
 
         unhighlightCurrent()
+        val wasInExtraStep = navigator.isExtraCycleStep
         val movementSuccessful = navigator.moveSelectionToPrevious()
+
+        if (handleCycleCompletion(wasInExtraStep)) {
+            return
+        }
+
         if (highlightEscape(!movementSuccessful)) {
             return
         }
@@ -309,37 +406,18 @@ class ScanTree(
     }
 
     /**
-     * Steps through the scanning tree automatically.
-     * This method is called by the scanning scheduler during automatic scanning.
-     */
-    private fun stepAutoScanning() {
-        unhighlightCurrent()
-
-        if (handleCycles()) {
-            return
-        }
-
-        if (handleEscape()) {
-            return
-        }
-
-        val movementSuccessful = navigator.moveSelectionToNextOrPrevious()
-
-        if (highlightEscape(!movementSuccessful)) {
-            return
-        }
-
-        highlightCurrent()
-    }
-
-    /**
      * Highlights the current item, group, or node based on the current state.
      */
     private fun highlightCurrent() {
         Log.d(
-            "ScanTree",
+            TAG,
             "Highlighting current: treeItem=${navigator.currentTreeItem}, group=${navigator.currentGroup}, column=${navigator.currentColumn}, isInTreeItem=${navigator.isInTreeItem}, isScanningGroups=${navigator.isScanningGroups}"
         )
+
+        if (navigator.isExtraCycleStep) {
+            return
+        }
+
         highlighter.highlightCurrent(
             navigator.currentTreeItem,
             navigator.currentGroup,
@@ -373,7 +451,7 @@ class ScanTree(
             reset()
             highlightCurrent() // Highlight the first item
             if (scanSettings.isAutoScanMode()) {
-                Log.d("ScanTree", "startScanning")
+                Log.d(TAG, "startScanning")
                 scanningScheduler?.startScanning()
             }
         }
