@@ -11,12 +11,12 @@ import com.enaboapps.switchify.service.scanning.ScanSettings
  *
  * @property tree The list of ScanTreeItems that make up the scanning tree.
  * @property scanSettings The settings for scanning behavior.
- * @property hasExtraCycleStep Indicates whether we're in the extra cycle step
+ * @property hasCycleBreak Indicates whether scanning includes a break between cycles
  */
 class ScanTreeNavigator(
     private val tree: List<ScanTreeItem>,
     private val scanSettings: ScanSettings,
-    private val hasExtraCycleStep: Boolean = false
+    private val hasCycleBreak: Boolean = false
 ) {
     /** The index of the current tree item being scanned. */
     var currentTreeItem = 0
@@ -39,8 +39,8 @@ class ScanTreeNavigator(
     /** Indicates whether we're scanning groups or items within a group. */
     var isScanningGroups = true
 
-    /** Indicates whether we're in the extra cycle step */
-    var isExtraCycleStep = false
+    /** Indicates whether we're in the cycle break */
+    var isInCycleBreak = false
 
     /** Flag to track if we just completed a cycle */
     private var justCompletedCycle = false
@@ -70,7 +70,7 @@ class ScanTreeNavigator(
      * Main movement function that handles both directions based on current scan direction
      */
     fun moveSelectionToNextOrPrevious(): Boolean {
-        if (isExtraCycleStep) return false
+        if (isInCycleBreak) return false
 
         return if (!isRowColumnScanEnabled) {
             handleSequentialMovement()
@@ -99,7 +99,7 @@ class ScanTreeNavigator(
      * Moves selection forward based on current scanning mode and state
      */
     fun moveSelectionToNext(): Boolean {
-        if (isExtraCycleStep) return false
+        if (isInCycleBreak) return false
 
         return if (!isRowColumnScanEnabled) {
             moveSequentialNext()
@@ -117,7 +117,7 @@ class ScanTreeNavigator(
      * Moves selection backward based on current scanning mode and state
      */
     fun moveSelectionToPrevious(): Boolean {
-        if (isExtraCycleStep) return false
+        if (isInCycleBreak) return false
 
         return if (!isRowColumnScanEnabled) {
             moveSequentialPrevious()
@@ -241,13 +241,13 @@ class ScanTreeNavigator(
     }
 
     /**
-     * Handles cycle completion and extra step logic
+     * Handles cycle completion and break logic
      */
     private fun handleCycleCompletion() {
-        if (isExtraCycleStep) {
-            isExtraCycleStep = false
-        } else if (hasExtraCycleStep) {
-            isExtraCycleStep = true
+        if (isInCycleBreak) {
+            isInCycleBreak = false
+        } else if (hasCycleBreak) {
+            isInCycleBreak = true
         }
         justCompletedCycle = true
         currentCycle++
@@ -396,7 +396,7 @@ class ScanTreeNavigator(
         isScanningGroups = scanSettings.isGroupScanEnabled()
         shouldEscapeItem = false
         shouldEscapeGroup = false
-        isExtraCycleStep = false
+        isInCycleBreak = false
         justCompletedCycle = false
         scanDirection = ScanDirection.DOWN
     }
@@ -426,11 +426,11 @@ class ScanTreeNavigator(
     }
 
     /**
-     * Handles ignoring the extra cycle step
+     * Handles skipping the cycle break
      */
-    fun ignoreExtraCycleStep() {
-        if (isExtraCycleStep) {
-            isExtraCycleStep = false
+    fun skipCycleBreak() {
+        if (isInCycleBreak) {
+            isInCycleBreak = false
         }
     }
 }
