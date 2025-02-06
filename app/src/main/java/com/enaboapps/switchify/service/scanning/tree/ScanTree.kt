@@ -9,9 +9,9 @@ import com.enaboapps.switchify.service.scanning.ScanSettings
 import com.enaboapps.switchify.service.scanning.ScanningScheduler
 
 interface ScanTreeCallback {
-    fun onScanTreeCycleExtraStepRequested()
-    fun onScanTreeCycleExtraStepIgnored()
-    fun onScanTreeCycleExtraStepSelected()
+    fun onScanTreeCycleBreakStarted()
+    fun onScanTreeCycleBreakSkipped()
+    fun onScanTreeCycleBreakSelected()
     fun onSingleCycleCompleted(cycleNumber: Int)
 }
 
@@ -21,11 +21,12 @@ interface ScanTreeCallback {
  *
  * @property context The application context.
  * @property stopScanningOnSelect Whether to stop scanning after a selection is made.
+ * @property hasCycleBreak Whether to include a break between scanning cycles.
  */
 class ScanTree(
     private val context: Context,
     private var stopScanningOnSelect: Boolean = false,
-    private val hasExtraCycleStep: Boolean = false,
+    private val hasCycleBreak: Boolean = false,
     private val callback: ScanTreeCallback? = null
 ) : ScanMethodBase {
 
@@ -65,7 +66,7 @@ class ScanTree(
      * Initializes the navigator, selector, and highlighter components.
      */
     private fun initializeComponents() {
-        navigator = ScanTreeNavigator(tree, scanSettings, hasExtraCycleStep)
+        navigator = ScanTreeNavigator(tree, scanSettings, hasCycleBreak)
         selector = ScanTreeSelector(tree, navigator, scanSettings, stopScanningOnSelect)
         highlighter = ScanTreeHighlighter(tree, scanSettings)
     }
@@ -123,10 +124,10 @@ class ScanTree(
                 return
             }
 
-            if (navigator.isExtraCycleStep) {
-                callback?.onScanTreeCycleExtraStepSelected()
+            if (navigator.isInCycleBreak) {
+                callback?.onScanTreeCycleBreakSelected()
                 stopScanning()
-                Log.d(TAG, "onScanTreeCycleExtraStepSelected")
+                Log.d(TAG, "onScanTreeCycleBreakSelected")
                 return
             }
 
@@ -266,34 +267,26 @@ class ScanTree(
     }
 
     /**
-     * Handles cycle completion and extra step logic
-     * @param wasInExtraStep Whether we were in extra step before movement
-     * @param shouldPauseOnExtraStep Whether to pause scanning when extra step is requested
-     * @return True if we should return early (e.g., when extra step is requested)
+     * Handles cycle completion and break logic
+     * @param wasInCycleBreak Whether we were in cycle break before movement
+     * @return True if we should return early (e.g., when break is started)
      */
     private fun handleCycleCompletion(
-        wasInExtraStep: Boolean,
-        shouldPauseOnExtraStep: Boolean = false
+        wasInCycleBreak: Boolean
     ): Boolean {
-        Log.d(
-            TAG,
-            "Cycle completed: hasCompletedCycle=${navigator.hasCompletedCycle()}, wasInExtraStep=$wasInExtraStep, isExtraCycleStep=${navigator.isExtraCycleStep}, isAutoScanMode=${scanSettings.isAutoScanMode()}"
-        )
         if (navigator.hasCompletedCycle()) {
-            if (navigator.isExtraCycleStep) {
-                callback?.onScanTreeCycleExtraStepRequested()
-                if (shouldPauseOnExtraStep) {
-                    pauseScanning()
-                }
+            Log.d(
+                TAG,
+                "Cycle is completed with navigator cycle break: ${navigator.isInCycleBreak}"
+            )
+            callback?.onSingleCycleCompleted(navigator.currentCycle)
+            if (navigator.isInCycleBreak) {
+                callback?.onScanTreeCycleBreakStarted()
                 return true
             }
-            callback?.onSingleCycleCompleted(navigator.currentCycle)
-        } else if (wasInExtraStep) {
-            navigator.ignoreExtraCycleStep()
-            callback?.onScanTreeCycleExtraStepIgnored()
-            if (scanSettings.isAutoScanMode()) {
-                resumeScanning()
-            }
+        } else if (wasInCycleBreak) {
+            navigator.skipCycleBreak()
+            callback?.onScanTreeCycleBreakSkipped()
             highlightCurrent()
             return true
         }
@@ -315,15 +308,22 @@ class ScanTree(
             return
         }
 
-        val wasInExtraStep = navigator.isExtraCycleStep
+        val movementSuccessful = navigator.moveSelectionToNextOrPrevious()
+        handlePostMovement(movementSuccessful)
+    }
 
-        if (handleCycleCompletion(wasInExtraStep, shouldPauseOnExtraStep = true)) {
+    /**
+     * Handles post-movement logic, such as highlighting and highlighting the escape.
+     * @param movementSuccessful Whether the movement was successful.
+     */
+    private fun handlePostMovement(movementSuccessful: Boolean) {
+        val wasInCycleBreak = navigator.isInCycleBreak
+
+        if (handleCycleCompletion(wasInCycleBreak)) {
             return
         }
 
-        val movementSuccessful = navigator.moveSelectionToNextOrPrevious()
-
-        if (highlightEscape(!movementSuccessful)) {
+        if (highlightEscape(!movementSuccessful && !wasInCycleBreak)) {
             return
         }
 
@@ -340,17 +340,9 @@ class ScanTree(
         }
 
         unhighlightCurrent()
-        val wasInExtraStep = navigator.isExtraCycleStep
+
         val movementSuccessful = navigator.moveSelectionToNext()
-
-        if (handleCycleCompletion(wasInExtraStep)) {
-            return
-        }
-
-        if (highlightEscape(!movementSuccessful)) {
-            return
-        }
-        highlightCurrent()
+        handlePostMovement(movementSuccessful)
     }
 
     /**
@@ -363,17 +355,9 @@ class ScanTree(
         }
 
         unhighlightCurrent()
-        val wasInExtraStep = navigator.isExtraCycleStep
+
         val movementSuccessful = navigator.moveSelectionToPrevious()
-
-        if (handleCycleCompletion(wasInExtraStep)) {
-            return
-        }
-
-        if (highlightEscape(!movementSuccessful)) {
-            return
-        }
-        highlightCurrent()
+        handlePostMovement(movementSuccessful)
     }
 
     /**
@@ -414,7 +398,7 @@ class ScanTree(
             "Highlighting current: treeItem=${navigator.currentTreeItem}, group=${navigator.currentGroup}, column=${navigator.currentColumn}, isInTreeItem=${navigator.isInTreeItem}, isScanningGroups=${navigator.isScanningGroups}"
         )
 
-        if (navigator.isExtraCycleStep) {
+        if (navigator.isInCycleBreak) {
             return
         }
 
@@ -476,6 +460,7 @@ class ScanTree(
      */
     override fun stopScanning() {
         scanningScheduler?.stopScanning()
+        callback?.onScanTreeCycleBreakSkipped()
     }
 
     /**
