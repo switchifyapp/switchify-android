@@ -3,6 +3,7 @@ package com.enaboapps.switchify.service.menu
 import com.enaboapps.switchify.service.SwitchifyAccessibilityService
 import com.enaboapps.switchify.service.gestures.visuals.CurrentPointVisual
 import com.enaboapps.switchify.service.menu.menus.custom.MyActionsMenu
+import com.enaboapps.switchify.service.menu.menus.cyclebreak.ScanCycleBreakMenu
 import com.enaboapps.switchify.service.menu.menus.edit.EditMenu
 import com.enaboapps.switchify.service.menu.menus.gestures.CustomGestureConfirmationMenu
 import com.enaboapps.switchify.service.menu.menus.gestures.GesturesMenu
@@ -192,6 +193,14 @@ class MenuManager {
     fun openCustomGestureConfirmationMenu() {
         val customGestureConfirmationMenu = CustomGestureConfirmationMenu(accessibilityService!!)
         openMenu(customGestureConfirmationMenu.build())
+    }
+
+    /**
+     * This function opens the scan cycle break menu
+     */
+    fun openScanCycleBreakMenu() {
+        val scanCycleBreakMenu = ScanCycleBreakMenu(accessibilityService!!)
+        openMenu(scanCycleBreakMenu.build())
     }
 
     /**
