@@ -35,6 +35,8 @@ class MenuPage(
             LinearLayout.LayoutParams.MATCH_PARENT,
             LinearLayout.LayoutParams.WRAP_CONTENT
         )
+        baseLayout.setBackgroundResource(R.drawable.menu_background)
+        baseLayout.setPadding(50, 50, 50, 50)
     }
 
     /**
@@ -141,7 +143,7 @@ class MenuPage(
                 LinearLayout.LayoutParams.WRAP_CONTENT
             ).also {
                 it.gravity = Gravity.CENTER_HORIZONTAL
-                it.topMargin = 24
+                it.topMargin = 32
             }
         }
     }

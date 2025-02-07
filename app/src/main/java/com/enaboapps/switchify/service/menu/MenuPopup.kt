@@ -2,7 +2,6 @@ package com.enaboapps.switchify.service.menu
 
 import android.content.Context
 import android.graphics.Color
-import android.graphics.drawable.GradientDrawable
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
@@ -62,27 +61,17 @@ class MenuPopup {
                 ViewGroup.LayoutParams.WRAP_CONTENT
             )
 
-            // Create a rounded rectangle background
-            val bg = GradientDrawable().apply {
-                shape = GradientDrawable.RECTANGLE
-                cornerRadius = context.resources.displayMetrics.density * 16 // 16dp rounded corners
-                setColor(Color.WHITE)
-                setStroke(2, ContextCompat.getColor(context, R.color.red_500))
-
-                // Add elevation effect with shadow
-                elevation = context.resources.displayMetrics.density * 4 // 4dp elevation
-            }
-            background = bg
+            background = ContextCompat.getDrawable(context, R.drawable.menu_background)
 
             // Add padding around the content
-            val padding = (context.resources.displayMetrics.density * 16).toInt() // 16dp padding
+            val padding = 50
             setPadding(padding, padding, padding, padding)
         }
 
         // Create TextView for the message with improved styling
         val messageText = TextView(context).apply {
             text = "Press to open menu"
-            setTextColor(ContextCompat.getColor(context, R.color.red_500))
+            setTextColor(Color.WHITE)
             textSize = 18f // Slightly larger text
             gravity = Gravity.CENTER
 
