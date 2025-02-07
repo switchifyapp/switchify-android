@@ -194,11 +194,11 @@ class ScanTree(
     }
 
     /**
-     * Handles the number of cycles for the scanning tree
-     * @return True if cycles value has reached the user defined value, false otherwise.
+     * Handles the auto scan cycle limit
+     * @return True if the auto scan cycle limit has been reached, false otherwise.
      */
-    private fun handleCycles(): Boolean {
-        if (navigator.handleCycles()) {
+    private fun handleAutoScanCycleLimit(): Boolean {
+        if (navigator.isAutoScanCycleLimitReached()) {
             stopScanning()
             return true
         } else {
@@ -298,18 +298,28 @@ class ScanTree(
      * This method is called by the scanning scheduler during automatic scanning.
      */
     private fun stepAutoScanning() {
+        if (!handlePreMovement()) {
+            val movementSuccessful = navigator.moveSelectionToNextOrPrevious()
+            handlePostMovement(movementSuccessful)
+        }
+    }
+
+    /**
+     * Handles pre-movement logic.
+     *
+     * @return True if the movement was successful, false otherwise.
+     */
+    private fun handlePreMovement(): Boolean {
         unhighlightCurrent()
 
-        if (handleCycles()) {
-            return
+        if (handleAutoScanCycleLimit()) {
+            return true
         }
 
-        if (handleEscape()) {
-            return
-        }
+        val escapeSuccessful = handleEscape()
+        val cycleBreakSuccessful = handleCycleCompletion(navigator.isInCycleBreak)
 
-        val movementSuccessful = navigator.moveSelectionToNextOrPrevious()
-        handlePostMovement(movementSuccessful)
+        return escapeSuccessful || cycleBreakSuccessful
     }
 
     /**
@@ -317,15 +327,12 @@ class ScanTree(
      * @param movementSuccessful Whether the movement was successful.
      */
     private fun handlePostMovement(movementSuccessful: Boolean) {
-        val wasInCycleBreak = navigator.isInCycleBreak
+        val escapeSuccessful = highlightEscape(!movementSuccessful)
+        val cycleBreakSuccessful = handleCycleCompletion(navigator.isInCycleBreak)
 
-        if (handleCycleCompletion(wasInCycleBreak)) {
-            return
-        }
+        if (cycleBreakSuccessful || escapeSuccessful) return
 
-        if (highlightEscape(!movementSuccessful && !wasInCycleBreak)) {
-            return
-        }
+        if (handleAutoScanCycleLimit()) return
 
         highlightCurrent()
     }
@@ -339,10 +346,10 @@ class ScanTree(
             return
         }
 
-        unhighlightCurrent()
-
-        val movementSuccessful = navigator.moveSelectionToNext()
-        handlePostMovement(movementSuccessful)
+        if (!handlePreMovement()) {
+            val movementSuccessful = navigator.moveSelectionToNext()
+            handlePostMovement(movementSuccessful)
+        }
     }
 
     /**
@@ -354,10 +361,10 @@ class ScanTree(
             return
         }
 
-        unhighlightCurrent()
-
-        val movementSuccessful = navigator.moveSelectionToPrevious()
-        handlePostMovement(movementSuccessful)
+        if (!handlePreMovement()) {
+            val movementSuccessful = navigator.moveSelectionToPrevious()
+            handlePostMovement(movementSuccessful)
+        }
     }
 
     /**

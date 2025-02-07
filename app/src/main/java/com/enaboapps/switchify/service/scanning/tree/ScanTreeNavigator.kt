@@ -18,6 +18,13 @@ class ScanTreeNavigator(
     private val scanSettings: ScanSettings,
     private val hasCycleBreak: Boolean = false
 ) {
+    /** Represents the different types of escape states in the scanning tree */
+    sealed class EscapeState {
+        object None : EscapeState()
+        object Item : EscapeState()
+        object Group : EscapeState()
+    }
+
     /** The index of the current tree item being scanned. */
     var currentTreeItem = 0
 
@@ -48,11 +55,8 @@ class ScanTreeNavigator(
     /** The current direction of scanning. */
     var scanDirection = ScanDirection.DOWN
 
-    /** Indicates whether the current item should be escaped. */
-    private var shouldEscapeItem = false
-
-    /** Indicates whether the current group should be escaped. */
-    private var shouldEscapeGroup = false
+    /** The current escape state */
+    private var escapeState: EscapeState = EscapeState.None
 
     /** Indicates whether row-column scanning is enabled based on scan settings. */
     private val isRowColumnScanEnabled: Boolean
@@ -64,6 +68,16 @@ class ScanTreeNavigator(
      */
     private val flattenedNodes: List<ScanNodeInterface> by lazy {
         tree.flatMap { it.children }
+    }
+
+    /**
+     * Validates the scanning direction
+     * Sequential scanning should only allow left and right
+     */
+    private fun validateScanDirection() {
+        if (!isRowColumnScanEnabled && scanDirection != ScanDirection.LEFT && scanDirection != ScanDirection.RIGHT) {
+            scanDirection = ScanDirection.RIGHT
+        }
     }
 
     /**
@@ -86,11 +100,11 @@ class ScanTreeNavigator(
      * Handles movement in sequential (non-row-column) scanning mode
      */
     private fun handleSequentialMovement(): Boolean {
-        if (currentColumn >= flattenedNodes.size - 1) {
-            currentColumn = 0
-            handleCycleCompletion()
-        } else {
-            currentColumn++
+        validateScanDirection()
+        when (scanDirection) {
+            ScanDirection.LEFT -> moveSequentialPrevious()
+            ScanDirection.RIGHT -> moveSequentialNext()
+            else -> return false
         }
         return true
     }
@@ -136,6 +150,7 @@ class ScanTreeNavigator(
             currentColumn++
         } else {
             currentColumn = 0
+            handleCycleCompletion()
         }
         return true
     }
@@ -145,6 +160,7 @@ class ScanTreeNavigator(
             currentColumn--
         } else {
             currentColumn = flattenedNodes.size - 1
+            handleCycleCompletion()
         }
         return true
     }
@@ -156,16 +172,19 @@ class ScanTreeNavigator(
                 currentColumn++
                 true
             }
+
             isCurrentItemSingleGroup() -> {
-                shouldEscapeItem = true
+                escapeState = EscapeState.Item
                 false
             }
+
             scanSettings.isGroupScanEnabled() -> {
-                shouldEscapeGroup = true
+                escapeState = EscapeState.Group
                 false
             }
+
             else -> {
-                shouldEscapeItem = true
+                escapeState = EscapeState.Item
                 false
             }
         }
@@ -177,16 +196,19 @@ class ScanTreeNavigator(
                 currentColumn--
                 true
             }
+
             isCurrentItemSingleGroup() -> {
-                shouldEscapeItem = true
+                escapeState = EscapeState.Item
                 false
             }
+
             scanSettings.isGroupScanEnabled() -> {
-                shouldEscapeGroup = true
+                escapeState = EscapeState.Group
                 false
             }
+
             else -> {
-                shouldEscapeItem = true
+                escapeState = EscapeState.Item
                 false
             }
         }
@@ -198,8 +220,9 @@ class ScanTreeNavigator(
                 currentGroup++
                 true
             }
+
             else -> {
-                shouldEscapeItem = true
+                escapeState = EscapeState.Item
                 false
             }
         }
@@ -211,8 +234,9 @@ class ScanTreeNavigator(
                 currentGroup--
                 true
             }
+
             else -> {
-                shouldEscapeItem = true
+                escapeState = EscapeState.Item
                 false
             }
         }
@@ -274,15 +298,15 @@ class ScanTreeNavigator(
      * Handles the escape logic for items and groups.
      * @return True if an escape was handled, false otherwise.
      */
-    fun handleEscape(): Boolean = shouldEscapeItem || shouldEscapeGroup
+    fun handleEscape(): Boolean = escapeState != EscapeState.None && !isInCycleBreak
 
     /**
-     * Handles the number of cycles for the scanning tree
-     * @return True if cycles value has reached the user defined value, false otherwise.
+     * Checks if the auto scan cycle limit has been reached.
+     * @return True if the auto scan cycle limit has been reached, false otherwise.
      */
-    fun handleCycles(): Boolean {
+    fun isAutoScanCycleLimitReached(): Boolean {
         val userDefinedCycles = scanSettings.getScanCycles()
-        return currentCycle == userDefinedCycles
+        return currentCycle == userDefinedCycles && scanSettings.isAutoScanMode()
     }
 
     /**
@@ -290,29 +314,19 @@ class ScanTreeNavigator(
      * @return True if the escape was confirmed, false otherwise.
      */
     fun confirmEscape(): Boolean {
-        if (shouldEscapeItem) {
-            shouldEscapeItem = false
-            isInTreeItem = false
-            isInGroup = false
-            scanDirection = ScanDirection.DOWN
-            if (!isRowColumnScanEnabled) {
-                currentColumn = 0
+        return when (escapeState) {
+            EscapeState.Item -> {
+                resetToItemEscape()
+                true
             }
-            currentCycle = 0
-            return true
-        }
 
-        if (shouldEscapeGroup) {
-            shouldEscapeGroup = false
-            isScanningGroups = true
-            isInGroup = false
-            scanDirection = ScanDirection.RIGHT
-            currentColumn = 0
-            currentGroup = 0
-            return true
-        }
+            EscapeState.Group -> {
+                resetToGroupEscape()
+                true
+            }
 
-        return false
+            EscapeState.None -> false
+        }
     }
 
     /**
@@ -320,36 +334,61 @@ class ScanTreeNavigator(
      * @return True if an escape was denied, false otherwise.
      */
     fun denyEscape(): Boolean {
-        val setColumn: () -> Unit = {
-            currentColumn = if (scanDirection == ScanDirection.RIGHT) {
-                0
-            } else {
-                if (isRowColumnScanEnabled) getCurrentItem().getNodeCount(currentGroup) - 1
-                else flattenedNodes.size - 1
+        return when (escapeState) {
+            EscapeState.Item -> {
+                handleItemEscapeDenial()
+                true
             }
-        }
 
-        if (shouldEscapeItem) {
-            shouldEscapeItem = false
-            setColumn()
-            if (isRowColumnScanEnabled) {
-                currentGroup = if (scanDirection == ScanDirection.RIGHT) {
-                    0
-                } else {
-                    getCurrentItem().getGroupCount() - 1
-                }
+            EscapeState.Group -> {
+                handleGroupEscapeDenial()
+                true
             }
-            handleCycleCompletion()
-            return true
-        }
 
-        if (shouldEscapeGroup) {
-            shouldEscapeGroup = false
-            setColumn()
-            return true
+            EscapeState.None -> false
         }
+    }
 
-        return false
+    private fun resetToItemEscape() {
+        escapeState = EscapeState.None
+        isInTreeItem = false
+        isInGroup = false
+        scanDirection = ScanDirection.DOWN
+        if (!isRowColumnScanEnabled) {
+            currentColumn = 0
+        }
+        currentCycle = 0
+    }
+
+    private fun resetToGroupEscape() {
+        escapeState = EscapeState.None
+        isScanningGroups = true
+        isInGroup = false
+        scanDirection = ScanDirection.RIGHT
+        currentColumn = 0
+        currentGroup = 0
+    }
+
+    private fun handleItemEscapeDenial() {
+        escapeState = EscapeState.None
+        currentColumn = if (scanDirection == ScanDirection.RIGHT) 0 else {
+            if (isRowColumnScanEnabled) getCurrentItem().getNodeCount(currentGroup) - 1
+            else flattenedNodes.size - 1
+        }
+        if (isRowColumnScanEnabled) {
+            currentGroup =
+                if (scanDirection == ScanDirection.RIGHT) 0 else getCurrentItem().getGroupCount() - 1
+        }
+        handleCycleCompletion()
+    }
+
+    private fun handleGroupEscapeDenial() {
+        escapeState = EscapeState.None
+        currentColumn = if (scanDirection == ScanDirection.RIGHT) 0 else {
+            if (isRowColumnScanEnabled) getCurrentItem().getNodeCount(currentGroup) - 1
+            else flattenedNodes.size - 1
+        }
+        handleCycleCompletion()
     }
 
     /**
@@ -394,8 +433,7 @@ class ScanTreeNavigator(
         isInTreeItem = false
         isInGroup = false
         isScanningGroups = scanSettings.isGroupScanEnabled()
-        shouldEscapeItem = false
-        shouldEscapeGroup = false
+        escapeState = EscapeState.None
         isInCycleBreak = false
         justCompletedCycle = false
         scanDirection = ScanDirection.DOWN
