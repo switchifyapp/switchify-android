@@ -1,6 +1,7 @@
 package com.enaboapps.switchify.service.menu
 
 import android.content.Context
+import android.graphics.Color
 import android.util.TypedValue
 import android.view.Gravity
 import android.widget.ImageView
@@ -9,11 +10,9 @@ import android.widget.TextView
 import android.widget.TextView.AUTO_SIZE_TEXT_TYPE_NONE
 import androidx.core.content.res.ResourcesCompat
 import androidx.core.graphics.drawable.DrawableCompat
-import com.enaboapps.switchify.R
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.service.utils.ScreenUtils
 import com.enaboapps.switchify.utils.Logger
-import kotlin.properties.Delegates
 
 /**
  * This class represents a menu item
@@ -60,8 +59,8 @@ class MenuItem(
      */
     private var textView: TextView? = null
 
-    // Navy color for the foreground
-    private var foregroundColor by Delegates.notNull<Int>()
+    private val backgroundColor = Color.BLACK
+    private val foregroundColor = Color.WHITE
 
     /**
      * Inflate the menu item
@@ -106,17 +105,11 @@ class MenuItem(
             minimumWidth = widthPx
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER
-            background = ResourcesCompat.getDrawable(
-                linearLayout.context.resources,
-                getBackgroundDrawable(),
-                null
-            )
+            setBackgroundColor(backgroundColor)
             setOnClickListener { select() }
         }
 
         val padding = 20
-
-        foregroundColor = linearLayout.context.resources.getColor(R.color.navy, null)
 
         if (drawableId != 0) {
             imageView = ImageView(linearLayout.context).apply {
@@ -194,14 +187,6 @@ class MenuItem(
         action()
 
         Logger.logEvent("Menu item selected: $id")
-    }
-
-    /**
-     * Get the background drawable
-     * @return The background drawable
-     */
-    private fun getBackgroundDrawable(): Int {
-        return R.drawable.service_key_background
     }
 
     /**
