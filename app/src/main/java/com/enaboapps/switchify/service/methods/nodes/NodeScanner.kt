@@ -3,7 +3,7 @@ package com.enaboapps.switchify.service.methods.nodes
 import android.content.Context
 import android.util.Log
 import com.enaboapps.switchify.service.menu.MenuManager
-import com.enaboapps.switchify.service.menu.MenuPopup
+import com.enaboapps.switchify.service.menu.OpenMenuPrompt
 import com.enaboapps.switchify.service.scanning.ScanMethod
 import com.enaboapps.switchify.service.scanning.tree.ScanTree
 import com.enaboapps.switchify.service.scanning.tree.ScanTreeCallback
@@ -78,17 +78,17 @@ class NodeScanner : ScanTreeCallback {
 
     override fun onScanTreeCycleBreakStarted() {
         Log.d(TAG, "Cycle break started")
-        MenuPopup.instance.show(context)
+        OpenMenuPrompt.instance.show(context)
     }
 
     override fun onScanTreeCycleBreakSkipped() {
         Log.d(TAG, "Cycle break skipped")
-        MenuPopup.instance.hide()
+        OpenMenuPrompt.instance.hide()
     }
 
     override fun onScanTreeCycleBreakSelected() {
         Log.d(TAG, "Cycle break selected")
-        MenuPopup.instance.hide()
+        OpenMenuPrompt.instance.hide()
         MenuManager.getInstance().openScanCycleBreakMenu()
     }
 

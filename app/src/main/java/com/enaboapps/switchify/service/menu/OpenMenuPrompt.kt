@@ -4,7 +4,6 @@ import android.content.Context
 import android.graphics.Color
 import android.os.Handler
 import android.os.Looper
-import android.util.Log
 import android.view.Gravity
 import android.view.ViewGroup
 import android.widget.RelativeLayout
@@ -13,47 +12,44 @@ import androidx.core.content.ContextCompat
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.service.window.SwitchifyAccessibilityWindow
 
-class MenuPopup {
-    private var popupView: RelativeLayout? = null
+/**
+ * This class manages the prompt to ask the user if they want to open the menu.
+ */
+class OpenMenuPrompt {
+    private var menuPromptView: RelativeLayout? = null
     private val mainHandler = Handler(Looper.getMainLooper())
     private var isShowing = false
 
     companion object {
-        val instance: MenuPopup by lazy {
-            MenuPopup()
+        val instance: OpenMenuPrompt by lazy {
+            OpenMenuPrompt()
         }
 
-        private const val TAG = "MenuPopup"
+        private const val TAG = "OpenMenuPrompt"
     }
 
     fun show(context: Context) {
-        Log.d(TAG, "Attempting to show menu popup")
         if (isShowing) return
 
-        Log.d(TAG, "Showing menu popup")
-
         mainHandler.post {
-            createPopupView(context)
-            SwitchifyAccessibilityWindow.instance.addViewToCenter(popupView!!)
+            createPromptView(context)
+            menuPromptView?.let { SwitchifyAccessibilityWindow.instance.addViewToCenter(it) }
             isShowing = true
         }
     }
 
     fun hide() {
-        Log.d(TAG, "Attempting to hide menu popup")
         if (!isShowing) return
 
-        Log.d(TAG, "Hiding menu popup")
-
         mainHandler.post {
-            popupView?.let { view ->
+            menuPromptView?.let { view ->
                 SwitchifyAccessibilityWindow.instance.removeView(view)
                 isShowing = false
             }
         }
     }
 
-    private fun createPopupView(context: Context): RelativeLayout {
+    private fun createPromptView(context: Context): RelativeLayout {
         // Create root RelativeLayout with background
         val rootLayout = RelativeLayout(context).apply {
             layoutParams = ViewGroup.LayoutParams(
@@ -86,7 +82,7 @@ class MenuPopup {
         }
 
         rootLayout.addView(messageText)
-        popupView = rootLayout
+        menuPromptView = rootLayout
         return rootLayout
     }
 } 
