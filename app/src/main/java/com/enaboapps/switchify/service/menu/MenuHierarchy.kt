@@ -3,6 +3,7 @@ package com.enaboapps.switchify.service.menu
 import android.os.Handler
 import android.os.Looper
 import androidx.core.os.postDelayed
+import com.enaboapps.switchify.service.scanning.ScanMethod
 import com.enaboapps.switchify.service.scanning.ScanningManager
 
 class MenuHierarchy(
@@ -51,8 +52,7 @@ class MenuHierarchy(
         // remove the menu view
         MenuViewHandler.instance.kill()
 
-        // reset the scanning manager state
-        MenuManager.getInstance().resetScanMethodType()
+        ScanMethod.isInMenu = false
     }
 
     fun getTopMenu(): MenuView? {
