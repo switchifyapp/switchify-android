@@ -76,7 +76,6 @@ object SelectionHandler {
         }
 
         methodTypeInvokedForStartScanningAction = ScanMethod.getType()
-        MenuManager.getInstance().scanMethodToRevertTo = ScanMethod.getType()
 
         // If bypass auto-select is enabled, perform the selection action and return
         if (bypassAutoSelect) {

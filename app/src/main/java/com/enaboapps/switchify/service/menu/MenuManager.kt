@@ -15,7 +15,6 @@ import com.enaboapps.switchify.service.menu.menus.media.MediaControlMenu
 import com.enaboapps.switchify.service.menu.menus.scroll.ScrollMenu
 import com.enaboapps.switchify.service.menu.menus.system.DeviceMenu
 import com.enaboapps.switchify.service.menu.menus.system.VolumeControlMenu
-import com.enaboapps.switchify.service.scanning.ScanMethod
 import com.enaboapps.switchify.service.scanning.ScanningManager
 
 /**
@@ -52,11 +51,6 @@ class MenuManager {
     private var accessibilityService: SwitchifyAccessibilityService? = null
 
     /**
-     * The scan method to revert to when the menu is closed
-     */
-    var scanMethodToRevertTo: String = ScanMethod.MethodType.CURSOR
-
-    /**
      * The menu hierarchy
      */
     var menuHierarchy: MenuHierarchy? = null
@@ -74,14 +68,6 @@ class MenuManager {
         menuHierarchy = MenuHierarchy(scanningManager)
         this.accessibilityService = accessibilityService
         currentPointVisual = CurrentPointVisual(accessibilityService)
-    }
-
-    /**
-     * This function resets the scan method type to the original type
-     */
-    fun resetScanMethodType() {
-        ScanMethod.isInMenu = false
-        ScanMethod.setType(scanMethodToRevertTo)
     }
 
     fun switchToCursor() {
