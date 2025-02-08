@@ -35,6 +35,7 @@
 
         <service
             android:name=".service.SwitchifyAccessibilityService"
+            android:directBootAware="true"
             android:exported="true"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
             <intent-filter>
@@ -48,10 +49,10 @@
 
         <service
             android:name=".keyboard.SwitchifyKeyboardService"
+            android:description="@string/ime_description"
             android:exported="true"
-            android:permission="android.permission.BIND_INPUT_METHOD"
             android:label="@string/ime_name"
-            android:description="@string/ime_description">
+            android:permission="android.permission.BIND_INPUT_METHOD">
             <intent-filter>
                 <action android:name="android.view.InputMethod" />
             </intent-filter>
