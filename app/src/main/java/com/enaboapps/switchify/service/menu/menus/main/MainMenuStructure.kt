@@ -2,17 +2,23 @@ package com.enaboapps.switchify.service.menu.menus.main
 
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.service.SwitchifyAccessibilityService
+import com.enaboapps.switchify.service.custom.actions.store.ActionStore
+import com.enaboapps.switchify.service.gestures.GesturePoint
 import com.enaboapps.switchify.service.menu.MenuItem
 import com.enaboapps.switchify.service.menu.MenuManager
-import com.enaboapps.switchify.service.menu.structure.MenuStructure
-import com.enaboapps.switchify.service.scanning.ScanMethod
-import com.enaboapps.switchify.service.methods.nodes.NodeExaminer
-import com.enaboapps.switchify.service.gestures.GesturePoint
-import com.enaboapps.switchify.service.custom.actions.store.ActionStore
 import com.enaboapps.switchify.service.menu.menus.gestures.GestureMenuStructure
+import com.enaboapps.switchify.service.menu.structure.MenuStructure
+import com.enaboapps.switchify.service.methods.nodes.NodeExaminer
+import com.enaboapps.switchify.service.scanning.ScanMethod
 
 class MainMenuStructure(private val accessibilityService: SwitchifyAccessibilityService?) {
     private val gestureMenuStructure = GestureMenuStructure()
+    val deviceItem = MenuItem(
+        id = "device",
+        text = "Device",
+        isLinkToMenu = true,
+        action = { MenuManager.getInstance().openDeviceMenu() }
+    )
 
     val mainMenuObject = MenuStructure(
         id = "main_menu",
@@ -37,12 +43,7 @@ class MainMenuStructure(private val accessibilityService: SwitchifyAccessibility
                     action = { GesturePoint.setReselect(true) }
                 )
             } else null,
-            MenuItem(
-                id = "device",
-                text = "Device",
-                isLinkToMenu = true,
-                action = { MenuManager.getInstance().openDeviceMenu() }
-            ),
+            deviceItem,
             MenuItem(
                 id = "media_control",
                 text = "Media Control",
