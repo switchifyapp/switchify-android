@@ -37,6 +37,7 @@ class MainActivity : ComponentActivity() {
             retrieveSettingsFromFirestore()
             listenForSettingsChangesOnRemote()
         }
+        preferenceManager.migrateToProtectedStorage()
         Logger.init(this)
 
         // Initialize ActionStore
