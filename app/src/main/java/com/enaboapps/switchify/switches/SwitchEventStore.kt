@@ -32,6 +32,7 @@ import java.io.File
  * - Switch configuration validation
  *
  * @property context The application context used for file operations and preferences
+ * @property localOnly Whether to only use local storage (no cloud synchronization)
  */
 class SwitchEventStore(private val context: Context, private val localOnly: Boolean = false) {
     // Core data storage
@@ -43,8 +44,6 @@ class SwitchEventStore(private val context: Context, private val localOnly: Bool
     // Utilities and managers
     private val gson = Gson()
     private val tag = "SwitchEventStore"
-    private val firestoreManager = FirestoreManager.getInstance()
-    private val authManager = AuthManager.instance
     private val coroutineScope = CoroutineScope(Dispatchers.IO)
 
     companion object {
@@ -79,14 +78,14 @@ class SwitchEventStore(private val context: Context, private val localOnly: Bool
      * @return Result containing list of available remote switches or error
      */
     suspend fun fetchAvailableSwitches(): Result<List<RemoteSwitchInfo>> {
-        val userId = authManager.getUserId() ?: run {
+        val userId = AuthManager.instance.getUserId() ?: run {
             Log.e(tag, "Could not get user ID")
             return Result.failure(Exception("User ID not available"))
         }
 
         return withContext(Dispatchers.IO) {
             try {
-                val documents = firestoreManager.queryDocuments(
+                val documents = FirestoreManager.getInstance().queryDocuments(
                     collectionPath = "$COLLECTION_USER_SWITCHES/$userId/$SWITCHES_COLLECTION"
                 )
 
@@ -122,7 +121,7 @@ class SwitchEventStore(private val context: Context, private val localOnly: Bool
      * @return Result containing the imported SwitchEvent if successful
      */
     suspend fun importSwitch(code: String): Result<SwitchEvent> {
-        val userId = authManager.getUserId() ?: run {
+        val userId = AuthManager.instance.getUserId() ?: run {
             Log.e(tag, "Could not get user ID")
             return Result.failure(Exception("User ID not available"))
         }
@@ -134,7 +133,7 @@ class SwitchEventStore(private val context: Context, private val localOnly: Bool
 
         return withContext(Dispatchers.IO) {
             try {
-                val document = firestoreManager.getDocument(
+                val document = FirestoreManager.getInstance().getDocument(
                     path = "$COLLECTION_USER_SWITCHES/$userId/$SWITCHES_COLLECTION/$code"
                 )
 
@@ -156,7 +155,7 @@ class SwitchEventStore(private val context: Context, private val localOnly: Bool
      * Constructs the Firestore path for a given switch event code.
      */
     private fun getSwitchPath(code: String): String {
-        val userId = authManager.getUserId() ?: run {
+        val userId = AuthManager.instance.getUserId() ?: run {
             Log.d(tag, "Could not get user ID")
             return ""
         }
@@ -171,14 +170,14 @@ class SwitchEventStore(private val context: Context, private val localOnly: Bool
             return
         }
         
-        val userId = authManager.getUserId() ?: run {
+        val userId = AuthManager.instance.getUserId() ?: run {
             Log.e(tag, "Could not get user ID")
             return
         }
 
         coroutineScope.launch {
             try {
-                val documents = firestoreManager.queryDocuments(
+                val documents = FirestoreManager.getInstance().queryDocuments(
                     collectionPath = "$COLLECTION_USER_SWITCHES/$userId/$SWITCHES_COLLECTION"
                 )
 
@@ -223,7 +222,7 @@ class SwitchEventStore(private val context: Context, private val localOnly: Bool
                 switchEvents.forEach { event ->
                     val path = getSwitchPath(event.code)
                     if (path.isNotEmpty()) {
-                        firestoreManager.saveDocument(
+                        FirestoreManager.getInstance().saveDocument(
                             path = path,
                             data = event.toMap()
                         )
@@ -252,7 +251,7 @@ class SwitchEventStore(private val context: Context, private val localOnly: Bool
                 coroutineScope.launch {
                     val path = getSwitchPath(switchEvent.code)
                     if (path.isNotEmpty()) {
-                        firestoreManager.saveDocument(
+                        FirestoreManager.getInstance().saveDocument(
                             path = path,
                             data = switchEvent.toMap()
                         )
@@ -289,7 +288,7 @@ class SwitchEventStore(private val context: Context, private val localOnly: Bool
                 coroutineScope.launch {
                     val path = getSwitchPath(switchEvent.code)
                     if (path.isNotEmpty()) {
-                        firestoreManager.saveDocument(
+                        FirestoreManager.getInstance().saveDocument(
                             path = path,
                             data = switchEvent.toMap()
                         )
@@ -333,14 +332,14 @@ class SwitchEventStore(private val context: Context, private val localOnly: Bool
      * @param code The code of the remote switch event to remove
      */
     suspend fun removeRemote(code: String): Result<Unit> {
-        val userId = authManager.getUserId() ?: run {
+        val userId = AuthManager.instance.getUserId() ?: run {
             Log.e(tag, "Could not get user ID")
             return Result.failure(Exception("User ID not available"))
         }
 
         return withContext(Dispatchers.IO) {
             try {
-                firestoreManager.deleteDocument(
+                FirestoreManager.getInstance().deleteDocument(
                     path = "$COLLECTION_USER_SWITCHES/$userId/$SWITCHES_COLLECTION/$code"
                 )
                 switchEvents.removeIf { it.code == code }
