@@ -33,6 +33,7 @@ class MainActivity : ComponentActivity() {
     private fun initializeManagers() {
         // Initialize PreferenceManager and Logger
         preferenceManager = PreferenceManager(this)
+        preferenceManager.enableSync()
         preferenceManager.preferenceSync.apply {
             retrieveSettingsFromFirestore()
             listenForSettingsChangesOnRemote()

@@ -69,7 +69,11 @@ class PreferenceManager(context: Context) {
         defaultPrefs.edit().clear().apply()
     }
 
-    val preferenceSync = PreferenceSync(sharedPreferences)
+    val preferenceSync = PreferenceSync.getInstance()
+
+    fun enableSync() {
+        preferenceSync.initialize(sharedPreferences)
+    }
 
     fun setSetupComplete() {
         setBooleanValue(PREFERENCE_KEY_SETUP_COMPLETE, true)
