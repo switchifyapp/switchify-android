@@ -21,6 +21,7 @@ import com.enaboapps.switchify.service.switches.camera.CameraSwitchManager
 import com.enaboapps.switchify.service.switches.external.ExternalSwitchListener
 import com.enaboapps.switchify.service.utils.KeyboardBridge
 import com.enaboapps.switchify.service.utils.ScreenWatcher
+import com.enaboapps.switchify.service.utils.UserUnlockObserver
 import com.enaboapps.switchify.utils.Logger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -41,14 +42,16 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner {
     private lateinit var screenWatcher: ScreenWatcher
     private lateinit var lockScreenView: LockScreenView
     private lateinit var scanSettings: ScanSettings
+    private lateinit var userUnlockObserver: UserUnlockObserver
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
     override fun onCreate() {
         super.onCreate()
 
         lifecycleRegistry = LifecycleRegistry(this)
-
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_CREATE)
+
+        userUnlockObserver = UserUnlockObserver(this)
     }
 
     private fun setup() {
@@ -67,10 +70,9 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner {
         screenWatcher = ScreenWatcher(
             onScreenWake = {
                 lockScreenView.show()
-                if (switchEventProvider.hasCameraSwitch) {
+                if (userUnlockObserver.isUserUnlocked() && switchEventProvider.hasCameraSwitch) {
                     cameraSwitchManager.startCamera(this@SwitchifyAccessibilityService)
                 }
-                IAPHandler.refreshPurchaseStatus()
             },
             onScreenSleep = {
                 externalSwitchListener.reset()
@@ -92,7 +94,12 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner {
         GestureManager.getInstance().setup(this)
         SelectionHandler.init(this)
 
-        IAPHandler.initialize(this)
+        // Start observing user unlock state
+        userUnlockObserver.startObserving {
+            // Initialize components that require device unlock
+            IAPHandler.initialize(this)
+            cameraSwitchManager.initialize()
+        }
     }
 
     /**
@@ -125,14 +132,15 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner {
 
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_START)
 
-        if (switchEventProvider.hasCameraSwitch) {
+        // Only start camera if device is already unlocked
+        if (userUnlockObserver.isUserUnlocked() && switchEventProvider.hasCameraSwitch) {
             cameraSwitchManager.startCamera(this)
         }
 
         switchEventProvider.addCameraSwitchListener(object :
             SwitchEventProvider.CameraSwitchListener {
             override fun onCameraSwitchAvailabilityChanged(available: Boolean) {
-                if (available) {
+                if (available && userUnlockObserver.isUserUnlocked()) {
                     cameraSwitchManager.startCamera(this@SwitchifyAccessibilityService)
                 } else {
                     cameraSwitchManager.stopCamera()
@@ -165,9 +173,8 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner {
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_DESTROY)
 
         cameraSwitchManager.stopCamera()
-
+        userUnlockObserver.stopObserving()
         scanningManager.shutdown()
-
         lockScreenView.hide()
 
         Logger.logEvent("Service Unbound")

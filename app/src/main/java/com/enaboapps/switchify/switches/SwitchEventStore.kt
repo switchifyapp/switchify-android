@@ -169,7 +169,7 @@ class SwitchEventStore(private val context: Context, private val localOnly: Bool
         if (localOnly) {
             return
         }
-        
+
         val userId = AuthManager.instance.getUserId() ?: run {
             Log.e(tag, "Could not get user ID")
             return

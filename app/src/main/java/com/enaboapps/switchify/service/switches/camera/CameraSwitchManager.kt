@@ -17,6 +17,7 @@ import com.google.common.util.concurrent.ListenableFuture
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.face.Face
 import com.google.mlkit.vision.face.FaceDetection
+import com.google.mlkit.vision.face.FaceDetector
 import com.google.mlkit.vision.face.FaceDetectorOptions
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -32,6 +33,7 @@ class CameraSwitchManager(
     private var cameraProvider: ProcessCameraProvider? = null
     private var imageAnalyzer: ImageAnalysis? = null
     private var preview: Preview? = null
+    private var isInitialized = false
 
     private data class CameraSwitchState(
         var isActive: Boolean,
@@ -59,22 +61,60 @@ class CameraSwitchManager(
 
     private val coroutineScope = CoroutineScope(Dispatchers.Main)
 
-    private val faceDetector = FaceDetection.getClient(
-        FaceDetectorOptions.Builder()
-            .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_ACCURATE)
-            .setLandmarkMode(FaceDetectorOptions.LANDMARK_MODE_ALL)
-            .setClassificationMode(FaceDetectorOptions.CLASSIFICATION_MODE_ALL)
-            .setMinFaceSize(MIN_FACE_SIZE)
-            .enableTracking()  // Enable face tracking for better performance
-            .build()
-    )
+    private var faceDetector: FaceDetector? = null
 
+    private fun checkInitialization(): Boolean {
+        if (!isInitialized) {
+            Log.e(
+                TAG,
+                "CameraSwitchManager must be initialized before use. Call initialize() first."
+            )
+            return false
+        }
+        return true
+    }
+
+    /**
+     * Initializes the camera switch manager.
+     * This must be called before using any camera functionality.
+     */
+    fun initialize() {
+        reset()
+        gestureStates.forEach { (_, state) ->
+            state.isActive = false
+            state.startTime = 0
+        }
+        activeGesture = null
+        lastProcessedState = FaceState()
+        faceDetector = FaceDetection.getClient(
+            FaceDetectorOptions.Builder()
+                .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_ACCURATE)
+                .setLandmarkMode(FaceDetectorOptions.LANDMARK_MODE_ALL)
+                .setClassificationMode(FaceDetectorOptions.CLASSIFICATION_MODE_ALL)
+                .setMinFaceSize(MIN_FACE_SIZE)
+                .enableTracking()  // Enable face tracking for better performance
+                .build()
+        )
+        isInitialized = true
+        Log.d(TAG, "CameraSwitchManager initialized")
+    }
+
+    /**
+     * Starts the camera.
+     * This must be called after the manager has been initialized.
+     */
     fun startCamera(lifecycleOwner: LifecycleOwner) {
+        if (!checkInitialization()) {
+            Log.e(TAG, "Cannot start camera - manager not initialized")
+            return
+        }
+
         cameraProviderFuture = ProcessCameraProvider.getInstance(context).also { future ->
             future.addListener({
                 try {
                     cameraProvider = future.get()
                     bindPreview(lifecycleOwner)
+                    Log.d(TAG, "Camera started successfully")
                 } catch (e: Exception) {
                     Log.e(TAG, "Failed to start camera", e)
                     ServiceMessageHUD.instance.showMessage(
@@ -87,8 +127,16 @@ class CameraSwitchManager(
         }
     }
 
+    /**
+     * Binds the preview to the camera.
+     * This must be called after the camera has been started.
+     */
     @OptIn(ExperimentalGetImage::class)
     private fun bindPreview(lifecycleOwner: LifecycleOwner) {
+        if (!checkInitialization()) {
+            return
+        }
+
         val cameraSelector = CameraSelector.Builder()
             .requireLensFacing(CameraSelector.LENS_FACING_FRONT)
             .build()
@@ -117,9 +165,14 @@ class CameraSwitchManager(
         }
     }
 
+    /**
+     * Processes the image safely.
+     * This must be called after the camera has been bound.
+     */
     @OptIn(ExperimentalGetImage::class)
     private fun processImageSafely(imageProxy: ImageProxy) {
         coroutineScope.launch(Dispatchers.Default) {
+
             try {
                 imageProxy.image?.let { mediaImage ->
                     val image = InputImage.fromMediaImage(
@@ -128,21 +181,23 @@ class CameraSwitchManager(
                     )
 
                     withContext(Dispatchers.Main) {
-                        faceDetector.process(image)
-                            .addOnSuccessListener { faces ->
-                                if (faces.isNotEmpty()) {
-                                    processFace(faces[0])
-                                } else {
+                        faceDetector?.let { detector ->
+                            detector.process(image)
+                                .addOnSuccessListener { faces ->
+                                    if (faces.isNotEmpty()) {
+                                        processFace(faces[0])
+                                    } else {
+                                        reset()
+                                    }
+                                }
+                                .addOnFailureListener { e ->
+                                    Log.e(TAG, "Face detection failed", e)
                                     reset()
                                 }
-                            }
-                            .addOnFailureListener { e ->
-                                Log.e(TAG, "Face detection failed", e)
-                                reset()
-                            }
-                            .addOnCompleteListener {
-                                imageProxy.close()
-                            }
+                                .addOnCompleteListener {
+                                    imageProxy.close()
+                                }
+                        }
                     }
                 } ?: imageProxy.close()
             } catch (e: Exception) {
@@ -152,7 +207,15 @@ class CameraSwitchManager(
         }
     }
 
+    /**
+     * Processes the face.
+     * This must be called after the image has been processed.
+     */
     private fun processFace(face: Face) {
+        if (!checkInitialization()) {
+
+            return
+        }
         // Update current face state
         currentFaceState.apply {
             leftEyeOpen = (face.leftEyeOpenProbability ?: 1f) > EYE_OPEN_THRESHOLD
@@ -227,7 +290,15 @@ class CameraSwitchManager(
         }
     }
 
+    /**
+     * Handles the gesture state change.
+     * This must be called after the face has been processed.
+     */
     private fun handleGestureStateChange(gesture: CameraSwitchFacialGesture, isStarting: Boolean) {
+        if (!checkInitialization()) {
+            return
+
+        }
         if (isStarting) {
             gestureStarted(gesture)
         } else {
@@ -238,7 +309,15 @@ class CameraSwitchManager(
         }
     }
 
+    /**
+     * Resets the gesture states.
+     * This must be called after the camera has been stopped.
+     */
     private fun reset() {
+        if (!checkInitialization()) {
+            return
+
+        }
         gestureStates.forEach { (_, state) ->
             state.isActive = false
             state.startTime = 0
@@ -247,19 +326,37 @@ class CameraSwitchManager(
         lastProcessedState = FaceState()  // Reset the last processed state
     }
 
+    /**
+     * Stops the camera.
+     * This must be called after the manager has been initialized.
+     */
     fun stopCamera() {
+        if (!checkInitialization()) {
+            return
+        }
+
         try {
             cameraProvider?.unbindAll()
             cameraProvider = null
             imageAnalyzer = null
             preview = null
             cameraProviderFuture = null
+            isInitialized = false
+            Log.d(TAG, "Camera stopped successfully")
         } catch (e: Exception) {
             Log.e(TAG, "Failed to stop camera", e)
         }
     }
 
+    /**
+     * Starts a new gesture.
+     * This must be called after the manager has been initialized.
+     */
     private fun gestureStarted(gesture: CameraSwitchFacialGesture) {
+        if (!checkInitialization()) {
+            return
+        }
+
         // Only start a new gesture if no other gesture is active
         if (activeGesture == null) {
             findSwitchEventForGesture(gesture)?.let { switchEvent ->
@@ -278,7 +375,14 @@ class CameraSwitchManager(
         }
     }
 
+    /**
+     * Completes a gesture.
+     * This must be called after the manager has been initialized.
+     */
     private fun gestureCompleted(gesture: CameraSwitchFacialGesture) {
+        if (!checkInitialization()) {
+            return
+        }
         Log.d(TAG, "Gesture completed: ${gesture.id}")
 
         findSwitchEventForGesture(gesture)?.let { switchEvent ->

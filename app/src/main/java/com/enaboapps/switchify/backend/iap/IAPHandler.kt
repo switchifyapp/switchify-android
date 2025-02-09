@@ -19,6 +19,7 @@ object IAPHandler {
     private const val TAG = "IAPHandler"
     const val ENTITLEMENT = "pro"
     private lateinit var preferenceManager: PreferenceManager
+    private var isInitialized = false
 
     // StateFlow to observe purchase state changes
     private val _purchaseState = MutableStateFlow<PurchaseState>(PurchaseState.Initial)
@@ -31,6 +32,19 @@ object IAPHandler {
         object Initial : PurchaseState()
         object Success : PurchaseState()
         object Error : PurchaseState()
+    }
+
+    /**
+     * Checks if the handler has been initialized
+     *
+     * @return true if initialized, false otherwise
+     */
+    private fun checkInitialization(): Boolean {
+        if (!isInitialized) {
+            Log.e(TAG, "IAPHandler must be initialized before use. Call initialize() first.")
+            return false
+        }
+        return true
     }
 
     /**
@@ -51,6 +65,7 @@ object IAPHandler {
 
         Purchases.configure(config)
         preferenceManager = PreferenceManager(context)
+        isInitialized = true
 
         // Fetch initial customer info
         refreshPurchaseStatus()
@@ -64,6 +79,10 @@ object IAPHandler {
      * @param completion The completion block to be called when the status is refreshed
      */
     fun refreshPurchaseStatus(completion: ((Boolean) -> Unit)? = null) {
+        if (!checkInitialization()) {
+            completion?.invoke(false)
+            return
+        }
         Purchases.sharedInstance.getCustomerInfo(
             object : ReceiveCustomerInfoCallback {
                 override fun onError(error: PurchasesError) {
@@ -103,6 +122,10 @@ object IAPHandler {
      * @return The information in string format about the current status of the pro purchase
      */
     fun getProStatus(completion: (String) -> Unit) {
+        if (!checkInitialization()) {
+            completion("Error: IAPHandler not initialized")
+            return
+        }
         Purchases.sharedInstance.getCustomerInfo(
             object : ReceiveCustomerInfoCallback {
                 override fun onError(error: PurchasesError) {
@@ -129,6 +152,9 @@ object IAPHandler {
      * @return True if the user has purchased pro, false otherwise
      */
     fun hasPurchasedPro(): Boolean {
+        if (!checkInitialization()) {
+            return false
+        }
         return preferenceManager.getBooleanValue(PreferenceManager.PREFERENCE_KEY_PRO)
     }
 
@@ -138,6 +164,9 @@ object IAPHandler {
      * @param status The status to set
      */
     private fun setProStatus(status: Boolean) {
+        if (!checkInitialization()) {
+            return
+        }
         preferenceManager.setBooleanValue(PreferenceManager.PREFERENCE_KEY_PRO, status)
     }
 }

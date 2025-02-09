@@ -1,10 +1,10 @@
 package com.enaboapps.switchify.service.menu.menus.scroll
 
-import com.enaboapps.switchify.service.menu.MenuItem
-import com.enaboapps.switchify.service.menu.structure.MenuStructure
 import com.enaboapps.switchify.service.gestures.GestureManager
 import com.enaboapps.switchify.service.gestures.data.GestureType
+import com.enaboapps.switchify.service.menu.MenuItem
 import com.enaboapps.switchify.service.menu.menus.gestures.GestureMenuStructure
+import com.enaboapps.switchify.service.menu.structure.MenuStructure
 
 class ScrollMenuStructure {
     private val gestureMenuStructure = GestureMenuStructure()

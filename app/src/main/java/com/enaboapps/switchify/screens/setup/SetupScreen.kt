@@ -21,11 +21,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.auth.AuthManager
+import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.FullWidthButton
 import com.enaboapps.switchify.keyboard.utils.KeyboardUtils
 import com.enaboapps.switchify.nav.NavigationRoute
-import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.screens.settings.scanning.ScanModeSelectionSection
 import com.enaboapps.switchify.service.utils.ServiceUtils
 import com.enaboapps.switchify.switches.SwitchConfigInvalidBanner
