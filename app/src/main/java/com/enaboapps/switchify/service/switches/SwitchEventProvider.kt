@@ -6,20 +6,29 @@ import android.content.Intent
 import android.content.IntentFilter
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.enaboapps.switchify.switches.SWITCH_EVENT_TYPE_CAMERA
+import com.enaboapps.switchify.switches.SWITCH_EVENT_TYPE_EXTERNAL
 import com.enaboapps.switchify.switches.SwitchEvent
 import com.enaboapps.switchify.switches.SwitchEventStore
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 class SwitchEventProvider(context: Context) {
-    private val store = SwitchEventStore(context.applicationContext, true)
+    private val store = SwitchEventStore.getInstance().apply {
+        initialize(context.applicationContext, true)
+    }
     private val cameraSwitchListeners = mutableSetOf<CameraSwitchListener>()
     var hasCameraSwitch = false
+    private val coroutineScope = CoroutineScope(Dispatchers.IO)
 
     private val receiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             if (intent?.action == SwitchEventStore.EVENTS_UPDATED) {
-                store.reload()
-                checkCameraSwitchAvailability()
-                notifyCameraSwitchListeners()
+                context?.let {
+                    store.reload(it)
+                    checkCameraSwitchAvailability()
+                    notifyCameraSwitchListeners()
+                }
             }
         }
     }
@@ -32,9 +41,13 @@ class SwitchEventProvider(context: Context) {
         checkCameraSwitchAvailability()
     }
 
-    fun findExternal(code: String): SwitchEvent? = store.findExternal(code)
+    fun findExternal(code: String): SwitchEvent? = store.find(code).takeIf {
+        it?.type == SWITCH_EVENT_TYPE_EXTERNAL && it.isOnDevice
+    }
 
-    fun findCamera(code: String): SwitchEvent? = store.findCamera(code)
+    fun findCamera(code: String): SwitchEvent? = store.find(code).takeIf {
+        it?.type == SWITCH_EVENT_TYPE_CAMERA && it.isOnDevice
+    }
 
     fun addCameraSwitchListener(listener: CameraSwitchListener) {
         cameraSwitchListeners.add(listener)
@@ -45,16 +58,17 @@ class SwitchEventProvider(context: Context) {
     }
 
     fun isFacialGestureAssigned(gestureId: String): Boolean {
-        return store.getSwitchEvents()
-            .any { it.type == SWITCH_EVENT_TYPE_CAMERA && it.isOnDevice && it.code == gestureId } == true
+        return store.find(gestureId) != null
     }
 
     private fun checkCameraSwitchAvailability() {
-        val hasCamera = store.getSwitchEvents()
-            .any { it.type == SWITCH_EVENT_TYPE_CAMERA && it.isOnDevice } == true
+        coroutineScope.launch {
+            val hasCamera = store.getSwitchEvents()
+                .any { it.type == SWITCH_EVENT_TYPE_CAMERA && it.isOnDevice }
 
-        if (hasCamera != hasCameraSwitch) {
-            hasCameraSwitch = hasCamera
+            if (hasCamera != hasCameraSwitch) {
+                hasCameraSwitch = hasCamera
+            }
         }
     }
 

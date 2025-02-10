@@ -1,3 +1,5 @@
+package com.enaboapps.switchify.screens.settings.switches
+
 import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.focusable

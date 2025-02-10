@@ -80,7 +80,9 @@ class ExternalSwitchListener(
      */
     private fun findSwitchEvent(keyCode: Int): SwitchEvent? {
         Log.d("ExternalSwitchListener", "Finding switch event for keyCode: $keyCode")
-        return switchEventProvider.findExternal(keyCode.toString())
+        val switchEvent = switchEventProvider.findExternal(keyCode.toString())
+        Log.d("ExternalSwitchListener", "Found switch event: $switchEvent")
+        return switchEvent
     }
 
     /**

@@ -37,7 +37,7 @@ class SetupScreenModel(
         viewModelScope.launch {
             _uiState.update { currentState ->
                 currentState.copy(
-                    switchesInvalidReason = switchEventStore.isConfigInvalid(),
+                    switchesInvalidReason = switchEventStore.isConfigInvalid(context),
                     isAccessibilityServiceEnabled = serviceUtils.isAccessibilityServiceEnabled(
                         context
                     ),
@@ -47,13 +47,11 @@ class SetupScreenModel(
         }
     }
 
-    fun checkSwitches() {
-        viewModelScope.launch {
-            _uiState.update { currentState ->
-                currentState.copy(
-                    switchesInvalidReason = switchEventStore.isConfigInvalid()
-                )
-            }
+    fun checkSwitches(context: Context) {
+        _uiState.update { currentState ->
+            currentState.copy(
+                switchesInvalidReason = switchEventStore.isConfigInvalid(context)
+            )
         }
     }
 

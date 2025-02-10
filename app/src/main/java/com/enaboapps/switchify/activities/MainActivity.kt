@@ -5,19 +5,28 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.navigation.compose.rememberNavController
 import com.enaboapps.switchify.activities.ui.theme.SwitchifyTheme
+import com.enaboapps.switchify.backend.data.FileManager
 import com.enaboapps.switchify.backend.iap.IAPHandler
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.nav.NavGraph
 import com.enaboapps.switchify.service.custom.actions.store.ActionStore
+import com.enaboapps.switchify.switches.SwitchEventStore
 import com.enaboapps.switchify.utils.Logger
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     private lateinit var preferenceManager: PreferenceManager
     private lateinit var actionStore: ActionStore
+    private lateinit var fileManager: FileManager
+
+    private val scope = CoroutineScope(Dispatchers.IO)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        initializeManagers()
+
+        setup()
 
         Logger.logEvent("Launched Switchify")
 
@@ -30,22 +39,42 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun initializeManagers() {
-        // Initialize PreferenceManager and Logger
+    private fun setup() {
+        // Initialize FileManager
+        fileManager = FileManager.create(this)
+
+        // Initialize PreferenceManager
         preferenceManager = PreferenceManager(this)
         preferenceManager.enableSync()
         preferenceManager.preferenceSync.apply {
             retrieveSettingsFromFirestore()
             listenForSettingsChangesOnRemote()
         }
-        preferenceManager.migrateToProtectedStorage()
+
+        // Initialize Logger
         Logger.init(this)
 
         // Initialize ActionStore
         actionStore = ActionStore(this)
         actionStore.pullActionsFromFirestore()
 
+        // Initialize SwitchEventStore
+        SwitchEventStore.getInstance().initialize(this)
+
         // Initialize IAP
         IAPHandler.initialize(this)
+
+        // Migrate files from regular storage to device protected storage
+        migrateFromRegularStorage()
+    }
+
+    /**
+     * Migrates files from regular storage to device protected storage.
+     */
+    private fun migrateFromRegularStorage() {
+        scope.launch {
+            fileManager.migrateFromRegularStorage(this@MainActivity)
+        }
+        preferenceManager.migrateToProtectedStorage()
     }
 }

@@ -52,8 +52,9 @@ fun SetupScreen(
     navController: NavController
 ) {
     val context = LocalContext.current
-
-    val switchEventStore = SwitchEventStore(context)
+    val switchEventStore = remember {
+        SwitchEventStore.getInstance()
+    }
     val serviceUtils = ServiceUtils()
     val keyboardUtils = KeyboardUtils
     val preferenceManager = PreferenceManager(context)
@@ -86,7 +87,7 @@ fun SetupScreen(
             viewModel.setSetupComplete()
             navController.navigate(NavigationRoute.SignIn.name)
         },
-        onScanModeChange = { viewModel.checkSwitches() },
+        onScanModeChange = { viewModel.checkSwitches(context) },
         onFinish = {
             viewModel.setSetupComplete()
             navController.popBackStack()

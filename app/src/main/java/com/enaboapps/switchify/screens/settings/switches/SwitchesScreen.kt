@@ -22,11 +22,16 @@ import com.enaboapps.switchify.switches.SwitchEventStore
 
 @Composable
 fun SwitchesScreen(navController: NavController) {
-    val switchesScreenModel = SwitchesScreenModel(
-        SwitchEventStore(LocalContext.current)
-    )
+    val context = LocalContext.current
+    val switchesScreenModel = remember {
+        SwitchesScreenModel()
+    }
     var selectedTabIndex by remember { mutableIntStateOf(0) }
     val uiState by switchesScreenModel.uiState.collectAsState()
+
+    LaunchedEffect(Unit) {
+        switchesScreenModel.setup(context)
+    }
 
     BaseView(
         title = "Switches",
@@ -183,6 +188,7 @@ private fun RemoteSwitchItem(
     remoteSwitch: SwitchEventStore.RemoteSwitchInfo,
     isImporting: Boolean
 ) {
+    val context = LocalContext.current
     val showDeleteConfirmation = remember { mutableStateOf(false) }
 
     Row(
@@ -195,7 +201,7 @@ private fun RemoteSwitchItem(
             description = if (isImporting) "Importing..." else "Tap to add",
             onClick = {
                 if (!isImporting) {
-                    model.importSwitch(remoteSwitch)
+                    model.importSwitch(remoteSwitch, context)
                 }
             },
             enabled = !isImporting
@@ -221,7 +227,7 @@ private fun RemoteSwitchItem(
                     TextButton(
                         onClick = {
                             showDeleteConfirmation.value = false
-                            model.deleteRemoteSwitch(remoteSwitch)
+                            model.deleteRemoteSwitch(remoteSwitch, context)
                         }
                     ) {
                         Text("Delete")
@@ -235,7 +241,8 @@ private fun RemoteSwitchItem(
                     ) {
                         Text("Cancel")
                     }
-                })
+                }
+            )
         }
     }
 }

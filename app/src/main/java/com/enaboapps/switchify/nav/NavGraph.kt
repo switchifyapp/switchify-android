@@ -1,6 +1,5 @@
 package com.enaboapps.switchify.nav
 
-import TestSwitchesScreen
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -30,6 +29,7 @@ import com.enaboapps.switchify.screens.settings.switches.AddEditCameraSwitchScre
 import com.enaboapps.switchify.screens.settings.switches.AddEditExternalSwitchScreen
 import com.enaboapps.switchify.screens.settings.switches.SwitchStabilityScreen
 import com.enaboapps.switchify.screens.settings.switches.SwitchesScreen
+import com.enaboapps.switchify.screens.settings.switches.TestSwitchesScreen
 import com.enaboapps.switchify.screens.setup.SetupScreen
 
 @Composable
