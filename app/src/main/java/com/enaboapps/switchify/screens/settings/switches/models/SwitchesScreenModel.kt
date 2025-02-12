@@ -128,6 +128,12 @@ class SwitchesScreenModel : ViewModel() {
             )
 
             store.importSwitch(remoteSwitch.code, context)
+                .onSuccess {
+                    _uiState.value = _uiState.value.copy(
+                        remoteSwitches = _uiState.value.remoteSwitches.filterNot { it.code == remoteSwitch.code },
+                        importingSwitch = null
+                    )
+                }
                 .onFailure { error ->
                     _uiState.value = _uiState.value.copy(
                         importingSwitch = null
@@ -141,7 +147,7 @@ class SwitchesScreenModel : ViewModel() {
      */
     fun deleteRemoteSwitch(remoteSwitch: RemoteSwitchInfo, context: Context) {
         viewModelScope.launch {
-            store.removeRemote(remoteSwitch.code)
+            store.removeRemote(remoteSwitch.code, context)
                 .onFailure { error ->
                     _uiState.value = _uiState.value.copy(
                         importingSwitch = null

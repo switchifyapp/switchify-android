@@ -14,13 +14,14 @@ import com.enaboapps.switchify.switches.SwitchEvent
  *
  * @property context Application context used for accessing system services and resources
  * @property scanningManager Manages the scanning interface for switch-based navigation
+ * @property switchEventProvider Provides access to switch events
  */
 class ExternalSwitchListener(
     private val context: Context,
-    private val scanningManager: ScanningManager
+    private val scanningManager: ScanningManager,
+    private val switchEventProvider: SwitchEventProvider
 ) {
     private val preferenceManager = PreferenceManager(context)
-    private val switchEventProvider = SwitchEventProvider(context)
 
     /** Tracks the most recent switch action for handling release events */
     private var latestAction: AbsorbedSwitchAction? = null

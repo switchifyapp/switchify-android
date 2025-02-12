@@ -1,6 +1,8 @@
 package com.enaboapps.switchify.activities
 
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.navigation.compose.rememberNavController
@@ -58,11 +60,12 @@ class MainActivity : ComponentActivity() {
         actionStore = ActionStore(this)
         actionStore.pullActionsFromFirestore()
 
-        // Initialize SwitchEventStore
-        SwitchEventStore.getInstance().initialize(this)
-
         // Initialize IAP
         IAPHandler.initialize(this)
+
+        Handler(Looper.getMainLooper()).postDelayed({
+            SwitchEventStore.getInstance().initialize(this)
+        }, 1000)
 
         // Migrate files from regular storage to device protected storage
         migrateFromRegularStorage()

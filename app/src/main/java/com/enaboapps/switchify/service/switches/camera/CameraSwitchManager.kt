@@ -26,9 +26,9 @@ import kotlinx.coroutines.withContext
 
 class CameraSwitchManager(
     private val context: Context,
-    private val scanningManager: ScanningManager
+    private val scanningManager: ScanningManager,
+    private val switchEventProvider: SwitchEventProvider
 ) {
-    private val switchEventProvider = SwitchEventProvider(context)
     private var cameraProviderFuture: ListenableFuture<ProcessCameraProvider>? = null
     private var cameraProvider: ProcessCameraProvider? = null
     private var imageAnalyzer: ImageAnalysis? = null

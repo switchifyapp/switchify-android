@@ -67,7 +67,10 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner {
         scanningManager = ScanningManager(this, this)
         scanningManager.setup()
 
-        cameraSwitchManager = CameraSwitchManager(this, scanningManager)
+        switchEventProvider = SwitchEventProvider(this)
+        externalSwitchListener = ExternalSwitchListener(this, scanningManager, switchEventProvider)
+
+        cameraSwitchManager = CameraSwitchManager(this, scanningManager, switchEventProvider)
 
         lockScreenView = LockScreenView(this)
         lockScreenView.setup(this)
@@ -92,9 +95,6 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner {
         screenWatcher.register(this)
 
         scanSettings = ScanSettings(this)
-
-        switchEventProvider = SwitchEventProvider(this)
-        externalSwitchListener = ExternalSwitchListener(this, scanningManager)
 
         GestureManager.getInstance().setup(this)
         SelectionHandler.init(this)

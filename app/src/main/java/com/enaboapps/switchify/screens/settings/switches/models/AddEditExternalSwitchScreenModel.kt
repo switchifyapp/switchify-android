@@ -1,9 +1,6 @@
 package com.enaboapps.switchify.screens.settings.switches.models
 
-import android.content.BroadcastReceiver
 import android.content.Context
-import android.content.Intent
-import android.content.IntentFilter
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
@@ -13,7 +10,6 @@ import androidx.compose.ui.input.key.nativeKeyCode
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.enaboapps.switchify.service.scanning.ScanSettings
 import com.enaboapps.switchify.switches.SWITCH_EVENT_TYPE_EXTERNAL
 import com.enaboapps.switchify.switches.SwitchAction
@@ -32,7 +28,6 @@ class AddEditExternalSwitchScreenModel : ViewModel() {
 
     private val store = SwitchEventStore.getInstance()
     private var code: String? = null
-    private var localBroadcastManager: LocalBroadcastManager? = null
     private var isInitialized = false
 
     var name = ""
@@ -49,23 +44,8 @@ class AddEditExternalSwitchScreenModel : ViewModel() {
     }
     val longPressActions = MutableLiveData<List<SwitchAction>>(emptyList())
 
-    private val storeUpdateReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context?, intent: Intent?) {
-            if (intent?.action == SwitchEventStore.EVENTS_UPDATED) {
-                validateIfInitialized()
-            }
-        }
-    }
-
     fun init(code: String?, context: Context) {
         this.code = code
-
-        // Register for store updates
-        localBroadcastManager = LocalBroadcastManager.getInstance(context)
-        localBroadcastManager?.registerReceiver(
-            storeUpdateReceiver,
-            IntentFilter(SwitchEventStore.EVENTS_UPDATED)
-        )
 
         if (code != null) {
             reload(context)
@@ -98,11 +78,6 @@ class AddEditExternalSwitchScreenModel : ViewModel() {
             isInitialized = true
             validateIfInitialized()
         }
-    }
-
-    override fun onCleared() {
-        super.onCleared()
-        localBroadcastManager?.unregisterReceiver(storeUpdateReceiver)
     }
 
     private fun validateIfInitialized() {
