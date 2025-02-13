@@ -164,15 +164,17 @@ class ServiceMessageHUD private constructor() {
         this.message = message
         this.shownMessageType = messageType
 
-        createOrUpdateMessageView()
+        handler.post {
+            createOrUpdateMessageView()
 
-        if (messageView?.parent == null) {
-            addViewToWindow()
-        }
+            if (messageView?.parent == null) {
+                addViewToWindow()
+            }
 
-        if (messageType == MessageType.DISAPPEARING) {
-            handler.postDelayed({ hideMessage() }, time.milliseconds)
-            Log.d(TAG, "Scheduled message to disappear after ${time.milliseconds}ms")
+            if (messageType == MessageType.DISAPPEARING) {
+                handler.postDelayed({ hideMessage() }, time.milliseconds)
+                Log.d(TAG, "Scheduled message to disappear after ${time.milliseconds}ms")
+            }
         }
     }
 
