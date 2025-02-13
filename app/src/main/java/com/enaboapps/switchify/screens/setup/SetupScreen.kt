@@ -21,11 +21,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.auth.AuthManager
+import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.FullWidthButton
 import com.enaboapps.switchify.keyboard.utils.KeyboardUtils
 import com.enaboapps.switchify.nav.NavigationRoute
-import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.screens.settings.scanning.ScanModeSelectionSection
 import com.enaboapps.switchify.service.utils.ServiceUtils
 import com.enaboapps.switchify.switches.SwitchConfigInvalidBanner
@@ -52,8 +52,9 @@ fun SetupScreen(
     navController: NavController
 ) {
     val context = LocalContext.current
-
-    val switchEventStore = SwitchEventStore(context)
+    val switchEventStore = remember {
+        SwitchEventStore.getInstance()
+    }
     val serviceUtils = ServiceUtils()
     val keyboardUtils = KeyboardUtils
     val preferenceManager = PreferenceManager(context)
@@ -86,7 +87,7 @@ fun SetupScreen(
             viewModel.setSetupComplete()
             navController.navigate(NavigationRoute.SignIn.name)
         },
-        onScanModeChange = { viewModel.checkSwitches() },
+        onScanModeChange = { viewModel.checkSwitches(context) },
         onFinish = {
             viewModel.setSetupComplete()
             navController.popBackStack()

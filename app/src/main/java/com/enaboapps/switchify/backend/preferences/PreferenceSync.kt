@@ -14,11 +14,11 @@ import kotlinx.coroutines.launch
  * Handles automatic syncing of user preferences across devices with support for
  * real-time updates and type-safe storage.
  */
-class PreferenceSync(private val sharedPreferences: SharedPreferences) {
-    private val firestoreManager = FirestoreManager.getInstance()
-    private val authManager = AuthManager.instance
+class PreferenceSync private constructor() {
+    private var sharedPreferences: SharedPreferences? = null
     private val coroutineScope = CoroutineScope(Dispatchers.IO)
     private var settingsListener: ListenerRegistration? = null
+    private var isInitialized = false
 
     companion object {
         private const val TAG = "PreferenceSync"
@@ -31,10 +31,35 @@ class PreferenceSync(private val sharedPreferences: SharedPreferences) {
             PreferenceManager.Keys.PREFERENCE_KEY_LOCK_SCREEN,
             PreferenceManager.Keys.PREFERENCE_KEY_LOCK_SCREEN_CODE
         )
+
+        @Volatile
+        private var instance: PreferenceSync? = null
+
+        fun getInstance(): PreferenceSync {
+            return instance ?: synchronized(this) {
+                instance ?: PreferenceSync().also { instance = it }
+            }
+        }
     }
 
-    private fun getDocumentPath(): String {
-        val userId = authManager.getUserId() ?: Log.d(TAG, "Could not get user ID")
+    fun initialize(preferences: SharedPreferences) {
+        sharedPreferences = preferences
+        isInitialized = true
+    }
+
+    private fun checkInitialized(): Boolean {
+        if (!isInitialized) {
+            Log.w(TAG, "PreferenceSync not initialized. Call initialize() first.")
+            return false
+        }
+        return true
+    }
+
+    private fun getDocumentPath(): String? {
+        val userId = AuthManager.instance.getUserId() ?: run {
+            Log.w(TAG, "Could not get user ID")
+            return null
+        }
         return "$COLLECTION_USER_SETTINGS/$DOCUMENT_PREFERENCES/$COLLECTION_USERS/$userId"
     }
 
@@ -42,11 +67,15 @@ class PreferenceSync(private val sharedPreferences: SharedPreferences) {
      * Uploads current SharedPreferences to Firestore.
      */
     fun uploadSettingsToFirestore() {
+        if (!checkInitialized()) return
+
         coroutineScope.launch {
             try {
-                val userSettings = getAllPreferences()
-                firestoreManager.saveDocument(
-                    path = getDocumentPath(),
+                val userSettings = getAllPreferences() ?: return@launch
+                val path = getDocumentPath() ?: return@launch
+
+                FirestoreManager.getInstance().saveDocument(
+                    path = path,
                     data = userSettings
                 )
                 Log.i(TAG, "Settings uploaded successfully")
@@ -60,9 +89,12 @@ class PreferenceSync(private val sharedPreferences: SharedPreferences) {
      * Downloads and applies settings from Firestore to SharedPreferences.
      */
     fun retrieveSettingsFromFirestore() {
+        if (!checkInitialized()) return
+
         coroutineScope.launch {
             try {
-                val settings = firestoreManager.getDocument(path = getDocumentPath())
+                val path = getDocumentPath() ?: return@launch
+                val settings = FirestoreManager.getInstance().getDocument(path = path)
                 if (settings != null && settings.isNotEmpty()) {
                     applySettings(settings)
                     Log.i(TAG, "Settings retrieved and applied successfully")
@@ -79,10 +111,14 @@ class PreferenceSync(private val sharedPreferences: SharedPreferences) {
      * Sets up real-time listener for remote preference changes.
      */
     fun listenForSettingsChangesOnRemote() {
+        if (!checkInitialized()) return
+
         try {
             settingsListener?.remove()
-            settingsListener = firestoreManager.listenToDocument(
-                path = getDocumentPath(),
+            val path = getDocumentPath() ?: return
+
+            settingsListener = FirestoreManager.getInstance().listenToDocument(
+                path = path,
                 onDocument = { settings ->
                     settings?.let { applySettings(it) }
                 },
@@ -99,8 +135,9 @@ class PreferenceSync(private val sharedPreferences: SharedPreferences) {
     /**
      * Gets all non-blacklisted preferences with supported types.
      */
-    private fun getAllPreferences(): Map<String, Any> {
-        return sharedPreferences.all.mapNotNull { (key, value) ->
+    private fun getAllPreferences(): Map<String, Any>? {
+        val prefs = sharedPreferences ?: return null
+        return prefs.all.mapNotNull { (key, value) ->
             if (!BLACKLISTED_KEYS.contains(key) && value != null) {
                 when (value) {
                     is String, is Boolean, is Int, is Long, is Float -> key to value
@@ -117,7 +154,8 @@ class PreferenceSync(private val sharedPreferences: SharedPreferences) {
      * Applies settings to SharedPreferences with type conversion.
      */
     private fun applySettings(settings: Map<String, Any>) {
-        with(sharedPreferences.edit()) {
+        val prefs = sharedPreferences ?: return
+        with(prefs.edit()) {
             settings.forEach { (key, value) ->
                 if (!BLACKLISTED_KEYS.contains(key)) {
                     when (value) {

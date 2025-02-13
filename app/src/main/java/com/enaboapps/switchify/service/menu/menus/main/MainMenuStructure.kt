@@ -10,9 +10,30 @@ import com.enaboapps.switchify.service.menu.menus.gestures.GestureMenuStructure
 import com.enaboapps.switchify.service.menu.structure.MenuStructure
 import com.enaboapps.switchify.service.methods.nodes.NodeExaminer
 import com.enaboapps.switchify.service.scanning.ScanMethod
+import com.enaboapps.switchify.service.utils.DeviceLockObserver
 
 class MainMenuStructure(private val accessibilityService: SwitchifyAccessibilityService?) {
     private val gestureMenuStructure = GestureMenuStructure()
+    private val deviceLockObserver = accessibilityService?.let { DeviceLockObserver(it) }
+
+    private fun createMyActionsMenuItem(): MenuItem? {
+        if (deviceLockObserver?.isUserUnlocked() != true || accessibilityService == null) {
+            return null
+        }
+
+        val actionStore = ActionStore(accessibilityService)
+        if (actionStore.isEmpty()) {
+            return null
+        }
+
+        return MenuItem(
+            id = "my_actions",
+            text = "My Actions",
+            isLinkToMenu = true,
+            action = { MenuManager.getInstance().openMyActionsMenu() }
+        )
+    }
+
     val deviceItem = MenuItem(
         id = "device",
         text = "Device",
@@ -85,16 +106,7 @@ class MainMenuStructure(private val accessibilityService: SwitchifyAccessibility
                     }
                 )
             } else null,
-            if (accessibilityService != null && !ActionStore(accessibilityService).isEmpty()) {
-                MenuItem(
-                    id = "my_actions",
-                    text = "My Actions",
-                    isLinkToMenu = true,
-                    action = {
-                        MenuManager.getInstance().openMyActionsMenu()
-                    }
-                )
-            } else null
+            createMyActionsMenuItem()
         )
     )
 

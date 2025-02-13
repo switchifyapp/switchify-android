@@ -17,8 +17,8 @@ class AddEditCameraSwitchScreenModel : ViewModel() {
     private lateinit var store: SwitchEventStore
     private var code: String? = null
 
-    fun init(code: String?, context: Context) {
-        store = SwitchEventStore(context)
+    fun init(code: String?) {
+        store = SwitchEventStore.getInstance()
         this.code = code
 
         if (code != null) {
@@ -61,7 +61,7 @@ class AddEditCameraSwitchScreenModel : ViewModel() {
                 action.value != SwitchAction(SwitchAction.ACTION_NONE)
     }
 
-    fun save(completion: ((Boolean) -> Unit)) {
+    fun save(context: Context, completion: ((Boolean) -> Unit)) {
         val event = SwitchEvent(
             type = SWITCH_EVENT_TYPE_CAMERA,
             name = name.trim(),
@@ -72,7 +72,7 @@ class AddEditCameraSwitchScreenModel : ViewModel() {
         )
 
         if (store.find(event.code) == null) {
-            store.add(event) { success ->
+            store.add(event, context) { success ->
                 if (success) {
                     completion(true)
                 } else {
@@ -80,7 +80,7 @@ class AddEditCameraSwitchScreenModel : ViewModel() {
                 }
             }
         } else {
-            store.update(event) { success ->
+            store.update(event, context) { success ->
                 if (success) {
                     completion(true)
                 } else {
@@ -90,10 +90,10 @@ class AddEditCameraSwitchScreenModel : ViewModel() {
         }
     }
 
-    fun delete(completion: (Boolean) -> Unit) {
+    fun delete(context: Context, completion: (Boolean) -> Unit) {
         val event = store.find(code ?: "")
         event?.let {
-            store.remove(it) { success ->
+            store.remove(it, context) { success ->
                 if (success) {
                     completion(true)
                 } else {

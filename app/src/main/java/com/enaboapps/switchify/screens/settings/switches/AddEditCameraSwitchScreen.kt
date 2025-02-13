@@ -23,12 +23,13 @@ import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
 import com.google.accompanist.permissions.shouldShowRationale
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun AddEditCameraSwitchScreen(navController: NavController, code: String? = null) {
     val context = LocalContext.current
-    val viewModel = remember { AddEditCameraSwitchScreenModel().apply { init(code, context) } }
+    val viewModel = remember { AddEditCameraSwitchScreenModel().apply { init(code) } }
 
     val cameraPermissionState = rememberPermissionState(
         android.Manifest.permission.CAMERA
@@ -65,6 +66,8 @@ private fun MainContent(
     navController: NavController
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -137,12 +140,14 @@ private fun MainContent(
             text = "Save",
             enabled = viewModel.isValid.value,
             onClick = {
-                viewModel.save { success ->
-                    if (success) {
-                        navController.popBackStack()
-                    } else {
-                        Toast.makeText(context, "Error saving switch", Toast.LENGTH_SHORT)
-                            .show()
+                viewModel.save(context) { success ->
+                    scope.launch {
+                        if (success) {
+                            navController.popBackStack()
+                        } else {
+                            Toast.makeText(context, "Error saving switch", Toast.LENGTH_SHORT)
+                                .show()
+                        }
                     }
                 }
             }
@@ -168,12 +173,18 @@ private fun MainContent(
                 TextButton(
                     onClick = {
                         viewModel.showDeleteConfirmation.value = false
-                        viewModel.delete { success ->
-                            if (success) {
-                                navController.popBackStack()
-                            } else {
-                                Toast.makeText(context, "Error deleting switch", Toast.LENGTH_SHORT)
-                                    .show()
+                        viewModel.delete(context) { success ->
+                            scope.launch {
+                                if (success) {
+                                    navController.popBackStack()
+                                } else {
+                                    Toast.makeText(
+                                        context,
+                                        "Error deleting switch",
+                                        Toast.LENGTH_SHORT
+                                    )
+                                        .show()
+                                }
                             }
                         }
                     }

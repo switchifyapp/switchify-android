@@ -33,7 +33,8 @@ class MenuStructureHolder(private val accessibilityService: SwitchifyAccessibili
     val zoomGesturesMenuObject = gestureMenuStructure.zoomGesturesMenuObject
     val swipeGesturesMenuObject = gestureMenuStructure.swipeGesturesMenuObject
     val tapGesturesMenuObject = gestureMenuStructure.tapGesturesMenuObject
-    val customGestureConfirmationMenuObject = gestureMenuStructure.customGestureConfirmationMenuObject
+    val customGestureConfirmationMenuObject =
+        gestureMenuStructure.customGestureConfirmationMenuObject
 
     // System Menus
     val systemNavItems = systemMenuStructure.systemNavItems
