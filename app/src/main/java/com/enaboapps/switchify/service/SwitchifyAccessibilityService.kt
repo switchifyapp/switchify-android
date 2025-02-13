@@ -11,7 +11,6 @@ import androidx.lifecycle.LifecycleRegistry
 import com.enaboapps.switchify.backend.iap.IAPHandler
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.service.gestures.GestureManager
-import com.enaboapps.switchify.service.lockscreen.LockScreenView
 import com.enaboapps.switchify.service.methods.nodes.NodeExaminer
 import com.enaboapps.switchify.service.scanning.ScanMethod
 import com.enaboapps.switchify.service.scanning.ScanSettings
@@ -41,7 +40,6 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner {
     private lateinit var cameraSwitchManager: CameraSwitchManager
     private lateinit var lifecycleRegistry: LifecycleRegistry
     private lateinit var screenWatcher: ScreenWatcher
-    private lateinit var lockScreenView: LockScreenView
     private lateinit var scanSettings: ScanSettings
     private lateinit var deviceLockObserver: DeviceLockObserver
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
@@ -72,12 +70,8 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner {
 
         cameraSwitchManager = CameraSwitchManager(this, scanningManager, switchEventProvider)
 
-        lockScreenView = LockScreenView(this)
-        lockScreenView.setup(this)
-
         screenWatcher = ScreenWatcher(
             onScreenWake = {
-                lockScreenView.show()
                 if (deviceLockObserver.isUserUnlocked() && switchEventProvider.hasCameraSwitch) {
                     cameraSwitchManager.startCamera(this@SwitchifyAccessibilityService)
                 }
@@ -85,7 +79,6 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner {
             onScreenSleep = {
                 externalSwitchListener.reset()
                 scanningManager.reset()
-                lockScreenView.hide()
                 if (switchEventProvider.hasCameraSwitch) {
                     cameraSwitchManager.stopCamera()
                 }
@@ -172,9 +165,6 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner {
                 scanningManager.updateNodes(nodes)
             }
         }
-
-        // Show the lock screen when the service starts
-        lockScreenView.show()
     }
 
     override fun onUnbind(intent: Intent?): Boolean {
@@ -183,7 +173,6 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner {
         cameraSwitchManager.stopCamera()
         deviceLockObserver.stopObserving()
         scanningManager.shutdown()
-        lockScreenView.hide()
 
         Logger.logEvent("Service Unbound")
 
