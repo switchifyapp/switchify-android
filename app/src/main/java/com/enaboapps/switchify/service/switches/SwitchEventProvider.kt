@@ -81,16 +81,14 @@ class SwitchEventProvider(private val context: Context) {
     fun findExternal(code: String): SwitchEvent? = synchronized(switchEvents) {
         switchEvents.find {
             it.code == code &&
-                    it.type == SWITCH_EVENT_TYPE_EXTERNAL &&
-                    it.isOnDevice
+                    it.type == SWITCH_EVENT_TYPE_EXTERNAL
         }
     }
 
     fun findCamera(code: String): SwitchEvent? = synchronized(switchEvents) {
         switchEvents.find {
             it.code == code &&
-                    it.type == SWITCH_EVENT_TYPE_CAMERA &&
-                    it.isOnDevice
+                    it.type == SWITCH_EVENT_TYPE_CAMERA
         }
     }
 
@@ -106,8 +104,7 @@ class SwitchEventProvider(private val context: Context) {
         return synchronized(switchEvents) {
             switchEvents.any {
                 it.code == gestureId &&
-                        it.type == SWITCH_EVENT_TYPE_CAMERA &&
-                        it.isOnDevice
+                        it.type == SWITCH_EVENT_TYPE_CAMERA
             }
         }
     }
@@ -115,8 +112,7 @@ class SwitchEventProvider(private val context: Context) {
     private fun checkCameraSwitchAvailability() {
         val hasCamera = synchronized(switchEvents) {
             switchEvents.any {
-                it.type == SWITCH_EVENT_TYPE_CAMERA &&
-                        it.isOnDevice
+                it.type == SWITCH_EVENT_TYPE_CAMERA
             }
         }
 
