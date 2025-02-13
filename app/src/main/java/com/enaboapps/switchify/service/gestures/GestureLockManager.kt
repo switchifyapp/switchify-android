@@ -12,7 +12,7 @@ class GestureLockManager {
     private var isLocked = false
     private var lockedGestureData: GestureData? = null
     private var timeoutTimer: Timer? = null
-    private val lockTimeout = 10000L
+    private val lockTimeout = 60000L
 
     // Function to lock/unlock the gesture lock, showing a message to the user
     fun toggleGestureLock() {
