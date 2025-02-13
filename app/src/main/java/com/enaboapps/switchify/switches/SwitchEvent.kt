@@ -11,8 +11,7 @@ data class SwitchEvent(
     @SerializedName("code") var code: String,
     @SerializedName("facial_gesture_time") var facialGestureTime: Long = 100L,
     @SerializedName("press_action") var pressAction: SwitchAction,
-    @SerializedName("hold_actions") var holdActions: List<SwitchAction>,
-    @Transient var isOnDevice: Boolean = false
+    @SerializedName("hold_actions") var holdActions: List<SwitchAction>
 ) {
     fun toMap(): Map<String, Any> = mapOf(
         "type" to (type.takeIf { it.isNotEmpty() } ?: SWITCH_EVENT_TYPE_EXTERNAL),
@@ -23,23 +22,13 @@ data class SwitchEvent(
         "hold_actions" to holdActions.map { it.toMap() }
     )
 
-    fun setValuesFromOther(other: SwitchEvent) {
-        type = other.type
-        name = other.name
-        code = other.code
-        facialGestureTime = other.facialGestureTime
-        pressAction = other.pressAction
-        holdActions = other.holdActions
-        isOnDevice = other.isOnDevice
-    }
-
     fun log() {
         println(
             "SwitchEvent: $type, $name, $code, $facialGestureTime, ${pressAction.id}, ${
                 holdActions.joinToString(
                     separator = ";"
                 ) { it.id.toString() }
-            }, isOnDevice: $isOnDevice"
+            }"
         )
     }
 

@@ -59,7 +59,6 @@ class SwitchEventStore private constructor() {
             val loadedEvents = localStorage.loadFromFile(context)
             switchEvents.clear()
             switchEvents.addAll(loadedEvents)
-            pullEventsFromFirestore()
         }
         isInitialized = true
     }
@@ -103,9 +102,8 @@ class SwitchEventStore private constructor() {
     fun update(switchEvent: SwitchEvent, context: Context, completion: ((Boolean) -> Unit)) {
         coroutineScope.launch {
             var updated = switchEvents.removeIf { it.code == switchEvent.code }
-            val r = switchEvent.copy(isOnDevice = true)
             if (updated) {
-                updated = switchEvents.add(r)
+                updated = switchEvents.add(switchEvent)
             }
 
             if (updated) {
@@ -209,8 +207,6 @@ class SwitchEventStore private constructor() {
                     Exception("Switch not found")
                 )
 
-                switchEvent.isOnDevice = true
-
                 val added = switchEvents.add(switchEvent)
 
                 if (!added) {
@@ -228,55 +224,6 @@ class SwitchEventStore private constructor() {
             } catch (e: Exception) {
                 Logger.logEvent("Error importing switch: $code, ${e.message}")
                 Result.failure(e)
-            }
-        }
-    }
-
-    /**
-     * Pulls all switch events from Firestore and updates local storage.
-     */
-    private fun pullEventsFromFirestore() {
-        coroutineScope.launch {
-            val remoteEvents = firestore.pullEvents() ?: return@launch
-
-            if (remoteEvents.isEmpty()) {
-                Log.i(tag, "No switch events found in Firestore")
-                if (switchEvents.isNotEmpty()) {
-                    pushEventsToFirestore()
-                }
-                return@launch
-            }
-
-            switchEvents.removeIf { local ->
-                remoteEvents.none { remote -> remote.code == local.code }
-            }
-            // Then add or update events from remote
-            remoteEvents.forEach { remote ->
-                switchEvents.removeIf { it.code == remote.code }
-                val r = remote.copy(isOnDevice = false)
-                switchEvents.add(r)
-            }
-        }
-    }
-
-    /**
-     * Pushes all local switch events to Firestore.
-     */
-    private fun pushEventsToFirestore() {
-        coroutineScope.launch {
-            try {
-                val eventsToSync = synchronized(switchEvents) { switchEvents.toSet() }
-
-                eventsToSync.forEach { event ->
-                    if (firestore.pushEvent(event)) {
-                        Log.d(tag, "Successfully pushed event ${event.code} to Firestore")
-                    }
-                }
-
-                Log.i(tag, "Successfully pushed ${eventsToSync.size} switch events to Firestore")
-                Logger.logEvent("Pushed ${eventsToSync.size} switch events to Firestore")
-            } catch (e: Exception) {
-                Logger.logEvent("Error pushing to Firestore: ${e.message}")
             }
         }
     }

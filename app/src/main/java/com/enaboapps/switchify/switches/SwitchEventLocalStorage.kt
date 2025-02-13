@@ -33,7 +33,6 @@ class SwitchEventLocalStorage {
                 fileManager.readJson<Set<SwitchEvent>>(fileName, type)
                     .onSuccess { events ->
                         Log.d(tag, "Loaded ${events.size} switch events from file")
-                        events.forEach { it.isOnDevice = true }
                         events.forEach { it.log() }
                         return@withLock events
                     }
@@ -61,11 +60,10 @@ class SwitchEventLocalStorage {
         return fileLock.withLock {
             try {
                 val fileManager = FileManager.create(context)
-                val onDeviceEvents = switchEvents.filter { it.isOnDevice }.toSet()
-                Log.d(tag, "Attempting to save ${onDeviceEvents.size} switch events to file")
-                Log.d(tag, "Events to save: ${gson.toJson(onDeviceEvents)}")
+                Log.d(tag, "Attempting to save ${switchEvents.size} switch events to file")
+                Log.d(tag, "Events to save: ${gson.toJson(switchEvents)}")
 
-                fileManager.writeJson<Set<SwitchEvent>>(fileName, onDeviceEvents)
+                fileManager.writeJson<Set<SwitchEvent>>(fileName, switchEvents)
                     .onSuccess {
                         Log.d(tag, "Successfully saved switch events to file")
                         true
