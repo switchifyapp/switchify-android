@@ -6,6 +6,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.util.Log
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
+import com.enaboapps.switchify.service.window.ServiceMessageHUD
 import com.enaboapps.switchify.switches.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -60,6 +61,19 @@ class SwitchEventProvider(private val context: Context) {
             Log.d(TAG, "Loaded ${switchEvents.size} switches")
             switchEvents.forEach { event ->
                 event.log()
+            }
+            if (switchEvents.isEmpty()) {
+                ServiceMessageHUD.instance.showMessage(
+                    "No Switches Found",
+                    ServiceMessageHUD.MessageType.DISAPPEARING,
+                    ServiceMessageHUD.Time.LONG
+                )
+            } else {
+                ServiceMessageHUD.instance.showMessage(
+                    "Switches Loaded",
+                    ServiceMessageHUD.MessageType.DISAPPEARING,
+                    ServiceMessageHUD.Time.LONG
+                )
             }
         }
     }
