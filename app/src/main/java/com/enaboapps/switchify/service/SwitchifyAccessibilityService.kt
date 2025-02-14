@@ -26,18 +26,20 @@ import com.enaboapps.switchify.utils.Logger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
  * This is the main service class for the Switchify application.
  * It extends the AccessibilityService class to provide accessibility features.
  */
-class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner {
+class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
+    SwitchEventProvider.CameraSwitchListener {
 
     private lateinit var scanningManager: ScanningManager
     private lateinit var switchEventProvider: SwitchEventProvider
     private lateinit var externalSwitchListener: ExternalSwitchListener
-    private lateinit var cameraSwitchManager: CameraSwitchManager
+    private var cameraSwitchManager: CameraSwitchManager? = null
     private lateinit var lifecycleRegistry: LifecycleRegistry
     private lateinit var screenWatcher: ScreenWatcher
     private lateinit var scanSettings: ScanSettings
@@ -66,22 +68,13 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner {
         scanningManager.setup()
 
         switchEventProvider = SwitchEventProvider(this)
+        switchEventProvider.addCameraSwitchListener(this)
         externalSwitchListener = ExternalSwitchListener(this, scanningManager, switchEventProvider)
 
-        cameraSwitchManager = CameraSwitchManager(this, scanningManager, switchEventProvider)
-
         screenWatcher = ScreenWatcher(
-            onScreenWake = {
-                if (deviceLockObserver.isUserUnlocked() && switchEventProvider.hasCameraSwitch) {
-                    cameraSwitchManager.startCamera(this@SwitchifyAccessibilityService)
-                }
-            },
             onScreenSleep = {
                 externalSwitchListener.reset()
                 scanningManager.reset()
-                if (switchEventProvider.hasCameraSwitch) {
-                    cameraSwitchManager.stopCamera()
-                }
             },
             onOrientationChanged = { scanningManager.reset() }
         )
@@ -92,15 +85,55 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner {
         GestureManager.getInstance().setup(this)
         SelectionHandler.init(this)
 
-        // Start observing user unlock state
         deviceLockObserver.startObserving(
             onUnlocked = {
-                // Initialize components that require device unlock
-                IAPHandler.initialize(this)
-                cameraSwitchManager.initialize()
-            }, onLocked = {
+                initProtectedServiceComponents()
+            },
+            onLocked = {
                 Log.d(TAG, "Device locked")
             })
+
+        // Initialize components that require device unlock
+        initProtectedServiceComponents()
+    }
+
+    /**
+     * Initializes protected service components if the device is unlocked.
+     */
+    private fun initProtectedServiceComponents() {
+        if (deviceLockObserver.isUserUnlocked()) {
+            Log.d(TAG, "Device unlocked, initializing protected components")
+            // Initialize components that require device unlock
+            IAPHandler.initialize(this)
+            initCameraSwitchManager()
+        }
+    }
+
+    /**
+     * Initializes and starts the camera switch manager if the device is unlocked and a camera switch is available.
+     */
+    private fun initCameraSwitchManager() {
+        if (deviceLockObserver.isUserUnlocked() && switchEventProvider.hasCameraSwitch && cameraSwitchManager == null) {
+            cameraSwitchManager = CameraSwitchManager(this, scanningManager, switchEventProvider)
+            serviceScope.launch {
+                delay(1000)
+                cameraSwitchManager?.initialize()
+                delay(3000)
+                cameraSwitchManager?.startCamera(this@SwitchifyAccessibilityService)
+            }
+        }
+    }
+
+    /**
+     * Stops the camera switch manager if it is running.
+     */
+    private fun stopCameraSwitchManager() {
+        if (cameraSwitchManager != null) {
+            serviceScope.launch {
+                cameraSwitchManager?.stopCamera()
+                cameraSwitchManager = null
+            }
+        }
     }
 
     /**
@@ -133,22 +166,6 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner {
 
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_START)
 
-        // Only start camera if device is already unlocked
-        if (deviceLockObserver.isUserUnlocked() && switchEventProvider.hasCameraSwitch) {
-            cameraSwitchManager.startCamera(this)
-        }
-
-        switchEventProvider.addCameraSwitchListener(object :
-            SwitchEventProvider.CameraSwitchListener {
-            override fun onCameraSwitchAvailabilityChanged(available: Boolean) {
-                if (available && deviceLockObserver.isUserUnlocked()) {
-                    cameraSwitchManager.startCamera(this@SwitchifyAccessibilityService)
-                } else {
-                    cameraSwitchManager.stopCamera()
-                }
-            }
-        })
-
         serviceScope.launch {
             NodeExaminer.examineAccessibilityTree(
                 rootInActiveWindow,
@@ -170,7 +187,7 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner {
     override fun onUnbind(intent: Intent?): Boolean {
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_DESTROY)
 
-        cameraSwitchManager.stopCamera()
+        cameraSwitchManager?.stopCamera()
         deviceLockObserver.stopObserving()
         scanningManager.shutdown()
 
@@ -196,6 +213,16 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner {
             KeyEvent.ACTION_UP -> externalSwitchListener.onSwitchReleased(event.keyCode)
             else -> false
         }
+    }
+
+    override fun onCameraSwitchAvailabilityChanged(available: Boolean) {
+        if (available) {
+            initCameraSwitchManager()
+        } else {
+            stopCameraSwitchManager()
+        }
+
+        Log.d(TAG, "Camera switch availability changed: $available")
     }
 
     override val lifecycle: Lifecycle

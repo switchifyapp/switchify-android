@@ -1,88 +1,84 @@
 package com.enaboapps.switchify.service.utils
 
-import android.app.KeyguardManager
-import android.content.BroadcastReceiver
 import android.content.Context
-import android.content.Intent
-import android.content.IntentFilter
 import android.os.UserManager
 import android.util.Log
+import kotlinx.coroutines.*
 
 /**
- * Utility class to observe both device lock/unlock state and user unlock events.
+ * Utility class to observe device lock/unlock state through polling.
  */
 class DeviceLockObserver(private val context: Context) {
 
     companion object {
         private const val TAG = "DeviceLockObserver"
+        private const val POLL_INTERVAL = 1000L // 1 second
     }
+
+    private val userManager: UserManager by lazy {
+        context.getSystemService(Context.USER_SERVICE) as UserManager
+    }
+
+    private var unlocked: Boolean = userManager.isUserUnlocked
+        set(value) {
+            if (field != value) {
+                field = value
+                when (value) {
+                    true -> onDeviceUnlockedCallback?.invoke()
+                    false -> onDeviceLockedCallback?.invoke()
+                }
+            }
+        }
 
     private var onDeviceUnlockedCallback: (() -> Unit)? = null
     private var onDeviceLockedCallback: (() -> Unit)? = null
+    private var pollingJob: Job? = null
+    private val coroutineScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
 
-    private val unlockReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context?, intent: Intent?) {
-            when (intent?.action) {
-                Intent.ACTION_USER_UNLOCKED -> {
-                    onDeviceUnlockedCallback?.invoke()
-                }
+    /**
+     * Starts observing unlock events through polling
+     */
+    fun startObserving(
+        onUnlocked: () -> Unit,
+        onLocked: () -> Unit
+    ) {
+        onDeviceUnlockedCallback = onUnlocked
+        onDeviceLockedCallback = onLocked
+
+        // Initial state check
+        checkAndUpdateUnlockState()
+
+        // Start polling in background
+        startPolling()
+    }
+
+    private fun startPolling() {
+        pollingJob?.cancel()
+        pollingJob = coroutineScope.launch {
+            while (isActive) {
+                checkAndUpdateUnlockState()
+                delay(POLL_INTERVAL)
             }
         }
     }
 
-    /**
-     * Starts observing unlock events
-     */
-    fun startObserving(onUnlocked: () -> Unit, onLocked: () -> Unit) {
-        onDeviceUnlockedCallback = onUnlocked
-        onDeviceLockedCallback = onLocked
-
-        val filter = IntentFilter(Intent.ACTION_USER_UNLOCKED)
-        context.registerReceiver(unlockReceiver, filter)
+    private fun checkAndUpdateUnlockState() {
+        unlocked = userManager.isUserUnlocked
+        Log.d(TAG, "Device unlock state changed: $unlocked")
     }
 
     /**
-     * Stops observing unlock events and unregisters the receiver.
+     * Stops observing unlock events
      */
     fun stopObserving() {
-        try {
-            context.unregisterReceiver(unlockReceiver)
-        } catch (e: IllegalArgumentException) {
-            // Receiver not registered
-        }
+        pollingJob?.cancel()
+        pollingJob = null
         onDeviceUnlockedCallback = null
         onDeviceLockedCallback = null
     }
 
     /**
      * Checks if the user is currently unlocked.
-     * Falls back to checking KeyguardManager if behavior is inconsistent.
      */
-    fun isUserUnlocked(): Boolean {
-        val userManager = context.getSystemService(Context.USER_SERVICE) as UserManager
-        val keyguardManager = context.getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager
-
-        // Some devices may report incorrectly, so check Keyguard as a fallback
-        return userManager.isUserUnlocked && !keyguardManager.isDeviceLocked
-    }
-
-    /**
-     * Checks if the device is currently locked (screen locked with PIN/Pattern).
-     * @return true if locked, false otherwise.
-     */
-    fun isDeviceLocked(): Boolean {
-        val keyguardManager = context.getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager
-        val isDeviceLocked = keyguardManager.isDeviceLocked
-        Log.d(TAG, "Device locked: $isDeviceLocked")
-        return isDeviceLocked
-    }
-
-    /**
-     * Checks if the screen is currently locked by the keyguard.
-     * @return true if the screen is locked, false otherwise.
-     */
-    fun isScreenLocked(): Boolean {
-        val keyguardManager = context.getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager
-        return keyguardManager.isKeyguardLocked
-    }
+    fun isUserUnlocked(): Boolean = unlocked
 }
