@@ -100,26 +100,17 @@ class SwitchEventProvider(private val context: Context) {
         cameraSwitchListeners.remove(listener)
     }
 
-    fun isFacialGestureAssigned(gestureId: String): Boolean {
-        return synchronized(switchEvents) {
-            switchEvents.any {
-                it.code == gestureId &&
-                        it.type == SWITCH_EVENT_TYPE_CAMERA
-            }
-        }
+    fun isFacialGestureAssigned(gestureId: String): Boolean = switchEvents.any {
+        it.code == gestureId &&
+                it.type == SWITCH_EVENT_TYPE_CAMERA
     }
 
     private fun checkCameraSwitchAvailability() {
-        val hasCamera = synchronized(switchEvents) {
-            switchEvents.any {
-                it.type == SWITCH_EVENT_TYPE_CAMERA
-            }
+        hasCameraSwitch = switchEvents.any {
+            it.type == SWITCH_EVENT_TYPE_CAMERA
         }
-
-        if (hasCamera != hasCameraSwitch) {
-            hasCameraSwitch = hasCamera
-            notifyCameraSwitchListeners()
-        }
+        Log.d(TAG, "Camera switch availability changed: $hasCameraSwitch")
+        notifyCameraSwitchListeners()
     }
 
     private fun notifyCameraSwitchListeners() {
