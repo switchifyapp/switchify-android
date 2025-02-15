@@ -10,6 +10,8 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
 import com.enaboapps.switchify.backend.iap.IAPHandler
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
+import com.enaboapps.switchify.service.core.AudioActionManager
+import com.enaboapps.switchify.service.core.GlobalActionManager
 import com.enaboapps.switchify.service.gestures.GestureManager
 import com.enaboapps.switchify.service.methods.nodes.NodeExaminer
 import com.enaboapps.switchify.service.scanning.ScanMethod
@@ -63,6 +65,9 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
         Logger.init(this)
 
         ScanMethod.preferenceManager = PreferenceManager(this.applicationContext)
+
+        GlobalActionManager.init(this)
+        AudioActionManager.init(this)
 
         scanningManager = ScanningManager(this, this)
         scanningManager.setup()
@@ -190,6 +195,8 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
         cameraSwitchManager?.stopCamera()
         deviceLockObserver.stopObserving()
         scanningManager.shutdown()
+        GlobalActionManager.cleanup()
+        AudioActionManager.cleanup()
 
         Logger.logEvent("Service Unbound")
 

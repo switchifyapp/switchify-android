@@ -1,16 +1,10 @@
 package com.enaboapps.switchify.service.scanning
 
-import android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_BACK
-import android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_HOME
-import android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_KEYCODE_HEADSETHOOK
-import android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_LOCK_SCREEN
-import android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_NOTIFICATIONS
-import android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_QUICK_SETTINGS
-import android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_RECENTS
 import android.content.Context
 import android.os.Handler
 import android.os.Looper
 import com.enaboapps.switchify.service.SwitchifyAccessibilityService
+import com.enaboapps.switchify.service.core.GlobalActionManager
 import com.enaboapps.switchify.service.custom.actions.ActionPerformer
 import com.enaboapps.switchify.service.gestures.GestureManager
 import com.enaboapps.switchify.service.menu.MenuManager
@@ -168,34 +162,13 @@ class ScanningManager(
             SwitchAction.ACTION_TOGGLE_GESTURE_LOCK -> GestureManager.getInstance()
                 .toggleGestureLock()
 
-            SwitchAction.ACTION_SYS_HOME -> accessibilityService.performGlobalAction(
-                GLOBAL_ACTION_HOME
-            )
-
-            SwitchAction.ACTION_SYS_BACK -> accessibilityService.performGlobalAction(
-                GLOBAL_ACTION_BACK
-            )
-
-            SwitchAction.ACTION_SYS_RECENTS -> accessibilityService.performGlobalAction(
-                GLOBAL_ACTION_RECENTS
-            )
-
-            SwitchAction.ACTION_SYS_QUICK_SETTINGS -> accessibilityService.performGlobalAction(
-                GLOBAL_ACTION_QUICK_SETTINGS
-            )
-
-            SwitchAction.ACTION_SYS_NOTIFICATIONS -> accessibilityService.performGlobalAction(
-                GLOBAL_ACTION_NOTIFICATIONS
-            )
-
-            SwitchAction.ACTION_SYS_LOCK_SCREEN -> accessibilityService.performGlobalAction(
-                GLOBAL_ACTION_LOCK_SCREEN
-            )
-
-            SwitchAction.ACTION_SYS_HEADSET_HOOK -> accessibilityService.performGlobalAction(
-                GLOBAL_ACTION_KEYCODE_HEADSETHOOK
-            )
-
+            SwitchAction.ACTION_SYS_HOME -> GlobalActionManager.goHome()
+            SwitchAction.ACTION_SYS_BACK -> GlobalActionManager.goBack()
+            SwitchAction.ACTION_SYS_RECENTS -> GlobalActionManager.openRecents()
+            SwitchAction.ACTION_SYS_QUICK_SETTINGS -> GlobalActionManager.openQuickSettings()
+            SwitchAction.ACTION_SYS_NOTIFICATIONS -> GlobalActionManager.openNotifications()
+            SwitchAction.ACTION_SYS_LOCK_SCREEN -> GlobalActionManager.lockScreen()
+            SwitchAction.ACTION_SYS_HEADSET_HOOK -> GlobalActionManager.toggleMediaPlayback()
             SwitchAction.ACTION_PERFORM_USER_ACTION -> {
                 val actionPerformer = ActionPerformer(context)
                 actionPerformer.performActionFromStore(action.extra?.myActionsId ?: "")
