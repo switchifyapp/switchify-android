@@ -1,7 +1,7 @@
 package com.enaboapps.switchify.service.menu.menus.media
 
-import android.accessibilityservice.AccessibilityService
 import com.enaboapps.switchify.service.SwitchifyAccessibilityService
+import com.enaboapps.switchify.service.core.GlobalActionManager
 import com.enaboapps.switchify.service.menu.MenuItem
 import com.enaboapps.switchify.service.menu.MenuManager
 import com.enaboapps.switchify.service.menu.structure.MenuStructure
@@ -20,7 +20,7 @@ class MediaMenuStructure(private val accessibilityService: SwitchifyAccessibilit
             MenuItem(
                 id = "play_pause",
                 text = "Play/Pause",
-                action = { accessibilityService?.performGlobalAction(AccessibilityService.GLOBAL_ACTION_KEYCODE_HEADSETHOOK) }
+                action = { GlobalActionManager.toggleMediaPlayback() }
             ),
             openVolumeControlMenu
         )
