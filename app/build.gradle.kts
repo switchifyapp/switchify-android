@@ -148,7 +148,6 @@ dependencies {
     implementation(libs.firebase.crashlytics)
     implementation(libs.firebase.firestore.ktx)
     implementation(libs.gson)
-    implementation(libs.fleksylib)
     implementation(libs.androidx.material3.android)
     implementation(libs.app.update)
     implementation(libs.play.services.auth)
