@@ -64,6 +64,8 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
     private fun setup() {
         Logger.init(this)
 
+        IAPHandler.initialize(context = this, connectToRevenueCat = false)
+
         ScanMethod.preferenceManager = PreferenceManager(this.applicationContext)
 
         GlobalActionManager.init(this)
@@ -109,7 +111,7 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
         if (deviceLockObserver.isUserUnlocked()) {
             Log.d(TAG, "Device unlocked, initializing protected components")
             // Initialize components that require device unlock
-            IAPHandler.initialize(this)
+            IAPHandler.connect(context = this)
             initCameraSwitchManager()
         }
     }

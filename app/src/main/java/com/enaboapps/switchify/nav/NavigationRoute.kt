@@ -31,5 +31,5 @@ sealed class NavigationRoute(val name: String) {
     data object EnableSwitchifyKeyboard : NavigationRoute("EnableSwitchifyKeyboard")
     data object AddNewCameraSwitch : NavigationRoute("AddNewCameraSwitch")
     data object EditCameraSwitch : NavigationRoute("EditCameraSwitch")
-
+    data object Debug : NavigationRoute("Debug")
 }

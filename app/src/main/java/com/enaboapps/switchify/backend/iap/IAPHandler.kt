@@ -19,7 +19,7 @@ object IAPHandler {
     private const val TAG = "IAPHandler"
     const val ENTITLEMENT = "pro"
     private lateinit var preferenceManager: PreferenceManager
-    private var isInitialized = false
+    private var isRevenueCatInitialized = false
 
     // StateFlow to observe purchase state changes
     private val _purchaseState = MutableStateFlow<PurchaseState>(PurchaseState.Initial)
@@ -39,9 +39,12 @@ object IAPHandler {
      *
      * @return true if initialized, false otherwise
      */
-    private fun checkInitialization(): Boolean {
-        if (!isInitialized) {
-            Log.e(TAG, "IAPHandler must be initialized before use. Call initialize() first.")
+    private fun isConnectedToRevenueCat(): Boolean {
+        if (!isRevenueCatInitialized) {
+            Log.e(
+                TAG,
+                "IAPHandler must be connected to RevenueCat before use. Call connect() first."
+            )
             return false
         }
         return true
@@ -52,25 +55,41 @@ object IAPHandler {
      * This method should be called when the app starts.
      *
      * @param context The application context.
+     * @param connectToRevenueCat Whether to connect to RevenueCat
      * @param debugLogsEnabled Enable debug logs for RevenueCat
      */
-    fun initialize(context: Context, debugLogsEnabled: Boolean = BuildConfig.DEBUG) {
-        val config = PurchasesConfiguration.Builder(context, BuildConfig.REVENUECAT_PUBLIC_KEY)
-            .apply {
-                if (debugLogsEnabled) {
-                    diagnosticsEnabled(true)
-                }
-            }
-            .build()
-
-        Purchases.configure(config)
+    fun initialize(
+        context: Context,
+        connectToRevenueCat: Boolean = true,
+        debugLogsEnabled: Boolean = BuildConfig.DEBUG
+    ) {
         preferenceManager = PreferenceManager(context)
-        isInitialized = true
-
-        // Fetch initial customer info
-        refreshPurchaseStatus()
+        if (connectToRevenueCat) {
+            connect(context, debugLogsEnabled)
+        }
 
         Log.d(TAG, "Initialized IAP handler")
+    }
+
+    /**
+     * Connects to RevenueCat
+     *
+     * @param context The application context
+     * @param debugLogsEnabled Enable debug logs for RevenueCat
+     */
+    fun connect(context: Context, debugLogsEnabled: Boolean = BuildConfig.DEBUG) {
+        if (isRevenueCatInitialized) {
+            Log.e(TAG, "RevenueCat is already initialized")
+            return
+        }
+        isRevenueCatInitialized = true
+        val config = PurchasesConfiguration.Builder(context, BuildConfig.REVENUECAT_PUBLIC_KEY)
+            .apply {
+                diagnosticsEnabled(debugLogsEnabled)
+            }
+            .build()
+        Purchases.configure(config)
+        refreshPurchaseStatus()
     }
 
     /**
@@ -79,8 +98,8 @@ object IAPHandler {
      * @param completion The completion block to be called when the status is refreshed
      */
     fun refreshPurchaseStatus(completion: ((Boolean) -> Unit)? = null) {
-        if (!checkInitialization()) {
-            completion?.invoke(false)
+        if (!isConnectedToRevenueCat() || BuildConfig.DEBUG) {
+            completion?.invoke(hasPurchasedPro())
             return
         }
         Purchases.sharedInstance.getCustomerInfo(
@@ -122,7 +141,7 @@ object IAPHandler {
      * @return The information in string format about the current status of the pro purchase
      */
     fun getProStatus(completion: (String) -> Unit) {
-        if (!checkInitialization()) {
+        if (!isConnectedToRevenueCat()) {
             completion("Error: IAPHandler not initialized")
             return
         }
@@ -152,7 +171,7 @@ object IAPHandler {
      * @return True if the user has purchased pro, false otherwise
      */
     fun hasPurchasedPro(): Boolean {
-        if (!checkInitialization()) {
+        if (!isConnectedToRevenueCat()) {
             return false
         }
         return preferenceManager.getBooleanValue(PreferenceManager.PREFERENCE_KEY_PRO)
@@ -163,8 +182,8 @@ object IAPHandler {
      *
      * @param status The status to set
      */
-    private fun setProStatus(status: Boolean) {
-        if (!checkInitialization()) {
+    fun setProStatus(status: Boolean) {
+        if (!isConnectedToRevenueCat()) {
             return
         }
         preferenceManager.setBooleanValue(PreferenceManager.PREFERENCE_KEY_PRO, status)

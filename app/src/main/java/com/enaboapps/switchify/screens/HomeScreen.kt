@@ -22,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.enaboapps.switchify.BuildConfig
 import com.enaboapps.switchify.auth.AuthManager
 import com.enaboapps.switchify.backend.iap.IAPHandler
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
@@ -213,6 +214,25 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
             // Account Card
             item {
                 AccountGridCard(navController)
+            }
+
+            // Debug Card (only visible in debug mode)
+            if (BuildConfig.DEBUG) {
+                item {
+                    GridCard(
+                        title = "Debug Settings",
+                        summary = "Access debug features and settings.",
+                        onClick = { navController.navigate(NavigationRoute.Debug.name) },
+                        icon = {
+                            Icon(
+                                imageVector = Icons.Rounded.BugReport,
+                                contentDescription = "Debug",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                    )
+                }
             }
         }
 
