@@ -19,11 +19,25 @@ import kotlinx.coroutines.withContext
  * It manages the scanning process using a ScanTree instance and handles updates from NodeExaminer.
  */
 class NodeScanner : ScanTreeCallback {
-    private val TAG = "NodeScanner"
+    companion object {
+        private const val TAG = "NodeScanner"
+        private const val RAPID_UPDATE_THRESHOLD_MS =
+            200L // Time in ms to consider an update as rapid
+        private const val RESET_WINDOW_MS = 10000L // Time window to reset the update count
+        private const val MAX_RAPID_UPDATES =
+            80 // Number of rapid updates before switching to cursor
+        private const val EMPTY_NODES_TIMEOUT_MS =
+            5000L // Time to wait before reverting to cursor when nodes are empty
+    }
+
     private lateinit var context: Context
     lateinit var scanTree: ScanTree
     private var currentNodes: List<Node> = emptyList()
     private val coroutineScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
+    private var lastNodeUpdateTime: Long = 0
+    private var continuousUpdateJob: kotlinx.coroutines.Job? = null
+    private var rapidUpdateCount: Int = 0
+    private var updateCountResetJob: kotlinx.coroutines.Job? = null
 
     /**
      * Starts the NodeScanner.
@@ -49,7 +63,7 @@ class NodeScanner : ScanTreeCallback {
      */
     fun startTimeoutToRevertToCursor() {
         coroutineScope.launch {
-            delay(5000)
+            delay(EMPTY_NODES_TIMEOUT_MS)
             if (ScanMethod.getType() == ScanMethod.MethodType.ITEM_SCAN && currentNodes.isEmpty()) {
                 withContext(Dispatchers.Main) {
                     scanTree.reset()
@@ -63,14 +77,63 @@ class NodeScanner : ScanTreeCallback {
     }
 
     /**
+     * Checks if nodes are continuously updating and switches to cursor mode if there are
+     * too many rapid updates within a 10-second window.
+     */
+    private fun handleContinuousUpdates() {
+        val currentTime = System.currentTimeMillis()
+        if (currentTime - lastNodeUpdateTime < RAPID_UPDATE_THRESHOLD_MS) {
+            rapidUpdateCount++
+
+            // Cancel existing jobs
+            continuousUpdateJob?.cancel()
+            updateCountResetJob?.cancel()
+
+            if (rapidUpdateCount >= MAX_RAPID_UPDATES) {
+                continuousUpdateJob = coroutineScope.launch {
+                    if (ScanMethod.getType() == ScanMethod.MethodType.ITEM_SCAN) {
+                        withContext(Dispatchers.Main) {
+                            scanTree.reset()
+                            ScanMethod.setType(ScanMethod.MethodType.CURSOR)
+                            Log.d(
+                                TAG,
+                                "Switched to cursor mode due to $rapidUpdateCount rapid updates"
+                            )
+                            rapidUpdateCount = 0
+                        }
+                    }
+                }
+            } else {
+                // Start a new window to reset the count
+                updateCountResetJob = coroutineScope.launch {
+                    delay(RESET_WINDOW_MS)
+                    rapidUpdateCount = 0
+                }
+            }
+        } else {
+            // If this update wasn't rapid, start a new counting window
+            updateCountResetJob?.cancel()
+            updateCountResetJob = coroutineScope.launch {
+                delay(RESET_WINDOW_MS)
+                rapidUpdateCount = 0
+            }
+        }
+        lastNodeUpdateTime = currentTime
+    }
+
+    /**
      * Updates the nodes and rebuilds the scanTree.
      * If no nodes are present, it starts the timeout.
+     * If nodes are continuously updating for more than 10 seconds, switches to cursor mode.
      *
      * @param nodes List of new Node instances.
      */
     fun updateNodes(nodes: List<Node>) {
         currentNodes = nodes
         scanTree.buildTree(nodes)
+
+        handleContinuousUpdates()
+
         if (nodes.isEmpty()) {
             startTimeoutToRevertToCursor()
         }
