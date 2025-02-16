@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import com.enaboapps.switchify.screens.DebugScreen
 import com.enaboapps.switchify.screens.EnableAccessibilityServiceScreen
 import com.enaboapps.switchify.screens.EnableKeyboardScreen
 import com.enaboapps.switchify.screens.HomeScreen
@@ -126,6 +127,9 @@ fun NavGraph(navController: NavHostController) {
             it.arguments?.getString("code")?.let { code ->
                 AddEditCameraSwitchScreen(navController, code)
             }
+        }
+        composable(NavigationRoute.Debug.name) {
+            DebugScreen(navController)
         }
     }
 }
