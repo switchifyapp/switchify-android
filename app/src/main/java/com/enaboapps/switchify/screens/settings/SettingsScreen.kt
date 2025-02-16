@@ -57,7 +57,6 @@ fun GeneralSettingsTab(settingsScreenModel: SettingsScreenModel, navController: 
         InputSection(navController)
         MenuSection(settingsScreenModel, navController)
         ActionsSection(navController)
-        KeyboardSection(navController)
     }
 }
 
@@ -137,18 +136,6 @@ private fun InputSection(navController: NavController) {
             summary = "Configure switch stability settings",
             navController = navController,
             route = NavigationRoute.SwitchStability.name
-        )
-    }
-}
-
-@Composable
-private fun KeyboardSection(navController: NavController) {
-    Section(title = "Keyboard") {
-        NavRouteLink(
-            title = "Choose Prediction Language",
-            summary = "Choose the prediction language",
-            navController = navController,
-            route = NavigationRoute.PredictionLanguage.name
         )
     }
 }

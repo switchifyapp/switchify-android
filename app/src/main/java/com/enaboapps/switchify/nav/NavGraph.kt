@@ -6,7 +6,6 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.enaboapps.switchify.screens.DebugScreen
 import com.enaboapps.switchify.screens.EnableAccessibilityServiceScreen
-import com.enaboapps.switchify.screens.EnableKeyboardScreen
 import com.enaboapps.switchify.screens.HomeScreen
 import com.enaboapps.switchify.screens.account.AccountScreen
 import com.enaboapps.switchify.screens.account.ChangePasswordScreen
@@ -19,7 +18,6 @@ import com.enaboapps.switchify.screens.settings.actions.AddEditActionScreen
 import com.enaboapps.switchify.screens.settings.actions.MyActionsScreen
 import com.enaboapps.switchify.screens.settings.menu.MenuItemCustomizationScreen
 import com.enaboapps.switchify.screens.settings.menu.MenuSizeScreen
-import com.enaboapps.switchify.screens.settings.prediction.PredictionLanguageScreen
 import com.enaboapps.switchify.screens.settings.scanning.CursorSettingsScreen
 import com.enaboapps.switchify.screens.settings.scanning.ItemScanSettingsScreen
 import com.enaboapps.switchify.screens.settings.scanning.OtherScanSettingsScreen
@@ -62,9 +60,6 @@ fun NavGraph(navController: NavHostController) {
         composable(NavigationRoute.Settings.name) {
             SettingsScreen(navController)
         }
-        composable(NavigationRoute.PredictionLanguage.name) {
-            PredictionLanguageScreen(navController)
-        }
         composable(NavigationRoute.SwitchStability.name) {
             SwitchStabilityScreen(navController)
         }
@@ -99,9 +94,6 @@ fun NavGraph(navController: NavHostController) {
         }
         composable(NavigationRoute.EnableAccessibilityService.name) {
             EnableAccessibilityServiceScreen(navController)
-        }
-        composable(NavigationRoute.EnableSwitchifyKeyboard.name) {
-            EnableKeyboardScreen(navController)
         }
         composable(NavigationRoute.AddMyActionsMenuItem.name) {
             AddEditActionScreen(navController)

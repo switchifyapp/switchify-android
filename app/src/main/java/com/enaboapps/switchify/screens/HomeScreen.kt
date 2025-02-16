@@ -28,7 +28,6 @@ import com.enaboapps.switchify.backend.iap.IAPHandler
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.NavBarAction
-import com.enaboapps.switchify.keyboard.utils.KeyboardUtils
 import com.enaboapps.switchify.nav.NavigationRoute
 import com.enaboapps.switchify.service.utils.ServiceUtils
 import com.google.android.play.core.appupdate.AppUpdateManager
@@ -45,7 +44,6 @@ import com.google.android.play.core.review.ReviewManagerFactory
 fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = ServiceUtils()) {
     val context = LocalContext.current
     val isAccessibilityServiceEnabled = serviceUtils.isAccessibilityServiceEnabled(context)
-    val isSwitchifyKeyboardEnabled = KeyboardUtils.isSwitchifyKeyboardEnabled(context)
     val isSetupComplete = PreferenceManager(context).isSetupComplete()
     val isPro = remember { mutableStateOf(true) }
     val signedIn = AuthManager.instance.isUserSignedIn()
@@ -165,25 +163,6 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
                             Icon(
                                 imageVector = Icons.Rounded.AccessibilityNew,
                                 contentDescription = "Accessibility",
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(24.dp)
-                            )
-                        }
-                    )
-                }
-            }
-
-            // Keyboard Card
-            if (!isSwitchifyKeyboardEnabled) {
-                item {
-                    GridCard(
-                        title = "Switchify Keyboard",
-                        summary = "Tap here to enable the Switchify keyboard.",
-                        onClick = { navController.navigate(NavigationRoute.EnableSwitchifyKeyboard.name) },
-                        icon = {
-                            Icon(
-                                imageVector = Icons.Rounded.Keyboard,
-                                contentDescription = "Keyboard",
                                 tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(24.dp)
                             )
