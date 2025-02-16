@@ -78,7 +78,7 @@ class ScanTree(
      * @param itemThreshold The threshold for determining if a node is in the same item (in dp).
      */
     fun buildTree(nodes: List<ScanNodeInterface>, itemThreshold: Int = 40) {
-        tree.clear()
+        clearTree()
         tree.addAll(builder.buildTree(nodes, itemThreshold))
         initializeComponents() // Reinitialize components with the new tree
     }
