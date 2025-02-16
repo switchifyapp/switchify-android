@@ -37,32 +37,6 @@ android {
         }
 
         if (localProperties.getProperty(
-                "fleksy.apiSecret",
-                ""
-            ).isEmpty()
-        ) {
-            throw GradleException("Fleksy API secret is not set in local.properties")
-        }
-        buildConfigField(
-            "String",
-            "FLEKSY_API_KEY",
-            "\"${localProperties.getProperty("fleksy.apiKey", "")}\""
-        )
-
-        if (localProperties.getProperty(
-                "fleksy.apiSecret",
-                ""
-            ).isEmpty()
-        ) {
-            throw GradleException("Fleksy API secret is not set in local.properties")
-        }
-        buildConfigField(
-            "String",
-            "FLEKSY_API_SECRET",
-            "\"${localProperties.getProperty("fleksy.apiSecret", "")}\""
-        )
-
-        if (localProperties.getProperty(
                 "revenuecat.publicKey",
                 ""
             ).isEmpty()
