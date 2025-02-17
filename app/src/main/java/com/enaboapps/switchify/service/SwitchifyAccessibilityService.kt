@@ -2,6 +2,7 @@ package com.enaboapps.switchify.service
 
 import android.accessibilityservice.AccessibilityService
 import android.content.Intent
+import android.util.Log
 import android.view.KeyEvent
 import android.view.accessibility.AccessibilityEvent
 import androidx.lifecycle.Lifecycle
@@ -9,8 +10,9 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
 import com.enaboapps.switchify.backend.iap.IAPHandler
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
+import com.enaboapps.switchify.service.core.AudioActionManager
+import com.enaboapps.switchify.service.core.GlobalActionManager
 import com.enaboapps.switchify.service.gestures.GestureManager
-import com.enaboapps.switchify.service.lockscreen.LockScreenView
 import com.enaboapps.switchify.service.methods.nodes.NodeExaminer
 import com.enaboapps.switchify.service.scanning.ScanMethod
 import com.enaboapps.switchify.service.scanning.ScanSettings
@@ -19,66 +21,67 @@ import com.enaboapps.switchify.service.selection.SelectionHandler
 import com.enaboapps.switchify.service.switches.SwitchEventProvider
 import com.enaboapps.switchify.service.switches.camera.CameraSwitchManager
 import com.enaboapps.switchify.service.switches.external.ExternalSwitchListener
+import com.enaboapps.switchify.service.utils.DeviceLockObserver
 import com.enaboapps.switchify.service.utils.KeyboardBridge
 import com.enaboapps.switchify.service.utils.ScreenWatcher
 import com.enaboapps.switchify.utils.Logger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
  * This is the main service class for the Switchify application.
  * It extends the AccessibilityService class to provide accessibility features.
  */
-class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner {
+class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
+    SwitchEventProvider.CameraSwitchListener {
 
     private lateinit var scanningManager: ScanningManager
     private lateinit var switchEventProvider: SwitchEventProvider
     private lateinit var externalSwitchListener: ExternalSwitchListener
-    private lateinit var cameraSwitchManager: CameraSwitchManager
+    private var cameraSwitchManager: CameraSwitchManager? = null
     private lateinit var lifecycleRegistry: LifecycleRegistry
     private lateinit var screenWatcher: ScreenWatcher
-    private lateinit var lockScreenView: LockScreenView
     private lateinit var scanSettings: ScanSettings
+    private lateinit var deviceLockObserver: DeviceLockObserver
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+
+    companion object {
+        private const val TAG = "SwitchifyAccessibilityService"
+    }
 
     override fun onCreate() {
         super.onCreate()
 
         lifecycleRegistry = LifecycleRegistry(this)
-
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_CREATE)
+
+        deviceLockObserver = DeviceLockObserver(this)
     }
 
     private fun setup() {
         Logger.init(this)
 
+        IAPHandler.initialize(context = this, connectToRevenueCat = false)
+
         ScanMethod.preferenceManager = PreferenceManager(this.applicationContext)
+
+        GlobalActionManager.init(this)
+        AudioActionManager.init(this)
 
         scanningManager = ScanningManager(this, this)
         scanningManager.setup()
 
-        cameraSwitchManager = CameraSwitchManager(this, scanningManager)
-
-        lockScreenView = LockScreenView(this)
-        lockScreenView.setup(this)
+        switchEventProvider = SwitchEventProvider(this)
+        switchEventProvider.addCameraSwitchListener(this)
+        externalSwitchListener = ExternalSwitchListener(this, scanningManager, switchEventProvider)
 
         screenWatcher = ScreenWatcher(
-            onScreenWake = {
-                lockScreenView.show()
-                if (switchEventProvider.hasCameraSwitch) {
-                    cameraSwitchManager.startCamera(this@SwitchifyAccessibilityService)
-                }
-                IAPHandler.refreshPurchaseStatus()
-            },
             onScreenSleep = {
                 externalSwitchListener.reset()
                 scanningManager.reset()
-                lockScreenView.hide()
-                if (switchEventProvider.hasCameraSwitch) {
-                    cameraSwitchManager.stopCamera()
-                }
             },
             onOrientationChanged = { scanningManager.reset() }
         )
@@ -86,13 +89,58 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner {
 
         scanSettings = ScanSettings(this)
 
-        switchEventProvider = SwitchEventProvider(this)
-        externalSwitchListener = ExternalSwitchListener(this, scanningManager)
-
         GestureManager.getInstance().setup(this)
         SelectionHandler.init(this)
 
-        IAPHandler.initialize(this)
+        deviceLockObserver.startObserving(
+            onUnlocked = {
+                initProtectedServiceComponents()
+            },
+            onLocked = {
+                Log.d(TAG, "Device locked")
+            })
+
+        // Initialize components that require device unlock
+        initProtectedServiceComponents()
+    }
+
+    /**
+     * Initializes protected service components if the device is unlocked.
+     */
+    private fun initProtectedServiceComponents() {
+        if (deviceLockObserver.isUserUnlocked()) {
+            Log.d(TAG, "Device unlocked, initializing protected components")
+            // Initialize components that require device unlock
+            IAPHandler.connect(context = this)
+            initCameraSwitchManager()
+        }
+    }
+
+    /**
+     * Initializes and starts the camera switch manager if the device is unlocked and a camera switch is available.
+     */
+    private fun initCameraSwitchManager() {
+        if (deviceLockObserver.isUserUnlocked() && switchEventProvider.hasCameraSwitch && cameraSwitchManager == null) {
+            cameraSwitchManager = CameraSwitchManager(this, scanningManager, switchEventProvider)
+            serviceScope.launch {
+                delay(1000)
+                cameraSwitchManager?.initialize()
+                delay(3000)
+                cameraSwitchManager?.startCamera(this@SwitchifyAccessibilityService)
+            }
+        }
+    }
+
+    /**
+     * Stops the camera switch manager if it is running.
+     */
+    private fun stopCameraSwitchManager() {
+        if (cameraSwitchManager != null) {
+            serviceScope.launch {
+                cameraSwitchManager?.stopCamera()
+                cameraSwitchManager = null
+            }
+        }
     }
 
     /**
@@ -125,21 +173,6 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner {
 
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_START)
 
-        if (switchEventProvider.hasCameraSwitch) {
-            cameraSwitchManager.startCamera(this)
-        }
-
-        switchEventProvider.addCameraSwitchListener(object :
-            SwitchEventProvider.CameraSwitchListener {
-            override fun onCameraSwitchAvailabilityChanged(available: Boolean) {
-                if (available) {
-                    cameraSwitchManager.startCamera(this@SwitchifyAccessibilityService)
-                } else {
-                    cameraSwitchManager.stopCamera()
-                }
-            }
-        })
-
         serviceScope.launch {
             NodeExaminer.examineAccessibilityTree(
                 rootInActiveWindow,
@@ -156,19 +189,16 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner {
                 scanningManager.updateNodes(nodes)
             }
         }
-
-        // Show the lock screen when the service starts
-        lockScreenView.show()
     }
 
     override fun onUnbind(intent: Intent?): Boolean {
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_DESTROY)
 
-        cameraSwitchManager.stopCamera()
-
+        cameraSwitchManager?.stopCamera()
+        deviceLockObserver.stopObserving()
         scanningManager.shutdown()
-
-        lockScreenView.hide()
+        GlobalActionManager.cleanup()
+        AudioActionManager.cleanup()
 
         Logger.logEvent("Service Unbound")
 
@@ -192,6 +222,16 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner {
             KeyEvent.ACTION_UP -> externalSwitchListener.onSwitchReleased(event.keyCode)
             else -> false
         }
+    }
+
+    override fun onCameraSwitchAvailabilityChanged(available: Boolean) {
+        if (available) {
+            initCameraSwitchManager()
+        } else {
+            stopCameraSwitchManager()
+        }
+
+        Log.d(TAG, "Camera switch availability changed: $available")
     }
 
     override val lifecycle: Lifecycle

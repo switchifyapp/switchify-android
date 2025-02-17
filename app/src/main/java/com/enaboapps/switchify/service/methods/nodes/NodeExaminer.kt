@@ -2,6 +2,7 @@ package com.enaboapps.switchify.service.methods.nodes
 
 import android.content.Context
 import android.graphics.PointF
+import android.util.Log
 import android.view.accessibility.AccessibilityNodeInfo
 import android.view.accessibility.AccessibilityWindowInfo
 import com.enaboapps.switchify.service.utils.ScreenUtils
@@ -22,6 +23,8 @@ import kotlin.math.sqrt
  * This implementation includes deep content description analysis for nodes with empty content.
  */
 object NodeExaminer {
+    private const val TAG = "NodeExaminer"
+
     /** Holds the list of all nodes. */
     private var allNodes: List<Node> = emptyList()
 
@@ -106,18 +109,23 @@ object NodeExaminer {
      * @return A Node object with populated content description where possible.
      */
     private suspend fun examineNodeContent(node: AccessibilityNodeInfo): Node {
-        val baseNode = Node.fromAccessibilityNodeInfo(node)
+        try {
+            val baseNode = Node.fromAccessibilityNodeInfo(node)
 
-        // If content description is empty, try to build it from child nodes
-        if (baseNode.getContentDescription().isEmpty()) {
-            val contentFromChildren = buildContentFromChildren(node)
-            if (contentFromChildren.isNotEmpty()) {
-                val newNode = baseNode.apply { setContentDescription(contentFromChildren) }
-                return newNode
+            // If content description is empty, try to build it from child nodes
+            if (baseNode.getContentDescription().isEmpty()) {
+                val contentFromChildren = buildContentFromChildren(node)
+                if (contentFromChildren.isNotEmpty()) {
+                    val newNode = baseNode.apply { setContentDescription(contentFromChildren) }
+                    return newNode
+                }
             }
-        }
 
-        return baseNode
+            return baseNode
+        } catch (e: Exception) {
+            Log.e(TAG, "Error examining node content", e)
+            return Node.fromAccessibilityNodeInfo(node)
+        }
     }
 
     /**

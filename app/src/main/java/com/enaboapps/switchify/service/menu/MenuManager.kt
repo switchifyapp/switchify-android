@@ -3,6 +3,7 @@ package com.enaboapps.switchify.service.menu
 import com.enaboapps.switchify.service.SwitchifyAccessibilityService
 import com.enaboapps.switchify.service.gestures.visuals.CurrentPointVisual
 import com.enaboapps.switchify.service.menu.menus.custom.MyActionsMenu
+import com.enaboapps.switchify.service.menu.menus.cyclebreak.ScanCycleBreakMenu
 import com.enaboapps.switchify.service.menu.menus.edit.EditMenu
 import com.enaboapps.switchify.service.menu.menus.gestures.CustomGestureConfirmationMenu
 import com.enaboapps.switchify.service.menu.menus.gestures.GesturesMenu
@@ -14,7 +15,6 @@ import com.enaboapps.switchify.service.menu.menus.media.MediaControlMenu
 import com.enaboapps.switchify.service.menu.menus.scroll.ScrollMenu
 import com.enaboapps.switchify.service.menu.menus.system.DeviceMenu
 import com.enaboapps.switchify.service.menu.menus.system.VolumeControlMenu
-import com.enaboapps.switchify.service.scanning.ScanMethod
 import com.enaboapps.switchify.service.scanning.ScanningManager
 
 /**
@@ -51,11 +51,6 @@ class MenuManager {
     private var accessibilityService: SwitchifyAccessibilityService? = null
 
     /**
-     * The scan method to revert to when the menu is closed
-     */
-    var scanMethodToRevertTo: String = ScanMethod.MethodType.CURSOR
-
-    /**
      * The menu hierarchy
      */
     var menuHierarchy: MenuHierarchy? = null
@@ -73,14 +68,6 @@ class MenuManager {
         menuHierarchy = MenuHierarchy(scanningManager)
         this.accessibilityService = accessibilityService
         currentPointVisual = CurrentPointVisual(accessibilityService)
-    }
-
-    /**
-     * This function resets the scan method type to the original type
-     */
-    fun resetScanMethodType() {
-        ScanMethod.isInMenu = false
-        ScanMethod.setType(scanMethodToRevertTo)
     }
 
     fun switchToCursor() {
@@ -192,6 +179,14 @@ class MenuManager {
     fun openCustomGestureConfirmationMenu() {
         val customGestureConfirmationMenu = CustomGestureConfirmationMenu(accessibilityService!!)
         openMenu(customGestureConfirmationMenu.build())
+    }
+
+    /**
+     * This function opens the scan cycle break menu
+     */
+    fun openScanCycleBreakMenu() {
+        val scanCycleBreakMenu = ScanCycleBreakMenu(accessibilityService!!)
+        openMenu(scanCycleBreakMenu.build())
     }
 
     /**

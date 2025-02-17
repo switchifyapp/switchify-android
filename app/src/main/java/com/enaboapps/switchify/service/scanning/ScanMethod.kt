@@ -6,9 +6,22 @@ import com.enaboapps.switchify.backend.iap.IAPHandler
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.service.window.ServiceMessageHUD
 import com.enaboapps.switchify.utils.Logger
+import kotlin.properties.Delegates
 
+/**
+ * This interface is used to observe the scan method
+ */
 interface ScanMethodObserver {
+    /**
+     * This function is called when the scan method is changed
+     * @param type The type of the scan method
+     */
     fun onScanMethodChanged(type: String)
+
+    /**
+     * This function is called when the menu state is changed
+     * @param isInMenu The new menu state
+     */
     fun onMenuStateChanged(isInMenu: Boolean)
 }
 
@@ -21,12 +34,11 @@ object ScanMethod {
 
     /**
      * This variable is used to determine if the scanning is in the menu
+     * Uses Kotlin's observable delegate for state management
      */
-    var isInMenu: Boolean = false
-        set(value) {
-            field = value
-            observer?.onMenuStateChanged(value)
-        }
+    var isInMenu: Boolean by Delegates.observable(false) { _, _, newValue ->
+        observer?.onMenuStateChanged(newValue)
+    }
 
     /**
      * This enum represents the type of the scanning method

@@ -9,6 +9,7 @@ import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.nativeKeyCode
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.enaboapps.switchify.service.scanning.ScanSettings
 import com.enaboapps.switchify.switches.SWITCH_EVENT_TYPE_EXTERNAL
 import com.enaboapps.switchify.switches.SwitchAction
@@ -16,48 +17,73 @@ import com.enaboapps.switchify.switches.SwitchAction.Companion.ACTION_MOVE_TO_NE
 import com.enaboapps.switchify.switches.SwitchAction.Companion.ACTION_MOVE_TO_PREVIOUS_ITEM
 import com.enaboapps.switchify.switches.SwitchEvent
 import com.enaboapps.switchify.switches.SwitchEventStore
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
-class AddEditExternalSwitchScreenModel() : ViewModel() {
+class AddEditExternalSwitchScreenModel : ViewModel() {
 
     companion object {
         private const val TAG = "AddEditExternalSwitchScreenModel"
     }
 
+    private val store = SwitchEventStore.getInstance()
     private var code: String? = null
-    private lateinit var store: SwitchEventStore
+    private var isInitialized = false
 
     var name = ""
 
     val switchCaptured = MutableLiveData(false)
-
     val shouldSave = MutableLiveData(false)
     val isValid = MutableLiveData(false)
     val allowLongPress = MutableLiveData(true)
     val refreshingLongPressActions = MutableLiveData(false)
 
     // Actions for press and long press
-    val pressAction = MutableLiveData(SwitchAction(SwitchAction.ACTION_SELECT))
+    val pressAction = MutableLiveData<SwitchAction>().apply {
+        value = SwitchAction(SwitchAction.ACTION_SELECT)
+    }
     val longPressActions = MutableLiveData<List<SwitchAction>>(emptyList())
 
-    fun init(code: String?, store: SwitchEventStore, context: Context) {
+    fun init(code: String?, context: Context) {
         this.code = code
-        this.store = store
+
         if (code != null) {
-            val event = store.find(code)
-            name = event?.name ?: ""
-            pressAction.value = event?.pressAction
-            longPressActions.value =
-                event?.holdActions ?: listOf() // Initialize with multiple long press actions
-            updateAllowLongPress(context)
-            shouldSave.value = true
-            switchCaptured.value = true
+            reload(context)
         } else {
             name = "Switch ${store.getCount() + 1}"
             pressAction.value = SwitchAction(SwitchAction.ACTION_SELECT)
             longPressActions.value = emptyList()
             updateAllowLongPress(context)
+            isInitialized = true
+            validateIfInitialized()
         }
-        validate()
+    }
+
+    private fun reload(context: Context) {
+        viewModelScope.launch {
+            if (code != null) {
+                val event = store.find(code ?: "")
+                name = event?.name ?: ""
+                pressAction.value = event?.pressAction ?: SwitchAction(SwitchAction.ACTION_SELECT)
+                longPressActions.value = event?.holdActions ?: emptyList()
+                updateAllowLongPress(context)
+                shouldSave.value = true
+                switchCaptured.value = true
+            } else {
+                name = "Switch ${store.getCount() + 1}"
+                pressAction.value = SwitchAction(SwitchAction.ACTION_SELECT)
+                longPressActions.value = emptyList()
+                updateAllowLongPress(context)
+            }
+            isInitialized = true
+            validateIfInitialized()
+        }
+    }
+
+    private fun validateIfInitialized() {
+        if (isInitialized) {
+            validate()
+        }
     }
 
     fun processKeyCode(key: Key, context: Context) {
@@ -71,9 +97,7 @@ class AddEditExternalSwitchScreenModel() : ViewModel() {
         }
 
         code = key.nativeKeyCode.toString()
-
-        validate()
-
+        validateIfInitialized()
         shouldSave.value = true
         switchCaptured.value = true
     }
@@ -82,14 +106,14 @@ class AddEditExternalSwitchScreenModel() : ViewModel() {
         val currentActions = longPressActions.value?.toMutableList() ?: mutableListOf()
         currentActions.add(action)
         longPressActions.value = currentActions
-        validate()
+        validateIfInitialized()
     }
 
     fun removeLongPressAction(index: Int) {
         val currentActions = longPressActions.value?.toMutableList() ?: mutableListOf()
         currentActions.removeAt(index)
         longPressActions.value = currentActions
-        validate()
+        validateIfInitialized()
         refreshLongPressActions()
     }
 
@@ -107,18 +131,18 @@ class AddEditExternalSwitchScreenModel() : ViewModel() {
             currentActions[index] = newAction
             longPressActions.value = currentActions
         }
-        validate()
+        validateIfInitialized()
     }
 
     fun setPressAction(action: SwitchAction, context: Context) {
         pressAction.value = action
         updateAllowLongPress(context)
-        validate()
+        validateIfInitialized()
     }
 
     fun updateName(name: String) {
         this.name = name
-        validate()
+        validateIfInitialized()
     }
 
     private fun updateAllowLongPress(context: Context) {
@@ -141,16 +165,16 @@ class AddEditExternalSwitchScreenModel() : ViewModel() {
             type = SWITCH_EVENT_TYPE_EXTERNAL,
             name = name.trim(),
             code = code ?: "",
-            pressAction = pressAction.value!!,
-            holdActions = longPressActions.value!!
+            pressAction = pressAction.value ?: SwitchAction(SwitchAction.ACTION_SELECT),
+            holdActions = longPressActions.value ?: emptyList()
         )
     }
 
-    fun save(completion: ((Boolean) -> Unit)) {
+    fun save(context: Context, completion: ((Boolean) -> Unit)) {
         if (shouldSave.value == true) {
             val event = buildSwitchEvent()
             if (store.find(event.code) == null) {
-                store.add(event) { success ->
+                store.add(event, context) { success ->
                     if (success) {
                         completion(true)
                     } else {
@@ -158,7 +182,7 @@ class AddEditExternalSwitchScreenModel() : ViewModel() {
                     }
                 }
             } else {
-                store.update(event) { success ->
+                store.update(event, context) { success ->
                     if (success) {
                         completion(true)
                     } else {
@@ -170,14 +194,18 @@ class AddEditExternalSwitchScreenModel() : ViewModel() {
         }
     }
 
-    fun delete(completion: (Boolean) -> Unit) {
+    fun delete(context: Context, completion: (Boolean) -> Unit) {
         val event = store.find(code ?: "")
         event?.let {
-            store.remove(it) { success ->
-                if (success) {
-                    completion(true)
-                } else {
-                    completion(false)
+            viewModelScope.launch {
+                store.remove(it, context) { success ->
+                    viewModelScope.launch(Dispatchers.Main) {
+                        if (success) {
+                            completion(true)
+                        } else {
+                            completion(false)
+                        }
+                    }
                 }
             }
         }

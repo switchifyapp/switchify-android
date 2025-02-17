@@ -8,17 +8,31 @@ import com.enaboapps.switchify.service.scanning.ScanNodeInterface
 import com.enaboapps.switchify.service.scanning.ScanSettings
 import com.enaboapps.switchify.service.scanning.ScanningScheduler
 
+interface ScanTreeCallback {
+    fun onScanTreeCycleBreakStarted()
+    fun onScanTreeCycleBreakSkipped()
+    fun onScanTreeCycleBreakSelected()
+    fun onSingleCycleCompleted(cycleNumber: Int)
+}
+
 /**
  * This class represents the main scanning tree for switch access functionality.
  * It orchestrates the interactions between various components to manage the scanning process.
  *
  * @property context The application context.
  * @property stopScanningOnSelect Whether to stop scanning after a selection is made.
+ * @property hasCycleBreak Whether to include a break between scanning cycles.
  */
 class ScanTree(
     private val context: Context,
-    private var stopScanningOnSelect: Boolean = false
+    private var stopScanningOnSelect: Boolean = false,
+    private val hasCycleBreak: Boolean = false,
+    private val callback: ScanTreeCallback? = null
 ) : ScanMethodBase {
+
+    companion object {
+        private const val TAG = "ScanTree"
+    }
 
     /** The settings for scanning behavior. */
     private val scanSettings = ScanSettings(context)
@@ -52,7 +66,7 @@ class ScanTree(
      * Initializes the navigator, selector, and highlighter components.
      */
     private fun initializeComponents() {
-        navigator = ScanTreeNavigator(tree, scanSettings)
+        navigator = ScanTreeNavigator(tree, scanSettings, hasCycleBreak)
         selector = ScanTreeSelector(tree, navigator, scanSettings, stopScanningOnSelect)
         highlighter = ScanTreeHighlighter(tree, scanSettings)
     }
@@ -64,7 +78,7 @@ class ScanTree(
      * @param itemThreshold The threshold for determining if a node is in the same item (in dp).
      */
     fun buildTree(nodes: List<ScanNodeInterface>, itemThreshold: Int = 40) {
-        tree.clear()
+        clearTree()
         tree.addAll(builder.buildTree(nodes, itemThreshold))
         initializeComponents() // Reinitialize components with the new tree
     }
@@ -100,13 +114,20 @@ class ScanTree(
 
             if (scanningScheduler?.isScanning() == false && scanSettings.isAutoScanMode()) {
                 startScanning()
-                Log.d("ScanTree", "Scanning started")
+                Log.d(TAG, "Scanning started")
                 return
             }
 
             unhighlightCurrent()
 
             if (handleEscape(true)) {
+                return
+            }
+
+            if (navigator.isInCycleBreak) {
+                callback?.onScanTreeCycleBreakSelected()
+                stopScanning()
+                Log.d(TAG, "onScanTreeCycleBreakSelected")
                 return
             }
 
@@ -119,10 +140,10 @@ class ScanTree(
                 resumeScanning()
             }
             if (!selectionMade) {
-                highlightCurrent() // Ensure we highlight after selecting an item or group
+                highlightCurrent()
             }
         } catch (e: Exception) {
-            Log.e("ScanTree", "Error performing selection: ${e.message}")
+            Log.e(TAG, "Error performing selection: ${e.message}")
         }
     }
 
@@ -173,11 +194,11 @@ class ScanTree(
     }
 
     /**
-     * Handles the number of cycles for the scanning tree
-     * @return True if cycles value has reached the user defined value, false otherwise.
+     * Handles the auto scan cycle limit
+     * @return True if the auto scan cycle limit has been reached, false otherwise.
      */
-    private fun handleCycles(): Boolean {
-        if (navigator.handleCycles()) {
+    private fun handleAutoScanCycleLimit(): Boolean {
+        if (navigator.isAutoScanCycleLimitReached()) {
             stopScanning()
             return true
         } else {
@@ -246,6 +267,77 @@ class ScanTree(
     }
 
     /**
+     * Handles cycle completion and break logic
+     * @param wasInCycleBreak Whether we were in cycle break before movement
+     * @return True if we should return early (e.g., when break is started)
+     */
+    private fun handleCycleCompletion(
+        wasInCycleBreak: Boolean
+    ): Boolean {
+        if (navigator.hasCompletedCycle()) {
+            Log.d(
+                TAG,
+                "Cycle is completed with navigator cycle break: ${navigator.isInCycleBreak}"
+            )
+            callback?.onSingleCycleCompleted(navigator.currentCycle)
+            if (navigator.isInCycleBreak) {
+                callback?.onScanTreeCycleBreakStarted()
+                return true
+            }
+        } else if (wasInCycleBreak) {
+            navigator.skipCycleBreak()
+            callback?.onScanTreeCycleBreakSkipped()
+            highlightCurrent()
+            return true
+        }
+        return false
+    }
+
+    /**
+     * Steps through the scanning tree automatically.
+     * This method is called by the scanning scheduler during automatic scanning.
+     */
+    private fun stepAutoScanning() {
+        if (!handlePreMovement()) {
+            val movementSuccessful = navigator.moveSelectionToNextOrPrevious()
+            handlePostMovement(movementSuccessful)
+        }
+    }
+
+    /**
+     * Handles pre-movement logic.
+     *
+     * @return True if the movement was successful, false otherwise.
+     */
+    private fun handlePreMovement(): Boolean {
+        unhighlightCurrent()
+
+        if (handleAutoScanCycleLimit()) {
+            return true
+        }
+
+        val escapeSuccessful = handleEscape()
+        val cycleBreakSuccessful = handleCycleCompletion(navigator.isInCycleBreak)
+
+        return escapeSuccessful || cycleBreakSuccessful
+    }
+
+    /**
+     * Handles post-movement logic, such as highlighting and highlighting the escape.
+     * @param movementSuccessful Whether the movement was successful.
+     */
+    private fun handlePostMovement(movementSuccessful: Boolean) {
+        val escapeSuccessful = highlightEscape(!movementSuccessful)
+        val cycleBreakSuccessful = handleCycleCompletion(navigator.isInCycleBreak)
+
+        if (cycleBreakSuccessful || escapeSuccessful) return
+
+        if (handleAutoScanCycleLimit()) return
+
+        highlightCurrent()
+    }
+
+    /**
      * Manually steps forward in the scanning tree.
      * This method is used for manual navigation through the tree.
      */
@@ -254,12 +346,10 @@ class ScanTree(
             return
         }
 
-        unhighlightCurrent()
-        val movementSuccessful = navigator.moveSelectionToNext()
-        if (highlightEscape(!movementSuccessful)) {
-            return
+        if (!handlePreMovement()) {
+            val movementSuccessful = navigator.moveSelectionToNext()
+            handlePostMovement(movementSuccessful)
         }
-        highlightCurrent()
     }
 
     /**
@@ -271,12 +361,10 @@ class ScanTree(
             return
         }
 
-        unhighlightCurrent()
-        val movementSuccessful = navigator.moveSelectionToPrevious()
-        if (highlightEscape(!movementSuccessful)) {
-            return
+        if (!handlePreMovement()) {
+            val movementSuccessful = navigator.moveSelectionToPrevious()
+            handlePostMovement(movementSuccessful)
         }
-        highlightCurrent()
     }
 
     /**
@@ -309,37 +397,18 @@ class ScanTree(
     }
 
     /**
-     * Steps through the scanning tree automatically.
-     * This method is called by the scanning scheduler during automatic scanning.
-     */
-    private fun stepAutoScanning() {
-        unhighlightCurrent()
-
-        if (handleCycles()) {
-            return
-        }
-
-        if (handleEscape()) {
-            return
-        }
-
-        val movementSuccessful = navigator.moveSelectionToNextOrPrevious()
-
-        if (highlightEscape(!movementSuccessful)) {
-            return
-        }
-
-        highlightCurrent()
-    }
-
-    /**
      * Highlights the current item, group, or node based on the current state.
      */
     private fun highlightCurrent() {
         Log.d(
-            "ScanTree",
+            TAG,
             "Highlighting current: treeItem=${navigator.currentTreeItem}, group=${navigator.currentGroup}, column=${navigator.currentColumn}, isInTreeItem=${navigator.isInTreeItem}, isScanningGroups=${navigator.isScanningGroups}"
         )
+
+        if (navigator.isInCycleBreak) {
+            return
+        }
+
         highlighter.highlightCurrent(
             navigator.currentTreeItem,
             navigator.currentGroup,
@@ -373,7 +442,7 @@ class ScanTree(
             reset()
             highlightCurrent() // Highlight the first item
             if (scanSettings.isAutoScanMode()) {
-                Log.d("ScanTree", "startScanning")
+                Log.d(TAG, "startScanning")
                 scanningScheduler?.startScanning()
             }
         }
@@ -398,6 +467,7 @@ class ScanTree(
      */
     override fun stopScanning() {
         scanningScheduler?.stopScanning()
+        callback?.onScanTreeCycleBreakSkipped()
     }
 
     /**

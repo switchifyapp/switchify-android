@@ -5,4 +5,7 @@ import com.enaboapps.switchify.service.menu.menus.BaseMenu
 import com.enaboapps.switchify.service.menu.structure.MenuStructureHolder
 
 class VolumeControlMenu(private val accessibilityService: SwitchifyAccessibilityService) :
-    BaseMenu(accessibilityService, MenuStructureHolder(accessibilityService).buildVolumeControlMenuObject().getMenuItems())
+    BaseMenu(
+        accessibilityService,
+        MenuStructureHolder(accessibilityService).buildVolumeControlMenuObject().getMenuItems()
+    )

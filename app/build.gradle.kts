@@ -21,7 +21,7 @@ android {
         minSdk = 31
         targetSdk = 35
         versionCode = gitVersionCode()
-        versionName = "1.64.0"
+        versionName = "1.65.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -35,32 +35,6 @@ android {
         } else {
             throw GradleException("local.properties file not found")
         }
-
-        if (localProperties.getProperty(
-                "fleksy.apiSecret",
-                ""
-            ).isEmpty()
-        ) {
-            throw GradleException("Fleksy API secret is not set in local.properties")
-        }
-        buildConfigField(
-            "String",
-            "FLEKSY_API_KEY",
-            "\"${localProperties.getProperty("fleksy.apiKey", "")}\""
-        )
-
-        if (localProperties.getProperty(
-                "fleksy.apiSecret",
-                ""
-            ).isEmpty()
-        ) {
-            throw GradleException("Fleksy API secret is not set in local.properties")
-        }
-        buildConfigField(
-            "String",
-            "FLEKSY_API_SECRET",
-            "\"${localProperties.getProperty("fleksy.apiSecret", "")}\""
-        )
 
         if (localProperties.getProperty(
                 "revenuecat.publicKey",
@@ -148,7 +122,6 @@ dependencies {
     implementation(libs.firebase.crashlytics)
     implementation(libs.firebase.firestore.ktx)
     implementation(libs.gson)
-    implementation(libs.fleksylib)
     implementation(libs.androidx.material3.android)
     implementation(libs.app.update)
     implementation(libs.play.services.auth)

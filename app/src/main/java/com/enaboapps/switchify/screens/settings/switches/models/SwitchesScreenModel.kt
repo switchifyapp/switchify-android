@@ -1,27 +1,32 @@
 package com.enaboapps.switchify.screens.settings.switches.models
 
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.enaboapps.switchify.backend.iap.IAPHandler
 import com.enaboapps.switchify.switches.SwitchEvent
 import com.enaboapps.switchify.switches.SwitchEventStore
 import com.enaboapps.switchify.switches.SwitchEventStore.RemoteSwitchInfo
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
 /**
  * ViewModel for the Switches screen, handling switch events and remote switch operations.
  */
-class SwitchesScreenModel(private val store: SwitchEventStore) : ViewModel() {
-
+class SwitchesScreenModel : ViewModel() {
+    private val store = SwitchEventStore.getInstance()
     private val _uiState = MutableStateFlow(SwitchesUiState())
     val uiState: StateFlow<SwitchesUiState> = _uiState
 
     private val numberOfSwitchesLimit = 3
 
-    init {
-        loadEvents()
+    fun setup(context: Context) {
+        observeSwitches(context)
         checkProStatus()
     }
 
@@ -42,28 +47,57 @@ class SwitchesScreenModel(private val store: SwitchEventStore) : ViewModel() {
     }
 
     /**
-     * Loads local switch events and fetches remote switches.
+     * Sets up continuous observation of switch events
      */
-    fun loadEvents() {
+    private fun observeSwitches(context: Context) {
         viewModelScope.launch {
-            // Update local switches immediately
-            updateLocalSwitches()
-
-            // Start loading remote switches
+            // Start loading state
             _uiState.value = _uiState.value.copy(isLoading = true)
 
-            store.fetchAvailableSwitches()
-                .onSuccess { remoteSwitches ->
-                    _uiState.value = _uiState.value.copy(
-                        remoteSwitches = remoteSwitches,
-                        isLoading = false
-                    )
+            // Create a flow for local switches that listens to store updates
+            val localSwitchesFlow = callbackFlow {
+                // Initial emission with current switches
+                trySend(store.getSwitchEvents())
+
+                // Set up broadcast receiver for updates
+                val receiver = object : BroadcastReceiver() {
+                    override fun onReceive(context: Context?, intent: Intent?) {
+                        if (intent?.action == SwitchEventStore.EVENTS_UPDATED) {
+                            trySend(store.getSwitchEvents())
+                        }
+                    }
                 }
-                .onFailure { error ->
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false
-                    )
+
+                // Register receiver
+                LocalBroadcastManager.getInstance(context)
+                    .registerReceiver(receiver, IntentFilter(SwitchEventStore.EVENTS_UPDATED))
+
+                // Clean up when flow is cancelled
+                awaitClose {
+                    // Unregister receiver
+                    LocalBroadcastManager.getInstance(context)
+                        .unregisterReceiver(receiver)
                 }
+            }
+
+            // Create a flow for remote switches
+            val remoteSwitchesFlow = flow {
+                store.fetchAvailableSwitches()
+                    .onSuccess { emit(it) }
+                    .onFailure { emit(emptyList()) }
+            }
+
+            // Combine both flows
+            combine(
+                localSwitchesFlow,
+                remoteSwitchesFlow
+            ) { localSwitches, remoteSwitches ->
+                _uiState.value = _uiState.value.copy(
+                    localSwitches = localSwitches,
+                    remoteSwitches = remoteSwitches,
+                    isLoading = false
+                )
+            }.collect()
         }
     }
 
@@ -82,7 +116,7 @@ class SwitchesScreenModel(private val store: SwitchEventStore) : ViewModel() {
     /**
      * Imports a single remote switch.
      */
-    fun importSwitch(remoteSwitch: RemoteSwitchInfo) {
+    fun importSwitch(remoteSwitch: RemoteSwitchInfo, context: Context) {
         viewModelScope.launch {
             if (!isAnotherSwitchAllowed()) {
                 showProAlert()
@@ -93,11 +127,12 @@ class SwitchesScreenModel(private val store: SwitchEventStore) : ViewModel() {
                 importingSwitch = remoteSwitch.code
             )
 
-            store.importSwitch(remoteSwitch.code)
+            store.importSwitch(remoteSwitch.code, context)
                 .onSuccess {
-                    updateLocalSwitches()
-                    // Refresh remote switches to update isOnDevice status
-                    loadEvents()
+                    _uiState.value = _uiState.value.copy(
+                        remoteSwitches = _uiState.value.remoteSwitches.filterNot { it.code == remoteSwitch.code },
+                        importingSwitch = null
+                    )
                 }
                 .onFailure { error ->
                     _uiState.value = _uiState.value.copy(
@@ -110,28 +145,15 @@ class SwitchesScreenModel(private val store: SwitchEventStore) : ViewModel() {
     /**
      * Deletes a remote switch.
      */
-    fun deleteRemoteSwitch(remoteSwitch: RemoteSwitchInfo) {
+    fun deleteRemoteSwitch(remoteSwitch: RemoteSwitchInfo, context: Context) {
         viewModelScope.launch {
-            store.removeRemote(remoteSwitch.code)
-                .onSuccess {
-                    updateLocalSwitches()
-                    loadEvents()
-                }
+            store.removeRemote(remoteSwitch.code, context)
                 .onFailure { error ->
                     _uiState.value = _uiState.value.copy(
                         importingSwitch = null
                     )
                 }
         }
-    }
-
-    /**
-     * Updates the local switches in the UI state.
-     */
-    private fun updateLocalSwitches() {
-        _uiState.value = _uiState.value.copy(
-            localSwitches = store.getSwitchEvents()
-        )
     }
 }
 

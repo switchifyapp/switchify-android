@@ -21,11 +21,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.auth.AuthManager
+import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.FullWidthButton
-import com.enaboapps.switchify.keyboard.utils.KeyboardUtils
 import com.enaboapps.switchify.nav.NavigationRoute
-import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.screens.settings.scanning.ScanModeSelectionSection
 import com.enaboapps.switchify.service.utils.ServiceUtils
 import com.enaboapps.switchify.switches.SwitchConfigInvalidBanner
@@ -40,8 +39,6 @@ private object SetupStrings {
     const val SIGN_IN_PROMPT = "Used Switchify? Sign in to access your settings."
     const val ACCESSIBILITY_PROMPT =
         "To use Switchify effectively, please enable the Accessibility Service."
-    const val KEYBOARD_PROMPT =
-        "To use Switchify effectively, please enable the Switchify Keyboard in your device settings."
     const val LETS_GO = "Let's Go"
     const val SETUP_COMPLETE = "You're all set up!"
     const val FINISH = "Finish"
@@ -52,17 +49,16 @@ fun SetupScreen(
     navController: NavController
 ) {
     val context = LocalContext.current
-
-    val switchEventStore = SwitchEventStore(context)
+    val switchEventStore = remember {
+        SwitchEventStore.getInstance()
+    }
     val serviceUtils = ServiceUtils()
-    val keyboardUtils = KeyboardUtils
     val preferenceManager = PreferenceManager(context)
 
     val viewModel = remember {
         SetupScreenModel(
             switchEventStore,
             serviceUtils,
-            keyboardUtils,
             preferenceManager
         )
     }
@@ -77,7 +73,6 @@ fun SetupScreen(
         uiState = uiState,
         onEditSwitches = { navController.navigate(NavigationRoute.Switches.name) },
         onEnableAccessibilityService = { navController.navigate(NavigationRoute.EnableAccessibilityService.name) },
-        onEnableSwitchifyKeyboard = { navController.navigate(NavigationRoute.EnableSwitchifyKeyboard.name) },
         onSkipSetup = {
             viewModel.setSetupComplete()
             navController.popBackStack()
@@ -86,7 +81,7 @@ fun SetupScreen(
             viewModel.setSetupComplete()
             navController.navigate(NavigationRoute.SignIn.name)
         },
-        onScanModeChange = { viewModel.checkSwitches() },
+        onScanModeChange = { viewModel.checkSwitches(context) },
         onFinish = {
             viewModel.setSetupComplete()
             navController.popBackStack()
@@ -100,7 +95,6 @@ private fun SetupScreenContent(
     uiState: SetupScreenUiState,
     onEditSwitches: () -> Unit,
     onEnableAccessibilityService: () -> Unit,
-    onEnableSwitchifyKeyboard: () -> Unit,
     onSkipSetup: () -> Unit,
     onSignIn: () -> Unit,
     onScanModeChange: (String) -> Unit,
@@ -137,11 +131,6 @@ private fun SetupScreenContent(
 
                 !uiState.isAccessibilityServiceEnabled -> AccessibilityServiceContent(
                     onEnable = onEnableAccessibilityService,
-                    onSkip = onSkipSetup
-                )
-
-                !uiState.isSwitchifyKeyboardEnabled -> KeyboardEnableContent(
-                    onEnable = onEnableSwitchifyKeyboard,
                     onSkip = onSkipSetup
                 )
 
@@ -201,25 +190,6 @@ private fun AccessibilityServiceContent(
     )
     Text(
         text = context.getString(R.string.accessibility_service_disclosure),
-        modifier = Modifier.padding(bottom = 20.dp)
-    )
-    FullWidthButton(
-        text = SetupStrings.LETS_GO,
-        onClick = onEnable
-    )
-    FullWidthButton(
-        text = SetupStrings.SKIP_SETUP,
-        onClick = onSkip
-    )
-}
-
-@Composable
-private fun KeyboardEnableContent(
-    onEnable: () -> Unit,
-    onSkip: () -> Unit
-) {
-    Text(
-        text = SetupStrings.KEYBOARD_PROMPT,
         modifier = Modifier.padding(bottom = 20.dp)
     )
     FullWidthButton(

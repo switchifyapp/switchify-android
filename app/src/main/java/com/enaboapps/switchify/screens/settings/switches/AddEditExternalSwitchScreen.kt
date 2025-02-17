@@ -17,6 +17,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -34,15 +35,15 @@ import com.enaboapps.switchify.components.TextArea
 import com.enaboapps.switchify.screens.settings.switches.actions.SwitchActionPicker
 import com.enaboapps.switchify.screens.settings.switches.models.AddEditExternalSwitchScreenModel
 import com.enaboapps.switchify.switches.SwitchAction
-import com.enaboapps.switchify.switches.SwitchEventStore
+import kotlinx.coroutines.launch
 
 @Composable
 fun AddEditExternalSwitchScreen(navController: NavController, code: String? = null) {
     val context = LocalContext.current
-    val switchEventStore = SwitchEventStore(context)
+    val scope = rememberCoroutineScope()
     val addEditExternalSwitchScreenModel = remember {
         AddEditExternalSwitchScreenModel().apply {
-            init(code, switchEventStore, context)
+            init(code, context)
         }
     }
     val shouldSave by addEditExternalSwitchScreenModel.shouldSave.observeAsState()
@@ -72,12 +73,18 @@ fun AddEditExternalSwitchScreen(navController: NavController, code: String? = nu
                 SwitchActionSection(addEditExternalSwitchScreenModel)
                 if (shouldSave!!) {
                     FullWidthButton(text = "Save", enabled = isValid!!, onClick = {
-                        addEditExternalSwitchScreenModel.save { success ->
-                            if (success) {
-                                navController.popBackStack()
-                            } else {
-                                Toast.makeText(context, "Error saving switch", Toast.LENGTH_SHORT)
-                                    .show()
+                        addEditExternalSwitchScreenModel.save(context) { success ->
+                            scope.launch {
+                                if (success) {
+                                    navController.popBackStack()
+                                } else {
+                                    Toast.makeText(
+                                        context,
+                                        "Error saving switch",
+                                        Toast.LENGTH_SHORT
+                                    )
+                                        .show()
+                                }
                             }
                         }
                     })
@@ -98,16 +105,17 @@ fun AddEditExternalSwitchScreen(navController: NavController, code: String? = nu
                         TextButton(
                             onClick = {
                                 showDeleteConfirmation.value = false
-                                addEditExternalSwitchScreenModel.delete { success ->
-                                    if (success) {
-                                        navController.popBackStack()
-                                    } else {
-                                        Toast.makeText(
-                                            context,
-                                            "Error deleting switch",
-                                            Toast.LENGTH_SHORT
-                                        )
-                                            .show()
+                                addEditExternalSwitchScreenModel.delete(context) { success ->
+                                    scope.launch {
+                                        if (success) {
+                                            navController.popBackStack()
+                                        } else {
+                                            Toast.makeText(
+                                                context,
+                                                "Error deleting switch",
+                                                Toast.LENGTH_SHORT
+                                            ).show()
+                                        }
                                     }
                                 }
                             }

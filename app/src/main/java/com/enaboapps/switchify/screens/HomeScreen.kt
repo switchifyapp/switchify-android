@@ -22,12 +22,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.enaboapps.switchify.BuildConfig
 import com.enaboapps.switchify.auth.AuthManager
 import com.enaboapps.switchify.backend.iap.IAPHandler
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.NavBarAction
-import com.enaboapps.switchify.keyboard.utils.KeyboardUtils
 import com.enaboapps.switchify.nav.NavigationRoute
 import com.enaboapps.switchify.service.utils.ServiceUtils
 import com.google.android.play.core.appupdate.AppUpdateManager
@@ -44,7 +44,6 @@ import com.google.android.play.core.review.ReviewManagerFactory
 fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = ServiceUtils()) {
     val context = LocalContext.current
     val isAccessibilityServiceEnabled = serviceUtils.isAccessibilityServiceEnabled(context)
-    val isSwitchifyKeyboardEnabled = KeyboardUtils.isSwitchifyKeyboardEnabled(context)
     val isSetupComplete = PreferenceManager(context).isSetupComplete()
     val isPro = remember { mutableStateOf(true) }
     val signedIn = AuthManager.instance.isUserSignedIn()
@@ -172,25 +171,6 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
                 }
             }
 
-            // Keyboard Card
-            if (!isSwitchifyKeyboardEnabled) {
-                item {
-                    GridCard(
-                        title = "Switchify Keyboard",
-                        summary = "Tap here to enable the Switchify keyboard.",
-                        onClick = { navController.navigate(NavigationRoute.EnableSwitchifyKeyboard.name) },
-                        icon = {
-                            Icon(
-                                imageVector = Icons.Rounded.Keyboard,
-                                contentDescription = "Keyboard",
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(24.dp)
-                            )
-                        }
-                    )
-                }
-            }
-
             // Pro Upgrade Card
             if (!isPro.value) {
                 item {
@@ -213,6 +193,25 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
             // Account Card
             item {
                 AccountGridCard(navController)
+            }
+
+            // Debug Card (only visible in debug mode)
+            if (BuildConfig.DEBUG) {
+                item {
+                    GridCard(
+                        title = "Debug Settings",
+                        summary = "Access debug features and settings.",
+                        onClick = { navController.navigate(NavigationRoute.Debug.name) },
+                        icon = {
+                            Icon(
+                                imageVector = Icons.Rounded.BugReport,
+                                contentDescription = "Debug",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                    )
+                }
             }
         }
 

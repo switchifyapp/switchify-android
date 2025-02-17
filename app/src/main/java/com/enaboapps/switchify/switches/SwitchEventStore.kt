@@ -3,21 +3,15 @@ package com.enaboapps.switchify.switches
 import android.content.Context
 import android.content.Intent
 import android.util.Log
-import android.widget.Toast
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
-import com.enaboapps.switchify.auth.AuthManager
-import com.enaboapps.switchify.backend.data.FirestoreManager
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.service.scanning.ScanMode
 import com.enaboapps.switchify.utils.Logger
-import com.google.gson.Gson
-import com.google.gson.GsonBuilder
-import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.io.File
+import java.util.Collections
 
 /**
  * SwitchEventStore manages the storage and synchronization of switch events between local storage
@@ -30,31 +24,121 @@ import java.io.File
  * - Remote switch discovery and import
  * - CRUD operations for switches
  * - Switch configuration validation
- *
- * @property context The application context used for file operations and preferences
+ * - Broadcasts an event to all listeners when switch events are updated
  */
-class SwitchEventStore(private val context: Context, private val localOnly: Boolean = false) {
-    // Core data storage
-    private val switchEvents = mutableSetOf<SwitchEvent>()
-    private val fileName = "switch_events.json"
-    private val file: File
-        get() = File(context.applicationContext.filesDir, fileName)
+class SwitchEventStore private constructor() {
+    // Core data storage - using thread-safe set
+    private val switchEvents = Collections.synchronizedSet(mutableSetOf<SwitchEvent>())
+    private var isInitialized = false
 
-    // Utilities and managers
-    private val gson = Gson()
     private val tag = "SwitchEventStore"
-    private val firestoreManager = FirestoreManager.getInstance()
-    private val authManager = AuthManager.instance
     private val coroutineScope = CoroutineScope(Dispatchers.IO)
+    private val localStorage = SwitchEventLocalStorage()
+    private val firestore = SwitchEventFirestore()
 
     companion object {
         const val EVENTS_UPDATED = "com.enaboapps.switchify.EVENTS_UPDATED"
-        private const val COLLECTION_USER_SWITCHES = "user-switches"
-        private const val SWITCHES_COLLECTION = "switches"
+
+        @Volatile
+        private var instance: SwitchEventStore? = null
+
+        fun getInstance(): SwitchEventStore {
+            return instance ?: synchronized(this) {
+                instance ?: SwitchEventStore().also { instance = it }
+            }
+        }
     }
 
-    init {
-        readFile()
+    @Synchronized
+    fun initialize(context: Context) {
+        if (isInitialized) {
+            return
+        }
+
+        coroutineScope.launch {
+            val loadedEvents = localStorage.loadFromFile(context)
+            switchEvents.clear()
+            switchEvents.addAll(loadedEvents)
+        }
+        isInitialized = true
+    }
+
+    fun getCount(): Int = switchEvents.size
+
+    fun getSwitchEvents(): Set<SwitchEvent> = switchEvents.toSet()
+
+    fun find(code: String): SwitchEvent? =
+        switchEvents.find { it.code == code }?.also {
+            Log.d(tag, "Found switch event for code $code")
+        } ?: run {
+            Log.d(tag, "No switch event found for code $code")
+            null
+        }
+
+    fun add(switchEvent: SwitchEvent, context: Context, completion: ((Boolean) -> Unit)) {
+        coroutineScope.launch {
+            val added = switchEvents.add(switchEvent)
+
+            if (added) {
+                if (localStorage.saveToFile(context, switchEvents)) {
+                    Log.d(tag, "Successfully added and saved switch event")
+                    completion(true)
+                    broadcastReloadEvent(context)
+                    if (firestore.pushEvent(switchEvent)) {
+                        Logger.logEvent("Added switch: ${switchEvent.name}")
+                    }
+                } else {
+                    Log.e(tag, "Failed to save switch event to file")
+                    switchEvents.remove(switchEvent)
+                    completion(false)
+                }
+            } else {
+                Log.e(tag, "Failed to add switch event to set")
+                completion(false)
+            }
+        }
+    }
+
+    fun update(switchEvent: SwitchEvent, context: Context, completion: ((Boolean) -> Unit)) {
+        coroutineScope.launch {
+            var updated = switchEvents.removeIf { it.code == switchEvent.code }
+            if (updated) {
+                updated = switchEvents.add(switchEvent)
+            }
+
+            if (updated) {
+                if (localStorage.saveToFile(context, switchEvents)) {
+                    completion(true)
+                    broadcastReloadEvent(context)
+                    if (firestore.pushEvent(switchEvent)) {
+                        Logger.logEvent("Updated switch: ${switchEvent.name}")
+                    }
+                } else {
+                    completion(false)
+                }
+            } else {
+                completion(false)
+            }
+        }
+    }
+
+    fun remove(switchEvent: SwitchEvent, context: Context, handler: ((Boolean) -> Unit)) {
+        coroutineScope.launch {
+            val removed = switchEvents.removeIf { it.code == switchEvent.code }
+
+            if (removed) {
+                if (localStorage.saveToFile(context, switchEvents)) {
+                    Logger.logEvent("Removed switch: ${switchEvent.name}")
+                    broadcastReloadEvent(context)
+                    handler(true)
+                } else {
+                    switchEvents.add(switchEvent)
+                    handler(false)
+                }
+            } else {
+                handler(false)
+            }
+        }
     }
 
     /**
@@ -79,30 +163,19 @@ class SwitchEventStore(private val context: Context, private val localOnly: Bool
      * @return Result containing list of available remote switches or error
      */
     suspend fun fetchAvailableSwitches(): Result<List<RemoteSwitchInfo>> {
-        val userId = authManager.getUserId() ?: run {
-            Log.e(tag, "Could not get user ID")
-            return Result.failure(Exception("User ID not available"))
-        }
-
         return withContext(Dispatchers.IO) {
             try {
-                val documents = firestoreManager.queryDocuments(
-                    collectionPath = "$COLLECTION_USER_SWITCHES/$userId/$SWITCHES_COLLECTION"
+                val remoteEvents = firestore.pullEvents() ?: return@withContext Result.failure(
+                    Exception("Failed to fetch remote switches")
                 )
 
-                val switches = documents.mapNotNull { data ->
-                    try {
-                        val event = gson.fromJson(gson.toJson(data), SwitchEvent::class.java)
-                        RemoteSwitchInfo(
-                            type = event.type,
-                            name = event.name,
-                            code = event.code,
-                            isOnDevice = switchEvents.any { it.code == event.code }
-                        )
-                    } catch (e: Exception) {
-                        Log.e(tag, "Error parsing remote switch: ${e.message}")
-                        null
-                    }
+                val switches = remoteEvents.map { event ->
+                    RemoteSwitchInfo(
+                        type = event.type,
+                        name = event.name,
+                        code = event.code,
+                        isOnDevice = switchEvents.any { it.code == event.code }
+                    )
                 }
 
                 Log.d(tag, "Returning ${switches.size} remote switches")
@@ -119,14 +192,10 @@ class SwitchEventStore(private val context: Context, private val localOnly: Bool
      * Only imports if the switch isn't already on the device.
      *
      * @param code The code of the switch to import
+     * @param context The context used for file operations
      * @return Result containing the imported SwitchEvent if successful
      */
-    suspend fun importSwitch(code: String): Result<SwitchEvent> {
-        val userId = authManager.getUserId() ?: run {
-            Log.e(tag, "Could not get user ID")
-            return Result.failure(Exception("User ID not available"))
-        }
-
+    suspend fun importSwitch(code: String, context: Context): Result<SwitchEvent> {
         if (switchEvents.any { it.code == code }) {
             Log.d(tag, "Switch with code $code is already on device")
             return Result.failure(Exception("Switch is already on device"))
@@ -134,285 +203,30 @@ class SwitchEventStore(private val context: Context, private val localOnly: Bool
 
         return withContext(Dispatchers.IO) {
             try {
-                val document = firestoreManager.getDocument(
-                    path = "$COLLECTION_USER_SWITCHES/$userId/$SWITCHES_COLLECTION/$code"
+                val switchEvent = firestore.fetchEvent(code) ?: return@withContext Result.failure(
+                    Exception("Switch not found")
                 )
 
-                val switchEvent = gson.fromJson(gson.toJson(document), SwitchEvent::class.java)
-                switchEvents.add(switchEvent)
-                saveToFile()
+                val added = switchEvents.add(switchEvent)
 
-                Log.d(tag, "Successfully imported switch: ${switchEvent.name}")
-                Logger.logEvent("Imported switch: $code")
-                Result.success(switchEvent)
+                if (!added) {
+                    return@withContext Result.failure(Exception("Failed to add switch"))
+                }
+
+                if (localStorage.saveToFile(context, switchEvents)) {
+                    Log.d(tag, "Successfully imported switch: ${switchEvent.name}")
+                    Logger.logEvent("Imported switch: $code")
+                    broadcastReloadEvent(context)
+                    Result.success(switchEvent)
+                } else {
+                    Result.failure(Exception("Failed to write to file"))
+                }
             } catch (e: Exception) {
                 Logger.logEvent("Error importing switch: $code, ${e.message}")
                 Result.failure(e)
             }
         }
     }
-
-    /**
-     * Constructs the Firestore path for a given switch event code.
-     */
-    private fun getSwitchPath(code: String): String {
-        val userId = authManager.getUserId() ?: run {
-            Log.d(tag, "Could not get user ID")
-            return ""
-        }
-        return "$COLLECTION_USER_SWITCHES/$userId/$SWITCHES_COLLECTION/$code"
-    }
-
-    /**
-     * Pulls all switch events from Firestore and updates local storage.
-     */
-    private fun pullEventsFromFirestore() {
-        if (localOnly) {
-            return
-        }
-        
-        val userId = authManager.getUserId() ?: run {
-            Log.e(tag, "Could not get user ID")
-            return
-        }
-
-        coroutineScope.launch {
-            try {
-                val documents = firestoreManager.queryDocuments(
-                    collectionPath = "$COLLECTION_USER_SWITCHES/$userId/$SWITCHES_COLLECTION"
-                )
-
-                val remoteEvents = documents.mapNotNull { data ->
-                    try {
-                        gson.fromJson(gson.toJson(data), SwitchEvent::class.java)
-                    } catch (e: Exception) {
-                        Log.e(tag, "Error parsing remote switch event: ${e.message}")
-                        null
-                    }
-                }.toSet()
-
-                if (remoteEvents.isNotEmpty()) {
-                    switchEvents.clear()
-                    switchEvents.addAll(remoteEvents)
-                    saveToFile()
-                    Log.i(
-                        tag,
-                        "Successfully pulled ${remoteEvents.size} switch events from Firestore"
-                    )
-                } else {
-                    Log.i(tag, "No switch events found in Firestore")
-                    if (switchEvents.isNotEmpty()) {
-                        pushEventsToFirestore()
-                    }
-                }
-            } catch (e: Exception) {
-                Log.e(tag, "Error pulling from Firestore: ${e.message}")
-            }
-        }
-    }
-
-    /**
-     * Pushes all local switch events to Firestore.
-     */
-    private fun pushEventsToFirestore() {
-        if (localOnly) {
-            return
-        }
-        coroutineScope.launch {
-            try {
-                switchEvents.forEach { event ->
-                    val path = getSwitchPath(event.code)
-                    if (path.isNotEmpty()) {
-                        firestoreManager.saveDocument(
-                            path = path,
-                            data = event.toMap()
-                        )
-                    }
-                }
-                Log.i(tag, "Successfully pushed ${switchEvents.size} switch events to Firestore")
-                Logger.logEvent("Pushed ${switchEvents.size} switch events to Firestore")
-            } catch (e: Exception) {
-                Logger.logEvent("Error pushing to Firestore: ${e.message}")
-            }
-        }
-    }
-
-    /**
-     * Adds a new switch event to both local storage and Firestore.
-     *
-     * @param switchEvent The switch event to add
-     * @param completion The completion callback to be called after the add is complete
-     */
-    fun add(switchEvent: SwitchEvent, completion: ((Boolean) -> Unit)) {
-        if (switchEvents.add(switchEvent)) {
-            try {
-                saveToFile()
-                completion(true)
-
-                coroutineScope.launch {
-                    val path = getSwitchPath(switchEvent.code)
-                    if (path.isNotEmpty()) {
-                        firestoreManager.saveDocument(
-                            path = path,
-                            data = switchEvent.toMap()
-                        )
-                        Logger.logEvent("Added switch: ${switchEvent.name}")
-                    }
-                }
-            } catch (e: Exception) {
-                completion(false)
-                Log.e(tag, "Error adding switch event", e)
-            }
-        } else {
-            completion(false)
-        }
-    }
-
-    /**
-     * Updates an existing switch event in both local storage and Firestore.
-     *
-     * @param switchEvent The switch event to update
-     * @param completion The completion callback to be called after the update is complete
-     */
-    fun update(switchEvent: SwitchEvent, completion: ((Boolean) -> Unit)) {
-        var index = -1
-        index = switchEvents.indexOfFirst { it.code == switchEvent.code }
-        if (index != -1) {
-            try {
-                switchEvents.forEachIndexed { i, event ->
-                    if (i == index) {
-                        event.setValuesFromOther(switchEvent)
-                    }
-                }
-                saveToFile()
-                completion(true)
-                coroutineScope.launch {
-                    val path = getSwitchPath(switchEvent.code)
-                    if (path.isNotEmpty()) {
-                        firestoreManager.saveDocument(
-                            path = path,
-                            data = switchEvent.toMap()
-                        )
-                        Logger.logEvent("Updated switch: ${switchEvent.name}")
-                    }
-                }
-            } catch (e: Exception) {
-                completion(false)
-                Log.e(tag, "Error updating switch event", e)
-            }
-        } else {
-            completion(false)
-        }
-    }
-
-    /**
-     * Removes a switch event from both local storage and Firestore.
-     *
-     * @param switchEvent The switch event to remove
-     * @param handler The handler to be called after the switch event is removed
-     */
-    fun remove(switchEvent: SwitchEvent, handler: ((Boolean) -> Unit)) {
-        if (switchEvents.removeIf { it.code == switchEvent.code }) {
-            try {
-                saveToFile()
-                Logger.logEvent("Removed switch: ${switchEvent.name}")
-                handler(true)
-            } catch (e: Exception) {
-                handler(false)
-                Log.e(tag, "Error removing switch event", e)
-            }
-        } else {
-            handler(false)
-            Log.e(tag, "Switch event not found")
-        }
-    }
-
-    /**
-     * Removes a remote switch event by its code.
-     *
-     * @param code The code of the remote switch event to remove
-     */
-    suspend fun removeRemote(code: String): Result<Unit> {
-        val userId = authManager.getUserId() ?: run {
-            Log.e(tag, "Could not get user ID")
-            return Result.failure(Exception("User ID not available"))
-        }
-
-        return withContext(Dispatchers.IO) {
-            try {
-                firestoreManager.deleteDocument(
-                    path = "$COLLECTION_USER_SWITCHES/$userId/$SWITCHES_COLLECTION/$code"
-                )
-                switchEvents.removeIf { it.code == code }
-                saveToFile()
-                Logger.logEvent("Removed remote switch: $code")
-                Result.success(Unit)
-            } catch (e: Exception) {
-                Log.e(tag, "Error removing remote switch $code", e)
-                Logger.logEvent("Error removing remote switch: $code, ${e.message}")
-                Result.failure(e)
-            }
-        }
-    }
-
-
-    /**
-     * Finds a switch event by its code.
-     *
-     * @param code The code of the switch event to find
-     * @return The found switch event or null if not found
-     */
-    fun find(code: String): SwitchEvent? =
-        switchEvents.find { it.code == code }?.also {
-            Log.d(tag, "Found switch event for code $code")
-        } ?: run {
-            Log.d(tag, "No switch event found for code $code")
-            null
-        }
-
-    /**
-     * Finds an external switch event by its code.
-     *
-     * @param code The code of the switch event to find
-     * @return The found switch event or null if not found
-     */
-    fun findExternal(code: String): SwitchEvent? =
-        switchEvents.find { it.type == SWITCH_EVENT_TYPE_EXTERNAL && it.code == code && it.isOnDevice }
-            ?.also {
-                Log.d(tag, "Found external switch event for code $code")
-            } ?: run {
-            Log.d(tag, "No external switch event found for code $code")
-            null
-        }
-
-    /**
-     * Finds a camera switch event by its code.
-     *
-     * @param code The code of the switch event to find
-     * @return The found switch event or null if not found
-     */
-    fun findCamera(code: String): SwitchEvent? =
-        switchEvents.find { it.type == SWITCH_EVENT_TYPE_CAMERA && it.code == code && it.isOnDevice }
-            ?.also {
-                Log.d(tag, "Found camera switch event for code $code")
-            } ?: run {
-            Log.d(tag, "No camera switch event found for code $code")
-            null
-        }
-
-    /**
-     * Returns the total number of switch events.
-     *
-     * @return The count of switch events
-     */
-    fun getCount(): Int = switchEvents.size
-
-    /**
-     * Returns a copy of all switch events.
-     *
-     * @return An immutable set of all switch events
-     */
-    fun getSwitchEvents(): Set<SwitchEvent> = switchEvents.toSet()
 
     /**
      * Validates a switch event's data.
@@ -458,60 +272,9 @@ class SwitchEventStore(private val context: Context, private val localOnly: Bool
     }
 
     /**
-     * Reads switch events from the local file.
-     */
-    private fun readFile() {
-        if (file.exists()) {
-            try {
-                val gsonBuilder = GsonBuilder()
-                gsonBuilder.registerTypeAdapter(SwitchEvent::class.java, SwitchEventTypeAdapter())
-                val gson = gsonBuilder.create()
-                val type = object : TypeToken<Set<SwitchEvent>>() {}.type
-                val events: Set<SwitchEvent> = gson.fromJson(file.readText(), type)
-                switchEvents.clear()
-                switchEvents.addAll(events)
-                switchEvents.forEach { it.isOnDevice = true }
-                switchEvents.forEach { it.log() }
-            } catch (e: Exception) {
-                Log.e(tag, "Error reading from file", e)
-                deleteFile()
-                Toast.makeText(
-                    context,
-                    "Error reading from file. Please reconfigure your switches.",
-                    Toast.LENGTH_LONG
-                ).show()
-            }
-        } else {
-            Log.d(tag, "File does not exist")
-        }
-    }
-
-    /**
-     * Deletes the local storage file.
-     */
-    private fun deleteFile() {
-        if (file.exists()) {
-            file.delete()
-        }
-    }
-
-    /**
-     * Saves switch events to the local file and broadcasts an update event.
-     */
-    private fun saveToFile() {
-        try {
-            file.writeText(gson.toJson(switchEvents))
-            LocalBroadcastManager.getInstance(context).sendBroadcast(Intent(EVENTS_UPDATED))
-        } catch (e: Exception) {
-            Log.e(tag, "Error saving to file", e)
-            throw e
-        }
-    }
-
-    /**
      * Validates the current switch configuration based on the scan mode.
      */
-    fun isConfigInvalid(): String? {
+    fun isConfigInvalid(context: Context): String? {
         val preferenceManager = PreferenceManager(context)
         var mode =
             ScanMode(preferenceManager.getStringValue(PreferenceManager.PREFERENCE_KEY_SCAN_MODE))
@@ -542,10 +305,29 @@ class SwitchEventStore(private val context: Context, private val localOnly: Bool
     }
 
     /**
-     * Reloads switch events from both local storage and Firestore.
+     * Broadcasts an event to all listeners to reload switch events.
      */
-    fun reload() {
-        readFile()
-        pullEventsFromFirestore()
+    private fun broadcastReloadEvent(context: Context) {
+        val localBroadcastManager = LocalBroadcastManager.getInstance(context)
+        localBroadcastManager.sendBroadcast(Intent(EVENTS_UPDATED))
+    }
+
+    /**
+     * Removes a remote switch from Firestore.
+     *
+     * @param code The code of the switch to remove
+     * @param context The application context
+     * @return Result indicating success or failure
+     */
+    suspend fun removeRemote(code: String, context: Context): Result<Unit> {
+        return withContext(Dispatchers.IO) {
+            if (firestore.removeEvent(code)) {
+                Log.d(tag, "Successfully removed remote switch: $code")
+                broadcastReloadEvent(context)
+                Result.success(Unit)
+            } else {
+                Result.failure(Exception("Failed to remove remote switch"))
+            }
+        }
     }
 }

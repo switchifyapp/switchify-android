@@ -56,9 +56,7 @@ fun GeneralSettingsTab(settingsScreenModel: SettingsScreenModel, navController: 
     ScrollableView {
         InputSection(navController)
         MenuSection(settingsScreenModel, navController)
-        LockScreenSection(navController)
         ActionsSection(navController)
-        KeyboardSection(navController)
     }
 }
 
@@ -143,18 +141,6 @@ private fun InputSection(navController: NavController) {
 }
 
 @Composable
-private fun KeyboardSection(navController: NavController) {
-    Section(title = "Keyboard") {
-        NavRouteLink(
-            title = "Choose Prediction Language",
-            summary = "Choose the prediction language",
-            navController = navController,
-            route = NavigationRoute.PredictionLanguage.name
-        )
-    }
-}
-
-@Composable
 private fun MenuSection(screenModel: SettingsScreenModel, navController: NavController) {
     Section(title = "Menu") {
         NavRouteLink(
@@ -176,18 +162,6 @@ private fun MenuSection(screenModel: SettingsScreenModel, navController: NavCont
             onCheckedChange = {
                 screenModel.setMenuTransparency(it)
             }
-        )
-    }
-}
-
-@Composable
-private fun LockScreenSection(navController: NavController) {
-    Section(title = "Lock Screen") {
-        NavRouteLink(
-            title = "Lock Screen Settings",
-            summary = "Configure the lock screen",
-            navController = navController,
-            route = NavigationRoute.LockScreenSettings.name
         )
     }
 }

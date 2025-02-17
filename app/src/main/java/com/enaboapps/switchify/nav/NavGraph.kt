@@ -1,12 +1,11 @@
 package com.enaboapps.switchify.nav
 
-import TestSwitchesScreen
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import com.enaboapps.switchify.screens.DebugScreen
 import com.enaboapps.switchify.screens.EnableAccessibilityServiceScreen
-import com.enaboapps.switchify.screens.EnableKeyboardScreen
 import com.enaboapps.switchify.screens.HomeScreen
 import com.enaboapps.switchify.screens.account.AccountScreen
 import com.enaboapps.switchify.screens.account.ChangePasswordScreen
@@ -17,10 +16,8 @@ import com.enaboapps.switchify.screens.paywall.AppPaywallScreen
 import com.enaboapps.switchify.screens.settings.SettingsScreen
 import com.enaboapps.switchify.screens.settings.actions.AddEditActionScreen
 import com.enaboapps.switchify.screens.settings.actions.MyActionsScreen
-import com.enaboapps.switchify.screens.settings.lockscreen.LockScreenSettingsScreen
 import com.enaboapps.switchify.screens.settings.menu.MenuItemCustomizationScreen
 import com.enaboapps.switchify.screens.settings.menu.MenuSizeScreen
-import com.enaboapps.switchify.screens.settings.prediction.PredictionLanguageScreen
 import com.enaboapps.switchify.screens.settings.scanning.CursorSettingsScreen
 import com.enaboapps.switchify.screens.settings.scanning.ItemScanSettingsScreen
 import com.enaboapps.switchify.screens.settings.scanning.OtherScanSettingsScreen
@@ -30,6 +27,7 @@ import com.enaboapps.switchify.screens.settings.switches.AddEditCameraSwitchScre
 import com.enaboapps.switchify.screens.settings.switches.AddEditExternalSwitchScreen
 import com.enaboapps.switchify.screens.settings.switches.SwitchStabilityScreen
 import com.enaboapps.switchify.screens.settings.switches.SwitchesScreen
+import com.enaboapps.switchify.screens.settings.switches.TestSwitchesScreen
 import com.enaboapps.switchify.screens.setup.SetupScreen
 
 @Composable
@@ -62,9 +60,6 @@ fun NavGraph(navController: NavHostController) {
         composable(NavigationRoute.Settings.name) {
             SettingsScreen(navController)
         }
-        composable(NavigationRoute.PredictionLanguage.name) {
-            PredictionLanguageScreen(navController)
-        }
         composable(NavigationRoute.SwitchStability.name) {
             SwitchStabilityScreen(navController)
         }
@@ -94,17 +89,11 @@ fun NavGraph(navController: NavHostController) {
         composable(NavigationRoute.MenuSize.name) {
             MenuSizeScreen(navController)
         }
-        composable(NavigationRoute.LockScreenSettings.name) {
-            LockScreenSettingsScreen(navController)
-        }
         composable(NavigationRoute.MyActions.name) {
             MyActionsScreen(navController)
         }
         composable(NavigationRoute.EnableAccessibilityService.name) {
             EnableAccessibilityServiceScreen(navController)
-        }
-        composable(NavigationRoute.EnableSwitchifyKeyboard.name) {
-            EnableKeyboardScreen(navController)
         }
         composable(NavigationRoute.AddMyActionsMenuItem.name) {
             AddEditActionScreen(navController)
@@ -130,6 +119,9 @@ fun NavGraph(navController: NavHostController) {
             it.arguments?.getString("code")?.let { code ->
                 AddEditCameraSwitchScreen(navController, code)
             }
+        }
+        composable(NavigationRoute.Debug.name) {
+            DebugScreen(navController)
         }
     }
 }

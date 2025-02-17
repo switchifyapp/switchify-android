@@ -41,12 +41,39 @@ class PreferenceManager(context: Context) {
         private const val PREFERENCE_FILE_NAME = "switchify_preferences"
     }
 
-    private val appContext = context.applicationContext
-
+    private val appContext = context.createDeviceProtectedStorageContext()
+    private val defaultContext = context
     private val sharedPreferences: SharedPreferences =
         appContext.getSharedPreferences(PREFERENCE_FILE_NAME, Context.MODE_PRIVATE)
 
-    val preferenceSync = PreferenceSync(sharedPreferences)
+    fun migrateToProtectedStorage() {
+        val defaultPrefs =
+            defaultContext.getSharedPreferences(PREFERENCE_FILE_NAME, Context.MODE_PRIVATE)
+        // Skip if there's nothing to migrate
+        if (defaultPrefs.all.isEmpty()) return
+
+        val editor = sharedPreferences.edit()
+
+        defaultPrefs.all.forEach { (key, value) ->
+            when (value) {
+                is String -> editor.putString(key, value)
+                is Int -> editor.putInt(key, value)
+                is Long -> editor.putLong(key, value)
+                is Float -> editor.putFloat(key, value)
+                is Boolean -> editor.putBoolean(key, value)
+            }
+        }
+
+        editor.apply()
+        // Clear the old preferences after successful migration
+        defaultPrefs.edit().clear().apply()
+    }
+
+    val preferenceSync = PreferenceSync.getInstance()
+
+    fun enableSync() {
+        preferenceSync.initialize(sharedPreferences)
+    }
 
     fun setSetupComplete() {
         setBooleanValue(PREFERENCE_KEY_SETUP_COMPLETE, true)
