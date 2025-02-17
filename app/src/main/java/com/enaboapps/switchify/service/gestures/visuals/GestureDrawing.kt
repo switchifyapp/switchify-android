@@ -5,7 +5,6 @@ import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.os.Handler
 import android.os.Looper
-import android.view.View
 import android.widget.ImageView
 import android.widget.RelativeLayout
 import com.enaboapps.switchify.service.scanning.ScanColorManager
@@ -21,6 +20,7 @@ class GestureDrawing(private val context: Context) {
 
     // Instance of SwitchifyAccessibilityWindow used to manage views
     private val switchifyAccessibilityWindow = SwitchifyAccessibilityWindow.instance
+    private val animatedGestureArrow = AnimatedGestureArrow(context)
 
     /**
      * Draws a circle at the specified coordinates and removes it after a given time.
@@ -88,21 +88,6 @@ class GestureDrawing(private val context: Context) {
         y2: Int,
         time: Long,
     ) {
-        // Create a GestureIndicatorView to draw the line and arrow
-        val gestureIndicatorView = GestureIndicatorView(context)
-        gestureIndicatorView.visibility = View.VISIBLE
-        gestureIndicatorView.layoutParams = RelativeLayout.LayoutParams(
-            RelativeLayout.LayoutParams.MATCH_PARENT,
-            RelativeLayout.LayoutParams.MATCH_PARENT
-        )
-        gestureIndicatorView.setGesture(x1.toFloat(), y1.toFloat(), x2.toFloat(), y2.toFloat())
-
-        // Add the gesture indicator view to the center of the accessibility window
-        switchifyAccessibilityWindow.addViewToCenter(gestureIndicatorView)
-
-        // Remove the line after the specified time
-        Handler(Looper.getMainLooper()).postDelayed({
-            switchifyAccessibilityWindow.removeView(gestureIndicatorView)
-        }, time)
+        animatedGestureArrow.showArrowAnimation(x1, y1, x2, y2, time)
     }
 }
