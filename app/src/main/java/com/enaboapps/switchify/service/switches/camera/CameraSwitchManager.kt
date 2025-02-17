@@ -1,6 +1,8 @@
 package com.enaboapps.switchify.service.switches.camera
 
+import android.Manifest
 import android.content.Context
+import android.content.pm.PackageManager
 import android.util.Log
 import androidx.annotation.OptIn
 import androidx.camera.core.*
@@ -74,6 +76,9 @@ class CameraSwitchManager(
         return true
     }
 
+    private fun isCameraAccessGranted(): Boolean =
+        context.checkSelfPermission(Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
+
     /**
      * Initializes the camera switch manager.
      * This must be called before using any camera functionality.
@@ -99,6 +104,15 @@ class CameraSwitchManager(
         Log.d(TAG, "CameraSwitchManager initialized")
     }
 
+    private fun showCameraError(message: String) {
+        coroutineScope.launch(Dispatchers.Main) {
+            ServiceMessageHUD.instance.showMessage(
+                message,
+                ServiceMessageHUD.MessageType.DISAPPEARING
+            )
+        }
+    }
+
     /**
      * Starts the camera.
      * This must be called after the manager has been initialized.
@@ -106,6 +120,11 @@ class CameraSwitchManager(
     fun startCamera(lifecycleOwner: LifecycleOwner) {
         if (!checkInitialization()) {
             Log.e(TAG, "Cannot start camera - manager not initialized")
+            return
+        }
+
+        if (!isCameraAccessGranted()) {
+            showCameraError("Camera access is not granted. Please grant camera access in the app settings and then restart the Accessibility Service.")
             return
         }
 
@@ -117,11 +136,7 @@ class CameraSwitchManager(
                     Log.d(TAG, "Camera started successfully")
                 } catch (e: Exception) {
                     Log.e(TAG, "Failed to start camera", e)
-                    ServiceMessageHUD.instance.showMessage(
-                        "Camera Error: ${e.message}",
-                        ServiceMessageHUD.MessageType.DISAPPEARING,
-                        ServiceMessageHUD.Time.SHORT
-                    )
+                    showCameraError(e.message ?: "Unknown error")
                 }
             }, ContextCompat.getMainExecutor(context))
         }
@@ -345,6 +360,7 @@ class CameraSwitchManager(
             Log.d(TAG, "Camera stopped successfully")
         } catch (e: Exception) {
             Log.e(TAG, "Failed to stop camera", e)
+            showCameraError(e.message ?: "Unknown error")
         }
     }
 
