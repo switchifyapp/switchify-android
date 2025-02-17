@@ -25,7 +25,7 @@ class NodeScanner : ScanTreeCallback {
             200L // Time in ms to consider an update as rapid
         private const val RESET_WINDOW_MS = 10000L // Time window to reset the update count
         private const val MAX_RAPID_UPDATES =
-            80 // Number of rapid updates before switching to cursor
+            150 // Number of rapid updates before switching to cursor
         private const val EMPTY_NODES_TIMEOUT_MS =
             5000L // Time to wait before reverting to cursor when nodes are empty
     }
