@@ -19,7 +19,10 @@ import com.enaboapps.switchify.switches.SWITCH_EVENT_TYPE_CAMERA
 import com.enaboapps.switchify.switches.SWITCH_EVENT_TYPE_EXTERNAL
 import com.enaboapps.switchify.switches.SwitchEvent
 import com.enaboapps.switchify.switches.SwitchEventStore
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.rememberPermissionState
 
+@OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun SwitchesScreen(navController: NavController) {
     val context = LocalContext.current
@@ -28,6 +31,10 @@ fun SwitchesScreen(navController: NavController) {
     }
     var selectedTabIndex by remember { mutableIntStateOf(0) }
     val uiState by switchesScreenModel.uiState.collectAsState()
+
+    val cameraPermissionState = rememberPermissionState(
+        android.Manifest.permission.CAMERA
+    )
 
     LaunchedEffect(Unit) {
         switchesScreenModel.setup(context)
@@ -89,38 +96,25 @@ fun SwitchesScreen(navController: NavController) {
 
             else -> {
                 when (selectedTabIndex) {
-                    0 -> SwitchList(
-                        switches = uiState.localSwitches.filter { it.type == SWITCH_EVENT_TYPE_EXTERNAL },
+                    0 -> ExternalSwitchesContent(
+                        localSwitches = uiState.localSwitches.filter { it.type == SWITCH_EVENT_TYPE_EXTERNAL },
+                        remoteSwitches = uiState.remoteSwitches,
                         navController = navController,
-                        emptyMessage = "No external switches found"
+                        switchesScreenModel = switchesScreenModel
                     )
 
-                    1 -> SwitchList(
-                        switches = uiState.localSwitches.filter { it.type == SWITCH_EVENT_TYPE_CAMERA },
-                        navController = navController,
-                        emptyMessage = "No camera switches found"
-                    )
-                }
-
-                // Display remote switches that aren't on device
-                val availableRemoteSwitches = uiState.remoteSwitches.filter {
-                    !it.isOnDevice && when (selectedTabIndex) {
-                        0 -> it.type == SWITCH_EVENT_TYPE_EXTERNAL
-                        1 -> it.type == SWITCH_EVENT_TYPE_CAMERA
-                        else -> false
-                    }
-                }
-
-                if (availableRemoteSwitches.isNotEmpty()) {
-                    Section(title = "Previously Used Switches") {
-                        availableRemoteSwitches.forEach { remoteSwitch ->
-                            RemoteSwitchItem(
-                                model = switchesScreenModel,
-                                remoteSwitch = remoteSwitch,
-                                isImporting = uiState.importingSwitch == remoteSwitch.code
+                    1 -> CameraPermissionHandler(
+                        permissionState = cameraPermissionState,
+                        onPermissionGranted = {
+                            CameraSwitchesContent(
+                                localSwitches = uiState.localSwitches.filter { it.type == SWITCH_EVENT_TYPE_CAMERA },
+                                remoteSwitches = uiState.remoteSwitches,
+                                navController = navController,
+                                switchesScreenModel = switchesScreenModel
                             )
-                        }
-                    }
+                        },
+                        onNavigateBack = { selectedTabIndex = 0 }
+                    )
                 }
             }
         }
@@ -148,6 +142,68 @@ fun SwitchesScreen(navController: NavController) {
                     }
                 }
             )
+        }
+    }
+}
+
+@Composable
+private fun ExternalSwitchesContent(
+    localSwitches: List<SwitchEvent>,
+    remoteSwitches: List<SwitchEventStore.RemoteSwitchInfo>,
+    navController: NavController,
+    switchesScreenModel: SwitchesScreenModel
+) {
+    SwitchList(
+        switches = localSwitches,
+        navController = navController,
+        emptyMessage = "No external switches found"
+    )
+
+    // Display remote switches that aren't on device
+    val availableRemoteSwitches = remoteSwitches.filter {
+        !it.isOnDevice && it.type == SWITCH_EVENT_TYPE_EXTERNAL
+    }
+
+    if (availableRemoteSwitches.isNotEmpty()) {
+        Section(title = "Previously Used Switches") {
+            availableRemoteSwitches.forEach { remoteSwitch ->
+                RemoteSwitchItem(
+                    model = switchesScreenModel,
+                    remoteSwitch = remoteSwitch,
+                    isImporting = switchesScreenModel.uiState.value.importingSwitch == remoteSwitch.code
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun CameraSwitchesContent(
+    localSwitches: List<SwitchEvent>,
+    remoteSwitches: List<SwitchEventStore.RemoteSwitchInfo>,
+    navController: NavController,
+    switchesScreenModel: SwitchesScreenModel
+) {
+    SwitchList(
+        switches = localSwitches,
+        navController = navController,
+        emptyMessage = "No camera switches found"
+    )
+
+    // Display remote switches that aren't on device
+    val availableRemoteSwitches = remoteSwitches.filter {
+        !it.isOnDevice && it.type == SWITCH_EVENT_TYPE_CAMERA
+    }
+
+    if (availableRemoteSwitches.isNotEmpty()) {
+        Section(title = "Previously Used Switches") {
+            availableRemoteSwitches.forEach { remoteSwitch ->
+                RemoteSwitchItem(
+                    model = switchesScreenModel,
+                    remoteSwitch = remoteSwitch,
+                    isImporting = switchesScreenModel.uiState.value.importingSwitch == remoteSwitch.code
+                )
+            }
         }
     }
 }
