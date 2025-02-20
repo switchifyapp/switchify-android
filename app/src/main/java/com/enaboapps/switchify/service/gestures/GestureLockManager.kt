@@ -6,7 +6,6 @@ import com.enaboapps.switchify.service.gestures.data.GestureData
 import com.enaboapps.switchify.service.gestures.data.GestureType
 import com.enaboapps.switchify.service.scanning.ScanMethod
 import com.enaboapps.switchify.service.window.ServiceMessageHUD
-import com.enaboapps.switchify.utils.Resources
 import java.util.Timer
 import java.util.TimerTask
 
@@ -20,7 +19,7 @@ class GestureLockManager {
     fun toggleGestureLock() {
         if (!IAPHandler.hasPurchasedPro()) {
             ServiceMessageHUD.instance.showMessage(
-                Resources.getString(R.string.gesture_lock_pro_feature),
+                R.string.gesture_lock_pro_feature,
                 ServiceMessageHUD.MessageType.DISAPPEARING
             )
             return
@@ -31,12 +30,12 @@ class GestureLockManager {
         isLocked = !isLocked
         if (isLocked) {
             ServiceMessageHUD.instance.showMessage(
-                Resources.getString(R.string.gesture_lock_enabled),
+                R.string.gesture_lock_enabled,
                 ServiceMessageHUD.MessageType.DISAPPEARING
             )
         } else {
             ServiceMessageHUD.instance.showMessage(
-                Resources.getString(R.string.gesture_lock_disabled),
+                R.string.gesture_lock_disabled,
                 ServiceMessageHUD.MessageType.DISAPPEARING
             )
 
@@ -78,7 +77,7 @@ class GestureLockManager {
                 isLocked = false
                 setLockedGestureData(null)
                 ServiceMessageHUD.instance.showMessage(
-                    Resources.getString(R.string.gesture_lock_timeout_disabled),
+                    R.string.gesture_lock_timeout_disabled,
                     ServiceMessageHUD.MessageType.DISAPPEARING
                 )
             }
@@ -104,7 +103,7 @@ class GestureLockManager {
     fun informCannotLockGesture(type: GestureType) {
         if (!canLockGesture(type)) {
             ServiceMessageHUD.instance.showMessage(
-                Resources.getString(R.string.gesture_lock_invalid_gesture),
+                R.string.gesture_lock_invalid_gesture,
                 ServiceMessageHUD.MessageType.DISAPPEARING
             )
         }

@@ -14,6 +14,9 @@
     <string name="gesture_lock_timeout_disabled">Gesture Lock disabled.</string>
     <string name="gesture_lock_invalid_gesture">Cannot lock drag or custom swipe gestures. Gesture Lock disabled.</string>
 
+    <!-- Scanning Method Messages -->
+    <string name="radar_trial_timer_expired">Radar scan trial expired. Switching to cursor scan.</string>
+
     <!-- Menu Titles -->
     <string name="menu_title_customize">Customize Menu Items</string>
     <string name="menu_title_size">Menu Size</string>
@@ -105,6 +108,25 @@
 
     <!-- Scan Methods -->
     <string name="scan_method_item_scan">Item Scan</string>
+    <string name="scan_method_desc_item_scan">Sequentially scanning the items on the screen</string>
     <string name="scan_method_radar">Radar</string>
+    <string name="scan_method_desc_radar">Moving a radar around the screen</string>
     <string name="scan_method_cursor">Cursor</string>
+    <string name="scan_method_desc_cursor">Moving a set of crosshairs over the screen</string>
+
+    <!-- HUD Messages -->
+    <string name="hud_release_to_perform">Release to perform %1$s</string>
+    <string name="hud_select_hold_and_drag">Select where to hold and drag to</string>
+    <string name="hud_select_drag">Select where to drag to</string>
+    <string name="hud_select_swipe">Select where to swipe to</string>
+    <string name="hud_camera_access_error">Camera access is not granted. Please grant camera access in the app settings and then restart the Accessibility Service.</string>
+    <string name="hud_no_switches_found">No Switches Found</string>
+    <string name="hud_switches_loaded">Switches Loaded</string>
+
+    <!-- Pro Feature Messages -->
+    <string name="pro_feature_message">%1$s is a pro feature. Please purchase Switchify Pro to use it.</string>
+    <string name="pro_feature_volume_control">Volume control is a pro feature. Please purchase Switchify Pro to use it.</string>
+
+    <!-- Menu Prompts -->
+    <string name="menu_prompt_press_to_open">Press to open menu</string>
 </resources>

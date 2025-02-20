@@ -4,6 +4,7 @@ import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.GestureDescription
 import android.graphics.Path
 import android.graphics.PointF
+import com.enaboapps.switchify.R
 import com.enaboapps.switchify.service.SwitchifyAccessibilityService
 import com.enaboapps.switchify.service.gestures.data.GestureData
 import com.enaboapps.switchify.service.gestures.data.GestureType
@@ -128,13 +129,13 @@ class LinearGesturePerformer(
      * @param type The type of gesture being performed.
      */
     private fun showGestureMessage(type: GestureType) {
-        val message = when (type) {
-            GestureType.HOLD_AND_DRAG -> "Select where to hold and drag to"
-            GestureType.DRAG -> "Select where to drag to"
-            GestureType.CUSTOM_SWIPE -> "Select where to swipe to"
+        val messageResId = when (type) {
+            GestureType.HOLD_AND_DRAG -> R.string.hud_select_hold_and_drag
+            GestureType.DRAG -> R.string.hud_select_drag
+            GestureType.CUSTOM_SWIPE -> R.string.hud_select_swipe
             else -> return
         }
-        ServiceMessageHUD.instance.showMessage(message, ServiceMessageHUD.MessageType.DISAPPEARING)
+        ServiceMessageHUD.instance.showMessage(messageResId, ServiceMessageHUD.MessageType.DISAPPEARING)
     }
 
     /**
