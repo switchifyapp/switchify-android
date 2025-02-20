@@ -34,8 +34,6 @@
     <string name="menu_item_scroll_down">Scroll Down</string>
     <string name="menu_item_scroll_left">Scroll Left</string>
     <string name="menu_item_scroll_right">Scroll Right</string>
-    <string name="menu_item_back">Back</string>
-    <string name="menu_item_home">Home</string>
     <string name="menu_item_next_page">Next page</string>
     <string name="menu_item_previous_page">Previous page</string>
     <string name="menu_item_close_menu">Close menu</string>
@@ -43,12 +41,13 @@
     <string name="menu_item_switch_to_item_scan">Item Scan</string>
     <string name="menu_item_switch_to_radar">Radar</string>
     <string name="menu_item_switch_to_cursor">Cursor</string>
+    <string name="menu_item_open_assistant">Open Assistant</string>
+    <string name="menu_item_power_dialog">Power Dialog</string>
 
     <!-- Gesture Menu Items -->
     <string name="menu_item_tap">Tap</string>
     <string name="menu_item_double_tap">Double Tap</string>
     <string name="menu_item_tap_and_hold">Tap and Hold</string>
-    <string name="menu_item_toggle_gesture_lock">Toggle Gesture Lock</string>
     <string name="menu_item_tap_gestures">Tap Gestures</string>
     <string name="menu_item_swipe_gestures">Swipe Gestures</string>
     <string name="menu_item_drag">Drag</string>
@@ -67,14 +66,6 @@
 
     <!-- Media Menu Items -->
     <string name="menu_item_play_pause">Play/Pause</string>
-
-    <!-- System Menu Items -->
-    <string name="menu_item_recents">Recent Apps</string>
-    <string name="menu_item_quick_settings">Quick Settings</string>
-    <string name="menu_item_notifications">Notifications</string>
-    <string name="menu_item_lock_screen">Lock Screen</string>
-    <string name="menu_item_open_assistant">Open Assistant</string>
-    <string name="menu_item_power_dialog">Power Dialog</string>
 
     <!-- Volume Control Menu Items -->
     <string name="menu_item_volume_up">Volume Up</string>
@@ -129,4 +120,50 @@
 
     <!-- Menu Prompts -->
     <string name="menu_prompt_press_to_open">Press to open menu</string>
+
+    <!-- Basic Actions -->
+    <string name="action_none">None</string>
+    <string name="action_none_desc">Do nothing</string>
+    <string name="action_select">Select</string>
+    <string name="action_select_desc">Select the current item or start auto scan if it is being used</string>
+
+    <!-- Scanning Actions -->
+    <string name="action_stop_scan">Stop Scanning</string>
+    <string name="action_stop_scan_desc">Stop scanning</string>
+    <string name="action_change_scan_direction">Change Scanning Direction</string>
+    <string name="action_change_scan_direction_desc">Change the scanning direction</string>
+    <string name="action_next_item">Move to Next Item</string>
+    <string name="action_next_item_desc">Move to the next item</string>
+    <string name="action_previous_item">Move to Previous Item</string>
+    <string name="action_previous_item_desc">Move to the previous item</string>
+
+    <!-- System Actions -->
+    <string name="system_home">Home</string>
+    <string name="system_home_desc">Go to the home screen</string>
+    <string name="system_back">Back</string>
+    <string name="system_back_desc">Go back</string>
+    <string name="system_recents">Recent Apps</string>
+    <string name="system_recents_desc">Open the recent apps</string>
+    <string name="system_quick_settings">Quick Settings</string>
+    <string name="system_quick_settings_desc">Open the quick settings</string>
+    <string name="system_notifications">Notifications</string>
+    <string name="system_notifications_desc">Open the notifications</string>
+    <string name="system_lock_screen">Lock Screen</string>
+    <string name="system_lock_screen_desc">Lock the screen</string>
+    <string name="system_gesture_lock">Toggle Gesture Lock</string>
+    <string name="system_gesture_lock_desc">Toggle the gesture lock</string>
+    <string name="system_power_dialog">Power Dialog</string>
+    <string name="system_power_dialog_desc">Open the power dialog</string>
+
+    <!-- Media Actions -->
+    <string name="action_headset">Play/Pause Media or Answer/End Call</string>
+    <string name="action_headset_desc">Play/Pause Media or Answer/End Call</string>
+
+    <!-- Custom Actions -->
+    <string name="action_custom">Perform My Own Action</string>
+    <string name="action_custom_desc">Perform an action</string>
+    <string name="action_custom_with_name">Perform %1$s</string>
+
+    <!-- Miscellaneous -->
+    <string name="unknown">Unknown</string>
 </resources>

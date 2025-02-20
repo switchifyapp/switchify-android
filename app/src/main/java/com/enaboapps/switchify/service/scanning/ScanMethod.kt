@@ -89,7 +89,7 @@ object ScanMethod {
             MethodType.CURSOR -> Resources.getString(R.string.scan_method_cursor)
             MethodType.RADAR -> Resources.getString(R.string.scan_method_radar)
             MethodType.ITEM_SCAN -> Resources.getString(R.string.scan_method_item_scan)
-            else -> "Unknown"
+            else -> Resources.getString(R.string.unknown)
         }
     }
 
@@ -103,7 +103,7 @@ object ScanMethod {
             MethodType.CURSOR -> Resources.getString(R.string.scan_method_desc_cursor)
             MethodType.RADAR -> Resources.getString(R.string.scan_method_desc_radar)
             MethodType.ITEM_SCAN -> Resources.getString(R.string.scan_method_desc_item_scan)
-            else -> "Unknown"
+            else -> Resources.getString(R.string.unknown)
         }
     }
 

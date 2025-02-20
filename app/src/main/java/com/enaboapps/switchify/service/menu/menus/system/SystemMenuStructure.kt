@@ -14,13 +14,13 @@ class SystemMenuStructure(private val accessibilityService: SwitchifyAccessibili
         MenuItem(
             id = "sys_back",
             drawableId = R.drawable.ic_sys_back,
-            drawableDescriptionResource = R.string.menu_item_back,
+            drawableDescriptionResource = R.string.system_back,
             action = { GlobalActionManager.goBack() }
         ),
         MenuItem(
             id = "sys_home",
             drawableId = R.drawable.ic_sys_home,
-            drawableDescriptionResource = R.string.menu_item_home,
+            drawableDescriptionResource = R.string.system_home,
             action = { GlobalActionManager.goHome() }
         )
     )
@@ -38,12 +38,12 @@ class SystemMenuStructure(private val accessibilityService: SwitchifyAccessibili
             items = listOfNotNull(
                 MenuItem(
                     id = "recent_apps",
-                    textResource = R.string.menu_item_recents,
+                    textResource = R.string.system_recents,
                     action = { GlobalActionManager.openRecents() }
                 ),
                 MenuItem(
                     id = "notifications",
-                    textResource = R.string.menu_item_notifications,
+                    textResource = R.string.system_notifications,
                     action = { GlobalActionManager.openNotifications() }
                 ),
                 MenuItem(
@@ -57,17 +57,17 @@ class SystemMenuStructure(private val accessibilityService: SwitchifyAccessibili
                 ),
                 MenuItem(
                     id = "quick_settings",
-                    textResource = R.string.menu_item_quick_settings,
+                    textResource = R.string.system_quick_settings,
                     action = { GlobalActionManager.openQuickSettings() }
                 ),
                 MenuItem(
                     id = "lock_screen",
-                    textResource = R.string.menu_item_lock_screen,
+                    textResource = R.string.system_lock_screen,
                     action = { GlobalActionManager.lockScreen() }
                 ),
                 MenuItem(
                     id = "power_dialog",
-                    textResource = R.string.menu_item_power_dialog,
+                    textResource = R.string.system_power_dialog,
                     action = { GlobalActionManager.openPowerDialog() }
                 ),
                 openVolumeControlMenu
