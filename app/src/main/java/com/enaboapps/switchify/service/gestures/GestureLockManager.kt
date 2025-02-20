@@ -1,10 +1,12 @@
 package com.enaboapps.switchify.service.gestures
 
+import com.enaboapps.switchify.R
 import com.enaboapps.switchify.backend.iap.IAPHandler
 import com.enaboapps.switchify.service.gestures.data.GestureData
 import com.enaboapps.switchify.service.gestures.data.GestureType
 import com.enaboapps.switchify.service.scanning.ScanMethod
 import com.enaboapps.switchify.service.window.ServiceMessageHUD
+import com.enaboapps.switchify.utils.Resources
 import java.util.Timer
 import java.util.TimerTask
 
@@ -18,7 +20,7 @@ class GestureLockManager {
     fun toggleGestureLock() {
         if (!IAPHandler.hasPurchasedPro()) {
             ServiceMessageHUD.instance.showMessage(
-                "Gesture lock is a Pro feature. Please upgrade to Pro to use this feature.",
+                Resources.getString(R.string.gesture_lock_pro_feature),
                 ServiceMessageHUD.MessageType.DISAPPEARING
             )
             return
@@ -29,12 +31,12 @@ class GestureLockManager {
         isLocked = !isLocked
         if (isLocked) {
             ServiceMessageHUD.instance.showMessage(
-                "Gesture lock enabled. Choose a gesture to lock to your switch. You can disable it by holding your switch.",
+                Resources.getString(R.string.gesture_lock_enabled),
                 ServiceMessageHUD.MessageType.DISAPPEARING
             )
         } else {
             ServiceMessageHUD.instance.showMessage(
-                "Gesture lock disabled. Your switches will now perform their default actions.",
+                Resources.getString(R.string.gesture_lock_disabled),
                 ServiceMessageHUD.MessageType.DISAPPEARING
             )
 
@@ -76,7 +78,7 @@ class GestureLockManager {
                 isLocked = false
                 setLockedGestureData(null)
                 ServiceMessageHUD.instance.showMessage(
-                    "Gesture Lock disabled.",
+                    Resources.getString(R.string.gesture_lock_timeout_disabled),
                     ServiceMessageHUD.MessageType.DISAPPEARING
                 )
             }
@@ -102,7 +104,7 @@ class GestureLockManager {
     fun informCannotLockGesture(type: GestureType) {
         if (!canLockGesture(type)) {
             ServiceMessageHUD.instance.showMessage(
-                "Cannot lock drag or custom swipe gestures. Gesture lock disabled.",
+                Resources.getString(R.string.gesture_lock_invalid_gesture),
                 ServiceMessageHUD.MessageType.DISAPPEARING
             )
         }

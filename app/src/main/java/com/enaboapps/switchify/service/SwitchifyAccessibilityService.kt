@@ -25,6 +25,7 @@ import com.enaboapps.switchify.service.utils.DeviceLockObserver
 import com.enaboapps.switchify.service.utils.KeyboardBridge
 import com.enaboapps.switchify.service.utils.ScreenWatcher
 import com.enaboapps.switchify.utils.Logger
+import com.enaboapps.switchify.utils.Resources
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -63,6 +64,8 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
 
     private fun setup() {
         Logger.init(this)
+
+        Resources.init(this)
 
         IAPHandler.initialize(context = this, connectToRevenueCat = false)
 
