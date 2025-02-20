@@ -28,7 +28,7 @@ class MainMenuStructure(private val accessibilityService: SwitchifyAccessibility
 
         return MenuItem(
             id = "my_actions",
-            text = "My Actions",
+            textResource = R.string.menu_title_my_actions,
             isLinkToMenu = true,
             action = { MenuManager.getInstance().openMyActionsMenu() }
         )
@@ -36,7 +36,7 @@ class MainMenuStructure(private val accessibilityService: SwitchifyAccessibility
 
     val deviceItem = MenuItem(
         id = "device",
-        text = "Device",
+        textResource = R.string.menu_title_device,
         isLinkToMenu = true,
         action = { MenuManager.getInstance().openDeviceMenu() }
     )
@@ -47,34 +47,34 @@ class MainMenuStructure(private val accessibilityService: SwitchifyAccessibility
             gestureMenuStructure.tapMenuItem,
             MenuItem(
                 id = "gestures",
-                text = "Gestures",
+                textResource = R.string.menu_title_gestures,
                 isLinkToMenu = true,
                 action = { MenuManager.getInstance().openGesturesMenu() }
             ),
             MenuItem(
                 id = "scroll",
-                text = "Scroll",
+                textResource = R.string.menu_title_scroll,
                 isLinkToMenu = true,
                 action = { MenuManager.getInstance().openScrollMenu() }
             ),
             if (ScanMethod.getType() != ScanMethod.MethodType.ITEM_SCAN && ScanMethod.getType() != ScanMethod.MethodType.RADAR) {
                 MenuItem(
                     id = "refine_selection",
-                    text = "Refine Selection",
+                    textResource = R.string.menu_item_refine_selection,
                     action = { GesturePoint.setReselect(true) }
                 )
             } else null,
             deviceItem,
             MenuItem(
                 id = "media_control",
-                text = "Media Control",
+                textResource = R.string.menu_title_media_control,
                 isLinkToMenu = true,
                 action = { MenuManager.getInstance().openMediaControlMenu() }
             ),
             if (NodeExaminer.canPerformEditActions(GesturePoint.getPoint())) {
                 MenuItem(
                     id = "edit",
-                    text = "Edit",
+                    textResource = R.string.menu_title_edit,
                     isLinkToMenu = true,
                     action = { MenuManager.getInstance().openEditMenu() }
                 )
@@ -82,7 +82,7 @@ class MainMenuStructure(private val accessibilityService: SwitchifyAccessibility
             if (ScanMethod.getType() != ScanMethod.MethodType.ITEM_SCAN) {
                 MenuItem(
                     id = "switch_to_item_scan",
-                    text = ScanMethod.getName(ScanMethod.MethodType.ITEM_SCAN),
+                    textResource = R.string.menu_item_switch_to_item_scan,
                     action = {
                         MenuManager.getInstance().switchToItemScan()
                     }
@@ -91,7 +91,7 @@ class MainMenuStructure(private val accessibilityService: SwitchifyAccessibility
             if (ScanMethod.getType() != ScanMethod.MethodType.RADAR) {
                 MenuItem(
                     id = "switch_to_radar",
-                    text = ScanMethod.getName(ScanMethod.MethodType.RADAR),
+                    textResource = R.string.menu_item_switch_to_radar,
                     action = {
                         MenuManager.getInstance().switchToRadar()
                     }
@@ -100,7 +100,7 @@ class MainMenuStructure(private val accessibilityService: SwitchifyAccessibility
             if (ScanMethod.getType() != ScanMethod.MethodType.CURSOR) {
                 MenuItem(
                     id = "switch_to_cursor",
-                    text = ScanMethod.getName(ScanMethod.MethodType.CURSOR),
+                    textResource = R.string.menu_item_switch_to_cursor,
                     action = {
                         MenuManager.getInstance().switchToCursor()
                     }
@@ -115,7 +115,7 @@ class MainMenuStructure(private val accessibilityService: SwitchifyAccessibility
             MenuItem(
                 id = "previous_menu",
                 drawableId = R.drawable.ic_previous_menu,
-                drawableDescription = "Previous menu",
+                drawableDescriptionResource = R.string.menu_item_previous_menu,
                 showDrawableDescription = false,
                 isSmall = true,
                 isMenuHierarchyManipulator = true,
@@ -125,7 +125,7 @@ class MainMenuStructure(private val accessibilityService: SwitchifyAccessibility
         MenuItem(
             id = "close_menu",
             drawableId = R.drawable.ic_close_menu,
-            drawableDescription = "Close menu",
+            drawableDescriptionResource = R.string.menu_item_close_menu,
             showDrawableDescription = false,
             isSmall = true,
             isMenuHierarchyManipulator = true,

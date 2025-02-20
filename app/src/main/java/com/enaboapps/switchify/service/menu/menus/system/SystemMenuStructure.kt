@@ -14,20 +14,20 @@ class SystemMenuStructure(private val accessibilityService: SwitchifyAccessibili
         MenuItem(
             id = "sys_back",
             drawableId = R.drawable.ic_sys_back,
-            drawableDescription = "Back",
+            drawableDescriptionResource = R.string.menu_item_back,
             action = { GlobalActionManager.goBack() }
         ),
         MenuItem(
             id = "sys_home",
             drawableId = R.drawable.ic_sys_home,
-            drawableDescription = "Home",
+            drawableDescriptionResource = R.string.menu_item_home,
             action = { GlobalActionManager.goHome() }
         )
     )
 
     private val openVolumeControlMenu = MenuItem(
         id = "volume_control",
-        text = "Volume Control",
+        textResource = R.string.menu_title_volume_control,
         isLinkToMenu = true,
         action = { MenuManager.getInstance().openVolumeControlMenu() }
     )
@@ -38,17 +38,17 @@ class SystemMenuStructure(private val accessibilityService: SwitchifyAccessibili
             items = listOfNotNull(
                 MenuItem(
                     id = "recent_apps",
-                    text = "Recent Apps",
+                    textResource = R.string.menu_item_recents,
                     action = { GlobalActionManager.openRecents() }
                 ),
                 MenuItem(
                     id = "notifications",
-                    text = "Notifications",
+                    textResource = R.string.menu_item_notifications,
                     action = { GlobalActionManager.openNotifications() }
                 ),
                 MenuItem(
                     id = "open_assistant",
-                    text = "Open Assistant",
+                    textResource = R.string.menu_item_open_assistant,
                     action = {
                         val intent = Intent(Intent.ACTION_VOICE_COMMAND)
                         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
@@ -57,17 +57,17 @@ class SystemMenuStructure(private val accessibilityService: SwitchifyAccessibili
                 ),
                 MenuItem(
                     id = "quick_settings",
-                    text = "Quick Settings",
+                    textResource = R.string.menu_item_quick_settings,
                     action = { GlobalActionManager.openQuickSettings() }
                 ),
                 MenuItem(
                     id = "lock_screen",
-                    text = "Lock Screen",
+                    textResource = R.string.menu_item_lock_screen,
                     action = { GlobalActionManager.lockScreen() }
                 ),
                 MenuItem(
                     id = "power_dialog",
-                    text = "Power Dialog",
+                    textResource = R.string.menu_item_power_dialog,
                     action = { GlobalActionManager.openPowerDialog() }
                 ),
                 openVolumeControlMenu
@@ -81,31 +81,31 @@ class SystemMenuStructure(private val accessibilityService: SwitchifyAccessibili
             items = listOf(
                 MenuItem(
                     id = "volume_up",
-                    text = "Volume Up",
+                    textResource = R.string.menu_item_volume_up,
                     closeOnSelect = false,
                     action = { AudioActionManager.volumeUp() }
                 ),
                 MenuItem(
                     id = "volume_down",
-                    text = "Volume Down",
+                    textResource = R.string.menu_item_volume_down,
                     closeOnSelect = false,
                     action = { AudioActionManager.volumeDown() }
                 ),
                 MenuItem(
                     id = "full_volume",
-                    text = "Full Volume",
+                    textResource = R.string.menu_item_full_volume,
                     closeOnSelect = false,
                     action = { AudioActionManager.setFullVolume() }
                 ),
                 MenuItem(
                     id = "mute",
-                    text = "Mute",
+                    textResource = R.string.menu_item_mute,
                     closeOnSelect = false,
                     action = { AudioActionManager.mute() }
                 ),
                 MenuItem(
                     id = "half_volume",
-                    text = "Half Volume",
+                    textResource = R.string.menu_item_half_volume,
                     closeOnSelect = false,
                     action = { AudioActionManager.setHalfVolume() }
                 )

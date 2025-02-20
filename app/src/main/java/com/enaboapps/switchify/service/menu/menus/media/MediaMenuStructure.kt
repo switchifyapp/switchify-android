@@ -1,5 +1,6 @@
 package com.enaboapps.switchify.service.menu.menus.media
 
+import com.enaboapps.switchify.R
 import com.enaboapps.switchify.service.SwitchifyAccessibilityService
 import com.enaboapps.switchify.service.core.GlobalActionManager
 import com.enaboapps.switchify.service.menu.MenuItem
@@ -9,7 +10,7 @@ import com.enaboapps.switchify.service.menu.structure.MenuStructure
 class MediaMenuStructure(private val accessibilityService: SwitchifyAccessibilityService?) {
     private val openVolumeControlMenu = MenuItem(
         id = "volume_control",
-        text = "Volume Control",
+        textResource = R.string.menu_title_volume_control,
         isLinkToMenu = true,
         action = { MenuManager.getInstance().openVolumeControlMenu() }
     )
@@ -19,7 +20,7 @@ class MediaMenuStructure(private val accessibilityService: SwitchifyAccessibilit
         items = listOf(
             MenuItem(
                 id = "play_pause",
-                text = "Play/Pause",
+                textResource = R.string.menu_item_play_pause,
                 action = { GlobalActionManager.toggleMediaPlayback() }
             ),
             openVolumeControlMenu

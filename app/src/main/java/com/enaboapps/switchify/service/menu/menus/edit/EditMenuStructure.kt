@@ -1,6 +1,7 @@
 package com.enaboapps.switchify.service.menu.menus.edit
 
 import android.view.accessibility.AccessibilityNodeInfo
+import com.enaboapps.switchify.R
 import com.enaboapps.switchify.service.gestures.GesturePoint
 import com.enaboapps.switchify.service.menu.MenuItem
 import com.enaboapps.switchify.service.menu.structure.MenuStructure
@@ -19,7 +20,7 @@ class EditMenuStructure {
                 if (cutNode != null) {
                     MenuItem(
                         id = "cut",
-                        text = "Cut",
+                        textResource = R.string.menu_item_cut,
                         action = {
                             cutNode.performAction(AccessibilityNodeInfo.ACTION_CUT)
                         }
@@ -28,7 +29,7 @@ class EditMenuStructure {
                 if (copyNode != null) {
                     MenuItem(
                         id = "copy",
-                        text = "Copy",
+                        textResource = R.string.menu_item_copy,
                         action = {
                             copyNode.performAction(AccessibilityNodeInfo.ACTION_COPY)
                         }
@@ -37,7 +38,7 @@ class EditMenuStructure {
                 if (pasteNode != null) {
                     MenuItem(
                         id = "paste",
-                        text = "Paste",
+                        textResource = R.string.menu_item_paste,
                         action = {
                             pasteNode.performAction(AccessibilityNodeInfo.ACTION_PASTE)
                         }

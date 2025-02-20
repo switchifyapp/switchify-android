@@ -18,7 +18,7 @@ class CustomActionsMenuStructure(private val accessibilityService: SwitchifyAcce
             items = actions.map { action ->
                 MenuItem(
                     id = action.id,
-                    text = action.text,
+                    userProvidedText = action.text,
                     action = {
                         val actionPerformer = ActionPerformer(accessibilityService)
                         actionPerformer.performActionFromStore(action.id)
