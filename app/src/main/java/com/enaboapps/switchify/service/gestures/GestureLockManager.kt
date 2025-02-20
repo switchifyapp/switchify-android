@@ -19,7 +19,8 @@ class GestureLockManager {
     fun toggleGestureLock() {
         if (!IAPHandler.hasPurchasedPro()) {
             ServiceMessageHUD.instance.showMessage(
-                R.string.gesture_lock_pro_feature,
+                R.string.pro_feature_message,
+                arrayOf(R.string.system_gesture_lock),
                 ServiceMessageHUD.MessageType.DISAPPEARING
             )
             return

@@ -82,7 +82,7 @@ class MainMenuStructure(private val accessibilityService: SwitchifyAccessibility
             if (ScanMethod.getType() != ScanMethod.MethodType.ITEM_SCAN) {
                 MenuItem(
                     id = "switch_to_item_scan",
-                    textResource = R.string.menu_item_switch_to_item_scan,
+                    textResource = R.string.scan_method_item_scan,
                     action = {
                         MenuManager.getInstance().switchToItemScan()
                     }
@@ -91,7 +91,7 @@ class MainMenuStructure(private val accessibilityService: SwitchifyAccessibility
             if (ScanMethod.getType() != ScanMethod.MethodType.RADAR) {
                 MenuItem(
                     id = "switch_to_radar",
-                    textResource = R.string.menu_item_switch_to_radar,
+                    textResource = R.string.scan_method_radar,
                     action = {
                         MenuManager.getInstance().switchToRadar()
                     }
@@ -100,7 +100,7 @@ class MainMenuStructure(private val accessibilityService: SwitchifyAccessibility
             if (ScanMethod.getType() != ScanMethod.MethodType.CURSOR) {
                 MenuItem(
                     id = "switch_to_cursor",
-                    textResource = R.string.menu_item_switch_to_cursor,
+                    textResource = R.string.scan_method_cursor,
                     action = {
                         MenuManager.getInstance().switchToCursor()
                     }

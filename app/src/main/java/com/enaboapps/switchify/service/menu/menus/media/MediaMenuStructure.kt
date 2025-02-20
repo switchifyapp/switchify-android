@@ -10,7 +10,7 @@ import com.enaboapps.switchify.service.menu.structure.MenuStructure
 class MediaMenuStructure(private val accessibilityService: SwitchifyAccessibilityService?) {
     private val openVolumeControlMenu = MenuItem(
         id = "volume_control",
-        textResource = R.string.menu_title_volume_control,
+        textResource = R.string.action_volume_control,
         isLinkToMenu = true,
         action = { MenuManager.getInstance().openVolumeControlMenu() }
     )

@@ -27,7 +27,7 @@ class SystemMenuStructure(private val accessibilityService: SwitchifyAccessibili
 
     private val openVolumeControlMenu = MenuItem(
         id = "volume_control",
-        textResource = R.string.menu_title_volume_control,
+        textResource = R.string.action_volume_control,
         isLinkToMenu = true,
         action = { MenuManager.getInstance().openVolumeControlMenu() }
     )
@@ -48,7 +48,7 @@ class SystemMenuStructure(private val accessibilityService: SwitchifyAccessibili
                 ),
                 MenuItem(
                     id = "open_assistant",
-                    textResource = R.string.menu_item_open_assistant,
+                    textResource = R.string.system_assistant,
                     action = {
                         val intent = Intent(Intent.ACTION_VOICE_COMMAND)
                         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK

@@ -8,7 +8,6 @@
     <string name="accessibility_service_disclosure">Switchify is an accessibility service. It makes it easy to control your device with adaptive switches. It scans the screen, letting you tap, swipe, and navigate effortlessly. To do this, Switchify requires the ability to perform gestures, such as taps and swipes, and to observe the content of your screen to determine where to perform these gestures.</string>
 
     <!-- Gesture Lock Messages -->
-    <string name="gesture_lock_pro_feature">Gesture Lock is a Pro feature. Please upgrade to Pro to use this feature.</string>
     <string name="gesture_lock_enabled">Gesture Lock enabled. Choose a gesture to lock to your switch. You can disable it by holding your switch.</string>
     <string name="gesture_lock_disabled">Gesture Lock disabled. Your switches will now perform their default actions.</string>
     <string name="gesture_lock_timeout_disabled">Gesture Lock disabled.</string>
@@ -25,7 +24,6 @@
     <string name="menu_title_media_control">Media Control</string>
     <string name="menu_title_edit">Edit</string>
     <string name="menu_title_device">Device</string>
-    <string name="menu_title_volume_control">Volume Control</string>
     <string name="menu_title_my_actions">My Actions</string>
 
     <!-- Menu Items -->
@@ -34,15 +32,12 @@
     <string name="menu_item_scroll_down">Scroll Down</string>
     <string name="menu_item_scroll_left">Scroll Left</string>
     <string name="menu_item_scroll_right">Scroll Right</string>
+
+    <!-- Menu Manipulator Items -->
     <string name="menu_item_next_page">Next page</string>
     <string name="menu_item_previous_page">Previous page</string>
     <string name="menu_item_close_menu">Close menu</string>
     <string name="menu_item_previous_menu">Previous menu</string>
-    <string name="menu_item_switch_to_item_scan">Item Scan</string>
-    <string name="menu_item_switch_to_radar">Radar</string>
-    <string name="menu_item_switch_to_cursor">Cursor</string>
-    <string name="menu_item_open_assistant">Open Assistant</string>
-    <string name="menu_item_power_dialog">Power Dialog</string>
 
     <!-- Gesture Menu Items -->
     <string name="menu_item_tap">Tap</string>
@@ -116,7 +111,6 @@
 
     <!-- Pro Feature Messages -->
     <string name="pro_feature_message">%1$s is a pro feature. Please purchase Switchify Pro to use it.</string>
-    <string name="pro_feature_volume_control">Volume control is a pro feature. Please purchase Switchify Pro to use it.</string>
 
     <!-- Menu Prompts -->
     <string name="menu_prompt_press_to_open">Press to open menu</string>
@@ -154,8 +148,11 @@
     <string name="system_gesture_lock_desc">Toggle the gesture lock</string>
     <string name="system_power_dialog">Power Dialog</string>
     <string name="system_power_dialog_desc">Open the power dialog</string>
+    <string name="system_assistant">Open Assistant</string>
+    <string name="system_assistant_desc">Open the assistant</string>
 
     <!-- Media Actions -->
+    <string name="action_volume_control">Volume Control</string>
     <string name="action_headset">Play/Pause Media or Answer/End Call</string>
     <string name="action_headset_desc">Play/Pause Media or Answer/End Call</string>
 
