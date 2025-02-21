@@ -1,5 +1,8 @@
 package com.enaboapps.switchify.service.scanning
 
+import com.enaboapps.switchify.R
+import com.enaboapps.switchify.utils.Resources
+
 /**
  * This class represents a scanning mode.
  * @property id The id of the scanning mode.
@@ -40,9 +43,9 @@ class ScanMode(val id: String) {
      */
     fun getModeName(): String {
         return when (id) {
-            Modes.MODE_AUTO -> "Auto"
-            Modes.MODE_MANUAL -> "Manual"
-            else -> "Unknown"
+            Modes.MODE_AUTO -> Resources.getString(R.string.scanning_mode_auto)
+            Modes.MODE_MANUAL -> Resources.getString(R.string.scanning_mode_manual)
+            else -> Resources.getString(R.string.unknown)
         }
     }
 
@@ -52,9 +55,9 @@ class ScanMode(val id: String) {
      */
     fun getModeDescription(): String {
         return when (id) {
-            Modes.MODE_AUTO -> "Automatically scan and use a single switch to select."
-            Modes.MODE_MANUAL -> "Use different switches to move between items and another switch to select."
-            else -> "Unknown"
+            Modes.MODE_AUTO -> Resources.getString(R.string.scanning_mode_auto_desc)
+            Modes.MODE_MANUAL -> Resources.getString(R.string.scanning_mode_manual_desc)
+            else -> Resources.getString(R.string.unknown)
         }
     }
 

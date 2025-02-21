@@ -2,10 +2,12 @@ package com.enaboapps.switchify.service.scanning
 
 import android.os.Handler
 import android.os.Looper
+import com.enaboapps.switchify.R
 import com.enaboapps.switchify.backend.iap.IAPHandler
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.service.window.ServiceMessageHUD
 import com.enaboapps.switchify.utils.Logger
+import com.enaboapps.switchify.utils.Resources
 import kotlin.properties.Delegates
 
 /**
@@ -84,10 +86,10 @@ object ScanMethod {
      */
     fun getName(type: String): String {
         return when (type) {
-            MethodType.CURSOR -> "Cursor"
-            MethodType.RADAR -> "Radar"
-            MethodType.ITEM_SCAN -> "Item Scan"
-            else -> "Unknown"
+            MethodType.CURSOR -> Resources.getString(R.string.scan_method_cursor)
+            MethodType.RADAR -> Resources.getString(R.string.scan_method_radar)
+            MethodType.ITEM_SCAN -> Resources.getString(R.string.scan_method_item_scan)
+            else -> Resources.getString(R.string.unknown)
         }
     }
 
@@ -98,10 +100,10 @@ object ScanMethod {
      */
     fun getDescription(type: String): String {
         return when (type) {
-            MethodType.CURSOR -> "Cursor allows you to select items by moving a set of crosshairs over the screen."
-            MethodType.RADAR -> "Radar allows you to select items by moving a radar around the screen."
-            MethodType.ITEM_SCAN -> "Item Scan allows you to select items by scanning through them sequentially."
-            else -> "Unknown"
+            MethodType.CURSOR -> Resources.getString(R.string.scan_method_desc_cursor)
+            MethodType.RADAR -> Resources.getString(R.string.scan_method_desc_radar)
+            MethodType.ITEM_SCAN -> Resources.getString(R.string.scan_method_desc_item_scan)
+            else -> Resources.getString(R.string.unknown)
         }
     }
 
@@ -130,7 +132,7 @@ object ScanMethod {
             if (getType() == MethodType.RADAR && !IAPHandler.hasPurchasedPro()) {
                 setType(MethodType.CURSOR)
                 ServiceMessageHUD.instance.showMessage(
-                    "Radar is a premium feature. Please purchase Switchify Pro to use it.",
+                    R.string.radar_trial_timer_expired,
                     ServiceMessageHUD.MessageType.DISAPPEARING
                 )
                 Logger.logEvent("Radar trial timer expired")

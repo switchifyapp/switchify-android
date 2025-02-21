@@ -3,6 +3,7 @@ package com.enaboapps.switchify.service.core
 import android.content.Context
 import android.media.AudioManager
 import android.util.Log
+import com.enaboapps.switchify.R
 import com.enaboapps.switchify.backend.iap.IAPHandler
 import com.enaboapps.switchify.service.SwitchifyAccessibilityService
 import com.enaboapps.switchify.service.window.ServiceMessageHUD
@@ -32,7 +33,8 @@ object AudioActionManager {
      */
     private fun showProFeatureMessage() {
         ServiceMessageHUD.instance.showMessage(
-            "Volume control is a pro feature. Please purchase Switchify Pro to use it.",
+            R.string.pro_feature_message,
+            arrayOf(R.string.action_volume_control),
             ServiceMessageHUD.MessageType.DISAPPEARING
         )
     }

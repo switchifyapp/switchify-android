@@ -2,6 +2,7 @@ package com.enaboapps.switchify.service.core
 
 import android.accessibilityservice.AccessibilityService
 import android.util.Log
+import com.enaboapps.switchify.R
 import com.enaboapps.switchify.backend.iap.IAPHandler
 import com.enaboapps.switchify.service.SwitchifyAccessibilityService
 import com.enaboapps.switchify.service.window.ServiceMessageHUD
@@ -44,7 +45,8 @@ object GlobalActionManager {
      */
     private fun showProFeatureMessage(feature: String) {
         ServiceMessageHUD.instance.showMessage(
-            "$feature is a pro feature. Please purchase Switchify Pro to use it.",
+            R.string.pro_feature_message,
+            arrayOf(feature),
             ServiceMessageHUD.MessageType.DISAPPEARING
         )
     }

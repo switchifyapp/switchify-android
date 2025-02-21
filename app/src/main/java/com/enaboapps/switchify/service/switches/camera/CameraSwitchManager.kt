@@ -9,6 +9,7 @@ import androidx.camera.core.*
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
+import com.enaboapps.switchify.R
 import com.enaboapps.switchify.service.scanning.ScanningManager
 import com.enaboapps.switchify.service.switches.SwitchEventProvider
 import com.enaboapps.switchify.service.window.ServiceMessageHUD
@@ -107,7 +108,7 @@ class CameraSwitchManager(
     private fun showCameraError(message: String) {
         coroutineScope.launch(Dispatchers.Main) {
             ServiceMessageHUD.instance.showMessage(
-                message,
+                R.string.hud_camera_access_error,
                 ServiceMessageHUD.MessageType.DISAPPEARING
             )
         }

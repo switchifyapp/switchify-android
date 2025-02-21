@@ -13,13 +13,15 @@ import androidx.core.graphics.drawable.DrawableCompat
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.service.utils.ScreenUtils
 import com.enaboapps.switchify.utils.Logger
+import com.enaboapps.switchify.utils.Resources
 
 /**
  * This class represents a menu item
  * @property id The id of the menu item
- * @property text The text of the menu item
+ * @property textResource The resource id of the text of the menu item
+ * @property userProvidedText The text of the menu item if it is user-provided
  * @property drawableId The drawable resource id of the menu item
- * @property drawableDescription The description of the drawable
+ * @property drawableDescriptionResource The resource id of the description of the drawable
  * @property showDrawableDescription Whether to show the drawable description
  * @property isSmall Whether the menu item is small
  * @property closeOnSelect Whether the menu should close when the item is selected
@@ -29,9 +31,10 @@ import com.enaboapps.switchify.utils.Logger
  */
 class MenuItem(
     val id: String,
-    val text: String = "",
+    val textResource: Int? = null,
+    val userProvidedText: String? = null,
     private val drawableId: Int = 0,
-    val drawableDescription: String = "",
+    val drawableDescriptionResource: Int? = null,
     val showDrawableDescription: Boolean = true,
     val isSmall: Boolean = false,
     val closeOnSelect: Boolean = true,
@@ -94,7 +97,7 @@ class MenuItem(
         }
 
         // If using a drawable description, adjust the height to accommodate the description
-        if (drawableDescription.isNotEmpty()) {
+        if (drawableDescriptionResource != null) {
             heightPx += ScreenUtils.dpToPx(linearLayout.context, 20)
         }
 
@@ -134,9 +137,10 @@ class MenuItem(
             }
         }
 
-        if (text.isNotEmpty()) {
+        if (textResource != null || userProvidedText != null) {
             textView = TextView(linearLayout.context).apply {
-                text = this@MenuItem.text
+                text =
+                    if (textResource != null) Resources.getString(textResource) else userProvidedText
                 setTextSize(TypedValue.COMPLEX_UNIT_SP, menuSizeManager.getMenuSize().textSize)
                 setAutoSizeTextTypeWithDefaults(AUTO_SIZE_TEXT_TYPE_NONE)
                 gravity = Gravity.CENTER
@@ -150,9 +154,9 @@ class MenuItem(
             }
         }
 
-        if (drawableDescription.isNotEmpty() && showDrawableDescription) {
+        if (drawableDescriptionResource != null && showDrawableDescription) {
             drawableDescriptionTextView = TextView(linearLayout.context).apply {
-                text = drawableDescription
+                text = Resources.getString(drawableDescriptionResource)
                 setTextSize(
                     TypedValue.COMPLEX_UNIT_SP,
                     menuSizeManager.getMenuSize().textSizeWithIcon

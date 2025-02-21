@@ -13,6 +13,7 @@ import android.widget.TextView
 import androidx.core.content.res.ResourcesCompat
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.service.utils.ScreenUtils
+import com.enaboapps.switchify.utils.Resources
 
 /**
  * ServiceMessageHUD is responsible for displaying overlay messages on top of all other application windows.
@@ -31,7 +32,8 @@ class ServiceMessageHUD private constructor() {
     private var context: Context? = null
     private var switchifyAccessibilityWindow: SwitchifyAccessibilityWindow =
         SwitchifyAccessibilityWindow.instance
-    private var message = ""
+    private var messageResId: Int = 0
+    private var messageArgs: Array<out Any> = emptyArray()
     private var shownMessageType: MessageType? = null
     private var messageView: LinearLayout? = null
     private val handler = Handler(Looper.getMainLooper())
@@ -120,7 +122,12 @@ class ServiceMessageHUD private constructor() {
             }
 
             // Update the text of the TextView
-            (messageView?.getChildAt(0) as? TextView)?.text = message
+            if (messageArgs.isNotEmpty()) {
+                (messageView?.getChildAt(0) as? TextView)?.text =
+                    Resources.getString(messageResId, *messageArgs)
+            } else {
+                (messageView?.getChildAt(0) as? TextView)?.text = Resources.getString(messageResId)
+            }
             Log.d(TAG, "Message view created or updated successfully")
         } ?: Log.e(TAG, "Context is null, cannot create or update message view")
     }
@@ -149,19 +156,67 @@ class ServiceMessageHUD private constructor() {
     }
 
     /**
-     * Displays or updates a message on the screen, immediately replacing any existing message.
+     * Displays or updates a message on the screen using a string resource ID.
      *
-     * @param message The message text to be displayed.
+     * @param messageResId The resource ID of the message text to be displayed.
      * @param messageType The type of the message (DISAPPEARING or PERMANENT).
      * @param time The duration for which a DISAPPEARING message should be shown. Ignored for PERMANENT messages.
      */
-    fun showMessage(message: String, messageType: MessageType, time: Time = Time.MEDIUM) {
-        Log.d(TAG, "Showing message: $message, type: $messageType, time: $time")
+    fun showMessage(messageResId: Int, messageType: MessageType, time: Time = Time.MEDIUM) {
+        Log.d(
+            TAG,
+            "Showing message: ${Resources.getString(messageResId)}, type: $messageType, time: $time"
+        )
 
         // Cancel any pending hide operations
         handler.removeCallbacksAndMessages(null)
 
-        this.message = message
+        this.messageResId = messageResId
+        this.shownMessageType = messageType
+
+        handler.post {
+            createOrUpdateMessageView()
+
+            if (messageView?.parent == null) {
+                addViewToWindow()
+            }
+
+            if (messageType == MessageType.DISAPPEARING) {
+                handler.postDelayed({ hideMessage() }, time.milliseconds)
+                Log.d(TAG, "Scheduled message to disappear after ${time.milliseconds}ms")
+            }
+        }
+    }
+
+    /**
+     * Displays or updates a message on the screen using a string resource ID and arguments.
+     *
+     * @param messageResId The resource ID of the message text to be displayed.
+     * @param messageArgs The arguments to be used in the message text.
+     * @param messageType The type of the message (DISAPPEARING or PERMANENT).
+     * @param time The duration for which a DISAPPEARING message should be shown. Ignored for PERMANENT messages.
+     */
+    fun showMessage(
+        messageResId: Int,
+        messageArgs: Array<out Any>,
+        messageType: MessageType,
+        time: Time = Time.MEDIUM
+    ) {
+        Log.d(
+            TAG,
+            "Showing message: ${
+                Resources.getString(
+                    messageResId,
+                    *messageArgs
+                )
+            }, type: $messageType, time: $time"
+        )
+
+        // Cancel any pending hide operations
+        handler.removeCallbacksAndMessages(null)
+
+        this.messageResId = messageResId
+        this.messageArgs = messageArgs
         this.shownMessageType = messageType
 
         handler.post {
@@ -193,7 +248,7 @@ class ServiceMessageHUD private constructor() {
                 } catch (e: Exception) {
                     Log.e(TAG, "Failed to remove view from window", e)
                 } finally {
-                    messageView = null
+                    clearMessage()
                 }
             }
         } ?: Log.d(TAG, "No message view to hide")
@@ -203,10 +258,10 @@ class ServiceMessageHUD private constructor() {
      * Clears the current message, hiding it from the screen and resetting internal state.
      * This method can be called to explicitly remove any displayed message and reset the HUD state.
      */
-    fun clearMessage() {
+    private fun clearMessage() {
         Log.d(TAG, "Clearing message")
-        hideMessage()
-        message = ""
+        messageResId = 0
+        messageArgs = emptyArray()
         shownMessageType = null
         messageView = null
     }

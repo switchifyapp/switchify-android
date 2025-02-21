@@ -1,5 +1,6 @@
 package com.enaboapps.switchify.service.menu.menus.scroll
 
+import com.enaboapps.switchify.R
 import com.enaboapps.switchify.service.gestures.GestureManager
 import com.enaboapps.switchify.service.gestures.data.GestureType
 import com.enaboapps.switchify.service.menu.MenuItem
@@ -14,28 +15,28 @@ class ScrollMenuStructure {
         items = listOf(
             MenuItem(
                 id = "scroll_up",
-                text = "Scroll Up",
+                textResource = R.string.menu_item_scroll_up,
                 action = {
                     GestureManager.getInstance().performSwipeOrScroll(GestureType.SCROLL_UP)
                 }
             ),
             MenuItem(
                 id = "scroll_down",
-                text = "Scroll Down",
+                textResource = R.string.menu_item_scroll_down,
                 action = {
                     GestureManager.getInstance().performSwipeOrScroll(GestureType.SCROLL_DOWN)
                 }
             ),
             MenuItem(
                 id = "scroll_left",
-                text = "Scroll Left",
+                textResource = R.string.menu_item_scroll_left,
                 action = {
                     GestureManager.getInstance().performSwipeOrScroll(GestureType.SCROLL_LEFT)
                 }
             ),
             MenuItem(
                 id = "scroll_right",
-                text = "Scroll Right",
+                textResource = R.string.menu_item_scroll_right,
                 action = {
                     GestureManager.getInstance().performSwipeOrScroll(GestureType.SCROLL_RIGHT)
                 }

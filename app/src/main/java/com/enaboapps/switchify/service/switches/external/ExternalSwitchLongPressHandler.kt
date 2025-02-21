@@ -1,6 +1,7 @@
 package com.enaboapps.switchify.service.switches.external
 
 import android.content.Context
+import com.enaboapps.switchify.R
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.service.gestures.GestureManager
 import com.enaboapps.switchify.service.scanning.ScanningManager
@@ -47,7 +48,8 @@ object ExternalSwitchLongPressHandler {
                     actionToPerform = action
                     val name = action.getActionName()
                     ServiceMessageHUD.instance.showMessage(
-                        "Release to perform $name",
+                        R.string.hud_release_to_perform,
+                        arrayOf(name),
                         ServiceMessageHUD.MessageType.DISAPPEARING,
                         ServiceMessageHUD.Time.SHORT
                     )

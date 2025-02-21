@@ -8,6 +8,7 @@ import com.enaboapps.switchify.service.gestures.GesturePoint
 import com.enaboapps.switchify.service.menu.MenuItem
 import com.enaboapps.switchify.service.scanning.ScanNodeInterface
 import com.enaboapps.switchify.service.selection.SelectionHandler
+import com.enaboapps.switchify.utils.Resources
 
 /**
  * This class represents a node
@@ -61,10 +62,15 @@ class Node(
             node.centerY = menuItem.y + menuItem.height / 2
             node.width = menuItem.width
             node.height = menuItem.height
-            if (menuItem.text.isNotEmpty()) {
-                node.contentDescription = menuItem.text
-            } else if (menuItem.drawableDescription.isNotEmpty()) {
-                node.contentDescription = menuItem.drawableDescription
+            val text = if (menuItem.textResource != null) {
+                Resources.getString(menuItem.textResource)
+            } else if (menuItem.drawableDescriptionResource != null) {
+                Resources.getString(menuItem.drawableDescriptionResource)
+            } else {
+                menuItem.userProvidedText
+            }
+            if (text != null) {
+                node.contentDescription = text
             }
             return node
         }

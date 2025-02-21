@@ -8,6 +8,7 @@ import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.PreferenceSwitch
 import com.enaboapps.switchify.service.menu.MenuItem
 import com.enaboapps.switchify.service.menu.structure.MenuStructureHolder
+import com.enaboapps.switchify.utils.Resources
 
 @Composable
 fun MenuItemCustomizationScreen(navController: NavController) {
@@ -28,7 +29,7 @@ fun MenuItemCustomizationScreen(navController: NavController) {
         uniqueItems.forEach { menuItem ->
             val isVisible = remember { mutableStateOf(menuItem.isVisible(context)) }
             PreferenceSwitch(
-                title = menuItem.text,
+                title = Resources.getString(menuItem.textResource ?: 0),
                 summary = if (isVisible.value) "Shown" else "Hidden",
                 checked = isVisible.value,
                 onCheckedChange = {

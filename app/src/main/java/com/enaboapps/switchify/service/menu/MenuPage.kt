@@ -107,7 +107,7 @@ class MenuPage(
             prevPageMenuItem = MenuItem(
                 id = "prevPage",
                 drawableId = R.drawable.ic_previous_menu_page,
-                drawableDescription = "Previous page",
+                drawableDescriptionResource = R.string.menu_item_previous_page,
                 showDrawableDescription = false,
                 isSmall = true,
                 closeOnSelect = false,
@@ -119,7 +119,7 @@ class MenuPage(
             nextPageMenuItem = MenuItem(
                 id = "nextPage",
                 drawableId = R.drawable.ic_next_menu_page,
-                drawableDescription = "Next page",
+                drawableDescriptionResource = R.string.menu_item_next_page,
                 showDrawableDescription = false,
                 isSmall = true,
                 closeOnSelect = false,

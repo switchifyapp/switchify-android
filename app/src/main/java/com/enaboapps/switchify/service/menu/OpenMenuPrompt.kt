@@ -66,7 +66,7 @@ class OpenMenuPrompt {
 
         // Create TextView for the message with improved styling
         val messageText = TextView(context).apply {
-            text = "Press to open menu"
+            text = context.getString(R.string.menu_prompt_press_to_open)
             setTextColor(Color.WHITE)
             textSize = 18f // Slightly larger text
             gravity = Gravity.CENTER
