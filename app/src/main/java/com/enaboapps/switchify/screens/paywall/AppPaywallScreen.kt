@@ -8,8 +8,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.enaboapps.switchify.R
 import com.enaboapps.switchify.backend.iap.IAPHandler
 import com.enaboapps.switchify.backend.iap.IAPHandler.PurchaseState
 import com.enaboapps.switchify.components.BaseView
@@ -33,20 +35,20 @@ fun AppPaywallScreen(navController: NavController) {
 
     if (purchaseState.value == PurchaseState.Success) {
         BaseView(
-            title = "Switchify Pro Is Yours",
+            titleResId = R.string.screen_title_pro_yours,
             navController = navController,
             enableScroll = false,
             padding = 25.dp
         ) {
             Text(
-                text = "Thank you for supporting Switchify! You can now access all Switchify features.",
+                text = stringResource(R.string.pro_thank_you),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.padding(horizontal = 20.dp)
             )
             Spacer(modifier = Modifier.height(8.dp))
             FullWidthButton(
-                text = "Done",
+                textResId = R.string.button_done,
                 onClick = {
                     navController.popBackStack()
                 }

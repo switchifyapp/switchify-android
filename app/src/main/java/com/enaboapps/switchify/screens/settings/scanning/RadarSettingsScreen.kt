@@ -3,6 +3,7 @@ package com.enaboapps.switchify.screens.settings.scanning
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavController
+import com.enaboapps.switchify.R
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.PreferenceTimeStepper
@@ -13,17 +14,17 @@ fun RadarSettingsScreen(navController: NavController) {
     val preferenceManager = PreferenceManager(LocalContext.current)
 
     BaseView(
-        title = "Radar Settings",
+        titleResId = R.string.screen_title_radar_settings,
         navController = navController
     ) {
-        Section(title = "Radar Speed") {
+        Section(titleResId = R.string.section_title_radar_speed) {
             PreferenceTimeStepper(
                 value = preferenceManager.getLongValue(
                     PreferenceManager.PREFERENCE_KEY_RADAR_SCAN_RATE,
                     1000
                 ),
-                title = "Radar speed",
-                summary = "How fast the radar moves",
+                titleResId = R.string.preference_title_radar_speed,
+                summaryResId = R.string.preference_summary_radar_speed,
                 min = 10,
                 max = 5000,
                 step = 10,

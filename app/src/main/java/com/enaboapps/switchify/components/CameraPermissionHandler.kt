@@ -11,8 +11,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.enaboapps.switchify.R
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.PermissionState
 import com.google.accompanist.permissions.isGranted
@@ -29,11 +31,13 @@ fun CameraPermissionHandler(
         permissionState.status.isGranted -> {
             onPermissionGranted()
         }
+
         permissionState.status.shouldShowRationale -> {
             RationaleContent(
                 onRequestPermission = { permissionState.launchPermissionRequest() }
             )
         }
+
         else -> {
             PermissionDeniedContent(onNavigateBack = onNavigateBack)
         }
@@ -61,7 +65,7 @@ private fun RationaleContent(
         Spacer(modifier = Modifier.height(16.dp))
 
         Text(
-            text = "Camera Permission Required",
+            text = stringResource(R.string.camera_permission_required),
             style = MaterialTheme.typography.headlineSmall,
             textAlign = TextAlign.Center
         )
@@ -69,8 +73,7 @@ private fun RationaleContent(
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = "Camera access is required to detect facial gestures for switch control. " +
-                    "This permission will only be used when the switch is active.",
+            text = stringResource(R.string.camera_permission_description),
             style = MaterialTheme.typography.bodyMedium,
             textAlign = TextAlign.Center
         )
@@ -78,7 +81,7 @@ private fun RationaleContent(
         Spacer(modifier = Modifier.height(24.dp))
 
         FullWidthButton(
-            text = "Grant Permission",
+            textResId = R.string.camera_permission_grant,
             onClick = onRequestPermission
         )
     }
@@ -89,7 +92,7 @@ private fun PermissionDeniedContent(
     onNavigateBack: () -> Unit
 ) {
     val context = LocalContext.current
-    
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -107,7 +110,7 @@ private fun PermissionDeniedContent(
         Spacer(modifier = Modifier.height(16.dp))
 
         Text(
-            text = "Permission Denied",
+            text = stringResource(R.string.camera_permission_denied),
             style = MaterialTheme.typography.headlineSmall,
             textAlign = TextAlign.Center
         )
@@ -115,7 +118,7 @@ private fun PermissionDeniedContent(
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = "Camera permission has been denied. Please enable it in your device settings to use facial gesture switches.",
+            text = stringResource(R.string.camera_permission_denied_description),
             style = MaterialTheme.typography.bodyMedium,
             textAlign = TextAlign.Center
         )
@@ -123,7 +126,7 @@ private fun PermissionDeniedContent(
         Spacer(modifier = Modifier.height(24.dp))
 
         FullWidthButton(
-            text = "Open Settings",
+            textResId = R.string.camera_permission_settings,
             onClick = {
                 val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
                     data = Uri.fromParts("package", context.packageName, null)
@@ -135,7 +138,7 @@ private fun PermissionDeniedContent(
         Spacer(modifier = Modifier.height(8.dp))
 
         FullWidthButton(
-            text = "Go Back",
+            textResId = R.string.camera_permission_back,
             onClick = onNavigateBack
         )
     }

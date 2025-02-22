@@ -7,9 +7,11 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.enaboapps.switchify.R
 import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.FullWidthButton
 import com.enaboapps.switchify.components.Picker
@@ -25,7 +27,8 @@ fun AddEditActionScreen(navController: NavController, actionId: String? = null) 
     val actionStore = remember { ActionStore(context) }
 
     val isEditMode = actionId != null
-    val screenTitle = if (isEditMode) "Edit Action" else "Add Action"
+    val screenTitle =
+        if (isEditMode) R.string.screen_title_edit_action else R.string.screen_title_add_action
 
     val availableActions = remember { actionStore.getAvailableActions() }
 
@@ -54,7 +57,7 @@ fun AddEditActionScreen(navController: NavController, actionId: String? = null) 
         actionText.isNotBlank() && selectedAction.isNotBlank() && selectedExtra != null && extraValid
     }
 
-    BaseView(title = screenTitle, navController = navController) {
+    BaseView(titleResId = screenTitle, navController = navController) {
         ActionTextInput(
             text = actionText,
             onTextChange = { actionText = it }
@@ -114,16 +117,19 @@ fun AddEditActionScreen(navController: NavController, actionId: String? = null) 
             }
         )
         if (isEditMode) {
-            FullWidthButton(text = "Delete", onClick = {
-                showDeleteConfirmation = true
-            })
+            FullWidthButton(
+                textResId = R.string.button_delete,
+                onClick = {
+                    showDeleteConfirmation = true
+                }
+            )
         }
 
         if (showDeleteConfirmation) {
             AlertDialog(
                 onDismissRequest = { showDeleteConfirmation = false },
-                title = { Text("Confirm Deletion") },
-                text = { Text("Are you sure you want to delete this action?") },
+                title = { Text(stringResource(R.string.action_confirm_deletion)) },
+                text = { Text(stringResource(R.string.action_confirm_deletion_description)) },
                 confirmButton = {
                     TextButton(
                         onClick = {
@@ -132,14 +138,14 @@ fun AddEditActionScreen(navController: NavController, actionId: String? = null) 
                             navController.popBackStack()
                         }
                     ) {
-                        Text("Delete")
+                        Text(stringResource(R.string.action_delete))
                     }
                 },
                 dismissButton = {
                     TextButton(
                         onClick = { showDeleteConfirmation = false }
                     ) {
-                        Text("Cancel")
+                        Text(stringResource(R.string.action_cancel))
                     }
                 }
             )
@@ -155,10 +161,10 @@ private fun ActionTextInput(
     TextArea(
         value = text,
         onValueChange = onTextChange,
-        label = "Action Text",
+        labelResId = R.string.action_text,
         imeAction = ImeAction.Next,
         isError = text.isBlank(),
-        supportingText = "Action text is required"
+        supportingTextResId = R.string.action_text_required
     )
 }
 
@@ -169,7 +175,7 @@ private fun ActionPicker(
     onActionSelected: (String) -> Unit
 ) {
     Picker(
-        title = "Select Action",
+        titleResId = R.string.action_select_action,
         selectedItem = selectedAction,
         items = availableActions,
         onItemSelected = onActionSelected,
@@ -238,7 +244,7 @@ private fun SaveButton(
     onSaveClicked: () -> Unit
 ) {
     FullWidthButton(
-        text = if (isEditMode) "Update Action" else "Add Action",
+        textResId = if (isEditMode) R.string.action_update_action else R.string.action_add_action,
         enabled = isEnabled && !isSaving,
         onClick = onSaveClicked
     )
@@ -250,7 +256,7 @@ private fun TestButton(
     onTestClicked: () -> Unit
 ) {
     FullWidthButton(
-        text = "Test",
+        textResId = R.string.action_test,
         enabled = isEnabled,
         onClick = onTestClicked
     )

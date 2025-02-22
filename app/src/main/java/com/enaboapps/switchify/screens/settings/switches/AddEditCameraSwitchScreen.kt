@@ -6,8 +6,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.enaboapps.switchify.R
 import com.enaboapps.switchify.components.*
 import com.enaboapps.switchify.screens.settings.switches.actions.SwitchActionPicker
 import com.enaboapps.switchify.screens.settings.switches.models.AddEditCameraSwitchScreenModel
@@ -20,7 +22,7 @@ fun AddEditCameraSwitchScreen(navController: NavController, code: String? = null
     val viewModel = remember { AddEditCameraSwitchScreenModel().apply { init(code) } }
 
     BaseView(
-        title = if (code == null) "Add Camera Switch" else "Edit Camera Switch",
+        titleResId = if (code == null) R.string.screen_title_add_switch else R.string.screen_title_edit_switch,
         navController = navController
     ) {
         MainContent(code, viewModel, navController)
@@ -51,7 +53,7 @@ private fun MainContent(
 
         if (code == null) {
             // Facial Gesture Selection
-            Section(title = "Facial Gesture") {
+            Section(titleResId = R.string.section_title_facial_gesture) {
                 val gestures = listOf(
                     CameraSwitchFacialGesture(CameraSwitchFacialGesture.SMILE),
                     CameraSwitchFacialGesture(CameraSwitchFacialGesture.LEFT_WINK),
@@ -81,7 +83,7 @@ private fun MainContent(
 
         // Action Selection
         SwitchActionPicker(
-            title = "Action",
+            titleResId = R.string.section_title_action,
             switchAction = viewModel.action.value,
             onChange = { viewModel.setAction(it) }
         )
@@ -91,8 +93,8 @@ private fun MainContent(
         // Facial Gesture Time
         PreferenceTimeStepper(
             value = viewModel.facialGestureTime.longValue,
-            title = "Facial Gesture Time",
-            summary = "The time to wait for a facial gesture to be detected",
+            titleResId = R.string.preference_title_facial_gesture_time,
+            summaryResId = R.string.preference_summary_facial_gesture_time,
             min = 100,
             max = 10000,
             step = 100,
@@ -105,7 +107,7 @@ private fun MainContent(
 
         // Save Button
         FullWidthButton(
-            text = "Save",
+            textResId = R.string.button_save,
             enabled = viewModel.isValid.value,
             onClick = {
                 viewModel.save(context) { success ->
@@ -125,7 +127,7 @@ private fun MainContent(
         if (code != null) {
             Spacer(modifier = Modifier.height(8.dp))
             FullWidthButton(
-                text = "Delete",
+                textResId = R.string.button_delete,
                 onClick = { viewModel.showDeleteConfirmation.value = true }
             )
         }
@@ -135,8 +137,8 @@ private fun MainContent(
     if (viewModel.showDeleteConfirmation.value) {
         AlertDialog(
             onDismissRequest = { viewModel.showDeleteConfirmation.value = false },
-            title = { Text("Confirm Deletion") },
-            text = { Text("Are you sure you want to delete this switch?") },
+            title = { Text(stringResource(R.string.dialog_title_delete)) },
+            text = { Text(stringResource(R.string.dialog_message_delete)) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -157,14 +159,14 @@ private fun MainContent(
                         }
                     }
                 ) {
-                    Text("Delete")
+                    Text(stringResource(R.string.button_delete))
                 }
             },
             dismissButton = {
                 TextButton(
                     onClick = { viewModel.showDeleteConfirmation.value = false }
                 ) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.button_cancel))
                 }
             }
         )

@@ -15,6 +15,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -30,19 +31,6 @@ import com.enaboapps.switchify.service.utils.ServiceUtils
 import com.enaboapps.switchify.switches.SwitchConfigInvalidBanner
 import com.enaboapps.switchify.switches.SwitchEventStore
 
-private object SetupStrings {
-    const val SETUP = "Setup"
-    const val WELCOME = "Welcome to Switchify!"
-    const val EDIT_SWITCHES = "Edit Switches"
-    const val SKIP_SETUP = "I'll Skip The Setup"
-    const val SIGN_IN = "Sign In"
-    const val SIGN_IN_PROMPT = "Used Switchify? Sign in to access your settings."
-    const val ACCESSIBILITY_PROMPT =
-        "To use Switchify effectively, please enable the Accessibility Service."
-    const val LETS_GO = "Let's Go"
-    const val SETUP_COMPLETE = "You're all set up!"
-    const val FINISH = "Finish"
-}
 
 @Composable
 fun SetupScreen(
@@ -102,7 +90,7 @@ private fun SetupScreenContent(
     navController: NavController
 ) {
     BaseView(
-        title = SetupStrings.SETUP,
+        titleResId = R.string.screen_title_setup,
         navController = navController
     ) {
         Column(
@@ -113,7 +101,7 @@ private fun SetupScreenContent(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = SetupStrings.WELCOME,
+                text = stringResource(R.string.setup_welcome),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(bottom = 20.dp)
@@ -152,11 +140,11 @@ private fun SwitchesInvalidContent(
     ScanModeSelectionSection(onChange = onScanModeChange)
     SwitchConfigInvalidBanner(switchesInvalidReason)
     FullWidthButton(
-        text = SetupStrings.EDIT_SWITCHES,
+        textResId = R.string.setup_edit_switches,
         onClick = onEditSwitches
     )
     FullWidthButton(
-        text = SetupStrings.SKIP_SETUP,
+        textResId = R.string.setup_skip_setup,
         onClick = onSkipSetup
     )
 
@@ -169,11 +157,11 @@ private fun SwitchesInvalidContent(
 private fun SignInSection(onSignIn: () -> Unit) {
     Spacer(modifier = Modifier.height(20.dp))
     Text(
-        text = SetupStrings.SIGN_IN_PROMPT,
+        text = stringResource(R.string.setup_sign_in_prompt),
         modifier = Modifier.padding(bottom = 4.dp)
     )
     FullWidthButton(
-        text = SetupStrings.SIGN_IN,
+        textResId = R.string.button_sign_in,
         onClick = onSignIn
     )
 }
@@ -185,7 +173,7 @@ private fun AccessibilityServiceContent(
 ) {
     val context = LocalContext.current
     Text(
-        text = SetupStrings.ACCESSIBILITY_PROMPT,
+        text = stringResource(R.string.setup_accessibility_prompt),
         modifier = Modifier.padding(bottom = 20.dp)
     )
     Text(
@@ -193,11 +181,11 @@ private fun AccessibilityServiceContent(
         modifier = Modifier.padding(bottom = 20.dp)
     )
     FullWidthButton(
-        text = SetupStrings.LETS_GO,
+        textResId = R.string.setup_lets_go,
         onClick = onEnable
     )
     FullWidthButton(
-        text = SetupStrings.SKIP_SETUP,
+        textResId = R.string.setup_skip_setup,
         onClick = onSkip
     )
 }
@@ -205,11 +193,11 @@ private fun AccessibilityServiceContent(
 @Composable
 private fun SetupCompleteContent(onFinish: () -> Unit) {
     Text(
-        text = SetupStrings.SETUP_COMPLETE,
+        text = stringResource(R.string.setup_setup_complete),
         modifier = Modifier.padding(bottom = 20.dp)
     )
     FullWidthButton(
-        text = SetupStrings.FINISH,
+        textResId = R.string.setup_finish,
         onClick = onFinish
     )
 }

@@ -27,17 +27,22 @@ fun SettingsScreen(navController: NavController) {
     var selectedTabIndex by remember { mutableIntStateOf(0) }
 
     BaseView(
-        title = "Settings",
+        titleResId = R.string.screen_title_settings,
         navController = navController,
         padding = 0.dp,
         enableScroll = false
     ) {
         TabRow(selectedTabIndex = selectedTabIndex) {
-            listOf("General", "Scanning", "Selection", "About").forEachIndexed { index, tab ->
+            listOf(
+                R.string.settings_tab_general,
+                R.string.settings_tab_scanning,
+                R.string.settings_tab_selection,
+                R.string.settings_tab_about
+            ).forEachIndexed { index, tabResId ->
                 Tab(
                     selected = selectedTabIndex == index,
                     onClick = { selectedTabIndex = index },
-                    text = { Text(tab) }
+                    text = { Text(stringResource(tabResId)) }
                 )
             }
         }
@@ -66,30 +71,28 @@ fun ScanningSettingsTab(navController: NavController) {
         ScanMethodSelectionSection()
 
         InfoCard(
-            title = "Looking for timing and scan settings?",
-            description = "Switchify is made up of three main methods: the cursor, the radar, and the item scan. " +
-                    "Each method has its own set of settings that can be adjusted to suit your needs below." +
-                    "\n\nTip: You can switch between methods while using Switchify by opening the menu and selecting the desired method."
+            titleResId = R.string.settings_info_title_scan_settings,
+            descriptionResId = R.string.settings_info_desc_scan_settings
         )
 
-        Section(title = "Scanning Method Settings") {
+        Section(titleResId = R.string.settings_section_scanning_method) {
             NavRouteLink(
-                title = "Cursor Scan",
-                summary = "Move a cursor around the screen to select items - best for precise control and navigation",
+                titleResId = R.string.settings_title_cursor_scan,
+                summaryResId = R.string.settings_summary_cursor_scan,
                 navController = navController,
                 route = NavigationRoute.CursorSettings.name
             )
 
             NavRouteLink(
-                title = "Item Scan",
-                summary = "Scan through interactive elements one by one or in groups - best for structured content",
+                titleResId = R.string.settings_title_item_scan,
+                summaryResId = R.string.settings_summary_item_scan,
                 navController = navController,
                 route = NavigationRoute.ItemScanSettings.name
             )
 
             NavRouteLink(
-                title = "Radar Scan",
-                summary = "A rotating line that helps select items in a circular pattern - best for quick access to screen areas",
+                titleResId = R.string.settings_title_radar_scan,
+                summaryResId = R.string.settings_summary_radar_scan,
                 navController = navController,
                 route = NavigationRoute.RadarSettings.name
             )
@@ -98,16 +101,16 @@ fun ScanningSettingsTab(navController: NavController) {
         ScanModeSelectionSection()
 
         NavRouteLink(
-            title = "Other Scan Settings",
-            summary = "Configure other scan settings",
+            titleResId = R.string.settings_title_other_scan,
+            summaryResId = R.string.settings_summary_other_scan,
             navController = navController,
             route = NavigationRoute.OtherScanSettings.name
         )
 
-        Section(title = "Scan Appearance") {
+        Section(titleResId = R.string.settings_section_scan_appearance) {
             NavRouteLink(
-                title = "Scan Color",
-                summary = "Configure the scan highlight color",
+                titleResId = R.string.settings_title_scan_color,
+                summaryResId = R.string.settings_summary_scan_color,
                 navController = navController,
                 route = NavigationRoute.ScanColor.name
             )
@@ -124,16 +127,16 @@ fun SelectionSettingsTab(settingsScreenModel: SettingsScreenModel) {
 
 @Composable
 private fun InputSection(navController: NavController) {
-    Section(title = "Input") {
+    Section(titleResId = R.string.settings_section_input) {
         NavRouteLink(
-            title = "Switches",
-            summary = "Configure your switches",
+            titleResId = R.string.settings_title_switches,
+            summaryResId = R.string.settings_summary_switches,
             navController = navController,
             route = NavigationRoute.Switches.name
         )
         NavRouteLink(
-            title = "Switch Stability",
-            summary = "Configure switch stability settings",
+            titleResId = R.string.settings_title_switch_stability,
+            summaryResId = R.string.settings_summary_switch_stability,
             navController = navController,
             route = NavigationRoute.SwitchStability.name
         )
@@ -142,22 +145,22 @@ private fun InputSection(navController: NavController) {
 
 @Composable
 private fun MenuSection(screenModel: SettingsScreenModel, navController: NavController) {
-    Section(title = "Menu") {
+    Section(titleResId = R.string.settings_section_menu) {
         NavRouteLink(
-            title = "Customize Menu Items",
-            summary = "Show or hide menu items",
+            titleResId = R.string.settings_title_customize_menu,
+            summaryResId = R.string.settings_summary_customize_menu,
             navController = navController,
             route = NavigationRoute.MenuItemCustomization.name
         )
         NavRouteLink(
-            title = "Menu Size",
-            summary = "Change the size of the menu",
+            titleResId = R.string.settings_title_menu_size,
+            summaryResId = R.string.settings_summary_menu_size,
             navController = navController,
             route = NavigationRoute.MenuSize.name
         )
         PreferenceSwitch(
-            title = "Menu Transparency",
-            summary = "Enable transparency for the menu so that you can see content behind it",
+            titleResId = R.string.settings_title_menu_transparency,
+            summaryResId = R.string.settings_summary_menu_transparency,
             checked = screenModel.menuTransparency.value == true,
             onCheckedChange = {
                 screenModel.setMenuTransparency(it)
@@ -168,10 +171,10 @@ private fun MenuSection(screenModel: SettingsScreenModel, navController: NavCont
 
 @Composable
 private fun ActionsSection(navController: NavController) {
-    Section(title = "Actions") {
+    Section(titleResId = R.string.settings_section_actions) {
         NavRouteLink(
-            title = "My Actions",
-            summary = "Customize your own actions",
+            titleResId = R.string.settings_title_my_actions,
+            summaryResId = R.string.settings_summary_my_actions,
             navController = navController,
             route = NavigationRoute.MyActions.name
         )
@@ -181,10 +184,10 @@ private fun ActionsSection(navController: NavController) {
 @Composable
 private fun SelectionSection(screenModel: SettingsScreenModel) {
     val autoSelect = screenModel.autoSelect.observeAsState()
-    Section(title = "Selection") {
+    Section(titleResId = R.string.settings_section_selection) {
         PreferenceSwitch(
-            title = "Auto select",
-            summary = "Automatically select the item after a delay. If you press the switch again during the delay, the menu will be opened.",
+            titleResId = R.string.settings_title_auto_select,
+            summaryResId = R.string.settings_summary_auto_select,
             checked = screenModel.autoSelect.value == true,
             onCheckedChange = {
                 screenModel.setAutoSelect(it)
@@ -193,8 +196,8 @@ private fun SelectionSection(screenModel: SettingsScreenModel) {
         if (autoSelect.value == true) {
             PreferenceTimeStepper(
                 value = screenModel.autoSelectDelay.value ?: 0,
-                title = "Auto select delay",
-                summary = "The delay before the item is selected. If you press the switch again during the delay, the menu will be opened.",
+                titleResId = R.string.settings_title_auto_select_delay,
+                summaryResId = R.string.settings_summary_auto_select_delay,
                 min = 100,
                 max = 100000
             ) {
@@ -202,16 +205,16 @@ private fun SelectionSection(screenModel: SettingsScreenModel) {
             }
         }
         PreferenceSwitch(
-            title = "Directly select keyboard keys",
-            summary = "If enabled, the switch will directly select keyboard keys instead of giving the user the option to open the menu.",
+            titleResId = R.string.settings_title_directly_select_keyboard,
+            summaryResId = R.string.settings_summary_directly_select_keyboard,
             checked = screenModel.directlySelectKeyboardKeys.value == true,
             onCheckedChange = {
                 screenModel.setDirectlySelectKeyboardKeys(it)
             }
         )
         PreferenceSwitch(
-            title = "Assisted selection",
-            summary = "Assist the user in selecting items by selecting the closest available item to where they select.",
+            titleResId = R.string.settings_title_assisted_selection,
+            summaryResId = R.string.settings_summary_assisted_selection,
             checked = screenModel.assistedSelection.value == true,
             onCheckedChange = {
                 screenModel.setAssistedSelection(it)
@@ -261,12 +264,15 @@ fun AboutSection() {
             )
         }
         Spacer(modifier = Modifier.height(24.dp))
-        FullWidthButton(text = "Website", onClick = {
-            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(websiteUrl)))
-        })
+        FullWidthButton(
+            textResId = R.string.button_website,
+            onClick = {
+                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(websiteUrl)))
+            }
+        )
         Spacer(modifier = Modifier.height(16.dp))
         FullWidthButton(
-            text = "Privacy Policy",
+            textResId = R.string.button_privacy_policy,
             onClick = {
                 context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(privacyPolicyUrl)))
             }

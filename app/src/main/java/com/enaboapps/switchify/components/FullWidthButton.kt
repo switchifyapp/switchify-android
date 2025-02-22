@@ -9,11 +9,12 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 
 @Composable
 fun FullWidthButton(
-    text: String,
+    textResId: Int,
     enabled: Boolean = true,
     onClick: () -> Unit,
     isTextButton: Boolean = false,
@@ -31,7 +32,7 @@ fun FullWidthButton(
                 enabled = enabled,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text(text = text.uppercase())
+                Text(text = stringResource(textResId).uppercase())
             }
         } else {
             Button(
@@ -39,7 +40,7 @@ fun FullWidthButton(
                 enabled = enabled,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text(text = text.uppercase())
+                Text(text = stringResource(textResId).uppercase())
             }
         }
     }

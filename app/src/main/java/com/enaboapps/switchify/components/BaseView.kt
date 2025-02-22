@@ -7,6 +7,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
@@ -14,7 +15,7 @@ import androidx.compose.ui.unit.dp
  * This is a component used in all screens of the app.
  * It displays a Scaffold with a top bar and manages scrolling behavior.
  *
- * @param title The title of the screen.
+ * @param titleResId The resource ID of the screen title.
  * @param navController The NavController used to navigate between screens.
  * @param navBarActions The actions to display in the top bar.
  * @param floatingActionButton The floating action button to display in the screen.
@@ -23,7 +24,7 @@ import androidx.compose.ui.unit.dp
  */
 @Composable
 fun BaseView(
-    title: String,
+    titleResId: Int,
     navController: androidx.navigation.NavController,
     navBarActions: List<NavBarAction> = emptyList(),
     floatingActionButton: @Composable () -> Unit = {},
@@ -31,6 +32,7 @@ fun BaseView(
     padding: Dp = 16.dp,
     content: @Composable () -> Unit
 ) {
+    val title = stringResource(titleResId)
     Scaffold(
         topBar = {
             NavBar(title, navController, navBarActions)

@@ -6,11 +6,13 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
+import com.enaboapps.switchify.R
 import com.enaboapps.switchify.components.Picker
 import com.enaboapps.switchify.service.custom.actions.store.Action
 import com.enaboapps.switchify.service.custom.actions.store.ActionStore
 import com.enaboapps.switchify.switches.SwitchAction
 import com.enaboapps.switchify.switches.SwitchActionExtra
+import com.enaboapps.switchify.utils.Resources
 
 @Composable
 fun MyActionsPicker(
@@ -41,7 +43,7 @@ fun MyActionsPicker(
     }
 
     Picker(
-        title = "Select My Action",
+        titleResId = R.string.action_perform_user_action,
         selectedItem = selectedAction.value,
         items = actions,
         onItemSelected = { action ->
@@ -49,6 +51,6 @@ fun MyActionsPicker(
             onChange(createAction(action.id, action.text))
         },
         itemToString = { it.text },
-        itemDescription = { "Perform this action" },
+        itemDescription = { Resources.getString(R.string.action_perform_user_action_desc) }
     )
 }

@@ -8,8 +8,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.enaboapps.switchify.R
 import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.NavRouteLink
 import com.enaboapps.switchify.components.Section
@@ -27,7 +29,7 @@ fun MyActionsScreen(navController: NavController) {
     actions.addAll(actionStore.getActions())
 
     BaseView(
-        title = "My Actions",
+        titleResId = R.string.screen_title_my_actions,
         navController = navController,
         enableScroll = false,
         floatingActionButton = {
@@ -42,15 +44,15 @@ fun MyActionsScreen(navController: NavController) {
         }
     ) {
         Text(
-            text = "Actions can be performed from the menu or can be used as a switch action.",
+            text = stringResource(R.string.actions_my_actions_desc),
             style = MaterialTheme.typography.headlineSmall,
             modifier = Modifier.padding(16.dp)
         )
-        Section(title = "Actions") {
+        Section(titleResId = R.string.actions_my_actions_title) {
             if (actions.isEmpty()) {
                 Box(modifier = Modifier.padding(16.dp), contentAlignment = Alignment.Center) {
                     Text(
-                        text = "No actions found",
+                        text = stringResource(R.string.actions_my_actions_empty),
                         style = MaterialTheme.typography.titleMedium
                     )
                 }
@@ -74,8 +76,8 @@ private fun ActionItem(
     navController: NavController
 ) {
     NavRouteLink(
-        title = action,
-        summary = "Edit this action",
+        runtimeTitle = action,
+        summaryResId = R.string.action_edit_summary,
         navController = navController,
         route = "${NavigationRoute.EditMyActionsMenuItem.name}/${id}"
     )

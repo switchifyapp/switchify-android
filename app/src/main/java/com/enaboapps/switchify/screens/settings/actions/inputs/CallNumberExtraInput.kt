@@ -1,6 +1,7 @@
 package com.enaboapps.switchify.screens.settings.actions.inputs
 
 import androidx.compose.runtime.Composable
+import com.enaboapps.switchify.R
 import com.enaboapps.switchify.components.TextArea
 import com.enaboapps.switchify.service.custom.actions.store.data.ActionExtra
 
@@ -21,8 +22,8 @@ fun CallNumberExtraInput(
             val isValid = text.isNotBlank() && text.matches(Regex("^\\d+$"))
             onExtraValidated(isValid)
         },
-        label = "Number to Call",
-        isError = selectedExtra?.numberToCall.isNullOrBlank() == true,
-        supportingText = "Number to call is required"
+        labelResId = R.string.action_number,
+        isError = selectedExtra?.numberToCall?.isBlank() == true,
+        supportingTextResId = R.string.action_number_desc
     )
 }

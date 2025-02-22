@@ -1,6 +1,7 @@
 package com.enaboapps.switchify.screens.settings.actions.inputs
 
 import androidx.compose.runtime.Composable
+import com.enaboapps.switchify.R
 import com.enaboapps.switchify.components.TextArea
 import com.enaboapps.switchify.service.custom.actions.store.data.ActionExtra
 
@@ -21,8 +22,8 @@ fun OpenLinkExtraInput(
             val isValid = text.isNotBlank() && text.matches(Regex("^(http|https)://.*$"))
             onExtraValidated(isValid)
         },
-        label = "Link URL",
-        isError = selectedExtra?.linkUrl.isNullOrBlank() == true,
-        supportingText = "Link URL is required"
+        labelResId = R.string.action_link_url,
+        isError = selectedExtra?.linkUrl?.isBlank() == true,
+        supportingTextResId = R.string.action_link_url_desc
     )
 }

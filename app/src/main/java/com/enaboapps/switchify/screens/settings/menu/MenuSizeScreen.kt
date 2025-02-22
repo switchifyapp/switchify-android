@@ -11,6 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.MutableLiveData
 import androidx.navigation.NavController
+import com.enaboapps.switchify.R
 import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.service.menu.MenuSizeManager
 
@@ -23,7 +24,7 @@ fun MenuSizeScreen(navController: NavController) {
     val currentMenuSizeState = currentMenuSize.observeAsState()
 
     BaseView(
-        title = "Menu Size",
+        titleResId = R.string.screen_title_menu_size,
         navController = navController
     ) {
         MenuSizeManager.menuSizes.forEach { menuSize ->

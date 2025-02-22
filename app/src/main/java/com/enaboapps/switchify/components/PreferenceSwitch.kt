@@ -18,14 +18,16 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.enaboapps.switchify.R
 import com.enaboapps.switchify.backend.iap.IAPHandler
 
 @Composable
 fun PreferenceSwitch(
-    title: String,
-    summary: String,
+    titleResId: Int,
+    summaryResId: Int,
     checked: Boolean,
     isRestrictedToPro: Boolean = false,
     onCheckedChange: (Boolean) -> Unit
@@ -46,17 +48,20 @@ fun PreferenceSwitch(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = title.uppercase(),
+                    text = stringResource(titleResId).uppercase(),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Medium
                 )
                 Spacer(modifier = Modifier.height(4.dp))
-                Text(text = summary, style = MaterialTheme.typography.bodySmall)
+                Text(
+                    text = stringResource(summaryResId),
+                    style = MaterialTheme.typography.bodySmall
+                )
 
                 if (isRestrictedToPro && !isPro) {
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "This feature is only available to Pro users.",
+                        text = stringResource(R.string.pro_feature_message),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.error
                     )

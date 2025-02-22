@@ -22,7 +22,8 @@ import com.enaboapps.switchify.switches.SwitchAction
 
 @Composable
 fun SwitchActionPicker(
-    title: String,
+    titleResId: Int,
+    titleResIdArgs: Array<Any>? = null,
     switchAction: SwitchAction,
     modifier: Modifier = Modifier,
     onChange: (SwitchAction) -> Unit,
@@ -36,7 +37,8 @@ fun SwitchActionPicker(
         }
 
         Picker(
-            title = title,
+            titleResId = titleResId,
+            titleResIdArgs = titleResIdArgs,
             selectedItem = currentAction,
             items = SwitchAction.actions,
             onItemSelected = { newAction ->

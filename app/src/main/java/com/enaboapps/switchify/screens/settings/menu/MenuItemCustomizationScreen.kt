@@ -3,12 +3,12 @@ package com.enaboapps.switchify.screens.settings.menu
 import androidx.compose.runtime.*
 import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavController
+import com.enaboapps.switchify.R
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.PreferenceSwitch
 import com.enaboapps.switchify.service.menu.MenuItem
 import com.enaboapps.switchify.service.menu.structure.MenuStructureHolder
-import com.enaboapps.switchify.utils.Resources
 
 @Composable
 fun MenuItemCustomizationScreen(navController: NavController) {
@@ -23,14 +23,14 @@ fun MenuItemCustomizationScreen(navController: NavController) {
     val uniqueItems = items.distinctBy { it.id }
 
     BaseView(
-        title = "Customize Menu Items",
+        titleResId = R.string.screen_title_customize_menu,
         navController = navController
     ) {
         uniqueItems.forEach { menuItem ->
             val isVisible = remember { mutableStateOf(menuItem.isVisible(context)) }
             PreferenceSwitch(
-                title = Resources.getString(menuItem.textResource ?: 0),
-                summary = if (isVisible.value) "Shown" else "Hidden",
+                titleResId = menuItem.textResource ?: R.string.unknown,
+                summaryResId = if (isVisible.value) R.string.menu_item_state_shown else R.string.menu_item_state_hidden,
                 checked = isVisible.value,
                 onCheckedChange = {
                     isVisible.value = it

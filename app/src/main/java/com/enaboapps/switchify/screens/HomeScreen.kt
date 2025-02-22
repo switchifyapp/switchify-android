@@ -20,9 +20,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.enaboapps.switchify.BuildConfig
+import com.enaboapps.switchify.R
 import com.enaboapps.switchify.auth.AuthManager
 import com.enaboapps.switchify.backend.iap.IAPHandler
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
@@ -121,13 +123,16 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
     }
 
     BaseView(
-        title = "Switchify",
+        titleResId = R.string.screen_title_switchify,
         navController = navController,
         enableScroll = false,
-        navBarActions = listOf(NavBarAction(text = "Feedback", onClick = {
-            val url = "https://switchify.featurebase.app/"
-            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
-        }))
+        navBarActions = listOf(NavBarAction(
+            textResId = R.string.action_feedback,
+            onClick = {
+                val url = "https://switchify.featurebase.app/"
+                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+            }
+        ))
     ) {
         LazyVerticalGrid(
             columns = GridCells.Adaptive(minSize = 300.dp),
@@ -138,13 +143,13 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
             // Settings Card
             item {
                 GridCard(
-                    title = "Settings",
-                    summary = "Tap here to adjust your settings.",
+                    titleResId = R.string.screen_title_settings,
+                    summaryResId = R.string.screen_summary_settings,
                     onClick = { navController.navigate(NavigationRoute.Settings.name) },
                     icon = {
                         Icon(
                             imageVector = Icons.Rounded.Settings,
-                            contentDescription = "Settings",
+                            contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(24.dp)
                         )
@@ -156,13 +161,13 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
             if (!isAccessibilityServiceEnabled) {
                 item {
                     GridCard(
-                        title = "Accessibility Service",
-                        summary = "Tap here to enable the accessibility service.",
+                        titleResId = R.string.screen_title_accessibility_service,
+                        summaryResId = R.string.screen_summary_accessibility,
                         onClick = { navController.navigate(NavigationRoute.EnableAccessibilityService.name) },
                         icon = {
                             Icon(
                                 imageVector = Icons.Rounded.AccessibilityNew,
-                                contentDescription = "Accessibility",
+                                contentDescription = null,
                                 tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(24.dp)
                             )
@@ -175,13 +180,13 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
             if (!isPro.value) {
                 item {
                     GridCard(
-                        title = "Upgrade to Pro",
-                        summary = "Upgrade to Pro to unlock new features and support Switchify.",
+                        titleResId = R.string.screen_title_upgrade_pro,
+                        summaryResId = R.string.screen_summary_upgrade_pro,
                         onClick = { navController.navigate(NavigationRoute.Paywall.name) },
                         icon = {
                             Icon(
                                 imageVector = Icons.Rounded.Star,
-                                contentDescription = "Pro",
+                                contentDescription = null,
                                 tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(24.dp)
                             )
@@ -199,13 +204,13 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
             if (BuildConfig.DEBUG) {
                 item {
                     GridCard(
-                        title = "Debug Settings",
-                        summary = "Access debug features and settings.",
+                        titleResId = R.string.screen_title_debug,
+                        summaryResId = R.string.screen_summary_debug,
                         onClick = { navController.navigate(NavigationRoute.Debug.name) },
                         icon = {
                             Icon(
                                 imageVector = Icons.Rounded.BugReport,
-                                contentDescription = "Debug",
+                                contentDescription = null,
                                 tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(24.dp)
                             )
@@ -218,8 +223,8 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
         if (showUpdateDialog) {
             AlertDialog(
                 onDismissRequest = { showUpdateDialog = false },
-                title = { Text("Update Available") },
-                text = { Text("A new version has been downloaded. Restart now to complete the installation?") },
+                title = { Text(stringResource(R.string.dialog_title_update)) },
+                text = { Text(stringResource(R.string.dialog_message_update)) },
                 confirmButton = {
                     TextButton(
                         onClick = {
@@ -227,14 +232,14 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
                             appUpdateManager.completeUpdate()
                         }
                     ) {
-                        Text("Restart")
+                        Text(stringResource(R.string.dialog_button_restart))
                     }
                 },
                 dismissButton = {
                     TextButton(
                         onClick = { showUpdateDialog = false }
                     ) {
-                        Text("Later")
+                        Text(stringResource(R.string.dialog_button_later))
                     }
                 }
             )
@@ -244,37 +249,39 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
 
 @Composable
 private fun GridCard(
-    title: String,
-    summary: String,
+    titleResId: Int,
+    summaryResId: Int,
+    summaryArgs: Array<Any>? = null,
     onClick: () -> Unit,
     icon: @Composable () -> Unit,
-    modifier: Modifier = Modifier
 ) {
     Card(
-        modifier = modifier
+        modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            .clickable(onClick = onClick)
     ) {
         Row(
             modifier = Modifier
-                .padding(16.dp)
-                .fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             icon()
-            Column {
+            Column(
+                modifier = Modifier
+                    .padding(start = 16.dp)
+                    .weight(1f)
+            ) {
                 Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.onSurface
+                    text = stringResource(titleResId),
+                    style = MaterialTheme.typography.titleMedium
                 )
-                Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = summary,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    text = if (summaryArgs != null) {
+                        stringResource(summaryResId, *summaryArgs)
+                    } else {
+                        stringResource(summaryResId)
+                    },
+                    style = MaterialTheme.typography.bodyMedium
                 )
             }
         }
@@ -288,11 +295,17 @@ private fun AccountGridCard(navController: NavController) {
     val currentUser = authManager.getCurrentUser()
 
     GridCard(
-        title = if (isUserSignedIn) "Account" else "Sign In",
-        summary = if (isUserSignedIn) {
-            currentUser?.email ?: ""
+        titleResId = if (isUserSignedIn) R.string.screen_title_account else R.string.screen_title_sign_in,
+        summaryResId = if (isUserSignedIn) {
+            currentUser?.email?.let { R.string.screen_summary_account_email }
+                ?: R.string.screen_summary_account_no_email
         } else {
-            "Sign in to access your settings."
+            R.string.screen_summary_sign_in_to_access_settings
+        },
+        summaryArgs = if (isUserSignedIn) {
+            currentUser?.email?.let { arrayOf(it) }
+        } else {
+            null
         },
         onClick = {
             navController.navigate(

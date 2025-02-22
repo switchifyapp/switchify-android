@@ -4,8 +4,8 @@ import androidx.compose.runtime.Composable
 
 @Composable
 fun InfoCard(
-    title: String,
-    description: String
+    titleResId: Int,
+    descriptionResId: Int
 ) {
-    UICard(title = title, description = description, onClick = {})
+    UICard(titleResId = titleResId, descriptionResId = descriptionResId, onClick = {})
 }

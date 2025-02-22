@@ -9,11 +9,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 
 @Composable
 fun Section(
-    title: String,
+    titleResId: Int,
     content: @Composable () -> Unit
 ) {
     Column(
@@ -22,7 +23,7 @@ fun Section(
             .padding(vertical = 16.dp)
     ) {
         Text(
-            text = title.uppercase(),
+            text = stringResource(titleResId).uppercase(),
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.padding(horizontal = 16.dp)

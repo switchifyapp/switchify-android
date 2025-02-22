@@ -3,8 +3,10 @@ package com.enaboapps.switchify.service.custom.actions
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
+import com.enaboapps.switchify.R
 import com.enaboapps.switchify.components.Picker
 import com.enaboapps.switchify.utils.AppLauncher
+import com.enaboapps.switchify.utils.Resources
 
 @Composable
 fun AppLaunchPicker(
@@ -16,13 +18,18 @@ fun AppLaunchPicker(
     val allApps = remember { appLauncher.getInstalledApps() }
 
     Picker(
-        title = "Select App",
+        titleResId = R.string.action_select_app,
         selectedItem = initialApp,
         items = allApps,
         onItemSelected = { app ->
             onAppSelected(app)
         },
         itemToString = { it.displayName },
-        itemDescription = { "Will open ${it.displayName}" }
+        itemDescription = {
+            Resources.getString(
+                R.string.action_select_app_description,
+                it.displayName
+            )
+        }
     )
 }

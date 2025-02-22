@@ -14,10 +14,12 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.enaboapps.switchify.R
 import com.enaboapps.switchify.auth.AuthManager
 import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.FullWidthButton
 import com.enaboapps.switchify.components.TextArea
+import com.enaboapps.switchify.utils.Resources
 
 @Composable
 fun ForgotPasswordScreen(navController: NavController) {
@@ -26,7 +28,7 @@ fun ForgotPasswordScreen(navController: NavController) {
     val authManager = AuthManager.instance
 
     BaseView(
-        title = "Reset Password",
+        titleResId = R.string.screen_title_reset_password,
         navController = navController
     ) {
         if (message != null) {
@@ -40,23 +42,25 @@ fun ForgotPasswordScreen(navController: NavController) {
         TextArea(
             value = email,
             onValueChange = { email = it },
-            label = "Email",
+            labelResId = R.string.label_email,
             keyboardType = KeyboardType.Email,
             imeAction = ImeAction.Done,
             isError = email.isBlank(),
-            supportingText = "Email is required"
+            supportingTextResId = R.string.error_email_required
         )
         Spacer(modifier = Modifier.height(16.dp))
         FullWidthButton(
-            text = "Send Reset Link",
+            textResId = R.string.button_send_reset_link,
+            enabled = email.isNotBlank(),
             onClick = {
                 if (email.isNotBlank()) {
                     authManager.sendPasswordResetEmail(email,
                         onSuccess = {
-                            message = "Reset link sent to your email. Please check your inbox."
+                            message = Resources.getString(R.string.message_reset_link_sent)
                         },
                         onFailure = { exception ->
-                            message = "Error: ${exception.localizedMessage}. Please try again."
+                            message = exception.localizedMessage
+                                ?: Resources.getString(R.string.error_generic)
                         }
                     )
                 } else {

@@ -1,6 +1,5 @@
 package com.enaboapps.switchify.components
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -15,6 +14,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -26,7 +26,7 @@ import androidx.compose.ui.unit.dp
 fun TextArea(
     value: String,
     onValueChange: (String) -> Unit,
-    label: String,
+    labelResId: Int,
     modifier: Modifier = Modifier,
     keyboardType: KeyboardType = KeyboardType.Text,
     imeAction: ImeAction = ImeAction.Done,
@@ -35,7 +35,7 @@ fun TextArea(
     enabled: Boolean = true,
     readOnly: Boolean = false,
     maxLength: Int? = null,
-    supportingText: String? = null,
+    supportingTextResId: Int? = null,
     placeholder: String? = null,
     onDone: (() -> Unit)? = null
 ) {
@@ -47,14 +47,14 @@ fun TextArea(
             .fillMaxWidth()
             .padding(horizontal = 16.dp)
     ) {
-        TextField(
+        OutlinedTextField(
             value = value,
             onValueChange = { newValue ->
                 if (maxLength == null || newValue.length <= maxLength) {
                     onValueChange(newValue)
                 }
             },
-            label = { Text(label) },
+            label = { Text(stringResource(labelResId)) },
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 22.dp),
@@ -73,23 +73,10 @@ fun TextArea(
             isError = isError,
             enabled = enabled,
             readOnly = readOnly,
-            visualTransformation = when {
-                isSecure && !passwordVisible -> PasswordVisualTransformation()
-                else -> VisualTransformation.None
-            },
+            visualTransformation = if (isSecure && !passwordVisible) PasswordVisualTransformation() else VisualTransformation.None,
             placeholder = placeholder?.let { { Text(it) } },
-            supportingText = {
-                AnimatedVisibility(visible = !supportingText.isNullOrEmpty() && (isError || maxLength != null)) {
-                    Text(
-                        text = when {
-                            isError -> supportingText ?: ""
-                            maxLength != null -> "${value.length}/$maxLength"
-                            else -> ""
-                        },
-                        color = if (isError) MaterialTheme.colorScheme.error
-                        else MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+            supportingText = supportingTextResId?.let {
+                { Text(stringResource(it)) }
             },
             trailingIcon = {
                 if (isSecure) {
