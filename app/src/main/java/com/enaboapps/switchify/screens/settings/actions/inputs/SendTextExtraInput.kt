@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.enaboapps.switchify.R
 import com.enaboapps.switchify.components.TextArea
 import com.enaboapps.switchify.service.custom.actions.store.data.ActionExtra
 
@@ -28,9 +29,9 @@ fun SendTextExtraInput(
                 val isValid = text.isNotBlank() && text.matches(Regex("^\\d+$"))
                 onExtraValidated(isValid)
             },
-            label = "Number to Send Text",
-            isError = selectedExtra?.numberToSend.isNullOrBlank() == true,
-            supportingText = "Number to send text is required"
+            labelResId = R.string.action_number_to_text,
+            isError = selectedExtra?.numberToSend?.isBlank() == true,
+            supportingTextResId = R.string.action_number_to_text_desc
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -46,7 +47,7 @@ fun SendTextExtraInput(
                 )
                 onExtraValidated(true)
             },
-            label = "Message (Optional)"
+            labelResId = R.string.action_message
         )
     }
 }

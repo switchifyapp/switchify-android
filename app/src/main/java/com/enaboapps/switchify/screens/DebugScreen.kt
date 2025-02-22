@@ -2,6 +2,7 @@ package com.enaboapps.switchify.screens
 
 import androidx.compose.runtime.*
 import androidx.navigation.NavController
+import com.enaboapps.switchify.R
 import com.enaboapps.switchify.backend.iap.IAPHandler
 import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.PreferenceSwitch
@@ -12,13 +13,13 @@ fun DebugScreen(navController: NavController) {
     var isProEnabled by remember { mutableStateOf(IAPHandler.hasPurchasedPro()) }
 
     BaseView(
-        title = "Debug Settings",
+        titleResId = R.string.screen_title_debug,
         navController = navController
     ) {
-        Section("Test Pro") {
+        Section(titleResId = R.string.debug_section_test_pro) {
             PreferenceSwitch(
-                title = "Pro Enabled",
-                summary = "Enable or disable pro features for testing purposes",
+                titleResId = R.string.debug_title_pro_enabled,
+                summaryResId = R.string.debug_summary_pro_enabled,
                 checked = isProEnabled,
                 onCheckedChange = { enabled ->
                     isProEnabled = enabled

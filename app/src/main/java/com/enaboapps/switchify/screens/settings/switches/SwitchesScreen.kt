@@ -9,6 +9,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.enaboapps.switchify.R
@@ -41,11 +42,11 @@ fun SwitchesScreen(navController: NavController) {
     }
 
     BaseView(
-        title = "Switches",
+        titleResId = R.string.screen_title_switches,
         navController = navController,
         navBarActions = listOf(
             NavBarAction(
-                text = "Test Switches",
+                textResId = R.string.action_test,
                 onClick = {
                     navController.navigate(NavigationRoute.TestSwitches.name)
                 }
@@ -165,7 +166,7 @@ private fun ExternalSwitchesContent(
     }
 
     if (availableRemoteSwitches.isNotEmpty()) {
-        Section(title = "Previously Used Switches") {
+        Section(titleResId = R.string.section_title_previously_used_switches) {
             availableRemoteSwitches.forEach { remoteSwitch ->
                 RemoteSwitchItem(
                     model = switchesScreenModel,
@@ -196,7 +197,7 @@ private fun CameraSwitchesContent(
     }
 
     if (availableRemoteSwitches.isNotEmpty()) {
-        Section(title = "Previously Used Switches") {
+        Section(titleResId = R.string.section_title_previously_used_switches) {
             availableRemoteSwitches.forEach { remoteSwitch ->
                 RemoteSwitchItem(
                     model = switchesScreenModel,
@@ -227,7 +228,7 @@ private fun SwitchList(
             )
         }
     } else {
-        Section(title = "Switches") {
+        Section(titleResId = R.string.section_title_switches) {
             switches.forEach { event ->
                 SwitchEventItem(
                     navController = navController,
@@ -253,8 +254,8 @@ private fun RemoteSwitchItem(
     ) {
         UICard(
             modifier = Modifier.weight(1f),
-            title = remoteSwitch.name,
-            description = if (isImporting) "Importing..." else "Tap to add",
+            runtimeTitle = remoteSwitch.name,
+            descriptionResId = if (isImporting) R.string.switch_importing else R.string.switch_tap_to_add,
             onClick = {
                 if (!isImporting) {
                     model.importSwitch(remoteSwitch, context)
@@ -277,8 +278,8 @@ private fun RemoteSwitchItem(
         if (showDeleteConfirmation.value) {
             AlertDialog(
                 onDismissRequest = { showDeleteConfirmation.value = false },
-                title = { Text("Confirm Deletion") },
-                text = { Text("Are you sure you want to delete this switch from your account?") },
+                title = { Text(stringResource(R.string.dialog_title_delete)) },
+                text = { Text(stringResource(R.string.dialog_message_delete_switch_from_account)) },
                 confirmButton = {
                     TextButton(
                         onClick = {
@@ -286,7 +287,7 @@ private fun RemoteSwitchItem(
                             model.deleteRemoteSwitch(remoteSwitch, context)
                         }
                     ) {
-                        Text("Delete")
+                        Text(stringResource(R.string.button_delete))
                     }
                 },
                 dismissButton = {
@@ -295,7 +296,7 @@ private fun RemoteSwitchItem(
                             showDeleteConfirmation.value = false
                         }
                     ) {
-                        Text("Cancel")
+                        Text(stringResource(R.string.button_cancel))
                     }
                 }
             )
@@ -315,8 +316,8 @@ private fun SwitchEventItem(
     }
 
     NavRouteLink(
-        title = switchEvent.name,
-        summary = "Edit this switch",
+        runtimeTitle = switchEvent.name,
+        summaryResId = R.string.switch_edit_this_switch,
         navController = navController,
         route = "$route/${switchEvent.code}"
     )

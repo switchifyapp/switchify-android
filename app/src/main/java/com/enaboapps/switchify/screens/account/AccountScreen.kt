@@ -21,8 +21,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.enaboapps.switchify.R
 import com.enaboapps.switchify.auth.AuthManager
 import com.enaboapps.switchify.backend.iap.IAPHandler
 import com.enaboapps.switchify.components.BaseView
@@ -56,7 +58,7 @@ fun AccountScreen(navController: NavController) {
     }
 
     BaseView(
-        title = "Account",
+        titleResId = R.string.screen_title_account,
         navController = navController
     ) {
         EmailAddressView(email = userEmail)
@@ -72,14 +74,14 @@ fun AccountScreen(navController: NavController) {
         Spacer(modifier = Modifier.height(20.dp))
 
         FullWidthButton(
-            text = "Change Password",
+            textResId = R.string.screen_title_change_password,
             onClick = {
                 navController.navigate(NavigationRoute.ChangePassword.name)
             }
         )
 
         FullWidthButton(
-            text = "Sign Out",
+            textResId = R.string.button_sign_out,
             onClick = {
                 authManager.signOut()
                 navController.popBackStack(navController.graph.startDestinationId, false)
@@ -89,7 +91,7 @@ fun AccountScreen(navController: NavController) {
         Spacer(modifier = Modifier.height(20.dp))
 
         FullWidthButton(
-            text = "Delete Account",
+            textResId = R.string.button_delete_account,
             onClick = {
                 showDeleteAccountDialog.value = true
             }
@@ -98,22 +100,22 @@ fun AccountScreen(navController: NavController) {
         if (showDeleteAccountDialog.value) {
             AlertDialog(
                 onDismissRequest = { showDeleteAccountDialog.value = false },
-                title = { Text("Delete Account") },
-                text = { Text("Are you sure you want to delete your account? This action cannot be undone.") },
+                title = { Text(stringResource(R.string.dialog_title_delete_account)) },
+                text = { Text(stringResource(R.string.dialog_message_delete_account)) },
                 confirmButton = {
                     TextButton(
                         onClick = {
                             deleteAccount()
                         }
                     ) {
-                        Text("Delete")
+                        Text(stringResource(R.string.button_delete))
                     }
                 },
                 dismissButton = {
                     TextButton(
                         onClick = { showDeleteAccountDialog.value = false }
                     ) {
-                        Text("Cancel")
+                        Text(stringResource(R.string.button_cancel))
                     }
                 }
             )

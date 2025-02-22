@@ -6,6 +6,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
+import com.enaboapps.switchify.R
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.components.Picker
 import com.enaboapps.switchify.components.Section
@@ -30,9 +31,9 @@ fun ScanMethodSelectionSection() {
         currentMethod = method
     }
 
-    Section(title = "SCAN METHOD") {
+    Section(titleResId = R.string.section_title_scanning_method) {
         Picker(
-            title = "Select Scan Method",
+            titleResId = R.string.picker_title_select_scan_method,
             selectedItem = currentMethod,
             items = methods,
             onItemSelected = setScanMethod,

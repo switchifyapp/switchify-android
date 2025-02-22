@@ -7,6 +7,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavController
+import com.enaboapps.switchify.R
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.Picker
@@ -30,12 +31,12 @@ fun CursorSettingsScreen(navController: NavController) {
     }
 
     BaseView(
-        title = "Cursor Settings",
+        titleResId = R.string.screen_title_cursor_settings,
         navController = navController
     ) {
-        Section(title = "Cursor Mode") {
+        Section(titleResId = R.string.section_title_cursor_mode) {
             Picker(
-                title = "Select Cursor Mode",
+                titleResId = R.string.picker_title_select_cursor_mode,
                 selectedItem = currentMode,
                 items = cursorModes,
                 onItemSelected = setCursorMode,
@@ -44,14 +45,14 @@ fun CursorSettingsScreen(navController: NavController) {
             )
         }
 
-        Section(title = "Cursor Scan Rates") {
+        Section(titleResId = R.string.section_title_cursor_scan_rates) {
             PreferenceTimeStepper(
                 value = preferenceManager.getLongValue(
                     PreferenceManager.PREFERENCE_KEY_CURSOR_FINE_SCAN_RATE,
                     1000
                 ),
-                title = "Fine Cursor Scan Rate",
-                summary = "Adjust the scan rate for fine cursor movements",
+                titleResId = R.string.preference_title_fine_cursor_scan_rate,
+                summaryResId = R.string.preference_summary_fine_cursor_scan_rate,
                 min = 25,
                 max = 5000,
                 step = 25,
@@ -68,8 +69,8 @@ fun CursorSettingsScreen(navController: NavController) {
                     PreferenceManager.PREFERENCE_KEY_CURSOR_BLOCK_SCAN_RATE,
                     1000
                 ),
-                title = "Block Cursor Scan Rate",
-                summary = "Adjust the scan rate for block cursor movements",
+                titleResId = R.string.preference_title_block_cursor_scan_rate,
+                summaryResId = R.string.preference_summary_block_cursor_scan_rate,
                 min = 100,
                 max = 5000,
                 step = 100,

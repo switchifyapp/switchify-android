@@ -1,9 +1,16 @@
 package com.enaboapps.switchify.components
 
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material3.Card
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -15,12 +22,16 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
 @Composable
 fun <T> Picker(
-    title: String,
+    titleResId: Int,
+    titleResIdArgs: Array<Any>? = null,
     selectedItem: T?,
     items: List<T>,
     modifier: Modifier = Modifier,
@@ -31,23 +42,17 @@ fun <T> Picker(
 ) {
     var expanded by remember { mutableStateOf(false) }
 
-    UICard(
-        modifier = modifier.padding(bottom = 8.dp),
+    val title = if (titleResIdArgs != null) {
+        stringResource(titleResId, *titleResIdArgs)
+    } else {
+        stringResource(titleResId)
+    }
+
+    PickerItem(
         title = title,
         description = if (selectedItem != null) itemToString(selectedItem) else "",
         extraDescription = if (selectedItem != null) itemDescription(selectedItem) else "",
-        rightActionButton = {
-            onDelete?.let {
-                IconButton(onClick = onDelete) {
-                    Icon(
-                        imageVector = Icons.Default.Delete,
-                        contentDescription = "Delete Item",
-                        tint = MaterialTheme.colorScheme.error
-                    )
-                }
-            }
-        },
-        rightIcon = Icons.Default.KeyboardArrowDown,
+        onDelete = onDelete,
         onClick = {
             expanded = true
         }
@@ -56,7 +61,7 @@ fun <T> Picker(
     if (expanded) {
         DropdownMenu(
             modifier = modifier,
-            expanded = expanded,
+            expanded = true,
             onDismissRequest = { expanded = false }
         ) {
             items.forEach { item ->
@@ -68,6 +73,68 @@ fun <T> Picker(
                     }
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun PickerItem(
+    title: String,
+    description: String,
+    extraDescription: String,
+    onDelete: (() -> Unit)?,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp)
+            .clickable(onClick = {
+                onClick()
+            })
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(20.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+            ) {
+                Text(
+                    text = title.uppercase(),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Medium
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = description,
+                    style = MaterialTheme.typography.bodySmall
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = extraDescription,
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+
+            if (onDelete != null) {
+                IconButton(
+                    onClick = onDelete
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = null
+                    )
+                }
+            }
+
+            Icon(
+                imageVector = Icons.Default.KeyboardArrowDown,
+                contentDescription = null,
+                modifier = Modifier.padding(start = 16.dp)
+            )
         }
     }
 }

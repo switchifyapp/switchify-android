@@ -15,6 +15,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
@@ -22,14 +23,18 @@ import androidx.compose.ui.unit.dp
 fun UICard(
     modifier: Modifier = Modifier
         .fillMaxWidth(),
-    title: String,
-    description: String? = null,
-    extraDescription: String? = null,
+    titleResId: Int? = null,
+    runtimeTitle: String? = null,
+    descriptionResId: Int? = null,
+    extraDescriptionResId: Int? = null,
     rightIcon: ImageVector? = null,
     rightActionButton: @Composable () -> Unit = {},
     onClick: () -> Unit,
     enabled: Boolean? = true
 ) {
+    val title = titleResId?.let { stringResource(it) } ?: runtimeTitle ?: ""
+    val description = descriptionResId?.let { stringResource(it) }
+    val extraDescription = extraDescriptionResId?.let { stringResource(it) }
     Card(
         modifier = modifier
             .padding(horizontal = 20.dp)

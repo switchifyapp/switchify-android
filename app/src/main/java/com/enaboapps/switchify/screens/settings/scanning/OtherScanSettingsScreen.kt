@@ -3,6 +3,7 @@ package com.enaboapps.switchify.screens.settings.scanning
 import androidx.compose.runtime.*
 import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavController
+import com.enaboapps.switchify.R
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.PreferenceSwitch
@@ -56,13 +57,13 @@ fun OtherScanSettingsScreen(navController: NavController) {
     }
 
     BaseView(
-        title = "Other Scan Settings",
+        titleResId = R.string.screen_title_other_scan_settings,
         navController = navController
     ) {
-        Section(title = "Timing") {
+        Section(titleResId = R.string.section_title_timing) {
             PreferenceSwitch(
-                title = "Auto-start scanning",
-                summary = "Automatically start scanning after a selection",
+                titleResId = R.string.preference_title_auto_start_scanning,
+                summaryResId = R.string.preference_summary_auto_start_scanning,
                 checked = autoStartScanning,
                 onCheckedChange = {
                     autoStartScanning = it
@@ -74,10 +75,10 @@ fun OtherScanSettingsScreen(navController: NavController) {
             )
         }
 
-        Section(title = "Behavior") {
+        Section(titleResId = R.string.section_title_behavior) {
             PreferenceSwitch(
-                title = "First item pause",
-                summary = "Pause briefly on the first item of each scan cycle",
+                titleResId = R.string.preference_title_first_item_pause,
+                summaryResId = R.string.preference_summary_first_item_pause,
                 checked = pauseOnFirstItem,
                 onCheckedChange = {
                     pauseOnFirstItem = it
@@ -91,8 +92,8 @@ fun OtherScanSettingsScreen(navController: NavController) {
             if (pauseOnFirstItem) {
                 PreferenceTimeStepper(
                     value = pauseOnFirstItemDelay,
-                    title = "First item pause duration",
-                    summary = "How long to pause on the first item",
+                    titleResId = R.string.preference_title_first_item_pause_duration,
+                    summaryResId = R.string.preference_summary_first_item_pause_duration,
                     min = 500,
                     max = 3000,
                     step = 100,
@@ -107,10 +108,10 @@ fun OtherScanSettingsScreen(navController: NavController) {
             }
         }
 
-        Section(title = "Manual Scan Behavior") {
+        Section(titleResId = R.string.section_title_manual_scan_behavior) {
             PreferenceSwitch(
-                title = "Move Repeat",
-                summary = "Hold down a switch to move repeatedly",
+                titleResId = R.string.preference_title_move_repeat,
+                summaryResId = R.string.preference_summary_move_repeat,
                 checked = moveRepeat,
                 onCheckedChange = {
                     moveRepeat = it
@@ -124,8 +125,8 @@ fun OtherScanSettingsScreen(navController: NavController) {
             if (moveRepeat) {
                 PreferenceTimeStepper(
                     value = moveRepeatDelay,
-                    title = "Move Repeat Delay",
-                    summary = "The delay before repeating the last move action",
+                    titleResId = R.string.preference_title_move_repeat_delay,
+                    summaryResId = R.string.preference_summary_move_repeat_delay,
                     min = 100,
                     max = 2000,
                     step = 100,

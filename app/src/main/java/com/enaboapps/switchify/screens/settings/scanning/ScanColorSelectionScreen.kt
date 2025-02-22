@@ -14,6 +14,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.MutableLiveData
 import androidx.navigation.NavController
+import com.enaboapps.switchify.R
 import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.service.scanning.ScanColorManager
 
@@ -32,7 +33,7 @@ fun ScanColorSelectionScreen(
     }
 
     BaseView(
-        title = "Scan Colors",
+        titleResId = R.string.screen_title_scan_colors,
         navController = navController
     ) {
         // radio buttons for each scan color set

@@ -6,6 +6,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
@@ -20,11 +21,11 @@ fun EnableAccessibilityServiceScreen(navController: NavController) {
     val context = LocalContext.current
 
     BaseView(
-        title = "Enable Accessibility Service",
+        titleResId = R.string.screen_title_accessibility_service,
         navController = navController
     ) {
         Text(
-            text = "To use Switchify effectively, please enable the Accessibility Service in your device settings.",
+            text = stringResource(R.string.accessibility_service_description),
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(bottom = 20.dp)
@@ -34,15 +35,24 @@ fun EnableAccessibilityServiceScreen(navController: NavController) {
             text = disclosure,
             modifier = Modifier.padding(bottom = 20.dp)
         )
-        FullWidthButton(text = "Take Me There", onClick = {
-            ServiceUtils().openAccessibilitySettings(context)
-            Logger.logEvent("Opened Accessibility Settings")
-        })
-        FullWidthButton(text = "I've Enabled It", onClick = {
-            navController.popBackStack()
-        })
-        FullWidthButton(text = "Not Right Now", onClick = {
-            navController.popBackStack()
-        })
+        FullWidthButton(
+            textResId = R.string.button_take_me_there,
+            onClick = {
+                ServiceUtils().openAccessibilitySettings(context)
+                Logger.logEvent("Opened Accessibility Settings")
+            }
+        )
+        FullWidthButton(
+            textResId = R.string.button_enabled_it,
+            onClick = {
+                navController.popBackStack()
+            }
+        )
+        FullWidthButton(
+            textResId = R.string.button_not_right_now,
+            onClick = {
+                navController.popBackStack()
+            }
+        )
     }
 }

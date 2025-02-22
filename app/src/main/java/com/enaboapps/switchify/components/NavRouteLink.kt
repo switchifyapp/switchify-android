@@ -5,21 +5,24 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.enaboapps.switchify.utils.Logger
 
 @Composable
 fun NavRouteLink(
-    title: String,
-    summary: String,
+    titleResId: Int? = null,
+    runtimeTitle: String? = null,
+    summaryResId: Int? = null,
     navController: NavController,
     route: String
 ) {
+    val title = titleResId?.let { stringResource(it) } ?: runtimeTitle ?: ""
     UICard(
         modifier = Modifier.padding(bottom = 8.dp),
-        title = title.uppercase(),
-        description = summary,
+        runtimeTitle = title,
+        descriptionResId = summaryResId,
         rightIcon = Icons.AutoMirrored.Filled.ArrowForward,
         onClick = {
             navController.navigate(route)

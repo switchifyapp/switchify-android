@@ -9,15 +9,18 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.enaboapps.switchify.R
 import com.enaboapps.switchify.auth.AuthManager
 import com.enaboapps.switchify.auth.GoogleAuthHandler
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.components.*
 import com.enaboapps.switchify.service.custom.actions.store.ActionStore
+import com.enaboapps.switchify.utils.Resources
 import kotlinx.coroutines.launch
 
 @Composable
@@ -51,7 +54,7 @@ fun SignUpScreen(navController: NavController) {
     }
 
     BaseView(
-        title = "Sign Up",
+        titleResId = R.string.screen_title_sign_up,
         navController = navController
     ) {
         if (errorMessage != null) {
@@ -63,17 +66,17 @@ fun SignUpScreen(navController: NavController) {
             Spacer(modifier = Modifier.height(8.dp))
         }
 
-        Text(text = "Create an account to save your settings. This will allow you to access your settings on any device.")
+        Text(text = stringResource(R.string.create_an_account_to_save_settings))
         Spacer(modifier = Modifier.height(16.dp))
 
         TextArea(
             value = email,
             onValueChange = { email = it },
-            label = "Email",
+            labelResId = R.string.label_email_address,
             keyboardType = KeyboardType.Email,
             imeAction = ImeAction.Next,
             isError = email.isBlank(),
-            supportingText = "Email is required"
+            supportingTextResId = R.string.error_email_required
         )
 
         Spacer(modifier = Modifier.height(8.dp))
@@ -81,12 +84,12 @@ fun SignUpScreen(navController: NavController) {
         TextArea(
             value = password,
             onValueChange = { password = it },
-            label = "Password",
+            labelResId = R.string.label_password,
             keyboardType = KeyboardType.Password,
             imeAction = ImeAction.Next,
             isSecure = true,
             isError = password.isBlank(),
-            supportingText = "Password is required"
+            supportingTextResId = R.string.error_password_required
         )
 
         Spacer(modifier = Modifier.height(8.dp))
@@ -94,23 +97,23 @@ fun SignUpScreen(navController: NavController) {
         TextArea(
             value = confirmPassword,
             onValueChange = { confirmPassword = it },
-            label = "Confirm Password",
+            labelResId = R.string.label_confirm_password,
             keyboardType = KeyboardType.Password,
             isSecure = true,
             isError = confirmPassword.isBlank(),
-            supportingText = "Confirm password is required"
+            supportingTextResId = R.string.error_password_required
         )
 
         Spacer(modifier = Modifier.height(16.dp))
 
         FullWidthButton(
-            text = "Sign Up",
+            textResId = R.string.button_sign_up,
             onClick = {
                 errorMessage = when {
-                    !authManager.isPasswordStrong(password) -> "Password must be at least 8 characters long, include an uppercase letter, a lowercase letter, and a number."
-                    password != confirmPassword -> "Passwords do not match."
-                    email.isEmpty() -> "Email cannot be empty."
-                    password.isEmpty() -> "Password cannot be empty."
+                    !authManager.isPasswordStrong(password) -> Resources.getString(R.string.error_password_not_strong)
+                    password != confirmPassword -> Resources.getString(R.string.error_passwords_do_not_match)
+                    email.isEmpty() -> Resources.getString(R.string.error_email_required)
+                    password.isEmpty() -> Resources.getString(R.string.error_password_required)
                     else -> null
                 }
                 if (errorMessage == null) {
@@ -127,11 +130,11 @@ fun SignUpScreen(navController: NavController) {
         )
 
         Spacer(modifier = Modifier.height(16.dp))
-        Text("or")
+        Text(stringResource(R.string.or))
         Spacer(modifier = Modifier.height(16.dp))
 
         FullWidthButton(
-            text = "Sign up with Google",
+            textResId = R.string.button_sign_up_with_google,
             onClick = {
                 scope.launch {
                     googleAuthHandler.googleSignIn(context).collect { result ->
@@ -140,7 +143,7 @@ fun SignUpScreen(navController: NavController) {
                                 if (authResult.user != null) {
                                     onSignUp()
                                 } else {
-                                    errorMessage = "Sign up failed"
+                                    errorMessage = Resources.getString(R.string.error_signing_up)
                                 }
                             },
                             onFailure = { exception ->
@@ -163,7 +166,7 @@ fun SignUpScreen(navController: NavController) {
         val privacyPolicyUrl = "https://www.switchifyapp.com/privacy"
 
         FullWidthButton(
-            text = "Privacy Policy",
+            textResId = R.string.button_privacy_policy,
             onClick = {
                 urlLauncher.launch(Intent(Intent.ACTION_VIEW, Uri.parse(privacyPolicyUrl)))
             },

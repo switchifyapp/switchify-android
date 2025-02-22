@@ -1,6 +1,7 @@
 package com.enaboapps.switchify.screens.settings.actions.inputs
 
 import androidx.compose.runtime.Composable
+import com.enaboapps.switchify.R
 import com.enaboapps.switchify.components.TextArea
 import com.enaboapps.switchify.service.custom.actions.store.data.ActionExtra
 
@@ -21,8 +22,8 @@ fun CopyTextExtraInput(
 
             onExtraValidated(text.isNotBlank())
         },
-        label = "Text to Copy",
-        isError = selectedExtra?.textToCopy.isNullOrBlank() == true,
-        supportingText = "Text to copy is required"
+        labelResId = R.string.action_text_to_copy,
+        isError = selectedExtra?.textToCopy?.isBlank() == true,
+        supportingTextResId = R.string.action_text_to_copy_desc
     )
 }

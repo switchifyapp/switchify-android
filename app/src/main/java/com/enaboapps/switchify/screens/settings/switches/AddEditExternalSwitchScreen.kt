@@ -27,8 +27,10 @@ import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.enaboapps.switchify.R
 import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.FullWidthButton
 import com.enaboapps.switchify.components.TextArea
@@ -50,7 +52,8 @@ fun AddEditExternalSwitchScreen(navController: NavController, code: String? = nu
     val isValid by addEditExternalSwitchScreenModel.isValid.observeAsState()
     val editing = code != null
     val captured by addEditExternalSwitchScreenModel.switchCaptured.observeAsState()
-    val screenTitle = if (editing) "Edit Switch" else "Add New Switch"
+    val screenTitle =
+        if (editing) R.string.screen_title_edit_switch else R.string.screen_title_add_switch
     val showDeleteConfirmation = remember { mutableStateOf(false) }
 
     if (!captured!!) {
@@ -59,7 +62,7 @@ fun AddEditExternalSwitchScreen(navController: NavController, code: String? = nu
         })
     } else {
         BaseView(
-            title = screenTitle,
+            titleResId = screenTitle,
             navController = navController
         ) {
             SwitchName(name = addEditExternalSwitchScreenModel.name, onNameChange = {
@@ -72,35 +75,42 @@ fun AddEditExternalSwitchScreen(navController: NavController, code: String? = nu
             ) {
                 SwitchActionSection(addEditExternalSwitchScreenModel)
                 if (shouldSave!!) {
-                    FullWidthButton(text = "Save", enabled = isValid!!, onClick = {
-                        addEditExternalSwitchScreenModel.save(context) { success ->
-                            scope.launch {
-                                if (success) {
-                                    navController.popBackStack()
-                                } else {
-                                    Toast.makeText(
-                                        context,
-                                        "Error saving switch",
-                                        Toast.LENGTH_SHORT
-                                    )
-                                        .show()
+                    FullWidthButton(
+                        textResId = R.string.button_save,
+                        enabled = isValid!!,
+                        onClick = {
+                            addEditExternalSwitchScreenModel.save(context) { success ->
+                                scope.launch {
+                                    if (success) {
+                                        navController.popBackStack()
+                                    } else {
+                                        Toast.makeText(
+                                            context,
+                                            "Error saving switch",
+                                            Toast.LENGTH_SHORT
+                                        )
+                                            .show()
+                                    }
                                 }
                             }
                         }
-                    })
+                    )
                 }
                 if (editing) {
-                    FullWidthButton(text = "Delete", onClick = {
-                        showDeleteConfirmation.value = true
-                    })
+                    FullWidthButton(
+                        textResId = R.string.button_delete,
+                        onClick = {
+                            showDeleteConfirmation.value = true
+                        }
+                    )
                 }
             }
 
             if (showDeleteConfirmation.value) {
                 AlertDialog(
                     onDismissRequest = { showDeleteConfirmation.value = false },
-                    title = { Text("Confirm Deletion") },
-                    text = { Text("Are you sure you want to delete this switch?") },
+                    title = { Text(stringResource(R.string.dialog_title_delete)) },
+                    text = { Text(stringResource(R.string.dialog_message_delete)) },
                     confirmButton = {
                         TextButton(
                             onClick = {
@@ -120,14 +130,13 @@ fun AddEditExternalSwitchScreen(navController: NavController, code: String? = nu
                                 }
                             }
                         ) {
-                            Text("Delete")
+                            Text(stringResource(R.string.button_delete))
                         }
                     },
                     dismissButton = {
                         TextButton(
-                            onClick = { showDeleteConfirmation.value = false }
-                        ) {
-                            Text("Cancel")
+                            onClick = { showDeleteConfirmation.value = false }) {
+                            Text(stringResource(R.string.button_cancel))
                         }
                     }
                 )
@@ -152,20 +161,21 @@ fun SwitchListener(navController: NavController, onKeyEvent: (KeyEvent) -> Unit)
         verticalArrangement = Arrangement.Center) {
         Spacer(modifier = Modifier.weight(1f))
         Text(
-            text = "Press the switch that you want to use",
+            text = stringResource(R.string.switch_listener_press_switch),
             style = MaterialTheme.typography.titleMedium
         )
         Spacer(modifier = Modifier.padding(8.dp))
         Text(
-            text = "Is your switch not working? " +
-                    "If you are using a USB switch, please make sure that you have it plugged in and that it is turned on. " +
-                    "If you are using a Bluetooth switch, please make sure that it is paired with your device.",
+            text = stringResource(R.string.switch_listener_is_switch_not_working),
             style = MaterialTheme.typography.bodyMedium
         )
         Spacer(modifier = Modifier.padding(16.dp))
-        FullWidthButton(text = "Cancel", onClick = {
-            navController.popBackStack()
-        })
+        FullWidthButton(
+            textResId = R.string.button_cancel,
+            onClick = {
+                navController.popBackStack()
+            }
+        )
         Spacer(modifier = Modifier.weight(1f))
     }
     LaunchedEffect(requester) {
@@ -186,9 +196,9 @@ fun SwitchName(
             name = it
             onNameChange(it)
         },
-        label = "Switch Name",
+        labelResId = R.string.label_switch_name,
         isError = name.isBlank(),
-        supportingText = "Switch name is required"
+        supportingTextResId = R.string.error_switch_name_required
     )
 }
 
@@ -199,7 +209,7 @@ fun SwitchActionSection(viewModel: AddEditExternalSwitchScreenModel) {
     val refreshingLongPressActions = viewModel.refreshingLongPressActions.observeAsState()
     val context = LocalContext.current
     SwitchActionPicker(
-        title = "Press Action",
+        titleResId = R.string.section_title_press_action,
         switchAction = viewModel.pressAction.value!!,
         onChange = {
             viewModel.setPressAction(it, context)
@@ -210,16 +220,15 @@ fun SwitchActionSection(viewModel: AddEditExternalSwitchScreenModel) {
 
     if (allowLongPress.value!! && !refreshingLongPressActions.value!!) {
         Text(
-            text = "Each switch can have multiple actions for long press. " +
-                    "You can add or remove actions below. " +
-                    "The actions will be executed in the order they are listed based on the duration of the long press.",
+            text = stringResource(R.string.switch_listener_each_switch_can_have_multiple_actions_for_long_press),
             style = MaterialTheme.typography.bodyMedium,
             modifier = Modifier.padding(horizontal = 20.dp)
         )
 
         longPressActions.value?.forEachIndexed { index, action ->
             SwitchActionPicker(
-                title = "Long Press Action ${index + 1}",
+                titleResId = R.string.section_title_long_press_action,
+                titleResIdArgs = arrayOf(index + 1),
                 switchAction = action,
                 onChange = { newAction ->
                     viewModel.updateLongPressAction(action, newAction)
@@ -229,8 +238,11 @@ fun SwitchActionSection(viewModel: AddEditExternalSwitchScreenModel) {
                 }
             )
         }
-        FullWidthButton(text = "Add Long Press Action", onClick = {
-            viewModel.addLongPressAction(SwitchAction(SwitchAction.ACTION_SELECT))
-        })
+        FullWidthButton(
+            textResId = R.string.button_add_long_press_action,
+            onClick = {
+                viewModel.addLongPressAction(SwitchAction(SwitchAction.ACTION_SELECT))
+            }
+        )
     }
 }

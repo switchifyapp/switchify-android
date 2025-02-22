@@ -9,16 +9,19 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.enaboapps.switchify.R
 import com.enaboapps.switchify.auth.AuthManager
 import com.enaboapps.switchify.auth.GoogleAuthHandler
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.components.*
 import com.enaboapps.switchify.nav.NavigationRoute
 import com.enaboapps.switchify.service.custom.actions.store.ActionStore
+import com.enaboapps.switchify.utils.Resources
 import kotlinx.coroutines.launch
 
 @Composable
@@ -44,7 +47,7 @@ fun SignInScreen(navController: NavController) {
     }
 
     BaseView(
-        title = "Sign In",
+        titleResId = R.string.screen_title_sign_in,
         navController = navController
     ) {
         if (errorMessage != null) {
@@ -56,17 +59,17 @@ fun SignInScreen(navController: NavController) {
             Spacer(modifier = Modifier.height(8.dp))
         }
 
-        Text(text = "Sign in to access your settings.")
+        Text(text = stringResource(R.string.sign_in_to_access_settings))
         Spacer(modifier = Modifier.height(16.dp))
 
         TextArea(
             value = email,
             onValueChange = { email = it },
-            label = "Email",
+            labelResId = R.string.label_email,
             keyboardType = KeyboardType.Email,
             imeAction = ImeAction.Next,
             isError = email.isBlank(),
-            supportingText = "Email is required"
+            supportingTextResId = R.string.error_email_required
         )
 
         Spacer(modifier = Modifier.height(8.dp))
@@ -74,17 +77,17 @@ fun SignInScreen(navController: NavController) {
         TextArea(
             value = password,
             onValueChange = { password = it },
-            label = "Password",
+            labelResId = R.string.label_password,
             keyboardType = KeyboardType.Password,
             isSecure = true,
             isError = password.isBlank(),
-            supportingText = "Password is required"
+            supportingTextResId = R.string.error_password_required
         )
 
         Spacer(modifier = Modifier.height(16.dp))
 
         FullWidthButton(
-            text = "Sign In",
+            textResId = R.string.button_sign_in,
             onClick = {
                 if (email.isNotEmpty() && password.isNotEmpty()) {
                     AuthManager.instance.signInWithEmailAndPassword(
@@ -101,7 +104,8 @@ fun SignInScreen(navController: NavController) {
                         }
                     )
                 } else {
-                    errorMessage = "Please enter your email and password"
+                    errorMessage =
+                        Resources.getString(R.string.error_please_enter_email_and_password)
                 }
             }
         )
@@ -109,18 +113,18 @@ fun SignInScreen(navController: NavController) {
         Spacer(modifier = Modifier.height(8.dp))
 
         FullWidthButton(
-            text = "Sign Up",
+            textResId = R.string.button_sign_up,
             onClick = {
                 navController.navigate(NavigationRoute.SignUp.name)
             }
         )
 
         Spacer(modifier = Modifier.height(16.dp))
-        Text("or")
+        Text(stringResource(R.string.or))
         Spacer(modifier = Modifier.height(16.dp))
 
         FullWidthButton(
-            text = "Sign in with Google",
+            textResId = R.string.button_sign_in_with_google,
             onClick = {
                 scope.launch {
                     googleAuthHandler.googleSignIn(context).collect { result ->
@@ -133,11 +137,11 @@ fun SignInScreen(navController: NavController) {
                                     )
                                     onSignIn()
                                 } else {
-                                    errorMessage = "Sign in failed"
+                                    errorMessage = Resources.getString(R.string.error_signing_in)
                                 }
                             },
                             onFailure = { exception ->
-                                errorMessage = exception.message
+                                errorMessage = exception.localizedMessage
                             }
                         )
                     }
@@ -148,7 +152,7 @@ fun SignInScreen(navController: NavController) {
         Spacer(modifier = Modifier.height(16.dp))
 
         FullWidthButton(
-            text = "Forgot Password?",
+            textResId = R.string.button_forgot_password,
             onClick = {
                 navController.navigate(NavigationRoute.ForgotPassword.name)
             },
@@ -166,7 +170,7 @@ fun SignInScreen(navController: NavController) {
         val privacyPolicyUrl = "https://www.switchifyapp.com/privacy"
 
         FullWidthButton(
-            text = "Privacy Policy",
+            textResId = R.string.button_privacy_policy,
             onClick = {
                 urlLauncher.launch(Intent(Intent.ACTION_VIEW, Uri.parse(privacyPolicyUrl)))
             },

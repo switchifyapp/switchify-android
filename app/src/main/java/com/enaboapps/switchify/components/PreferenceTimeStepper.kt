@@ -19,20 +19,24 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.enaboapps.switchify.utils.StringUtils
 
 @Composable
 fun PreferenceTimeStepper(
     value: Long,
-    title: String,
-    summary: String,
+    titleResId: Int,
+    summaryResId: Int,
     min: Long,
     max: Long,
     step: Long = 100, // Default step is 100
     onValueChanged: (Long) -> Unit
 ) {
     var time by remember { mutableLongStateOf(value) }
+
+    val title = stringResource(titleResId)
+    val summary = stringResource(summaryResId)
 
     Card(
         modifier = Modifier
