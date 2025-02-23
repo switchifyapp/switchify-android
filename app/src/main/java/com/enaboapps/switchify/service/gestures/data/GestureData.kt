@@ -19,6 +19,27 @@ data class GestureData(
         const val SCROLL_DURATION = 800L
     }
 
+    fun isScroll(): Boolean {
+        return gestureType == GestureType.SCROLL_UP ||
+                gestureType == GestureType.SCROLL_DOWN ||
+                gestureType == GestureType.SCROLL_LEFT ||
+                gestureType == GestureType.SCROLL_RIGHT
+    }
+
+    fun performAutoScroll(gestureManager: GestureManager): Boolean {
+        when (gestureType) {
+            GestureType.SCROLL_UP, GestureType.SCROLL_DOWN, GestureType.SCROLL_LEFT, GestureType.SCROLL_RIGHT -> {
+                gestureManager.performSwipeOrScroll(gestureType)
+                return true
+            }
+
+            else -> {
+                return false
+            }
+        }
+        return false
+    }
+
     fun performLockAction(gestureManager: GestureManager): Boolean {
         when (gestureType) {
             GestureType.TAP -> {

@@ -60,6 +60,7 @@ fun SettingsScreen(navController: NavController) {
 fun GeneralSettingsTab(settingsScreenModel: SettingsScreenModel, navController: NavController) {
     ScrollableView {
         InputSection(navController)
+        GesturesSettingsSection(navController)
         MenuSection(settingsScreenModel, navController)
         ActionsSection(navController)
     }
@@ -139,6 +140,18 @@ private fun InputSection(navController: NavController) {
             summaryResId = R.string.settings_summary_switch_stability,
             navController = navController,
             route = NavigationRoute.SwitchStability.name
+        )
+    }
+}
+
+@Composable
+private fun GesturesSettingsSection(navController: NavController) {
+    Section(titleResId = R.string.settings_section_gesture) {
+        NavRouteLink(
+            titleResId = R.string.settings_title_gesture_settings,
+            summaryResId = R.string.settings_summary_gesture_settings,
+            navController = navController,
+            route = NavigationRoute.GestureSettings.name
         )
     }
 }
