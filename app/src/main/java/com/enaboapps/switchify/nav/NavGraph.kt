@@ -16,6 +16,7 @@ import com.enaboapps.switchify.screens.paywall.AppPaywallScreen
 import com.enaboapps.switchify.screens.settings.SettingsScreen
 import com.enaboapps.switchify.screens.settings.actions.AddEditActionScreen
 import com.enaboapps.switchify.screens.settings.actions.MyActionsScreen
+import com.enaboapps.switchify.screens.settings.gestures.GestureSettingsScreen
 import com.enaboapps.switchify.screens.settings.menu.MenuItemCustomizationScreen
 import com.enaboapps.switchify.screens.settings.menu.MenuSizeScreen
 import com.enaboapps.switchify.screens.settings.scanning.CursorSettingsScreen
@@ -65,6 +66,9 @@ fun NavGraph(navController: NavHostController) {
         }
         composable(NavigationRoute.ScanColor.name) {
             ScanColorSelectionScreen(navController)
+        }
+        composable(NavigationRoute.GestureSettings.name) {
+            GestureSettingsScreen(navController)
         }
         composable(NavigationRoute.CursorSettings.name) {
             CursorSettingsScreen(navController)

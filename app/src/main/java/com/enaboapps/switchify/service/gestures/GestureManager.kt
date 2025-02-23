@@ -36,7 +36,6 @@ class GestureManager private constructor() {
     }
 
     private var accessibilityService: SwitchifyAccessibilityService? = null
-    private var gestureLockManager: GestureLockManager? = null
     private var preferenceManager: PreferenceManager? = null
     private lateinit var linearGesturePerformer: LinearGesturePerformer
 
@@ -47,10 +46,10 @@ class GestureManager private constructor() {
      */
     fun setup(accessibilityService: SwitchifyAccessibilityService) {
         this.accessibilityService = accessibilityService
-        gestureLockManager = GestureLockManager()
+        AutoScrollManager.getInstance().init(accessibilityService)
         preferenceManager = PreferenceManager(accessibilityService)
         linearGesturePerformer =
-            LinearGesturePerformer(accessibilityService, gestureLockManager!!)
+            LinearGesturePerformer(accessibilityService, GestureLockManager.getInstance())
     }
 
     /**
@@ -88,7 +87,7 @@ class GestureManager private constructor() {
                     TAP_DURATION
                 )
                 path.moveTo(point.x, point.y)
-                gestureLockManager?.setLockedGestureData(
+                GestureLockManager.getInstance().setLockedGestureData(
                     GestureData(
                         GestureType.TAP,
                         point
@@ -126,7 +125,7 @@ class GestureManager private constructor() {
                     TAP_DURATION
                 )
                 path.moveTo(point.x, point.y)
-                gestureLockManager?.setLockedGestureData(
+                GestureLockManager.getInstance().setLockedGestureData(
                     GestureData(
                         GestureType.DOUBLE_TAP,
                         point
@@ -169,7 +168,7 @@ class GestureManager private constructor() {
                     TAP_AND_HOLD_DURATION
                 )
                 path.moveTo(point.x, point.y)
-                gestureLockManager?.setLockedGestureData(
+                GestureLockManager.getInstance().setLockedGestureData(
                     GestureData(
                         GestureType.TAP_AND_HOLD,
                         point
@@ -199,9 +198,11 @@ class GestureManager private constructor() {
      * @return True if a locked gesture action was performed, false otherwise.
      */
     fun performGestureLockAction(): Boolean {
-        if (gestureLockManager?.isGestureLockEnabled() == true) {
-            gestureLockManager?.getLockedGestureData()?.let { gestureData ->
-                if (gestureLockManager?.canLockGesture(gestureData.gestureType) == true) {
+        if (GestureLockManager.getInstance().isGestureLockEnabled() == true) {
+            GestureLockManager.getInstance().getLockedGestureData()?.let { gestureData ->
+                if (GestureLockManager.getInstance()
+                        .canLockGesture(gestureData.gestureType) == true
+                ) {
                     return gestureData.performLockAction(this)
                 }
             }
@@ -213,7 +214,7 @@ class GestureManager private constructor() {
      * Toggles the gesture lock on or off.
      */
     fun toggleGestureLock() {
-        gestureLockManager?.toggleGestureLock()
+        GestureLockManager.getInstance().toggleGestureLock()
     }
 
     /**
@@ -222,7 +223,7 @@ class GestureManager private constructor() {
      * @return True if the gesture lock is enabled, false otherwise.
      */
     fun isGestureLockEnabled(): Boolean {
-        return gestureLockManager?.isGestureLockEnabled() == true
+        return GestureLockManager.getInstance().isGestureLockEnabled() == true
     }
 
     /**
@@ -231,6 +232,9 @@ class GestureManager private constructor() {
      * @param type The GestureType of the swipe.
      */
     fun performSwipeOrScroll(type: GestureType) {
+        if (AutoScrollManager.getInstance()
+                .startAutoScroll(GestureData(type, GesturePoint.getPoint()))
+        ) return
         linearGesturePerformer.startGesture(type)
         linearGesturePerformer.endGesture()
     }
@@ -285,7 +289,7 @@ class GestureManager private constructor() {
      * @param type The type of zoom action to perform.
      */
     fun performZoom(type: GestureType) {
-        gestureLockManager?.setLockedGestureData(
+        GestureLockManager.getInstance().setLockedGestureData(
             GestureData(
                 type,
                 GesturePoint.getPoint()

@@ -6,6 +6,7 @@ import android.os.Looper
 import com.enaboapps.switchify.service.SwitchifyAccessibilityService
 import com.enaboapps.switchify.service.core.GlobalActionManager
 import com.enaboapps.switchify.service.custom.actions.ActionPerformer
+import com.enaboapps.switchify.service.gestures.AutoScrollManager
 import com.enaboapps.switchify.service.gestures.GestureManager
 import com.enaboapps.switchify.service.menu.MenuManager
 import com.enaboapps.switchify.service.methods.cursor.CursorManager
@@ -152,6 +153,8 @@ class ScanningManager(
         if (GestureManager.getInstance().performGestureLockAction()) {
             return
         }
+
+        if (AutoScrollManager.getInstance().stopAutoScroll()) return
 
         when (action.id) {
             SwitchAction.ACTION_SELECT -> select()

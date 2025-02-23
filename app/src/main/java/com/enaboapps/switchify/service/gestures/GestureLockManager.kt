@@ -9,11 +9,25 @@ import com.enaboapps.switchify.service.window.ServiceMessageHUD
 import java.util.Timer
 import java.util.TimerTask
 
-class GestureLockManager {
+class GestureLockManager private constructor() {
     private var isLocked = false
     private var lockedGestureData: GestureData? = null
     private var timeoutTimer: Timer? = null
     private val lockTimeout = 60000L
+
+    companion object {
+        private var instance: GestureLockManager? = null
+
+        /**
+         * Gets the singleton instance of the GestureLockManager.
+         * @return The singleton instance of the GestureLockManager.
+         */
+        fun getInstance(): GestureLockManager {
+            return instance ?: synchronized(this) {
+                instance ?: GestureLockManager().also { instance = it }
+            }
+        }
+    }
 
     // Function to lock/unlock the gesture lock, showing a message to the user
     fun toggleGestureLock() {

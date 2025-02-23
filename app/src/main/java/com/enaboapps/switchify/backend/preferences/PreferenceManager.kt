@@ -32,12 +32,12 @@ class PreferenceManager(context: Context) {
         const val PREFERENCE_KEY_ITEM_SCAN_SPEECH = "item_scan_speech"
         const val PREFERENCE_KEY_SWITCH_IGNORE_REPEAT = "switch_ignore_repeat"
         const val PREFERENCE_KEY_SWITCH_IGNORE_REPEAT_DELAY = "switch_ignore_repeat_delay"
+        const val PREFERENCE_KEY_AUTO_SCROLL = "auto_scroll"
+        const val PREFERENCE_KEY_AUTO_SCROLL_DELAY = "auto_scroll_delay"
         const val PREFERENCE_KEY_SCAN_COLOR_SET = "scan_color_set"
         const val PREFERENCE_KEY_MENU_ITEM_VISIBILITY_PREFIX = "menu_item_visibility_"
         const val PREFERENCE_KEY_MENU_SIZE = "menu_size"
         const val PREFERENCE_KEY_MENU_TRANSPARENCY = "menu_transparency"
-        const val PREFERENCE_KEY_LOCK_SCREEN = "lock_screen"
-        const val PREFERENCE_KEY_LOCK_SCREEN_CODE = "lock_screen_code"
         private const val PREFERENCE_FILE_NAME = "switchify_preferences"
     }
 
