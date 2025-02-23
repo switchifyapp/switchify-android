@@ -26,6 +26,8 @@ class AnimatedGestureArrow(private val context: Context) {
         duration: Long,
         onAnimationEnd: () -> Unit = {}
     ) {
+        val size = 100
+        val halfSize = size / 2
         // Create arrow ImageView
         val arrow = ImageView(context).apply {
             setImageResource(R.drawable.gesture_arrow)
@@ -37,10 +39,10 @@ class AnimatedGestureArrow(private val context: Context) {
                 PorterDuff.Mode.SRC_IN
             )
             // Set the size of the arrow (adjust as needed)
-            layoutParams = RelativeLayout.LayoutParams(60, 60).apply {
+            layoutParams = RelativeLayout.LayoutParams(size, size).apply {
                 // Position the arrow at the start coordinates within the full-screen container
-                leftMargin = startX - 30 // Center the arrow horizontally
-                topMargin = startY - 30  // Center the arrow vertically
+                leftMargin = startX - halfSize // Center the arrow horizontally
+                topMargin = startY - halfSize  // Center the arrow vertically
             }
         }
 
