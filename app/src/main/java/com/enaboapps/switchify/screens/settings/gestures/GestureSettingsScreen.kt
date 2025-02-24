@@ -10,6 +10,7 @@ import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.PreferenceSwitch
 import com.enaboapps.switchify.components.PreferenceTimeStepper
+import com.enaboapps.switchify.components.Section
 
 @Composable
 fun GestureSettingsScreen(navController: NavController) {
@@ -20,35 +21,58 @@ fun GestureSettingsScreen(navController: NavController) {
     val autoScrollDelay =
         remember { preferenceManager.getLongValue(PreferenceManager.Keys.PREFERENCE_KEY_AUTO_SCROLL_DELAY) }
 
+    val gestureLock =
+        remember { preferenceManager.getBooleanValue(PreferenceManager.Keys.PREFERENCE_KEY_GESTURE_LOCK) }
+
     val autoScrollState = remember { mutableStateOf(autoScroll) }
 
     BaseView(
         titleResId = R.string.screen_title_gesture_settings,
         navController = navController
     ) {
-        PreferenceSwitch(
-            titleResId = R.string.preference_title_auto_scroll,
-            summaryResId = R.string.preference_summary_auto_scroll,
-            checked = autoScroll,
-            isRestrictedToPro = true,
-            onCheckedChange = {
-                preferenceManager.setBooleanValue(
-                    PreferenceManager.Keys.PREFERENCE_KEY_AUTO_SCROLL,
-                    it
+        Section(
+            titleResId = R.string.section_title_scrolling
+        ) {
+            PreferenceSwitch(
+                titleResId = R.string.preference_title_auto_scroll,
+                summaryResId = R.string.preference_summary_auto_scroll,
+                checked = autoScroll,
+                isRestrictedToPro = true,
+                onCheckedChange = {
+                    preferenceManager.setBooleanValue(
+                        PreferenceManager.Keys.PREFERENCE_KEY_AUTO_SCROLL,
+                        it
+                    )
+                    autoScrollState.value = it
+                }
+            )
+            if (autoScrollState.value) {
+                PreferenceTimeStepper(
+                    titleResId = R.string.preference_title_auto_scroll_delay,
+                    summaryResId = R.string.preference_summary_auto_scroll_delay,
+                    min = 100,
+                    max = 10000,
+                    value = autoScrollDelay,
+                    onValueChanged = {
+                        preferenceManager.setLongValue(
+                            PreferenceManager.Keys.PREFERENCE_KEY_AUTO_SCROLL_DELAY,
+                            it
+                        )
+                    }
                 )
-                autoScrollState.value = it
             }
-        )
-        if (autoScrollState.value) {
-            PreferenceTimeStepper(
-                titleResId = R.string.preference_title_auto_scroll_delay,
-                summaryResId = R.string.preference_summary_auto_scroll_delay,
-                min = 100,
-                max = 10000,
-                value = autoScrollDelay,
-                onValueChanged = {
-                    preferenceManager.setLongValue(
-                        PreferenceManager.Keys.PREFERENCE_KEY_AUTO_SCROLL_DELAY,
+        }
+        Section(
+            titleResId = R.string.section_title_locking
+        ) {
+            PreferenceSwitch(
+                titleResId = R.string.preference_title_gesture_lock,
+                summaryResId = R.string.preference_summary_gesture_lock,
+                checked = gestureLock,
+                isRestrictedToPro = true,
+                onCheckedChange = {
+                    preferenceManager.setBooleanValue(
+                        PreferenceManager.Keys.PREFERENCE_KEY_GESTURE_LOCK,
                         it
                     )
                 }

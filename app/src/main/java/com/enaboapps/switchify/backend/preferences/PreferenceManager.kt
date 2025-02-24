@@ -34,8 +34,8 @@ class PreferenceManager(context: Context) {
         const val PREFERENCE_KEY_SWITCH_IGNORE_REPEAT_DELAY = "switch_ignore_repeat_delay"
         const val PREFERENCE_KEY_AUTO_SCROLL = "auto_scroll"
         const val PREFERENCE_KEY_AUTO_SCROLL_DELAY = "auto_scroll_delay"
+        const val PREFERENCE_KEY_GESTURE_LOCK = "gesture_lock"
         const val PREFERENCE_KEY_SCAN_COLOR_SET = "scan_color_set"
-        const val PREFERENCE_KEY_MENU_ITEM_VISIBILITY_PREFIX = "menu_item_visibility_"
         const val PREFERENCE_KEY_MENU_SIZE = "menu_size"
         const val PREFERENCE_KEY_MENU_TRANSPARENCY = "menu_transparency"
         private const val PREFERENCE_FILE_NAME = "switchify_preferences"
@@ -151,16 +151,5 @@ class PreferenceManager(context: Context) {
         } catch (e: ClassCastException) {
             defaultValue
         }
-    }
-
-    fun setMenuItemVisibility(menuItemId: String, isVisible: Boolean) {
-        setBooleanValue(PREFERENCE_KEY_MENU_ITEM_VISIBILITY_PREFIX + menuItemId, isVisible)
-    }
-
-    fun getMenuItemVisibility(menuItemId: String, defaultValue: Boolean = true): Boolean {
-        return getBooleanValue(
-            PREFERENCE_KEY_MENU_ITEM_VISIBILITY_PREFIX + menuItemId,
-            defaultValue
-        )
     }
 }

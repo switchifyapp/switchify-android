@@ -17,8 +17,6 @@
     <string name="radar_trial_timer_expired">Radar scan trial expired. Switching to cursor scan.</string>
 
     <!-- Menu Titles -->
-    <string name="menu_title_customize">Customize Menu Items</string>
-    <string name="menu_title_size">Menu Size</string>
     <string name="menu_title_gestures">Gestures</string>
     <string name="menu_title_scroll">Scroll</string>
     <string name="menu_title_media_control">Media Control</string>
@@ -73,19 +71,6 @@
     <string name="menu_item_cut">Cut</string>
     <string name="menu_item_copy">Copy</string>
     <string name="menu_item_paste">Paste</string>
-
-    <!-- Menu Settings -->
-    <string name="menu_settings_customize_summary">Show or hide menu items</string>
-    <string name="menu_settings_size_summary">Change the size of the menu</string>
-    <string name="menu_settings_transparency_title">Menu Transparency</string>
-    <string name="menu_settings_transparency_summary">Enable transparency for the menu so that you can see content behind it</string>
-    <string name="menu_settings_size_small">Small</string>
-    <string name="menu_settings_size_medium">Medium</string>
-    <string name="menu_settings_size_large">Large</string>
-
-    <!-- Menu Item States -->
-    <string name="menu_item_state_shown">Shown</string>
-    <string name="menu_item_state_hidden">Hidden</string>
 
     <!-- Actions Section -->
     <string name="actions_title">Actions</string>
@@ -331,12 +316,13 @@
 
     <!-- Settings - Menu Section -->
     <string name="settings_section_menu">Menu</string>
-    <string name="settings_title_customize_menu">Customize Menu Items</string>
-    <string name="settings_summary_customize_menu">Show or hide menu items</string>
     <string name="settings_title_menu_size">Menu Size</string>
     <string name="settings_summary_menu_size">Change the size of the menu</string>
     <string name="settings_title_menu_transparency">Menu Transparency</string>
     <string name="settings_summary_menu_transparency">Enable transparency for the menu so that you can see content behind it</string>
+    <string name="menu_settings_size_small">Small</string>
+    <string name="menu_settings_size_medium">Medium</string>
+    <string name="menu_settings_size_large">Large</string>
 
     <!-- Settings - Actions Section -->
     <string name="settings_section_actions">Actions</string>
@@ -501,10 +487,14 @@
 
     <!-- Gesture Settings Screen -->
     <string name="screen_title_gesture_settings">Gesture Settings</string>
+    <string name="section_title_scrolling">Scrolling</string>
     <string name="preference_title_auto_scroll">Auto Scroll</string>
     <string name="preference_summary_auto_scroll">When enabled, scrolling gestures will be repeatedly performed until a switch is pressed</string>
     <string name="preference_title_auto_scroll_delay">Auto Scroll Delay</string>
     <string name="preference_summary_auto_scroll_delay">The delay to wait between scrolling</string>
+    <string name="section_title_locking">Locking</string>
+    <string name="preference_title_gesture_lock">Gesture Lock</string>
+    <string name="preference_summary_gesture_lock">When enabled, gestures can be temporarily assigned to a switch</string>
 
     <!-- Setup Screen -->
     <string name="screen_title_setup">Setup</string>

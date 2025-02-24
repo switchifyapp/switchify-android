@@ -1,13 +1,19 @@
 package com.enaboapps.switchify.service.menu.menus.gestures
 
+import android.content.Context
 import com.enaboapps.switchify.R
+import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.service.gestures.GestureManager
 import com.enaboapps.switchify.service.gestures.data.GestureType
 import com.enaboapps.switchify.service.menu.MenuItem
 import com.enaboapps.switchify.service.menu.MenuManager
 import com.enaboapps.switchify.service.menu.structure.MenuStructure
 
-class GestureMenuStructure {
+class GestureMenuStructure(context: Context) {
+    private val preferenceManager = PreferenceManager(context)
+    private val gestureLock =
+        preferenceManager.getBooleanValue(PreferenceManager.Keys.PREFERENCE_KEY_GESTURE_LOCK)
+
     val tapMenuItem = MenuItem(
         id = "tap",
         textResource = R.string.menu_item_tap,
@@ -16,16 +22,18 @@ class GestureMenuStructure {
         }
     )
 
-    val toggleGestureLockMenuItem = MenuItem(
-        id = "toggle_gesture_lock",
-        textResource = R.string.system_gesture_lock,
-        closeOnSelect = false,
-        action = { GestureManager.getInstance().toggleGestureLock() }
-    )
+    val toggleGestureLockMenuItem = if (gestureLock) {
+        MenuItem(
+            id = "toggle_gesture_lock",
+            textResource = R.string.system_gesture_lock,
+            closeOnSelect = false,
+            action = { GestureManager.getInstance().toggleGestureLock() }
+        )
+    } else null
 
     val tapGesturesMenuObject = MenuStructure(
         id = "tap_gestures_menu",
-        items = listOf(
+        items = listOfNotNull(
             tapMenuItem,
             MenuItem(
                 id = "double_tap",
@@ -43,7 +51,7 @@ class GestureMenuStructure {
 
     val gesturesMenuObject = MenuStructure(
         id = "gestures_menu",
-        items = listOf(
+        items = listOfNotNull(
             MenuItem(
                 id = "tap_gestures",
                 textResource = R.string.menu_item_tap_gestures,
@@ -78,7 +86,7 @@ class GestureMenuStructure {
 
     val swipeGesturesMenuObject = MenuStructure(
         id = "swipe_gestures_menu",
-        items = listOf(
+        items = listOfNotNull(
             MenuItem(
                 id = "swipe_up",
                 textResource = R.string.menu_item_swipe_up,
@@ -116,7 +124,7 @@ class GestureMenuStructure {
 
     val zoomGesturesMenuObject = MenuStructure(
         id = "zoom_gestures_menu",
-        items = listOf(
+        items = listOfNotNull(
             MenuItem(
                 id = "zoom_in",
                 textResource = R.string.menu_item_zoom_in,

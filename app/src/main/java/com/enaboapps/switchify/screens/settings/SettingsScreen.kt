@@ -160,12 +160,6 @@ private fun GesturesSettingsSection(navController: NavController) {
 private fun MenuSection(screenModel: SettingsScreenModel, navController: NavController) {
     Section(titleResId = R.string.settings_section_menu) {
         NavRouteLink(
-            titleResId = R.string.settings_title_customize_menu,
-            summaryResId = R.string.settings_summary_customize_menu,
-            navController = navController,
-            route = NavigationRoute.MenuItemCustomization.name
-        )
-        NavRouteLink(
             titleResId = R.string.settings_title_menu_size,
             summaryResId = R.string.settings_summary_menu_size,
             navController = navController,

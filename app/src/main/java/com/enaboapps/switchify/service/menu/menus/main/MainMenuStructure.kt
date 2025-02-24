@@ -12,12 +12,12 @@ import com.enaboapps.switchify.service.methods.nodes.NodeExaminer
 import com.enaboapps.switchify.service.scanning.ScanMethod
 import com.enaboapps.switchify.service.utils.DeviceLockObserver
 
-class MainMenuStructure(private val accessibilityService: SwitchifyAccessibilityService?) {
-    private val gestureMenuStructure = GestureMenuStructure()
-    private val deviceLockObserver = accessibilityService?.let { DeviceLockObserver(it) }
+class MainMenuStructure(private val accessibilityService: SwitchifyAccessibilityService) {
+    private val gestureMenuStructure = GestureMenuStructure(accessibilityService)
+    private val deviceLockObserver = DeviceLockObserver(accessibilityService)
 
     private fun createMyActionsMenuItem(): MenuItem? {
-        if (deviceLockObserver?.isUserUnlocked() != true || accessibilityService == null) {
+        if (deviceLockObserver.isUserUnlocked() != true) {
             return null
         }
 
