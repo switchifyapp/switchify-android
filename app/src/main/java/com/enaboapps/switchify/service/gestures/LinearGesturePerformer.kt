@@ -32,11 +32,6 @@ class LinearGesturePerformer(
          * The minimum delay between consecutive gestures in milliseconds.
          */
         private const val GESTURE_DELAY_MS = 500L
-
-        /**
-         * The duration for which visual feedback of the gesture is shown.
-         */
-        private const val VISUAL_FEEDBACK_DURATION_MS = 500L
     }
 
     /**
@@ -135,7 +130,10 @@ class LinearGesturePerformer(
             GestureType.CUSTOM_SWIPE -> R.string.hud_select_swipe
             else -> return
         }
-        ServiceMessageHUD.instance.showMessage(messageResId, ServiceMessageHUD.MessageType.DISAPPEARING)
+        ServiceMessageHUD.instance.showMessage(
+            messageResId,
+            ServiceMessageHUD.MessageType.DISAPPEARING
+        )
     }
 
     /**
@@ -186,7 +184,7 @@ class LinearGesturePerformer(
 
         try {
             val path = createGesturePath(start, end)
-            showVisualFeedback(start, end)
+            showVisualFeedback(start, end, type)
 
             val gestureDescription = createGestureDescription(type, path, start, end)
             dispatchGesture(gestureDescription)
@@ -226,12 +224,14 @@ class LinearGesturePerformer(
      *
      * @param start The starting point of the gesture.
      * @param end The ending point of the gesture.
+     * @param type The type of gesture.
      */
-    private fun showVisualFeedback(start: PointF, end: PointF) {
-        GestureDrawing(accessibilityService).drawLineAndArrowAndRemove(
+    private fun showVisualFeedback(start: PointF, end: PointF, type: GestureType) {
+        val duration = getDurationForGestureType(type)
+        GestureDrawing(accessibilityService).showAnimatedArrow(
             start.x.toInt(), start.y.toInt(),
             end.x.toInt(), end.y.toInt(),
-            VISUAL_FEEDBACK_DURATION_MS
+            duration
         )
     }
 
