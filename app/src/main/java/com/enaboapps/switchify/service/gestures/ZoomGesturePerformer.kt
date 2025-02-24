@@ -6,6 +6,7 @@ import android.graphics.Path
 import android.util.Log
 import com.enaboapps.switchify.service.gestures.data.GestureType
 import com.enaboapps.switchify.service.gestures.utils.GestureUtils.getInBoundsCoordinate
+import com.enaboapps.switchify.service.gestures.visuals.ZoomVisual
 import com.enaboapps.switchify.service.utils.ScreenUtils
 import kotlin.math.abs
 
@@ -15,6 +16,9 @@ object ZoomGesturePerformer {
     private const val DEFAULT_ZOOM_DURATION = 500L // Adjusted duration in milliseconds
     private const val ZOOM_AMOUNT_DP = 200 // Zoom amount in density-independent pixels (dp)
     private const val VERTICAL_OFFSET_DP = 100 // Vertical offset for natural gesture
+    private const val VISUAL_CIRCLE_SIZE_DP = 120 // Size of the visual circle in dp
+    
+    private var zoomVisual: ZoomVisual? = null
 
     /**
      * Perform a zoom action.
@@ -23,6 +27,11 @@ object ZoomGesturePerformer {
      * @param accessibilityService The accessibility service used to dispatch gestures.
      */
     fun performZoomAction(type: GestureType, accessibilityService: AccessibilityService) {
+        // Initialize zoom visual if needed
+        if (zoomVisual == null) {
+            zoomVisual = ZoomVisual(accessibilityService)
+        }
+
         // Retrieve the center point for the zoom gesture
         val centerPoint = GesturePoint.getPoint()
         Log.d(TAG, "Center Point: (${centerPoint.x}, ${centerPoint.y})")
@@ -30,7 +39,17 @@ object ZoomGesturePerformer {
         // Calculate zoom amount based on screen density
         val density = accessibilityService.resources.displayMetrics.density
         val zoomAmountPx = (ZOOM_AMOUNT_DP * density).toInt()
+        val visualCircleSize = (VISUAL_CIRCLE_SIZE_DP * density)
         Log.d(TAG, "Zoom Amount (px): $zoomAmountPx")
+
+        // Show visual feedback
+        zoomVisual?.start(
+            centerPoint.x.toFloat(),
+            centerPoint.y.toFloat(),
+            visualCircleSize,
+            DEFAULT_ZOOM_DURATION,
+            type == GestureType.ZOOM_IN
+        )
 
         // Calculate vertical offset for more natural finger placement
         val verticalOffsetPx = (VERTICAL_OFFSET_DP * density).toInt()
@@ -60,7 +79,7 @@ object ZoomGesturePerformer {
             if (leftDistance > rightDistance) {
                 leftZoomPoint -= distanceDifference
             } else {
-                rightZoomPoint += distanceDifference // Changed to += for proper symmetry
+                rightZoomPoint += distanceDifference
             }
             Log.d(
                 TAG,
@@ -115,6 +134,7 @@ object ZoomGesturePerformer {
                     override fun onCancelled(gestureDescription: GestureDescription?) {
                         super.onCancelled(gestureDescription)
                         Log.e(TAG, "Gesture Cancelled")
+                        zoomVisual?.stop()
                     }
                 },
                 null
@@ -122,6 +142,12 @@ object ZoomGesturePerformer {
             Log.d(TAG, "Gesture dispatched: $type")
         } catch (e: Exception) {
             Log.e(TAG, "performZoomAction: Exception during gesture dispatch", e)
+            zoomVisual?.stop()
         }
+    }
+
+    fun release() {
+        zoomVisual?.stop()
+        zoomVisual = null
     }
 }
