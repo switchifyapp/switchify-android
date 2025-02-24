@@ -43,10 +43,10 @@ class AutoScrollManager private constructor() {
     }
 
     /**
-     * Checks if auto-scrolling is enabled.
+     * Checks if auto-scrolling is enabled in the preferences.
      * @return True if auto-scrolling is enabled, false otherwise.
      */
-    private fun isAutoScrollEnabled(): Boolean {
+    private fun isAutoScrollEnabledInPreferences(): Boolean {
         return preferenceManager.getBooleanValue(PreferenceManager.Keys.PREFERENCE_KEY_AUTO_SCROLL)
     }
 
@@ -64,7 +64,8 @@ class AutoScrollManager private constructor() {
      * @return True if auto-scrolling was started, false otherwise.
      */
     fun startAutoScroll(gestureData: GestureData): Boolean {
-        if (!isAutoScrollEnabled() || isAutoScrolling || !gestureData.isScroll() || scrollJob != null) return false
+        if (!isAutoScrollEnabledInPreferences() || isAutoScrolling || !gestureData.isScroll() || scrollJob != null) return false
+        if (GestureLockManager.getInstance().isLocked()) return false
         ServiceMessageHUD.instance.showMessage(
             R.string.hud_auto_scroll_started,
             ServiceMessageHUD.MessageType.DISAPPEARING
@@ -84,7 +85,7 @@ class AutoScrollManager private constructor() {
      * @return True if auto-scrolling was stopped, false otherwise.
      */
     fun stopAutoScroll(): Boolean {
-        if (!isAutoScrollEnabled()) return false
+        if (!isAutoScrollEnabledInPreferences()) return false
 
         if (scrollJob != null && isAutoScrolling) {
             scrollJob?.cancel()
