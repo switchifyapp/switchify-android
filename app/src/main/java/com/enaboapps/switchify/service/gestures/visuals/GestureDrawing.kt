@@ -73,15 +73,15 @@ class GestureDrawing(private val context: Context) {
     }
 
     /**
-     * Draws a line with an arrow from (x1, y1) to (x2, y2) and removes it after a given time.
+     * Shows an animated arrow from (x1, y1) to (x2, y2) and removes it after a given time.
      *
      * @param x1 The x-coordinate of the start point.
      * @param y1 The y-coordinate of the start point.
      * @param x2 The x-coordinate of the end point.
      * @param y2 The y-coordinate of the end point.
-     * @param time The duration in milliseconds for which the line should be visible.
+     * @param time The duration in milliseconds for which the arrow should be visible.
      */
-    fun drawLineAndArrowAndRemove(
+    fun showAnimatedArrow(
         x1: Int,
         y1: Int,
         x2: Int,
