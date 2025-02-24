@@ -198,7 +198,7 @@ class GestureManager private constructor() {
      * @return True if a locked gesture action was performed, false otherwise.
      */
     fun performGestureLockAction(): Boolean {
-        if (GestureLockManager.getInstance().isGestureLockEnabled() == true) {
+        if (GestureLockManager.getInstance().isGestureLockEngaged() == true) {
             GestureLockManager.getInstance().getLockedGestureData()?.let { gestureData ->
                 if (GestureLockManager.getInstance()
                         .canLockGesture(gestureData.gestureType) == true
@@ -223,7 +223,7 @@ class GestureManager private constructor() {
      * @return True if the gesture lock is enabled, false otherwise.
      */
     fun isGestureLockEnabled(): Boolean {
-        return GestureLockManager.getInstance().isGestureLockEnabled() == true
+        return GestureLockManager.getInstance().isGestureLockEngaged() == true
     }
 
     /**

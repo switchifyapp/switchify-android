@@ -59,18 +59,36 @@ class GestureLockManager private constructor() {
         }
     }
 
-    // Function to check if the gesture lock is enabled and the user is not in the menu
-    // and the locked gesture data is not null
-    fun isGestureLockEnabled(): Boolean {
+    /**
+     * Check if the gesture lock is engaged.
+     *
+     * @return true if the gesture lock is engaged, false otherwise.
+     */
+    fun isGestureLockEngaged(): Boolean {
         return isLocked && !ScanMethod.isInMenu && lockedGestureData != null
     }
 
-    // Function to get the locked gesture data
+    /**
+     * Check if lock is enabled.
+     *
+     * @return true if lock is enabled, false otherwise.
+     */
+    fun isLocked() = isLocked
+
+    /**
+     * Get the locked gesture data.
+     *
+     * @return the locked gesture data, or null if the gesture lock is not engaged.
+     */
     fun getLockedGestureData(): GestureData? {
         return lockedGestureData
     }
 
-    // Function to set the locked gesture data
+    /**
+     * Set the locked gesture data.
+     *
+     * @param gestureData the locked gesture data, or null to clear the lock.
+     */
     fun setLockedGestureData(gestureData: GestureData?) {
         lockedGestureData =
             if (gestureData != null && canLockGesture(gestureData.gestureType) && isLocked) {
@@ -83,7 +101,9 @@ class GestureLockManager private constructor() {
         }
     }
 
-    // Function to start the timer for the gesture lock
+    /**
+     * Start the timer for the gesture lock.
+     */
     fun startTimer() {
         stopTimer()
         timeoutTimer = Timer()
@@ -99,12 +119,20 @@ class GestureLockManager private constructor() {
         }, lockTimeout)
     }
 
+    /**
+     * Stop the timer for the gesture lock.
+     */
     fun stopTimer() {
         timeoutTimer?.cancel()
         timeoutTimer = null
     }
 
-    // Function to check if a gesture type can be locked
+    /**
+     * Check if a gesture type can be locked.
+     *
+     * @param gestureType the gesture type to check.
+     * @return true if the gesture type can be locked, false otherwise.
+     */
     fun canLockGesture(gestureType: GestureType): Boolean {
         if (isLocked && gestureType == GestureType.DRAG || gestureType == GestureType.CUSTOM_SWIPE) {
             isLocked = false // Disable the gesture lock
@@ -114,7 +142,11 @@ class GestureLockManager private constructor() {
         return true
     }
 
-    // Function to inform the user that the type of gesture cannot be locked
+    /**
+     * Inform the user that the type of gesture cannot be locked.
+     *
+     * @param type the gesture type that cannot be locked.
+     */
     fun informCannotLockGesture(type: GestureType) {
         if (!canLockGesture(type)) {
             ServiceMessageHUD.instance.showMessage(
