@@ -14,12 +14,12 @@ import com.enaboapps.switchify.service.menu.menus.system.SystemMenuStructure
  * It provides access to menu items and structures from different parts of the application
  * while maintaining a clean separation of concerns.
  */
-class MenuStructureHolder(private val accessibilityService: SwitchifyAccessibilityService? = null) {
+class MenuStructureHolder(accessibilityService: SwitchifyAccessibilityService) {
     private val mainMenuStructure = MainMenuStructure(accessibilityService)
-    private val gestureMenuStructure = GestureMenuStructure()
+    private val gestureMenuStructure = GestureMenuStructure(accessibilityService)
     private val systemMenuStructure = SystemMenuStructure(accessibilityService)
     private val mediaMenuStructure = MediaMenuStructure(accessibilityService)
-    private val scrollMenuStructure = ScrollMenuStructure()
+    private val scrollMenuStructure = ScrollMenuStructure(accessibilityService)
     private val editMenuStructure = EditMenuStructure()
     private val customActionsMenuStructure = CustomActionsMenuStructure(accessibilityService)
 
@@ -28,7 +28,6 @@ class MenuStructureHolder(private val accessibilityService: SwitchifyAccessibili
     val menuManipulatorItems = mainMenuStructure.menuManipulatorItems
 
     // Gesture Menus
-    val toggleGestureLockMenuItem = gestureMenuStructure.toggleGestureLockMenuItem
     val gesturesMenuObject = gestureMenuStructure.gesturesMenuObject
     val zoomGesturesMenuObject = gestureMenuStructure.zoomGesturesMenuObject
     val swipeGesturesMenuObject = gestureMenuStructure.swipeGesturesMenuObject

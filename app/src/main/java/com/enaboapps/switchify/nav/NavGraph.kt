@@ -17,7 +17,6 @@ import com.enaboapps.switchify.screens.settings.SettingsScreen
 import com.enaboapps.switchify.screens.settings.actions.AddEditActionScreen
 import com.enaboapps.switchify.screens.settings.actions.MyActionsScreen
 import com.enaboapps.switchify.screens.settings.gestures.GestureSettingsScreen
-import com.enaboapps.switchify.screens.settings.menu.MenuItemCustomizationScreen
 import com.enaboapps.switchify.screens.settings.menu.MenuSizeScreen
 import com.enaboapps.switchify.screens.settings.scanning.CursorSettingsScreen
 import com.enaboapps.switchify.screens.settings.scanning.ItemScanSettingsScreen
@@ -86,9 +85,6 @@ fun NavGraph(navController: NavHostController) {
             it.arguments?.getString("code")?.let { code ->
                 AddEditExternalSwitchScreen(navController, code)
             }
-        }
-        composable(NavigationRoute.MenuItemCustomization.name) {
-            MenuItemCustomizationScreen(navController)
         }
         composable(NavigationRoute.MenuSize.name) {
             MenuSizeScreen(navController)

@@ -1,6 +1,5 @@
 package com.enaboapps.switchify.service.menu
 
-import android.content.Context
 import android.graphics.Color
 import android.util.TypedValue
 import android.view.Gravity
@@ -10,7 +9,6 @@ import android.widget.TextView
 import android.widget.TextView.AUTO_SIZE_TEXT_TYPE_NONE
 import androidx.core.content.res.ResourcesCompat
 import androidx.core.graphics.drawable.DrawableCompat
-import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.service.utils.ScreenUtils
 import com.enaboapps.switchify.utils.Logger
 import com.enaboapps.switchify.utils.Resources
@@ -174,11 +172,6 @@ class MenuItem(
         }
 
         linearLayout.addView(view)
-    }
-
-    fun isVisible(context: Context): Boolean {
-        val preferenceManager = PreferenceManager(context)
-        return preferenceManager.getMenuItemVisibility(id)
     }
 
     /**
