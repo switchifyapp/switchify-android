@@ -3,21 +3,20 @@ package com.enaboapps.switchify.service.gestures
 import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.GestureDescription
 import android.graphics.Path
+import android.graphics.PointF
 import android.util.Log
 import com.enaboapps.switchify.service.gestures.data.GestureType
-import com.enaboapps.switchify.service.gestures.utils.GestureUtils.getInBoundsCoordinate
 import com.enaboapps.switchify.service.gestures.visuals.ZoomVisual
 import com.enaboapps.switchify.service.utils.ScreenUtils
-import kotlin.math.abs
 
 object ZoomGesturePerformer {
 
     private const val TAG = "ZoomGesturePerformer"
     private const val DEFAULT_ZOOM_DURATION = 500L // Adjusted duration in milliseconds
-    private const val ZOOM_AMOUNT_DP = 200 // Zoom amount in density-independent pixels (dp)
+    private const val ZOOM_AMOUNT_DP = 300 // Zoom amount in density-independent pixels (dp)
     private const val VERTICAL_OFFSET_DP = 100 // Vertical offset for natural gesture
     private const val VISUAL_CIRCLE_SIZE_DP = 120 // Size of the visual circle in dp
-    
+
     private var zoomVisual: ZoomVisual? = null
 
     /**
@@ -33,7 +32,10 @@ object ZoomGesturePerformer {
         }
 
         // Retrieve the center point for the zoom gesture
-        val centerPoint = GesturePoint.getPoint()
+        val centerPoint = getCenterPoint(
+            ScreenUtils.getWidth(accessibilityService),
+            ScreenUtils.getHeight(accessibilityService)
+        )
         Log.d(TAG, "Center Point: (${centerPoint.x}, ${centerPoint.y})")
 
         // Calculate zoom amount based on screen density
@@ -59,33 +61,10 @@ object ZoomGesturePerformer {
         val path1 = Path()
         val path2 = Path()
 
-        // Obtain screen width to ensure zoom points are within bounds
-        val screenWidth = ScreenUtils.getWidth(accessibilityService)
         val halfZoomAmount = zoomAmountPx / 2
 
-        // Calculate initial left and right zoom points relative to the center
-        var leftZoomPoint = getInBoundsCoordinate(screenWidth, centerPoint.x - halfZoomAmount)
-        var rightZoomPoint = getInBoundsCoordinate(screenWidth, centerPoint.x + halfZoomAmount)
-        Log.d(
-            TAG,
-            "Initial Left Zoom Point: $leftZoomPoint, Initial Right Zoom Point: $rightZoomPoint"
-        )
-
-        // Ensure that both zoom points are equidistant from the center
-        val leftDistance = abs(centerPoint.x - leftZoomPoint)
-        val rightDistance = abs(centerPoint.x - rightZoomPoint)
-        if (leftDistance != rightDistance) {
-            val distanceDifference = abs(leftDistance - rightDistance)
-            if (leftDistance > rightDistance) {
-                leftZoomPoint -= distanceDifference
-            } else {
-                rightZoomPoint += distanceDifference
-            }
-            Log.d(
-                TAG,
-                "Adjusted Left Zoom Point: $leftZoomPoint, Adjusted Right Zoom Point: $rightZoomPoint"
-            )
-        }
+        val leftZoomPoint = centerPoint.x - halfZoomAmount
+        val rightZoomPoint = centerPoint.x + halfZoomAmount
 
         // Define gesture paths based on the type of zoom action
         when (type) {
@@ -146,8 +125,31 @@ object ZoomGesturePerformer {
         }
     }
 
-    fun release() {
-        zoomVisual?.stop()
-        zoomVisual = null
+    /**
+     * Get the correct point for the center of the zoom gesture.
+     * Calculate if there is enough space to perform the zoom action.
+     * If not, take away the amount of space needed to perform the action.
+     *
+     * @param screenWidth The width of the screen.
+     * @param screenHeight The height of the screen.
+     * @return The point for the center of the zoom gesture.
+     */
+    private fun getCenterPoint(screenWidth: Int, screenHeight: Int): PointF {
+        val centerPoint = GesturePoint.getPoint()
+        var x = centerPoint.x
+        var y = centerPoint.y
+
+        if (x + ZOOM_AMOUNT_DP * 2 > screenWidth) {
+            x = (screenWidth - ZOOM_AMOUNT_DP * 2).toFloat()
+        } else if (x - ZOOM_AMOUNT_DP * 2 < 0) {
+            x = ZOOM_AMOUNT_DP * 2.toFloat()
+        }
+        if (y + ZOOM_AMOUNT_DP * 2 > screenHeight) {
+            y = (screenHeight - ZOOM_AMOUNT_DP * 2).toFloat()
+        } else if (y - ZOOM_AMOUNT_DP * 2 < 0) {
+            y = ZOOM_AMOUNT_DP * 2.toFloat()
+        }
+
+        return PointF(x, y)
     }
 }
