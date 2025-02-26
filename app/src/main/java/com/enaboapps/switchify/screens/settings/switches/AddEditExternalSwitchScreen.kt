@@ -225,6 +225,8 @@ fun SwitchActionSection(viewModel: AddEditExternalSwitchScreenModel) {
             modifier = Modifier.padding(horizontal = 20.dp)
         )
 
+        Spacer(modifier = Modifier.padding(8.dp))
+
         longPressActions.value?.forEachIndexed { index, action ->
             SwitchActionPicker(
                 titleResId = R.string.section_title_long_press_action,
@@ -237,6 +239,7 @@ fun SwitchActionSection(viewModel: AddEditExternalSwitchScreenModel) {
                     viewModel.removeLongPressAction(index)
                 }
             )
+            Spacer(modifier = Modifier.padding(8.dp))
         }
         FullWidthButton(
             textResId = R.string.button_add_long_press_action,
