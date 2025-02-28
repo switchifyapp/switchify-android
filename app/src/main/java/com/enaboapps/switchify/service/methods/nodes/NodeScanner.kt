@@ -9,6 +9,7 @@ import com.enaboapps.switchify.service.scanning.tree.ScanTree
 import com.enaboapps.switchify.service.scanning.tree.ScanTreeCallback
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -35,9 +36,10 @@ class NodeScanner : ScanTreeCallback {
     private var currentNodes: List<Node> = emptyList()
     private val coroutineScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
     private var lastNodeUpdateTime: Long = 0
-    private var continuousUpdateJob: kotlinx.coroutines.Job? = null
+    private var continuousUpdateJob: Job? = null
     private var rapidUpdateCount: Int = 0
-    private var updateCountResetJob: kotlinx.coroutines.Job? = null
+    private var updateCountResetJob: Job? = null
+    private var revertToCursorJob: Job? = null
 
     /**
      * Starts the NodeScanner.
@@ -62,7 +64,8 @@ class NodeScanner : ScanTreeCallback {
      * if the state is ITEM_SCAN and there are no nodes after 5 seconds.
      */
     fun startTimeoutToRevertToCursor() {
-        coroutineScope.launch {
+        revertToCursorJob?.cancel()
+        revertToCursorJob = coroutineScope.launch {
             delay(EMPTY_NODES_TIMEOUT_MS)
             if (ScanMethod.getType() == ScanMethod.MethodType.ITEM_SCAN && currentNodes.isEmpty()) {
                 withContext(Dispatchers.Main) {
@@ -137,6 +140,19 @@ class NodeScanner : ScanTreeCallback {
         if (nodes.isEmpty()) {
             startTimeoutToRevertToCursor()
         }
+    }
+
+    /**
+     * Resets NodeScanner and stops any ongoing jobs.
+     */
+    fun cleanup() {
+        // Cancel any existing jobs
+        continuousUpdateJob?.cancel()
+        updateCountResetJob?.cancel()
+        revertToCursorJob?.cancel()
+
+        // Cleanup the scanTree
+        scanTree.cleanup()
     }
 
     override fun onScanTreeCycleBreakStarted() {

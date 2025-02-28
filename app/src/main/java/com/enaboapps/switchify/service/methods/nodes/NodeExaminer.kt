@@ -32,14 +32,26 @@ object NodeExaminer {
     private var actionableNodes: List<Node> = emptyList()
 
     /** SharedFlow for emitting updates to the list of actionable nodes. */
-    private val updateFlow = MutableSharedFlow<List<Node>>(replay = 1, extraBufferCapacity = 1)
+    private val actionableNodesFlow =
+        MutableSharedFlow<List<Node>>(replay = 1, extraBufferCapacity = 1)
+
+    /** SharedFlow for emitting updates to the list of keyboard nodes. */
+    private val keyboardNodesFlow =
+        MutableSharedFlow<List<Node>>(replay = 1, extraBufferCapacity = 1)
 
     /**
      * Provides a Flow to observe changes in the list of actionable nodes.
      *
      * @return A Flow emitting lists of Node objects whenever there's an update.
      */
-    fun observeNodes(): Flow<List<Node>> = updateFlow.asSharedFlow()
+    fun getActionableNodesFlow(): Flow<List<Node>> = actionableNodesFlow.asSharedFlow()
+
+    /**
+     * Provides a Flow to observe changes in the list of keyboard nodes.
+     *
+     * @return A Flow emitting lists of Node objects whenever there's an update.
+     */
+    fun getKeyboardNodesFlow(): Flow<List<Node>> = keyboardNodesFlow.asSharedFlow()
 
     /**
      * Initiates the process of finding and updating the list of nodes.
@@ -61,7 +73,8 @@ object NodeExaminer {
         val inputMethodWindow = windows.firstOrNull { window ->
             window.type == AccessibilityWindowInfo.TYPE_INPUT_METHOD
         }
-        rootNode = if (inputMethodWindow != null) {
+        val isKeyboardVisible = inputMethodWindow != null
+        rootNode = if (isKeyboardVisible) {
             inputMethodWindow.root
         } else {
             activeWindowRootNode
@@ -91,14 +104,35 @@ object NodeExaminer {
                     }
 
                     if (actionableNodes != filteredNewActionableNodes) {
-                        actionableNodes = filteredNewActionableNodes
-                        updateFlow.emit(actionableNodes)
+                        if (isKeyboardVisible) {
+                            updateKeyboardNodes(filteredNewActionableNodes)
+                        } else {
+                            updateActionableNodes(filteredNewActionableNodes)
+                        }
                     }
                 }
             }
         } catch (e: Exception) {
             e.printStackTrace()
         }
+    }
+
+    /**
+     * Updates the keyboard nodes and emits them to the keyboardNodesFlow.
+     *
+     * @param nodes The list of nodes to update the keyboard nodes with.
+     */
+    private suspend fun updateKeyboardNodes(nodes: List<Node>) {
+        keyboardNodesFlow.emit(nodes)
+    }
+
+    /**
+     * Updates the actionable nodes and emits them to the actionableNodesFlow.
+     *
+     * @param nodes The list of nodes to update the actionable nodes with.
+     */
+    private suspend fun updateActionableNodes(nodes: List<Node>) {
+        actionableNodesFlow.emit(nodes)
     }
 
     /**

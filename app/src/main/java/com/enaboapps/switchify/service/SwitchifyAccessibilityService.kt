@@ -188,8 +188,15 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
 
         // Update the NodeScanner with the current layout info
         serviceScope.launch {
-            NodeExaminer.observeNodes().collect { nodes ->
-                scanningManager.updateNodes(nodes)
+            NodeExaminer.getActionableNodesFlow().collect { nodes ->
+                scanningManager.updateActionableNodes(nodes)
+            }
+        }
+
+        // Update the KeyboardScanner with the current layout info
+        serviceScope.launch {
+            NodeExaminer.getKeyboardNodesFlow().collect { nodes ->
+                scanningManager.updateKeyboardNodes(nodes)
             }
         }
     }

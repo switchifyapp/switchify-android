@@ -10,11 +10,13 @@ import com.enaboapps.switchify.service.gestures.AutoScrollManager
 import com.enaboapps.switchify.service.gestures.GestureManager
 import com.enaboapps.switchify.service.menu.MenuManager
 import com.enaboapps.switchify.service.methods.cursor.CursorManager
+import com.enaboapps.switchify.service.methods.nodes.KeyboardScanner
 import com.enaboapps.switchify.service.methods.nodes.Node
 import com.enaboapps.switchify.service.methods.nodes.NodeScanner
 import com.enaboapps.switchify.service.methods.nodes.NodeScannerUI
 import com.enaboapps.switchify.service.methods.radar.RadarManager
 import com.enaboapps.switchify.service.selection.SelectionHandler
+import com.enaboapps.switchify.service.utils.KeyboardBridge
 import com.enaboapps.switchify.service.window.SwitchifyAccessibilityWindow
 import com.enaboapps.switchify.switches.SwitchAction
 import com.enaboapps.switchify.utils.Logger
@@ -34,6 +36,7 @@ class ScanningManager(
     private val cursorManager = CursorManager(context)
     private val radarManager = RadarManager(context)
     private val nodeScanner = NodeScanner()
+    private val keyboardScanner = KeyboardScanner()
 
     private val moveRepeatManager = MoveRepeatManager(context)
 
@@ -45,6 +48,7 @@ class ScanningManager(
      */
     private val currentScanMethod: ScanMethodBase
         get() = when {
+            KeyboardBridge.isKeyboardVisible -> keyboardScanner.getScanTree()
             ScanMethod.isInMenu -> MenuManager.getInstance().menuHierarchy?.getTopMenu()?.scanTree
             else -> when (ScanMethod.getType()) {
                 ScanMethod.MethodType.CURSOR -> cursorManager
@@ -81,6 +85,7 @@ class ScanningManager(
         nodeScanner.start(context)
         MenuManager.getInstance().setup(this, accessibilityService)
         ScanMethod.observer = this
+        keyboardScanner.start(context)
     }
 
     /**
@@ -88,8 +93,17 @@ class ScanningManager(
      *
      * @param nodes List of Node instances representing the current screen layout.
      */
-    fun updateNodes(nodes: List<Node>) {
+    fun updateActionableNodes(nodes: List<Node>) {
         nodeScanner.updateNodes(nodes)
+    }
+
+    /**
+     * Updates the nodes in the KeyboardScanner with the current layout information.
+     *
+     * @param nodes List of Node instances representing the current screen layout.
+     */
+    fun updateKeyboardNodes(nodes: List<Node>) {
+        keyboardScanner.updateNodes(nodes)
     }
 
     /**
@@ -235,15 +249,22 @@ class ScanningManager(
      * Cleans up inactive scanning methods to free up resources.
      */
     private fun cleanupInactiveScanningMethods(activeType: String) {
+        if (KeyboardBridge.isKeyboardVisible) {
+            radarManager.cleanup()
+            nodeScanner.cleanup()
+            cursorManager.cleanup()
+            return
+        }
+
         when (activeType) {
             ScanMethod.MethodType.CURSOR -> {
                 radarManager.cleanup()
-                nodeScanner.scanTree.cleanup()
+                nodeScanner.cleanup()
             }
 
             ScanMethod.MethodType.RADAR -> {
                 cursorManager.cleanup()
-                nodeScanner.scanTree.cleanup()
+                nodeScanner.cleanup()
             }
 
             ScanMethod.MethodType.ITEM_SCAN -> {
@@ -260,7 +281,12 @@ class ScanningManager(
      */
     fun reset() {
         pauseScanning()
-        listOf(cursorManager, radarManager, nodeScanner.scanTree).forEach { it.cleanup() }
+        listOf(
+            cursorManager,
+            radarManager,
+            nodeScanner.scanTree,
+            keyboardScanner.getScanTree()
+        ).forEach { it.cleanup() }
         MenuManager.getInstance().closeMenuHierarchy()
     }
 
@@ -269,6 +295,11 @@ class ScanningManager(
      */
     fun shutdown() {
         pauseScanning()
-        listOf(cursorManager, radarManager, nodeScanner.scanTree).forEach { it.cleanup() }
+        listOf(
+            cursorManager,
+            radarManager,
+            nodeScanner.scanTree,
+            keyboardScanner.getScanTree()
+        ).forEach { it.cleanup() }
     }
 }
