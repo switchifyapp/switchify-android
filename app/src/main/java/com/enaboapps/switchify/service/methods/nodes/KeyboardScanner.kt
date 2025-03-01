@@ -6,6 +6,7 @@ import com.enaboapps.switchify.service.scanning.tree.ScanTree
 
 class KeyboardScanner {
     private lateinit var scanTree: ScanTree
+    private val currentNodes = mutableListOf<Node>()
 
     companion object {
         private const val TAG = "KeyboardScanner"
@@ -29,6 +30,11 @@ class KeyboardScanner {
      * @param nodes The list of nodes to update the keyboard scanner with.
      */
     fun updateNodes(nodes: List<Node>) {
+        if (currentNodes == nodes) {
+            return
+        }
+        currentNodes.clear()
+        currentNodes.addAll(nodes)
         Log.d(TAG, "Updating keyboard scanner with ${nodes.size} nodes")
         scanTree.buildTree(nodes)
     }
