@@ -69,20 +69,22 @@ class CursorUI(private val context: Context) {
      * @param quadrantNumber The quadrant number to position the quadrant.
      */
     private fun showXQuadrantOutline(quadrantNumber: Int) {
-        val xPosition = quadrantNumber * getQuadrantWidth()
-        val yPosition = CursorBounds.Y_MIN
-        val width = getQuadrantWidth()
-        val height = ScreenUtils.getHeight(context)
+        if (CursorMode.isBlockMode()) {
+            val xPosition = quadrantNumber * getQuadrantWidth()
+            val yPosition = CursorBounds.Y_MIN
+            val width = getQuadrantWidth()
+            val height = ScreenUtils.getHeight(context)
 
-        if (xQuadrantOutline == null) {
-            xQuadrantOutline = RelativeLayout(context).apply {
-                background = QuadrantOutlineDrawable(context)
+            if (xQuadrantOutline == null) {
+                xQuadrantOutline = RelativeLayout(context).apply {
+                    background = QuadrantOutlineDrawable(context)
+                }
+                xQuadrantOutline?.let {
+                    window.addView(it, xPosition, yPosition, width, height)
+                }
+            } else {
+                updateXQuadrantOutline(quadrantNumber)
             }
-            xQuadrantOutline?.let {
-                window.addView(it, xPosition, yPosition, width, height)
-            }
-        } else {
-            updateXQuadrantOutline(quadrantNumber)
         }
     }
 
@@ -92,13 +94,15 @@ class CursorUI(private val context: Context) {
      * @param quadrantNumber The quadrant number to position the quadrant.
      */
     private fun updateXQuadrantOutline(quadrantNumber: Int) {
-        val xPosition = quadrantNumber * getQuadrantWidth()
-        val yPosition = CursorBounds.Y_MIN
-        val width = getQuadrantWidth()
-        val height = ScreenUtils.getHeight(context)
+        if (CursorMode.isBlockMode()) {
+            val xPosition = quadrantNumber * getQuadrantWidth()
+            val yPosition = CursorBounds.Y_MIN
+            val width = getQuadrantWidth()
+            val height = ScreenUtils.getHeight(context)
 
-        xQuadrantOutline?.let {
-            window.updateViewLayout(it, xPosition, yPosition, width, height)
+            xQuadrantOutline?.let {
+                window.updateViewLayout(it, xPosition, yPosition, width, height)
+            }
         }
     }
 
@@ -108,20 +112,22 @@ class CursorUI(private val context: Context) {
      * @param quadrantNumber The quadrant number to position the quadrant.
      */
     private fun showYQuadrantOutline(quadrantNumber: Int) {
-        val xPosition = CursorBounds.X_MIN
-        val yPosition = quadrantNumber * getQuadrantHeight()
-        val width = ScreenUtils.getWidth(context)
-        val height = getQuadrantHeight()
+        if (CursorMode.isBlockMode()) {
+            val xPosition = CursorBounds.X_MIN
+            val yPosition = quadrantNumber * getQuadrantHeight()
+            val width = ScreenUtils.getWidth(context)
+            val height = getQuadrantHeight()
 
-        if (yQuadrantOutline == null) {
-            yQuadrantOutline = RelativeLayout(context).apply {
-                background = QuadrantOutlineDrawable(context)
+            if (yQuadrantOutline == null) {
+                yQuadrantOutline = RelativeLayout(context).apply {
+                    background = QuadrantOutlineDrawable(context)
+                }
+                yQuadrantOutline?.let {
+                    window.addView(it, xPosition, yPosition, width, height)
+                }
+            } else {
+                updateYQuadrantOutline(quadrantNumber)
             }
-            yQuadrantOutline?.let {
-                window.addView(it, xPosition, yPosition, width, height)
-            }
-        } else {
-            updateYQuadrantOutline(quadrantNumber)
         }
     }
 
@@ -131,13 +137,15 @@ class CursorUI(private val context: Context) {
      * @param quadrantNumber The quadrant number to position the quadrant.
      */
     private fun updateYQuadrantOutline(quadrantNumber: Int) {
-        val xPosition = CursorBounds.X_MIN
-        val yPosition = quadrantNumber * getQuadrantHeight()
-        val width = ScreenUtils.getWidth(context)
-        val height = getQuadrantHeight()
+        if (CursorMode.isBlockMode()) {
+            val xPosition = CursorBounds.X_MIN
+            val yPosition = quadrantNumber * getQuadrantHeight()
+            val width = ScreenUtils.getWidth(context)
+            val height = getQuadrantHeight()
 
-        yQuadrantOutline?.let {
-            window.updateViewLayout(it, xPosition, yPosition, width, height)
+            yQuadrantOutline?.let {
+                window.updateViewLayout(it, xPosition, yPosition, width, height)
+            }
         }
     }
 
