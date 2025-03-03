@@ -1,9 +1,11 @@
-package com.enaboapps.switchify.service.methods.nodes
+package com.enaboapps.switchify.service.methods.nodes.scanners.system
 
 import android.content.Context
 import android.util.Log
 import com.enaboapps.switchify.service.menu.MenuManager
 import com.enaboapps.switchify.service.menu.OpenMenuPrompt
+import com.enaboapps.switchify.service.methods.nodes.Node
+import com.enaboapps.switchify.service.methods.nodes.NodeSpeaker
 import com.enaboapps.switchify.service.scanning.ScanMethod
 import com.enaboapps.switchify.service.scanning.tree.ScanTree
 import com.enaboapps.switchify.service.scanning.tree.ScanTreeCallback
@@ -16,12 +18,12 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
- * NodeScanner is a class that handles the scanning of nodes.
+ * SystemNodeScanner is a class that handles the scanning of nodes.
  * It manages the scanning process using a ScanTree instance and handles updates from NodeExaminer.
  */
-class NodeScanner : ScanTreeCallback {
+class SystemNodeScanner : ScanTreeCallback {
     companion object {
-        private const val TAG = "NodeScanner"
+        private const val TAG = "SystemNodeScanner"
         private const val RAPID_UPDATE_THRESHOLD_MS =
             200L // Time in ms to consider an update as rapid
         private const val RESET_WINDOW_MS = 10000L // Time window to reset the update count
@@ -32,8 +34,7 @@ class NodeScanner : ScanTreeCallback {
     }
 
     private lateinit var context: Context
-    lateinit var scanTree: ScanTree
-    private var currentNodes: List<Node> = emptyList()
+    private lateinit var scanTree: ScanTree
     private val coroutineScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
     private var lastNodeUpdateTime: Long = 0
     private var continuousUpdateJob: Job? = null
@@ -42,10 +43,10 @@ class NodeScanner : ScanTreeCallback {
     private var revertToCursorJob: Job? = null
 
     /**
-     * Starts the NodeScanner.
+     * Starts the SystemNodeScanner.
      * Initializes the scanTree with the context and starts observing node updates.
      *
-     * @param context The context in which the NodeScanner is started.
+     * @param context The context in which the SystemNodeScanner is started.
      */
     fun start(context: Context) {
         this.context = context
@@ -56,6 +57,15 @@ class NodeScanner : ScanTreeCallback {
             hasCycleBreak = true,
             callback = this
         )
+
+        // Register for node updates
+        SystemNodeHolder.setOnNodesUpdatedCallback { nodes ->
+            handleNodeUpdate(nodes)
+        }
+
+        // Build initial tree from current nodes
+        buildFromNodes(SystemNodeHolder.getNodes())
+
         NodeSpeaker.init(context)
     }
 
@@ -67,14 +77,19 @@ class NodeScanner : ScanTreeCallback {
         revertToCursorJob?.cancel()
         revertToCursorJob = coroutineScope.launch {
             delay(EMPTY_NODES_TIMEOUT_MS)
-            if (ScanMethod.getType() == ScanMethod.MethodType.ITEM_SCAN && currentNodes.isEmpty()) {
+            if (ScanMethod.getType() == ScanMethod.MethodType.ITEM_SCAN && SystemNodeHolder.getNodes()
+                    .isEmpty()
+            ) {
                 withContext(Dispatchers.Main) {
                     scanTree.reset()
                     ScanMethod.setType(ScanMethod.MethodType.CURSOR)
                     Log.d(TAG, "ScanMethod changed to cursor")
                 }
             } else {
-                Log.d(TAG, "ScanMethod not changed, nodes.size: ${currentNodes.size}")
+                Log.d(
+                    TAG,
+                    "ScanMethod not changed, nodes.size: ${SystemNodeHolder.getNodes().size}"
+                )
             }
         }
     }
@@ -124,17 +139,8 @@ class NodeScanner : ScanTreeCallback {
         lastNodeUpdateTime = currentTime
     }
 
-    /**
-     * Updates the nodes and rebuilds the scanTree.
-     * If no nodes are present, it starts the timeout.
-     * If nodes are continuously updating for more than 10 seconds, switches to cursor mode.
-     *
-     * @param nodes List of new Node instances.
-     */
-    fun updateNodes(nodes: List<Node>) {
-        currentNodes = nodes
-        scanTree.buildTree(nodes)
-
+    private fun handleNodeUpdate(nodes: List<Node>) {
+        buildFromNodes(nodes)
         handleContinuousUpdates()
 
         if (nodes.isEmpty()) {
@@ -142,14 +148,30 @@ class NodeScanner : ScanTreeCallback {
         }
     }
 
+    private fun buildFromNodes(nodes: List<Node>) {
+        scanTree.buildTree(nodes)
+    }
+
     /**
-     * Resets NodeScanner and stops any ongoing jobs.
+     * Gets the scan tree for the node scanner.
+     *
+     * @return The scan tree for the node scanner.
+     */
+    fun getScanTree(): ScanTree {
+        return scanTree
+    }
+
+    /**
+     * Resets SystemNodeScanner and stops any ongoing jobs.
      */
     fun cleanup() {
         // Cancel any existing jobs
         continuousUpdateJob?.cancel()
         updateCountResetJob?.cancel()
         revertToCursorJob?.cancel()
+
+        // Remove the callback from SystemNodeHolder
+        SystemNodeHolder.removeCallback()
 
         // Cleanup the scanTree
         scanTree.cleanup()

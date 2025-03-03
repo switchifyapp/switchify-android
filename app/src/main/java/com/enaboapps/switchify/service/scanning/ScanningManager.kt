@@ -9,17 +9,11 @@ import com.enaboapps.switchify.service.custom.actions.ActionPerformer
 import com.enaboapps.switchify.service.gestures.AutoScrollManager
 import com.enaboapps.switchify.service.gestures.GestureManager
 import com.enaboapps.switchify.service.menu.MenuManager
-import com.enaboapps.switchify.service.methods.cursor.CursorManager
-import com.enaboapps.switchify.service.methods.nodes.KeyboardScanner
 import com.enaboapps.switchify.service.methods.nodes.Node
-import com.enaboapps.switchify.service.methods.nodes.NodeScanner
-import com.enaboapps.switchify.service.methods.nodes.NodeScannerUI
-import com.enaboapps.switchify.service.methods.radar.RadarManager
+import com.enaboapps.switchify.service.methods.nodes.scanners.NodeScannerUI
 import com.enaboapps.switchify.service.selection.SelectionHandler
-import com.enaboapps.switchify.service.utils.KeyboardBridge
 import com.enaboapps.switchify.service.window.SwitchifyAccessibilityWindow
 import com.enaboapps.switchify.switches.SwitchAction
-import com.enaboapps.switchify.utils.Logger
 
 /**
  * ScanningManager is responsible for managing the scanning process in the application.
@@ -31,14 +25,18 @@ import com.enaboapps.switchify.utils.Logger
 class ScanningManager(
     private val accessibilityService: SwitchifyAccessibilityService,
     val context: Context
-) : ScanMethodObserver {
-    // Managers for different scanning methods
-    private val cursorManager = CursorManager(context)
-    private val radarManager = RadarManager(context)
-    private val nodeScanner = NodeScanner()
-    private val keyboardScanner = KeyboardScanner()
+) {
+    companion object {
+        private const val TAG = "ScanningManager"
+        private const val SCAN_METHOD_CHANGE_TIMEOUT_MS = 1000L
+    }
 
-    private val moveRepeatManager = MoveRepeatManager(context)
+    private var isAcceptingActions = true
+
+    // Active scan method manager
+    private val activeScanMethod = ActiveScanMethod(context)
+
+    private var moveRepeatManager: MoveRepeatManager? = MoveRepeatManager(context)
 
     // Scan settings
     private val scanSettings = ScanSettings(context)
@@ -47,33 +45,14 @@ class ScanningManager(
      * Provides the current active scanning state method on the current scanning method.
      */
     private val currentScanMethod: ScanMethodBase
-        get() = when {
-            KeyboardBridge.isKeyboardVisible -> keyboardScanner.getScanTree()
-            ScanMethod.isInMenu -> MenuManager.getInstance().menuHierarchy?.getTopMenu()?.scanTree
-            else -> when (ScanMethod.getType()) {
-                ScanMethod.MethodType.CURSOR -> cursorManager
-                ScanMethod.MethodType.RADAR -> radarManager
-                ScanMethod.MethodType.ITEM_SCAN -> nodeScanner.scanTree
-                else -> {
-                    throw IllegalStateException("Invalid scanning method type: ${ScanMethod.getType()}")
-                }
-            }
-        } as ScanMethodBase
+        get() = activeScanMethod.currentMethod
 
-    override fun onScanMethodChanged(type: String) {
-        cleanupInactiveScanningMethods(type)
-        Logger.logEvent("Scan method changed to: $type")
-    }
-
-    override fun onMenuStateChanged(isInMenu: Boolean) {
-        cleanupInactiveScanningMethods(ScanMethod.getType())
-
-        // Start scanning if the setting is enabled after 600ms
-        Handler(Looper.getMainLooper()).postDelayed({
+    init {
+        activeScanMethod.setOnScanningStartCallback {
             if (scanSettings.getAutomaticallyStartScanAfterSelection()) {
                 currentScanMethod.startScanning()
             }
-        }, 600)
+        }
     }
 
     /**
@@ -82,19 +61,16 @@ class ScanningManager(
     fun setup() {
         SwitchifyAccessibilityWindow.instance.setup(context)
         SwitchifyAccessibilityWindow.instance.show()
-        nodeScanner.start(context)
         MenuManager.getInstance().setup(this, accessibilityService)
-        ScanMethod.observer = this
-        keyboardScanner.start(context)
     }
 
     /**
-     * Updates the nodes in the NodeScanner with the current layout information.
+     * Updates the nodes in the SystemNodeScanner with the current layout information.
      *
      * @param nodes List of Node instances representing the current screen layout.
      */
     fun updateActionableNodes(nodes: List<Node>) {
-        nodeScanner.updateNodes(nodes)
+        activeScanMethod.updateActionableNodes(nodes)
     }
 
     /**
@@ -103,7 +79,7 @@ class ScanningManager(
      * @param nodes List of Node instances representing the current screen layout.
      */
     fun updateKeyboardNodes(nodes: List<Node>) {
-        keyboardScanner.updateNodes(nodes)
+        activeScanMethod.updateKeyboardNodes(nodes)
     }
 
     /**
@@ -125,14 +101,15 @@ class ScanningManager(
      */
     fun setItemScanType() {
         setType(ScanMethod.MethodType.ITEM_SCAN)
-        SelectionHandler.setStartScanningAction { nodeScanner.scanTree.startScanning() }
-        nodeScanner.startTimeoutToRevertToCursor()
+        SelectionHandler.setStartScanningAction { activeScanMethod.currentMethod.startScanning() }
+        activeScanMethod.getNodeScanner().startTimeoutToRevertToCursor()
     }
 
     /**
      * Sets the scanning method to menu type.
      */
     fun setMenuType() {
+        startAcceptingActionsTimeout()
         ScanMethod.isInMenu = true
         NodeScannerUI.instance.hideAll()
     }
@@ -143,32 +120,42 @@ class ScanningManager(
      * @param type The ScanMethod.MethodType to set. Must be a valid type.
      */
     private fun setType(type: String) {
+        startAcceptingActionsTimeout()
         ScanMethod.setType(type)
         ScanMethod.isInMenu = false
         NodeScannerUI.instance.hideAll()
-        nodeScanner.scanTree.reset()
+        activeScanMethod.resetNodeScanner()
+    }
+
+    /**
+     * Starts the timeout to pause accepting actions.
+     */
+    private fun startAcceptingActionsTimeout() {
+        isAcceptingActions = false
+        Handler(Looper.getMainLooper()).postDelayed({
+            isAcceptingActions = true
+        }, SCAN_METHOD_CHANGE_TIMEOUT_MS)
     }
 
     /**
      * Performs the selection action for the current scanning state.
      */
     fun select() {
+        if (!isAcceptingActions) return
         currentScanMethod.performSelectionAction()
     }
 
     /**
      * Performs the specified action based on the SwitchAction type.
-     *
-     * @param action The SwitchAction to perform.
      */
     fun performAction(action: SwitchAction) {
-        cleanupInactiveScanningMethods(ScanMethod.getType())
-
         if (GestureManager.getInstance().performGestureLockAction()) {
             return
         }
 
         if (AutoScrollManager.getInstance().stopAutoScroll()) return
+
+        if (!isAcceptingActions) return
 
         when (action.id) {
             SwitchAction.ACTION_SELECT -> select()
@@ -218,15 +205,15 @@ class ScanningManager(
     fun startMoveRepeat(action: SwitchAction): Boolean {
         if (scanSettings.isMoveRepeatEnabled()) {
             if (action.id == SwitchAction.ACTION_MOVE_TO_NEXT_ITEM) {
-                moveRepeatManager.setNextAction {
+                moveRepeatManager?.setNextAction {
                     performAction(SwitchAction(SwitchAction.ACTION_MOVE_TO_NEXT_ITEM))
                 }
-                return moveRepeatManager.start()
+                return moveRepeatManager?.start() ?: false
             } else if (action.id == SwitchAction.ACTION_MOVE_TO_PREVIOUS_ITEM) {
-                moveRepeatManager.setPreviousAction {
+                moveRepeatManager?.setPreviousAction {
                     performAction(SwitchAction(SwitchAction.ACTION_MOVE_TO_PREVIOUS_ITEM))
                 }
-                return moveRepeatManager.start()
+                return moveRepeatManager?.start() ?: false
             }
         }
         return false
@@ -239,41 +226,10 @@ class ScanningManager(
      */
     fun stopMoveRepeat(): Boolean {
         if (scanSettings.isMoveRepeatEnabled()) {
-            moveRepeatManager.stop()
+            moveRepeatManager?.stop()
             return true
         }
         return false
-    }
-
-    /**
-     * Cleans up inactive scanning methods to free up resources.
-     */
-    private fun cleanupInactiveScanningMethods(activeType: String) {
-        if (KeyboardBridge.isKeyboardVisible) {
-            radarManager.cleanup()
-            nodeScanner.cleanup()
-            cursorManager.cleanup()
-            return
-        }
-
-        when (activeType) {
-            ScanMethod.MethodType.CURSOR -> {
-                radarManager.cleanup()
-                nodeScanner.cleanup()
-            }
-
-            ScanMethod.MethodType.RADAR -> {
-                cursorManager.cleanup()
-                nodeScanner.cleanup()
-            }
-
-            ScanMethod.MethodType.ITEM_SCAN -> {
-                cursorManager.cleanup()
-                radarManager.cleanup()
-            }
-        }
-
-        NodeScannerUI.instance.hideAll()
     }
 
     /**
@@ -281,13 +237,9 @@ class ScanningManager(
      */
     fun reset() {
         pauseScanning()
-        listOf(
-            cursorManager,
-            radarManager,
-            nodeScanner.scanTree,
-            keyboardScanner.getScanTree()
-        ).forEach { it.cleanup() }
+        activeScanMethod.cleanupAll()
         MenuManager.getInstance().closeMenuHierarchy()
+        moveRepeatManager = null
     }
 
     /**
@@ -295,11 +247,7 @@ class ScanningManager(
      */
     fun shutdown() {
         pauseScanning()
-        listOf(
-            cursorManager,
-            radarManager,
-            nodeScanner.scanTree,
-            keyboardScanner.getScanTree()
-        ).forEach { it.cleanup() }
+        activeScanMethod.cleanupAll()
+        moveRepeatManager = null
     }
 }

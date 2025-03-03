@@ -186,7 +186,7 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
             KeyboardBridge.updateKeyboardState(windows, scanSettings)
         }
 
-        // Update the NodeScanner with the current layout info
+        // Update the SystemNodeScanner with the current layout info
         serviceScope.launch {
             NodeExaminer.getActionableNodesFlow().collect { nodes ->
                 scanningManager.updateActionableNodes(nodes)

@@ -377,6 +377,8 @@ class ScanTree(
             resumeScanning()
         }
 
+        unhighlightCurrent()
+
         // If scanning is active, highlight the current item
         if (scanningScheduler?.isScanning() == true) {
             highlightCurrent()
