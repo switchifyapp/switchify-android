@@ -186,14 +186,14 @@ class ScanningManager(
      * Pauses the scanning process for the current scanning state.
      */
     fun pauseScanning() {
-        currentScanMethod.pauseScanning()
+        if (isAcceptingActions) currentScanMethod.pauseScanning()
     }
 
     /**
      * Resumes the scanning process for the current scanning state.
      */
     fun resumeScanning() {
-        currentScanMethod.resumeScanning()
+        if (isAcceptingActions) currentScanMethod.resumeScanning()
     }
 
     /**

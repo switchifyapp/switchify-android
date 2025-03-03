@@ -11,13 +11,15 @@ import com.enaboapps.switchify.service.methods.nodes.scanners.keyboard.KeyboardS
 import com.enaboapps.switchify.service.methods.nodes.scanners.system.SystemNodeHolder
 import com.enaboapps.switchify.service.methods.nodes.scanners.system.SystemNodeScanner
 import com.enaboapps.switchify.service.methods.radar.RadarManager
+import com.enaboapps.switchify.service.selection.SelectionHandler
 import com.enaboapps.switchify.service.utils.KeyboardBridge
+import com.enaboapps.switchify.service.utils.KeyboardListener
 import com.enaboapps.switchify.utils.Logger
 
 /**
  * Manages the active scanning method and its state
  */
-class ActiveScanMethod(private val context: Context) : ScanMethodObserver {
+class ActiveScanMethod(private val context: Context) : ScanMethodObserver, KeyboardListener {
     private var cursorManager: CursorManager? = null
     private var radarManager: RadarManager? = null
     private var systemNodeScanner: SystemNodeScanner? = null
@@ -27,6 +29,7 @@ class ActiveScanMethod(private val context: Context) : ScanMethodObserver {
 
     init {
         ScanMethod.observer = this
+        KeyboardBridge.setKeyboardListener(this)
     }
 
     val currentMethod: ScanMethodBase
@@ -146,6 +149,8 @@ class ActiveScanMethod(private val context: Context) : ScanMethodObserver {
             keyboardScanner?.cleanup()
             keyboardScanner = null
         }
+
+        SelectionHandler.cleanup()
     }
 
     private fun cleanupAllExceptKeyboard() {
@@ -155,6 +160,8 @@ class ActiveScanMethod(private val context: Context) : ScanMethodObserver {
         systemNodeScanner = null
         cursorManager?.cleanup()
         cursorManager = null
+
+        SelectionHandler.cleanup()
 
         NodeScannerUI.instance.hideAll()
     }
@@ -169,6 +176,8 @@ class ActiveScanMethod(private val context: Context) : ScanMethodObserver {
         keyboardScanner?.cleanup()
         keyboardScanner = null
 
+        SelectionHandler.cleanup()
+
         NodeScannerUI.instance.hideAll()
     }
 
@@ -179,5 +188,11 @@ class ActiveScanMethod(private val context: Context) : ScanMethodObserver {
     fun updateKeyboardNodes(nodes: List<Node>) {
         ensureKeyboardScannerStarted()
         keyboardScanner?.updateNodes(nodes)
+    }
+
+    override fun onKeyboardStateChanged(isKeyboardVisible: Boolean) {
+        if (isKeyboardVisible) {
+            cleanupAllExceptKeyboard()
+        }
     }
 } 
