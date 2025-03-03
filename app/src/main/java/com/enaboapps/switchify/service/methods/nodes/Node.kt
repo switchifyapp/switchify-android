@@ -6,6 +6,7 @@ import android.view.accessibility.AccessibilityNodeInfo
 import com.enaboapps.switchify.service.gestures.GestureManager
 import com.enaboapps.switchify.service.gestures.GesturePoint
 import com.enaboapps.switchify.service.menu.MenuItem
+import com.enaboapps.switchify.service.methods.nodes.scanners.NodeScannerUI
 import com.enaboapps.switchify.service.scanning.ScanNodeInterface
 import com.enaboapps.switchify.service.selection.SelectionHandler
 import com.enaboapps.switchify.utils.Resources
@@ -144,12 +145,12 @@ class Node(
     }
 
     override fun highlight() {
-        NodeScannerUI.instance.showItemBounds(x, y, width, height)
+        NodeScannerUI.Companion.instance.showItemBounds(x, y, width, height)
         highlighted = true
     }
 
     override fun unhighlight() {
-        NodeScannerUI.instance.hideItemBounds()
+        NodeScannerUI.Companion.instance.hideItemBounds()
         highlighted = false
     }
 
