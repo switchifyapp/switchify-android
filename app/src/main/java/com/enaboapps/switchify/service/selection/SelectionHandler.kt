@@ -137,4 +137,16 @@ object SelectionHandler {
      * @return True if the auto-select process is in progress, false otherwise.
      */
     fun isAutoSelectInProgress(): Boolean = autoSelectInProgress
+
+    /**
+     * Cleans up the selection handler.
+     */
+    fun cleanup() {
+        autoTapVisual?.stop()
+
+        selectAction = null
+        startScanningAction = null
+        methodTypeInvokedForStartScanningAction = null
+        autoSelectInProgress = false
+    }
 }
