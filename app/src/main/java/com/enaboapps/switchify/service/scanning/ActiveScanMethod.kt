@@ -193,6 +193,8 @@ class ActiveScanMethod(private val context: Context) : ScanMethodObserver, Keybo
     override fun onKeyboardStateChanged(isKeyboardVisible: Boolean) {
         if (isKeyboardVisible) {
             cleanupAllExceptKeyboard()
+        } else {
+            cleanup(ScanMethod.getType())
         }
     }
 } 
