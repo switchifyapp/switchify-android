@@ -24,8 +24,10 @@ object KeyboardBridge {
     }
 
     private fun notifyKeyboardStateChanged(isKeyboardVisible: Boolean) {
-        this.isKeyboardVisible = isKeyboardVisible
-        keyboardListener?.onKeyboardStateChanged(isKeyboardVisible)
+        if (this.isKeyboardVisible != isKeyboardVisible) {
+            this.isKeyboardVisible = isKeyboardVisible
+            keyboardListener?.onKeyboardStateChanged(isKeyboardVisible)
+        }
     }
 
     fun updateKeyboardState(windows: List<AccessibilityWindowInfo>, scanSettings: ScanSettings) {
