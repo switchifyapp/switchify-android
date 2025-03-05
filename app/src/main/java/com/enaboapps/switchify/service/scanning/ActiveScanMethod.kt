@@ -146,11 +146,15 @@ class ActiveScanMethod(private val context: Context) : ScanMethodObserver, Keybo
         }
 
         if (!KeyboardBridge.isKeyboardVisible) {
-            keyboardScanner?.cleanup()
-            keyboardScanner = null
+            cleanupKeyboard()
         }
 
         SelectionHandler.cleanup()
+    }
+
+    private fun cleanupKeyboard() {
+        keyboardScanner?.cleanup()
+        keyboardScanner = null
     }
 
     private fun cleanupAllExceptKeyboard() {
@@ -173,8 +177,7 @@ class ActiveScanMethod(private val context: Context) : ScanMethodObserver, Keybo
         radarManager = null
         systemNodeScanner?.cleanup()
         systemNodeScanner = null
-        keyboardScanner?.cleanup()
-        keyboardScanner = null
+        cleanupKeyboard()
 
         SelectionHandler.cleanup()
 
@@ -194,7 +197,7 @@ class ActiveScanMethod(private val context: Context) : ScanMethodObserver, Keybo
         if (isKeyboardVisible) {
             cleanupAllExceptKeyboard()
         } else {
-            cleanup(ScanMethod.getType())
+            cleanupKeyboard()
         }
     }
 } 
