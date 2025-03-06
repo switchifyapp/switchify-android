@@ -1,4 +1,4 @@
-package com.enaboapps.switchify.screens.settings.scanning
+package com.enaboapps.switchify.screens.settings.techniques
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue

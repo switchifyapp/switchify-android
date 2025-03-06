@@ -195,9 +195,6 @@
     <string name="screen_title_upgrade_pro">Upgrade to Pro</string>
     <string name="screen_title_debug">Debug Settings</string>
     <string name="screen_title_scan_colors">Scan Colors</string>
-    <string name="screen_title_cursor_settings">Cursor Settings</string>
-    <string name="screen_title_radar_settings">Radar Settings</string>
-    <string name="screen_title_item_scan_settings">Item Scan Settings</string>
     <string name="screen_title_other_scan_settings">Other Scan Settings</string>
     <string name="screen_title_account">Account</string>
     <string name="screen_title_sign_in">Sign In</string>
@@ -237,7 +234,7 @@
 
     <!-- Cursor Settings Screen -->
     <string name="section_title_cursor_mode">Cursor Mode</string>
-    <string name="section_title_cursor_scan_rates">Cursor Scan Rates</string>
+    <string name="section_title_cursor_scan_rates">Cursor Scan Rates (only applies to auto scan)</string>
     <string name="picker_title_select_cursor_mode">Select Cursor Mode</string>
     <string name="preference_title_fine_cursor_scan_rate">Fine Cursor Scan Rate</string>
     <string name="preference_summary_fine_cursor_scan_rate">Adjust the scan rate for fine cursor movements</string>
@@ -254,7 +251,7 @@
     <string name="preference_summary_item_scan_speech">Speak the item content description while scanning</string>
     <string name="preference_title_scan_cycles">Scan Cycles</string>
     <string name="preference_summary_scan_cycles">The number of times to scan before stopping</string>
-    <string name="preference_title_item_scan_rate">Item Scan Rate</string>
+    <string name="preference_title_item_scan_rate">Item Scan Rate (only applies to auto scan)</string>
     <string name="preference_summary_item_scan_rate">The rate at which items are scanned</string>
 
     <!-- Add/Edit Camera Switch Screen -->
@@ -281,7 +278,7 @@
     <string name="preference_title_auto_start_scanning">Auto-start scanning</string>
     <string name="preference_summary_auto_start_scanning">Automatically start scanning after a selection</string>
 
-    <string name="preference_title_first_item_pause">First item pause</string>
+    <string name="preference_title_first_item_pause">First item pause (only applies to auto scan)</string>
     <string name="preference_summary_first_item_pause">Pause briefly on the first item of each scan cycle</string>
     <string name="preference_title_first_item_pause_duration">First item pause duration</string>
     <string name="preference_summary_first_item_pause_duration">How long to pause on the first item</string>
@@ -293,7 +290,7 @@
 
     <!-- Radar Settings Screen -->
     <string name="section_title_radar_speed">Radar Speed</string>
-    <string name="preference_title_radar_speed">Radar speed</string>
+    <string name="preference_title_radar_speed">Radar speed (only applies to auto scan)</string>
     <string name="preference_summary_radar_speed">How fast the radar moves</string>
 
     <!-- Settings Screen -->
@@ -341,13 +338,6 @@
     <string name="settings_summary_assisted_selection">Assist the user in selecting items by selecting the closest available item to where they select.</string>
 
     <!-- Settings - Scanning Section -->
-    <string name="settings_section_scanning_method">Scanning Method Settings</string>
-    <string name="settings_title_cursor_scan">Cursor Scan</string>
-    <string name="settings_summary_cursor_scan">Move a cursor around the screen to select items - best for precise control and navigation</string>
-    <string name="settings_title_item_scan">Item Scan</string>
-    <string name="settings_summary_item_scan">Scan through interactive elements one by one or in groups - best for structured content</string>
-    <string name="settings_title_radar_scan">Radar Scan</string>
-    <string name="settings_summary_radar_scan">A rotating line that helps select items in a circular pattern - best for quick access to screen areas</string>
     <string name="settings_title_other_scan">Other Scan Settings</string>
     <string name="settings_summary_other_scan">Configure other scan settings</string>
     <string name="settings_section_scan_appearance">Scan Appearance</string>
@@ -503,4 +493,14 @@
     <string name="setup_sign_in">Sign In</string>
     <string name="setup_setup_complete">Setup Complete</string>
     <string name="setup_finish">Finish</string>
+
+    <!-- Access Technique Settings Screen -->
+    <string name="screen_title_access_technique_settings">Access Technique Settings</string>
+    <string name="settings_tab_cursor">Cursor</string>
+    <string name="settings_tab_radar">Radar</string>
+    <string name="settings_tab_item_scan">Item Scan</string>
+
+    <!-- Access Technique Settings -->
+    <string name="settings_title_access_technique">Access Technique</string>
+    <string name="settings_summary_access_technique">Configure cursor, radar, and item scan settings</string>
 </resources>
