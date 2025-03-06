@@ -1,4 +1,3 @@
-import java.io.ByteArrayOutputStream
 import java.util.Properties
 
 plugins {
@@ -83,9 +82,6 @@ android {
         compose = true
         buildConfig = true
     }
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.4"
-    }
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
@@ -94,15 +90,17 @@ android {
 }
 
 fun gitVersionCode(): Int {
-    return try {
-        val stdout = ByteArrayOutputStream()
-        exec {
-            commandLine("git", "rev-list", "--count", "HEAD")
-            standardOutput = stdout
-        }
-        stdout.toString().trim().toInt()
-    } catch (e: Exception) {
-        1 // Fallback in case the git command fails or is not available
+    return runCatching {
+        val process = ProcessBuilder("git", "rev-list", "--count", "HEAD")
+            .redirectErrorStream(true)
+            .start()
+        val output = process.inputStream.bufferedReader().readText().trim()
+        process.waitFor()  // Optionally check the exit code if needed
+        println("Git version code: $output")
+        output.toInt()
+    }.getOrElse { exception ->
+        println("Warning: Failed to compute git version code: ${exception.message}")
+        1  // Fallback value
     }
 }
 
