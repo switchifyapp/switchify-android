@@ -18,16 +18,14 @@ import com.enaboapps.switchify.screens.settings.actions.AddEditActionScreen
 import com.enaboapps.switchify.screens.settings.actions.MyActionsScreen
 import com.enaboapps.switchify.screens.settings.gestures.GestureSettingsScreen
 import com.enaboapps.switchify.screens.settings.menu.MenuSizeScreen
-import com.enaboapps.switchify.screens.settings.scanning.CursorSettingsScreen
-import com.enaboapps.switchify.screens.settings.scanning.ItemScanSettingsScreen
 import com.enaboapps.switchify.screens.settings.scanning.OtherScanSettingsScreen
-import com.enaboapps.switchify.screens.settings.scanning.RadarSettingsScreen
 import com.enaboapps.switchify.screens.settings.scanning.ScanColorSelectionScreen
 import com.enaboapps.switchify.screens.settings.switches.AddEditCameraSwitchScreen
 import com.enaboapps.switchify.screens.settings.switches.AddEditExternalSwitchScreen
 import com.enaboapps.switchify.screens.settings.switches.SwitchStabilityScreen
 import com.enaboapps.switchify.screens.settings.switches.SwitchesScreen
 import com.enaboapps.switchify.screens.settings.switches.TestSwitchesScreen
+import com.enaboapps.switchify.screens.settings.techniques.AccessTechniqueSettingsScreen
 import com.enaboapps.switchify.screens.setup.SetupScreen
 
 @Composable
@@ -69,9 +67,6 @@ fun NavGraph(navController: NavHostController) {
         composable(NavigationRoute.GestureSettings.name) {
             GestureSettingsScreen(navController)
         }
-        composable(NavigationRoute.CursorSettings.name) {
-            CursorSettingsScreen(navController)
-        }
         composable(NavigationRoute.Switches.name) {
             SwitchesScreen(navController)
         }
@@ -103,14 +98,11 @@ fun NavGraph(navController: NavHostController) {
                 AddEditActionScreen(navController, id)
             }
         }
-        composable(NavigationRoute.ItemScanSettings.name) {
-            ItemScanSettingsScreen(navController)
-        }
         composable(NavigationRoute.OtherScanSettings.name) {
             OtherScanSettingsScreen(navController)
         }
-        composable(NavigationRoute.RadarSettings.name) {
-            RadarSettingsScreen(navController)
+        composable(NavigationRoute.AccessTechniqueSettings.name) {
+            AccessTechniqueSettingsScreen(navController)
         }
         composable(NavigationRoute.AddNewCameraSwitch.name) {
             AddEditCameraSwitchScreen(navController)

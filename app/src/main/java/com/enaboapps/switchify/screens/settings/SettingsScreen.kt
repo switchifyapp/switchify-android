@@ -33,8 +33,8 @@ import com.enaboapps.switchify.components.ScrollableView
 import com.enaboapps.switchify.components.Section
 import com.enaboapps.switchify.nav.NavigationRoute
 import com.enaboapps.switchify.screens.settings.models.SettingsScreenModel
-import com.enaboapps.switchify.screens.settings.scanning.AccessTechniqueSelector
 import com.enaboapps.switchify.screens.settings.scanning.ScanModeSelectionSection
+import com.enaboapps.switchify.screens.settings.techniques.AccessTechniqueSelector
 
 @Composable
 fun SettingsScreen(navController: NavController) {
@@ -76,6 +76,13 @@ fun SettingsScreen(navController: NavController) {
 fun GeneralSettingsTab(settingsScreenModel: SettingsScreenModel, navController: NavController) {
     ScrollableView {
         InputSection(navController)
+        AccessTechniqueSelector()
+        NavRouteLink(
+            titleResId = R.string.settings_title_access_technique,
+            summaryResId = R.string.settings_summary_access_technique,
+            navController = navController,
+            route = NavigationRoute.AccessTechniqueSettings.name
+        )
         GesturesSettingsSection(navController)
         MenuSection(settingsScreenModel, navController)
         ActionsSection(navController)
@@ -85,31 +92,6 @@ fun GeneralSettingsTab(settingsScreenModel: SettingsScreenModel, navController: 
 @Composable
 fun ScanningSettingsTab(navController: NavController) {
     ScrollableView {
-        AccessTechniqueSelector()
-
-        Section(titleResId = R.string.settings_section_scanning_method) {
-            NavRouteLink(
-                titleResId = R.string.settings_title_cursor_scan,
-                summaryResId = R.string.settings_summary_cursor_scan,
-                navController = navController,
-                route = NavigationRoute.CursorSettings.name
-            )
-
-            NavRouteLink(
-                titleResId = R.string.settings_title_item_scan,
-                summaryResId = R.string.settings_summary_item_scan,
-                navController = navController,
-                route = NavigationRoute.ItemScanSettings.name
-            )
-
-            NavRouteLink(
-                titleResId = R.string.settings_title_radar_scan,
-                summaryResId = R.string.settings_summary_radar_scan,
-                navController = navController,
-                route = NavigationRoute.RadarSettings.name
-            )
-        }
-
         ScanModeSelectionSection()
 
         NavRouteLink(
