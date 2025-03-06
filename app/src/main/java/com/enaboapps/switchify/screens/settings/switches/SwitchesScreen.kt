@@ -1,10 +1,28 @@
 package com.enaboapps.switchify.screens.settings.switches
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -13,7 +31,14 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.enaboapps.switchify.R
-import com.enaboapps.switchify.components.*
+import com.enaboapps.switchify.components.BaseView
+import com.enaboapps.switchify.components.CameraPermissionHandler
+import com.enaboapps.switchify.components.LoadingIndicator
+import com.enaboapps.switchify.components.NavBarAction
+import com.enaboapps.switchify.components.NavRouteLink
+import com.enaboapps.switchify.components.ScrollableView
+import com.enaboapps.switchify.components.Section
+import com.enaboapps.switchify.components.UICard
 import com.enaboapps.switchify.nav.NavigationRoute
 import com.enaboapps.switchify.screens.settings.switches.models.SwitchesScreenModel
 import com.enaboapps.switchify.switches.SWITCH_EVENT_TYPE_CAMERA
@@ -44,6 +69,8 @@ fun SwitchesScreen(navController: NavController) {
     BaseView(
         titleResId = R.string.screen_title_switches,
         navController = navController,
+        padding = 0.dp,
+        enableScroll = false,
         navBarActions = listOf(
             NavBarAction(
                 textResId = R.string.action_test,
@@ -228,12 +255,14 @@ private fun SwitchList(
             )
         }
     } else {
-        Section(titleResId = R.string.section_title_switches) {
-            switches.forEach { event ->
-                SwitchEventItem(
-                    navController = navController,
-                    switchEvent = event
-                )
+        ScrollableView {
+            Section(titleResId = R.string.section_title_switches) {
+                switches.forEach { event ->
+                    SwitchEventItem(
+                        navController = navController,
+                        switchEvent = event
+                    )
+                }
             }
         }
     }
