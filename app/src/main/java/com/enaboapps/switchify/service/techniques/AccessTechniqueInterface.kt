@@ -1,6 +1,6 @@
-package com.enaboapps.switchify.service.scanning
+package com.enaboapps.switchify.service.techniques
 
-interface ScanMethodBase {
+interface AccessTechniqueInterface {
     fun startScanning()
     fun pauseScanning()
     fun resumeScanning()

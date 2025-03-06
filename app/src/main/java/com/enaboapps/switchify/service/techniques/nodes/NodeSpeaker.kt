@@ -1,4 +1,4 @@
-package com.enaboapps.switchify.service.methods.nodes
+package com.enaboapps.switchify.service.techniques.nodes
 
 import android.content.Context
 import android.os.Bundle

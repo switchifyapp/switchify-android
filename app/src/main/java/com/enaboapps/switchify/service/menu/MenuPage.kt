@@ -4,7 +4,7 @@ import android.content.Context
 import android.view.Gravity
 import android.widget.LinearLayout
 import com.enaboapps.switchify.R
-import com.enaboapps.switchify.service.methods.nodes.Node
+import com.enaboapps.switchify.service.techniques.nodes.Node
 
 /**
  * This class represents a page of the menu

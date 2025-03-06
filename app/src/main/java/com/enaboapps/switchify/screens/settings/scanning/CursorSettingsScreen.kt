@@ -13,7 +13,7 @@ import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.Picker
 import com.enaboapps.switchify.components.PreferenceTimeStepper
 import com.enaboapps.switchify.components.Section
-import com.enaboapps.switchify.service.methods.cursor.CursorMode
+import com.enaboapps.switchify.service.techniques.cursor.CursorMode
 
 @Composable
 fun CursorSettingsScreen(navController: NavController) {

@@ -1,8 +1,8 @@
-package com.enaboapps.switchify.service.methods.nodes.scanners.keyboard
+package com.enaboapps.switchify.service.techniques.nodes.scanners.keyboard
 
 import android.content.Context
 import android.util.Log
-import com.enaboapps.switchify.service.methods.nodes.Node
+import com.enaboapps.switchify.service.techniques.nodes.Node
 import com.enaboapps.switchify.service.scanning.tree.ScanTree
 
 class KeyboardScanner {

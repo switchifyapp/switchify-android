@@ -10,35 +10,38 @@ import com.enaboapps.switchify.R
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.components.Picker
 import com.enaboapps.switchify.components.Section
-import com.enaboapps.switchify.service.scanning.ScanMethod
+import com.enaboapps.switchify.service.techniques.AccessTechnique
 
 @Composable
-fun ScanMethodSelectionSection() {
-    val methods = listOf(
-        ScanMethod.MethodType.CURSOR,
-        ScanMethod.MethodType.RADAR,
-        ScanMethod.MethodType.ITEM_SCAN
+fun AccessTechniqueSelector() {
+    val scanTechniques = listOf(
+        AccessTechnique.Technique.CURSOR,
+        AccessTechnique.Technique.RADAR,
+        AccessTechnique.Technique.ITEM_SCAN
     )
     val preferenceManager = PreferenceManager(LocalContext.current)
     var currentMethod by remember {
         mutableStateOf(
-            preferenceManager.getStringValue(PreferenceManager.Keys.PREFERENCE_KEY_SCAN_METHOD)
+            preferenceManager.getStringValue(PreferenceManager.Keys.PREFERENCE_KEY_ACCESS_TECHNIQUE)
         )
     }
 
     val setScanMethod = { method: String ->
-        preferenceManager.setStringValue(PreferenceManager.Keys.PREFERENCE_KEY_SCAN_METHOD, method)
+        preferenceManager.setStringValue(
+            PreferenceManager.Keys.PREFERENCE_KEY_ACCESS_TECHNIQUE,
+            method
+        )
         currentMethod = method
     }
 
-    Section(titleResId = R.string.section_title_scanning_method) {
+    Section(titleResId = R.string.section_title_access_technique) {
         Picker(
-            titleResId = R.string.picker_title_select_scan_method,
+            titleResId = R.string.picker_title_select_access_technique,
             selectedItem = currentMethod,
-            items = methods,
+            items = scanTechniques,
             onItemSelected = setScanMethod,
-            itemToString = { ScanMethod.getName(it) },
-            itemDescription = { ScanMethod.getDescription(it) }
+            itemToString = { AccessTechnique.getName(it) },
+            itemDescription = { AccessTechnique.getDescription(it) }
         )
     }
 }

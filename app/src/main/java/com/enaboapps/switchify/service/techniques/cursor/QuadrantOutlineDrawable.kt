@@ -1,4 +1,4 @@
-package com.enaboapps.switchify.service.methods.cursor
+package com.enaboapps.switchify.service.techniques.cursor
 
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable

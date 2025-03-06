@@ -1,4 +1,4 @@
-package com.enaboapps.switchify.service.methods.nodes.scanners
+package com.enaboapps.switchify.service.techniques.nodes.scanners
 
 import android.os.Handler
 import android.os.Looper

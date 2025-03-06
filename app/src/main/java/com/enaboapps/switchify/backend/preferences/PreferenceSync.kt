@@ -27,7 +27,7 @@ class PreferenceSync private constructor() {
         private const val COLLECTION_USERS = "users"
         private val BLACKLISTED_KEYS = setOf(
             PreferenceManager.Keys.PREFERENCE_KEY_PRO,
-            PreferenceManager.Keys.PREFERENCE_KEY_SCAN_METHOD
+            PreferenceManager.Keys.PREFERENCE_KEY_ACCESS_TECHNIQUE
         )
 
         @Volatile

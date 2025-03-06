@@ -8,8 +8,8 @@ import com.enaboapps.switchify.service.menu.MenuItem
 import com.enaboapps.switchify.service.menu.MenuManager
 import com.enaboapps.switchify.service.menu.menus.gestures.GestureMenuStructure
 import com.enaboapps.switchify.service.menu.structure.MenuStructure
-import com.enaboapps.switchify.service.methods.nodes.NodeExaminer
-import com.enaboapps.switchify.service.scanning.ScanMethod
+import com.enaboapps.switchify.service.techniques.nodes.NodeExaminer
+import com.enaboapps.switchify.service.techniques.AccessTechnique
 import com.enaboapps.switchify.service.utils.DeviceLockObserver
 
 class MainMenuStructure(private val accessibilityService: SwitchifyAccessibilityService) {
@@ -57,7 +57,7 @@ class MainMenuStructure(private val accessibilityService: SwitchifyAccessibility
                 isLinkToMenu = true,
                 action = { MenuManager.getInstance().openScrollMenu() }
             ),
-            if (ScanMethod.getType() != ScanMethod.MethodType.ITEM_SCAN && ScanMethod.getType() != ScanMethod.MethodType.RADAR) {
+            if (AccessTechnique.getCurrentTechnique() != AccessTechnique.Technique.ITEM_SCAN && AccessTechnique.getCurrentTechnique() != AccessTechnique.Technique.RADAR) {
                 MenuItem(
                     id = "refine_selection",
                     textResource = R.string.menu_item_refine_selection,
@@ -79,28 +79,28 @@ class MainMenuStructure(private val accessibilityService: SwitchifyAccessibility
                     action = { MenuManager.getInstance().openEditMenu() }
                 )
             } else null,
-            if (ScanMethod.getType() != ScanMethod.MethodType.ITEM_SCAN) {
+            if (AccessTechnique.getCurrentTechnique() != AccessTechnique.Technique.ITEM_SCAN) {
                 MenuItem(
                     id = "switch_to_item_scan",
-                    textResource = R.string.scan_method_item_scan,
+                    textResource = R.string.access_technique_item_scan,
                     action = {
                         MenuManager.getInstance().switchToItemScan()
                     }
                 )
             } else null,
-            if (ScanMethod.getType() != ScanMethod.MethodType.RADAR) {
+            if (AccessTechnique.getCurrentTechnique() != AccessTechnique.Technique.RADAR) {
                 MenuItem(
                     id = "switch_to_radar",
-                    textResource = R.string.scan_method_radar,
+                    textResource = R.string.access_technique_radar,
                     action = {
                         MenuManager.getInstance().switchToRadar()
                     }
                 )
             } else null,
-            if (ScanMethod.getType() != ScanMethod.MethodType.CURSOR) {
+            if (AccessTechnique.getCurrentTechnique() != AccessTechnique.Technique.CURSOR) {
                 MenuItem(
                     id = "switch_to_cursor",
-                    textResource = R.string.scan_method_cursor,
+                    textResource = R.string.access_technique_cursor,
                     action = {
                         MenuManager.getInstance().switchToCursor()
                     }

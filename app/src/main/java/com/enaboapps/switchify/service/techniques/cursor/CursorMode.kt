@@ -1,4 +1,4 @@
-package com.enaboapps.switchify.service.methods.cursor
+package com.enaboapps.switchify.service.techniques.cursor
 
 import android.content.Context
 import com.enaboapps.switchify.backend.preferences.PreferenceManager

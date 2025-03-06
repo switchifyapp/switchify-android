@@ -77,13 +77,13 @@
     <string name="actions_my_actions_title">My Actions</string>
     <string name="actions_my_actions_summary">Customize your own actions</string>
 
-    <!-- Scan Methods -->
-    <string name="scan_method_item_scan">Item Scan</string>
-    <string name="scan_method_desc_item_scan">Sequentially scanning the items on the screen</string>
-    <string name="scan_method_radar">Radar</string>
-    <string name="scan_method_desc_radar">Moving a radar around the screen</string>
-    <string name="scan_method_cursor">Cursor</string>
-    <string name="scan_method_desc_cursor">Moving a set of crosshairs over the screen</string>
+    <!-- Access Techniques -->
+    <string name="access_technique_item_scan">Item Scan</string>
+    <string name="access_technique_desc_item_scan">Sequentially scanning the items on the screen</string>
+    <string name="access_technique_radar">Radar</string>
+    <string name="access_technique_desc_radar">Moving a radar around the screen</string>
+    <string name="access_technique_cursor">Cursor</string>
+    <string name="access_technique_desc_cursor">Moving a set of crosshairs over the screen</string>
 
     <!-- Scan Modes -->
     <string name="scanning_mode_auto">Auto</string>
@@ -265,9 +265,9 @@
     <string name="dialog_title_delete">Confirm Deletion</string>
     <string name="dialog_message_delete">Are you sure you want to delete this switch?</string>
 
-    <!-- Scan Method Selection Section -->
-    <string name="section_title_scanning_method">Scanning Method</string>
-    <string name="picker_title_select_scan_method">Select Scanning Method</string>
+    <!-- Access Technique Selection Section -->
+    <string name="section_title_access_technique">Access Technique</string>
+    <string name="picker_title_select_access_technique">Select Access Technique</string>
 
     <!-- Scan Mode Selection Section -->
     <string name="section_title_scanning_mode">Scanning Mode</string>
@@ -353,10 +353,6 @@
     <string name="settings_section_scan_appearance">Scan Appearance</string>
     <string name="settings_title_scan_color">Scan Color</string>
     <string name="settings_summary_scan_color">Configure the scan highlight color</string>
-
-    <!-- Settings - Info Card -->
-    <string name="settings_info_title_scan_settings">Looking for timing and scan settings?</string>
-    <string name="settings_info_desc_scan_settings">Switchify is made up of three main methods: the cursor, the radar, and the item scan. Each method has its own set of settings that can be adjusted to suit your needs below.\n\nTip: You can switch between methods while using Switchify by opening the menu and selecting the desired method.</string>
 
     <!-- Debug Screen -->
     <string name="debug_section_test_pro">Test Pro</string>

@@ -1,8 +1,8 @@
 package com.enaboapps.switchify.service.gestures
 
 import android.graphics.PointF
-import com.enaboapps.switchify.service.methods.cursor.QuadrantInfo
-import com.enaboapps.switchify.service.scanning.ScanMethod
+import com.enaboapps.switchify.service.techniques.cursor.QuadrantInfo
+import com.enaboapps.switchify.service.techniques.AccessTechnique
 
 /**
  * This interface represents the gesture point listener
@@ -44,7 +44,7 @@ object GesturePoint {
      */
     fun setReselect(reselect: Boolean) {
         if (reselect) {
-            ScanMethod.setType(ScanMethod.MethodType.CURSOR)
+            AccessTechnique.setCurrentTechnique(AccessTechnique.Technique.CURSOR)
             listener?.onGesturePointReselect()
         }
     }
