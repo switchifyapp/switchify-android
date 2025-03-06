@@ -9,9 +9,12 @@ import com.enaboapps.switchify.service.custom.actions.ActionPerformer
 import com.enaboapps.switchify.service.gestures.AutoScrollManager
 import com.enaboapps.switchify.service.gestures.GestureManager
 import com.enaboapps.switchify.service.menu.MenuManager
-import com.enaboapps.switchify.service.methods.nodes.Node
-import com.enaboapps.switchify.service.methods.nodes.scanners.NodeScannerUI
+import com.enaboapps.switchify.service.techniques.nodes.Node
+import com.enaboapps.switchify.service.techniques.nodes.scanners.NodeScannerUI
 import com.enaboapps.switchify.service.selection.SelectionHandler
+import com.enaboapps.switchify.service.techniques.AccessTechnique
+import com.enaboapps.switchify.service.techniques.AccessTechniqueInterface
+import com.enaboapps.switchify.service.techniques.ActiveAccessTechnique
 import com.enaboapps.switchify.service.window.SwitchifyAccessibilityWindow
 import com.enaboapps.switchify.switches.SwitchAction
 
@@ -34,7 +37,7 @@ class ScanningManager(
     private var isAcceptingActions = true
 
     // Active scan method manager
-    private val activeScanMethod = ActiveScanMethod(context)
+    private val activeScanMethod = ActiveAccessTechnique(context)
 
     private var moveRepeatManager: MoveRepeatManager? = MoveRepeatManager(context)
 
@@ -44,8 +47,8 @@ class ScanningManager(
     /**
      * Provides the current active scanning state method on the current scanning method.
      */
-    private val currentScanMethod: ScanMethodBase
-        get() = activeScanMethod.currentMethod
+    private val currentScanMethod: AccessTechniqueInterface
+        get() = activeScanMethod.currentAccessTechnique
 
     init {
         activeScanMethod.setOnScanningStartCallback {
@@ -86,22 +89,22 @@ class ScanningManager(
      * Sets the scanning method to cursor type.
      */
     fun setCursorType() {
-        setType(ScanMethod.MethodType.CURSOR)
+        setType(AccessTechnique.Technique.CURSOR)
     }
 
     /**
      * Sets the scanning method to radar type.
      */
     fun setRadarType() {
-        setType(ScanMethod.MethodType.RADAR)
+        setType(AccessTechnique.Technique.RADAR)
     }
 
     /**
      * Sets the scanning method to item scan type and starts the timeout to revert to cursor.
      */
     fun setItemScanType() {
-        setType(ScanMethod.MethodType.ITEM_SCAN)
-        SelectionHandler.setStartScanningAction { activeScanMethod.currentMethod.startScanning() }
+        setType(AccessTechnique.Technique.ITEM_SCAN)
+        SelectionHandler.setStartScanningAction { activeScanMethod.currentAccessTechnique.startScanning() }
         activeScanMethod.getNodeScanner().startTimeoutToRevertToCursor()
     }
 
@@ -110,19 +113,19 @@ class ScanningManager(
      */
     fun setMenuType() {
         startAcceptingActionsTimeout()
-        ScanMethod.isInMenu = true
+        AccessTechnique.isInMenu = true
         NodeScannerUI.instance.hideAll()
     }
 
     /**
      * Helper method to set the scanning method type and perform necessary cleanup.
      *
-     * @param type The ScanMethod.MethodType to set. Must be a valid type.
+     * @param type The AccessTechnique.Technique to set. Must be a valid type.
      */
     private fun setType(type: String) {
         startAcceptingActionsTimeout()
-        ScanMethod.setType(type)
-        ScanMethod.isInMenu = false
+        AccessTechnique.setCurrentTechnique(type)
+        AccessTechnique.isInMenu = false
         NodeScannerUI.instance.hideAll()
         activeScanMethod.resetNodeScanner()
     }

@@ -12,7 +12,7 @@ import com.enaboapps.switchify.service.gestures.data.GestureData.Companion.TAP_A
 import com.enaboapps.switchify.service.gestures.data.GestureData.Companion.TAP_DURATION
 import com.enaboapps.switchify.service.gestures.data.GestureType
 import com.enaboapps.switchify.service.gestures.visuals.GestureDrawing
-import com.enaboapps.switchify.service.methods.nodes.NodeExaminer
+import com.enaboapps.switchify.service.techniques.nodes.NodeExaminer
 
 /**
  * The GestureManager class is responsible for managing and performing various gesture actions

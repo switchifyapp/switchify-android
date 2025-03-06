@@ -1,4 +1,4 @@
-package com.enaboapps.switchify.service.scanning
+package com.enaboapps.switchify.service.techniques
 
 import android.os.Handler
 import android.os.Looper
@@ -11,14 +11,14 @@ import com.enaboapps.switchify.utils.Resources
 import kotlin.properties.Delegates
 
 /**
- * This interface is used to observe the scan method
+ * This interface is used to observe the access technique
  */
-interface ScanMethodObserver {
+interface AccessTechniqueObserver {
     /**
-     * This function is called when the scan method is changed
-     * @param type The type of the scan method
+     * This function is called when the access technique is changed
+     * @param accessTechnique The type of the access technique
      */
-    fun onScanMethodChanged(type: String)
+    fun onAccessTechniqueChanged(accessTechnique: String)
 
     /**
      * This function is called when the menu state is changed
@@ -28,11 +28,11 @@ interface ScanMethodObserver {
 }
 
 /**
- * This object is used to manage the scanning method
+ * This object is used to manage the access technique
  */
-object ScanMethod {
+object AccessTechnique {
     var preferenceManager: PreferenceManager? = null
-    var observer: ScanMethodObserver? = null
+    var observer: AccessTechniqueObserver? = null
 
     /**
      * This variable is used to determine if the scanning is in the menu
@@ -45,7 +45,7 @@ object ScanMethod {
     /**
      * This enum represents the type of the scanning method
      */
-    object MethodType {
+    object Technique {
         /**
          * This type represents the cursor
          */
@@ -64,61 +64,63 @@ object ScanMethod {
     }
 
     /**
-     * This function is used to get the type of the scanning method
+     * This function is used to get the current technique
+     * @return The current technique
      */
-    fun getType(): String {
+    fun getCurrentTechnique(): String {
         preferenceManager?.let { preferenceManager ->
             val storedType = preferenceManager.getStringValue(
-                PreferenceManager.PREFERENCE_KEY_SCAN_METHOD
+                PreferenceManager.PREFERENCE_KEY_ACCESS_TECHNIQUE
             )
             println("Stored type: $storedType")
             if (storedType.isNotEmpty()) {
                 return storedType
             }
         }
-        return MethodType.CURSOR
+        return Technique.CURSOR
     }
 
     /**
-     * This function gets the name of the scanning method
-     * @param type The type of the scanning method
-     * @return The name of the scanning method
+     * This function gets the name of the access technique
+     * @param accessTechnique The type of the access technique
+     * @return The name of the access technique
      */
-    fun getName(type: String): String {
-        return when (type) {
-            MethodType.CURSOR -> Resources.getString(R.string.scan_method_cursor)
-            MethodType.RADAR -> Resources.getString(R.string.scan_method_radar)
-            MethodType.ITEM_SCAN -> Resources.getString(R.string.scan_method_item_scan)
+    fun getName(accessTechnique: String): String {
+        return when (accessTechnique) {
+            Technique.CURSOR -> Resources.getString(R.string.access_technique_cursor)
+            Technique.RADAR -> Resources.getString(R.string.access_technique_radar)
+            Technique.ITEM_SCAN -> Resources.getString(R.string.access_technique_item_scan)
             else -> Resources.getString(R.string.unknown)
         }
     }
 
     /**
      * This function gets the description of the scanning method
-     * @param type The type of the scanning method
+     * @param accessTechnique The type of the scanning method
      * @return The description of the scanning method
      */
-    fun getDescription(type: String): String {
-        return when (type) {
-            MethodType.CURSOR -> Resources.getString(R.string.scan_method_desc_cursor)
-            MethodType.RADAR -> Resources.getString(R.string.scan_method_desc_radar)
-            MethodType.ITEM_SCAN -> Resources.getString(R.string.scan_method_desc_item_scan)
+    fun getDescription(accessTechnique: String): String {
+        return when (accessTechnique) {
+            Technique.CURSOR -> Resources.getString(R.string.access_technique_desc_cursor)
+            Technique.RADAR -> Resources.getString(R.string.access_technique_desc_radar)
+            Technique.ITEM_SCAN -> Resources.getString(R.string.access_technique_desc_item_scan)
             else -> Resources.getString(R.string.unknown)
         }
     }
 
     /**
-     * This function is used to set the type of the scanning method
+     * This function is used to set the current technique
+     * @param value The type of the access technique
      */
-    fun setType(value: String) {
+    fun setCurrentTechnique(value: String) {
         preferenceManager?.setStringValue(
-            PreferenceManager.PREFERENCE_KEY_SCAN_METHOD,
+            PreferenceManager.PREFERENCE_KEY_ACCESS_TECHNIQUE,
             value
         )
-        observer?.onScanMethodChanged(value)
+        observer?.onAccessTechniqueChanged(value)
 
         // If radar and not pro, start the timer to switch to cursor
-        if (value == MethodType.RADAR && !IAPHandler.hasPurchasedPro()) {
+        if (value == Technique.RADAR && !IAPHandler.hasPurchasedPro()) {
             startRadarTrialTimer()
         }
     }
@@ -129,8 +131,8 @@ object ScanMethod {
      */
     private fun startRadarTrialTimer() {
         Handler(Looper.getMainLooper()).postDelayed({
-            if (getType() == MethodType.RADAR && !IAPHandler.hasPurchasedPro()) {
-                setType(MethodType.CURSOR)
+            if (getCurrentTechnique() == Technique.RADAR && !IAPHandler.hasPurchasedPro()) {
+                setCurrentTechnique(Technique.CURSOR)
                 ServiceMessageHUD.instance.showMessage(
                     R.string.radar_trial_timer_expired,
                     ServiceMessageHUD.MessageType.DISAPPEARING

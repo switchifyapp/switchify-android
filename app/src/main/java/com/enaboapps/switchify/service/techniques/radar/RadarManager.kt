@@ -1,9 +1,9 @@
-package com.enaboapps.switchify.service.methods.radar
+package com.enaboapps.switchify.service.techniques.radar
 
 import android.content.Context
 import com.enaboapps.switchify.service.gestures.GestureManager
 import com.enaboapps.switchify.service.gestures.GesturePoint
-import com.enaboapps.switchify.service.scanning.ScanMethodBase
+import com.enaboapps.switchify.service.techniques.AccessTechniqueInterface
 import com.enaboapps.switchify.service.scanning.ScanSettings
 import com.enaboapps.switchify.service.scanning.ScanningScheduler
 import com.enaboapps.switchify.service.selection.SelectionHandler
@@ -12,7 +12,7 @@ import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.math.sqrt
 
-class RadarManager(private val context: Context) : ScanMethodBase {
+class RadarManager(private val context: Context) : AccessTechniqueInterface {
 
     companion object {
         private const val TAG = "RadarManager"

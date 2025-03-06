@@ -1,6 +1,6 @@
-package com.enaboapps.switchify.service.methods.nodes.scanners.system
+package com.enaboapps.switchify.service.techniques.nodes.scanners.system
 
-import com.enaboapps.switchify.service.methods.nodes.Node
+import com.enaboapps.switchify.service.techniques.nodes.Node
 
 /**
  * SystemNodeHolder is responsible for maintaining the current list of nodes.

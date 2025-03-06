@@ -5,8 +5,8 @@ import com.enaboapps.switchify.R
 import com.enaboapps.switchify.service.gestures.GesturePoint
 import com.enaboapps.switchify.service.menu.MenuItem
 import com.enaboapps.switchify.service.menu.structure.MenuStructure
-import com.enaboapps.switchify.service.methods.nodes.Node
-import com.enaboapps.switchify.service.methods.nodes.NodeExaminer
+import com.enaboapps.switchify.service.techniques.nodes.Node
+import com.enaboapps.switchify.service.techniques.nodes.NodeExaminer
 
 class EditMenuStructure {
     fun buildEditMenuObject(): MenuStructure {

@@ -5,7 +5,7 @@ import com.enaboapps.switchify.service.gestures.GestureManager
 import com.enaboapps.switchify.service.gestures.GesturePoint
 import com.enaboapps.switchify.service.gestures.visuals.AutoTapVisual
 import com.enaboapps.switchify.service.menu.MenuManager
-import com.enaboapps.switchify.service.scanning.ScanMethod
+import com.enaboapps.switchify.service.techniques.AccessTechnique
 import com.enaboapps.switchify.service.scanning.ScanSettings
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -75,7 +75,7 @@ object SelectionHandler {
             return
         }
 
-        methodTypeInvokedForStartScanningAction = ScanMethod.getType()
+        methodTypeInvokedForStartScanningAction = AccessTechnique.getCurrentTechnique()
 
         // If bypass auto-select is enabled, perform the selection action and return
         if (bypassAutoSelect) {
@@ -124,7 +124,7 @@ object SelectionHandler {
         CoroutineScope(Dispatchers.Main).launch {
             delay(300)
             if (scanSettings.getAutomaticallyStartScanAfterSelection()) {
-                if (methodTypeInvokedForStartScanningAction == ScanMethod.getType()) {
+                if (methodTypeInvokedForStartScanningAction == AccessTechnique.getCurrentTechnique()) {
                     startScanningAction?.invoke()
                 }
             }

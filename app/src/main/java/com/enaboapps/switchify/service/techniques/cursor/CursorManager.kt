@@ -1,12 +1,12 @@
-package com.enaboapps.switchify.service.methods.cursor
+package com.enaboapps.switchify.service.techniques.cursor
 
 import android.content.Context
 import com.enaboapps.switchify.service.gestures.GestureManager
 import com.enaboapps.switchify.service.gestures.GesturePoint
 import com.enaboapps.switchify.service.gestures.GesturePointListener
-import com.enaboapps.switchify.service.methods.shared.ScanMethodUIConstants
+import com.enaboapps.switchify.service.techniques.shared.ScanMethodUIConstants
 import com.enaboapps.switchify.service.scanning.ScanDirection
-import com.enaboapps.switchify.service.scanning.ScanMethodBase
+import com.enaboapps.switchify.service.techniques.AccessTechniqueInterface
 import com.enaboapps.switchify.service.scanning.ScanSettings
 import com.enaboapps.switchify.service.scanning.ScanningScheduler
 import com.enaboapps.switchify.service.selection.SelectionHandler
@@ -16,7 +16,7 @@ import com.enaboapps.switchify.service.selection.SelectionHandler
  *
  * @param context The application context.
  */
-class CursorManager(private val context: Context) : ScanMethodBase, GesturePointListener {
+class CursorManager(private val context: Context) : AccessTechniqueInterface, GesturePointListener {
 
     companion object {
         private const val TAG = "CursorManager"

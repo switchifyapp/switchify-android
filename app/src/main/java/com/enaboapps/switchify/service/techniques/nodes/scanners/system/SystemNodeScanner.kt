@@ -1,12 +1,12 @@
-package com.enaboapps.switchify.service.methods.nodes.scanners.system
+package com.enaboapps.switchify.service.techniques.nodes.scanners.system
 
 import android.content.Context
 import android.util.Log
 import com.enaboapps.switchify.service.menu.MenuManager
 import com.enaboapps.switchify.service.menu.OpenMenuPrompt
-import com.enaboapps.switchify.service.methods.nodes.Node
-import com.enaboapps.switchify.service.methods.nodes.NodeSpeaker
-import com.enaboapps.switchify.service.scanning.ScanMethod
+import com.enaboapps.switchify.service.techniques.nodes.Node
+import com.enaboapps.switchify.service.techniques.nodes.NodeSpeaker
+import com.enaboapps.switchify.service.techniques.AccessTechnique
 import com.enaboapps.switchify.service.scanning.tree.ScanTree
 import com.enaboapps.switchify.service.scanning.tree.ScanTreeCallback
 import kotlinx.coroutines.CoroutineScope
@@ -70,25 +70,25 @@ class SystemNodeScanner : ScanTreeCallback {
     }
 
     /**
-     * Starts a timeout that resets the scanTree and changes the state of the ScanMethod
+     * Starts a timeout that resets the scanTree and changes the state of the AccessTechnique
      * if the state is ITEM_SCAN and there are no nodes after 5 seconds.
      */
     fun startTimeoutToRevertToCursor() {
         revertToCursorJob?.cancel()
         revertToCursorJob = coroutineScope.launch {
             delay(EMPTY_NODES_TIMEOUT_MS)
-            if (ScanMethod.getType() == ScanMethod.MethodType.ITEM_SCAN && SystemNodeHolder.getNodes()
+            if (AccessTechnique.getCurrentTechnique() == AccessTechnique.Technique.ITEM_SCAN && SystemNodeHolder.getNodes()
                     .isEmpty()
             ) {
                 withContext(Dispatchers.Main) {
                     scanTree.reset()
-                    ScanMethod.setType(ScanMethod.MethodType.CURSOR)
-                    Log.d(TAG, "ScanMethod changed to cursor")
+                    AccessTechnique.setCurrentTechnique(AccessTechnique.Technique.CURSOR)
+                    Log.d(TAG, "AccessTechnique changed to cursor")
                 }
             } else {
                 Log.d(
                     TAG,
-                    "ScanMethod not changed, nodes.size: ${SystemNodeHolder.getNodes().size}"
+                    "AccessTechnique not changed, nodes.size: ${SystemNodeHolder.getNodes().size}"
                 )
             }
         }
@@ -109,10 +109,10 @@ class SystemNodeScanner : ScanTreeCallback {
 
             if (rapidUpdateCount >= MAX_RAPID_UPDATES) {
                 continuousUpdateJob = coroutineScope.launch {
-                    if (ScanMethod.getType() == ScanMethod.MethodType.ITEM_SCAN) {
+                    if (AccessTechnique.getCurrentTechnique() == AccessTechnique.Technique.ITEM_SCAN) {
                         withContext(Dispatchers.Main) {
                             scanTree.reset()
-                            ScanMethod.setType(ScanMethod.MethodType.CURSOR)
+                            AccessTechnique.setCurrentTechnique(AccessTechnique.Technique.CURSOR)
                             Log.d(
                                 TAG,
                                 "Switched to cursor mode due to $rapidUpdateCount rapid updates"

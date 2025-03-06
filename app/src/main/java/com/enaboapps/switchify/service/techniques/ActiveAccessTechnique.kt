@@ -1,25 +1,26 @@
-package com.enaboapps.switchify.service.scanning
+package com.enaboapps.switchify.service.techniques
 
 import android.content.Context
 import android.os.Handler
 import android.os.Looper
 import com.enaboapps.switchify.service.menu.MenuManager
-import com.enaboapps.switchify.service.methods.cursor.CursorManager
-import com.enaboapps.switchify.service.methods.nodes.Node
-import com.enaboapps.switchify.service.methods.nodes.scanners.NodeScannerUI
-import com.enaboapps.switchify.service.methods.nodes.scanners.keyboard.KeyboardScanner
-import com.enaboapps.switchify.service.methods.nodes.scanners.system.SystemNodeHolder
-import com.enaboapps.switchify.service.methods.nodes.scanners.system.SystemNodeScanner
-import com.enaboapps.switchify.service.methods.radar.RadarManager
 import com.enaboapps.switchify.service.selection.SelectionHandler
+import com.enaboapps.switchify.service.techniques.cursor.CursorManager
+import com.enaboapps.switchify.service.techniques.nodes.Node
+import com.enaboapps.switchify.service.techniques.nodes.scanners.NodeScannerUI
+import com.enaboapps.switchify.service.techniques.nodes.scanners.keyboard.KeyboardScanner
+import com.enaboapps.switchify.service.techniques.nodes.scanners.system.SystemNodeHolder
+import com.enaboapps.switchify.service.techniques.nodes.scanners.system.SystemNodeScanner
+import com.enaboapps.switchify.service.techniques.radar.RadarManager
 import com.enaboapps.switchify.service.utils.KeyboardBridge
 import com.enaboapps.switchify.service.utils.KeyboardListener
 import com.enaboapps.switchify.utils.Logger
 
 /**
- * Manages the active scanning method and its state
+ * Manages the active access technique and its state
  */
-class ActiveScanMethod(private val context: Context) : ScanMethodObserver, KeyboardListener {
+class ActiveAccessTechnique(private val context: Context) : AccessTechniqueObserver,
+    KeyboardListener {
     private var cursorManager: CursorManager? = null
     private var radarManager: RadarManager? = null
     private var systemNodeScanner: SystemNodeScanner? = null
@@ -28,31 +29,31 @@ class ActiveScanMethod(private val context: Context) : ScanMethodObserver, Keybo
     private var onScanningStartCallback: (() -> Unit)? = null
 
     init {
-        ScanMethod.observer = this
+        AccessTechnique.observer = this
         KeyboardBridge.setKeyboardListener(this)
     }
 
-    val currentMethod: ScanMethodBase
+    val currentAccessTechnique: AccessTechniqueInterface
         get() = when {
             KeyboardBridge.isKeyboardVisible -> {
                 ensureKeyboardScannerStarted()
                 getKeyboardScanner().getScanTree()
             }
 
-            ScanMethod.isInMenu -> MenuManager.getInstance().menuHierarchy?.getTopMenu()?.scanTree
-            else -> when (ScanMethod.getType()) {
-                ScanMethod.MethodType.CURSOR -> getCursorManager()
-                ScanMethod.MethodType.RADAR -> getRadarManager()
-                ScanMethod.MethodType.ITEM_SCAN -> {
+            AccessTechnique.isInMenu -> MenuManager.Companion.getInstance().menuHierarchy?.getTopMenu()?.scanTree
+            else -> when (AccessTechnique.getCurrentTechnique()) {
+                AccessTechnique.Technique.CURSOR -> getCursorManager()
+                AccessTechnique.Technique.RADAR -> getRadarManager()
+                AccessTechnique.Technique.ITEM_SCAN -> {
                     ensureNodeScannerStarted()
                     getNodeScanner().getScanTree()
                 }
 
                 else -> {
-                    throw IllegalStateException("Invalid scanning method type: ${ScanMethod.getType()}")
+                    throw IllegalStateException("Invalid access technique type: ${AccessTechnique.getCurrentTechnique()}")
                 }
             }
-        } as ScanMethodBase
+        } as AccessTechniqueInterface
 
     private fun ensureNodeScannerStarted() {
         if (systemNodeScanner == null) {
@@ -68,13 +69,13 @@ class ActiveScanMethod(private val context: Context) : ScanMethodObserver, Keybo
         }
     }
 
-    override fun onScanMethodChanged(type: String) {
-        cleanup(type)
-        Logger.logEvent("Scan method changed to: $type")
+    override fun onAccessTechniqueChanged(accessTechnique: String) {
+        cleanup(accessTechnique)
+        Logger.logEvent("Scan method changed to: $accessTechnique")
     }
 
     override fun onMenuStateChanged(isInMenu: Boolean) {
-        cleanup(ScanMethod.getType())
+        cleanup(AccessTechnique.getCurrentTechnique())
 
         // Start scanning if callback is set
         Handler(Looper.getMainLooper()).postDelayed({
@@ -114,30 +115,30 @@ class ActiveScanMethod(private val context: Context) : ScanMethodObserver, Keybo
         getNodeScanner().getScanTree().reset()
     }
 
-    fun cleanup(activeType: String) {
-        NodeScannerUI.instance.hideAll()
+    fun cleanup(currentTechnique: String) {
+        NodeScannerUI.Companion.instance.hideAll()
 
         if (KeyboardBridge.isKeyboardVisible) {
             cleanupAllExceptKeyboard()
             return
         }
 
-        when (activeType) {
-            ScanMethod.MethodType.CURSOR -> {
+        when (currentTechnique) {
+            AccessTechnique.Technique.CURSOR -> {
                 radarManager?.cleanup()
                 radarManager = null
                 systemNodeScanner?.cleanup()
                 systemNodeScanner = null
             }
 
-            ScanMethod.MethodType.RADAR -> {
+            AccessTechnique.Technique.RADAR -> {
                 cursorManager?.cleanup()
                 cursorManager = null
                 systemNodeScanner?.cleanup()
                 systemNodeScanner = null
             }
 
-            ScanMethod.MethodType.ITEM_SCAN -> {
+            AccessTechnique.Technique.ITEM_SCAN -> {
                 cursorManager?.cleanup()
                 cursorManager = null
                 radarManager?.cleanup()
@@ -167,7 +168,7 @@ class ActiveScanMethod(private val context: Context) : ScanMethodObserver, Keybo
 
         SelectionHandler.cleanup()
 
-        NodeScannerUI.instance.hideAll()
+        NodeScannerUI.Companion.instance.hideAll()
     }
 
     fun cleanupAll() {
@@ -181,7 +182,7 @@ class ActiveScanMethod(private val context: Context) : ScanMethodObserver, Keybo
 
         SelectionHandler.cleanup()
 
-        NodeScannerUI.instance.hideAll()
+        NodeScannerUI.Companion.instance.hideAll()
     }
 
     fun updateActionableNodes(nodes: List<Node>) {
@@ -200,4 +201,4 @@ class ActiveScanMethod(private val context: Context) : ScanMethodObserver, Keybo
             cleanupKeyboard()
         }
     }
-} 
+}

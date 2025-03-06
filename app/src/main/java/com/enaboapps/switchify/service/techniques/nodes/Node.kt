@@ -1,4 +1,4 @@
-package com.enaboapps.switchify.service.methods.nodes
+package com.enaboapps.switchify.service.techniques.nodes
 
 import android.graphics.PointF
 import android.graphics.Rect
@@ -6,7 +6,7 @@ import android.view.accessibility.AccessibilityNodeInfo
 import com.enaboapps.switchify.service.gestures.GestureManager
 import com.enaboapps.switchify.service.gestures.GesturePoint
 import com.enaboapps.switchify.service.menu.MenuItem
-import com.enaboapps.switchify.service.methods.nodes.scanners.NodeScannerUI
+import com.enaboapps.switchify.service.techniques.nodes.scanners.NodeScannerUI
 import com.enaboapps.switchify.service.scanning.ScanNodeInterface
 import com.enaboapps.switchify.service.selection.SelectionHandler
 import com.enaboapps.switchify.utils.Resources

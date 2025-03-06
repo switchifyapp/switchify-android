@@ -2,10 +2,20 @@ package com.enaboapps.switchify.screens.settings
 
 import android.content.Intent
 import android.net.Uri
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -14,10 +24,16 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.enaboapps.switchify.R
-import com.enaboapps.switchify.components.*
+import com.enaboapps.switchify.components.BaseView
+import com.enaboapps.switchify.components.FullWidthButton
+import com.enaboapps.switchify.components.NavRouteLink
+import com.enaboapps.switchify.components.PreferenceSwitch
+import com.enaboapps.switchify.components.PreferenceTimeStepper
+import com.enaboapps.switchify.components.ScrollableView
+import com.enaboapps.switchify.components.Section
 import com.enaboapps.switchify.nav.NavigationRoute
 import com.enaboapps.switchify.screens.settings.models.SettingsScreenModel
-import com.enaboapps.switchify.screens.settings.scanning.ScanMethodSelectionSection
+import com.enaboapps.switchify.screens.settings.scanning.AccessTechniqueSelector
 import com.enaboapps.switchify.screens.settings.scanning.ScanModeSelectionSection
 
 @Composable
@@ -69,12 +85,7 @@ fun GeneralSettingsTab(settingsScreenModel: SettingsScreenModel, navController: 
 @Composable
 fun ScanningSettingsTab(navController: NavController) {
     ScrollableView {
-        ScanMethodSelectionSection()
-
-        InfoCard(
-            titleResId = R.string.settings_info_title_scan_settings,
-            descriptionResId = R.string.settings_info_desc_scan_settings
-        )
+        AccessTechniqueSelector()
 
         Section(titleResId = R.string.settings_section_scanning_method) {
             NavRouteLink(

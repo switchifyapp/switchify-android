@@ -3,8 +3,8 @@ package com.enaboapps.switchify
 import android.content.Context
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
-import com.enaboapps.switchify.service.methods.nodes.Node
-import com.enaboapps.switchify.service.methods.nodes.NodeSpeaker
+import com.enaboapps.switchify.service.techniques.nodes.Node
+import com.enaboapps.switchify.service.techniques.nodes.NodeSpeaker
 import org.junit.After
 import org.junit.Assert.*
 import org.junit.Before

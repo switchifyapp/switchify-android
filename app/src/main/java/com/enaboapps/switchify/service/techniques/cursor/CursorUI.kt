@@ -1,9 +1,9 @@
-package com.enaboapps.switchify.service.methods.cursor
+package com.enaboapps.switchify.service.techniques.cursor
 
 import android.content.Context
 import android.graphics.Color
 import android.widget.RelativeLayout
-import com.enaboapps.switchify.service.methods.shared.ScanMethodUIConstants
+import com.enaboapps.switchify.service.techniques.shared.ScanMethodUIConstants
 import com.enaboapps.switchify.service.scanning.ScanColorManager
 import com.enaboapps.switchify.service.utils.ScreenUtils
 import com.enaboapps.switchify.service.window.SwitchifyAccessibilityWindow

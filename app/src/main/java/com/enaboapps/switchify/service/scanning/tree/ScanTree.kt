@@ -2,8 +2,8 @@ package com.enaboapps.switchify.service.scanning.tree
 
 import android.content.Context
 import android.util.Log
-import com.enaboapps.switchify.service.methods.nodes.NodeSpeaker
-import com.enaboapps.switchify.service.scanning.ScanMethodBase
+import com.enaboapps.switchify.service.techniques.nodes.NodeSpeaker
+import com.enaboapps.switchify.service.techniques.AccessTechniqueInterface
 import com.enaboapps.switchify.service.scanning.ScanNodeInterface
 import com.enaboapps.switchify.service.scanning.ScanSettings
 import com.enaboapps.switchify.service.scanning.ScanningScheduler
@@ -28,7 +28,7 @@ class ScanTree(
     private var stopScanningOnSelect: Boolean = false,
     private val hasCycleBreak: Boolean = false,
     private val callback: ScanTreeCallback? = null
-) : ScanMethodBase {
+) : AccessTechniqueInterface {
 
     companion object {
         private const val TAG = "ScanTree"

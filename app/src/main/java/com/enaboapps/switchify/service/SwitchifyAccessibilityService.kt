@@ -13,8 +13,8 @@ import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.service.core.AudioActionManager
 import com.enaboapps.switchify.service.core.GlobalActionManager
 import com.enaboapps.switchify.service.gestures.GestureManager
-import com.enaboapps.switchify.service.methods.nodes.NodeExaminer
-import com.enaboapps.switchify.service.scanning.ScanMethod
+import com.enaboapps.switchify.service.techniques.nodes.NodeExaminer
+import com.enaboapps.switchify.service.techniques.AccessTechnique
 import com.enaboapps.switchify.service.scanning.ScanSettings
 import com.enaboapps.switchify.service.scanning.ScanningManager
 import com.enaboapps.switchify.service.selection.SelectionHandler
@@ -69,7 +69,7 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
 
         IAPHandler.initialize(context = this, connectToRevenueCat = false)
 
-        ScanMethod.preferenceManager = PreferenceManager(this.applicationContext)
+        AccessTechnique.preferenceManager = PreferenceManager(this.applicationContext)
 
         GlobalActionManager.init(this)
         AudioActionManager.init(this)
