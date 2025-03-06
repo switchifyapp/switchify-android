@@ -263,7 +263,6 @@
     <string name="dialog_message_delete">Are you sure you want to delete this switch?</string>
 
     <!-- Access Technique Selection Section -->
-    <string name="section_title_access_technique">Access Technique</string>
     <string name="picker_title_select_access_technique">Select Access Technique</string>
 
     <!-- Scan Mode Selection Section -->
@@ -501,6 +500,7 @@
     <string name="settings_tab_item_scan">Item Scan</string>
 
     <!-- Access Technique Settings -->
-    <string name="settings_title_access_technique">Access Technique</string>
+    <string name="settings_section_access_techniques">Access Techniques</string>
+    <string name="settings_title_access_technique">Access Technique Settings</string>
     <string name="settings_summary_access_technique">Configure cursor, radar, and item scan settings</string>
 </resources>

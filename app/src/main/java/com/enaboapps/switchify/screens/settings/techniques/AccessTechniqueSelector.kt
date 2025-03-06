@@ -9,7 +9,6 @@ import androidx.compose.ui.platform.LocalContext
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.components.Picker
-import com.enaboapps.switchify.components.Section
 import com.enaboapps.switchify.service.techniques.AccessTechnique
 
 @Composable
@@ -34,14 +33,12 @@ fun AccessTechniqueSelector() {
         currentMethod = method
     }
 
-    Section(titleResId = R.string.section_title_access_technique) {
-        Picker(
-            titleResId = R.string.picker_title_select_access_technique,
-            selectedItem = currentMethod,
-            items = scanTechniques,
-            onItemSelected = setScanMethod,
-            itemToString = { AccessTechnique.getName(it) },
-            itemDescription = { AccessTechnique.getDescription(it) }
-        )
-    }
+    Picker(
+        titleResId = R.string.picker_title_select_access_technique,
+        selectedItem = currentMethod,
+        items = scanTechniques,
+        onItemSelected = setScanMethod,
+        itemToString = { AccessTechnique.getName(it) },
+        itemDescription = { AccessTechnique.getDescription(it) }
+    )
 }

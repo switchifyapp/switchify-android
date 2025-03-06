@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
@@ -76,13 +77,16 @@ fun SettingsScreen(navController: NavController) {
 fun GeneralSettingsTab(settingsScreenModel: SettingsScreenModel, navController: NavController) {
     ScrollableView {
         InputSection(navController)
-        AccessTechniqueSelector()
-        NavRouteLink(
-            titleResId = R.string.settings_title_access_technique,
-            summaryResId = R.string.settings_summary_access_technique,
-            navController = navController,
-            route = NavigationRoute.AccessTechniqueSettings.name
-        )
+        Section(titleResId = R.string.settings_section_access_techniques) {
+            AccessTechniqueSelector()
+            Spacer(modifier = Modifier.padding(vertical = 8.dp))
+            NavRouteLink(
+                titleResId = R.string.settings_title_access_technique,
+                summaryResId = R.string.settings_summary_access_technique,
+                navController = navController,
+                route = NavigationRoute.AccessTechniqueSettings.name
+            )
+        }
         GesturesSettingsSection(navController)
         MenuSection(settingsScreenModel, navController)
         ActionsSection(navController)
