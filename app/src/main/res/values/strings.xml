@@ -234,12 +234,17 @@
 
     <!-- Cursor Settings Screen -->
     <string name="section_title_cursor_mode">Cursor Mode</string>
-    <string name="section_title_cursor_scan_rates">Cursor Scan Rates (only applies to auto scan)</string>
+    <string name="section_title_cursor_speed">Cursor Speed (only applies to auto scan)</string>
     <string name="picker_title_select_cursor_mode">Select Cursor Mode</string>
-    <string name="preference_title_fine_cursor_scan_rate">Fine Cursor Scan Rate</string>
-    <string name="preference_summary_fine_cursor_scan_rate">Adjust the scan rate for fine cursor movements</string>
-    <string name="preference_title_block_cursor_scan_rate">Block Cursor Scan Rate</string>
-    <string name="preference_summary_block_cursor_scan_rate">Adjust the scan rate for block cursor movements</string>
+    <string name="preference_title_precision_cursor_speed">Cursor Speed (precision)</string>
+    <string name="preference_summary_precision_cursor_speed">Adjust the speed at which the cursor moves when you are selecting a point</string>
+    <string name="preference_title_block_cursor_speed">Cursor Speed (block)</string>
+    <string name="preference_summary_block_cursor_speed">Adjust the speed at which the cursor moves when you are selecting a block</string>
+    <string name="preference_title_single_cursor_speed">Cursor Speed</string>
+    <string name="preference_summary_single_cursor_speed">Adjust the speed at which the cursor moves</string>
+    <string name="feature_explanation_precision_cursor_speed">This is how fast the cursor moves when you are selecting a point. In Block Mode, this is the speed when you are moving the cursor in a block.</string>
+    <string name="feature_explanation_block_cursor_speed">This is how fast the cursor moves when you are selecting a block. Once you select a block, the precision cursor speed will be used.</string>
+    <string name="feature_explanation_single_cursor_speed">This is how fast the cursor moves when you are selecting a point.</string>
 
     <!-- Item Scan Settings Screen -->
     <string name="section_title_scan_pattern">Scan Pattern</string>
@@ -509,8 +514,4 @@
 
     <!-- Pro Text Label -->
     <string name="pro">PRO</string>
-
-    <!-- Feature Explanations -->
-    <string name="feature_explanation_fine_cursor_scan_rate">This is how fast the cursor moves when you are selecting a point. In Single Mode, this is the only speed you use. In Block Mode, this is the speed when you are moving the cursor in a block.</string>
-    <string name="feature_explanation_block_cursor_scan_rate">This is how fast the cursor moves when you are selecting a block. Once you select a block, the Fine Cursor Scan Rate will be used.</string>
 </resources>
