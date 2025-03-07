@@ -503,4 +503,14 @@
     <string name="settings_section_access_techniques">Access Techniques</string>
     <string name="settings_title_access_technique">Access Technique Settings</string>
     <string name="settings_summary_access_technique">Configure cursor, radar, and item scan settings</string>
+
+    <string name="ok">OK</string>
+    <string name="help">Help</string>
+
+    <!-- Pro Text Label -->
+    <string name="pro">PRO</string>
+
+    <!-- Feature Explanations -->
+    <string name="feature_explanation_fine_cursor_scan_rate">This is how fast the cursor moves when you are selecting a point. In Single Mode, this is the only speed you use. In Block Mode, this is the speed when you are moving the cursor in a block.</string>
+    <string name="feature_explanation_block_cursor_scan_rate">This is how fast the cursor moves when you are selecting a block. Once you select a block, the Fine Cursor Scan Rate will be used.</string>
 </resources>
