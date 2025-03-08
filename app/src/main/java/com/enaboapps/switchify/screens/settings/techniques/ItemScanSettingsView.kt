@@ -24,7 +24,7 @@ fun ItemScanSettingsView() {
         )
     }
 
-    Section(titleResId = R.string.section_title_timing) {
+    Section(titleResId = R.string.section_title_item_scan_timing) {
         ItemScanSpeedStepper()
     }
 

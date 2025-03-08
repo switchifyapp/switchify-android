@@ -98,13 +98,6 @@ fun ScanningSettingsTab(navController: NavController) {
     ScrollableView {
         ScanModeSelectionSection(navController)
 
-        NavRouteLink(
-            titleResId = R.string.settings_title_other_scan,
-            summaryResId = R.string.settings_summary_other_scan,
-            navController = navController,
-            route = NavigationRoute.OtherScanSettings.name
-        )
-
         Section(titleResId = R.string.settings_section_scan_appearance) {
             NavRouteLink(
                 titleResId = R.string.settings_title_scan_color,

@@ -84,5 +84,20 @@ fun ScanModeSelectionSection(
                 )
             }
         }
+        AnimatedVisibility(
+            visible = currentMode.id == ScanMode.Modes.MODE_AUTO,
+            enter = fadeIn(),
+            exit = fadeOut()
+        ) {
+            Column {
+                Spacer(modifier = Modifier.height(8.dp))
+                NavRouteLink(
+                    titleResId = R.string.screen_title_auto_scan_settings,
+                    summaryResId = R.string.screen_summary_auto_scan_settings,
+                    navController = navController,
+                    route = NavigationRoute.AutoScanSettings.name
+                )
+            }
+        }
     }
 }

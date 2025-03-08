@@ -1,12 +1,19 @@
 package com.enaboapps.switchify.screens.settings.scanning
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
@@ -16,7 +23,7 @@ import com.enaboapps.switchify.components.PreferenceTimeStepper
 import com.enaboapps.switchify.components.Section
 
 @Composable
-fun OtherScanSettingsScreen(navController: NavController) {
+fun AutoScanSettingsScreen(navController: NavController) {
     val preferenceManager = PreferenceManager(LocalContext.current)
 
     // states
@@ -45,10 +52,10 @@ fun OtherScanSettingsScreen(navController: NavController) {
         )
     }
     BaseView(
-        titleResId = R.string.screen_title_other_scan_settings,
+        titleResId = R.string.screen_title_auto_scan_settings,
         navController = navController
     ) {
-        Section(titleResId = R.string.section_title_timing) {
+        Section(titleResId = R.string.section_title_auto_scan_behavior) {
             PreferenceSwitch(
                 titleResId = R.string.preference_title_auto_start_scanning,
                 summaryResId = R.string.preference_summary_auto_start_scanning,
@@ -61,9 +68,7 @@ fun OtherScanSettingsScreen(navController: NavController) {
                     )
                 }
             )
-        }
-
-        Section(titleResId = R.string.section_title_behavior) {
+            Spacer(modifier = Modifier.height(8.dp))
             PreferenceSwitch(
                 titleResId = R.string.preference_title_first_item_pause,
                 summaryResId = R.string.preference_summary_first_item_pause,
@@ -77,7 +82,11 @@ fun OtherScanSettingsScreen(navController: NavController) {
                 }
             )
 
-            if (pauseOnFirstItem) {
+            AnimatedVisibility(
+                visible = pauseOnFirstItem,
+                enter = fadeIn(),
+                exit = fadeOut()
+            ) {
                 PreferenceTimeStepper(
                     value = pauseOnFirstItemDelay,
                     titleResId = R.string.preference_title_first_item_pause_duration,
