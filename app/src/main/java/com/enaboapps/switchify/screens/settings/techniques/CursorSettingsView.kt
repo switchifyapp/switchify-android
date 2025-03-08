@@ -12,8 +12,10 @@ import androidx.compose.ui.platform.LocalContext
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.components.Picker
-import com.enaboapps.switchify.components.PreferenceTimeStepper
 import com.enaboapps.switchify.components.Section
+import com.enaboapps.switchify.screens.settings.shared.BlockCursorSpeedStepper
+import com.enaboapps.switchify.screens.settings.shared.PrecisionCursorSpeedStepper
+import com.enaboapps.switchify.screens.settings.shared.SingleCursorSpeedStepper
 import com.enaboapps.switchify.service.techniques.cursor.CursorMode
 
 @Composable
@@ -47,24 +49,7 @@ fun CursorSettingsView() {
             enter = fadeIn(),
             exit = fadeOut()
         ) {
-            PreferenceTimeStepper(
-                value = preferenceManager.getLongValue(
-                    PreferenceManager.PREFERENCE_KEY_CURSOR_FINE_SCAN_RATE,
-                    1000
-                ),
-                titleResId = R.string.preference_title_single_cursor_speed,
-                summaryResId = R.string.preference_summary_single_cursor_speed,
-                explanationResId = R.string.feature_explanation_single_cursor_speed,
-                min = 25,
-                max = 5000,
-                step = 25,
-                onValueChanged = { newValue ->
-                    preferenceManager.setLongValue(
-                        PreferenceManager.PREFERENCE_KEY_CURSOR_FINE_SCAN_RATE,
-                        newValue
-                    )
-                }
-            )
+            SingleCursorSpeedStepper()
         }
 
         AnimatedVisibility(
@@ -72,48 +57,15 @@ fun CursorSettingsView() {
             enter = fadeIn(),
             exit = fadeOut()
         ) {
-            PreferenceTimeStepper(
-                value = preferenceManager.getLongValue(
-                    PreferenceManager.PREFERENCE_KEY_CURSOR_FINE_SCAN_RATE,
-                    1000
-                ),
-                titleResId = R.string.preference_title_precision_cursor_speed,
-                summaryResId = R.string.preference_summary_precision_cursor_speed,
-                explanationResId = R.string.feature_explanation_precision_cursor_speed,
-                min = 100,
-                max = 5000,
-                step = 100,
-                onValueChanged = { newValue ->
-                    preferenceManager.setLongValue(
-                        PreferenceManager.PREFERENCE_KEY_CURSOR_FINE_SCAN_RATE,
-                        newValue
-                    )
-                }
-            )
+            PrecisionCursorSpeedStepper()
         }
+        
         AnimatedVisibility(
             visible = currentMode == CursorMode.Modes.MODE_BLOCK,
             enter = fadeIn(),
             exit = fadeOut()
         ) {
-            PreferenceTimeStepper(
-                value = preferenceManager.getLongValue(
-                    PreferenceManager.PREFERENCE_KEY_CURSOR_BLOCK_SCAN_RATE,
-                    1000
-                ),
-                titleResId = R.string.preference_title_block_cursor_speed,
-                summaryResId = R.string.preference_summary_block_cursor_speed,
-                explanationResId = R.string.feature_explanation_block_cursor_speed,
-                min = 100,
-                max = 5000,
-                step = 100,
-                onValueChanged = { newValue ->
-                    preferenceManager.setLongValue(
-                        PreferenceManager.PREFERENCE_KEY_CURSOR_BLOCK_SCAN_RATE,
-                        newValue
-                    )
-                }
-            )
+            BlockCursorSpeedStepper()
         }
     }
 }

@@ -26,7 +26,7 @@ import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.FullWidthButton
 import com.enaboapps.switchify.nav.NavigationRoute
-import com.enaboapps.switchify.screens.settings.scanning.ScanModeSelectionSection
+import com.enaboapps.switchify.screens.settings.shared.ScanModeSelectionSection
 import com.enaboapps.switchify.service.utils.ServiceUtils
 import com.enaboapps.switchify.switches.SwitchConfigInvalidBanner
 import com.enaboapps.switchify.switches.SwitchEventStore
@@ -109,6 +109,7 @@ private fun SetupScreenContent(
 
             when {
                 uiState.switchesInvalidReason != null -> SwitchesInvalidContent(
+                    navController = navController,
                     switchesInvalidReason = uiState.switchesInvalidReason,
                     isUserSignedIn = AuthManager.instance.isUserSignedIn(),
                     onEditSwitches = onEditSwitches,
@@ -130,6 +131,7 @@ private fun SetupScreenContent(
 
 @Composable
 private fun SwitchesInvalidContent(
+    navController: NavController,
     switchesInvalidReason: String,
     isUserSignedIn: Boolean,
     onEditSwitches: () -> Unit,
@@ -137,7 +139,7 @@ private fun SwitchesInvalidContent(
     onSignIn: () -> Unit,
     onScanModeChange: (String) -> Unit
 ) {
-    ScanModeSelectionSection(onChange = onScanModeChange)
+    ScanModeSelectionSection(navController, onChange = onScanModeChange)
     SwitchConfigInvalidBanner(switchesInvalidReason)
     FullWidthButton(
         textResId = R.string.setup_edit_switches,

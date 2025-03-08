@@ -34,7 +34,7 @@ import com.enaboapps.switchify.components.ScrollableView
 import com.enaboapps.switchify.components.Section
 import com.enaboapps.switchify.nav.NavigationRoute
 import com.enaboapps.switchify.screens.settings.models.SettingsScreenModel
-import com.enaboapps.switchify.screens.settings.scanning.ScanModeSelectionSection
+import com.enaboapps.switchify.screens.settings.shared.ScanModeSelectionSection
 import com.enaboapps.switchify.screens.settings.techniques.AccessTechniqueSelector
 
 @Composable
@@ -96,7 +96,7 @@ fun GeneralSettingsTab(settingsScreenModel: SettingsScreenModel, navController: 
 @Composable
 fun ScanningSettingsTab(navController: NavController) {
     ScrollableView {
-        ScanModeSelectionSection()
+        ScanModeSelectionSection(navController)
 
         NavRouteLink(
             titleResId = R.string.settings_title_other_scan,
