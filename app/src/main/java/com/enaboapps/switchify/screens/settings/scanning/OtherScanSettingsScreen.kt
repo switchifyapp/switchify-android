@@ -1,6 +1,11 @@
 package com.enaboapps.switchify.screens.settings.scanning
 
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavController
 import com.enaboapps.switchify.R
@@ -39,23 +44,6 @@ fun OtherScanSettingsScreen(navController: NavController) {
             )
         )
     }
-    var moveRepeat by remember {
-        mutableStateOf(
-            preferenceManager.getBooleanValue(
-                PreferenceManager.PREFERENCE_KEY_MOVE_REPEAT,
-                false
-            )
-        )
-    }
-    var moveRepeatDelay by remember {
-        mutableLongStateOf(
-            preferenceManager.getLongValue(
-                PreferenceManager.PREFERENCE_KEY_MOVE_REPEAT_DELAY,
-                500
-            )
-        )
-    }
-
     BaseView(
         titleResId = R.string.screen_title_other_scan_settings,
         navController = navController
@@ -101,39 +89,6 @@ fun OtherScanSettingsScreen(navController: NavController) {
                         pauseOnFirstItemDelay = newValue
                         preferenceManager.setLongValue(
                             PreferenceManager.PREFERENCE_KEY_PAUSE_ON_FIRST_ITEM_DELAY,
-                            newValue
-                        )
-                    }
-                )
-            }
-        }
-
-        Section(titleResId = R.string.section_title_manual_scan_behavior) {
-            PreferenceSwitch(
-                titleResId = R.string.preference_title_move_repeat,
-                summaryResId = R.string.preference_summary_move_repeat,
-                checked = moveRepeat,
-                onCheckedChange = {
-                    moveRepeat = it
-                    preferenceManager.setBooleanValue(
-                        PreferenceManager.PREFERENCE_KEY_MOVE_REPEAT,
-                        it
-                    )
-                }
-            )
-
-            if (moveRepeat) {
-                PreferenceTimeStepper(
-                    value = moveRepeatDelay,
-                    titleResId = R.string.preference_title_move_repeat_delay,
-                    summaryResId = R.string.preference_summary_move_repeat_delay,
-                    min = 100,
-                    max = 2000,
-                    step = 100,
-                    onValueChanged = { newValue ->
-                        moveRepeatDelay = newValue
-                        preferenceManager.setLongValue(
-                            PreferenceManager.PREFERENCE_KEY_MOVE_REPEAT_DELAY,
                             newValue
                         )
                     }
