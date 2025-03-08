@@ -195,7 +195,6 @@
     <string name="screen_title_upgrade_pro">Upgrade to Pro</string>
     <string name="screen_title_debug">Debug Settings</string>
     <string name="screen_title_scan_colors">Scan Colors</string>
-    <string name="screen_title_other_scan_settings">Other Scan Settings</string>
     <string name="screen_title_account">Account</string>
     <string name="screen_title_sign_in">Sign In</string>
     <string name="screen_title_sign_up">Sign Up</string>
@@ -247,6 +246,7 @@
     <string name="feature_explanation_single_cursor_speed">This is how fast the cursor moves when you are selecting a point.</string>
 
     <!-- Item Scan Settings Screen -->
+    <string name="section_title_item_scan_timing">Item Scan Timing</string>
     <string name="section_title_scan_pattern">Scan Pattern</string>
     <string name="preference_title_row_column_scan">Row/Column Scan</string>
     <string name="preference_summary_row_column_scan">Scan items in rows and columns</string>
@@ -265,7 +265,13 @@
 
     <!-- Manual Scan Settings Screen -->
     <string name="screen_title_manual_settings">Manual Scan Settings</string>
+    <string name="screen_summary_manual_settings">Configure manual scan settings</string>
     <string name="section_title_manual_scan_behavior">Manual Scan Behavior</string>
+
+    <!-- Auto Scan Settings Screen -->
+    <string name="screen_title_auto_scan_settings">Auto Scan Settings</string>
+    <string name="screen_summary_auto_scan_settings">Configure auto scan settings</string>
+    <string name="section_title_auto_scan_behavior">Auto Scan Behavior</string>
 
     <!-- Add/Edit Camera Switch Screen -->
     <string name="section_title_facial_gesture">Facial Gesture</string>
@@ -282,15 +288,10 @@
     <string name="section_title_scanning_mode">Scanning Mode</string>
     <string name="picker_title_select_scan_mode">Select Scanning Mode</string>
 
-    <!-- Other Scan Settings Screen -->
-    <string name="section_title_timing">Timing</string>
-    <string name="section_title_behavior">Behavior</string>
-    <string name="screen_summary_manual_settings">Configure manual scan settings</string>
-
     <string name="preference_title_auto_start_scanning">Auto-start scanning</string>
     <string name="preference_summary_auto_start_scanning">Automatically start scanning after a selection</string>
 
-    <string name="preference_title_first_item_pause">First item pause (only applies to auto scan)</string>
+    <string name="preference_title_first_item_pause">Pause on first item</string>
     <string name="preference_summary_first_item_pause">Pause briefly on the first item of each scan cycle</string>
     <string name="preference_title_first_item_pause_duration">First item pause duration</string>
     <string name="preference_summary_first_item_pause_duration">How long to pause on the first item</string>
@@ -350,8 +351,6 @@
     <string name="settings_summary_assisted_selection">Assist the user in selecting items by selecting the closest available item to where they select.</string>
 
     <!-- Settings - Scanning Section -->
-    <string name="settings_title_other_scan">Other Scan Settings</string>
-    <string name="settings_summary_other_scan">Configure other scan settings</string>
     <string name="settings_section_scan_appearance">Scan Appearance</string>
     <string name="settings_title_scan_color">Scan Color</string>
     <string name="settings_summary_scan_color">Configure the scan highlight color</string>

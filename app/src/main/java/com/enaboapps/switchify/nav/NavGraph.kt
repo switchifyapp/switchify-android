@@ -18,8 +18,8 @@ import com.enaboapps.switchify.screens.settings.actions.AddEditActionScreen
 import com.enaboapps.switchify.screens.settings.actions.MyActionsScreen
 import com.enaboapps.switchify.screens.settings.gestures.GestureSettingsScreen
 import com.enaboapps.switchify.screens.settings.menu.MenuSizeScreen
+import com.enaboapps.switchify.screens.settings.scanning.AutoScanSettingsScreen
 import com.enaboapps.switchify.screens.settings.scanning.ManualScanSettingsScreen
-import com.enaboapps.switchify.screens.settings.scanning.OtherScanSettingsScreen
 import com.enaboapps.switchify.screens.settings.scanning.ScanColorSelectionScreen
 import com.enaboapps.switchify.screens.settings.scanning.ScanSpeedsScreen
 import com.enaboapps.switchify.screens.settings.switches.AddEditCameraSwitchScreen
@@ -106,8 +106,8 @@ fun NavGraph(navController: NavHostController) {
                 AddEditActionScreen(navController, id)
             }
         }
-        composable(NavigationRoute.OtherScanSettings.name) {
-            OtherScanSettingsScreen(navController)
+        composable(NavigationRoute.AutoScanSettings.name) {
+            AutoScanSettingsScreen(navController)
         }
         composable(NavigationRoute.AccessTechniqueSettings.name) {
             AccessTechniqueSettingsScreen(navController)
