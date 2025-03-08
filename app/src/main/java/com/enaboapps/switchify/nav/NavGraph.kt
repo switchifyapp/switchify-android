@@ -20,6 +20,7 @@ import com.enaboapps.switchify.screens.settings.gestures.GestureSettingsScreen
 import com.enaboapps.switchify.screens.settings.menu.MenuSizeScreen
 import com.enaboapps.switchify.screens.settings.scanning.OtherScanSettingsScreen
 import com.enaboapps.switchify.screens.settings.scanning.ScanColorSelectionScreen
+import com.enaboapps.switchify.screens.settings.scanning.ScanSpeedsScreen
 import com.enaboapps.switchify.screens.settings.switches.AddEditCameraSwitchScreen
 import com.enaboapps.switchify.screens.settings.switches.AddEditExternalSwitchScreen
 import com.enaboapps.switchify.screens.settings.switches.SwitchStabilityScreen
@@ -60,6 +61,9 @@ fun NavGraph(navController: NavHostController) {
         }
         composable(NavigationRoute.SwitchStability.name) {
             SwitchStabilityScreen(navController)
+        }
+        composable(NavigationRoute.ScanSpeeds.name) {
+            ScanSpeedsScreen(navController)
         }
         composable(NavigationRoute.ScanColor.name) {
             ScanColorSelectionScreen(navController)

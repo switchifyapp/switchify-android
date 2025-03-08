@@ -256,8 +256,12 @@
     <string name="preference_summary_item_scan_speech">Speak the item content description while scanning</string>
     <string name="preference_title_scan_cycles">Scan Cycles</string>
     <string name="preference_summary_scan_cycles">The number of times to scan before stopping</string>
-    <string name="preference_title_item_scan_rate">Item Scan Rate (only applies to auto scan)</string>
-    <string name="preference_summary_item_scan_rate">The rate at which items are scanned</string>
+    <string name="preference_title_item_scan_speed">Item Scan Speed (only applies to auto scan)</string>
+    <string name="preference_summary_item_scan_speed">The speed at which items are scanned</string>
+
+    <!-- Scan Speeds Screen -->
+    <string name="screen_title_scan_speeds">Scan Speeds</string>
+    <string name="screen_summary_scan_speeds">Configure the scan speeds for auto scan</string>
 
     <!-- Add/Edit Camera Switch Screen -->
     <string name="section_title_facial_gesture">Facial Gesture</string>

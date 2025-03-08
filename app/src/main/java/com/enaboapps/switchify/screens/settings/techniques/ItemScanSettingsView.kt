@@ -8,8 +8,8 @@ import com.enaboapps.switchify.R
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.components.Picker
 import com.enaboapps.switchify.components.PreferenceSwitch
-import com.enaboapps.switchify.components.PreferenceTimeStepper
 import com.enaboapps.switchify.components.Section
+import com.enaboapps.switchify.screens.settings.shared.ItemScanSpeedStepper
 import com.enaboapps.switchify.utils.Resources
 
 @Composable
@@ -22,6 +22,10 @@ fun ItemScanSettingsView() {
                 "3"
             )
         )
+    }
+
+    Section(titleResId = R.string.section_title_timing) {
+        ItemScanSpeedStepper()
     }
 
     Section(titleResId = R.string.section_title_scan_pattern) {
@@ -84,26 +88,6 @@ fun ItemScanSettingsView() {
             },
             itemToString = { it.toString() },
             itemDescription = { Resources.getString(R.string.preference_summary_scan_cycles) }
-        )
-    }
-
-    Section(titleResId = R.string.section_title_timing) {
-        PreferenceTimeStepper(
-            value = preferenceManager.getLongValue(
-                PreferenceManager.PREFERENCE_KEY_SCAN_RATE,
-                1000
-            ),
-            titleResId = R.string.preference_title_item_scan_rate,
-            summaryResId = R.string.preference_summary_item_scan_rate,
-            min = 200,
-            max = 10000,
-            step = 100,
-            onValueChanged = { newValue ->
-                preferenceManager.setLongValue(
-                    PreferenceManager.PREFERENCE_KEY_SCAN_RATE,
-                    newValue
-                )
-            }
         )
     }
 }
