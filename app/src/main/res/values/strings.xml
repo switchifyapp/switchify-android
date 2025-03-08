@@ -263,6 +263,10 @@
     <string name="screen_title_scan_speeds">Scan Speeds</string>
     <string name="screen_summary_scan_speeds">Configure the scan speeds for auto scan</string>
 
+    <!-- Manual Scan Settings Screen -->
+    <string name="screen_title_manual_settings">Manual Scan Settings</string>
+    <string name="section_title_manual_scan_behavior">Manual Scan Behavior</string>
+
     <!-- Add/Edit Camera Switch Screen -->
     <string name="section_title_facial_gesture">Facial Gesture</string>
     <string name="section_title_action">Action</string>
@@ -281,7 +285,7 @@
     <!-- Other Scan Settings Screen -->
     <string name="section_title_timing">Timing</string>
     <string name="section_title_behavior">Behavior</string>
-    <string name="section_title_manual_scan_behavior">Manual Scan Behavior</string>
+    <string name="screen_summary_manual_settings">Configure manual scan settings</string>
 
     <string name="preference_title_auto_start_scanning">Auto-start scanning</string>
     <string name="preference_summary_auto_start_scanning">Automatically start scanning after a selection</string>
