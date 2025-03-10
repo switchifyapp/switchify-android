@@ -246,6 +246,8 @@
     <string name="feature_explanation_single_cursor_speed">This is how fast the cursor moves when you are selecting a point.</string>
 
     <!-- Item Scan Settings Screen -->
+    <string name="section_title_item_scan_highlight_style">Item Scan Highlight Style</string>
+    <string name="preference_title_scan_highlight_type">Scan Highlight Type</string>
     <string name="section_title_item_scan_timing">Item Scan Timing</string>
     <string name="section_title_scan_pattern">Scan Pattern</string>
     <string name="preference_title_row_column_scan">Row/Column Scan</string>
@@ -280,6 +282,12 @@
     <string name="preference_summary_facial_gesture_time">The time to wait for a facial gesture to be detected</string>
     <string name="dialog_title_delete">Confirm Deletion</string>
     <string name="dialog_message_delete">Are you sure you want to delete this switch?</string>
+
+    <!-- Scan Highlight Types and Descriptions -->
+    <string name="scan_highlight_type_border">Border</string>
+    <string name="scan_highlight_type_border_desc">The scan highlight will be a border around the item</string>
+    <string name="scan_highlight_type_fill">Fill</string>
+    <string name="scan_highlight_type_fill_desc">The scan highlight will be a solid color</string>
 
     <!-- Access Technique Selection Section -->
     <string name="picker_title_select_access_technique">Select Access Technique</string>

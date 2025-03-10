@@ -1,17 +1,35 @@
 package com.enaboapps.switchify.service.scanning
 
-import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
+import androidx.core.graphics.toColorInt
 
-class ScanHighlightDrawable(color: String) : GradientDrawable() {
+class ScanHighlightDrawable(
+    highlightStyle: ScanHighlightStyle,
+    color: String
+) : GradientDrawable() {
+    companion object {
+        const val FILL_ALPHA = 102
+        const val CORNER_RADIUS = 16f
+        const val STROKE_WIDTH = 16
+    }
 
     init {
+        if (highlightStyle.isFill()) {
+            createFill(color.toColorInt())
+        } else {
+            createBorder(color.toColorInt())
+        }
+    }
+
+    private fun createFill(colorAsInt: Int) {
         // Set the color of the drawable with alpha of 40%
-        setColor(Color.parseColor(color))
-        alpha = 102
-        // Set the corner radius of the drawable
-        cornerRadius = 16f
-        // Set the stroke width of the drawable without alpha
-        setStroke(8, Color.parseColor(color) and 0xFFFFFF)
+        setColor(colorAsInt)
+        alpha = FILL_ALPHA
+        cornerRadius = CORNER_RADIUS
+    }
+
+    private fun createBorder(colorAsInt: Int) {
+        cornerRadius = CORNER_RADIUS
+        setStroke(STROKE_WIDTH, colorAsInt)
     }
 }
