@@ -36,6 +36,7 @@ class PreferenceManager(context: Context) {
         const val PREFERENCE_KEY_AUTO_SCROLL_DELAY = "auto_scroll_delay"
         const val PREFERENCE_KEY_GESTURE_LOCK = "gesture_lock"
         const val PREFERENCE_KEY_SCAN_COLOR_SET = "scan_color_set"
+        const val PREFERENCE_KEY_SCAN_HIGHLIGHT_TYPE = "scan_highlight_type"
         const val PREFERENCE_KEY_MENU_SIZE = "menu_size"
         const val PREFERENCE_KEY_MENU_TRANSPARENCY = "menu_transparency"
         private const val PREFERENCE_FILE_NAME = "switchify_preferences"

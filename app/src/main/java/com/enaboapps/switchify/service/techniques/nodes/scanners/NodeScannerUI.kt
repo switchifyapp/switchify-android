@@ -5,6 +5,7 @@ import android.os.Looper
 import android.widget.RelativeLayout
 import com.enaboapps.switchify.service.scanning.ScanColorManager
 import com.enaboapps.switchify.service.scanning.ScanHighlightDrawable
+import com.enaboapps.switchify.service.scanning.ScanHighlightStyle
 import com.enaboapps.switchify.service.utils.ScreenUtils
 import com.enaboapps.switchify.service.window.SwitchifyAccessibilityWindow
 
@@ -15,6 +16,8 @@ class NodeScannerUI {
 
     private val window = SwitchifyAccessibilityWindow.instance
 
+    private var style: ScanHighlightStyle? = null
+
     private var baseLayout: RelativeLayout? = null
 
     private var itemBoundsLayout: RelativeLayout? = null
@@ -22,7 +25,7 @@ class NodeScannerUI {
 
     private val handler = Handler(Looper.getMainLooper())
 
-    private fun ensureBaseLayout() {
+    private fun prepare() {
         if (baseLayout == null) {
             window.getContext()?.let { context ->
                 baseLayout = RelativeLayout(context)
@@ -37,11 +40,17 @@ class NodeScannerUI {
                 }
             }
         }
+
+        if (style == null) {
+            window.getContext()?.let { context ->
+                style = ScanHighlightStyle(context)
+            }
+        }
     }
 
     fun showItemBounds(x: Int, y: Int, width: Int, height: Int) {
         handler.post {
-            ensureBaseLayout()
+            prepare()
             window.getContext()?.let {
                 val params = RelativeLayout.LayoutParams(
                     width,
@@ -52,9 +61,12 @@ class NodeScannerUI {
                 itemBoundsLayout = RelativeLayout(it).apply {
                     layoutParams = params
                 }
-                val border =
-                    ScanHighlightDrawable(ScanColorManager.getScanColorSetFromPreferences(it).secondaryColor)
-                itemBoundsLayout?.background = border
+                style?.let { style ->
+                    itemBoundsLayout?.background = ScanHighlightDrawable(
+                        style,
+                        ScanColorManager.getScanColorSetFromPreferences(it).secondaryColor
+                    )
+                }
                 itemBoundsLayout?.let { layout ->
                     baseLayout?.addView(layout)
                 }
@@ -64,7 +76,7 @@ class NodeScannerUI {
 
     fun showRowBounds(x: Int, y: Int, width: Int, height: Int) {
         handler.post {
-            ensureBaseLayout()
+            prepare()
             window.getContext()?.let {
                 val params = RelativeLayout.LayoutParams(
                     width,
@@ -75,9 +87,12 @@ class NodeScannerUI {
                 rowBoundsLayout = RelativeLayout(it).apply {
                     layoutParams = params
                 }
-                val border =
-                    ScanHighlightDrawable(ScanColorManager.getScanColorSetFromPreferences(it).primaryColor)
-                rowBoundsLayout?.background = border
+                style?.let { style ->
+                    rowBoundsLayout?.background = ScanHighlightDrawable(
+                        style,
+                        ScanColorManager.getScanColorSetFromPreferences(it).primaryColor
+                    )
+                }
                 rowBoundsLayout?.let { layout ->
                     baseLayout?.addView(layout)
                 }

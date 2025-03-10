@@ -10,6 +10,7 @@ import com.enaboapps.switchify.components.Picker
 import com.enaboapps.switchify.components.PreferenceSwitch
 import com.enaboapps.switchify.components.Section
 import com.enaboapps.switchify.screens.settings.shared.ItemScanSpeedStepper
+import com.enaboapps.switchify.service.scanning.ScanHighlightStyle
 import com.enaboapps.switchify.utils.Resources
 
 @Composable
@@ -23,9 +24,29 @@ fun ItemScanSettingsView() {
             )
         )
     }
+    val scanHighlightStyle = ScanHighlightStyle(LocalContext.current)
+    var currentScanHighlightStyle = remember {
+        mutableStateOf(
+            scanHighlightStyle.getType()
+        )
+    }
 
     Section(titleResId = R.string.section_title_item_scan_timing) {
         ItemScanSpeedStepper()
+    }
+
+    Section(titleResId = R.string.section_title_item_scan_highlight_style) {
+        Picker(
+            titleResId = R.string.preference_title_scan_highlight_type,
+            selectedItem = currentScanHighlightStyle.value,
+            items = ScanHighlightStyle.ALL,
+            onItemSelected = { item ->
+                currentScanHighlightStyle.value = item
+                scanHighlightStyle.setType(item)
+            },
+            itemToString = { scanHighlightStyle.getName(it) },
+            itemDescription = { scanHighlightStyle.getDescription(it) }
+        )
     }
 
     Section(titleResId = R.string.section_title_scan_pattern) {
