@@ -34,7 +34,7 @@
         </activity>
 
         <service
-            android:name=".service.SwitchifyAccessibilityService"
+            android:name=".service.core.SwitchifyAccessibilityService"
             android:directBootAware="true"
             android:exported="true"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">

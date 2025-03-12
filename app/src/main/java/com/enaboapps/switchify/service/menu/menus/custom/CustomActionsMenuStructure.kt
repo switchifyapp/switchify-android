@@ -1,8 +1,8 @@
 package com.enaboapps.switchify.service.menu.menus.custom
 
-import com.enaboapps.switchify.service.SwitchifyAccessibilityService
-import com.enaboapps.switchify.service.custom.actions.ActionPerformer
-import com.enaboapps.switchify.service.custom.actions.store.ActionStore
+import com.enaboapps.switchify.service.core.SwitchifyAccessibilityService
+import com.enaboapps.switchify.service.actions.custom.ActionPerformer
+import com.enaboapps.switchify.service.actions.custom.store.ActionStore
 import com.enaboapps.switchify.service.menu.MenuItem
 import com.enaboapps.switchify.service.menu.structure.MenuStructure
 

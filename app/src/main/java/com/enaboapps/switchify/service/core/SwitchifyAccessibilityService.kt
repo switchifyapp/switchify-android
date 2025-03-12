@@ -1,4 +1,4 @@
-package com.enaboapps.switchify.service
+package com.enaboapps.switchify.service.core
 
 import android.accessibilityservice.AccessibilityService
 import android.content.Intent
@@ -10,17 +10,15 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
 import com.enaboapps.switchify.backend.iap.IAPHandler
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
-import com.enaboapps.switchify.service.core.AudioActionManager
-import com.enaboapps.switchify.service.core.GlobalActionManager
+import com.enaboapps.switchify.service.actions.AudioActionManager
+import com.enaboapps.switchify.service.actions.GlobalActionManager
 import com.enaboapps.switchify.service.gestures.GestureManager
-import com.enaboapps.switchify.service.techniques.nodes.NodeExaminer
-import com.enaboapps.switchify.service.techniques.AccessTechnique
 import com.enaboapps.switchify.service.scanning.ScanSettings
-import com.enaboapps.switchify.service.scanning.ScanningManager
 import com.enaboapps.switchify.service.selection.SelectionHandler
 import com.enaboapps.switchify.service.switches.SwitchEventProvider
 import com.enaboapps.switchify.service.switches.camera.CameraSwitchManager
-import com.enaboapps.switchify.service.switches.external.ExternalSwitchListener
+import com.enaboapps.switchify.service.techniques.AccessTechnique
+import com.enaboapps.switchify.service.techniques.nodes.NodeExaminer
 import com.enaboapps.switchify.service.utils.DeviceLockObserver
 import com.enaboapps.switchify.service.utils.KeyboardBridge
 import com.enaboapps.switchify.service.utils.ScreenWatcher
@@ -39,9 +37,6 @@ import kotlinx.coroutines.launch
 class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
     SwitchEventProvider.CameraSwitchListener {
 
-    private lateinit var scanningManager: ScanningManager
-    private lateinit var switchEventProvider: SwitchEventProvider
-    private lateinit var externalSwitchListener: ExternalSwitchListener
     private var cameraSwitchManager: CameraSwitchManager? = null
     private lateinit var lifecycleRegistry: LifecycleRegistry
     private lateinit var screenWatcher: ScreenWatcher
@@ -74,12 +69,10 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
         GlobalActionManager.init(this)
         AudioActionManager.init(this)
 
-        scanningManager = ScanningManager(this, this)
-        scanningManager.setup()
+        ServiceCore.init(this)
 
-        switchEventProvider = SwitchEventProvider(this)
-        switchEventProvider.addCameraSwitchListener(this)
-        externalSwitchListener = ExternalSwitchListener(this, scanningManager, switchEventProvider)
+        val scanningManager = ServiceCore.getScanningManager() ?: return
+        val externalSwitchListener = ServiceCore.getExternalSwitchListener() ?: return
 
         screenWatcher = ScreenWatcher(
             onScreenSleep = {
@@ -92,7 +85,7 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
 
         scanSettings = ScanSettings(this)
 
-        GestureManager.getInstance().setup(this)
+        GestureManager.Companion.getInstance().setup(this)
         SelectionHandler.init(this)
 
         deviceLockObserver.startObserving(
@@ -123,6 +116,8 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
      * Initializes and starts the camera switch manager if the device is unlocked and a camera switch is available.
      */
     private fun initCameraSwitchManager() {
+        val scanningManager = ServiceCore.getScanningManager() ?: return
+        val switchEventProvider = ServiceCore.getSwitchEventProvider() ?: return
         if (deviceLockObserver.isUserUnlocked() && switchEventProvider.hasCameraSwitch && cameraSwitchManager == null) {
             cameraSwitchManager = CameraSwitchManager(this, scanningManager, switchEventProvider)
             serviceScope.launch {
@@ -188,6 +183,7 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
 
         // Update the SystemNodeScanner with the current layout info
         serviceScope.launch {
+            val scanningManager = ServiceCore.getScanningManager() ?: return@launch
             NodeExaminer.getActionableNodesFlow().collect { nodes ->
                 scanningManager.updateActionableNodes(nodes)
             }
@@ -195,6 +191,7 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
 
         // Update the KeyboardScanner with the current layout info
         serviceScope.launch {
+            val scanningManager = ServiceCore.getScanningManager() ?: return@launch
             NodeExaminer.getKeyboardNodesFlow().collect { nodes ->
                 scanningManager.updateKeyboardNodes(nodes)
             }
@@ -206,7 +203,7 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
 
         cameraSwitchManager?.stopCamera()
         deviceLockObserver.stopObserving()
-        scanningManager.shutdown()
+        ServiceCore.cleanup()
         GlobalActionManager.cleanup()
         AudioActionManager.cleanup()
 
@@ -227,6 +224,7 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
      * It performs different actions based on the type of the key event.
      */
     private fun handleSwitchEvent(event: KeyEvent): Boolean {
+        val externalSwitchListener = ServiceCore.getExternalSwitchListener() ?: return false
         return when (event.action) {
             KeyEvent.ACTION_DOWN -> externalSwitchListener.onSwitchPressed(event.keyCode)
             KeyEvent.ACTION_UP -> externalSwitchListener.onSwitchReleased(event.keyCode)

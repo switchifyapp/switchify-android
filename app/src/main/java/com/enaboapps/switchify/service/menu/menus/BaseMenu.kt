@@ -1,6 +1,6 @@
 package com.enaboapps.switchify.service.menu.menus
 
-import com.enaboapps.switchify.service.SwitchifyAccessibilityService
+import com.enaboapps.switchify.service.core.SwitchifyAccessibilityService
 import com.enaboapps.switchify.service.menu.MenuItem
 import com.enaboapps.switchify.service.menu.MenuView
 import com.enaboapps.switchify.service.menu.structure.MenuStructureHolder

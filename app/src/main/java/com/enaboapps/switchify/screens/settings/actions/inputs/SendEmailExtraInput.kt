@@ -4,7 +4,7 @@ import android.util.Patterns
 import androidx.compose.runtime.Composable
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.components.TextArea
-import com.enaboapps.switchify.service.custom.actions.store.data.ActionExtra
+import com.enaboapps.switchify.service.actions.custom.store.data.ActionExtra
 
 @Composable
 fun SendEmailExtraInput(

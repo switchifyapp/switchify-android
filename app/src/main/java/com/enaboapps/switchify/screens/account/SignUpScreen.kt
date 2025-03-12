@@ -19,7 +19,7 @@ import com.enaboapps.switchify.auth.AuthManager
 import com.enaboapps.switchify.auth.GoogleAuthHandler
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.components.*
-import com.enaboapps.switchify.service.custom.actions.store.ActionStore
+import com.enaboapps.switchify.service.actions.custom.store.ActionStore
 import com.enaboapps.switchify.utils.Resources
 import kotlinx.coroutines.launch
 
@@ -117,7 +117,8 @@ fun SignUpScreen(navController: NavController) {
                     else -> null
                 }
                 if (errorMessage == null) {
-                    authManager.createUserWithEmailAndPassword(email, password,
+                    authManager.createUserWithEmailAndPassword(
+                        email, password,
                         onSuccess = {
                             onSignUp()
                         },

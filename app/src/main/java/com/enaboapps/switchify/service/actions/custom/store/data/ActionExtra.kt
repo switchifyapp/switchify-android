@@ -1,7 +1,8 @@
-package com.enaboapps.switchify.service.custom.actions.store.data
+package com.enaboapps.switchify.service.actions.custom.store.data
 
 import com.google.gson.Gson
 import com.google.gson.annotations.SerializedName
+import kotlin.collections.get
 
 data class ActionExtra(
     @SerializedName("app_package") val appPackage: String = "",

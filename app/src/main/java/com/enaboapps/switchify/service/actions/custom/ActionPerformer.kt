@@ -1,18 +1,18 @@
-package com.enaboapps.switchify.service.custom.actions
+package com.enaboapps.switchify.service.actions.custom
 
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
-import com.enaboapps.switchify.service.custom.actions.store.ActionStore
-import com.enaboapps.switchify.service.custom.actions.store.data.ACTION_CALL_NUMBER
-import com.enaboapps.switchify.service.custom.actions.store.data.ACTION_COPY_TEXT_TO_CLIPBOARD
-import com.enaboapps.switchify.service.custom.actions.store.data.ACTION_OPEN_APP
-import com.enaboapps.switchify.service.custom.actions.store.data.ACTION_OPEN_LINK
-import com.enaboapps.switchify.service.custom.actions.store.data.ACTION_SEND_EMAIL
-import com.enaboapps.switchify.service.custom.actions.store.data.ACTION_SEND_TEXT
-import com.enaboapps.switchify.service.custom.actions.store.data.ActionExtra
+import com.enaboapps.switchify.service.actions.custom.store.ActionStore
+import com.enaboapps.switchify.service.actions.custom.store.data.ACTION_CALL_NUMBER
+import com.enaboapps.switchify.service.actions.custom.store.data.ACTION_COPY_TEXT_TO_CLIPBOARD
+import com.enaboapps.switchify.service.actions.custom.store.data.ACTION_OPEN_APP
+import com.enaboapps.switchify.service.actions.custom.store.data.ACTION_OPEN_LINK
+import com.enaboapps.switchify.service.actions.custom.store.data.ACTION_SEND_EMAIL
+import com.enaboapps.switchify.service.actions.custom.store.data.ACTION_SEND_TEXT
+import com.enaboapps.switchify.service.actions.custom.store.data.ActionExtra
 import com.enaboapps.switchify.utils.AppLauncher
 
 class ActionPerformer(

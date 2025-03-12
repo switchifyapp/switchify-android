@@ -23,6 +23,7 @@
     <string name="menu_title_edit">Edit</string>
     <string name="menu_title_device">Device</string>
     <string name="menu_title_my_actions">My Actions</string>
+    <string name="menu_item_pause">Pause</string>
 
     <!-- Menu Items -->
     <string name="menu_item_refine_selection">Refine Selection</string>
@@ -108,6 +109,8 @@
     <string name="hud_camera_access_error">Camera access is not granted. Please grant camera access in the app settings and then restart the Accessibility Service.</string>
     <string name="hud_no_switches_found">No Switches Found</string>
     <string name="hud_switches_loaded">Switches Loaded</string>
+    <string name="hud_pause">Switchify is paused. You can now use your switches with other apps. To resume, don\'t press any switches for 30 seconds.</string>
+    <string name="hud_pause_resume">Switchify has been resumed.</string>
 
     <!-- Auto Scroll Messages -->
     <string name="hud_auto_scroll_started">Auto-Scroll Started</string>

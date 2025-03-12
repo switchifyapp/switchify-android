@@ -1,7 +1,7 @@
 package com.enaboapps.switchify.service.menu.menus.scroll
 
 import com.enaboapps.switchify.R
-import com.enaboapps.switchify.service.SwitchifyAccessibilityService
+import com.enaboapps.switchify.service.core.SwitchifyAccessibilityService
 import com.enaboapps.switchify.service.gestures.GestureManager
 import com.enaboapps.switchify.service.gestures.data.GestureType
 import com.enaboapps.switchify.service.menu.MenuItem
