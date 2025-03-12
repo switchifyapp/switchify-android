@@ -1,8 +1,7 @@
 package com.enaboapps.switchify.screens.settings.actions.inputs
 
 import androidx.compose.runtime.Composable
-import com.enaboapps.switchify.service.custom.actions.AppLaunchPicker
-import com.enaboapps.switchify.service.custom.actions.store.data.ActionExtra
+import com.enaboapps.switchify.service.actions.custom.store.data.ActionExtra
 import com.enaboapps.switchify.utils.AppLauncher
 
 @Composable

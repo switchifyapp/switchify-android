@@ -1,11 +1,11 @@
-package com.enaboapps.switchify.service.custom.actions.store
+package com.enaboapps.switchify.service.actions.custom.store
 
 import android.content.Context
 import android.util.Log
 import com.enaboapps.switchify.auth.AuthManager
 import com.enaboapps.switchify.backend.data.FirestoreManager
-import com.enaboapps.switchify.service.custom.actions.store.data.ACTIONS
-import com.enaboapps.switchify.service.custom.actions.store.data.ActionExtra
+import com.enaboapps.switchify.service.actions.custom.store.data.ACTIONS
+import com.enaboapps.switchify.service.actions.custom.store.data.ActionExtra
 import com.google.gson.Gson
 import com.google.gson.JsonSyntaxException
 import com.google.gson.annotations.SerializedName

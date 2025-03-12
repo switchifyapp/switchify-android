@@ -16,8 +16,8 @@ import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.NavRouteLink
 import com.enaboapps.switchify.components.Section
 import com.enaboapps.switchify.nav.NavigationRoute
-import com.enaboapps.switchify.service.custom.actions.store.Action
-import com.enaboapps.switchify.service.custom.actions.store.ActionStore
+import com.enaboapps.switchify.service.actions.custom.store.Action
+import com.enaboapps.switchify.service.actions.custom.store.ActionStore
 
 @Composable
 fun MyActionsScreen(navController: NavController) {

@@ -20,7 +20,7 @@ import com.enaboapps.switchify.auth.GoogleAuthHandler
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.components.*
 import com.enaboapps.switchify.nav.NavigationRoute
-import com.enaboapps.switchify.service.custom.actions.store.ActionStore
+import com.enaboapps.switchify.service.actions.custom.store.ActionStore
 import com.enaboapps.switchify.utils.Resources
 import kotlinx.coroutines.launch
 

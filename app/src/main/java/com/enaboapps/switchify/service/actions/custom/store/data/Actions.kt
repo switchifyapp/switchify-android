@@ -1,4 +1,4 @@
-package com.enaboapps.switchify.service.custom.actions.store.data
+package com.enaboapps.switchify.service.actions.custom.store.data
 
 const val ACTION_OPEN_APP = "Open App"
 const val ACTION_COPY_TEXT_TO_CLIPBOARD = "Copy Text to Clipboard"

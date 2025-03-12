@@ -1,15 +1,16 @@
 package com.enaboapps.switchify.service.menu.menus.main
 
 import com.enaboapps.switchify.R
-import com.enaboapps.switchify.service.SwitchifyAccessibilityService
-import com.enaboapps.switchify.service.custom.actions.store.ActionStore
+import com.enaboapps.switchify.service.actions.custom.store.ActionStore
+import com.enaboapps.switchify.service.core.ServiceCore
+import com.enaboapps.switchify.service.core.SwitchifyAccessibilityService
 import com.enaboapps.switchify.service.gestures.GesturePoint
 import com.enaboapps.switchify.service.menu.MenuItem
 import com.enaboapps.switchify.service.menu.MenuManager
 import com.enaboapps.switchify.service.menu.menus.gestures.GestureMenuStructure
 import com.enaboapps.switchify.service.menu.structure.MenuStructure
-import com.enaboapps.switchify.service.techniques.nodes.NodeExaminer
 import com.enaboapps.switchify.service.techniques.AccessTechnique
+import com.enaboapps.switchify.service.techniques.nodes.NodeExaminer
 import com.enaboapps.switchify.service.utils.DeviceLockObserver
 
 class MainMenuStructure(private val accessibilityService: SwitchifyAccessibilityService) {
@@ -106,7 +107,14 @@ class MainMenuStructure(private val accessibilityService: SwitchifyAccessibility
                     }
                 )
             } else null,
-            createMyActionsMenuItem()
+            createMyActionsMenuItem(),
+            MenuItem(
+                id = "pause",
+                textResource = R.string.menu_item_pause,
+                action = {
+                    ServiceCore.getExternalSwitchListener()?.startPauseJob()
+                }
+            )
         )
     )
 

@@ -1,20 +1,19 @@
 package com.enaboapps.switchify.service.scanning
 
-import android.content.Context
 import android.os.Handler
 import android.os.Looper
-import com.enaboapps.switchify.service.SwitchifyAccessibilityService
-import com.enaboapps.switchify.service.core.GlobalActionManager
-import com.enaboapps.switchify.service.custom.actions.ActionPerformer
+import com.enaboapps.switchify.service.actions.GlobalActionManager
+import com.enaboapps.switchify.service.actions.custom.ActionPerformer
+import com.enaboapps.switchify.service.core.SwitchifyAccessibilityService
 import com.enaboapps.switchify.service.gestures.AutoScrollManager
 import com.enaboapps.switchify.service.gestures.GestureManager
 import com.enaboapps.switchify.service.menu.MenuManager
-import com.enaboapps.switchify.service.techniques.nodes.Node
-import com.enaboapps.switchify.service.techniques.nodes.scanners.NodeScannerUI
 import com.enaboapps.switchify.service.selection.SelectionHandler
 import com.enaboapps.switchify.service.techniques.AccessTechnique
 import com.enaboapps.switchify.service.techniques.AccessTechniqueInterface
 import com.enaboapps.switchify.service.techniques.ActiveAccessTechnique
+import com.enaboapps.switchify.service.techniques.nodes.Node
+import com.enaboapps.switchify.service.techniques.nodes.scanners.NodeScannerUI
 import com.enaboapps.switchify.service.window.SwitchifyAccessibilityWindow
 import com.enaboapps.switchify.switches.SwitchAction
 
@@ -23,11 +22,9 @@ import com.enaboapps.switchify.switches.SwitchAction
  * It coordinates different scanning methods (cursor, radar, item scan) and handles user actions.
  *
  * @property accessibilityService The accessibility service instance used for system-level actions.
- * @property context The application context.
  */
 class ScanningManager(
-    private val accessibilityService: SwitchifyAccessibilityService,
-    val context: Context
+    private val accessibilityService: SwitchifyAccessibilityService
 ) {
     companion object {
         private const val TAG = "ScanningManager"
@@ -37,12 +34,12 @@ class ScanningManager(
     private var isAcceptingActions = true
 
     // Active scan method manager
-    private val activeScanMethod = ActiveAccessTechnique(context)
+    private val activeScanMethod = ActiveAccessTechnique(accessibilityService)
 
-    private var moveRepeatManager: MoveRepeatManager? = MoveRepeatManager(context)
+    private var moveRepeatManager: MoveRepeatManager? = MoveRepeatManager(accessibilityService)
 
     // Scan settings
-    private val scanSettings = ScanSettings(context)
+    private val scanSettings = ScanSettings(accessibilityService)
 
     /**
      * Provides the current active scanning state method on the current scanning method.
@@ -62,7 +59,7 @@ class ScanningManager(
      * Sets up the scanning manager, initializing necessary components.
      */
     fun setup() {
-        SwitchifyAccessibilityWindow.instance.setup(context)
+        SwitchifyAccessibilityWindow.instance.setup(accessibilityService)
         SwitchifyAccessibilityWindow.instance.show()
         MenuManager.getInstance().setup(this, accessibilityService)
     }
@@ -177,7 +174,7 @@ class ScanningManager(
             SwitchAction.ACTION_SYS_LOCK_SCREEN -> GlobalActionManager.lockScreen()
             SwitchAction.ACTION_SYS_HEADSET_HOOK -> GlobalActionManager.toggleMediaPlayback()
             SwitchAction.ACTION_PERFORM_USER_ACTION -> {
-                val actionPerformer = ActionPerformer(context)
+                val actionPerformer = ActionPerformer(accessibilityService)
                 actionPerformer.performActionFromStore(action.extra?.myActionsId ?: "")
             }
 

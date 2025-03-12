@@ -30,16 +30,16 @@ import com.enaboapps.switchify.screens.settings.actions.inputs.CopyTextExtraInpu
 import com.enaboapps.switchify.screens.settings.actions.inputs.OpenLinkExtraInput
 import com.enaboapps.switchify.screens.settings.actions.inputs.SendEmailExtraInput
 import com.enaboapps.switchify.screens.settings.actions.inputs.SendTextExtraInput
-import com.enaboapps.switchify.service.custom.actions.ActionPerformer
-import com.enaboapps.switchify.service.custom.actions.store.ActionStore
-import com.enaboapps.switchify.service.custom.actions.store.data.ACTION_CALL_NUMBER
-import com.enaboapps.switchify.service.custom.actions.store.data.ACTION_COPY_TEXT_TO_CLIPBOARD
-import com.enaboapps.switchify.service.custom.actions.store.data.ACTION_OPEN_APP
-import com.enaboapps.switchify.service.custom.actions.store.data.ACTION_OPEN_LINK
-import com.enaboapps.switchify.service.custom.actions.store.data.ACTION_SEND_EMAIL
-import com.enaboapps.switchify.service.custom.actions.store.data.ACTION_SEND_TEXT
-import com.enaboapps.switchify.service.custom.actions.store.data.ActionExtra
-import com.enaboapps.switchify.service.custom.actions.store.data.getActionDescription
+import com.enaboapps.switchify.service.actions.custom.ActionPerformer
+import com.enaboapps.switchify.service.actions.custom.store.ActionStore
+import com.enaboapps.switchify.service.actions.custom.store.data.ACTION_CALL_NUMBER
+import com.enaboapps.switchify.service.actions.custom.store.data.ACTION_COPY_TEXT_TO_CLIPBOARD
+import com.enaboapps.switchify.service.actions.custom.store.data.ACTION_OPEN_APP
+import com.enaboapps.switchify.service.actions.custom.store.data.ACTION_OPEN_LINK
+import com.enaboapps.switchify.service.actions.custom.store.data.ACTION_SEND_EMAIL
+import com.enaboapps.switchify.service.actions.custom.store.data.ACTION_SEND_TEXT
+import com.enaboapps.switchify.service.actions.custom.store.data.ActionExtra
+import com.enaboapps.switchify.service.actions.custom.store.data.getActionDescription
 import kotlinx.coroutines.launch
 
 @Composable

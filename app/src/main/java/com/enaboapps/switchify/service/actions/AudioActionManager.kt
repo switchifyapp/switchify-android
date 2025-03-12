@@ -1,11 +1,11 @@
-package com.enaboapps.switchify.service.core
+package com.enaboapps.switchify.service.actions
 
 import android.content.Context
 import android.media.AudioManager
 import android.util.Log
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.backend.iap.IAPHandler
-import com.enaboapps.switchify.service.SwitchifyAccessibilityService
+import com.enaboapps.switchify.service.core.SwitchifyAccessibilityService
 import com.enaboapps.switchify.service.window.ServiceMessageHUD
 
 /**
@@ -32,7 +32,7 @@ object AudioActionManager {
      * Shows a pro feature message using the ServiceMessageHUD.
      */
     private fun showProFeatureMessage() {
-        ServiceMessageHUD.instance.showMessage(
+        ServiceMessageHUD.Companion.instance.showMessage(
             R.string.pro_feature_message,
             arrayOf(R.string.action_volume_control),
             ServiceMessageHUD.MessageType.DISAPPEARING
@@ -153,4 +153,4 @@ object AudioActionManager {
         audioManager = null
         Log.d(TAG, "AudioActionManager cleaned up")
     }
-} 
+}

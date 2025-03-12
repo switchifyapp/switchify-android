@@ -1,8 +1,8 @@
 package com.enaboapps.switchify.service.menu.menus.media
 
 import com.enaboapps.switchify.R
-import com.enaboapps.switchify.service.SwitchifyAccessibilityService
-import com.enaboapps.switchify.service.core.GlobalActionManager
+import com.enaboapps.switchify.service.actions.GlobalActionManager
+import com.enaboapps.switchify.service.core.SwitchifyAccessibilityService
 import com.enaboapps.switchify.service.menu.MenuItem
 import com.enaboapps.switchify.service.menu.MenuManager
 import com.enaboapps.switchify.service.menu.structure.MenuStructure

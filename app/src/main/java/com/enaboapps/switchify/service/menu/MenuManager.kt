@@ -1,6 +1,6 @@
 package com.enaboapps.switchify.service.menu
 
-import com.enaboapps.switchify.service.SwitchifyAccessibilityService
+import com.enaboapps.switchify.service.core.SwitchifyAccessibilityService
 import com.enaboapps.switchify.service.gestures.visuals.CurrentPointVisual
 import com.enaboapps.switchify.service.menu.menus.custom.MyActionsMenu
 import com.enaboapps.switchify.service.menu.menus.cyclebreak.ScanCycleBreakMenu

@@ -1,10 +1,10 @@
-package com.enaboapps.switchify.service.core
+package com.enaboapps.switchify.service.actions
 
 import android.accessibilityservice.AccessibilityService
 import android.util.Log
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.backend.iap.IAPHandler
-import com.enaboapps.switchify.service.SwitchifyAccessibilityService
+import com.enaboapps.switchify.service.core.SwitchifyAccessibilityService
 import com.enaboapps.switchify.service.window.ServiceMessageHUD
 
 /**
@@ -44,7 +44,7 @@ object GlobalActionManager {
      * @param feature The name of the pro feature being accessed
      */
     private fun showProFeatureMessage(feature: String) {
-        ServiceMessageHUD.instance.showMessage(
+        ServiceMessageHUD.Companion.instance.showMessage(
             R.string.pro_feature_message,
             arrayOf(feature),
             ServiceMessageHUD.MessageType.DISAPPEARING
@@ -162,4 +162,4 @@ object GlobalActionManager {
         accessibilityService = null
         Log.d(TAG, "GlobalActionManager cleaned up")
     }
-} 
+}

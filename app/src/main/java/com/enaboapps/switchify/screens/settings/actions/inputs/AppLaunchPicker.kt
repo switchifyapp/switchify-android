@@ -1,4 +1,4 @@
-package com.enaboapps.switchify.service.custom.actions
+package com.enaboapps.switchify.screens.settings.actions.inputs
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember

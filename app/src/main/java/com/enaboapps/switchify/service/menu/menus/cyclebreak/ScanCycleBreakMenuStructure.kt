@@ -1,6 +1,6 @@
 package com.enaboapps.switchify.service.menu.menus.cyclebreak
 
-import com.enaboapps.switchify.service.SwitchifyAccessibilityService
+import com.enaboapps.switchify.service.core.SwitchifyAccessibilityService
 import com.enaboapps.switchify.service.menu.menus.gestures.GestureMenuStructure
 import com.enaboapps.switchify.service.menu.menus.main.MainMenuStructure
 import com.enaboapps.switchify.service.menu.structure.MenuStructure

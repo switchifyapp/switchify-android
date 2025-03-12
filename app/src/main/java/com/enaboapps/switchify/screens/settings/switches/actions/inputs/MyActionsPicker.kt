@@ -8,8 +8,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.components.Picker
-import com.enaboapps.switchify.service.custom.actions.store.Action
-import com.enaboapps.switchify.service.custom.actions.store.ActionStore
+import com.enaboapps.switchify.service.actions.custom.store.Action
+import com.enaboapps.switchify.service.actions.custom.store.ActionStore
 import com.enaboapps.switchify.switches.SwitchAction
 import com.enaboapps.switchify.switches.SwitchActionExtra
 import com.enaboapps.switchify.utils.Resources
