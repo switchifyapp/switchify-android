@@ -2,26 +2,24 @@ package com.enaboapps.switchify.service.techniques.radar
 
 import android.content.Context
 import android.graphics.Canvas
-import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.drawable.GradientDrawable
 import android.view.View
 import android.widget.FrameLayout
 import android.widget.RelativeLayout
-import com.enaboapps.switchify.service.techniques.shared.ScanMethodUIConstants
+import androidx.core.graphics.toColorInt
 import com.enaboapps.switchify.service.scanning.ScanColorManager
+import com.enaboapps.switchify.service.techniques.AccessTechniqueUIBase
+import com.enaboapps.switchify.service.techniques.shared.ScanMethodUIConstants
 import com.enaboapps.switchify.service.utils.ScreenUtils
-import com.enaboapps.switchify.service.window.SwitchifyAccessibilityWindow
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.math.sqrt
 
-class RadarUI(private val context: Context) {
+class RadarUI(private val context: Context) : AccessTechniqueUIBase() {
     private var radarLineContainer: FrameLayout? = null
     private var radarLine: RadarLineView? = null
     private var radarCircle: RelativeLayout? = null
-
-    private val window = SwitchifyAccessibilityWindow.instance
 
     companion object {
         const val RADAR_CIRCLE_SIZE = 50
@@ -52,20 +50,20 @@ class RadarUI(private val context: Context) {
     private fun createRadarLine() {
         radarLine = RadarLineView(context).apply {
             val color = ScanColorManager.getScanColorSetFromPreferences(context).primaryColor
-            setColor(Color.parseColor(color))
+            setColor(color.toColorInt())
         }
         radarLineContainer = FrameLayout(context).apply {
             addView(radarLine)
         }
         radarLineContainer?.let {
-            window.addView(it, 0, 0, screenWidth, screenHeight)
+            super.addView(it, 0, 0, screenWidth, screenHeight)
         }
     }
 
     private fun createRadarCircle(x: Int, y: Int) {
         val drawable = GradientDrawable().apply {
             shape = GradientDrawable.OVAL
-            setColor(Color.parseColor(ScanColorManager.getScanColorSetFromPreferences(context).secondaryColor))
+            setColor(ScanColorManager.getScanColorSetFromPreferences(context).secondaryColor.toColorInt())
             alpha = (RADAR_ALPHA * 255).toInt()
         }
         radarCircle = RelativeLayout(context).apply {
@@ -81,7 +79,7 @@ class RadarUI(private val context: Context) {
     private fun updateRadarCircle(x: Int, y: Int) {
         radarCircle?.let {
             if (it.parent == null) {
-                window.addView(
+                super.addView(
                     it,
                     x - RADAR_CIRCLE_SIZE / 2,
                     y - RADAR_CIRCLE_SIZE / 2,
@@ -89,10 +87,12 @@ class RadarUI(private val context: Context) {
                     RADAR_CIRCLE_SIZE
                 )
             } else {
-                window.updateViewLayout(
+                super.updateView(
                     it,
                     x - RADAR_CIRCLE_SIZE / 2,
-                    y - RADAR_CIRCLE_SIZE / 2
+                    y - RADAR_CIRCLE_SIZE / 2,
+                    RADAR_CIRCLE_SIZE,
+                    RADAR_CIRCLE_SIZE
                 )
             }
         }
@@ -100,7 +100,7 @@ class RadarUI(private val context: Context) {
 
     fun removeRadarLine() {
         radarLineContainer?.let {
-            window.removeView(it)
+            super.removeView(it)
             radarLineContainer = null
             radarLine = null
         }
@@ -108,7 +108,7 @@ class RadarUI(private val context: Context) {
 
     fun removeRadarCircle() {
         radarCircle?.let {
-            window.removeView(it)
+            super.removeView(it)
             radarCircle = null
         }
     }
@@ -116,6 +116,7 @@ class RadarUI(private val context: Context) {
     fun reset() {
         removeRadarLine()
         removeRadarCircle()
+        super.hide()
     }
 
     private inner class RadarLineView(context: Context) : View(context) {
