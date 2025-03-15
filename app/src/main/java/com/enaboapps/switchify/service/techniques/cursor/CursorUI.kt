@@ -4,6 +4,7 @@ import android.content.Context
 import android.widget.RelativeLayout
 import androidx.core.graphics.toColorInt
 import com.enaboapps.switchify.service.scanning.ScanColorManager
+import com.enaboapps.switchify.service.scanning.ScanSettings
 import com.enaboapps.switchify.service.techniques.AccessTechniqueUIBase
 import com.enaboapps.switchify.service.techniques.shared.ScanMethodUIConstants
 import com.enaboapps.switchify.service.utils.ScreenUtils
@@ -27,12 +28,13 @@ class CursorUI(private val context: Context) : AccessTechniqueUIBase() {
         private const val QUADRANT_ALPHA = 0.5f
 
         /**
-         * Determines the number of quadrants based on the cursor mode.
+         * Determines the number of quadrants based on the cursor mode and the scan settings.
          *
-         * @return The number of quadrants (1 for single mode, 4 for block mode).
+         * @param context The application context.
+         * @return The number of quadrants (1 for single mode, or the number of blocks set in the scan settings).
          */
-        fun getNumberOfQuadrants(): Int {
-            return if (CursorMode.isSingleMode()) 1 else 4
+        fun getNumberOfQuadrants(context: Context): Int {
+            return if (CursorMode.isSingleMode()) 1 else ScanSettings(context).getCursorBlockCount()
         }
     }
 
@@ -43,7 +45,7 @@ class CursorUI(private val context: Context) : AccessTechniqueUIBase() {
      */
     fun getQuadrantWidth(): Int {
         return if (CursorMode.isBlockMode()) {
-            CursorBounds.width(context) / getNumberOfQuadrants()
+            CursorBounds.width(context) / getNumberOfQuadrants(context)
         } else {
             CursorBounds.width(context)
         }
@@ -56,7 +58,7 @@ class CursorUI(private val context: Context) : AccessTechniqueUIBase() {
      */
     fun getQuadrantHeight(): Int {
         return if (CursorMode.isBlockMode()) {
-            CursorBounds.height(context) / getNumberOfQuadrants()
+            CursorBounds.height(context) / getNumberOfQuadrants(context)
         } else {
             CursorBounds.height(context)
         }

@@ -5,6 +5,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -17,6 +18,7 @@ import com.enaboapps.switchify.screens.settings.shared.BlockCursorSpeedStepper
 import com.enaboapps.switchify.screens.settings.shared.PrecisionCursorSpeedStepper
 import com.enaboapps.switchify.screens.settings.shared.SingleCursorSpeedStepper
 import com.enaboapps.switchify.service.techniques.cursor.CursorMode
+import com.enaboapps.switchify.utils.Resources
 
 @Composable
 fun CursorSettingsView() {
@@ -59,7 +61,7 @@ fun CursorSettingsView() {
         ) {
             PrecisionCursorSpeedStepper()
         }
-        
+
         AnimatedVisibility(
             visible = currentMode == CursorMode.Modes.MODE_BLOCK,
             enter = fadeIn(),
@@ -67,5 +69,43 @@ fun CursorSettingsView() {
         ) {
             BlockCursorSpeedStepper()
         }
+    }
+
+    AnimatedVisibility(
+        visible = currentMode == CursorMode.Modes.MODE_BLOCK,
+        enter = fadeIn(),
+        exit = fadeOut()
+    ) {
+        BlockSettingsView()
+    }
+}
+
+@Composable
+private fun BlockSettingsView() {
+    val preferenceManager = PreferenceManager(LocalContext.current)
+    var currentBlockCount by remember {
+        mutableIntStateOf(
+            preferenceManager.getStringValue(
+                PreferenceManager.Keys.PREFERENCE_KEY_CURSOR_BLOCK_COUNT,
+                "4"
+            ).toInt()
+        )
+    }
+    val blockCounts = listOf("2", "3", "4", "5", "6", "7", "8", "9", "10")
+    Section(titleResId = R.string.section_title_block_settings) {
+        Picker(
+            titleResId = R.string.preference_title_block_count,
+            selectedItem = currentBlockCount.toString(),
+            items = blockCounts,
+            onItemSelected = { item ->
+                currentBlockCount = item.toInt()
+                preferenceManager.setStringValue(
+                    PreferenceManager.Keys.PREFERENCE_KEY_CURSOR_BLOCK_COUNT,
+                    item
+                )
+            },
+            itemToString = { it.toString() },
+            itemDescription = { Resources.getString(R.string.preference_summary_block_count) }
+        )
     }
 }
