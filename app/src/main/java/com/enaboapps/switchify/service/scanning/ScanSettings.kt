@@ -66,6 +66,17 @@ class ScanSettings(context: Context) {
     }
 
     /**
+     * Get the cursor block count
+     * @return The cursor block count
+     */
+    fun getCursorBlockCount(): Int {
+        return preferenceManager.getStringValue(
+            PreferenceManager.Keys.PREFERENCE_KEY_CURSOR_BLOCK_COUNT,
+            "4"
+        ).toInt()
+    }
+
+    /**
      * Get the fine cursor scan rate
      * @return The fine cursor scan rate
      */

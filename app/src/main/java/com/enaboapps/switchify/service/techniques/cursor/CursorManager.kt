@@ -4,12 +4,12 @@ import android.content.Context
 import com.enaboapps.switchify.service.gestures.GestureManager
 import com.enaboapps.switchify.service.gestures.GesturePoint
 import com.enaboapps.switchify.service.gestures.GesturePointListener
-import com.enaboapps.switchify.service.techniques.shared.ScanMethodUIConstants
 import com.enaboapps.switchify.service.scanning.ScanDirection
-import com.enaboapps.switchify.service.techniques.AccessTechniqueInterface
 import com.enaboapps.switchify.service.scanning.ScanSettings
 import com.enaboapps.switchify.service.scanning.ScanningScheduler
 import com.enaboapps.switchify.service.selection.SelectionHandler
+import com.enaboapps.switchify.service.techniques.AccessTechniqueInterface
+import com.enaboapps.switchify.service.techniques.shared.ScanMethodUIConstants
 
 /**
  * CursorManager class manages the cursor movement, quadrants, and scanning for the Switchify accessibility service.
@@ -173,7 +173,7 @@ class CursorManager(private val context: Context) : AccessTechniqueInterface, Ge
      * Gets the maximum quadrant index.
      * @return The maximum quadrant index.
      */
-    private fun getMaxQuadrantIndex(): Int = CursorUI.getNumberOfQuadrants() - 1
+    private fun getMaxQuadrantIndex(): Int = CursorUI.getNumberOfQuadrants(context) - 1
 
     /**
      * Swaps the scanning direction.

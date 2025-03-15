@@ -14,6 +14,7 @@ class PreferenceManager(context: Context) {
         const val PREFERENCE_KEY_ACCESS_TECHNIQUE = "access_technique"
         const val PREFERENCE_KEY_CURSOR_FINE_SCAN_RATE = "cursor_fine_scan_rate"
         const val PREFERENCE_KEY_CURSOR_BLOCK_SCAN_RATE = "cursor_block_scan_rate"
+        const val PREFERENCE_KEY_CURSOR_BLOCK_COUNT = "cursor_block_count"
         const val PREFERENCE_KEY_RADAR_SCAN_RATE = "radar_scan_rate"
         const val PREFERENCE_KEY_SWITCH_HOLD_TIME = "switch_hold_time"
         const val PREFERENCE_KEY_MOVE_REPEAT = "move_repeat"

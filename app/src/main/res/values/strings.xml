@@ -247,6 +247,9 @@
     <string name="feature_explanation_precision_cursor_speed">This is how fast the cursor moves when you are selecting a point. In Block Mode, this is the speed when you are moving the cursor in a block.</string>
     <string name="feature_explanation_block_cursor_speed">This is how fast the cursor moves when you are selecting a block. Once you select a block, the precision cursor speed will be used.</string>
     <string name="feature_explanation_single_cursor_speed">This is how fast the cursor moves when you are selecting a point.</string>
+    <string name="section_title_block_settings">Block Settings</string>
+    <string name="preference_title_block_count">Block Count</string>
+    <string name="preference_summary_block_count">The number of blocks to scan</string>
 
     <!-- Item Scan Settings Screen -->
     <string name="section_title_item_scan_highlight_style">Item Scan Highlight Style</string>
