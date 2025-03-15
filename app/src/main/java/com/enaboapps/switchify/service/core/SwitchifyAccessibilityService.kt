@@ -22,6 +22,7 @@ import com.enaboapps.switchify.service.techniques.nodes.NodeExaminer
 import com.enaboapps.switchify.service.utils.DeviceLockObserver
 import com.enaboapps.switchify.service.utils.KeyboardBridge
 import com.enaboapps.switchify.service.utils.ScreenWatcher
+import com.enaboapps.switchify.service.window.SwitchifyAccessibilityWindow
 import com.enaboapps.switchify.utils.Logger
 import com.enaboapps.switchify.utils.Resources
 import kotlinx.coroutines.CoroutineScope
@@ -157,7 +158,10 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
         }
     }
 
-    override fun onInterrupt() {}
+    override fun onInterrupt() {
+        SwitchifyAccessibilityWindow.instance.cleanup()
+        Logger.logEvent("Service Interrupted")
+    }
 
     /**
      * This method is called when the service is connected.
@@ -210,6 +214,12 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
         Logger.logEvent("Service Unbound")
 
         return super.onUnbind(intent)
+    }
+
+    override fun onDestroy() {
+        SwitchifyAccessibilityWindow.instance.onServiceDestroy()
+        Logger.logEvent("Service Destroyed")
+        super.onDestroy()
     }
 
     override fun onKeyEvent(event: KeyEvent?): Boolean {
