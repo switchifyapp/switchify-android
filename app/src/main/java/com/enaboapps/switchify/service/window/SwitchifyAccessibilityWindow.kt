@@ -8,6 +8,7 @@ import android.util.Log
 import android.view.ViewGroup
 import android.view.WindowManager
 import android.widget.RelativeLayout
+import com.enaboapps.switchify.service.utils.ScreenWatcher
 
 /**
  * This class manages the window for the Switchify accessibility service.
@@ -19,6 +20,7 @@ class SwitchifyAccessibilityWindow private constructor() {
     private var baseLayout: RelativeLayout? = null
     private var context: Context? = null
     private val mainHandler = Handler(Looper.getMainLooper())
+    private var screenWatcher: ScreenWatcher? = null
     private var isVisible = false
 
     companion object {
@@ -39,10 +41,35 @@ class SwitchifyAccessibilityWindow private constructor() {
 
             this.context = context
             windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
-            baseLayout = RelativeLayout(context)
+            createBaseLayout()
             ServiceMessageHUD.instance.setup(context)
+            registerScreenWatcher()
         } catch (e: Exception) {
             Log.e(TAG, "Error in setup: ${e.message}", e)
+        }
+    }
+
+    /**
+     * Creates the base layout.
+     */
+    private fun createBaseLayout() {
+        getContext()?.let { context ->
+            baseLayout = RelativeLayout(context)
+        }
+    }
+
+    /**
+     * Registers with the screen watcher.
+     */
+    private fun registerScreenWatcher() {
+        if (screenWatcher == null) {
+            val context = getContext() ?: return
+            val wake = {
+                createBaseLayout()
+                show()
+            }
+            screenWatcher = ScreenWatcher(onScreenWake = wake, onScreenSleep = { cleanup() })
+            screenWatcher?.register(context)
         }
     }
 
@@ -110,6 +137,9 @@ class SwitchifyAccessibilityWindow private constructor() {
      */
     fun onServiceDestroy() {
         cleanup()
+        val ctx = getContext() ?: return
+        screenWatcher?.unregister(ctx)
+        screenWatcher = null
         context = null
         windowManager = null
         baseLayout = null
