@@ -14,6 +14,7 @@ import com.enaboapps.switchify.service.techniques.nodes.scanners.system.SystemNo
 import com.enaboapps.switchify.service.techniques.radar.RadarManager
 import com.enaboapps.switchify.service.utils.KeyboardBridge
 import com.enaboapps.switchify.service.utils.KeyboardListener
+import com.enaboapps.switchify.service.utils.ScreenWatcher
 import com.enaboapps.switchify.utils.Logger
 
 /**
@@ -26,11 +27,17 @@ class ActiveAccessTechnique(private val context: Context) : AccessTechniqueObser
     private var systemNodeScanner: SystemNodeScanner? = null
     private var keyboardScanner: KeyboardScanner? = null
 
+    private var screenWatcher: ScreenWatcher? = null
+
     private var onScanningStartCallback: (() -> Unit)? = null
 
     init {
         AccessTechnique.observer = this
         KeyboardBridge.setKeyboardListener(this)
+        screenWatcher = ScreenWatcher(onScreenSleep = {
+            cleanupAll()
+        })
+        screenWatcher?.register(context)
     }
 
     val currentAccessTechnique: AccessTechniqueInterface
