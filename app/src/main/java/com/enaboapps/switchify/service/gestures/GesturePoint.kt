@@ -1,7 +1,6 @@
 package com.enaboapps.switchify.service.gestures
 
 import android.graphics.PointF
-import com.enaboapps.switchify.service.techniques.cursor.QuadrantInfo
 import com.enaboapps.switchify.service.techniques.AccessTechnique
 
 /**
@@ -26,9 +25,6 @@ object GesturePoint {
      * This is the y (vertical) position of the gesture point
      */
     var y = 0
-
-    var lastXQuadrant = QuadrantInfo(0, 0, 0)
-    var lastYQuadrant = QuadrantInfo(0, 0, 0)
 
     /**
      * This function returns the current gesture point
