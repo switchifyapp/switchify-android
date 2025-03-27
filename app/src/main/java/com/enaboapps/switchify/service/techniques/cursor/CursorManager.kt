@@ -23,6 +23,8 @@ class CursorManager(private val context: Context) : AccessTechniqueInterface, Ge
         handleFinalSelectionPoint(it.x.toInt(), it.y.toInt())
     })
 
+    private var previousBlock: CursorBlock? = null
+
     init {
         GesturePoint.listener = this
         CursorMode.init(context)
@@ -33,7 +35,9 @@ class CursorManager(private val context: Context) : AccessTechniqueInterface, Ge
      * Handles gesture point reselection.
      */
     override fun onGesturePointReselect() {
-
+        previousBlock?.let {
+            setBlock(it.position)
+        }
     }
 
 
@@ -44,6 +48,7 @@ class CursorManager(private val context: Context) : AccessTechniqueInterface, Ge
      */
     private fun setBlock(position: Int) {
         val block = blockManager.getBlock(position)
+        previousBlock = block
         lineManager.setBlock(block)
         lineManager.startScanning()
     }
