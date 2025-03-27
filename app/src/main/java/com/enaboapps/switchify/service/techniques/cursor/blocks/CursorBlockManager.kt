@@ -7,7 +7,8 @@ import com.enaboapps.switchify.service.techniques.nodes.Node
 import com.enaboapps.switchify.service.utils.ScreenUtils
 
 class CursorBlockManager(
-    private val context: Context
+    private val context: Context,
+    private val onBlockSelected: (Int) -> Unit
 ) {
     private val scanSettings = ScanSettings(context)
 
@@ -41,6 +42,7 @@ class CursorBlockManager(
         }
 
         val nodes = blocks.map { Node.fromCursorBlock(it) }.toList()
+        nodes.forEachIndexed { index, node -> node.setOnSelect { onBlockSelected(index) } }
         scanTree.buildTree(nodes)
     }
 

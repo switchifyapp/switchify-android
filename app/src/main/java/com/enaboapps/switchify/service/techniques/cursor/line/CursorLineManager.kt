@@ -3,6 +3,7 @@ package com.enaboapps.switchify.service.techniques.cursor.line
 import android.content.Context
 import android.graphics.Rect
 import com.enaboapps.switchify.service.scanning.ScanDirection
+import com.enaboapps.switchify.service.scanning.ScanSettings
 import com.enaboapps.switchify.service.scanning.ScanningScheduler
 import com.enaboapps.switchify.service.techniques.AccessTechniqueInterface
 import com.enaboapps.switchify.service.techniques.cursor.blocks.CursorBlock
@@ -81,7 +82,7 @@ class CursorLineManager(
         if (!isScanning) {
             isScanning = true
             setup()
-            scanningScheduler?.startScanning()
+            scanningScheduler?.startScanning(period = ScanSettings(context).getFineCursorScanRate())
         }
     }
 
@@ -138,15 +139,15 @@ class CursorLineManager(
 
     fun setBlock(block: CursorBlock?) {
         currentBlock = block
+        lineUI.setBlock(block)
         if (block != null) {
             currentX = block.left
             currentY = block.top
             lineUI.showXCursorLine(currentX)
         } else {
-
             currentX = 0
             currentY = 0
-            lineUI.reset()
+            lineUI.showXCursorLine(currentX)
         }
     }
 

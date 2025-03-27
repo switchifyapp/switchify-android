@@ -16,7 +16,7 @@ import com.enaboapps.switchify.utils.Resources
  * This class represents a node
  */
 class Node(
-    private var select: (() -> Unit?)? = null
+    private var onSelect: (() -> Unit?)? = null
 ) : ScanNodeInterface {
     private var nodeInfo: AccessibilityNodeInfo? = null
     private var x: Int = 0
@@ -175,7 +175,7 @@ class Node(
     override fun select() {
         unhighlight()
 
-        if (select == null) {
+        if (onSelect == null) {
             GesturePoint.x = centerX
             GesturePoint.y = centerY
 
@@ -184,8 +184,12 @@ class Node(
             }
             SelectionHandler.performSelectionAction()
         } else {
-            select?.invoke()
+            onSelect?.invoke()
         }
+    }
+
+    fun setOnSelect(onSelect: () -> Unit) {
+        this.onSelect = onSelect
     }
 
 

@@ -15,7 +15,7 @@ import com.enaboapps.switchify.service.techniques.cursor.line.CursorLineManager
  * @param context The application context.
  */
 class CursorManager(private val context: Context) : AccessTechniqueInterface, GesturePointListener {
-    private val blockManager = CursorBlockManager(context)
+    private val blockManager = CursorBlockManager(context, onBlockSelected = { setBlock(it) })
     private val lineManager = CursorLineManager(context)
 
     init {
@@ -29,6 +29,18 @@ class CursorManager(private val context: Context) : AccessTechniqueInterface, Ge
      */
     override fun onGesturePointReselect() {
 
+    }
+
+
+    /**
+     * Sets the block based on the position.
+     *
+     * @param position The position of the block.
+     */
+    private fun setBlock(position: Int) {
+        val block = blockManager.getBlock(position)
+        lineManager.setBlock(block)
+        lineManager.startScanning()
     }
 
     /**
