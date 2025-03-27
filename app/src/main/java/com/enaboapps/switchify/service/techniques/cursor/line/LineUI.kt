@@ -187,21 +187,13 @@ class LineUI(private val context: Context) : AccessTechniqueUIBase() {
     }
 
     /**
-     * Checks if all cursor UI elements are removed.
-     *
-     * @return True if all elements are removed, false otherwise.
-     */
-    fun isReset(): Boolean {
-        return xCursorLine == null && yCursorLine == null && blockOutline == null
-    }
-
-    /**
      * Removes all cursor UI elements.
      */
     fun reset() {
         removeXCursorLine()
         removeYCursorLine()
         removeBlockOutline()
+        setBlock(null)
         super.hide()
     }
 
@@ -235,18 +227,4 @@ class LineUI(private val context: Context) : AccessTechniqueUIBase() {
         }
         showBlockOutline()
     }
-
-    /**
-     * Checks if the horizontal cursor line is visible.
-     *
-     * @return True if visible, false otherwise.
-     */
-    fun isXCursorLineVisible(): Boolean = xCursorLine != null
-
-    /**
-     * Checks if the vertical cursor line is visible.
-     *
-     * @return True if visible, false otherwise.
-     */
-    fun isYCursorLineVisible(): Boolean = yCursorLine != null
 } 

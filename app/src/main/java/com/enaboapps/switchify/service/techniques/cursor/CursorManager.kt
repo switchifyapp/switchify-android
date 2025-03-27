@@ -50,7 +50,7 @@ class CursorManager(private val context: Context) : AccessTechniqueInterface, Ge
         val block = blockManager.getBlock(position)
         previousBlock = block
         lineManager.setBlock(block)
-        lineManager.startScanning()
+        lineManager.startAutoScanning()
     }
 
     /**
@@ -79,43 +79,43 @@ class CursorManager(private val context: Context) : AccessTechniqueInterface, Ge
     /**
      * Starts the scanning process.
      */
-    override fun startScanning() {
-        getManager().startScanning()
+    override fun startAutoScanning() {
+        getManager().startAutoScanning()
     }
 
     /**
      * Stops the scanning process.
      */
-    override fun stopScanning() {
-        getManager().stopScanning()
+    override fun stopAutoScanning() {
+        getManager().stopAutoScanning()
     }
 
     /**
      * Pauses the scanning process.
      */
-    override fun pauseScanning() {
-        getManager().pauseScanning()
+    override fun pauseAutoScanning() {
+        getManager().pauseAutoScanning()
     }
 
     /**
      * Resumes the scanning process.
      */
-    override fun resumeScanning() {
-        getManager().resumeScanning()
+    override fun resumeAutoScanning() {
+        getManager().resumeAutoScanning()
     }
 
     /**
      * Moves the cursor to the next item.
      */
-    override fun stepForward() {
-        getManager().stepForward()
+    override fun stepScanningForward() {
+        getManager().stepScanningForward()
     }
 
     /**
      * Moves the cursor to the previous item.
      */
-    override fun stepBackward() {
-        getManager().stepBackward()
+    override fun stepScanningBackward() {
+        getManager().stepScanningBackward()
     }
 
     /**
@@ -140,6 +140,10 @@ class CursorManager(private val context: Context) : AccessTechniqueInterface, Ge
      * @return The appropriate AccessTechniqueInterface.
      */
     private fun getManager(): AccessTechniqueInterface {
+        if (CursorMode.isSingleMode()) {
+            return lineManager
+        }
+
         return (if (CursorMode.isBlockMode() && getCurrentBlock() == null) {
             blockManager.getScanTree()
         } else {

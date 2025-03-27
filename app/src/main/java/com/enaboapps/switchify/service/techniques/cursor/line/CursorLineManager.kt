@@ -17,24 +17,17 @@ class CursorLineManager(
     private val onPointSelected: (PointF) -> Unit
 ) : AccessTechniqueInterface {
 
-    private var scanningScheduler: ScanningScheduler? = null
-    private var isScanning = false
+    private var scanningScheduler = ScanningScheduler(context) { stepScanning() }
     private var currentDirection: ScanDirection = ScanDirection.RIGHT
     private var currentX: Int = 0
     private var currentY: Int = 0
     private var currentBlock: CursorBlock? = null
     private val lineUI = LineUI(context)
 
+    private val scanSettings = ScanSettings(context)
+
     private fun getScreenBounds(): Rect {
         return Rect(0, 0, ScreenUtils.getWidth(context), ScreenUtils.getHeight(context))
-    }
-
-    private fun setup() {
-        if (scanningScheduler == null) {
-            scanningScheduler = ScanningScheduler(context) {
-                stepScanning()
-            }
-        }
     }
 
     private fun stepScanning() {
@@ -91,32 +84,33 @@ class CursorLineManager(
         }
     }
 
-    override fun startScanning() {
-        if (!isScanning) {
-            isScanning = true
-            setup()
+    override fun startAutoScanning() {
+        if (scanningScheduler.isScanning() == false && scanSettings.isAutoScanMode()) {
             val rate = ScanSettings(context).getFineCursorScanRate()
-            scanningScheduler?.startScanning(initialDelay = rate, period = rate)
+            scanningScheduler.startScanning(initialDelay = rate, period = rate)
         }
     }
 
-    override fun stopScanning() {
-        if (isScanning) {
-            isScanning = false
-            scanningScheduler?.stopScanning()
+    override fun stopAutoScanning() {
+        if (scanningScheduler.isScanning() == true) {
+            scanningScheduler.stopScanning()
             lineUI.reset()
         }
     }
 
-    override fun pauseScanning() {
-        scanningScheduler?.pauseScanning()
+    override fun pauseAutoScanning() {
+        if (scanSettings.isAutoScanMode()) {
+            scanningScheduler.pauseScanning()
+        }
     }
 
-    override fun resumeScanning() {
-        scanningScheduler?.resumeScanning()
+    override fun resumeAutoScanning() {
+        if (scanSettings.isAutoScanMode()) {
+            scanningScheduler.resumeScanning()
+        }
     }
 
-    override fun stepForward() {
+    override fun stepScanningForward() {
         // If direction is left, swap to right, if up, swap to down
         currentDirection = when (currentDirection) {
             ScanDirection.LEFT -> ScanDirection.RIGHT
@@ -127,7 +121,7 @@ class CursorLineManager(
         stepScanning()
     }
 
-    override fun stepBackward() {
+    override fun stepScanningBackward() {
         // If direction is right, swap to left, if down, swap to up
         currentDirection = when (currentDirection) {
             ScanDirection.RIGHT -> ScanDirection.LEFT
@@ -148,6 +142,12 @@ class CursorLineManager(
     }
 
     override fun performSelectionAction() {
+        if (scanningScheduler.isScanning() == false && scanSettings.isAutoScanMode()) {
+            startAutoScanning()
+            lineUI.showXCursorLine(currentX)
+            return
+        }
+
         if (currentDirection == ScanDirection.LEFT || currentDirection == ScanDirection.RIGHT) {
             currentDirection = ScanDirection.DOWN
             lineUI.showYCursorLine(currentY)
@@ -159,13 +159,12 @@ class CursorLineManager(
     }
 
     override fun cleanup() {
-        stopScanning()
-        scanningScheduler?.shutdown()
-        scanningScheduler = null
+        stopAutoScanning()
+        scanningScheduler.shutdown()
     }
 
     fun resetForNextUse() {
-        stopScanning()
+        stopAutoScanning()
         lineUI.reset()
         currentBlock = null
         currentX = 0

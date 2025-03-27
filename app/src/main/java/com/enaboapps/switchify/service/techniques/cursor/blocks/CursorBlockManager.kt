@@ -53,7 +53,7 @@ class CursorBlockManager(
     }
 
     fun resetForNextUse() {
-        scanTree.stopScanning()
+        scanTree.stopAutoScanning()
     }
 
     fun getScanTree(): ScanTree {
