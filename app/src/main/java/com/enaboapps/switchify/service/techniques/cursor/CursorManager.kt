@@ -1,9 +1,12 @@
 package com.enaboapps.switchify.service.techniques.cursor
 
 import android.content.Context
+import com.enaboapps.switchify.service.gestures.GestureManager
 import com.enaboapps.switchify.service.gestures.GesturePoint
 import com.enaboapps.switchify.service.gestures.GesturePointListener
 import com.enaboapps.switchify.service.scanning.ScanDirection
+import com.enaboapps.switchify.service.scanning.ScanSettings
+import com.enaboapps.switchify.service.selection.SelectionHandler
 import com.enaboapps.switchify.service.techniques.AccessTechniqueInterface
 import com.enaboapps.switchify.service.techniques.cursor.blocks.CursorBlock
 import com.enaboapps.switchify.service.techniques.cursor.blocks.CursorBlockManager
@@ -16,7 +19,9 @@ import com.enaboapps.switchify.service.techniques.cursor.line.CursorLineManager
  */
 class CursorManager(private val context: Context) : AccessTechniqueInterface, GesturePointListener {
     private val blockManager = CursorBlockManager(context, onBlockSelected = { setBlock(it) })
-    private val lineManager = CursorLineManager(context)
+    private val lineManager = CursorLineManager(context, onPointSelected = {
+        handleFinalSelectionPoint(it.x.toInt(), it.y.toInt())
+    })
 
     init {
         GesturePoint.listener = this
@@ -41,6 +46,22 @@ class CursorManager(private val context: Context) : AccessTechniqueInterface, Ge
         val block = blockManager.getBlock(position)
         lineManager.setBlock(block)
         lineManager.startScanning()
+    }
+
+    /**
+     * Handles the final selection point.
+     *
+     * @param x The x-coordinate.
+     * @param y The y-coordinate.
+     */
+    private fun handleFinalSelectionPoint(x: Int, y: Int) {
+        GesturePoint.x = x; GesturePoint.y = y
+        SelectionHandler.setSelectAction {
+            GestureManager.getInstance().performTap()
+        }
+        SelectionHandler.performSelectionAction()
+        blockManager.resetForNextUse()
+        lineManager.resetForNextUse()
     }
 
     /**
@@ -96,6 +117,7 @@ class CursorManager(private val context: Context) : AccessTechniqueInterface, Ge
      * Performs the selection action.
      */
     override fun performSelectionAction() {
+        blockManager.getScanTree().setSpeed(ScanSettings(context).getCursorBlockScanRate())
         getManager().performSelectionAction()
     }
 
@@ -103,7 +125,7 @@ class CursorManager(private val context: Context) : AccessTechniqueInterface, Ge
      * Cleans up the cursor manager.
      */
     override fun cleanup() {
-        blockManager.reset()
+        blockManager.cleanup()
         lineManager.cleanup()
     }
 

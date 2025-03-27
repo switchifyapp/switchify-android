@@ -1,17 +1,20 @@
 package com.enaboapps.switchify.service.techniques.cursor.line
 
 import android.content.Context
+import android.graphics.PointF
 import android.graphics.Rect
 import com.enaboapps.switchify.service.scanning.ScanDirection
 import com.enaboapps.switchify.service.scanning.ScanSettings
 import com.enaboapps.switchify.service.scanning.ScanningScheduler
 import com.enaboapps.switchify.service.techniques.AccessTechniqueInterface
 import com.enaboapps.switchify.service.techniques.cursor.blocks.CursorBlock
+import com.enaboapps.switchify.service.techniques.shared.ScanMethodUIConstants
 import com.enaboapps.switchify.service.utils.ScreenUtils
 
 class CursorLineManager(
     private val context: Context,
-    private val lineMovement: Int = 10
+    private val lineMovement: Int = 10,
+    private val onPointSelected: (PointF) -> Unit
 ) : AccessTechniqueInterface {
 
     private var scanningScheduler: ScanningScheduler? = null
@@ -35,8 +38,14 @@ class CursorLineManager(
     }
 
     private fun stepScanning() {
+        val lineThickness = ScanMethodUIConstants.LINE_THICKNESS
         val bounds = currentBlock?.let { block ->
-            Rect(block.left, block.top, block.right, block.bottom)
+            Rect(
+                block.left + lineThickness,
+                block.top + lineThickness,
+                block.right - lineThickness,
+                block.bottom - lineThickness
+            )
         } ?: getScreenBounds()
 
         when (currentDirection) {
@@ -45,7 +54,8 @@ class CursorLineManager(
                     currentX -= lineMovement
                     lineUI.showXCursorLine(currentX)
                 } else {
-                    currentDirection = ScanDirection.RIGHT
+                    currentX = bounds.right
+                    lineUI.showXCursorLine(currentX)
                 }
             }
 
@@ -54,7 +64,8 @@ class CursorLineManager(
                     currentX += lineMovement
                     lineUI.showXCursorLine(currentX)
                 } else {
-                    currentDirection = ScanDirection.LEFT
+                    currentX = bounds.left
+                    lineUI.showXCursorLine(currentX)
                 }
             }
 
@@ -63,7 +74,8 @@ class CursorLineManager(
                     currentY -= lineMovement
                     lineUI.showYCursorLine(currentY)
                 } else {
-                    currentDirection = ScanDirection.DOWN
+                    currentY = bounds.bottom
+                    lineUI.showYCursorLine(currentY)
                 }
             }
 
@@ -72,7 +84,8 @@ class CursorLineManager(
                     currentY += lineMovement
                     lineUI.showYCursorLine(currentY)
                 } else {
-                    currentDirection = ScanDirection.UP
+                    currentY = bounds.top
+                    lineUI.showYCursorLine(currentY)
                 }
             }
         }
@@ -82,7 +95,8 @@ class CursorLineManager(
         if (!isScanning) {
             isScanning = true
             setup()
-            scanningScheduler?.startScanning(period = ScanSettings(context).getFineCursorScanRate())
+            val rate = ScanSettings(context).getFineCursorScanRate()
+            scanningScheduler?.startScanning(initialDelay = rate, period = rate)
         }
     }
 
@@ -103,15 +117,28 @@ class CursorLineManager(
     }
 
     override fun stepForward() {
-        if (!isScanning) {
-            startScanning()
-        } else {
-            stepScanning()
+        // If direction is left, swap to right, if up, swap to down
+        currentDirection = when (currentDirection) {
+            ScanDirection.LEFT -> ScanDirection.RIGHT
+            ScanDirection.UP -> ScanDirection.DOWN
+            else -> currentDirection
         }
+        // Step scanning
+        stepScanning()
     }
 
     override fun stepBackward() {
-        // Reverse direction
+        // If direction is right, swap to left, if down, swap to up
+        currentDirection = when (currentDirection) {
+            ScanDirection.RIGHT -> ScanDirection.LEFT
+            ScanDirection.DOWN -> ScanDirection.UP
+            else -> currentDirection
+        }
+        // Step scanning
+        stepScanning()
+    }
+
+    override fun swapScanDirection() {
         currentDirection = when (currentDirection) {
             ScanDirection.LEFT -> ScanDirection.RIGHT
             ScanDirection.RIGHT -> ScanDirection.LEFT
@@ -120,21 +147,30 @@ class CursorLineManager(
         }
     }
 
-    override fun swapScanDirection() {
-        currentDirection = when (currentDirection) {
-            ScanDirection.LEFT, ScanDirection.RIGHT -> ScanDirection.DOWN
-            ScanDirection.UP, ScanDirection.DOWN -> ScanDirection.RIGHT
-        }
-    }
-
     override fun performSelectionAction() {
-        // TODO: Implement selection action
+        if (currentDirection == ScanDirection.LEFT || currentDirection == ScanDirection.RIGHT) {
+            currentDirection = ScanDirection.DOWN
+            lineUI.showYCursorLine(currentY)
+
+            return
+        }
+
+        onPointSelected(PointF(currentX.toFloat(), currentY.toFloat()))
     }
 
     override fun cleanup() {
         stopScanning()
         scanningScheduler?.shutdown()
         scanningScheduler = null
+    }
+
+    fun resetForNextUse() {
+        stopScanning()
+        lineUI.reset()
+        currentBlock = null
+        currentX = 0
+        currentY = 0
+        currentDirection = ScanDirection.RIGHT
     }
 
     fun setBlock(block: CursorBlock?) {

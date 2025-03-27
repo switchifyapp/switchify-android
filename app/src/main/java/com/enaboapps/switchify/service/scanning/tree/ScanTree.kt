@@ -2,11 +2,11 @@ package com.enaboapps.switchify.service.scanning.tree
 
 import android.content.Context
 import android.util.Log
-import com.enaboapps.switchify.service.techniques.nodes.NodeSpeaker
-import com.enaboapps.switchify.service.techniques.AccessTechniqueInterface
 import com.enaboapps.switchify.service.scanning.ScanNodeInterface
 import com.enaboapps.switchify.service.scanning.ScanSettings
 import com.enaboapps.switchify.service.scanning.ScanningScheduler
+import com.enaboapps.switchify.service.techniques.AccessTechniqueInterface
+import com.enaboapps.switchify.service.techniques.nodes.NodeSpeaker
 
 interface ScanTreeCallback {
     fun onScanTreeCycleBreakStarted()
@@ -36,6 +36,9 @@ class ScanTree(
 
     /** The settings for scanning behavior. */
     private val scanSettings = ScanSettings(context)
+
+    /** The speed at which the scanning tree is traversed. */
+    private var scanningSpeed = scanSettings.getScanRate()
 
     /** The list of ScanTreeItems that make up the scanning tree. */
     private val tree: MutableList<ScanTreeItem> = mutableListOf()
@@ -69,6 +72,15 @@ class ScanTree(
         navigator = ScanTreeNavigator(tree, scanSettings, hasCycleBreak)
         selector = ScanTreeSelector(tree, navigator, scanSettings, stopScanningOnSelect)
         highlighter = ScanTreeHighlighter(tree, scanSettings)
+    }
+
+    /**
+     * Sets the speed at which the scanning tree is traversed.
+     *
+     * @param scanningSpeed The new scanning speed (in milliseconds).
+     */
+    fun setSpeed(scanningSpeed: Long) {
+        this.scanningSpeed = scanningSpeed
     }
 
     /**
@@ -445,7 +457,10 @@ class ScanTree(
             highlightCurrent() // Highlight the first item
             if (scanSettings.isAutoScanMode()) {
                 Log.d(TAG, "startScanning")
-                scanningScheduler?.startScanning()
+                scanningScheduler?.startScanning(
+                    initialDelay = scanningSpeed,
+                    period = scanningSpeed
+                )
             }
         }
     }

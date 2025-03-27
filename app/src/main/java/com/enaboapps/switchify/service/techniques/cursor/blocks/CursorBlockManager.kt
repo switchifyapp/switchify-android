@@ -43,12 +43,17 @@ class CursorBlockManager(
 
         val nodes = blocks.map { Node.fromCursorBlock(it) }.toList()
         nodes.forEachIndexed { index, node -> node.setOnSelect { onBlockSelected(index) } }
+        scanTree.setSpeed(ScanSettings(context).getCursorBlockScanRate())
         scanTree.buildTree(nodes)
     }
 
-    fun reset() {
+    fun cleanup() {
         blocks = emptyList()
         scanTree.shutdown()
+    }
+
+    fun resetForNextUse() {
+        scanTree.stopScanning()
     }
 
     fun getScanTree(): ScanTree {
