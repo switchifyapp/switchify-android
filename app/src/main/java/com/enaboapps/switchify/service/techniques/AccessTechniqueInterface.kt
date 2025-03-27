@@ -1,13 +1,13 @@
 package com.enaboapps.switchify.service.techniques
 
 interface AccessTechniqueInterface {
-    fun startScanning()
-    fun pauseScanning()
-    fun resumeScanning()
-    fun stopScanning()
+    fun startAutoScanning()
+    fun pauseAutoScanning()
+    fun resumeAutoScanning()
+    fun stopAutoScanning()
     fun swapScanDirection()
-    fun stepForward()
-    fun stepBackward()
+    fun stepScanningForward()
+    fun stepScanningBackward()
     fun performSelectionAction()
     fun cleanup()
 }

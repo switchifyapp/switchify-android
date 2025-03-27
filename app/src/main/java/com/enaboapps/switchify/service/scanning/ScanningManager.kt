@@ -50,7 +50,7 @@ class ScanningManager(
     init {
         activeScanMethod.setOnScanningStartCallback {
             if (scanSettings.getAutomaticallyStartScanAfterSelection()) {
-                currentScanMethod.startScanning()
+                currentScanMethod.startAutoScanning()
             }
         }
     }
@@ -101,7 +101,7 @@ class ScanningManager(
      */
     fun setItemScanType() {
         setType(AccessTechnique.Technique.ITEM_SCAN)
-        SelectionHandler.setStartScanningAction { activeScanMethod.currentAccessTechnique.startScanning() }
+        SelectionHandler.setStartScanningAction { activeScanMethod.currentAccessTechnique.startAutoScanning() }
         activeScanMethod.getNodeScanner().startTimeoutToRevertToCursor()
     }
 
@@ -159,10 +159,10 @@ class ScanningManager(
 
         when (action.id) {
             SwitchAction.ACTION_SELECT -> select()
-            SwitchAction.ACTION_STOP_SCANNING -> currentScanMethod.stopScanning()
+            SwitchAction.ACTION_STOP_SCANNING -> currentScanMethod.stopAutoScanning()
             SwitchAction.ACTION_CHANGE_SCANNING_DIRECTION -> currentScanMethod.swapScanDirection()
-            SwitchAction.ACTION_MOVE_TO_NEXT_ITEM -> currentScanMethod.stepForward()
-            SwitchAction.ACTION_MOVE_TO_PREVIOUS_ITEM -> currentScanMethod.stepBackward()
+            SwitchAction.ACTION_MOVE_TO_NEXT_ITEM -> currentScanMethod.stepScanningForward()
+            SwitchAction.ACTION_MOVE_TO_PREVIOUS_ITEM -> currentScanMethod.stepScanningBackward()
             SwitchAction.ACTION_TOGGLE_GESTURE_LOCK -> GestureManager.getInstance()
                 .toggleGestureLock()
 
@@ -186,14 +186,14 @@ class ScanningManager(
      * Pauses the scanning process for the current scanning state.
      */
     fun pauseScanning() {
-        if (isAcceptingActions) currentScanMethod.pauseScanning()
+        if (isAcceptingActions) currentScanMethod.pauseAutoScanning()
     }
 
     /**
      * Resumes the scanning process for the current scanning state.
      */
     fun resumeScanning() {
-        if (isAcceptingActions) currentScanMethod.resumeScanning()
+        if (isAcceptingActions) currentScanMethod.resumeAutoScanning()
     }
 
     /**

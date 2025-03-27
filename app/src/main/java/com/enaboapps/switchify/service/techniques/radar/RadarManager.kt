@@ -3,10 +3,10 @@ package com.enaboapps.switchify.service.techniques.radar
 import android.content.Context
 import com.enaboapps.switchify.service.gestures.GestureManager
 import com.enaboapps.switchify.service.gestures.GesturePoint
-import com.enaboapps.switchify.service.techniques.AccessTechniqueInterface
 import com.enaboapps.switchify.service.scanning.ScanSettings
 import com.enaboapps.switchify.service.scanning.ScanningScheduler
 import com.enaboapps.switchify.service.selection.SelectionHandler
+import com.enaboapps.switchify.service.techniques.AccessTechniqueInterface
 import com.enaboapps.switchify.service.utils.ScreenUtils
 import kotlin.math.cos
 import kotlin.math.sin
@@ -150,7 +150,7 @@ class RadarManager(private val context: Context) : AccessTechniqueInterface {
         }
     }
 
-    override fun stepForward() {
+    override fun stepScanningForward() {
         rotationDirection = RotationDirection.CLOCKWISE
         circleMovement = CircleMovement.OUTWARD
         if (currentStep == RadarStep.IDLE) {
@@ -164,7 +164,7 @@ class RadarManager(private val context: Context) : AccessTechniqueInterface {
         }
     }
 
-    override fun stepBackward() {
+    override fun stepScanningBackward() {
         rotationDirection = RotationDirection.ANTI_CLOCKWISE
         circleMovement = CircleMovement.INWARD
         if (currentStep == RadarStep.IDLE) {
@@ -178,20 +178,20 @@ class RadarManager(private val context: Context) : AccessTechniqueInterface {
         }
     }
 
-    override fun startScanning() {
+    override fun startAutoScanning() {
         setup()
         startRadar()
     }
 
-    override fun stopScanning() {
+    override fun stopAutoScanning() {
         scanningScheduler?.stopScanning()
     }
 
-    override fun pauseScanning() {
+    override fun pauseAutoScanning() {
         scanningScheduler?.pauseScanning()
     }
 
-    override fun resumeScanning() {
+    override fun resumeAutoScanning() {
         scanningScheduler?.resumeScanning()
     }
 
@@ -208,7 +208,7 @@ class RadarManager(private val context: Context) : AccessTechniqueInterface {
             }
 
             RadarStep.MOVING -> {
-                stopScanning()
+                stopAutoScanning()
                 val angle = Math.toRadians(currentAngle.toDouble())
                 val distance = currentDistanceRatio * maxDistance
                 val x = screenCenterX + distance * cos(angle).toFloat()
@@ -238,7 +238,7 @@ class RadarManager(private val context: Context) : AccessTechniqueInterface {
         rotationDirection = RotationDirection.CLOCKWISE
         circleMovement = CircleMovement.OUTWARD
         radarUI.reset()
-        stopScanning()
+        stopAutoScanning()
     }
 
     override fun cleanup() {

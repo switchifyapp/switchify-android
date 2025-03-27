@@ -6,16 +6,17 @@ import android.view.accessibility.AccessibilityNodeInfo
 import com.enaboapps.switchify.service.gestures.GestureManager
 import com.enaboapps.switchify.service.gestures.GesturePoint
 import com.enaboapps.switchify.service.menu.MenuItem
-import com.enaboapps.switchify.service.techniques.nodes.scanners.NodeScannerUI
 import com.enaboapps.switchify.service.scanning.ScanNodeInterface
 import com.enaboapps.switchify.service.selection.SelectionHandler
+import com.enaboapps.switchify.service.techniques.cursor.blocks.CursorBlock
+import com.enaboapps.switchify.service.techniques.nodes.scanners.NodeScannerUI
 import com.enaboapps.switchify.utils.Resources
 
 /**
  * This class represents a node
  */
 class Node(
-    private var select: (() -> Unit?)? = null
+    private var onSelect: (() -> Unit?)? = null
 ) : ScanNodeInterface {
     private var nodeInfo: AccessibilityNodeInfo? = null
     private var x: Int = 0
@@ -73,6 +74,23 @@ class Node(
             if (text != null) {
                 node.contentDescription = text
             }
+            return node
+        }
+
+        /**
+         * This function creates a node from a CursorBlock
+         * @param cursorBlock The CursorBlock to create the node from
+         * @return The node
+         */
+        fun fromCursorBlock(cursorBlock: CursorBlock): Node {
+            val node = Node()
+            node.x = cursorBlock.left
+            node.y = cursorBlock.top
+            node.width = cursorBlock.width
+            node.height = cursorBlock.height
+            node.centerX = cursorBlock.left + (cursorBlock.width / 2)
+            node.centerY = cursorBlock.top + (cursorBlock.height / 2)
+            node.contentDescription = "Block ${cursorBlock.position + 1}"
             return node
         }
     }
@@ -157,7 +175,7 @@ class Node(
     override fun select() {
         unhighlight()
 
-        if (select == null) {
+        if (onSelect == null) {
             GesturePoint.x = centerX
             GesturePoint.y = centerY
 
@@ -166,8 +184,12 @@ class Node(
             }
             SelectionHandler.performSelectionAction()
         } else {
-            select?.invoke()
+            onSelect?.invoke()
         }
+    }
+
+    fun setOnSelect(onSelect: () -> Unit) {
+        this.onSelect = onSelect
     }
 
 

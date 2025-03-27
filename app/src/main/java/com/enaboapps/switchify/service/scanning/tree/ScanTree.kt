@@ -2,11 +2,11 @@ package com.enaboapps.switchify.service.scanning.tree
 
 import android.content.Context
 import android.util.Log
-import com.enaboapps.switchify.service.techniques.nodes.NodeSpeaker
-import com.enaboapps.switchify.service.techniques.AccessTechniqueInterface
 import com.enaboapps.switchify.service.scanning.ScanNodeInterface
 import com.enaboapps.switchify.service.scanning.ScanSettings
 import com.enaboapps.switchify.service.scanning.ScanningScheduler
+import com.enaboapps.switchify.service.techniques.AccessTechniqueInterface
+import com.enaboapps.switchify.service.techniques.nodes.NodeSpeaker
 
 interface ScanTreeCallback {
     fun onScanTreeCycleBreakStarted()
@@ -36,6 +36,9 @@ class ScanTree(
 
     /** The settings for scanning behavior. */
     private val scanSettings = ScanSettings(context)
+
+    /** The speed at which the scanning tree is traversed. */
+    private var scanningSpeed = scanSettings.getScanRate()
 
     /** The list of ScanTreeItems that make up the scanning tree. */
     private val tree: MutableList<ScanTreeItem> = mutableListOf()
@@ -69,6 +72,15 @@ class ScanTree(
         navigator = ScanTreeNavigator(tree, scanSettings, hasCycleBreak)
         selector = ScanTreeSelector(tree, navigator, scanSettings, stopScanningOnSelect)
         highlighter = ScanTreeHighlighter(tree, scanSettings)
+    }
+
+    /**
+     * Sets the speed at which the scanning tree is traversed.
+     *
+     * @param scanningSpeed The new scanning speed (in milliseconds).
+     */
+    fun setSpeed(scanningSpeed: Long) {
+        this.scanningSpeed = scanningSpeed
     }
 
     /**
@@ -113,7 +125,7 @@ class ScanTree(
             }
 
             if (scanningScheduler?.isScanning() == false && scanSettings.isAutoScanMode()) {
-                startScanning()
+                startAutoScanning()
                 Log.d(TAG, "Scanning started")
                 return
             }
@@ -126,7 +138,7 @@ class ScanTree(
 
             if (navigator.isInCycleBreak) {
                 callback?.onScanTreeCycleBreakSelected()
-                stopScanning()
+                stopAutoScanning()
                 Log.d(TAG, "onScanTreeCycleBreakSelected")
                 return
             }
@@ -134,10 +146,10 @@ class ScanTree(
             val selectionMade = selector.performSelection()
 
             if (selectionMade && stopScanningOnSelect) {
-                stopScanning()
+                stopAutoScanning()
             } else {
-                pauseScanning()
-                resumeScanning()
+                pauseAutoScanning()
+                resumeAutoScanning()
             }
             if (!selectionMade) {
                 highlightCurrent()
@@ -199,7 +211,7 @@ class ScanTree(
      */
     private fun handleAutoScanCycleLimit(): Boolean {
         if (navigator.isAutoScanCycleLimitReached()) {
-            stopScanning()
+            stopAutoScanning()
             return true
         } else {
             return false
@@ -341,7 +353,7 @@ class ScanTree(
      * Manually steps forward in the scanning tree.
      * This method is used for manual navigation through the tree.
      */
-    override fun stepForward() {
+    override fun stepScanningForward() {
         if (checkManualScanSetup()) {
             return
         }
@@ -356,7 +368,7 @@ class ScanTree(
      * Manually steps backward in the scanning tree.
      * This method is used for manual navigation through the tree.
      */
-    override fun stepBackward() {
+    override fun stepScanningBackward() {
         if (checkManualScanSetup()) {
             return
         }
@@ -374,7 +386,7 @@ class ScanTree(
     override fun swapScanDirection() {
         navigator.swapScanDirection()
         if (scanSettings.isAutoScanMode()) {
-            resumeScanning()
+            resumeAutoScanning()
         }
 
         unhighlightCurrent()
@@ -438,14 +450,17 @@ class ScanTree(
     /**
      * Starts the scanning process.
      */
-    override fun startScanning() {
+    override fun startAutoScanning() {
         setup()
         if (tree.isNotEmpty()) {
             reset()
             highlightCurrent() // Highlight the first item
             if (scanSettings.isAutoScanMode()) {
                 Log.d(TAG, "startScanning")
-                scanningScheduler?.startScanning()
+                scanningScheduler?.startScanning(
+                    initialDelay = scanningSpeed,
+                    period = scanningSpeed
+                )
             }
         }
     }
@@ -453,21 +468,21 @@ class ScanTree(
     /**
      * Pauses the scanning process.
      */
-    override fun pauseScanning() {
+    override fun pauseAutoScanning() {
         scanningScheduler?.pauseScanning()
     }
 
     /**
      * Resumes the scanning process.
      */
-    override fun resumeScanning() {
+    override fun resumeAutoScanning() {
         scanningScheduler?.resumeScanning()
     }
 
     /**
      * Stops the scanning process.
      */
-    override fun stopScanning() {
+    override fun stopAutoScanning() {
         scanningScheduler?.stopScanning()
         callback?.onScanTreeCycleBreakSkipped()
     }
@@ -476,7 +491,7 @@ class ScanTree(
      * Resets the scanning tree to its initial state.
      */
     fun reset() {
-        stopScanning()
+        stopAutoScanning()
         highlighter.unhighlightAll()
         navigator.reset()
         isManualScanActive = false
