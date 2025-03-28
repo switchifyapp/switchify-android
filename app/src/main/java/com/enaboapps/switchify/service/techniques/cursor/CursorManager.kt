@@ -49,6 +49,7 @@ class CursorManager(private val context: Context) : AccessTechniqueInterface, Ge
     private fun setBlock(position: Int) {
         val block = blockManager.getBlock(position)
         previousBlock = block
+        blockManager.resetForNextUse()
         lineManager.setBlock(block)
         lineManager.startAutoScanning()
     }
