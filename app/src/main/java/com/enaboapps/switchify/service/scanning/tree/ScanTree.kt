@@ -498,6 +498,14 @@ class ScanTree(
     }
 
     /**
+     * Sets a listener for highlighting state changes
+     * @param listener The listener to be notified of highlighting state changes
+     */
+    fun setHighlightStateListener(listener: HighlightStateListener?) {
+        highlighter.setHighlightStateListener(listener)
+    }
+
+    /**
      * Shuts down the scanning scheduler.
      */
     fun shutdown() {
