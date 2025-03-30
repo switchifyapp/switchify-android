@@ -252,7 +252,7 @@ class MenuView(
     fun close() {
         baseLayout.removeAllViews()
         MenuViewHandler.instance.kill()
-        scanTree.shutdown()
+        scanTree.cleanup()
         menuViewListener?.onMenuViewClosed()
         maxWidth = 0
         maxHeight = 0

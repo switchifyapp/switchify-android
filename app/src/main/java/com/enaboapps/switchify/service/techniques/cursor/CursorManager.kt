@@ -87,8 +87,17 @@ class CursorManager(private val context: Context) : AccessTechniqueInterface, Ge
     /**
      * Stops the scanning process.
      */
-    override fun stopAutoScanning() {
-        getManager().stopAutoScanning()
+    override fun stopScanningAndReset() {
+        super.stopScanningAndReset()
+        getManager().stopScanningAndReset()
+    }
+
+    override fun resetUI() {
+        blockManager.resetForNextUse()
+        lineManager.resetForNextUse()
+    }
+
+    override fun resetForNextUse() {
         blockManager.resetForNextUse()
         lineManager.resetForNextUse()
     }

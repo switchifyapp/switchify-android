@@ -2,6 +2,7 @@ package com.enaboapps.switchify.service.scanning.tree
 
 import com.enaboapps.switchify.service.scanning.ScanNodeInterface
 import com.enaboapps.switchify.service.scanning.ScanSettings
+import com.enaboapps.switchify.service.techniques.nodes.scanners.NodeScannerUI
 
 /**
  * This class is responsible for managing the visual highlighting of elements in the ScanTree structure.
@@ -151,44 +152,6 @@ class ScanTreeHighlighter(
     }
 
     /**
-     * Highlights a specific tree item.
-     *
-     * @param treeItemIndex The index of the tree item to highlight.
-     */
-    fun highlightCurrentTreeItem(treeItemIndex: Int) {
-        tree.getOrNull(treeItemIndex)?.highlight()
-    }
-
-    /**
-     * Unhighlights a specific tree item.
-     *
-     * @param treeItemIndex The index of the tree item to unhighlight.
-     */
-    fun unhighlightCurrentTreeItem(treeItemIndex: Int) {
-        tree.getOrNull(treeItemIndex)?.unhighlight()
-    }
-
-    /**
-     * Highlights a specific group within a tree item.
-     *
-     * @param treeItemIndex The index of the tree item containing the group.
-     * @param groupIndex The index of the group to highlight.
-     */
-    fun highlightCurrentGroup(treeItemIndex: Int, groupIndex: Int) {
-        tree.getOrNull(treeItemIndex)?.highlight(groupIndex)
-    }
-
-    /**
-     * Unhighlights a specific group within a tree item.
-     *
-     * @param treeItemIndex The index of the tree item containing the group.
-     * @param groupIndex The index of the group to unhighlight.
-     */
-    fun unhighlightCurrentGroup(treeItemIndex: Int, groupIndex: Int) {
-        tree.getOrNull(treeItemIndex)?.unhighlight(groupIndex)
-    }
-
-    /**
      * Highlights a tree item.
      *
      * @param item The ScanTreeItem to highlight.
@@ -270,10 +233,6 @@ class ScanTreeHighlighter(
      * Unhighlights all elements in the tree.
      */
     fun unhighlightAll() {
-        if (isRowColumnScanEnabled) {
-            tree.forEach { it.unhighlight() }
-        } else {
-            flattenedNodes.forEach { it.unhighlight() }
-        }
+        NodeScannerUI.instance.hideAll()
     }
 }

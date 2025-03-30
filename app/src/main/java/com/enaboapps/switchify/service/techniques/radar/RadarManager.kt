@@ -183,7 +183,8 @@ class RadarManager(private val context: Context) : AccessTechniqueInterface {
         startRadar()
     }
 
-    override fun stopAutoScanning() {
+    override fun stopScanningAndReset() {
+        super.stopScanningAndReset()
         scanningScheduler?.stopScanning()
     }
 
@@ -208,7 +209,6 @@ class RadarManager(private val context: Context) : AccessTechniqueInterface {
             }
 
             RadarStep.MOVING -> {
-                stopAutoScanning()
                 val angle = Math.toRadians(currentAngle.toDouble())
                 val distance = currentDistanceRatio * maxDistance
                 val x = screenCenterX + distance * cos(angle).toFloat()
@@ -218,7 +218,7 @@ class RadarManager(private val context: Context) : AccessTechniqueInterface {
                 SelectionHandler.setSelectAction { performTapAction() }
                 SelectionHandler.setStartScanningAction { startRadar() }
                 SelectionHandler.performSelectionAction()
-                resetRadar()
+                stopScanningAndReset()
             }
 
             RadarStep.IDLE -> {
@@ -227,22 +227,23 @@ class RadarManager(private val context: Context) : AccessTechniqueInterface {
         }
     }
 
+    override fun resetUI() {
+        radarUI.reset()
+    }
+
     private fun performTapAction() {
         GestureManager.getInstance().performTap()
     }
 
-    fun resetRadar() {
+    override fun resetForNextUse() {
         currentStep = RadarStep.IDLE
         currentAngle = -90f
         currentDistanceRatio = 0f
         rotationDirection = RotationDirection.CLOCKWISE
         circleMovement = CircleMovement.OUTWARD
-        radarUI.reset()
-        stopAutoScanning()
     }
 
     override fun cleanup() {
-        resetRadar()
         scanningScheduler?.shutdown()
         scanningScheduler = null
     }

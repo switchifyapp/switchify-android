@@ -119,7 +119,7 @@ class ActiveAccessTechnique(private val context: Context) : AccessTechniqueObser
     }
 
     fun resetNodeScanner() {
-        getNodeScanner().getScanTree().reset()
+        getNodeScanner().getScanTree().stopScanningAndReset()
     }
 
     fun cleanup(currentTechnique: String) {

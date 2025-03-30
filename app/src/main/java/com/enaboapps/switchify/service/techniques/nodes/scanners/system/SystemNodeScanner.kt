@@ -4,11 +4,11 @@ import android.content.Context
 import android.util.Log
 import com.enaboapps.switchify.service.menu.MenuManager
 import com.enaboapps.switchify.service.menu.OpenMenuPrompt
-import com.enaboapps.switchify.service.techniques.nodes.Node
-import com.enaboapps.switchify.service.techniques.nodes.NodeSpeaker
-import com.enaboapps.switchify.service.techniques.AccessTechnique
 import com.enaboapps.switchify.service.scanning.tree.ScanTree
 import com.enaboapps.switchify.service.scanning.tree.ScanTreeCallback
+import com.enaboapps.switchify.service.techniques.AccessTechnique
+import com.enaboapps.switchify.service.techniques.nodes.Node
+import com.enaboapps.switchify.service.techniques.nodes.NodeSpeaker
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -81,7 +81,7 @@ class SystemNodeScanner : ScanTreeCallback {
                     .isEmpty()
             ) {
                 withContext(Dispatchers.Main) {
-                    scanTree.reset()
+                    scanTree.stopScanningAndReset()
                     AccessTechnique.setCurrentTechnique(AccessTechnique.Technique.CURSOR)
                     Log.d(TAG, "AccessTechnique changed to cursor")
                 }
@@ -111,7 +111,7 @@ class SystemNodeScanner : ScanTreeCallback {
                 continuousUpdateJob = coroutineScope.launch {
                     if (AccessTechnique.getCurrentTechnique() == AccessTechnique.Technique.ITEM_SCAN) {
                         withContext(Dispatchers.Main) {
-                            scanTree.reset()
+                            scanTree.stopScanningAndReset()
                             AccessTechnique.setCurrentTechnique(AccessTechnique.Technique.CURSOR)
                             Log.d(
                                 TAG,
