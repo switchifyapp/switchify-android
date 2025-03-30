@@ -91,11 +91,13 @@ class CursorLineManager(
         }
     }
 
-    override fun stopAutoScanning() {
-        if (scanningScheduler.isScanning() == true) {
-            scanningScheduler.stopScanning()
-            lineUI.reset()
-        }
+    override fun stopScanningAndReset() {
+        super.stopScanningAndReset()
+        scanningScheduler.stopScanning()
+    }
+
+    override fun resetUI() {
+        lineUI.reset()
     }
 
     override fun pauseAutoScanning() {
@@ -159,12 +161,12 @@ class CursorLineManager(
     }
 
     override fun cleanup() {
-        stopAutoScanning()
+        stopScanningAndReset()
         scanningScheduler.shutdown()
     }
 
-    fun resetForNextUse() {
-        stopAutoScanning()
+    override fun resetForNextUse() {
+        scanningScheduler.stopScanning() // can't use stopScanningAndReset() because it will recursively call resetForNextUse()
         lineUI.reset()
         currentBlock = null
         currentX = 0

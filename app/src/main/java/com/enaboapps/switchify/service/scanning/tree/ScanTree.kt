@@ -139,7 +139,7 @@ class ScanTree(
 
             if (navigator.isInCycleBreak) {
                 callback?.onScanTreeCycleBreakSelected()
-                stopAutoScanning()
+                stopScanningAndReset()
                 Log.d(TAG, "onScanTreeCycleBreakSelected")
                 return
             }
@@ -147,7 +147,7 @@ class ScanTree(
             val selectionMade = selector.performSelection()
 
             if (selectionMade && stopScanningOnSelect) {
-                stopAutoScanning()
+                stopScanningAndReset()
             } else {
                 pauseAutoScanning()
                 resumeAutoScanning()
@@ -212,7 +212,7 @@ class ScanTree(
      */
     private fun handleAutoScanCycleLimit(): Boolean {
         if (navigator.isAutoScanCycleLimitReached()) {
-            reset()
+            stopScanningAndReset()
             return true
         } else {
             return false
@@ -404,7 +404,7 @@ class ScanTree(
      */
     private fun setup() {
         if (scanningScheduler == null) {
-            reset()
+            resetForNextUse()
             scanningScheduler = ScanningScheduler(context) {
                 stepAutoScanning()
             }
@@ -454,7 +454,7 @@ class ScanTree(
     override fun startAutoScanning() {
         setup()
         if (tree.isNotEmpty()) {
-            reset()
+            resetForNextUse()
             highlightCurrent() // Highlight the first item
             if (scanSettings.isAutoScanMode()) {
                 Log.d(TAG, "startScanning")
@@ -483,16 +483,23 @@ class ScanTree(
     /**
      * Stops the scanning process.
      */
-    override fun stopAutoScanning() {
-        scanningScheduler?.stopScanning()
-        callback?.onScanTreeCycleBreakSkipped()
+    override fun stopScanningAndReset() {
+        super.stopScanningAndReset()
+    }
+
+    /**
+     * Resets the UI to its initial state.
+     */
+    override fun resetUI() {
+        highlighter.unhighlightAll()
     }
 
     /**
      * Resets the scanning tree to its initial state.
      */
-    fun reset() {
-        stopAutoScanning()
+    override fun resetForNextUse() {
+        scanningScheduler?.stopScanning()
+        callback?.onScanTreeCycleBreakSkipped()
         highlighter.unhighlightAll()
         navigator.reset()
         isManualScanActive = false
@@ -500,23 +507,16 @@ class ScanTree(
     }
 
     /**
-     * Shuts down the scanning scheduler.
-     */
-    fun shutdown() {
-        reset()
-        scanningScheduler?.shutdown()
-        scanningScheduler = null
-    }
-
-    /**
      * Clears the scanning tree.
      */
     fun clearTree() {
-        reset() // Reset the scanning state
+        resetForNextUse() // Reset the scanning state
         tree.clear() // Clear the tree
     }
 
     override fun cleanup() {
-        shutdown()
+        resetForNextUse()
+        scanningScheduler?.shutdown()
+        scanningScheduler = null
     }
 }

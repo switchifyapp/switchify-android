@@ -61,12 +61,12 @@ class CursorBlockManager(
 
     fun cleanup() {
         blocks = emptyList()
-        scanTree.shutdown()
+        scanTree.cleanup()
         cursorBlockGridUI.reset()
     }
 
     fun resetForNextUse() {
-        scanTree.stopAutoScanning()
+        scanTree.stopScanningAndReset()
         cursorBlockGridUI.reset()
     }
 

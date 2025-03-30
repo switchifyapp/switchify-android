@@ -159,7 +159,7 @@ class ScanningManager(
 
         when (action.id) {
             SwitchAction.ACTION_SELECT -> select()
-            SwitchAction.ACTION_STOP_SCANNING -> currentScanMethod.stopAutoScanning()
+            SwitchAction.ACTION_STOP_SCANNING -> currentScanMethod.stopScanningAndReset()
             SwitchAction.ACTION_CHANGE_SCANNING_DIRECTION -> currentScanMethod.swapScanDirection()
             SwitchAction.ACTION_MOVE_TO_NEXT_ITEM -> currentScanMethod.stepScanningForward()
             SwitchAction.ACTION_MOVE_TO_PREVIOUS_ITEM -> currentScanMethod.stepScanningBackward()
