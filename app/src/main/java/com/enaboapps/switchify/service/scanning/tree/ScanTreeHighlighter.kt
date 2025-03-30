@@ -4,17 +4,6 @@ import com.enaboapps.switchify.service.scanning.ScanNodeInterface
 import com.enaboapps.switchify.service.scanning.ScanSettings
 
 /**
- * Interface for listening to highlighting state changes
- */
-interface HighlightStateListener {
-    /**
-     * Called when the highlighting state changes
-     * @param isHighlighted Whether an item is currently highlighted
-     */
-    fun onHighlightStateChanged(isHighlighted: Boolean)
-}
-
-/**
  * This class is responsible for managing the visual highlighting of elements in the ScanTree structure.
  * It provides methods to highlight and unhighlight tree items, groups, and individual nodes.
  * It supports both row-column scanning and sequential (non-row-column) scanning modes.
@@ -31,19 +20,6 @@ class ScanTreeHighlighter(
 
     private val flattenedNodes: List<ScanNodeInterface> by lazy {
         tree.flatMap { it.children }
-    }
-
-    private var highlightStateListener: HighlightStateListener? = null
-    private var isHighlighted = false
-
-    /**
-     * Sets a listener for highlighting state changes
-     * @param listener The listener to be notified of highlighting state changes
-     */
-    fun setHighlightStateListener(listener: HighlightStateListener?) {
-        highlightStateListener = listener
-        // Notify listener of current state
-        listener?.onHighlightStateChanged(isHighlighted)
     }
 
     /**
@@ -218,8 +194,6 @@ class ScanTreeHighlighter(
      * @param item The ScanTreeItem to highlight.
      */
     private fun highlightTreeItem(item: ScanTreeItem) {
-        isHighlighted = true
-        highlightStateListener?.onHighlightStateChanged(true)
         item.highlight()
     }
 
@@ -229,8 +203,6 @@ class ScanTreeHighlighter(
      * @param item The ScanTreeItem to unhighlight.
      */
     private fun unhighlightTreeItem(item: ScanTreeItem) {
-        isHighlighted = false
-        highlightStateListener?.onHighlightStateChanged(false)
         item.unhighlight()
     }
 
@@ -241,8 +213,6 @@ class ScanTreeHighlighter(
      * @param groupIndex The index of the group to highlight.
      */
     private fun highlightGroup(item: ScanTreeItem, groupIndex: Int) {
-        isHighlighted = true
-        highlightStateListener?.onHighlightStateChanged(true)
         item.highlight(groupIndex)
     }
 
@@ -253,8 +223,6 @@ class ScanTreeHighlighter(
      * @param groupIndex The index of the group to unhighlight.
      */
     private fun unhighlightGroup(item: ScanTreeItem, groupIndex: Int) {
-        isHighlighted = false
-        highlightStateListener?.onHighlightStateChanged(false)
         item.unhighlight(groupIndex)
     }
 
@@ -266,8 +234,6 @@ class ScanTreeHighlighter(
      * @param nodeIndex The index of the node to highlight.
      */
     private fun highlightNode(item: ScanTreeItem, groupIndex: Int, nodeIndex: Int) {
-        isHighlighted = true
-        highlightStateListener?.onHighlightStateChanged(true)
         item.highlight(groupIndex, nodeIndex)
     }
 
@@ -279,8 +245,6 @@ class ScanTreeHighlighter(
      * @param nodeIndex The index of the node to unhighlight.
      */
     private fun unhighlightNode(item: ScanTreeItem, groupIndex: Int, nodeIndex: Int) {
-        isHighlighted = false
-        highlightStateListener?.onHighlightStateChanged(false)
         item.unhighlight(groupIndex, nodeIndex)
     }
 
@@ -290,8 +254,6 @@ class ScanTreeHighlighter(
      * @param nodeIndex The index of the node in the flattened list to highlight.
      */
     private fun highlightFlattenedNode(nodeIndex: Int) {
-        isHighlighted = true
-        highlightStateListener?.onHighlightStateChanged(true)
         flattenedNodes.getOrNull(nodeIndex)?.highlight()
     }
 
@@ -301,8 +263,6 @@ class ScanTreeHighlighter(
      * @param nodeIndex The index of the node in the flattened list to unhighlight.
      */
     private fun unhighlightFlattenedNode(nodeIndex: Int) {
-        isHighlighted = false
-        highlightStateListener?.onHighlightStateChanged(false)
         flattenedNodes.getOrNull(nodeIndex)?.unhighlight()
     }
 
@@ -310,8 +270,6 @@ class ScanTreeHighlighter(
      * Unhighlights all elements in the tree.
      */
     fun unhighlightAll() {
-        isHighlighted = false
-        highlightStateListener?.onHighlightStateChanged(false)
         if (isRowColumnScanEnabled) {
             tree.forEach { it.unhighlight() }
         } else {

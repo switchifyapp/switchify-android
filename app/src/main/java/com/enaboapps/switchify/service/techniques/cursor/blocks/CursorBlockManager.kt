@@ -2,15 +2,15 @@ package com.enaboapps.switchify.service.techniques.cursor.blocks
 
 import android.content.Context
 import com.enaboapps.switchify.service.scanning.ScanSettings
-import com.enaboapps.switchify.service.scanning.tree.HighlightStateListener
 import com.enaboapps.switchify.service.scanning.tree.ScanTree
+import com.enaboapps.switchify.service.scanning.tree.ScanTreeCallback
 import com.enaboapps.switchify.service.techniques.nodes.Node
 import com.enaboapps.switchify.service.utils.ScreenUtils
 
 class CursorBlockManager(
     private val context: Context,
     private val onBlockSelected: (Int) -> Unit
-) {
+) : ScanTreeCallback {
     private val scanSettings = ScanSettings(context)
 
     private var blocks: List<CursorBlock> = emptyList()
@@ -19,8 +19,13 @@ class CursorBlockManager(
 
     private val scanTree = ScanTree(
         context,
-        stopScanningOnSelect = true
+        stopScanningOnSelect = true,
+        callback = this
     )
+
+    override fun onScanTreeReset() {
+        cursorBlockGridUI.reset()
+    }
 
     fun initializeBlocks() {
         val screenWidth = ScreenUtils.getWidth(context)
@@ -48,15 +53,10 @@ class CursorBlockManager(
         nodes.forEachIndexed { index, node -> node.setOnSelect { onBlockSelected(index) } }
         scanTree.setSpeed(ScanSettings(context).getCursorBlockScanRate())
         scanTree.buildTree(nodes)
-        scanTree.setHighlightStateListener(object : HighlightStateListener {
-            override fun onHighlightStateChanged(isHighlighted: Boolean) {
-                if (isHighlighted) {
-                    cursorBlockGridUI.showGrid()
-                } else {
-                    cursorBlockGridUI.hideGrid()
-                }
-            }
-        })
+    }
+
+    fun showBlocks() {
+        cursorBlockGridUI.showGrid()
     }
 
     fun cleanup() {

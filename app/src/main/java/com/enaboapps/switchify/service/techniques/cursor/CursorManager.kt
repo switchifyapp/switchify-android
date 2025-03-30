@@ -89,6 +89,8 @@ class CursorManager(private val context: Context) : AccessTechniqueInterface, Ge
      */
     override fun stopAutoScanning() {
         getManager().stopAutoScanning()
+        blockManager.resetForNextUse()
+        lineManager.resetForNextUse()
     }
 
     /**
@@ -110,6 +112,7 @@ class CursorManager(private val context: Context) : AccessTechniqueInterface, Ge
      */
     override fun stepScanningForward() {
         getManager().stepScanningForward()
+        if (CursorMode.isBlockMode() && getCurrentBlock() == null) blockManager.showBlocks()
     }
 
     /**
@@ -117,6 +120,7 @@ class CursorManager(private val context: Context) : AccessTechniqueInterface, Ge
      */
     override fun stepScanningBackward() {
         getManager().stepScanningBackward()
+        if (CursorMode.isBlockMode() && getCurrentBlock() == null) blockManager.showBlocks()
     }
 
     /**
@@ -125,6 +129,7 @@ class CursorManager(private val context: Context) : AccessTechniqueInterface, Ge
     override fun performSelectionAction() {
         blockManager.getScanTree().setSpeed(ScanSettings(context).getCursorBlockScanRate())
         getManager().performSelectionAction()
+        if (CursorMode.isBlockMode() && getCurrentBlock() == null) blockManager.showBlocks()
     }
 
     /**

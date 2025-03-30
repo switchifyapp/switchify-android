@@ -136,7 +136,7 @@ class ScanningScheduler(
     fun stopScanning() {
         println("[$uniqueId] Attempting to stop scanning... $scanState")
         try {
-            if (scanState.get() == ScanState.SCANNING) {
+            if (scanState.get() == ScanState.SCANNING || scanState.get() == ScanState.PAUSED) {
                 scanState.set(ScanState.STOPPED)
                 scanningJob?.cancel()
             }

@@ -9,10 +9,11 @@ import com.enaboapps.switchify.service.techniques.AccessTechniqueInterface
 import com.enaboapps.switchify.service.techniques.nodes.NodeSpeaker
 
 interface ScanTreeCallback {
-    fun onScanTreeCycleBreakStarted()
-    fun onScanTreeCycleBreakSkipped()
-    fun onScanTreeCycleBreakSelected()
-    fun onSingleCycleCompleted(cycleNumber: Int)
+    fun onScanTreeCycleBreakStarted() = Unit
+    fun onScanTreeCycleBreakSkipped() = Unit
+    fun onScanTreeCycleBreakSelected() = Unit
+    fun onSingleCycleCompleted(cycleNumber: Int) = Unit
+    fun onScanTreeReset() = Unit
 }
 
 /**
@@ -211,7 +212,7 @@ class ScanTree(
      */
     private fun handleAutoScanCycleLimit(): Boolean {
         if (navigator.isAutoScanCycleLimitReached()) {
-            stopAutoScanning()
+            reset()
             return true
         } else {
             return false
@@ -495,14 +496,7 @@ class ScanTree(
         highlighter.unhighlightAll()
         navigator.reset()
         isManualScanActive = false
-    }
-
-    /**
-     * Sets a listener for highlighting state changes
-     * @param listener The listener to be notified of highlighting state changes
-     */
-    fun setHighlightStateListener(listener: HighlightStateListener?) {
-        highlighter.setHighlightStateListener(listener)
+        callback?.onScanTreeReset()
     }
 
     /**
