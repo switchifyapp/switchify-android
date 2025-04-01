@@ -7,6 +7,7 @@ import com.enaboapps.switchify.service.scanning.ScanDirection
 import com.enaboapps.switchify.service.scanning.ScanSettings
 import com.enaboapps.switchify.service.scanning.ScanningScheduler
 import com.enaboapps.switchify.service.techniques.AccessTechniqueInterface
+import com.enaboapps.switchify.service.techniques.cursor.CursorSettings
 import com.enaboapps.switchify.service.techniques.cursor.blocks.CursorBlock
 import com.enaboapps.switchify.service.techniques.shared.ScanMethodUIConstants
 import com.enaboapps.switchify.service.utils.ScreenUtils
@@ -86,7 +87,7 @@ class CursorLineManager(
 
     override fun startAutoScanning() {
         if (scanningScheduler.isScanning() == false && scanSettings.isAutoScanMode()) {
-            val rate = ScanSettings(context).getFineCursorScanRate()
+            val rate = CursorSettings.getFineCursorScanRate()
             scanningScheduler.startScanning(initialDelay = rate, period = rate)
         }
     }

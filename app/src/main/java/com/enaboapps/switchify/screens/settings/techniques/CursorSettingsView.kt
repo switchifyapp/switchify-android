@@ -17,21 +17,21 @@ import com.enaboapps.switchify.components.Section
 import com.enaboapps.switchify.screens.settings.shared.BlockCursorSpeedStepper
 import com.enaboapps.switchify.screens.settings.shared.PrecisionCursorSpeedStepper
 import com.enaboapps.switchify.screens.settings.shared.SingleCursorSpeedStepper
-import com.enaboapps.switchify.service.techniques.cursor.CursorMode
+import com.enaboapps.switchify.service.techniques.cursor.CursorSettings
 import com.enaboapps.switchify.utils.Resources
 
 @Composable
 fun CursorSettingsView() {
-    CursorMode.init(LocalContext.current)
+    CursorSettings.init(LocalContext.current)
     val cursorModes = listOf(
-        CursorMode.Modes.MODE_SINGLE,
-        CursorMode.Modes.MODE_BLOCK
+        CursorSettings.Modes.MODE_SINGLE,
+        CursorSettings.Modes.MODE_BLOCK
     )
     val preferenceManager = PreferenceManager(LocalContext.current)
-    var currentMode by remember { mutableStateOf(CursorMode.getMode()) }
+    var currentMode by remember { mutableStateOf(CursorSettings.getMode()) }
 
     val setCursorMode = { mode: String ->
-        preferenceManager.setStringValue(PreferenceManager.PREFERENCE_KEY_CURSOR_MODE, mode)
+        CursorSettings.setMode(mode)
         currentMode = mode
     }
     Section(titleResId = R.string.section_title_cursor_mode) {
@@ -40,14 +40,14 @@ fun CursorSettingsView() {
             selectedItem = currentMode,
             items = cursorModes,
             onItemSelected = setCursorMode,
-            itemToString = { CursorMode.getModeName(it) },
-            itemDescription = { CursorMode.getModeDescription(it) }
+            itemToString = { CursorSettings.getModeName(it) },
+            itemDescription = { CursorSettings.getModeDescription(it) }
         )
     }
 
     Section(titleResId = R.string.section_title_cursor_speed) {
         AnimatedVisibility(
-            visible = currentMode == CursorMode.Modes.MODE_SINGLE,
+            visible = currentMode == CursorSettings.Modes.MODE_SINGLE,
             enter = fadeIn(),
             exit = fadeOut()
         ) {
@@ -55,7 +55,7 @@ fun CursorSettingsView() {
         }
 
         AnimatedVisibility(
-            visible = currentMode == CursorMode.Modes.MODE_BLOCK,
+            visible = currentMode == CursorSettings.Modes.MODE_BLOCK,
             enter = fadeIn(),
             exit = fadeOut()
         ) {
@@ -63,7 +63,7 @@ fun CursorSettingsView() {
         }
 
         AnimatedVisibility(
-            visible = currentMode == CursorMode.Modes.MODE_BLOCK,
+            visible = currentMode == CursorSettings.Modes.MODE_BLOCK,
             enter = fadeIn(),
             exit = fadeOut()
         ) {
@@ -72,7 +72,7 @@ fun CursorSettingsView() {
     }
 
     AnimatedVisibility(
-        visible = currentMode == CursorMode.Modes.MODE_BLOCK,
+        visible = currentMode == CursorSettings.Modes.MODE_BLOCK,
         enter = fadeIn(),
         exit = fadeOut()
     ) {
@@ -82,13 +82,9 @@ fun CursorSettingsView() {
 
 @Composable
 private fun BlockSettingsView() {
-    val preferenceManager = PreferenceManager(LocalContext.current)
     var currentBlockCount by remember {
         mutableIntStateOf(
-            preferenceManager.getStringValue(
-                PreferenceManager.Keys.PREFERENCE_KEY_CURSOR_BLOCK_COUNT,
-                "4"
-            ).toInt()
+            CursorSettings.getCursorBlockCount()
         )
     }
     val blockCounts = listOf("2", "3", "4", "5", "6", "7", "8", "9", "10")
@@ -99,10 +95,7 @@ private fun BlockSettingsView() {
             items = blockCounts,
             onItemSelected = { item ->
                 currentBlockCount = item.toInt()
-                preferenceManager.setStringValue(
-                    PreferenceManager.Keys.PREFERENCE_KEY_CURSOR_BLOCK_COUNT,
-                    item
-                )
+                CursorSettings.setCursorBlockCount(item.toInt())
             },
             itemToString = { it.toString() },
             itemDescription = { Resources.getString(R.string.preference_summary_block_count) }

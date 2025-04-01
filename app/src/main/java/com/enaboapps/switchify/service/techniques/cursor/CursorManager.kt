@@ -1,11 +1,14 @@
 package com.enaboapps.switchify.service.techniques.cursor
 
+import android.content.BroadcastReceiver
 import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.enaboapps.switchify.service.gestures.GestureManager
 import com.enaboapps.switchify.service.gestures.GesturePoint
 import com.enaboapps.switchify.service.gestures.GesturePointListener
 import com.enaboapps.switchify.service.scanning.ScanDirection
-import com.enaboapps.switchify.service.scanning.ScanSettings
 import com.enaboapps.switchify.service.selection.SelectionHandler
 import com.enaboapps.switchify.service.techniques.AccessTechniqueInterface
 import com.enaboapps.switchify.service.techniques.cursor.blocks.CursorBlock
@@ -25,9 +28,27 @@ class CursorManager(private val context: Context) : AccessTechniqueInterface, Ge
 
     private var previousBlock: CursorBlock? = null
 
+    private val settingsChangedReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            onSettingsChanged()
+        }
+    }
+
     init {
         GesturePoint.listener = this
-        CursorMode.init(context)
+        CursorSettings.init(context)
+        blockManager.initializeBlocks()
+        LocalBroadcastManager.getInstance(context).registerReceiver(
+            settingsChangedReceiver,
+            IntentFilter(CursorSettings.CURSOR_SETTINGS_CHANGED_ACTION)
+        )
+    }
+
+    /**
+     * Called when the settings have changed.
+     */
+    private fun onSettingsChanged() {
+        resetUI()
         blockManager.initializeBlocks()
     }
 
@@ -121,7 +142,7 @@ class CursorManager(private val context: Context) : AccessTechniqueInterface, Ge
      */
     override fun stepScanningForward() {
         getManager().stepScanningForward()
-        if (CursorMode.isBlockMode() && getCurrentBlock() == null) blockManager.showBlocks()
+        if (CursorSettings.isBlockMode() && getCurrentBlock() == null) blockManager.showBlocks()
     }
 
     /**
@@ -129,16 +150,16 @@ class CursorManager(private val context: Context) : AccessTechniqueInterface, Ge
      */
     override fun stepScanningBackward() {
         getManager().stepScanningBackward()
-        if (CursorMode.isBlockMode() && getCurrentBlock() == null) blockManager.showBlocks()
+        if (CursorSettings.isBlockMode() && getCurrentBlock() == null) blockManager.showBlocks()
     }
 
     /**
      * Performs the selection action.
      */
     override fun performSelectionAction() {
-        blockManager.getScanTree().setSpeed(ScanSettings(context).getCursorBlockScanRate())
+        blockManager.getScanTree().setSpeed(CursorSettings.getCursorBlockScanRate())
         getManager().performSelectionAction()
-        if (CursorMode.isBlockMode() && getCurrentBlock() == null) blockManager.showBlocks()
+        if (CursorSettings.isBlockMode() && getCurrentBlock() == null) blockManager.showBlocks()
     }
 
     /**
@@ -155,11 +176,11 @@ class CursorManager(private val context: Context) : AccessTechniqueInterface, Ge
      * @return The appropriate AccessTechniqueInterface.
      */
     private fun getManager(): AccessTechniqueInterface {
-        if (CursorMode.isSingleMode()) {
+        if (CursorSettings.isSingleMode()) {
             return lineManager
         }
 
-        return (if (CursorMode.isBlockMode() && getCurrentBlock() == null) {
+        return (if (CursorSettings.isBlockMode() && getCurrentBlock() == null) {
             blockManager.getScanTree()
         } else {
             lineManager
