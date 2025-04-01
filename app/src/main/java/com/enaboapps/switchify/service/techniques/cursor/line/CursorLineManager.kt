@@ -161,7 +161,7 @@ class CursorLineManager(
     }
 
     override fun cleanup() {
-        stopScanningAndReset()
+        super.cleanup()
         scanningScheduler.shutdown()
     }
 

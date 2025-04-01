@@ -515,7 +515,7 @@ class ScanTree(
     }
 
     override fun cleanup() {
-        resetForNextUse()
+        super.cleanup()
         scanningScheduler?.shutdown()
         scanningScheduler = null
     }

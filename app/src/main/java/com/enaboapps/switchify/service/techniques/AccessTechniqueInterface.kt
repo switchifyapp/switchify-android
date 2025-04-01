@@ -7,6 +7,10 @@ interface AccessTechniqueInterface {
 
     fun resumeAutoScanning()
 
+    /**
+     * Stops scanning and resets the UI.
+     * N.B. It's important to call the super class method at the beginning of this method.
+     */
     fun stopScanningAndReset() {
         resetUI()
         resetForNextUse()
@@ -24,5 +28,11 @@ interface AccessTechniqueInterface {
 
     fun resetForNextUse()
 
-    fun cleanup()
+    /**
+     * Cleans up the access technique.
+     * N.B. It's important to call the super class method at the beginning of this method.
+     */
+    fun cleanup() {
+        stopScanningAndReset()
+    }
 }
