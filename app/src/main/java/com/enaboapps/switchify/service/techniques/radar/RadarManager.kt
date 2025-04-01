@@ -244,6 +244,7 @@ class RadarManager(private val context: Context) : AccessTechniqueInterface {
     }
 
     override fun cleanup() {
+        super.cleanup()
         scanningScheduler?.shutdown()
         scanningScheduler = null
     }
