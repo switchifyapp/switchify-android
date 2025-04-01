@@ -1,9 +1,9 @@
 package com.enaboapps.switchify.service.techniques.cursor.blocks
 
 import android.content.Context
-import com.enaboapps.switchify.service.scanning.ScanSettings
 import com.enaboapps.switchify.service.scanning.tree.ScanTree
 import com.enaboapps.switchify.service.scanning.tree.ScanTreeCallback
+import com.enaboapps.switchify.service.techniques.cursor.CursorSettings
 import com.enaboapps.switchify.service.techniques.nodes.Node
 import com.enaboapps.switchify.service.utils.ScreenUtils
 
@@ -11,8 +11,6 @@ class CursorBlockManager(
     private val context: Context,
     private val onBlockSelected: (Int) -> Unit
 ) : ScanTreeCallback {
-    private val scanSettings = ScanSettings(context)
-
     private var blocks: List<CursorBlock> = emptyList()
 
     private val cursorBlockGridUI = CursorBlockGridUI(context)
@@ -31,7 +29,7 @@ class CursorBlockManager(
         val screenWidth = ScreenUtils.getWidth(context)
         val screenHeight = ScreenUtils.getHeight(context)
 
-        val gridSize = scanSettings.getCursorBlockCount()
+        val gridSize = CursorSettings.getCursorBlockCount()
         val totalBlocks = gridSize * gridSize
 
         val blockWidth = screenWidth / gridSize
@@ -51,7 +49,7 @@ class CursorBlockManager(
 
         val nodes = blocks.map { Node.fromCursorBlock(it) }.toList()
         nodes.forEachIndexed { index, node -> node.setOnSelect { onBlockSelected(index) } }
-        scanTree.setSpeed(ScanSettings(context).getCursorBlockScanRate())
+        scanTree.setSpeed(CursorSettings.getCursorBlockScanRate())
         scanTree.buildTree(nodes)
     }
 

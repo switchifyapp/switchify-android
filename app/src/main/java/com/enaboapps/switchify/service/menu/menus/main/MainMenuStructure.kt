@@ -10,7 +10,7 @@ import com.enaboapps.switchify.service.menu.MenuManager
 import com.enaboapps.switchify.service.menu.menus.gestures.GestureMenuStructure
 import com.enaboapps.switchify.service.menu.structure.MenuStructure
 import com.enaboapps.switchify.service.techniques.AccessTechnique
-import com.enaboapps.switchify.service.techniques.cursor.CursorMode
+import com.enaboapps.switchify.service.techniques.cursor.CursorSettings
 import com.enaboapps.switchify.service.techniques.nodes.NodeExaminer
 import com.enaboapps.switchify.service.utils.DeviceLockObserver
 
@@ -59,7 +59,7 @@ class MainMenuStructure(private val accessibilityService: SwitchifyAccessibility
                 isLinkToMenu = true,
                 action = { MenuManager.getInstance().openScrollMenu() }
             ),
-            if (AccessTechnique.getCurrentTechnique() == AccessTechnique.Technique.CURSOR && CursorMode.isBlockMode()) {
+            if (AccessTechnique.getCurrentTechnique() == AccessTechnique.Technique.CURSOR && CursorSettings.isBlockMode()) {
                 MenuItem(
                     id = "refine_selection",
                     textResource = R.string.menu_item_refine_selection,

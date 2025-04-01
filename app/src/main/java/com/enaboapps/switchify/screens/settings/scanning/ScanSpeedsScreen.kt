@@ -10,7 +10,7 @@ import com.enaboapps.switchify.screens.settings.shared.ItemScanSpeedStepper
 import com.enaboapps.switchify.screens.settings.shared.PrecisionCursorSpeedStepper
 import com.enaboapps.switchify.screens.settings.shared.RadarSpeedStepper
 import com.enaboapps.switchify.screens.settings.shared.SingleCursorSpeedStepper
-import com.enaboapps.switchify.service.techniques.cursor.CursorMode
+import com.enaboapps.switchify.service.techniques.cursor.CursorSettings
 
 @Composable
 fun ScanSpeedsScreen(navController: NavController) {
@@ -19,7 +19,7 @@ fun ScanSpeedsScreen(navController: NavController) {
         navController = navController
     ) {
         Section(titleResId = R.string.access_technique_cursor) {
-            if (CursorMode.isBlockMode()) {
+            if (CursorSettings.isBlockMode()) {
                 PrecisionCursorSpeedStepper()
                 BlockCursorSpeedStepper()
             } else {
