@@ -141,6 +141,15 @@ class ActiveAccessTechnique(private val context: Context) : AccessTechniqueObser
                 radarManager?.cleanup()
                 radarManager = null
             }
+
+            AccessTechnique.Technique.MENU -> {
+                cursorManager?.cleanup()
+                cursorManager = null
+                radarManager?.cleanup()
+                radarManager = null
+                systemNodeScanner?.cleanup()
+                systemNodeScanner = null
+            }
         }
 
         if (!KeyboardBridge.isKeyboardVisible) {
