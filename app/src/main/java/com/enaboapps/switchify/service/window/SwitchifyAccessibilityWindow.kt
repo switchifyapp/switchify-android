@@ -137,6 +137,7 @@ class SwitchifyAccessibilityWindow private constructor() {
      */
     fun onServiceDestroy() {
         cleanup()
+        isVisible = false // Ensure the flag is set to false for the next time the window is created
         val ctx = getContext() ?: return
         screenWatcher?.unregister(ctx)
         screenWatcher = null
