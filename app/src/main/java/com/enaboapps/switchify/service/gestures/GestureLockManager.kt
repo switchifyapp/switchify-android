@@ -4,7 +4,6 @@ import com.enaboapps.switchify.R
 import com.enaboapps.switchify.backend.iap.IAPHandler
 import com.enaboapps.switchify.service.gestures.data.GestureData
 import com.enaboapps.switchify.service.gestures.data.GestureType
-import com.enaboapps.switchify.service.techniques.AccessTechnique
 import com.enaboapps.switchify.service.window.ServiceMessageHUD
 import java.util.Timer
 import java.util.TimerTask
@@ -65,7 +64,7 @@ class GestureLockManager private constructor() {
      * @return true if the gesture lock is engaged, false otherwise.
      */
     fun isGestureLockEngaged(): Boolean {
-        return isLocked && !AccessTechnique.isInMenu && lockedGestureData != null
+        return isLocked && lockedGestureData != null
     }
 
     /**

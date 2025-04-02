@@ -109,9 +109,7 @@ class ScanningManager(
      * Sets the scanning method to menu type.
      */
     fun setMenuType() {
-        startAcceptingActionsTimeout()
-        AccessTechnique.isInMenu = true
-        NodeScannerUI.instance.hideAll()
+        setType(AccessTechnique.Technique.MENU)
     }
 
     /**
@@ -122,7 +120,6 @@ class ScanningManager(
     private fun setType(type: String) {
         startAcceptingActionsTimeout()
         AccessTechnique.setCurrentTechnique(type)
-        AccessTechnique.isInMenu = false
         NodeScannerUI.instance.hideAll()
         activeScanMethod.resetNodeScanner()
     }
