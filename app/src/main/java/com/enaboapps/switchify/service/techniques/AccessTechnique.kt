@@ -1,5 +1,6 @@
 package com.enaboapps.switchify.service.techniques
 
+import android.content.Context
 import android.os.Handler
 import android.os.Looper
 import com.enaboapps.switchify.R
@@ -8,7 +9,6 @@ import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.service.window.ServiceMessageHUD
 import com.enaboapps.switchify.utils.Logger
 import com.enaboapps.switchify.utils.Resources
-import kotlin.properties.Delegates
 
 /**
  * This interface is used to observe the access technique
@@ -19,27 +19,19 @@ interface AccessTechniqueObserver {
      * @param accessTechnique The type of the access technique
      */
     fun onAccessTechniqueChanged(accessTechnique: String)
-
-    /**
-     * This function is called when the menu state is changed
-     * @param isInMenu The new menu state
-     */
-    fun onMenuStateChanged(isInMenu: Boolean)
 }
 
 /**
  * This object is used to manage the access technique
  */
 object AccessTechnique {
-    var preferenceManager: PreferenceManager? = null
+    private var currentTechnique: String = Technique.CURSOR
+    private var preferenceManager: PreferenceManager? = null
     var observer: AccessTechniqueObserver? = null
 
-    /**
-     * This variable is used to determine if the scanning is in the menu
-     * Uses Kotlin's observable delegate for state management
-     */
-    var isInMenu: Boolean by Delegates.observable(false) { _, _, newValue ->
-        observer?.onMenuStateChanged(newValue)
+    fun init(context: Context) {
+        preferenceManager = PreferenceManager(context)
+        loadCurrentTechnique()
     }
 
     /**
@@ -61,24 +53,18 @@ object AccessTechnique {
          * Sequentially scanning the items on the screen
          */
         const val ITEM_SCAN = "item_scan"
+
+        /**
+         * This type represents the menu
+         */
+        const val MENU = "menu"
     }
 
     /**
      * This function is used to get the current technique
      * @return The current technique
      */
-    fun getCurrentTechnique(): String {
-        preferenceManager?.let { preferenceManager ->
-            val storedType = preferenceManager.getStringValue(
-                PreferenceManager.PREFERENCE_KEY_ACCESS_TECHNIQUE
-            )
-            println("Stored type: $storedType")
-            if (storedType.isNotEmpty()) {
-                return storedType
-            }
-        }
-        return Technique.CURSOR
-    }
+    fun getCurrentTechnique(): String = currentTechnique
 
     /**
      * This function gets the name of the access technique
@@ -113,15 +99,42 @@ object AccessTechnique {
      * @param value The type of the access technique
      */
     fun setCurrentTechnique(value: String) {
-        preferenceManager?.setStringValue(
-            PreferenceManager.PREFERENCE_KEY_ACCESS_TECHNIQUE,
-            value
-        )
+        currentTechnique = value
         observer?.onAccessTechniqueChanged(value)
 
         // If radar and not pro, start the timer to switch to cursor
         if (value == Technique.RADAR && !IAPHandler.hasPurchasedPro()) {
             startRadarTrialTimer()
+        }
+
+        saveCurrentTechnique()
+    }
+
+    /**
+     * Loads the current technique from the preferences
+     */
+    internal fun loadCurrentTechnique() {
+        preferenceManager?.let { preferenceManager ->
+            val storedType = preferenceManager.getStringValue(
+                PreferenceManager.PREFERENCE_KEY_ACCESS_TECHNIQUE
+            )
+            println("Stored type: $storedType")
+            if (storedType.isNotEmpty()) {
+                currentTechnique = storedType
+            }
+        }
+        observer?.onAccessTechniqueChanged(currentTechnique)
+    }
+
+    /**
+     * Saves the current technique to the preferences
+     */
+    private fun saveCurrentTechnique() {
+        if (currentTechnique != Technique.MENU && preferenceManager != null) {
+            preferenceManager?.setStringValue(
+                PreferenceManager.PREFERENCE_KEY_ACCESS_TECHNIQUE,
+                currentTechnique
+            )
         }
     }
 

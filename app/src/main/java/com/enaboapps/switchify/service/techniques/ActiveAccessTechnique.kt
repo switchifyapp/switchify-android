@@ -1,8 +1,6 @@
 package com.enaboapps.switchify.service.techniques
 
 import android.content.Context
-import android.os.Handler
-import android.os.Looper
 import com.enaboapps.switchify.service.menu.MenuManager
 import com.enaboapps.switchify.service.selection.SelectionHandler
 import com.enaboapps.switchify.service.techniques.cursor.CursorManager
@@ -47,7 +45,6 @@ class ActiveAccessTechnique(private val context: Context) : AccessTechniqueObser
                 getKeyboardScanner().getScanTree()
             }
 
-            AccessTechnique.isInMenu -> MenuManager.Companion.getInstance().menuHierarchy?.getTopMenu()?.scanTree
             else -> when (AccessTechnique.getCurrentTechnique()) {
                 AccessTechnique.Technique.CURSOR -> getCursorManager()
                 AccessTechnique.Technique.RADAR -> getRadarManager()
@@ -55,6 +52,8 @@ class ActiveAccessTechnique(private val context: Context) : AccessTechniqueObser
                     ensureNodeScannerStarted()
                     getNodeScanner().getScanTree()
                 }
+
+                AccessTechnique.Technique.MENU -> MenuManager.Companion.getInstance().menuHierarchy?.getTopMenu()?.scanTree
 
                 else -> {
                     throw IllegalStateException("Invalid access technique type: ${AccessTechnique.getCurrentTechnique()}")
@@ -79,15 +78,6 @@ class ActiveAccessTechnique(private val context: Context) : AccessTechniqueObser
     override fun onAccessTechniqueChanged(accessTechnique: String) {
         cleanup(accessTechnique)
         Logger.logEvent("Scan method changed to: $accessTechnique")
-    }
-
-    override fun onMenuStateChanged(isInMenu: Boolean) {
-        cleanup(AccessTechnique.getCurrentTechnique())
-
-        // Start scanning if callback is set
-        Handler(Looper.getMainLooper()).postDelayed({
-            onScanningStartCallback?.invoke()
-        }, 600)
     }
 
     fun setOnScanningStartCallback(callback: () -> Unit) {

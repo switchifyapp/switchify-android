@@ -9,7 +9,6 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
 import com.enaboapps.switchify.backend.iap.IAPHandler
-import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.service.actions.AudioActionManager
 import com.enaboapps.switchify.service.actions.GlobalActionManager
 import com.enaboapps.switchify.service.gestures.GestureManager
@@ -65,7 +64,7 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
 
         IAPHandler.initialize(context = this, connectToRevenueCat = false)
 
-        AccessTechnique.preferenceManager = PreferenceManager(this.applicationContext)
+        AccessTechnique.init(this.applicationContext)
 
         GlobalActionManager.init(this)
         AudioActionManager.init(this)
