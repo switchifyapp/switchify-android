@@ -7,7 +7,6 @@ import android.content.IntentFilter
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.enaboapps.switchify.service.gestures.GestureManager
 import com.enaboapps.switchify.service.gestures.GesturePoint
-import com.enaboapps.switchify.service.gestures.GesturePointListener
 import com.enaboapps.switchify.service.scanning.ScanDirection
 import com.enaboapps.switchify.service.selection.SelectionHandler
 import com.enaboapps.switchify.service.techniques.AccessTechniqueInterface
@@ -20,13 +19,11 @@ import com.enaboapps.switchify.service.techniques.cursor.line.CursorLineManager
  *
  * @param context The application context.
  */
-class CursorManager(private val context: Context) : AccessTechniqueInterface, GesturePointListener {
+class CursorManager(private val context: Context) : AccessTechniqueInterface {
     private val blockManager = CursorBlockManager(context, onBlockSelected = { setBlock(it) })
     private val lineManager = CursorLineManager(context, onPointSelected = {
         handleFinalSelectionPoint(it.x.toInt(), it.y.toInt())
     })
-
-    private var previousBlock: CursorBlock? = null
 
     private val settingsChangedReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -35,7 +32,6 @@ class CursorManager(private val context: Context) : AccessTechniqueInterface, Ge
     }
 
     init {
-        GesturePoint.listener = this
         CursorSettings.init(context)
         blockManager.initializeBlocks()
         LocalBroadcastManager.getInstance(context).registerReceiver(
@@ -52,15 +48,6 @@ class CursorManager(private val context: Context) : AccessTechniqueInterface, Ge
         blockManager.initializeBlocks()
     }
 
-    /**
-     * Handles gesture point reselection.
-     */
-    override fun onGesturePointReselect() {
-        previousBlock?.let {
-            setBlock(it.position)
-        }
-    }
-
 
     /**
      * Sets the block based on the position.
@@ -69,7 +56,6 @@ class CursorManager(private val context: Context) : AccessTechniqueInterface, Ge
      */
     private fun setBlock(position: Int) {
         val block = blockManager.getBlock(position)
-        previousBlock = block
         blockManager.resetForNextUse()
         lineManager.setBlock(block)
         lineManager.startAutoScanning()
