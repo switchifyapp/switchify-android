@@ -73,6 +73,9 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
 
         val scanningManager = ServiceCore.getScanningManager() ?: return
         val externalSwitchListener = ServiceCore.getExternalSwitchListener() ?: return
+        val switchEventProvider = ServiceCore.getSwitchEventProvider() ?: return
+
+        switchEventProvider.addCameraSwitchListener(this)
 
         screenWatcher = ScreenWatcher(
             onScreenSleep = {
