@@ -2,10 +2,16 @@ package com.enaboapps.switchify.service.gestures.data
 
 import android.graphics.PointF
 import com.enaboapps.switchify.service.gestures.GestureManager
+import com.google.gson.annotations.SerializedName
+import com.google.gson.Gson
+import com.google.gson.GsonBuilder
 
 data class GestureData(
+    @SerializedName("gesture_type")
     val gestureType: GestureType,
+    @SerializedName("start_point")
     val startPoint: PointF,
+    @SerializedName("end_point")
     val endPoint: PointF? = null
 ) {
 
@@ -17,6 +23,18 @@ data class GestureData(
         const val DRAG_DURATION = 1500L
         const val HOLD_BEFORE_DRAG_DURATION = 400L
         const val SCROLL_DURATION = 800L
+
+        private val gson: Gson = GsonBuilder()
+            .registerTypeAdapter(PointF::class.java, PointFTypeAdapter())
+            .create()
+
+        fun toJson(gestureData: GestureData): String {
+            return gson.toJson(gestureData)
+        }
+
+        fun fromJson(json: String): GestureData {
+            return gson.fromJson(json, GestureData::class.java)
+        }
     }
 
     fun isScroll(): Boolean {
