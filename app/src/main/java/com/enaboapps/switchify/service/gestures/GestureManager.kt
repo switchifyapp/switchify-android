@@ -20,19 +20,7 @@ import com.enaboapps.switchify.service.techniques.nodes.NodeExaminer
  */
 class GestureManager private constructor() {
     companion object {
-        private var instance: GestureManager? = null
-
-        /**
-         * Gets the singleton instance of the GestureManager.
-         *
-         * @return The GestureManager instance.
-         */
-        fun getInstance(): GestureManager {
-            if (instance == null) {
-                instance = GestureManager()
-            }
-            return instance!!
-        }
+        val instance: GestureManager by lazy { GestureManager() }
     }
 
     private var accessibilityService: SwitchifyAccessibilityService? = null
@@ -203,7 +191,7 @@ class GestureManager private constructor() {
                 if (GestureLockManager.getInstance()
                         .canLockGesture(gestureData.gestureType) == true
                 ) {
-                    return gestureData.performLockAction(this)
+                    return gestureData.performLockAction()
                 }
             }
         }

@@ -2,9 +2,9 @@ package com.enaboapps.switchify.service.gestures.data
 
 import android.graphics.PointF
 import com.enaboapps.switchify.service.gestures.GestureManager
-import com.google.gson.annotations.SerializedName
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
+import com.google.gson.annotations.SerializedName
 
 data class GestureData(
     @SerializedName("gesture_type")
@@ -44,10 +44,10 @@ data class GestureData(
                 gestureType == GestureType.SCROLL_RIGHT
     }
 
-    fun performAutoScroll(gestureManager: GestureManager): Boolean {
+    fun performAutoScroll(): Boolean {
         when (gestureType) {
             GestureType.SCROLL_UP, GestureType.SCROLL_DOWN, GestureType.SCROLL_LEFT, GestureType.SCROLL_RIGHT -> {
-                gestureManager.performSwipeOrScroll(gestureType)
+                GestureManager.instance.performSwipeOrScroll(gestureType)
                 return true
             }
 
@@ -58,20 +58,20 @@ data class GestureData(
         return false
     }
 
-    fun performLockAction(gestureManager: GestureManager): Boolean {
+    fun performLockAction(): Boolean {
         when (gestureType) {
             GestureType.TAP -> {
-                gestureManager.performTap()
+                GestureManager.instance.performTap()
                 return true
             }
 
             GestureType.DOUBLE_TAP -> {
-                gestureManager.performDoubleTap()
+                GestureManager.instance.performDoubleTap()
                 return true
             }
 
             GestureType.TAP_AND_HOLD -> {
-                gestureManager.performTapAndHold()
+                GestureManager.instance.performTapAndHold()
                 return true
             }
 
@@ -83,12 +83,12 @@ data class GestureData(
             GestureType.SCROLL_DOWN,
             GestureType.SCROLL_LEFT,
             GestureType.SCROLL_RIGHT -> {
-                gestureManager.performSwipeOrScroll(gestureType)
+                GestureManager.instance.performSwipeOrScroll(gestureType)
                 return true
             }
 
             GestureType.ZOOM_IN, GestureType.ZOOM_OUT -> {
-                gestureManager.performZoom(gestureType)
+                GestureManager.instance.performZoom(gestureType)
                 return true
             }
 

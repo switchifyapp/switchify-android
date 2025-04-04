@@ -180,7 +180,7 @@ class Node(
             GesturePoint.y = centerY
 
             SelectionHandler.setSelectAction {
-                GestureManager.getInstance().performTap()
+                GestureManager.instance.performTap()
             }
             SelectionHandler.performSelectionAction()
         } else {

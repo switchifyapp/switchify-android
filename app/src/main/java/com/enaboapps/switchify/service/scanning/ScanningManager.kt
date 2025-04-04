@@ -146,7 +146,7 @@ class ScanningManager(
      * Performs the specified action based on the SwitchAction type.
      */
     fun performAction(action: SwitchAction) {
-        if (GestureManager.getInstance().performGestureLockAction()) {
+        if (GestureManager.instance.performGestureLockAction()) {
             return
         }
 
@@ -160,7 +160,7 @@ class ScanningManager(
             SwitchAction.ACTION_CHANGE_SCANNING_DIRECTION -> currentScanMethod.swapScanDirection()
             SwitchAction.ACTION_MOVE_TO_NEXT_ITEM -> currentScanMethod.stepScanningForward()
             SwitchAction.ACTION_MOVE_TO_PREVIOUS_ITEM -> currentScanMethod.stepScanningBackward()
-            SwitchAction.ACTION_TOGGLE_GESTURE_LOCK -> GestureManager.getInstance()
+            SwitchAction.ACTION_TOGGLE_GESTURE_LOCK -> GestureManager.instance
                 .toggleGestureLock()
 
             SwitchAction.ACTION_SYS_HOME -> GlobalActionManager.goHome()

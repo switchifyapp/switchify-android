@@ -18,28 +18,28 @@ class ScrollMenuStructure(accessibilityService: SwitchifyAccessibilityService) {
                 id = "scroll_up",
                 textResource = R.string.menu_item_scroll_up,
                 action = {
-                    GestureManager.getInstance().performSwipeOrScroll(GestureType.SCROLL_UP)
+                    GestureManager.instance.performSwipeOrScroll(GestureType.SCROLL_UP)
                 }
             ),
             MenuItem(
                 id = "scroll_down",
                 textResource = R.string.menu_item_scroll_down,
                 action = {
-                    GestureManager.getInstance().performSwipeOrScroll(GestureType.SCROLL_DOWN)
+                    GestureManager.instance.performSwipeOrScroll(GestureType.SCROLL_DOWN)
                 }
             ),
             MenuItem(
                 id = "scroll_left",
                 textResource = R.string.menu_item_scroll_left,
                 action = {
-                    GestureManager.getInstance().performSwipeOrScroll(GestureType.SCROLL_LEFT)
+                    GestureManager.instance.performSwipeOrScroll(GestureType.SCROLL_LEFT)
                 }
             ),
             MenuItem(
                 id = "scroll_right",
                 textResource = R.string.menu_item_scroll_right,
                 action = {
-                    GestureManager.getInstance().performSwipeOrScroll(GestureType.SCROLL_RIGHT)
+                    GestureManager.instance.performSwipeOrScroll(GestureType.SCROLL_RIGHT)
                 }
             ),
             gestureMenuStructure.toggleGestureLockMenuItem

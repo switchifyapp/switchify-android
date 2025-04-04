@@ -72,7 +72,7 @@ class ScanSettings(context: Context) {
     fun getAutomaticallyStartScanAfterSelection(): Boolean {
         return preferenceManager.getBooleanValue(PreferenceManager.Keys.PREFERENCE_KEY_AUTOMATICALLY_START_SCAN_AFTER_SELECTION) &&
                 isAutoScanMode() &&
-                !GestureManager.getInstance().isGestureLockEnabled()
+                !GestureManager.instance.isGestureLockEnabled()
     }
 
     /**
