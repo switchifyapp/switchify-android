@@ -12,6 +12,7 @@ import com.enaboapps.switchify.backend.iap.IAPHandler
 import com.enaboapps.switchify.service.actions.AudioActionManager
 import com.enaboapps.switchify.service.actions.GlobalActionManager
 import com.enaboapps.switchify.service.gestures.GestureManager
+import com.enaboapps.switchify.service.gestures.GesturePatternRecorder
 import com.enaboapps.switchify.service.scanning.ScanSettings
 import com.enaboapps.switchify.service.selection.SelectionHandler
 import com.enaboapps.switchify.service.switches.SwitchEventProvider
@@ -112,6 +113,7 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
             // Initialize components that require device unlock
             IAPHandler.connect(context = this)
             initCameraSwitchManager()
+            GesturePatternRecorder.initialize(this)
         }
     }
 
