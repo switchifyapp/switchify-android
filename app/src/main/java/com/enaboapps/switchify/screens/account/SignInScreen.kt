@@ -21,6 +21,7 @@ import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.components.*
 import com.enaboapps.switchify.nav.NavigationRoute
 import com.enaboapps.switchify.service.actions.custom.store.ActionStore
+import com.enaboapps.switchify.service.gestures.data.store.GesturePatternStore
 import com.enaboapps.switchify.utils.Resources
 import kotlinx.coroutines.launch
 
@@ -44,6 +45,10 @@ fun SignInScreen(navController: NavController) {
         // Pull actions from Firestore
         val actionStore = ActionStore(context)
         actionStore.pullActionsFromFirestore()
+
+        // Pull gestures from Firestore
+        val gesturePatternStore = GesturePatternStore(context)
+        gesturePatternStore.pullPatternsFromFirestore()
     }
 
     BaseView(

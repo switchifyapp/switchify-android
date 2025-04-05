@@ -12,6 +12,7 @@ import com.enaboapps.switchify.backend.iap.IAPHandler
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.nav.NavGraph
 import com.enaboapps.switchify.service.actions.custom.store.ActionStore
+import com.enaboapps.switchify.service.gestures.data.store.GesturePatternStore
 import com.enaboapps.switchify.switches.SwitchEventStore
 import com.enaboapps.switchify.utils.Logger
 import com.enaboapps.switchify.utils.Resources
@@ -22,6 +23,7 @@ import kotlinx.coroutines.launch
 class MainActivity : ComponentActivity() {
     private lateinit var preferenceManager: PreferenceManager
     private lateinit var actionStore: ActionStore
+    private lateinit var gesturePatternStore: GesturePatternStore
     private lateinit var fileManager: FileManager
 
     private val scope = CoroutineScope(Dispatchers.IO)
@@ -53,6 +55,10 @@ class MainActivity : ComponentActivity() {
             retrieveSettingsFromFirestore()
             listenForSettingsChangesOnRemote()
         }
+
+        // Initialize GesturePatternStore
+        gesturePatternStore = GesturePatternStore(this)
+        gesturePatternStore.pullPatternsFromFirestore()
 
         // Initialize Logger
         Logger.init(this)
