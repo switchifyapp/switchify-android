@@ -56,10 +56,6 @@ class MainActivity : ComponentActivity() {
             listenForSettingsChangesOnRemote()
         }
 
-        // Initialize GesturePatternStore
-        gesturePatternStore = GesturePatternStore(this)
-        gesturePatternStore.pullPatternsFromFirestore()
-
         // Initialize Logger
         Logger.init(this)
 

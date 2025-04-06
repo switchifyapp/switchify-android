@@ -2,147 +2,56 @@ package com.enaboapps.switchify.service.gestures.data.store
 
 import android.content.Context
 import android.util.Log
-import com.enaboapps.switchify.auth.AuthManager
-import com.enaboapps.switchify.backend.data.FileManager
-import com.enaboapps.switchify.backend.data.FirestoreManager
 import com.enaboapps.switchify.service.gestures.data.GestureData
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import java.io.File
 import java.io.IOException
 
 /**
- * Class responsible for managing gesture patterns, including saving to and loading from a file,
- * and synchronizing with Firestore.
- *
- * The class maintains both a local cache in a JSON file and a remote copy in Firestore,
- * providing methods to synchronize between them.
+ * Class responsible for managing gesture patterns, including saving to and loading from a file.
  *
  * @property context The application context.
  */
 class GesturePatternStore(private val context: Context) {
-    private val gson = Gson()
     private val fileName = "gesture_patterns.json"
-    private val tag = "GesturePatternStore"
-    private val firestoreManager = FirestoreManager.getInstance()
-    private val authManager = AuthManager.instance
+    private val gson = Gson()
     private val coroutineScope = CoroutineScope(Dispatchers.IO)
-    private val fileManager = FileManager.create(context)
-
+    private var file = File(context.filesDir, fileName)
     private var items: MutableList<GesturePattern> = mutableListOf()
 
     companion object {
-        private const val COLLECTION_USER_GESTURE_PATTERNS = "user-gesture-patterns"
-        private const val PATTERNS_COLLECTION = "patterns"
+        private const val TAG = "GesturePatternStore"
     }
 
     init {
         try {
-            coroutineScope.launch {
-                fileManager.createFile(fileName)
+            if (!file.exists()) {
+                file.createNewFile()
+                file.writeText("[]")
+            } else {
                 loadItems()
             }
         } catch (e: IOException) {
-            Log.e(tag, "Error initializing file: ${e.message}")
+            Log.e(TAG, "Error initializing file: ${e.message}")
         }
-    }
-
-    /**
-     * Constructs the Firestore path for a given pattern ID.
-     *
-     * @param patternId The ID of the pattern.
-     * @return The Firestore path for the pattern.
-     */
-    private fun getPatternPath(patternId: String): String {
-        val userId = authManager.getUserId() ?: Log.d(tag, "Could not get user ID")
-        return "$COLLECTION_USER_GESTURE_PATTERNS/$userId/$PATTERNS_COLLECTION/$patternId"
     }
 
     /**
      * Loads patterns from the local file and synchronizes with Firestore.
      */
-    private suspend fun loadItems() {
+    private fun loadItems() {
         try {
+            val json = file.readText()
             val type = object : TypeToken<List<GesturePattern>>() {}.type
-            val result = fileManager.readJson<List<GesturePattern>>(fileName, type)
-            if (result.isSuccess) {
-                items = (result.getOrNull() ?: emptyList()).toMutableList()
-            } else {
-                Log.e(tag, "Error loading patterns: ${result.exceptionOrNull()?.message}")
-                items = mutableListOf()
-            }
+            items =
+                gson.fromJson<List<GesturePattern>>(json, type)?.toMutableList() ?: mutableListOf()
         } catch (e: Exception) {
-            Log.e(tag, "Error loading patterns: ${e.message}")
+            Log.e(TAG, "Error loading patterns: ${e.message}")
             items = mutableListOf()
-        }
-    }
-
-    /**
-     * Pulls all patterns from Firestore and updates local storage.
-     * This will overwrite any local changes with the data from Firestore.
-     */
-    fun pullPatternsFromFirestore() {
-        val userId = authManager.getUserId() ?: run {
-            Log.e(tag, "Could not get user ID")
-            return
-        }
-
-        coroutineScope.launch {
-            try {
-                val documents = firestoreManager.queryDocuments(
-                    collectionPath = "$COLLECTION_USER_GESTURE_PATTERNS/$userId/$PATTERNS_COLLECTION"
-                )
-                val remotePatterns = documents.mapNotNull { data ->
-                    try {
-                        GesturePattern(
-                            id = data["id"] as? String ?: return@mapNotNull null,
-                            gestures = data["gestures"] as? List<GestureData>
-                                ?: return@mapNotNull null,
-                            name = data["name"] as? String ?: return@mapNotNull null
-                        )
-                    } catch (e: Exception) {
-                        Log.e(tag, "Error parsing remote pattern: ${e.message}")
-                        null
-                    }
-                }
-
-                if (remotePatterns.isNotEmpty()) {
-                    items = remotePatterns.toMutableList()
-                    savePatterns()
-                    Log.i(tag, "Successfully pulled ${remotePatterns.size} patterns from Firestore")
-                } else {
-                    Log.i(tag, "No patterns found in Firestore")
-
-                    if (items.isNotEmpty()) {
-                        pushPatternsToFirestore()
-                    }
-                }
-            } catch (e: Exception) {
-                Log.e(tag, "Error pulling from Firestore: ${e.message}")
-            }
-        }
-    }
-
-    /**
-     * Pushes all local patterns to Firestore.
-     * This will overwrite any remote changes with the local data.
-     */
-    fun pushPatternsToFirestore() {
-        try {
-            coroutineScope.launch {
-                items.forEach { pattern ->
-                    firestoreManager.saveDocument(
-                        path = getPatternPath(pattern.id),
-                        data = pattern.toMap()
-                    )
-                    Log.i(tag, "Successfully pushed pattern ${pattern.id} to Firestore")
-                }
-            }
-            Log.i(tag, "Successfully pushed ${items.size} patterns to Firestore")
-        } catch (e: Exception) {
-            Log.e(tag, "Error pushing to Firestore: ${e.message}")
         }
     }
 
@@ -167,15 +76,11 @@ class GesturePatternStore(private val context: Context) {
 
             coroutineScope.launch {
                 savePatterns()
-                firestoreManager.saveDocument(
-                    path = getPatternPath(newPattern.id),
-                    data = newPattern.toMap()
-                )
             }
 
             return newPattern.id
         } catch (e: Exception) {
-            Log.e(tag, "Error adding pattern: ${e.message}")
+            Log.e(TAG, "Error adding pattern: ${e.message}")
             return ""
         }
     }
@@ -191,10 +96,9 @@ class GesturePatternStore(private val context: Context) {
 
             coroutineScope.launch {
                 savePatterns()
-                firestoreManager.deleteDocument(path = getPatternPath(id))
             }
         } catch (e: Exception) {
-            Log.e(tag, "Error removing pattern: ${e.message}")
+            Log.e(TAG, "Error removing pattern: ${e.message}")
         }
     }
 
@@ -214,16 +118,12 @@ class GesturePatternStore(private val context: Context) {
 
                 coroutineScope.launch {
                     savePatterns()
-                    firestoreManager.saveDocument(
-                        path = getPatternPath(id),
-                        data = updatedPattern.toMap()
-                    )
                 }
             } else {
-                Log.w(tag, "Pattern not found for update: $id")
+                Log.w(TAG, "Pattern not found for update: $id")
             }
         } catch (e: Exception) {
-            Log.e(tag, "Error updating pattern: ${e.message}")
+            Log.e(TAG, "Error updating pattern: ${e.message}")
         }
     }
 
@@ -237,11 +137,11 @@ class GesturePatternStore(private val context: Context) {
     /**
      * Saves the current list of patterns to the local file.
      */
-    private suspend fun savePatterns() {
+    private fun savePatterns() {
         try {
-            fileManager.writeJson(fileName, items)
+            file.writeText(gson.toJson(items))
         } catch (e: Exception) {
-            Log.e(tag, "Error saving patterns: ${e.message}")
+            Log.e(TAG, "Error saving patterns: ${e.message}")
         }
     }
 
@@ -255,7 +155,7 @@ class GesturePatternStore(private val context: Context) {
         return try {
             items.find { it.id == id }
         } catch (e: Exception) {
-            Log.e(tag, "Error getting pattern: ${e.message}")
+            Log.e(TAG, "Error getting pattern: ${e.message}")
             null
         }
     }

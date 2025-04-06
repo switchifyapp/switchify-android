@@ -29,7 +29,6 @@ import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.FullWidthButton
 import com.enaboapps.switchify.components.TextArea
 import com.enaboapps.switchify.service.actions.custom.store.ActionStore
-import com.enaboapps.switchify.service.gestures.data.store.GesturePatternStore
 import com.enaboapps.switchify.utils.Resources
 import kotlinx.coroutines.launch
 
@@ -61,10 +60,6 @@ fun SignUpScreen(navController: NavController) {
         // Push actions to Firestore
         val actionStore = ActionStore(context)
         actionStore.pushActionsToFirestore()
-
-        // Push gestures to Firestore
-        val gesturePatternStore = GesturePatternStore(context)
-        gesturePatternStore.pushPatternsToFirestore()
     }
 
     BaseView(
