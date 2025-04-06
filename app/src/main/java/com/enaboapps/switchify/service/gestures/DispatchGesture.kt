@@ -11,27 +11,29 @@ import com.enaboapps.switchify.service.gestures.data.GestureType
  * Dispatches a gesture with multiple strokes.
  *
  * @param service The AccessibilityService instance to dispatch the gesture with
- * @param point The reference point for the gesture
+ * @param startPoint The starting point of the gesture
+ * @param endPoint The ending point of the gesture (null for single-point gestures like taps)
  * @param gestureType The type of gesture being performed
  * @param strokes Array of stroke descriptions for the gesture
  * @param onComplete Optional callback for when the gesture is completed
  */
 fun dispatchGesture(
     service: AccessibilityService,
-    point: PointF,
+    startPoint: PointF,
+    endPoint: PointF? = null,
     gestureType: GestureType,
     strokes: Array<GestureDescription.StrokeDescription>,
     onComplete: (() -> Unit)? = null
 ) {
     try {
         GestureLockManager.getInstance().setLockedGestureData(
-            GestureData(gestureType, point)
+            GestureData(gestureType, startPoint, endPoint)
         )
-        
+
         val gestureDescription = GestureDescription.Builder().apply {
             strokes.forEach { addStroke(it) }
         }.build()
-            
+
         service.dispatchGesture(
             gestureDescription,
             object : AccessibilityService.GestureResultCallback() {
@@ -68,7 +70,7 @@ fun dispatchGesture(
     val path = Path()
     path.moveTo(startPoint.x, startPoint.y)
     endPoint?.let { path.lineTo(it.x, it.y) }
-    
+
     val stroke = GestureDescription.StrokeDescription(path, 0, duration)
-    dispatchGesture(service, startPoint, gestureType, arrayOf(stroke), onComplete)
+    dispatchGesture(service, startPoint, endPoint, gestureType, arrayOf(stroke), onComplete)
 }

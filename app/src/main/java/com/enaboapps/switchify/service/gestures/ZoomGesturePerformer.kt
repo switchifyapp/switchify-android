@@ -100,13 +100,13 @@ object ZoomGesturePerformer {
         dispatchGesture(
             accessibilityService,
             centerPoint,
+            null,
             type,
-            arrayOf(stroke1, stroke2),
-            {
-                Log.d(TAG, "Gesture Completed Successfully")
-                zoomVisual?.stop()
-            }
-        )
+            arrayOf(stroke1, stroke2)
+        ) {
+            Log.d(TAG, "Gesture Completed Successfully")
+            zoomVisual?.stop()
+        }
     }
 
     /**

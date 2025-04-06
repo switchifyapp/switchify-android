@@ -87,6 +87,13 @@ data class GestureData(
                 return true
             }
 
+            GestureType.CUSTOM_SWIPE,
+            GestureType.DRAG,
+            GestureType.HOLD_AND_DRAG -> {
+                GestureManager.instance.performCustomGestureAction(this)
+                return true
+            }
+
             GestureType.ZOOM_IN, GestureType.ZOOM_OUT -> {
                 GestureManager.instance.performZoom(gestureType)
                 return true

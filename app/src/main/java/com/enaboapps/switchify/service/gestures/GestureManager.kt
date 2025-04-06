@@ -1,6 +1,5 @@
 package com.enaboapps.switchify.service.gestures
 
-import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.GestureDescription
 import android.graphics.Path
 import android.graphics.PointF
@@ -93,7 +92,7 @@ class GestureManager private constructor() {
                     point.y.toInt(),
                     TAP_DURATION
                 )
-                
+
                 // Create first tap stroke
                 val firstTapPath = Path().apply { moveTo(point.x, point.y) }
                 val firstTapStroke = GestureDescription.StrokeDescription(
@@ -101,7 +100,7 @@ class GestureManager private constructor() {
                     0,
                     TAP_DURATION
                 )
-                
+
                 // Create second tap stroke
                 val secondTapPath = Path().apply { moveTo(point.x, point.y) }
                 val secondTapStroke = GestureDescription.StrokeDescription(
@@ -109,11 +108,12 @@ class GestureManager private constructor() {
                     DOUBLE_TAP_INTERVAL,
                     TAP_DURATION
                 )
-                
+
                 // Dispatch both taps together
                 dispatchGesture(
                     it,
                     point,
+                    null,
                     GestureType.DOUBLE_TAP,
                     arrayOf(firstTapStroke, secondTapStroke)
                 )
@@ -149,13 +149,9 @@ class GestureManager private constructor() {
      * @return True if a locked gesture action was performed, false otherwise.
      */
     fun performGestureLockAction(): Boolean {
-        if (GestureLockManager.getInstance().isGestureLockEngaged() == true) {
+        if (isGestureLockEnabled()) {
             GestureLockManager.getInstance().getLockedGestureData()?.let { gestureData ->
-                if (GestureLockManager.getInstance()
-                        .canLockGesture(gestureData.gestureType) == true
-                ) {
-                    return gestureData.performLockAction()
-                }
+                return gestureData.performLockAction()
             }
         }
         return false
@@ -175,6 +171,18 @@ class GestureManager private constructor() {
      */
     fun isGestureLockEnabled(): Boolean {
         return GestureLockManager.getInstance().isGestureLockEngaged() == true
+    }
+
+    /**
+     * Performs a custom gesture action.
+     *
+     * @param gestureData The GestureData to perform.
+     * @return True if the gesture was performed, false otherwise.
+     */
+    fun performCustomGestureAction(gestureData: GestureData): Boolean {
+        linearGesturePerformer.startGesture(gestureData.gestureType, false, gestureData.startPoint)
+        linearGesturePerformer.endGesture(gestureData.endPoint)
+        return true
     }
 
     /**

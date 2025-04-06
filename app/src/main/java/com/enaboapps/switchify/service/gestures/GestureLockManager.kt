@@ -3,7 +3,6 @@ package com.enaboapps.switchify.service.gestures
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.backend.iap.IAPHandler
 import com.enaboapps.switchify.service.gestures.data.GestureData
-import com.enaboapps.switchify.service.gestures.data.GestureType
 import com.enaboapps.switchify.service.window.ServiceMessageHUD
 import java.util.Timer
 import java.util.TimerTask
@@ -90,7 +89,7 @@ class GestureLockManager private constructor() {
      */
     fun setLockedGestureData(gestureData: GestureData?) {
         lockedGestureData =
-            if (gestureData != null && canLockGesture(gestureData.gestureType) && isLocked) {
+            if (gestureData != null && isLocked) {
                 gestureData
             } else {
                 null
@@ -124,34 +123,5 @@ class GestureLockManager private constructor() {
     fun stopTimer() {
         timeoutTimer?.cancel()
         timeoutTimer = null
-    }
-
-    /**
-     * Check if a gesture type can be locked.
-     *
-     * @param gestureType the gesture type to check.
-     * @return true if the gesture type can be locked, false otherwise.
-     */
-    fun canLockGesture(gestureType: GestureType): Boolean {
-        if (isLocked && gestureType == GestureType.DRAG || gestureType == GestureType.CUSTOM_SWIPE) {
-            isLocked = false // Disable the gesture lock
-            setLockedGestureData(null) // Clear the locked gesture data
-            return false
-        }
-        return true
-    }
-
-    /**
-     * Inform the user that the type of gesture cannot be locked.
-     *
-     * @param type the gesture type that cannot be locked.
-     */
-    fun informCannotLockGesture(type: GestureType) {
-        if (!canLockGesture(type)) {
-            ServiceMessageHUD.instance.showMessage(
-                R.string.gesture_lock_invalid_gesture,
-                ServiceMessageHUD.MessageType.DISAPPEARING
-            )
-        }
     }
 }

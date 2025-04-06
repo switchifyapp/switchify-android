@@ -66,32 +66,41 @@ class LinearGesturePerformer(
      * Starts a new gesture of the specified type.
      *
      * @param type The type of gesture to start.
+     * @param showMessage Whether to show a message for the gesture.
+     * @param startingPoint The starting point of the gesture.
      */
-    fun startGesture(type: GestureType) {
+    fun startGesture(
+        type: GestureType,
+        showMessage: Boolean = true,
+        startingPoint: PointF? = null
+    ) {
         if (gestureState.isPerforming) return
 
         gestureState.apply {
-            startPoint = GesturePoint.getPoint()
+            startPoint = startingPoint ?: GesturePoint.getPoint()
             isPerforming = true
             currentType = type
         }
 
-        showGestureMessage(type)
-        gestureLockManager.informCannotLockGesture(type)
+        if (showMessage) {
+            showGestureMessage(type)
+        }
         currentPointVisual.showCurrentPoint()
     }
 
     /**
      * Ends the current gesture and performs it.
+     *
+     * @param endPoint The end point of the gesture.
      */
-    fun endGesture() {
+    fun endGesture(endPoint: PointF? = null) {
         val (startPoint, _, gestureType) = gestureState
         if (startPoint == null || gestureType == null) {
             resetGestureState()
             return
         }
 
-        val endPoint = calculateEndPoint(gestureType, startPoint)
+        val endPoint = endPoint ?: calculateEndPoint(gestureType, startPoint)
         performGesture(gestureType, startPoint, endPoint)
         gestureLockManager.setLockedGestureData(GestureData(gestureType, startPoint, endPoint))
 
@@ -184,7 +193,7 @@ class LinearGesturePerformer(
 
         try {
             showVisualFeedback(start, end, type)
-            
+
             when (type) {
                 GestureType.HOLD_AND_DRAG -> {
                     // Create hold stroke
@@ -194,7 +203,7 @@ class LinearGesturePerformer(
                         0,
                         GestureData.HOLD_BEFORE_DRAG_DURATION
                     )
-                    
+
                     // Create drag stroke
                     val dragPath = Path().apply {
                         moveTo(start.x, start.y)
@@ -205,15 +214,17 @@ class LinearGesturePerformer(
                         GestureData.HOLD_BEFORE_DRAG_DURATION - 5,
                         GestureData.DRAG_DURATION
                     )
-                    
+
                     // Dispatch both strokes together
                     dispatchGesture(
                         accessibilityService,
                         start,
+                        end,
                         type,
                         arrayOf(holdStroke, dragStroke)
                     )
                 }
+
                 else -> {
                     val duration = getDurationForGestureType(type)
                     dispatchGesture(accessibilityService, start, end, type, duration)
