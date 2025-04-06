@@ -12,6 +12,14 @@
     <string name="gesture_lock_disabled">Gesture Lock disabled. Your switches will now perform their default actions.</string>
     <string name="gesture_lock_timeout_disabled">Gesture Lock disabled.</string>
 
+    <!-- Gesture Patterns -->
+    <string name="gesture_patterns_title">Gesture Patterns</string>
+    <string name="gesture_patterns_empty">You haven\'t created any gesture patterns yet. Tap the + button to add one.</string>
+    <string name="gesture_patterns_delete_confirmation">Are you sure you want to delete this gesture pattern?</string>
+    <string name="start_recording">Start Recording</string>
+    <string name="stop_recording">Stop Recording</string>
+    <string name="saved_gesture_pattern">Saved gesture pattern. You can give it a more descriptive name in the app settings.</string>
+
     <!-- Scanning Method Messages -->
     <string name="radar_trial_timer_expired">Radar scan trial expired. Switching to cursor scan.</string>
 

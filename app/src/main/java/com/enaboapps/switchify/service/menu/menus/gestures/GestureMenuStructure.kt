@@ -4,6 +4,7 @@ import android.content.Context
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.service.gestures.GestureManager
+import com.enaboapps.switchify.service.gestures.GesturePatternRecorder
 import com.enaboapps.switchify.service.gestures.data.GestureType
 import com.enaboapps.switchify.service.menu.MenuItem
 import com.enaboapps.switchify.service.menu.MenuManager
@@ -81,6 +82,25 @@ class GestureMenuStructure(context: Context) {
                 action = { MenuManager.getInstance().openZoomGesturesMenu() }
             ),
             toggleGestureLockMenuItem
+        )
+    )
+
+    val gesturePatternsMenuObject = MenuStructure(
+        id = "gesture_patterns_menu",
+        items = listOfNotNull(
+            if (GesturePatternRecorder.isRecording()) {
+                MenuItem(
+                    id = "stop_recording",
+                    textResource = R.string.stop_recording,
+                    action = { GesturePatternRecorder.stopRecording(context) }
+                )
+            } else {
+                MenuItem(
+                    id = "start_recording",
+                    textResource = R.string.start_recording,
+                    action = { GesturePatternRecorder.startRecording() }
+                )
+            },
         )
     )
 

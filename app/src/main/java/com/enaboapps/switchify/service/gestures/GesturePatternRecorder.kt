@@ -2,11 +2,10 @@ package com.enaboapps.switchify.service.gestures
 
 import android.content.Context
 import android.util.Log
+import com.enaboapps.switchify.R
 import com.enaboapps.switchify.service.gestures.data.GestureData
 import com.enaboapps.switchify.service.gestures.data.store.GesturePatternStore
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import java.lang.ref.WeakReference
+import com.enaboapps.switchify.service.window.ServiceMessageHUD
 
 /**
  * Object responsible for recording new gesture patterns.
@@ -15,38 +14,18 @@ import java.lang.ref.WeakReference
  * and save the recorded pattern to the GesturePatternStore.
  */
 object GesturePatternRecorder {
-    private val tag = "GesturePatternRecorder"
-    private var contextRef: WeakReference<Context>? = null
-    private var gesturePatternStoreRef: WeakReference<GesturePatternStore>? = null
-    private val coroutineScope = CoroutineScope(Dispatchers.IO)
+    private const val TAG = "GesturePatternRecorder"
 
     private var isRecording = false
     private val recordedGestures = mutableListOf<GestureData>()
 
     /**
-     * Initializes the recorder with the application context.
-     * Must be called before using any other methods.
-     *
-     * @param appContext The application context
+     * Creates a new gesture pattern store.
+     * @param context The application context.
+     * @return The new gesture pattern store.
      */
-    fun initialize(appContext: Context) {
-        contextRef = WeakReference(appContext.applicationContext)
-        gesturePatternStoreRef = WeakReference(GesturePatternStore(appContext))
-        Log.i(tag, "GesturePatternRecorder initialized")
-    }
-
-    /**
-     * Gets the current context, or null if not initialized.
-     */
-    private fun getContext(): Context? {
-        return contextRef?.get()
-    }
-
-    /**
-     * Gets the gesture pattern store, or null if not initialized.
-     */
-    private fun getGesturePatternStore(): GesturePatternStore? {
-        return gesturePatternStoreRef?.get()
+    private fun createGesturePatternStore(context: Context): GesturePatternStore {
+        return GesturePatternStore(context)
     }
 
     /**
@@ -54,53 +33,43 @@ object GesturePatternRecorder {
      * Clears any previously recorded gestures.
      */
     fun startRecording() {
-        if (getContext() == null) {
-            Log.e(tag, "GesturePatternRecorder not initialized")
-            return
-        }
-
         if (isRecording) {
-            Log.w(tag, "Recording already in progress")
+            Log.w(TAG, "Recording already in progress")
             return
         }
 
         recordedGestures.clear()
         isRecording = true
-        Log.i(tag, "Started recording new gesture pattern")
+        Log.i(TAG, "Started recording new gesture pattern")
     }
 
     /**
      * Stops recording the current gesture pattern.
-     *
-     * @param name The name to give to the recorded pattern
-     * @return The ID of the saved pattern, or empty string if no gestures were recorded
      */
-    fun stopRecording(name: String): String {
-        if (getContext() == null) {
-            Log.e(tag, "GesturePatternRecorder not initialized")
-            return ""
-        }
-
+    fun stopRecording(context: Context) {
         if (!isRecording) {
-            Log.w(tag, "No recording in progress")
-            return ""
+            Log.w(TAG, "No recording in progress")
+            return
         }
 
         isRecording = false
 
         if (recordedGestures.isEmpty()) {
-            Log.w(tag, "No gestures recorded")
-            return ""
+            Log.w(TAG, "No gestures recorded")
+            return
         }
 
-        val store = getGesturePatternStore() ?: run {
-            Log.e(tag, "GesturePatternStore not available")
-            return ""
-        }
+        val store = createGesturePatternStore(context)
 
-        val patternId = store.addPattern(name, recordedGestures.toList())
-        Log.i(tag, "Saved gesture pattern with ID: $patternId")
-        return patternId
+        val name = recordedGestures.joinToString(separator = ", ") { it.gestureType.name }
+        val patternId = store.addPattern(name, recordedGestures)
+        Log.i(TAG, "Saved gesture pattern with ID: $patternId")
+        recordedGestures.clear()
+
+        ServiceMessageHUD.instance.showMessage(
+            R.string.saved_gesture_pattern,
+            ServiceMessageHUD.MessageType.DISAPPEARING
+        )
     }
 
     /**
@@ -110,18 +79,13 @@ object GesturePatternRecorder {
      * @return true if the gesture was added, false if not recording
      */
     fun addGesture(gesture: GestureData): Boolean {
-        if (getContext() == null) {
-            Log.e(tag, "GesturePatternRecorder not initialized")
-            return false
-        }
-
         if (!isRecording) {
-            Log.w(tag, "Cannot add gesture: not recording")
+            Log.w(TAG, "Cannot add gesture: not recording")
             return false
         }
 
         recordedGestures.add(gesture)
-        Log.d(tag, "Added gesture to recording, total gestures: ${recordedGestures.size}")
+        Log.d(TAG, "Added gesture to recording, total gestures: ${recordedGestures.size}")
         return true
     }
 
@@ -144,6 +108,6 @@ object GesturePatternRecorder {
      */
     fun clearRecording() {
         recordedGestures.clear()
-        Log.i(tag, "Cleared recorded gestures")
+        Log.i(TAG, "Cleared recorded gestures")
     }
 }

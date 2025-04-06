@@ -6,6 +6,7 @@ import com.enaboapps.switchify.service.menu.menus.custom.MyActionsMenu
 import com.enaboapps.switchify.service.menu.menus.cyclebreak.ScanCycleBreakMenu
 import com.enaboapps.switchify.service.menu.menus.edit.EditMenu
 import com.enaboapps.switchify.service.menu.menus.gestures.CustomGestureConfirmationMenu
+import com.enaboapps.switchify.service.menu.menus.gestures.GesturePatternsMenu
 import com.enaboapps.switchify.service.menu.menus.gestures.GesturesMenu
 import com.enaboapps.switchify.service.menu.menus.gestures.SwipeGesturesMenu
 import com.enaboapps.switchify.service.menu.menus.gestures.TapGesturesMenu
@@ -123,6 +124,14 @@ class MenuManager {
     fun openGesturesMenu() {
         val gesturesMenu = GesturesMenu(accessibilityService!!)
         openMenu(gesturesMenu.build())
+    }
+
+    /**
+     * This function opens the gesture patterns menu
+     */
+    fun openGesturePatternsMenu() {
+        val gesturePatternsMenu = GesturePatternsMenu(accessibilityService!!)
+        openMenu(gesturePatternsMenu.build())
     }
 
     /**

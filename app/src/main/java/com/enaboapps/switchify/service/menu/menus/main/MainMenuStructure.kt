@@ -58,6 +58,12 @@ class MainMenuStructure(private val accessibilityService: SwitchifyAccessibility
                 isLinkToMenu = true,
                 action = { MenuManager.getInstance().openScrollMenu() }
             ),
+            MenuItem(
+                id = "gesture_patterns",
+                textResource = R.string.gesture_patterns_title,
+                isLinkToMenu = true,
+                action = { MenuManager.getInstance().openGesturePatternsMenu() }
+            ),
             deviceItem,
             MenuItem(
                 id = "media_control",
