@@ -92,37 +92,21 @@ object ZoomGesturePerformer {
             }
         }
 
-        // Build the gesture description with the defined paths and duration
-        val gestureBuilder = GestureDescription.Builder()
+        // Create stroke descriptions for both fingers
         val stroke1 = GestureDescription.StrokeDescription(path1, 0, DEFAULT_ZOOM_DURATION)
         val stroke2 = GestureDescription.StrokeDescription(path2, 0, DEFAULT_ZOOM_DURATION)
-        gestureBuilder.addStroke(stroke1).addStroke(stroke2)
 
-        val gestureDescription = gestureBuilder.build()
-
-        // Dispatch the gesture using the accessibility service
-        try {
-            accessibilityService.dispatchGesture(
-                gestureDescription,
-                object : AccessibilityService.GestureResultCallback() {
-                    override fun onCompleted(gestureDescription: GestureDescription?) {
-                        super.onCompleted(gestureDescription)
-                        Log.d(TAG, "Gesture Completed Successfully")
-                    }
-
-                    override fun onCancelled(gestureDescription: GestureDescription?) {
-                        super.onCancelled(gestureDescription)
-                        Log.e(TAG, "Gesture Cancelled")
-                        zoomVisual?.stop()
-                    }
-                },
-                null
-            )
-            Log.d(TAG, "Gesture dispatched: $type")
-        } catch (e: Exception) {
-            Log.e(TAG, "performZoomAction: Exception during gesture dispatch", e)
-            zoomVisual?.stop()
-        }
+        // Dispatch the gesture using our utility function
+        dispatchGesture(
+            accessibilityService,
+            centerPoint,
+            type,
+            arrayOf(stroke1, stroke2),
+            {
+                Log.d(TAG, "Gesture Completed Successfully")
+                zoomVisual?.stop()
+            }
+        )
     }
 
     /**

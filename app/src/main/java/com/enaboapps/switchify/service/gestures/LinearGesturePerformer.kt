@@ -183,11 +183,42 @@ class LinearGesturePerformer(
         if (!checkGestureDelay()) return
 
         try {
-            val path = createGesturePath(start, end)
             showVisualFeedback(start, end, type)
-
-            val gestureDescription = createGestureDescription(type, path, start, end)
-            dispatchGesture(gestureDescription)
+            
+            when (type) {
+                GestureType.HOLD_AND_DRAG -> {
+                    // Create hold stroke
+                    val holdPath = Path().apply { moveTo(start.x, start.y) }
+                    val holdStroke = GestureDescription.StrokeDescription(
+                        holdPath,
+                        0,
+                        GestureData.HOLD_BEFORE_DRAG_DURATION
+                    )
+                    
+                    // Create drag stroke
+                    val dragPath = Path().apply {
+                        moveTo(start.x, start.y)
+                        lineTo(end.x, end.y)
+                    }
+                    val dragStroke = GestureDescription.StrokeDescription(
+                        dragPath,
+                        GestureData.HOLD_BEFORE_DRAG_DURATION - 5,
+                        GestureData.DRAG_DURATION
+                    )
+                    
+                    // Dispatch both strokes together
+                    dispatchGesture(
+                        accessibilityService,
+                        start,
+                        type,
+                        arrayOf(holdStroke, dragStroke)
+                    )
+                }
+                else -> {
+                    val duration = getDurationForGestureType(type)
+                    dispatchGesture(accessibilityService, start, end, type, duration)
+                }
+            }
 
             lastGestureTime = System.currentTimeMillis()
         } catch (e: Exception) {
@@ -206,20 +237,6 @@ class LinearGesturePerformer(
     }
 
     /**
-     * Creates a Path object representing the gesture's movement.
-     *
-     * @param start The starting point of the gesture.
-     * @param end The ending point of the gesture.
-     * @return A Path object representing the gesture.
-     */
-    private fun createGesturePath(start: PointF, end: PointF): Path {
-        return Path().apply {
-            moveTo(start.x, start.y)
-            lineTo(end.x, end.y)
-        }
-    }
-
-    /**
      * Provides visual feedback of the gesture path.
      *
      * @param start The starting point of the gesture.
@@ -232,73 +249,6 @@ class LinearGesturePerformer(
             start.x.toInt(), start.y.toInt(),
             end.x.toInt(), end.y.toInt(),
             duration
-        )
-    }
-
-    /**
-     * Creates a GestureDescription based on the gesture type and path.
-     *
-     * @param type The type of gesture.
-     * @param path The Path object representing the gesture's movement.
-     * @param start The starting point of the gesture.
-     * @param end The ending point of the gesture.
-     * @return A GestureDescription object describing the gesture.
-     */
-    private fun createGestureDescription(
-        type: GestureType,
-        path: Path,
-        start: PointF,
-        end: PointF
-    ): GestureDescription {
-        val builder = GestureDescription.Builder()
-
-        when (type) {
-            GestureType.HOLD_AND_DRAG -> {
-                addHoldAndDragStrokes(builder, start, end)
-            }
-
-            else -> {
-                val duration = getDurationForGestureType(type)
-                builder.addStroke(GestureDescription.StrokeDescription(path, 0, duration))
-            }
-        }
-
-        return builder.build()
-    }
-
-    /**
-     * Adds the necessary strokes for a hold-and-drag gesture.
-     *
-     * @param builder The GestureDescription.Builder to add the strokes to.
-     * @param start The starting point of the gesture.
-     * @param end The ending point of the gesture.
-     */
-    private fun addHoldAndDragStrokes(
-        builder: GestureDescription.Builder,
-        start: PointF,
-        end: PointF
-    ) {
-        // Hold stroke
-        val holdPath = Path().apply { moveTo(start.x, start.y) }
-        builder.addStroke(
-            GestureDescription.StrokeDescription(
-                holdPath,
-                0,
-                GestureData.HOLD_BEFORE_DRAG_DURATION
-            )
-        )
-
-        // Drag stroke
-        val dragPath = Path().apply {
-            moveTo(start.x, start.y)
-            lineTo(end.x, end.y)
-        }
-        builder.addStroke(
-            GestureDescription.StrokeDescription(
-                dragPath,
-                GestureData.HOLD_BEFORE_DRAG_DURATION - 5,
-                GestureData.DRAG_DURATION
-            )
         )
     }
 

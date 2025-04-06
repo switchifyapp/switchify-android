@@ -62,7 +62,6 @@ class GestureManager private constructor() {
     fun performTap(x: Int? = null, y: Int? = null) {
         try {
             accessibilityService?.let {
-                val path = Path()
                 var point = if (x != null && y != null) {
                     PointF(x.toFloat(), y.toFloat())
                 } else {
@@ -74,24 +73,7 @@ class GestureManager private constructor() {
                     point.y.toInt(),
                     TAP_DURATION
                 )
-                path.moveTo(point.x, point.y)
-                GestureLockManager.getInstance().setLockedGestureData(
-                    GestureData(
-                        GestureType.TAP,
-                        point
-                    )
-                )
-                val gestureDescription = GestureDescription.Builder()
-                    .addStroke(GestureDescription.StrokeDescription(path, 0, TAP_DURATION)).build()
-                it.dispatchGesture(
-                    gestureDescription,
-                    object : AccessibilityService.GestureResultCallback() {
-                        override fun onCompleted(gestureDescription: GestureDescription?) {
-                            super.onCompleted(gestureDescription)
-                        }
-                    },
-                    null
-                )
+                dispatchGesture(it, point, null, GestureType.TAP, TAP_DURATION)
             }
         } catch (e: Exception) {
             // Log.e(TAG, "onTap: ", e)
@@ -104,7 +86,6 @@ class GestureManager private constructor() {
     fun performDoubleTap() {
         try {
             accessibilityService?.let {
-                val path = Path()
                 val point = getAssistedCurrentPoint()
                 val gestureDrawing = GestureDrawing(it)
                 gestureDrawing.drawCircleAndRemove(
@@ -112,28 +93,29 @@ class GestureManager private constructor() {
                     point.y.toInt(),
                     TAP_DURATION
                 )
-                path.moveTo(point.x, point.y)
-                GestureLockManager.getInstance().setLockedGestureData(
-                    GestureData(
-                        GestureType.DOUBLE_TAP,
-                        point
-                    )
+                
+                // Create first tap stroke
+                val firstTapPath = Path().apply { moveTo(point.x, point.y) }
+                val firstTapStroke = GestureDescription.StrokeDescription(
+                    firstTapPath,
+                    0,
+                    TAP_DURATION
                 )
-                val tap1 = GestureDescription.StrokeDescription(path, 0, TAP_DURATION)
-                val tap2 =
-                    GestureDescription.StrokeDescription(path, DOUBLE_TAP_INTERVAL, TAP_DURATION)
-                val gestureDescription = GestureDescription.Builder()
-                    .addStroke(tap1)
-                    .addStroke(tap2)
-                    .build()
-                it.dispatchGesture(
-                    gestureDescription,
-                    object : AccessibilityService.GestureResultCallback() {
-                        override fun onCompleted(gestureDescription: GestureDescription?) {
-                            super.onCompleted(gestureDescription)
-                        }
-                    },
-                    null
+                
+                // Create second tap stroke
+                val secondTapPath = Path().apply { moveTo(point.x, point.y) }
+                val secondTapStroke = GestureDescription.StrokeDescription(
+                    secondTapPath,
+                    DOUBLE_TAP_INTERVAL,
+                    TAP_DURATION
+                )
+                
+                // Dispatch both taps together
+                dispatchGesture(
+                    it,
+                    point,
+                    GestureType.DOUBLE_TAP,
+                    arrayOf(firstTapStroke, secondTapStroke)
                 )
             }
         } catch (e: Exception) {
@@ -147,7 +129,6 @@ class GestureManager private constructor() {
     fun performTapAndHold() {
         try {
             accessibilityService?.let {
-                val path = Path()
                 val point = getAssistedCurrentPoint()
                 val gestureDrawing = GestureDrawing(it)
                 gestureDrawing.drawCircleAndRemove(
@@ -155,25 +136,7 @@ class GestureManager private constructor() {
                     point.y.toInt(),
                     TAP_AND_HOLD_DURATION
                 )
-                path.moveTo(point.x, point.y)
-                GestureLockManager.getInstance().setLockedGestureData(
-                    GestureData(
-                        GestureType.TAP_AND_HOLD,
-                        point
-                    )
-                )
-                val gestureDescription = GestureDescription.Builder()
-                    .addStroke(GestureDescription.StrokeDescription(path, 0, TAP_AND_HOLD_DURATION))
-                    .build()
-                it.dispatchGesture(
-                    gestureDescription,
-                    object : AccessibilityService.GestureResultCallback() {
-                        override fun onCompleted(gestureDescription: GestureDescription?) {
-                            super.onCompleted(gestureDescription)
-                        }
-                    },
-                    null
-                )
+                dispatchGesture(it, point, null, GestureType.TAP_AND_HOLD, TAP_AND_HOLD_DURATION)
             }
         } catch (e: Exception) {
             // Log.e(TAG, "onTapAndHold: ", e)
