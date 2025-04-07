@@ -28,7 +28,7 @@ fun dispatchGesture(
     try {
         val gestureData = GestureData(gestureType, startPoint, endPoint)
         GestureLockManager.getInstance().setLockedGestureData(gestureData)
-        GesturePatternRecorder.addGesture(gestureData)
+        GesturePatternRecorder.addGesture(gestureData, service)
 
         val gestureDescription = GestureDescription.Builder().apply {
             strokes.forEach { addStroke(it) }

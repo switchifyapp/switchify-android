@@ -102,15 +102,19 @@ object GesturePatternRecorder {
      * Adds a gesture to the current recording.
      *
      * @param gesture The gesture data to add
+     * @param context The application context
      * @return true if the gesture was added, false if not recording
      */
-    fun addGesture(gesture: GestureData): Boolean {
+    fun addGesture(gesture: GestureData, context: Context): Boolean {
         if (!isRecording) {
             Log.w(TAG, "Cannot add gesture: not recording")
             return false
         }
 
         recordedGestures.add(gesture)
+        if (recordedGestures.size == 10) {
+            saveRecording(context)
+        }
         Log.d(TAG, "Added gesture to recording, total gestures: ${recordedGestures.size}")
         return true
     }
