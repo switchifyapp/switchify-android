@@ -24,8 +24,13 @@ object ZoomGesturePerformer {
      *
      * @param type The type of zoom action (ZOOM_IN or ZOOM_OUT).
      * @param accessibilityService The accessibility service used to dispatch gestures.
+     * @param point The starting point of the gesture.
      */
-    fun performZoomAction(type: GestureType, accessibilityService: AccessibilityService) {
+    fun performZoomAction(
+        type: GestureType,
+        accessibilityService: AccessibilityService,
+        point: PointF
+    ) {
         // Initialize zoom visual if needed
         if (zoomVisual == null) {
             zoomVisual = ZoomVisual(accessibilityService)
@@ -34,7 +39,8 @@ object ZoomGesturePerformer {
         // Retrieve the center point for the zoom gesture
         val centerPoint = getCenterPoint(
             ScreenUtils.getWidth(accessibilityService),
-            ScreenUtils.getHeight(accessibilityService)
+            ScreenUtils.getHeight(accessibilityService),
+            point
         )
         Log.d(TAG, "Center Point: (${centerPoint.x}, ${centerPoint.y})")
 
@@ -132,12 +138,12 @@ object ZoomGesturePerformer {
      *
      * @param screenWidth The width of the screen.
      * @param screenHeight The height of the screen.
+     * @param point The starting point of the gesture.
      * @return The point for the center of the zoom gesture.
      */
-    private fun getCenterPoint(screenWidth: Int, screenHeight: Int): PointF {
-        val centerPoint = GesturePoint.getPoint()
-        var x = centerPoint.x
-        var y = centerPoint.y
+    private fun getCenterPoint(screenWidth: Int, screenHeight: Int, point: PointF): PointF {
+        var x = point.x
+        var y = point.y
 
         if (x + ZOOM_AMOUNT_DP * 2 > screenWidth) {
             x = (screenWidth - ZOOM_AMOUNT_DP * 2).toFloat()

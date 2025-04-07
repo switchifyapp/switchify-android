@@ -81,11 +81,18 @@ class GestureManager private constructor() {
 
     /**
      * Performs a double tap gesture at the current point.
+     *
+     * @param x The x coordinate of the tap gesture. If null, the current point will be used.
+     * @param y The y coordinate of the tap gesture. If null, the current point will be used.
      */
-    fun performDoubleTap() {
+    fun performDoubleTap(x: Int? = null, y: Int? = null) {
         try {
             accessibilityService?.let {
-                val point = getAssistedCurrentPoint()
+                var point = if (x != null && y != null) {
+                    PointF(x.toFloat(), y.toFloat())
+                } else {
+                    getAssistedCurrentPoint()
+                }
                 val gestureDrawing = GestureDrawing(it)
                 gestureDrawing.drawCircleAndRemove(
                     point.x.toInt(),
@@ -125,11 +132,18 @@ class GestureManager private constructor() {
 
     /**
      * Performs a tap and hold gesture at the current point.
+     *
+     * @param x The x coordinate of the tap gesture. If null, the current point will be used.
+     * @param y The y coordinate of the tap gesture. If null, the current point will be used.
      */
-    fun performTapAndHold() {
+    fun performTapAndHold(x: Int? = null, y: Int? = null) {
         try {
             accessibilityService?.let {
-                val point = getAssistedCurrentPoint()
+                var point = if (x != null && y != null) {
+                    PointF(x.toFloat(), y.toFloat())
+                } else {
+                    getAssistedCurrentPoint()
+                }
                 val gestureDrawing = GestureDrawing(it)
                 gestureDrawing.drawCircleAndRemove(
                     point.x.toInt(),
@@ -151,7 +165,8 @@ class GestureManager private constructor() {
     fun performGestureLockAction(): Boolean {
         if (isGestureLockEnabled()) {
             GestureLockManager.getInstance().getLockedGestureData()?.let { gestureData ->
-                return gestureData.executeGesture()
+                gestureData.executeGesture()
+                return true
             }
         }
         return false
@@ -189,12 +204,14 @@ class GestureManager private constructor() {
      * Performs a swipe or scroll action.
      *
      * @param type The GestureType of the swipe.
+     * @param startPoint The starting point of the gesture.
      */
-    fun performSwipeOrScroll(type: GestureType) {
+    fun performSwipeOrScroll(type: GestureType, startPoint: PointF? = null) {
+        val point = startPoint ?: GesturePoint.getPoint()
         if (AutoScrollManager.getInstance()
-                .startAutoScroll(GestureData(type, GesturePoint.getPoint()))
+                .startAutoScroll(GestureData(type, point))
         ) return
-        linearGesturePerformer.startGesture(type)
+        linearGesturePerformer.startGesture(type, startingPoint = point)
         linearGesturePerformer.endGesture()
     }
 
@@ -246,16 +263,18 @@ class GestureManager private constructor() {
      * Performs a zoom action.
      *
      * @param type The type of zoom action to perform.
+     * @param startPoint The starting point of the gesture.
      */
-    fun performZoom(type: GestureType) {
+    fun performZoom(type: GestureType, startPoint: PointF? = null) {
+        val point = startPoint ?: GesturePoint.getPoint()
         GestureLockManager.getInstance().setLockedGestureData(
             GestureData(
                 type,
-                GesturePoint.getPoint()
+                point
             )
         )
         accessibilityService?.let {
-            ZoomGesturePerformer.performZoomAction(type, it)
+            ZoomGesturePerformer.performZoomAction(type, it, point)
         }
     }
 }
