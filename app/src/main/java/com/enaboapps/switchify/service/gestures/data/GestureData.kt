@@ -31,6 +31,7 @@ data class GestureData(
                 GestureManager.instance.performSwipeOrScroll(gestureType)
                 return true
             }
+
             else -> {
                 return false
             }
@@ -40,17 +41,23 @@ data class GestureData(
     fun executeGesture(): Boolean {
         when (gestureType) {
             GestureType.TAP -> {
-                GestureManager.instance.performTap()
+                GestureManager.instance.performTap(
+                    x = startPoint.x.toInt(),
+                    y = startPoint.y.toInt()
+                )
                 return true
             }
+
             GestureType.DOUBLE_TAP -> {
                 GestureManager.instance.performDoubleTap()
                 return true
             }
+
             GestureType.TAP_AND_HOLD -> {
                 GestureManager.instance.performTapAndHold()
                 return true
             }
+
             GestureType.SWIPE_UP,
             GestureType.SWIPE_DOWN,
             GestureType.SWIPE_LEFT,
@@ -62,16 +69,19 @@ data class GestureData(
                 GestureManager.instance.performSwipeOrScroll(gestureType)
                 return true
             }
+
             GestureType.CUSTOM_SWIPE,
             GestureType.DRAG,
             GestureType.HOLD_AND_DRAG -> {
                 GestureManager.instance.performCustomGestureAction(this)
                 return true
             }
+
             GestureType.ZOOM_IN, GestureType.ZOOM_OUT -> {
                 GestureManager.instance.performZoom(gestureType)
                 return true
             }
+
             else -> {
                 return false
             }

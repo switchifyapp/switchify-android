@@ -6,7 +6,6 @@ import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.service.gestures.GestureManager
 import com.enaboapps.switchify.service.gestures.GesturePatternRecorder
 import com.enaboapps.switchify.service.gestures.data.GestureType
-import com.enaboapps.switchify.service.gestures.patterns.store.GesturePatternStore
 import com.enaboapps.switchify.service.menu.MenuItem
 import com.enaboapps.switchify.service.menu.MenuManager
 import com.enaboapps.switchify.service.menu.structure.MenuStructure
@@ -86,38 +85,25 @@ class GestureMenuStructure(private val context: Context) {
         )
     )
 
-    suspend fun createGesturePatternsMenuStructure(): MenuStructure {
-        val gesturePatternStore = GesturePatternStore(context)
-        val gesturePatterns = gesturePatternStore.getPatterns()
-        val patterns = gesturePatterns.map { pattern ->
-            MenuItem(
-                id = "gesture_pattern_${pattern.id}",
-                userProvidedText = pattern.name,
-                action = {
-                    pattern.execute()
-                }
-            )
-        }
-        val items = patterns.plus(
-            listOfNotNull(
-                if (GesturePatternRecorder.isRecording()) {
-                    MenuItem(
-                        id = "stop_recording",
-                        textResource = R.string.stop_recording,
-                        action = { GesturePatternRecorder.stopRecording(context) }
-                    )
-                } else {
-                    MenuItem(
-                        id = "start_recording",
-                        textResource = R.string.start_recording,
-                        action = { GesturePatternRecorder.startRecording() }
-                    )
-                },
-            ))
+    fun createGesturePatternsMenuStructure(): MenuStructure {
         return MenuStructure(
             id = "gesture_patterns_menu",
-            items = items
-        )
+            items =
+                listOfNotNull(
+                    if (GesturePatternRecorder.isRecording()) {
+                        MenuItem(
+                            id = "stop_recording",
+                            textResource = R.string.stop_recording,
+                            action = { GesturePatternRecorder.stopRecording(context) }
+                        )
+                    } else {
+                        MenuItem(
+                            id = "start_recording",
+                            textResource = R.string.start_recording,
+                            action = { GesturePatternRecorder.startRecording() }
+                        )
+                    },
+                ))
     }
 
     val swipeGesturesMenuObject = MenuStructure(

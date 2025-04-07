@@ -12,6 +12,9 @@ import com.enaboapps.switchify.service.gestures.GesturePoint
 import com.enaboapps.switchify.service.menu.menus.BaseMenu
 import com.enaboapps.switchify.service.scanning.ScanningManager
 import com.enaboapps.switchify.service.scanning.tree.ScanTree
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 /**
  * Interface for listening to menu view closure events.
@@ -38,6 +41,9 @@ class MenuView(
 ) {
     /** Listener for menu view events */
     var menuViewListener: MenuViewListener? = null
+
+    /** Dynamic items to be added to the menu after the menu is opened */
+    private val dynamicItems = mutableListOf<MenuItem>()
 
     /** Base layout for the menu */
     private var baseLayout = LinearLayout(context)
@@ -71,8 +77,14 @@ class MenuView(
      * Sets up the menu by retrieving menu items and creating menu pages.
      */
     private fun setup() {
-        val menuItems = menu.getMenuItems()
-        createMenuPages(menuItems)
+        CoroutineScope(Dispatchers.Main).launch {
+            val menuItems = if (menu.getDynamicMenuItems() != null) {
+                menu.getDynamicMenuItems()!! + menu.getMenuItems()
+            } else {
+                menu.getMenuItems()
+            }
+            createMenuPages(menuItems)
+        }
     }
 
     /**
