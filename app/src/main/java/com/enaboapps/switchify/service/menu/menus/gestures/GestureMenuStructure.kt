@@ -90,19 +90,19 @@ class GestureMenuStructure(private val context: Context) {
             id = "gesture_patterns_menu",
             items =
                 listOfNotNull(
-                    if (GesturePatternRecorder.isRecording()) {
+                    if (GesturePatternRecorder.isRecording() && GesturePatternRecorder.getRecordedGestureCount() > 0) {
                         MenuItem(
-                            id = "stop_recording",
-                            textResource = R.string.stop_recording,
-                            action = { GesturePatternRecorder.stopRecording(context) }
+                            id = "save_recording",
+                            textResource = R.string.save_recording,
+                            action = { GesturePatternRecorder.saveRecording(context) }
                         )
-                    } else {
+                    } else if (!GesturePatternRecorder.isRecording()) {
                         MenuItem(
                             id = "start_recording",
                             textResource = R.string.start_recording,
                             action = { GesturePatternRecorder.startRecording() }
                         )
-                    },
+                    } else null,
                     if (GesturePatternRecorder.isRecording()) {
                         MenuItem(
                             id = "cancel_recording",

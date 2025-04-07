@@ -43,13 +43,19 @@ object GesturePatternRecorder {
 
         recordedGestures.clear()
         isRecording = true
+
+        ServiceMessageHUD.instance.showMessage(
+            R.string.started_recording,
+            ServiceMessageHUD.MessageType.DISAPPEARING
+        )
+
         Log.i(TAG, "Started recording new gesture pattern")
     }
 
     /**
-     * Stops recording the current gesture pattern.
+     * Saves the current recording.
      */
-    fun stopRecording(context: Context) {
+    fun saveRecording(context: Context) {
         if (!isRecording) {
             Log.w(TAG, "No recording in progress")
             return
@@ -84,6 +90,7 @@ object GesturePatternRecorder {
     fun cancelRecording() {
         if (isRecording) {
             recordedGestures.clear()
+            isRecording = false
             ServiceMessageHUD.instance.showMessage(
                 R.string.recording_canceled,
                 ServiceMessageHUD.MessageType.DISAPPEARING

@@ -14,7 +14,8 @@
 
     <!-- Gesture Patterns -->
     <string name="start_recording">Start Recording</string>
-    <string name="stop_recording">Stop Recording</string>
+    <string name="started_recording">Started recording new gesture pattern. Perform your gestures to add them to the pattern. When you\'re done, open the Gesture Patterns menu to save it.</string>
+    <string name="save_recording">Save Recording</string>
     <string name="cancel_recording">Cancel Recording</string>
     <string name="saved_gesture_pattern">Saved gesture pattern. You can give it a more descriptive name in the app settings.</string>
     <string name="recording_canceled">Recording canceled. It will not be saved.</string>
