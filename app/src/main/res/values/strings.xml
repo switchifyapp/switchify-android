@@ -224,9 +224,11 @@
     <string name="gesture_patterns_description">Manage your custom gesture patterns. You can edit their names or delete them.</string>
     <string name="gesture_patterns_title">Gesture Patterns</string>
     <string name="gesture_patterns_empty">No gesture patterns found. Create patterns in the Gesture Patterns menu of the accessibility service.</string>
-    <string name="gesture_patterns_delete_confirmation">Are you sure you want to delete this gesture pattern?</string>
     <string name="edit_pattern">Edit pattern</string>
     <string name="delete_pattern">Delete pattern</string>
+    <string name="delete_pattern_confirmation">Delete Pattern</string>
+    <string name="delete_pattern_confirmation_message">Are you sure you want to delete the pattern "%1$s"? This action cannot be undone.</string>
+    <string name="delete">Delete</string>
     <string name="edit_pattern_name">Edit Pattern Name</string>
     <string name="pattern_name">Pattern Name</string>
     <string name="cancel">Cancel</string>

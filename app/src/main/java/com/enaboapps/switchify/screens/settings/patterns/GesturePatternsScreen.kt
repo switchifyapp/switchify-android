@@ -25,6 +25,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -53,6 +56,10 @@ fun GesturePatternsScreen(navController: NavController) {
     val isEditDialogVisible by viewModel.isEditDialogVisible.collectAsState()
     val selectedPattern by viewModel.selectedPattern.collectAsState()
     val newPatternName by viewModel.newPatternName.collectAsState()
+    
+    // State for delete confirmation dialog
+    var showDeleteConfirmation by remember { mutableStateOf(false) }
+    var patternToDelete by remember { mutableStateOf<GesturePattern?>(null) }
 
     // Edit Dialog
     if (isEditDialogVisible && selectedPattern != null) {
@@ -61,6 +68,27 @@ fun GesturePatternsScreen(navController: NavController) {
             onNameChange = { viewModel.updatePatternName(it) },
             onDismiss = { viewModel.hideEditDialog() },
             onSave = { viewModel.savePatternName() }
+        )
+    }
+    
+    // Delete Confirmation Dialog
+    if (showDeleteConfirmation && patternToDelete != null) {
+        DeleteConfirmationDialog(
+            patternName = patternToDelete!!.name,
+            onConfirm = {
+                viewModel.deletePattern(patternToDelete!!)
+                Toast.makeText(
+                    context,
+                    context.getString(R.string.pattern_deleted_message),
+                    Toast.LENGTH_SHORT
+                ).show()
+                showDeleteConfirmation = false
+                patternToDelete = null
+            },
+            onDismiss = {
+                showDeleteConfirmation = false
+                patternToDelete = null
+            }
         )
     }
 
@@ -88,12 +116,8 @@ fun GesturePatternsScreen(navController: NavController) {
                         pattern = pattern,
                         onEdit = { viewModel.showEditDialog(pattern) },
                         onDelete = {
-                            viewModel.deletePattern(pattern)
-                            Toast.makeText(
-                                context,
-                                context.getString(R.string.pattern_deleted_message),
-                                Toast.LENGTH_SHORT
-                            ).show()
+                            patternToDelete = pattern
+                            showDeleteConfirmation = true
                         }
                     )
                 }
@@ -191,6 +215,55 @@ private fun EditPatternNameDialog(
 
                     Button(onClick = onSave) {
                         Text(stringResource(R.string.save))
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DeleteConfirmationDialog(
+    patternName: String,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+            ) {
+                Text(
+                    text = stringResource(R.string.delete_pattern_confirmation),
+                    style = MaterialTheme.typography.titleLarge,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+                
+                Text(
+                    text = stringResource(R.string.delete_pattern_confirmation_message, patternName),
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    TextButton(onClick = onDismiss) {
+                        Text(stringResource(R.string.cancel))
+                    }
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    Button(onClick = onConfirm) {
+                        Text(stringResource(R.string.delete))
                     }
                 }
             }
