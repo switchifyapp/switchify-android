@@ -16,7 +16,31 @@ data class GestureData(
         const val DRAG_DURATION = 1500L
         const val HOLD_BEFORE_DRAG_DURATION = 400L
         const val SCROLL_DURATION = 800L
+        const val ZOOM_DURATION = 500L
     }
+
+    fun duration(): Long = when (gestureType) {
+        GestureType.TAP -> TAP_DURATION
+        GestureType.DOUBLE_TAP -> DOUBLE_TAP_INTERVAL
+        GestureType.TAP_AND_HOLD -> TAP_AND_HOLD_DURATION
+        GestureType.SWIPE_UP,
+        GestureType.SWIPE_DOWN,
+        GestureType.SWIPE_LEFT,
+        GestureType.SWIPE_RIGHT,
+        GestureType.CUSTOM_SWIPE -> SWIPE_DURATION
+
+        GestureType.DRAG,
+        GestureType.HOLD_AND_DRAG -> DRAG_DURATION
+
+        GestureType.ZOOM_IN,
+        GestureType.ZOOM_OUT -> ZOOM_DURATION
+
+        GestureType.SCROLL_UP,
+        GestureType.SCROLL_DOWN,
+        GestureType.SCROLL_LEFT,
+        GestureType.SCROLL_RIGHT -> SCROLL_DURATION
+    }
+
 
     fun isScroll(): Boolean {
         return gestureType == GestureType.SCROLL_UP ||

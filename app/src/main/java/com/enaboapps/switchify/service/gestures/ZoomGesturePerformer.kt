@@ -5,6 +5,7 @@ import android.accessibilityservice.GestureDescription
 import android.graphics.Path
 import android.graphics.PointF
 import android.util.Log
+import com.enaboapps.switchify.service.gestures.data.GestureData
 import com.enaboapps.switchify.service.gestures.data.GestureType
 import com.enaboapps.switchify.service.gestures.visuals.ZoomVisual
 import com.enaboapps.switchify.service.utils.ScreenUtils
@@ -12,7 +13,6 @@ import com.enaboapps.switchify.service.utils.ScreenUtils
 object ZoomGesturePerformer {
 
     private const val TAG = "ZoomGesturePerformer"
-    private const val DEFAULT_ZOOM_DURATION = 500L // Adjusted duration in milliseconds
     private const val ZOOM_AMOUNT_DP = 300 // Zoom amount in density-independent pixels (dp)
     private const val VERTICAL_OFFSET_DP = 100 // Vertical offset for natural gesture
     private const val VISUAL_CIRCLE_SIZE_DP = 120 // Size of the visual circle in dp
@@ -55,7 +55,7 @@ object ZoomGesturePerformer {
             centerPoint.x.toFloat(),
             centerPoint.y.toFloat(),
             visualCircleSize,
-            DEFAULT_ZOOM_DURATION,
+            GestureData.ZOOM_DURATION,
             type == GestureType.ZOOM_IN
         )
 
@@ -100,8 +100,8 @@ object ZoomGesturePerformer {
 
         // Build the gesture description with the defined paths and duration
         val gestureBuilder = GestureDescription.Builder()
-        val stroke1 = GestureDescription.StrokeDescription(path1, 0, DEFAULT_ZOOM_DURATION)
-        val stroke2 = GestureDescription.StrokeDescription(path2, 0, DEFAULT_ZOOM_DURATION)
+        val stroke1 = GestureDescription.StrokeDescription(path1, 0, GestureData.ZOOM_DURATION)
+        val stroke2 = GestureDescription.StrokeDescription(path2, 0, GestureData.ZOOM_DURATION)
         gestureBuilder.addStroke(stroke1).addStroke(stroke2)
 
         val gestureDescription = gestureBuilder.build()
