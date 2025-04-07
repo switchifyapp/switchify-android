@@ -79,6 +79,19 @@ object GesturePatternRecorder {
     }
 
     /**
+     * Cancels the current recording.
+     */
+    fun cancelRecording() {
+        if (isRecording) {
+            recordedGestures.clear()
+            ServiceMessageHUD.instance.showMessage(
+                R.string.recording_canceled,
+                ServiceMessageHUD.MessageType.DISAPPEARING
+            )
+        }
+    }
+
+    /**
      * Adds a gesture to the current recording.
      *
      * @param gesture The gesture data to add

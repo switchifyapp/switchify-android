@@ -103,6 +103,13 @@ class GestureMenuStructure(private val context: Context) {
                             action = { GesturePatternRecorder.startRecording() }
                         )
                     },
+                    if (GesturePatternRecorder.isRecording()) {
+                        MenuItem(
+                            id = "cancel_recording",
+                            textResource = R.string.cancel_recording,
+                            action = { GesturePatternRecorder.cancelRecording() }
+                        )
+                    } else null
                 ))
     }
 

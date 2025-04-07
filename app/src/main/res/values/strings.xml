@@ -15,7 +15,9 @@
     <!-- Gesture Patterns -->
     <string name="start_recording">Start Recording</string>
     <string name="stop_recording">Stop Recording</string>
+    <string name="cancel_recording">Cancel Recording</string>
     <string name="saved_gesture_pattern">Saved gesture pattern. You can give it a more descriptive name in the app settings.</string>
+    <string name="recording_canceled">Recording canceled. It will not be saved.</string>
 
     <!-- Scanning Method Messages -->
     <string name="radar_trial_timer_expired">Radar scan trial expired. Switching to cursor scan.</string>
