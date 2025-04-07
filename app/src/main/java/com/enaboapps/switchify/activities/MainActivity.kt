@@ -12,7 +12,7 @@ import com.enaboapps.switchify.backend.iap.IAPHandler
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.nav.NavGraph
 import com.enaboapps.switchify.service.actions.custom.store.ActionStore
-import com.enaboapps.switchify.service.gestures.data.store.GesturePatternStore
+import com.enaboapps.switchify.service.gestures.patterns.store.GesturePatternStore
 import com.enaboapps.switchify.switches.SwitchEventStore
 import com.enaboapps.switchify.utils.Logger
 import com.enaboapps.switchify.utils.Resources

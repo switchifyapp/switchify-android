@@ -6,7 +6,7 @@ import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.service.gestures.GestureManager
 import com.enaboapps.switchify.service.gestures.GesturePatternRecorder
 import com.enaboapps.switchify.service.gestures.data.GestureType
-import com.enaboapps.switchify.service.gestures.data.store.GesturePatternStore
+import com.enaboapps.switchify.service.gestures.patterns.store.GesturePatternStore
 import com.enaboapps.switchify.service.menu.MenuItem
 import com.enaboapps.switchify.service.menu.MenuManager
 import com.enaboapps.switchify.service.menu.structure.MenuStructure
@@ -86,7 +86,7 @@ class GestureMenuStructure(private val context: Context) {
         )
     )
 
-    fun createGesturePatternsMenuStructure(): MenuStructure {
+    suspend fun createGesturePatternsMenuStructure(): MenuStructure {
         val gesturePatternStore = GesturePatternStore(context)
         val gesturePatterns = gesturePatternStore.getPatterns()
         val patterns = gesturePatterns.map { pattern ->
@@ -94,7 +94,7 @@ class GestureMenuStructure(private val context: Context) {
                 id = "gesture_pattern_${pattern.id}",
                 userProvidedText = pattern.name,
                 action = {
-                    // TODO: Implement action
+                    pattern.execute()
                 }
             )
         }

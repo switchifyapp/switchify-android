@@ -151,7 +151,7 @@ class GestureManager private constructor() {
     fun performGestureLockAction(): Boolean {
         if (isGestureLockEnabled()) {
             GestureLockManager.getInstance().getLockedGestureData()?.let { gestureData ->
-                return gestureData.performLockAction()
+                return gestureData.executeGesture()
             }
         }
         return false

@@ -4,8 +4,11 @@ import android.content.Context
 import android.util.Log
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.service.gestures.data.GestureData
-import com.enaboapps.switchify.service.gestures.data.store.GesturePatternStore
+import com.enaboapps.switchify.service.gestures.patterns.store.GesturePatternStore
 import com.enaboapps.switchify.service.window.ServiceMessageHUD
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 /**
  * Object responsible for recording new gesture patterns.
@@ -59,17 +62,20 @@ object GesturePatternRecorder {
             return
         }
 
-        val store = createGesturePatternStore(context)
+        val scope = CoroutineScope(Dispatchers.IO)
+        scope.launch {
+            val store = createGesturePatternStore(context)
 
-        val name = recordedGestures.joinToString(separator = ", ") { it.gestureType.name }
-        val patternId = store.addPattern(name, recordedGestures)
-        Log.i(TAG, "Saved gesture pattern with ID: $patternId")
-        recordedGestures.clear()
+            val name = recordedGestures.joinToString(separator = ", ") { it.gestureType.name }
+            val patternId = store.addPattern(name, recordedGestures)
+            Log.i(TAG, "Saved gesture pattern with ID: $patternId")
+            recordedGestures.clear()
 
-        ServiceMessageHUD.instance.showMessage(
-            R.string.saved_gesture_pattern,
-            ServiceMessageHUD.MessageType.DISAPPEARING
-        )
+            ServiceMessageHUD.instance.showMessage(
+                R.string.saved_gesture_pattern,
+                ServiceMessageHUD.MessageType.DISAPPEARING
+            )
+        }
     }
 
     /**
