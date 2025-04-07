@@ -13,9 +13,6 @@
     <string name="gesture_lock_timeout_disabled">Gesture Lock disabled.</string>
 
     <!-- Gesture Patterns -->
-    <string name="gesture_patterns_title">Gesture Patterns</string>
-    <string name="gesture_patterns_empty">You haven\'t created any gesture patterns yet. Tap the + button to add one.</string>
-    <string name="gesture_patterns_delete_confirmation">Are you sure you want to delete this gesture pattern?</string>
     <string name="start_recording">Start Recording</string>
     <string name="stop_recording">Stop Recording</string>
     <string name="saved_gesture_pattern">Saved gesture pattern. You can give it a more descriptive name in the app settings.</string>
@@ -221,6 +218,20 @@
     <string name="screen_title_edit_action">Edit Action</string>
     <string name="screen_title_select_app">Select App</string>
     <string name="screen_title_pro_yours">Switchify Pro Is Yours</string>
+
+    <!-- Gesture Patterns Screen -->
+    <string name="screen_title_gesture_patterns">Gesture Patterns</string>
+    <string name="gesture_patterns_description">Manage your custom gesture patterns. You can edit their names or delete them.</string>
+    <string name="gesture_patterns_title">Gesture Patterns</string>
+    <string name="gesture_patterns_empty">No gesture patterns found. Create patterns in the Gesture Patterns menu of the accessibility service.</string>
+    <string name="gesture_patterns_delete_confirmation">Are you sure you want to delete this gesture pattern?</string>
+    <string name="edit_pattern">Edit pattern</string>
+    <string name="delete_pattern">Delete pattern</string>
+    <string name="edit_pattern_name">Edit Pattern Name</string>
+    <string name="pattern_name">Pattern Name</string>
+    <string name="cancel">Cancel</string>
+    <string name="save">Save</string>
+    <string name="pattern_deleted_message">Pattern deleted</string>
 
     <!-- Screen Summaries -->
     <string name="screen_summary_settings">Tap here to adjust your settings.</string>

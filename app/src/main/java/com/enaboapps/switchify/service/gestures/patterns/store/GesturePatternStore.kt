@@ -82,6 +82,31 @@ class GesturePatternStore(context: Context) {
             Log.e(TAG, "Error updating pattern: ${e.message}")
         }
     }
+    
+    /**
+     * Updates just the name of an existing pattern in the database.
+     *
+     * @param id The ID of the pattern to be updated.
+     * @param name The new name for the pattern.
+     */
+    suspend fun updatePatternName(id: String, name: String) {
+        try {
+            // Get the existing pattern with its gestures
+            val existingPattern = withContext(Dispatchers.IO) {
+                dao.getPatternById(id)
+            } ?: return
+            
+            // Extract the gestures from the existing pattern
+            val gestures = existingPattern.gestures.map { it.toGestureData() }
+            
+            // Use the updatePattern method to update the name while preserving the gestures
+            updatePattern(id, name, gestures)
+            
+            Log.d(TAG, "Updated pattern name for ID: $id to: $name")
+        } catch (e: Exception) {
+            Log.e(TAG, "Error updating pattern name: ${e.message}")
+        }
+    }
 
     /**
      * Retrieves all patterns from local storage.
