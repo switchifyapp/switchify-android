@@ -232,7 +232,7 @@ class RadarManager(private val context: Context) : AccessTechniqueInterface {
     }
 
     private fun performTapAction() {
-        GestureManager.getInstance().performTap()
+        GestureManager.instance.performTap()
     }
 
     override fun resetForNextUse() {

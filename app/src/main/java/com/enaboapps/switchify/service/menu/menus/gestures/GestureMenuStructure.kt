@@ -4,12 +4,13 @@ import android.content.Context
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.service.gestures.GestureManager
+import com.enaboapps.switchify.service.gestures.GesturePatternRecorder
 import com.enaboapps.switchify.service.gestures.data.GestureType
 import com.enaboapps.switchify.service.menu.MenuItem
 import com.enaboapps.switchify.service.menu.MenuManager
 import com.enaboapps.switchify.service.menu.structure.MenuStructure
 
-class GestureMenuStructure(context: Context) {
+class GestureMenuStructure(private val context: Context) {
     private val preferenceManager = PreferenceManager(context)
     private val gestureLock =
         preferenceManager.getBooleanValue(PreferenceManager.Keys.PREFERENCE_KEY_GESTURE_LOCK)
@@ -18,7 +19,7 @@ class GestureMenuStructure(context: Context) {
         id = "tap",
         textResource = R.string.menu_item_tap,
         action = {
-            GestureManager.getInstance().performTap()
+            GestureManager.instance.performTap()
         }
     )
 
@@ -27,7 +28,7 @@ class GestureMenuStructure(context: Context) {
             id = "toggle_gesture_lock",
             textResource = R.string.system_gesture_lock,
             closeOnSelect = false,
-            action = { GestureManager.getInstance().toggleGestureLock() }
+            action = { GestureManager.instance.toggleGestureLock() }
         )
     } else null
 
@@ -38,12 +39,12 @@ class GestureMenuStructure(context: Context) {
             MenuItem(
                 id = "double_tap",
                 textResource = R.string.menu_item_double_tap,
-                action = { GestureManager.getInstance().performDoubleTap() }
+                action = { GestureManager.instance.performDoubleTap() }
             ),
             MenuItem(
                 id = "tap_and_hold",
                 textResource = R.string.menu_item_tap_and_hold,
-                action = { GestureManager.getInstance().performTapAndHold() }
+                action = { GestureManager.instance.performTapAndHold() }
             ),
             toggleGestureLockMenuItem
         )
@@ -67,12 +68,12 @@ class GestureMenuStructure(context: Context) {
             MenuItem(
                 id = "drag",
                 textResource = R.string.menu_item_drag,
-                action = { GestureManager.getInstance().startDragGesture() }
+                action = { GestureManager.instance.startDragGesture() }
             ),
             MenuItem(
                 id = "hold_and_drag",
                 textResource = R.string.menu_item_hold_and_drag,
-                action = { GestureManager.getInstance().startHoldAndDragGesture() }
+                action = { GestureManager.instance.startHoldAndDragGesture() }
             ),
             MenuItem(
                 id = "zoom_gestures",
@@ -84,39 +85,67 @@ class GestureMenuStructure(context: Context) {
         )
     )
 
+    fun createGesturePatternsMenuStructure(): MenuStructure {
+        return MenuStructure(
+            id = "gesture_patterns_menu",
+            items =
+                listOfNotNull(
+                    if (GesturePatternRecorder.isRecording() && GesturePatternRecorder.getRecordedGestureCount() > 0) {
+                        MenuItem(
+                            id = "save_recording",
+                            textResource = R.string.save_recording,
+                            action = { GesturePatternRecorder.saveRecording(context) }
+                        )
+                    } else if (!GesturePatternRecorder.isRecording()) {
+                        MenuItem(
+                            id = "start_recording",
+                            textResource = R.string.start_recording,
+                            action = { GesturePatternRecorder.startRecording() }
+                        )
+                    } else null,
+                    if (GesturePatternRecorder.isRecording()) {
+                        MenuItem(
+                            id = "cancel_recording",
+                            textResource = R.string.cancel_recording,
+                            action = { GesturePatternRecorder.cancelRecording() }
+                        )
+                    } else null
+                ))
+    }
+
     val swipeGesturesMenuObject = MenuStructure(
         id = "swipe_gestures_menu",
         items = listOfNotNull(
             MenuItem(
                 id = "swipe_up",
                 textResource = R.string.menu_item_swipe_up,
-                action = { GestureManager.getInstance().performSwipeOrScroll(GestureType.SWIPE_UP) }
+                action = { GestureManager.instance.performSwipeOrScroll(GestureType.SWIPE_UP) }
             ),
             MenuItem(
                 id = "swipe_down",
                 textResource = R.string.menu_item_swipe_down,
                 action = {
-                    GestureManager.getInstance().performSwipeOrScroll(GestureType.SWIPE_DOWN)
+                    GestureManager.instance.performSwipeOrScroll(GestureType.SWIPE_DOWN)
                 }
             ),
             MenuItem(
                 id = "swipe_left",
                 textResource = R.string.menu_item_swipe_left,
                 action = {
-                    GestureManager.getInstance().performSwipeOrScroll(GestureType.SWIPE_LEFT)
+                    GestureManager.instance.performSwipeOrScroll(GestureType.SWIPE_LEFT)
                 }
             ),
             MenuItem(
                 id = "swipe_right",
                 textResource = R.string.menu_item_swipe_right,
                 action = {
-                    GestureManager.getInstance().performSwipeOrScroll(GestureType.SWIPE_RIGHT)
+                    GestureManager.instance.performSwipeOrScroll(GestureType.SWIPE_RIGHT)
                 }
             ),
             MenuItem(
                 id = "custom_swipe",
                 textResource = R.string.menu_item_custom_swipe,
-                action = { GestureManager.getInstance().startCustomSwipe() }
+                action = { GestureManager.instance.startCustomSwipe() }
             ),
             toggleGestureLockMenuItem
         )
@@ -129,7 +158,7 @@ class GestureMenuStructure(context: Context) {
                 id = "zoom_in",
                 textResource = R.string.menu_item_zoom_in,
                 action = {
-                    GestureManager.getInstance()
+                    GestureManager.instance
                         .performZoom(GestureType.ZOOM_IN)
                 }
             ),
@@ -137,7 +166,7 @@ class GestureMenuStructure(context: Context) {
                 id = "zoom_out",
                 textResource = R.string.menu_item_zoom_out,
                 action = {
-                    GestureManager.getInstance()
+                    GestureManager.instance
                         .performZoom(GestureType.ZOOM_OUT)
                 }
             ),
@@ -151,7 +180,7 @@ class GestureMenuStructure(context: Context) {
             MenuItem(
                 id = "confirm",
                 textResource = R.string.menu_item_confirm,
-                action = { GestureManager.getInstance().endLinearGesture() }
+                action = { GestureManager.instance.endLinearGesture() }
             ),
             MenuItem(
                 id = "reselect",
@@ -163,7 +192,7 @@ class GestureMenuStructure(context: Context) {
             MenuItem(
                 id = "cancel",
                 textResource = R.string.menu_item_cancel,
-                action = { GestureManager.getInstance().cancelLinearGesture() }
+                action = { GestureManager.instance.cancelLinearGesture() }
             )
         )
     )

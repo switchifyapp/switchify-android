@@ -70,7 +70,7 @@ class CursorManager(private val context: Context) : AccessTechniqueInterface {
     private fun handleFinalSelectionPoint(x: Int, y: Int) {
         GesturePoint.x = x; GesturePoint.y = y
         SelectionHandler.setSelectAction {
-            GestureManager.getInstance().performTap()
+            GestureManager.instance.performTap()
         }
         SelectionHandler.performSelectionAction()
         blockManager.resetForNextUse()

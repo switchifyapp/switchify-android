@@ -11,7 +11,14 @@
     <string name="gesture_lock_enabled">Gesture Lock enabled. Choose a gesture to lock to your switch. You can disable it by holding your switch.</string>
     <string name="gesture_lock_disabled">Gesture Lock disabled. Your switches will now perform their default actions.</string>
     <string name="gesture_lock_timeout_disabled">Gesture Lock disabled.</string>
-    <string name="gesture_lock_invalid_gesture">Cannot lock drag or custom swipe gestures. Gesture Lock disabled.</string>
+
+    <!-- Gesture Patterns -->
+    <string name="start_recording">Start Recording</string>
+    <string name="started_recording">Started recording new gesture pattern. Perform your gestures to add them to the pattern. When you\'re done, open the Gesture Patterns menu to save it.</string>
+    <string name="save_recording">Save Recording</string>
+    <string name="cancel_recording">Cancel Recording</string>
+    <string name="saved_gesture_pattern">Saved gesture pattern. You can give it a more descriptive name in the app settings.</string>
+    <string name="recording_canceled">Recording canceled. It will not be saved.</string>
 
     <!-- Scanning Method Messages -->
     <string name="radar_trial_timer_expired">Radar scan trial expired. Switching to cursor scan.</string>
@@ -214,6 +221,22 @@
     <string name="screen_title_edit_action">Edit Action</string>
     <string name="screen_title_select_app">Select App</string>
     <string name="screen_title_pro_yours">Switchify Pro Is Yours</string>
+
+    <!-- Gesture Patterns Screen -->
+    <string name="screen_title_gesture_patterns">Gesture Patterns</string>
+    <string name="gesture_patterns_description">Manage your custom gesture patterns. You can edit their names or delete them.</string>
+    <string name="gesture_patterns_title">Gesture Patterns</string>
+    <string name="gesture_patterns_empty">No gesture patterns found. Create patterns in the Gesture Patterns menu of the accessibility service.</string>
+    <string name="edit_pattern">Edit pattern</string>
+    <string name="delete_pattern">Delete pattern</string>
+    <string name="delete_pattern_confirmation">Delete Pattern</string>
+    <string name="delete_pattern_confirmation_message">Are you sure you want to delete the pattern "%1$s"? This action cannot be undone.</string>
+    <string name="delete">Delete</string>
+    <string name="edit_pattern_name">Edit Pattern Name</string>
+    <string name="pattern_name">Pattern Name</string>
+    <string name="cancel">Cancel</string>
+    <string name="save">Save</string>
+    <string name="pattern_deleted_message">Pattern deleted</string>
 
     <!-- Screen Summaries -->
     <string name="screen_summary_settings">Tap here to adjust your settings.</string>

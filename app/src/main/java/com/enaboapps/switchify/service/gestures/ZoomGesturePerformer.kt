@@ -5,6 +5,7 @@ import android.accessibilityservice.GestureDescription
 import android.graphics.Path
 import android.graphics.PointF
 import android.util.Log
+import com.enaboapps.switchify.service.gestures.data.GestureData
 import com.enaboapps.switchify.service.gestures.data.GestureType
 import com.enaboapps.switchify.service.gestures.visuals.ZoomVisual
 import com.enaboapps.switchify.service.utils.ScreenUtils
@@ -12,7 +13,6 @@ import com.enaboapps.switchify.service.utils.ScreenUtils
 object ZoomGesturePerformer {
 
     private const val TAG = "ZoomGesturePerformer"
-    private const val DEFAULT_ZOOM_DURATION = 500L // Adjusted duration in milliseconds
     private const val ZOOM_AMOUNT_DP = 300 // Zoom amount in density-independent pixels (dp)
     private const val VERTICAL_OFFSET_DP = 100 // Vertical offset for natural gesture
     private const val VISUAL_CIRCLE_SIZE_DP = 120 // Size of the visual circle in dp
@@ -24,8 +24,13 @@ object ZoomGesturePerformer {
      *
      * @param type The type of zoom action (ZOOM_IN or ZOOM_OUT).
      * @param accessibilityService The accessibility service used to dispatch gestures.
+     * @param point The starting point of the gesture.
      */
-    fun performZoomAction(type: GestureType, accessibilityService: AccessibilityService) {
+    fun performZoomAction(
+        type: GestureType,
+        accessibilityService: AccessibilityService,
+        point: PointF
+    ) {
         // Initialize zoom visual if needed
         if (zoomVisual == null) {
             zoomVisual = ZoomVisual(accessibilityService)
@@ -34,7 +39,8 @@ object ZoomGesturePerformer {
         // Retrieve the center point for the zoom gesture
         val centerPoint = getCenterPoint(
             ScreenUtils.getWidth(accessibilityService),
-            ScreenUtils.getHeight(accessibilityService)
+            ScreenUtils.getHeight(accessibilityService),
+            point
         )
         Log.d(TAG, "Center Point: (${centerPoint.x}, ${centerPoint.y})")
 
@@ -49,7 +55,7 @@ object ZoomGesturePerformer {
             centerPoint.x.toFloat(),
             centerPoint.y.toFloat(),
             visualCircleSize,
-            DEFAULT_ZOOM_DURATION,
+            GestureData.ZOOM_DURATION,
             type == GestureType.ZOOM_IN
         )
 
@@ -94,8 +100,8 @@ object ZoomGesturePerformer {
 
         // Build the gesture description with the defined paths and duration
         val gestureBuilder = GestureDescription.Builder()
-        val stroke1 = GestureDescription.StrokeDescription(path1, 0, DEFAULT_ZOOM_DURATION)
-        val stroke2 = GestureDescription.StrokeDescription(path2, 0, DEFAULT_ZOOM_DURATION)
+        val stroke1 = GestureDescription.StrokeDescription(path1, 0, GestureData.ZOOM_DURATION)
+        val stroke2 = GestureDescription.StrokeDescription(path2, 0, GestureData.ZOOM_DURATION)
         gestureBuilder.addStroke(stroke1).addStroke(stroke2)
 
         val gestureDescription = gestureBuilder.build()
@@ -132,12 +138,12 @@ object ZoomGesturePerformer {
      *
      * @param screenWidth The width of the screen.
      * @param screenHeight The height of the screen.
+     * @param point The starting point of the gesture.
      * @return The point for the center of the zoom gesture.
      */
-    private fun getCenterPoint(screenWidth: Int, screenHeight: Int): PointF {
-        val centerPoint = GesturePoint.getPoint()
-        var x = centerPoint.x
-        var y = centerPoint.y
+    private fun getCenterPoint(screenWidth: Int, screenHeight: Int, point: PointF): PointF {
+        var x = point.x
+        var y = point.y
 
         if (x + ZOOM_AMOUNT_DP * 2 > screenWidth) {
             x = (screenWidth - ZOOM_AMOUNT_DP * 2).toFloat()

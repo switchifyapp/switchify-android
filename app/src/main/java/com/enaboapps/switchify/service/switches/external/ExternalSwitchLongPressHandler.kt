@@ -38,8 +38,8 @@ object ExternalSwitchLongPressHandler {
             delay(holdTime)
 
             // Toggle gesture lock if enabled
-            if (GestureManager.getInstance().isGestureLockEnabled()) {
-                GestureManager.getInstance().toggleGestureLock()
+            if (GestureManager.instance.isGestureLockEnabled()) {
+                GestureManager.instance.toggleGestureLock()
                 return@launch
             }
 

@@ -9,12 +9,14 @@ import com.enaboapps.switchify.service.menu.structure.MenuStructureHolder
  * This class represents a base menu
  * @property accessibilityService The accessibility service
  * @property items The menu items
+ * @property dynamicLoad The suspend function that loads dynamic menu items
  * @property showSystemNavItems Whether to show system navigation items
  * @property showNavMenuItems Whether to show navigation menu items
  */
 open class BaseMenu(
     private val accessibilityService: SwitchifyAccessibilityService,
     private val items: List<MenuItem>,
+    private val dynamicLoad: (suspend () -> List<MenuItem>)? = null,
     private val showSystemNavItems: Boolean = true,
     private val showNavMenuItems: Boolean = true
 ) {
@@ -24,6 +26,14 @@ open class BaseMenu(
      */
     fun getMenuItems(): List<MenuItem> {
         return items
+    }
+
+    /**
+     * Get the dynamic menu items
+     * @return The dynamic menu items
+     */
+    suspend fun getDynamicMenuItems(): List<MenuItem>? {
+        return dynamicLoad?.invoke()
     }
 
     /**

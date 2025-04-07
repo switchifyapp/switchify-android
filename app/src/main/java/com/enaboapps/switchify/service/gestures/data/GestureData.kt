@@ -8,7 +8,6 @@ data class GestureData(
     val startPoint: PointF,
     val endPoint: PointF? = null
 ) {
-
     companion object {
         const val TAP_DURATION = 100L
         const val DOUBLE_TAP_INTERVAL = 250L
@@ -17,7 +16,31 @@ data class GestureData(
         const val DRAG_DURATION = 1500L
         const val HOLD_BEFORE_DRAG_DURATION = 400L
         const val SCROLL_DURATION = 800L
+        const val ZOOM_DURATION = 500L
     }
+
+    fun duration(): Long = when (gestureType) {
+        GestureType.TAP -> TAP_DURATION
+        GestureType.DOUBLE_TAP -> DOUBLE_TAP_INTERVAL
+        GestureType.TAP_AND_HOLD -> TAP_AND_HOLD_DURATION
+        GestureType.SWIPE_UP,
+        GestureType.SWIPE_DOWN,
+        GestureType.SWIPE_LEFT,
+        GestureType.SWIPE_RIGHT,
+        GestureType.CUSTOM_SWIPE -> SWIPE_DURATION
+
+        GestureType.DRAG,
+        GestureType.HOLD_AND_DRAG -> DRAG_DURATION
+
+        GestureType.ZOOM_IN,
+        GestureType.ZOOM_OUT -> ZOOM_DURATION
+
+        GestureType.SCROLL_UP,
+        GestureType.SCROLL_DOWN,
+        GestureType.SCROLL_LEFT,
+        GestureType.SCROLL_RIGHT -> SCROLL_DURATION
+    }
+
 
     fun isScroll(): Boolean {
         return gestureType == GestureType.SCROLL_UP ||
@@ -26,10 +49,10 @@ data class GestureData(
                 gestureType == GestureType.SCROLL_RIGHT
     }
 
-    fun performAutoScroll(gestureManager: GestureManager): Boolean {
+    fun performAutoScroll(): Boolean {
         when (gestureType) {
             GestureType.SCROLL_UP, GestureType.SCROLL_DOWN, GestureType.SCROLL_LEFT, GestureType.SCROLL_RIGHT -> {
-                gestureManager.performSwipeOrScroll(gestureType)
+                GestureManager.instance.performSwipeOrScroll(gestureType)
                 return true
             }
 
@@ -37,24 +60,29 @@ data class GestureData(
                 return false
             }
         }
-        return false
     }
 
-    fun performLockAction(gestureManager: GestureManager): Boolean {
+    fun executeGesture() {
         when (gestureType) {
             GestureType.TAP -> {
-                gestureManager.performTap()
-                return true
+                GestureManager.instance.performTap(
+                    x = startPoint.x.toInt(),
+                    y = startPoint.y.toInt()
+                )
             }
 
             GestureType.DOUBLE_TAP -> {
-                gestureManager.performDoubleTap()
-                return true
+                GestureManager.instance.performDoubleTap(
+                    x = startPoint.x.toInt(),
+                    y = startPoint.y.toInt()
+                )
             }
 
             GestureType.TAP_AND_HOLD -> {
-                gestureManager.performTapAndHold()
-                return true
+                GestureManager.instance.performTapAndHold(
+                    x = startPoint.x.toInt(),
+                    y = startPoint.y.toInt()
+                )
             }
 
             GestureType.SWIPE_UP,
@@ -65,17 +93,17 @@ data class GestureData(
             GestureType.SCROLL_DOWN,
             GestureType.SCROLL_LEFT,
             GestureType.SCROLL_RIGHT -> {
-                gestureManager.performSwipeOrScroll(gestureType)
-                return true
+                GestureManager.instance.performSwipeOrScroll(gestureType, startPoint)
+            }
+
+            GestureType.CUSTOM_SWIPE,
+            GestureType.DRAG,
+            GestureType.HOLD_AND_DRAG -> {
+                GestureManager.instance.performCustomGestureAction(this)
             }
 
             GestureType.ZOOM_IN, GestureType.ZOOM_OUT -> {
-                gestureManager.performZoom(gestureType)
-                return true
-            }
-
-            else -> {
-                return false
+                GestureManager.instance.performZoom(gestureType, startPoint)
             }
         }
     }

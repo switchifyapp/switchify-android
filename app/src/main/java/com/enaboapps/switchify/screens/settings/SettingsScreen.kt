@@ -143,6 +143,12 @@ private fun GesturesSettingsSection(navController: NavController) {
             navController = navController,
             route = NavigationRoute.GestureSettings.name
         )
+        NavRouteLink(
+            titleResId = R.string.screen_title_gesture_patterns,
+            summaryResId = R.string.gesture_patterns_description,
+            navController = navController,
+            route = NavigationRoute.GesturePatterns.name
+        )
     }
 }
 

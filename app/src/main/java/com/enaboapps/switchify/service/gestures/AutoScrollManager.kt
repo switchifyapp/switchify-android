@@ -73,7 +73,7 @@ class AutoScrollManager private constructor() {
         isAutoScrolling = true
         scrollJob = scope.launch {
             while (isAutoScrolling) {
-                gestureData.performAutoScroll(GestureManager.getInstance())
+                gestureData.performAutoScroll()
                 if (isAutoScrolling) delay(getAutoScrollDelay())
             }
         }

@@ -1,6 +1,5 @@
 package com.enaboapps.switchify.service.gestures
 
-import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.GestureDescription
 import android.graphics.Path
 import android.graphics.PointF
@@ -20,19 +19,7 @@ import com.enaboapps.switchify.service.techniques.nodes.NodeExaminer
  */
 class GestureManager private constructor() {
     companion object {
-        private var instance: GestureManager? = null
-
-        /**
-         * Gets the singleton instance of the GestureManager.
-         *
-         * @return The GestureManager instance.
-         */
-        fun getInstance(): GestureManager {
-            if (instance == null) {
-                instance = GestureManager()
-            }
-            return instance!!
-        }
+        val instance: GestureManager by lazy { GestureManager() }
     }
 
     private var accessibilityService: SwitchifyAccessibilityService? = null
@@ -74,7 +61,6 @@ class GestureManager private constructor() {
     fun performTap(x: Int? = null, y: Int? = null) {
         try {
             accessibilityService?.let {
-                val path = Path()
                 var point = if (x != null && y != null) {
                     PointF(x.toFloat(), y.toFloat())
                 } else {
@@ -86,24 +72,7 @@ class GestureManager private constructor() {
                     point.y.toInt(),
                     TAP_DURATION
                 )
-                path.moveTo(point.x, point.y)
-                GestureLockManager.getInstance().setLockedGestureData(
-                    GestureData(
-                        GestureType.TAP,
-                        point
-                    )
-                )
-                val gestureDescription = GestureDescription.Builder()
-                    .addStroke(GestureDescription.StrokeDescription(path, 0, TAP_DURATION)).build()
-                it.dispatchGesture(
-                    gestureDescription,
-                    object : AccessibilityService.GestureResultCallback() {
-                        override fun onCompleted(gestureDescription: GestureDescription?) {
-                            super.onCompleted(gestureDescription)
-                        }
-                    },
-                    null
-                )
+                dispatchGesture(it, point, null, GestureType.TAP, TAP_DURATION)
             }
         } catch (e: Exception) {
             // Log.e(TAG, "onTap: ", e)
@@ -112,40 +81,48 @@ class GestureManager private constructor() {
 
     /**
      * Performs a double tap gesture at the current point.
+     *
+     * @param x The x coordinate of the tap gesture. If null, the current point will be used.
+     * @param y The y coordinate of the tap gesture. If null, the current point will be used.
      */
-    fun performDoubleTap() {
+    fun performDoubleTap(x: Int? = null, y: Int? = null) {
         try {
             accessibilityService?.let {
-                val path = Path()
-                val point = getAssistedCurrentPoint()
+                var point = if (x != null && y != null) {
+                    PointF(x.toFloat(), y.toFloat())
+                } else {
+                    getAssistedCurrentPoint()
+                }
                 val gestureDrawing = GestureDrawing(it)
                 gestureDrawing.drawCircleAndRemove(
                     point.x.toInt(),
                     point.y.toInt(),
                     TAP_DURATION
                 )
-                path.moveTo(point.x, point.y)
-                GestureLockManager.getInstance().setLockedGestureData(
-                    GestureData(
-                        GestureType.DOUBLE_TAP,
-                        point
-                    )
+
+                // Create first tap stroke
+                val firstTapPath = Path().apply { moveTo(point.x, point.y) }
+                val firstTapStroke = GestureDescription.StrokeDescription(
+                    firstTapPath,
+                    0,
+                    TAP_DURATION
                 )
-                val tap1 = GestureDescription.StrokeDescription(path, 0, TAP_DURATION)
-                val tap2 =
-                    GestureDescription.StrokeDescription(path, DOUBLE_TAP_INTERVAL, TAP_DURATION)
-                val gestureDescription = GestureDescription.Builder()
-                    .addStroke(tap1)
-                    .addStroke(tap2)
-                    .build()
-                it.dispatchGesture(
-                    gestureDescription,
-                    object : AccessibilityService.GestureResultCallback() {
-                        override fun onCompleted(gestureDescription: GestureDescription?) {
-                            super.onCompleted(gestureDescription)
-                        }
-                    },
-                    null
+
+                // Create second tap stroke
+                val secondTapPath = Path().apply { moveTo(point.x, point.y) }
+                val secondTapStroke = GestureDescription.StrokeDescription(
+                    secondTapPath,
+                    DOUBLE_TAP_INTERVAL,
+                    TAP_DURATION
+                )
+
+                // Dispatch both taps together
+                dispatchGesture(
+                    it,
+                    point,
+                    null,
+                    GestureType.DOUBLE_TAP,
+                    arrayOf(firstTapStroke, secondTapStroke)
                 )
             }
         } catch (e: Exception) {
@@ -155,37 +132,25 @@ class GestureManager private constructor() {
 
     /**
      * Performs a tap and hold gesture at the current point.
+     *
+     * @param x The x coordinate of the tap gesture. If null, the current point will be used.
+     * @param y The y coordinate of the tap gesture. If null, the current point will be used.
      */
-    fun performTapAndHold() {
+    fun performTapAndHold(x: Int? = null, y: Int? = null) {
         try {
             accessibilityService?.let {
-                val path = Path()
-                val point = getAssistedCurrentPoint()
+                var point = if (x != null && y != null) {
+                    PointF(x.toFloat(), y.toFloat())
+                } else {
+                    getAssistedCurrentPoint()
+                }
                 val gestureDrawing = GestureDrawing(it)
                 gestureDrawing.drawCircleAndRemove(
                     point.x.toInt(),
                     point.y.toInt(),
                     TAP_AND_HOLD_DURATION
                 )
-                path.moveTo(point.x, point.y)
-                GestureLockManager.getInstance().setLockedGestureData(
-                    GestureData(
-                        GestureType.TAP_AND_HOLD,
-                        point
-                    )
-                )
-                val gestureDescription = GestureDescription.Builder()
-                    .addStroke(GestureDescription.StrokeDescription(path, 0, TAP_AND_HOLD_DURATION))
-                    .build()
-                it.dispatchGesture(
-                    gestureDescription,
-                    object : AccessibilityService.GestureResultCallback() {
-                        override fun onCompleted(gestureDescription: GestureDescription?) {
-                            super.onCompleted(gestureDescription)
-                        }
-                    },
-                    null
-                )
+                dispatchGesture(it, point, null, GestureType.TAP_AND_HOLD, TAP_AND_HOLD_DURATION)
             }
         } catch (e: Exception) {
             // Log.e(TAG, "onTapAndHold: ", e)
@@ -198,13 +163,10 @@ class GestureManager private constructor() {
      * @return True if a locked gesture action was performed, false otherwise.
      */
     fun performGestureLockAction(): Boolean {
-        if (GestureLockManager.getInstance().isGestureLockEngaged() == true) {
+        if (isGestureLockEnabled()) {
             GestureLockManager.getInstance().getLockedGestureData()?.let { gestureData ->
-                if (GestureLockManager.getInstance()
-                        .canLockGesture(gestureData.gestureType) == true
-                ) {
-                    return gestureData.performLockAction(this)
-                }
+                gestureData.executeGesture()
+                return true
             }
         }
         return false
@@ -227,15 +189,29 @@ class GestureManager private constructor() {
     }
 
     /**
+     * Performs a custom gesture action.
+     *
+     * @param gestureData The GestureData to perform.
+     * @return True if the gesture was performed, false otherwise.
+     */
+    fun performCustomGestureAction(gestureData: GestureData): Boolean {
+        linearGesturePerformer.startGesture(gestureData.gestureType, false, gestureData.startPoint)
+        linearGesturePerformer.endGesture(gestureData.endPoint)
+        return true
+    }
+
+    /**
      * Performs a swipe or scroll action.
      *
      * @param type The GestureType of the swipe.
+     * @param startPoint The starting point of the gesture.
      */
-    fun performSwipeOrScroll(type: GestureType) {
+    fun performSwipeOrScroll(type: GestureType, startPoint: PointF? = null) {
+        val point = startPoint ?: GesturePoint.getPoint()
         if (AutoScrollManager.getInstance()
-                .startAutoScroll(GestureData(type, GesturePoint.getPoint()))
+                .startAutoScroll(GestureData(type, point))
         ) return
-        linearGesturePerformer.startGesture(type)
+        linearGesturePerformer.startGesture(type, startingPoint = point)
         linearGesturePerformer.endGesture()
     }
 
@@ -287,16 +263,18 @@ class GestureManager private constructor() {
      * Performs a zoom action.
      *
      * @param type The type of zoom action to perform.
+     * @param startPoint The starting point of the gesture.
      */
-    fun performZoom(type: GestureType) {
+    fun performZoom(type: GestureType, startPoint: PointF? = null) {
+        val point = startPoint ?: GesturePoint.getPoint()
         GestureLockManager.getInstance().setLockedGestureData(
             GestureData(
                 type,
-                GesturePoint.getPoint()
+                point
             )
         )
         accessibilityService?.let {
-            ZoomGesturePerformer.performZoomAction(type, it)
+            ZoomGesturePerformer.performZoomAction(type, it, point)
         }
     }
 }

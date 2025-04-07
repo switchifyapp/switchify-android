@@ -88,7 +88,7 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
 
         scanSettings = ScanSettings(this)
 
-        GestureManager.Companion.getInstance().setup(this)
+        GestureManager.instance.setup(this)
         SelectionHandler.init(this)
 
         deviceLockObserver.startObserving(

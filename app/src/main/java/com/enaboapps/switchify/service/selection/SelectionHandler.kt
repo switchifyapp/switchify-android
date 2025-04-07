@@ -5,8 +5,8 @@ import com.enaboapps.switchify.service.gestures.GestureManager
 import com.enaboapps.switchify.service.gestures.GesturePoint
 import com.enaboapps.switchify.service.gestures.visuals.AutoTapVisual
 import com.enaboapps.switchify.service.menu.MenuManager
-import com.enaboapps.switchify.service.techniques.AccessTechnique
 import com.enaboapps.switchify.service.scanning.ScanSettings
+import com.enaboapps.switchify.service.techniques.AccessTechnique
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -70,7 +70,7 @@ object SelectionHandler {
      */
     fun performSelectionAction() {
         // Check if a linear gesture is in progress
-        if (GestureManager.getInstance().isPerformingLinearGesture()) {
+        if (GestureManager.instance.isPerformingLinearGesture()) {
             MenuManager.getInstance().openCustomGestureConfirmationMenu()
             return
         }
