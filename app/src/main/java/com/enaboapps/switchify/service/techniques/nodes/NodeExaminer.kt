@@ -91,7 +91,7 @@ object NodeExaminer {
 
                     // Enhanced node examination for actionable nodes
                     val newActionableNodes = newNodeInfos
-                        .filter { it.isClickable || it.isLongClickable }
+                        .filter { it.isClickable || it.isLongClickable || it.isFocusable }
                         .map { examineNodeContent(it) }
 
                     val width = ScreenUtils.getWidth(context)
