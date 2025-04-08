@@ -147,7 +147,9 @@ private fun PatternItem(
         ) {
             Text(
                 text = pattern.name,
-                style = MaterialTheme.typography.titleMedium
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.weight(1f),
+                maxLines = 1
             )
 
             Row {
