@@ -154,6 +154,10 @@ class Node(
         return height
     }
 
+    fun getBounds(): Rect {
+        return Rect(x, y, x + width, y + height)
+    }
+
     override fun getContentDescription(): String {
         return contentDescription
     }
