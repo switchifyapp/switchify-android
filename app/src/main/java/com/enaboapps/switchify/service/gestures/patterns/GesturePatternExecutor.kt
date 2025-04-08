@@ -12,8 +12,8 @@ class GesturePatternExecutor(private val gesturePattern: GesturePattern) {
     fun execute() {
         scope.launch {
             gesturePattern.gestures.forEach { gestureData ->
+                delay(gestureData.duration() + 800)
                 gestureData.executeGesture()
-                delay(gestureData.duration() + 5)
             }
         }
     }
