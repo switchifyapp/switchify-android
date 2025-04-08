@@ -120,7 +120,7 @@ class MainMenuStructure(private val accessibilityService: SwitchifyAccessibility
     )
 
     val menuManipulatorItems = listOfNotNull(
-        if (MenuManager.getInstance().menuHierarchy?.getTopMenu() != null) {
+        if (MenuManager.getInstance().menuHierarchy?.isAtFirstMenu() == false) {
             MenuItem(
                 id = "previous_menu",
                 drawableId = R.drawable.ic_previous_menu,

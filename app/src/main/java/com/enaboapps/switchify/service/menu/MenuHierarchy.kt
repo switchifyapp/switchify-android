@@ -59,6 +59,9 @@ class MenuHierarchy(
         return tree.lastOrNull()
     }
 
+    fun isAtFirstMenu(): Boolean {
+        return tree.size == 1
+    }
 
     override fun onMenuViewClosed() {}
 }
