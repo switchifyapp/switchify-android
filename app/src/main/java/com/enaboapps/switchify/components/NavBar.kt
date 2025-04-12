@@ -1,5 +1,6 @@
 package com.enaboapps.switchify.components
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
@@ -22,6 +23,8 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
@@ -38,15 +41,25 @@ fun NavBar(
     actions: List<NavBarAction> = emptyList()
 ) {
     val canGoBack = navController.previousBackStackEntry != null
+    val primaryColor = MaterialTheme.colorScheme.primary
+    val gradientColors = listOf(
+        primaryColor,
+        Color(primaryColor.red * 0.6f, primaryColor.green * 0.6f, primaryColor.blue * 0.6f)
+    )
 
     Surface(
-        color = MaterialTheme.colorScheme.surface,
-        contentColor = MaterialTheme.colorScheme.primary,
+        color = Color.Transparent,
+        contentColor = MaterialTheme.colorScheme.onPrimary,
         shadowElevation = 4.dp
     ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
+                .background(
+                    brush = Brush.verticalGradient(
+                        colors = gradientColors
+                    )
+                )
                 .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Top))
         ) {
             Row(
@@ -60,7 +73,8 @@ fun NavBar(
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
+                            contentDescription = "Back",
+                            tint = MaterialTheme.colorScheme.onPrimary
                         )
                     }
                 }
@@ -68,6 +82,7 @@ fun NavBar(
                 Text(
                     text = title,
                     style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.onPrimary,
                     modifier = Modifier
                         .weight(1f)
                         .padding(start = if (canGoBack) 0.dp else 16.dp)
@@ -77,7 +92,7 @@ fun NavBar(
                     TextButton(
                         onClick = action.onClick,
                         colors = ButtonDefaults.textButtonColors(
-                            contentColor = MaterialTheme.colorScheme.primary
+                            contentColor = MaterialTheme.colorScheme.onPrimary
                         )
                     ) {
                         Text(stringResource(action.textResId))
