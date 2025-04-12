@@ -6,6 +6,7 @@ import android.util.Log
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.backend.iap.IAPHandler
 import com.enaboapps.switchify.service.core.SwitchifyAccessibilityService
+import com.enaboapps.switchify.service.utils.ServiceUtils
 import com.enaboapps.switchify.service.window.ServiceMessageHUD
 
 /**
@@ -29,7 +30,7 @@ object AudioActionManager {
     }
 
     /**
-     * Shows a pro feature message using the ServiceMessageHUD.
+     * Shows a pro feature message using the ServiceMessageHUD and opens the pro upgrade screen.
      */
     private fun showProFeatureMessage() {
         ServiceMessageHUD.Companion.instance.showMessage(
@@ -37,6 +38,9 @@ object AudioActionManager {
             arrayOf(R.string.action_volume_control),
             ServiceMessageHUD.MessageType.DISAPPEARING
         )
+        accessibilityService?.let { service ->
+            ServiceUtils().openProUpgrade(service)
+        }
     }
 
     /**

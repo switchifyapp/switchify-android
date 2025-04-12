@@ -36,7 +36,8 @@ class GestureManager private constructor() {
         AutoScrollManager.getInstance().init(accessibilityService)
         preferenceManager = PreferenceManager(accessibilityService)
         linearGesturePerformer =
-            LinearGesturePerformer(accessibilityService, GestureLockManager.getInstance())
+            LinearGesturePerformer(accessibilityService, GestureLockManager.instance)
+        GestureLockManager.instance.init(accessibilityService)
     }
 
     /**
@@ -164,7 +165,7 @@ class GestureManager private constructor() {
      */
     fun performGestureLockAction(): Boolean {
         if (isGestureLockEnabled()) {
-            GestureLockManager.getInstance().getLockedGestureData()?.let { gestureData ->
+            GestureLockManager.instance.getLockedGestureData()?.let { gestureData ->
                 gestureData.executeGesture()
                 return true
             }
@@ -176,7 +177,7 @@ class GestureManager private constructor() {
      * Toggles the gesture lock on or off.
      */
     fun toggleGestureLock() {
-        GestureLockManager.getInstance().toggleGestureLock()
+        GestureLockManager.instance.toggleGestureLock()
     }
 
     /**
@@ -185,7 +186,7 @@ class GestureManager private constructor() {
      * @return True if the gesture lock is enabled, false otherwise.
      */
     fun isGestureLockEnabled(): Boolean {
-        return GestureLockManager.getInstance().isGestureLockEngaged() == true
+        return GestureLockManager.instance.isGestureLockEngaged() == true
     }
 
     /**
@@ -267,7 +268,7 @@ class GestureManager private constructor() {
      */
     fun performZoom(type: GestureType, startPoint: PointF? = null) {
         val point = startPoint ?: GesturePoint.getPoint()
-        GestureLockManager.getInstance().setLockedGestureData(
+        GestureLockManager.instance.setLockedGestureData(
             GestureData(
                 type,
                 point
