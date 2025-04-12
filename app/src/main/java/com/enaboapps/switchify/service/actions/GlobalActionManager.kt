@@ -5,6 +5,7 @@ import android.util.Log
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.backend.iap.IAPHandler
 import com.enaboapps.switchify.service.core.SwitchifyAccessibilityService
+import com.enaboapps.switchify.service.utils.ServiceUtils
 import com.enaboapps.switchify.service.window.ServiceMessageHUD
 
 /**
@@ -39,7 +40,7 @@ object GlobalActionManager {
     }
 
     /**
-     * Shows a pro feature message using the ServiceMessageHUD.
+     * Shows a pro feature message using the ServiceMessageHUD and opens the pro upgrade screen.
      *
      * @param feature The name of the pro feature being accessed
      */
@@ -49,6 +50,9 @@ object GlobalActionManager {
             arrayOf(feature),
             ServiceMessageHUD.MessageType.DISAPPEARING
         )
+        accessibilityService?.let { service ->
+            ServiceUtils().openProUpgrade(service)
+        }
     }
 
     /**

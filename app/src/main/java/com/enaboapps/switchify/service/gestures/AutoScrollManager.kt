@@ -65,7 +65,7 @@ class AutoScrollManager private constructor() {
      */
     fun startAutoScroll(gestureData: GestureData): Boolean {
         if (!isAutoScrollEnabledInPreferences() || isAutoScrolling || !gestureData.isScroll() || scrollJob != null) return false
-        if (GestureLockManager.getInstance().isLocked()) return false
+        if (GestureLockManager.instance.isLocked()) return false
         ServiceMessageHUD.instance.showMessage(
             R.string.hud_auto_scroll_started,
             ServiceMessageHUD.MessageType.DISAPPEARING

@@ -1,8 +1,10 @@
 package com.enaboapps.switchify.service.gestures
 
+import android.accessibilityservice.AccessibilityService
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.backend.iap.IAPHandler
 import com.enaboapps.switchify.service.gestures.data.GestureData
+import com.enaboapps.switchify.service.utils.ServiceUtils
 import com.enaboapps.switchify.service.window.ServiceMessageHUD
 import java.util.Timer
 import java.util.TimerTask
@@ -12,19 +14,14 @@ class GestureLockManager private constructor() {
     private var lockedGestureData: GestureData? = null
     private var timeoutTimer: Timer? = null
     private val lockTimeout = 60000L
+    private var accessibilityService: AccessibilityService? = null
 
     companion object {
-        private var instance: GestureLockManager? = null
+        val instance: GestureLockManager by lazy { GestureLockManager() }
+    }
 
-        /**
-         * Gets the singleton instance of the GestureLockManager.
-         * @return The singleton instance of the GestureLockManager.
-         */
-        fun getInstance(): GestureLockManager {
-            return instance ?: synchronized(this) {
-                instance ?: GestureLockManager().also { instance = it }
-            }
-        }
+    fun init(service: AccessibilityService) {
+        accessibilityService = service
     }
 
     // Function to lock/unlock the gesture lock, showing a message to the user
@@ -35,6 +32,9 @@ class GestureLockManager private constructor() {
                 arrayOf(R.string.system_gesture_lock),
                 ServiceMessageHUD.MessageType.DISAPPEARING
             )
+            accessibilityService?.let { service ->
+                ServiceUtils().openProUpgrade(service)
+            }
             return
         }
 

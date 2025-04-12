@@ -2,6 +2,8 @@ package com.enaboapps.switchify.service.utils
 
 import android.accessibilityservice.AccessibilityServiceInfo
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import android.view.accessibility.AccessibilityManager
 
 class ServiceUtils {
@@ -25,6 +27,20 @@ class ServiceUtils {
         context.startActivity(
             android.content.Intent(android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS)
         )
+    }
+
+    /**
+     * Opens the pro upgrade screen using deep link.
+     *
+     * @param context The context to start the activity
+     */
+    fun openProUpgrade(context: Context) {
+        val intent = Intent(Intent.ACTION_VIEW).apply {
+            data = Uri.parse("https://switchify.app/pro")
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            setPackage(context.packageName)
+        }
+        context.startActivity(intent)
     }
 
 }
