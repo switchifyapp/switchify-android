@@ -25,7 +25,7 @@ fun Section(
         Text(
             text = stringResource(titleResId).uppercase(),
             style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurface,
+            color = MaterialTheme.colorScheme.primary,
             modifier = Modifier.padding(horizontal = 16.dp)
         )
         Spacer(modifier = Modifier.height(8.dp))
