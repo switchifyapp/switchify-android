@@ -4,7 +4,6 @@ import android.accessibilityservice.AccessibilityService
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.backend.iap.IAPHandler
 import com.enaboapps.switchify.service.gestures.data.GestureData
-import com.enaboapps.switchify.service.utils.ServiceUtils
 import com.enaboapps.switchify.service.window.ServiceMessageHUD
 import java.util.Timer
 import java.util.TimerTask
@@ -26,34 +25,24 @@ class GestureLockManager private constructor() {
 
     // Function to lock/unlock the gesture lock, showing a message to the user
     fun toggleGestureLock() {
-        if (!IAPHandler.hasPurchasedPro()) {
-            ServiceMessageHUD.instance.showMessage(
-                R.string.pro_feature_message,
-                arrayOf(R.string.system_gesture_lock),
-                ServiceMessageHUD.MessageType.DISAPPEARING
-            )
-            accessibilityService?.let { service ->
-                ServiceUtils().openProUpgrade(service)
+        IAPHandler.runIfProPurchased(accessibilityService!!.applicationContext) {
+            stopTimer()
+
+            isLocked = !isLocked
+            if (isLocked) {
+                ServiceMessageHUD.instance.showMessage(
+                    R.string.gesture_lock_enabled,
+                    ServiceMessageHUD.MessageType.DISAPPEARING
+                )
+            } else {
+                ServiceMessageHUD.instance.showMessage(
+                    R.string.gesture_lock_disabled,
+                    ServiceMessageHUD.MessageType.DISAPPEARING
+                )
+
+                // Clear the locked gesture data
+                lockedGestureData = null
             }
-            return
-        }
-
-        stopTimer()
-
-        isLocked = !isLocked
-        if (isLocked) {
-            ServiceMessageHUD.instance.showMessage(
-                R.string.gesture_lock_enabled,
-                ServiceMessageHUD.MessageType.DISAPPEARING
-            )
-        } else {
-            ServiceMessageHUD.instance.showMessage(
-                R.string.gesture_lock_disabled,
-                ServiceMessageHUD.MessageType.DISAPPEARING
-            )
-
-            // Clear the locked gesture data
-            lockedGestureData = null
         }
     }
 

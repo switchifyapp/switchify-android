@@ -2,11 +2,8 @@ package com.enaboapps.switchify.service.actions
 
 import android.accessibilityservice.AccessibilityService
 import android.util.Log
-import com.enaboapps.switchify.R
 import com.enaboapps.switchify.backend.iap.IAPHandler
 import com.enaboapps.switchify.service.core.SwitchifyAccessibilityService
-import com.enaboapps.switchify.service.utils.ServiceUtils
-import com.enaboapps.switchify.service.window.ServiceMessageHUD
 
 /**
  * Centralized manager for performing global accessibility actions.
@@ -40,33 +37,14 @@ object GlobalActionManager {
     }
 
     /**
-     * Shows a pro feature message using the ServiceMessageHUD and opens the pro upgrade screen.
-     *
-     * @param feature The name of the pro feature being accessed
-     */
-    private fun showProFeatureMessage(feature: String) {
-        ServiceMessageHUD.Companion.instance.showMessage(
-            R.string.pro_feature_message,
-            arrayOf(feature),
-            ServiceMessageHUD.MessageType.DISAPPEARING
-        )
-        accessibilityService?.let { service ->
-            ServiceUtils().openProUpgrade(service)
-        }
-    }
-
-    /**
      * Navigate to the home screen.
      * This is a pro feature.
      *
      * @return true if successful, false otherwise
      */
     fun goHome(): Boolean =
-        if (IAPHandler.hasPurchasedPro()) {
+        IAPHandler.runIfProPurchased(accessibilityService!!.applicationContext) {
             performGlobalAction(AccessibilityService.GLOBAL_ACTION_HOME)
-        } else {
-            showProFeatureMessage("Home")
-            false
         }
 
     /**
@@ -84,11 +62,8 @@ object GlobalActionManager {
      * @return true if successful, false otherwise
      */
     fun openRecents(): Boolean =
-        if (IAPHandler.hasPurchasedPro()) {
+        IAPHandler.runIfProPurchased(accessibilityService!!.applicationContext) {
             performGlobalAction(AccessibilityService.GLOBAL_ACTION_RECENTS)
-        } else {
-            showProFeatureMessage("Recent Apps")
-            false
         }
 
     /**
@@ -98,11 +73,8 @@ object GlobalActionManager {
      * @return true if successful, false otherwise
      */
     fun openQuickSettings(): Boolean =
-        if (IAPHandler.hasPurchasedPro()) {
+        IAPHandler.runIfProPurchased(accessibilityService!!.applicationContext) {
             performGlobalAction(AccessibilityService.GLOBAL_ACTION_QUICK_SETTINGS)
-        } else {
-            showProFeatureMessage("Quick Settings")
-            false
         }
 
     /**
@@ -112,11 +84,8 @@ object GlobalActionManager {
      * @return true if successful, false otherwise
      */
     fun openNotifications(): Boolean =
-        if (IAPHandler.hasPurchasedPro()) {
+        IAPHandler.runIfProPurchased(accessibilityService!!.applicationContext) {
             performGlobalAction(AccessibilityService.GLOBAL_ACTION_NOTIFICATIONS)
-        } else {
-            showProFeatureMessage("Notifications")
-            false
         }
 
     /**

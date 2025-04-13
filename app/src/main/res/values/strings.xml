@@ -123,7 +123,7 @@
     <string name="hud_auto_scroll_stopped">Auto-Scroll Stopped</string>
 
     <!-- Pro Feature Messages -->
-    <string name="pro_feature_message">%1$s is a pro feature. Please purchase Switchify Pro to use it.</string>
+    <string name="pro_feature_message">This is a pro feature. Please purchase Switchify Pro to use it.</string>
 
     <!-- Menu Prompts -->
     <string name="menu_prompt_press_to_open">Press to open menu</string>

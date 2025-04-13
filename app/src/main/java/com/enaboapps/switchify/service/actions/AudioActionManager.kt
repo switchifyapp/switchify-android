@@ -3,11 +3,8 @@ package com.enaboapps.switchify.service.actions
 import android.content.Context
 import android.media.AudioManager
 import android.util.Log
-import com.enaboapps.switchify.R
 import com.enaboapps.switchify.backend.iap.IAPHandler
 import com.enaboapps.switchify.service.core.SwitchifyAccessibilityService
-import com.enaboapps.switchify.service.utils.ServiceUtils
-import com.enaboapps.switchify.service.window.ServiceMessageHUD
 
 /**
  * Centralized manager for performing audio-related actions.
@@ -30,38 +27,21 @@ object AudioActionManager {
     }
 
     /**
-     * Shows a pro feature message using the ServiceMessageHUD and opens the pro upgrade screen.
-     */
-    private fun showProFeatureMessage() {
-        ServiceMessageHUD.Companion.instance.showMessage(
-            R.string.pro_feature_message,
-            arrayOf(R.string.action_volume_control),
-            ServiceMessageHUD.MessageType.DISAPPEARING
-        )
-        accessibilityService?.let { service ->
-            ServiceUtils().openProUpgrade(service)
-        }
-    }
-
-    /**
      * Increase the volume of the accessibility stream.
      *
      * @return true if successful, false otherwise
      */
     fun volumeUp(): Boolean {
-        if (!IAPHandler.hasPurchasedPro()) {
-            showProFeatureMessage()
-            return false
+        return IAPHandler.runIfProPurchased(accessibilityService!!.applicationContext) {
+            audioManager?.let {
+                it.adjustStreamVolume(
+                    AudioManager.STREAM_ACCESSIBILITY,
+                    AudioManager.ADJUST_RAISE,
+                    AudioManager.FLAG_SHOW_UI
+                )
+                true
+            } == true
         }
-
-        return audioManager?.let {
-            it.adjustStreamVolume(
-                AudioManager.STREAM_ACCESSIBILITY,
-                AudioManager.ADJUST_RAISE,
-                AudioManager.FLAG_SHOW_UI
-            )
-            true
-        } == true
     }
 
     /**
@@ -70,19 +50,16 @@ object AudioActionManager {
      * @return true if successful, false otherwise
      */
     fun volumeDown(): Boolean {
-        if (!IAPHandler.hasPurchasedPro()) {
-            showProFeatureMessage()
-            return false
+        return IAPHandler.runIfProPurchased(accessibilityService!!.applicationContext) {
+            audioManager?.let {
+                it.adjustStreamVolume(
+                    AudioManager.STREAM_ACCESSIBILITY,
+                    AudioManager.ADJUST_LOWER,
+                    AudioManager.FLAG_SHOW_UI
+                )
+                true
+            } == true
         }
-
-        return audioManager?.let {
-            it.adjustStreamVolume(
-                AudioManager.STREAM_ACCESSIBILITY,
-                AudioManager.ADJUST_LOWER,
-                AudioManager.FLAG_SHOW_UI
-            )
-            true
-        } == true
     }
 
     /**
@@ -91,19 +68,16 @@ object AudioActionManager {
      * @return true if successful, false otherwise
      */
     fun setFullVolume(): Boolean {
-        if (!IAPHandler.hasPurchasedPro()) {
-            showProFeatureMessage()
-            return false
+        return IAPHandler.runIfProPurchased(accessibilityService!!.applicationContext) {
+            audioManager?.let {
+                it.setStreamVolume(
+                    AudioManager.STREAM_ACCESSIBILITY,
+                    it.getStreamMaxVolume(AudioManager.STREAM_ACCESSIBILITY),
+                    AudioManager.FLAG_SHOW_UI
+                )
+                true
+            } == true
         }
-
-        return audioManager?.let {
-            it.setStreamVolume(
-                AudioManager.STREAM_ACCESSIBILITY,
-                it.getStreamMaxVolume(AudioManager.STREAM_ACCESSIBILITY),
-                AudioManager.FLAG_SHOW_UI
-            )
-            true
-        } == true
     }
 
     /**
@@ -112,19 +86,16 @@ object AudioActionManager {
      * @return true if successful, false otherwise
      */
     fun mute(): Boolean {
-        if (!IAPHandler.hasPurchasedPro()) {
-            showProFeatureMessage()
-            return false
+        return IAPHandler.runIfProPurchased(accessibilityService!!.applicationContext) {
+            audioManager?.let {
+                it.setStreamVolume(
+                    AudioManager.STREAM_ACCESSIBILITY,
+                    0,
+                    AudioManager.FLAG_SHOW_UI
+                )
+                true
+            } == true
         }
-
-        return audioManager?.let {
-            it.setStreamVolume(
-                AudioManager.STREAM_ACCESSIBILITY,
-                0,
-                AudioManager.FLAG_SHOW_UI
-            )
-            true
-        } == true
     }
 
     /**
@@ -133,20 +104,16 @@ object AudioActionManager {
      * @return true if successful, false otherwise
      */
     fun setHalfVolume(): Boolean {
-        if (!IAPHandler.hasPurchasedPro()) {
-            showProFeatureMessage()
-            return false
+        return IAPHandler.runIfProPurchased(accessibilityService!!.applicationContext) {
+            audioManager?.let {
+                it.setStreamVolume(
+                    AudioManager.STREAM_ACCESSIBILITY,
+                    it.getStreamMaxVolume(AudioManager.STREAM_ACCESSIBILITY) / 2,
+                    AudioManager.FLAG_SHOW_UI
+                )
+                true
+            } == true
         }
-
-        return audioManager?.let {
-            val halfVolume = it.getStreamMaxVolume(AudioManager.STREAM_ACCESSIBILITY) / 2
-            it.setStreamVolume(
-                AudioManager.STREAM_ACCESSIBILITY,
-                halfVolume,
-                AudioManager.FLAG_SHOW_UI
-            )
-            true
-        } == true
     }
 
     /**
