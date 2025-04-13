@@ -3,9 +3,15 @@ package com.enaboapps.switchify.backend.iap
 import android.content.Context
 import android.util.Log
 import com.enaboapps.switchify.BuildConfig
+import com.enaboapps.switchify.R
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
+import com.enaboapps.switchify.service.utils.ServiceUtils
+import com.enaboapps.switchify.service.window.ServiceMessageHUD
 import com.enaboapps.switchify.utils.Logger
-import com.revenuecat.purchases.*
+import com.revenuecat.purchases.CustomerInfo
+import com.revenuecat.purchases.Purchases
+import com.revenuecat.purchases.PurchasesConfiguration
+import com.revenuecat.purchases.PurchasesError
 import com.revenuecat.purchases.interfaces.ReceiveCustomerInfoCallback
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -116,6 +122,28 @@ object IAPHandler {
                 }
             }
         )
+    }
+
+    /**
+     * Runs a block of code if the user has purchased the pro version
+     * If the user has not purchased the pro version, a pro feature message is shown and the user is redirected to the pro upgrade screen
+     *
+     * @param context The application context
+     * @param block The block of code to run if the user has purchased the pro version
+     * @return The result of the block
+     */
+    fun runIfProPurchased(context: Context, block: () -> Unit): Boolean {
+        if (hasPurchasedPro()) {
+            block()
+            return true
+        } else {
+            ServiceMessageHUD.instance.showMessage(
+                R.string.pro_feature_message,
+                ServiceMessageHUD.MessageType.DISAPPEARING
+            )
+            ServiceUtils().openProUpgrade(context)
+        }
+        return false
     }
 
     /**
