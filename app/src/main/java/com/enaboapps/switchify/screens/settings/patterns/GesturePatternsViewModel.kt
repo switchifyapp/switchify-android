@@ -74,4 +74,11 @@ class GesturePatternsViewModel : ViewModel() {
             loadPatterns() // Reload patterns after deletion
         }
     }
+
+    fun reorderPatterns(newOrder: List<GesturePattern>) {
+        viewModelScope.launch {
+            patternStore?.reorderPatterns(newOrder.map { it.id })
+            loadPatterns() // Reload patterns after reordering
+        }
+    }
 } 

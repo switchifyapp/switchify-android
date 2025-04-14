@@ -6,7 +6,7 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface GesturePatternDao {
     @Transaction
-    @Query("SELECT * FROM gesture_patterns")
+    @Query("SELECT * FROM gesture_patterns ORDER BY `order` ASC")
     fun getAllPatterns(): Flow<List<GesturePatternWithGestures>>
 
     @Transaction
@@ -27,4 +27,10 @@ interface GesturePatternDao {
 
     @Query("DELETE FROM gesture_data WHERE patternId = :patternId")
     suspend fun deleteGesturesForPattern(patternId: String)
+
+    @Query("UPDATE gesture_patterns SET `order` = :order WHERE id = :id")
+    suspend fun updatePatternOrder(id: String, order: Int)
+
+    @Query("SELECT MAX(`order`) FROM gesture_patterns")
+    suspend fun getMaxOrder(): Int?
 } 
