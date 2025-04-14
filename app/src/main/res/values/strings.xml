@@ -224,7 +224,7 @@
 
     <!-- Gesture Patterns Screen -->
     <string name="screen_title_gesture_patterns">Gesture Patterns</string>
-    <string name="gesture_patterns_description">Manage your custom gesture patterns. You can edit their names or delete them.</string>
+    <string name="gesture_patterns_description">Manage your custom gesture patterns. You can edit their names, reorder them, or delete them.</string>
     <string name="gesture_patterns_title">Gesture Patterns</string>
     <string name="gesture_patterns_empty">No gesture patterns found. Create patterns in the Gesture Patterns menu of the accessibility service.</string>
     <string name="edit_pattern">Edit pattern</string>
@@ -237,6 +237,7 @@
     <string name="cancel">Cancel</string>
     <string name="save">Save</string>
     <string name="pattern_deleted_message">Pattern deleted</string>
+    <string name="drag_to_reorder">Drag to reorder</string>
 
     <!-- Screen Summaries -->
     <string name="screen_summary_settings">Tap here to adjust your settings.</string>

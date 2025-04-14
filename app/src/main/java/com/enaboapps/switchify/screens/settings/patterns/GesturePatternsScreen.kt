@@ -1,6 +1,8 @@
 package com.enaboapps.switchify.screens.settings.patterns
 
 import android.widget.Toast
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -9,8 +11,11 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -30,7 +35,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -41,6 +48,7 @@ import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.Section
 import com.enaboapps.switchify.service.gestures.patterns.model.GesturePattern
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun GesturePatternsScreen(navController: NavController) {
     val context = LocalContext.current
@@ -56,10 +64,14 @@ fun GesturePatternsScreen(navController: NavController) {
     val isEditDialogVisible by viewModel.isEditDialogVisible.collectAsState()
     val selectedPattern by viewModel.selectedPattern.collectAsState()
     val newPatternName by viewModel.newPatternName.collectAsState()
-    
+
     // State for delete confirmation dialog
     var showDeleteConfirmation by remember { mutableStateOf(false) }
     var patternToDelete by remember { mutableStateOf<GesturePattern?>(null) }
+
+    // State for drag and drop
+    var draggedItem by remember { mutableStateOf<GesturePattern?>(null) }
+    var dragPosition by remember { mutableStateOf(0f) }
 
     // Edit Dialog
     if (isEditDialogVisible && selectedPattern != null) {
@@ -70,7 +82,7 @@ fun GesturePatternsScreen(navController: NavController) {
             onSave = { viewModel.savePatternName() }
         )
     }
-    
+
     // Delete Confirmation Dialog
     if (showDeleteConfirmation && patternToDelete != null) {
         DeleteConfirmationDialog(
@@ -94,8 +106,11 @@ fun GesturePatternsScreen(navController: NavController) {
 
     BaseView(
         titleResId = R.string.screen_title_gesture_patterns,
-        navController = navController
+        navController = navController,
+        enableScroll = false
     ) {
+        val density = LocalDensity.current
+
         Text(
             text = stringResource(R.string.gesture_patterns_description),
             style = MaterialTheme.typography.headlineSmall,
@@ -111,32 +126,85 @@ fun GesturePatternsScreen(navController: NavController) {
                     )
                 }
             } else {
-                patterns.forEach { pattern ->
-                    PatternItem(
-                        pattern = pattern,
-                        onEdit = { viewModel.showEditDialog(pattern) },
-                        onDelete = {
-                            patternToDelete = pattern
-                            showDeleteConfirmation = true
-                        }
-                    )
+                LazyColumn {
+                    items(patterns, { it.id }) { pattern ->
+                        PatternItem(
+                            pattern = pattern,
+                            onEdit = { viewModel.showEditDialog(pattern) },
+                            onDelete = {
+                                patternToDelete = pattern
+                                showDeleteConfirmation = true
+                            },
+                            isDragging = pattern == draggedItem,
+                            onDragStart = { draggedItem = pattern },
+                            onDragEnd = { draggedItem = null },
+                            onDrag = { offset ->
+                                val currentIndex = patterns.indexOf(pattern)
+                                dragPosition += offset
+
+                                // Calculate the new index based on the drag position
+                                val itemHeight = 12.dp
+                                val itemHeightPx = with(density) { itemHeight.toPx() }
+                                val threshold = itemHeightPx / 2
+
+                                val newIndex = when {
+                                    dragPosition < -threshold -> (currentIndex - 1).coerceAtLeast(0)
+                                    dragPosition > threshold -> (currentIndex + 1).coerceAtMost(
+                                        patterns.size - 1
+                                    )
+
+                                    else -> currentIndex
+                                }
+
+                                if (currentIndex != newIndex) {
+                                    val newOrder = patterns.toMutableList().apply {
+                                        removeAt(currentIndex)
+                                        add(newIndex, pattern)
+                                    }
+                                    viewModel.reorderPatterns(newOrder)
+                                    dragPosition = 0f
+                                }
+                            }
+                        )
+                    }
                 }
             }
         }
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun PatternItem(
     pattern: GesturePattern,
     onEdit: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    isDragging: Boolean,
+    onDragStart: () -> Unit,
+    onDragEnd: () -> Unit,
+    onDrag: (Float) -> Unit
 ) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .pointerInput(Unit) {
+                detectDragGesturesAfterLongPress(
+                    onDragStart = {
+                        onDragStart()
+                    },
+                    onDragEnd = {
+                        onDragEnd()
+                    },
+                    onDrag = { change, dragAmount ->
+                        change.consume()
+                        onDrag(dragAmount.y)
+                    }
+                )
+            },
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = if (isDragging) 8.dp else 2.dp
+        )
     ) {
         Row(
             modifier = Modifier
@@ -152,7 +220,10 @@ private fun PatternItem(
                 maxLines = 1
             )
 
-            Row {
+            Row(
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 IconButton(onClick = onEdit) {
                     Icon(
                         imageVector = Icons.Default.Edit,
@@ -166,6 +237,13 @@ private fun PatternItem(
                         contentDescription = stringResource(R.string.delete_pattern)
                     )
                 }
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                Icon(
+                    imageVector = Icons.Default.DragHandle,
+                    contentDescription = stringResource(R.string.drag_to_reorder)
+                )
             }
         }
     }
@@ -247,9 +325,12 @@ private fun DeleteConfirmationDialog(
                     style = MaterialTheme.typography.titleLarge,
                     modifier = Modifier.padding(bottom = 16.dp)
                 )
-                
+
                 Text(
-                    text = stringResource(R.string.delete_pattern_confirmation_message, patternName),
+                    text = stringResource(
+                        R.string.delete_pattern_confirmation_message,
+                        patternName
+                    ),
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.padding(bottom = 16.dp)
                 )

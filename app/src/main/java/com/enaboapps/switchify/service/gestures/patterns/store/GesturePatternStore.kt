@@ -33,7 +33,8 @@ class GesturePatternStore(context: Context) {
         return try {
             val newPattern = GesturePattern(gestures = gestures, name = name)
             withContext(Dispatchers.IO) {
-                dao.insertPattern(GesturePatternEntity.fromGesturePattern(newPattern))
+                val maxOrder = dao.getMaxOrder() ?: -1
+                dao.insertPattern(GesturePatternEntity.fromGesturePattern(newPattern, order = maxOrder + 1))
                 dao.insertGestures(gestures.map {
                     GestureDataEntity.fromGestureData(newPattern.id, it)
                 })
@@ -134,6 +135,28 @@ class GesturePatternStore(context: Context) {
         } catch (e: Exception) {
             Log.e(TAG, "Error getting pattern: ${e.message}")
             null
+        }
+    }
+
+    suspend fun updatePatternOrder(patternId: String, newOrder: Int) {
+        try {
+            withContext(Dispatchers.IO) {
+                dao.updatePatternOrder(patternId, newOrder)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error updating pattern order: ${e.message}")
+        }
+    }
+
+    suspend fun reorderPatterns(patternIds: List<String>) {
+        try {
+            withContext(Dispatchers.IO) {
+                patternIds.forEachIndexed { index, id ->
+                    dao.updatePatternOrder(id, index)
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error reordering patterns: ${e.message}")
         }
     }
 }
