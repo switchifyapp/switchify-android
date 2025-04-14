@@ -3,7 +3,6 @@ package com.enaboapps.switchify.service.scanning
 import android.os.Handler
 import android.os.Looper
 import com.enaboapps.switchify.service.actions.GlobalActionManager
-import com.enaboapps.switchify.service.actions.custom.ActionPerformer
 import com.enaboapps.switchify.service.core.SwitchifyAccessibilityService
 import com.enaboapps.switchify.service.gestures.AutoScrollManager
 import com.enaboapps.switchify.service.gestures.GestureManager
@@ -170,10 +169,6 @@ class ScanningManager(
             SwitchAction.ACTION_SYS_NOTIFICATIONS -> GlobalActionManager.openNotifications()
             SwitchAction.ACTION_SYS_LOCK_SCREEN -> GlobalActionManager.lockScreen()
             SwitchAction.ACTION_SYS_HEADSET_HOOK -> GlobalActionManager.toggleMediaPlayback()
-            SwitchAction.ACTION_PERFORM_USER_ACTION -> {
-                val actionPerformer = ActionPerformer(accessibilityService)
-                actionPerformer.performActionFromStore(action.extra?.myActionsId ?: "")
-            }
 
             else -> {} // Do nothing for ACTION_NONE
         }

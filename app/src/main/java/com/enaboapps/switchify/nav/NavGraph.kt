@@ -15,8 +15,6 @@ import com.enaboapps.switchify.screens.account.SignInScreen
 import com.enaboapps.switchify.screens.account.SignUpScreen
 import com.enaboapps.switchify.screens.paywall.AppPaywallScreen
 import com.enaboapps.switchify.screens.settings.SettingsScreen
-import com.enaboapps.switchify.screens.settings.actions.AddEditActionScreen
-import com.enaboapps.switchify.screens.settings.actions.MyActionsScreen
 import com.enaboapps.switchify.screens.settings.gestures.GestureSettingsScreen
 import com.enaboapps.switchify.screens.settings.menu.MenuSizeScreen
 import com.enaboapps.switchify.screens.settings.patterns.GesturePatternsScreen
@@ -99,19 +97,8 @@ fun NavGraph(navController: NavHostController) {
         composable(NavigationRoute.MenuSize.name) {
             MenuSizeScreen(navController)
         }
-        composable(NavigationRoute.MyActions.name) {
-            MyActionsScreen(navController)
-        }
         composable(NavigationRoute.EnableAccessibilityService.name) {
             EnableAccessibilityServiceScreen(navController)
-        }
-        composable(NavigationRoute.AddMyActionsMenuItem.name) {
-            AddEditActionScreen(navController)
-        }
-        composable("${NavigationRoute.EditMyActionsMenuItem.name}/{id}") {
-            it.arguments?.getString("id")?.let { id ->
-                AddEditActionScreen(navController, id)
-            }
         }
         composable(NavigationRoute.AutoScanSettings.name) {
             AutoScanSettingsScreen(navController)

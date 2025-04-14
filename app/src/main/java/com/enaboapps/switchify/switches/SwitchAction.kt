@@ -4,32 +4,13 @@ import com.enaboapps.switchify.R
 import com.enaboapps.switchify.utils.Resources
 import com.google.gson.annotations.SerializedName
 
-data class SwitchActionExtra(
-    @SerializedName("my_actions_id") val myActionsId: String? = null,
-    @SerializedName("my_action_name") val myActionName: String? = null
-) {
-    fun toMap(): Map<String, Any?> = mapOf(
-        "my_actions_id" to myActionsId,
-        "my_action_name" to myActionName
-    )
-}
-
 data class SwitchAction(
-    @SerializedName("id") val id: Int,
-    @SerializedName("extra") val extra: SwitchActionExtra? = null
+    @SerializedName("id") val id: Int
 ) {
     companion object {
         fun fromMap(map: Map<String, Any>): SwitchAction {
             val id = map["id"] as Int
-            val extra = map["extra"] as Map<*, *>?
-            return SwitchAction(
-                id,
-                extra?.let {
-                    SwitchActionExtra(
-                        it["my_actions_id"] as String,
-                        it["my_action_name"] as String
-                    )
-                })
+            return SwitchAction(id)
         }
 
         val actions: List<SwitchAction> = listOf(
@@ -46,8 +27,7 @@ data class SwitchAction(
             ACTION_SYS_QUICK_SETTINGS,
             ACTION_SYS_NOTIFICATIONS,
             ACTION_SYS_LOCK_SCREEN,
-            ACTION_SYS_HEADSET_HOOK,
-            ACTION_PERFORM_USER_ACTION
+            ACTION_SYS_HEADSET_HOOK
         ).map { SwitchAction(it) }
 
         const val ACTION_NONE = 0
@@ -64,33 +44,11 @@ data class SwitchAction(
         const val ACTION_SYS_NOTIFICATIONS = 11
         const val ACTION_SYS_LOCK_SCREEN = 12
         const val ACTION_SYS_HEADSET_HOOK = 13
-        const val ACTION_PERFORM_USER_ACTION = 14
     }
 
-    fun toMap(): Map<String, Any?> = mapOf(
-        "id" to id,
-        "extra" to extra?.toMap()
-    )
+    fun toMap(): Map<String, Any?> = mapOf("id" to id)
 
-    fun hasExtra(): Boolean = extra != null
-
-    fun isExtraAvailable(): Boolean = id == ACTION_PERFORM_USER_ACTION
-
-    fun getActionName(): String = when {
-        hasExtra() -> getActionNameWithExtra()
-        else -> getActionNameWithoutExtra()
-    }
-
-    private fun getActionNameWithExtra(): String = when (id) {
-        ACTION_PERFORM_USER_ACTION -> Resources.getString(
-            R.string.action_custom_with_name,
-            extra?.myActionName ?: ""
-        )
-
-        else -> getActionNameWithoutExtra()
-    }
-
-    private fun getActionNameWithoutExtra(): String = when (id) {
+    fun getActionName(): String = when (id) {
         ACTION_NONE -> Resources.getString(R.string.action_none)
         ACTION_SELECT -> Resources.getString(R.string.action_select)
         ACTION_STOP_SCANNING -> Resources.getString(R.string.action_stop_scan)
@@ -105,7 +63,6 @@ data class SwitchAction(
         ACTION_SYS_NOTIFICATIONS -> Resources.getString(R.string.system_notifications)
         ACTION_SYS_LOCK_SCREEN -> Resources.getString(R.string.system_lock_screen)
         ACTION_SYS_HEADSET_HOOK -> Resources.getString(R.string.action_headset)
-        ACTION_PERFORM_USER_ACTION -> Resources.getString(R.string.action_custom)
         else -> Resources.getString(R.string.unknown)
     }
 
@@ -124,7 +81,6 @@ data class SwitchAction(
         ACTION_SYS_NOTIFICATIONS -> Resources.getString(R.string.system_notifications_desc)
         ACTION_SYS_LOCK_SCREEN -> Resources.getString(R.string.system_lock_screen_desc)
         ACTION_SYS_HEADSET_HOOK -> Resources.getString(R.string.action_headset_desc)
-        ACTION_PERFORM_USER_ACTION -> Resources.getString(R.string.action_custom_desc)
         else -> Resources.getString(R.string.unknown)
     }
 }

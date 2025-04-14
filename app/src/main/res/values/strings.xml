@@ -79,11 +79,6 @@
     <string name="menu_item_copy">Copy</string>
     <string name="menu_item_paste">Paste</string>
 
-    <!-- Actions Section -->
-    <string name="actions_title">Actions</string>
-    <string name="actions_my_actions_title">My Actions</string>
-    <string name="actions_my_actions_summary">Customize your own actions</string>
-
     <!-- Access Techniques -->
     <string name="access_technique_item_scan">Item Scan</string>
     <string name="access_technique_desc_item_scan">Sequentially scanning the items on the screen</string>
@@ -169,11 +164,6 @@
     <string name="action_headset">Play/Pause Media or Answer/End Call</string>
     <string name="action_headset_desc">Play/Pause Media or Answer/End Call</string>
 
-    <!-- Custom Actions -->
-    <string name="action_custom">Perform My Own Action</string>
-    <string name="action_custom_desc">Perform an action</string>
-    <string name="action_custom_with_name">Perform %1$s</string>
-
     <!-- Miscellaneous -->
     <string name="unknown">Unknown</string>
 
@@ -216,10 +206,6 @@
     <string name="screen_title_switches">Switches</string>
     <string name="screen_title_add_switch">Add New Switch</string>
     <string name="screen_title_edit_switch">Edit Switch</string>
-    <string name="screen_title_my_actions">My Actions</string>
-    <string name="screen_title_add_action">Add Action</string>
-    <string name="screen_title_edit_action">Edit Action</string>
-    <string name="screen_title_select_app">Select App</string>
     <string name="screen_title_pro_yours">Switchify Pro Is Yours</string>
 
     <!-- Gesture Patterns Screen -->
@@ -473,8 +459,6 @@
     <string name="action_confirm_deletion_description">Are you sure you want to delete this action?</string>
     <string name="action_select_app">Select App</string>
     <string name="action_select_app_description">Will open %1$s</string>
-    <string name="actions_my_actions_desc">Customize your own actions</string>
-    <string name="actions_my_actions_empty">You haven\'t created any actions yet. Tap the + button to add one.</string>
     <string name="action_edit_summary">Edit this action</string>
     <string name="action_number">Number</string>
     <string name="action_number_desc">The number to call</string>
@@ -514,10 +498,6 @@
     <string name="switch_importing">Importing...</string>
     <string name="switch_edit_this_switch">Edit this switch</string>
     <string name="dialog_message_delete_switch_from_account">Are you sure you want to delete this switch from your account?</string>
-
-    <!-- My Actions Picker -->
-    <string name="action_perform_user_action">Perform User Action</string>
-    <string name="action_perform_user_action_desc">Perform an action</string>
 
     <!-- Gesture Settings Screen -->
     <string name="screen_title_gesture_settings">Gesture Settings</string>

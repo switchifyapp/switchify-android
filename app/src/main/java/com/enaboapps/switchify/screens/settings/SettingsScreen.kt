@@ -89,7 +89,6 @@ fun GeneralSettingsTab(settingsScreenModel: SettingsScreenModel, navController: 
         }
         GesturesSettingsSection(navController)
         MenuSection(settingsScreenModel, navController)
-        ActionsSection(navController)
     }
 }
 
@@ -168,18 +167,6 @@ private fun MenuSection(screenModel: SettingsScreenModel, navController: NavCont
             onCheckedChange = {
                 screenModel.setMenuTransparency(it)
             }
-        )
-    }
-}
-
-@Composable
-private fun ActionsSection(navController: NavController) {
-    Section(titleResId = R.string.settings_section_actions) {
-        NavRouteLink(
-            titleResId = R.string.settings_title_my_actions,
-            summaryResId = R.string.settings_summary_my_actions,
-            navController = navController,
-            route = NavigationRoute.MyActions.name
         )
     }
 }
