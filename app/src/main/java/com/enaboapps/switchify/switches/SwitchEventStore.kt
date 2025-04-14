@@ -238,37 +238,8 @@ class SwitchEventStore private constructor() {
         val hasName = switchEvent.name.isNotBlank()
         val hasCode = switchEvent.code.isNotBlank()
 
-        if (!validateExtra(switchEvent.pressAction.id, switchEvent.pressAction.extra)) {
-            Log.d(tag, "Press action extra is invalid")
-            return false
-        }
-
-        for (holdAction in switchEvent.holdActions) {
-            if (!validateExtra(holdAction.id, holdAction.extra)) {
-                Log.d(tag, "Hold action extra is invalid")
-                return false
-            }
-        }
-
         Log.d(tag, "Switch event validation - hasName: $hasName, hasCode: $hasCode")
         return hasName && hasCode
-    }
-
-    /**
-     * Validates the extra data for a switch action.
-     *
-     * @param type The type of the action
-     * @param extra The extra data to validate
-     * @return true if the extra data is valid for the action type, false otherwise
-     */
-    private fun validateExtra(type: Int, extra: SwitchActionExtra?): Boolean {
-        return when (type) {
-            SwitchAction.ACTION_PERFORM_USER_ACTION -> {
-                extra != null && extra.myActionsId != null && extra.myActionName != null
-            }
-
-            else -> true
-        }
     }
 
     /**

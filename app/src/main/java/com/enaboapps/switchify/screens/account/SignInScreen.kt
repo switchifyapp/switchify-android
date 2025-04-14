@@ -29,7 +29,6 @@ import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.FullWidthButton
 import com.enaboapps.switchify.components.TextArea
 import com.enaboapps.switchify.nav.NavigationRoute
-import com.enaboapps.switchify.service.actions.custom.store.ActionStore
 import com.enaboapps.switchify.utils.Resources
 import kotlinx.coroutines.launch
 
@@ -49,10 +48,6 @@ fun SignInScreen(navController: NavController) {
 
         // Listen for changes to user settings
         preferenceManager.preferenceSync.listenForSettingsChangesOnRemote()
-
-        // Pull actions from Firestore
-        val actionStore = ActionStore(context)
-        actionStore.pullActionsFromFirestore()
     }
 
     BaseView(

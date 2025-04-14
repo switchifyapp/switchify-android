@@ -28,7 +28,6 @@ import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.FullWidthButton
 import com.enaboapps.switchify.components.TextArea
-import com.enaboapps.switchify.service.actions.custom.store.ActionStore
 import com.enaboapps.switchify.utils.Resources
 import kotlinx.coroutines.launch
 
@@ -56,10 +55,6 @@ fun SignUpScreen(navController: NavController) {
 
         // Start listening for changes to the user's settings
         preferenceManager.preferenceSync.listenForSettingsChangesOnRemote()
-
-        // Push actions to Firestore
-        val actionStore = ActionStore(context)
-        actionStore.pushActionsToFirestore()
     }
 
     BaseView(

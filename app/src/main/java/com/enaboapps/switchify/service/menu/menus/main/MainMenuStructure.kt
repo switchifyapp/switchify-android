@@ -1,7 +1,6 @@
 package com.enaboapps.switchify.service.menu.menus.main
 
 import com.enaboapps.switchify.R
-import com.enaboapps.switchify.service.actions.custom.store.ActionStore
 import com.enaboapps.switchify.service.core.ServiceCore
 import com.enaboapps.switchify.service.core.SwitchifyAccessibilityService
 import com.enaboapps.switchify.service.gestures.GesturePoint
@@ -16,24 +15,6 @@ import com.enaboapps.switchify.service.utils.DeviceLockObserver
 class MainMenuStructure(private val accessibilityService: SwitchifyAccessibilityService) {
     private val gestureMenuStructure = GestureMenuStructure(accessibilityService)
     private val deviceLockObserver = DeviceLockObserver(accessibilityService)
-
-    private fun createMyActionsMenuItem(): MenuItem? {
-        if (deviceLockObserver.isUserUnlocked() != true) {
-            return null
-        }
-
-        val actionStore = ActionStore(accessibilityService)
-        if (actionStore.isEmpty()) {
-            return null
-        }
-
-        return MenuItem(
-            id = "my_actions",
-            textResource = R.string.menu_title_my_actions,
-            isLinkToMenu = true,
-            action = { MenuManager.getInstance().openMyActionsMenu() }
-        )
-    }
 
     val deviceItem = MenuItem(
         id = "device",
@@ -108,7 +89,6 @@ class MainMenuStructure(private val accessibilityService: SwitchifyAccessibility
                     }
                 )
             } else null,
-            createMyActionsMenuItem(),
             MenuItem(
                 id = "pause",
                 textResource = R.string.menu_item_pause,
