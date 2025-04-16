@@ -40,9 +40,9 @@ class ActiveAccessTechnique(private val context: Context) : AccessTechniqueObser
 
     val currentAccessTechnique: AccessTechniqueInterface
         get() = when {
-            KeyboardBridge.isKeyboardVisible -> {
+            KeyboardBridge.isKeyboardVisible && AccessTechnique.getCurrentTechnique() != AccessTechnique.Technique.MENU -> {
                 ensureKeyboardScannerStarted()
-                getKeyboardScanner().getScanTree()
+                getKeyboardScanner().scanTree
             }
 
             else -> when (AccessTechnique.getCurrentTechnique()) {
@@ -50,7 +50,7 @@ class ActiveAccessTechnique(private val context: Context) : AccessTechniqueObser
                 AccessTechnique.Technique.RADAR -> getRadarManager()
                 AccessTechnique.Technique.ITEM_SCAN -> {
                     ensureNodeScannerStarted()
-                    getNodeScanner().getScanTree()
+                    getNodeScanner().scanTree
                 }
 
                 AccessTechnique.Technique.MENU -> MenuManager.Companion.getInstance().menuHierarchy?.getTopMenu()?.scanTree
@@ -109,7 +109,7 @@ class ActiveAccessTechnique(private val context: Context) : AccessTechniqueObser
     }
 
     fun resetNodeScanner() {
-        getNodeScanner().getScanTree().stopScanningAndReset()
+        getNodeScanner().scanTree.stopScanningAndReset()
     }
 
     fun cleanup(currentTechnique: String) {
