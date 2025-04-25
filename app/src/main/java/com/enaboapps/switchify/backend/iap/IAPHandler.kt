@@ -5,6 +5,7 @@ import android.util.Log
 import com.enaboapps.switchify.BuildConfig
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
+import com.enaboapps.switchify.service.utils.DeviceLockObserver
 import com.enaboapps.switchify.service.utils.ServiceUtils
 import com.enaboapps.switchify.service.window.ServiceMessageHUD
 import com.enaboapps.switchify.utils.Logger
@@ -127,12 +128,18 @@ object IAPHandler {
     /**
      * Runs a block of code if the user has purchased the pro version
      * If the user has not purchased the pro version, a pro feature message is shown and the user is redirected to the pro upgrade screen
+     * If we are in direct boot mode, the block is run immediately
      *
      * @param context The application context
      * @param block The block of code to run if the user has purchased the pro version
      * @return The result of the block
      */
     fun runIfProPurchased(context: Context, block: () -> Unit): Boolean {
+        if (!DeviceLockObserver(context).isUserUnlocked()) {
+            block()
+            return true
+        }
+
         if (hasPurchasedPro()) {
             block()
             return true
