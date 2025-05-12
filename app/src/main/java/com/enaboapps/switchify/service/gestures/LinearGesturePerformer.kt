@@ -271,7 +271,7 @@ class LinearGesturePerformer(
      */
     private fun getDurationForGestureType(type: GestureType): Long {
         return when (type) {
-            GestureType.DRAG -> GestureData.DRAG_DURATION
+            GestureType.DRAG, GestureType.HOLD_AND_DRAG -> GestureData.DRAG_DURATION
             GestureType.SCROLL_UP, GestureType.SCROLL_DOWN, GestureType.SCROLL_LEFT, GestureType.SCROLL_RIGHT -> GestureData.SCROLL_DURATION
             else -> GestureData.SWIPE_DURATION
         }
