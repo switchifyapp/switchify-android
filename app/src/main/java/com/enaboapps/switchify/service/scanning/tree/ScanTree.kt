@@ -495,6 +495,15 @@ class ScanTree(
     }
 
     /**
+     * Checks if the scanning tree is empty.
+     *
+     * @return True if the scanning tree is empty, false otherwise.
+     */
+    fun isEmpty(): Boolean {
+        return tree.isEmpty()
+    }
+
+    /**
      * Resets the scanning tree to its initial state.
      */
     override fun resetForNextUse() {

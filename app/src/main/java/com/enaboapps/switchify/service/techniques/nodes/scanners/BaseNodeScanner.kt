@@ -13,39 +13,46 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 /**
  * Base class for node scanners that provides common functionality for both system and keyboard scanners.
+ * Implements improved handling of rapid updates using multiple detection windows.
  */
 abstract class BaseNodeScanner : ScanTreeCallback {
     protected lateinit var context: Context
     lateinit var scanTree: ScanTree
-    protected val coroutineScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
-    protected var revertToCursorJob: Job? = null
-    protected var lastNodeUpdateTime: Long = 0
-    protected var continuousUpdateJob: Job? = null
-    protected var rapidUpdateCount: Int = 0
-    protected var updateCountResetJob: Job? = null
+    private val coroutineScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
+    private var revertToCursorJob: Job? = null
+
+    // Multi-window update detection
+    private val shortWindowUpdates = ArrayDeque<Long>(SHORT_WINDOW_SIZE)
+    private val longWindowUpdates = ArrayDeque<Long>(LONG_WINDOW_SIZE)
+    private var rapidUpdateCheckJob: Job? = null
+    private var warningCount = 0
+    private var lastWarningTime = 0L
 
     companion object {
         private const val TAG = "BaseNodeScanner"
-        private const val EMPTY_NODES_TIMEOUT_MS =
-            5000L // Time to wait before reverting to cursor when nodes are empty
-        protected const val RAPID_UPDATE_THRESHOLD_MS =
-            200L // Time in ms to consider an update as rapid
-        protected const val RESET_WINDOW_MS = 10000L // Time window to reset the update count
-        protected const val MAX_RAPID_UPDATES =
-            150 // Number of rapid updates before switching to cursor
+        private const val EMPTY_NODES_TIMEOUT_MS = 5000L
+
+        // Short window for burst detection
+        private const val SHORT_WINDOW_MS = 5000L
+        private const val SHORT_WINDOW_SIZE = 200
+        private const val SHORT_WINDOW_THRESHOLD = 100
+
+        // Long window for sustained update detection
+        private const val LONG_WINDOW_MS = 30000L
+        private const val LONG_WINDOW_SIZE = 2000
+        private const val LONG_WINDOW_THRESHOLD = 1000
+
+        // Warning system
+        private const val WARNING_THRESHOLD = 3
+        private const val WARNING_RESET_MS = 60000L // 1 minute
+        private const val UPDATE_CHECK_INTERVAL_MS = 1000L
     }
 
-    /**
-     * Starts the node scanner.
-     * Initializes the scanTree with the context and starts observing node updates.
-     *
-     * @param context The context in which the node scanner is started.
-     */
     open fun start(context: Context) {
         this.context = context
         startTimeoutToRevertToCursor()
@@ -55,97 +62,128 @@ abstract class BaseNodeScanner : ScanTreeCallback {
             hasCycleBreak = true,
             callback = this
         )
+        startRapidUpdateCheck()
     }
 
-    /**
-     * Updates the nodes in the scanner.
-     *
-     * @param nodes The list of nodes to update the scanner with.
-     */
     open fun updateNodes(nodes: List<Node>) {
         buildFromNodes(nodes)
-        handleContinuousUpdates()
+        recordUpdateTimestamp()
+
         if (nodes.isEmpty()) {
             startTimeoutToRevertToCursor()
         }
     }
 
-    /**
-     * Cleans up the node scanner.
-     */
     open fun cleanup() {
         revertToCursorJob?.cancel()
-        continuousUpdateJob?.cancel()
-        updateCountResetJob?.cancel()
+        rapidUpdateCheckJob?.cancel()
+        shortWindowUpdates.clear()
+        longWindowUpdates.clear()
+        warningCount = 0
         scanTree.cleanup()
     }
 
-    /**
-     * Starts the timeout to revert to cursor when nodes are empty.
-     */
+    private fun recordUpdateTimestamp() {
+        val currentTime = System.currentTimeMillis()
+
+        // Record in both windows
+        shortWindowUpdates.addLast(currentTime)
+        longWindowUpdates.addLast(currentTime)
+
+        // Maintain window sizes
+        while (shortWindowUpdates.size > SHORT_WINDOW_SIZE) {
+            shortWindowUpdates.removeFirst()
+        }
+        while (longWindowUpdates.size > LONG_WINDOW_SIZE) {
+            longWindowUpdates.removeFirst()
+        }
+    }
+
+    private fun startRapidUpdateCheck() {
+        rapidUpdateCheckJob?.cancel()
+        rapidUpdateCheckJob = coroutineScope.launch {
+            while (isActive) {
+                checkForRapidUpdates()
+                delay(UPDATE_CHECK_INTERVAL_MS)
+            }
+        }
+    }
+
+    private fun checkForRapidUpdates() {
+        val currentTime = System.currentTimeMillis()
+
+        // Reset warning count if enough time has passed
+        if (currentTime - lastWarningTime > WARNING_RESET_MS) {
+            warningCount = 0
+        }
+
+        // Clean up old timestamps
+        cleanupWindows(currentTime)
+
+        // Check both windows for violations
+        val shortWindowViolation = shortWindowUpdates.size >= SHORT_WINDOW_THRESHOLD
+        val longWindowViolation = longWindowUpdates.size >= LONG_WINDOW_THRESHOLD
+
+        if (shortWindowViolation || longWindowViolation) {
+            handleUpdateViolation()
+        }
+    }
+
+    private fun cleanupWindows(currentTime: Long) {
+        // Clean short window
+        while (shortWindowUpdates.isNotEmpty() &&
+            shortWindowUpdates.first() < currentTime - SHORT_WINDOW_MS
+        ) {
+            shortWindowUpdates.removeFirst()
+        }
+
+        // Clean long window
+        while (longWindowUpdates.isNotEmpty() &&
+            longWindowUpdates.first() < currentTime - LONG_WINDOW_MS
+        ) {
+            longWindowUpdates.removeFirst()
+        }
+    }
+
+    private fun handleUpdateViolation() {
+        warningCount++
+        lastWarningTime = System.currentTimeMillis()
+
+        if (warningCount >= WARNING_THRESHOLD) {
+            switchToCursorMode("persistent rapid updates")
+            warningCount = 0
+            shortWindowUpdates.clear()
+            longWindowUpdates.clear()
+        } else {
+            Log.d(TAG, "Rapid update warning $warningCount/$WARNING_THRESHOLD")
+        }
+    }
+
     open fun startTimeoutToRevertToCursor() {
         revertToCursorJob?.cancel()
         revertToCursorJob = coroutineScope.launch {
             delay(EMPTY_NODES_TIMEOUT_MS)
-            withContext(Dispatchers.Main) {
-                scanTree.stopScanningAndReset()
-                if (AccessTechnique.getCurrentTechnique() == AccessTechnique.Technique.ITEM_SCAN) {
-                    AccessTechnique.setCurrentTechnique(AccessTechnique.Technique.CURSOR)
-                    Log.d(TAG, "Reverted to cursor mode due to empty nodes")
-                }
+            if (scanTree.isEmpty()) {
+                switchToCursorMode("empty nodes")
             }
         }
     }
 
-    /**
-     * Builds the scanning tree from a list of nodes.
-     *
-     * @param nodes The list of nodes to build the tree from.
-     */
     protected open fun buildFromNodes(nodes: List<Node>) {
         scanTree.buildTree(nodes)
     }
 
-    /**
-     * Handles continuous updates and switches to cursor mode if there are too many rapid updates.
-     */
-    protected open fun handleContinuousUpdates() {
-        val currentTime = System.currentTimeMillis()
-        val timeSinceLastUpdate = currentTime - lastNodeUpdateTime
-
-        if (timeSinceLastUpdate < RAPID_UPDATE_THRESHOLD_MS) {
-            rapidUpdateCount++
-            updateCountResetJob?.cancel()
-
-            if (rapidUpdateCount >= MAX_RAPID_UPDATES) {
-                continuousUpdateJob = coroutineScope.launch {
-                    withContext(Dispatchers.Main) {
-                        scanTree.stopScanningAndReset()
-                        if (AccessTechnique.getCurrentTechnique() == AccessTechnique.Technique.ITEM_SCAN) {
-                            AccessTechnique.setCurrentTechnique(AccessTechnique.Technique.CURSOR)
-                            Log.d(TAG, "Switched to cursor mode due to rapid updates")
-                        }
-                        rapidUpdateCount = 0
-                    }
-                }
-            } else {
-                // Start a new window to reset the count
-                updateCountResetJob = coroutineScope.launch {
-                    delay(RESET_WINDOW_MS)
-                    rapidUpdateCount = 0
-                }
-            }
-        } else {
-            // If this update wasn't rapid, start a new counting window
-            updateCountResetJob?.cancel()
-            updateCountResetJob = coroutineScope.launch {
-                delay(RESET_WINDOW_MS)
-                rapidUpdateCount = 0
+    private fun switchToCursorMode(reason: String) {
+        coroutineScope.launch(Dispatchers.Main) {
+            scanTree.stopScanningAndReset()
+            if (AccessTechnique.getCurrentTechnique() == AccessTechnique.Technique.ITEM_SCAN) {
+                AccessTechnique.setCurrentTechnique(AccessTechnique.Technique.CURSOR)
+                Log.d(TAG, "Switched to cursor mode due to $reason")
             }
         }
-        lastNodeUpdateTime = currentTime
     }
 
+    // ScanTreeCallback implementation
     override fun onScanTreeCycleBreakStarted() {
         Log.d(TAG, "Cycle break started")
         OpenMenuPrompt.instance.show(context)
@@ -165,4 +203,4 @@ abstract class BaseNodeScanner : ScanTreeCallback {
     override fun onSingleCycleCompleted(cycleNumber: Int) {
         Log.d(TAG, "Cycle completed: $cycleNumber")
     }
-} 
+}
