@@ -71,6 +71,8 @@ abstract class BaseNodeScanner : ScanTreeCallback {
 
         if (nodes.isEmpty()) {
             startTimeoutToRevertToCursor()
+        } else {
+            stopTimeoutToRevertToCursor()
         }
     }
 
@@ -167,6 +169,11 @@ abstract class BaseNodeScanner : ScanTreeCallback {
                 switchToCursorMode("empty nodes")
             }
         }
+    }
+
+    private fun stopTimeoutToRevertToCursor() {
+        revertToCursorJob?.cancel()
+        revertToCursorJob = null
     }
 
     protected open fun buildFromNodes(nodes: List<Node>) {
