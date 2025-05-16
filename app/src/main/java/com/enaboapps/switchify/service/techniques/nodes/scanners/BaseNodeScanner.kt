@@ -33,6 +33,11 @@ abstract class BaseNodeScanner : ScanTreeCallback {
     private var warningCount = 0
     private var lastWarningTime = 0L
 
+    // Duplicate update detection
+    private var lastUpdateNodes: List<Node>? = null
+    private var lastUpdateTime = 0L
+    private val DUPLICATE_UPDATE_THRESHOLD_MS = 100L // Minimum time between updates
+
     companion object {
         private const val TAG = "BaseNodeScanner"
         private const val EMPTY_NODES_TIMEOUT_MS = 5000L
@@ -66,14 +71,45 @@ abstract class BaseNodeScanner : ScanTreeCallback {
     }
 
     open fun updateNodes(nodes: List<Node>) {
+        val currentTime = System.currentTimeMillis()
+
+        // Check for duplicate updates
+        if (isDuplicateUpdate(nodes, currentTime)) {
+            Log.d(TAG, "Skipping duplicate update")
+            return
+        }
+
         buildFromNodes(nodes)
         recordUpdateTimestamp()
+        lastUpdateNodes = nodes
+        lastUpdateTime = currentTime
 
         if (nodes.isEmpty()) {
             startTimeoutToRevertToCursor()
         } else {
             stopTimeoutToRevertToCursor()
         }
+    }
+
+    private fun isDuplicateUpdate(nodes: List<Node>, currentTime: Long): Boolean {
+        // Check if we're getting updates too quickly
+        if (currentTime - lastUpdateTime < DUPLICATE_UPDATE_THRESHOLD_MS) {
+            return true
+        }
+
+        // Check if the node lists are identical
+        val lastNodes = lastUpdateNodes
+        if (lastNodes != null && lastNodes.size == nodes.size) {
+            // Compare node lists by their unique identifiers or properties
+            return lastNodes.zip(nodes).all { (old, new) ->
+                old.getLeft() == new.getLeft() &&
+                        old.getTop() == new.getTop() &&
+                        old.getWidth() == new.getWidth() &&
+                        old.getHeight() == new.getHeight()
+            }
+        }
+
+        return false
     }
 
     open fun cleanup() {
