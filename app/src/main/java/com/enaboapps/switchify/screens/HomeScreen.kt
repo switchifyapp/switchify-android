@@ -3,25 +3,49 @@ package com.enaboapps.switchify.screens
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.grid.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Login
-import androidx.compose.material.icons.rounded.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.rounded.AccessibilityNew
+import androidx.compose.material.icons.rounded.AccountCircle
+import androidx.compose.material.icons.rounded.BugReport
+import androidx.compose.material.icons.rounded.Settings
+import androidx.compose.material.icons.rounded.Star
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Card
+import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
 import androidx.navigation.NavController
 import com.enaboapps.switchify.BuildConfig
 import com.enaboapps.switchify.R
@@ -50,6 +74,8 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
     val isPro = remember { mutableStateOf(true) }
     val signedIn = AuthManager.instance.isUserSignedIn()
     var showUpdateDialog by remember { mutableStateOf(false) }
+    var updateProgress by remember { mutableFloatStateOf(0f) }
+    var isDownloading by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         if (!isSetupComplete && !signedIn) {
@@ -66,16 +92,25 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
     val installStateUpdatedListener = remember {
         InstallStateUpdatedListener { state ->
             when (state.installStatus()) {
+                InstallStatus.DOWNLOADING -> {
+                    isDownloading = true
+                    updateProgress =
+                        state.bytesDownloaded().toFloat() / state.totalBytesToDownload().toFloat()
+                }
+
                 InstallStatus.DOWNLOADED -> {
+                    isDownloading = false
                     Log.d("HomeScreen", "Update downloaded")
                     showUpdateDialog = true
                 }
 
                 InstallStatus.FAILED -> {
+                    isDownloading = false
                     Log.e("HomeScreen", "Update failed! State: ${state.installErrorCode()}")
                 }
 
                 InstallStatus.INSTALLED -> {
+                    isDownloading = false
                     Log.d("HomeScreen", "Update installed successfully")
                 }
 
@@ -126,14 +161,44 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
         titleResId = R.string.screen_title_switchify,
         navController = navController,
         enableScroll = false,
-        navBarActions = listOf(NavBarAction(
+        navBarActions = listOf(
+            NavBarAction(
             textResId = R.string.action_feedback,
             onClick = {
                 val url = "https://switchify.featurebase.app/"
-                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+                context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri()))
             }
         ))
     ) {
+        if (isDownloading) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = stringResource(R.string.dialog_title_downloading_update),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Text(
+                        text = "${(updateProgress * 100).toInt()}%",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+                LinearProgressIndicator(
+                    progress = { updateProgress },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 4.dp)
+                )
+            }
+        }
+
         LazyVerticalGrid(
             columns = GridCells.Adaptive(minSize = 300.dp),
             contentPadding = PaddingValues(16.dp),

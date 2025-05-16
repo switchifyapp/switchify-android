@@ -236,7 +236,8 @@
 
     <!-- Dialog Titles -->
     <string name="dialog_title_update">Update Available</string>
-    <string name="dialog_message_update">A new version has been downloaded. Restart now to complete the installation?</string>
+    <string name="dialog_message_update">A new version has been downloaded. Would you like to install it now?</string>
+    <string name="dialog_title_downloading_update">Downloading Update</string>
     <string name="dialog_button_restart">Restart</string>
     <string name="dialog_button_later">Later</string>
 
