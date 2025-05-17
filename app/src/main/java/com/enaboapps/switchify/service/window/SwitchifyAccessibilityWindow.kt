@@ -8,13 +8,21 @@ import android.util.Log
 import android.view.ViewGroup
 import android.view.WindowManager
 import android.widget.RelativeLayout
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.LifecycleRegistry
+import androidx.lifecycle.setViewTreeLifecycleOwner
+import androidx.savedstate.SavedStateRegistry
+import androidx.savedstate.SavedStateRegistryController
+import androidx.savedstate.SavedStateRegistryOwner
+import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import com.enaboapps.switchify.service.utils.ScreenWatcher
 
 /**
  * This class manages the window for the Switchify accessibility service.
  * It handles adding and removing views, as well as managing the window state.
  */
-class SwitchifyAccessibilityWindow private constructor() {
+class SwitchifyAccessibilityWindow private constructor() : LifecycleOwner, SavedStateRegistryOwner {
 
     private var windowManager: WindowManager? = null
     private var baseLayout: RelativeLayout? = null
@@ -22,6 +30,10 @@ class SwitchifyAccessibilityWindow private constructor() {
     private val mainHandler = Handler(Looper.getMainLooper())
     private var screenWatcher: ScreenWatcher? = null
     private var isVisible = false
+    private val lifecycleRegistry = LifecycleRegistry(this)
+    private val savedStateRegistryController = SavedStateRegistryController.create(this).apply {
+        performRestore(null)
+    }
 
     companion object {
         private const val TAG = "SwitchifyAccessibilityWindow"
@@ -29,6 +41,12 @@ class SwitchifyAccessibilityWindow private constructor() {
             SwitchifyAccessibilityWindow()
         }
     }
+
+    override val lifecycle: Lifecycle
+        get() = lifecycleRegistry
+
+    override val savedStateRegistry: SavedStateRegistry
+        get() = savedStateRegistryController.savedStateRegistry
 
     /**
      * Initializes the window and sets up the context and window manager.
@@ -42,8 +60,9 @@ class SwitchifyAccessibilityWindow private constructor() {
             this.context = context
             windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
             createBaseLayout()
-            ServiceMessageHUD.instance.setup(context)
             registerScreenWatcher()
+            lifecycleRegistry.currentState = androidx.lifecycle.Lifecycle.State.CREATED
+            ServiceMessageHUD.instance.setup(context.applicationContext)
         } catch (e: Exception) {
             Log.e(TAG, "Error in setup: ${e.message}", e)
         }
@@ -54,7 +73,10 @@ class SwitchifyAccessibilityWindow private constructor() {
      */
     private fun createBaseLayout() {
         getContext()?.let { context ->
-            baseLayout = RelativeLayout(context)
+            baseLayout = RelativeLayout(context).apply {
+                setViewTreeLifecycleOwner(this@SwitchifyAccessibilityWindow)
+                setViewTreeSavedStateRegistryOwner(this@SwitchifyAccessibilityWindow)
+            }
         }
     }
 
@@ -106,6 +128,7 @@ class SwitchifyAccessibilityWindow private constructor() {
                 baseLayout?.let { layout ->
                     windowManager?.addView(layout, params)
                     isVisible = true
+                    lifecycleRegistry.currentState = androidx.lifecycle.Lifecycle.State.STARTED
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Error in show: ${e.message}", e)
@@ -122,6 +145,7 @@ class SwitchifyAccessibilityWindow private constructor() {
                 if (isVisible && baseLayout != null) {
                     windowManager?.removeView(baseLayout)
                     isVisible = false
+                    lifecycleRegistry.currentState = androidx.lifecycle.Lifecycle.State.CREATED
                 }
 
                 // Clear all children from baseLayout
@@ -144,6 +168,7 @@ class SwitchifyAccessibilityWindow private constructor() {
         context = null
         windowManager = null
         baseLayout = null
+        lifecycleRegistry.currentState = androidx.lifecycle.Lifecycle.State.DESTROYED
     }
 
     /**
