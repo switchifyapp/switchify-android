@@ -1,24 +1,69 @@
 package com.enaboapps.switchify.service.window
 
 import android.content.Context
-import android.graphics.Color
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
-import android.view.Gravity
-import android.view.ViewGroup
-import android.widget.FrameLayout
-import android.widget.LinearLayout
-import android.widget.TextView
-import androidx.core.content.res.ResourcesCompat
-import com.enaboapps.switchify.R
-import com.enaboapps.switchify.service.utils.ScreenUtils
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.enaboapps.switchify.activities.ui.theme.SwitchifyTheme
+import com.enaboapps.switchify.service.components.AccessibilityComposeView
 import com.enaboapps.switchify.utils.Resources
 
 /**
- * ServiceMessageHUD is responsible for displaying overlay messages on top of all other application windows.
- * It supports two types of messages: disappearing and permanent, with configurable display durations.
- * This class implements immediate message replacement, ensuring the most recent message is always displayed.
+ * ServiceMessageHUD is responsible for displaying overlay messages at the bottom of the screen
+ * using Jetpack Compose. It supports two types of messages: disappearing and permanent,
+ * with configurable display durations.
+ *
+ * Usage:
+ * 1. Initialize in your AccessibilityService:
+ *    ```
+ *    class YourAccessibilityService : AccessibilityService() {
+ *        override fun onCreate() {
+ *            ServiceMessageHUD.instance.setup(applicationContext)
+ *        }
+ *    }
+ *    ```
+ *
+ * 2. Show messages:
+ *    ```
+ *    ServiceMessageHUD.instance.showMessage(
+ *        R.string.your_message,
+ *        ServiceMessageHUD.MessageType.DISAPPEARING,
+ *        ServiceMessageHUD.Time.MEDIUM
+ *    )
+ *    ```
+ *
+ * 3. Clean up:
+ *    ```
+ *    override fun onDestroy() {
+ *        ServiceMessageHUD.instance.dispose()
+ *        super.onDestroy()
+ *    }
+ *    ```
  */
 class ServiceMessageHUD private constructor() {
     companion object {
@@ -26,27 +71,16 @@ class ServiceMessageHUD private constructor() {
          * Singleton instance of ServiceMessageHUD.
          */
         val instance: ServiceMessageHUD by lazy { ServiceMessageHUD() }
-        private const val TAG = "ServiceMessageHUD"
+        private const val TAG = "ServiceMessageHUDCompose"
     }
 
-    private var context: Context? = null
-    private var switchifyAccessibilityWindow: SwitchifyAccessibilityWindow =
-        SwitchifyAccessibilityWindow.instance
-    private var messageResId: Int = 0
-    private var messageArgs: Array<out Any> = emptyArray()
-    private var shownMessageType: MessageType? = null
-    private var messageView: LinearLayout? = null
+    private var applicationCtx: Context? = null
+    private var messageComposeView: AccessibilityComposeView? = null
     private val handler = Handler(Looper.getMainLooper())
 
-    /**
-     * Sets up the ServiceMessageHUD with the necessary context.
-     *
-     * @param context The application context.
-     */
-    fun setup(context: Context) {
-        this.context = context
-        Log.d(TAG, "ServiceMessageHUD setup with context: $context")
-    }
+    // State holders for Compose
+    private var currentMessageString = mutableStateOf<String?>(null)
+    private var isMessageVisible = mutableStateOf(false)
 
     /**
      * Defines the types of messages that can be displayed.
@@ -65,136 +99,189 @@ class ServiceMessageHUD private constructor() {
 
     /**
      * Defines preset durations for disappearing messages.
-     *
-     * @property milliseconds The duration in milliseconds.
      */
     enum class Time(val milliseconds: Long) {
-        SHORT(1000),
+        /** Short duration (1.5 seconds) */
+        SHORT(1500),
+
+        /** Medium duration (5 seconds) */
         MEDIUM(5000),
+
+        /** Long duration (10 seconds) */
         LONG(10000)
     }
 
     /**
-     * Creates or updates the message view with the specified message.
-     * If the messageView doesn't exist, it creates a new LinearLayout with a TextView.
-     * If it already exists, it updates the text of the existing TextView.
+     * Sets up the ServiceMessageHUD with the necessary Context.
+     * This must be called before showing any messages, typically in your AccessibilityService's onCreate.
+     *
+     * @param appCtx The application context used for creating views and accessing resources
      */
-    private fun createOrUpdateMessageView() {
-        Log.d(TAG, "Creating or updating message view")
-        context?.let { context ->
-            if (messageView == null) {
-                // Create a new LinearLayout as the container
-                messageView = LinearLayout(context).apply {
-                    orientation = LinearLayout.VERTICAL
-                    gravity = Gravity.CENTER
-                    background = ResourcesCompat.getDrawable(
-                        context.resources,
-                        R.drawable.rounded_corners,
-                        null
-                    )
-
-                    // Set padding for the container
-                    val padding = ScreenUtils.dpToPx(context, 16)
-                    setPadding(padding, padding, padding, padding)
-
-                    // Set layout parameters for the container
-                    layoutParams = FrameLayout.LayoutParams(
-                        ViewGroup.LayoutParams.MATCH_PARENT,
-                        ViewGroup.LayoutParams.WRAP_CONTENT
-                    )
-                }
-
-                // Create a TextView for displaying the message
-                val textView = TextView(context).apply {
-                    setTextColor(Color.WHITE)
-                    textSize = 16f
-                    gravity = Gravity.CENTER
-                    setTextIsSelectable(false)
-                    // Allow multiple lines and wrap content
-                    layoutParams = LinearLayout.LayoutParams(
-                        ViewGroup.LayoutParams.MATCH_PARENT,
-                        ViewGroup.LayoutParams.WRAP_CONTENT
-                    )
-                    maxLines = Int.MAX_VALUE
-                }
-
-                messageView?.addView(textView)
-            }
-
-            // Update the text of the TextView
-            if (messageArgs.isNotEmpty()) {
-                (messageView?.getChildAt(0) as? TextView)?.text =
-                    Resources.getString(messageResId, *messageArgs)
-            } else {
-                (messageView?.getChildAt(0) as? TextView)?.text = Resources.getString(messageResId)
-            }
-            Log.d(TAG, "Message view created or updated successfully")
-        } ?: Log.e(TAG, "Context is null, cannot create or update message view")
+    fun setup(appCtx: Context) {
+        this.applicationCtx = appCtx.applicationContext
+        Log.d(TAG, "ServiceMessageHUD setup with AppContext: $applicationCtx")
     }
 
     /**
-     * Adds the message view to the window.
-     * This method is called when a new message view is created and needs to be displayed.
+     * Ensures the ComposeView is created and properly configured.
+     * This is called internally when needed and handles the creation of the Compose UI.
      */
-    private fun addViewToWindow() {
-        handler.post {
-            messageView?.let { view ->
-                try {
-                    // Ensure the view is not already added
-                    if (view.parent == null) {
-                        switchifyAccessibilityWindow.addViewToBottom(
-                            view,
-                            ScreenUtils.dpToPx(context!!, 16)
-                        )
-                        Log.d(TAG, "Message view added to window successfully")
-                    }
-                } catch (e: Exception) {
-                    Log.e(TAG, "Failed to add view to window", e)
+    private fun ensureMessageComposeViewIsCreated() {
+        val ctxForView = applicationCtx ?: run {
+            Log.e(TAG, "ApplicationContext is null. Cannot create ComposeView. Call setup() first.")
+            return
+        }
+
+        if (messageComposeView == null) {
+            Log.d(TAG, "Creating MessageComposeView")
+            messageComposeView = AccessibilityComposeView(ctxForView) {
+                SwitchifyTheme {
+                    ServiceMessageUi(
+                        message = currentMessageString.value,
+                        isVisible = isMessageVisible.value
+                    )
                 }
-            } ?: Log.e(TAG, "MessageView is null, cannot add to window")
+            }
         }
     }
 
     /**
-     * Displays or updates a message on the screen using a string resource ID.
+     * The main Composable UI for the message overlay.
+     * This implements a card-based design with animations for appearance and disappearance.
      *
-     * @param messageResId The resource ID of the message text to be displayed.
-     * @param messageType The type of the message (DISAPPEARING or PERMANENT).
-     * @param time The duration for which a DISAPPEARING message should be shown. Ignored for PERMANENT messages.
+     * @param message The text message to display
+     * @param isVisible Whether the message should be visible
      */
-    fun showMessage(messageResId: Int, messageType: MessageType, time: Time = Time.MEDIUM) {
-        Log.d(
-            TAG,
-            "Showing message: ${Resources.getString(messageResId)}, type: $messageType, time: $time"
-        )
+    @Composable
+    private fun ServiceMessageUi(message: String?, isVisible: Boolean) {
+        val savedMessage = rememberSaveable { message.toString() }
+        val savedIsVisible = rememberSaveable { isVisible }
 
-        // Cancel any pending hide operations
-        handler.removeCallbacksAndMessages(null)
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.BottomCenter
+        ) {
+            AnimatedVisibility(
+                visible = savedIsVisible,
+                enter = slideInVertically(
+                    initialOffsetY = { fullHeight -> fullHeight },
+                    animationSpec = tween(durationMillis = 300)
+                ) + fadeIn(animationSpec = tween(durationMillis = 300)),
+                exit = slideOutVertically(
+                    targetOffsetY = { fullHeight -> fullHeight },
+                    animationSpec = tween(durationMillis = 300)
+                ) + fadeOut(animationSpec = tween(durationMillis = 300))
+            ) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .wrapContentHeight()
+                        .padding(16.dp)
+                        .shadow(8.dp, RoundedCornerShape(12.dp)),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                ) {
+                    Text(
+                        text = savedMessage,
+                        modifier = Modifier
+                            .padding(horizontal = 20.dp, vertical = 16.dp)
+                            .fillMaxWidth(),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontSize = 16.sp,
+                        textAlign = TextAlign.Center,
+                        lineHeight = 24.sp
+                    )
+                }
+            }
+        }
+    }
 
-        this.messageResId = messageResId
-        this.shownMessageType = messageType
+    /**
+     * Internal implementation for showing messages. Handles both simple messages and those with
+     * format arguments.
+     *
+     * @param messageResId The resource ID of the message to display
+     * @param args Optional arguments for formatted strings
+     * @param messageType The type of message (DISAPPEARING or PERMANENT)
+     * @param time The duration to show the message (for DISAPPEARING messages)
+     */
+    private fun showMessageInternal(
+        messageResId: Int,
+        args: Array<out Any>?,
+        messageType: MessageType,
+        time: Time
+    ) {
+        applicationCtx ?: run {
+            Log.e(TAG, "ApplicationContext is null, cannot show message. Call setup() first.")
+            return
+        }
+
+        val messageText = if (args != null && args.isNotEmpty()) {
+            Resources.getString(messageResId, *args)
+        } else {
+            Resources.getString(messageResId)
+        }
 
         handler.post {
-            createOrUpdateMessageView()
+            Log.d(TAG, "Showing message: \"$messageText\", type: $messageType, time: $time")
 
-            if (messageView?.parent == null) {
-                addViewToWindow()
+            // Cancel any pending hide operations
+            handler.removeCallbacksAndMessages(null)
+
+            // Update message and visibility
+            currentMessageString.value = messageText
+            isMessageVisible.value = true
+
+            // Ensure view exists and is added to window
+            ensureMessageComposeViewIsCreated()
+            messageComposeView?.let { view ->
+                try {
+                    // Remove existing view if it's already in the window
+                    if (view.parent != null) {
+                        SwitchifyAccessibilityWindow.instance.removeView(view)
+                    }
+                    // Add the view back with new content
+                    SwitchifyAccessibilityWindow.instance.addViewToBottom(view)
+                    Log.d(TAG, "Message ComposeView added to window.")
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to add ComposeView to window", e)
+                    e.printStackTrace()
+                    currentMessageString.value = null
+                    return@post
+                }
             }
 
             if (messageType == MessageType.DISAPPEARING) {
                 handler.postDelayed({ hideMessage() }, time.milliseconds)
-                Log.d(TAG, "Scheduled message to disappear after ${time.milliseconds}ms")
             }
         }
     }
 
     /**
-     * Displays or updates a message on the screen using a string resource ID and arguments.
+     * Shows a message using a string resource ID.
      *
-     * @param messageResId The resource ID of the message text to be displayed.
-     * @param messageArgs The arguments to be used in the message text.
-     * @param messageType The type of the message (DISAPPEARING or PERMANENT).
-     * @param time The duration for which a DISAPPEARING message should be shown. Ignored for PERMANENT messages.
+     * @param messageResId The resource ID of the message to display
+     * @param messageType The type of message (DISAPPEARING or PERMANENT)
+     * @param time The duration to show the message (for DISAPPEARING messages)
+     */
+    fun showMessage(
+        messageResId: Int,
+        messageType: MessageType,
+        time: Time = Time.MEDIUM
+    ) {
+        showMessageInternal(messageResId, null, messageType, time)
+    }
+
+    /**
+     * Shows a message using a string resource ID with format arguments.
+     *
+     * @param messageResId The resource ID of the message to display
+     * @param messageArgs The arguments to format into the message string
+     * @param messageType The type of message (DISAPPEARING or PERMANENT)
+     * @param time The duration to show the message (for DISAPPEARING messages)
      */
     fun showMessage(
         messageResId: Int,
@@ -202,67 +289,38 @@ class ServiceMessageHUD private constructor() {
         messageType: MessageType,
         time: Time = Time.MEDIUM
     ) {
-        Log.d(
-            TAG,
-            "Showing message: ${
-                Resources.getString(
-                    messageResId,
-                    *messageArgs
-                )
-            }, type: $messageType, time: $time"
-        )
+        showMessageInternal(messageResId, messageArgs, messageType, time)
+    }
 
-        // Cancel any pending hide operations
-        handler.removeCallbacksAndMessages(null)
-
-        this.messageResId = messageResId
-        this.messageArgs = messageArgs
-        this.shownMessageType = messageType
-
-        handler.post {
-            createOrUpdateMessageView()
-
-            if (messageView?.parent == null) {
-                addViewToWindow()
+    /**
+     * Hides the currently displayed message with an animation.
+     */
+    fun hideMessage() {
+        if (!isMessageVisible.value && currentMessageString.value == null) {
+            messageComposeView?.let { if (it.parent != null) removeViewFromWindow() }
+            return
+        }
+        isMessageVisible.value = false
+        val animationDuration = 350L
+        handler.postDelayed({
+            if (!isMessageVisible.value) {
+                removeViewFromWindow()
+                currentMessageString.value = null
             }
+        }, animationDuration)
+    }
 
-            if (messageType == MessageType.DISAPPEARING) {
-                handler.postDelayed({ hideMessage() }, time.milliseconds)
-                Log.d(TAG, "Scheduled message to disappear after ${time.milliseconds}ms")
+    /**
+     * Removes the message view from the window manager.
+     */
+    private fun removeViewFromWindow() {
+        messageComposeView?.let { view ->
+            try {
+                SwitchifyAccessibilityWindow.instance.removeView(view)
+                Log.d(TAG, "ComposeView removed from window successfully.")
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to remove ComposeView from window", e)
             }
         }
-    }
-
-    /**
-     * Hides and removes the currently displayed message from the screen.
-     * This method is called automatically for DISAPPEARING messages after their display time has elapsed,
-     * or can be called manually to remove a message before its time has elapsed.
-     */
-    private fun hideMessage() {
-        Log.d(TAG, "Hiding message")
-        messageView?.let { view ->
-            handler.post {
-                try {
-                    switchifyAccessibilityWindow.removeView(view)
-                    Log.d(TAG, "Message view removed from window successfully")
-                } catch (e: Exception) {
-                    Log.e(TAG, "Failed to remove view from window", e)
-                } finally {
-                    clearMessage()
-                }
-            }
-        } ?: Log.d(TAG, "No message view to hide")
-    }
-
-    /**
-     * Clears the current message, hiding it from the screen and resetting internal state.
-     * This method can be called to explicitly remove any displayed message and reset the HUD state.
-     */
-    private fun clearMessage() {
-        Log.d(TAG, "Clearing message")
-        messageResId = 0
-        messageArgs = emptyArray()
-        shownMessageType = null
-        messageView = null
     }
 }
