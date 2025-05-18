@@ -94,19 +94,25 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
             when (state.installStatus()) {
                 InstallStatus.DOWNLOADING -> {
                     isDownloading = true
-                    updateProgress =
-                        state.bytesDownloaded().toFloat() / state.totalBytesToDownload().toFloat()
+                    val totalBytes = state.totalBytesToDownload().toFloat()
+                    if (totalBytes > 0) { // Prevent division by zero
+                        updateProgress = state.bytesDownloaded().toFloat() / totalBytes
+                    }
                 }
 
                 InstallStatus.DOWNLOADED -> {
                     isDownloading = false
-                    Log.d("HomeScreen", "Update downloaded")
                     showUpdateDialog = true
                 }
 
                 InstallStatus.FAILED -> {
                     isDownloading = false
-                    Log.e("HomeScreen", "Update failed! State: ${state.installErrorCode()}")
+                    Log.e("HomeScreen", "Update failed! Error code: ${state.installErrorCode()}")
+                    Toast.makeText(
+                        context,
+                        "Update failed: ${state.installErrorCode()}",
+                        Toast.LENGTH_SHORT
+                    ).show()
                 }
 
                 InstallStatus.INSTALLED -> {
@@ -144,15 +150,26 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
 
     val reviewManager = remember { ReviewManagerFactory.create(context) }
 
-    LaunchedEffect(Unit) {
-        appUpdateManager.registerListener(installStateUpdatedListener)
-        checkForUpdates(context, appUpdateManager, updateResultLauncher)
-        checkForDownloadedUpdate(appUpdateManager) { showUpdateDialog = it }
-        requestReview(context, reviewManager)
-    }
-
+    // Combine the effects to ensure proper registration/unregistration
     DisposableEffect(Unit) {
+        // Register the listener
+        appUpdateManager.registerListener(installStateUpdatedListener)
+
+        // Check for updates
+        checkForUpdates(context, appUpdateManager, updateResultLauncher)
+
+        // Check if an update has already been downloaded
+        appUpdateManager.appUpdateInfo.addOnSuccessListener { info ->
+            if (info.installStatus() == InstallStatus.DOWNLOADED) {
+                showUpdateDialog = true
+            }
+        }
+
+        // Request review
+        requestReview(context, reviewManager)
+
         onDispose {
+            // Always unregister the listener when the composable is disposed
             appUpdateManager.unregisterListener(installStateUpdatedListener)
         }
     }
@@ -163,12 +180,13 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
         enableScroll = false,
         navBarActions = listOf(
             NavBarAction(
-            textResId = R.string.action_feedback,
-            onClick = {
-                val url = "https://switchify.featurebase.app/"
-                context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri()))
-            }
-        ))
+                textResId = R.string.action_feedback,
+                onClick = {
+                    val url = "https://switchify.featurebase.app/"
+                    context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri()))
+                }
+            )
+        )
     ) {
         if (isDownloading) {
             Column(
@@ -394,63 +412,68 @@ private fun checkForUpdates(
     appUpdateManager: AppUpdateManager,
     updateResultLauncher: androidx.activity.result.ActivityResultLauncher<IntentSenderRequest>
 ) {
-    appUpdateManager.appUpdateInfo
-        .addOnSuccessListener { appUpdateInfo ->
-            if (appUpdateInfo.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE &&
-                appUpdateInfo.isUpdateTypeAllowed(AppUpdateType.FLEXIBLE)
-            ) {
-                try {
-                    val updateOptions = AppUpdateOptions.newBuilder(AppUpdateType.FLEXIBLE).build()
-                    appUpdateManager.startUpdateFlowForResult(
-                        appUpdateInfo,
-                        updateResultLauncher,
-                        updateOptions
-                    )
-                    Log.d("HomeScreen", "Update available. Requesting update.")
-                } catch (e: Exception) {
-                    Log.e("HomeScreen", "Error starting update flow", e)
-                    Toast.makeText(
-                        context,
-                        "Failed to start update process",
-                        Toast.LENGTH_SHORT
-                    ).show()
+    try {
+        appUpdateManager.appUpdateInfo
+            .addOnSuccessListener { appUpdateInfo ->
+                if (appUpdateInfo.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE &&
+                    appUpdateInfo.isUpdateTypeAllowed(AppUpdateType.FLEXIBLE)
+                ) {
+                    try {
+                        val updateOptions =
+                            AppUpdateOptions.newBuilder(AppUpdateType.FLEXIBLE).build()
+                        appUpdateManager.startUpdateFlowForResult(
+                            appUpdateInfo,
+                            updateResultLauncher,
+                            updateOptions
+                        )
+                        Log.d("HomeScreen", "Update available. Requesting update.")
+                    } catch (e: Exception) {
+                        Log.e("HomeScreen", "Error starting update flow", e)
+                        Toast.makeText(
+                            context,
+                            "Failed to start update: ${e.localizedMessage}",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                } else {
+                    Log.d("HomeScreen", "No update available or update type not allowed")
                 }
-            } else {
-                Log.d("HomeScreen", "No update available or update type not allowed")
             }
-        }
-        .addOnFailureListener { exception ->
-            Log.e("HomeScreen", "Failed to check for updates", exception)
-            Toast.makeText(
-                context,
-                "Failed to check for updates",
-                Toast.LENGTH_SHORT
-            ).show()
-        }
-}
-
-private fun checkForDownloadedUpdate(
-    appUpdateManager: AppUpdateManager,
-    callback: (Boolean) -> Unit
-) {
-    appUpdateManager.appUpdateInfo.addOnSuccessListener { info ->
-        if (info.installStatus() == InstallStatus.DOWNLOADED) {
-            callback(true)
-        }
+            .addOnFailureListener { exception ->
+                Log.e("HomeScreen", "Failed to check for updates", exception)
+                Toast.makeText(
+                    context,
+                    "Failed to check for updates: ${exception.localizedMessage}",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+    } catch (e: Exception) {
+        Log.e("HomeScreen", "Exception during update check", e)
     }
 }
 
 private fun requestReview(context: Context, reviewManager: ReviewManager) {
-    val request = reviewManager.requestReviewFlow()
-    request.addOnCompleteListener { task ->
-        if (task.isSuccessful) {
-            val reviewInfo = task.result
-            reviewManager.launchReviewFlow(context as Activity, reviewInfo)
-                .addOnCompleteListener {
-                    Log.d("HomeScreen", "Review flow completed")
+    try {
+        val request = reviewManager.requestReviewFlow()
+        request.addOnCompleteListener { task ->
+            if (task.isSuccessful) {
+                val reviewInfo = task.result
+                try {
+                    reviewManager.launchReviewFlow(context as Activity, reviewInfo)
+                        .addOnCompleteListener {
+                            Log.d("HomeScreen", "Review flow completed")
+                        }
+                        .addOnFailureListener { e ->
+                            Log.e("HomeScreen", "Error launching review flow", e)
+                        }
+                } catch (e: Exception) {
+                    Log.e("HomeScreen", "Exception launching review flow", e)
                 }
-        } else {
-            Log.e("HomeScreen", "Error requesting review flow", task.exception)
+            } else {
+                Log.e("HomeScreen", "Error requesting review flow", task.exception)
+            }
         }
+    } catch (e: Exception) {
+        Log.e("HomeScreen", "Exception in requestReview", e)
     }
 }
