@@ -1,22 +1,38 @@
 package com.enaboapps.switchify.service.menu
 
 import android.content.Context
-import android.graphics.Color
 import android.os.Handler
 import android.os.Looper
-import android.view.Gravity
-import android.view.ViewGroup
-import android.widget.RelativeLayout
-import android.widget.TextView
-import androidx.core.content.ContextCompat
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.enaboapps.switchify.R
+import com.enaboapps.switchify.activities.ui.theme.SwitchifyTheme
+import com.enaboapps.switchify.service.components.AccessibilityComposeView
 import com.enaboapps.switchify.service.window.SwitchifyAccessibilityWindow
 
 /**
  * This class manages the prompt to ask the user if they want to open the menu.
  */
 class OpenMenuPrompt {
-    private var menuPromptView: RelativeLayout? = null
+    private var menuPromptView: AccessibilityComposeView? = null
     private val mainHandler = Handler(Looper.getMainLooper())
     private var isShowing = false
 
@@ -45,44 +61,54 @@ class OpenMenuPrompt {
             menuPromptView?.let { view ->
                 SwitchifyAccessibilityWindow.instance.removeView(view)
                 isShowing = false
+                menuPromptView = null
             }
         }
     }
 
-    private fun createPromptView(context: Context): RelativeLayout {
-        // Create root RelativeLayout with background
-        val rootLayout = RelativeLayout(context).apply {
-            layoutParams = ViewGroup.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT
-            )
-
-            background = ContextCompat.getDrawable(context, R.drawable.menu_background)
-
-            // Add padding around the content
-            val padding = 50
-            setPadding(padding, padding, padding, padding)
-        }
-
-        // Create TextView for the message with improved styling
-        val messageText = TextView(context).apply {
-            text = context.getString(R.string.menu_prompt_press_to_open)
-            setTextColor(Color.WHITE)
-            textSize = 18f // Slightly larger text
-            gravity = Gravity.CENTER
-
-            // Set layout parameters for the TextView
-            val params = RelativeLayout.LayoutParams(
-                RelativeLayout.LayoutParams.WRAP_CONTENT,
-                RelativeLayout.LayoutParams.WRAP_CONTENT
-            ).apply {
-                addRule(RelativeLayout.CENTER_IN_PARENT)
+    @Composable
+    private fun PromptView() {
+        Surface(
+            modifier = Modifier
+                .padding(16.dp)
+                .height(250.dp)
+                .clip(RoundedCornerShape(16.dp)),
+            color = MaterialTheme.colorScheme.surface,
+            shadowElevation = 8.dp
+        ) {
+            Box(
+                modifier = Modifier
+                    .padding(24.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Menu,
+                        contentDescription = null,
+                        modifier = Modifier
+                            .size(48.dp)
+                            .padding(bottom = 16.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        text = stringResource(R.string.menu_prompt_press_to_open),
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        fontSize = 18.sp,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(8.dp)
+                    )
+                }
             }
-            layoutParams = params
         }
+    }
 
-        rootLayout.addView(messageText)
-        menuPromptView = rootLayout
-        return rootLayout
+    private fun createPromptView(context: Context) {
+        menuPromptView = AccessibilityComposeView(context) {
+            SwitchifyTheme {
+                PromptView()
+            }
+        }
     }
 } 
