@@ -1,14 +1,25 @@
 package com.enaboapps.switchify.service.menu
 
-import android.graphics.Color
-import android.util.TypedValue
-import android.view.Gravity
-import android.widget.ImageView
 import android.widget.LinearLayout
-import android.widget.TextView
-import android.widget.TextView.AUTO_SIZE_TEXT_TYPE_NONE
-import androidx.core.content.res.ResourcesCompat
-import androidx.core.graphics.drawable.DrawableCompat
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.enaboapps.switchify.service.components.AccessibilityComposeView
 import com.enaboapps.switchify.service.utils.ScreenUtils
 import com.enaboapps.switchify.utils.Logger
 import com.enaboapps.switchify.utils.Resources
@@ -40,28 +51,7 @@ class MenuItem(
     var isMenuHierarchyManipulator: Boolean = false,
     private val action: () -> Unit
 ) {
-    /**
-     * The view of the menu item
-     */
-    private var view: LinearLayout? = null
-
-    /**
-     * The image view of the menu item
-     */
-    private var imageView: ImageView? = null
-
-    /**
-     * The text view for the drawable description
-     */
-    private var drawableDescriptionTextView: TextView? = null
-
-    /**
-     * The text view of the menu item
-     */
-    private var textView: TextView? = null
-
-    private val backgroundColor = Color.BLACK
-    private val foregroundColor = Color.WHITE
+    private var composeView: AccessibilityComposeView? = null
 
     /**
      * Inflate the menu item
@@ -69,7 +59,6 @@ class MenuItem(
      */
     fun inflate(linearLayout: LinearLayout) {
         val menuSizeManager = MenuSizeManager(linearLayout.context)
-
         val screenWidth = ScreenUtils.getWidth(linearLayout.context)
         val itemsPerRow = menuSizeManager.getMenuSize().itemsPerPage / 2
 
@@ -99,79 +88,25 @@ class MenuItem(
             heightPx += ScreenUtils.dpToPx(linearLayout.context, 20)
         }
 
-        view = LinearLayout(linearLayout.context).apply {
-            layoutParams = LinearLayout.LayoutParams(widthPx, heightPx).apply {
+        composeView = AccessibilityComposeView(linearLayout.context) {
+            MenuItemContent(
+                textResource = textResource,
+                userProvidedText = userProvidedText,
+                drawableId = drawableId,
+                drawableDescriptionResource = drawableDescriptionResource,
+                showDrawableDescription = showDrawableDescription,
+                textSize = menuSizeManager.getMenuSize().textSize,
+                textSizeWithIcon = menuSizeManager.getMenuSize().textSizeWithIcon,
+                onClick = { select() }
+            )
+        }
+
+        composeView?.let { view ->
+            view.layoutParams = LinearLayout.LayoutParams(widthPx, heightPx).apply {
                 weight = 1f
             }
-            minimumWidth = widthPx
-            orientation = LinearLayout.VERTICAL
-            gravity = Gravity.CENTER
-            setBackgroundColor(backgroundColor)
-            setOnClickListener { select() }
+            linearLayout.addView(view)
         }
-
-        val padding = 20
-
-        if (drawableId != 0) {
-            imageView = ImageView(linearLayout.context).apply {
-                val wrappedDrawable = DrawableCompat.wrap(
-                    ResourcesCompat.getDrawable(
-                        linearLayout.context.resources,
-                        drawableId,
-                        null
-                    )!!
-                ).mutate()
-                DrawableCompat.setTint(
-                    wrappedDrawable,
-                    foregroundColor
-                )
-                setImageDrawable(wrappedDrawable)
-                layoutParams = LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.WRAP_CONTENT,
-                    LinearLayout.LayoutParams.WRAP_CONTENT
-                )
-                setPadding(padding, padding, padding, padding)
-                view?.addView(this)
-            }
-        }
-
-        if (textResource != null || userProvidedText != null) {
-            textView = TextView(linearLayout.context).apply {
-                text =
-                    if (textResource != null) Resources.getString(textResource) else userProvidedText
-                setTextSize(TypedValue.COMPLEX_UNIT_SP, menuSizeManager.getMenuSize().textSize)
-                setAutoSizeTextTypeWithDefaults(AUTO_SIZE_TEXT_TYPE_NONE)
-                gravity = Gravity.CENTER
-                setTextColor(foregroundColor)
-                layoutParams = LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.WRAP_CONTENT,
-                    LinearLayout.LayoutParams.WRAP_CONTENT
-                )
-                setPadding(padding, padding, padding, padding)
-                view?.addView(this)
-            }
-        }
-
-        if (drawableDescriptionResource != null && showDrawableDescription) {
-            drawableDescriptionTextView = TextView(linearLayout.context).apply {
-                text = Resources.getString(drawableDescriptionResource)
-                setTextSize(
-                    TypedValue.COMPLEX_UNIT_SP,
-                    menuSizeManager.getMenuSize().textSizeWithIcon
-                )
-                setAutoSizeTextTypeWithDefaults(AUTO_SIZE_TEXT_TYPE_NONE)
-                setTextColor(foregroundColor)
-                layoutParams = LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.WRAP_CONTENT,
-                    LinearLayout.LayoutParams.WRAP_CONTENT
-                )
-                gravity = Gravity.CENTER
-                setPadding(padding, 0, padding, padding)
-                view?.addView(this)
-            }
-        }
-
-        linearLayout.addView(view)
     }
 
     /**
@@ -182,7 +117,6 @@ class MenuItem(
             MenuManager.getInstance().closeMenuHierarchy()
         }
         action()
-
         Logger.logEvent("Menu item selected: $id")
     }
 
@@ -192,7 +126,7 @@ class MenuItem(
      */
     private fun getLocationOnScreen(): IntArray {
         val location = IntArray(2)
-        view?.getLocationOnScreen(location)
+        composeView?.getLocationOnScreen(location)
         return location
     }
 
@@ -215,12 +149,94 @@ class MenuItem(
      * @return The width of the menu item
      */
     val width: Int
-        get() = view?.width ?: 0
+        get() = composeView?.width ?: 0
 
     /**
      * Get the height of the menu item
      * @return The height of the menu item
      */
     val height: Int
-        get() = view?.height ?: 0
+        get() = composeView?.height ?: 0
+}
+
+@Composable
+private fun MenuItemContent(
+    textResource: Int?,
+    userProvidedText: String?,
+    drawableId: Int,
+    drawableDescriptionResource: Int?,
+    showDrawableDescription: Boolean,
+    textSize: Float,
+    textSizeWithIcon: Float,
+    onClick: () -> Unit
+) {
+    val text = if (textResource != null) Resources.getString(textResource) else userProvidedText
+
+    Surface(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(4.dp),
+        shape = RoundedCornerShape(20),
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        shadowElevation = 4.dp
+    ) {
+        MenuItemContentInner(
+            text = text,
+            drawableId = drawableId,
+            drawableDescriptionResource = drawableDescriptionResource,
+            showDrawableDescription = showDrawableDescription,
+            textSize = textSize,
+            textSizeWithIcon = textSizeWithIcon,
+            onClick = onClick
+        )
+    }
+}
+
+@Composable
+private fun MenuItemContentInner(
+    text: String?,
+    drawableId: Int,
+    drawableDescriptionResource: Int?,
+    showDrawableDescription: Boolean,
+    textSize: Float,
+    textSizeWithIcon: Float,
+    onClick: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .clickable(onClick = onClick),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        if (drawableId != 0) {
+            Icon(
+                painter = painterResource(id = drawableId),
+                contentDescription = drawableDescriptionResource?.let { Resources.getString(it) },
+                modifier = Modifier
+                    .size(36.dp)
+                    .padding(8.dp),
+                tint = MaterialTheme.colorScheme.primary
+            )
+        }
+
+        if (text != null) {
+            Text(
+                text = text,
+                color = MaterialTheme.colorScheme.onBackground,
+                fontSize = if (drawableId != 0) textSizeWithIcon.sp else textSize.sp,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(8.dp)
+            )
+        }
+
+        if (drawableDescriptionResource != null && showDrawableDescription) {
+            Text(
+                text = Resources.getString(drawableDescriptionResource),
+                color = MaterialTheme.colorScheme.onBackground,
+                fontSize = textSizeWithIcon.sp,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+            )
+        }
+    }
 }

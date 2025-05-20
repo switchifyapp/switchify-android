@@ -10,12 +10,11 @@ import android.view.WindowManager
 import android.widget.RelativeLayout
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
-import androidx.lifecycle.LifecycleRegistry
 import androidx.lifecycle.setViewTreeLifecycleOwner
 import androidx.savedstate.SavedStateRegistry
-import androidx.savedstate.SavedStateRegistryController
 import androidx.savedstate.SavedStateRegistryOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
+import com.enaboapps.switchify.service.core.SwitchifyLifecycleOwner
 import com.enaboapps.switchify.service.utils.ScreenWatcher
 
 /**
@@ -30,10 +29,6 @@ class SwitchifyAccessibilityWindow private constructor() : LifecycleOwner, Saved
     private val mainHandler = Handler(Looper.getMainLooper())
     private var screenWatcher: ScreenWatcher? = null
     private var isVisible = false
-    private val lifecycleRegistry = LifecycleRegistry(this)
-    private val savedStateRegistryController = SavedStateRegistryController.create(this).apply {
-        performRestore(null)
-    }
 
     companion object {
         private const val TAG = "SwitchifyAccessibilityWindow"
@@ -43,10 +38,10 @@ class SwitchifyAccessibilityWindow private constructor() : LifecycleOwner, Saved
     }
 
     override val lifecycle: Lifecycle
-        get() = lifecycleRegistry
+        get() = SwitchifyLifecycleOwner.getInstance().lifecycle
 
     override val savedStateRegistry: SavedStateRegistry
-        get() = savedStateRegistryController.savedStateRegistry
+        get() = SwitchifyLifecycleOwner.getInstance().savedStateRegistry
 
     /**
      * Initializes the window and sets up the context and window manager.
@@ -61,7 +56,6 @@ class SwitchifyAccessibilityWindow private constructor() : LifecycleOwner, Saved
             windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
             createBaseLayout()
             registerScreenWatcher()
-            lifecycleRegistry.currentState = androidx.lifecycle.Lifecycle.State.CREATED
             ServiceMessageHUD.instance.setup(context.applicationContext)
         } catch (e: Exception) {
             Log.e(TAG, "Error in setup: ${e.message}", e)
@@ -74,8 +68,8 @@ class SwitchifyAccessibilityWindow private constructor() : LifecycleOwner, Saved
     private fun createBaseLayout() {
         getContext()?.let { context ->
             baseLayout = RelativeLayout(context).apply {
-                setViewTreeLifecycleOwner(this@SwitchifyAccessibilityWindow)
-                setViewTreeSavedStateRegistryOwner(this@SwitchifyAccessibilityWindow)
+                setViewTreeLifecycleOwner(SwitchifyLifecycleOwner.getInstance())
+                setViewTreeSavedStateRegistryOwner(SwitchifyLifecycleOwner.getInstance())
             }
         }
     }
@@ -128,7 +122,6 @@ class SwitchifyAccessibilityWindow private constructor() : LifecycleOwner, Saved
                 baseLayout?.let { layout ->
                     windowManager?.addView(layout, params)
                     isVisible = true
-                    lifecycleRegistry.currentState = androidx.lifecycle.Lifecycle.State.STARTED
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Error in show: ${e.message}", e)
@@ -142,10 +135,16 @@ class SwitchifyAccessibilityWindow private constructor() : LifecycleOwner, Saved
     fun cleanup() {
         mainHandler.post {
             try {
+                for (i in 0 until (baseLayout?.childCount ?: 0)) {
+                    val child = baseLayout?.getChildAt(i)
+                    if (child is ViewGroup) {
+                        child.removeAllViews()
+                    }
+                }
+
                 if (isVisible && baseLayout != null) {
                     windowManager?.removeView(baseLayout)
                     isVisible = false
-                    lifecycleRegistry.currentState = androidx.lifecycle.Lifecycle.State.CREATED
                 }
 
                 // Clear all children from baseLayout
@@ -160,6 +159,7 @@ class SwitchifyAccessibilityWindow private constructor() : LifecycleOwner, Saved
      * Cleans up the window and its resources when the service is destroyed.
      */
     fun onServiceDestroy() {
+        ServiceMessageHUD.instance.dispose()
         cleanup()
         isVisible = false // Ensure the flag is set to false for the next time the window is created
         val ctx = getContext() ?: return
@@ -168,7 +168,6 @@ class SwitchifyAccessibilityWindow private constructor() : LifecycleOwner, Saved
         context = null
         windowManager = null
         baseLayout = null
-        lifecycleRegistry.currentState = androidx.lifecycle.Lifecycle.State.DESTROYED
     }
 
     /**

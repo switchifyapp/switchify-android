@@ -1,6 +1,9 @@
 package com.enaboapps.switchify.service.menu
 
 import android.content.Context
+import android.content.res.Configuration
+import android.graphics.Color
+import android.graphics.drawable.GradientDrawable
 import android.view.Gravity
 import android.widget.LinearLayout
 import com.enaboapps.switchify.R
@@ -35,7 +38,14 @@ class MenuPage(
             LinearLayout.LayoutParams.MATCH_PARENT,
             LinearLayout.LayoutParams.WRAP_CONTENT
         )
-        baseLayout.setBackgroundResource(R.drawable.menu_background)
+        val isNightMode = context.resources.configuration.uiMode and
+                Configuration.UI_MODE_NIGHT_MASK ==
+                Configuration.UI_MODE_NIGHT_YES
+
+        baseLayout.background = GradientDrawable().apply {
+            setColor(if (isNightMode) Color.BLACK else Color.WHITE)
+            cornerRadius = 48f
+        }
         baseLayout.setPadding(50, 50, 50, 50)
     }
 

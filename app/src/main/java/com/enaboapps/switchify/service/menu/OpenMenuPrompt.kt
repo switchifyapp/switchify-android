@@ -24,7 +24,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.enaboapps.switchify.R
-import com.enaboapps.switchify.activities.ui.theme.SwitchifyTheme
 import com.enaboapps.switchify.service.components.AccessibilityComposeView
 import com.enaboapps.switchify.service.window.SwitchifyAccessibilityWindow
 
@@ -106,9 +105,7 @@ class OpenMenuPrompt {
 
     private fun createPromptView(context: Context) {
         menuPromptView = AccessibilityComposeView(context) {
-            SwitchifyTheme {
-                PromptView()
-            }
+            PromptView()
         }
     }
 } 

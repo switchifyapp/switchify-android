@@ -6,6 +6,7 @@ import android.view.ViewGroup
 import android.widget.RelativeLayout
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.ComposeView
+import com.enaboapps.switchify.activities.ui.theme.SwitchifyTheme
 
 /**
  * A custom view component that displays Compose content in a RelativeLayout for accessibility services.
@@ -41,7 +42,11 @@ class AccessibilityComposeView @JvmOverloads constructor(
      * @param content The composable content to display
      */
     fun setContent(content: @Composable () -> Unit) {
-        composeView.setContent(content)
+        composeView.setContent {
+            SwitchifyTheme {
+                content()
+            }
+        }
     }
 
     /**

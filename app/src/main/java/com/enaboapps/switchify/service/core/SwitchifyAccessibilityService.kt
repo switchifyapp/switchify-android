@@ -7,7 +7,6 @@ import android.view.KeyEvent
 import android.view.accessibility.AccessibilityEvent
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
-import androidx.lifecycle.LifecycleRegistry
 import com.enaboapps.switchify.backend.iap.IAPHandler
 import com.enaboapps.switchify.service.actions.AudioActionManager
 import com.enaboapps.switchify.service.actions.GlobalActionManager
@@ -38,7 +37,6 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
     SwitchEventProvider.CameraSwitchListener {
 
     private var cameraSwitchManager: CameraSwitchManager? = null
-    private lateinit var lifecycleRegistry: LifecycleRegistry
     private lateinit var screenWatcher: ScreenWatcher
     private lateinit var scanSettings: ScanSettings
     private lateinit var deviceLockObserver: DeviceLockObserver
@@ -50,14 +48,12 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
 
     override fun onCreate() {
         super.onCreate()
-
-        lifecycleRegistry = LifecycleRegistry(this)
-        lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_CREATE)
-
         deviceLockObserver = DeviceLockObserver(this)
     }
 
     private fun setup() {
+        SwitchifyLifecycleOwner.getInstance().handleLifecycleEvent(Lifecycle.Event.ON_CREATE)
+
         Logger.init(this)
 
         Resources.init(this)
@@ -175,7 +171,8 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
 
         Logger.logEvent("Service Connected")
 
-        lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_START)
+        SwitchifyLifecycleOwner.getInstance().handleLifecycleEvent(Lifecycle.Event.ON_START)
+        SwitchifyLifecycleOwner.getInstance().handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
 
         serviceScope.launch {
             NodeExaminer.examineAccessibilityTree(
@@ -205,13 +202,13 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
     }
 
     override fun onUnbind(intent: Intent?): Boolean {
-        lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_DESTROY)
-
         cameraSwitchManager?.stopCamera()
         deviceLockObserver.stopObserving()
         ServiceCore.cleanup()
         GlobalActionManager.cleanup()
         AudioActionManager.cleanup()
+
+        SwitchifyLifecycleOwner.getInstance().handleLifecycleEvent(Lifecycle.Event.ON_STOP)
 
         Logger.logEvent("Service Unbound")
 
@@ -220,6 +217,8 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
 
     override fun onDestroy() {
         SwitchifyAccessibilityWindow.instance.onServiceDestroy()
+        SwitchifyLifecycleOwner.getInstance().handleLifecycleEvent(Lifecycle.Event.ON_DESTROY)
+        SwitchifyLifecycleOwner.cleanup()
         Logger.logEvent("Service Destroyed")
         super.onDestroy()
     }
@@ -255,5 +254,5 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
     }
 
     override val lifecycle: Lifecycle
-        get() = lifecycleRegistry
+        get() = SwitchifyLifecycleOwner.getInstance().lifecycle
 }
