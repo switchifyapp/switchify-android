@@ -29,7 +29,6 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.enaboapps.switchify.activities.ui.theme.SwitchifyTheme
 import com.enaboapps.switchify.service.components.AccessibilityComposeView
 import com.enaboapps.switchify.utils.Resources
 
@@ -135,12 +134,10 @@ class ServiceMessageHUD private constructor() {
         if (messageComposeView == null) {
             Log.d(TAG, "Creating MessageComposeView")
             messageComposeView = AccessibilityComposeView(ctxForView) {
-                SwitchifyTheme {
-                    ServiceMessageUi(
-                        message = currentMessageString.value,
-                        isVisible = isMessageVisible.value
-                    )
-                }
+                ServiceMessageUi(
+                    message = currentMessageString.value,
+                    isVisible = isMessageVisible.value
+                )
             }
         }
     }
@@ -295,7 +292,7 @@ class ServiceMessageHUD private constructor() {
     /**
      * Hides the currently displayed message with an animation.
      */
-    fun hideMessage() {
+    private fun hideMessage() {
         if (!isMessageVisible.value && currentMessageString.value == null) {
             messageComposeView?.let { if (it.parent != null) removeViewFromWindow() }
             return
@@ -322,5 +319,25 @@ class ServiceMessageHUD private constructor() {
                 Log.e(TAG, "Failed to remove ComposeView from window", e)
             }
         }
+    }
+
+    /**
+     * Cleans up the ServiceMessageHUD, removing any views and resetting state.
+     */
+    fun dispose() {
+        Log.d(TAG, "Disposing ServiceMessageHUD")
+        handler.removeCallbacksAndMessages(null)
+        messageComposeView?.let { view ->
+            try {
+                SwitchifyAccessibilityWindow.instance.removeView(view)
+                messageComposeView = null
+                currentMessageString.value = null
+                isMessageVisible.value = false
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to dispose ServiceMessageHUD", e)
+            }
+        }
+        applicationCtx = null
+        Log.d(TAG, "ServiceMessageHUD disposed successfully.")
     }
 }
