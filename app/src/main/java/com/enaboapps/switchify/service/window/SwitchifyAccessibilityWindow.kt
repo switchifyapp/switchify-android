@@ -89,7 +89,7 @@ class SwitchifyAccessibilityWindow private constructor() : LifecycleOwner, Saved
                 ServiceMessageHUD.instance.dispose()
                 cleanup()
             }
-            screenWatcher = ScreenWatcher(onScreenWake = wake, onScreenSleep = { cleanup() })
+            screenWatcher = ScreenWatcher(onScreenWake = wake, onScreenSleep = sleep)
             screenWatcher?.register(context)
         }
     }
