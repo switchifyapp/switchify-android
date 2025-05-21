@@ -53,13 +53,17 @@ class ActiveAccessTechnique(private val context: Context) : AccessTechniqueObser
                     getNodeScanner().scanTree
                 }
 
-                AccessTechnique.Technique.MENU -> MenuManager.Companion.getInstance().menuHierarchy?.getTopMenu()?.scanTree
+                AccessTechnique.Technique.MENU -> {
+                    val menuHierarchy = MenuManager.getInstance().menuHierarchy
+                    val topMenu = menuHierarchy?.getTopMenu()
+                    topMenu?.scanTree ?: getCursorManager()
+                }
 
                 else -> {
                     throw IllegalStateException("Invalid access technique type: ${AccessTechnique.getCurrentTechnique()}")
                 }
             }
-        } as AccessTechniqueInterface
+        }
 
     private fun ensureNodeScannerStarted() {
         if (systemNodeScanner == null) {
@@ -113,7 +117,7 @@ class ActiveAccessTechnique(private val context: Context) : AccessTechniqueObser
     }
 
     fun cleanup(currentTechnique: String) {
-        NodeScannerUI.Companion.instance.hideAll()
+        NodeScannerUI.instance.hideAll()
 
         if (KeyboardBridge.isKeyboardVisible) {
             cleanupAllExceptKeyboard()
@@ -174,7 +178,7 @@ class ActiveAccessTechnique(private val context: Context) : AccessTechniqueObser
 
         SelectionHandler.cleanup()
 
-        NodeScannerUI.Companion.instance.hideAll()
+        NodeScannerUI.instance.hideAll()
     }
 
     fun cleanupAll() {
@@ -188,7 +192,7 @@ class ActiveAccessTechnique(private val context: Context) : AccessTechniqueObser
 
         SelectionHandler.cleanup()
 
-        NodeScannerUI.Companion.instance.hideAll()
+        NodeScannerUI.instance.hideAll()
     }
 
     fun updateActionableNodes(nodes: List<Node>) {

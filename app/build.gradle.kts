@@ -14,12 +14,12 @@ composeCompiler {
 
 android {
     namespace = "com.enaboapps.switchify"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.enaboapps.switchify"
         minSdk = 31
-        targetSdk = 35
+        targetSdk = 36
         versionCode = gitVersionCode()
         versionName = "1.79.1"
 
