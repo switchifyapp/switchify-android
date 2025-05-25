@@ -47,6 +47,17 @@ class GestureLockManager private constructor() {
     }
 
     /**
+     * Explicitly disable the gesture lock.
+     */
+    fun disableLock() {
+        if (isLocked) {
+            isLocked = false
+            lockedGestureData = null
+            stopTimer()
+        }
+    }
+
+    /**
      * Check if the gesture lock is engaged.
      *
      * @return true if the gesture lock is engaged, false otherwise.
