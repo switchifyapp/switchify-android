@@ -3,6 +3,8 @@ package com.enaboapps.switchify.service.gestures
 import android.accessibilityservice.GestureDescription
 import android.graphics.Path
 import android.graphics.PointF
+import android.os.Handler
+import android.os.Looper
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.service.core.SwitchifyAccessibilityService
 import com.enaboapps.switchify.service.gestures.data.GestureData
@@ -95,11 +97,21 @@ class GestureManager private constructor() {
                     getAssistedCurrentPoint()
                 }
                 val gestureDrawing = GestureDrawing(it)
+                // Show first tap visual
                 gestureDrawing.drawCircleAndRemove(
                     point.x.toInt(),
                     point.y.toInt(),
                     TAP_DURATION
                 )
+                
+                // Schedule second tap visual after DOUBLE_TAP_INTERVAL
+                Handler(Looper.getMainLooper()).postDelayed({
+                    gestureDrawing.drawCircleAndRemove(
+                        point.x.toInt(),
+                        point.y.toInt(),
+                        TAP_DURATION
+                    )
+                }, DOUBLE_TAP_INTERVAL + TAP_DURATION)
 
                 // Create first tap stroke
                 val firstTapPath = Path().apply { moveTo(point.x, point.y) }
