@@ -12,7 +12,7 @@ class GestureLockManager private constructor() {
     private var isLocked = false
     private var lockedGestureData: GestureData? = null
     private var timeoutTimer: Timer? = null
-    private val lockTimeout = 60000L
+    private val lockTimeout = 120000L
     private var accessibilityService: AccessibilityService? = null
 
     companion object {
