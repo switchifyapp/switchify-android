@@ -8,9 +8,9 @@
     <string name="accessibility_service_disclosure">Switchify is an accessibility service. It makes it easy to control your device with adaptive switches. It scans the screen, letting you tap, swipe, and navigate effortlessly. To do this, Switchify requires the ability to perform gestures, such as taps and swipes, and to observe the content of your screen to determine where to perform these gestures.</string>
 
     <!-- Gesture Lock Messages -->
-    <string name="gesture_lock_enabled">Gesture Lock enabled. Choose a gesture to lock to your switch. You can disable it by holding your switch.</string>
-    <string name="gesture_lock_disabled">Gesture Lock disabled. Your switches will now perform their default actions.</string>
-    <string name="gesture_lock_timeout_disabled">Gesture Lock disabled.</string>
+    <string name="gesture_lock_enabled">Gesture lock ON - Select a gesture</string>
+    <string name="gesture_lock_disabled">Gesture lock OFF</string>
+    <string name="gesture_lock_timeout_disabled">Gesture lock timed out</string>
 
     <!-- Gesture Patterns -->
     <string name="start_recording">Start Recording</string>
