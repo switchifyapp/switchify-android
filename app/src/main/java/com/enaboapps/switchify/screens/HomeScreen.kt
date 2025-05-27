@@ -10,10 +10,14 @@ import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -27,9 +31,11 @@ import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -42,8 +48,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import androidx.navigation.NavController
@@ -188,41 +196,93 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
             )
         )
     ) {
-        if (isDownloading) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
+        Column(
+            modifier = Modifier.fillMaxSize()
+        ) {
+            // Status Bar
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                color = if (isAccessibilityServiceEnabled) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.error
+                },
+                tonalElevation = 4.dp
             ) {
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = stringResource(R.string.dialog_title_downloading_update),
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                    Text(
-                        text = "${(updateProgress * 100).toInt()}%",
-                        style = MaterialTheme.typography.bodyMedium
-                    )
+                    Column {
+                        Text(
+                            text = stringResource(R.string.app_name),
+                            style = MaterialTheme.typography.titleLarge,
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = if (isAccessibilityServiceEnabled) {
+                                stringResource(R.string.accessibility_service_enabled)
+                            } else {
+                                stringResource(R.string.accessibility_service_disabled)
+                            },
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                    }
+                    if (!isAccessibilityServiceEnabled) {
+                        Icon(
+                            imageVector = Icons.Rounded.AccessibilityNew,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onPrimary,
+                            modifier = Modifier.size(28.dp)
+                        )
+                    }
                 }
-                LinearProgressIndicator(
-                    progress = { updateProgress },
+            }
+            // Update Progress
+            if (isDownloading) {
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 4.dp)
-                )
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = stringResource(R.string.dialog_title_downloading_update),
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Text(
+                            text = "${(updateProgress * 100).toInt()}%",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                    LinearProgressIndicator(
+                        progress = { updateProgress },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 4.dp)
+                    )
+                }
             }
-        }
 
-        LazyVerticalGrid(
-            columns = GridCells.Adaptive(minSize = 300.dp),
-            contentPadding = PaddingValues(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
+            // Grid Layout
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(2),
+                contentPadding = PaddingValues(top = 16.dp, bottom = 16.dp, start = 0.dp, end = 0.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxSize()
+            ) {
             // Settings Card
             item {
                 GridCard(
@@ -234,7 +294,7 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
                             imageVector = Icons.Rounded.Settings,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(24.dp)
+                            modifier = Modifier.fillMaxSize()
                         )
                     }
                 )
@@ -252,7 +312,7 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
                                 imageVector = Icons.Rounded.AccessibilityNew,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(24.dp)
+                                modifier = Modifier.fillMaxSize()
                             )
                         }
                     )
@@ -271,7 +331,7 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
                                 imageVector = Icons.Rounded.Star,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(24.dp)
+                                modifier = Modifier.fillMaxSize()
                             )
                         }
                     )
@@ -295,13 +355,14 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
                                 imageVector = Icons.Rounded.BugReport,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(24.dp)
+                                modifier = Modifier.fillMaxSize()
                             )
                         }
                     )
                 }
             }
         }
+        } // End Column
 
         if (showUpdateDialog) {
             AlertDialog(
@@ -340,33 +401,40 @@ private fun GridCard(
 ) {
     Card(
         modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
+            .fillMaxSize()
+            .clickable(onClick = onClick),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Row(
+        Column(
             modifier = Modifier
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .fillMaxSize()
+                .padding(20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
-            icon()
-            Column(
+            Box(
                 modifier = Modifier
-                    .padding(start = 16.dp)
-                    .weight(1f)
+                    .size(48.dp)
+                    .padding(bottom = 8.dp),
+                contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = stringResource(titleResId),
-                    style = MaterialTheme.typography.titleMedium
-                )
-                Text(
-                    text = if (summaryArgs != null) {
-                        stringResource(summaryResId, *summaryArgs)
-                    } else {
-                        stringResource(summaryResId)
-                    },
-                    style = MaterialTheme.typography.bodyMedium
-                )
+                icon()
             }
+            Text(
+                text = stringResource(titleResId),
+                style = MaterialTheme.typography.titleMedium,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            )
+            Text(
+                text = if (summaryArgs != null) {
+                    stringResource(summaryResId, *summaryArgs)
+                } else {
+                    stringResource(summaryResId)
+                },
+                style = MaterialTheme.typography.bodySmall,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                modifier = Modifier.padding(top = 4.dp)
+            )
         }
     }
 }
@@ -401,7 +469,7 @@ private fun AccountGridCard(navController: NavController) {
                 imageVector = if (isUserSignedIn) Icons.Rounded.AccountCircle else Icons.AutoMirrored.Default.Login,
                 contentDescription = if (isUserSignedIn) "Account" else "Sign In",
                 tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(24.dp)
+                modifier = Modifier.fillMaxSize()
             )
         }
     )
