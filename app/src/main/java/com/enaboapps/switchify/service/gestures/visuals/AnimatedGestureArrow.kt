@@ -26,6 +26,9 @@ class AnimatedGestureArrow(private val context: Context) {
         duration: Long,
         onAnimationEnd: () -> Unit = {}
     ) {
+        // Cancel any existing animation before starting a new one
+        cancel()
+        
         val size = 100
         val halfSize = size / 2
         // Create arrow ImageView
