@@ -12,6 +12,7 @@ import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableIntStateOf
@@ -25,6 +26,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.enaboapps.switchify.R
+import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.FullWidthButton
 import com.enaboapps.switchify.components.NavRouteLink
@@ -41,7 +43,19 @@ import com.enaboapps.switchify.screens.settings.techniques.AccessTechniqueSelect
 fun SettingsScreen(navController: NavController) {
     val context = LocalContext.current
     val settingsScreenModel = SettingsScreenModel(context)
-    var selectedTabIndex by remember { mutableIntStateOf(0) }
+    val preferenceManager = remember { PreferenceManager(context) }
+    
+    // Load the saved tab index, default to 0 if not found
+    var selectedTabIndex by remember { 
+        val savedIndex = preferenceManager.getIntegerValue(PreferenceManager.PREFERENCE_KEY_SETTINGS_TAB, 0)
+        // Ensure the saved index is within valid range (0-3)
+        mutableIntStateOf(savedIndex.coerceIn(0, 3))
+    }
+    
+    // Save tab selection when it changes
+    LaunchedEffect(selectedTabIndex) {
+        preferenceManager.setIntegerValue(PreferenceManager.PREFERENCE_KEY_SETTINGS_TAB, selectedTabIndex)
+    }
 
     BaseView(
         titleResId = R.string.screen_title_settings,

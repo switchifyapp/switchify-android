@@ -40,6 +40,7 @@ class PreferenceManager(context: Context) {
         const val PREFERENCE_KEY_SCAN_HIGHLIGHT_TYPE = "scan_highlight_type"
         const val PREFERENCE_KEY_MENU_SIZE = "menu_size"
         const val PREFERENCE_KEY_MENU_TRANSPARENCY = "menu_transparency"
+        const val PREFERENCE_KEY_SETTINGS_TAB = "settings_tab"
         private const val PREFERENCE_FILE_NAME = "switchify_preferences"
     }
 
@@ -134,7 +135,17 @@ class PreferenceManager(context: Context) {
     }
 
     fun getIntegerValue(key: String, defaultValue: Int = 1000): Int {
-        return sharedPreferences.getInt(key, defaultValue)
+        // Handle type mismatches gracefully
+        return try {
+            sharedPreferences.getInt(key, defaultValue)
+        } catch (e: ClassCastException) {
+            // Try to get as Long and convert to Int
+            try {
+                sharedPreferences.getLong(key, defaultValue.toLong()).toInt()
+            } catch (e: ClassCastException) {
+                defaultValue
+            }
+        }
     }
 
     fun getLongValue(key: String, defaultValue: Long = 1000L): Long {
