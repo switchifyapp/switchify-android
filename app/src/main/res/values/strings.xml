@@ -233,13 +233,13 @@
     <string name="drag_to_reorder">Drag to reorder</string>
 
     <!-- Screen Summaries -->
-    <string name="screen_summary_settings">Tap here to adjust your settings.</string>
-    <string name="screen_summary_accessibility">Tap here to enable the accessibility service.</string>
-    <string name="screen_summary_upgrade_pro">Upgrade to Pro to unlock new features and support Switchify.</string>
-    <string name="screen_summary_debug">Access debug features and settings.</string>
+    <string name="screen_summary_settings">Configure switches and scanning</string>
+    <string name="screen_summary_accessibility">Enable to start using Switchify</string>
+    <string name="screen_summary_upgrade_pro">Unlock all features</string>
+    <string name="screen_summary_debug">Developer options</string>
     <string name="screen_summary_account_email">%1$s</string>
-    <string name="screen_summary_account_no_email">No email address</string>
-    <string name="screen_summary_sign_in_to_access_settings">Sign in to access your settings.</string>
+    <string name="screen_summary_account_no_email">Manage your account</string>
+    <string name="screen_summary_sign_in_to_access_settings">Access saved settings</string>
 
     <!-- Dialog Titles -->
     <string name="dialog_title_update">Update Available</string>
