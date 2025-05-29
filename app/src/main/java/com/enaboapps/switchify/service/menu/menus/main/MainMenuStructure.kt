@@ -93,7 +93,7 @@ class MainMenuStructure(private val accessibilityService: SwitchifyAccessibility
                 id = "pause",
                 textResource = R.string.menu_item_pause,
                 action = {
-                    ServiceCore.getExternalSwitchListener()?.startPauseJob()
+                    ServiceCore.getPauseManager()?.startPause()
                 }
             )
         )
