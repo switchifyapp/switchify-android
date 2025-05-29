@@ -58,7 +58,9 @@ private fun MainContent(
                     CameraSwitchFacialGesture(CameraSwitchFacialGesture.SMILE),
                     CameraSwitchFacialGesture(CameraSwitchFacialGesture.LEFT_WINK),
                     CameraSwitchFacialGesture(CameraSwitchFacialGesture.RIGHT_WINK),
-                    CameraSwitchFacialGesture(CameraSwitchFacialGesture.BLINK)
+                    CameraSwitchFacialGesture(CameraSwitchFacialGesture.BLINK),
+                    CameraSwitchFacialGesture(CameraSwitchFacialGesture.HEAD_TURN_LEFT),
+                    CameraSwitchFacialGesture(CameraSwitchFacialGesture.HEAD_TURN_RIGHT)
                 )
 
                 gestures.forEach { gesture ->
