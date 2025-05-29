@@ -1,5 +1,6 @@
 package com.enaboapps.switchify.service.core
 
+import com.enaboapps.switchify.service.pauseresume.PauseManager
 import com.enaboapps.switchify.service.scanning.ScanningManager
 import com.enaboapps.switchify.service.switches.SwitchEventProvider
 import com.enaboapps.switchify.service.switches.external.ExternalSwitchListener
@@ -15,6 +16,9 @@ object ServiceCore {
      * @param accessibilityService The accessibility service instance.
      */
     fun init(accessibilityService: SwitchifyAccessibilityService) {
+        // Initialize PauseManager singleton
+        PauseManager.getInstance().init(accessibilityService)
+        
         scanningManagerRef = WeakReference(ScanningManager(accessibilityService))
         switchEventProviderRef = WeakReference(SwitchEventProvider(accessibilityService))
         val scanningManager = scanningManagerRef.get() ?: return
@@ -52,6 +56,14 @@ object ServiceCore {
      */
     fun getSwitchEventProvider(): SwitchEventProvider? {
         return switchEventProviderRef.get()
+    }
+
+    /**
+     * Gets the pause manager instance.
+     * @return The pause manager instance (singleton)
+     */
+    fun getPauseManager(): PauseManager {
+        return PauseManager.getInstance()
     }
 
     /**

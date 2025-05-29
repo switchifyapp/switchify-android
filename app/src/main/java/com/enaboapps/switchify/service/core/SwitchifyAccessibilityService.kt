@@ -134,7 +134,7 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
     private fun stopCameraSwitchManager() {
         if (cameraSwitchManager != null) {
             serviceScope.launch {
-                cameraSwitchManager?.stopCamera()
+                cameraSwitchManager?.cleanup()
                 cameraSwitchManager = null
             }
         }
@@ -202,7 +202,7 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
     }
 
     override fun onUnbind(intent: Intent?): Boolean {
-        cameraSwitchManager?.stopCamera()
+        cameraSwitchManager?.cleanup()
         deviceLockObserver.stopObserving()
         ServiceCore.cleanup()
         GlobalActionManager.cleanup()

@@ -2,6 +2,7 @@ package com.enaboapps.switchify.service.scanning
 
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import com.enaboapps.switchify.service.actions.GlobalActionManager
 import com.enaboapps.switchify.service.core.ServiceCore
 import com.enaboapps.switchify.service.core.SwitchifyAccessibilityService
@@ -170,7 +171,12 @@ class ScanningManager(
             SwitchAction.ACTION_SYS_NOTIFICATIONS -> GlobalActionManager.openNotifications()
             SwitchAction.ACTION_SYS_LOCK_SCREEN -> GlobalActionManager.lockScreen()
             SwitchAction.ACTION_SYS_HEADSET_HOOK -> GlobalActionManager.toggleMediaPlayback()
-            SwitchAction.ACTION_PAUSE -> ServiceCore.getExternalSwitchListener()?.startPauseJob()
+            SwitchAction.ACTION_PAUSE -> {
+                Log.d(TAG, "ACTION_PAUSE triggered")
+                val pauseManager = ServiceCore.getPauseManager()
+                Log.d(TAG, "Starting pause via PauseManager")
+                pauseManager.startPause()
+            }
 
             else -> {} // Do nothing for ACTION_NONE
         }

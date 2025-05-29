@@ -2,19 +2,12 @@ package com.enaboapps.switchify.service.switches.external
 
 import android.content.Context
 import android.util.Log
-import com.enaboapps.switchify.R
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.service.scanning.ScanningManager
 import com.enaboapps.switchify.service.selection.SelectionHandler
 import com.enaboapps.switchify.service.switches.SwitchEventProvider
-import com.enaboapps.switchify.service.window.ServiceMessageHUD
-import com.enaboapps.switchify.service.window.SwitchifyAccessibilityWindow
+import com.enaboapps.switchify.service.core.ServiceCore
 import com.enaboapps.switchify.switches.SwitchEvent
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 
 /**
  * Manages switch input events and their associated actions in the accessibility service.
@@ -31,7 +24,6 @@ class ExternalSwitchListener(
 ) {
     companion object {
         const val TAG = "ExternalSwitchListener"
-        const val PAUSE_MS = 30000L
     }
 
     private val preferenceManager = PreferenceManager(context)
@@ -45,14 +37,6 @@ class ExternalSwitchListener(
     /** Key code of the last pressed switch for handling repeat events */
     private var lastSwitchPressedCode: Int = 0
 
-    /** Tracks pause state for handling pause events */
-    private var isPaused = false
-
-    /** Tracks the pause timestamp for handling pause events */
-    private var pauseTimestamp: Long = 0
-
-    /** The job that handles pause events */
-    private var pauseJob: Job? = null
 
     /**
      * Handles switch press events. This is the main entry point for processing
@@ -65,7 +49,8 @@ class ExternalSwitchListener(
         val switchEvent = findSwitchEvent(keyCode) ?: return false
         switchEvent.log()
 
-        if (handlePauseEvent()) return false
+        val pauseManager = ServiceCore.getPauseManager()
+        if (pauseManager.handleSwitchDuringPause()) return false
 
         processSwitchPressedActions(switchEvent)
         return true
@@ -81,7 +66,8 @@ class ExternalSwitchListener(
         val switchEvent = findSwitchEvent(keyCode) ?: return false
         val absorbedAction = latestAction?.takeIf { it.switchEvent == switchEvent } ?: return true
 
-        if (handlePauseEvent()) return false
+        val pauseManager = ServiceCore.getPauseManager()
+        if (pauseManager.handleSwitchDuringPause()) return false
 
         if (scanningManager.stopMoveRepeat()) return true
         ExternalSwitchLongPressHandler.stopLongPress(scanningManager)
@@ -97,61 +83,6 @@ class ExternalSwitchListener(
 
         processSwitchReleasedActions(switchEvent, absorbedAction)
         return true
-    }
-
-    /**
-     * Starts the pause job if it is not already running.
-     */
-    fun startPauseJob() {
-        if (pauseJob == null) {
-            ServiceMessageHUD.instance.showMessage(
-                R.string.hud_pause,
-                ServiceMessageHUD.MessageType.DISAPPEARING
-            )
-            isPaused = true
-            pauseTimestamp = System.currentTimeMillis()
-            
-            pauseJob = CoroutineScope(Dispatchers.Main).launch {
-                // Give the pause message time to show before hiding the window
-                delay(1000)
-                
-                // Hide the service window when pausing
-                SwitchifyAccessibilityWindow.instance.hide()
-                
-                while (isPaused) {
-                    delay(PAUSE_MS)
-                    if (System.currentTimeMillis() - pauseTimestamp > PAUSE_MS) {
-                        isPaused = false
-                        pauseJob = null
-                        
-                        // Show the service window when resuming
-                        SwitchifyAccessibilityWindow.instance.show()
-                        
-                        // Give the window time to show before displaying the message
-                        delay(1000)
-                        
-                        ServiceMessageHUD.instance.showMessage(
-                            R.string.hud_pause_resume,
-                            ServiceMessageHUD.MessageType.DISAPPEARING
-                        )
-                    }
-                }
-            }
-        }
-    }
-
-    /**
-     * Handles switch events during pause.
-     * Sets the timestamp.
-     *
-     * @return True if the event was handled, false otherwise.
-     */
-    private fun handlePauseEvent(): Boolean {
-        if (isPaused) {
-            pauseTimestamp = System.currentTimeMillis()
-            return true
-        }
-        return false
     }
 
     /**

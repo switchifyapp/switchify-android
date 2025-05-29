@@ -9,7 +9,13 @@ import androidx.camera.core.*
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
+import android.content.BroadcastReceiver
+import android.content.Intent
+import android.content.IntentFilter
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.enaboapps.switchify.R
+import com.enaboapps.switchify.service.core.ServiceCore
+import com.enaboapps.switchify.service.pauseresume.PauseManager
 import com.enaboapps.switchify.service.scanning.ScanningManager
 import com.enaboapps.switchify.service.switches.SwitchEventProvider
 import com.enaboapps.switchify.service.window.ServiceMessageHUD
@@ -68,6 +74,15 @@ class CameraSwitchManager(
     private val coroutineScope = CoroutineScope(Dispatchers.Main)
 
     private var faceDetector: FaceDetector? = null
+    
+    private val pauseReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            when (intent?.action) {
+                PauseManager.ACTION_PAUSE_STARTED -> onPauseStarted()
+                PauseManager.ACTION_PAUSE_ENDED -> onPauseEnded()
+            }
+        }
+    }
 
     private fun checkInitialization(): Boolean {
         if (!isInitialized) {
@@ -105,6 +120,14 @@ class CameraSwitchManager(
                 .build()
         )
         isInitialized = true
+        
+        // Register for pause broadcasts
+        val filter = IntentFilter().apply {
+            addAction(PauseManager.ACTION_PAUSE_STARTED)
+            addAction(PauseManager.ACTION_PAUSE_ENDED)
+        }
+        LocalBroadcastManager.getInstance(context).registerReceiver(pauseReceiver, filter)
+        
         Log.d(TAG, "CameraSwitchManager initialized")
     }
 
@@ -232,7 +255,13 @@ class CameraSwitchManager(
      */
     private fun processFace(face: Face) {
         if (!checkInitialization()) {
-
+            return
+        }
+        
+        // Don't process gestures during pause
+        val pauseManager = ServiceCore.getPauseManager()
+        if (pauseManager.isPaused) {
+            Log.d(TAG, "Ignoring face processing - currently paused")
             return
         }
         // Update current face state
@@ -360,10 +389,6 @@ class CameraSwitchManager(
      * This must be called after the camera has been stopped.
      */
     private fun reset() {
-        if (!checkInitialization()) {
-            return
-
-        }
         gestureStates.forEach { (_, state) ->
             state.isActive = false
             state.startTime = 0
@@ -377,17 +402,13 @@ class CameraSwitchManager(
      * This must be called after the manager has been initialized.
      */
     fun stopCamera() {
-        if (!checkInitialization()) {
-            return
-        }
-
         try {
             cameraProvider?.unbindAll()
             cameraProvider = null
             imageAnalyzer = null
             preview = null
             cameraProviderFuture = null
-            isInitialized = false
+            // Don't set isInitialized to false here so we can restart the camera
             Log.d(TAG, "Camera stopped successfully")
         } catch (e: Exception) {
             Log.e(TAG, "Failed to stop camera", e)
@@ -466,6 +487,30 @@ class CameraSwitchManager(
 
     private fun findSwitchEventForGesture(gesture: CameraSwitchFacialGesture): SwitchEvent? =
         switchEventProvider.findCamera(gesture.id)
+
+    private fun onPauseStarted() {
+        Log.d(TAG, "Pause started - stopping camera")
+        stopCamera()
+    }
+    
+    private fun onPauseEnded() {
+        Log.d(TAG, "Pause ended - restarting camera")
+        if (context is LifecycleOwner) {
+            startCamera(context)
+        }
+    }
+    
+    /**
+     * Cleans up the camera manager resources.
+     * Should be called when the camera manager is no longer needed.
+     */
+    fun cleanup() {
+        LocalBroadcastManager.getInstance(context).unregisterReceiver(pauseReceiver)
+        stopCamera()
+        faceDetector?.close()
+        faceDetector = null
+        isInitialized = false
+    }
 
     companion object {
         private const val TAG = "CameraSwitchManager"
