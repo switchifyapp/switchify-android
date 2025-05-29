@@ -47,7 +47,9 @@ class CameraSwitchManager(
         CameraSwitchFacialGesture.SMILE to CameraSwitchState(false),
         CameraSwitchFacialGesture.LEFT_WINK to CameraSwitchState(true),
         CameraSwitchFacialGesture.RIGHT_WINK to CameraSwitchState(true),
-        CameraSwitchFacialGesture.BLINK to CameraSwitchState(true)
+        CameraSwitchFacialGesture.BLINK to CameraSwitchState(true),
+        CameraSwitchFacialGesture.HEAD_TURN_LEFT to CameraSwitchState(false),
+        CameraSwitchFacialGesture.HEAD_TURN_RIGHT to CameraSwitchState(false)
     )
 
     // Track currently active gesture
@@ -56,7 +58,8 @@ class CameraSwitchManager(
     private data class FaceState(
         var leftEyeOpen: Boolean = true,
         var rightEyeOpen: Boolean = true,
-        var isSmiling: Boolean = false
+        var isSmiling: Boolean = false,
+        var headRotationY: Float = 0f
     )
 
     private val currentFaceState = FaceState()
@@ -237,6 +240,7 @@ class CameraSwitchManager(
             leftEyeOpen = (face.leftEyeOpenProbability ?: 1f) > EYE_OPEN_THRESHOLD
             rightEyeOpen = (face.rightEyeOpenProbability ?: 1f) > EYE_OPEN_THRESHOLD
             isSmiling = (face.smilingProbability ?: 0f) > SMILE_THRESHOLD
+            headRotationY = face.headEulerAngleY
         }
 
         // Debug logging for state tracking
@@ -298,6 +302,32 @@ class CameraSwitchManager(
                 handleGestureStateChange(
                     CameraSwitchFacialGesture(CameraSwitchFacialGesture.BLINK),
                     false
+                )
+            }
+
+            // Handle Head Turn Left (positive Y rotation)
+            val isHeadTurnedLeft = currentFaceState.headRotationY > HEAD_TURN_THRESHOLD
+            val wasHeadTurnedLeft = lastProcessedState.headRotationY > HEAD_TURN_THRESHOLD
+            if (isHeadTurnedLeft != wasHeadTurnedLeft && switchEventProvider.isFacialGestureAssigned(
+                    CameraSwitchFacialGesture.HEAD_TURN_LEFT
+                )
+            ) {
+                handleGestureStateChange(
+                    CameraSwitchFacialGesture(CameraSwitchFacialGesture.HEAD_TURN_LEFT),
+                    isHeadTurnedLeft
+                )
+            }
+
+            // Handle Head Turn Right (negative Y rotation)
+            val isHeadTurnedRight = currentFaceState.headRotationY < -HEAD_TURN_THRESHOLD
+            val wasHeadTurnedRight = lastProcessedState.headRotationY < -HEAD_TURN_THRESHOLD
+            if (isHeadTurnedRight != wasHeadTurnedRight && switchEventProvider.isFacialGestureAssigned(
+                    CameraSwitchFacialGesture.HEAD_TURN_RIGHT
+                )
+            ) {
+                handleGestureStateChange(
+                    CameraSwitchFacialGesture(CameraSwitchFacialGesture.HEAD_TURN_RIGHT),
+                    isHeadTurnedRight
                 )
             }
 
@@ -442,5 +472,6 @@ class CameraSwitchManager(
         private const val SMILE_THRESHOLD = 0.5f
         private const val EYE_OPEN_THRESHOLD = 0.2f
         private const val MIN_FACE_SIZE = 0.2f
+        private const val HEAD_TURN_THRESHOLD = 20f // degrees
     }
 }
