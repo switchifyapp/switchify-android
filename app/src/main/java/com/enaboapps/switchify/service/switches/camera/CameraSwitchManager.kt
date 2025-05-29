@@ -108,7 +108,7 @@ class CameraSwitchManager(
         Log.d(TAG, "CameraSwitchManager initialized")
     }
 
-    private fun showCameraError(message: String) {
+    private fun showCameraError() {
         coroutineScope.launch(Dispatchers.Main) {
             ServiceMessageHUD.instance.showMessage(
                 R.string.hud_camera_access_error,
@@ -128,7 +128,7 @@ class CameraSwitchManager(
         }
 
         if (!isCameraAccessGranted()) {
-            showCameraError("Camera access is not granted. Please grant camera access in the app settings and then restart the Accessibility Service.")
+            showCameraError()
             return
         }
 
@@ -140,7 +140,7 @@ class CameraSwitchManager(
                     Log.d(TAG, "Camera started successfully")
                 } catch (e: Exception) {
                     Log.e(TAG, "Failed to start camera", e)
-                    showCameraError(e.message ?: "Unknown error")
+                    showCameraError()
                 }
             }, ContextCompat.getMainExecutor(context))
         }
@@ -391,7 +391,7 @@ class CameraSwitchManager(
             Log.d(TAG, "Camera stopped successfully")
         } catch (e: Exception) {
             Log.e(TAG, "Failed to stop camera", e)
-            showCameraError(e.message ?: "Unknown error")
+            showCameraError()
         }
     }
 
