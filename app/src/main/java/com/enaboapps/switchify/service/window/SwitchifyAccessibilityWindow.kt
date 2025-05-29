@@ -135,6 +135,23 @@ class SwitchifyAccessibilityWindow private constructor() : LifecycleOwner, Saved
     }
 
     /**
+     * Hides the window without cleaning up views.
+     */
+    fun hide() {
+        mainHandler.post {
+            try {
+                if (isVisible && baseLayout != null) {
+                    windowManager?.removeView(baseLayout)
+                    isVisible = false
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error in hide: ${e.message}", e)
+            }
+        }
+    }
+
+
+    /**
      * Cleans up the window and its resources.
      */
     fun cleanup() {

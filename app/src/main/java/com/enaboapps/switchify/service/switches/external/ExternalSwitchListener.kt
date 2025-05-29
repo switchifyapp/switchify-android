@@ -8,6 +8,7 @@ import com.enaboapps.switchify.service.scanning.ScanningManager
 import com.enaboapps.switchify.service.selection.SelectionHandler
 import com.enaboapps.switchify.service.switches.SwitchEventProvider
 import com.enaboapps.switchify.service.window.ServiceMessageHUD
+import com.enaboapps.switchify.service.window.SwitchifyAccessibilityWindow
 import com.enaboapps.switchify.switches.SwitchEvent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -109,12 +110,26 @@ class ExternalSwitchListener(
             )
             isPaused = true
             pauseTimestamp = System.currentTimeMillis()
+            
             pauseJob = CoroutineScope(Dispatchers.Main).launch {
+                // Give the pause message time to show before hiding the window
+                delay(1000)
+                
+                // Hide the service window when pausing
+                SwitchifyAccessibilityWindow.instance.hide()
+                
                 while (isPaused) {
                     delay(PAUSE_MS)
                     if (System.currentTimeMillis() - pauseTimestamp > PAUSE_MS) {
                         isPaused = false
                         pauseJob = null
+                        
+                        // Show the service window when resuming
+                        SwitchifyAccessibilityWindow.instance.show()
+                        
+                        // Give the window time to show before displaying the message
+                        delay(1000)
+                        
                         ServiceMessageHUD.instance.showMessage(
                             R.string.hud_pause_resume,
                             ServiceMessageHUD.MessageType.DISAPPEARING
