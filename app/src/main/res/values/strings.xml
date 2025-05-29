@@ -171,6 +171,10 @@
     <string name="action_headset">Play/Pause Media or Answer/End Call</string>
     <string name="action_headset_desc">Play/Pause Media or Answer/End Call</string>
 
+    <!-- Pause Action -->
+    <string name="action_pause">Pause Switchify</string>
+    <string name="action_pause_desc">Pause Switchify for 30 seconds to use switches with other apps</string>
+
     <!-- Miscellaneous -->
     <string name="unknown">Unknown</string>
 
