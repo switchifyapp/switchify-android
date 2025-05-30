@@ -13,7 +13,7 @@ import com.enaboapps.switchify.R
 import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.FullWidthButton
 import com.enaboapps.switchify.components.Picker
-import com.enaboapps.switchify.components.PreferenceStepper
+import com.enaboapps.switchify.components.PreferenceValueSelector
 import com.enaboapps.switchify.components.PreferenceTimeStepper
 import com.enaboapps.switchify.components.TextArea
 import com.enaboapps.switchify.screens.settings.switches.actions.SwitchActionPicker
@@ -116,13 +116,12 @@ private fun MainContent(
         viewModel.selectedGesture.value?.let { gesture ->
             if (gesture.isHeadTurn()) {
                 Spacer(modifier = Modifier.height(16.dp))
-                PreferenceStepper(
+                PreferenceValueSelector(
                     value = viewModel.sensitivity.intValue,
                     titleResId = R.string.preference_title_head_turn_sensitivity,
                     summaryResId = R.string.preference_summary_head_turn_sensitivity,
                     min = 1,
                     max = 10,
-                    step = 1,
                     displayFormatter = { sensitivity ->
                         "${CameraSwitchManager.getHeadTurnThreshold(sensitivity).toInt()}°"
                     },
