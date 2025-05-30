@@ -18,7 +18,6 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun AddEditCameraSwitchScreen(navController: NavController, code: String? = null) {
-    val context = LocalContext.current
     val viewModel = remember { AddEditCameraSwitchScreenModel().apply { init(code) } }
 
     BaseView(
@@ -53,25 +52,25 @@ private fun MainContent(
 
         if (code == null) {
             // Facial Gesture Selection
-            Section(titleResId = R.string.section_title_facial_gesture) {
-                val gestures = listOf(
-                    CameraSwitchFacialGesture(CameraSwitchFacialGesture.SMILE),
-                    CameraSwitchFacialGesture(CameraSwitchFacialGesture.LEFT_WINK),
-                    CameraSwitchFacialGesture(CameraSwitchFacialGesture.RIGHT_WINK),
-                    CameraSwitchFacialGesture(CameraSwitchFacialGesture.BLINK),
-                    CameraSwitchFacialGesture(CameraSwitchFacialGesture.HEAD_TURN_LEFT),
-                    CameraSwitchFacialGesture(CameraSwitchFacialGesture.HEAD_TURN_RIGHT)
-                )
+            val gestures = listOf(
+                CameraSwitchFacialGesture(CameraSwitchFacialGesture.SMILE),
+                CameraSwitchFacialGesture(CameraSwitchFacialGesture.LEFT_WINK),
+                CameraSwitchFacialGesture(CameraSwitchFacialGesture.RIGHT_WINK),
+                CameraSwitchFacialGesture(CameraSwitchFacialGesture.BLINK),
+                CameraSwitchFacialGesture(CameraSwitchFacialGesture.HEAD_TURN_LEFT),
+                CameraSwitchFacialGesture(CameraSwitchFacialGesture.HEAD_TURN_RIGHT)
+            )
 
-                gestures.forEach { gesture ->
-                    RadioButtonItem(
-                        text = gesture.getName(),
-                        description = gesture.getDescription(),
-                        selected = viewModel.selectedGesture.value?.id == gesture.id,
-                        onSelect = { viewModel.setGesture(gesture) }
-                    )
-                }
-            }
+            Picker(
+                titleResId = R.string.section_title_facial_gesture,
+                selectedItem = viewModel.selectedGesture.value,
+                items = gestures,
+                onItemSelected = { gesture ->
+                    viewModel.setGesture(gesture)
+                },
+                itemToString = { it.getName() },
+                itemDescription = { it.getDescription() }
+            )
         } else {
             Text(
                 text = "This switch is already set up with ${viewModel.selectedGesture.value?.getName()}",
@@ -175,28 +174,4 @@ private fun MainContent(
     }
 }
 
-@Composable
-private fun RadioButtonItem(
-    text: String,
-    description: String,
-    selected: Boolean,
-    onSelect: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp)
-    ) {
-        RadioButton(
-            selected = selected,
-            onClick = onSelect
-        )
-        Column(
-            modifier = Modifier
-                .padding(start = 16.dp)
-        ) {
-            Text(text = text, style = MaterialTheme.typography.titleMedium)
-            Text(text = description, style = MaterialTheme.typography.bodyMedium)
-        }
-    }
-} 
+ 
