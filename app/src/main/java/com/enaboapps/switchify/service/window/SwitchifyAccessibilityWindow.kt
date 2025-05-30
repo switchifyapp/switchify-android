@@ -82,12 +82,11 @@ class SwitchifyAccessibilityWindow private constructor() : LifecycleOwner, Saved
             val context = getContext() ?: return
             val wake = {
                 ServiceMessageHUD.instance.setup(context.applicationContext)
-                createBaseLayout()
                 show()
             }
             val sleep = {
                 ServiceMessageHUD.instance.dispose()
-                cleanup()
+                hide()
             }
             screenWatcher = ScreenWatcher(onScreenWake = wake, onScreenSleep = sleep)
             screenWatcher?.register(context)
