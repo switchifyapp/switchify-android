@@ -504,7 +504,14 @@ class CameraSwitchManager(
                 gestureStates[switchEvent.code]?.let { state ->
                     if (state.isActive && state.startTime > 0) {
                         val timeElapsed = System.currentTimeMillis() - state.startTime
-                        if (timeElapsed >= switchEvent.facialGestureTime) {
+                        // Head turn gestures trigger immediately, others need to meet time requirement
+                        val shouldTrigger = if (gesture.isHeadTurn()) {
+                            true
+                        } else {
+                            timeElapsed >= switchEvent.facialGestureTime
+                        }
+                        
+                        if (shouldTrigger) {
                             scanningManager.performAction(switchEvent.pressAction)
                             Log.d(
                                 TAG,
