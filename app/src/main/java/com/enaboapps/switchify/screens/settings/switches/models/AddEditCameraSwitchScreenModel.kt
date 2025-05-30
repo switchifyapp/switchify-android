@@ -1,6 +1,7 @@
 package com.enaboapps.switchify.screens.settings.switches.models
 
 import android.content.Context
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
@@ -12,6 +13,7 @@ class AddEditCameraSwitchScreenModel : ViewModel() {
     val action = mutableStateOf(SwitchAction(SwitchAction.ACTION_SELECT))
     val isValid = mutableStateOf(false)
     val facialGestureTime = mutableLongStateOf(100L)
+    val sensitivity = mutableIntStateOf(4) // Default sensitivity
     val showDeleteConfirmation = mutableStateOf(false)
 
     private lateinit var store: SwitchEventStore
@@ -28,6 +30,7 @@ class AddEditCameraSwitchScreenModel : ViewModel() {
                 selectedGesture.value = CameraSwitchFacialGesture(it.code)
                 action.value = it.pressAction
                 facialGestureTime.longValue = it.facialGestureTime
+                sensitivity.intValue = it.sensitivity
             }
         } else {
             name = "Camera Switch ${store.getCount() + 1}"
@@ -54,6 +57,11 @@ class AddEditCameraSwitchScreenModel : ViewModel() {
         facialGestureTime.longValue = newValue
         validate()
     }
+    
+    fun setSensitivity(newValue: Int) {
+        sensitivity.intValue = newValue
+        validate()
+    }
 
     private fun validate() {
         isValid.value = name.isNotBlank() &&
@@ -67,6 +75,7 @@ class AddEditCameraSwitchScreenModel : ViewModel() {
             name = name.trim(),
             code = selectedGesture.value?.id ?: "",
             facialGestureTime = facialGestureTime.longValue,
+            sensitivity = sensitivity.intValue,
             pressAction = action.value,
             holdActions = emptyList()
         )

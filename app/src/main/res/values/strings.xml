@@ -307,6 +307,8 @@
     <string name="section_title_action">Action</string>
     <string name="preference_title_facial_gesture_time">Facial Gesture Time</string>
     <string name="preference_summary_facial_gesture_time">The time to wait for a facial gesture to be detected</string>
+    <string name="preference_title_head_turn_sensitivity">Head Turn Sensitivity</string>
+    <string name="preference_summary_head_turn_sensitivity">How sensitive the head turn detection should be (1 = most sensitive, 10 = least sensitive)</string>
     <string name="dialog_title_delete">Confirm Deletion</string>
     <string name="dialog_message_delete">Are you sure you want to delete this switch?</string>
 

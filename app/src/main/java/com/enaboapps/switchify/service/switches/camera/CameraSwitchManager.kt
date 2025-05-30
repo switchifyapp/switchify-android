@@ -339,8 +339,11 @@ class CameraSwitchManager(
             }
 
             // Handle Head Turn Left (positive Y rotation)
-            val isHeadTurnedLeft = currentFaceState.headRotationY > HEAD_TURN_THRESHOLD
-            val wasHeadTurnedLeft = lastProcessedState.headRotationY > HEAD_TURN_THRESHOLD
+            val leftTurnThreshold = switchEventProvider.findCamera(CameraSwitchFacialGesture.HEAD_TURN_LEFT)?.let {
+                getHeadTurnThreshold(it.sensitivity)
+            } ?: HEAD_TURN_THRESHOLD
+            val isHeadTurnedLeft = currentFaceState.headRotationY > leftTurnThreshold
+            val wasHeadTurnedLeft = lastProcessedState.headRotationY > leftTurnThreshold
             if (isHeadTurnedLeft != wasHeadTurnedLeft && switchEventProvider.isFacialGestureAssigned(
                     CameraSwitchFacialGesture.HEAD_TURN_LEFT
                 )
@@ -352,8 +355,11 @@ class CameraSwitchManager(
             }
 
             // Handle Head Turn Right (negative Y rotation)
-            val isHeadTurnedRight = currentFaceState.headRotationY < -HEAD_TURN_THRESHOLD
-            val wasHeadTurnedRight = lastProcessedState.headRotationY < -HEAD_TURN_THRESHOLD
+            val rightTurnThreshold = switchEventProvider.findCamera(CameraSwitchFacialGesture.HEAD_TURN_RIGHT)?.let {
+                getHeadTurnThreshold(it.sensitivity)
+            } ?: HEAD_TURN_THRESHOLD
+            val isHeadTurnedRight = currentFaceState.headRotationY < -rightTurnThreshold
+            val wasHeadTurnedRight = lastProcessedState.headRotationY < -rightTurnThreshold
             if (isHeadTurnedRight != wasHeadTurnedRight && switchEventProvider.isFacialGestureAssigned(
                     CameraSwitchFacialGesture.HEAD_TURN_RIGHT
                 )
@@ -365,8 +371,11 @@ class CameraSwitchManager(
             }
 
             // Handle Head Turn Up (negative X rotation)
-            val isHeadTurnedUp = currentFaceState.headRotationX < -HEAD_TURN_THRESHOLD
-            val wasHeadTurnedUp = lastProcessedState.headRotationX < -HEAD_TURN_THRESHOLD
+            val upTurnThreshold = switchEventProvider.findCamera(CameraSwitchFacialGesture.HEAD_TURN_UP)?.let {
+                getHeadTurnThreshold(it.sensitivity)
+            } ?: HEAD_TURN_THRESHOLD
+            val isHeadTurnedUp = currentFaceState.headRotationX < -upTurnThreshold
+            val wasHeadTurnedUp = lastProcessedState.headRotationX < -upTurnThreshold
             if (isHeadTurnedUp != wasHeadTurnedUp && switchEventProvider.isFacialGestureAssigned(
                     CameraSwitchFacialGesture.HEAD_TURN_UP
                 )
@@ -378,8 +387,11 @@ class CameraSwitchManager(
             }
 
             // Handle Head Turn Down (positive X rotation)
-            val isHeadTurnedDown = currentFaceState.headRotationX > HEAD_TURN_THRESHOLD
-            val wasHeadTurnedDown = lastProcessedState.headRotationX > HEAD_TURN_THRESHOLD
+            val downTurnThreshold = switchEventProvider.findCamera(CameraSwitchFacialGesture.HEAD_TURN_DOWN)?.let {
+                getHeadTurnThreshold(it.sensitivity)
+            } ?: HEAD_TURN_THRESHOLD
+            val isHeadTurnedDown = currentFaceState.headRotationX > downTurnThreshold
+            val wasHeadTurnedDown = lastProcessedState.headRotationX > downTurnThreshold
             if (isHeadTurnedDown != wasHeadTurnedDown && switchEventProvider.isFacialGestureAssigned(
                     CameraSwitchFacialGesture.HEAD_TURN_DOWN
                 )
@@ -547,6 +559,14 @@ class CameraSwitchManager(
         private const val SMILE_THRESHOLD = 0.5f
         private const val EYE_OPEN_THRESHOLD = 0.2f
         private const val MIN_FACE_SIZE = 0.2f
-        private const val HEAD_TURN_THRESHOLD = 20f // degrees
+        private const val HEAD_TURN_THRESHOLD = 20f // degrees (default for sensitivity 4)
+        
+        /**
+         * Calculates the head turn threshold based on sensitivity setting
+         * Sensitivity 1-10 maps to 5-50 degrees (5° increments)
+         */
+        fun getHeadTurnThreshold(sensitivity: Int): Float {
+            return (sensitivity.coerceIn(1, 10) * 5).toFloat()
+        }
     }
 }
