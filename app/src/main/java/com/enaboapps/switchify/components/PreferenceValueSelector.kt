@@ -32,7 +32,6 @@ fun PreferenceValueSelector(
     value: Int,
     titleResId: Int,
     summaryResId: Int,
-    explanationResId: Int? = null,
     min: Int,
     max: Int,
     buttonLabelFormatter: (Int) -> String = { it.toString() },
