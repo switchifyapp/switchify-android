@@ -10,9 +10,15 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.enaboapps.switchify.R
-import com.enaboapps.switchify.components.*
+import com.enaboapps.switchify.components.BaseView
+import com.enaboapps.switchify.components.FullWidthButton
+import com.enaboapps.switchify.components.Picker
+import com.enaboapps.switchify.components.PreferenceValueSelector
+import com.enaboapps.switchify.components.PreferenceTimeStepper
+import com.enaboapps.switchify.components.TextArea
 import com.enaboapps.switchify.screens.settings.switches.actions.SwitchActionPicker
 import com.enaboapps.switchify.screens.settings.switches.models.AddEditCameraSwitchScreenModel
+import com.enaboapps.switchify.service.switches.camera.CameraSwitchManager
 import com.enaboapps.switchify.switches.CameraSwitchFacialGesture
 import kotlinx.coroutines.launch
 
@@ -106,6 +112,26 @@ private fun MainContent(
             }
         )
 
+        // Head Turn Sensitivity (only show for head turn gestures)
+        viewModel.selectedGesture.value?.let { gesture ->
+            if (gesture.isHeadTurn()) {
+                Spacer(modifier = Modifier.height(16.dp))
+                PreferenceValueSelector(
+                    value = viewModel.sensitivity.intValue,
+                    titleResId = R.string.preference_title_head_turn_sensitivity,
+                    summaryResId = R.string.preference_summary_head_turn_sensitivity,
+                    min = 1,
+                    max = 10,
+                    displayFormatter = { sensitivity ->
+                        "${CameraSwitchManager.getHeadTurnThreshold(sensitivity).toInt()}°"
+                    },
+                    onValueChanged = { newValue ->
+                        viewModel.setSensitivity(newValue)
+                    }
+                )
+            }
+        }
+
         Spacer(modifier = Modifier.height(24.dp))
 
         // Save Button
@@ -175,5 +201,3 @@ private fun MainContent(
         )
     }
 }
-
- 

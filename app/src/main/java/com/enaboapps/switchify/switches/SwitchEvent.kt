@@ -10,6 +10,7 @@ data class SwitchEvent(
     @SerializedName("name") var name: String,
     @SerializedName("code") var code: String,
     @SerializedName("facial_gesture_time") var facialGestureTime: Long = 100L,
+    @SerializedName("sensitivity") var sensitivity: Int = 4, // Default sensitivity 4 = 20 degrees
     @SerializedName("press_action") var pressAction: SwitchAction,
     @SerializedName("hold_actions") var holdActions: List<SwitchAction>
 ) {
@@ -18,6 +19,7 @@ data class SwitchEvent(
         "name" to name,
         "code" to code,
         "facial_gesture_time" to (facialGestureTime.takeIf { it > 0 } ?: 100L),
+        "sensitivity" to sensitivity,
         "press_action" to pressAction.toMap(),
         "hold_actions" to holdActions.map { it.toMap() }
     )

@@ -45,4 +45,8 @@ class CameraSwitchFacialGesture(val id: String) {
             else -> "Unknown"
         }
     }
+    
+    fun isHeadTurn(): Boolean {
+        return id in listOf(HEAD_TURN_LEFT, HEAD_TURN_RIGHT, HEAD_TURN_UP, HEAD_TURN_DOWN)
+    }
 }
