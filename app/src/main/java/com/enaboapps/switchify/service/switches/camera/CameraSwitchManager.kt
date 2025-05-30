@@ -55,7 +55,9 @@ class CameraSwitchManager(
         CameraSwitchFacialGesture.RIGHT_WINK to CameraSwitchState(true),
         CameraSwitchFacialGesture.BLINK to CameraSwitchState(true),
         CameraSwitchFacialGesture.HEAD_TURN_LEFT to CameraSwitchState(false),
-        CameraSwitchFacialGesture.HEAD_TURN_RIGHT to CameraSwitchState(false)
+        CameraSwitchFacialGesture.HEAD_TURN_RIGHT to CameraSwitchState(false),
+        CameraSwitchFacialGesture.HEAD_TURN_UP to CameraSwitchState(false),
+        CameraSwitchFacialGesture.HEAD_TURN_DOWN to CameraSwitchState(false)
     )
 
     // Track currently active gesture
@@ -65,7 +67,8 @@ class CameraSwitchManager(
         var leftEyeOpen: Boolean = true,
         var rightEyeOpen: Boolean = true,
         var isSmiling: Boolean = false,
-        var headRotationY: Float = 0f
+        var headRotationY: Float = 0f,
+        var headRotationX: Float = 0f
     )
 
     private val currentFaceState = FaceState()
@@ -270,6 +273,7 @@ class CameraSwitchManager(
             rightEyeOpen = (face.rightEyeOpenProbability ?: 1f) > EYE_OPEN_THRESHOLD
             isSmiling = (face.smilingProbability ?: 0f) > SMILE_THRESHOLD
             headRotationY = face.headEulerAngleY
+            headRotationX = face.headEulerAngleX
         }
 
         // Debug logging for state tracking
@@ -357,6 +361,32 @@ class CameraSwitchManager(
                 handleGestureStateChange(
                     CameraSwitchFacialGesture(CameraSwitchFacialGesture.HEAD_TURN_RIGHT),
                     isHeadTurnedRight
+                )
+            }
+
+            // Handle Head Turn Up (negative X rotation)
+            val isHeadTurnedUp = currentFaceState.headRotationX < -HEAD_TURN_THRESHOLD
+            val wasHeadTurnedUp = lastProcessedState.headRotationX < -HEAD_TURN_THRESHOLD
+            if (isHeadTurnedUp != wasHeadTurnedUp && switchEventProvider.isFacialGestureAssigned(
+                    CameraSwitchFacialGesture.HEAD_TURN_UP
+                )
+            ) {
+                handleGestureStateChange(
+                    CameraSwitchFacialGesture(CameraSwitchFacialGesture.HEAD_TURN_UP),
+                    isHeadTurnedUp
+                )
+            }
+
+            // Handle Head Turn Down (positive X rotation)
+            val isHeadTurnedDown = currentFaceState.headRotationX > HEAD_TURN_THRESHOLD
+            val wasHeadTurnedDown = lastProcessedState.headRotationX > HEAD_TURN_THRESHOLD
+            if (isHeadTurnedDown != wasHeadTurnedDown && switchEventProvider.isFacialGestureAssigned(
+                    CameraSwitchFacialGesture.HEAD_TURN_DOWN
+                )
+            ) {
+                handleGestureStateChange(
+                    CameraSwitchFacialGesture(CameraSwitchFacialGesture.HEAD_TURN_DOWN),
+                    isHeadTurnedDown
                 )
             }
 

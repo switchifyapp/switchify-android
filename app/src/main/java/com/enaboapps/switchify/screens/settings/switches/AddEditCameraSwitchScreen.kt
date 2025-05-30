@@ -58,7 +58,9 @@ private fun MainContent(
                 CameraSwitchFacialGesture(CameraSwitchFacialGesture.RIGHT_WINK),
                 CameraSwitchFacialGesture(CameraSwitchFacialGesture.BLINK),
                 CameraSwitchFacialGesture(CameraSwitchFacialGesture.HEAD_TURN_LEFT),
-                CameraSwitchFacialGesture(CameraSwitchFacialGesture.HEAD_TURN_RIGHT)
+                CameraSwitchFacialGesture(CameraSwitchFacialGesture.HEAD_TURN_RIGHT),
+                CameraSwitchFacialGesture(CameraSwitchFacialGesture.HEAD_TURN_UP),
+                CameraSwitchFacialGesture(CameraSwitchFacialGesture.HEAD_TURN_DOWN)
             )
 
             Picker(

@@ -14,6 +14,8 @@ class CameraSwitchFacialGesture(val id: String) {
         const val BLINK = "blink"
         const val HEAD_TURN_LEFT = "head_turn_left"
         const val HEAD_TURN_RIGHT = "head_turn_right"
+        const val HEAD_TURN_UP = "head_turn_up"
+        const val HEAD_TURN_DOWN = "head_turn_down"
     }
 
     fun getName(): String {
@@ -24,6 +26,8 @@ class CameraSwitchFacialGesture(val id: String) {
             BLINK -> "Blink"
             HEAD_TURN_LEFT -> "Head Turn Left"
             HEAD_TURN_RIGHT -> "Head Turn Right"
+            HEAD_TURN_UP -> "Head Turn Up"
+            HEAD_TURN_DOWN -> "Head Turn Down"
             else -> "Unknown"
         }
     }
@@ -36,6 +40,8 @@ class CameraSwitchFacialGesture(val id: String) {
             BLINK -> "Blink with your eyes"
             HEAD_TURN_LEFT -> "Turn your head to the left"
             HEAD_TURN_RIGHT -> "Turn your head to the right"
+            HEAD_TURN_UP -> "Turn your head up"
+            HEAD_TURN_DOWN -> "Turn your head down"
             else -> "Unknown"
         }
     }
