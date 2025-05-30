@@ -8,7 +8,7 @@ import com.enaboapps.switchify.switches.*
 
 class AddEditCameraSwitchScreenModel : ViewModel() {
     var name = ""
-    val selectedGesture = mutableStateOf<CameraSwitchFacialGesture?>(null)
+    val selectedGesture = mutableStateOf<CameraSwitchFacialGesture?>(CameraSwitchFacialGesture(CameraSwitchFacialGesture.SMILE))
     val action = mutableStateOf(SwitchAction(SwitchAction.ACTION_SELECT))
     val isValid = mutableStateOf(false)
     val facialGestureTime = mutableLongStateOf(100L)
