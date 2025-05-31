@@ -50,7 +50,7 @@ class AddEditExternalSwitchScreenModel : ViewModel() {
         if (code != null) {
             reload(context)
         } else {
-            name = "Switch ${store.getCount() + 1}"
+            name = ""
             pressAction.value = SwitchAction(SwitchAction.ACTION_SELECT)
             longPressActions.value = emptyList()
             updateAllowLongPress(context)
@@ -70,7 +70,7 @@ class AddEditExternalSwitchScreenModel : ViewModel() {
                 shouldSave.value = true
                 switchCaptured.value = true
             } else {
-                name = "Switch ${store.getCount() + 1}"
+                name = ""
                 pressAction.value = SwitchAction(SwitchAction.ACTION_SELECT)
                 longPressActions.value = emptyList()
                 updateAllowLongPress(context)

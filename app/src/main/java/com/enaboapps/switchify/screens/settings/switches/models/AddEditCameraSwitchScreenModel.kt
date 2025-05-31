@@ -33,7 +33,7 @@ class AddEditCameraSwitchScreenModel : ViewModel() {
                 sensitivity.intValue = it.sensitivity
             }
         } else {
-            name = "Camera Switch ${store.getCount() + 1}"
+            name = ""
         }
         validate()
     }
