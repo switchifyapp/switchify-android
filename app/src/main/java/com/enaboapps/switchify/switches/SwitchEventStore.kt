@@ -10,18 +10,13 @@ import com.enaboapps.switchify.utils.Logger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import java.util.Collections
 
 /**
- * SwitchEventStore manages the storage and synchronization of switch events between local storage
- * and Firestore. It provides functionality for local storage, cloud synchronization, and remote
- * switch management.
+ * SwitchEventStore manages the storage of switch events using local storage.
  *
  * Features:
  * - Local storage using JSON file
- * - Cloud synchronization with Firestore
- * - Remote switch discovery and import
  * - CRUD operations for switches
  * - Switch configuration validation
  * - Broadcasts an event to all listeners when switch events are updated
@@ -34,7 +29,6 @@ class SwitchEventStore private constructor() {
     private val tag = "SwitchEventStore"
     private val coroutineScope = CoroutineScope(Dispatchers.IO)
     private val localStorage = SwitchEventLocalStorage()
-    private val firestore = SwitchEventFirestore()
 
     companion object {
         const val EVENTS_UPDATED = "com.enaboapps.switchify.EVENTS_UPDATED"
@@ -84,9 +78,7 @@ class SwitchEventStore private constructor() {
                     Log.d(tag, "Successfully added and saved switch event")
                     completion(true)
                     broadcastReloadEvent(context)
-                    if (firestore.pushEvent(switchEvent)) {
-                        Logger.logEvent("Added switch: ${switchEvent.name}")
-                    }
+                    Logger.logEvent("Added switch: ${switchEvent.name}")
                 } else {
                     Log.e(tag, "Failed to save switch event to file")
                     switchEvents.remove(switchEvent)
@@ -110,9 +102,7 @@ class SwitchEventStore private constructor() {
                 if (localStorage.saveToFile(context, switchEvents)) {
                     completion(true)
                     broadcastReloadEvent(context)
-                    if (firestore.pushEvent(switchEvent)) {
-                        Logger.logEvent("Updated switch: ${switchEvent.name}")
-                    }
+                    Logger.logEvent("Updated switch: ${switchEvent.name}")
                 } else {
                     completion(false)
                 }
@@ -141,92 +131,6 @@ class SwitchEventStore private constructor() {
         }
     }
 
-    /**
-     * Represents a remote switch that can be imported to the device.
-     *
-     * @property type The type of the switch
-     * @property name The name of the switch
-     * @property code The unique identifier code for the switch
-     * @property isOnDevice Indicates if the switch is already present on the device
-     */
-    data class RemoteSwitchInfo(
-        val type: String,
-        val name: String,
-        val code: String,
-        val isOnDevice: Boolean
-    )
-
-    /**
-     * Fetches all available switches from Firestore, including information about
-     * which ones are already on the device.
-     *
-     * @return Result containing list of available remote switches or error
-     */
-    suspend fun fetchAvailableSwitches(): Result<List<RemoteSwitchInfo>> {
-        return withContext(Dispatchers.IO) {
-            try {
-                val remoteEvents = firestore.pullEvents() ?: return@withContext Result.failure(
-                    Exception("Failed to fetch remote switches")
-                )
-
-                val switches = remoteEvents.map { event ->
-                    RemoteSwitchInfo(
-                        type = event.type,
-                        name = event.name,
-                        code = event.code,
-                        isOnDevice = switchEvents.any { it.code == event.code }
-                    )
-                }
-
-                Log.d(tag, "Returning ${switches.size} remote switches")
-                Result.success(switches)
-            } catch (e: Exception) {
-                Log.e(tag, "Error fetching remote switches", e)
-                Result.failure(e)
-            }
-        }
-    }
-
-    /**
-     * Imports a single switch from Firestore based on its code.
-     * Only imports if the switch isn't already on the device.
-     *
-     * @param code The code of the switch to import
-     * @param context The context used for file operations
-     * @return Result containing the imported SwitchEvent if successful
-     */
-    suspend fun importSwitch(code: String, context: Context): Result<SwitchEvent> {
-        if (switchEvents.any { it.code == code }) {
-            Log.d(tag, "Switch with code $code is already on device")
-            return Result.failure(Exception("Switch is already on device"))
-        }
-
-        return withContext(Dispatchers.IO) {
-            try {
-                val switchEvent = firestore.fetchEvent(code) ?: return@withContext Result.failure(
-                    Exception("Switch not found")
-                )
-
-                val added = switchEvents.add(switchEvent)
-
-                if (!added) {
-                    return@withContext Result.failure(Exception("Failed to add switch"))
-                }
-
-                if (localStorage.saveToFile(context, switchEvents)) {
-                    Log.d(tag, "Successfully imported switch: ${switchEvent.name}")
-                    Logger.logEvent("Imported switch: $code")
-                    broadcastReloadEvent(context)
-                    Result.success(switchEvent)
-                } else {
-                    Result.failure(Exception("Failed to write to file"))
-                }
-            } catch (e: Exception) {
-                Logger.logEvent("Error importing switch: $code, ${e.message}")
-                Result.failure(e)
-            }
-        }
-    }
 
     /**
      * Validates a switch event's data.
@@ -283,22 +187,4 @@ class SwitchEventStore private constructor() {
         localBroadcastManager.sendBroadcast(Intent(EVENTS_UPDATED))
     }
 
-    /**
-     * Removes a remote switch from Firestore.
-     *
-     * @param code The code of the switch to remove
-     * @param context The application context
-     * @return Result indicating success or failure
-     */
-    suspend fun removeRemote(code: String, context: Context): Result<Unit> {
-        return withContext(Dispatchers.IO) {
-            if (firestore.removeEvent(code)) {
-                Log.d(tag, "Successfully removed remote switch: $code")
-                broadcastReloadEvent(context)
-                Result.success(Unit)
-            } else {
-                Result.failure(Exception("Failed to remove remote switch"))
-            }
-        }
-    }
 }
