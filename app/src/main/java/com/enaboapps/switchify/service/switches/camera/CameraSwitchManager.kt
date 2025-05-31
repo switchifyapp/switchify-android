@@ -280,7 +280,8 @@ class CameraSwitchManager(
         Log.v(
             TAG,
             "Face state - L:${currentFaceState.leftEyeOpen} R:${currentFaceState.rightEyeOpen} " +
-                    "Active:${activeGesture} LastL:${lastProcessedState.leftEyeOpen} LastR:${lastProcessedState.rightEyeOpen}"
+                    "Active:${activeGesture} LastL:${lastProcessedState.leftEyeOpen} LastR:${lastProcessedState.rightEyeOpen} " +
+                    "HeadX:${currentFaceState.headRotationX} HeadY:${currentFaceState.headRotationY}"
         )
 
         // Only process if the state has changed
@@ -370,32 +371,34 @@ class CameraSwitchManager(
                 )
             }
 
-            // Handle Head Turn Up (negative X rotation)
+            // Handle Head Turn Up (positive X rotation - tilting head back)
             val upTurnThreshold = switchEventProvider.findCamera(CameraSwitchFacialGesture.HEAD_TURN_UP)?.let {
                 getHeadTurnThreshold(it.sensitivity)
             } ?: HEAD_TURN_THRESHOLD
-            val isHeadTurnedUp = currentFaceState.headRotationX < -upTurnThreshold
-            val wasHeadTurnedUp = lastProcessedState.headRotationX < -upTurnThreshold
+            val isHeadTurnedUp = currentFaceState.headRotationX > upTurnThreshold
+            val wasHeadTurnedUp = lastProcessedState.headRotationX > upTurnThreshold
             if (isHeadTurnedUp != wasHeadTurnedUp && switchEventProvider.isFacialGestureAssigned(
                     CameraSwitchFacialGesture.HEAD_TURN_UP
                 )
             ) {
+                Log.d(TAG, "Head up detected: X rotation = ${currentFaceState.headRotationX}, threshold = $upTurnThreshold")
                 handleGestureStateChange(
                     CameraSwitchFacialGesture(CameraSwitchFacialGesture.HEAD_TURN_UP),
                     isHeadTurnedUp
                 )
             }
 
-            // Handle Head Turn Down (positive X rotation)
+            // Handle Head Turn Down (negative X rotation - tilting head forward)
             val downTurnThreshold = switchEventProvider.findCamera(CameraSwitchFacialGesture.HEAD_TURN_DOWN)?.let {
                 getHeadTurnThreshold(it.sensitivity)
             } ?: HEAD_TURN_THRESHOLD
-            val isHeadTurnedDown = currentFaceState.headRotationX > downTurnThreshold
-            val wasHeadTurnedDown = lastProcessedState.headRotationX > downTurnThreshold
+            val isHeadTurnedDown = currentFaceState.headRotationX < -downTurnThreshold
+            val wasHeadTurnedDown = lastProcessedState.headRotationX < -downTurnThreshold
             if (isHeadTurnedDown != wasHeadTurnedDown && switchEventProvider.isFacialGestureAssigned(
                     CameraSwitchFacialGesture.HEAD_TURN_DOWN
                 )
             ) {
+                Log.d(TAG, "Head down detected: X rotation = ${currentFaceState.headRotationX}, threshold = -$downTurnThreshold")
                 handleGestureStateChange(
                     CameraSwitchFacialGesture(CameraSwitchFacialGesture.HEAD_TURN_DOWN),
                     isHeadTurnedDown
