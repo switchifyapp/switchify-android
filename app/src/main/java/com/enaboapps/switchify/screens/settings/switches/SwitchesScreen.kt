@@ -1,15 +1,11 @@
 package com.enaboapps.switchify.screens.settings.switches
 
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
@@ -20,14 +16,12 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.enaboapps.switchify.R
@@ -38,13 +32,11 @@ import com.enaboapps.switchify.components.NavBarAction
 import com.enaboapps.switchify.components.NavRouteLink
 import com.enaboapps.switchify.components.ScrollableView
 import com.enaboapps.switchify.components.Section
-import com.enaboapps.switchify.components.UICard
 import com.enaboapps.switchify.nav.NavigationRoute
 import com.enaboapps.switchify.screens.settings.switches.models.SwitchesScreenModel
 import com.enaboapps.switchify.switches.SWITCH_EVENT_TYPE_CAMERA
 import com.enaboapps.switchify.switches.SWITCH_EVENT_TYPE_EXTERNAL
 import com.enaboapps.switchify.switches.SwitchEvent
-import com.enaboapps.switchify.switches.SwitchEventStore
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberPermissionState
 
@@ -126,9 +118,7 @@ fun SwitchesScreen(navController: NavController) {
                 when (selectedTabIndex) {
                     0 -> ExternalSwitchesContent(
                         localSwitches = uiState.localSwitches.filter { it.type == SWITCH_EVENT_TYPE_EXTERNAL },
-                        remoteSwitches = uiState.remoteSwitches,
-                        navController = navController,
-                        switchesScreenModel = switchesScreenModel
+                        navController = navController
                     )
 
                     1 -> CameraPermissionHandler(
@@ -136,9 +126,7 @@ fun SwitchesScreen(navController: NavController) {
                         onPermissionGranted = {
                             CameraSwitchesContent(
                                 localSwitches = uiState.localSwitches.filter { it.type == SWITCH_EVENT_TYPE_CAMERA },
-                                remoteSwitches = uiState.remoteSwitches,
-                                navController = navController,
-                                switchesScreenModel = switchesScreenModel
+                                navController = navController
                             )
                         },
                         onNavigateBack = { selectedTabIndex = 0 }
@@ -177,63 +165,25 @@ fun SwitchesScreen(navController: NavController) {
 @Composable
 private fun ExternalSwitchesContent(
     localSwitches: List<SwitchEvent>,
-    remoteSwitches: List<SwitchEventStore.RemoteSwitchInfo>,
-    navController: NavController,
-    switchesScreenModel: SwitchesScreenModel
+    navController: NavController
 ) {
     SwitchList(
         switches = localSwitches,
         navController = navController,
         emptyMessage = "No external switches found"
     )
-
-    // Display remote switches that aren't on device
-    val availableRemoteSwitches = remoteSwitches.filter {
-        !it.isOnDevice && it.type == SWITCH_EVENT_TYPE_EXTERNAL
-    }
-
-    if (availableRemoteSwitches.isNotEmpty()) {
-        Section(titleResId = R.string.section_title_previously_used_switches) {
-            availableRemoteSwitches.forEach { remoteSwitch ->
-                RemoteSwitchItem(
-                    model = switchesScreenModel,
-                    remoteSwitch = remoteSwitch,
-                    isImporting = switchesScreenModel.uiState.value.importingSwitch == remoteSwitch.code
-                )
-            }
-        }
-    }
 }
 
 @Composable
 private fun CameraSwitchesContent(
     localSwitches: List<SwitchEvent>,
-    remoteSwitches: List<SwitchEventStore.RemoteSwitchInfo>,
-    navController: NavController,
-    switchesScreenModel: SwitchesScreenModel
+    navController: NavController
 ) {
     SwitchList(
         switches = localSwitches,
         navController = navController,
         emptyMessage = "No camera switches found"
     )
-
-    // Display remote switches that aren't on device
-    val availableRemoteSwitches = remoteSwitches.filter {
-        !it.isOnDevice && it.type == SWITCH_EVENT_TYPE_CAMERA
-    }
-
-    if (availableRemoteSwitches.isNotEmpty()) {
-        Section(titleResId = R.string.section_title_previously_used_switches) {
-            availableRemoteSwitches.forEach { remoteSwitch ->
-                RemoteSwitchItem(
-                    model = switchesScreenModel,
-                    remoteSwitch = remoteSwitch,
-                    isImporting = switchesScreenModel.uiState.value.importingSwitch == remoteSwitch.code
-                )
-            }
-        }
-    }
 }
 
 @Composable
@@ -268,70 +218,6 @@ private fun SwitchList(
     }
 }
 
-@Composable
-private fun RemoteSwitchItem(
-    model: SwitchesScreenModel,
-    remoteSwitch: SwitchEventStore.RemoteSwitchInfo,
-    isImporting: Boolean
-) {
-    val context = LocalContext.current
-    val showDeleteConfirmation = remember { mutableStateOf(false) }
-
-    Row(
-        modifier = Modifier.padding(8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        UICard(
-            modifier = Modifier.weight(1f),
-            runtimeTitle = remoteSwitch.name,
-            descriptionResId = if (isImporting) R.string.switch_importing else R.string.switch_tap_to_add,
-            onClick = {
-                if (!isImporting) {
-                    model.importSwitch(remoteSwitch, context)
-                }
-            },
-            enabled = !isImporting
-        )
-        if (!isImporting) {
-            IconButton(onClick = {
-                showDeleteConfirmation.value = true
-            }) {
-                Icon(
-                    imageVector = Icons.Default.Delete,
-                    contentDescription = "Delete Switch",
-                    tint = MaterialTheme.colorScheme.error
-                )
-            }
-        }
-
-        if (showDeleteConfirmation.value) {
-            AlertDialog(
-                onDismissRequest = { showDeleteConfirmation.value = false },
-                title = { Text(stringResource(R.string.dialog_title_delete)) },
-                text = { Text(stringResource(R.string.dialog_message_delete_switch_from_account)) },
-                confirmButton = {
-                    TextButton(
-                        onClick = {
-                            showDeleteConfirmation.value = false
-                            model.deleteRemoteSwitch(remoteSwitch, context)
-                        }
-                    ) {
-                        Text(stringResource(R.string.button_delete))
-                    }
-                },
-                dismissButton = {
-                    TextButton(
-                        onClick = {
-                            showDeleteConfirmation.value = false
-                        }
-                    ) {
-                        Text(stringResource(R.string.button_cancel))
-                    }
-                }
-            )
-        }
-    }
-}
 
 @Composable
 private fun SwitchEventItem(

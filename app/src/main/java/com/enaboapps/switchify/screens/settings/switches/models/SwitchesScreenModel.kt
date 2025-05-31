@@ -10,13 +10,12 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.enaboapps.switchify.backend.iap.IAPHandler
 import com.enaboapps.switchify.switches.SwitchEvent
 import com.enaboapps.switchify.switches.SwitchEventStore
-import com.enaboapps.switchify.switches.SwitchEventStore.RemoteSwitchInfo
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
 /**
- * ViewModel for the Switches screen, handling switch events and remote switch operations.
+ * ViewModel for the Switches screen, handling switch events.
  */
 class SwitchesScreenModel : ViewModel() {
     private val store = SwitchEventStore.getInstance()
@@ -80,24 +79,13 @@ class SwitchesScreenModel : ViewModel() {
                 }
             }
 
-            // Create a flow for remote switches
-            val remoteSwitchesFlow = flow {
-                store.fetchAvailableSwitches()
-                    .onSuccess { emit(it) }
-                    .onFailure { emit(emptyList()) }
-            }
-
-            // Combine both flows
-            combine(
-                localSwitchesFlow,
-                remoteSwitchesFlow
-            ) { localSwitches, remoteSwitches ->
+            // Collect local switches flow
+            localSwitchesFlow.collect { localSwitches ->
                 _uiState.value = _uiState.value.copy(
                     localSwitches = localSwitches,
-                    remoteSwitches = remoteSwitches,
                     isLoading = false
                 )
-            }.collect()
+            }
         }
     }
 
@@ -113,48 +101,6 @@ class SwitchesScreenModel : ViewModel() {
         )
     }
 
-    /**
-     * Imports a single remote switch.
-     */
-    fun importSwitch(remoteSwitch: RemoteSwitchInfo, context: Context) {
-        viewModelScope.launch {
-            if (!isAnotherSwitchAllowed()) {
-                showProAlert()
-                return@launch
-            }
-
-            _uiState.value = _uiState.value.copy(
-                importingSwitch = remoteSwitch.code
-            )
-
-            store.importSwitch(remoteSwitch.code, context)
-                .onSuccess {
-                    _uiState.value = _uiState.value.copy(
-                        remoteSwitches = _uiState.value.remoteSwitches.filterNot { it.code == remoteSwitch.code },
-                        importingSwitch = null
-                    )
-                }
-                .onFailure { error ->
-                    _uiState.value = _uiState.value.copy(
-                        importingSwitch = null
-                    )
-                }
-        }
-    }
-
-    /**
-     * Deletes a remote switch.
-     */
-    fun deleteRemoteSwitch(remoteSwitch: RemoteSwitchInfo, context: Context) {
-        viewModelScope.launch {
-            store.removeRemote(remoteSwitch.code, context)
-                .onFailure { error ->
-                    _uiState.value = _uiState.value.copy(
-                        importingSwitch = null
-                    )
-                }
-        }
-    }
 }
 
 /**
@@ -162,9 +108,7 @@ class SwitchesScreenModel : ViewModel() {
  */
 data class SwitchesUiState(
     val localSwitches: Set<SwitchEvent> = emptySet(),
-    val remoteSwitches: List<RemoteSwitchInfo> = emptyList(),
     val isLoading: Boolean = false,
     val shouldLimitSwitches: Boolean = false,
-    val showProAlert: Boolean = false,
-    val importingSwitch: String? = null
+    val showProAlert: Boolean = false
 )

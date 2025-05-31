@@ -507,11 +507,7 @@
 
     <!-- Switches Screen -->
     <string name="section_title_switches">Switches</string>
-    <string name="section_title_previously_used_switches">Previously Used Switches</string>
-    <string name="switch_tap_to_add">Tap to add</string>
-    <string name="switch_importing">Importing...</string>
     <string name="switch_edit_this_switch">Edit this switch</string>
-    <string name="dialog_message_delete_switch_from_account">Are you sure you want to delete this switch from your account?</string>
 
     <!-- Gesture Settings Screen -->
     <string name="screen_title_gesture_settings">Gesture Settings</string>
