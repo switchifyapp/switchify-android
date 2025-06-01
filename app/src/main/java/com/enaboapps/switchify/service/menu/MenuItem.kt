@@ -58,24 +58,17 @@ class MenuItem(
      * @param linearLayout The linear layout to inflate the menu item into
      */
     fun inflate(linearLayout: LinearLayout) {
-        val menuSizeManager = MenuSizeManager(linearLayout.context)
+        // Always use large menu size configuration
         val screenWidth = ScreenUtils.getWidth(linearLayout.context)
-        val itemsPerRow = menuSizeManager.getMenuSize().itemsPerPage / 2
+        val itemsPerRow = 2 // Large size: 4 items per page / 2
 
-        var widthPx =
-            ScreenUtils.dpToPx(linearLayout.context, menuSizeManager.getMenuSize().itemWidth)
-        var heightPx =
-            ScreenUtils.dpToPx(linearLayout.context, menuSizeManager.getMenuSize().itemHeight)
+        // Large size dimensions
+        var widthPx = ScreenUtils.dpToPx(linearLayout.context, 170) // Large itemWidth
+        var heightPx = ScreenUtils.dpToPx(linearLayout.context, 100) // Large itemHeight
 
         if (isSmall) {
-            widthPx = ScreenUtils.dpToPx(
-                linearLayout.context,
-                menuSizeManager.getMenuSize().itemWidthSmall
-            )
-            heightPx = ScreenUtils.dpToPx(
-                linearLayout.context,
-                menuSizeManager.getMenuSize().itemHeightSmall
-            )
+            widthPx = ScreenUtils.dpToPx(linearLayout.context, 90) // Large itemWidthSmall
+            heightPx = ScreenUtils.dpToPx(linearLayout.context, 60) // Large itemHeightSmall
         }
 
         // If width x itemsPerRow is greater than screen width, adjust the width to fit
@@ -95,8 +88,8 @@ class MenuItem(
                 drawableId = drawableId,
                 drawableDescriptionResource = drawableDescriptionResource,
                 showDrawableDescription = showDrawableDescription,
-                textSize = menuSizeManager.getMenuSize().textSize,
-                textSizeWithIcon = menuSizeManager.getMenuSize().textSizeWithIcon,
+                textSize = 18f, // Large size textSize
+                textSizeWithIcon = 16f, // Large size textSizeWithIcon
                 onClick = { select() }
             )
         }

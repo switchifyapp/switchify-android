@@ -93,8 +93,9 @@ class MenuView(
      * @param menuItems List of MenuItem objects to be displayed in the menu.
      */
     private fun createMenuPages(menuItems: List<MenuItem>) {
-        val numOfItemsPerPage = MenuSizeManager(context).getMenuSize().itemsPerPage
-        val itemsPerRow = MenuSizeManager(context).getMenuSize().itemsPerPage / 2
+        // Always use large menu size configuration
+        val numOfItemsPerPage = 4 // Large size itemsPerPage
+        val itemsPerRow = 2 // 4 items per page / 2
         numOfPages = (menuItems.size + numOfItemsPerPage - 1) / numOfItemsPerPage
         for (i in 0 until numOfPages) {
             val start = i * numOfItemsPerPage

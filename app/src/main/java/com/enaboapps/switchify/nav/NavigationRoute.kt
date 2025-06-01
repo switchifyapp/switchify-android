@@ -22,7 +22,6 @@ sealed class NavigationRoute(val name: String) {
     data object AddNewExternalSwitch : NavigationRoute("AddNewExternalSwitch")
     data object EditExternalSwitch : NavigationRoute("EditExternalSwitch")
     data object TestSwitches : NavigationRoute("TestSwitches")
-    data object MenuSize : NavigationRoute("MenuSize")
     data object EnableAccessibilityService : NavigationRoute("EnableAccessibilityService")
     data object AddNewCameraSwitch : NavigationRoute("AddNewCameraSwitch")
     data object EditCameraSwitch : NavigationRoute("EditCameraSwitch")
