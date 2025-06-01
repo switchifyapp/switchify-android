@@ -199,15 +199,14 @@ private fun MenuItemContentInner(
         modifier = Modifier
             .clickable(onClick = onClick),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+        verticalArrangement = Arrangement.spacedBy(0.dp, Alignment.CenterVertically)
     ) {
         if (drawableId != 0) {
             Icon(
                 painter = painterResource(id = drawableId),
                 contentDescription = drawableDescriptionResource?.let { Resources.getString(it) },
                 modifier = Modifier
-                    .size(36.dp)
-                    .padding(8.dp),
+                    .size(48.dp),
                 tint = MaterialTheme.colorScheme.primary
             )
         }
@@ -218,7 +217,7 @@ private fun MenuItemContentInner(
                 color = MaterialTheme.colorScheme.onBackground,
                 fontSize = if (drawableId != 0) textSizeWithIcon.sp else textSize.sp,
                 textAlign = TextAlign.Center,
-                modifier = Modifier.padding(8.dp)
+                modifier = Modifier.padding(horizontal = 8.dp)
             )
         }
 
