@@ -210,7 +210,6 @@
     <string name="screen_title_sign_up">Sign Up</string>
     <string name="screen_title_change_password">Change Password</string>
     <string name="screen_title_reset_password">Reset Password</string>
-    <string name="screen_title_menu_size">Menu Size</string>
     <string name="screen_title_customize_menu">Customize Menu Items</string>
     <string name="screen_title_switch_stability">Switch Stability</string>
     <string name="screen_title_test_switches">Test Switches</string>
@@ -363,13 +362,8 @@
 
     <!-- Settings - Menu Section -->
     <string name="settings_section_menu">Menu</string>
-    <string name="settings_title_menu_size">Menu Size</string>
-    <string name="settings_summary_menu_size">Change the size of the menu</string>
     <string name="settings_title_menu_transparency">Menu Transparency</string>
     <string name="settings_summary_menu_transparency">Enable transparency for the menu so that you can see content behind it</string>
-    <string name="menu_settings_size_small">Small</string>
-    <string name="menu_settings_size_medium">Medium</string>
-    <string name="menu_settings_size_large">Large</string>
 
     <!-- Settings - Actions Section -->
     <string name="settings_section_actions">Actions</string>
