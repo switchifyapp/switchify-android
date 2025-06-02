@@ -21,6 +21,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -57,12 +58,6 @@ class MenuItem(
     var isMenuHierarchyManipulator: Boolean = false,
     private val action: () -> Unit
 ) {
-    companion object {
-        const val SMALL_ITEM_WIDTH = 90
-        const val SMALL_ITEM_HEIGHT = 60
-        const val LARGE_ITEM_WIDTH = 170
-        const val LARGE_ITEM_HEIGHT = 120
-    }
     private var composeView: AccessibilityComposeView? = null
 
     /**
@@ -84,18 +79,16 @@ class MenuItem(
         }
 
         composeView?.let { view ->
-            // Set fixed width/height based on item type
+            // Set fixed width/height based on item type using MenuSizeManager
             val context = linearLayout.context
-            val widthPx = if (isMenuHierarchyManipulator || isSmall) {
-                ScreenUtils.dpToPx(context, SMALL_ITEM_WIDTH)
+            val menuSize = if (isMenuHierarchyManipulator || isSmall) {
+                MenuSizeManager.getSmallItemSize(context)
             } else {
-                ScreenUtils.dpToPx(context, LARGE_ITEM_WIDTH)
+                MenuSizeManager.getRegularItemSize(context)
             }
-            val heightPx = if (isMenuHierarchyManipulator || isSmall) {
-                ScreenUtils.dpToPx(context, SMALL_ITEM_HEIGHT)
-            } else {
-                ScreenUtils.dpToPx(context, LARGE_ITEM_HEIGHT)
-            }
+            
+            val widthPx = ScreenUtils.dpToPx(context, menuSize.width.value.toInt())
+            val heightPx = ScreenUtils.dpToPx(context, menuSize.height.value.toInt())
             
             view.layoutParams = LinearLayout.LayoutParams(widthPx, heightPx)
             linearLayout.addView(view)
@@ -163,22 +156,26 @@ private fun MenuItemContent(
     isSmall: Boolean,
     onClick: () -> Unit
 ) {
+    val context = LocalContext.current
     val text = if (textResource != null) Resources.getString(textResource) else userProvidedText
 
-    // Navigation items are always small
-    // Regular items can be small or large based on isSmall parameter
-    val itemWidth = if (isMenuHierarchyManipulator || isSmall) MenuItem.SMALL_ITEM_WIDTH.dp else MenuItem.LARGE_ITEM_WIDTH.dp
-    val itemHeight = if (isMenuHierarchyManipulator || isSmall) MenuItem.SMALL_ITEM_HEIGHT.dp else MenuItem.LARGE_ITEM_HEIGHT.dp
+    // Get appropriate size based on device type and item type
+    val menuSize = if (isMenuHierarchyManipulator || isSmall) {
+        MenuSizeManager.getSmallItemSize(context)
+    } else {
+        MenuSizeManager.getRegularItemSize(context)
+    }
 
     Box(
         modifier = Modifier
-            .width(itemWidth)
-            .height(itemHeight)
+            .width(menuSize.width)
+            .height(menuSize.height)
     ) {
         if (isMenuHierarchyManipulator) {
             NavigationMenuItem(
                 drawableId = drawableId,
                 drawableDescriptionResource = drawableDescriptionResource,
+                menuSize = menuSize,
                 onClick = onClick
             )
         } else {
@@ -187,6 +184,7 @@ private fun MenuItemContent(
                 drawableId = drawableId,
                 drawableDescriptionResource = drawableDescriptionResource,
                 showDrawableDescription = showDrawableDescription,
+                menuSize = menuSize,
                 onClick = onClick
             )
         }
@@ -197,6 +195,7 @@ private fun MenuItemContent(
 private fun NavigationMenuItem(
     drawableId: Int,
     drawableDescriptionResource: Int?,
+    menuSize: MenuItemSize,
     onClick: () -> Unit
 ) {
     // Maintain full menu item size with centered circular icon
@@ -204,14 +203,14 @@ private fun NavigationMenuItem(
         modifier = Modifier
             .fillMaxSize()
             .clickable(onClick = onClick)
-            .padding(4.dp),
+            .padding(menuSize.padding),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
         // Navigation button with circular background
         Box(
             modifier = Modifier
-                .size(48.dp)
+                .size(menuSize.navigationCircleSize)
                 .clip(CircleShape)
                 .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)),
             contentAlignment = Alignment.Center
@@ -219,7 +218,7 @@ private fun NavigationMenuItem(
             Icon(
                 painter = painterResource(id = drawableId),
                 contentDescription = drawableDescriptionResource?.let { Resources.getString(it) },
-                modifier = Modifier.size(24.dp),
+                modifier = Modifier.size(menuSize.navigationIconSize),
                 tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f) // Dimmed
             )
         }
@@ -232,13 +231,14 @@ private fun RegularMenuItem(
     drawableId: Int,
     drawableDescriptionResource: Int?,
     showDrawableDescription: Boolean,
+    menuSize: MenuItemSize,
     onClick: () -> Unit
 ) {
     Surface(
         modifier = Modifier
             .fillMaxSize()
-            .padding(4.dp),
-        shape = RoundedCornerShape(20),
+            .padding(menuSize.padding),
+        shape = RoundedCornerShape(menuSize.cornerRadius),
         color = MaterialTheme.colorScheme.surfaceVariant,
         shadowElevation = 4.dp
     ) {
@@ -246,13 +246,13 @@ private fun RegularMenuItem(
             modifier = Modifier
                 .clickable(onClick = onClick),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(0.dp, Alignment.CenterVertically)
+            verticalArrangement = Arrangement.spacedBy(menuSize.elementSpacing, Alignment.CenterVertically)
         ) {
             if (drawableId != 0) {
                 Icon(
                     painter = painterResource(id = drawableId),
                     contentDescription = drawableDescriptionResource?.let { Resources.getString(it) },
-                    modifier = Modifier.size(48.dp),
+                    modifier = Modifier.size(menuSize.iconSize),
                     tint = MaterialTheme.colorScheme.primary
                 )
             }
@@ -261,7 +261,7 @@ private fun RegularMenuItem(
                 Text(
                     text = text,
                     color = MaterialTheme.colorScheme.onBackground,
-                    fontSize = if (drawableId != 0) 16.sp else 18.sp,
+                    fontSize = if (drawableId != 0) menuSize.primaryTextSize else menuSize.primaryTextSize,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.padding(horizontal = 8.dp)
                 )
@@ -271,7 +271,7 @@ private fun RegularMenuItem(
                 Text(
                     text = Resources.getString(drawableDescriptionResource),
                     color = MaterialTheme.colorScheme.onBackground,
-                    fontSize = 16.sp,
+                    fontSize = menuSize.secondaryTextSize,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                 )
