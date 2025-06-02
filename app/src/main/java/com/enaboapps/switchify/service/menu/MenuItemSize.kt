@@ -67,7 +67,7 @@ object MenuSizes {
      */
     val PHONE_REGULAR = MenuItemSize(
         width = 120.dp,
-        height = 80.dp,
+        height = 100.dp,
         iconSize = 36.dp,
         primaryTextSize = 14.sp,
         secondaryTextSize = 12.sp,
