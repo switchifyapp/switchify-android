@@ -1,13 +1,19 @@
 package com.enaboapps.switchify.service.menu
 
 import android.widget.LinearLayout
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -51,6 +57,12 @@ class MenuItem(
     var isMenuHierarchyManipulator: Boolean = false,
     private val action: () -> Unit
 ) {
+    companion object {
+        const val SMALL_ITEM_WIDTH = 90
+        const val SMALL_ITEM_HEIGHT = 60
+        const val LARGE_ITEM_WIDTH = 170
+        const val LARGE_ITEM_HEIGHT = 120
+    }
     private var composeView: AccessibilityComposeView? = null
 
     /**
@@ -58,29 +70,6 @@ class MenuItem(
      * @param linearLayout The linear layout to inflate the menu item into
      */
     fun inflate(linearLayout: LinearLayout) {
-        // Always use large menu size configuration
-        val screenWidth = ScreenUtils.getWidth(linearLayout.context)
-        val itemsPerRow = 2 // Large size: 4 items per page / 2
-
-        // Large size dimensions
-        var widthPx = ScreenUtils.dpToPx(linearLayout.context, 170) // Large itemWidth
-        var heightPx = ScreenUtils.dpToPx(linearLayout.context, 100) // Large itemHeight
-
-        if (isSmall) {
-            widthPx = ScreenUtils.dpToPx(linearLayout.context, 90) // Large itemWidthSmall
-            heightPx = ScreenUtils.dpToPx(linearLayout.context, 60) // Large itemHeightSmall
-        }
-
-        // If width x itemsPerRow is greater than screen width, adjust the width to fit
-        if (widthPx * itemsPerRow > screenWidth) {
-            widthPx = screenWidth / itemsPerRow
-        }
-
-        // If using a drawable description, adjust the height to accommodate the description
-        if (drawableDescriptionResource != null) {
-            heightPx += ScreenUtils.dpToPx(linearLayout.context, 20)
-        }
-
         composeView = AccessibilityComposeView(linearLayout.context) {
             MenuItemContent(
                 textResource = textResource,
@@ -88,16 +77,27 @@ class MenuItem(
                 drawableId = drawableId,
                 drawableDescriptionResource = drawableDescriptionResource,
                 showDrawableDescription = showDrawableDescription,
-                textSize = 18f, // Large size textSize
-                textSizeWithIcon = 16f, // Large size textSizeWithIcon
+                isMenuHierarchyManipulator = isMenuHierarchyManipulator,
+                isSmall = isSmall,
                 onClick = { select() }
             )
         }
 
         composeView?.let { view ->
-            view.layoutParams = LinearLayout.LayoutParams(widthPx, heightPx).apply {
-                weight = 1f
+            // Set fixed width/height based on item type
+            val context = linearLayout.context
+            val widthPx = if (isMenuHierarchyManipulator || isSmall) {
+                ScreenUtils.dpToPx(context, SMALL_ITEM_WIDTH)
+            } else {
+                ScreenUtils.dpToPx(context, LARGE_ITEM_WIDTH)
             }
+            val heightPx = if (isMenuHierarchyManipulator || isSmall) {
+                ScreenUtils.dpToPx(context, SMALL_ITEM_HEIGHT)
+            } else {
+                ScreenUtils.dpToPx(context, LARGE_ITEM_HEIGHT)
+            }
+            
+            view.layoutParams = LinearLayout.LayoutParams(widthPx, heightPx)
             linearLayout.addView(view)
         }
     }
@@ -159,12 +159,81 @@ private fun MenuItemContent(
     drawableId: Int,
     drawableDescriptionResource: Int?,
     showDrawableDescription: Boolean,
-    textSize: Float,
-    textSizeWithIcon: Float,
+    isMenuHierarchyManipulator: Boolean,
+    isSmall: Boolean,
     onClick: () -> Unit
 ) {
     val text = if (textResource != null) Resources.getString(textResource) else userProvidedText
 
+    // Navigation items are always small
+    // Regular items can be small or large based on isSmall parameter
+    val itemWidth = if (isMenuHierarchyManipulator || isSmall) MenuItem.SMALL_ITEM_WIDTH.dp else MenuItem.LARGE_ITEM_WIDTH.dp
+    val itemHeight = if (isMenuHierarchyManipulator || isSmall) MenuItem.SMALL_ITEM_HEIGHT.dp else MenuItem.LARGE_ITEM_HEIGHT.dp
+
+    Box(
+        modifier = Modifier
+            .width(itemWidth)
+            .height(itemHeight)
+    ) {
+        if (isMenuHierarchyManipulator) {
+            NavigationMenuItem(
+                drawableId = drawableId,
+                drawableDescriptionResource = drawableDescriptionResource,
+                onClick = onClick
+            )
+        } else {
+            RegularMenuItem(
+                text = text,
+                drawableId = drawableId,
+                drawableDescriptionResource = drawableDescriptionResource,
+                showDrawableDescription = showDrawableDescription,
+                onClick = onClick
+            )
+        }
+    }
+}
+
+@Composable
+private fun NavigationMenuItem(
+    drawableId: Int,
+    drawableDescriptionResource: Int?,
+    onClick: () -> Unit
+) {
+    // Maintain full menu item size with centered circular icon
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .clickable(onClick = onClick)
+            .padding(4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        // Navigation button with circular background
+        Box(
+            modifier = Modifier
+                .size(48.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                painter = painterResource(id = drawableId),
+                contentDescription = drawableDescriptionResource?.let { Resources.getString(it) },
+                modifier = Modifier.size(24.dp),
+                tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f) // Dimmed
+            )
+        }
+    }
+}
+
+@Composable
+private fun RegularMenuItem(
+    text: String?,
+    drawableId: Int,
+    drawableDescriptionResource: Int?,
+    showDrawableDescription: Boolean,
+    onClick: () -> Unit
+) {
     Surface(
         modifier = Modifier
             .fillMaxSize()
@@ -173,62 +242,40 @@ private fun MenuItemContent(
         color = MaterialTheme.colorScheme.surfaceVariant,
         shadowElevation = 4.dp
     ) {
-        MenuItemContentInner(
-            text = text,
-            drawableId = drawableId,
-            drawableDescriptionResource = drawableDescriptionResource,
-            showDrawableDescription = showDrawableDescription,
-            textSize = textSize,
-            textSizeWithIcon = textSizeWithIcon,
-            onClick = onClick
-        )
-    }
-}
+        Column(
+            modifier = Modifier
+                .clickable(onClick = onClick),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(0.dp, Alignment.CenterVertically)
+        ) {
+            if (drawableId != 0) {
+                Icon(
+                    painter = painterResource(id = drawableId),
+                    contentDescription = drawableDescriptionResource?.let { Resources.getString(it) },
+                    modifier = Modifier.size(48.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
 
-@Composable
-private fun MenuItemContentInner(
-    text: String?,
-    drawableId: Int,
-    drawableDescriptionResource: Int?,
-    showDrawableDescription: Boolean,
-    textSize: Float,
-    textSizeWithIcon: Float,
-    onClick: () -> Unit
-) {
-    Column(
-        modifier = Modifier
-            .clickable(onClick = onClick),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(0.dp, Alignment.CenterVertically)
-    ) {
-        if (drawableId != 0) {
-            Icon(
-                painter = painterResource(id = drawableId),
-                contentDescription = drawableDescriptionResource?.let { Resources.getString(it) },
-                modifier = Modifier
-                    .size(48.dp),
-                tint = MaterialTheme.colorScheme.primary
-            )
-        }
+            if (text != null) {
+                Text(
+                    text = text,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    fontSize = if (drawableId != 0) 16.sp else 18.sp,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(horizontal = 8.dp)
+                )
+            }
 
-        if (text != null) {
-            Text(
-                text = text,
-                color = MaterialTheme.colorScheme.onBackground,
-                fontSize = if (drawableId != 0) textSizeWithIcon.sp else textSize.sp,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.padding(horizontal = 8.dp)
-            )
-        }
-
-        if (drawableDescriptionResource != null && showDrawableDescription) {
-            Text(
-                text = Resources.getString(drawableDescriptionResource),
-                color = MaterialTheme.colorScheme.onBackground,
-                fontSize = textSizeWithIcon.sp,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-            )
+            if (drawableDescriptionResource != null && showDrawableDescription) {
+                Text(
+                    text = Resources.getString(drawableDescriptionResource),
+                    color = MaterialTheme.colorScheme.onBackground,
+                    fontSize = 16.sp,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                )
+            }
         }
     }
 }
