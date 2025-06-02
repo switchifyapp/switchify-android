@@ -1,0 +1,18 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="100dp"
+    android:height="100dp"
+    android:viewportWidth="100"
+    android:viewportHeight="100">
+    
+    <!-- Circle at the bottom -->
+    <path
+        android:name="circle"
+        android:fillColor="#FFFFFF"
+        android:pathData="M50,75 A12,12 0 1,1 50,51 A12,12 0 1,1 50,75 Z" />
+    
+    <!-- Arrow head pointing up -->
+    <path
+        android:name="arrowhead"
+        android:fillColor="#FFFFFF"
+        android:pathData="M50,25 L20,50 L35,50 L50,35 L65,50 L80,50 Z" />
+</vector>
