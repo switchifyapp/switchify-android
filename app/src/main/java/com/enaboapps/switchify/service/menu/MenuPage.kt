@@ -5,9 +5,12 @@ import android.content.res.Configuration
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.view.Gravity
+import android.view.View
 import android.widget.LinearLayout
+import androidx.core.graphics.toColorInt
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.service.techniques.nodes.Node
+import com.enaboapps.switchify.service.utils.ScreenUtils
 
 /**
  * This class represents a page of the menu
@@ -35,7 +38,7 @@ class MenuPage(
     init {
         baseLayout.orientation = LinearLayout.VERTICAL
         baseLayout.layoutParams = LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT,
             LinearLayout.LayoutParams.WRAP_CONTENT
         )
         val isNightMode = context.resources.configuration.uiMode and
@@ -108,6 +111,9 @@ class MenuPage(
      * This function inflates the navigation items of the page
      */
     private fun inflateNavItems() {
+        // Add divider before navigation items
+        addDivider()
+        
         val rowLayout = createRowLayout()
         val navButtonView = createNavButtonView()
         navItems.forEach { menuItem ->
@@ -121,6 +127,7 @@ class MenuPage(
                 showDrawableDescription = false,
                 isSmall = true,
                 closeOnSelect = false,
+                isMenuHierarchyManipulator = true, // Apply nav button styling
                 action = { previousPage() }
             )
             prevPageMenuItem?.inflate(rowLayout)
@@ -133,6 +140,7 @@ class MenuPage(
                 showDrawableDescription = false,
                 isSmall = true,
                 closeOnSelect = false,
+                isMenuHierarchyManipulator = true, // Apply nav button styling
                 action = { nextPage() }
             )
             nextPageMenuItem?.inflate(rowLayout)
@@ -149,7 +157,7 @@ class MenuPage(
         return LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
             layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
             ).also {
                 it.gravity = Gravity.CENTER_HORIZONTAL
@@ -166,10 +174,45 @@ class MenuPage(
         return LinearLayout(context).apply {
             orientation = LinearLayout.HORIZONTAL
             layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
             ).also { it.gravity = Gravity.CENTER_HORIZONTAL }
         }
+    }
+
+    /**
+     * Add a divider line to separate navigation items from menu items
+     */
+    private fun addDivider() {
+        val isNightMode = context.resources.configuration.uiMode and
+                Configuration.UI_MODE_NIGHT_MASK ==
+                Configuration.UI_MODE_NIGHT_YES
+        
+        // Create a container for the divider that won't affect parent width
+        val dividerContainer = LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                gravity = Gravity.CENTER_HORIZONTAL
+                setMargins(0, 16, 0, 16) // vertical spacing
+            }
+        }
+        
+        val divider = View(context).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                ScreenUtils.dpToPx(context, 100), // Fixed width of 100dp
+                ScreenUtils.dpToPx(context, 2) // 2dp height
+            )
+            setBackgroundColor(
+                if (isNightMode) "#30FFFFFF".toColorInt() // Semi-transparent white for dark mode
+                else "#20000000".toColorInt() // Semi-transparent black for light mode
+            )
+        }
+        
+        dividerContainer.addView(divider)
+        baseLayout.addView(dividerContainer)
     }
 
     /**
