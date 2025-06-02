@@ -1,7 +1,6 @@
 package com.enaboapps.switchify.service.gestures.visuals
 
 import android.content.Context
-import android.graphics.Color
 import android.graphics.PorterDuff
 import android.view.animation.Animation
 import android.view.animation.TranslateAnimation
@@ -12,6 +11,7 @@ import com.enaboapps.switchify.service.scanning.ScanColorManager
 import com.enaboapps.switchify.service.utils.ScreenUtils
 import com.enaboapps.switchify.service.window.SwitchifyAccessibilityWindow
 import kotlin.math.atan2
+import androidx.core.graphics.toColorInt
 
 class AnimatedGestureArrow(private val context: Context) {
     private var arrowView: ImageView? = null
@@ -29,16 +29,14 @@ class AnimatedGestureArrow(private val context: Context) {
         // Cancel any existing animation before starting a new one
         cancel()
         
-        val size = 100
+        val size = 150
         val halfSize = size / 2
         // Create arrow ImageView
         val arrow = ImageView(context).apply {
             setImageResource(R.drawable.gesture_arrow)
             // Apply the secondary scanning color
             setColorFilter(
-                Color.parseColor(
-                    ScanColorManager.getScanColorSetFromPreferences(context).secondaryColor
-                ),
+                ScanColorManager.getScanColorSetFromPreferences(context).secondaryColor.toColorInt(),
                 PorterDuff.Mode.SRC_IN
             )
             // Set the size of the arrow (adjust as needed)
