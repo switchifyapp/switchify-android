@@ -24,7 +24,7 @@ import kotlinx.coroutines.delay
 fun AutoScanDemo(
     color: Color,
     modifier: Modifier = Modifier,
-    itemCount: Int = 4,
+    itemCount: Int = 2,
     scanDelay: Long = 1000L
 ) {
     var currentItem by remember { mutableIntStateOf(0) }

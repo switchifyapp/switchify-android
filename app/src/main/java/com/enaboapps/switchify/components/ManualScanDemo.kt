@@ -25,7 +25,7 @@ import kotlinx.coroutines.delay
 fun ManualScanDemo(
     color: Color,
     modifier: Modifier = Modifier,
-    itemCount: Int = 4
+    itemCount: Int = 2
 ) {
     var selectedItem by remember { mutableIntStateOf(-1) }
     var highlightedItem by remember { mutableIntStateOf(0) }
