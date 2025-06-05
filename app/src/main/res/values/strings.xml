@@ -401,8 +401,6 @@
     <string name="button_cancel">Cancel</string>
     <string name="button_add_long_press_action">Add Long Press Action</string>
     <string name="button_take_me_there">Take Me There</string>
-    <string name="button_enabled_it">I\'ve Enabled It</string>
-    <string name="button_not_right_now">Not Right Now</string>
     <string name="button_privacy_policy">Privacy Policy</string>
     <string name="button_delete_account">Delete Account</string>
     <string name="button_sign_out">Sign Out</string>
