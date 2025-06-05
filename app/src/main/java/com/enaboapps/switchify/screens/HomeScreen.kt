@@ -62,6 +62,7 @@ import com.enaboapps.switchify.backend.iap.IAPHandler
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.NavBarAction
+import com.enaboapps.switchify.components.StatusBannerComponent
 import com.enaboapps.switchify.nav.NavigationRoute
 import com.enaboapps.switchify.service.utils.ServiceUtils
 import com.google.android.play.core.appupdate.AppUpdateManager
@@ -194,55 +195,23 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
                     context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri()))
                 }
             )
-        )
+        ),
+        headerContent = {
+            StatusBannerComponent(
+                isAccessibilityServiceEnabled = isAccessibilityServiceEnabled,
+                isPro = isPro.value,
+                onAccessibilityClick = { 
+                    navController.navigate(NavigationRoute.EnableAccessibilityService.name) 
+                },
+                onProUpgradeClick = { 
+                    navController.navigate(NavigationRoute.Paywall.name) 
+                }
+            )
+        }
     ) {
         Column(
             modifier = Modifier.fillMaxSize()
         ) {
-            // Status Bar
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                color = if (isAccessibilityServiceEnabled) {
-                    MaterialTheme.colorScheme.primary
-                } else {
-                    MaterialTheme.colorScheme.error
-                },
-                tonalElevation = 4.dp
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column {
-                        Text(
-                            text = stringResource(R.string.app_name),
-                            style = MaterialTheme.typography.titleLarge,
-                            color = MaterialTheme.colorScheme.onPrimary,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = if (isAccessibilityServiceEnabled) {
-                                stringResource(R.string.accessibility_service_enabled)
-                            } else {
-                                stringResource(R.string.accessibility_service_disabled)
-                            },
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onPrimary
-                        )
-                    }
-                    if (!isAccessibilityServiceEnabled) {
-                        Icon(
-                            imageVector = Icons.Rounded.AccessibilityNew,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onPrimary,
-                            modifier = Modifier.size(28.dp)
-                        )
-                    }
-                }
-            }
             // Update Progress
             if (isDownloading) {
                 Column(
@@ -300,43 +269,6 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
                 )
             }
 
-            // Accessibility Service Card
-            if (!isAccessibilityServiceEnabled) {
-                item {
-                    GridCard(
-                        titleResId = R.string.screen_title_accessibility_service,
-                        summaryResId = R.string.screen_summary_accessibility,
-                        onClick = { navController.navigate(NavigationRoute.EnableAccessibilityService.name) },
-                        icon = {
-                            Icon(
-                                imageVector = Icons.Rounded.AccessibilityNew,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.fillMaxSize()
-                            )
-                        }
-                    )
-                }
-            }
-
-            // Pro Upgrade Card
-            if (!isPro.value) {
-                item {
-                    GridCard(
-                        titleResId = R.string.screen_title_upgrade_pro,
-                        summaryResId = R.string.screen_summary_upgrade_pro,
-                        onClick = { navController.navigate(NavigationRoute.Paywall.name) },
-                        icon = {
-                            Icon(
-                                imageVector = Icons.Rounded.Star,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.fillMaxSize()
-                            )
-                        }
-                    )
-                }
-            }
 
             // Account Card
             item {
