@@ -25,7 +25,6 @@ import com.enaboapps.switchify.screens.settings.switches.AddEditCameraSwitchScre
 import com.enaboapps.switchify.screens.settings.switches.AddEditExternalSwitchScreen
 import com.enaboapps.switchify.screens.settings.switches.SwitchStabilityScreen
 import com.enaboapps.switchify.screens.settings.switches.SwitchesScreen
-import com.enaboapps.switchify.screens.settings.switches.TestSwitchesScreen
 import com.enaboapps.switchify.screens.settings.techniques.AccessTechniqueSettingsScreen
 import com.enaboapps.switchify.screens.onboarding.OnboardingScreen
 
@@ -84,9 +83,6 @@ fun NavGraph(navController: NavHostController) {
         }
         composable(NavigationRoute.AddNewExternalSwitch.name) {
             AddEditExternalSwitchScreen(navController)
-        }
-        composable(NavigationRoute.TestSwitches.name) {
-            TestSwitchesScreen(navController)
         }
         composable("${NavigationRoute.EditExternalSwitch.name}/{code}") {
             it.arguments?.getString("code")?.let { code ->

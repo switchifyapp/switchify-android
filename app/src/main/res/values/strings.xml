@@ -217,7 +217,6 @@
     <string name="screen_title_reset_password">Reset Password</string>
     <string name="screen_title_customize_menu">Customize Menu Items</string>
     <string name="screen_title_switch_stability">Switch Stability</string>
-    <string name="screen_title_test_switches">Test Switches</string>
     <string name="screen_title_switches">Switches</string>
     <string name="screen_title_add_switch">Add New Switch</string>
     <string name="screen_title_edit_switch">Edit Switch</string>

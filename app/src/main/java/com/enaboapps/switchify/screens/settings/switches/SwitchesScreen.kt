@@ -28,7 +28,6 @@ import com.enaboapps.switchify.R
 import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.CameraPermissionHandler
 import com.enaboapps.switchify.components.LoadingIndicator
-import com.enaboapps.switchify.components.NavBarAction
 import com.enaboapps.switchify.components.NavRouteLink
 import com.enaboapps.switchify.components.ScrollableView
 import com.enaboapps.switchify.components.Section
@@ -63,14 +62,6 @@ fun SwitchesScreen(navController: NavController) {
         navController = navController,
         padding = 0.dp,
         enableScroll = false,
-        navBarActions = listOf(
-            NavBarAction(
-                textResId = R.string.action_test,
-                onClick = {
-                    navController.navigate(NavigationRoute.TestSwitches.name)
-                }
-            )
-        ),
         floatingActionButton = {
             FloatingActionButton(
                 onClick = {
