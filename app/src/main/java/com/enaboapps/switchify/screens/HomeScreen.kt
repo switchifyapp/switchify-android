@@ -87,7 +87,7 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
 
     LaunchedEffect(Unit) {
         if (!isSetupComplete && !signedIn) {
-            navController.navigate(NavigationRoute.Setup.name)
+            navController.navigate(NavigationRoute.Onboarding.name)
         } else if (signedIn) {
             PreferenceManager(context).setSetupComplete()
         }

@@ -145,6 +145,8 @@
     <string name="action_next_item_desc">Move to the next item</string>
     <string name="action_previous_item">Move to Previous Item</string>
     <string name="action_previous_item_desc">Move to the previous item</string>
+    <string name="action_next">Next</string>
+    <string name="action_previous">Previous</string>
 
     <!-- System Actions -->
     <string name="system_home">Home</string>
@@ -177,6 +179,7 @@
 
     <!-- Miscellaneous -->
     <string name="unknown">Unknown</string>
+    <string name="demo">Demo</string>
 
     <!-- Scan Color Sets -->
     <string name="scan_color_set_blue_red">Blue and Red</string>
@@ -542,4 +545,86 @@
 
     <!-- Pro Text Label -->
     <string name="pro">PRO</string>
+
+    <!-- Onboarding Strings -->
+    <string name="onboarding_title">Set Up Switchify</string>
+
+    <!-- Welcome Step -->
+    <string name="onboarding_welcome_title">Welcome to Switchify!</string>
+    <string name="onboarding_welcome_subtitle">Let\'s get you set up in just a few steps</string>
+    <string name="onboarding_are_you_new">Are you new here?</string>
+    <string name="onboarding_new_user">I\'m new</string>
+    <string name="onboarding_new_user_desc">Set up Switchify for the first time</string>
+    <string name="onboarding_returning_user">I have an account</string>
+    <string name="onboarding_returning_user_desc">Sign in to restore my settings</string>
+
+    <!-- User Type Step -->
+    <string name="onboarding_why_here_title">What best describes you?</string>
+    <string name="onboarding_why_here_subtitle">This helps us personalize your experience</string>
+    <string name="onboarding_user_type_user">User</string>
+    <string name="onboarding_user_type_user_desc">I\'ll be using Switchify myself</string>
+    <string name="onboarding_user_type_specialist">Specialist</string>
+    <string name="onboarding_user_type_specialist_desc">I\'m setting this up for others</string>
+    <string name="onboarding_user_type_carer">Carer/Family</string>
+    <string name="onboarding_user_type_carer_desc">I\'m helping someone use this</string>
+    <string name="onboarding_user_type_other">Other</string>
+    <string name="onboarding_user_type_other_desc">Just exploring the app</string>
+    <string name="onboarding_continue">Continue</string>
+
+    <!-- Scan Mode Explanation -->
+    <string name="onboarding_scan_modes_title">Understanding Scan Modes</string>
+    <string name="onboarding_scan_modes_subtitle">Switchify offers two ways to navigate your device</string>
+    <string name="onboarding_auto_scan_title">Auto Scan</string>
+    <string name="onboarding_auto_scan_desc">Items highlight automatically. Press your switch to select when ready.</string>
+    <string name="onboarding_manual_scan_title">Manual Scan</string>
+    <string name="onboarding_manual_scan_desc">Press your switch to move between items at your own pace.</string>
+    <string name="onboarding_scan_modes_tip">You can change between Auto and Manual scan modes at any time in settings</string>
+    <string name="onboarding_tap_to_move">Tap to Move</string>
+
+    <!-- Switch Setup -->
+    <string name="onboarding_switches_title">Let\'s Set Up Your Switches</string>
+    <string name="onboarding_switches_subtitle">Switches are how you\'ll control your device</string>
+    <string name="onboarding_switch_options">Switch Options</string>
+    <string name="onboarding_switch_keyboard">External Keyboard</string>
+    <string name="onboarding_switch_keyboard_desc">Use keyboard keys as switches</string>
+    <string name="onboarding_switch_bluetooth">Bluetooth Switch</string>
+    <string name="onboarding_switch_bluetooth_desc">Connect wireless adaptive switches</string>
+    <string name="onboarding_switch_camera">Camera Switch</string>
+    <string name="onboarding_switch_camera_desc">Use facial gestures as switches</string>
+    <string name="onboarding_no_switches_configured">No switches configured yet</string>
+    <string name="onboarding_configure_switches">Configure Switches</string>
+    <string name="onboarding_switches_configured">Switches configured successfully!</string>
+    <string name="onboarding_skip_for_now">Skip for now</string>
+
+    <!-- Accessibility Service Explanation -->
+    <string name="onboarding_accessibility_title">Enable Accessibility Service</string>
+    <string name="onboarding_accessibility_enabled_title">Accessibility Service Enabled!</string>
+    <string name="onboarding_accessibility_subtitle">This allows Switchify to help you control your device</string>
+    <string name="onboarding_accessibility_what_title">What does this do?</string>
+    <string name="onboarding_accessibility_feature_1">Screen Control</string>
+    <string name="onboarding_accessibility_feature_1_desc">Tap, swipe, and navigate anywhere on your screen</string>
+    <string name="onboarding_accessibility_feature_2">Content Reading</string>
+    <string name="onboarding_accessibility_feature_2_desc">Understand what\'s on screen to help you navigate</string>
+    <string name="onboarding_accessibility_feature_3">Smart Navigation</string>
+    <string name="onboarding_accessibility_feature_3_desc">Efficiently move through apps and content</string>
+    <string name="onboarding_accessibility_privacy_title">Your Privacy Matters</string>
+    <string name="onboarding_accessibility_privacy_desc">Switchify only observes screen content to help you navigate. We never collect or store personal information.</string>
+    <string name="onboarding_accessibility_enabled">Accessibility service is now active</string>
+    <string name="onboarding_accessibility_enabled_desc">You\'re all set to start using Switchify!</string>
+    <string name="onboarding_enable_accessibility">Enable Accessibility Service</string>
+
+    <!-- Practice Step -->
+    <string name="onboarding_practice_title">Let\'s Practice!</string>
+    <string name="onboarding_practice_subtitle">Try activating each box using Switchify</string>
+    <string name="onboarding_practice_box_1">Love</string>
+    <string name="onboarding_practice_box_2">Star</string>
+    <string name="onboarding_practice_box_3">Party</string>
+    <string name="onboarding_practice_box_4">Happy</string>
+    <string name="onboarding_practice_message_1">Great start! Keep going!</string>
+    <string name="onboarding_practice_message_2">You\'re doing amazing!</string>
+    <string name="onboarding_practice_message_3">Almost there! One more to go!</string>
+    <string name="onboarding_practice_message_4">Perfect! You\'ve mastered it!</string>
+    <string name="onboarding_practice_complete">Congratulations!</string>
+    <string name="onboarding_practice_ready">You\'re ready to use Switchify!</string>
+    <string name="onboarding_skip_practice">Skip practice</string>
 </resources>

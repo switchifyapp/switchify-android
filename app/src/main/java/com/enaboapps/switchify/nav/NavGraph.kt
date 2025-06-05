@@ -27,7 +27,7 @@ import com.enaboapps.switchify.screens.settings.switches.SwitchStabilityScreen
 import com.enaboapps.switchify.screens.settings.switches.SwitchesScreen
 import com.enaboapps.switchify.screens.settings.switches.TestSwitchesScreen
 import com.enaboapps.switchify.screens.settings.techniques.AccessTechniqueSettingsScreen
-import com.enaboapps.switchify.screens.setup.SetupScreen
+import com.enaboapps.switchify.screens.onboarding.OnboardingScreen
 
 @Composable
 fun NavGraph(navController: NavHostController) {
@@ -35,8 +35,8 @@ fun NavGraph(navController: NavHostController) {
         composable(NavigationRoute.Home.name) {
             HomeScreen(navController)
         }
-        composable(NavigationRoute.Setup.name) {
-            SetupScreen(navController)
+        composable(NavigationRoute.Onboarding.name) {
+            OnboardingScreen(navController)
         }
         composable(
             route = NavigationRoute.Paywall.name,
