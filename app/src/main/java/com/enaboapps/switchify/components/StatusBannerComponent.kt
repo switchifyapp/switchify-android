@@ -54,7 +54,11 @@ fun StatusBannerComponent(
                     modifier = Modifier.weight(1f)
                 ) {
                     Text(
-                        text = stringResource(R.string.app_name),
+                        text = if (isAccessibilityServiceEnabled) {
+                            stringResource(R.string.accessibility_service_banner_title_enabled)
+                        } else {
+                            stringResource(R.string.accessibility_service_banner_title_disabled)
+                        },
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onPrimary,
                         fontWeight = FontWeight.Bold,

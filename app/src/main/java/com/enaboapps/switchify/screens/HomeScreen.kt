@@ -195,12 +195,8 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
                     context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri()))
                 }
             )
-        )
-    ) {
-        Column(
-            modifier = Modifier.fillMaxSize()
-        ) {
-            // Status Banner
+        ),
+        headerContent = {
             StatusBannerComponent(
                 isAccessibilityServiceEnabled = isAccessibilityServiceEnabled,
                 isPro = isPro.value,
@@ -211,6 +207,11 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
                     navController.navigate(NavigationRoute.Paywall.name) 
                 }
             )
+        }
+    ) {
+        Column(
+            modifier = Modifier.fillMaxSize()
+        ) {
             // Update Progress
             if (isDownloading) {
                 Column(

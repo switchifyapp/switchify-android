@@ -20,8 +20,10 @@ import androidx.compose.ui.unit.dp
  * @param navBarActions The actions to display in the top bar.
  * @param floatingActionButton The floating action button to display in the screen.
  * @param enableScroll Whether to enable scrolling for the content. Defaults to true.
+ * @param padding The padding to apply around the content. Defaults to 16.dp.
  * @param showBackButton Whether to show the back button. If null, auto-detect based on nav stack.
  * @param onBackPressed Custom back button action. If null, uses default nav controller pop.
+ * @param headerContent Optional content to display above the main content.
  * @param content The content of the screen.
  */
 @Composable
@@ -34,6 +36,7 @@ fun BaseView(
     padding: Dp = 16.dp,
     showBackButton: Boolean? = null,
     onBackPressed: (() -> Unit)? = null,
+    headerContent: @Composable (() -> Unit)? = null,
     content: @Composable () -> Unit
 ) {
     val title = stringResource(titleResId)
@@ -43,19 +46,28 @@ fun BaseView(
         },
         floatingActionButton = floatingActionButton
     ) { paddingValues ->
-        if (enableScroll) {
-            ScrollableView(modifier = Modifier.padding(paddingValues)) {
-                content()
-            }
-        } else {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-                    .padding(padding),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                content()
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+        ) {
+            // Header content (if provided)
+            headerContent?.invoke()
+            
+            // Main content
+            if (enableScroll) {
+                ScrollableView(modifier = Modifier.weight(1f)) {
+                    content()
+                }
+            } else {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(padding),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    content()
+                }
             }
         }
     }
