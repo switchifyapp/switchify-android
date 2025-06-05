@@ -3,7 +3,7 @@ package com.enaboapps.switchify.nav
 sealed class NavigationRoute(val name: String) {
 
     data object Home : NavigationRoute("Home")
-    data object Setup : NavigationRoute("Setup")
+    data object Onboarding : NavigationRoute("Onboarding")
     data object Paywall : NavigationRoute("Paywall")
     data object SignIn : NavigationRoute("SignIn")
     data object SignUp : NavigationRoute("SignUp")

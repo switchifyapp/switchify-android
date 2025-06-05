@@ -40,6 +40,9 @@ class PreferenceManager(context: Context) {
         const val PREFERENCE_KEY_SCAN_HIGHLIGHT_TYPE = "scan_highlight_type"
         const val PREFERENCE_KEY_MENU_TRANSPARENCY = "menu_transparency"
         const val PREFERENCE_KEY_SETTINGS_TAB = "settings_tab"
+        const val PREFERENCE_KEY_ONBOARDING_CURRENT_STEP = "onboarding_current_step"
+        const val PREFERENCE_KEY_ONBOARDING_USER_TYPE = "onboarding_user_type"
+        const val PREFERENCE_KEY_ONBOARDING_IS_NEW_USER = "onboarding_is_new_user"
         private const val PREFERENCE_FILE_NAME = "switchify_preferences"
     }
 

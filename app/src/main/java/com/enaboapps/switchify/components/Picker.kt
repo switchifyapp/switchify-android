@@ -1,19 +1,23 @@
 package com.enaboapps.switchify.components
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -34,7 +38,6 @@ fun <T> Picker(
     titleResIdArgs: Array<Any>? = null,
     selectedItem: T?,
     items: List<T>,
-    modifier: Modifier = Modifier,
     onItemSelected: (T) -> Unit,
     onDelete: (() -> Unit)? = null,
     itemToString: (T) -> String,
@@ -59,21 +62,59 @@ fun <T> Picker(
     )
 
     if (expanded) {
-        DropdownMenu(
-            modifier = modifier,
-            expanded = true,
-            onDismissRequest = { expanded = false }
-        ) {
-            items.forEach { item ->
-                DropdownMenuItem(
-                    text = { Text(text = itemToString(item)) },
-                    onClick = {
-                        onItemSelected(item)
-                        expanded = false
-                    }
+        AlertDialog(
+            onDismissRequest = { expanded = false },
+            title = {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.headlineSmall
                 )
+            },
+            text = {
+                Column(
+                    modifier = Modifier.verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items.forEach { item ->
+                        OutlinedCard(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    onItemSelected(item)
+                                    expanded = false
+                                },
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp)
+                            ) {
+                                Text(
+                                    text = itemToString(item),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Medium
+                                )
+                                val description = itemDescription(item)
+                                if (description.isNotBlank()) {
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = description,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { expanded = false }) {
+                    Text(stringResource(R.string.cancel))
+                }
             }
-        }
+        )
     }
 }
 
@@ -107,16 +148,20 @@ private fun PickerItem(
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Medium
                 )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = description,
-                    style = MaterialTheme.typography.bodySmall
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = extraDescription,
-                    style = MaterialTheme.typography.bodySmall
-                )
+                if (description.isNotBlank()) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = description,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+                if (extraDescription.isNotBlank()) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = extraDescription,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
             }
 
             if (onDelete != null) {

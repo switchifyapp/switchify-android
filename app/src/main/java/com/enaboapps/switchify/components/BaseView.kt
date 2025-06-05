@@ -20,6 +20,8 @@ import androidx.compose.ui.unit.dp
  * @param navBarActions The actions to display in the top bar.
  * @param floatingActionButton The floating action button to display in the screen.
  * @param enableScroll Whether to enable scrolling for the content. Defaults to true.
+ * @param showBackButton Whether to show the back button. If null, auto-detect based on nav stack.
+ * @param onBackPressed Custom back button action. If null, uses default nav controller pop.
  * @param content The content of the screen.
  */
 @Composable
@@ -30,12 +32,14 @@ fun BaseView(
     floatingActionButton: @Composable () -> Unit = {},
     enableScroll: Boolean = true,
     padding: Dp = 16.dp,
+    showBackButton: Boolean? = null,
+    onBackPressed: (() -> Unit)? = null,
     content: @Composable () -> Unit
 ) {
     val title = stringResource(titleResId)
     Scaffold(
         topBar = {
-            NavBar(title, navController, navBarActions)
+            NavBar(title, navController, navBarActions, showBackButton, onBackPressed)
         },
         floatingActionButton = floatingActionButton
     ) { paddingValues ->

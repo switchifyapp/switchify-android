@@ -6,6 +6,10 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -17,6 +21,8 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
+import com.enaboapps.switchify.components.AutoScanDemo
+import com.enaboapps.switchify.components.ManualScanDemo
 import com.enaboapps.switchify.components.NavRouteLink
 import com.enaboapps.switchify.components.Picker
 import com.enaboapps.switchify.components.Section
@@ -54,13 +60,53 @@ fun ScanModeSelectionSection(
             itemToString = { it.getModeName() },
             itemDescription = { it.getModeDescription() }
         )
+        
+        // Visual demonstration of selected scan mode
+        AnimatedVisibility(
+            visible = currentMode.id == ScanMode.Modes.MODE_AUTO,
+            enter = fadeIn(),
+            exit = fadeOut()
+        ) {
+            Card(
+                modifier = Modifier.padding(top = 24.dp, start = 32.dp, end = 32.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            ) {
+                Column(modifier = Modifier.padding(horizontal = 32.dp, vertical = 24.dp)) {
+                    val userScanDelay = preferenceManager.getIntegerValue(
+                        PreferenceManager.Keys.PREFERENCE_KEY_SCAN_RATE,
+                        1000
+                    ).toLong()
+                    AutoScanDemo(
+                        color = MaterialTheme.colorScheme.primary,
+                        scanDelay = userScanDelay
+                    )
+                }
+            }
+        }
+        
+        AnimatedVisibility(
+            visible = currentMode.id == ScanMode.Modes.MODE_MANUAL,
+            enter = fadeIn(),
+            exit = fadeOut()
+        ) {
+            Card(
+                modifier = Modifier.padding(top = 24.dp, start = 32.dp, end = 32.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            ) {
+                Column(modifier = Modifier.padding(horizontal = 32.dp, vertical = 24.dp)) {
+                    ManualScanDemo(
+                        color = MaterialTheme.colorScheme.secondary
+                    )
+                }
+            }
+        }
         AnimatedVisibility(
             visible = currentMode.id == ScanMode.Modes.MODE_AUTO,
             enter = fadeIn(),
             exit = fadeOut()
         ) {
             Column {
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(20.dp))
                 NavRouteLink(
                     titleResId = R.string.screen_title_scan_speeds,
                     summaryResId = R.string.screen_summary_scan_speeds,
@@ -75,7 +121,7 @@ fun ScanModeSelectionSection(
             exit = fadeOut()
         ) {
             Column {
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(20.dp))
                 NavRouteLink(
                     titleResId = R.string.screen_title_manual_settings,
                     summaryResId = R.string.screen_summary_manual_settings,
@@ -90,7 +136,7 @@ fun ScanModeSelectionSection(
             exit = fadeOut()
         ) {
             Column {
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(20.dp))
                 NavRouteLink(
                     titleResId = R.string.screen_title_auto_scan_settings,
                     summaryResId = R.string.screen_summary_auto_scan_settings,
