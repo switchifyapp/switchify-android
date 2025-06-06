@@ -237,19 +237,8 @@ private fun PracticeBoxItem(
     modifier: Modifier = Modifier,
     onActivate: () -> Unit
 ) {
-    val infiniteTransition = rememberInfiniteTransition(label = "pulse")
-    val pulseScale by infiniteTransition.animateFloat(
-        initialValue = 1f,
-        targetValue = 1.05f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1000),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "pulse"
-    )
-
     val scale by animateFloatAsState(
-        targetValue = if (box.isActivated) 0.95f else pulseScale,
+        targetValue = if (box.isActivated) 0.95f else 1f,
         animationSpec = spring(
             dampingRatio = Spring.DampingRatioMediumBouncy,
             stiffness = Spring.StiffnessLow
