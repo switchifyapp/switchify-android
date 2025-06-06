@@ -179,14 +179,6 @@ fun SwitchSetupStep(
             onClick = onContinue,
             enabled = switchesValid
         )
-
-        // Skip option
-        FullWidthButton(
-            textResId = R.string.onboarding_skip_for_now,
-            onClick = onContinue,
-            isTextButton = true,
-            modifier = Modifier.padding(top = 8.dp)
-        )
     }
 }
 

@@ -210,14 +210,6 @@ fun PracticeStep(
                     )
                 }
             }
-
-            // Skip button (optional)
-            FullWidthButton(
-                textResId = R.string.onboarding_skip_practice,
-                onClick = onComplete,
-                isTextButton = true,
-                modifier = Modifier.padding(top = 8.dp)
-            )
         }
 
         // Celebration overlay

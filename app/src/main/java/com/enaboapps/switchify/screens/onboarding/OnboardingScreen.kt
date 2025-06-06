@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.enaboapps.switchify.components.BaseView
+import com.enaboapps.switchify.components.NavBarAction
 import com.enaboapps.switchify.nav.NavigationRoute
 import com.enaboapps.switchify.screens.onboarding.steps.*
 import com.enaboapps.switchify.service.utils.ServiceUtils
@@ -36,9 +37,38 @@ fun OnboardingScreen(navController: NavController) {
         viewModel.init()
     }
 
+    // Determine skip actions based on current step
+    val navBarActions = when (uiState.currentStep) {
+        OnboardingStep.SWITCH_SETUP -> listOf(
+            NavBarAction(
+                textResId = R.string.onboarding_skip_for_now,
+                onClick = { viewModel.nextStep() }
+            )
+        )
+        OnboardingStep.ACCESSIBILITY_SERVICE -> if (!uiState.accessibilityEnabled) {
+            listOf(
+                NavBarAction(
+                    textResId = R.string.onboarding_skip_for_now,
+                    onClick = { viewModel.nextStep() }
+                )
+            )
+        } else emptyList()
+        OnboardingStep.PRACTICE -> listOf(
+            NavBarAction(
+                textResId = R.string.onboarding_skip_practice,
+                onClick = { 
+                    viewModel.completeOnboarding()
+                    navController.popBackStack()
+                }
+            )
+        )
+        else -> emptyList()
+    }
+
     BaseView(
         titleResId = R.string.onboarding_title,
         navController = navController,
+        navBarActions = navBarActions,
         enableScroll = false,
         showBackButton = uiState.currentStep != OnboardingStep.WELCOME,
         onBackPressed = { viewModel.previousStep() }
