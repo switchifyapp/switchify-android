@@ -28,8 +28,12 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.foundation.Image
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.foundation.layout.size
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.enaboapps.switchify.R
@@ -164,6 +168,13 @@ fun SwitchListener(navController: NavController, onKeyEvent: (KeyEvent) -> Unit)
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center) {
         Spacer(modifier = Modifier.weight(1f))
+        Image(
+            painter = painterResource(id = R.drawable.ic_hand_switch_press),
+            contentDescription = stringResource(R.string.switch_listener_press_switch),
+            modifier = Modifier.size(160.dp),
+            colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onSurface)
+        )
+        Spacer(modifier = Modifier.padding(16.dp))
         Text(
             text = stringResource(R.string.switch_listener_press_switch),
             style = MaterialTheme.typography.titleMedium,
