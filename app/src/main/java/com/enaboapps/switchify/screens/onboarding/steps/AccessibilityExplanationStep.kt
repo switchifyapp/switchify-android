@@ -28,19 +28,5 @@ fun AccessibilityExplanationStep(
                 onRefreshStatus = onRefreshStatus
             )
         }
-        
-        // Show skip button only when not enabled
-        if (!isEnabled) {
-            Column(
-                modifier = Modifier.padding(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                FullWidthButton(
-                    textResId = R.string.onboarding_skip_for_now,
-                    onClick = onContinue,
-                    isTextButton = true
-                )
-            }
-        }
     }
 }
