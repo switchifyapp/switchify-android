@@ -23,6 +23,7 @@ import androidx.navigation.NavController
 import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.nav.NavigationRoute
 import com.enaboapps.switchify.screens.onboarding.steps.*
+import com.enaboapps.switchify.service.utils.ServiceUtils
 import com.enaboapps.switchify.R
 
 @Composable
@@ -96,7 +97,7 @@ fun OnboardingScreen(navController: NavController) {
                     OnboardingStep.ACCESSIBILITY_SERVICE -> AccessibilityExplanationStep(
                         isEnabled = uiState.accessibilityEnabled,
                         onEnableService = {
-                            navController.navigate(NavigationRoute.EnableAccessibilityService.name)
+                            ServiceUtils().openAccessibilitySettings(context)
                         },
                         onContinue = { viewModel.nextStep() },
                         onRefreshStatus = { viewModel.checkAccessibilityService() }
