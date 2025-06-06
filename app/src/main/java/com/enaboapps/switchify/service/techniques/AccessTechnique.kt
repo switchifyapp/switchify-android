@@ -25,7 +25,7 @@ interface AccessTechniqueObserver {
  * This object is used to manage the access technique
  */
 object AccessTechnique {
-    private var currentTechnique: String = Technique.CURSOR
+    private var currentTechnique: String = Technique.ITEM_SCAN
     private var preferenceManager: PreferenceManager? = null
     var observer: AccessTechniqueObserver? = null
 
@@ -121,6 +121,10 @@ object AccessTechnique {
             println("Stored type: $storedType")
             if (storedType.isNotEmpty()) {
                 currentTechnique = storedType
+            } else {
+                // Set default technique for new users and save it
+                currentTechnique = Technique.ITEM_SCAN
+                saveCurrentTechnique()
             }
         }
         observer?.onAccessTechniqueChanged(currentTechnique)
