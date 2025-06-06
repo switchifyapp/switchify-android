@@ -1,10 +1,12 @@
 package com.enaboapps.switchify.screens.settings.switches
 
 import android.widget.Toast
+import androidx.compose.foundation.background
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
@@ -149,6 +151,8 @@ fun AddEditExternalSwitchScreen(navController: NavController, code: String? = nu
 fun SwitchListener(navController: NavController, onKeyEvent: (KeyEvent) -> Unit) {
     val requester = remember { FocusRequester() }
     Column(modifier = Modifier
+        .fillMaxSize()
+        .background(MaterialTheme.colorScheme.background)
         .padding(16.dp)
         .onKeyEvent { keyEvent ->
             onKeyEvent(keyEvent)
@@ -162,12 +166,14 @@ fun SwitchListener(navController: NavController, onKeyEvent: (KeyEvent) -> Unit)
         Spacer(modifier = Modifier.weight(1f))
         Text(
             text = stringResource(R.string.switch_listener_press_switch),
-            style = MaterialTheme.typography.titleMedium
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface
         )
         Spacer(modifier = Modifier.padding(8.dp))
         Text(
             text = stringResource(R.string.switch_listener_is_switch_not_working),
-            style = MaterialTheme.typography.bodyMedium
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Spacer(modifier = Modifier.padding(16.dp))
         FullWidthButton(
@@ -222,6 +228,7 @@ fun SwitchActionSection(viewModel: AddEditExternalSwitchScreenModel) {
         Text(
             text = stringResource(R.string.switch_listener_each_switch_can_have_multiple_actions_for_long_press),
             style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(horizontal = 20.dp)
         )
 
