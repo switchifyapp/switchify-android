@@ -8,6 +8,7 @@ import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.service.utils.DeviceLockObserver
 import com.enaboapps.switchify.service.utils.ServiceUtils
 import com.enaboapps.switchify.service.window.ServiceMessageHUD
+import com.enaboapps.switchify.utils.LogEvent
 import com.enaboapps.switchify.utils.Logger
 import com.revenuecat.purchases.CustomerInfo
 import com.revenuecat.purchases.Purchases
@@ -162,9 +163,9 @@ object IAPHandler {
         val hasPro = customerInfo.entitlements[ENTITLEMENT]?.isActive == true
         val isSubscribed = customerInfo.activeSubscriptions.isNotEmpty()
         if (isSubscribed) {
-            Logger.logEvent("Pro checked via subscription")
+            Logger.log(LogEvent.ProCheckedViaSubscription)
         } else if (hasPro) {
-            Logger.logEvent("Pro checked via purchase")
+            Logger.log(LogEvent.ProCheckedViaPurchase)
         }
         setProStatus(hasPro)
         _purchaseState.value = if (hasPro) PurchaseState.Success else PurchaseState.Initial

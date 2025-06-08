@@ -13,7 +13,6 @@ import com.enaboapps.switchify.service.techniques.radar.RadarManager
 import com.enaboapps.switchify.service.utils.KeyboardBridge
 import com.enaboapps.switchify.service.utils.KeyboardListener
 import com.enaboapps.switchify.service.utils.ScreenWatcher
-import com.enaboapps.switchify.utils.Logger
 
 /**
  * Manages the active access technique and its state
@@ -81,7 +80,6 @@ class ActiveAccessTechnique(private val context: Context) : AccessTechniqueObser
 
     override fun onAccessTechniqueChanged(accessTechnique: String) {
         cleanup(accessTechnique)
-        Logger.logEvent("Scan method changed to: $accessTechnique")
     }
 
     fun setOnScanningStartCallback(callback: () -> Unit) {

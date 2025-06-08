@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.service.utils.ServiceUtils
 import com.enaboapps.switchify.switches.SwitchEventStore
+import com.enaboapps.switchify.utils.LogEvent
 import com.enaboapps.switchify.utils.Logger
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -105,13 +106,13 @@ class OnboardingViewModel(private val context: Context) : ViewModel() {
         preferenceManager.setStringValue(PreferenceManager.PREFERENCE_KEY_ONBOARDING_USER_TYPE, userType.name)
         
         // Log analytics event
-        val eventName = when (userType) {
-            UserType.USER -> "Onboarding_UserType_EndUser"
-            UserType.SPECIALIST -> "Onboarding_UserType_Specialist"
-            UserType.CARER_FAMILY -> "Onboarding_UserType_CarerFamily"
-            UserType.OTHER -> "Onboarding_UserType_Other"
+        val event = when (userType) {
+            UserType.USER -> LogEvent.OnboardingUserTypeEndUser
+            UserType.SPECIALIST -> LogEvent.OnboardingUserTypeSpecialist
+            UserType.CARER_FAMILY -> LogEvent.OnboardingUserTypeCarerFamily
+            UserType.OTHER -> LogEvent.OnboardingUserTypeOther
         }
-        Logger.logEvent(eventName)
+        Logger.log(event)
     }
 
     fun nextStep() {
@@ -185,7 +186,7 @@ class OnboardingViewModel(private val context: Context) : ViewModel() {
             preferenceManager.setStringValue(PreferenceManager.PREFERENCE_KEY_ONBOARDING_CURRENT_STEP, "")
             preferenceManager.setStringValue(PreferenceManager.PREFERENCE_KEY_ONBOARDING_USER_TYPE, "")
             preferenceManager.setBooleanValue(PreferenceManager.PREFERENCE_KEY_ONBOARDING_IS_NEW_USER, false)
-            Logger.logEvent("Onboarding_Completed")
+            Logger.log(LogEvent.OnboardingCompleted)
         }
     }
 }
