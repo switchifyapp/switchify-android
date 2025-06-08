@@ -7,6 +7,7 @@ import com.enaboapps.switchify.R
 import com.enaboapps.switchify.backend.iap.IAPHandler
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.service.window.ServiceMessageHUD
+import com.enaboapps.switchify.utils.LogEvent
 import com.enaboapps.switchify.utils.Logger
 import com.enaboapps.switchify.utils.Resources
 
@@ -154,7 +155,7 @@ object AccessTechnique {
                     R.string.radar_trial_timer_expired,
                     ServiceMessageHUD.MessageType.DISAPPEARING
                 )
-                Logger.logEvent("Radar trial timer expired")
+                Logger.log(LogEvent.RadarTrialExpired)
             }
         }, 20000)
     }

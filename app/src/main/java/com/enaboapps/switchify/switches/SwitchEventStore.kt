@@ -6,6 +6,7 @@ import android.util.Log
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.service.scanning.ScanMode
+import com.enaboapps.switchify.utils.LogEvent
 import com.enaboapps.switchify.utils.Logger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -78,7 +79,7 @@ class SwitchEventStore private constructor() {
                     Log.d(tag, "Successfully added and saved switch event")
                     completion(true)
                     broadcastReloadEvent(context)
-                    Logger.logEvent("Added switch: ${switchEvent.name}")
+                    Logger.log(LogEvent.SwitchAdded)
                 } else {
                     Log.e(tag, "Failed to save switch event to file")
                     switchEvents.remove(switchEvent)
@@ -102,7 +103,7 @@ class SwitchEventStore private constructor() {
                 if (localStorage.saveToFile(context, switchEvents)) {
                     completion(true)
                     broadcastReloadEvent(context)
-                    Logger.logEvent("Updated switch: ${switchEvent.name}")
+                    Logger.log(LogEvent.SwitchUpdated)
                 } else {
                     completion(false)
                 }
@@ -118,7 +119,7 @@ class SwitchEventStore private constructor() {
 
             if (removed) {
                 if (localStorage.saveToFile(context, switchEvents)) {
-                    Logger.logEvent("Removed switch: ${switchEvent.name}")
+                    Logger.log(LogEvent.SwitchRemoved)
                     broadcastReloadEvent(context)
                     handler(true)
                 } else {

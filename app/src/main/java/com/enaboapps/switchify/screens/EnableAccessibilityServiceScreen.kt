@@ -7,6 +7,7 @@ import com.enaboapps.switchify.R
 import com.enaboapps.switchify.components.AccessibilityServiceComponent
 import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.service.utils.ServiceUtils
+import com.enaboapps.switchify.utils.LogEvent
 import com.enaboapps.switchify.utils.Logger
 
 @Composable
@@ -23,7 +24,7 @@ fun EnableAccessibilityServiceScreen(navController: NavController) {
             isEnabled = isEnabled,
             onEnableService = {
                 ServiceUtils().openAccessibilitySettings(context)
-                Logger.logEvent("Opened Accessibility Settings")
+                Logger.log(LogEvent.AccessibilitySettingsOpened)
             },
             onEnabledCallback = {
                 navController.popBackStack()

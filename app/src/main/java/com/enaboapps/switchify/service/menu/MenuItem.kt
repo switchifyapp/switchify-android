@@ -28,7 +28,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.enaboapps.switchify.service.components.AccessibilityComposeView
 import com.enaboapps.switchify.service.utils.ScreenUtils
-import com.enaboapps.switchify.utils.Logger
 import com.enaboapps.switchify.utils.Resources
 
 /**
@@ -103,7 +102,6 @@ class MenuItem(
             MenuManager.getInstance().closeMenuHierarchy()
         }
         action()
-        Logger.logEvent("Menu item selected: $id")
     }
 
     /**

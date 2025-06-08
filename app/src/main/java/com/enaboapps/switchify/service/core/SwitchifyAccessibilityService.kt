@@ -21,6 +21,7 @@ import com.enaboapps.switchify.service.utils.DeviceLockObserver
 import com.enaboapps.switchify.service.utils.KeyboardBridge
 import com.enaboapps.switchify.service.utils.ScreenWatcher
 import com.enaboapps.switchify.service.window.SwitchifyAccessibilityWindow
+import com.enaboapps.switchify.utils.LogEvent
 import com.enaboapps.switchify.utils.Logger
 import com.enaboapps.switchify.utils.Resources
 import kotlinx.coroutines.CoroutineScope
@@ -158,7 +159,7 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
 
     override fun onInterrupt() {
         SwitchifyAccessibilityWindow.instance.cleanup()
-        Logger.logEvent("Service Interrupted")
+        Logger.log(LogEvent.ServiceInterrupted)
     }
 
     /**
@@ -169,7 +170,7 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
 
         setup()
 
-        Logger.logEvent("Service Connected")
+        Logger.log(LogEvent.ServiceConnected)
 
         SwitchifyLifecycleOwner.getInstance().handleLifecycleEvent(Lifecycle.Event.ON_START)
         SwitchifyLifecycleOwner.getInstance().handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
@@ -210,7 +211,7 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
 
         SwitchifyLifecycleOwner.getInstance().handleLifecycleEvent(Lifecycle.Event.ON_STOP)
 
-        Logger.logEvent("Service Unbound")
+        Logger.log(LogEvent.ServiceUnbound)
 
         return super.onUnbind(intent)
     }
@@ -219,7 +220,7 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
         SwitchifyAccessibilityWindow.instance.onServiceDestroy()
         SwitchifyLifecycleOwner.getInstance().handleLifecycleEvent(Lifecycle.Event.ON_DESTROY)
         SwitchifyLifecycleOwner.cleanup()
-        Logger.logEvent("Service Destroyed")
+        Logger.log(LogEvent.ServiceDestroyed)
         super.onDestroy()
     }
 

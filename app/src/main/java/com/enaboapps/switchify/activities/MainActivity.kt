@@ -12,6 +12,7 @@ import com.enaboapps.switchify.backend.iap.IAPHandler
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.nav.NavGraph
 import com.enaboapps.switchify.switches.SwitchEventStore
+import com.enaboapps.switchify.utils.LogEvent
 import com.enaboapps.switchify.utils.Logger
 import com.enaboapps.switchify.utils.Resources
 import kotlinx.coroutines.CoroutineScope
@@ -29,7 +30,7 @@ class MainActivity : ComponentActivity() {
 
         setup()
 
-        Logger.logEvent("Launched Switchify")
+        Logger.log(LogEvent.AppLaunched)
 
         setContent {
             val navController = rememberNavController()
