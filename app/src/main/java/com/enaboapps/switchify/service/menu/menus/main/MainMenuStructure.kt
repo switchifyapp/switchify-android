@@ -41,6 +41,14 @@ class MainMenuStructure(private val accessibilityService: SwitchifyAccessibility
             ),
             if (deviceLockObserver.isUserUnlocked() == true) {
                 MenuItem(
+                    id = "quick_apps",
+                    textResource = R.string.menu_title_quick_apps,
+                    isLinkToMenu = true,
+                    action = { MenuManager.getInstance().openQuickAppsMenu() }
+                )
+            } else null,
+            if (deviceLockObserver.isUserUnlocked() == true) {
+                MenuItem(
                     id = "gesture_patterns",
                     textResource = R.string.gesture_patterns_title,
                     isLinkToMenu = true,

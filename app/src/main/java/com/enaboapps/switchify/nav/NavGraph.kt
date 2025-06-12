@@ -27,6 +27,7 @@ import com.enaboapps.switchify.screens.settings.switches.SwitchStabilityScreen
 import com.enaboapps.switchify.screens.settings.switches.SwitchesScreen
 import com.enaboapps.switchify.screens.settings.techniques.AccessTechniqueSettingsScreen
 import com.enaboapps.switchify.screens.onboarding.OnboardingScreen
+import com.enaboapps.switchify.screens.permissions.UsageStatsPermissionScreen
 
 @Composable
 fun NavGraph(navController: NavHostController) {
@@ -111,6 +112,9 @@ fun NavGraph(navController: NavHostController) {
         }
         composable(NavigationRoute.GesturePatterns.name) {
             GesturePatternsScreen(navController)
+        }
+        composable(NavigationRoute.UsageStatsPermission.name) {
+            UsageStatsPermissionScreen(navController)
         }
     }
 }

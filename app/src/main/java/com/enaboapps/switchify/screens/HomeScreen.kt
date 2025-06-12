@@ -26,6 +26,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Login
 import androidx.compose.material.icons.rounded.AccessibilityNew
 import androidx.compose.material.icons.rounded.AccountCircle
+import androidx.compose.material.icons.rounded.Apps
 import androidx.compose.material.icons.rounded.BugReport
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Star
@@ -65,6 +66,7 @@ import com.enaboapps.switchify.components.NavBarAction
 import com.enaboapps.switchify.components.StatusBannerComponent
 import com.enaboapps.switchify.nav.NavigationRoute
 import com.enaboapps.switchify.service.utils.ServiceUtils
+import com.enaboapps.switchify.service.utils.QuickAppsManager
 import com.google.android.play.core.appupdate.AppUpdateManager
 import com.google.android.play.core.appupdate.AppUpdateManagerFactory
 import com.google.android.play.core.appupdate.AppUpdateOptions
@@ -85,6 +87,8 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
     var showUpdateDialog by remember { mutableStateOf(false) }
     var updateProgress by remember { mutableFloatStateOf(0f) }
     var isDownloading by remember { mutableStateOf(false) }
+    val quickAppsManager = remember { QuickAppsManager(context) }
+    val hasUsageStatsPermission = remember { mutableStateOf(quickAppsManager.hasUsageStatsPermission()) }
 
     LaunchedEffect(Unit) {
         if (!isSetupComplete && !signedIn) {
@@ -273,6 +277,25 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
             // Account Card
             item {
                 AccountGridCard(navController)
+            }
+
+            // Quick Apps Permission Card (only show if permission not granted)
+            if (!hasUsageStatsPermission.value) {
+                item {
+                    GridCard(
+                        titleResId = R.string.menu_title_quick_apps,
+                        summaryResId = R.string.screen_summary_quick_apps_permission,
+                        onClick = { navController.navigate(NavigationRoute.UsageStatsPermission.name) },
+                        icon = {
+                            Icon(
+                                imageVector = Icons.Rounded.Apps,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        }
+                    )
+                }
             }
 
             // Debug Card (only visible in debug mode)

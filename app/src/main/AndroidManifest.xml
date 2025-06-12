@@ -5,6 +5,7 @@
         android:name="android.hardware.camera"
         android:required="false" /> <!-- Required for camera switches -->
     <uses-permission android:name="android.permission.CAMERA" /> <!-- Required for camera switches -->
+    <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS" /> <!-- Required for recent apps -->
 
     <application
         android:allowBackup="true"
