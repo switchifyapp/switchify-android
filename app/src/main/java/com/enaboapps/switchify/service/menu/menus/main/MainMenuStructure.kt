@@ -39,6 +39,12 @@ class MainMenuStructure(private val accessibilityService: SwitchifyAccessibility
                 isLinkToMenu = true,
                 action = { MenuManager.getInstance().openScrollMenu() }
             ),
+            MenuItem(
+                id = "recent_apps",
+                textResource = R.string.menu_title_recent_apps,
+                isLinkToMenu = true,
+                action = { MenuManager.getInstance().openRecentAppsMenu() }
+            ),
             if (deviceLockObserver.isUserUnlocked() == true) {
                 MenuItem(
                     id = "gesture_patterns",

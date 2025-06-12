@@ -13,6 +13,7 @@ import com.enaboapps.switchify.service.menu.menus.gestures.ZoomGesturesMenu
 import com.enaboapps.switchify.service.menu.menus.main.MainMenu
 import com.enaboapps.switchify.service.menu.menus.media.MediaControlMenu
 import com.enaboapps.switchify.service.menu.menus.scroll.ScrollMenu
+import com.enaboapps.switchify.service.menu.menus.recentapps.RecentAppsMenu
 import com.enaboapps.switchify.service.menu.menus.system.DeviceMenu
 import com.enaboapps.switchify.service.menu.menus.system.VolumeControlMenu
 import com.enaboapps.switchify.service.scanning.ScanningManager
@@ -187,6 +188,14 @@ class MenuManager {
     fun openScanCycleBreakMenu() {
         val scanCycleBreakMenu = ScanCycleBreakMenu(accessibilityService!!)
         openMenu(scanCycleBreakMenu.build())
+    }
+
+    /**
+     * This function opens the recent apps menu
+     */
+    fun openRecentAppsMenu() {
+        val recentAppsMenu = RecentAppsMenu(accessibilityService!!)
+        openMenu(recentAppsMenu.build())
     }
 
     /**
