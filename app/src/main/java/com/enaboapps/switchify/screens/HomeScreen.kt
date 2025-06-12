@@ -66,7 +66,7 @@ import com.enaboapps.switchify.components.NavBarAction
 import com.enaboapps.switchify.components.StatusBannerComponent
 import com.enaboapps.switchify.nav.NavigationRoute
 import com.enaboapps.switchify.service.utils.ServiceUtils
-import com.enaboapps.switchify.service.utils.RecentAppsManager
+import com.enaboapps.switchify.service.utils.QuickAppsManager
 import com.google.android.play.core.appupdate.AppUpdateManager
 import com.google.android.play.core.appupdate.AppUpdateManagerFactory
 import com.google.android.play.core.appupdate.AppUpdateOptions
@@ -87,8 +87,8 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
     var showUpdateDialog by remember { mutableStateOf(false) }
     var updateProgress by remember { mutableFloatStateOf(0f) }
     var isDownloading by remember { mutableStateOf(false) }
-    val recentAppsManager = remember { RecentAppsManager(context) }
-    val hasUsageStatsPermission = remember { mutableStateOf(recentAppsManager.hasUsageStatsPermission()) }
+    val quickAppsManager = remember { QuickAppsManager(context) }
+    val hasUsageStatsPermission = remember { mutableStateOf(quickAppsManager.hasUsageStatsPermission()) }
 
     LaunchedEffect(Unit) {
         if (!isSetupComplete && !signedIn) {
@@ -279,12 +279,12 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
                 AccountGridCard(navController)
             }
 
-            // Recent Apps Permission Card (only show if permission not granted)
+            // Quick Apps Permission Card (only show if permission not granted)
             if (!hasUsageStatsPermission.value) {
                 item {
                     GridCard(
-                        titleResId = R.string.menu_title_recent_apps,
-                        summaryResId = R.string.screen_summary_recent_apps_permission,
+                        titleResId = R.string.menu_title_quick_apps,
+                        summaryResId = R.string.screen_summary_quick_apps_permission,
                         onClick = { navController.navigate(NavigationRoute.UsageStatsPermission.name) },
                         icon = {
                             Icon(

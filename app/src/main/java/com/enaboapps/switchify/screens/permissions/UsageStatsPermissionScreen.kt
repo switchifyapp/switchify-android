@@ -18,19 +18,19 @@ import androidx.navigation.NavController
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.FullWidthButton
-import com.enaboapps.switchify.service.utils.RecentAppsManager
+import com.enaboapps.switchify.service.utils.QuickAppsManager
 import kotlinx.coroutines.delay
 
 @Composable
 fun UsageStatsPermissionScreen(navController: NavController) {
     val context = LocalContext.current
-    val recentAppsManager = remember { RecentAppsManager(context) }
-    var hasPermission by remember { mutableStateOf(recentAppsManager.hasUsageStatsPermission()) }
+    val quickAppsManager = remember { QuickAppsManager(context) }
+    var hasPermission by remember { mutableStateOf(quickAppsManager.hasUsageStatsPermission()) }
     
     // Check permission periodically when screen is active
     LaunchedEffect(Unit) {
         while (true) {
-            hasPermission = recentAppsManager.hasUsageStatsPermission()
+            hasPermission = quickAppsManager.hasUsageStatsPermission()
             delay(1000) // Check every second
         }
     }
@@ -186,7 +186,7 @@ fun UsageStatsPermissionScreen(navController: NavController) {
                 FullWidthButton(
                     textResId = R.string.button_grant_usage_stats_permission,
                     onClick = {
-                        recentAppsManager.openUsageStatsSettings()
+                        quickAppsManager.openUsageStatsSettings()
                     }
                 )
                 

@@ -5,7 +5,7 @@ import com.enaboapps.switchify.service.menu.menus.edit.EditMenuStructure
 import com.enaboapps.switchify.service.menu.menus.gestures.GestureMenuStructure
 import com.enaboapps.switchify.service.menu.menus.main.MainMenuStructure
 import com.enaboapps.switchify.service.menu.menus.media.MediaMenuStructure
-import com.enaboapps.switchify.service.menu.menus.recentapps.RecentAppsMenuStructure
+import com.enaboapps.switchify.service.menu.menus.quickapps.QuickAppsMenuStructure
 import com.enaboapps.switchify.service.menu.menus.scroll.ScrollMenuStructure
 import com.enaboapps.switchify.service.menu.menus.system.SystemMenuStructure
 
@@ -21,7 +21,7 @@ class MenuStructureHolder(accessibilityService: SwitchifyAccessibilityService) {
     private val mediaMenuStructure = MediaMenuStructure(accessibilityService)
     private val scrollMenuStructure = ScrollMenuStructure(accessibilityService)
     private val editMenuStructure = EditMenuStructure()
-    private val recentAppsMenuStructure = RecentAppsMenuStructure(accessibilityService)
+    private val quickAppsMenuStructure = QuickAppsMenuStructure(accessibilityService)
 
     // Main Menu
     val mainMenuObject = mainMenuStructure.mainMenuObject
@@ -49,6 +49,6 @@ class MenuStructureHolder(accessibilityService: SwitchifyAccessibilityService) {
     // Edit Menu
     fun buildEditMenuObject() = editMenuStructure.buildEditMenuObject()
     
-    // Recent Apps Menu
-    fun buildRecentAppsMenuObject() = recentAppsMenuStructure.buildRecentAppsMenuObject()
+    // Quick Apps Menu  
+    fun buildQuickAppsMenuObject() = quickAppsMenuStructure.buildQuickAppsMenuObject()
 }

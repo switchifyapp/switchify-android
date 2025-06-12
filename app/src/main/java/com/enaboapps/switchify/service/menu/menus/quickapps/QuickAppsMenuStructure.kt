@@ -1,56 +1,56 @@
-package com.enaboapps.switchify.service.menu.menus.recentapps
+package com.enaboapps.switchify.service.menu.menus.quickapps
 
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.service.core.SwitchifyAccessibilityService
 import com.enaboapps.switchify.service.menu.MenuItem
 import com.enaboapps.switchify.service.menu.structure.MenuStructure
-import com.enaboapps.switchify.service.utils.RecentAppsManager
+import com.enaboapps.switchify.service.utils.QuickAppsManager
 
-class RecentAppsMenuStructure(private val accessibilityService: SwitchifyAccessibilityService) {
+class QuickAppsMenuStructure(private val accessibilityService: SwitchifyAccessibilityService) {
     
-    private val recentAppsManager = RecentAppsManager(accessibilityService)
+    private val quickAppsManager = QuickAppsManager(accessibilityService)
     
     /**
-     * Get recently used apps using RecentAppsManager
+     * Get recently used apps using QuickAppsManager
      */
     suspend fun getRecentApps(): List<MenuItem> {
         val items = mutableListOf<MenuItem>()
         
         // Check if permission is granted
-        if (!recentAppsManager.hasUsageStatsPermission()) {
+        if (!quickAppsManager.hasUsageStatsPermission()) {
             items.add(MenuItem(
                 id = "permission_required",
                 textResource = R.string.usage_stats_permission_required,
                 action = {
                     // Open permission settings
-                    recentAppsManager.openUsageStatsSettings()
+                    quickAppsManager.openUsageStatsSettings()
                 }
             ))
             return items
         }
         
         // Get recent apps
-        val recentApps = recentAppsManager.getRecentApps(hoursToLookBack = 10)
+        val recentApps = quickAppsManager.getRecentApps(hoursToLookBack = 10)
         
         if (recentApps.isEmpty()) {
             items.add(MenuItem(
-                id = "no_recent_apps",
-                textResource = R.string.no_recent_apps_available,
+                id = "no_quick_apps",
+                textResource = R.string.no_quick_apps_available,
                 action = { /* Do nothing */ }
             ))
         } else {
             // Convert RecentApp objects to MenuItems
             recentApps.forEach { app ->
-                items.add(recentAppsManager.createMenuItem(app))
+                items.add(quickAppsManager.createMenuItem(app))
             }
         }
         
         return items
     }
     
-    fun buildRecentAppsMenuObject(): MenuStructure {
+    fun buildQuickAppsMenuObject(): MenuStructure {
         return MenuStructure(
-            id = "recent_apps_menu",
+            id = "quick_apps_menu",
             items = emptyList() // Items will be loaded dynamically
         )
     }

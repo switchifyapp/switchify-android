@@ -40,10 +40,10 @@ class MainMenuStructure(private val accessibilityService: SwitchifyAccessibility
                 action = { MenuManager.getInstance().openScrollMenu() }
             ),
             MenuItem(
-                id = "recent_apps",
-                textResource = R.string.menu_title_recent_apps,
+                id = "quick_apps",
+                textResource = R.string.menu_title_quick_apps,
                 isLinkToMenu = true,
-                action = { MenuManager.getInstance().openRecentAppsMenu() }
+                action = { MenuManager.getInstance().openQuickAppsMenu() }
             ),
             if (deviceLockObserver.isUserUnlocked() == true) {
                 MenuItem(

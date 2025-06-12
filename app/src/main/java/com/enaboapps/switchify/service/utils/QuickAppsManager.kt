@@ -14,9 +14,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 /**
- * Manager class for handling recent apps functionality
+ * Manager class for handling quick apps functionality
  */
-class RecentAppsManager(private val context: Context) {
+class QuickAppsManager(private val context: Context) {
     
     /**
      * Check if usage stats permission is granted
