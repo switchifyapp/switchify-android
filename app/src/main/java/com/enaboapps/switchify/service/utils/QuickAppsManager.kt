@@ -1,16 +1,16 @@
 package com.enaboapps.switchify.service.utils
 
 import android.app.AppOpsManager
-import android.app.usage.UsageStats
 import android.app.usage.UsageStatsManager
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Process
 import android.provider.Settings
-import com.enaboapps.switchify.R
 import com.enaboapps.switchify.service.menu.MenuItem
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
@@ -41,9 +41,21 @@ class QuickAppsManager(private val context: Context) {
     }
     
     /**
+     * Preload apps with completion callback
+     */
+    fun preloadApps(completion: (List<RecentApp>) -> Unit) {
+        CoroutineScope(Dispatchers.IO).launch {
+            val apps = getRecentApps()
+            launch(Dispatchers.Main) {
+                completion(apps)
+            }
+        }
+    }
+
+    /**
      * Get recently used apps
      */
-    suspend fun getRecentApps(hoursToLookBack: Int = 10): List<RecentApp> = withContext(Dispatchers.IO) {
+    suspend fun getRecentApps(): List<RecentApp> = withContext(Dispatchers.IO) {
         val apps = mutableListOf<RecentApp>()
         
         if (!hasUsageStatsPermission()) {
@@ -53,24 +65,30 @@ class QuickAppsManager(private val context: Context) {
         try {
             val usageStatsManager = context.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
             val packageManager = context.packageManager
-            
-            // Get usage stats for the specified time period
+
+            // Get usage stats for all time
             val endTime = System.currentTimeMillis()
-            val startTime = endTime - (hoursToLookBack * 60 * 60 * 1000L)
+            val startTime = 0L // Get all usage data
             
             val usageStatsList = usageStatsManager.queryUsageStats(
-                UsageStatsManager.INTERVAL_DAILY,
+                UsageStatsManager.INTERVAL_BEST,
                 startTime,
                 endTime
             )
-            
-            // Filter and sort apps by last time used
+
+            // Group by package name and take the most recent entry for each app
             val recentApps = usageStatsList
                 .filter { stats ->
                     stats.packageName != context.packageName && // Exclude our own app
                     stats.lastTimeUsed > 0 &&
                     isLaunchableApp(stats.packageName, packageManager)
                 }
+                .groupBy { it.packageName }
+                .mapValues { entry ->
+                    // Get the entry with the latest lastTimeUsed for each package
+                    entry.value.maxByOrNull { it.lastTimeUsed }!!
+                }
+                .values
                 .sortedByDescending { it.lastTimeUsed }
                 .take(10) // Limit to 10 recent apps
             
