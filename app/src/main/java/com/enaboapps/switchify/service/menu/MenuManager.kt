@@ -12,8 +12,8 @@ import com.enaboapps.switchify.service.menu.menus.gestures.TapGesturesMenu
 import com.enaboapps.switchify.service.menu.menus.gestures.ZoomGesturesMenu
 import com.enaboapps.switchify.service.menu.menus.main.MainMenu
 import com.enaboapps.switchify.service.menu.menus.media.MediaControlMenu
-import com.enaboapps.switchify.service.menu.menus.scroll.ScrollMenu
 import com.enaboapps.switchify.service.menu.menus.quickapps.QuickAppsMenu
+import com.enaboapps.switchify.service.menu.menus.scroll.ScrollMenu
 import com.enaboapps.switchify.service.menu.menus.system.DeviceMenu
 import com.enaboapps.switchify.service.menu.menus.system.VolumeControlMenu
 import com.enaboapps.switchify.service.scanning.ScanningManager
@@ -191,10 +191,10 @@ class MenuManager {
     }
 
     /**
-     * This function opens the quick apps menu
+     * This function opens the quick apps menu with preloaded apps
      */
-    fun openQuickAppsMenu() {
-        val quickAppsMenu = QuickAppsMenu(accessibilityService!!)
+    fun openQuickAppsMenu(apps: List<com.enaboapps.switchify.service.utils.QuickAppsManager.RecentApp>) {
+        val quickAppsMenu = QuickAppsMenu(accessibilityService!!, apps)
         openMenu(quickAppsMenu.build())
     }
 

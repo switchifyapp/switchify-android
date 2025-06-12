@@ -11,9 +11,9 @@ class QuickAppsMenuStructure(private val accessibilityService: SwitchifyAccessib
     private val quickAppsManager = QuickAppsManager(accessibilityService)
     
     /**
-     * Get recently used apps using QuickAppsManager
+     * Get menu items from preloaded apps
      */
-    suspend fun getRecentApps(): List<MenuItem> {
+    fun getMenuItems(apps: List<QuickAppsManager.RecentApp>): List<MenuItem> {
         val items = mutableListOf<MenuItem>()
         
         // Check if permission is granted
@@ -28,11 +28,8 @@ class QuickAppsMenuStructure(private val accessibilityService: SwitchifyAccessib
             ))
             return items
         }
-        
-        // Get recent apps
-        val recentApps = quickAppsManager.getRecentApps(hoursToLookBack = 10)
-        
-        if (recentApps.isEmpty()) {
+
+        if (apps.isEmpty()) {
             items.add(MenuItem(
                 id = "no_quick_apps",
                 textResource = R.string.no_quick_apps_available,
@@ -40,7 +37,7 @@ class QuickAppsMenuStructure(private val accessibilityService: SwitchifyAccessib
             ))
         } else {
             // Convert RecentApp objects to MenuItems
-            recentApps.forEach { app ->
+            apps.forEach { app ->
                 items.add(quickAppsManager.createMenuItem(app))
             }
         }
