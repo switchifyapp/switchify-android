@@ -39,12 +39,14 @@ class MainMenuStructure(private val accessibilityService: SwitchifyAccessibility
                 isLinkToMenu = true,
                 action = { MenuManager.getInstance().openScrollMenu() }
             ),
-            MenuItem(
-                id = "quick_apps",
-                textResource = R.string.menu_title_quick_apps,
-                isLinkToMenu = true,
-                action = { MenuManager.getInstance().openQuickAppsMenu() }
-            ),
+            if (deviceLockObserver.isUserUnlocked() == true) {
+                MenuItem(
+                    id = "quick_apps",
+                    textResource = R.string.menu_title_quick_apps,
+                    isLinkToMenu = true,
+                    action = { MenuManager.getInstance().openQuickAppsMenu() }
+                )
+            } else null,
             if (deviceLockObserver.isUserUnlocked() == true) {
                 MenuItem(
                     id = "gesture_patterns",
