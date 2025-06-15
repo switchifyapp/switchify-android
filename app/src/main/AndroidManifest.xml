@@ -1,11 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:tools="http://schemas.android.com/tools"
+    xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <queries>
+        <!-- Query for all apps with launcher activities -->
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
+    </queries>
 
     <uses-feature
         android:name="android.hardware.camera"
         android:required="false" /> <!-- Required for camera switches -->
     <uses-permission android:name="android.permission.CAMERA" /> <!-- Required for camera switches -->
-    <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS" /> <!-- Required for recent apps -->
+    <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS" tools:ignore="ProtectedPermissions" /> <!-- Required for recent apps -->
 
     <application
         android:allowBackup="true"
