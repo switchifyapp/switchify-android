@@ -191,10 +191,10 @@ class MenuManager {
     }
 
     /**
-     * This function opens the quick apps menu with preloaded apps
+     * This function opens the quick apps menu with dynamic loading
      */
-    fun openQuickAppsMenu(apps: List<com.enaboapps.switchify.service.utils.QuickAppsManager.RecentApp>) {
-        val quickAppsMenu = QuickAppsMenu(accessibilityService!!, apps)
+    fun openQuickAppsMenu() {
+        val quickAppsMenu = QuickAppsMenu(accessibilityService!!)
         openMenu(quickAppsMenu.build())
     }
 
