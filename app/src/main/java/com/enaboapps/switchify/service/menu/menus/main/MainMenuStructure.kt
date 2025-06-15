@@ -11,12 +11,10 @@ import com.enaboapps.switchify.service.menu.structure.MenuStructure
 import com.enaboapps.switchify.service.techniques.AccessTechnique
 import com.enaboapps.switchify.service.techniques.nodes.NodeExaminer
 import com.enaboapps.switchify.service.utils.DeviceLockObserver
-import com.enaboapps.switchify.service.utils.QuickAppsManager
 
 class MainMenuStructure(private val accessibilityService: SwitchifyAccessibilityService) {
     private val gestureMenuStructure = GestureMenuStructure(accessibilityService)
     private val deviceLockObserver = DeviceLockObserver(accessibilityService)
-    private val quickAppsManager = QuickAppsManager(accessibilityService)
 
     val deviceItem = MenuItem(
         id = "device",
@@ -47,9 +45,7 @@ class MainMenuStructure(private val accessibilityService: SwitchifyAccessibility
                     textResource = R.string.menu_title_quick_apps,
                     isLinkToMenu = true,
                     action = {
-                        quickAppsManager.preloadApps { apps ->
-                            MenuManager.getInstance().openQuickAppsMenu(apps)
-                        }
+                        MenuManager.getInstance().openQuickAppsMenu()
                     }
                 )
             } else null,

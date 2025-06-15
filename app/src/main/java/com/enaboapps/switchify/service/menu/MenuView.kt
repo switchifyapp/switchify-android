@@ -68,22 +68,39 @@ class MenuView(
 
     /** Preference manager */
     private val preferenceManager = PreferenceManager(context)
-
-    init {
-        setup()
-    }
+    
+    /** Flag to track if setup has been completed */
+    private var isSetupComplete = false
 
     /**
      * Sets up the menu by retrieving menu items and creating menu pages.
+     * This is now called when the menu is opened, not during initialization.
      */
-    private fun setup() {
+    private fun setup(onComplete: () -> Unit) {
         CoroutineScope(Dispatchers.Main).launch {
-            val menuItems = if (menu.getDynamicMenuItems() != null) {
-                menu.getDynamicMenuItems()!! + menu.getMenuItems()
-            } else {
-                menu.getMenuItems()
+            val staticItems = menu.getMenuItems()
+            
+            // Check if we need to load dynamic items
+            try {
+                val dynamicItems = menu.getDynamicMenuItems()
+                if (dynamicItems != null) {
+                    // We have dynamic items to load
+                    val allItems = dynamicItems + staticItems
+                    createMenuPages(allItems)
+                } else {
+                    // No dynamic loading needed, just use static items
+                    createMenuPages(staticItems)
+                }
+            } catch (e: Exception) {
+                // If dynamic loading fails, fall back to static items
+                e.printStackTrace()
+                if (staticItems.isNotEmpty()) {
+                    createMenuPages(staticItems)
+                }
             }
-            createMenuPages(menuItems)
+            
+            isSetupComplete = true
+            onComplete()
         }
     }
 
@@ -254,7 +271,17 @@ class MenuView(
         createLinearLayout()
         MenuViewHandler.instance.setup(context)
         MenuViewHandler.instance.addViewOffScreen(baseLayout)
-        inflateMenu()
+        
+        if (!isSetupComplete) {
+            // Setup hasn't been done yet, do it now
+            setup {
+                // Setup complete, now inflate the menu
+                inflateMenu()
+            }
+        } else {
+            // Setup already complete, just inflate
+            inflateMenu()
+        }
     }
 
     /**
