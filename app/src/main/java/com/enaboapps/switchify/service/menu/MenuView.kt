@@ -116,8 +116,8 @@ class MenuView(
             4
         )
 
-        // Always use 2 items per row
-        val itemsPerRow = 2
+        // Calculate items per row based on screen width
+        val itemsPerRow = calculateItemsPerRow()
 
         numOfPages = (menuItems.size + numOfItemsPerPage - 1) / numOfItemsPerPage
         for (i in 0 until numOfPages) {
@@ -148,6 +148,35 @@ class MenuView(
                 )
             )
         }
+    }
+
+    /**
+     * Calculates the optimal number of items per row based on available screen width.
+     * Uses screen width minus 200dp for margins/padding.
+     *
+     * @return The number of items that can fit per row (minimum 2, maximum 5)
+     */
+    private fun calculateItemsPerRow(): Int {
+        val screenWidthPx = context.resources.displayMetrics.widthPixels
+        val density = context.resources.displayMetrics.density
+        val screenWidthDp = screenWidthPx / density
+        
+        // Reserve 200dp for margins and padding
+        val availableWidthDp = screenWidthDp - 200
+        
+        // Get menu item width based on device type
+        val menuItemSize = MenuSizeManager.getRegularItemSize(context)
+        val itemWidthDp = menuItemSize.width.value
+        
+        // Add spacing between items (12dp)
+        val itemSpacing = 12f
+        val totalItemWidth = itemWidthDp + itemSpacing
+        
+        // Calculate how many items can fit
+        val itemsPerRow = (availableWidthDp / totalItemWidth).toInt()
+        
+        // Ensure minimum 2 items per row, maximum 5 items per row
+        return itemsPerRow.coerceIn(2, 5)
     }
 
     /**
