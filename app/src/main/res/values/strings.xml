@@ -372,8 +372,8 @@
     <string name="settings_section_menu">Menu</string>
     <string name="settings_title_menu_transparency">Menu Transparency</string>
     <string name="settings_summary_menu_transparency">Enable transparency for the menu so that you can see content behind it</string>
-    <string name="settings_title_menu_items_per_page">Items Per Page</string>
-    <string name="settings_summary_menu_items_per_page">Number of menu items to display on each page</string>
+    <string name="settings_title_menu_rows_per_page">Rows Per Page</string>
+    <string name="settings_summary_menu_rows_per_page">Number of rows to display on each menu page</string>
 
     <!-- Settings - Actions Section -->
     <string name="settings_section_actions">Actions</string>
