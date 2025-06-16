@@ -32,12 +32,16 @@ fun PreferenceValueSelector(
     value: Int,
     titleResId: Int,
     summaryResId: Int,
-    min: Int,
-    max: Int,
+    min: Int? = null,
+    max: Int? = null,
+    values: IntArray? = null,
     buttonLabelFormatter: (Int) -> String = { it.toString() },
     displayFormatter: (Int) -> String = { it.toString() },
     onValueChanged: (Int) -> Unit
 ) {
+    require((min != null && max != null) || values != null) {
+        "Either min/max or values array must be provided"
+    }
     var currentValue by remember { mutableIntStateOf(value) }
 
     Card(
@@ -92,7 +96,13 @@ fun PreferenceValueSelector(
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                for (i in min..max) {
+                val valuesToDisplay = if (values != null) {
+                    values.toList()
+                } else {
+                    (min!!..max!!).toList()
+                }
+
+                for (i in valuesToDisplay) {
                     Button(
                         onClick = {
                             currentValue = i

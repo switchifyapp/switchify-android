@@ -40,6 +40,14 @@ class SettingsScreenModel(context: Context) : ViewModel() {
     }
     val menuTransparency: LiveData<Boolean> = _menuTransparency
 
+    private val _menuItemsPerPage = MutableLiveData<Int>().apply {
+        value = preferenceManager.getIntegerValue(
+            PreferenceManager.Keys.PREFERENCE_KEY_MENU_ITEMS_PER_PAGE,
+            4
+        )
+    }
+    val menuItemsPerPage: LiveData<Int> = _menuItemsPerPage
+
     fun setAutoSelect(autoSelect: Boolean) {
         viewModelScope.launch {
             preferenceManager.setBooleanValue(
@@ -87,6 +95,16 @@ class SettingsScreenModel(context: Context) : ViewModel() {
                 value
             )
             _menuTransparency.postValue(value)
+        }
+    }
+
+    fun setMenuItemsPerPage(value: Int) {
+        viewModelScope.launch {
+            preferenceManager.setIntegerValue(
+                PreferenceManager.Keys.PREFERENCE_KEY_MENU_ITEMS_PER_PAGE,
+                value
+            )
+            _menuItemsPerPage.postValue(value)
         }
     }
 }
