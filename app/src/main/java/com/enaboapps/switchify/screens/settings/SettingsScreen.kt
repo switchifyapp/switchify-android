@@ -178,14 +178,14 @@ private fun MenuSection(screenModel: SettingsScreenModel) {
             }
         )
         PreferenceValueSelector(
-            value = screenModel.menuItemsPerPage.value ?: 4,
-            titleResId = R.string.settings_title_menu_items_per_page,
-            summaryResId = R.string.settings_summary_menu_items_per_page,
-            values = intArrayOf(2, 4, 6, 8),
+            value = screenModel.menuRowsPerPage.value ?: 2,
+            titleResId = R.string.settings_title_menu_rows_per_page,
+            summaryResId = R.string.settings_summary_menu_rows_per_page,
+            values = intArrayOf(1, 2, 3, 4),
             buttonLabelFormatter = { it.toString() },
             displayFormatter = { it.toString() },
             onValueChanged = {
-                screenModel.setMenuItemsPerPage(it)
+                screenModel.setMenuRowsPerPage(it)
             }
         )
     }

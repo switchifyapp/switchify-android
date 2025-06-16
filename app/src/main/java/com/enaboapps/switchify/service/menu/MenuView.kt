@@ -110,14 +110,17 @@ class MenuView(
      * @param menuItems List of MenuItem objects to be displayed in the menu.
      */
     private fun createMenuPages(menuItems: List<MenuItem>) {
-        // Get items per page from preferences, default to 4
-        val numOfItemsPerPage = preferenceManager.getIntegerValue(
-            PreferenceManager.PREFERENCE_KEY_MENU_ITEMS_PER_PAGE,
-            4
+        // Get rows per page from preferences, default to 2
+        val numOfRowsPerPage = preferenceManager.getIntegerValue(
+            PreferenceManager.PREFERENCE_KEY_MENU_ROWS_PER_PAGE,
+            2
         )
 
         // Calculate items per row based on screen width
         val itemsPerRow = calculateItemsPerRow()
+        
+        // Calculate total items per page based on rows and items per row
+        val numOfItemsPerPage = numOfRowsPerPage * itemsPerRow
 
         numOfPages = (menuItems.size + numOfItemsPerPage - 1) / numOfItemsPerPage
         for (i in 0 until numOfPages) {
