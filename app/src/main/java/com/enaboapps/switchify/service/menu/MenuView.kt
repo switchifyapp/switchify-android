@@ -110,9 +110,15 @@ class MenuView(
      * @param menuItems List of MenuItem objects to be displayed in the menu.
      */
     private fun createMenuPages(menuItems: List<MenuItem>) {
-        // Always use large menu size configuration
-        val numOfItemsPerPage = 4 // Large size itemsPerPage
-        val itemsPerRow = 2 // 4 items per page / 2
+        // Get items per page from preferences, default to 4
+        val numOfItemsPerPage = preferenceManager.getIntegerValue(
+            PreferenceManager.PREFERENCE_KEY_MENU_ITEMS_PER_PAGE,
+            4
+        )
+
+        // Always use 2 items per row
+        val itemsPerRow = 2
+
         numOfPages = (menuItems.size + numOfItemsPerPage - 1) / numOfItemsPerPage
         for (i in 0 until numOfPages) {
             val start = i * numOfItemsPerPage

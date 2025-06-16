@@ -32,6 +32,7 @@ import com.enaboapps.switchify.components.FullWidthButton
 import com.enaboapps.switchify.components.NavRouteLink
 import com.enaboapps.switchify.components.PreferenceSwitch
 import com.enaboapps.switchify.components.PreferenceTimeStepper
+import com.enaboapps.switchify.components.PreferenceValueSelector
 import com.enaboapps.switchify.components.ScrollableView
 import com.enaboapps.switchify.components.Section
 import com.enaboapps.switchify.nav.NavigationRoute
@@ -174,6 +175,17 @@ private fun MenuSection(screenModel: SettingsScreenModel) {
             checked = screenModel.menuTransparency.value == true,
             onCheckedChange = {
                 screenModel.setMenuTransparency(it)
+            }
+        )
+        PreferenceValueSelector(
+            value = screenModel.menuItemsPerPage.value ?: 4,
+            titleResId = R.string.settings_title_menu_items_per_page,
+            summaryResId = R.string.settings_summary_menu_items_per_page,
+            values = intArrayOf(2, 4, 6, 8),
+            buttonLabelFormatter = { it.toString() },
+            displayFormatter = { it.toString() },
+            onValueChanged = {
+                screenModel.setMenuItemsPerPage(it)
             }
         )
     }
