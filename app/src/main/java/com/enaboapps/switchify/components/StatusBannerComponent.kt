@@ -22,13 +22,16 @@ fun StatusBannerComponent(
     onProUpgradeClick: () -> Unit
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(IntrinsicSize.Max),
         horizontalArrangement = Arrangement.spacedBy(0.dp)
     ) {
         // Accessibility Service Status
         Surface(
             modifier = Modifier
                 .weight(1f)
+                .fillMaxHeight()
                 .then(
                     if (!isAccessibilityServiceEnabled) {
                         Modifier.clickable { onAccessibilityClick() }
@@ -61,8 +64,7 @@ fun StatusBannerComponent(
                         },
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onPrimary,
-                        fontWeight = FontWeight.Bold,
-                        maxLines = 1
+                        fontWeight = FontWeight.Bold
                     )
                     Text(
                         text = if (isAccessibilityServiceEnabled) {
@@ -71,8 +73,7 @@ fun StatusBannerComponent(
                             stringResource(R.string.accessibility_service_disabled)
                         },
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onPrimary,
-                        maxLines = 1
+                        color = MaterialTheme.colorScheme.onPrimary
                     )
                 }
                 if (!isAccessibilityServiceEnabled) {
@@ -91,6 +92,7 @@ fun StatusBannerComponent(
             Surface(
                 modifier = Modifier
                     .weight(1f)
+                    .fillMaxHeight()
                     .clickable { onProUpgradeClick() },
                 color = MaterialTheme.colorScheme.secondaryContainer,
                 tonalElevation = 2.dp
@@ -109,14 +111,12 @@ fun StatusBannerComponent(
                             text = stringResource(R.string.screen_title_upgrade_pro),
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.onSecondaryContainer,
-                            fontWeight = FontWeight.Medium,
-                            maxLines = 1
+                            fontWeight = FontWeight.Medium
                         )
                         Text(
                             text = stringResource(R.string.screen_summary_upgrade_pro),
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer,
-                            maxLines = 1
+                            color = MaterialTheme.colorScheme.onSecondaryContainer
                         )
                     }
                     Icon(
