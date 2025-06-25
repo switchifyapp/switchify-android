@@ -8,6 +8,7 @@ import com.enaboapps.switchify.service.core.ServiceCore
 import com.enaboapps.switchify.service.core.SwitchifyAccessibilityService
 import com.enaboapps.switchify.service.gestures.AutoScrollManager
 import com.enaboapps.switchify.service.gestures.GestureManager
+import com.enaboapps.switchify.service.gestures.patterns.GesturePatternManager
 import com.enaboapps.switchify.service.menu.MenuManager
 import com.enaboapps.switchify.service.selection.SelectionHandler
 import com.enaboapps.switchify.service.techniques.AccessTechnique
@@ -147,6 +148,8 @@ class ScanningManager(
         if (GestureManager.instance.performGestureLockAction()) return true
 
         if (AutoScrollManager.getInstance().stopAutoScroll()) return true
+        
+        if (GesturePatternManager.isGesturePatternActive()) return true
 
         return false
     }
