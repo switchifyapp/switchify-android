@@ -515,7 +515,9 @@ class CameraSwitchManager(
                         }
                         
                         if (shouldTrigger) {
-                            scanningManager.performAction(switchEvent.pressAction)
+                            if (!scanningManager.checkOngoingTasks()) {
+                                scanningManager.performAction(switchEvent.pressAction)
+                            }
                             Log.d(
                                 TAG,
                                 "${gesture.id} completed successfully after ${timeElapsed}ms"

@@ -49,6 +49,11 @@ class ExternalSwitchListener(
         val switchEvent = findSwitchEvent(keyCode) ?: return false
         switchEvent.log()
 
+        val scanningManager = ServiceCore.getScanningManager()
+        if (scanningManager != null) {
+            if (scanningManager.checkOngoingTasks()) return false
+        }
+
         val pauseManager = ServiceCore.getPauseManager()
         if (pauseManager.handleSwitchDuringPause()) return false
 

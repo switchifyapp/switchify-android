@@ -143,16 +143,18 @@ class ScanningManager(
         currentScanMethod.performSelectionAction()
     }
 
+    fun checkOngoingTasks(): Boolean {
+        if (GestureManager.instance.performGestureLockAction()) return true
+
+        if (AutoScrollManager.getInstance().stopAutoScroll()) return true
+
+        return false
+    }
+
     /**
      * Performs the specified action based on the SwitchAction type.
      */
     fun performAction(action: SwitchAction) {
-        if (GestureManager.instance.performGestureLockAction()) {
-            return
-        }
-
-        if (AutoScrollManager.getInstance().stopAutoScroll()) return
-
         if (!isAcceptingActions) return
 
         when (action.id) {
