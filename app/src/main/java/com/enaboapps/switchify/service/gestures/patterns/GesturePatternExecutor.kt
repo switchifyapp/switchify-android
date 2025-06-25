@@ -12,10 +12,15 @@ class GesturePatternExecutor(private val gesturePattern: GesturePattern) {
 
     fun execute() {
         GestureLockManager.instance.disableLock()
+        GesturePatternManager.setExecuting(true)
         scope.launch {
-            gesturePattern.gestures.forEach { gestureData ->
-                delay(gestureData.duration() + 1500)
-                gestureData.executeGesture()
+            try {
+                gesturePattern.gestures.forEach { gestureData ->
+                    delay(gestureData.duration() + 1500)
+                    gestureData.executeGesture()
+                }
+            } finally {
+                GesturePatternManager.setExecuting(false)
             }
         }
     }
