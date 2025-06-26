@@ -11,6 +11,7 @@ import com.enaboapps.switchify.backend.iap.IAPHandler
 import com.enaboapps.switchify.service.actions.AudioActionManager
 import com.enaboapps.switchify.service.actions.GlobalActionManager
 import com.enaboapps.switchify.service.gestures.GestureManager
+import com.enaboapps.switchify.service.gestures.GestureLockManager
 import com.enaboapps.switchify.service.scanning.ScanSettings
 import com.enaboapps.switchify.service.selection.SelectionHandler
 import com.enaboapps.switchify.service.switches.SwitchEventProvider
@@ -81,6 +82,9 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
                 if (pauseManager.isPaused) {
                     pauseManager.resume()
                 }
+                
+                // Disable gesture lock if active
+                GestureLockManager.instance.disableLock()
                 
                 Tasks.getInstance().checkOngoingTasks()
                 externalSwitchListener.reset()
