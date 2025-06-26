@@ -76,6 +76,12 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
 
         screenWatcher = ScreenWatcher(
             onScreenSleep = {
+                // Resume from pause if currently paused
+                val pauseManager = ServiceCore.getPauseManager()
+                if (pauseManager.isPaused) {
+                    pauseManager.resume()
+                }
+                
                 Tasks.getInstance().checkOngoingTasks()
                 externalSwitchListener.reset()
                 scanningManager.reset()
