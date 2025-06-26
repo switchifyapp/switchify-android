@@ -119,7 +119,7 @@ class PauseManager private constructor() {
      * Resumes from pause mode.
      * Shows service window, displays resume message, and notifies all listeners.
      */
-    private fun resume() {
+    fun resume() {
         isPaused = false
         pauseJob?.cancel()
         pauseJob = null
