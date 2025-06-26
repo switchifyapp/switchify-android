@@ -6,9 +6,8 @@ import android.util.Log
 import com.enaboapps.switchify.service.actions.GlobalActionManager
 import com.enaboapps.switchify.service.core.ServiceCore
 import com.enaboapps.switchify.service.core.SwitchifyAccessibilityService
-import com.enaboapps.switchify.service.gestures.AutoScrollManager
+import com.enaboapps.switchify.service.core.Tasks
 import com.enaboapps.switchify.service.gestures.GestureManager
-import com.enaboapps.switchify.service.gestures.patterns.GesturePatternManager
 import com.enaboapps.switchify.service.menu.MenuManager
 import com.enaboapps.switchify.service.selection.SelectionHandler
 import com.enaboapps.switchify.service.techniques.AccessTechnique
@@ -145,11 +144,7 @@ class ScanningManager(
     }
 
     fun checkOngoingTasks(): Boolean {
-        if (AutoScrollManager.getInstance().stopAutoScroll()) return true
-        
-        if (GesturePatternManager.isGesturePatternActive()) return true
-
-        return false
+        return Tasks.getInstance().checkOngoingTasks()
     }
 
     /**

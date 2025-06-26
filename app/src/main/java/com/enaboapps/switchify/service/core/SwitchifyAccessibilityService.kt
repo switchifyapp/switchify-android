@@ -76,6 +76,7 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
 
         screenWatcher = ScreenWatcher(
             onScreenSleep = {
+                Tasks.getInstance().checkOngoingTasks()
                 externalSwitchListener.reset()
                 scanningManager.reset()
             },
