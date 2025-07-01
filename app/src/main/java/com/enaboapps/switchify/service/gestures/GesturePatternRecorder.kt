@@ -3,6 +3,7 @@ package com.enaboapps.switchify.service.gestures
 import android.content.Context
 import android.util.Log
 import com.enaboapps.switchify.R
+import com.enaboapps.switchify.backend.iap.IAPHandler
 import com.enaboapps.switchify.service.gestures.data.GestureData
 import com.enaboapps.switchify.service.gestures.patterns.store.GesturePatternStore
 import com.enaboapps.switchify.service.window.ServiceMessageHUD
@@ -35,21 +36,24 @@ object GesturePatternRecorder {
      * Starts recording a new gesture pattern.
      * Clears any previously recorded gestures.
      */
-    fun startRecording() {
+    fun startRecording(context: Context) {
         if (isRecording) {
             Log.w(TAG, "Recording already in progress")
             return
         }
 
-        recordedGestures.clear()
-        isRecording = true
+        // Check Pro status for gesture pattern recording
+        IAPHandler.runIfProPurchased(context) {
+            recordedGestures.clear()
+            isRecording = true
 
-        ServiceMessageHUD.instance.showMessage(
-            R.string.started_recording,
-            ServiceMessageHUD.MessageType.DISAPPEARING
-        )
+            ServiceMessageHUD.instance.showMessage(
+                R.string.started_recording,
+                ServiceMessageHUD.MessageType.DISAPPEARING
+            )
 
-        Log.i(TAG, "Started recording new gesture pattern")
+            Log.i(TAG, "Started recording new gesture pattern")
+        }
     }
 
     /**
