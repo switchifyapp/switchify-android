@@ -5,6 +5,7 @@ import androidx.credentials.CredentialManager
 import androidx.credentials.CustomCredential
 import androidx.credentials.GetCredentialRequest
 import androidx.credentials.exceptions.GetCredentialCancellationException
+import androidx.credentials.exceptions.NoCredentialException
 import com.enaboapps.switchify.R
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
@@ -60,6 +61,8 @@ class GoogleAuthHandler(
 
         } catch (e: GetCredentialCancellationException) {
             trySend(Result.failure(Exception("Sign-in was canceled")))
+        } catch (e: NoCredentialException) {
+            trySend(Result.failure(Exception("No credentials available. Please sign in first or add a Google account to your device.")))
         } catch (e: Exception) {
             trySend(Result.failure(e))
         }
