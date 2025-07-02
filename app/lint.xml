@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<lint>
+    <!-- Accessibility related checks -->
+    <issue id="ContentDescription" severity="error" />
+    <issue id="ClickableViewAccessibility" severity="error" />
+    <issue id="KeyboardInaccessibleWidget" severity="error" />
+    <issue id="LabelFor" severity="warning" />
+    
+    <!-- Security checks -->
+    <issue id="HardcodedDebugMode" severity="error" />
+    <issue id="SetJavaScriptEnabled" severity="error" />
+    <issue id="ExportedContentProvider" severity="error" />
+    <issue id="ExportedReceiver" severity="error" />
+    <issue id="ExportedService" severity="error" />
+    <issue id="PermissionImpliesUnsupportedChromeOsHardware" severity="warning" />
+    
+    <!-- Performance checks -->
+    <issue id="UnusedResources" severity="warning" />
+    <issue id="UnusedIds" severity="informational" />
+    <issue id="ViewHolder" severity="warning" />
+    <issue id="Overdraw" severity="warning" />
+    <issue id="NestedScrolling" severity="warning" />
+    
+    <!-- Compose specific suppression -->
+    <issue id="ComposableNaming" severity="ignore" />
+    <issue id="UnusedMaterial3ScaffoldPaddingParameter" severity="ignore" />
+    
+    <!-- Camera/ML Kit related suppressions for false positives -->
+    <issue id="MissingPermission" severity="warning">
+        <ignore path="**/camera/**" />
+        <ignore path="**/switches/camera/**" />
+    </issue>
+    
+    <!-- Suppress false positives for accessibility service -->
+    <issue id="ServiceCast" severity="ignore" />
+    
+    <!-- Internationalization -->
+    <issue id="HardcodedText" severity="warning" />
+    <issue id="MissingTranslation" severity="warning" />
+    
+    <!-- Layout related -->
+    <issue id="UseCompoundDrawables" severity="informational" />
+    <issue id="UselessParent" severity="warning" />
+    <issue id="NestedWeights" severity="warning" />
+    
+    <!-- Kotlin/Java specific -->
+    <issue id="DefaultLocale" severity="warning" />
+    <issue id="SimpleDateFormat" severity="warning" />
+</lint>
