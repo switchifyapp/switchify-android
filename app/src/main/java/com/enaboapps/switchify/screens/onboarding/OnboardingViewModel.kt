@@ -38,13 +38,14 @@ enum class UserType {
     OTHER
 }
 
-class OnboardingViewModel(private val context: Context) : ViewModel() {
+class OnboardingViewModel(context: Context) : ViewModel() {
     private val _uiState = MutableStateFlow(OnboardingUiState())
     val uiState: StateFlow<OnboardingUiState> = _uiState
 
     private val switchEventStore = SwitchEventStore.getInstance()
     private val serviceUtils = ServiceUtils()
-    private val preferenceManager = PreferenceManager(context)
+    private val preferenceManager = PreferenceManager(context.applicationContext)
+    private val applicationContext = context.applicationContext
 
     private val stepOrder = listOf(
         OnboardingStep.WELCOME,
@@ -170,12 +171,12 @@ class OnboardingViewModel(private val context: Context) : ViewModel() {
     }
 
     fun checkSwitches() {
-        val invalidReason = switchEventStore.isConfigInvalid(context)
+        val invalidReason = switchEventStore.isConfigInvalid(applicationContext)
         _uiState.update { it.copy(switchesValid = invalidReason == null) }
     }
 
     fun checkAccessibilityService() {
-        val isEnabled = serviceUtils.isAccessibilityServiceEnabled(context)
+        val isEnabled = serviceUtils.isAccessibilityServiceEnabled(applicationContext)
         _uiState.update { it.copy(accessibilityEnabled = isEnabled) }
     }
 
