@@ -18,6 +18,7 @@ import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -43,7 +44,7 @@ import com.enaboapps.switchify.screens.settings.techniques.AccessTechniqueSelect
 @Composable
 fun SettingsScreen(navController: NavController) {
     val context = LocalContext.current
-    val settingsScreenModel = SettingsScreenModel(context)
+    val settingsScreenModel: SettingsScreenModel = viewModel { SettingsScreenModel(context) }
     val preferenceManager = remember { PreferenceManager(context) }
     
     // Load the saved tab index, default to 0 if not found

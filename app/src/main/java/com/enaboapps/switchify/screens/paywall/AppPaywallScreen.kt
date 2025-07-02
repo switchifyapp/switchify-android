@@ -10,6 +10,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.backend.iap.IAPHandler
@@ -24,7 +25,7 @@ import com.revenuecat.purchases.ui.revenuecatui.PaywallDialogOptions
 @OptIn(ExperimentalPreviewRevenueCatUIPurchasesAPI::class)
 @Composable
 fun AppPaywallScreen(navController: NavController) {
-    val model = AppPaywallScreenModel()
+    val model: AppPaywallScreenModel = viewModel()
 
     val purchaseState = IAPHandler.purchaseState.collectAsState()
 
