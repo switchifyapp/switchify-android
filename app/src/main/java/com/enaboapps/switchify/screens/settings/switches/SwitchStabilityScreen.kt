@@ -3,6 +3,7 @@ package com.enaboapps.switchify.screens.settings.switches
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.components.BaseView
@@ -13,7 +14,7 @@ import com.enaboapps.switchify.screens.settings.switches.models.SwitchStabilityS
 @Composable
 fun SwitchStabilityScreen(navController: NavController) {
     val context = LocalContext.current
-    val switchStabilityScreenModel = SwitchStabilityScreenModel(context)
+    val switchStabilityScreenModel: SwitchStabilityScreenModel = viewModel { SwitchStabilityScreenModel(context) }
     val ignoredRepeat = switchStabilityScreenModel.switchIgnoreRepeat.observeAsState()
     BaseView(
         titleResId = R.string.screen_title_switch_stability,
