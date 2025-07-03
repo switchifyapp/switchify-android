@@ -9,8 +9,6 @@
 
     <string name="accessibility_service_description">Switchify makes it easy to control your device with adaptive switches. It scans the screen, letting you tap, swipe, and navigate effortlessly.</string>
 
-    <string name="accessibility_service_disclosure">Switchify is an accessibility service. It makes it easy to control your device with adaptive switches. It scans the screen, letting you tap, swipe, and navigate effortlessly. To do this, Switchify requires the ability to perform gestures, such as taps and swipes, and to observe the content of your screen to determine where to perform these gestures.</string>
-    
     <string name="accessibility_service_enabled">You\'re all set! 🎉</string>
     <string name="accessibility_service_disabled">Tap here to get started! 🚀</string>
     <string name="accessibility_service_banner_title_enabled">Service Active ✅</string>
@@ -38,7 +36,6 @@
     <string name="menu_title_media_control">Media Control</string>
     <string name="menu_title_edit">Edit</string>
     <string name="menu_title_device">Device</string>
-    <string name="menu_title_my_actions">My Actions</string>
     <string name="menu_item_pause">Pause</string>
 
     <!-- Scroll Menu Items -->
@@ -159,7 +156,6 @@
     <string name="system_recents_desc">Open the recent apps</string>
     <string name="menu_title_quick_apps">Quick Apps</string>
     <string name="no_quick_apps_available">No recent apps available</string>
-    <string name="quick_apps_error">Unable to load recent apps</string>
     <string name="system_quick_settings">Quick Settings</string>
     <string name="system_quick_settings_desc">Open the quick settings</string>
     <string name="system_notifications">Notifications</string>
@@ -169,9 +165,7 @@
     <string name="system_gesture_lock">Toggle Gesture Lock</string>
     <string name="system_gesture_lock_desc">Toggle the gesture lock</string>
     <string name="system_power_dialog">Power Dialog</string>
-    <string name="system_power_dialog_desc">Open the power dialog</string>
     <string name="system_assistant">Open Assistant</string>
-    <string name="system_assistant_desc">Open the assistant</string>
 
     <!-- Media Actions -->
     <string name="action_volume_control">Volume Control</string>
@@ -218,7 +212,6 @@
     <string name="screen_title_sign_up">Sign Up</string>
     <string name="screen_title_change_password">Change Password</string>
     <string name="screen_title_reset_password">Reset Password</string>
-    <string name="screen_title_customize_menu">Customize Menu Items</string>
     <string name="screen_title_switch_stability">Switch Stability</string>
     <string name="screen_title_switches">Switches</string>
     <string name="screen_title_add_switch">Add New Switch</string>
@@ -244,7 +237,6 @@
 
     <!-- Screen Summaries -->
     <string name="screen_summary_settings">Configure switches and scanning</string>
-    <string name="screen_summary_accessibility">Enable to start using Switchify</string>
     <string name="screen_summary_upgrade_pro">Tap for superpowers! 💪</string>
     <string name="screen_summary_debug">Developer options</string>
     <string name="screen_summary_account_email">%1$s</string>
@@ -375,11 +367,6 @@
     <string name="settings_title_menu_rows_per_page">Rows Per Page</string>
     <string name="settings_summary_menu_rows_per_page">Number of rows to display on each menu page</string>
 
-    <!-- Settings - Actions Section -->
-    <string name="settings_section_actions">Actions</string>
-    <string name="settings_title_my_actions">My Actions</string>
-    <string name="settings_summary_my_actions">Customize your own actions</string>
-
     <!-- Settings - Selection Section -->
     <string name="settings_section_selection">Selection</string>
     <string name="settings_title_auto_select">Auto select</string>
@@ -407,7 +394,6 @@
     <string name="button_delete">Delete</string>
     <string name="button_cancel">Cancel</string>
     <string name="button_add_long_press_action">Add Long Press Action</string>
-    <string name="button_take_me_there">Take Me There</string>
     <string name="button_privacy_policy">Privacy Policy</string>
     <string name="button_delete_account">Delete Account</string>
     <string name="button_sign_out">Sign Out</string>
@@ -434,7 +420,6 @@
     <string name="error_email_required">Email is required</string>
     <string name="message_reset_link_sent">Reset link sent to your email. Please check your inbox.</string>
     <string name="button_send_reset_link">Send Reset Link</string>
-    <string name="error_resetting_password">Error resetting password</string>
 
     <!-- Sign Up Screen -->
     <string name="create_an_account_to_save_settings">Create an account to save your settings. This will allow you to access your settings on any device.</string>
@@ -442,8 +427,6 @@
     <string name="label_password">Password</string>
     <string name="label_confirm_password">Confirm Password</string>
     <string name="error_password_required">Password is required</string>
-    <string name="error_email_already_exists">Email already exists</string>
-    <string name="message_email_sent">Email sent to your inbox. Please check your inbox.</string>
     <string name="button_sign_up">Sign Up</string>
     <string name="button_sign_up_with_google">Sign up with Google</string>
     <string name="error_signing_up">Error signing up</string>
@@ -460,33 +443,6 @@
     <!-- App Paywall Screen -->
     <string name="pro_thank_you">Thank you for trying out Switchify Pro! You can now access all of Switchify\'s features.</string>
     <string name="button_done">Done</string>
-
-    <!-- Actions -->
-    <string name="action_text">Action Text</string>
-    <string name="action_text_required">Action text is required</string>
-    <string name="action_select_action">Select Action</string>
-    <string name="action_select_action_required">Select an action</string>
-    <string name="action_add_action">Add Action</string>
-    <string name="action_update_action">Update Action</string>
-    <string name="action_test">Test</string>
-    <string name="action_delete">Delete</string>
-    <string name="action_cancel">Cancel</string>
-    <string name="action_confirm_deletion">Confirm Deletion</string>
-    <string name="action_confirm_deletion_description">Are you sure you want to delete this action?</string>
-    <string name="action_select_app">Select App</string>
-    <string name="action_select_app_description">Will open %1$s</string>
-    <string name="action_edit_summary">Edit this action</string>
-    <string name="action_number">Number</string>
-    <string name="action_number_desc">The number to call</string>
-    <string name="action_text_to_copy">Text to Copy</string>
-    <string name="action_text_to_copy_desc">The text to copy</string>
-    <string name="action_link_url">Link URL</string>
-    <string name="action_link_url_desc">The URL to open</string>
-    <string name="action_email_address">Email Address</string>
-    <string name="action_email_address_desc">The email address to send the email to</string>
-    <string name="action_number_to_text">Number to Text</string>
-    <string name="action_number_to_text_desc">The number to send the text to</string>
-    <string name="action_message">Message (optional)</string>
 
     <!-- Switch Listener -->
     <string name="switch_listener_press_switch">Press the switch that you want to use</string>
@@ -521,18 +477,6 @@
     <string name="section_title_locking">Locking</string>
     <string name="preference_title_gesture_lock">Gesture Lock</string>
     <string name="preference_summary_gesture_lock">When enabled, gestures can be temporarily assigned to a switch</string>
-
-    <!-- Setup Screen -->
-    <string name="screen_title_setup">Setup</string>
-    <string name="setup_welcome">Welcome to Switchify</string>
-    <string name="setup_sign_in_prompt">Sign in to access your settings.</string>
-    <string name="setup_accessibility_prompt">Switchify is an accessibility service. It makes it easy to control your device with adaptive switches. It scans the screen, letting you tap, swipe, and navigate effortlessly. To do this, Switchify requires the ability to perform gestures, such as taps and swipes, and to observe the content of your screen to determine where to perform these gestures.</string>
-    <string name="setup_lets_go">Let\'s go</string>
-    <string name="setup_skip_setup">Skip Setup</string>
-    <string name="setup_edit_switches">Edit Switches</string>
-    <string name="setup_sign_in">Sign In</string>
-    <string name="setup_setup_complete">Setup Complete</string>
-    <string name="setup_finish">Finish</string>
 
     <!-- Access Technique Settings Screen -->
     <string name="screen_title_access_technique_settings">Access Technique Settings</string>
@@ -579,12 +523,7 @@
     <!-- Scan Mode Explanation -->
     <string name="onboarding_scan_modes_title">Understanding Scan Modes</string>
     <string name="onboarding_scan_modes_subtitle">Switchify offers two ways to navigate your device</string>
-    <string name="onboarding_auto_scan_title">Auto Scan</string>
-    <string name="onboarding_auto_scan_desc">Items highlight automatically. Press your switch to select when ready.</string>
-    <string name="onboarding_manual_scan_title">Manual Scan</string>
-    <string name="onboarding_manual_scan_desc">Press your switch to move between items at your own pace.</string>
     <string name="onboarding_scan_modes_tip">You can change between Auto and Manual scan modes at any time in settings</string>
-    <string name="onboarding_tap_to_move">Tap to Move</string>
 
     <!-- Switch Setup -->
     <string name="onboarding_switches_title">Let\'s Set Up Your Switches</string>
