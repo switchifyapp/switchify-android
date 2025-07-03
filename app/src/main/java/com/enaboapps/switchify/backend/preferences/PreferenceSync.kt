@@ -2,6 +2,7 @@ package com.enaboapps.switchify.backend.preferences
 
 import android.content.SharedPreferences
 import android.util.Log
+import androidx.core.content.edit
 import com.enaboapps.switchify.auth.AuthManager
 import com.enaboapps.switchify.backend.data.FirestoreManager
 import com.google.firebase.firestore.ListenerRegistration
@@ -153,7 +154,7 @@ class PreferenceSync private constructor() {
      */
     private fun applySettings(settings: Map<String, Any>) {
         val prefs = sharedPreferences ?: return
-        with(prefs.edit()) {
+        prefs.edit {
             settings.forEach { (key, value) ->
                 if (!BLACKLISTED_KEYS.contains(key)) {
                     when (value) {
@@ -166,7 +167,6 @@ class PreferenceSync private constructor() {
                     }
                 }
             }
-            apply()
         }
     }
 }

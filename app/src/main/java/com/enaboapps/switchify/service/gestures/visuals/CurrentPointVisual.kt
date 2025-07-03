@@ -1,7 +1,7 @@
 package com.enaboapps.switchify.service.gestures.visuals
 
 import android.content.Context
-import android.graphics.Color
+import androidx.core.graphics.toColorInt
 import android.graphics.drawable.GradientDrawable
 import android.widget.ImageView
 import android.widget.RelativeLayout
@@ -23,9 +23,7 @@ class CurrentPointVisual(context: Context) {
             val gradientDrawable = GradientDrawable().apply {
                 shape = GradientDrawable.OVAL
                 setColor(
-                    Color.parseColor(
-                        ScanColorManager.getScanColorSetFromPreferences(context).secondaryColor
-                    )
+                    ScanColorManager.getScanColorSetFromPreferences(context).secondaryColor.toColorInt()
                 )
                 setSize(60, 60)
             }

@@ -1,7 +1,7 @@
 package com.enaboapps.switchify.service.gestures.visuals
 
 import android.content.Context
-import android.graphics.Color
+import androidx.core.graphics.toColorInt
 import android.graphics.drawable.GradientDrawable
 import android.os.Handler
 import android.os.Looper
@@ -40,9 +40,7 @@ class GestureDrawing(private val context: Context) {
         val gradientDrawable = GradientDrawable().apply {
             shape = GradientDrawable.OVAL
             setColor(
-                Color.parseColor(
-                    ScanColorManager.getScanColorSetFromPreferences(context).secondaryColor
-                )
+                ScanColorManager.getScanColorSetFromPreferences(context).secondaryColor.toColorInt()
             )
             setSize(circleSize, circleSize)
         }
