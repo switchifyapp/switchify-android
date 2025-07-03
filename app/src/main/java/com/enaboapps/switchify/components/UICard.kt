@@ -21,8 +21,7 @@ import androidx.compose.ui.unit.dp
 
 @Composable
 fun UICard(
-    modifier: Modifier = Modifier
-        .fillMaxWidth(),
+    modifier: Modifier = Modifier,
     titleResId: Int? = null,
     runtimeTitle: String? = null,
     descriptionResId: Int? = null,
@@ -37,6 +36,7 @@ fun UICard(
     val extraDescription = extraDescriptionResId?.let { stringResource(it) }
     Card(
         modifier = modifier
+            .fillMaxWidth()
             .padding(horizontal = 20.dp)
             .clickable(onClick = {
                 if (enabled == true) {

@@ -15,10 +15,10 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun FullWidthButton(
     textResId: Int,
+    modifier: Modifier = Modifier,
     enabled: Boolean = true,
     onClick: () -> Unit,
-    isTextButton: Boolean = false,
-    modifier: Modifier = Modifier
+    isTextButton: Boolean = false
 ) {
     Box(
         contentAlignment = Alignment.BottomCenter,
