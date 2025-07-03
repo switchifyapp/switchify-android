@@ -1,7 +1,7 @@
 package com.enaboapps.switchify.screens.account
 
 import android.content.Intent
-import android.net.Uri
+import androidx.core.net.toUri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Spacer
@@ -176,7 +176,7 @@ fun SignInScreen(navController: NavController) {
         FullWidthButton(
             textResId = R.string.button_privacy_policy,
             onClick = {
-                urlLauncher.launch(Intent(Intent.ACTION_VIEW, Uri.parse(privacyPolicyUrl)))
+                urlLauncher.launch(Intent(Intent.ACTION_VIEW, privacyPolicyUrl.toUri()))
             },
             isTextButton = true
         )

@@ -3,7 +3,7 @@ package com.enaboapps.switchify.service.utils
 import android.accessibilityservice.AccessibilityServiceInfo
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
+import androidx.core.net.toUri
 import android.view.accessibility.AccessibilityManager
 
 class ServiceUtils {
@@ -36,7 +36,7 @@ class ServiceUtils {
      */
     fun openProUpgrade(context: Context) {
         val intent = Intent(Intent.ACTION_VIEW).apply {
-            data = Uri.parse("https://switchify.app/pro")
+            data = "https://switchify.app/pro".toUri()
             flags = Intent.FLAG_ACTIVITY_NEW_TASK
             setPackage(context.packageName)
         }

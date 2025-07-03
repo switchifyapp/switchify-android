@@ -2,6 +2,7 @@ package com.enaboapps.switchify.backend.preferences
 
 import android.content.Context
 import android.content.SharedPreferences
+import androidx.core.content.edit
 
 class PreferenceManager(context: Context) {
 
@@ -58,21 +59,19 @@ class PreferenceManager(context: Context) {
         // Skip if there's nothing to migrate
         if (defaultPrefs.all.isEmpty()) return
 
-        val editor = sharedPreferences.edit()
-
-        defaultPrefs.all.forEach { (key, value) ->
-            when (value) {
-                is String -> editor.putString(key, value)
-                is Int -> editor.putInt(key, value)
-                is Long -> editor.putLong(key, value)
-                is Float -> editor.putFloat(key, value)
-                is Boolean -> editor.putBoolean(key, value)
+        sharedPreferences.edit {
+            defaultPrefs.all.forEach { (key, value) ->
+                when (value) {
+                    is String -> putString(key, value)
+                    is Int -> putInt(key, value)
+                    is Long -> putLong(key, value)
+                    is Float -> putFloat(key, value)
+                    is Boolean -> putBoolean(key, value)
+                }
             }
         }
-
-        editor.apply()
         // Clear the old preferences after successful migration
-        defaultPrefs.edit().clear().apply()
+        defaultPrefs.edit { clear() }
     }
 
     val preferenceSync = PreferenceSync.getInstance()
@@ -90,43 +89,38 @@ class PreferenceManager(context: Context) {
     }
 
     fun setIntegerValue(key: String, value: Int) {
-        with(sharedPreferences.edit()) {
+        sharedPreferences.edit {
             putInt(key, value)
-            apply()
-            preferenceSync.uploadSettingsToFirestore()
         }
+        preferenceSync.uploadSettingsToFirestore()
     }
 
     fun setFloatValue(key: String, value: Float) {
-        with(sharedPreferences.edit()) {
+        sharedPreferences.edit {
             putFloat(key, value)
-            apply()
-            preferenceSync.uploadSettingsToFirestore()
         }
+        preferenceSync.uploadSettingsToFirestore()
     }
 
     fun setBooleanValue(key: String, value: Boolean) {
-        with(sharedPreferences.edit()) {
+        sharedPreferences.edit {
             putBoolean(key, value)
-            apply()
-            preferenceSync.uploadSettingsToFirestore()
         }
+        preferenceSync.uploadSettingsToFirestore()
     }
 
     fun setLongValue(key: String, value: Long) {
-        with(sharedPreferences.edit()) {
+        sharedPreferences.edit {
             putLong(key, value)
-            apply()
-            preferenceSync.uploadSettingsToFirestore()
         }
+        preferenceSync.uploadSettingsToFirestore()
     }
 
     fun setStringValue(key: String, value: String) {
-        with(sharedPreferences.edit()) {
+        sharedPreferences.edit {
             putString(key, value)
-            apply()
-            preferenceSync.uploadSettingsToFirestore()
         }
+        preferenceSync.uploadSettingsToFirestore()
     }
 
     fun getFloatValue(key: String, defaultValue: Float = 0f): Float {

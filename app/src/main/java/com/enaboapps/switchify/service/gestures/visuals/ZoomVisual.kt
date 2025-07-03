@@ -2,6 +2,7 @@ package com.enaboapps.switchify.service.gestures.visuals
 
 import android.content.Context
 import android.graphics.Color
+import androidx.core.graphics.toColorInt
 import android.graphics.drawable.GradientDrawable
 import android.os.Handler
 import android.os.Looper
@@ -70,9 +71,7 @@ class ZoomVisual(context: Context) {
             setColor(Color.TRANSPARENT)
             setStroke(
                 12, // stroke width in pixels
-                Color.parseColor(
-                    ScanColorManager.getScanColorSetFromPreferences(context).secondaryColor
-                )
+                ScanColorManager.getScanColorSetFromPreferences(context).secondaryColor.toColorInt()
             )
         }
 

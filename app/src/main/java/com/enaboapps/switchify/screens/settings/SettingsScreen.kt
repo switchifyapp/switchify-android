@@ -1,7 +1,7 @@
 package com.enaboapps.switchify.screens.settings
 
 import android.content.Intent
-import android.net.Uri
+import androidx.core.net.toUri
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -278,14 +278,14 @@ fun AboutSection() {
         FullWidthButton(
             textResId = R.string.button_website,
             onClick = {
-                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(websiteUrl)))
+                context.startActivity(Intent(Intent.ACTION_VIEW, websiteUrl.toUri()))
             }
         )
         Spacer(modifier = Modifier.height(16.dp))
         FullWidthButton(
             textResId = R.string.button_privacy_policy,
             onClick = {
-                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(privacyPolicyUrl)))
+                context.startActivity(Intent(Intent.ACTION_VIEW, privacyPolicyUrl.toUri()))
             }
         )
     }
