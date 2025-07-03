@@ -30,6 +30,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -71,7 +72,7 @@ fun GesturePatternsScreen(navController: NavController) {
 
     // State for drag and drop
     var draggedItem by remember { mutableStateOf<GesturePattern?>(null) }
-    var dragPosition by remember { mutableStateOf(0f) }
+    var dragPosition by remember { mutableFloatStateOf(0f) }
 
     // Edit Dialog
     if (isEditDialogVisible && selectedPattern != null) {
