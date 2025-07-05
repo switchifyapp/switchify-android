@@ -138,12 +138,13 @@ class RadarUI(private val context: Context) : AccessTechniqueUIBase() {
 
         override fun onDraw(canvas: Canvas) {
             super.onDraw(canvas)
-            val centerX = width / 2f
-            val centerY = height / 2f
-            val maxLength = sqrt((width * width + height * height) / 4f)
-            val endX = centerX + maxLength * cos(Math.toRadians(currentAngle.toDouble())).toFloat()
-            val endY = centerY + maxLength * sin(Math.toRadians(currentAngle.toDouble())).toFloat()
-            canvas.drawLine(centerX, centerY, endX, endY, paint)
+            // Windscreen wiper pivot point at bottom center
+            val pivotX = width / 2f
+            val pivotY = height.toFloat()  // Bottom edge
+            val maxLength = sqrt((width * width + height * height).toFloat())
+            val endX = pivotX + maxLength * cos(Math.toRadians(currentAngle.toDouble())).toFloat()
+            val endY = pivotY + maxLength * sin(Math.toRadians(currentAngle.toDouble())).toFloat()
+            canvas.drawLine(pivotX, pivotY, endX, endY, paint)
         }
     }
 }
