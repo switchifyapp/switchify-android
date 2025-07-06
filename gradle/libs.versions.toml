@@ -27,7 +27,7 @@ camerax = "1.4.2"
 accompanist = "0.37.3"
 face-detection = "16.1.7"
 room = "2.7.2"
-ksp = "2.1.20-1.0.32"
+ksp = "2.2.0-2.0.2"
 
 [libraries]
 core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "core-ktx" }
