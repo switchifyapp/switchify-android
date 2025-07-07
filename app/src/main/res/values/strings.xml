@@ -341,6 +341,9 @@
     <string name="section_title_radar_speed">Radar Speed</string>
     <string name="preference_title_radar_speed">Radar speed (only applies to auto scan)</string>
     <string name="preference_summary_radar_speed">How fast the radar moves</string>
+    <string name="section_title_radar_interaction">Radar Interaction</string>
+    <string name="preference_title_radar_slow_down_then_select">Slow Down Then Select (only applies to auto scan)</string>
+    <string name="preference_summary_radar_slow_down_then_select">Press once to slow down scanning, press again to select</string>
 
     <!-- Settings Screen -->
     <string name="settings_tab_general">General</string>
