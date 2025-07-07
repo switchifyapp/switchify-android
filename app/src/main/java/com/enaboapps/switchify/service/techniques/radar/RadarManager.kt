@@ -19,6 +19,7 @@ class RadarManager(private val context: Context) : AccessTechniqueInterface {
         private const val FULL_CIRCLE = 360f
         private const val ROTATION_STEP = 1f  // 1 degree per step
         private const val MOVEMENT_STEP = 0.01f  // 1% of the max distance per step
+        private const val SLOW_DOWN_FACTOR = 4f  // Factor to slow down by (4x slower)
     }
 
     enum class RadarStep {
@@ -35,6 +36,11 @@ class RadarManager(private val context: Context) : AccessTechniqueInterface {
     enum class CircleMovement {
         OUTWARD,
         INWARD
+    }
+
+    enum class SlowDownState {
+        NORMAL_SPEED,
+        SLOWED_DOWN
     }
 
     private val scanSettings = ScanSettings(context)
@@ -62,6 +68,7 @@ class RadarManager(private val context: Context) : AccessTechniqueInterface {
     private var currentStep = RadarStep.IDLE
     private var rotationDirection = RotationDirection.CLOCKWISE
     private var circleMovement = CircleMovement.OUTWARD
+    private var slowDownState = SlowDownState.NORMAL_SPEED
 
     init {
         setup()
@@ -273,11 +280,71 @@ class RadarManager(private val context: Context) : AccessTechniqueInterface {
         setup()
         if (isSetupRequired()) return // Failsafe in case setup was not successful
 
+        // Check if slow down then select mode is enabled
+        if (scanSettings.isRadarSlowDownThenSelectEnabled() && scanSettings.isAutoScanMode()) {
+            handleSlowDownThenSelectMode()
+        } else {
+            handleNormalSelectionMode()
+        }
+    }
+
+    private fun handleSlowDownThenSelectMode() {
+        when (currentStep) {
+            RadarStep.ROTATING -> {
+                when (slowDownState) {
+                    SlowDownState.NORMAL_SPEED -> {
+                        // First press: slow down the rotation
+                        slowDownState = SlowDownState.SLOWED_DOWN
+                        slowDownScanning()
+                    }
+                    SlowDownState.SLOWED_DOWN -> {
+                        // Second press: select line position and move to circle movement
+                        slowDownState = SlowDownState.NORMAL_SPEED
+                        currentStep = RadarStep.MOVING
+                        currentDistanceRatio = if (circleMovement == CircleMovement.OUTWARD) 0f else 1f
+                        updateRadarCircle()
+                        resumeNormalSpeed()
+                    }
+                }
+            }
+
+            RadarStep.MOVING -> {
+                when (slowDownState) {
+                    SlowDownState.NORMAL_SPEED -> {
+                        // First press: slow down the circle movement
+                        slowDownState = SlowDownState.SLOWED_DOWN
+                        slowDownScanning()
+                    }
+                    SlowDownState.SLOWED_DOWN -> {
+                        // Second press: select final position and perform tap
+                        slowDownState = SlowDownState.NORMAL_SPEED
+                        val angle = Math.toRadians(currentAngle.toDouble())
+                        val distance = currentDistanceRatio * maxDistance
+                        val x = wiperPivotX + distance * cos(angle).toFloat()
+                        val y = wiperPivotY + distance * sin(angle).toFloat()
+                        GesturePoint.x = x.toInt()
+                        GesturePoint.y = y.toInt()
+                        SelectionHandler.setSelectAction { performTapAction() }
+                        SelectionHandler.setStartScanningAction { startRadar() }
+                        SelectionHandler.performSelectionAction()
+                        stopScanningAndReset()
+                    }
+                }
+            }
+
+            RadarStep.IDLE -> {
+                slowDownState = SlowDownState.NORMAL_SPEED
+                startRadar()
+            }
+        }
+    }
+
+    private fun handleNormalSelectionMode() {
         when (currentStep) {
             RadarStep.ROTATING -> {
                 currentStep = RadarStep.MOVING
                 currentDistanceRatio = if (circleMovement == CircleMovement.OUTWARD) 0f else 1f
-                updateRadarCircle()  // Show the circle at the start of the line
+                updateRadarCircle()
                 startAutoScanIfEnabled()
             }
 
@@ -300,6 +367,19 @@ class RadarManager(private val context: Context) : AccessTechniqueInterface {
         }
     }
 
+    private fun slowDownScanning() {
+        val normalRate = scanSettings.getRadarScanRate()
+        val slowedRate = (normalRate * SLOW_DOWN_FACTOR).toLong()
+        scanningScheduler?.stopScanning()
+        scanningScheduler?.startScanning(slowedRate, slowedRate)
+    }
+
+    private fun resumeNormalSpeed() {
+        val normalRate = scanSettings.getRadarScanRate()
+        scanningScheduler?.stopScanning()
+        scanningScheduler?.startScanning(normalRate, normalRate)
+    }
+
     override fun resetUI() {
         radarUI.reset()
     }
@@ -316,6 +396,7 @@ class RadarManager(private val context: Context) : AccessTechniqueInterface {
         targetScreenY = 0f
         rotationDirection = RotationDirection.CLOCKWISE
         circleMovement = CircleMovement.OUTWARD
+        slowDownState = SlowDownState.NORMAL_SPEED
     }
 
     override fun cleanup() {

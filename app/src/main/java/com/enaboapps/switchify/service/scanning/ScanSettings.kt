@@ -66,6 +66,14 @@ class ScanSettings(context: Context) {
     }
 
     /**
+     * Check if radar slow down then select mode is enabled
+     * @return true if radar slow down then select mode is enabled, false otherwise
+     */
+    fun isRadarSlowDownThenSelectEnabled(): Boolean {
+        return preferenceManager.getBooleanValue(PreferenceManager.Keys.PREFERENCE_KEY_RADAR_SLOW_DOWN_THEN_SELECT)
+    }
+
+    /**
      * Get the automatically start scan after selection
      * @return The automatically start scan after selection
      */
