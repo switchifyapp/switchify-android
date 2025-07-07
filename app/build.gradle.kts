@@ -24,7 +24,7 @@ android {
 
     defaultConfig {
         applicationId = "com.enaboapps.switchify"
-        minSdk = 31
+        minSdk = 29
         targetSdk = 36
         versionCode = gitVersionCode()
         versionName = "1.92.0"
