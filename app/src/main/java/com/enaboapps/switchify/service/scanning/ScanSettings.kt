@@ -9,6 +9,11 @@ import com.enaboapps.switchify.service.gestures.GestureManager
  * @param context The context to use
  */
 class ScanSettings(context: Context) {
+    companion object {
+        const val RADAR_START_TOP = "top"
+        const val RADAR_START_BOTTOM = "bottom"
+    }
+    
     private val preferenceManager = PreferenceManager(context)
 
     /**
@@ -71,6 +76,14 @@ class ScanSettings(context: Context) {
      */
     fun isRadarSlowDownThenSelectEnabled(): Boolean {
         return preferenceManager.getBooleanValue(PreferenceManager.Keys.PREFERENCE_KEY_RADAR_SLOW_DOWN_THEN_SELECT)
+    }
+
+    /**
+     * Get the radar starting position
+     * @return The radar starting position (top or bottom)
+     */
+    fun getRadarStartingPosition(): String {
+        return preferenceManager.getStringValue(PreferenceManager.Keys.PREFERENCE_KEY_RADAR_STARTING_POSITION, RADAR_START_TOP)
     }
 
     /**

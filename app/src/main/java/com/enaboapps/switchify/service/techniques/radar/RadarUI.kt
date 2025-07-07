@@ -9,6 +9,7 @@ import android.widget.FrameLayout
 import android.widget.RelativeLayout
 import androidx.core.graphics.toColorInt
 import com.enaboapps.switchify.service.scanning.ScanColorManager
+import com.enaboapps.switchify.service.scanning.ScanSettings
 import com.enaboapps.switchify.service.techniques.AccessTechniqueUIBase
 import com.enaboapps.switchify.service.techniques.shared.ScanMethodUIConstants
 import com.enaboapps.switchify.service.utils.ScreenUtils
@@ -138,9 +139,14 @@ class RadarUI(private val context: Context) : AccessTechniqueUIBase() {
 
         override fun onDraw(canvas: Canvas) {
             super.onDraw(canvas)
-            // Windscreen wiper pivot point at bottom center
+            // Windscreen wiper pivot point - configurable top or bottom
+            val scanSettings = ScanSettings(context)
             val pivotX = width / 2f
-            val pivotY = height.toFloat()  // Bottom edge
+            val pivotY = if (scanSettings.getRadarStartingPosition() == ScanSettings.RADAR_START_TOP) {
+                0f  // Top edge
+            } else {
+                height.toFloat()  // Bottom edge
+            }
             val maxLength = sqrt((width * width + height * height).toFloat())
             val endX = pivotX + maxLength * cos(Math.toRadians(currentAngle.toDouble())).toFloat()
             val endY = pivotY + maxLength * sin(Math.toRadians(currentAngle.toDouble())).toFloat()
