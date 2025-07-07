@@ -344,6 +344,10 @@
     <string name="section_title_radar_interaction">Radar Interaction</string>
     <string name="preference_title_radar_slow_down_then_select">Slow Down Then Select (only applies to auto scan)</string>
     <string name="preference_summary_radar_slow_down_then_select">Press once to slow down scanning, press again to select</string>
+    <string name="preference_title_radar_starting_position">Radar Starting Position</string>
+    <string name="preference_summary_radar_starting_position">Choose where the radar line starts from</string>
+    <string name="radar_position_top">Top</string>
+    <string name="radar_position_bottom">Bottom</string>
 
     <!-- Settings Screen -->
     <string name="settings_tab_general">General</string>

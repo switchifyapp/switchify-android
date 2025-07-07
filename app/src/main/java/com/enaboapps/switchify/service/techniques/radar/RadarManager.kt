@@ -46,22 +46,26 @@ class RadarManager(private val context: Context) : AccessTechniqueInterface {
     private val scanSettings = ScanSettings(context)
     private val radarUI = RadarUI(context)
 
-    private var currentAngle = -90f  // Start at top (12 o'clock position for windscreen wiper)
+    private var currentAngle = getStartingAngle()
     private var currentDistanceRatio = 0f
     private var targetScreenX = 0f  // Target screen X coordinate for current angle
     private var targetScreenY = 0f  // Target screen Y coordinate for current angle
     private var scanningScheduler: ScanningScheduler? = null
 
-    // Windscreen wiper pivot point slightly above bottom center for visibility
+    // Windscreen wiper pivot point - configurable top or bottom
     private val wiperPivotX: Float
         get() = ScreenUtils.getWidth(context) / 2f
     private val wiperPivotY: Float
-        get() = ScreenUtils.getHeight(context).toFloat()  // Bottom edge
+        get() = if (scanSettings.getRadarStartingPosition() == ScanSettings.RADAR_START_TOP) {
+            0f  // Top edge
+        } else {
+            ScreenUtils.getHeight(context).toFloat()  // Bottom edge
+        }
     private val maxDistance: Float
         get() {
             val width = ScreenUtils.getWidth(context).toFloat()
             val height = ScreenUtils.getHeight(context).toFloat()
-            // For windscreen wiper, use full diagonal distance from bottom pivot
+            // For windscreen wiper, use full diagonal distance from pivot point
             return sqrt(width * width + height * height)
         }
 
@@ -81,6 +85,14 @@ class RadarManager(private val context: Context) : AccessTechniqueInterface {
     }
 
     private fun isSetupRequired(): Boolean = scanningScheduler == null
+    
+    private fun getStartingAngle(): Float {
+        return if (scanSettings.getRadarStartingPosition() == ScanSettings.RADAR_START_TOP) {
+            90f  // 90 degrees = pointing downward when starting from top
+        } else {
+            -90f  // -90 degrees = pointing upward when starting from bottom
+        }
+    }
 
     private fun update() {
         when (currentStep) {
@@ -390,7 +402,7 @@ class RadarManager(private val context: Context) : AccessTechniqueInterface {
 
     override fun resetForNextUse() {
         currentStep = RadarStep.IDLE
-        currentAngle = -90f  // Reset to top (12 o'clock position for windscreen wiper)
+        currentAngle = getStartingAngle()  // Reset to correct starting angle based on position
         currentDistanceRatio = 0f
         targetScreenX = 0f
         targetScreenY = 0f
