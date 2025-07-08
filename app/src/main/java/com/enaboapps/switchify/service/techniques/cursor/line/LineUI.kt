@@ -74,9 +74,20 @@ class LineUI(private val context: Context) : AccessTechniqueUIBase() {
     }
 
     private fun removeBlockOutline() {
-        blockOutline?.let {
-            super.removeView(it)
-            blockOutline = null
+        removeBlockOutlineSafely()
+    }
+
+    private fun removeBlockOutlineSafely() {
+        blockOutline?.let { outline ->
+            try {
+                if (outline.parent != null) {
+                    super.removeView(outline)
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            } finally {
+                blockOutline = null
+            }
         }
     }
 
@@ -142,19 +153,41 @@ class LineUI(private val context: Context) : AccessTechniqueUIBase() {
      * Removes the horizontal cursor line.
      */
     fun removeXCursorLine() {
-        xCursorLine?.let {
-            super.removeView(it)
-            xCursorLine = null
-        }
+        removeXCursorLineSafely()
     }
 
     /**
      * Removes the vertical cursor line.
      */
     fun removeYCursorLine() {
-        yCursorLine?.let {
-            super.removeView(it)
-            yCursorLine = null
+        removeYCursorLineSafely()
+    }
+
+    private fun removeXCursorLineSafely() {
+        xCursorLine?.let { line ->
+            try {
+                if (line.parent != null) {
+                    super.removeView(line)
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            } finally {
+                xCursorLine = null
+            }
+        }
+    }
+
+    private fun removeYCursorLineSafely() {
+        yCursorLine?.let { line ->
+            try {
+                if (line.parent != null) {
+                    super.removeView(line)
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            } finally {
+                yCursorLine = null
+            }
         }
     }
 
@@ -190,10 +223,23 @@ class LineUI(private val context: Context) : AccessTechniqueUIBase() {
      * Removes all cursor UI elements.
      */
     fun reset() {
-        removeXCursorLine()
-        removeYCursorLine()
-        removeBlockOutline()
-        setBlock(null)
+        try {
+            removeXCursorLineSafely()
+            removeYCursorLineSafely()
+            removeBlockOutlineSafely()
+            setBlock(null)
+            super.hide()
+        } catch (e: Exception) {
+            // Force cleanup even if removal fails
+            forceCleanup()
+        }
+    }
+
+    private fun forceCleanup() {
+        xCursorLine = null
+        yCursorLine = null
+        blockOutline = null
+        currentBlock = null
         super.hide()
     }
 
