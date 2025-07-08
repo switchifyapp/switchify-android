@@ -4,7 +4,7 @@ An Android accessibility service that enables device control through adaptive sw
 
 ## Requirements
 
-- Android 12 (API level 31) and above
+- Android 10 (API level 29) and above
 - Android Studio (latest version recommended)
 
 ## Setup
