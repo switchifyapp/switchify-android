@@ -2,6 +2,9 @@ package com.enaboapps.switchify.service.utils
 
 import android.content.Context
 import android.content.res.Configuration
+import android.os.Build
+import android.util.DisplayMetrics
+import android.view.WindowManager
 import android.view.WindowMetrics
 
 /**
@@ -17,7 +20,11 @@ class ScreenUtils {
          * @return The width of the screen in pixels.
          */
         fun getWidth(context: Context): Int {
-            return getWindowMetrics(context).bounds.width()
+            return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                getWindowMetrics(context).bounds.width()
+            } else {
+                getDisplayMetrics(context).widthPixels
+            }
         }
 
         /**
@@ -27,7 +34,11 @@ class ScreenUtils {
          * @return The height of the screen in pixels.
          */
         fun getHeight(context: Context): Int {
-            return getWindowMetrics(context).bounds.height()
+            return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                getWindowMetrics(context).bounds.height()
+            } else {
+                getDisplayMetrics(context).heightPixels
+            }
         }
 
         /**
@@ -42,15 +53,31 @@ class ScreenUtils {
         }
 
         /**
-         * Retrieves the current window metrics.
+         * Retrieves the current window metrics (API 30+).
          *
          * @param context The context of the caller.
          * @return The current window metrics.
          */
+        @Suppress("NewApi")
         private fun getWindowMetrics(context: Context): WindowMetrics {
             val windowManager =
-                context.getSystemService(Context.WINDOW_SERVICE) as android.view.WindowManager
+                context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
             return windowManager.currentWindowMetrics
+        }
+
+        /**
+         * Retrieves display metrics for older Android versions (API < 30).
+         *
+         * @param context The context of the caller.
+         * @return The display metrics.
+         */
+        @Suppress("DEPRECATION")
+        private fun getDisplayMetrics(context: Context): DisplayMetrics {
+            val windowManager =
+                context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
+            val displayMetrics = DisplayMetrics()
+            windowManager.defaultDisplay.getMetrics(displayMetrics)
+            return displayMetrics
         }
 
         /**
