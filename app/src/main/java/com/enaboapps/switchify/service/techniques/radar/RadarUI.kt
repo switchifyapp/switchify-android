@@ -100,23 +100,57 @@ class RadarUI(private val context: Context) : AccessTechniqueUIBase() {
     }
 
     fun removeRadarLine() {
-        radarLineContainer?.let {
-            super.removeView(it)
-            radarLineContainer = null
-            radarLine = null
-        }
+        removeRadarLineSafely()
     }
 
     fun removeRadarCircle() {
-        radarCircle?.let {
-            super.removeView(it)
-            radarCircle = null
+        removeRadarCircleSafely()
+    }
+
+    private fun removeRadarLineSafely() {
+        radarLineContainer?.let { container ->
+            try {
+                if (container.parent != null) {
+                    super.removeView(container)
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            } finally {
+                radarLineContainer = null
+                radarLine = null
+            }
+        }
+    }
+
+    private fun removeRadarCircleSafely() {
+        radarCircle?.let { circle ->
+            try {
+                if (circle.parent != null) {
+                    super.removeView(circle)
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            } finally {
+                radarCircle = null
+            }
         }
     }
 
     fun reset() {
-        removeRadarLine()
-        removeRadarCircle()
+        try {
+            removeRadarLineSafely()
+            removeRadarCircleSafely()
+            super.hide()
+        } catch (e: Exception) {
+            // Force cleanup even if removal fails
+            forceCleanup()
+        }
+    }
+
+    private fun forceCleanup() {
+        radarLineContainer = null
+        radarLine = null
+        radarCircle = null
         super.hide()
     }
 

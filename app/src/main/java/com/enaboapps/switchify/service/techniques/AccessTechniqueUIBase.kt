@@ -13,6 +13,7 @@ import com.enaboapps.switchify.service.window.SwitchifyAccessibilityWindow
  */
 open class AccessTechniqueUIBase {
     private var view: RelativeLayout? = null
+    private val childViews = mutableSetOf<ViewGroup>()
 
     private val window = SwitchifyAccessibilityWindow.instance
     private val handler = Handler(Looper.getMainLooper())
@@ -53,7 +54,9 @@ open class AccessTechniqueUIBase {
                 val params = createLayoutParams(x, y, width, height)
                 view.layoutParams = params
                 this.view?.addView(view)
+                childViews.add(view)
             } catch (e: Exception) {
+                childViews.remove(view)
                 e.printStackTrace()
             }
         }
@@ -91,7 +94,7 @@ open class AccessTechniqueUIBase {
     fun removeView(view: ViewGroup) {
         handler.post {
             try {
-                this.view?.removeView(view)
+                removeViewSafely(view)
             } catch (e: Exception) {
                 e.printStackTrace()
             }
@@ -99,7 +102,36 @@ open class AccessTechniqueUIBase {
     }
 
     /**
-     * Hides the window.
+     * Safely removes a view with parent validation and tracking cleanup.
+     *
+     * @param view The view to remove safely.
+     */
+    private fun removeViewSafely(view: ViewGroup) {
+        if (view.parent != null) {
+            this.view?.removeView(view)
+        }
+        childViews.remove(view)
+    }
+
+    /**
+     * Removes all child views safely to prevent orphans.
+     */
+    fun removeAllChildViews() {
+        handler.post {
+            try {
+                childViews.toList().forEach { view ->
+                    removeViewSafely(view)
+                }
+                childViews.clear()
+            } catch (e: Exception) {
+                childViews.clear()
+                e.printStackTrace()
+            }
+        }
+    }
+
+    /**
+     * Hides the window and clears all child views.
      */
     fun hide() {
         handler.post {
@@ -107,6 +139,7 @@ open class AccessTechniqueUIBase {
                 window.removeView(it)
                 view = null
             }
+            childViews.clear()
         }
     }
 
@@ -120,7 +153,7 @@ open class AccessTechniqueUIBase {
      * @param height The height of the layout.
      * @return The new RelativeLayout.LayoutParams object.
      */
-    protected fun createLayoutParams(
+    private fun createLayoutParams(
         x: Int,
         y: Int,
         width: Int,

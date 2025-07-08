@@ -70,19 +70,51 @@ class CursorBlockGridUI(private val context: Context) : AccessTechniqueUIBase() 
     }
 
     fun hideGrid() {
+        removeGridViewsSafely()
+        removeScreenOutlineSafely()
+    }
+
+    private fun removeGridViewsSafely() {
         gridViews.forEach { view ->
-            super.removeView(view)
+            try {
+                if (view.parent != null) {
+                    super.removeView(view)
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
         gridViews = emptyList()
+    }
 
-        screenOutline?.let {
-            super.removeView(it)
-            screenOutline = null
+    private fun removeScreenOutlineSafely() {
+        screenOutline?.let { outline ->
+            try {
+                if (outline.parent != null) {
+                    super.removeView(outline)
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            } finally {
+                screenOutline = null
+            }
         }
     }
 
     fun reset() {
-        hideGrid()
+        try {
+            removeGridViewsSafely()
+            removeScreenOutlineSafely()
+            super.hide()
+        } catch (e: Exception) {
+            // Force cleanup even if removal fails
+            forceCleanup()
+        }
+    }
+
+    private fun forceCleanup() {
+        gridViews = emptyList()
+        screenOutline = null
         super.hide()
     }
 } 
