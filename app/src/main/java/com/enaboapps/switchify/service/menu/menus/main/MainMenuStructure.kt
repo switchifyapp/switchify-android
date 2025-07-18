@@ -4,6 +4,7 @@ import com.enaboapps.switchify.R
 import com.enaboapps.switchify.service.core.ServiceCore
 import com.enaboapps.switchify.service.core.SwitchifyAccessibilityService
 import com.enaboapps.switchify.service.gestures.GesturePoint
+import com.enaboapps.switchify.service.keyboard.KeyboardManager
 import com.enaboapps.switchify.service.menu.MenuItem
 import com.enaboapps.switchify.service.menu.MenuManager
 import com.enaboapps.switchify.service.menu.menus.gestures.GestureMenuStructure
@@ -26,6 +27,17 @@ class MainMenuStructure(private val accessibilityService: SwitchifyAccessibility
     val mainMenuObject = MenuStructure(
         id = "main_menu",
         items = listOfNotNull(
+            // Show "Scan Keyboard" menu item when keyboard is visible but user has escaped
+            if (KeyboardManager.shouldShowScanKeyboardMenuItem()) {
+                MenuItem(
+                    id = "scan_keyboard",
+                    textResource = R.string.menu_item_scan_keyboard,
+                    action = {
+                        KeyboardManager.returnToKeyboard()
+                        MenuManager.getInstance().closeMenuHierarchy()
+                    }
+                )
+            } else null,
             gestureMenuStructure.tapMenuItem,
             MenuItem(
                 id = "gestures",

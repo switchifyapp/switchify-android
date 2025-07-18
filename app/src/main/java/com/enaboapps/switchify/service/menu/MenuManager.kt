@@ -2,7 +2,6 @@ package com.enaboapps.switchify.service.menu
 
 import com.enaboapps.switchify.service.core.SwitchifyAccessibilityService
 import com.enaboapps.switchify.service.gestures.visuals.CurrentPointVisual
-import com.enaboapps.switchify.service.menu.menus.cyclebreak.ScanCycleBreakMenu
 import com.enaboapps.switchify.service.menu.menus.edit.EditMenu
 import com.enaboapps.switchify.service.menu.menus.gestures.CustomGestureConfirmationMenu
 import com.enaboapps.switchify.service.menu.menus.gestures.GesturePatternsMenu
@@ -182,13 +181,6 @@ class MenuManager {
         openMenu(customGestureConfirmationMenu.build())
     }
 
-    /**
-     * This function opens the scan cycle break menu
-     */
-    fun openScanCycleBreakMenu() {
-        val scanCycleBreakMenu = ScanCycleBreakMenu(accessibilityService!!)
-        openMenu(scanCycleBreakMenu.build())
-    }
 
     /**
      * This function opens the quick apps menu with dynamic loading

@@ -2,8 +2,9 @@ package com.enaboapps.switchify.service.techniques.nodes.scanners
 
 import android.content.Context
 import android.util.Log
+import com.enaboapps.switchify.service.keyboard.KeyboardManager
 import com.enaboapps.switchify.service.menu.MenuManager
-import com.enaboapps.switchify.service.menu.OpenMenuPrompt
+import com.enaboapps.switchify.service.menu.KeyboardEscapePrompt
 import com.enaboapps.switchify.service.scanning.tree.ScanTree
 import com.enaboapps.switchify.service.scanning.tree.ScanTreeCallback
 import com.enaboapps.switchify.service.techniques.AccessTechnique
@@ -229,21 +230,33 @@ abstract class BaseNodeScanner : ScanTreeCallback {
     // ScanTreeCallback implementation
     override fun onScanTreeCycleBreakStarted() {
         Log.d(TAG, "Cycle break started")
-        OpenMenuPrompt.instance.show(context)
+        KeyboardEscapePrompt.instance.show(context)
     }
 
     override fun onScanTreeCycleBreakSkipped() {
         Log.d(TAG, "Cycle break skipped")
-        OpenMenuPrompt.instance.hide()
+        KeyboardEscapePrompt.instance.hide()
     }
 
     override fun onScanTreeCycleBreakSelected() {
         Log.d(TAG, "Cycle break selected")
-        OpenMenuPrompt.instance.hide()
-        MenuManager.getInstance().openScanCycleBreakMenu()
+        KeyboardEscapePrompt.instance.hide()
+        handleCycleBreakSelection()
     }
 
     override fun onSingleCycleCompleted(cycleNumber: Int) {
         Log.d(TAG, "Cycle completed: $cycleNumber")
+    }
+    
+    /**
+     * Handles cycle break selection based on keyboard state.
+     * If keyboard is visible and not escaped, escape from keyboard.
+     * Otherwise, open the main menu.
+     */
+    private fun handleCycleBreakSelection() {
+        if (KeyboardManager.shouldShowKeyboardEscapePrompt()) {
+            Log.d(TAG, "Escaping from keyboard scanning")
+            KeyboardManager.escapeKeyboard()
+        }
     }
 }

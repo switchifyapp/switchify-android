@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Keyboard
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -25,22 +26,23 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.service.components.AccessibilityComposeView
+import com.enaboapps.switchify.service.keyboard.KeyboardManager
 import com.enaboapps.switchify.service.window.SwitchifyAccessibilityWindow
 
 /**
- * This class manages the prompt to ask the user if they want to open the menu.
+ * This class manages the prompt to ask the user if they want to open the menu or escape from keyboard.
  */
-class OpenMenuPrompt {
-    private var menuPromptView: AccessibilityComposeView? = null
+class KeyboardEscapePrompt {
+    private var promptView: AccessibilityComposeView? = null
     private val mainHandler = Handler(Looper.getMainLooper())
     private var isShowing = false
 
     companion object {
-        val instance: OpenMenuPrompt by lazy {
-            OpenMenuPrompt()
+        val instance: KeyboardEscapePrompt by lazy {
+            KeyboardEscapePrompt()
         }
 
-        private const val TAG = "OpenMenuPrompt"
+        private const val TAG = "KeyboardEscapePrompt"
     }
 
     fun show(context: Context) {
@@ -48,7 +50,7 @@ class OpenMenuPrompt {
 
         mainHandler.post {
             createPromptView(context)
-            menuPromptView?.let { SwitchifyAccessibilityWindow.instance.addViewToCenter(it) }
+            promptView?.let { SwitchifyAccessibilityWindow.instance.addViewToCenter(it) }
             isShowing = true
         }
     }
@@ -57,16 +59,18 @@ class OpenMenuPrompt {
         if (!isShowing) return
 
         mainHandler.post {
-            menuPromptView?.let { view ->
+            promptView?.let { view ->
                 SwitchifyAccessibilityWindow.instance.removeView(view)
                 isShowing = false
-                menuPromptView = null
+                promptView = null
             }
         }
     }
 
     @Composable
     private fun PromptView() {
+        val isKeyboardEscape = KeyboardManager.shouldShowKeyboardEscapePrompt()
+        
         Surface(
             modifier = Modifier
                 .padding(16.dp)
@@ -84,7 +88,7 @@ class OpenMenuPrompt {
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Menu,
+                        imageVector = Icons.Default.Keyboard,
                         contentDescription = null,
                         modifier = Modifier
                             .size(48.dp)
@@ -92,7 +96,7 @@ class OpenMenuPrompt {
                         tint = MaterialTheme.colorScheme.primary
                     )
                     Text(
-                        text = stringResource(R.string.menu_prompt_press_to_open),
+                        text = stringResource(R.string.keyboard_escape_prompt_press_to_escape),
                         color = MaterialTheme.colorScheme.onPrimaryContainer,
                         fontSize = 18.sp,
                         textAlign = TextAlign.Center,
@@ -104,7 +108,7 @@ class OpenMenuPrompt {
     }
 
     private fun createPromptView(context: Context) {
-        menuPromptView = AccessibilityComposeView(context) {
+        promptView = AccessibilityComposeView(context) {
             PromptView()
         }
     }
