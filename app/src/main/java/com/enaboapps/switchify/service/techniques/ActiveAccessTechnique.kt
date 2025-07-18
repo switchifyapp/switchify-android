@@ -1,6 +1,7 @@
 package com.enaboapps.switchify.service.techniques
 
 import android.content.Context
+import com.enaboapps.switchify.service.keyboard.KeyboardManager
 import com.enaboapps.switchify.service.menu.MenuManager
 import com.enaboapps.switchify.service.selection.SelectionHandler
 import com.enaboapps.switchify.service.techniques.cursor.CursorManager
@@ -10,15 +11,14 @@ import com.enaboapps.switchify.service.techniques.nodes.scanners.keyboard.Keyboa
 import com.enaboapps.switchify.service.techniques.nodes.scanners.system.SystemNodeHolder
 import com.enaboapps.switchify.service.techniques.nodes.scanners.system.SystemNodeScanner
 import com.enaboapps.switchify.service.techniques.radar.RadarManager
-import com.enaboapps.switchify.service.utils.KeyboardBridge
-import com.enaboapps.switchify.service.utils.KeyboardListener
+import com.enaboapps.switchify.service.keyboard.KeyboardStateListener
 import com.enaboapps.switchify.service.utils.ScreenWatcher
 
 /**
  * Manages the active access technique and its state
  */
 class ActiveAccessTechnique(private val context: Context) : AccessTechniqueObserver,
-    KeyboardListener {
+    KeyboardStateListener {
     private var cursorManager: CursorManager? = null
     private var radarManager: RadarManager? = null
     private var systemNodeScanner: SystemNodeScanner? = null
@@ -30,7 +30,8 @@ class ActiveAccessTechnique(private val context: Context) : AccessTechniqueObser
 
     init {
         AccessTechnique.observer = this
-        KeyboardBridge.setKeyboardListener(this)
+        KeyboardManager.initialize()
+        KeyboardManager.setKeyboardStateListener(this)
         screenWatcher = ScreenWatcher(onScreenSleep = {
             cleanupAll()
         })
@@ -39,7 +40,7 @@ class ActiveAccessTechnique(private val context: Context) : AccessTechniqueObser
 
     val currentAccessTechnique: AccessTechniqueInterface
         get() = when {
-            KeyboardBridge.isKeyboardVisible && AccessTechnique.getCurrentTechnique() != AccessTechnique.Technique.MENU -> {
+            KeyboardManager.isKeyboardVisible() && !KeyboardManager.isEscapedFromKeyboard() && AccessTechnique.getCurrentTechnique() != AccessTechnique.Technique.MENU -> {
                 ensureKeyboardScannerStarted()
                 getKeyboardScanner().scanTree
             }
@@ -117,7 +118,7 @@ class ActiveAccessTechnique(private val context: Context) : AccessTechniqueObser
     fun cleanup(currentTechnique: String) {
         NodeScannerUI.instance.hideAll()
 
-        if (KeyboardBridge.isKeyboardVisible) {
+        if (KeyboardManager.isKeyboardVisible()) {
             cleanupAllExceptKeyboard()
             return
         }
@@ -154,7 +155,7 @@ class ActiveAccessTechnique(private val context: Context) : AccessTechniqueObser
             }
         }
 
-        if (!KeyboardBridge.isKeyboardVisible) {
+        if (!KeyboardManager.isKeyboardVisible()) {
             cleanupKeyboard()
         }
 
@@ -202,7 +203,7 @@ class ActiveAccessTechnique(private val context: Context) : AccessTechniqueObser
         keyboardScanner?.updateNodes(nodes)
     }
 
-    override fun onKeyboardStateChanged(isKeyboardVisible: Boolean) {
+    override fun onKeyboardStateChanged(isKeyboardVisible: Boolean, isEscapedFromKeyboard: Boolean) {
         if (isKeyboardVisible) {
             cleanupAllExceptKeyboard()
         } else {

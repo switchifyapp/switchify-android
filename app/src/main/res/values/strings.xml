@@ -126,8 +126,12 @@
     <!-- Pro Feature Messages -->
     <string name="pro_feature_message">This is a pro feature. Please purchase Switchify Pro to use it.</string>
 
-    <!-- Menu Prompts -->
-    <string name="menu_prompt_press_to_open">Press to open menu</string>
+    
+    
+    <string name="keyboard_escape_prompt_press_to_escape">Press to escape keyboard</string>
+    
+    <!-- Keyboard Menu Items -->
+    <string name="menu_item_scan_keyboard">Scan Keyboard</string>
 
     <!-- Basic Actions -->
     <string name="action_none">None</string>
