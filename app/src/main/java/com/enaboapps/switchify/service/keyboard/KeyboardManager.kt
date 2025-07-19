@@ -21,6 +21,7 @@ object KeyboardManager {
     // State tracking
     private var isKeyboardVisible = false
     private var isEscapedFromKeyboard = false
+    private var isDirectlySelectKeyboardKeysEnabled = false
     
     // Listener for state changes
     private var keyboardStateListener: KeyboardStateListener? = null
@@ -86,8 +87,8 @@ object KeyboardManager {
             }
         }
 
-        val bypass = isKeyboardVisible && scanSettings.isDirectlySelectKeyboardKeysEnabled() && !isEscapedFromKeyboard()
-        SelectionHandler.setBypassAutoSelect(bypass)
+        isDirectlySelectKeyboardKeysEnabled = scanSettings.isDirectlySelectKeyboardKeysEnabled()
+        updateBypassState()
 
         // Only notify if state actually changed
         if (stateChanged || wasEscaped != isEscapedFromKeyboard) {
@@ -133,6 +134,17 @@ object KeyboardManager {
         
         Log.d(TAG, "Returning to keyboard scanning")
         isEscapedFromKeyboard = false
+        
+        // Update bypass state now that we're back in keyboard mode
+        updateBypassState()
+    }
+    
+    /**
+     * Update bypass state using stored settings.
+     */
+    private fun updateBypassState() {
+        val bypass = isKeyboardVisible && isDirectlySelectKeyboardKeysEnabled && !isEscapedFromKeyboard()
+        SelectionHandler.setBypassAutoSelect(bypass)
     }
     
     /**
