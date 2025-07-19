@@ -2,6 +2,7 @@ package com.enaboapps.switchify.service.gestures.patterns.store
 
 import androidx.room.Entity
 import androidx.room.ForeignKey
+import androidx.room.Index
 import androidx.room.PrimaryKey
 import com.enaboapps.switchify.service.gestures.data.GestureData
 import com.enaboapps.switchify.service.gestures.data.GestureType
@@ -15,6 +16,9 @@ import com.enaboapps.switchify.service.gestures.data.GestureType
             childColumns = ["patternId"],
             onDelete = ForeignKey.CASCADE
         )
+    ],
+    indices = [
+        Index(value = ["patternId"])
     ]
 )
 data class GestureDataEntity(
