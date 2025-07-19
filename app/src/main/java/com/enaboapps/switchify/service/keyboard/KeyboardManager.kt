@@ -60,19 +60,24 @@ object KeyboardManager {
         Log.d(TAG, "Keyboard state changed: visible=$visible, wasVisible=$isKeyboardVisible, isEscaped=$isEscapedFromKeyboard")
         
         val wasVisible = isKeyboardVisible
+        val wasEscaped = isEscapedFromKeyboard
         isKeyboardVisible = visible
+        
+        var stateChanged = false
         
         when {
             // Keyboard appeared
             visible && !wasVisible -> {
                 Log.d(TAG, "Keyboard appeared - switching to keyboard scanning")
                 isEscapedFromKeyboard = false
+                stateChanged = true
             }
             
             // Keyboard disappeared
             !visible && wasVisible -> {
                 Log.d(TAG, "Keyboard disappeared - clearing escape state")
                 isEscapedFromKeyboard = false
+                stateChanged = true
             }
             
             // Keyboard state unchanged - no action needed
@@ -84,7 +89,10 @@ object KeyboardManager {
         val bypass = isKeyboardVisible && scanSettings.isDirectlySelectKeyboardKeysEnabled() && !isEscapedFromKeyboard()
         SelectionHandler.setBypassAutoSelect(bypass)
 
-        notifyStateChanged()
+        // Only notify if state actually changed
+        if (stateChanged || wasEscaped != isEscapedFromKeyboard) {
+            notifyStateChanged()
+        }
     }
     
     /**
