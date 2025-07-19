@@ -10,7 +10,8 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
     entities = [GesturePatternEntity::class, GestureDataEntity::class],
-    version = 2
+    version = 2,
+    exportSchema = false
 )
 @TypeConverters(GestureTypeConverter::class)
 abstract class GesturePatternDatabase : RoomDatabase() {
