@@ -20,6 +20,7 @@ import com.enaboapps.switchify.service.techniques.AccessTechnique
 import com.enaboapps.switchify.service.techniques.nodes.NodeExaminer
 import com.enaboapps.switchify.service.utils.DeviceLockObserver
 import com.enaboapps.switchify.service.utils.KeyboardBridge
+import com.enaboapps.switchify.service.utils.QuickAppsManager
 import com.enaboapps.switchify.service.utils.ScreenWatcher
 import com.enaboapps.switchify.service.window.SwitchifyAccessibilityWindow
 import com.enaboapps.switchify.utils.LogEvent
@@ -185,6 +186,9 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
 
         SwitchifyLifecycleOwner.getInstance().handleLifecycleEvent(Lifecycle.Event.ON_START)
         SwitchifyLifecycleOwner.getInstance().handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
+        
+        // Preload quick apps for faster menu access
+        QuickAppsManager(this).preloadApps { /* Cache warmed up */ }
 
         serviceScope.launch {
             NodeExaminer.examineAccessibilityTree(
