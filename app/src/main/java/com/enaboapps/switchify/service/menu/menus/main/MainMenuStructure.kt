@@ -8,6 +8,7 @@ import com.enaboapps.switchify.service.keyboard.KeyboardManager
 import com.enaboapps.switchify.service.menu.MenuItem
 import com.enaboapps.switchify.service.menu.MenuManager
 import com.enaboapps.switchify.service.menu.menus.gestures.GestureMenuStructure
+import com.enaboapps.switchify.service.menu.menus.ai.AIMenuStructure
 import com.enaboapps.switchify.service.menu.structure.MenuStructure
 import com.enaboapps.switchify.service.techniques.AccessTechnique
 import com.enaboapps.switchify.service.techniques.nodes.NodeExaminer
@@ -27,6 +28,8 @@ class MainMenuStructure(private val accessibilityService: SwitchifyAccessibility
     val mainMenuObject = MenuStructure(
         id = "main_menu",
         items = listOfNotNull(
+            // AI-powered node suggestions
+            AIMenuStructure.createAIMenuItem(accessibilityService),
             // Show "Scan Keyboard" menu item when keyboard is visible but user has escaped
             if (KeyboardManager.shouldShowScanKeyboardMenuItem()) {
                 MenuItem(
