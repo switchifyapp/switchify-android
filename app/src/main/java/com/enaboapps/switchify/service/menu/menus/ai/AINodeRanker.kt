@@ -75,23 +75,45 @@ object AINodeRanker {
         }.joinToString("\n")
 
         val prompt = """
-            Analyze these UI elements and rank them by importance for accessibility users who want to interact with the most relevant elements on screen.
-
-            UI Elements:
+            You are helping users with motor disabilities who use adaptive switches to control their Android device. These users navigate by selecting from a menu of the most important interactive elements on screen.
+            
+            Context: This is an accessibility app called Switchify that helps users with limited mobility control their device using switches. Users cannot easily scan through many elements, so they need the most important actionable items prioritized for them.
+            
+            User Goals:
+            - Complete common tasks (submit forms, make purchases, send messages)  
+            - Navigate efficiently through apps
+            - Access primary actions without scrolling through many options
+            - Interact with elements that will advance their workflow
+            
+            UI Elements to Analyze:
             $nodeDescriptions
 
-            Requirements:
-            - Score each element from 1-10 (10 = highest priority)
-            - Prioritize: buttons, links, input fields, navigation elements
-            - Lower priority: decorative text, images, labels
-            - Consider user intent to complete tasks or navigate
+            Please rank each element by how valuable it would be for a user with motor disabilities who wants to accomplish their primary task on this screen.
+
+            Scoring System:
+            Assign a numerical score based on importance for users with motor disabilities. Use any number that reflects the element's value - higher numbers = more important.
+
+            Element Priority Guidelines:
+            - Primary actions (Submit, Send, Buy, Save, Login): Very high scores (80-100+)
+            - Input fields, search boxes: High scores (60-80)
+            - Important navigation: High scores (60-80) 
+            - Secondary navigation, settings: Medium scores (30-60)
+            - Informational text, links: Lower scores (10-30)
+            - Decorative elements: Very low scores (1-10)
+
+            Consider:
+            - Would this element help complete a primary task?
+            - Is this a common action users perform?
+            - Does this advance the user's workflow?
+            - Is this element essential for app navigation?
 
             Respond in this exact format for each element:
-            [number]: [score] - [brief reason]
+            [number]: [score] - [brief reason focusing on user benefit]
 
             Example:
-            1: 9 - Submit button for main action
-            2: 3 - Decorative image, low interaction value
+            1: 95 - Submit button completes main task efficiently
+            2: 70 - Email input field required for account creation
+            3: 5 - Company logo, decorative only
         """.trimIndent()
 
         val response = aiManager.generateText(prompt)
@@ -127,7 +149,7 @@ object AINodeRanker {
                             rankedNodes.add(
                                 RankedNode(
                                     node = originalNodes[nodeIndex],
-                                    score = score.coerceIn(1, 10),
+                                    score = score.coerceAtLeast(1), // Allow any positive score
                                     reasoning = reasoning
                                 )
                             )

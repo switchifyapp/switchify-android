@@ -65,7 +65,7 @@ object AIMenuStructure {
     }
 
     private const val TAG = "AIMenuStructure"
-    private const val MAX_SUGGESTIONS = 8
+    private const val MAX_SUGGESTIONS = 30
 
     /**
      * Dynamically loads AI-powered node suggestions
@@ -127,11 +127,12 @@ object AIMenuStructure {
             contentDescription
         }
 
-        // Add priority indicator
+        // Add priority indicator based on dynamic scoring
         val priorityText = when {
-            rankedNode.score >= 8 -> "★ $displayText"
-            rankedNode.score >= 6 -> "• $displayText" 
-            else -> displayText
+            rankedNode.score >= 80 -> "★★ $displayText"  // Very high priority
+            rankedNode.score >= 60 -> "★ $displayText"   // High priority
+            rankedNode.score >= 30 -> "• $displayText"   // Medium priority
+            else -> displayText                           // Lower priority
         }
 
         return MenuItem(
