@@ -123,6 +123,7 @@ dependencies {
     implementation(libs.firebase.auth)
     implementation(libs.firebase.crashlytics)
     implementation(libs.firebase.firestore.ktx)
+    implementation(libs.firebase.ai)
     implementation(libs.gson)
     implementation(libs.androidx.material3.android)
     implementation(libs.app.update)
