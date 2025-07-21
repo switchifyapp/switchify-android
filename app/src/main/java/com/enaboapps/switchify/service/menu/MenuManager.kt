@@ -200,6 +200,19 @@ class MenuManager {
     }
 
     /**
+     * This function replaces the current menu with a new menu with a delay
+     * @param menu The new menu to replace the current menu with
+     */
+    fun replaceCurrentMenu(menu: MenuView) {
+        menuHierarchy?.popMenu()
+        
+        // Wait 300ms before opening the new menu
+        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+            menuHierarchy?.openMenu(menu)
+        }, 300)
+    }
+
+    /**
      * This function closes the menu hierarchy
      */
     fun closeMenuHierarchy() {
