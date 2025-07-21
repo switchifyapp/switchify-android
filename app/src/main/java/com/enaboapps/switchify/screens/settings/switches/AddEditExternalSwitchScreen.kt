@@ -71,9 +71,13 @@ fun AddEditExternalSwitchScreen(navController: NavController, code: String? = nu
             titleResId = screenTitle,
             navController = navController
         ) {
-            SwitchName(name = addEditExternalSwitchScreenModel.name, onNameChange = {
-                addEditExternalSwitchScreenModel.updateName(it)
-            })
+            val isGenerating by addEditExternalSwitchScreenModel.isGeneratingName.observeAsState(false)
+            SwitchName(
+                name = addEditExternalSwitchScreenModel.name,
+                onNameChange = { addEditExternalSwitchScreenModel.updateName(it) },
+                onGenerateName = { addEditExternalSwitchScreenModel.generateAIName() },
+                isGenerating = isGenerating!!
+            )
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -200,23 +204,58 @@ fun SwitchListener(navController: NavController, onKeyEvent: (KeyEvent) -> Unit)
     }
 }
 
+private fun cleanAIResponse(rawResponse: String): String? {
+    val cleaned = rawResponse.trim()
+        .replace("[\"':.,-]".toRegex(), "")
+        .split("\\s+".toRegex()).first()
+        .replace("[^a-zA-Z0-9]".toRegex(), "")
+        .take(15)
+        
+    return if (cleaned.length >= 2) cleaned else null
+}
+
 @Composable
 fun SwitchName(
     name: String = "",
-    onNameChange: (String) -> Unit
+    onNameChange: (String) -> Unit,
+    onGenerateName: (() -> Unit)? = null,
+    isGenerating: Boolean = false
 ) {
-    var name by remember { mutableStateOf(name) }
+    var localName by remember { mutableStateOf(name) }
+    
+    // Update local state when external name changes (e.g., from AI generation)
+    LaunchedEffect(name) {
+        // Clean AI response if it looks like raw AI output
+        val cleanedName = if (name.contains(" ") || name.contains("\"") || name.contains(":")) {
+            cleanAIResponse(name) ?: name
+        } else {
+            name
+        }
+        localName = cleanedName
+    }
 
-    TextArea(
-        value = name,
-        onValueChange = {
-            name = it
-            onNameChange(it)
-        },
-        labelResId = R.string.label_switch_name,
-        isError = name.isBlank(),
-        supportingTextResId = R.string.error_switch_name_required
-    )
+    Column {
+        TextArea(
+            value = localName,
+            onValueChange = {
+                localName = it
+                onNameChange(it)
+            },
+            labelResId = R.string.label_switch_name,
+            isError = localName.isBlank(),
+            supportingTextResId = R.string.error_switch_name_required
+        )
+        
+        if (onGenerateName != null) {
+            Spacer(modifier = Modifier.padding(4.dp))
+            TextButton(
+                onClick = onGenerateName,
+                enabled = !isGenerating
+            ) {
+                Text(if (isGenerating) "Generating..." else "✨ Generate AI Name")
+            }
+        }
+    }
 }
 
 @Composable

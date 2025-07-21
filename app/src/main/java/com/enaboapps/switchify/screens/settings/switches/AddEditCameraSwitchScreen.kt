@@ -26,7 +26,8 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun AddEditCameraSwitchScreen(navController: NavController, code: String? = null) {
-    val viewModel = remember { AddEditCameraSwitchScreenModel().apply { init(code) } }
+    val context = LocalContext.current
+    val viewModel = remember { AddEditCameraSwitchScreenModel().apply { init(code, context) } }
 
     BaseView(
         titleResId = if (code == null) R.string.screen_title_add_switch else R.string.screen_title_edit_switch,
@@ -53,7 +54,9 @@ private fun MainContent(
         // Switch Name
         SwitchName(
             name = viewModel.name,
-            onNameChange = { viewModel.updateName(it) }
+            onNameChange = { viewModel.updateName(it) },
+            onGenerateName = { viewModel.generateAIName() },
+            isGenerating = viewModel.isGeneratingName.value
         )
 
         Spacer(modifier = Modifier.height(16.dp))

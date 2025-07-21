@@ -1,9 +1,9 @@
 package com.enaboapps.switchify.service.ai
 
-import android.content.Context
 import android.util.Log
 import com.google.firebase.Firebase
 import com.google.firebase.ai.ai
+import com.google.firebase.ai.type.GenerativeBackend
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.withTimeout
 
@@ -11,7 +11,7 @@ import kotlinx.coroutines.withTimeout
  * Manages Firebase AI Logic operations for accessibility features.
  * Provides AI-powered content descriptions, contextual help, and intelligent assistance.
  */
-class FirebaseAIManager(private val context: Context) {
+class FirebaseAIManager {
     
     companion object {
         private const val TAG = "FirebaseAIManager"
@@ -49,9 +49,10 @@ class FirebaseAIManager(private val context: Context) {
     
     private val model by lazy {
         try {
-            Firebase.ai.generativeModel(MODEL_NAME)
+            Firebase.ai(backend = GenerativeBackend.vertexAI())
+                .generativeModel(MODEL_NAME)
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to initialize Firebase AI model", e)
+            Log.e(TAG, "Failed to initialize Firebase AI model with Vertex AI backend", e)
             null
         }
     }
@@ -123,6 +124,35 @@ class FirebaseAIManager(private val context: Context) {
         return generateContent(prompt, AIResponseType.VOICE_COMMAND_RESPONSE)
     }
     
+    /**
+     * Generates an imaginative switch name based on input type
+     * @param inputType The input type (e.g., "Space", "Smile", "Left Wink")
+     * @return AIResponse with generated switch name or error
+     */
+    suspend fun generateSwitchName(inputType: String): AIResponse {
+        if (!isAvailable()) {
+            return AIResponse.error("Firebase AI is not available")
+        }
+        
+        val prompt = """
+            You must respond with ONLY the name, no explanations, no quotes, no other text.
+            
+            Create a creative, imaginative switch name inspired by: $inputType
+            
+            Requirements:
+            - 2-15 characters only
+            - Be creative and fun, not literal
+            - Use camelCase like "Zephyr", "Spark", "Dash"
+            - Examples: Zephyr, Spark, Flash, Bolt, Swift, Blaze, Nova, Echo
+            - Think of powerful, energetic, or elegant names
+            - Do not include quotes, periods, or explanations
+            
+            Return only the name:
+        """.trimIndent()
+        
+        return generateContent(prompt, AIResponseType.TEXT)
+    }
+
     /**
      * Generates general text content using AI
      * @param prompt The prompt to send to the AI
