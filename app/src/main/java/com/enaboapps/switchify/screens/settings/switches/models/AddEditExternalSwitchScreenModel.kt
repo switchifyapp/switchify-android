@@ -4,12 +4,14 @@ import android.content.Context
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import android.view.KeyEvent
 import android.widget.Toast
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.nativeKeyCode
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.enaboapps.switchify.service.ai.FirebaseAIManager
 import com.enaboapps.switchify.service.scanning.ScanSettings
 import com.enaboapps.switchify.switches.SWITCH_EVENT_TYPE_EXTERNAL
 import com.enaboapps.switchify.switches.SwitchAction
@@ -29,6 +31,7 @@ class AddEditExternalSwitchScreenModel : ViewModel() {
     private val store = SwitchEventStore.getInstance()
     private var code: String? = null
     private var isInitialized = false
+    private var aiManager: FirebaseAIManager? = null
 
     var name = ""
 
@@ -37,6 +40,7 @@ class AddEditExternalSwitchScreenModel : ViewModel() {
     val isValid = MutableLiveData(false)
     val allowLongPress = MutableLiveData(true)
     val refreshingLongPressActions = MutableLiveData(false)
+    val isGeneratingName = MutableLiveData(false)
 
     // Actions for press and long press
     val pressAction = MutableLiveData<SwitchAction>().apply {
@@ -46,6 +50,7 @@ class AddEditExternalSwitchScreenModel : ViewModel() {
 
     fun init(code: String?, context: Context) {
         this.code = code
+        aiManager = FirebaseAIManager()
 
         if (code != null) {
             reload(context)
@@ -100,6 +105,11 @@ class AddEditExternalSwitchScreenModel : ViewModel() {
         validateIfInitialized()
         shouldSave.value = true
         switchCaptured.value = true
+        
+        // Generate AI name if name is empty
+        if (name.isBlank()) {
+            generateAIName(key.nativeKeyCode, pressAction.value?.id)
+        }
     }
 
     fun addLongPressAction(action: SwitchAction) {
@@ -210,4 +220,75 @@ class AddEditExternalSwitchScreenModel : ViewModel() {
             }
         }
     }
+
+    fun generateAIName(keyCode: Int? = null, actionId: Int? = null) {
+        val currentKeyCode = keyCode ?: code?.toIntOrNull()
+        val currentActionId = actionId ?: pressAction.value?.id
+
+        if (currentKeyCode == null || aiManager?.isAvailable() != true) {
+            return
+        }
+
+        isGeneratingName.value = true
+        
+        viewModelScope.launch {
+            try {
+                val keyName = getKeyName(currentKeyCode)
+                
+                val response = aiManager?.generateSwitchName(keyName)
+                
+                if (response?.isSuccess == true && !response.content.isNullOrBlank()) {
+                    name = response.content
+                    validateIfInitialized()
+                    Log.d(TAG, "AI generated switch name: ${response.content}")
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error generating AI name", e)
+            } finally {
+                isGeneratingName.value = false
+            }
+        }
+    }
+
+    private fun getKeyName(keyCode: Int): String {
+        return when (keyCode) {
+            KeyEvent.KEYCODE_SPACE -> "Space"
+            KeyEvent.KEYCODE_ENTER -> "Enter"
+            KeyEvent.KEYCODE_TAB -> "Tab"
+            KeyEvent.KEYCODE_DPAD_UP -> "Up Arrow"
+            KeyEvent.KEYCODE_DPAD_DOWN -> "Down Arrow"
+            KeyEvent.KEYCODE_DPAD_LEFT -> "Left Arrow"
+            KeyEvent.KEYCODE_DPAD_RIGHT -> "Right Arrow"
+            KeyEvent.KEYCODE_BACK -> "Back"
+            KeyEvent.KEYCODE_ESCAPE -> "Escape"
+            KeyEvent.KEYCODE_A -> "A"
+            KeyEvent.KEYCODE_B -> "B"
+            KeyEvent.KEYCODE_C -> "C"
+            KeyEvent.KEYCODE_D -> "D"
+            KeyEvent.KEYCODE_E -> "E"
+            KeyEvent.KEYCODE_F -> "F"
+            KeyEvent.KEYCODE_G -> "G"
+            KeyEvent.KEYCODE_H -> "H"
+            KeyEvent.KEYCODE_I -> "I"
+            KeyEvent.KEYCODE_J -> "J"
+            KeyEvent.KEYCODE_K -> "K"
+            KeyEvent.KEYCODE_L -> "L"
+            KeyEvent.KEYCODE_M -> "M"
+            KeyEvent.KEYCODE_N -> "N"
+            KeyEvent.KEYCODE_O -> "O"
+            KeyEvent.KEYCODE_P -> "P"
+            KeyEvent.KEYCODE_Q -> "Q"
+            KeyEvent.KEYCODE_R -> "R"
+            KeyEvent.KEYCODE_S -> "S"
+            KeyEvent.KEYCODE_T -> "T"
+            KeyEvent.KEYCODE_U -> "U"
+            KeyEvent.KEYCODE_V -> "V"
+            KeyEvent.KEYCODE_W -> "W"
+            KeyEvent.KEYCODE_X -> "X"
+            KeyEvent.KEYCODE_Y -> "Y"
+            KeyEvent.KEYCODE_Z -> "Z"
+            else -> "Key $keyCode"
+        }
+    }
+
 }
