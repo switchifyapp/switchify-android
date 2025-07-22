@@ -8,6 +8,7 @@ import com.enaboapps.switchify.service.core.SwitchifyAccessibilityService
 import com.enaboapps.switchify.service.menu.MenuItem
 import com.enaboapps.switchify.service.menu.MenuManager
 import com.enaboapps.switchify.service.menu.structure.MenuStructure
+import com.enaboapps.switchify.service.screenshot.ScreenshotManager
 
 class SystemMenuStructure(private val accessibilityService: SwitchifyAccessibilityService?) {
     val systemNavItems = listOf(
@@ -69,6 +70,18 @@ class SystemMenuStructure(private val accessibilityService: SwitchifyAccessibili
                     id = "power_dialog",
                     textResource = R.string.system_power_dialog,
                     action = { GlobalActionManager.openPowerDialog() }
+                ),
+                MenuItem(
+                    id = "take_screenshot",
+                    textResource = R.string.system_screenshot,
+                    action = {
+                        accessibilityService?.let { service ->
+                            ScreenshotManager.takeScreenshotAndSave(
+                                accessibilityService = service,
+                                context = service.applicationContext
+                            )
+                        }
+                    }
                 ),
                 openVolumeControlMenu
             )
