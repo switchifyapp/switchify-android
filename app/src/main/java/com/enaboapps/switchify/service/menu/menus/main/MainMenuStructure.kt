@@ -31,11 +31,6 @@ class MainMenuStructure(private val accessibilityService: SwitchifyAccessibility
     val mainMenuObject = MenuStructure(
         id = "main_menu",
         items = listOfNotNull(
-            // AI-powered node suggestions (Pro feature)
-            if (preferenceManager.getBooleanValue(PreferenceManager.Keys.PREFERENCE_KEY_AI_SUGGESTIONS_ENABLED) && 
-                IAPHandler.hasPurchasedPro()) {
-                AIMenuStructure.createAIMenuItem(accessibilityService)
-            } else null,
             // Show "Scan Keyboard" menu item when keyboard is visible but user has escaped
             if (KeyboardManager.shouldShowScanKeyboardMenuItem()) {
                 MenuItem(
@@ -60,6 +55,11 @@ class MainMenuStructure(private val accessibilityService: SwitchifyAccessibility
                 isLinkToMenu = true,
                 action = { MenuManager.getInstance().openScrollMenu() }
             ),
+            // AI-powered node suggestions (Pro feature)
+            if (preferenceManager.getBooleanValue(PreferenceManager.Keys.PREFERENCE_KEY_AI_SUGGESTIONS_ENABLED) && 
+                IAPHandler.hasPurchasedPro()) {
+                AIMenuStructure.createAIMenuItem(accessibilityService)
+            } else null,
             if (deviceLockObserver.isUserUnlocked() == true) {
                 MenuItem(
                     id = "quick_apps",
