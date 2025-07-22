@@ -196,6 +196,22 @@ class Node(
         this.onSelect = onSelect
     }
 
+    /**
+     * Returns the class name of the accessibility node (e.g., "android.widget.Button")
+     * @return The class name string, or null if not available
+     */
+    fun getClassName(): String? {
+        return nodeInfo?.className?.toString()
+    }
+
+    /**
+     * Returns the simplified element type (e.g., "Button" instead of "android.widget.Button")
+     * @return The simplified element type, or null if not available
+     */
+    fun getElementType(): String? {
+        return getClassName()?.substringAfterLast('.')
+    }
+
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
