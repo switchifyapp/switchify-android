@@ -34,6 +34,12 @@ class SettingsScreenModel(context: Context) : ViewModel() {
     }
     val assistedSelection: LiveData<Boolean> = _assistedSelection
 
+    private val _aiSuggestionsEnabled = MutableLiveData<Boolean>().apply {
+        value =
+            preferenceManager.getBooleanValue(PreferenceManager.Keys.PREFERENCE_KEY_AI_SUGGESTIONS_ENABLED)
+    }
+    val aiSuggestionsEnabled: LiveData<Boolean> = _aiSuggestionsEnabled
+
     private val _menuTransparency = MutableLiveData<Boolean>().apply {
         value =
             preferenceManager.getBooleanValue(PreferenceManager.Keys.PREFERENCE_KEY_MENU_TRANSPARENCY)
@@ -85,6 +91,16 @@ class SettingsScreenModel(context: Context) : ViewModel() {
                 assistedSelection
             )
             _assistedSelection.postValue(assistedSelection)
+        }
+    }
+
+    fun setAiSuggestionsEnabled(value: Boolean) {
+        viewModelScope.launch {
+            preferenceManager.setBooleanValue(
+                PreferenceManager.Keys.PREFERENCE_KEY_AI_SUGGESTIONS_ENABLED,
+                value
+            )
+            _aiSuggestionsEnabled.postValue(value)
         }
     }
 
