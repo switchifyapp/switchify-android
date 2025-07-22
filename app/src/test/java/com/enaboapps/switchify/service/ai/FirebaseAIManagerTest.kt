@@ -27,13 +27,12 @@ class FirebaseAIManagerTest {
     }
 
     @Test
-    fun `FirebaseAIManager constructor requires Context parameter`() {
+    fun `FirebaseAIManager constructor requires no parameters`() {
         val constructors = FirebaseAIManager::class.java.constructors
         assertEquals("Should have one constructor", 1, constructors.size)
         
         val constructor = constructors[0]
-        assertEquals("Constructor should take one parameter", 1, constructor.parameterCount)
-        assertEquals("Constructor parameter should be Context", "android.content.Context", constructor.parameterTypes[0].name)
+        assertEquals("Constructor should take no parameters", 0, constructor.parameterCount)
     }
 
     @Test

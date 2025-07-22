@@ -15,7 +15,7 @@ class FirebaseAIManager {
     
     companion object {
         private const val TAG = "FirebaseAIManager"
-        private const val MODEL_NAME = "gemini-2.0-flash"
+        private const val MODEL_NAME = "gemini-2.5-flash-lite-preview-06-17"
         private const val DEFAULT_TIMEOUT_MS = 30_000L
         private const val MAX_PROMPT_LENGTH = 8000
         
