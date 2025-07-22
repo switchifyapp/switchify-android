@@ -171,6 +171,15 @@ private fun GesturesSettingsSection(navController: NavController) {
 private fun MenuSection(screenModel: SettingsScreenModel) {
     Section(titleResId = R.string.settings_section_menu) {
         PreferenceSwitch(
+            titleResId = R.string.settings_title_ai_suggestions,
+            summaryResId = R.string.settings_summary_ai_suggestions,
+            isRestrictedToPro = true,
+            checked = screenModel.aiSuggestionsEnabled.value == true,
+            onCheckedChange = {
+                screenModel.setAiSuggestionsEnabled(it)
+            }
+        )
+        PreferenceSwitch(
             titleResId = R.string.settings_title_menu_transparency,
             summaryResId = R.string.settings_summary_menu_transparency,
             checked = screenModel.menuTransparency.value == true,

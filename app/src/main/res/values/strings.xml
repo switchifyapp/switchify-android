@@ -604,4 +604,8 @@
     <string name="ai_menu_no_elements">No interactive elements found</string>
     <string name="ai_menu_no_suggestions">No suggestions available</string>
     <string name="ai_menu_error">Analysis failed</string>
+    
+    <!-- AI Settings Strings -->
+    <string name="settings_title_ai_suggestions">AI Smart Suggestions</string>
+    <string name="settings_summary_ai_suggestions">Use AI to analyze and rank the most important screen elements</string>
 </resources>
