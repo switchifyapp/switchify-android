@@ -55,8 +55,9 @@ class MainMenuStructure(private val accessibilityService: SwitchifyAccessibility
                 isLinkToMenu = true,
                 action = { MenuManager.getInstance().openScrollMenu() }
             ),
-            // AI-powered node suggestions (Pro feature)
-            if (preferenceManager.getBooleanValue(PreferenceManager.Keys.PREFERENCE_KEY_AI_SUGGESTIONS_ENABLED) && 
+            // AI-powered node suggestions (Pro feature, unlocked device only)
+            if (deviceLockObserver.isUserUnlocked() == true &&
+                preferenceManager.getBooleanValue(PreferenceManager.Keys.PREFERENCE_KEY_AI_SUGGESTIONS_ENABLED) && 
                 IAPHandler.hasPurchasedPro()) {
                 AIMenuStructure.createAIMenuItem(accessibilityService)
             } else null,
