@@ -170,13 +170,12 @@ object AINodeRanker {
 
     /**
      * Fallback ranking system when AI is unavailable
-     * Uses heuristics to rank nodes by importance
+     * Uses element types and heuristics to rank nodes by importance
      */
     private fun fallbackRanking(nodes: List<Node>): List<RankedNode> {
         return nodes.map { node ->
-            val description = node.getContentDescription().lowercase()
-            val score = calculateFallbackScore(description)
-            val reasoning = getFallbackReasoning(description, score)
+            val score = calculateFallbackScore(node)
+            val reasoning = getFallbackReasoning(node, score)
             
             RankedNode(node = node, score = score, reasoning = reasoning)
         }
@@ -185,9 +184,31 @@ object AINodeRanker {
     }
 
     /**
-     * Calculates fallback score based on content description keywords
+     * Calculates fallback score based on element type and content description
      */
-    private fun calculateFallbackScore(description: String): Int {
+    private fun calculateFallbackScore(node: Node): Int {
+        val elementType = node.getElementType()
+        val description = node.getContentDescription().lowercase()
+        
+        // Primary scoring based on actual element type
+        val typeScore = when (elementType) {
+            "Button", "ImageButton" -> 9
+            "EditText", "AutoCompleteTextView" -> 8
+            "Spinner", "RadioButton", "CheckBox" -> 7
+            "ToggleButton", "Switch" -> 6
+            "TextView" -> if (description.contains("link") || description.contains("clickable")) 5 else 3
+            "ImageView" -> if (description.contains("button") || description.contains("clickable")) 4 else 2
+            else -> null // Use content-based fallback
+        }
+        
+        // Return element type score if available, otherwise use legacy keyword matching
+        return typeScore ?: calculateLegacyScore(description)
+    }
+    
+    /**
+     * Legacy content description-based scoring for unknown element types
+     */
+    private fun calculateLegacyScore(description: String): Int {
         return when {
             // High priority interactive elements
             description.contains("button") || 
@@ -231,18 +252,31 @@ object AINodeRanker {
     }
 
     /**
-     * Provides reasoning for fallback scoring
+     * Provides reasoning for fallback scoring based on element type and score
      */
-    private fun getFallbackReasoning(description: String, score: Int): String {
-        return when (score) {
-            9 -> "High priority action element"
-            8 -> "Interactive input element"
-            7 -> "Navigation element"
-            6 -> "Action element"
-            5 -> "Selectable content"
-            3 -> "Text content"
-            2 -> "Decorative element"
-            else -> "General UI element"
+    private fun getFallbackReasoning(node: Node, score: Int): String {
+        val elementType = node.getElementType()
+        
+        return when {
+            elementType != null -> when (elementType) {
+                "Button", "ImageButton" -> "$elementType - primary action element"
+                "EditText", "AutoCompleteTextView" -> "$elementType - input field for data entry"
+                "Spinner", "RadioButton", "CheckBox" -> "$elementType - selection control"
+                "ToggleButton", "Switch" -> "$elementType - toggle control"
+                "TextView" -> "$elementType - text display element"
+                "ImageView" -> "$elementType - visual content"
+                else -> "$elementType - UI element"
+            }
+            else -> when (score) {
+                9 -> "High priority action element"
+                8 -> "Interactive input element"
+                7 -> "Navigation element"
+                6 -> "Action element"
+                5 -> "Selectable content"
+                3 -> "Text content"
+                2 -> "Decorative element"
+                else -> "General UI element"
+            }
         }
     }
 }
