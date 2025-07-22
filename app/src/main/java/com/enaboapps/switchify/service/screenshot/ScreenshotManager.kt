@@ -12,7 +12,9 @@ import android.provider.MediaStore
 import android.util.Log
 import android.view.Display
 import androidx.annotation.RequiresApi
+import com.enaboapps.switchify.R
 import com.enaboapps.switchify.service.core.SwitchifyAccessibilityService
+import com.enaboapps.switchify.service.window.ServiceMessageHUD
 import java.io.IOException
 
 /**
@@ -222,10 +224,20 @@ object ScreenshotManager {
                 
                 override fun onScreenshotSaved(uri: Uri?) {
                     Log.d(TAG, "Screenshot saved successfully to: $uri")
+                    ServiceMessageHUD.instance.showMessage(
+                        R.string.screenshot_saved_to_gallery,
+                        ServiceMessageHUD.MessageType.DISAPPEARING,
+                        ServiceMessageHUD.Time.SHORT
+                    )
                 }
                 
                 override fun onScreenshotFailed(error: String) {
                     Log.e(TAG, "Screenshot failed: $error")
+                    ServiceMessageHUD.instance.showMessage(
+                        R.string.screenshot_failed_to_save,
+                        ServiceMessageHUD.MessageType.DISAPPEARING,
+                        ServiceMessageHUD.Time.SHORT
+                    )
                 }
             }
         )

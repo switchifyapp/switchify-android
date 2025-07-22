@@ -609,4 +609,8 @@
     <!-- AI Settings Strings -->
     <string name="settings_title_ai_suggestions">AI Smart Suggestions</string>
     <string name="settings_summary_ai_suggestions">Use AI to analyze and rank the most important screen elements</string>
+
+    <!-- Screenshot HUD Messages -->
+    <string name="screenshot_saved_to_gallery">Screenshot saved to gallery</string>
+    <string name="screenshot_failed_to_save">Failed to save screenshot</string>
 </resources>
