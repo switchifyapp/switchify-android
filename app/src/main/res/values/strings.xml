@@ -170,6 +170,7 @@
     <string name="system_gesture_lock_desc">Toggle the gesture lock</string>
     <string name="system_power_dialog">Power Dialog</string>
     <string name="system_assistant">Open Assistant</string>
+    <string name="system_screenshot">Take Screenshot</string>
 
     <!-- Media Actions -->
     <string name="action_volume_control">Volume Control</string>
