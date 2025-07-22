@@ -71,7 +71,8 @@ object AINodeRanker {
         nodes: List<Node>
     ): List<RankedNode> {
         val nodeDescriptions = nodes.mapIndexed { index, node ->
-            "${index + 1}. ${node.getContentDescription()}"
+            val elementType = node.getElementType() ?: "Unknown"
+            "${index + 1}. [$elementType] ${node.getContentDescription()}"
         }.joinToString("\n")
 
         val prompt = """
@@ -86,6 +87,7 @@ object AINodeRanker {
             - Interact with elements that will advance their workflow
             
             UI Elements to Analyze:
+            Each element is shown as: [ElementType] Description
             $nodeDescriptions
 
             Please rank each element by how valuable it would be for a user with motor disabilities who wants to accomplish their primary task on this screen.
@@ -93,7 +95,15 @@ object AINodeRanker {
             Scoring System:
             Assign a numerical score based on importance for users with motor disabilities. Use any number that reflects the element's value - higher numbers = more important.
 
-            Element Priority Guidelines:
+            Element Type Priorities:
+            - Button, ImageButton: Usually high priority actions (70-100+)
+            - EditText, AutoCompleteTextView: Essential for data input (60-90)
+            - Spinner, RadioButton, CheckBox: Important selections (50-80)
+            - TextView: Variable priority based on content (10-60)
+            - ImageView: Usually decorative unless clickable (5-40)
+            - Unknown: Evaluate based on description (10-70)
+
+            Content-Based Priorities:
             - Primary actions (Submit, Send, Buy, Save, Login): Very high scores (80-100+)
             - Input fields, search boxes: High scores (60-80)
             - Important navigation: High scores (60-80) 
@@ -111,9 +121,10 @@ object AINodeRanker {
             [number]: [score] - [brief reason focusing on user benefit]
 
             Example:
-            1: 95 - Submit button completes main task efficiently
-            2: 70 - Email input field required for account creation
-            3: 5 - Company logo, decorative only
+            1: 95 - [Button] Submit - completes main task efficiently
+            2: 70 - [EditText] Email input field - required for account creation
+            3: 15 - [TextView] Terms of service link - secondary information
+            4: 5 - [ImageView] Company logo - decorative only
         """.trimIndent()
 
         val response = aiManager.generateText(prompt)
