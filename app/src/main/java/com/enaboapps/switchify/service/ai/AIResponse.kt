@@ -16,9 +16,6 @@ data class AIResponse(
         
         fun error(message: String) = 
             AIResponse(isSuccess = false, errorMessage = message)
-        
-        fun empty() = 
-            AIResponse(isSuccess = true, content = null)
     }
 }
 
@@ -27,10 +24,7 @@ data class AIResponse(
  */
 enum class AIResponseType {
     TEXT,
-    CONTENT_DESCRIPTION,
     CONTEXTUAL_HELP,
-    VOICE_COMMAND_RESPONSE,
-    APP_SUGGESTION,
     VISUAL_ANALYSIS,
     SCREEN_DESCRIPTION,
     ELEMENT_IDENTIFICATION
