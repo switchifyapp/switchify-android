@@ -13,8 +13,13 @@ import android.util.Log
 import android.view.Display
 import androidx.annotation.RequiresApi
 import com.enaboapps.switchify.R
+import com.enaboapps.switchify.service.ai.AIResponse
+import com.enaboapps.switchify.service.ai.FirebaseAIManager
 import com.enaboapps.switchify.service.core.SwitchifyAccessibilityService
 import com.enaboapps.switchify.service.window.ServiceMessageHUD
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import java.io.IOException
 
 /**
@@ -33,6 +38,15 @@ object ScreenshotManager {
         fun onScreenshotSaved(uri: Uri?)
         fun onScreenshotFailed(error: String)
         fun onCountdownTick(remainingSeconds: Int) {}
+    }
+
+    /**
+     * Enhanced callback interface for AI-powered screenshot analysis
+     */
+    interface AIScreenshotCallback : ScreenshotCallback {
+        fun onScreenshotAnalysisStarted()
+        fun onScreenshotAnalysisComplete(response: AIResponse)
+        fun onScreenshotAnalysisFailed(error: String)
     }
     
     /**
@@ -238,6 +252,215 @@ object ScreenshotManager {
                         ServiceMessageHUD.MessageType.DISAPPEARING,
                         ServiceMessageHUD.Time.SHORT
                     )
+                }
+            }
+        )
+    }
+
+    /**
+     * Takes screenshot and analyzes it with AI for accessibility assistance
+     * @param accessibilityService The accessibility service instance
+     * @param context Application context
+     * @param aiManager The Firebase AI manager instance
+     * @param delayMs Delay before taking screenshot
+     * @param saveToGallery Whether to save to gallery
+     * @param callback Callback for handling results and AI analysis
+     */
+    fun takeScreenshotWithAIAnalysis(
+        accessibilityService: SwitchifyAccessibilityService,
+        context: Context,
+        aiManager: FirebaseAIManager,
+        delayMs: Long = DEFAULT_DELAY_MS,
+        saveToGallery: Boolean = false,
+        callback: AIScreenshotCallback
+    ) {
+        takeScreenshotWithDelay(
+            accessibilityService = accessibilityService,
+            context = context,
+            delayMs = delayMs,
+            saveToGallery = saveToGallery,
+            callback = object : ScreenshotCallback {
+                override fun onScreenshotTaken(bitmap: Bitmap, timestamp: Long) {
+                    callback.onScreenshotTaken(bitmap, timestamp)
+                    
+                    // Start AI analysis
+                    callback.onScreenshotAnalysisStarted()
+                    CoroutineScope(Dispatchers.IO).launch {
+                        try {
+                            val response = aiManager.analyzeScreenshot(bitmap)
+                            callback.onScreenshotAnalysisComplete(response)
+                        } catch (e: Exception) {
+                            Log.e(TAG, "AI analysis failed", e)
+                            callback.onScreenshotAnalysisFailed("AI analysis failed: ${e.message}")
+                        }
+                    }
+                }
+
+                override fun onScreenshotSaved(uri: Uri?) {
+                    callback.onScreenshotSaved(uri)
+                }
+
+                override fun onScreenshotFailed(error: String) {
+                    callback.onScreenshotFailed(error)
+                }
+
+                override fun onCountdownTick(remainingSeconds: Int) {
+                    callback.onCountdownTick(remainingSeconds)
+                }
+            }
+        )
+    }
+
+    /**
+     * Takes screenshot and provides screen description for visually impaired users
+     * @param accessibilityService The accessibility service instance
+     * @param context Application context
+     * @param aiManager The Firebase AI manager instance
+     * @param delayMs Delay before taking screenshot
+     * @param callback Callback for handling results
+     */
+    fun takeScreenshotWithDescription(
+        accessibilityService: SwitchifyAccessibilityService,
+        context: Context,
+        aiManager: FirebaseAIManager,
+        delayMs: Long = DEFAULT_DELAY_MS,
+        callback: AIScreenshotCallback
+    ) {
+        takeScreenshotWithDelay(
+            accessibilityService = accessibilityService,
+            context = context,
+            delayMs = delayMs,
+            saveToGallery = false,
+            callback = object : ScreenshotCallback {
+                override fun onScreenshotTaken(bitmap: Bitmap, timestamp: Long) {
+                    callback.onScreenshotTaken(bitmap, timestamp)
+                    
+                    callback.onScreenshotAnalysisStarted()
+                    CoroutineScope(Dispatchers.IO).launch {
+                        try {
+                            val response = aiManager.describeScreen(bitmap)
+                            callback.onScreenshotAnalysisComplete(response)
+                        } catch (e: Exception) {
+                            Log.e(TAG, "Screen description failed", e)
+                            callback.onScreenshotAnalysisFailed("Screen description failed: ${e.message}")
+                        }
+                    }
+                }
+
+                override fun onScreenshotSaved(uri: Uri?) {
+                    callback.onScreenshotSaved(uri)
+                }
+
+                override fun onScreenshotFailed(error: String) {
+                    callback.onScreenshotFailed(error)
+                }
+
+                override fun onCountdownTick(remainingSeconds: Int) {
+                    callback.onCountdownTick(remainingSeconds)
+                }
+            }
+        )
+    }
+
+    /**
+     * Takes screenshot and identifies interactive elements for switch navigation
+     * @param accessibilityService The accessibility service instance
+     * @param context Application context
+     * @param aiManager The Firebase AI manager instance
+     * @param delayMs Delay before taking screenshot
+     * @param callback Callback for handling results
+     */
+    fun takeScreenshotWithElementIdentification(
+        accessibilityService: SwitchifyAccessibilityService,
+        context: Context,
+        aiManager: FirebaseAIManager,
+        delayMs: Long = DEFAULT_DELAY_MS,
+        callback: AIScreenshotCallback
+    ) {
+        takeScreenshotWithDelay(
+            accessibilityService = accessibilityService,
+            context = context,
+            delayMs = delayMs,
+            saveToGallery = false,
+            callback = object : ScreenshotCallback {
+                override fun onScreenshotTaken(bitmap: Bitmap, timestamp: Long) {
+                    callback.onScreenshotTaken(bitmap, timestamp)
+                    
+                    callback.onScreenshotAnalysisStarted()
+                    CoroutineScope(Dispatchers.IO).launch {
+                        try {
+                            val response = aiManager.identifyElements(bitmap)
+                            callback.onScreenshotAnalysisComplete(response)
+                        } catch (e: Exception) {
+                            Log.e(TAG, "Element identification failed", e)
+                            callback.onScreenshotAnalysisFailed("Element identification failed: ${e.message}")
+                        }
+                    }
+                }
+
+                override fun onScreenshotSaved(uri: Uri?) {
+                    callback.onScreenshotSaved(uri)
+                }
+
+                override fun onScreenshotFailed(error: String) {
+                    callback.onScreenshotFailed(error)
+                }
+
+                override fun onCountdownTick(remainingSeconds: Int) {
+                    callback.onCountdownTick(remainingSeconds)
+                }
+            }
+        )
+    }
+
+    /**
+     * Takes screenshot and provides contextual help with visual analysis
+     * @param accessibilityService The accessibility service instance
+     * @param context Application context
+     * @param aiManager The Firebase AI manager instance
+     * @param userQuery Optional specific question from user
+     * @param delayMs Delay before taking screenshot
+     * @param callback Callback for handling results
+     */
+    fun takeScreenshotWithVisualHelp(
+        accessibilityService: SwitchifyAccessibilityService,
+        context: Context,
+        aiManager: FirebaseAIManager,
+        userQuery: String? = null,
+        delayMs: Long = DEFAULT_DELAY_MS,
+        callback: AIScreenshotCallback
+    ) {
+        takeScreenshotWithDelay(
+            accessibilityService = accessibilityService,
+            context = context,
+            delayMs = delayMs,
+            saveToGallery = false,
+            callback = object : ScreenshotCallback {
+                override fun onScreenshotTaken(bitmap: Bitmap, timestamp: Long) {
+                    callback.onScreenshotTaken(bitmap, timestamp)
+                    
+                    callback.onScreenshotAnalysisStarted()
+                    CoroutineScope(Dispatchers.IO).launch {
+                        try {
+                            val response = aiManager.getVisualContextualHelp(bitmap, userQuery)
+                            callback.onScreenshotAnalysisComplete(response)
+                        } catch (e: Exception) {
+                            Log.e(TAG, "Visual contextual help failed", e)
+                            callback.onScreenshotAnalysisFailed("Visual contextual help failed: ${e.message}")
+                        }
+                    }
+                }
+
+                override fun onScreenshotSaved(uri: Uri?) {
+                    callback.onScreenshotSaved(uri)
+                }
+
+                override fun onScreenshotFailed(error: String) {
+                    callback.onScreenshotFailed(error)
+                }
+
+                override fun onCountdownTick(remainingSeconds: Int) {
+                    callback.onCountdownTick(remainingSeconds)
                 }
             }
         )
