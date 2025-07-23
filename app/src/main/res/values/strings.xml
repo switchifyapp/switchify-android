@@ -373,6 +373,7 @@
     <string name="settings_summary_gesture_settings">Configure gesture settings</string>
 
     <!-- Settings - Menu Section -->
+    <string name="settings_section_ai">AI</string>
     <string name="settings_section_menu">Menu</string>
     <string name="settings_title_menu_transparency">Menu Transparency</string>
     <string name="settings_summary_menu_transparency">Enable transparency for the menu so that you can see content behind it</string>

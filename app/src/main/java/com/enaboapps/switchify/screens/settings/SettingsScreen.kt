@@ -104,6 +104,7 @@ fun GeneralSettingsTab(settingsScreenModel: SettingsScreenModel, navController: 
             )
         }
         GesturesSettingsSection(navController)
+        AISection(settingsScreenModel)
         MenuSection(settingsScreenModel)
     }
 }
@@ -168,8 +169,8 @@ private fun GesturesSettingsSection(navController: NavController) {
 }
 
 @Composable
-private fun MenuSection(screenModel: SettingsScreenModel) {
-    Section(titleResId = R.string.settings_section_menu) {
+private fun AISection(screenModel: SettingsScreenModel) {
+    Section(titleResId = R.string.settings_section_ai) {
         PreferenceSwitch(
             titleResId = R.string.settings_title_ai_suggestions,
             summaryResId = R.string.settings_summary_ai_suggestions,
@@ -188,6 +189,12 @@ private fun MenuSection(screenModel: SettingsScreenModel) {
                 screenModel.setAiVisualAnalysisEnabled(it)
             }
         )
+    }
+}
+
+@Composable
+private fun MenuSection(screenModel: SettingsScreenModel) {
+    Section(titleResId = R.string.settings_section_menu) {
         PreferenceSwitch(
             titleResId = R.string.settings_title_menu_transparency,
             summaryResId = R.string.settings_summary_menu_transparency,
