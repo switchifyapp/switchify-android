@@ -9,8 +9,8 @@ import com.enaboapps.switchify.service.menu.menus.BaseMenu
 class LoadingMenu(
     private val accessibilityService: SwitchifyAccessibilityService,
     private val loadingTextResource: Int,
-    showSystemNavItems: Boolean = true,
-    showNavMenuItems: Boolean = true
+    showSystemNavItems: Boolean = false,
+    showNavMenuItems: Boolean = false
 ) {
 
     private val baseMenu: BaseMenu
