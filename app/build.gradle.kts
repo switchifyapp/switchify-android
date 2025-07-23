@@ -122,7 +122,7 @@ dependencies {
     implementation(libs.firebase.analytics)
     implementation(libs.firebase.auth)
     implementation(libs.firebase.crashlytics)
-    implementation(libs.firebase.firestore.ktx)
+    implementation(libs.firebase.firestore)
     implementation(libs.firebase.ai)
     implementation(libs.gson)
     implementation(libs.androidx.material3.android)
