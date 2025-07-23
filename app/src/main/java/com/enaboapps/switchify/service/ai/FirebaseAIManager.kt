@@ -10,6 +10,7 @@ import com.google.firebase.ai.type.ImagePart
 import com.google.firebase.ai.type.TextPart
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.withTimeout
+import org.json.JSONObject
 
 /**
  * Manages Firebase AI Logic operations for accessibility features.
@@ -214,6 +215,37 @@ class FirebaseAIManager {
     }
 
     /**
+     * Validates if a string is valid JSON
+     */
+    private fun isValidJson(jsonString: String): Boolean {
+        return try {
+            JSONObject(jsonString)
+            true
+        } catch (e: Exception) {
+            false
+        }
+    }
+    
+    /**
+     * Validates AI response based on response type requirements
+     */
+    private fun validateResponse(text: String, responseType: AIResponseType): String? {
+        return when (responseType) {
+            AIResponseType.TEXT -> {
+                // For node ranking requests, expect JSON format
+                if (text.contains("rankings") || text.contains("index")) {
+                    if (!isValidJson(text)) {
+                        Log.w(TAG, "Expected JSON response but received invalid JSON")
+                        return "AI response format validation failed - expected valid JSON"
+                    }
+                }
+                null // Valid
+            }
+            else -> null // Other types don't require JSON validation
+        }
+    }
+
+    /**
      * Core content generation method with error handling and timeout
      */
     private suspend fun generateContent(prompt: String, responseType: AIResponseType): AIResponse {
@@ -230,8 +262,15 @@ class FirebaseAIManager {
                     Log.w(TAG, "AI returned empty response")
                     AIResponse.error("AI returned empty response")
                 } else {
-                    Log.d(TAG, "AI response generated successfully, length: ${text.length}")
-                    AIResponse.success(text.trim(), responseType)
+                    // Validate response format if required
+                    val validationError = validateResponse(text, responseType)
+                    if (validationError != null) {
+                        Log.e(TAG, "Response validation failed: $validationError")
+                        AIResponse.error(validationError)
+                    } else {
+                        Log.d(TAG, "AI response generated successfully, length: ${text.length}")
+                        AIResponse.success(text.trim(), responseType)
+                    }
                 }
             }
         } catch (e: TimeoutCancellationException) {
@@ -275,8 +314,15 @@ class FirebaseAIManager {
                     Log.w(TAG, "AI returned empty response for multimodal content")
                     AIResponse.error("AI returned empty response")
                 } else {
-                    Log.d(TAG, "Multimodal AI response generated successfully, length: ${text.length}")
-                    AIResponse.success(text.trim(), responseType)
+                    // Validate response format if required
+                    val validationError = validateResponse(text, responseType)
+                    if (validationError != null) {
+                        Log.e(TAG, "Multimodal response validation failed: $validationError")
+                        AIResponse.error(validationError)
+                    } else {
+                        Log.d(TAG, "Multimodal AI response generated successfully, length: ${text.length}")
+                        AIResponse.success(text.trim(), responseType)
+                    }
                 }
             }
         } catch (e: TimeoutCancellationException) {
