@@ -170,25 +170,33 @@ private fun GesturesSettingsSection(navController: NavController) {
 
 @Composable
 private fun AISection(screenModel: SettingsScreenModel) {
+    val aiSuggestionsEnabled by screenModel.aiSuggestionsEnabled.observeAsState()
     Section(titleResId = R.string.settings_section_ai) {
         PreferenceSwitch(
             titleResId = R.string.settings_title_ai_suggestions,
             summaryResId = R.string.settings_summary_ai_suggestions,
             isRestrictedToPro = true,
-            checked = screenModel.aiSuggestionsEnabled.value == true,
+            checked = aiSuggestionsEnabled == true,
             onCheckedChange = {
                 screenModel.setAiSuggestionsEnabled(it)
+                // Disable visual analysis when smart suggestions is turned off
+                if (!it) {
+                    screenModel.setAiVisualAnalysisEnabled(false)
+                }
             }
         )
-        PreferenceSwitch(
-            titleResId = R.string.settings_title_ai_visual_analysis,
-            summaryResId = R.string.settings_summary_ai_visual_analysis,
-            isRestrictedToPro = true,
-            checked = screenModel.aiVisualAnalysisEnabled.value == true,
-            onCheckedChange = {
-                screenModel.setAiVisualAnalysisEnabled(it)
-            }
-        )
+        // Only show Visual Analysis setting when Smart Suggestions is enabled
+        if (aiSuggestionsEnabled == true) {
+            PreferenceSwitch(
+                titleResId = R.string.settings_title_ai_visual_analysis,
+                summaryResId = R.string.settings_summary_ai_visual_analysis,
+                isRestrictedToPro = true,
+                checked = screenModel.aiVisualAnalysisEnabled.value == true,
+                onCheckedChange = {
+                    screenModel.setAiVisualAnalysisEnabled(it)
+                }
+            )
+        }
     }
 }
 
