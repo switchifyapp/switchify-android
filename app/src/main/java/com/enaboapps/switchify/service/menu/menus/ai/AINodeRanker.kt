@@ -1,5 +1,6 @@
 package com.enaboapps.switchify.service.menu.menus.ai
 
+import android.graphics.Bitmap
 import android.util.Log
 import com.enaboapps.switchify.service.ai.FirebaseAIManager
 import com.enaboapps.switchify.service.techniques.nodes.Node
@@ -288,6 +289,135 @@ object AINodeRanker {
                 2 -> "Decorative element"
                 else -> "General UI element"
             }
+        }
+    }
+
+    /**
+     * Enhanced node ranking with visual context from screenshot
+     * @param nodes The list of nodes to analyze and rank
+     * @param screenshot Screenshot of the current screen for visual context
+     * @param additionalContext Optional additional context about the current screen
+     * @return List of ranked nodes sorted by importance (highest first)
+     */
+    suspend fun rankNodesWithVisualContext(
+        nodes: List<Node>,
+        screenshot: Bitmap,
+        additionalContext: String? = null
+    ): List<RankedNode> {
+        if (nodes.isEmpty()) {
+            Log.d(TAG, "No nodes to rank")
+            return emptyList()
+        }
+
+        // Filter and limit nodes for analysis
+        val nodesToAnalyze = nodes
+            .filter { it.getContentDescription().isNotBlank() }
+            .take(MAX_NODES_TO_ANALYZE)
+
+        if (nodesToAnalyze.isEmpty()) {
+            Log.d(TAG, "No nodes with content descriptions found")
+            return emptyList()
+        }
+
+        Log.d(TAG, "Analyzing ${nodesToAnalyze.size} nodes with AI and visual context")
+
+        return try {
+            val aiManager = FirebaseAIManager()
+            
+            if (!aiManager.isAvailable()) {
+                Log.w(TAG, "Firebase AI not available, using fallback ranking")
+                return fallbackRanking(nodesToAnalyze)
+            }
+
+            val rankedNodes = analyzeNodesWithVisualAI(aiManager, nodesToAnalyze, screenshot, additionalContext)
+            Log.d(TAG, "AI visual analysis complete, ranked ${rankedNodes.size} nodes")
+            rankedNodes
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "Error during AI visual ranking, falling back to basic ranking", e)
+            fallbackRanking(nodesToAnalyze)
+        }
+    }
+
+    /**
+     * Analyzes nodes using Firebase AI with visual context to determine importance ranking
+     */
+    private suspend fun analyzeNodesWithVisualAI(
+        aiManager: FirebaseAIManager,
+        nodes: List<Node>,
+        screenshot: Bitmap,
+        additionalContext: String?
+    ): List<RankedNode> {
+        val nodeDescriptions = nodes.mapIndexed { index, node ->
+            val elementType = node.getElementType() ?: "Unknown"
+            "${index + 1}. [$elementType] ${node.getContentDescription()}"
+        }.joinToString("\n")
+
+        val contextualInfo = if (additionalContext?.isNotBlank() == true) {
+            "\n\nAdditional Context: $additionalContext"
+        } else ""
+
+        val prompt = """
+            You are helping users with motor disabilities who use adaptive switches to control their Android device. These users navigate by selecting from a menu of the most important interactive elements on screen.
+            
+            I'm showing you a screenshot of the current screen along with accessibility information about interactive elements. Your task is to rank these elements by importance for users with motor disabilities.
+            
+            Context: This is an accessibility app called Switchify that helps users with limited mobility control their device using switches. Users cannot easily scan through many elements, so they need the most important actionable items prioritized for them.
+            
+            User Goals:
+            - Complete common tasks (submit forms, make purchases, send messages)  
+            - Navigate efficiently through apps
+            - Access primary actions without scrolling through many options
+            - Interact with elements that will advance their workflow$contextualInfo
+            
+            UI Elements to Analyze:
+            Each element is shown as: [ElementType] Description
+            $nodeDescriptions
+
+            Please analyze the screenshot to understand the visual context and layout, then rank each element by how valuable it would be for a user with motor disabilities who wants to accomplish their primary task on this screen.
+
+            Consider both the visual layout and the element descriptions. Look for:
+            - Primary call-to-action buttons that are visually prominent
+            - Input fields that are part of main workflows
+            - Navigation elements that lead to important sections
+            - Elements that are visually emphasized or centrally placed
+            - The overall purpose and context of the screen
+
+            Scoring System:
+            Assign a numerical score based on importance for users with motor disabilities. Higher numbers = more important.
+
+            Visual Context Priorities:
+            - Visually prominent primary actions: Very high scores (80-100+)
+            - Main content area interactions: High scores (60-90)
+            - Secondary actions that are still visible: Medium scores (40-70)
+            - Background or less prominent elements: Lower scores (10-40)
+            - Decorative or peripheral elements: Very low scores (1-15)
+
+            Element Type Priorities:
+            - Button, ImageButton: Usually high priority actions (70-100+)
+            - EditText, AutoCompleteTextView: Essential for data input (60-90)
+            - Spinner, RadioButton, CheckBox: Important selections (50-80)
+            - TextView: Variable priority based on content and visual context (10-60)
+            - ImageView: Usually decorative unless clickable (5-40)
+            - Unknown: Evaluate based on description and visual context (10-70)
+
+            Respond in this exact format for each element:
+            [number]: [score] - [brief reason focusing on user benefit and visual context]
+
+            Example:
+            1: 95 - [Button] Submit button - visually prominent primary action in center
+            2: 85 - [EditText] Email field - required input prominently displayed
+            3: 25 - [TextView] Footer link - small text at bottom of screen
+            4: 8 - [ImageView] Background decoration - purely decorative element
+        """.trimIndent()
+
+        val response = aiManager.analyzeScreenshot(screenshot, prompt)
+
+        return if (response.isSuccess && !response.content.isNullOrBlank()) {
+            parseAIResponse(response.content, nodes)
+        } else {
+            Log.w(TAG, "AI visual analysis failed, using fallback ranking")
+            fallbackRanking(nodes)
         }
     }
 }
