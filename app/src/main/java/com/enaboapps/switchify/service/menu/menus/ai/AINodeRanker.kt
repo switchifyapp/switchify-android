@@ -4,6 +4,10 @@ import android.graphics.Bitmap
 import android.util.Log
 import com.enaboapps.switchify.service.ai.FirebaseAIManager
 import com.enaboapps.switchify.service.techniques.nodes.Node
+import com.google.gson.Gson
+import com.google.gson.JsonSyntaxException
+import org.json.JSONObject
+import org.json.JSONArray
 
 /**
  * AINodeRanker is responsible for analyzing and ranking nodes based on their importance
@@ -13,6 +17,19 @@ object AINodeRanker {
     private const val TAG = "AINodeRanker"
     private const val MAX_NODES_TO_ANALYZE = 30
     private const val MAX_RANKED_RESULTS = 10
+
+    /**
+     * Data classes for JSON parsing
+     */
+    private data class AIRankingResponse(
+        val rankings: List<RankingItem>
+    )
+    
+    private data class RankingItem(
+        val index: Int,
+        val score: Int,
+        val reason: String
+    )
 
     /**
      * Data class representing a ranked node with its importance score
@@ -118,14 +135,17 @@ object AINodeRanker {
             - Does this advance the user's workflow?
             - Is this element essential for app navigation?
 
-            Respond in this exact format for each element:
-            [number]: [score] - [brief reason focusing on user benefit]
-
-            Example:
-            1: 95 - [Button] Submit - completes main task efficiently
-            2: 70 - [EditText] Email input field - required for account creation
-            3: 15 - [TextView] Terms of service link - secondary information
-            4: 5 - [ImageView] Company logo - decorative only
+            Respond with ONLY valid JSON in this exact format:
+            {
+              "rankings": [
+                {"index": 1, "score": 95, "reason": "[Button] Submit - completes main task efficiently"},
+                {"index": 2, "score": 70, "reason": "[EditText] Email input field - required for account creation"},
+                {"index": 3, "score": 15, "reason": "[TextView] Terms of service link - secondary information"},
+                {"index": 4, "score": 5, "reason": "[ImageView] Company logo - decorative only"}
+              ]
+            }
+            
+            IMPORTANT: Return ONLY the JSON object, no additional text or explanations.
         """.trimIndent()
 
         val response = aiManager.generateText(prompt)
@@ -145,6 +165,71 @@ object AINodeRanker {
         val rankedNodes = mutableListOf<RankedNode>()
         
         try {
+            // First try to validate and parse as JSON
+            if (!isValidJson(aiResponse)) {
+                Log.w(TAG, "AI response is not valid JSON, attempting fallback parsing")
+                return parseTextResponse(aiResponse, originalNodes)
+            }
+            
+            val gson = Gson()
+            val rankingResponse = gson.fromJson(aiResponse, AIRankingResponse::class.java)
+            
+            rankingResponse.rankings.forEach { ranking ->
+                val nodeIndex = ranking.index - 1 // Convert from 1-based to 0-based indexing
+                
+                if (nodeIndex >= 0 && nodeIndex < originalNodes.size) {
+                    rankedNodes.add(
+                        RankedNode(
+                            node = originalNodes[nodeIndex],
+                            score = ranking.score.coerceAtLeast(1),
+                            reasoning = ranking.reason
+                        )
+                    )
+                } else {
+                    Log.w(TAG, "Invalid node index in AI response: ${ranking.index}")
+                }
+            }
+            
+            Log.d(TAG, "Successfully parsed ${rankedNodes.size} rankings from JSON response")
+            
+        } catch (e: JsonSyntaxException) {
+            Log.e(TAG, "JSON parsing failed, attempting fallback parsing", e)
+            return parseTextResponse(aiResponse, originalNodes)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error parsing AI response", e)
+            return fallbackRanking(originalNodes)
+        }
+        
+        if (rankedNodes.isEmpty()) {
+            Log.w(TAG, "No valid rankings parsed, using fallback")
+            return fallbackRanking(originalNodes)
+        }
+
+        // Sort by score (highest first) and limit results
+        return rankedNodes
+            .sortedByDescending { it.score }
+            .take(MAX_RANKED_RESULTS)
+    }
+    
+    /**
+     * Validates if a string is valid JSON
+     */
+    private fun isValidJson(jsonString: String): Boolean {
+        return try {
+            JSONObject(jsonString)
+            true
+        } catch (e: Exception) {
+            false
+        }
+    }
+    
+    /**
+     * Fallback parser for text-based responses (original format)
+     */
+    private fun parseTextResponse(aiResponse: String, originalNodes: List<Node>): List<RankedNode> {
+        val rankedNodes = mutableListOf<RankedNode>()
+        
+        try {
             aiResponse.lines().forEach { line ->
                 val trimmedLine = line.trim()
                 if (trimmedLine.isNotEmpty() && trimmedLine.contains(":")) {
@@ -161,7 +246,7 @@ object AINodeRanker {
                             rankedNodes.add(
                                 RankedNode(
                                     node = originalNodes[nodeIndex],
-                                    score = score.coerceAtLeast(1), // Allow any positive score
+                                    score = score.coerceAtLeast(1),
                                     reasoning = reasoning
                                 )
                             )
@@ -170,14 +255,11 @@ object AINodeRanker {
                 }
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Error parsing AI response", e)
+            Log.e(TAG, "Error parsing text response", e)
             return fallbackRanking(originalNodes)
         }
-
-        // Sort by score (highest first) and limit results
-        return rankedNodes
-            .sortedByDescending { it.score }
-            .take(MAX_RANKED_RESULTS)
+        
+        return rankedNodes.sortedByDescending { it.score }.take(MAX_RANKED_RESULTS)
     }
 
     /**
