@@ -180,6 +180,15 @@ private fun MenuSection(screenModel: SettingsScreenModel) {
             }
         )
         PreferenceSwitch(
+            titleResId = R.string.settings_title_ai_visual_analysis,
+            summaryResId = R.string.settings_summary_ai_visual_analysis,
+            isRestrictedToPro = true,
+            checked = screenModel.aiVisualAnalysisEnabled.value == true,
+            onCheckedChange = {
+                screenModel.setAiVisualAnalysisEnabled(it)
+            }
+        )
+        PreferenceSwitch(
             titleResId = R.string.settings_title_menu_transparency,
             summaryResId = R.string.settings_summary_menu_transparency,
             checked = screenModel.menuTransparency.value == true,

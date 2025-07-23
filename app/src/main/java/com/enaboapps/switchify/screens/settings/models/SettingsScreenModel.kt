@@ -40,6 +40,12 @@ class SettingsScreenModel(context: Context) : ViewModel() {
     }
     val aiSuggestionsEnabled: LiveData<Boolean> = _aiSuggestionsEnabled
 
+    private val _aiVisualAnalysisEnabled = MutableLiveData<Boolean>().apply {
+        value =
+            preferenceManager.getBooleanValue(PreferenceManager.Keys.PREFERENCE_KEY_AI_VISUAL_ANALYSIS_ENABLED, true)
+    }
+    val aiVisualAnalysisEnabled: LiveData<Boolean> = _aiVisualAnalysisEnabled
+
     private val _menuTransparency = MutableLiveData<Boolean>().apply {
         value =
             preferenceManager.getBooleanValue(PreferenceManager.Keys.PREFERENCE_KEY_MENU_TRANSPARENCY)
@@ -101,6 +107,16 @@ class SettingsScreenModel(context: Context) : ViewModel() {
                 value
             )
             _aiSuggestionsEnabled.postValue(value)
+        }
+    }
+
+    fun setAiVisualAnalysisEnabled(value: Boolean) {
+        viewModelScope.launch {
+            preferenceManager.setBooleanValue(
+                PreferenceManager.Keys.PREFERENCE_KEY_AI_VISUAL_ANALYSIS_ENABLED,
+                value
+            )
+            _aiVisualAnalysisEnabled.postValue(value)
         }
     }
 

@@ -14,6 +14,7 @@ import com.enaboapps.switchify.service.gestures.GestureManager
 import com.enaboapps.switchify.service.techniques.nodes.scanners.system.SystemNodeHolder
 import com.enaboapps.switchify.service.screenshot.ScreenshotManager
 import com.enaboapps.switchify.service.ai.FirebaseAIManager
+import com.enaboapps.switchify.backend.preferences.PreferenceManager
 
 /**
  * AIMenuStructure provides the menu structure and navigation for AI-powered features
@@ -86,48 +87,61 @@ object AIMenuStructure {
 
             Log.d(TAG, "Analyzing ${currentNodes.size} nodes with AI...")
 
-            // Try to use visual AI ranking first, fall back to text-only if screenshot fails
-            val rankedNodes = try {
-                // Take a quick screenshot for visual context
-                var screenshot: android.graphics.Bitmap? = null
-                val screenshotTask = kotlinx.coroutines.CompletableDeferred<Unit>()
-                
-                ScreenshotManager.takeScreenshotWithDelay(
-                    accessibilityService = accessibilityService,
-                    context = accessibilityService.applicationContext,
-                    delayMs = 50, // Very quick screenshot
-                    saveToGallery = false,
-                    callback = object : ScreenshotManager.ScreenshotCallback {
-                        override fun onScreenshotTaken(bitmap: android.graphics.Bitmap, timestamp: Long) {
-                            screenshot = bitmap
-                            screenshotTask.complete(Unit)
+            // Check if visual analysis is enabled in preferences
+            val preferenceManager = PreferenceManager(accessibilityService.applicationContext)
+            val visualAnalysisEnabled = preferenceManager.getBooleanValue(
+                PreferenceManager.Keys.PREFERENCE_KEY_AI_VISUAL_ANALYSIS_ENABLED, 
+                true
+            )
+
+            val rankedNodes = if (visualAnalysisEnabled) {
+                // Try to use visual AI ranking first, fall back to text-only if screenshot fails
+                try {
+                    // Take a quick screenshot for visual context
+                    var screenshot: android.graphics.Bitmap? = null
+                    val screenshotTask = kotlinx.coroutines.CompletableDeferred<Unit>()
+                    
+                    ScreenshotManager.takeScreenshotWithDelay(
+                        accessibilityService = accessibilityService,
+                        context = accessibilityService.applicationContext,
+                        delayMs = 50, // Very quick screenshot
+                        saveToGallery = false,
+                        callback = object : ScreenshotManager.ScreenshotCallback {
+                            override fun onScreenshotTaken(bitmap: android.graphics.Bitmap, timestamp: Long) {
+                                screenshot = bitmap
+                                screenshotTask.complete(Unit)
+                            }
+                            
+                            override fun onScreenshotSaved(uri: android.net.Uri?) {}
+                            
+                            override fun onScreenshotFailed(error: String) {
+                                Log.w(TAG, "Screenshot failed for visual AI: $error")
+                                screenshotTask.complete(Unit)
+                            }
                         }
-                        
-                        override fun onScreenshotSaved(uri: android.net.Uri?) {}
-                        
-                        override fun onScreenshotFailed(error: String) {
-                            Log.w(TAG, "Screenshot failed for visual AI: $error")
-                            screenshotTask.complete(Unit)
-                        }
-                    }
-                )
-                
-                screenshotTask.await()
-                
-                // Use visual context if screenshot succeeded, otherwise fall back to text-only
-                if (screenshot != null) {
-                    Log.d(TAG, "Using visual AI analysis with screenshot")
-                    AINodeRanker.rankNodesWithVisualContext(
-                        nodes = currentNodes,
-                        screenshot = screenshot,
-                        additionalContext = "Accessibility app - prioritize elements for users with motor disabilities"
                     )
-                } else {
-                    Log.d(TAG, "Screenshot failed, using text-only AI analysis")
+                    
+                    screenshotTask.await()
+                    
+                    // Use visual context if screenshot succeeded, otherwise fall back to text-only
+                    if (screenshot != null) {
+                        Log.d(TAG, "Using visual AI analysis with screenshot")
+                        AINodeRanker.rankNodesWithVisualContext(
+                            nodes = currentNodes,
+                            screenshot = screenshot,
+                            additionalContext = "Accessibility app - prioritize elements for users with motor disabilities"
+                        )
+                    } else {
+                        Log.d(TAG, "Screenshot failed, using text-only AI analysis")
+                        AINodeRanker.rankNodes(currentNodes)
+                    }
+                } catch (e: Exception) {
+                    Log.w(TAG, "Visual AI failed, falling back to text-only: ${e.message}")
                     AINodeRanker.rankNodes(currentNodes)
                 }
-            } catch (e: Exception) {
-                Log.w(TAG, "Visual AI failed, falling back to text-only: ${e.message}")
+            } else {
+                // Visual analysis is disabled, use text-only AI
+                Log.d(TAG, "Visual analysis disabled, using text-only AI analysis")
                 AINodeRanker.rankNodes(currentNodes)
             }
             

@@ -609,6 +609,8 @@
     <!-- AI Settings Strings -->
     <string name="settings_title_ai_suggestions">AI Smart Suggestions</string>
     <string name="settings_summary_ai_suggestions">Use AI to analyze and rank the most important screen elements</string>
+    <string name="settings_title_ai_visual_analysis">AI Visual Analysis</string>
+    <string name="settings_summary_ai_visual_analysis">Allow AI to analyze screenshots for better suggestions. When disabled, AI uses text-only analysis for faster responses.</string>
 
     <!-- Screenshot HUD Messages -->
     <string name="screenshot_saved_to_gallery">Screenshot saved to gallery</string>
