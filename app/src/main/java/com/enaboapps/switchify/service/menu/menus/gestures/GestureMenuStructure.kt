@@ -18,6 +18,7 @@ class GestureMenuStructure(private val context: Context) {
     val tapMenuItem = MenuItem(
         id = "tap",
         textResource = R.string.menu_item_tap,
+        drawableId = R.drawable.ic_gesture_tap,
         action = {
             GestureManager.instance.performTap()
         }
