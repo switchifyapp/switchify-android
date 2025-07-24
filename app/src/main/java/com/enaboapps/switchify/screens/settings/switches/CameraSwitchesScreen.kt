@@ -28,8 +28,7 @@ import com.enaboapps.switchify.components.NavRouteLink
 import com.enaboapps.switchify.components.ScrollableView
 import com.enaboapps.switchify.components.Section
 import com.enaboapps.switchify.nav.NavigationRoute
-import com.enaboapps.switchify.screens.settings.switches.models.SwitchesScreenModel
-import com.enaboapps.switchify.switches.SWITCH_EVENT_TYPE_CAMERA
+import com.enaboapps.switchify.screens.settings.switches.models.CameraSwitchesScreenModel
 import com.enaboapps.switchify.switches.SwitchEvent
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
@@ -39,17 +38,17 @@ import com.google.accompanist.permissions.rememberPermissionState
 @Composable
 fun CameraSwitchesScreen(navController: NavController) {
     val context = LocalContext.current
-    val switchesScreenModel = remember {
-        SwitchesScreenModel()
+    val cameraSwitchesScreenModel = remember {
+        CameraSwitchesScreenModel()
     }
-    val uiState by switchesScreenModel.uiState.collectAsState()
+    val uiState by cameraSwitchesScreenModel.uiState.collectAsState()
 
     val cameraPermissionState = rememberPermissionState(
         android.Manifest.permission.CAMERA
     )
 
     LaunchedEffect(Unit) {
-        switchesScreenModel.setup(context)
+        cameraSwitchesScreenModel.setup(context)
     }
 
     BaseView(
@@ -61,8 +60,8 @@ fun CameraSwitchesScreen(navController: NavController) {
             if (cameraPermissionState.status.isGranted) {
                 FloatingActionButton(
                     onClick = {
-                        if (!switchesScreenModel.isAnotherSwitchAllowed()) {
-                            switchesScreenModel.showProAlert()
+                        if (!cameraSwitchesScreenModel.isAnotherSwitchAllowed()) {
+                            cameraSwitchesScreenModel.showProAlert()
                         } else {
                             navController.navigate(NavigationRoute.AddNewCameraSwitch.name)
                         }
@@ -91,7 +90,7 @@ fun CameraSwitchesScreen(navController: NavController) {
                     permissionState = cameraPermissionState,
                     onPermissionGranted = {
                         CameraSwitchesContent(
-                            localSwitches = uiState.localSwitches.filter { it.type == SWITCH_EVENT_TYPE_CAMERA },
+                            cameraSwitches = uiState.cameraSwitches,
                             navController = navController
                         )
                     },
@@ -102,13 +101,13 @@ fun CameraSwitchesScreen(navController: NavController) {
 
         if (uiState.showProAlert) {
             AlertDialog(
-                onDismissRequest = { switchesScreenModel.hideProAlert() },
+                onDismissRequest = { cameraSwitchesScreenModel.hideProAlert() },
                 title = { Text("Pro Feature") },
                 text = { Text("To add another switch, you need to purchase Switchify Pro.") },
                 confirmButton = {
                     TextButton(
                         onClick = {
-                            switchesScreenModel.hideProAlert()
+                            cameraSwitchesScreenModel.hideProAlert()
                             navController.navigate(NavigationRoute.Paywall.name)
                         }
                     ) {
@@ -117,7 +116,7 @@ fun CameraSwitchesScreen(navController: NavController) {
                 },
                 dismissButton = {
                     TextButton(
-                        onClick = { switchesScreenModel.hideProAlert() }
+                        onClick = { cameraSwitchesScreenModel.hideProAlert() }
                     ) {
                         Text("Cancel")
                     }
@@ -129,10 +128,10 @@ fun CameraSwitchesScreen(navController: NavController) {
 
 @Composable
 private fun CameraSwitchesContent(
-    localSwitches: List<SwitchEvent>,
+    cameraSwitches: List<SwitchEvent>,
     navController: NavController
 ) {
-    if (localSwitches.isEmpty()) {
+    if (cameraSwitches.isEmpty()) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -147,7 +146,7 @@ private fun CameraSwitchesContent(
     } else {
         ScrollableView {
             Section(titleResId = R.string.section_title_switches) {
-                localSwitches.forEach { event ->
+                cameraSwitches.forEach { event ->
                     SwitchEventItem(
                         navController = navController,
                         switchEvent = event

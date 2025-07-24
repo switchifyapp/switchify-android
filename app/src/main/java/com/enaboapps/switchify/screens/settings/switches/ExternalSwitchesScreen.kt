@@ -27,20 +27,19 @@ import com.enaboapps.switchify.components.NavRouteLink
 import com.enaboapps.switchify.components.ScrollableView
 import com.enaboapps.switchify.components.Section
 import com.enaboapps.switchify.nav.NavigationRoute
-import com.enaboapps.switchify.screens.settings.switches.models.SwitchesScreenModel
-import com.enaboapps.switchify.switches.SWITCH_EVENT_TYPE_EXTERNAL
+import com.enaboapps.switchify.screens.settings.switches.models.ExternalSwitchesScreenModel
 import com.enaboapps.switchify.switches.SwitchEvent
 
 @Composable
 fun ExternalSwitchesScreen(navController: NavController) {
     val context = LocalContext.current
-    val switchesScreenModel = remember {
-        SwitchesScreenModel()
+    val externalSwitchesScreenModel = remember {
+        ExternalSwitchesScreenModel()
     }
-    val uiState by switchesScreenModel.uiState.collectAsState()
+    val uiState by externalSwitchesScreenModel.uiState.collectAsState()
 
     LaunchedEffect(Unit) {
-        switchesScreenModel.setup(context)
+        externalSwitchesScreenModel.setup(context)
     }
 
     BaseView(
@@ -51,8 +50,8 @@ fun ExternalSwitchesScreen(navController: NavController) {
         floatingActionButton = {
             FloatingActionButton(
                 onClick = {
-                    if (!switchesScreenModel.isAnotherSwitchAllowed()) {
-                        switchesScreenModel.showProAlert()
+                    if (!externalSwitchesScreenModel.isAnotherSwitchAllowed()) {
+                        externalSwitchesScreenModel.showProAlert()
                     } else {
                         navController.navigate(NavigationRoute.AddNewExternalSwitch.name)
                     }
@@ -77,7 +76,7 @@ fun ExternalSwitchesScreen(navController: NavController) {
 
             else -> {
                 ExternalSwitchesContent(
-                    localSwitches = uiState.localSwitches.filter { it.type == SWITCH_EVENT_TYPE_EXTERNAL },
+                    externalSwitches = uiState.externalSwitches,
                     navController = navController
                 )
             }
@@ -85,13 +84,13 @@ fun ExternalSwitchesScreen(navController: NavController) {
 
         if (uiState.showProAlert) {
             AlertDialog(
-                onDismissRequest = { switchesScreenModel.hideProAlert() },
+                onDismissRequest = { externalSwitchesScreenModel.hideProAlert() },
                 title = { Text("Pro Feature") },
                 text = { Text("To add another switch, you need to purchase Switchify Pro.") },
                 confirmButton = {
                     TextButton(
                         onClick = {
-                            switchesScreenModel.hideProAlert()
+                            externalSwitchesScreenModel.hideProAlert()
                             navController.navigate(NavigationRoute.Paywall.name)
                         }
                     ) {
@@ -100,7 +99,7 @@ fun ExternalSwitchesScreen(navController: NavController) {
                 },
                 dismissButton = {
                     TextButton(
-                        onClick = { switchesScreenModel.hideProAlert() }
+                        onClick = { externalSwitchesScreenModel.hideProAlert() }
                     ) {
                         Text("Cancel")
                     }
@@ -112,10 +111,10 @@ fun ExternalSwitchesScreen(navController: NavController) {
 
 @Composable
 private fun ExternalSwitchesContent(
-    localSwitches: List<SwitchEvent>,
+    externalSwitches: List<SwitchEvent>,
     navController: NavController
 ) {
-    if (localSwitches.isEmpty()) {
+    if (externalSwitches.isEmpty()) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -130,7 +129,7 @@ private fun ExternalSwitchesContent(
     } else {
         ScrollableView {
             Section(titleResId = R.string.section_title_switches) {
-                localSwitches.forEach { event ->
+                externalSwitches.forEach { event ->
                     SwitchEventItem(
                         navController = navController,
                         switchEvent = event
