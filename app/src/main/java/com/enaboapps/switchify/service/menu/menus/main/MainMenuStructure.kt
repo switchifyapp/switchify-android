@@ -46,6 +46,7 @@ class MainMenuStructure(private val accessibilityService: SwitchifyAccessibility
             MenuItem(
                 id = "gestures",
                 textResource = R.string.menu_title_gestures,
+                drawableId = R.drawable.ic_gestures,
                 isLinkToMenu = true,
                 action = { MenuManager.getInstance().openGesturesMenu() }
             ),
