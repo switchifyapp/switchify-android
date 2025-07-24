@@ -12,7 +12,8 @@ import com.enaboapps.switchify.nav.NavigationRoute
 fun SwitchesScreen(navController: NavController) {
     BaseView(
         titleResId = R.string.screen_title_switches,
-        navController = navController
+        navController = navController,
+        enableScroll = false
     ) {
         ScrollableView {
             Section(titleResId = R.string.section_title_switches) {
