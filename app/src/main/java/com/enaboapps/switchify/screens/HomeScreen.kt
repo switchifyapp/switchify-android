@@ -61,6 +61,7 @@ import com.enaboapps.switchify.auth.AuthManager
 import com.enaboapps.switchify.backend.iap.IAPHandler
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.components.BaseView
+import com.enaboapps.switchify.components.NavBarAction
 import com.enaboapps.switchify.components.StatusBannerComponent
 import com.enaboapps.switchify.nav.NavigationRoute
 import com.enaboapps.switchify.service.utils.ServiceUtils
@@ -189,6 +190,27 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
         titleResId = R.string.screen_title_switchify,
         navController = navController,
         enableScroll = false,
+        navBarActions = listOf(
+            NavBarAction(
+                icon = if (AuthManager.instance.isUserSignedIn()) {
+                    Icons.Rounded.AccountCircle
+                } else {
+                    Icons.AutoMirrored.Filled.Login
+                },
+                contentDescription = if (AuthManager.instance.isUserSignedIn()) {
+                    "Account"
+                } else {
+                    "Sign In"
+                },
+                onClick = {
+                    if (AuthManager.instance.isUserSignedIn()) {
+                        navController.navigate(NavigationRoute.Account.name)
+                    } else {
+                        navController.navigate(NavigationRoute.SignIn.name)
+                    }
+                }
+            )
+        ),
         headerContent = {
             StatusBannerComponent(
                 isAccessibilityServiceEnabled = isAccessibilityServiceEnabled,
@@ -263,10 +285,6 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
             }
 
 
-            // Account Card
-            item {
-                AccountGridCard(navController)
-            }
 
             // Quick Apps Permission Card (only show if permission not granted)
             if (!hasUsageStatsPermission.value) {
@@ -388,41 +406,6 @@ private fun GridCard(
     }
 }
 
-@Composable
-private fun AccountGridCard(navController: NavController) {
-    val authManager = AuthManager.instance
-    val isUserSignedIn = authManager.isUserSignedIn()
-    val currentUser = authManager.getCurrentUser()
-
-    GridCard(
-        titleResId = if (isUserSignedIn) R.string.screen_title_account else R.string.screen_title_sign_in,
-        summaryResId = if (isUserSignedIn) {
-            currentUser?.email?.let { R.string.screen_summary_account_email }
-                ?: R.string.screen_summary_account_no_email
-        } else {
-            R.string.screen_summary_sign_in_to_access_settings
-        },
-        summaryArgs = if (isUserSignedIn) {
-            currentUser?.email?.let { arrayOf(it) }
-        } else {
-            null
-        },
-        onClick = {
-            navController.navigate(
-                if (isUserSignedIn) NavigationRoute.Account.name
-                else NavigationRoute.SignIn.name
-            )
-        },
-        icon = {
-            Icon(
-                imageVector = if (isUserSignedIn) Icons.Rounded.AccountCircle else Icons.AutoMirrored.Default.Login,
-                contentDescription = if (isUserSignedIn) "Account" else "Sign In",
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.fillMaxSize()
-            )
-        }
-    )
-}
 
 private fun checkForUpdates(
     context: Context,
