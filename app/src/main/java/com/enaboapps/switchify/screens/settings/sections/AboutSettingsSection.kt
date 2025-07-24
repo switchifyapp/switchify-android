@@ -73,5 +73,13 @@ fun AboutSection() {
                 context.startActivity(Intent(Intent.ACTION_VIEW, privacyPolicyUrl.toUri()))
             }
         )
+        Spacer(modifier = Modifier.height(16.dp))
+        FullWidthButton(
+            textResId = R.string.action_feedback,
+            onClick = {
+                val url = "https://switchify.featurebase.app/"
+                context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri()))
+            }
+        )
     }
 }
