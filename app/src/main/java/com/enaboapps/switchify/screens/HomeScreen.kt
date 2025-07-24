@@ -54,7 +54,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.core.net.toUri
 import androidx.navigation.NavController
 import com.enaboapps.switchify.BuildConfig
 import com.enaboapps.switchify.R
@@ -62,7 +61,6 @@ import com.enaboapps.switchify.auth.AuthManager
 import com.enaboapps.switchify.backend.iap.IAPHandler
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.components.BaseView
-import com.enaboapps.switchify.components.NavBarAction
 import com.enaboapps.switchify.components.StatusBannerComponent
 import com.enaboapps.switchify.nav.NavigationRoute
 import com.enaboapps.switchify.service.utils.ServiceUtils
@@ -191,15 +189,6 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
         titleResId = R.string.screen_title_switchify,
         navController = navController,
         enableScroll = false,
-        navBarActions = listOf(
-            NavBarAction(
-                textResId = R.string.action_feedback,
-                onClick = {
-                    val url = "https://switchify.featurebase.app/"
-                    context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri()))
-                }
-            )
-        ),
         headerContent = {
             StatusBannerComponent(
                 isAccessibilityServiceEnabled = isAccessibilityServiceEnabled,
