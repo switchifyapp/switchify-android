@@ -66,6 +66,8 @@ import com.enaboapps.switchify.components.StatusBannerComponent
 import com.enaboapps.switchify.nav.NavigationRoute
 import com.enaboapps.switchify.service.utils.ServiceUtils
 import com.enaboapps.switchify.service.utils.QuickAppsManager
+import com.enaboapps.switchify.switches.SwitchConfigInvalidBanner
+import com.enaboapps.switchify.switches.SwitchEventStore
 import com.google.android.play.core.appupdate.AppUpdateManager
 import com.google.android.play.core.appupdate.AppUpdateManagerFactory
 import com.google.android.play.core.appupdate.AppUpdateOptions
@@ -84,6 +86,8 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
     val isPro = remember { mutableStateOf(true) }
     val signedIn = AuthManager.instance.isUserSignedIn()
     var showUpdateDialog by remember { mutableStateOf(false) }
+    val switchEventStore = remember { SwitchEventStore.getInstance() }
+    var hasSwitchesConfigured by remember { mutableStateOf(true) }
     var updateProgress by remember { mutableFloatStateOf(0f) }
     var isDownloading by remember { mutableStateOf(false) }
     val quickAppsManager = remember { QuickAppsManager(context) }
@@ -98,6 +102,10 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
         IAPHandler.refreshPurchaseStatus { proPurchased ->
             isPro.value = proPurchased
         }
+        
+        // Initialize switch store and check configuration
+        switchEventStore.initialize(context)
+        hasSwitchesConfigured = switchEventStore.getCount() > 0
     }
 
     val appUpdateManager = remember { AppUpdateManagerFactory.create(context) }
@@ -255,6 +263,15 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
                             .padding(top = 4.dp)
                     )
                 }
+            }
+
+            // Switch Configuration Banner
+            if (!hasSwitchesConfigured) {
+                SwitchConfigInvalidBanner(
+                    onClick = {
+                        navController.navigate(NavigationRoute.Switches.name)
+                    }
+                )
             }
 
             // Grid Layout
