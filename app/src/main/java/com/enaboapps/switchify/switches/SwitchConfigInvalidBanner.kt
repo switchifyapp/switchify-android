@@ -1,5 +1,6 @@
 package com.enaboapps.switchify.switches
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Settings
@@ -20,12 +21,20 @@ import com.enaboapps.switchify.R
  */
 
 @Composable
-fun SwitchConfigInvalidBanner(bannerText: String?) {
-    if (bannerText != null) {
+fun SwitchConfigInvalidBanner(
+    onClick: (() -> Unit)? = null
+) {
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
+                .padding(horizontal = 16.dp, vertical = 8.dp)
+                .then(
+                    if (onClick != null) {
+                        Modifier.clickable { onClick() }
+                    } else {
+                        Modifier
+                    }
+                ),
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.errorContainer
             ),
@@ -76,5 +85,4 @@ fun SwitchConfigInvalidBanner(bannerText: String?) {
                 )
             }
         }
-    }
 }
