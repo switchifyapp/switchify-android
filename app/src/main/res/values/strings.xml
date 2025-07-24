@@ -553,8 +553,9 @@
     <string name="onboarding_switch_camera">Camera Switch</string>
     <string name="onboarding_switch_camera_desc">Use facial gestures as switches</string>
     <string name="onboarding_no_switches_configured">No switches configured yet</string>
-    <string name="switch_config_banner_title">Switch Setup Required</string>
-    <string name="switch_config_banner_description">Configure at least one switch to control your device. Choose from keyboard keys, Bluetooth devices, or camera-based gestures.</string>
+    <string name="switch_config_banner_title">Switch Configuration Invalid</string>
+    <string name="switch_config_banner_description">Your current switch configuration doesn\'t match the selected scan mode requirements. Please configure the required switch actions.</string>
+    <string name="switch_config_banner_missing_actions">Missing required actions: %1$s</string>
     <string name="onboarding_configure_switches">Configure Switches</string>
     <string name="onboarding_switches_configured">Switches configured successfully!</string>
     <string name="onboarding_skip_for_now">Skip for now</string>
