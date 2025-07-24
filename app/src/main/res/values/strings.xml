@@ -219,6 +219,10 @@
     <string name="screen_title_reset_password">Reset Password</string>
     <string name="screen_title_switch_stability">Switch Stability</string>
     <string name="screen_title_switches">Switches</string>
+    <string name="screen_title_external_switches">External Switches</string>
+    <string name="screen_title_camera_switches">Camera Switches</string>
+    <string name="external_switches_summary">Manage hardware switches</string>
+    <string name="camera_switches_summary">Manage camera-based switches</string>
     <string name="screen_title_add_switch">Add New Switch</string>
     <string name="screen_title_edit_switch">Edit Switch</string>
     <string name="screen_title_pro_yours">Switchify Pro Is Yours</string>
