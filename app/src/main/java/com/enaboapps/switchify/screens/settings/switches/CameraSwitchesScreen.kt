@@ -32,6 +32,7 @@ import com.enaboapps.switchify.screens.settings.switches.models.SwitchesScreenMo
 import com.enaboapps.switchify.switches.SWITCH_EVENT_TYPE_CAMERA
 import com.enaboapps.switchify.switches.SwitchEvent
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
 
 @OptIn(ExperimentalPermissionsApi::class)
@@ -57,19 +58,21 @@ fun CameraSwitchesScreen(navController: NavController) {
         padding = 0.dp,
         enableScroll = false,
         floatingActionButton = {
-            FloatingActionButton(
-                onClick = {
-                    if (!switchesScreenModel.isAnotherSwitchAllowed()) {
-                        switchesScreenModel.showProAlert()
-                    } else {
-                        navController.navigate(NavigationRoute.AddNewCameraSwitch.name)
+            if (cameraPermissionState.status.isGranted) {
+                FloatingActionButton(
+                    onClick = {
+                        if (!switchesScreenModel.isAnotherSwitchAllowed()) {
+                            switchesScreenModel.showProAlert()
+                        } else {
+                            navController.navigate(NavigationRoute.AddNewCameraSwitch.name)
+                        }
                     }
+                ) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_baseline_add_24),
+                        contentDescription = "Add"
+                    )
                 }
-            ) {
-                Icon(
-                    painter = painterResource(id = R.drawable.ic_baseline_add_24),
-                    contentDescription = "Add"
-                )
             }
         }
     ) {
