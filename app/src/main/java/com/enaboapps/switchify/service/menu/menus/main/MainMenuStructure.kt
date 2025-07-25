@@ -68,6 +68,7 @@ class MainMenuStructure(private val accessibilityService: SwitchifyAccessibility
                 MenuItem(
                     id = "quick_apps",
                     textResource = R.string.menu_title_quick_apps,
+                    drawableId = R.drawable.ic_quick_apps,
                     isLinkToMenu = true,
                     action = {
                         MenuManager.getInstance().openQuickAppsMenu()
