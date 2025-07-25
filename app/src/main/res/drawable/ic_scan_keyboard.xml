@@ -2,7 +2,7 @@
     android:width="32dp"
     android:height="32dp"
     android:viewportWidth="32"
-    android:viewportWidth="32"
+    android:viewportHeight="32"
     android:tint="?attr/colorControlNormal">
   <!-- Keyboard -->
   <path
