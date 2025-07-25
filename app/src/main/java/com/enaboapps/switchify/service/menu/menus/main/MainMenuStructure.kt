@@ -24,6 +24,7 @@ class MainMenuStructure(private val accessibilityService: SwitchifyAccessibility
     val deviceItem = MenuItem(
         id = "device",
         textResource = R.string.menu_title_device,
+        drawableId = R.drawable.ic_device,
         isLinkToMenu = true,
         action = { MenuManager.getInstance().openDeviceMenu() }
     )
