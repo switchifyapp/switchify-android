@@ -219,6 +219,10 @@
     <string name="screen_title_reset_password">Reset Password</string>
     <string name="screen_title_switch_stability">Switch Stability</string>
     <string name="screen_title_switches">Switches</string>
+    <string name="screen_title_external_switches">External Switches</string>
+    <string name="screen_title_camera_switches">Camera Switches</string>
+    <string name="external_switches_summary">Manage hardware switches</string>
+    <string name="camera_switches_summary">Manage camera-based switches</string>
     <string name="screen_title_add_switch">Add New Switch</string>
     <string name="screen_title_edit_switch">Edit Switch</string>
     <string name="screen_title_pro_yours">Switchify Pro Is Yours</string>
@@ -549,6 +553,9 @@
     <string name="onboarding_switch_camera">Camera Switch</string>
     <string name="onboarding_switch_camera_desc">Use facial gestures as switches</string>
     <string name="onboarding_no_switches_configured">No switches configured yet</string>
+    <string name="switch_config_banner_title">Switch Configuration Invalid</string>
+    <string name="switch_config_banner_description">Your current switch configuration doesn\'t match the selected scan mode requirements. Please configure the required switch actions.</string>
+    <string name="switch_config_banner_missing_actions">Missing required actions: %1$s</string>
     <string name="onboarding_configure_switches">Configure Switches</string>
     <string name="onboarding_switches_configured">Switches configured successfully!</string>
     <string name="onboarding_skip_for_now">Skip for now</string>

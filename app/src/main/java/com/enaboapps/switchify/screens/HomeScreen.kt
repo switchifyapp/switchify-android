@@ -54,7 +54,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.core.net.toUri
 import androidx.navigation.NavController
 import com.enaboapps.switchify.BuildConfig
 import com.enaboapps.switchify.R
@@ -67,6 +66,9 @@ import com.enaboapps.switchify.components.StatusBannerComponent
 import com.enaboapps.switchify.nav.NavigationRoute
 import com.enaboapps.switchify.service.utils.ServiceUtils
 import com.enaboapps.switchify.service.utils.QuickAppsManager
+import com.enaboapps.switchify.switches.SwitchConfigInvalidBanner
+import com.enaboapps.switchify.switches.SwitchConfigValidator
+import com.enaboapps.switchify.switches.SwitchEventStore
 import com.google.android.play.core.appupdate.AppUpdateManager
 import com.google.android.play.core.appupdate.AppUpdateManagerFactory
 import com.google.android.play.core.appupdate.AppUpdateOptions
@@ -85,6 +87,9 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
     val isPro = remember { mutableStateOf(true) }
     val signedIn = AuthManager.instance.isUserSignedIn()
     var showUpdateDialog by remember { mutableStateOf(false) }
+    val switchEventStore = remember { SwitchEventStore.getInstance() }
+    val switchConfigValidator = remember { SwitchConfigValidator(context) }
+    var isSwitchConfigValid by remember { mutableStateOf(true) }
     var updateProgress by remember { mutableFloatStateOf(0f) }
     var isDownloading by remember { mutableStateOf(false) }
     val quickAppsManager = remember { QuickAppsManager(context) }
@@ -99,6 +104,10 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
         IAPHandler.refreshPurchaseStatus { proPurchased ->
             isPro.value = proPurchased
         }
+        
+        // Initialize switch store and check configuration
+        switchEventStore.initialize(context)
+        isSwitchConfigValid = switchConfigValidator.isConfigurationValid()
     }
 
     val appUpdateManager = remember { AppUpdateManagerFactory.create(context) }
@@ -193,10 +202,22 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
         enableScroll = false,
         navBarActions = listOf(
             NavBarAction(
-                textResId = R.string.action_feedback,
+                icon = if (AuthManager.instance.isUserSignedIn()) {
+                    Icons.Rounded.AccountCircle
+                } else {
+                    Icons.AutoMirrored.Filled.Login
+                },
+                contentDescription = if (AuthManager.instance.isUserSignedIn()) {
+                    "Account"
+                } else {
+                    "Sign In"
+                },
                 onClick = {
-                    val url = "https://switchify.featurebase.app/"
-                    context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri()))
+                    if (AuthManager.instance.isUserSignedIn()) {
+                        navController.navigate(NavigationRoute.Account.name)
+                    } else {
+                        navController.navigate(NavigationRoute.SignIn.name)
+                    }
                 }
             )
         ),
@@ -246,6 +267,15 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
                 }
             }
 
+            // Switch Configuration Banner
+            if (!isSwitchConfigValid) {
+                SwitchConfigInvalidBanner(
+                    onClick = {
+                        navController.navigate(NavigationRoute.Switches.name)
+                    }
+                )
+            }
+
             // Grid Layout
             LazyVerticalGrid(
                 columns = GridCells.Fixed(2),
@@ -274,10 +304,6 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
             }
 
 
-            // Account Card
-            item {
-                AccountGridCard(navController)
-            }
 
             // Quick Apps Permission Card (only show if permission not granted)
             if (!hasUsageStatsPermission.value) {
@@ -399,41 +425,6 @@ private fun GridCard(
     }
 }
 
-@Composable
-private fun AccountGridCard(navController: NavController) {
-    val authManager = AuthManager.instance
-    val isUserSignedIn = authManager.isUserSignedIn()
-    val currentUser = authManager.getCurrentUser()
-
-    GridCard(
-        titleResId = if (isUserSignedIn) R.string.screen_title_account else R.string.screen_title_sign_in,
-        summaryResId = if (isUserSignedIn) {
-            currentUser?.email?.let { R.string.screen_summary_account_email }
-                ?: R.string.screen_summary_account_no_email
-        } else {
-            R.string.screen_summary_sign_in_to_access_settings
-        },
-        summaryArgs = if (isUserSignedIn) {
-            currentUser?.email?.let { arrayOf(it) }
-        } else {
-            null
-        },
-        onClick = {
-            navController.navigate(
-                if (isUserSignedIn) NavigationRoute.Account.name
-                else NavigationRoute.SignIn.name
-            )
-        },
-        icon = {
-            Icon(
-                imageVector = if (isUserSignedIn) Icons.Rounded.AccountCircle else Icons.AutoMirrored.Default.Login,
-                contentDescription = if (isUserSignedIn) "Account" else "Sign In",
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.fillMaxSize()
-            )
-        }
-    )
-}
 
 private fun checkForUpdates(
     context: Context,

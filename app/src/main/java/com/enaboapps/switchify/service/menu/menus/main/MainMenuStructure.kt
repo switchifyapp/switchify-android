@@ -24,6 +24,7 @@ class MainMenuStructure(private val accessibilityService: SwitchifyAccessibility
     val deviceItem = MenuItem(
         id = "device",
         textResource = R.string.menu_title_device,
+        drawableId = R.drawable.ic_device,
         isLinkToMenu = true,
         action = { MenuManager.getInstance().openDeviceMenu() }
     )
@@ -36,6 +37,7 @@ class MainMenuStructure(private val accessibilityService: SwitchifyAccessibility
                 MenuItem(
                     id = "scan_keyboard",
                     textResource = R.string.menu_item_scan_keyboard,
+                    drawableId = R.drawable.ic_scan_keyboard,
                     action = {
                         KeyboardManager.returnToKeyboard()
                         MenuManager.getInstance().closeMenuHierarchy()
@@ -46,12 +48,14 @@ class MainMenuStructure(private val accessibilityService: SwitchifyAccessibility
             MenuItem(
                 id = "gestures",
                 textResource = R.string.menu_title_gestures,
+                drawableId = R.drawable.ic_gestures,
                 isLinkToMenu = true,
                 action = { MenuManager.getInstance().openGesturesMenu() }
             ),
             MenuItem(
                 id = "scroll",
                 textResource = R.string.menu_title_scroll,
+                drawableId = R.drawable.ic_scroll,
                 isLinkToMenu = true,
                 action = { MenuManager.getInstance().openScrollMenu() }
             ),
@@ -65,6 +69,7 @@ class MainMenuStructure(private val accessibilityService: SwitchifyAccessibility
                 MenuItem(
                     id = "quick_apps",
                     textResource = R.string.menu_title_quick_apps,
+                    drawableId = R.drawable.ic_quick_apps,
                     isLinkToMenu = true,
                     action = {
                         MenuManager.getInstance().openQuickAppsMenu()
@@ -75,6 +80,7 @@ class MainMenuStructure(private val accessibilityService: SwitchifyAccessibility
                 MenuItem(
                     id = "gesture_patterns",
                     textResource = R.string.gesture_patterns_title,
+                    drawableId = R.drawable.ic_gesture_patterns,
                     isLinkToMenu = true,
                     action = { MenuManager.getInstance().openGesturePatternsMenu() }
                 )
@@ -83,6 +89,7 @@ class MainMenuStructure(private val accessibilityService: SwitchifyAccessibility
             MenuItem(
                 id = "media_control",
                 textResource = R.string.menu_title_media_control,
+                drawableId = R.drawable.ic_media_control,
                 isLinkToMenu = true,
                 action = { MenuManager.getInstance().openMediaControlMenu() }
             ),
@@ -90,6 +97,7 @@ class MainMenuStructure(private val accessibilityService: SwitchifyAccessibility
                 MenuItem(
                     id = "edit",
                     textResource = R.string.menu_title_edit,
+                    drawableId = R.drawable.ic_edit,
                     isLinkToMenu = true,
                     action = { MenuManager.getInstance().openEditMenu() }
                 )
@@ -98,6 +106,7 @@ class MainMenuStructure(private val accessibilityService: SwitchifyAccessibility
                 MenuItem(
                     id = "switch_to_item_scan",
                     textResource = R.string.access_technique_item_scan,
+                    drawableId = R.drawable.ic_item_scan,
                     action = {
                         MenuManager.getInstance().switchToItemScan()
                     }
@@ -107,6 +116,7 @@ class MainMenuStructure(private val accessibilityService: SwitchifyAccessibility
                 MenuItem(
                     id = "switch_to_radar",
                     textResource = R.string.access_technique_radar,
+                    drawableId = R.drawable.ic_radar,
                     action = {
                         MenuManager.getInstance().switchToRadar()
                     }
@@ -116,6 +126,7 @@ class MainMenuStructure(private val accessibilityService: SwitchifyAccessibility
                 MenuItem(
                     id = "switch_to_cursor",
                     textResource = R.string.access_technique_cursor,
+                    drawableId = R.drawable.ic_cursor,
                     action = {
                         MenuManager.getInstance().switchToCursor()
                     }
@@ -124,6 +135,7 @@ class MainMenuStructure(private val accessibilityService: SwitchifyAccessibility
             MenuItem(
                 id = "pause",
                 textResource = R.string.menu_item_pause,
+                drawableId = R.drawable.ic_pause,
                 action = {
                     ServiceCore.getPauseManager()?.startPause()
                 }

@@ -23,6 +23,8 @@ import com.enaboapps.switchify.screens.settings.scanning.ScanColorSelectionScree
 import com.enaboapps.switchify.screens.settings.scanning.ScanSpeedsScreen
 import com.enaboapps.switchify.screens.settings.switches.AddEditCameraSwitchScreen
 import com.enaboapps.switchify.screens.settings.switches.AddEditExternalSwitchScreen
+import com.enaboapps.switchify.screens.settings.switches.CameraSwitchesScreen
+import com.enaboapps.switchify.screens.settings.switches.ExternalSwitchesScreen
 import com.enaboapps.switchify.screens.settings.switches.SwitchStabilityScreen
 import com.enaboapps.switchify.screens.settings.switches.SwitchesScreen
 import com.enaboapps.switchify.screens.settings.techniques.AccessTechniqueSettingsScreen
@@ -81,6 +83,12 @@ fun NavGraph(navController: NavHostController) {
         }
         composable(NavigationRoute.Switches.name) {
             SwitchesScreen(navController)
+        }
+        composable(NavigationRoute.ExternalSwitches.name) {
+            ExternalSwitchesScreen(navController)
+        }
+        composable(NavigationRoute.CameraSwitches.name) {
+            CameraSwitchesScreen(navController)
         }
         composable(NavigationRoute.AddNewExternalSwitch.name) {
             AddEditExternalSwitchScreen(navController)

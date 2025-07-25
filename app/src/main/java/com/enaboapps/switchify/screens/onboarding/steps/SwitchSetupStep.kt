@@ -124,9 +124,7 @@ fun SwitchSetupStep(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                SwitchConfigInvalidBanner(
-                    bannerText = stringResource(R.string.onboarding_no_switches_configured)
-                )
+                SwitchConfigInvalidBanner()
                 
                 Spacer(modifier = Modifier.height(16.dp))
                 

@@ -37,7 +37,16 @@ import com.enaboapps.switchify.components.PreferenceValueSelector
 import com.enaboapps.switchify.components.ScrollableView
 import com.enaboapps.switchify.components.Section
 import com.enaboapps.switchify.nav.NavigationRoute
+import com.enaboapps.switchify.screens.settings.models.AISettingsModel
+import com.enaboapps.switchify.screens.settings.models.MenuSettingsModel
+import com.enaboapps.switchify.screens.settings.models.SelectionSettingsModel
 import com.enaboapps.switchify.screens.settings.models.SettingsScreenModel
+import com.enaboapps.switchify.screens.settings.sections.AboutSection
+import com.enaboapps.switchify.screens.settings.sections.AISection
+import com.enaboapps.switchify.screens.settings.sections.GesturesSettingsSection
+import com.enaboapps.switchify.screens.settings.sections.InputSection
+import com.enaboapps.switchify.screens.settings.sections.MenuSection
+import com.enaboapps.switchify.screens.settings.sections.SelectionSection
 import com.enaboapps.switchify.screens.settings.shared.ScanModeSelectionSection
 import com.enaboapps.switchify.screens.settings.techniques.AccessTechniqueSelector
 
@@ -45,6 +54,9 @@ import com.enaboapps.switchify.screens.settings.techniques.AccessTechniqueSelect
 fun SettingsScreen(navController: NavController) {
     val context = LocalContext.current
     val settingsScreenModel: SettingsScreenModel = viewModel { SettingsScreenModel(context) }
+    val selectionSettingsModel: SelectionSettingsModel = viewModel { SelectionSettingsModel(context) }
+    val aiSettingsModel: AISettingsModel = viewModel { AISettingsModel(context) }
+    val menuSettingsModel: MenuSettingsModel = viewModel { MenuSettingsModel(context) }
     val preferenceManager = remember { PreferenceManager(context) }
     
     // Load the saved tab index, default to 0 if not found
@@ -81,16 +93,16 @@ fun SettingsScreen(navController: NavController) {
         }
 
         when (selectedTabIndex) {
-            0 -> GeneralSettingsTab(settingsScreenModel, navController)
+            0 -> GeneralSettingsTab(aiSettingsModel, menuSettingsModel, navController)
             1 -> ScanningSettingsTab(navController)
-            2 -> SelectionSettingsTab(settingsScreenModel)
+            2 -> SelectionSettingsTab(selectionSettingsModel)
             3 -> AboutSection()
         }
     }
 }
 
 @Composable
-fun GeneralSettingsTab(settingsScreenModel: SettingsScreenModel, navController: NavController) {
+fun GeneralSettingsTab(aiSettingsModel: AISettingsModel, menuSettingsModel: MenuSettingsModel, navController: NavController) {
     ScrollableView {
         InputSection(navController)
         Section(titleResId = R.string.settings_section_access_techniques) {
@@ -104,8 +116,8 @@ fun GeneralSettingsTab(settingsScreenModel: SettingsScreenModel, navController: 
             )
         }
         GesturesSettingsSection(navController)
-        AISection(settingsScreenModel)
-        MenuSection(settingsScreenModel)
+        AISection(aiSettingsModel)
+        MenuSection(menuSettingsModel)
     }
 }
 
@@ -126,200 +138,14 @@ fun ScanningSettingsTab(navController: NavController) {
 }
 
 @Composable
-fun SelectionSettingsTab(settingsScreenModel: SettingsScreenModel) {
+fun SelectionSettingsTab(selectionSettingsModel: SelectionSettingsModel) {
     ScrollableView {
-        SelectionSection(settingsScreenModel)
+        SelectionSection(selectionSettingsModel)
     }
 }
 
-@Composable
-private fun InputSection(navController: NavController) {
-    Section(titleResId = R.string.settings_section_input) {
-        NavRouteLink(
-            titleResId = R.string.settings_title_switches,
-            summaryResId = R.string.settings_summary_switches,
-            navController = navController,
-            route = NavigationRoute.Switches.name
-        )
-        NavRouteLink(
-            titleResId = R.string.settings_title_switch_stability,
-            summaryResId = R.string.settings_summary_switch_stability,
-            navController = navController,
-            route = NavigationRoute.SwitchStability.name
-        )
-    }
-}
 
-@Composable
-private fun GesturesSettingsSection(navController: NavController) {
-    Section(titleResId = R.string.settings_section_gesture) {
-        NavRouteLink(
-            titleResId = R.string.settings_title_gesture_settings,
-            summaryResId = R.string.settings_summary_gesture_settings,
-            navController = navController,
-            route = NavigationRoute.GestureSettings.name
-        )
-        NavRouteLink(
-            titleResId = R.string.screen_title_gesture_patterns,
-            summaryResId = R.string.gesture_patterns_description,
-            navController = navController,
-            route = NavigationRoute.GesturePatterns.name
-        )
-    }
-}
 
-@Composable
-private fun AISection(screenModel: SettingsScreenModel) {
-    val aiSuggestionsEnabled by screenModel.aiSuggestionsEnabled.observeAsState()
-    Section(titleResId = R.string.settings_section_ai) {
-        PreferenceSwitch(
-            titleResId = R.string.settings_title_ai_suggestions,
-            summaryResId = R.string.settings_summary_ai_suggestions,
-            isRestrictedToPro = true,
-            checked = aiSuggestionsEnabled == true,
-            onCheckedChange = {
-                screenModel.setAiSuggestionsEnabled(it)
-                // Disable visual analysis when smart suggestions is turned off
-                if (!it) {
-                    screenModel.setAiVisualAnalysisEnabled(false)
-                }
-            }
-        )
-        // Only show Visual Analysis setting when Smart Suggestions is enabled
-        if (aiSuggestionsEnabled == true) {
-            PreferenceSwitch(
-                titleResId = R.string.settings_title_ai_visual_analysis,
-                summaryResId = R.string.settings_summary_ai_visual_analysis,
-                isRestrictedToPro = true,
-                checked = screenModel.aiVisualAnalysisEnabled.value == true,
-                onCheckedChange = {
-                    screenModel.setAiVisualAnalysisEnabled(it)
-                }
-            )
-        }
-    }
-}
 
-@Composable
-private fun MenuSection(screenModel: SettingsScreenModel) {
-    Section(titleResId = R.string.settings_section_menu) {
-        PreferenceSwitch(
-            titleResId = R.string.settings_title_menu_transparency,
-            summaryResId = R.string.settings_summary_menu_transparency,
-            checked = screenModel.menuTransparency.value == true,
-            onCheckedChange = {
-                screenModel.setMenuTransparency(it)
-            }
-        )
-        PreferenceValueSelector(
-            value = screenModel.menuRowsPerPage.value ?: 2,
-            titleResId = R.string.settings_title_menu_rows_per_page,
-            summaryResId = R.string.settings_summary_menu_rows_per_page,
-            values = intArrayOf(1, 2, 3, 4),
-            buttonLabelFormatter = { it.toString() },
-            displayFormatter = { it.toString() },
-            onValueChanged = {
-                screenModel.setMenuRowsPerPage(it)
-            }
-        )
-    }
-}
 
-@Composable
-private fun SelectionSection(screenModel: SettingsScreenModel) {
-    val autoSelect = screenModel.autoSelect.observeAsState()
-    Section(titleResId = R.string.settings_section_selection) {
-        PreferenceSwitch(
-            titleResId = R.string.settings_title_auto_select,
-            summaryResId = R.string.settings_summary_auto_select,
-            checked = screenModel.autoSelect.value == true,
-            onCheckedChange = {
-                screenModel.setAutoSelect(it)
-            }
-        )
-        if (autoSelect.value == true) {
-            PreferenceTimeStepper(
-                value = screenModel.autoSelectDelay.value ?: 0,
-                titleResId = R.string.settings_title_auto_select_delay,
-                summaryResId = R.string.settings_summary_auto_select_delay,
-                min = 100,
-                max = 100000
-            ) {
-                screenModel.setAutoSelectDelay(it)
-            }
-        }
-        PreferenceSwitch(
-            titleResId = R.string.settings_title_directly_select_keyboard,
-            summaryResId = R.string.settings_summary_directly_select_keyboard,
-            checked = screenModel.directlySelectKeyboardKeys.value == true,
-            onCheckedChange = {
-                screenModel.setDirectlySelectKeyboardKeys(it)
-            }
-        )
-        PreferenceSwitch(
-            titleResId = R.string.settings_title_assisted_selection,
-            summaryResId = R.string.settings_summary_assisted_selection,
-            checked = screenModel.assistedSelection.value == true,
-            onCheckedChange = {
-                screenModel.setAssistedSelection(it)
-            }
-        )
-    }
-}
 
-@Composable
-fun AboutSection() {
-    val context = LocalContext.current
-    val version = context.packageManager.getPackageInfo(context.packageName, 0).versionName
-
-    val websiteUrl = "https://switchifyapp.com"
-    val privacyPolicyUrl = "https://www.switchifyapp.com/privacy"
-
-    ScrollableView {
-        Box(
-            modifier = Modifier.fillMaxWidth(),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = stringResource(R.string.app_name),
-                style = MaterialTheme.typography.displayLarge,
-                textAlign = TextAlign.Center
-            )
-        }
-        Spacer(modifier = Modifier.height(8.dp))
-        Box(
-            modifier = Modifier.fillMaxWidth(),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = "Version $version",
-                style = MaterialTheme.typography.bodyMedium
-            )
-        }
-        Spacer(modifier = Modifier.height(24.dp))
-        Box(
-            modifier = Modifier.fillMaxWidth(),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = stringResource(R.string.app_description),
-                style = MaterialTheme.typography.bodyLarge,
-                textAlign = TextAlign.Center
-            )
-        }
-        Spacer(modifier = Modifier.height(24.dp))
-        FullWidthButton(
-            textResId = R.string.button_website,
-            onClick = {
-                context.startActivity(Intent(Intent.ACTION_VIEW, websiteUrl.toUri()))
-            }
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-        FullWidthButton(
-            textResId = R.string.button_privacy_policy,
-            onClick = {
-                context.startActivity(Intent(Intent.ACTION_VIEW, privacyPolicyUrl.toUri()))
-            }
-        )
-    }
-}

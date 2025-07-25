@@ -16,6 +16,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -30,7 +31,9 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 
 data class NavBarAction(
-    val textResId: Int,
+    val textResId: Int? = null,
+    val icon: ImageVector? = null,
+    val contentDescription: String? = null,
     val onClick: () -> Unit
 )
 
@@ -93,13 +96,23 @@ fun NavBar(
                 )
 
                 actions.forEach { action ->
-                    TextButton(
-                        onClick = action.onClick,
-                        colors = ButtonDefaults.textButtonColors(
-                            contentColor = MaterialTheme.colorScheme.onPrimary
-                        )
-                    ) {
-                        Text(stringResource(action.textResId))
+                    if (action.icon != null) {
+                        IconButton(onClick = action.onClick) {
+                            Icon(
+                                imageVector = action.icon,
+                                contentDescription = action.contentDescription,
+                                tint = MaterialTheme.colorScheme.onPrimary
+                            )
+                        }
+                    } else if (action.textResId != null) {
+                        TextButton(
+                            onClick = action.onClick,
+                            colors = ButtonDefaults.textButtonColors(
+                                contentColor = MaterialTheme.colorScheme.onPrimary
+                            )
+                        ) {
+                            Text(stringResource(action.textResId))
+                        }
                     }
                 }
             }

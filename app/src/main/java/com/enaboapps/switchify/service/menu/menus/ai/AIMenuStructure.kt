@@ -28,6 +28,7 @@ object AIMenuStructure {
         return MenuItem(
             id = "ai_suggestions",
             textResource = R.string.menu_ai_suggestions,
+            drawableId = R.drawable.ic_ai,
             isLinkToMenu = true,
             closeOnSelect = false
         ) {
