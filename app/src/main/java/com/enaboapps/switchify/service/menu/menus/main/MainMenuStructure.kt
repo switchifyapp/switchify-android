@@ -114,6 +114,7 @@ class MainMenuStructure(private val accessibilityService: SwitchifyAccessibility
                 MenuItem(
                     id = "switch_to_radar",
                     textResource = R.string.access_technique_radar,
+                    drawableId = R.drawable.ic_radar,
                     action = {
                         MenuManager.getInstance().switchToRadar()
                     }
