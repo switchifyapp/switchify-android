@@ -97,6 +97,7 @@ class MainMenuStructure(private val accessibilityService: SwitchifyAccessibility
                 MenuItem(
                     id = "edit",
                     textResource = R.string.menu_title_edit,
+                    drawableId = R.drawable.ic_edit,
                     isLinkToMenu = true,
                     action = { MenuManager.getInstance().openEditMenu() }
                 )
