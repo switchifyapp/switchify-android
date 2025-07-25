@@ -124,6 +124,7 @@ class MainMenuStructure(private val accessibilityService: SwitchifyAccessibility
                 MenuItem(
                     id = "switch_to_cursor",
                     textResource = R.string.access_technique_cursor,
+                    drawableId = R.drawable.ic_cursor,
                     action = {
                         MenuManager.getInstance().switchToCursor()
                     }
