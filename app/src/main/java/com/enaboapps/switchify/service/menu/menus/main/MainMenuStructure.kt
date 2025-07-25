@@ -37,6 +37,7 @@ class MainMenuStructure(private val accessibilityService: SwitchifyAccessibility
                 MenuItem(
                     id = "scan_keyboard",
                     textResource = R.string.menu_item_scan_keyboard,
+                    drawableId = R.drawable.ic_scan_keyboard,
                     action = {
                         KeyboardManager.returnToKeyboard()
                         MenuManager.getInstance().closeMenuHierarchy()
