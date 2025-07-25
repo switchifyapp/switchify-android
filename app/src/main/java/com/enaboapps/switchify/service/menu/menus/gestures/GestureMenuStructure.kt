@@ -46,6 +46,7 @@ class GestureMenuStructure(private val context: Context) {
             MenuItem(
                 id = "tap_and_hold",
                 textResource = R.string.menu_item_tap_and_hold,
+                drawableId = R.drawable.ic_gesture_tap_hold,
                 action = { GestureManager.instance.performTapAndHold() }
             ),
             toggleGestureLockMenuItem
