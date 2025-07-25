@@ -1,0 +1,17 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="32dp"
+    android:height="32dp"
+    android:viewportWidth="32"
+    android:viewportHeight="32"
+    android:tint="?attr/colorControlNormal">
+  <!-- Wavy pattern lines -->
+  <path
+      android:fillColor="@android:color/white"
+      android:pathData="M4,10C6,8 8,12 10,10C12,8 14,12 16,10C18,8 20,12 22,10C24,8 26,12 28,10L28,12C26,14 24,10 22,12C20,14 18,10 16,12C14,14 12,10 10,12C8,14 6,10 4,12L4,10Z"/>
+  <path
+      android:fillColor="@android:color/white"
+      android:pathData="M4,16C6,14 8,18 10,16C12,14 14,18 16,16C18,14 20,18 22,16C24,14 26,18 28,16L28,18C26,20 24,16 22,18C20,20 18,16 16,18C14,20 12,16 10,18C8,20 6,16 4,18L4,16Z"/>
+  <path
+      android:fillColor="@android:color/white"
+      android:pathData="M4,22C6,20 8,24 10,22C12,20 14,24 16,22C18,20 20,24 22,22C24,20 26,24 28,22L28,24C26,26 24,22 22,24C20,26 18,22 16,24C14,26 12,22 10,24C8,26 6,22 4,24L4,22Z"/>
+</vector>
