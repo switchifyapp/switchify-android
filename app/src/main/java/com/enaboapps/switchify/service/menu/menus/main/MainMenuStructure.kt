@@ -86,6 +86,7 @@ class MainMenuStructure(private val accessibilityService: SwitchifyAccessibility
             MenuItem(
                 id = "media_control",
                 textResource = R.string.menu_title_media_control,
+                drawableId = R.drawable.ic_media_control,
                 isLinkToMenu = true,
                 action = { MenuManager.getInstance().openMediaControlMenu() }
             ),
