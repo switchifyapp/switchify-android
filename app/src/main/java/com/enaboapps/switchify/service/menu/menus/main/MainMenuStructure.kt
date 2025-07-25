@@ -104,6 +104,7 @@ class MainMenuStructure(private val accessibilityService: SwitchifyAccessibility
                 MenuItem(
                     id = "switch_to_item_scan",
                     textResource = R.string.access_technique_item_scan,
+                    drawableId = R.drawable.ic_item_scan,
                     action = {
                         MenuManager.getInstance().switchToItemScan()
                     }
