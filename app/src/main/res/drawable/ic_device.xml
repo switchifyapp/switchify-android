@@ -1,0 +1,11 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="32dp"
+    android:height="32dp"
+    android:viewportWidth="32"
+    android:viewportHeight="32"
+    android:tint="?attr/colorControlNormal">
+  <!-- Simple phone/device icon -->
+  <path
+      android:fillColor="@android:color/white"
+      android:pathData="M10,4C8.89,4 8,4.89 8,6L8,26C8,27.11 8.89,28 10,28L22,28C23.11,28 24,27.11 24,26L24,6C24,4.89 23.11,4 22,4L10,4M10,6L22,6L22,22L10,22L10,6M16,24C16.55,24 17,24.45 17,25C17,25.55 16.55,26 16,26C15.45,26 15,25.55 15,25C15,24.45 15.45,24 16,24Z"/>
+</vector>
