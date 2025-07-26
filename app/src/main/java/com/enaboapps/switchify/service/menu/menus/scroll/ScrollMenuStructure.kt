@@ -17,6 +17,7 @@ class ScrollMenuStructure(accessibilityService: SwitchifyAccessibilityService) {
             MenuItem(
                 id = "scroll_up",
                 textResource = R.string.menu_item_scroll_up,
+                drawableId = R.drawable.ic_scroll_up,
                 action = {
                     GestureManager.instance.performSwipeOrScroll(GestureType.SCROLL_UP)
                 }
