@@ -136,6 +136,7 @@ class GestureMenuStructure(private val context: Context) {
             MenuItem(
                 id = "swipe_left",
                 textResource = R.string.menu_item_swipe_left,
+                drawableId = R.drawable.ic_gesture_swipe_left,
                 action = {
                     GestureManager.instance.performSwipeOrScroll(GestureType.SWIPE_LEFT)
                 }
