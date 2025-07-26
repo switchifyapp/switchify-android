@@ -1,0 +1,23 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="32dp"
+    android:height="32dp"
+    android:viewportWidth="32"
+    android:viewportHeight="32"
+    android:tint="?attr/colorControlNormal">
+  <!-- Hand/finger -->
+  <path
+      android:fillColor="@android:color/white"
+      android:pathData="M8,12C9.1,12 10,11.1 10,10C10,8.9 9.1,8 8,8C6.9,8 6,8.9 6,10C6,11.1 6.9,12 8,12Z"/>
+  <!-- Drag trail/path -->
+  <path
+      android:fillColor="@android:color/white"
+      android:pathData="M10,10L22,22"/>
+  <!-- Movement lines -->
+  <path
+      android:fillColor="@android:color/white"
+      android:pathData="M12,12L14,14M16,16L18,18M20,20L22,22"/>
+  <!-- End point -->
+  <path
+      android:fillColor="@android:color/white"
+      android:pathData="M22,22C23.1,22 24,21.1 24,20C24,18.9 23.1,18 22,18C20.9,18 20,18.9 20,20C20,21.1 20.9,22 22,22Z"/>
+</vector>
