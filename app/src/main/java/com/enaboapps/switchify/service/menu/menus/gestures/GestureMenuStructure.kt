@@ -122,6 +122,7 @@ class GestureMenuStructure(private val context: Context) {
             MenuItem(
                 id = "swipe_up",
                 textResource = R.string.menu_item_swipe_up,
+                drawableId = R.drawable.ic_gesture_swipe_up,
                 action = { GestureManager.instance.performSwipeOrScroll(GestureType.SWIPE_UP) }
             ),
             MenuItem(
