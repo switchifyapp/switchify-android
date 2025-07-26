@@ -1,0 +1,15 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="32dp"
+    android:height="32dp"
+    android:viewportWidth="32"
+    android:viewportHeight="32"
+    android:tint="?attr/colorControlNormal">
+  <!-- Scroll lines at top -->
+  <path
+      android:fillColor="@android:color/white"
+      android:pathData="M8,8L24,8M8,10L24,10M8,12L24,12"/>
+  <!-- Downward arrow -->
+  <path
+      android:fillColor="@android:color/white"
+      android:pathData="M16,26L22,20L18,20L18,16L14,16L14,20L10,20L16,26Z"/>
+</vector>
