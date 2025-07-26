@@ -77,6 +77,7 @@ class GestureMenuStructure(private val context: Context) {
             MenuItem(
                 id = "hold_and_drag",
                 textResource = R.string.menu_item_hold_and_drag,
+                drawableId = R.drawable.ic_gesture_hold_drag,
                 action = { GestureManager.instance.startHoldAndDragGesture() }
             ),
             MenuItem(
