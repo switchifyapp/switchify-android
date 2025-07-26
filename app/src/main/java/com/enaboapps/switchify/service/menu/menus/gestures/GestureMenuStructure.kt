@@ -167,6 +167,7 @@ class GestureMenuStructure(private val context: Context) {
             MenuItem(
                 id = "zoom_in",
                 textResource = R.string.menu_item_zoom_in,
+                drawableId = R.drawable.ic_gesture_zoom_in,
                 action = {
                     GestureManager.instance
                         .performZoom(GestureType.ZOOM_IN)
