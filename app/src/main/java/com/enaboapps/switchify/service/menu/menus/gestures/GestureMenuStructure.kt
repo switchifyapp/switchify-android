@@ -152,6 +152,7 @@ class GestureMenuStructure(private val context: Context) {
             MenuItem(
                 id = "custom_swipe",
                 textResource = R.string.menu_item_custom_swipe,
+                drawableId = R.drawable.ic_gesture_custom_swipe,
                 action = { GestureManager.instance.startCustomSwipe() }
             ),
             toggleGestureLockMenuItem

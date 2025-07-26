@@ -1,0 +1,19 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="32dp"
+    android:height="32dp"
+    android:viewportWidth="32"
+    android:viewportHeight="32"
+    android:tint="?attr/colorControlNormal">
+  <!-- Custom curved path -->
+  <path
+      android:fillColor="@android:color/white"
+      android:pathData="M6,16C6,16 10,10 16,12C22,14 26,20 26,20"/>
+  <!-- Arrow head at end -->
+  <path
+      android:fillColor="@android:color/white"
+      android:pathData="M26,20L22,18L22,22L26,20Z"/>
+  <!-- Start point -->
+  <path
+      android:fillColor="@android:color/white"
+      android:pathData="M6,16C7.1,16 8,15.1 8,14C8,12.9 7.1,12 6,12C4.9,12 4,12.9 4,14C4,15.1 4.9,16 6,16Z"/>
+</vector>
