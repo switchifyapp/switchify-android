@@ -1,0 +1,22 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="32dp"
+    android:height="32dp"
+    android:viewportWidth="32"
+    android:viewportHeight="32"
+    android:tint="?attr/colorControlNormal">
+  <!-- Magnifying glass circle -->
+  <path
+      android:strokeColor="@android:color/white"
+      android:strokeWidth="2"
+      android:pathData="M20,12A8,8 0 1,1 12,4A8,8 0 0,1 20,12Z"
+      android:fillType="nonZero"/>
+  <!-- Minus symbol inside -->
+  <path
+      android:fillColor="@android:color/white"
+      android:pathData="M9,12L15,12"/>
+  <!-- Magnifying glass handle -->
+  <path
+      android:strokeColor="@android:color/white"
+      android:strokeWidth="2"
+      android:pathData="M18,18L28,28"/>
+</vector>
