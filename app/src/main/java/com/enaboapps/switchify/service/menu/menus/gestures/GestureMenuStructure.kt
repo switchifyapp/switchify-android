@@ -28,6 +28,7 @@ class GestureMenuStructure(private val context: Context) {
         MenuItem(
             id = "toggle_gesture_lock",
             textResource = R.string.system_gesture_lock,
+            drawableId = R.drawable.ic_toggle_gesture_lock,
             closeOnSelect = false,
             action = { GestureManager.instance.toggleGestureLock() }
         )
