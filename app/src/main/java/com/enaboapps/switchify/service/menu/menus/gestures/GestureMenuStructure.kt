@@ -199,6 +199,7 @@ class GestureMenuStructure(private val context: Context) {
             MenuItem(
                 id = "confirm",
                 textResource = R.string.menu_item_confirm,
+                drawableId = R.drawable.ic_confirm,
                 action = { GestureManager.instance.endLinearGesture() }
             ),
             MenuItem(
