@@ -177,6 +177,15 @@ object KeyboardManager {
     }
     
     /**
+     * Check if cycle break should be enabled in scanning.
+     * Only enable cycle break when keyboard is visible and user hasn't escaped,
+     * as cycle break is meant to help users escape from keyboard scanning loops.
+     */
+    fun shouldEnableCycleBreak(): Boolean {
+        return isKeyboardVisible && !isEscapedFromKeyboard
+    }
+    
+    /**
      * Get current keyboard state for debugging.
      */
     fun getState(): String {

@@ -65,7 +65,7 @@ abstract class BaseNodeScanner : ScanTreeCallback {
         scanTree = ScanTree(
             context = context,
             stopScanningOnSelect = true,
-            hasCycleBreak = true,
+            hasCycleBreak = KeyboardManager.shouldEnableCycleBreak(),
             callback = this
         )
         startRapidUpdateCheck()
