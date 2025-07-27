@@ -109,6 +109,7 @@ class GestureMenuStructure(private val context: Context) {
                         MenuItem(
                             id = "start_recording",
                             textResource = R.string.start_recording,
+                            drawableId = R.drawable.ic_start_recording,
                             action = { GesturePatternRecorder.startRecording(context) }
                         )
                     } else null,
