@@ -1,0 +1,21 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="32dp"
+    android:height="32dp"
+    android:viewportWidth="32"
+    android:viewportHeight="32"
+    android:tint="?attr/colorControlNormal">
+  <!-- Stop/Cancel square -->
+  <path
+      android:fillColor="@android:color/white"
+      android:pathData="M8,8L24,8L24,24L8,24L8,8Z"/>
+  <!-- X cancel symbol overlay -->
+  <path
+      android:strokeColor="@android:color/black"
+      android:strokeWidth="2"
+      android:strokeLineCap="round"
+      android:pathData="M12,12L20,20M20,12L12,20"/>
+  <!-- Recording indicator dot -->
+  <path
+      android:fillColor="@android:color/white"
+      android:pathData="M28,6C28.6,6 29,6.4 29,7C29,7.6 28.6,8 28,8C27.4,8 27,7.6 27,7C27,6.4 27.4,6 28,6Z"/>
+</vector>
