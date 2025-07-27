@@ -1,6 +1,7 @@
 package com.enaboapps.switchify.screens.settings.scanning
 
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavController
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.components.BaseView
@@ -14,6 +15,8 @@ import com.enaboapps.switchify.service.techniques.cursor.CursorSettings
 
 @Composable
 fun ScanSpeedsScreen(navController: NavController) {
+    // Initialize CursorSettings to prevent crashes when accessing cursor speed components
+    CursorSettings.init(LocalContext.current)
     BaseView(
         titleResId = R.string.screen_title_scan_speeds,
         navController = navController
