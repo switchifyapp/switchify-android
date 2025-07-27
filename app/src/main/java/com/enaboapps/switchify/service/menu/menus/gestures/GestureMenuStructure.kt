@@ -205,6 +205,7 @@ class GestureMenuStructure(private val context: Context) {
             MenuItem(
                 id = "reselect",
                 textResource = R.string.menu_item_reselect,
+                drawableId = R.drawable.ic_reselect,
                 action = {
                     // Do nothing for reselect action
                 }
