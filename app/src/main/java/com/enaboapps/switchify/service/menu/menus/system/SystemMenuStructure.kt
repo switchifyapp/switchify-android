@@ -40,6 +40,7 @@ class SystemMenuStructure(private val accessibilityService: SwitchifyAccessibili
                 MenuItem(
                     id = "recent_apps",
                     textResource = R.string.system_recents,
+                    drawableId = R.drawable.ic_recent_apps,
                     action = { GlobalActionManager.openRecents() }
                 ),
                 MenuItem(

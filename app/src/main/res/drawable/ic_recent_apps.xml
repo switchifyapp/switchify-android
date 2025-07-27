@@ -1,0 +1,19 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="32dp"
+    android:height="32dp"
+    android:viewportWidth="32"
+    android:viewportHeight="32"
+    android:tint="?attr/colorControlNormal">
+  <!-- Back app window -->
+  <path
+      android:fillColor="@android:color/white"
+      android:pathData="M8,8L24,8L24,20L8,20L8,8Z"/>
+  <!-- Middle app window -->
+  <path
+      android:fillColor="@android:color/white"
+      android:pathData="M6,10L22,10L22,22L6,22L6,10Z"/>
+  <!-- Front app window -->
+  <path
+      android:fillColor="@android:color/white"
+      android:pathData="M4,12L20,12L20,24L4,24L4,12Z"/>
+</vector>
