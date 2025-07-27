@@ -80,6 +80,7 @@ class SystemMenuStructure(private val accessibilityService: SwitchifyAccessibili
                 MenuItem(
                     id = "take_screenshot",
                     textResource = R.string.system_screenshot,
+                    drawableId = R.drawable.ic_screenshot,
                     action = {
                         accessibilityService?.let { service ->
                             ScreenshotManager.takeScreenshotAndSave(
