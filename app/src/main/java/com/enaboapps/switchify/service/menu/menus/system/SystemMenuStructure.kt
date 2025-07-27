@@ -131,6 +131,7 @@ class SystemMenuStructure(private val accessibilityService: SwitchifyAccessibili
                 MenuItem(
                     id = "half_volume",
                     textResource = R.string.menu_item_half_volume,
+                    drawableId = R.drawable.ic_half_volume,
                     closeOnSelect = false,
                     action = { AudioActionManager.setHalfVolume() }
                 )
