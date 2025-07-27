@@ -1,0 +1,17 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="32dp"
+    android:height="32dp"
+    android:viewportWidth="32"
+    android:viewportHeight="32"
+    android:tint="?attr/colorControlNormal">
+  <!-- Speaker cone -->
+  <path
+      android:fillColor="@android:color/white"
+      android:pathData="M8,12L8,20L12,20L18,24L18,8L12,12L8,12Z"/>
+  <!-- Volume waves -->
+  <path
+      android:strokeColor="@android:color/white"
+      android:strokeWidth="1.5"
+      android:pathData="M21,14A2,2 0 0,1 21,18M23,12A4,4 0 0,1 23,20"
+      android:fillType="nonZero"/>
+</vector>
