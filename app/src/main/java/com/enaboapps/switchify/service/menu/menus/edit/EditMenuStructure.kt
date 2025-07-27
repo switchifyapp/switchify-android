@@ -41,6 +41,7 @@ class EditMenuStructure {
                     MenuItem(
                         id = "paste",
                         textResource = R.string.menu_item_paste,
+                        drawableId = R.drawable.ic_paste,
                         action = {
                             pasteNode.performAction(AccessibilityNodeInfo.ACTION_PASTE)
                         }
