@@ -21,6 +21,7 @@ class EditMenuStructure {
                     MenuItem(
                         id = "cut",
                         textResource = R.string.menu_item_cut,
+                        drawableId = R.drawable.ic_cut,
                         action = {
                             cutNode.performAction(AccessibilityNodeInfo.ACTION_CUT)
                         }
