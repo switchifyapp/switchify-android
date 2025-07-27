@@ -1,0 +1,28 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="32dp"
+    android:height="32dp"
+    android:viewportWidth="32"
+    android:viewportHeight="32"
+    android:tint="?attr/colorControlNormal">
+  <!-- Magnifying glass base -->
+  <path
+      android:strokeColor="@android:color/white"
+      android:strokeWidth="2"
+      android:pathData="M14,6A8,8 0 1,1 6,14A8,8 0 0,1 14,6Z"
+      android:fillType="nonZero"/>
+  <!-- Magnifying glass handle -->
+  <path
+      android:strokeColor="@android:color/white"
+      android:strokeWidth="2"
+      android:pathData="M20,20L26,26"/>
+  <!-- Zoom in symbol -->
+  <path
+      android:strokeColor="@android:color/white"
+      android:strokeWidth="1.5"
+      android:pathData="M11,14L17,14M14,11L14,17"/>
+  <!-- Zoom out symbol (small minus) -->
+  <path
+      android:strokeColor="@android:color/white"
+      android:strokeWidth="1"
+      android:pathData="M28,8L30,8"/>
+</vector>
