@@ -31,6 +31,7 @@ class EditMenuStructure {
                     MenuItem(
                         id = "copy",
                         textResource = R.string.menu_item_copy,
+                        drawableId = R.drawable.ic_copy,
                         action = {
                             copyNode.performAction(AccessibilityNodeInfo.ACTION_COPY)
                         }
