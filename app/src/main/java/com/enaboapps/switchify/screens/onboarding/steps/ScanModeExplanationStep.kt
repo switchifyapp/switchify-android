@@ -15,13 +15,14 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.navigation.compose.rememberNavController
+import androidx.navigation.NavController
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.components.FullWidthButton
 import com.enaboapps.switchify.screens.settings.shared.ScanModeSelectionSection
 
 @Composable
 fun ScanModeExplanationStep(
+    navController: NavController,
     onContinue: () -> Unit
 ) {
     val scrollState = rememberScrollState()
@@ -50,7 +51,6 @@ fun ScanModeExplanationStep(
         )
 
         // Scan Mode Selection  
-        val navController = rememberNavController()
         ScanModeSelectionSection(navController = navController)
 
         Spacer(modifier = Modifier.height(32.dp))
