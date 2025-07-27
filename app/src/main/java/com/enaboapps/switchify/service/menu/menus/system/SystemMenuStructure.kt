@@ -46,6 +46,7 @@ class SystemMenuStructure(private val accessibilityService: SwitchifyAccessibili
                 MenuItem(
                     id = "notifications",
                     textResource = R.string.system_notifications,
+                    drawableId = R.drawable.ic_notifications,
                     action = { GlobalActionManager.openNotifications() }
                 ),
                 MenuItem(
