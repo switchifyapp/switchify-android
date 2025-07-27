@@ -117,6 +117,7 @@ class SystemMenuStructure(private val accessibilityService: SwitchifyAccessibili
                 MenuItem(
                     id = "full_volume",
                     textResource = R.string.menu_item_full_volume,
+                    drawableId = R.drawable.ic_full_volume,
                     closeOnSelect = false,
                     action = { AudioActionManager.setFullVolume() }
                 ),
