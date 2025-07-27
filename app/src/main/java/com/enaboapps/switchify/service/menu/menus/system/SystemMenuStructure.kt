@@ -74,6 +74,7 @@ class SystemMenuStructure(private val accessibilityService: SwitchifyAccessibili
                 MenuItem(
                     id = "power_dialog",
                     textResource = R.string.system_power_dialog,
+                    drawableId = R.drawable.ic_power_dialog,
                     action = { GlobalActionManager.openPowerDialog() }
                 ),
                 MenuItem(
