@@ -1,0 +1,18 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="32dp"
+    android:height="32dp"
+    android:viewportWidth="32"
+    android:viewportHeight="32"
+    android:tint="?attr/colorControlNormal">
+  <!-- Play triangle -->
+  <path
+      android:fillColor="@android:color/white"
+      android:pathData="M8,6L8,26L20,16L8,6Z"/>
+  <!-- Pause bars -->
+  <path
+      android:fillColor="@android:color/white"
+      android:pathData="M22,8L22,24L24,24L24,8L22,8Z"/>
+  <path
+      android:fillColor="@android:color/white"
+      android:pathData="M26,8L26,24L28,24L28,8L26,8Z"/>
+</vector>

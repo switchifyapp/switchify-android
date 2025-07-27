@@ -21,6 +21,7 @@ class MediaMenuStructure(private val accessibilityService: SwitchifyAccessibilit
             MenuItem(
                 id = "play_pause",
                 textResource = R.string.menu_item_play_pause,
+                drawableId = R.drawable.ic_play_pause,
                 action = { GlobalActionManager.toggleMediaPlayback() }
             ),
             openVolumeControlMenu
