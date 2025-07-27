@@ -112,6 +112,7 @@ fun OnboardingScreen(navController: NavController) {
                     )
 
                     OnboardingStep.SCAN_MODE_EXPLANATION -> ScanModeExplanationStep(
+                        navController = navController,
                         onContinue = { viewModel.nextStep() }
                     )
 
