@@ -66,6 +66,7 @@ class GestureMenuStructure(private val context: Context) {
             MenuItem(
                 id = "swipe_gestures",
                 textResource = R.string.menu_item_swipe_gestures,
+                drawableId = R.drawable.ic_swipe_gestures,
                 isLinkToMenu = true,
                 action = { MenuManager.getInstance().openSwipeMenu() }
             ),
