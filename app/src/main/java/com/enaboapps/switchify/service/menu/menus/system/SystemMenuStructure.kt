@@ -124,6 +124,7 @@ class SystemMenuStructure(private val accessibilityService: SwitchifyAccessibili
                 MenuItem(
                     id = "mute",
                     textResource = R.string.menu_item_mute,
+                    drawableId = R.drawable.ic_mute,
                     closeOnSelect = false,
                     action = { AudioActionManager.mute() }
                 ),
