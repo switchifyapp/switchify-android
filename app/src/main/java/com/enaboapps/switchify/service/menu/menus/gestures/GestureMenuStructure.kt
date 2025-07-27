@@ -59,6 +59,7 @@ class GestureMenuStructure(private val context: Context) {
             MenuItem(
                 id = "tap_gestures",
                 textResource = R.string.menu_item_tap_gestures,
+                drawableId = R.drawable.ic_tap_gestures,
                 isLinkToMenu = true,
                 action = { MenuManager.getInstance().openTapMenu() }
             ),
