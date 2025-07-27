@@ -68,6 +68,7 @@ class SystemMenuStructure(private val accessibilityService: SwitchifyAccessibili
                 MenuItem(
                     id = "lock_screen",
                     textResource = R.string.system_lock_screen,
+                    drawableId = R.drawable.ic_lock_screen,
                     action = { GlobalActionManager.lockScreen() }
                 ),
                 MenuItem(
