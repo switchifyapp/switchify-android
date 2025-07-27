@@ -62,6 +62,7 @@ class SystemMenuStructure(private val accessibilityService: SwitchifyAccessibili
                 MenuItem(
                     id = "quick_settings",
                     textResource = R.string.system_quick_settings,
+                    drawableId = R.drawable.ic_quick_settings,
                     action = { GlobalActionManager.openQuickSettings() }
                 ),
                 MenuItem(
