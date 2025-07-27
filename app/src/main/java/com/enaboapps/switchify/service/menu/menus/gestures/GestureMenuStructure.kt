@@ -85,6 +85,7 @@ class GestureMenuStructure(private val context: Context) {
             MenuItem(
                 id = "zoom_gestures",
                 textResource = R.string.menu_item_zoom_gestures,
+                drawableId = R.drawable.ic_zoom_gestures,
                 isLinkToMenu = true,
                 action = { MenuManager.getInstance().openZoomGesturesMenu() }
             ),
