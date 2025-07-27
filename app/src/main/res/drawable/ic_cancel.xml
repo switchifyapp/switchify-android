@@ -1,0 +1,19 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="32dp"
+    android:height="32dp"
+    android:viewportWidth="32"
+    android:viewportHeight="32"
+    android:tint="?attr/colorControlNormal">
+  <!-- Cancel circle background -->
+  <path
+      android:strokeColor="@android:color/white"
+      android:strokeWidth="2"
+      android:pathData="M16,4A12,12 0 1,1 4,16A12,12 0 0,1 16,4Z"
+      android:fillType="nonZero"/>
+  <!-- X symbol -->
+  <path
+      android:strokeColor="@android:color/white"
+      android:strokeWidth="3"
+      android:strokeLineCap="round"
+      android:pathData="M12,12L20,20M20,12L12,20"/>
+</vector>
