@@ -213,6 +213,7 @@ class GestureMenuStructure(private val context: Context) {
             MenuItem(
                 id = "cancel",
                 textResource = R.string.menu_item_cancel,
+                drawableId = R.drawable.ic_cancel,
                 action = { GestureManager.instance.cancelLinearGesture() }
             )
         )
