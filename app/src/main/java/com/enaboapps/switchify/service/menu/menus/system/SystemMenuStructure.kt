@@ -52,6 +52,7 @@ class SystemMenuStructure(private val accessibilityService: SwitchifyAccessibili
                 MenuItem(
                     id = "open_assistant",
                     textResource = R.string.system_assistant,
+                    drawableId = R.drawable.ic_assistant,
                     action = {
                         val intent = Intent(Intent.ACTION_VOICE_COMMAND)
                         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
