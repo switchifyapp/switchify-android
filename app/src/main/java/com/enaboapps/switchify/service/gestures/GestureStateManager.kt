@@ -52,6 +52,12 @@ object GestureStateManager {
     const val EVENT_AUTO_SELECT_COMPLETED = "auto_select_completed"
     const val EVENT_STATE_RESET = "state_reset"
     
+    // Dispatch event types for execution pipeline
+    const val EVENT_GESTURE_DISPATCH_STARTED = "gesture_dispatch_started"
+    const val EVENT_GESTURE_DISPATCH_COMPLETED = "gesture_dispatch_completed"
+    const val EVENT_GESTURE_DISPATCH_CANCELLED = "gesture_dispatch_cancelled"
+    const val EVENT_GESTURE_DISPATCH_ERROR = "gesture_dispatch_error"
+    
     /**
      * Interface for listening to gesture state changes.
      */
@@ -294,6 +300,39 @@ object GestureStateManager {
             "lastGestureTime" to lastGestureTime.get(),
             "listenerCount" to stateListeners.size
         )
+    }
+    
+    // === Dispatch Event Management ===
+    
+    /**
+     * Notifies listeners that a gesture dispatch has started.
+     */
+    fun notifyGestureDispatchStarted(gestureType: GestureType) {
+        notifyStateChange(EVENT_GESTURE_DISPATCH_STARTED, mapOf("gestureType" to gestureType))
+    }
+    
+    /**
+     * Notifies listeners that a gesture dispatch has completed successfully.
+     */
+    fun notifyGestureDispatchCompleted(gestureType: GestureType) {
+        notifyStateChange(EVENT_GESTURE_DISPATCH_COMPLETED, mapOf("gestureType" to gestureType))
+    }
+    
+    /**
+     * Notifies listeners that a gesture dispatch was cancelled.
+     */
+    fun notifyGestureDispatchCancelled(gestureType: GestureType) {
+        notifyStateChange(EVENT_GESTURE_DISPATCH_CANCELLED, mapOf("gestureType" to gestureType))
+    }
+    
+    /**
+     * Notifies listeners that a gesture dispatch encountered an error.
+     */
+    fun notifyGestureDispatchError(gestureType: GestureType, error: Throwable) {
+        notifyStateChange(EVENT_GESTURE_DISPATCH_ERROR, mapOf(
+            "gestureType" to gestureType,
+            "error" to error
+        ))
     }
     
     /**

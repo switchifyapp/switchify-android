@@ -1,12 +1,13 @@
 package com.enaboapps.switchify.service.gestures
 
 import android.accessibilityservice.AccessibilityService
-import android.accessibilityservice.GestureDescription
-import android.graphics.Path
 import android.graphics.PointF
 import android.util.Log
+import com.enaboapps.switchify.service.core.SwitchifyAccessibilityService
 import com.enaboapps.switchify.service.gestures.data.GestureData
 import com.enaboapps.switchify.service.gestures.data.GestureType
+import com.enaboapps.switchify.service.gestures.execution.GestureDispatcher
+import com.enaboapps.switchify.service.gestures.execution.GesturePathBuilder
 import com.enaboapps.switchify.service.gestures.visuals.ZoomVisual
 import com.enaboapps.switchify.service.utils.ScreenUtils
 
@@ -14,13 +15,12 @@ object ZoomGesturePerformer {
 
     private const val TAG = "ZoomGesturePerformer"
     private const val ZOOM_AMOUNT_DP = 300 // Zoom amount in density-independent pixels (dp)
-    private const val VERTICAL_OFFSET_DP = 100 // Vertical offset for natural gesture
     private const val VISUAL_CIRCLE_SIZE_DP = 120 // Size of the visual circle in dp
 
     private var zoomVisual: ZoomVisual? = null
 
     /**
-     * Perform a zoom action.
+     * Perform a zoom action using the unified gesture execution pipeline.
      *
      * @param type The type of zoom action (ZOOM_IN or ZOOM_OUT).
      * @param accessibilityService The accessibility service used to dispatch gestures.
@@ -31,6 +31,14 @@ object ZoomGesturePerformer {
         accessibilityService: AccessibilityService,
         point: PointF
     ) {
+        val gestureDispatcher = GestureDispatcher(accessibilityService as SwitchifyAccessibilityService)
+
+        // Validate zoom type
+        if (type != GestureType.ZOOM_IN && type != GestureType.ZOOM_OUT) {
+            Log.e(TAG, "performZoomAction: Invalid zoom type: $type")
+            return
+        }
+        
         // Initialize zoom visual if needed
         if (zoomVisual == null) {
             zoomVisual = ZoomVisual(accessibilityService)
@@ -59,76 +67,32 @@ object ZoomGesturePerformer {
             type == GestureType.ZOOM_IN
         )
 
-        // Calculate vertical offset for more natural finger placement
-        val verticalOffsetPx = (VERTICAL_OFFSET_DP * density).toInt()
-        Log.d(TAG, "Vertical Offset (px): $verticalOffsetPx")
+        // Create gesture description using unified path builder
+        val zoomAmount = if (type == GestureType.ZOOM_IN) zoomAmountPx.toFloat() else -zoomAmountPx.toFloat()
+        val gestureDescription = GesturePathBuilder.createZoomPath(
+            centerPoint,
+            zoomAmount,
+            GestureData.ZOOM_DURATION
+        )
 
-        // Initialize gesture paths for the two fingers
-        val path1 = Path()
-        val path2 = Path()
-
-        val halfZoomAmount = zoomAmountPx / 2
-
-        val leftZoomPoint = centerPoint.x - halfZoomAmount
-        val rightZoomPoint = centerPoint.x + halfZoomAmount
-
-        // Define gesture paths based on the type of zoom action
-        when (type) {
-            GestureType.ZOOM_IN -> {
-                // Fingers move outward from the center for zooming in
-                path1.moveTo(centerPoint.x.toFloat(), (centerPoint.y - verticalOffsetPx).toFloat())
-                path1.lineTo(leftZoomPoint.toFloat(), (centerPoint.y - verticalOffsetPx).toFloat())
-
-                path2.moveTo(centerPoint.x.toFloat(), (centerPoint.y + verticalOffsetPx).toFloat())
-                path2.lineTo(rightZoomPoint.toFloat(), (centerPoint.y + verticalOffsetPx).toFloat())
+        // Dispatch using unified dispatcher with custom result handling
+        gestureDispatcher.dispatchWithActions(
+            gestureDescription,
+            type,
+            onCompleted = {
+                Log.d(TAG, "Gesture Completed Successfully")
+            },
+            onCancelled = {
+                Log.e(TAG, "Gesture Cancelled")
+                zoomVisual?.stop()
+            },
+            onError = { error ->
+                Log.e(TAG, "Gesture dispatch error", error)
+                zoomVisual?.stop()
             }
-
-            GestureType.ZOOM_OUT -> {
-                // Fingers move inward towards the center for zooming out
-                path1.moveTo(leftZoomPoint.toFloat(), (centerPoint.y - verticalOffsetPx).toFloat())
-                path1.lineTo(centerPoint.x.toFloat(), (centerPoint.y - verticalOffsetPx).toFloat())
-
-                path2.moveTo(rightZoomPoint.toFloat(), (centerPoint.y + verticalOffsetPx).toFloat())
-                path2.lineTo(centerPoint.x.toFloat(), (centerPoint.y + verticalOffsetPx).toFloat())
-            }
-
-            else -> {
-                Log.e(TAG, "performZoomAction: Invalid zoom type: $type")
-                return
-            }
-        }
-
-        // Build the gesture description with the defined paths and duration
-        val gestureBuilder = GestureDescription.Builder()
-        val stroke1 = GestureDescription.StrokeDescription(path1, 0, GestureData.ZOOM_DURATION)
-        val stroke2 = GestureDescription.StrokeDescription(path2, 0, GestureData.ZOOM_DURATION)
-        gestureBuilder.addStroke(stroke1).addStroke(stroke2)
-
-        val gestureDescription = gestureBuilder.build()
-
-        // Dispatch the gesture using the accessibility service
-        try {
-            accessibilityService.dispatchGesture(
-                gestureDescription,
-                object : AccessibilityService.GestureResultCallback() {
-                    override fun onCompleted(gestureDescription: GestureDescription?) {
-                        super.onCompleted(gestureDescription)
-                        Log.d(TAG, "Gesture Completed Successfully")
-                    }
-
-                    override fun onCancelled(gestureDescription: GestureDescription?) {
-                        super.onCancelled(gestureDescription)
-                        Log.e(TAG, "Gesture Cancelled")
-                        zoomVisual?.stop()
-                    }
-                },
-                null
-            )
-            Log.d(TAG, "Gesture dispatched: $type")
-        } catch (e: Exception) {
-            Log.e(TAG, "performZoomAction: Exception during gesture dispatch", e)
-            zoomVisual?.stop()
-        }
+        )
+        
+        Log.d(TAG, "Gesture dispatched: $type")
     }
 
     /**

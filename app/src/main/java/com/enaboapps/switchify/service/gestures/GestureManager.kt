@@ -1,18 +1,14 @@
 package com.enaboapps.switchify.service.gestures
 
-import android.accessibilityservice.GestureDescription
-import android.graphics.Path
 import android.graphics.PointF
-import android.os.Handler
-import android.os.Looper
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.service.core.SwitchifyAccessibilityService
 import com.enaboapps.switchify.service.gestures.data.GestureData
-import com.enaboapps.switchify.service.gestures.data.GestureData.Companion.DOUBLE_TAP_INTERVAL
-import com.enaboapps.switchify.service.gestures.data.GestureData.Companion.TAP_AND_HOLD_DURATION
-import com.enaboapps.switchify.service.gestures.data.GestureData.Companion.TAP_DURATION
 import com.enaboapps.switchify.service.gestures.data.GestureType
 import com.enaboapps.switchify.service.gestures.GestureStateManager
+import com.enaboapps.switchify.service.gestures.execution.GestureDispatcher
+import com.enaboapps.switchify.service.gestures.execution.GesturePathBuilder
+import com.enaboapps.switchify.service.gestures.execution.GestureTimingCoordinator
 import com.enaboapps.switchify.service.gestures.visuals.GestureVisualManager
 import com.enaboapps.switchify.service.techniques.nodes.NodeExaminer
 
@@ -29,6 +25,8 @@ class GestureManager private constructor() {
     private var preferenceManager: PreferenceManager? = null
     private lateinit var linearGesturePerformer: LinearGesturePerformer
     private lateinit var gestureVisualManager: GestureVisualManager
+    private lateinit var gestureDispatcher: GestureDispatcher
+    private lateinit var timingCoordinator: GestureTimingCoordinator
 
     /**
      * Sets up the GestureManager with the necessary components.
@@ -39,6 +37,11 @@ class GestureManager private constructor() {
         this.accessibilityService = accessibilityService
         AutoScrollManager.getInstance().init(accessibilityService)
         preferenceManager = PreferenceManager(accessibilityService)
+        
+        // Initialize unified execution pipeline components
+        gestureDispatcher = GestureDispatcher(accessibilityService)
+        timingCoordinator = GestureTimingCoordinator()
+        
         linearGesturePerformer =
             LinearGesturePerformer(accessibilityService, GestureLockManager.instance)
         gestureVisualManager = GestureVisualManager(accessibilityService)
@@ -67,20 +70,26 @@ class GestureManager private constructor() {
     fun performTap(x: Int? = null, y: Int? = null) {
         try {
             accessibilityService?.let {
-                var point = if (x != null && y != null) {
+                val point = if (x != null && y != null) {
                     PointF(x.toFloat(), y.toFloat())
                 } else {
                     getAssistedCurrentPoint()
                 }
+                
+                // Show visual feedback
+                val duration = GestureData.TAP_DURATION
                 gestureVisualManager.showStaticCircle(
                     point.x.toInt(),
                     point.y.toInt(),
-                    TAP_DURATION
+                    duration
                 )
-                dispatchGesture(it, point, null, GestureType.TAP, TAP_DURATION)
+                
+                // Create and dispatch gesture using unified pipeline
+                val gestureDescription = GesturePathBuilder.createTapPath(point, duration)
+                gestureDispatcher.dispatch(gestureDescription, GestureType.TAP)
             }
         } catch (e: Exception) {
-            // Log.e(TAG, "onTap: ", e)
+            android.util.Log.e("GestureManager", "Error performing tap", e)
         }
     }
 
@@ -93,54 +102,37 @@ class GestureManager private constructor() {
     fun performDoubleTap(x: Int? = null, y: Int? = null) {
         try {
             accessibilityService?.let {
-                var point = if (x != null && y != null) {
+                val point = if (x != null && y != null) {
                     PointF(x.toFloat(), y.toFloat())
                 } else {
                     getAssistedCurrentPoint()
                 }
-                // Show first tap visual
-                gestureVisualManager.showStaticCircle(
-                    point.x.toInt(),
-                    point.y.toInt(),
-                    TAP_DURATION
+                
+                // Coordinate timing and visual feedback
+                val handler = timingCoordinator.createDefaultHandler(
+                    onReady = { _, _ ->
+                        // Show first tap visual
+                        gestureVisualManager.showStaticCircle(
+                            point.x.toInt(),
+                            point.y.toInt(),
+                            GestureData.TAP_DURATION
+                        )
+                    }
                 )
                 
-                // Schedule second tap visual after DOUBLE_TAP_INTERVAL
-                Handler(Looper.getMainLooper()).postDelayed({
-                    gestureVisualManager.showStaticCircle(
-                        point.x.toInt(),
-                        point.y.toInt(),
-                        TAP_DURATION
-                    )
-                }, DOUBLE_TAP_INTERVAL + TAP_DURATION)
-
-                // Create first tap stroke
-                val firstTapPath = Path().apply { moveTo(point.x, point.y) }
-                val firstTapStroke = GestureDescription.StrokeDescription(
-                    firstTapPath,
-                    0,
-                    TAP_DURATION
+                timingCoordinator.coordinateDoubleTap(
+                    handler,
+                    gestureVisualManager,
+                    GestureData.DOUBLE_TAP_INTERVAL,
+                    GestureData.TAP_DURATION
                 )
-
-                // Create second tap stroke
-                val secondTapPath = Path().apply { moveTo(point.x, point.y) }
-                val secondTapStroke = GestureDescription.StrokeDescription(
-                    secondTapPath,
-                    DOUBLE_TAP_INTERVAL,
-                    TAP_DURATION
-                )
-
-                // Dispatch both taps together
-                dispatchGesture(
-                    it,
-                    point,
-                    null,
-                    GestureType.DOUBLE_TAP,
-                    arrayOf(firstTapStroke, secondTapStroke)
-                )
+                
+                // Create and dispatch gesture using unified pipeline
+                val gestureDescription = GesturePathBuilder.createDoubleTapPath(point)
+                gestureDispatcher.dispatch(gestureDescription, GestureType.DOUBLE_TAP)
             }
         } catch (e: Exception) {
-            // Log.e(TAG, "onDoubleTap: ", e)
+            android.util.Log.e("GestureManager", "Error performing double tap", e)
         }
     }
 
@@ -153,20 +145,26 @@ class GestureManager private constructor() {
     fun performTapAndHold(x: Int? = null, y: Int? = null) {
         try {
             accessibilityService?.let {
-                var point = if (x != null && y != null) {
+                val point = if (x != null && y != null) {
                     PointF(x.toFloat(), y.toFloat())
                 } else {
                     getAssistedCurrentPoint()
                 }
+                
+                // Show visual feedback
+                val duration = GestureData.TAP_AND_HOLD_DURATION
                 gestureVisualManager.showStaticCircle(
                     point.x.toInt(),
                     point.y.toInt(),
-                    TAP_AND_HOLD_DURATION
+                    duration
                 )
-                dispatchGesture(it, point, null, GestureType.TAP_AND_HOLD, TAP_AND_HOLD_DURATION)
+                
+                // Create and dispatch gesture using unified pipeline
+                val gestureDescription = GesturePathBuilder.createTapAndHoldPath(point, duration)
+                gestureDispatcher.dispatch(gestureDescription, GestureType.TAP_AND_HOLD)
             }
         } catch (e: Exception) {
-            // Log.e(TAG, "onTapAndHold: ", e)
+            android.util.Log.e("GestureManager", "Error performing tap and hold", e)
         }
     }
 

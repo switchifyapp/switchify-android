@@ -9,6 +9,8 @@ import com.enaboapps.switchify.service.core.SwitchifyAccessibilityService
 import com.enaboapps.switchify.service.gestures.data.GestureData
 import com.enaboapps.switchify.service.gestures.data.GestureType
 import com.enaboapps.switchify.service.gestures.GestureStateManager
+import com.enaboapps.switchify.service.gestures.execution.GestureDispatcher
+import com.enaboapps.switchify.service.gestures.execution.GesturePathBuilder
 import com.enaboapps.switchify.service.gestures.visuals.GestureVisualManager
 import com.enaboapps.switchify.service.utils.ScreenUtils
 import com.enaboapps.switchify.service.window.ServiceMessageHUD
@@ -27,6 +29,7 @@ class LinearGesturePerformer(
     private val accessibilityService: SwitchifyAccessibilityService,
     private val gestureLockManager: GestureLockManager
 ) {
+    private val gestureDispatcher = GestureDispatcher(accessibilityService)
     companion object {
         // Gesture timing constants moved to GestureStateManager
     }
@@ -161,51 +164,24 @@ class LinearGesturePerformer(
      * @param end The ending point of the gesture.
      */
     private fun performGesture(type: GestureType, start: PointF, end: PointF) {
-        // Gesture timing delay is now handled by GestureStateManager
-
         try {
             showVisualFeedback(start, end, type)
 
-            when (type) {
+            // Create gesture description using unified path builder
+            val gestureDescription = when (type) {
                 GestureType.HOLD_AND_DRAG -> {
-                    // Create hold stroke
-                    val holdPath = Path().apply { moveTo(start.x, start.y) }
-                    val holdStroke = GestureDescription.StrokeDescription(
-                        holdPath,
-                        0,
-                        GestureData.HOLD_BEFORE_DRAG_DURATION
-                    )
-
-                    // Create drag stroke
-                    val dragPath = Path().apply {
-                        moveTo(start.x, start.y)
-                        lineTo(end.x, end.y)
-                    }
-                    val dragStroke = GestureDescription.StrokeDescription(
-                        dragPath,
-                        GestureData.HOLD_BEFORE_DRAG_DURATION - 5,
-                        GestureData.DRAG_DURATION
-                    )
-
-                    // Dispatch both strokes together
-                    dispatchGesture(
-                        accessibilityService,
-                        start,
-                        end,
-                        type,
-                        arrayOf(holdStroke, dragStroke)
-                    )
+                    GesturePathBuilder.createHoldAndDragPath(start, end)
                 }
-
                 else -> {
-                    val duration = getDurationForGestureType(type)
-                    dispatchGesture(accessibilityService, start, end, type, duration)
+                    val duration = GesturePathBuilder.getDurationForGestureType(type)
+                    GesturePathBuilder.createLinearPath(start, end, duration)
                 }
             }
 
-            // Timing is now handled by GestureStateManager
+            // Dispatch using unified dispatcher
+            gestureDispatcher.dispatch(gestureDescription, type)
         } catch (e: Exception) {
-            e.printStackTrace()
+            android.util.Log.e("LinearGesturePerformer", "Error performing gesture", e)
         }
     }
 
