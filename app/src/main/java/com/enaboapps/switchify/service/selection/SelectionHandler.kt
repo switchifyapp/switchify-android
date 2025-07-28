@@ -3,7 +3,7 @@ package com.enaboapps.switchify.service.selection
 import android.content.Context
 import com.enaboapps.switchify.service.gestures.GestureManager
 import com.enaboapps.switchify.service.gestures.GesturePoint
-import com.enaboapps.switchify.service.gestures.visuals.AutoTapVisual
+import com.enaboapps.switchify.service.gestures.visuals.GestureVisualManager
 import com.enaboapps.switchify.service.menu.MenuManager
 import com.enaboapps.switchify.service.scanning.ScanSettings
 import com.enaboapps.switchify.service.techniques.AccessTechnique
@@ -21,7 +21,7 @@ object SelectionHandler {
     private var methodTypeInvokedForStartScanningAction: String? = null
     private var autoSelectInProgress = false
     private var bypassAutoSelect = false
-    private var autoTapVisual: AutoTapVisual? = null
+    private var gestureVisualManager: GestureVisualManager? = null
 
     private lateinit var scanSettings: ScanSettings
 
@@ -35,7 +35,7 @@ object SelectionHandler {
     fun init(appContext: Context) {
         // Use application context to avoid leaking activity or other contexts
         scanSettings = ScanSettings(appContext)
-        autoTapVisual = AutoTapVisual(appContext.applicationContext)
+        gestureVisualManager = GestureVisualManager(appContext.applicationContext)
     }
 
     /**
@@ -87,7 +87,7 @@ object SelectionHandler {
         // If auto-select is in progress, cancel it and open the main menu
         if (autoSelectInProgress) {
             MenuManager.getInstance().openMainMenu()
-            autoTapVisual?.stop()
+            gestureVisualManager?.hideCircle()
             autoSelectInProgress = false
             return
         }
@@ -103,7 +103,11 @@ object SelectionHandler {
                 CoroutineScope(Dispatchers.Main).launch {
                     val delayTime = scanSettings.getAutoSelectDelay()
                     val point = GesturePoint.getPoint()
-                    autoTapVisual?.start(point.x, point.y, delayTime)
+                    gestureVisualManager?.showCountdownCircle(
+                        point.x.toInt(),
+                        point.y.toInt(),
+                        delayTime
+                    )
                     delay(delayTime)
                     if (autoSelectInProgress) {
                         selectAction?.invoke()
@@ -142,7 +146,7 @@ object SelectionHandler {
      * Cleans up the selection handler.
      */
     fun cleanup() {
-        autoTapVisual?.stop()
+        gestureVisualManager?.hideCircle()
 
         selectAction = null
         startScanningAction = null

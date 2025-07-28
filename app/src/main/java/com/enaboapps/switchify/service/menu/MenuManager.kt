@@ -1,7 +1,7 @@
 package com.enaboapps.switchify.service.menu
 
 import com.enaboapps.switchify.service.core.SwitchifyAccessibilityService
-import com.enaboapps.switchify.service.gestures.visuals.CurrentPointVisual
+import com.enaboapps.switchify.service.gestures.visuals.GestureVisualManager
 import com.enaboapps.switchify.service.menu.menus.edit.EditMenu
 import com.enaboapps.switchify.service.menu.menus.gestures.CustomGestureConfirmationMenu
 import com.enaboapps.switchify.service.menu.menus.gestures.GesturePatternsMenu
@@ -38,7 +38,7 @@ class MenuManager {
     /**
      * The current point visual
      */
-    private lateinit var currentPointVisual: CurrentPointVisual
+    private lateinit var gestureVisualManager: GestureVisualManager
 
     /**
      * The scanning manager
@@ -67,7 +67,7 @@ class MenuManager {
         this.scanningManager = scanningManager
         menuHierarchy = MenuHierarchy(scanningManager)
         this.accessibilityService = accessibilityService
-        currentPointVisual = CurrentPointVisual(accessibilityService)
+        gestureVisualManager = GestureVisualManager(accessibilityService)
     }
 
     fun switchToCursor() {
@@ -90,7 +90,10 @@ class MenuManager {
         openMenu(mainMenu.build())
 
         // Show the current point visual
-        currentPointVisual.showCurrentPoint()
+        gestureVisualManager.showStaticCircle(
+            com.enaboapps.switchify.service.gestures.GesturePoint.x,
+            com.enaboapps.switchify.service.gestures.GesturePoint.y
+        )
     }
 
     /**
@@ -219,6 +222,6 @@ class MenuManager {
         menuHierarchy?.removeAllMenus()
 
         // Hide the current point visual
-        currentPointVisual.hideCurrentPoint()
+        gestureVisualManager.hideCircle()
     }
 }
