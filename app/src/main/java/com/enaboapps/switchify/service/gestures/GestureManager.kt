@@ -12,7 +12,7 @@ import com.enaboapps.switchify.service.gestures.data.GestureData.Companion.DOUBL
 import com.enaboapps.switchify.service.gestures.data.GestureData.Companion.TAP_AND_HOLD_DURATION
 import com.enaboapps.switchify.service.gestures.data.GestureData.Companion.TAP_DURATION
 import com.enaboapps.switchify.service.gestures.data.GestureType
-import com.enaboapps.switchify.service.gestures.visuals.GestureDrawing
+import com.enaboapps.switchify.service.gestures.visuals.GestureVisualManager
 import com.enaboapps.switchify.service.techniques.nodes.NodeExaminer
 
 /**
@@ -27,6 +27,7 @@ class GestureManager private constructor() {
     private var accessibilityService: SwitchifyAccessibilityService? = null
     private var preferenceManager: PreferenceManager? = null
     private lateinit var linearGesturePerformer: LinearGesturePerformer
+    private lateinit var gestureVisualManager: GestureVisualManager
 
     /**
      * Sets up the GestureManager with the necessary components.
@@ -39,6 +40,7 @@ class GestureManager private constructor() {
         preferenceManager = PreferenceManager(accessibilityService)
         linearGesturePerformer =
             LinearGesturePerformer(accessibilityService, GestureLockManager.instance)
+        gestureVisualManager = GestureVisualManager(accessibilityService)
         GestureLockManager.instance.init(accessibilityService)
     }
 
@@ -69,8 +71,7 @@ class GestureManager private constructor() {
                 } else {
                     getAssistedCurrentPoint()
                 }
-                val gestureDrawing = GestureDrawing(it)
-                gestureDrawing.drawCircleAndRemove(
+                gestureVisualManager.showStaticCircle(
                     point.x.toInt(),
                     point.y.toInt(),
                     TAP_DURATION
@@ -96,9 +97,8 @@ class GestureManager private constructor() {
                 } else {
                     getAssistedCurrentPoint()
                 }
-                val gestureDrawing = GestureDrawing(it)
                 // Show first tap visual
-                gestureDrawing.drawCircleAndRemove(
+                gestureVisualManager.showStaticCircle(
                     point.x.toInt(),
                     point.y.toInt(),
                     TAP_DURATION
@@ -106,7 +106,7 @@ class GestureManager private constructor() {
                 
                 // Schedule second tap visual after DOUBLE_TAP_INTERVAL
                 Handler(Looper.getMainLooper()).postDelayed({
-                    gestureDrawing.drawCircleAndRemove(
+                    gestureVisualManager.showStaticCircle(
                         point.x.toInt(),
                         point.y.toInt(),
                         TAP_DURATION
@@ -157,8 +157,7 @@ class GestureManager private constructor() {
                 } else {
                     getAssistedCurrentPoint()
                 }
-                val gestureDrawing = GestureDrawing(it)
-                gestureDrawing.drawCircleAndRemove(
+                gestureVisualManager.showStaticCircle(
                     point.x.toInt(),
                     point.y.toInt(),
                     TAP_AND_HOLD_DURATION

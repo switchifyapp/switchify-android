@@ -8,8 +8,7 @@ import com.enaboapps.switchify.R
 import com.enaboapps.switchify.service.core.SwitchifyAccessibilityService
 import com.enaboapps.switchify.service.gestures.data.GestureData
 import com.enaboapps.switchify.service.gestures.data.GestureType
-import com.enaboapps.switchify.service.gestures.visuals.CurrentPointVisual
-import com.enaboapps.switchify.service.gestures.visuals.GestureDrawing
+import com.enaboapps.switchify.service.gestures.visuals.GestureVisualManager
 import com.enaboapps.switchify.service.utils.ScreenUtils
 import com.enaboapps.switchify.service.window.ServiceMessageHUD
 
@@ -37,7 +36,7 @@ class LinearGesturePerformer(
     /**
      * The current point visual
      */
-    private val currentPointVisual = CurrentPointVisual(accessibilityService)
+    private val gestureVisualManager = GestureVisualManager(accessibilityService)
 
     /**
      * Represents the current state of a gesture.
@@ -85,7 +84,10 @@ class LinearGesturePerformer(
         if (showMessage) {
             showGestureMessage(type)
         }
-        currentPointVisual.showCurrentPoint()
+        gestureVisualManager.showStaticCircle(
+            gestureState.startPoint?.x?.toInt() ?: GesturePoint.x,
+            gestureState.startPoint?.y?.toInt() ?: GesturePoint.y
+        )
     }
 
     /**
@@ -105,7 +107,7 @@ class LinearGesturePerformer(
         gestureLockManager.setLockedGestureData(GestureData(gestureType, startPoint, endPoint))
 
         resetGestureState()
-        currentPointVisual.hideCurrentPoint()
+        gestureVisualManager.hideCircle()
     }
 
     /**
@@ -113,7 +115,7 @@ class LinearGesturePerformer(
      */
     fun cancelGesture() {
         resetGestureState()
-        currentPointVisual.hideCurrentPoint()
+        gestureVisualManager.hideCircle()
     }
 
     /**
@@ -256,7 +258,7 @@ class LinearGesturePerformer(
      */
     private fun showVisualFeedback(start: PointF, end: PointF, type: GestureType) {
         val duration = getDurationForGestureType(type)
-        GestureDrawing(accessibilityService).showAnimatedArrow(
+        gestureVisualManager.showArrowAnimation(
             start.x.toInt(), start.y.toInt(),
             end.x.toInt(), end.y.toInt(),
             duration
