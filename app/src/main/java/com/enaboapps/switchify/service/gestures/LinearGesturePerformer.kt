@@ -8,6 +8,7 @@ import com.enaboapps.switchify.R
 import com.enaboapps.switchify.service.core.SwitchifyAccessibilityService
 import com.enaboapps.switchify.service.gestures.data.GestureData
 import com.enaboapps.switchify.service.gestures.data.GestureType
+import com.enaboapps.switchify.service.gestures.GestureStateManager
 import com.enaboapps.switchify.service.gestures.visuals.GestureVisualManager
 import com.enaboapps.switchify.service.utils.ScreenUtils
 import com.enaboapps.switchify.service.window.ServiceMessageHUD
@@ -27,10 +28,7 @@ class LinearGesturePerformer(
     private val gestureLockManager: GestureLockManager
 ) {
     companion object {
-        /**
-         * The minimum delay between consecutive gestures in milliseconds.
-         */
-        private const val GESTURE_DELAY_MS = 500L
+        // Gesture timing constants moved to GestureStateManager
     }
 
     /**
@@ -38,28 +36,7 @@ class LinearGesturePerformer(
      */
     private val gestureVisualManager = GestureVisualManager(accessibilityService)
 
-    /**
-     * Represents the current state of a gesture.
-     *
-     * @property startPoint The starting point of the gesture.
-     * @property isPerforming Whether a gesture is currently being performed.
-     * @property currentType The type of the current gesture.
-     */
-    private data class GestureState(
-        var startPoint: PointF? = null,
-        var isPerforming: Boolean = false,
-        var currentType: GestureType? = null
-    )
-
-    /**
-     * The current state of the gesture being performed.
-     */
-    private val gestureState = GestureState()
-
-    /**
-     * The timestamp of the last performed gesture.
-     */
-    private var lastGestureTime: Long = 0
+    // State management is now handled by GestureStateManager
 
     /**
      * Starts a new gesture of the specified type.
@@ -73,20 +50,19 @@ class LinearGesturePerformer(
         showMessage: Boolean = true,
         startingPoint: PointF? = null
     ) {
-        if (gestureState.isPerforming) return
-
-        gestureState.apply {
-            startPoint = startingPoint ?: GesturePoint.getPoint()
-            isPerforming = true
-            currentType = type
+        val startPoint = startingPoint ?: GesturePoint.getPoint()
+        
+        // Use unified state manager
+        if (!GestureStateManager.startGesture(type, startPoint)) {
+            return // Already performing gesture or too soon since last gesture
         }
 
         if (showMessage) {
             showGestureMessage(type)
         }
         gestureVisualManager.showStaticCircle(
-            gestureState.startPoint?.x?.toInt() ?: GesturePoint.x,
-            gestureState.startPoint?.y?.toInt() ?: GesturePoint.y
+            startPoint.x.toInt(),
+            startPoint.y.toInt()
         )
     }
 
@@ -96,17 +72,20 @@ class LinearGesturePerformer(
      * @param endPoint The end point of the gesture.
      */
     fun endGesture(endPoint: PointF? = null) {
-        val (startPoint, _, gestureType) = gestureState
+        val startPoint = GestureStateManager.getCurrentGestureStartPoint()
+        val gestureType = GestureStateManager.getCurrentGestureType()
+        
         if (startPoint == null || gestureType == null) {
-            resetGestureState()
+            GestureStateManager.cancelGesture()
+            gestureVisualManager.hideCircle()
             return
         }
 
-        val endPoint = endPoint ?: calculateEndPoint(gestureType, startPoint)
-        performGesture(gestureType, startPoint, endPoint)
-        gestureLockManager.setLockedGestureData(GestureData(gestureType, startPoint, endPoint))
+        val calculatedEndPoint = endPoint ?: calculateEndPoint(gestureType, startPoint)
+        performGesture(gestureType, startPoint, calculatedEndPoint)
+        gestureLockManager.setLockedGestureData(GestureData(gestureType, startPoint, calculatedEndPoint))
 
-        resetGestureState()
+        GestureStateManager.endGesture()
         gestureVisualManager.hideCircle()
     }
 
@@ -114,20 +93,11 @@ class LinearGesturePerformer(
      * Cancels the current gesture.
      */
     fun cancelGesture() {
-        resetGestureState()
+        GestureStateManager.cancelGesture()
         gestureVisualManager.hideCircle()
     }
 
-    /**
-     * Resets the gesture state to its initial values.
-     */
-    private fun resetGestureState() {
-        gestureState.apply {
-            startPoint = null
-            isPerforming = false
-            currentType = null
-        }
-    }
+    // State reset is now handled by GestureStateManager
 
     /**
      * Displays a message to the user based on the gesture type.
@@ -191,7 +161,7 @@ class LinearGesturePerformer(
      * @param end The ending point of the gesture.
      */
     private fun performGesture(type: GestureType, start: PointF, end: PointF) {
-        if (!checkGestureDelay()) return
+        // Gesture timing delay is now handled by GestureStateManager
 
         try {
             showVisualFeedback(start, end, type)
@@ -233,21 +203,13 @@ class LinearGesturePerformer(
                 }
             }
 
-            lastGestureTime = System.currentTimeMillis()
+            // Timing is now handled by GestureStateManager
         } catch (e: Exception) {
             e.printStackTrace()
         }
     }
 
-    /**
-     * Checks if enough time has passed since the last gesture to perform a new one.
-     *
-     * @return True if enough time has passed, false otherwise.
-     */
-    private fun checkGestureDelay(): Boolean {
-        val currentTime = System.currentTimeMillis()
-        return currentTime - lastGestureTime >= GESTURE_DELAY_MS
-    }
+    // Gesture timing delay is now handled by GestureStateManager
 
     /**
      * Provides visual feedback of the gesture path.
@@ -307,12 +269,12 @@ class LinearGesturePerformer(
      *
      * @return True if a gesture is in progress, false otherwise.
      */
-    fun isPerformingGesture(): Boolean = gestureState.isPerforming
+    fun isPerformingGesture(): Boolean = GestureStateManager.isGestureInProgress()
 
     /**
      * Cancels any ongoing gestures and resets the gesture state.
      */
     fun cancelOngoingGestures() {
-        resetGestureState()
+        GestureStateManager.cancelGesture()
     }
 }
