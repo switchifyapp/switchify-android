@@ -1,8 +1,5 @@
 package com.enaboapps.switchify.service.gestures
 
-import android.accessibilityservice.AccessibilityService
-import android.accessibilityservice.GestureDescription
-import android.graphics.Path
 import android.graphics.PointF
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.service.core.SwitchifyAccessibilityService
@@ -185,8 +182,6 @@ class LinearGesturePerformer(
         }
     }
 
-    // Gesture timing delay is now handled by GestureStateManager
-
     /**
      * Provides visual feedback of the gesture path.
      *
@@ -215,29 +210,6 @@ class LinearGesturePerformer(
             GestureType.SCROLL_UP, GestureType.SCROLL_DOWN, GestureType.SCROLL_LEFT, GestureType.SCROLL_RIGHT -> GestureData.SCROLL_DURATION
             else -> GestureData.SWIPE_DURATION
         }
-    }
-
-    /**
-     * Dispatches the gesture to the Android system.
-     *
-     * @param gestureDescription The GestureDescription to dispatch.
-     */
-    private fun dispatchGesture(gestureDescription: GestureDescription) {
-        accessibilityService.dispatchGesture(
-            gestureDescription,
-            object : AccessibilityService.GestureResultCallback() {
-                override fun onCompleted(gestureDescription: GestureDescription?) {
-                    super.onCompleted(gestureDescription)
-                    // Handle completion if needed
-                }
-
-                override fun onCancelled(gestureDescription: GestureDescription?) {
-                    super.onCancelled(gestureDescription)
-                    // Handle cancellation if needed
-                }
-            },
-            null
-        )
     }
 
     /**
