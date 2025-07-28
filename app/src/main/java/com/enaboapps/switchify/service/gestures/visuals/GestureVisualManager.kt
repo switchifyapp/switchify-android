@@ -9,6 +9,7 @@ import android.view.animation.Animation
 import android.view.animation.ScaleAnimation
 import android.widget.ImageView
 import android.widget.RelativeLayout
+import com.enaboapps.switchify.service.gestures.GestureStateManager
 import com.enaboapps.switchify.service.scanning.ScanColorManager
 import com.enaboapps.switchify.service.window.SwitchifyAccessibilityWindow
 import java.lang.ref.WeakReference
@@ -16,8 +17,9 @@ import java.lang.ref.WeakReference
 /**
  * Unified visual feedback manager for all gesture-related visual indicators.
  * Consolidates and standardizes visual feedback across the gesture system.
+ * Integrates with GestureStateManager for coordinated state management.
  */
-class GestureVisualManager(context: Context) {
+class GestureVisualManager(context: Context) : GestureStateManager.GestureStateListener {
     
     private val contextRef: WeakReference<Context> = WeakReference(context)
     private val accessibilityWindow = SwitchifyAccessibilityWindow.instance
@@ -31,6 +33,11 @@ class GestureVisualManager(context: Context) {
     companion object {
         // Standardized circle size - compromise between existing 40px and 60px
         private const val STANDARD_CIRCLE_SIZE = 48
+    }
+    
+    init {
+        // Register as state listener for coordinated visual feedback
+        GestureStateManager.addStateListener("visual_manager", this)
     }
     
     /**
@@ -161,9 +168,32 @@ class GestureVisualManager(context: Context) {
     }
     
     /**
+     * Implements GestureStateListener to coordinate visual feedback with state changes.
+     */
+    override fun onStateChanged(event: String, data: Map<String, Any>) {
+        when (event) {
+            GestureStateManager.EVENT_GESTURE_ENDED -> {
+                // Auto-hide visual feedback when gesture ends
+                if (data["cancelled"] == true) {
+                    hideCircle()
+                }
+            }
+            GestureStateManager.EVENT_AUTO_SELECT_CANCELLED -> {
+                // Hide countdown visual when auto-select is cancelled
+                hideCircle()
+            }
+            GestureStateManager.EVENT_STATE_RESET -> {
+                // Clear all visuals on state reset
+                clearCurrentVisual()
+            }
+        }
+    }
+    
+    /**
      * Releases all resources and clears references.
      */
     fun release() {
+        GestureStateManager.removeStateListener("visual_manager")
         clearCurrentVisual()
         contextRef.clear()
     }

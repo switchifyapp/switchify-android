@@ -12,6 +12,7 @@ import com.enaboapps.switchify.service.gestures.data.GestureData.Companion.DOUBL
 import com.enaboapps.switchify.service.gestures.data.GestureData.Companion.TAP_AND_HOLD_DURATION
 import com.enaboapps.switchify.service.gestures.data.GestureData.Companion.TAP_DURATION
 import com.enaboapps.switchify.service.gestures.data.GestureType
+import com.enaboapps.switchify.service.gestures.GestureStateManager
 import com.enaboapps.switchify.service.gestures.visuals.GestureVisualManager
 import com.enaboapps.switchify.service.techniques.nodes.NodeExaminer
 
@@ -268,7 +269,7 @@ class GestureManager private constructor() {
      * @return True if a linear gesture is being performed, false otherwise.
      */
     fun isPerformingLinearGesture(): Boolean {
-        return linearGesturePerformer.isPerformingGesture()
+        return GestureStateManager.isGestureInProgress()
     }
 
     /**

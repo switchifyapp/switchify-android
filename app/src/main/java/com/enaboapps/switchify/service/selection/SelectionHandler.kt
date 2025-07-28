@@ -3,6 +3,7 @@ package com.enaboapps.switchify.service.selection
 import android.content.Context
 import com.enaboapps.switchify.service.gestures.GestureManager
 import com.enaboapps.switchify.service.gestures.GesturePoint
+import com.enaboapps.switchify.service.gestures.GestureStateManager
 import com.enaboapps.switchify.service.gestures.visuals.GestureVisualManager
 import com.enaboapps.switchify.service.menu.MenuManager
 import com.enaboapps.switchify.service.scanning.ScanSettings
@@ -18,10 +19,9 @@ import kotlinx.coroutines.launch
 object SelectionHandler {
     private var selectAction: (() -> Unit)? = null
     private var startScanningAction: (() -> Unit)? = null
-    private var methodTypeInvokedForStartScanningAction: String? = null
-    private var autoSelectInProgress = false
-    private var bypassAutoSelect = false
     private var gestureVisualManager: GestureVisualManager? = null
+    
+    // State management now handled by GestureStateManager
 
     private lateinit var scanSettings: ScanSettings
 
@@ -62,7 +62,7 @@ object SelectionHandler {
      * @param bypass True to bypass auto-select
      */
     fun setBypassAutoSelect(bypass: Boolean) {
-        bypassAutoSelect = bypass
+        GestureStateManager.setBypassAutoSelect(bypass)
     }
 
     /**
@@ -75,20 +75,20 @@ object SelectionHandler {
             return
         }
 
-        methodTypeInvokedForStartScanningAction = AccessTechnique.getCurrentTechnique()
+        GestureStateManager.setMethodTypeForStartScanning(AccessTechnique.getCurrentTechnique().toString())
 
         // If bypass auto-select is enabled, perform the selection action and return
-        if (bypassAutoSelect) {
+        if (GestureStateManager.shouldBypassAutoSelect()) {
             selectAction?.invoke()
             performStartScanningAction()
             return
         }
 
         // If auto-select is in progress, cancel it and open the main menu
-        if (autoSelectInProgress) {
+        if (GestureStateManager.isAutoSelectInProgress()) {
             MenuManager.getInstance().openMainMenu()
+            GestureStateManager.cancelAutoSelect()
             gestureVisualManager?.hideCircle()
-            autoSelectInProgress = false
             return
         }
 
@@ -98,22 +98,21 @@ object SelectionHandler {
         val autoSelectEnabled = scanSettings.isAutoSelectEnabled()
         // If auto-select is enabled, start the auto-select process
         if (autoSelectEnabled) {
-            if (!autoSelectInProgress && selectAction != null) {
-                autoSelectInProgress = true
-                CoroutineScope(Dispatchers.Main).launch {
-                    val delayTime = scanSettings.getAutoSelectDelay()
-                    val point = GesturePoint.getPoint()
-                    gestureVisualManager?.showCountdownCircle(
-                        point.x.toInt(),
-                        point.y.toInt(),
-                        delayTime
-                    )
-                    delay(delayTime)
-                    if (autoSelectInProgress) {
-                        selectAction?.invoke()
-                        performStartScanningAction()
-                        autoSelectInProgress = false
-                    }
+            if (selectAction != null) {
+                val delayTime = scanSettings.getAutoSelectDelay()
+                val point = GesturePoint.getPoint()
+                
+                // Show visual feedback
+                gestureVisualManager?.showCountdownCircle(
+                    point.x.toInt(),
+                    point.y.toInt(),
+                    delayTime
+                )
+                
+                // Start auto-select with unified state manager
+                GestureStateManager.startAutoSelect(delayTime) {
+                    selectAction?.invoke()
+                    performStartScanningAction()
                 }
             }
         } else { // If auto-select is disabled, open the main menu
@@ -128,7 +127,7 @@ object SelectionHandler {
         CoroutineScope(Dispatchers.Main).launch {
             delay(300)
             if (scanSettings.getAutomaticallyStartScanAfterSelection()) {
-                if (methodTypeInvokedForStartScanningAction == AccessTechnique.getCurrentTechnique()) {
+                if (GestureStateManager.getMethodTypeForStartScanning() == AccessTechnique.getCurrentTechnique().toString()) {
                     startScanningAction?.invoke()
                 }
             }
@@ -140,17 +139,16 @@ object SelectionHandler {
      *
      * @return True if the auto-select process is in progress, false otherwise.
      */
-    fun isAutoSelectInProgress(): Boolean = autoSelectInProgress
+    fun isAutoSelectInProgress(): Boolean = GestureStateManager.isAutoSelectInProgress()
 
     /**
      * Cleans up the selection handler.
      */
     fun cleanup() {
         gestureVisualManager?.hideCircle()
+        GestureStateManager.resetAllState()
 
         selectAction = null
         startScanningAction = null
-        methodTypeInvokedForStartScanningAction = null
-        autoSelectInProgress = false
     }
 }
