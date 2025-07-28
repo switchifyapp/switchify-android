@@ -11,6 +11,7 @@ class MediaMenuStructure(private val accessibilityService: SwitchifyAccessibilit
     private val openVolumeControlMenu = MenuItem(
         id = "volume_control",
         textResource = R.string.action_volume_control,
+        drawableId = R.drawable.ic_volume_control,
         isLinkToMenu = true,
         action = { MenuManager.getInstance().openVolumeControlMenu() }
     )
