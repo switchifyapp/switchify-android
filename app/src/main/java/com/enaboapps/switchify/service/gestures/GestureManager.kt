@@ -87,7 +87,8 @@ class GestureManager private constructor() {
                 
                 // Create and dispatch gesture using unified pipeline
                 val gestureDescription = GesturePathBuilder.createTapPath(point, duration)
-                gestureDispatcher.dispatch(gestureDescription, GestureType.TAP)
+                val gestureData = GestureData(GestureType.TAP, point)
+                gestureDispatcher.dispatch(gestureDescription, GestureType.TAP, gestureData)
             }
         } catch (e: Exception) {
             android.util.Log.e("GestureManager", "Error performing tap", e)
@@ -130,7 +131,8 @@ class GestureManager private constructor() {
                 
                 // Create and dispatch gesture using unified pipeline
                 val gestureDescription = GesturePathBuilder.createDoubleTapPath(point)
-                gestureDispatcher.dispatch(gestureDescription, GestureType.DOUBLE_TAP)
+                val gestureData = GestureData(GestureType.DOUBLE_TAP, point)
+                gestureDispatcher.dispatch(gestureDescription, GestureType.DOUBLE_TAP, gestureData)
             }
         } catch (e: Exception) {
             android.util.Log.e("GestureManager", "Error performing double tap", e)
@@ -162,7 +164,8 @@ class GestureManager private constructor() {
                 
                 // Create and dispatch gesture using unified pipeline
                 val gestureDescription = GesturePathBuilder.createTapAndHoldPath(point, duration)
-                gestureDispatcher.dispatch(gestureDescription, GestureType.TAP_AND_HOLD)
+                val gestureData = GestureData(GestureType.TAP_AND_HOLD, point)
+                gestureDispatcher.dispatch(gestureDescription, GestureType.TAP_AND_HOLD, gestureData)
             }
         } catch (e: Exception) {
             android.util.Log.e("GestureManager", "Error performing tap and hold", e)
