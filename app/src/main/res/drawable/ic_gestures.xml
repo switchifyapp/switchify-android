@@ -4,8 +4,14 @@
     android:viewportWidth="32"
     android:viewportHeight="32"
     android:tint="?attr/colorControlNormal">
-  <!-- Simple hand icon -->
+  <!-- Concentric circles representing gesture ripples -->
   <path
       android:fillColor="@android:color/white"
-      android:pathData="M12,4L12,16L10,16L10,6C10,4.89 10.89,4 12,4M14,6L14,18L16,18L16,8C16,6.89 15.11,6 14,6M18,8L18,20L20,20L20,10C20,8.89 19.11,8 18,8M22,10L22,22C22,24.21 20.21,26 18,26L10,26C7.79,26 6,24.21 6,22L6,18C6,16.89 6.89,16 8,16L8,14C8,11.79 9.79,10 12,10C12.55,10 13,10.45 13,11C13,11.55 12.55,12 12,12C11.45,12 11,12.45 11,13L11,22L19,22L19,10C19,9.45 19.45,9 20,9C20.55,9 21,9.45 21,10C21,10.55 20.55,11 20,11C19.45,11 19,11.45 19,12L22,12C22.55,12 23,11.55 23,11C23,10.45 22.55,10 22,10Z"/>
+      android:pathData="M16,4A12,12 0 0,0 4,16A12,12 0 0,0 16,28A12,12 0 0,0 28,16A12,12 0 0,0 16,4M16,6A10,10 0 0,1 26,16A10,10 0 0,1 16,26A10,10 0 0,1 6,16A10,10 0 0,1 16,6Z"/>
+  <path
+      android:fillColor="@android:color/white"
+      android:pathData="M16,8A8,8 0 0,0 8,16A8,8 0 0,0 16,24A8,8 0 0,0 24,16A8,8 0 0,0 16,8M16,10A6,6 0 0,1 22,16A6,6 0 0,1 16,22A6,6 0 0,1 10,16A6,6 0 0,1 16,10Z"/>
+  <path
+      android:fillColor="@android:color/white"
+      android:pathData="M16,12A4,4 0 1,1 16,20A4,4 0 0,1 16,12Z"/>
 </vector>
