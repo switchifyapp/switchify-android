@@ -4,12 +4,11 @@
     android:viewportWidth="32"
     android:viewportHeight="32"
     android:tint="?attr/colorControlNormal">
-  <!-- Circle -->
+  <!-- Single concentric circle representing a tap -->
   <path
       android:fillColor="@android:color/white"
-      android:pathData="M16,3A13,13 0 0,0 3,16A13,13 0 0,0 16,29A13,13 0 0,0 29,16A13,13 0 0,0 16,3M16,5A11,11 0 0,1 27,16A11,11 0 0,1 16,27A11,11 0 0,1 5,16A11,11 0 0,1 16,5Z"/>
-  <!-- Number 1 -->
+      android:pathData="M16,6A10,10 0 0,0 6,16A10,10 0 0,0 16,26A10,10 0 0,0 26,16A10,10 0 0,0 16,6M16,8A8,8 0 0,1 24,16A8,8 0 0,1 16,24A8,8 0 0,1 8,16A8,8 0 0,1 16,8Z"/>
   <path
       android:fillColor="@android:color/white"
-      android:pathData="M14,9L14,11L15,11L15,21L13,21L13,23L19,23L19,21L17,21L17,9L14,9Z"/>
+      android:pathData="M16,12A4,4 0 1,1 16,20A4,4 0 0,1 16,12Z"/>
 </vector>
