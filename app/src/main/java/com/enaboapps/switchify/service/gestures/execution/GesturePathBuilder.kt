@@ -7,9 +7,45 @@ import com.enaboapps.switchify.service.gestures.data.GestureData
 import com.enaboapps.switchify.service.gestures.data.GestureType
 
 /**
- * Factory class for creating standardized gesture paths and descriptions.
- * Consolidates path creation logic across all gesture performers to ensure
- * consistent behavior and reduce code duplication.
+ * Central factory for creating standardized Android gesture paths with consistent timing and behavior.
+ *
+ * Architecture & Design:
+ * This class implements the Factory pattern to encapsulate the complexity of Android's
+ * GestureDescription creation while providing a clean, type-safe interface for the
+ * entire gesture system. It serves as the single source of truth for gesture path
+ * creation, ensuring consistent behavior across all gesture performers.
+ *
+ * Key Design Benefits:
+ * - Centralized path creation logic prevents inconsistencies between gesture performers
+ * - Type-safe factory methods reduce runtime errors in gesture creation
+ * - Standardized timing parameters ensure predictable gesture behavior
+ * - Consistent visual feedback coordination through timing synchronization
+ * - Extensible design supports new gesture types without modifying existing performers
+ *
+ * Path Creation Strategy:
+ * Each gesture type has a specialized creation method that:
+ * 1. Creates appropriate Android Path objects with correct coordinates
+ * 2. Applies gesture-specific timing parameters from GestureData constants
+ * 3. Constructs GestureDescription with proper stroke timing and coordination
+ * 4. Handles multi-stroke gestures (double-tap, hold-and-drag, zoom) with precise timing
+ *
+ * Timing Coordination:
+ * - All timing parameters are centralized in GestureData for consistency
+ * - Visual feedback timing is synchronized with actual gesture execution
+ * - Multi-stroke gestures use calculated intervals for proper coordination
+ * - Hold-and-drag gestures use overlapping strokes for smooth transitions
+ *
+ * Integration Points:
+ * - GestureManager: Uses factory methods for immediate gesture execution
+ * - LinearGesturePerformer: Uses factory methods for two-phase gesture completion
+ * - GestureDispatcher: Receives standardized GestureDescription objects for dispatch
+ * - GestureData: Provides timing constants and duration calculations
+ *
+ * Android Integration:
+ * - Creates proper Android Path objects with correct coordinate systems
+ * - Constructs GestureDescription.StrokeDescription with appropriate timing
+ * - Handles coordinate validation and boundary checking
+ * - Manages multi-finger gesture coordination for zoom operations
  */
 object GesturePathBuilder {
     
