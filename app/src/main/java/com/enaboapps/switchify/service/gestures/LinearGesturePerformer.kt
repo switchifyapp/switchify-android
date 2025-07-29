@@ -1,14 +1,14 @@
 package com.enaboapps.switchify.service.gestures
 
-import android.accessibilityservice.AccessibilityService
-import android.accessibilityservice.GestureDescription
-import android.graphics.Path
 import android.graphics.PointF
+import android.util.Log
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.service.core.SwitchifyAccessibilityService
 import com.enaboapps.switchify.service.gestures.data.GestureData
 import com.enaboapps.switchify.service.gestures.data.GestureType
 import com.enaboapps.switchify.service.gestures.GestureStateManager
+import com.enaboapps.switchify.service.gestures.execution.GestureDispatcher
+import com.enaboapps.switchify.service.gestures.execution.GesturePathBuilder
 import com.enaboapps.switchify.service.gestures.visuals.GestureVisualManager
 import com.enaboapps.switchify.service.utils.ScreenUtils
 import com.enaboapps.switchify.service.window.ServiceMessageHUD
@@ -27,8 +27,9 @@ class LinearGesturePerformer(
     private val accessibilityService: SwitchifyAccessibilityService,
     private val gestureLockManager: GestureLockManager
 ) {
+    private val gestureDispatcher = GestureDispatcher(accessibilityService)
     companion object {
-        // Gesture timing constants moved to GestureStateManager
+        private const val TAG = "LinearGesturePerformer"
     }
 
     /**
@@ -52,10 +53,17 @@ class LinearGesturePerformer(
     ) {
         val startPoint = startingPoint ?: GesturePoint.getPoint()
         
+        Log.d(TAG, "startGesture called - type: $type, startPoint: $startPoint")
+        
         // Use unified state manager
         if (!GestureStateManager.startGesture(type, startPoint)) {
+            Log.w(TAG, "startGesture failed - GestureStateManager.startGesture returned false")
+            Log.d(TAG, "GestureStateManager state: ${GestureStateManager.getStateSummary()}")
             return // Already performing gesture or too soon since last gesture
         }
+
+        Log.d(TAG, "startGesture successful - state set in GestureStateManager")
+        Log.d(TAG, "GestureStateManager state after start: ${GestureStateManager.getStateSummary()}")
 
         if (showMessage) {
             showGestureMessage(type)
@@ -75,7 +83,12 @@ class LinearGesturePerformer(
         val startPoint = GestureStateManager.getCurrentGestureStartPoint()
         val gestureType = GestureStateManager.getCurrentGestureType()
         
+        // Debug logging to identify the issue
+        Log.d(TAG, "endGesture called - startPoint: $startPoint, gestureType: $gestureType")
+        Log.d(TAG, "GestureStateManager state: ${GestureStateManager.getStateSummary()}")
+        
         if (startPoint == null || gestureType == null) {
+            Log.w(TAG, "endGesture failed - startPoint or gestureType is null")
             GestureStateManager.cancelGesture()
             gestureVisualManager.hideCircle()
             return
@@ -161,55 +174,29 @@ class LinearGesturePerformer(
      * @param end The ending point of the gesture.
      */
     private fun performGesture(type: GestureType, start: PointF, end: PointF) {
-        // Gesture timing delay is now handled by GestureStateManager
-
         try {
+            Log.d(TAG, "performGesture called - type: $type, start: $start, end: $end")
             showVisualFeedback(start, end, type)
 
-            when (type) {
+            // Create gesture description using unified path builder
+            val gestureDescription = when (type) {
                 GestureType.HOLD_AND_DRAG -> {
-                    // Create hold stroke
-                    val holdPath = Path().apply { moveTo(start.x, start.y) }
-                    val holdStroke = GestureDescription.StrokeDescription(
-                        holdPath,
-                        0,
-                        GestureData.HOLD_BEFORE_DRAG_DURATION
-                    )
-
-                    // Create drag stroke
-                    val dragPath = Path().apply {
-                        moveTo(start.x, start.y)
-                        lineTo(end.x, end.y)
-                    }
-                    val dragStroke = GestureDescription.StrokeDescription(
-                        dragPath,
-                        GestureData.HOLD_BEFORE_DRAG_DURATION - 5,
-                        GestureData.DRAG_DURATION
-                    )
-
-                    // Dispatch both strokes together
-                    dispatchGesture(
-                        accessibilityService,
-                        start,
-                        end,
-                        type,
-                        arrayOf(holdStroke, dragStroke)
-                    )
+                    GesturePathBuilder.createHoldAndDragPath(start, end)
                 }
-
                 else -> {
-                    val duration = getDurationForGestureType(type)
-                    dispatchGesture(accessibilityService, start, end, type, duration)
+                    val duration = GesturePathBuilder.getDurationForGestureType(type)
+                    GesturePathBuilder.createLinearPath(start, end, duration)
                 }
             }
 
-            // Timing is now handled by GestureStateManager
+            Log.d(TAG, "About to dispatch gesture: $type")
+            // Dispatch using unified dispatcher
+            gestureDispatcher.dispatch(gestureDescription, type)
+            Log.d(TAG, "Gesture dispatched successfully: $type")
         } catch (e: Exception) {
-            e.printStackTrace()
+            Log.e(TAG, "Error performing gesture", e)
         }
     }
-
-    // Gesture timing delay is now handled by GestureStateManager
 
     /**
      * Provides visual feedback of the gesture path.
@@ -239,29 +226,6 @@ class LinearGesturePerformer(
             GestureType.SCROLL_UP, GestureType.SCROLL_DOWN, GestureType.SCROLL_LEFT, GestureType.SCROLL_RIGHT -> GestureData.SCROLL_DURATION
             else -> GestureData.SWIPE_DURATION
         }
-    }
-
-    /**
-     * Dispatches the gesture to the Android system.
-     *
-     * @param gestureDescription The GestureDescription to dispatch.
-     */
-    private fun dispatchGesture(gestureDescription: GestureDescription) {
-        accessibilityService.dispatchGesture(
-            gestureDescription,
-            object : AccessibilityService.GestureResultCallback() {
-                override fun onCompleted(gestureDescription: GestureDescription?) {
-                    super.onCompleted(gestureDescription)
-                    // Handle completion if needed
-                }
-
-                override fun onCancelled(gestureDescription: GestureDescription?) {
-                    super.onCancelled(gestureDescription)
-                    // Handle cancellation if needed
-                }
-            },
-            null
-        )
     }
 
     /**

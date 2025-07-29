@@ -1,6 +1,7 @@
 package com.enaboapps.switchify.service.gestures
 
 import android.graphics.PointF
+import android.util.Log
 import com.enaboapps.switchify.service.gestures.data.GestureType
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -20,6 +21,7 @@ import java.util.concurrent.atomic.AtomicReference
  */
 object GestureStateManager {
     
+    private const val TAG = "GestureStateManager"
     private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
     
     // State listeners for cross-component communication
@@ -51,6 +53,12 @@ object GestureStateManager {
     const val EVENT_AUTO_SELECT_CANCELLED = "auto_select_cancelled"
     const val EVENT_AUTO_SELECT_COMPLETED = "auto_select_completed"
     const val EVENT_STATE_RESET = "state_reset"
+    
+    // Dispatch event types for execution pipeline
+    const val EVENT_GESTURE_DISPATCH_STARTED = "gesture_dispatch_started"
+    const val EVENT_GESTURE_DISPATCH_COMPLETED = "gesture_dispatch_completed"
+    const val EVENT_GESTURE_DISPATCH_CANCELLED = "gesture_dispatch_cancelled"
+    const val EVENT_GESTURE_DISPATCH_ERROR = "gesture_dispatch_error"
     
     /**
      * Interface for listening to gesture state changes.
@@ -138,12 +146,18 @@ object GestureStateManager {
      * Cancels the current gesture without completion.
      */
     fun cancelGesture(): Boolean {
+        Log.d(TAG, "cancelGesture called")
+        Log.d(TAG, "State before cancel: ${getStateSummary()}")
+        
         if (!isPerformingGesture.compareAndSet(true, false)) {
+            Log.d(TAG, "cancelGesture: no gesture was in progress")
             return false
         }
         
         currentGestureType.set(null)
         gestureStartPoint.set(null)
+        
+        Log.d(TAG, "cancelGesture: cleared state")
         
         notifyStateChange(EVENT_GESTURE_ENDED, mapOf(
             "cancelled" to true
@@ -160,12 +174,20 @@ object GestureStateManager {
     /**
      * Gets the current gesture type, if any.
      */
-    fun getCurrentGestureType(): GestureType? = currentGestureType.get()
+    fun getCurrentGestureType(): GestureType? {
+        val type = currentGestureType.get()
+        Log.d(TAG, "getCurrentGestureType called - returning: $type")
+        return type
+    }
     
     /**
      * Gets the current gesture start point, if any.
      */
-    fun getCurrentGestureStartPoint(): PointF? = gestureStartPoint.get()
+    fun getCurrentGestureStartPoint(): PointF? {
+        val point = gestureStartPoint.get()
+        Log.d(TAG, "getCurrentGestureStartPoint called - returning: $point")
+        return point
+    }
     
     // === Auto-Select State Management ===
     
@@ -266,6 +288,9 @@ object GestureStateManager {
      * Resets all state to initial values.
      */
     fun resetAllState() {
+        Log.d(TAG, "resetAllState called")
+        Log.d(TAG, "State before reset: ${getStateSummary()}")
+        
         // Cancel any ongoing operations
         cancelAutoSelect()
         
@@ -277,6 +302,8 @@ object GestureStateManager {
         bypassAutoSelect.set(false)
         methodTypeInvokedForStartScanning.set(null)
         activeVisualFeedback.set(false)
+        
+        Log.d(TAG, "resetAllState: all state cleared")
         
         notifyStateChange(EVENT_STATE_RESET)
     }
@@ -294,6 +321,39 @@ object GestureStateManager {
             "lastGestureTime" to lastGestureTime.get(),
             "listenerCount" to stateListeners.size
         )
+    }
+    
+    // === Dispatch Event Management ===
+    
+    /**
+     * Notifies listeners that a gesture dispatch has started.
+     */
+    fun notifyGestureDispatchStarted(gestureType: GestureType) {
+        notifyStateChange(EVENT_GESTURE_DISPATCH_STARTED, mapOf("gestureType" to gestureType))
+    }
+    
+    /**
+     * Notifies listeners that a gesture dispatch has completed successfully.
+     */
+    fun notifyGestureDispatchCompleted(gestureType: GestureType) {
+        notifyStateChange(EVENT_GESTURE_DISPATCH_COMPLETED, mapOf("gestureType" to gestureType))
+    }
+    
+    /**
+     * Notifies listeners that a gesture dispatch was cancelled.
+     */
+    fun notifyGestureDispatchCancelled(gestureType: GestureType) {
+        notifyStateChange(EVENT_GESTURE_DISPATCH_CANCELLED, mapOf("gestureType" to gestureType))
+    }
+    
+    /**
+     * Notifies listeners that a gesture dispatch encountered an error.
+     */
+    fun notifyGestureDispatchError(gestureType: GestureType, error: Throwable) {
+        notifyStateChange(EVENT_GESTURE_DISPATCH_ERROR, mapOf(
+            "gestureType" to gestureType,
+            "error" to error
+        ))
     }
     
     /**
