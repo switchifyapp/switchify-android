@@ -105,8 +105,8 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
             isPro.value = proPurchased
         }
         
-        // Initialize switch store and check configuration
-        switchEventStore.initialize(context)
+        // Initialize switch store and wait for completion before validation
+        switchEventStore.initializeAsync(context)
         isSwitchConfigValid = switchConfigValidator.isConfigurationValid()
     }
 
