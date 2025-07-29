@@ -1,6 +1,7 @@
 package com.enaboapps.switchify.service.gestures
 
 import android.graphics.PointF
+import android.util.Log
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.service.core.SwitchifyAccessibilityService
 import com.enaboapps.switchify.service.gestures.data.GestureData
@@ -28,7 +29,7 @@ class LinearGesturePerformer(
 ) {
     private val gestureDispatcher = GestureDispatcher(accessibilityService)
     companion object {
-        // Gesture timing constants moved to GestureStateManager
+        private const val TAG = "LinearGesturePerformer"
     }
 
     /**
@@ -52,10 +53,17 @@ class LinearGesturePerformer(
     ) {
         val startPoint = startingPoint ?: GesturePoint.getPoint()
         
+        Log.d(TAG, "startGesture called - type: $type, startPoint: $startPoint")
+        
         // Use unified state manager
         if (!GestureStateManager.startGesture(type, startPoint)) {
+            Log.w(TAG, "startGesture failed - GestureStateManager.startGesture returned false")
+            Log.d(TAG, "GestureStateManager state: ${GestureStateManager.getStateSummary()}")
             return // Already performing gesture or too soon since last gesture
         }
+
+        Log.d(TAG, "startGesture successful - state set in GestureStateManager")
+        Log.d(TAG, "GestureStateManager state after start: ${GestureStateManager.getStateSummary()}")
 
         if (showMessage) {
             showGestureMessage(type)
@@ -75,7 +83,12 @@ class LinearGesturePerformer(
         val startPoint = GestureStateManager.getCurrentGestureStartPoint()
         val gestureType = GestureStateManager.getCurrentGestureType()
         
+        // Debug logging to identify the issue
+        Log.d(TAG, "endGesture called - startPoint: $startPoint, gestureType: $gestureType")
+        Log.d(TAG, "GestureStateManager state: ${GestureStateManager.getStateSummary()}")
+        
         if (startPoint == null || gestureType == null) {
+            Log.w(TAG, "endGesture failed - startPoint or gestureType is null")
             GestureStateManager.cancelGesture()
             gestureVisualManager.hideCircle()
             return
@@ -162,6 +175,7 @@ class LinearGesturePerformer(
      */
     private fun performGesture(type: GestureType, start: PointF, end: PointF) {
         try {
+            Log.d(TAG, "performGesture called - type: $type, start: $start, end: $end")
             showVisualFeedback(start, end, type)
 
             // Create gesture description using unified path builder
@@ -175,10 +189,12 @@ class LinearGesturePerformer(
                 }
             }
 
+            Log.d(TAG, "About to dispatch gesture: $type")
             // Dispatch using unified dispatcher
             gestureDispatcher.dispatch(gestureDescription, type)
+            Log.d(TAG, "Gesture dispatched successfully: $type")
         } catch (e: Exception) {
-            android.util.Log.e("LinearGesturePerformer", "Error performing gesture", e)
+            Log.e(TAG, "Error performing gesture", e)
         }
     }
 

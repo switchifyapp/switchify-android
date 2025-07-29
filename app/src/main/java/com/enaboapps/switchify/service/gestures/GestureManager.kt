@@ -1,6 +1,7 @@
 package com.enaboapps.switchify.service.gestures
 
 import android.graphics.PointF
+import android.util.Log
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.service.core.SwitchifyAccessibilityService
 import com.enaboapps.switchify.service.gestures.data.GestureData
@@ -251,6 +252,7 @@ class GestureManager private constructor() {
      * Ends a linear gesture.
      */
     fun endLinearGesture() {
+        Log.d("GestureManager", "endLinearGesture called")
         linearGesturePerformer.endGesture()
     }
 

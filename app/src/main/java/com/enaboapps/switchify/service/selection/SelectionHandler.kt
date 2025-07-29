@@ -1,6 +1,7 @@
 package com.enaboapps.switchify.service.selection
 
 import android.content.Context
+import android.util.Log
 import com.enaboapps.switchify.service.gestures.GestureManager
 import com.enaboapps.switchify.service.gestures.GesturePoint
 import com.enaboapps.switchify.service.gestures.GestureStateManager
@@ -17,6 +18,8 @@ import kotlinx.coroutines.launch
  * This class handles the selection process.
  */
 object SelectionHandler {
+    private const val TAG = "SelectionHandler"
+    
     private var selectAction: (() -> Unit)? = null
     private var startScanningAction: (() -> Unit)? = null
     private var gestureVisualManager: GestureVisualManager? = null
@@ -145,8 +148,23 @@ object SelectionHandler {
      * Cleans up the selection handler.
      */
     fun cleanup() {
+        Log.d(TAG, "cleanup() called")
+        Log.d(TAG, "Stack trace:", Throwable())
+        
         gestureVisualManager?.hideCircle()
-        GestureStateManager.resetAllState()
+        
+        // Don't reset gesture state if a linear gesture is in progress
+        if (!GestureStateManager.isGestureInProgress()) {
+            Log.d(TAG, "No active gesture - resetting all state")
+            GestureStateManager.resetAllState()
+        } else {
+            Log.d(TAG, "Active gesture detected - preserving gesture state, only resetting selection state")
+            // Only reset auto-select and selection-specific state, preserve gesture execution state
+            GestureStateManager.cancelAutoSelect()
+            GestureStateManager.setBypassAutoSelect(false)
+            GestureStateManager.setMethodTypeForStartScanning(null)
+            GestureStateManager.setActiveVisualFeedback(false)
+        }
 
         selectAction = null
         startScanningAction = null
