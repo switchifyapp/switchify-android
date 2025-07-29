@@ -1,6 +1,7 @@
 package com.enaboapps.switchify.switches
 
 import android.content.Context
+import android.util.Log
 import com.enaboapps.switchify.service.scanning.ScanMode
 import com.enaboapps.switchify.service.scanning.ScanSettings
 
@@ -17,8 +18,11 @@ class SwitchConfigValidator(private val context: Context) {
      * @return true if configuration is valid, false otherwise
      */
     fun isConfigurationValid(): Boolean {
-        // Initialize switch store if needed
-        switchEventStore.initialize(context)
+        // Defensive check: ensure switch store is initialized
+        if (!switchEventStore.isInitialized()) {
+            Log.w("SwitchConfigValidator", "Switch store not initialized when checking configuration validity. " +
+                "This may cause incorrect validation results. Use SwitchEventStore.initializeAsync() first.")
+        }
         
         // Get all configured switch actions
         val configuredActions = getConfiguredActions()
@@ -79,6 +83,12 @@ class SwitchConfigValidator(private val context: Context) {
      * @return Set of missing action IDs
      */
     fun getMissingActions(): Set<Int> {
+        // Defensive check: ensure switch store is initialized
+        if (!switchEventStore.isInitialized()) {
+            Log.w("SwitchConfigValidator", "Switch store not initialized when getting missing actions. " +
+                "This may cause incorrect results. Use SwitchEventStore.initializeAsync() first.")
+        }
+        
         val configuredActions = getConfiguredActions()
         val requiredActions = when {
             scanSettings.isAutoScanMode() -> setOf(SwitchAction.ACTION_SELECT)

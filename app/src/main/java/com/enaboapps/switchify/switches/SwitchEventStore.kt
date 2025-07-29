@@ -58,9 +58,29 @@ class SwitchEventStore private constructor() {
         isInitialized = true
     }
 
+    /**
+     * Suspending version of initialize that waits for loading to complete
+     * before returning, ensuring switch events are fully loaded.
+     */
+    suspend fun initializeAsync(context: Context) {
+        if (isInitialized) {
+            return
+        }
+
+        val loadedEvents = localStorage.loadFromFile(context)
+        switchEvents.clear()
+        switchEvents.addAll(loadedEvents)
+        isInitialized = true
+    }
+
     fun getCount(): Int = switchEvents.size
 
     fun getSwitchEvents(): Set<SwitchEvent> = switchEvents.toSet()
+
+    /**
+     * Check if the store has been initialized and switch events loaded
+     */
+    fun isInitialized(): Boolean = isInitialized
 
     fun find(code: String): SwitchEvent? =
         switchEvents.find { it.code == code }?.also {
