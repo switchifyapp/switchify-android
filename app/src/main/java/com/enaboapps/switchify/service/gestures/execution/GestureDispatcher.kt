@@ -3,7 +3,10 @@ package com.enaboapps.switchify.service.gestures.execution
 import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.GestureDescription
 import com.enaboapps.switchify.service.core.SwitchifyAccessibilityService
+import com.enaboapps.switchify.service.gestures.GestureLockManager
+import com.enaboapps.switchify.service.gestures.GesturePatternRecorder
 import com.enaboapps.switchify.service.gestures.GestureStateManager
+import com.enaboapps.switchify.service.gestures.data.GestureData
 import com.enaboapps.switchify.service.gestures.data.GestureType
 
 /**
@@ -47,20 +50,28 @@ class GestureDispatcher(
     }
     
     /**
-     * Dispatches a gesture with unified error handling and state management.
+     * Dispatches a gesture with unified error handling, state management, and pattern recording.
      * 
      * @param gestureDescription The gesture description to dispatch
      * @param gestureType The type of gesture being dispatched
+     * @param gestureData Optional gesture data for pattern recording and gesture lock
      * @param resultHandler Optional custom result handler, uses default if null
      */
     fun dispatch(
         gestureDescription: GestureDescription,
         gestureType: GestureType,
+        gestureData: GestureData?,
         resultHandler: GestureResultHandler? = null
     ) {
         val handler = resultHandler ?: DefaultResultHandler(gestureType)
         
         try {
+            // Handle gesture pattern recording and gesture lock (restored from DispatchGesture.kt)
+            gestureData?.let { data ->
+                GestureLockManager.instance.setLockedGestureData(data)
+                GesturePatternRecorder.addGesture(data, accessibilityService)
+            }
+            
             // Notify state manager of dispatch attempt
             GestureStateManager.notifyGestureDispatchStarted(gestureType)
             
@@ -97,9 +108,10 @@ class GestureDispatcher(
      * 
      * @param gestureDescription The gesture description to dispatch
      * @param gestureType The type of gesture being dispatched
+     * @param gestureData Optional gesture data for pattern recording and gesture lock
      */
-    fun dispatchSimple(gestureDescription: GestureDescription, gestureType: GestureType) {
-        dispatch(gestureDescription, gestureType, null)
+    fun dispatchSimple(gestureDescription: GestureDescription, gestureType: GestureType, gestureData: GestureData? = null) {
+        dispatch(gestureDescription, gestureType, gestureData)
     }
     
     /**
@@ -107,6 +119,7 @@ class GestureDispatcher(
      * 
      * @param gestureDescription The gesture description to dispatch
      * @param gestureType The type of gesture being dispatched
+     * @param gestureData Optional gesture data for pattern recording and gesture lock
      * @param onCompleted Action to execute on successful completion
      * @param onCancelled Action to execute on cancellation
      * @param onError Action to execute on error
@@ -114,6 +127,7 @@ class GestureDispatcher(
     fun dispatchWithActions(
         gestureDescription: GestureDescription,
         gestureType: GestureType,
+        gestureData: GestureData? = null,
         onCompleted: (() -> Unit)? = null,
         onCancelled: (() -> Unit)? = null,
         onError: ((Throwable) -> Unit)? = null
@@ -136,7 +150,7 @@ class GestureDispatcher(
             }
         }
         
-        dispatch(gestureDescription, gestureType, handler)
+        dispatch(gestureDescription, gestureType, gestureData, handler)
     }
     
     /**

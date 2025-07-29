@@ -190,8 +190,11 @@ class LinearGesturePerformer(
             }
 
             Log.d(TAG, "About to dispatch gesture: $type")
-            // Dispatch using unified dispatcher
-            gestureDispatcher.dispatch(gestureDescription, type)
+            // Create gesture data for pattern recording and gesture lock
+            val gestureData = GestureData(type, start, end)
+            
+            // Dispatch using unified dispatcher with gesture data
+            gestureDispatcher.dispatch(gestureDescription, type, gestureData)
             Log.d(TAG, "Gesture dispatched successfully: $type")
         } catch (e: Exception) {
             Log.e(TAG, "Error performing gesture", e)
