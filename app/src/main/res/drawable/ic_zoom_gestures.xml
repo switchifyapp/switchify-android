@@ -4,25 +4,39 @@
     android:viewportWidth="32"
     android:viewportHeight="32"
     android:tint="?attr/colorControlNormal">
-  <!-- Magnifying glass base -->
+  <!-- Top: zoom in - fingers spreading apart -->
+  <path
+      android:fillColor="@android:color/white"
+      android:pathData="M12,6A2,2 0 1,1 12,10A2,2 0 0,1 12,6Z"/>
+  <path
+      android:fillColor="@android:color/white"
+      android:pathData="M20,6A2,2 0 1,1 20,10A2,2 0 0,1 20,6Z"/>
   <path
       android:strokeColor="@android:color/white"
       android:strokeWidth="2"
-      android:pathData="M14,6A8,8 0 1,1 6,14A8,8 0 0,1 14,6Z"
-      android:fillType="nonZero"/>
-  <!-- Magnifying glass handle -->
+      android:strokeLineCap="round"
+      android:pathData="M10,8L6,8M6,8L7,7M6,8L7,9"/>
   <path
       android:strokeColor="@android:color/white"
       android:strokeWidth="2"
-      android:pathData="M20,20L26,26"/>
-  <!-- Zoom in symbol -->
+      android:strokeLineCap="round"
+      android:pathData="M22,8L26,8M26,8L25,7M26,8L25,9"/>
+      
+  <!-- Bottom: zoom out - fingers coming together -->
+  <path
+      android:fillColor="@android:color/white"
+      android:pathData="M6,22A2,2 0 1,1 6,26A2,2 0 0,1 6,22Z"/>
+  <path
+      android:fillColor="@android:color/white"
+      android:pathData="M26,22A2,2 0 1,1 26,26A2,2 0 0,1 26,22Z"/>
   <path
       android:strokeColor="@android:color/white"
-      android:strokeWidth="1.5"
-      android:pathData="M11,14L17,14M14,11L14,17"/>
-  <!-- Zoom out symbol (small minus) -->
+      android:strokeWidth="2"
+      android:strokeLineCap="round"
+      android:pathData="M8,24L12,24M12,24L11,23M12,24L11,25"/>
   <path
       android:strokeColor="@android:color/white"
-      android:strokeWidth="1"
-      android:pathData="M28,8L30,8"/>
+      android:strokeWidth="2"
+      android:strokeLineCap="round"
+      android:pathData="M24,24L20,24M20,24L21,23M20,24L21,25"/>
 </vector>

@@ -4,19 +4,24 @@
     android:viewportWidth="32"
     android:viewportHeight="32"
     android:tint="?attr/colorControlNormal">
-  <!-- Magnifying glass circle -->
-  <path
-      android:strokeColor="@android:color/white"
-      android:strokeWidth="2"
-      android:pathData="M20,12A8,8 0 1,1 12,4A8,8 0 0,1 20,12Z"
-      android:fillType="nonZero"/>
-  <!-- Minus symbol inside -->
+  <!-- Two fingers much further apart -->
   <path
       android:fillColor="@android:color/white"
-      android:pathData="M9,12L15,12"/>
-  <!-- Magnifying glass handle -->
+      android:pathData="M6,13A3,3 0 1,1 6,19A3,3 0 0,1 6,13Z"/>
+  <path
+      android:fillColor="@android:color/white"
+      android:pathData="M26,13A3,3 0 1,1 26,19A3,3 0 0,1 26,13Z"/>
+  <!-- Arrows showing fingers coming together -->
   <path
       android:strokeColor="@android:color/white"
-      android:strokeWidth="2"
-      android:pathData="M18,18L28,28"/>
+      android:strokeWidth="3"
+      android:strokeLineCap="round"
+      android:strokeLineJoin="round"
+      android:pathData="M9,16L14,16M14,16L12,14M14,16L12,18"/>
+  <path
+      android:strokeColor="@android:color/white"
+      android:strokeWidth="3"
+      android:strokeLineCap="round"
+      android:strokeLineJoin="round"
+      android:pathData="M23,16L18,16M18,16L20,14M18,16L20,18"/>
 </vector>
