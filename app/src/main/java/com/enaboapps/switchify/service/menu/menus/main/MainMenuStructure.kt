@@ -15,6 +15,7 @@ import com.enaboapps.switchify.service.techniques.nodes.NodeExaminer
 import com.enaboapps.switchify.service.utils.DeviceLockObserver
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.backend.iap.IAPHandler
+import com.enaboapps.switchify.service.actions.GlobalActionManager
 
 class MainMenuStructure(private val accessibilityService: SwitchifyAccessibilityService) {
     private val gestureMenuStructure = GestureMenuStructure(accessibilityService)
@@ -32,6 +33,19 @@ class MainMenuStructure(private val accessibilityService: SwitchifyAccessibility
     val mainMenuObject = MenuStructure(
         id = "main_menu",
         items = listOfNotNull(
+            // System navigation items - back and home
+            MenuItem(
+                id = "sys_back",
+                drawableId = R.drawable.ic_sys_back,
+                drawableDescriptionResource = R.string.system_back,
+                action = { GlobalActionManager.goBack() }
+            ),
+            MenuItem(
+                id = "sys_home",
+                drawableId = R.drawable.ic_sys_home,
+                drawableDescriptionResource = R.string.system_home,
+                action = { GlobalActionManager.goHome() }
+            ),
             // Show "Scan Keyboard" menu item when keyboard is visible but user has escaped
             if (KeyboardManager.shouldShowScanKeyboardMenuItem()) {
                 MenuItem(

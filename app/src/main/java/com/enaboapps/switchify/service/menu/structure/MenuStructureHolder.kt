@@ -36,7 +36,6 @@ class MenuStructureHolder(accessibilityService: SwitchifyAccessibilityService) {
         gestureMenuStructure.customGestureConfirmationMenuObject
 
     // System Menus
-    val systemNavItems = systemMenuStructure.systemNavItems
     fun buildDeviceMenuObject() = systemMenuStructure.buildDeviceMenuObject()
     fun buildVolumeControlMenuObject() = systemMenuStructure.buildVolumeControlMenuObject()
 

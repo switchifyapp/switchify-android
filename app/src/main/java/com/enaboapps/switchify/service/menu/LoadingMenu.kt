@@ -28,7 +28,6 @@ class LoadingMenu(
         baseMenu = BaseMenu(
             accessibilityService = accessibilityService,
             items = listOf(loadingItem),
-            showSystemNavItems = showSystemNavItems,
             showNavMenuItems = showNavMenuItems
         )
     }

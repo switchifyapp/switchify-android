@@ -9,7 +9,6 @@ class CustomGestureConfirmationMenu(accessibilityService: SwitchifyAccessibility
     BaseMenu(
         accessibilityService,
         buildCustomGestureConfirmationMenuItems(accessibilityService),
-        showSystemNavItems = false,
         showNavMenuItems = false
     ) {
 

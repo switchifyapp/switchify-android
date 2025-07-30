@@ -58,7 +58,6 @@ object AIMenuStructure {
             val aiMenu = BaseMenu(
                 accessibilityService = accessibilityService,
                 items = aiSuggestions,
-                showSystemNavItems = true,
                 showNavMenuItems = true
             )
             val menuView = aiMenu.build()

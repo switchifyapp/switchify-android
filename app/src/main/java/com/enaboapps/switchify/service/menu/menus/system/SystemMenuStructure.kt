@@ -11,20 +11,6 @@ import com.enaboapps.switchify.service.menu.structure.MenuStructure
 import com.enaboapps.switchify.service.screenshot.ScreenshotManager
 
 class SystemMenuStructure(private val accessibilityService: SwitchifyAccessibilityService?) {
-    val systemNavItems = listOf(
-        MenuItem(
-            id = "sys_back",
-            drawableId = R.drawable.ic_sys_back,
-            drawableDescriptionResource = R.string.system_back,
-            action = { GlobalActionManager.goBack() }
-        ),
-        MenuItem(
-            id = "sys_home",
-            drawableId = R.drawable.ic_sys_home,
-            drawableDescriptionResource = R.string.system_home,
-            action = { GlobalActionManager.goHome() }
-        )
-    )
 
     private val openVolumeControlMenu = MenuItem(
         id = "volume_control",
