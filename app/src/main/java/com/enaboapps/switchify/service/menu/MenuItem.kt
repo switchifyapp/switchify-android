@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.layout.offset
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -29,6 +30,7 @@ import androidx.compose.ui.unit.sp
 import com.enaboapps.switchify.service.components.AccessibilityComposeView
 import com.enaboapps.switchify.service.utils.ScreenUtils
 import com.enaboapps.switchify.utils.Resources
+import com.enaboapps.switchify.R
 
 /**
  * This class represents a menu item
@@ -73,6 +75,7 @@ class MenuItem(
                 showDrawableDescription = showDrawableDescription,
                 isMenuHierarchyManipulator = isMenuHierarchyManipulator,
                 isSmall = isSmall,
+                isLinkToMenu = isLinkToMenu,
                 onClick = { select() }
             )
         }
@@ -152,6 +155,7 @@ private fun MenuItemContent(
     showDrawableDescription: Boolean,
     isMenuHierarchyManipulator: Boolean,
     isSmall: Boolean,
+    isLinkToMenu: Boolean,
     onClick: () -> Unit
 ) {
     val context = LocalContext.current
@@ -183,6 +187,7 @@ private fun MenuItemContent(
                 drawableDescriptionResource = drawableDescriptionResource,
                 showDrawableDescription = showDrawableDescription,
                 menuSize = menuSize,
+                isLinkToMenu = isLinkToMenu,
                 onClick = onClick
             )
         }
@@ -230,6 +235,7 @@ private fun RegularMenuItem(
     drawableDescriptionResource: Int?,
     showDrawableDescription: Boolean,
     menuSize: MenuItemSize,
+    isLinkToMenu: Boolean,
     onClick: () -> Unit
 ) {
     Surface(
@@ -240,12 +246,16 @@ private fun RegularMenuItem(
         color = MaterialTheme.colorScheme.surfaceVariant,
         shadowElevation = 4.dp
     ) {
-        Column(
-            modifier = Modifier
-                .clickable(onClick = onClick),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(menuSize.elementSpacing, Alignment.CenterVertically)
+        Box(
+            modifier = Modifier.fillMaxSize()
         ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clickable(onClick = onClick),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(menuSize.elementSpacing, Alignment.CenterVertically)
+            ) {
             if (drawableId != 0) {
                 Icon(
                     painter = painterResource(id = drawableId),
@@ -272,6 +282,21 @@ private fun RegularMenuItem(
                     fontSize = menuSize.secondaryTextSize,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                )
+            }
+            }
+            
+            // Add link indicator for menu link items
+            if (isLinkToMenu) {
+                val indicatorOffset = menuSize.cornerRadius + 2.dp
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_menu_link),
+                    contentDescription = "Opens submenu",
+                    modifier = Modifier
+                        .size(18.dp)
+                        .align(Alignment.TopEnd)
+                        .offset(x = -indicatorOffset, y = indicatorOffset),
+                    tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
                 )
             }
         }
