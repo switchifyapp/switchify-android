@@ -25,6 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.enaboapps.switchify.service.components.AccessibilityComposeView
@@ -271,6 +272,8 @@ private fun RegularMenuItem(
                     color = MaterialTheme.colorScheme.onBackground,
                     fontSize = if (drawableId != 0) menuSize.primaryTextSize else menuSize.primaryTextSize,
                     textAlign = TextAlign.Center,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.padding(horizontal = 8.dp)
                 )
             }
@@ -281,6 +284,8 @@ private fun RegularMenuItem(
                     color = MaterialTheme.colorScheme.onBackground,
                     fontSize = menuSize.secondaryTextSize,
                     textAlign = TextAlign.Center,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                 )
             }
