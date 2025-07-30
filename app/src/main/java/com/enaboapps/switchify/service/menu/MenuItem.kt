@@ -36,11 +36,10 @@ import com.enaboapps.switchify.R
 /**
  * This class represents a menu item
  * @property id The id of the menu item
- * @property textResource The resource id of the text of the menu item
+ * @property labelResource The resource id of the label text (used for both display and accessibility)
  * @property userProvidedText The text of the menu item if it is user-provided
  * @property drawableId The drawable resource id of the menu item
- * @property drawableDescriptionResource The resource id of the description of the drawable
- * @property showDrawableDescription Whether to show the drawable description
+ * @property showLabelAsDescription Whether to show the label as description text below the icon
  * @property isSmall Whether the menu item is small
  * @property closeOnSelect Whether the menu should close when the item is selected
  * @property isLinkToMenu Whether the item is a link to another menu
@@ -49,11 +48,10 @@ import com.enaboapps.switchify.R
  */
 class MenuItem(
     val id: String,
-    val textResource: Int? = null,
+    val labelResource: Int? = null,
     val userProvidedText: String? = null,
     private val drawableId: Int = 0,
-    val drawableDescriptionResource: Int? = null,
-    val showDrawableDescription: Boolean = true,
+    val showLabelAsDescription: Boolean = true,
     val isSmall: Boolean = false,
     val closeOnSelect: Boolean = true,
     var isLinkToMenu: Boolean = false,
@@ -69,11 +67,10 @@ class MenuItem(
     fun inflate(linearLayout: LinearLayout) {
         composeView = AccessibilityComposeView(linearLayout.context) {
             MenuItemContent(
-                textResource = textResource,
+                labelResource = labelResource,
                 userProvidedText = userProvidedText,
                 drawableId = drawableId,
-                drawableDescriptionResource = drawableDescriptionResource,
-                showDrawableDescription = showDrawableDescription,
+                showLabelAsDescription = showLabelAsDescription,
                 isMenuHierarchyManipulator = isMenuHierarchyManipulator,
                 isSmall = isSmall,
                 isLinkToMenu = isLinkToMenu,
@@ -149,18 +146,17 @@ class MenuItem(
 
 @Composable
 private fun MenuItemContent(
-    textResource: Int?,
+    labelResource: Int?,
     userProvidedText: String?,
     drawableId: Int,
-    drawableDescriptionResource: Int?,
-    showDrawableDescription: Boolean,
+    showLabelAsDescription: Boolean,
     isMenuHierarchyManipulator: Boolean,
     isSmall: Boolean,
     isLinkToMenu: Boolean,
     onClick: () -> Unit
 ) {
     val context = LocalContext.current
-    val text = if (textResource != null) Resources.getString(textResource) else userProvidedText
+    val text = if (labelResource != null) Resources.getString(labelResource) else userProvidedText
 
     // Get appropriate size based on device type and item type
     val menuSize = if (isMenuHierarchyManipulator || isSmall) {
@@ -177,7 +173,7 @@ private fun MenuItemContent(
         if (isMenuHierarchyManipulator) {
             NavigationMenuItem(
                 drawableId = drawableId,
-                drawableDescriptionResource = drawableDescriptionResource,
+                labelResource = labelResource,
                 menuSize = menuSize,
                 onClick = onClick
             )
@@ -185,8 +181,8 @@ private fun MenuItemContent(
             RegularMenuItem(
                 text = text,
                 drawableId = drawableId,
-                drawableDescriptionResource = drawableDescriptionResource,
-                showDrawableDescription = showDrawableDescription,
+                labelResource = labelResource,
+                showLabelAsDescription = showLabelAsDescription,
                 menuSize = menuSize,
                 isLinkToMenu = isLinkToMenu,
                 onClick = onClick
@@ -198,7 +194,7 @@ private fun MenuItemContent(
 @Composable
 private fun NavigationMenuItem(
     drawableId: Int,
-    drawableDescriptionResource: Int?,
+    labelResource: Int?,
     menuSize: MenuItemSize,
     onClick: () -> Unit
 ) {
@@ -221,7 +217,7 @@ private fun NavigationMenuItem(
         ) {
             Icon(
                 painter = painterResource(id = drawableId),
-                contentDescription = drawableDescriptionResource?.let { Resources.getString(it) },
+                contentDescription = labelResource?.let { Resources.getString(it) },
                 modifier = Modifier.size(menuSize.navigationIconSize),
                 tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f) // Dimmed
             )
@@ -233,8 +229,8 @@ private fun NavigationMenuItem(
 private fun RegularMenuItem(
     text: String?,
     drawableId: Int,
-    drawableDescriptionResource: Int?,
-    showDrawableDescription: Boolean,
+    labelResource: Int?,
+    showLabelAsDescription: Boolean,
     menuSize: MenuItemSize,
     isLinkToMenu: Boolean,
     onClick: () -> Unit
@@ -260,7 +256,7 @@ private fun RegularMenuItem(
             if (drawableId != 0) {
                 Icon(
                     painter = painterResource(id = drawableId),
-                    contentDescription = drawableDescriptionResource?.let { Resources.getString(it) },
+                    contentDescription = labelResource?.let { Resources.getString(it) },
                     modifier = Modifier.size(menuSize.iconSize),
                     tint = MaterialTheme.colorScheme.primary
                 )
@@ -278,9 +274,9 @@ private fun RegularMenuItem(
                 )
             }
 
-            if (drawableDescriptionResource != null && showDrawableDescription) {
+            if (labelResource != null && showLabelAsDescription && drawableId != 0) {
                 Text(
-                    text = Resources.getString(drawableDescriptionResource),
+                    text = Resources.getString(labelResource),
                     color = MaterialTheme.colorScheme.onBackground,
                     fontSize = menuSize.secondaryTextSize,
                     textAlign = TextAlign.Center,

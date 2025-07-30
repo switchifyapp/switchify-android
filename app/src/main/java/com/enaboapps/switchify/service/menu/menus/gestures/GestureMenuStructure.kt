@@ -17,7 +17,7 @@ class GestureMenuStructure(private val context: Context) {
 
     val tapMenuItem = MenuItem(
         id = "tap",
-        textResource = R.string.menu_item_tap,
+        labelResource = R.string.menu_item_tap,
         drawableId = R.drawable.ic_gesture_tap,
         action = {
             GestureManager.instance.performTap()
@@ -27,7 +27,7 @@ class GestureMenuStructure(private val context: Context) {
     val toggleGestureLockMenuItem = if (gestureLock) {
         MenuItem(
             id = "toggle_gesture_lock",
-            textResource = R.string.system_gesture_lock,
+            labelResource = R.string.system_gesture_lock,
             drawableId = R.drawable.ic_toggle_gesture_lock,
             closeOnSelect = false,
             action = { GestureManager.instance.toggleGestureLock() }
@@ -40,13 +40,13 @@ class GestureMenuStructure(private val context: Context) {
             tapMenuItem,
             MenuItem(
                 id = "double_tap",
-                textResource = R.string.menu_item_double_tap,
+                labelResource = R.string.menu_item_double_tap,
                 drawableId = R.drawable.ic_gesture_double_tap,
                 action = { GestureManager.instance.performDoubleTap() }
             ),
             MenuItem(
                 id = "tap_and_hold",
-                textResource = R.string.menu_item_tap_and_hold,
+                labelResource = R.string.menu_item_tap_and_hold,
                 drawableId = R.drawable.ic_gesture_tap_hold,
                 action = { GestureManager.instance.performTapAndHold() }
             ),
@@ -59,33 +59,33 @@ class GestureMenuStructure(private val context: Context) {
         items = listOfNotNull(
             MenuItem(
                 id = "tap_gestures",
-                textResource = R.string.menu_item_tap_gestures,
+                labelResource = R.string.menu_item_tap_gestures,
                 drawableId = R.drawable.ic_tap_gestures,
                 isLinkToMenu = true,
                 action = { MenuManager.getInstance().openTapMenu() }
             ),
             MenuItem(
                 id = "swipe_gestures",
-                textResource = R.string.menu_item_swipe_gestures,
+                labelResource = R.string.menu_item_swipe_gestures,
                 drawableId = R.drawable.ic_swipe_gestures,
                 isLinkToMenu = true,
                 action = { MenuManager.getInstance().openSwipeMenu() }
             ),
             MenuItem(
                 id = "drag",
-                textResource = R.string.menu_item_drag,
+                labelResource = R.string.menu_item_drag,
                 drawableId = R.drawable.ic_gesture_drag,
                 action = { GestureManager.instance.startDragGesture() }
             ),
             MenuItem(
                 id = "hold_and_drag",
-                textResource = R.string.menu_item_hold_and_drag,
+                labelResource = R.string.menu_item_hold_and_drag,
                 drawableId = R.drawable.ic_gesture_hold_drag,
                 action = { GestureManager.instance.startHoldAndDragGesture() }
             ),
             MenuItem(
                 id = "zoom_gestures",
-                textResource = R.string.menu_item_zoom_gestures,
+                labelResource = R.string.menu_item_zoom_gestures,
                 drawableId = R.drawable.ic_zoom_gestures,
                 isLinkToMenu = true,
                 action = { MenuManager.getInstance().openZoomGesturesMenu() }
@@ -102,14 +102,14 @@ class GestureMenuStructure(private val context: Context) {
                     if (GesturePatternRecorder.isRecording() && GesturePatternRecorder.getRecordedGestureCount() > 0) {
                         MenuItem(
                             id = "save_recording",
-                            textResource = R.string.save_recording,
+                            labelResource = R.string.save_recording,
                             drawableId = R.drawable.ic_save_recording,
                             action = { GesturePatternRecorder.saveRecording(context) }
                         )
                     } else if (!GesturePatternRecorder.isRecording()) {
                         MenuItem(
                             id = "start_recording",
-                            textResource = R.string.start_recording,
+                            labelResource = R.string.start_recording,
                             drawableId = R.drawable.ic_start_recording,
                             action = { GesturePatternRecorder.startRecording(context) }
                         )
@@ -117,7 +117,7 @@ class GestureMenuStructure(private val context: Context) {
                     if (GesturePatternRecorder.isRecording()) {
                         MenuItem(
                             id = "cancel_recording",
-                            textResource = R.string.cancel_recording,
+                            labelResource = R.string.cancel_recording,
                             drawableId = R.drawable.ic_cancel_recording,
                             action = { GesturePatternRecorder.cancelRecording() }
                         )
@@ -130,13 +130,13 @@ class GestureMenuStructure(private val context: Context) {
         items = listOfNotNull(
             MenuItem(
                 id = "swipe_up",
-                textResource = R.string.menu_item_swipe_up,
+                labelResource = R.string.menu_item_swipe_up,
                 drawableId = R.drawable.ic_gesture_swipe_up,
                 action = { GestureManager.instance.performSwipeOrScroll(GestureType.SWIPE_UP) }
             ),
             MenuItem(
                 id = "swipe_down",
-                textResource = R.string.menu_item_swipe_down,
+                labelResource = R.string.menu_item_swipe_down,
                 drawableId = R.drawable.ic_gesture_swipe_down,
                 action = {
                     GestureManager.instance.performSwipeOrScroll(GestureType.SWIPE_DOWN)
@@ -144,7 +144,7 @@ class GestureMenuStructure(private val context: Context) {
             ),
             MenuItem(
                 id = "swipe_left",
-                textResource = R.string.menu_item_swipe_left,
+                labelResource = R.string.menu_item_swipe_left,
                 drawableId = R.drawable.ic_gesture_swipe_left,
                 action = {
                     GestureManager.instance.performSwipeOrScroll(GestureType.SWIPE_LEFT)
@@ -152,7 +152,7 @@ class GestureMenuStructure(private val context: Context) {
             ),
             MenuItem(
                 id = "swipe_right",
-                textResource = R.string.menu_item_swipe_right,
+                labelResource = R.string.menu_item_swipe_right,
                 drawableId = R.drawable.ic_gesture_swipe_right,
                 action = {
                     GestureManager.instance.performSwipeOrScroll(GestureType.SWIPE_RIGHT)
@@ -160,7 +160,7 @@ class GestureMenuStructure(private val context: Context) {
             ),
             MenuItem(
                 id = "custom_swipe",
-                textResource = R.string.menu_item_custom_swipe,
+                labelResource = R.string.menu_item_custom_swipe,
                 drawableId = R.drawable.ic_gesture_custom_swipe,
                 action = { GestureManager.instance.startCustomSwipe() }
             ),
@@ -173,7 +173,7 @@ class GestureMenuStructure(private val context: Context) {
         items = listOfNotNull(
             MenuItem(
                 id = "zoom_in",
-                textResource = R.string.menu_item_zoom_in,
+                labelResource = R.string.menu_item_zoom_in,
                 drawableId = R.drawable.ic_gesture_zoom_in,
                 action = {
                     GestureManager.instance
@@ -182,7 +182,7 @@ class GestureMenuStructure(private val context: Context) {
             ),
             MenuItem(
                 id = "zoom_out",
-                textResource = R.string.menu_item_zoom_out,
+                labelResource = R.string.menu_item_zoom_out,
                 drawableId = R.drawable.ic_gesture_zoom_out,
                 action = {
                     GestureManager.instance
@@ -198,13 +198,13 @@ class GestureMenuStructure(private val context: Context) {
         items = listOf(
             MenuItem(
                 id = "confirm",
-                textResource = R.string.menu_item_confirm,
+                labelResource = R.string.menu_item_confirm,
                 drawableId = R.drawable.ic_confirm,
                 action = { GestureManager.instance.endLinearGesture() }
             ),
             MenuItem(
                 id = "reselect",
-                textResource = R.string.menu_item_reselect,
+                labelResource = R.string.menu_item_reselect,
                 drawableId = R.drawable.ic_reselect,
                 action = {
                     // Do nothing for reselect action
@@ -212,7 +212,7 @@ class GestureMenuStructure(private val context: Context) {
             ),
             MenuItem(
                 id = "cancel",
-                textResource = R.string.menu_item_cancel,
+                labelResource = R.string.menu_item_cancel,
                 drawableId = R.drawable.ic_cancel,
                 action = { GestureManager.instance.cancelLinearGesture() }
             )

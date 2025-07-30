@@ -20,7 +20,7 @@ class EditMenuStructure {
                 if (cutNode != null) {
                     MenuItem(
                         id = "cut",
-                        textResource = R.string.menu_item_cut,
+                        labelResource = R.string.menu_item_cut,
                         drawableId = R.drawable.ic_cut,
                         action = {
                             cutNode.performAction(AccessibilityNodeInfo.ACTION_CUT)
@@ -30,7 +30,7 @@ class EditMenuStructure {
                 if (copyNode != null) {
                     MenuItem(
                         id = "copy",
-                        textResource = R.string.menu_item_copy,
+                        labelResource = R.string.menu_item_copy,
                         drawableId = R.drawable.ic_copy,
                         action = {
                             copyNode.performAction(AccessibilityNodeInfo.ACTION_COPY)
@@ -40,7 +40,7 @@ class EditMenuStructure {
                 if (pasteNode != null) {
                     MenuItem(
                         id = "paste",
-                        textResource = R.string.menu_item_paste,
+                        labelResource = R.string.menu_item_paste,
                         drawableId = R.drawable.ic_paste,
                         action = {
                             pasteNode.performAction(AccessibilityNodeInfo.ACTION_PASTE)

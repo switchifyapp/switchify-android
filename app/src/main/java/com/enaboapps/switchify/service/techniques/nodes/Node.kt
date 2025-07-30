@@ -64,10 +64,8 @@ class Node(
             node.centerY = menuItem.y + menuItem.height / 2
             node.width = menuItem.width
             node.height = menuItem.height
-            val text = if (menuItem.textResource != null) {
-                Resources.getString(menuItem.textResource)
-            } else if (menuItem.drawableDescriptionResource != null) {
-                Resources.getString(menuItem.drawableDescriptionResource)
+            val text = if (menuItem.labelResource != null) {
+                Resources.getString(menuItem.labelResource)
             } else {
                 menuItem.userProvidedText
             }

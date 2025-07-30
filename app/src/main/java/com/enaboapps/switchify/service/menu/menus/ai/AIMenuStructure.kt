@@ -27,7 +27,7 @@ object AIMenuStructure {
     fun createAIMenuItem(accessibilityService: SwitchifyAccessibilityService): MenuItem {
         return MenuItem(
             id = "ai_suggestions",
-            textResource = R.string.menu_ai_suggestions,
+            labelResource = R.string.menu_ai_suggestions,
             drawableId = R.drawable.ic_ai,
             isLinkToMenu = true,
             closeOnSelect = false
@@ -228,7 +228,7 @@ object AIMenuStructure {
         return listOf(
             MenuItem(
                 id = "ai_empty_state",
-                textResource = R.string.ai_menu_no_elements,
+                labelResource = R.string.ai_menu_no_elements,
                 closeOnSelect = false
             ) {
                 // No action needed for info item
@@ -243,7 +243,7 @@ object AIMenuStructure {
         return listOf(
             MenuItem(
                 id = "ai_no_suggestions",
-                textResource = R.string.ai_menu_no_suggestions,
+                labelResource = R.string.ai_menu_no_suggestions,
                 closeOnSelect = false
             ) {
                 // No action needed for info item
@@ -258,7 +258,7 @@ object AIMenuStructure {
         return listOf(
             MenuItem(
                 id = "ai_error",
-                textResource = R.string.ai_menu_error,
+                labelResource = R.string.ai_menu_error,
                 closeOnSelect = false
             ) {
                 // No action needed for error info item
