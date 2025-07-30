@@ -31,7 +31,6 @@ open class BaseMenu(
         return if (!isAtFirstMenu && showNavMenuItems) {
             val previousMenuItem = MenuItem(
                 id = "previous_menu_first",
-                textResource = R.string.menu_item_previous_menu,
                 drawableId = R.drawable.ic_previous_menu,
                 drawableDescriptionResource = R.string.menu_item_previous_menu,
                 isLinkToMenu = true,
