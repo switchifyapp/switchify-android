@@ -174,33 +174,33 @@ object GesturePathBuilder {
     }
     
     /**
-     * Creates a zoom gesture with multiple paths.
+     * Creates a zoom gesture with correct pinch mechanics.
      * 
      * @param centerPoint Center point of the zoom
-     * @param zoomAmount Amount to zoom (positive for zoom in, negative for zoom out)
+     * @param isZoomIn True for zoom in (pinch), false for zoom out (spread)
      * @param duration Duration of the zoom gesture
      * @return GestureDescription for the zoom
      */
     fun createZoomPath(
         centerPoint: PointF,
-        zoomAmount: Float,
+        isZoomIn: Boolean,
         duration: Long = GestureData.ZOOM_DURATION
     ): GestureDescription {
-        val separation = 100f // Base separation between fingers
-        val finalSeparation = separation + zoomAmount
+        val startSeparation = if (isZoomIn) 50f else 200f
+        val endSeparation = if (isZoomIn) 200f else 50f
         
-        // First finger path
-        val finger1Start = PointF(centerPoint.x - separation / 2, centerPoint.y)
-        val finger1End = PointF(centerPoint.x - finalSeparation / 2, centerPoint.y)
+        // First finger path (left side)
+        val finger1Start = PointF(centerPoint.x - startSeparation / 2, centerPoint.y)
+        val finger1End = PointF(centerPoint.x - endSeparation / 2, centerPoint.y)
         val finger1Path = Path().apply {
             moveTo(finger1Start.x, finger1Start.y)
             lineTo(finger1End.x, finger1End.y)
         }
         val finger1Stroke = GestureDescription.StrokeDescription(finger1Path, 0, duration)
         
-        // Second finger path
-        val finger2Start = PointF(centerPoint.x + separation / 2, centerPoint.y)
-        val finger2End = PointF(centerPoint.x + finalSeparation / 2, centerPoint.y)
+        // Second finger path (right side)
+        val finger2Start = PointF(centerPoint.x + startSeparation / 2, centerPoint.y)
+        val finger2End = PointF(centerPoint.x + endSeparation / 2, centerPoint.y)
         val finger2Path = Path().apply {
             moveTo(finger2Start.x, finger2Start.y)
             lineTo(finger2End.x, finger2End.y)
@@ -261,8 +261,8 @@ object GesturePathBuilder {
                 gestureData.startPoint, 
                 gestureData.endPoint ?: gestureData.startPoint
             )
-            GestureType.ZOOM_IN -> createZoomPath(gestureData.startPoint, 200f)
-            GestureType.ZOOM_OUT -> createZoomPath(gestureData.startPoint, -200f)
+            GestureType.ZOOM_IN -> createZoomPath(gestureData.startPoint, true)
+            GestureType.ZOOM_OUT -> createZoomPath(gestureData.startPoint, false)
             else -> {
                 val endPoint = gestureData.endPoint ?: gestureData.startPoint
                 val duration = getDurationForGestureType(gestureData.gestureType)

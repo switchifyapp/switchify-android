@@ -68,10 +68,9 @@ object ZoomGesturePerformer {
         )
 
         // Create gesture description using unified path builder
-        val zoomAmount = if (type == GestureType.ZOOM_IN) zoomAmountPx.toFloat() else -zoomAmountPx.toFloat()
         val gestureDescription = GesturePathBuilder.createZoomPath(
             centerPoint,
-            zoomAmount,
+            type == GestureType.ZOOM_IN,
             GestureData.ZOOM_DURATION
         )
 
