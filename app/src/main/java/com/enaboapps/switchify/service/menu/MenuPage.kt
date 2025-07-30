@@ -123,8 +123,8 @@ class MenuPage(
             prevPageMenuItem = MenuItem(
                 id = "prevPage",
                 drawableId = R.drawable.ic_previous_menu_page,
-                drawableDescriptionResource = R.string.menu_item_previous_page,
-                showDrawableDescription = false,
+                labelResource = R.string.menu_item_previous_page,
+                showLabelAsDescription = false,
                 isSmall = true,
                 closeOnSelect = false,
                 isMenuHierarchyManipulator = true, // Apply nav button styling
@@ -136,8 +136,8 @@ class MenuPage(
             nextPageMenuItem = MenuItem(
                 id = "nextPage",
                 drawableId = R.drawable.ic_next_menu_page,
-                drawableDescriptionResource = R.string.menu_item_next_page,
-                showDrawableDescription = false,
+                labelResource = R.string.menu_item_next_page,
+                showLabelAsDescription = false,
                 isSmall = true,
                 closeOnSelect = false,
                 isMenuHierarchyManipulator = true, // Apply nav button styling

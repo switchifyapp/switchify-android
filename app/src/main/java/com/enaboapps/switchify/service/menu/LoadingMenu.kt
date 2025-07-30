@@ -19,7 +19,7 @@ class LoadingMenu(
         // Create loading menu item
         val loadingItem = MenuItem(
             id = "loading",
-            textResource = loadingTextResource,
+            labelResource = loadingTextResource,
             closeOnSelect = false
         ) {
             // No action for loading state

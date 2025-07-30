@@ -16,7 +16,7 @@ class ScrollMenuStructure(accessibilityService: SwitchifyAccessibilityService) {
         items = listOfNotNull(
             MenuItem(
                 id = "scroll_up",
-                textResource = R.string.menu_item_scroll_up,
+                labelResource = R.string.menu_item_scroll_up,
                 drawableId = R.drawable.ic_scroll_up,
                 action = {
                     GestureManager.instance.performSwipeOrScroll(GestureType.SCROLL_UP)
@@ -24,7 +24,7 @@ class ScrollMenuStructure(accessibilityService: SwitchifyAccessibilityService) {
             ),
             MenuItem(
                 id = "scroll_down",
-                textResource = R.string.menu_item_scroll_down,
+                labelResource = R.string.menu_item_scroll_down,
                 drawableId = R.drawable.ic_scroll_down,
                 action = {
                     GestureManager.instance.performSwipeOrScroll(GestureType.SCROLL_DOWN)
@@ -32,7 +32,7 @@ class ScrollMenuStructure(accessibilityService: SwitchifyAccessibilityService) {
             ),
             MenuItem(
                 id = "scroll_left",
-                textResource = R.string.menu_item_scroll_left,
+                labelResource = R.string.menu_item_scroll_left,
                 drawableId = R.drawable.ic_scroll_left,
                 action = {
                     GestureManager.instance.performSwipeOrScroll(GestureType.SCROLL_LEFT)
@@ -40,7 +40,7 @@ class ScrollMenuStructure(accessibilityService: SwitchifyAccessibilityService) {
             ),
             MenuItem(
                 id = "scroll_right",
-                textResource = R.string.menu_item_scroll_right,
+                labelResource = R.string.menu_item_scroll_right,
                 drawableId = R.drawable.ic_scroll_right,
                 action = {
                     GestureManager.instance.performSwipeOrScroll(GestureType.SCROLL_RIGHT)

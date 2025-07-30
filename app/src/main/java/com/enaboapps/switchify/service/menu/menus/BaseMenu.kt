@@ -32,7 +32,7 @@ open class BaseMenu(
             val previousMenuItem = MenuItem(
                 id = "previous_menu_first",
                 drawableId = R.drawable.ic_previous_menu,
-                drawableDescriptionResource = R.string.menu_item_previous_menu,
+                labelResource = R.string.menu_item_previous_menu,
                 isLinkToMenu = true,
                 action = { MenuManager.getInstance().menuHierarchy?.popMenu() }
             )

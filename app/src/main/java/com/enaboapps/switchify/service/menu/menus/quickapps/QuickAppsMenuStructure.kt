@@ -20,7 +20,7 @@ class QuickAppsMenuStructure(private val accessibilityService: SwitchifyAccessib
         if (!quickAppsManager.hasUsageStatsPermission()) {
             items.add(MenuItem(
                 id = "permission_required",
-                textResource = R.string.usage_stats_permission_required,
+                labelResource = R.string.usage_stats_permission_required,
                 action = {
                     // Open permission settings
                     quickAppsManager.openUsageStatsSettings()
@@ -32,7 +32,7 @@ class QuickAppsMenuStructure(private val accessibilityService: SwitchifyAccessib
         if (apps.isEmpty()) {
             items.add(MenuItem(
                 id = "no_quick_apps",
-                textResource = R.string.no_quick_apps_available,
+                labelResource = R.string.no_quick_apps_available,
                 action = { /* Do nothing */ }
             ))
         } else {
