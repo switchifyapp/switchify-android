@@ -24,6 +24,5 @@ class QuickAppsMenu(
         
         QuickAppsMenuStructure(accessibilityService).getMenuItems(apps)
     },
-    showSystemNavItems = true,
     showNavMenuItems = true
 )

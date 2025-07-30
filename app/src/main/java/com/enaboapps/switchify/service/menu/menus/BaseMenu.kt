@@ -17,7 +17,6 @@ open class BaseMenu(
     private val accessibilityService: SwitchifyAccessibilityService,
     private val items: List<MenuItem>,
     private val dynamicLoad: (suspend () -> List<MenuItem>)? = null,
-    private val showSystemNavItems: Boolean = true,
     private val showNavMenuItems: Boolean = true
 ) {
     /**
@@ -36,13 +35,6 @@ open class BaseMenu(
         return dynamicLoad?.invoke()
     }
 
-    /**
-     * Determine whether to show system navigation items
-     * @return true if system navigation items should be shown, false otherwise
-     */
-    fun shouldShowSystemNavItems(): Boolean {
-        return showSystemNavItems
-    }
 
     /**
      * Determine whether to show navigation menu items
@@ -52,13 +44,6 @@ open class BaseMenu(
         return showNavMenuItems
     }
 
-    /**
-     * Build the system navigation items
-     * @return The system navigation items
-     */
-    fun buildSystemNavItems(): List<MenuItem> {
-        return MenuStructureHolder(accessibilityService).systemNavItems
-    }
 
     /**
      * Build the navigation menu items
