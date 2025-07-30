@@ -158,17 +158,6 @@ class MainMenuStructure(private val accessibilityService: SwitchifyAccessibility
     )
 
     val menuManipulatorItems = listOfNotNull(
-        if (MenuManager.getInstance().menuHierarchy?.isAtFirstMenu() == false) {
-            MenuItem(
-                id = "previous_menu",
-                drawableId = R.drawable.ic_previous_menu,
-                drawableDescriptionResource = R.string.menu_item_previous_menu,
-                showDrawableDescription = false,
-                isSmall = true,
-                isMenuHierarchyManipulator = true,
-                action = { MenuManager.getInstance().menuHierarchy?.popMenu() }
-            )
-        } else null,
         MenuItem(
             id = "close_menu",
             drawableId = R.drawable.ic_close_menu,

@@ -4,6 +4,8 @@ import com.enaboapps.switchify.service.core.SwitchifyAccessibilityService
 import com.enaboapps.switchify.service.menu.MenuItem
 import com.enaboapps.switchify.service.menu.MenuView
 import com.enaboapps.switchify.service.menu.structure.MenuStructureHolder
+import com.enaboapps.switchify.service.menu.MenuManager
+import com.enaboapps.switchify.R
 
 /**
  * This class represents a base menu
@@ -20,11 +22,25 @@ open class BaseMenu(
     private val showNavMenuItems: Boolean = true
 ) {
     /**
-     * Get the menu items
-     * @return The menu items
+     * Get the menu items with automatic previous menu button when applicable
+     * @return The menu items with previous menu button prepended if not at first menu
      */
     fun getMenuItems(): List<MenuItem> {
-        return items
+        val isAtFirstMenu = MenuManager.getInstance().menuHierarchy?.isAtFirstMenu() ?: true
+        
+        return if (!isAtFirstMenu && showNavMenuItems) {
+            val previousMenuItem = MenuItem(
+                id = "previous_menu_first",
+                textResource = R.string.menu_item_previous_menu,
+                drawableId = R.drawable.ic_previous_menu,
+                drawableDescriptionResource = R.string.menu_item_previous_menu,
+                isLinkToMenu = true,
+                action = { MenuManager.getInstance().menuHierarchy?.popMenu() }
+            )
+            listOf(previousMenuItem) + items
+        } else {
+            items
+        }
     }
 
     /**
