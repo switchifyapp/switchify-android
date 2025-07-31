@@ -68,6 +68,32 @@ android {
             "AMPLITUDE_API_KEY",
             "\"${localProperties.getProperty("amplitude.apiKey", "")}\""
         )
+
+        if (localProperties.getProperty(
+                "supabase.projectUrl",
+                ""
+            ).isEmpty()
+        ) {
+            throw GradleException("Supabase project URL is not set in local.properties")
+        }
+        buildConfigField(
+            "String",
+            "SUPABASE_URL",
+            "\"${localProperties.getProperty("supabase.projectUrl", "")}\""
+        )
+
+        if (localProperties.getProperty(
+                "supabase.publishableKey",
+                ""
+            ).isEmpty()
+        ) {
+            throw GradleException("Supabase publishable key is not set in local.properties")
+        }
+        buildConfigField(
+            "String",
+            "SUPABASE_ANON_KEY",
+            "\"${localProperties.getProperty("supabase.publishableKey", "")}\""
+        )
     }
 
     buildTypes {
