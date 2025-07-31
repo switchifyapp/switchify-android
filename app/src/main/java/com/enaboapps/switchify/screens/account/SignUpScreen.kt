@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.auth.AuthManager
+import com.enaboapps.switchify.backend.supabase.SupabaseAuthManager
 import com.enaboapps.switchify.auth.GoogleAuthHandler
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.components.BaseView
@@ -38,6 +39,7 @@ fun SignUpScreen(navController: NavController) {
     var confirmPassword by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     val authManager = AuthManager.instance
+    val supabaseAuthManager = SupabaseAuthManager.instance
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val googleAuthHandler = remember { GoogleAuthHandler() }
@@ -114,22 +116,24 @@ fun SignUpScreen(navController: NavController) {
             textResId = R.string.button_sign_up,
             onClick = {
                 errorMessage = when {
-                    !authManager.isPasswordStrong(password) -> Resources.getString(R.string.error_password_not_strong)
+                    !supabaseAuthManager.isPasswordStrong(password) -> Resources.getString(R.string.error_password_not_strong)
                     password != confirmPassword -> Resources.getString(R.string.error_passwords_do_not_match)
                     email.isEmpty() -> Resources.getString(R.string.error_email_required)
                     password.isEmpty() -> Resources.getString(R.string.error_password_required)
                     else -> null
                 }
                 if (errorMessage == null) {
-                    authManager.createUserWithEmailAndPassword(
-                        email, password,
-                        onSuccess = {
-                            onSignUp()
-                        },
-                        onFailure = { exception ->
-                            errorMessage = exception.localizedMessage
-                        }
-                    )
+                    scope.launch {
+                        val result = supabaseAuthManager.createUserWithEmailAndPassword(email, password)
+                        result.fold(
+                            onSuccess = {
+                                onSignUp()
+                            },
+                            onFailure = { exception ->
+                                errorMessage = exception.localizedMessage
+                            }
+                        )
+                    }
                 }
             }
         )

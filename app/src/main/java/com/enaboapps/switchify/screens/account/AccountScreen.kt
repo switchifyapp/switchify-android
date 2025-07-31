@@ -19,6 +19,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -26,6 +27,8 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.auth.AuthManager
+import com.enaboapps.switchify.backend.supabase.SupabaseAuthManager
+import kotlinx.coroutines.launch
 import com.enaboapps.switchify.backend.iap.IAPHandler
 import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.FullWidthButton
@@ -35,8 +38,10 @@ import com.google.firebase.auth.FirebaseAuth
 @Composable
 fun AccountScreen(navController: NavController) {
     val authManager = AuthManager.instance
-    val currentUser = FirebaseAuth.getInstance().currentUser
+    val supabaseAuthManager = SupabaseAuthManager.instance
+    val currentUser = supabaseAuthManager.getCurrentUser()
     val userEmail = currentUser?.email ?: "Not Logged In"
+    val scope = rememberCoroutineScope()
     val showDeleteAccountDialog = remember { mutableStateOf(false) }
     val context = LocalContext.current
 
@@ -49,12 +54,18 @@ fun AccountScreen(navController: NavController) {
     }
 
     val deleteAccount = {
-        authManager.deleteUser(onSuccess = {
-            Toast.makeText(context, "Account deleted", Toast.LENGTH_SHORT).show()
-            navController.popBackStack(navController.graph.startDestinationId, false)
-        }, onFailure = {
-            Toast.makeText(context, "Error deleting account", Toast.LENGTH_SHORT).show()
-        })
+        scope.launch {
+            val result = supabaseAuthManager.deleteUser()
+            result.fold(
+                onSuccess = {
+                    Toast.makeText(context, "Account deleted", Toast.LENGTH_SHORT).show()
+                    navController.popBackStack(navController.graph.startDestinationId, false)
+                },
+                onFailure = {
+                    Toast.makeText(context, "Error deleting account", Toast.LENGTH_SHORT).show()
+                }
+            )
+        }
     }
 
     BaseView(
@@ -83,8 +94,10 @@ fun AccountScreen(navController: NavController) {
         FullWidthButton(
             textResId = R.string.button_sign_out,
             onClick = {
-                authManager.signOut()
-                navController.popBackStack(navController.graph.startDestinationId, false)
+                scope.launch {
+                    supabaseAuthManager.signOut()
+                    navController.popBackStack(navController.graph.startDestinationId, false)
+                }
             }
         )
 

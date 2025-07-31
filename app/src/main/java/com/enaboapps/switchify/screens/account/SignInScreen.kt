@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.auth.AuthManager
+import com.enaboapps.switchify.backend.supabase.SupabaseAuthManager
 import com.enaboapps.switchify.auth.GoogleAuthHandler
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.components.BaseView
@@ -94,19 +95,21 @@ fun SignInScreen(navController: NavController) {
             textResId = R.string.button_sign_in,
             onClick = {
                 if (email.isNotEmpty() && password.isNotEmpty()) {
-                    AuthManager.instance.signInWithEmailAndPassword(
-                        email, password,
-                        onSuccess = {
-                            navController.popBackStack(
-                                navController.graph.startDestinationId,
-                                false
-                            )
-                            onSignIn()
-                        },
-                        onFailure = { exception ->
-                            errorMessage = exception.localizedMessage
-                        }
-                    )
+                    scope.launch {
+                        val result = SupabaseAuthManager.instance.signInWithEmailAndPassword(email, password)
+                        result.fold(
+                            onSuccess = {
+                                navController.popBackStack(
+                                    navController.graph.startDestinationId,
+                                    false
+                                )
+                                onSignIn()
+                            },
+                            onFailure = { exception ->
+                                errorMessage = exception.localizedMessage
+                            }
+                        )
+                    }
                 } else {
                     errorMessage =
                         Resources.getString(R.string.error_please_enter_email_and_password)

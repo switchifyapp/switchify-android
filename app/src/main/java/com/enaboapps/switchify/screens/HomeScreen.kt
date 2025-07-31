@@ -58,6 +58,7 @@ import androidx.navigation.NavController
 import com.enaboapps.switchify.BuildConfig
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.auth.AuthManager
+import com.enaboapps.switchify.backend.supabase.SupabaseAuthManager
 import com.enaboapps.switchify.backend.iap.IAPHandler
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.components.BaseView
@@ -85,7 +86,7 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
     val isAccessibilityServiceEnabled = serviceUtils.isAccessibilityServiceEnabled(context)
     val isSetupComplete = PreferenceManager(context).isSetupComplete()
     val isPro = remember { mutableStateOf(true) }
-    val signedIn = AuthManager.instance.isUserSignedIn()
+    val signedIn = SupabaseAuthManager.instance.isUserSignedIn()
     var showUpdateDialog by remember { mutableStateOf(false) }
     val switchEventStore = remember { SwitchEventStore.getInstance() }
     val switchConfigValidator = remember { SwitchConfigValidator(context) }

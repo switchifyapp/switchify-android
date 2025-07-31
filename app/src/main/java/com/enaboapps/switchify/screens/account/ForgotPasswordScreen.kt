@@ -8,6 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.ImeAction
@@ -16,6 +17,8 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.auth.AuthManager
+import com.enaboapps.switchify.backend.supabase.SupabaseAuthManager
+import kotlinx.coroutines.launch
 import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.FullWidthButton
 import com.enaboapps.switchify.components.TextArea
@@ -26,6 +29,8 @@ fun ForgotPasswordScreen(navController: NavController) {
     var email by remember { mutableStateOf("") }
     var message by remember { mutableStateOf<String?>(null) }
     val authManager = AuthManager.instance
+    val supabaseAuthManager = SupabaseAuthManager.instance
+    val scope = rememberCoroutineScope()
 
     BaseView(
         titleResId = R.string.screen_title_reset_password,
@@ -54,15 +59,18 @@ fun ForgotPasswordScreen(navController: NavController) {
             enabled = email.isNotBlank(),
             onClick = {
                 if (email.isNotBlank()) {
-                    authManager.sendPasswordResetEmail(email,
-                        onSuccess = {
-                            message = Resources.getString(R.string.message_reset_link_sent)
-                        },
-                        onFailure = { exception ->
-                            message = exception.localizedMessage
-                                ?: Resources.getString(R.string.error_generic)
-                        }
-                    )
+                    scope.launch {
+                        val result = supabaseAuthManager.sendPasswordResetEmail(email)
+                        result.fold(
+                            onSuccess = {
+                                message = Resources.getString(R.string.message_reset_link_sent)
+                            },
+                            onFailure = { exception ->
+                                message = exception.localizedMessage
+                                    ?: Resources.getString(R.string.error_generic)
+                            }
+                        )
+                    }
                 } else {
                     message = "Please enter your email address."
                 }

@@ -8,6 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.ImeAction
@@ -16,6 +17,8 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.auth.AuthManager
+import com.enaboapps.switchify.backend.supabase.SupabaseAuthManager
+import kotlinx.coroutines.launch
 import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.FullWidthButton
 import com.enaboapps.switchify.components.TextArea
@@ -28,6 +31,8 @@ fun ChangePasswordScreen(navController: NavController) {
     var confirmPassword by remember { mutableStateOf("") }
     var message by remember { mutableStateOf<String?>(null) }
     val authManager = AuthManager.instance
+    val supabaseAuthManager = SupabaseAuthManager.instance
+    val scope = rememberCoroutineScope()
 
     BaseView(
         titleResId = R.string.screen_title_change_password,
@@ -79,20 +84,23 @@ fun ChangePasswordScreen(navController: NavController) {
             onClick = {
                 message = when {
                     newPassword != confirmPassword -> Resources.getString(R.string.error_passwords_do_not_match)
-                    !authManager.isPasswordStrong(newPassword) -> Resources.getString(R.string.error_password_not_strong)
+                    !supabaseAuthManager.isPasswordStrong(newPassword) -> Resources.getString(R.string.error_password_not_strong)
                     else -> null
                 }
                 if (message == null) {
-                    authManager.updatePassword(currentPassword, newPassword,
-                        onSuccess = {
-                            message = Resources.getString(R.string.message_password_changed)
-                            navController.popBackStack()
-                        },
-                        onFailure = { exception ->
-                            message = exception.localizedMessage
-                                ?: Resources.getString(R.string.error_generic)
-                        }
-                    )
+                    scope.launch {
+                        val result = supabaseAuthManager.updatePassword(newPassword)
+                        result.fold(
+                            onSuccess = {
+                                message = Resources.getString(R.string.message_password_changed)
+                                navController.popBackStack()
+                            },
+                            onFailure = { exception ->
+                                message = exception.localizedMessage
+                                    ?: Resources.getString(R.string.error_generic)
+                            }
+                        )
+                    }
                 }
             }
         )
