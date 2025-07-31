@@ -57,7 +57,6 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.enaboapps.switchify.BuildConfig
 import com.enaboapps.switchify.R
-import com.enaboapps.switchify.auth.AuthManager
 import com.enaboapps.switchify.backend.supabase.SupabaseAuthManager
 import com.enaboapps.switchify.backend.iap.IAPHandler
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
@@ -203,18 +202,18 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
         enableScroll = false,
         navBarActions = listOf(
             NavBarAction(
-                icon = if (AuthManager.instance.isUserSignedIn()) {
+                icon = if (SupabaseAuthManager.instance.isUserSignedIn()) {
                     Icons.Rounded.AccountCircle
                 } else {
                     Icons.AutoMirrored.Filled.Login
                 },
-                contentDescription = if (AuthManager.instance.isUserSignedIn()) {
+                contentDescription = if (SupabaseAuthManager.instance.isUserSignedIn()) {
                     "Account"
                 } else {
                     "Sign In"
                 },
                 onClick = {
-                    if (AuthManager.instance.isUserSignedIn()) {
+                    if (SupabaseAuthManager.instance.isUserSignedIn()) {
                         navController.navigate(NavigationRoute.Account.name)
                     } else {
                         navController.navigate(NavigationRoute.SignIn.name)

@@ -16,7 +16,6 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.enaboapps.switchify.R
-import com.enaboapps.switchify.auth.AuthManager
 import com.enaboapps.switchify.backend.supabase.SupabaseAuthManager
 import kotlinx.coroutines.launch
 import com.enaboapps.switchify.components.BaseView
@@ -30,7 +29,6 @@ fun ChangePasswordScreen(navController: NavController) {
     var newPassword by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
     var message by remember { mutableStateOf<String?>(null) }
-    val authManager = AuthManager.instance
     val supabaseAuthManager = SupabaseAuthManager.instance
     val scope = rememberCoroutineScope()
 

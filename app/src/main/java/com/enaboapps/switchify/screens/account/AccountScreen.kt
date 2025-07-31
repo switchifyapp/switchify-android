@@ -26,18 +26,15 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.enaboapps.switchify.R
-import com.enaboapps.switchify.auth.AuthManager
 import com.enaboapps.switchify.backend.supabase.SupabaseAuthManager
 import kotlinx.coroutines.launch
 import com.enaboapps.switchify.backend.iap.IAPHandler
 import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.FullWidthButton
 import com.enaboapps.switchify.nav.NavigationRoute
-import com.google.firebase.auth.FirebaseAuth
 
 @Composable
 fun AccountScreen(navController: NavController) {
-    val authManager = AuthManager.instance
     val supabaseAuthManager = SupabaseAuthManager.instance
     val currentUser = supabaseAuthManager.getCurrentUser()
     val userEmail = currentUser?.email ?: "Not Logged In"

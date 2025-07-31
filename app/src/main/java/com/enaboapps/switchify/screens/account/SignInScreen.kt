@@ -22,9 +22,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.enaboapps.switchify.R
-import com.enaboapps.switchify.auth.AuthManager
 import com.enaboapps.switchify.backend.supabase.SupabaseAuthManager
-import com.enaboapps.switchify.auth.GoogleAuthHandler
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.FullWidthButton
@@ -40,7 +38,6 @@ fun SignInScreen(navController: NavController) {
     var errorMessage by remember { mutableStateOf<String?>(null) }
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val googleAuthHandler = remember { GoogleAuthHandler() }
 
     val onSignIn = {
         // Download user settings from Firestore
@@ -123,36 +120,6 @@ fun SignInScreen(navController: NavController) {
             textResId = R.string.button_sign_up,
             onClick = {
                 navController.navigate(NavigationRoute.SignUp.name)
-            }
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-        Text(stringResource(R.string.or))
-        Spacer(modifier = Modifier.height(16.dp))
-
-        FullWidthButton(
-            textResId = R.string.button_sign_in_with_google,
-            onClick = {
-                scope.launch {
-                    googleAuthHandler.googleSignIn(context).collect { result ->
-                        result.fold(
-                            onSuccess = { authResult ->
-                                if (authResult.user != null) {
-                                    navController.popBackStack(
-                                        navController.graph.startDestinationId,
-                                        false
-                                    )
-                                    onSignIn()
-                                } else {
-                                    errorMessage = Resources.getString(R.string.error_signing_in)
-                                }
-                            },
-                            onFailure = { exception ->
-                                errorMessage = exception.localizedMessage
-                            }
-                        )
-                    }
-                }
             }
         )
 
