@@ -34,17 +34,6 @@ class SettingsScreenModel(context: Context) : ViewModel() {
     }
     val assistedSelection: LiveData<Boolean> = _assistedSelection
 
-    private val _aiSuggestionsEnabled = MutableLiveData<Boolean>().apply {
-        value =
-            preferenceManager.getBooleanValue(PreferenceManager.Keys.PREFERENCE_KEY_AI_SUGGESTIONS_ENABLED)
-    }
-    val aiSuggestionsEnabled: LiveData<Boolean> = _aiSuggestionsEnabled
-
-    private val _aiVisualAnalysisEnabled = MutableLiveData<Boolean>().apply {
-        value =
-            preferenceManager.getBooleanValue(PreferenceManager.Keys.PREFERENCE_KEY_AI_VISUAL_ANALYSIS_ENABLED, true)
-    }
-    val aiVisualAnalysisEnabled: LiveData<Boolean> = _aiVisualAnalysisEnabled
 
     private val _menuTransparency = MutableLiveData<Boolean>().apply {
         value =
@@ -100,25 +89,6 @@ class SettingsScreenModel(context: Context) : ViewModel() {
         }
     }
 
-    fun setAiSuggestionsEnabled(value: Boolean) {
-        viewModelScope.launch {
-            preferenceManager.setBooleanValue(
-                PreferenceManager.Keys.PREFERENCE_KEY_AI_SUGGESTIONS_ENABLED,
-                value
-            )
-            _aiSuggestionsEnabled.postValue(value)
-        }
-    }
-
-    fun setAiVisualAnalysisEnabled(value: Boolean) {
-        viewModelScope.launch {
-            preferenceManager.setBooleanValue(
-                PreferenceManager.Keys.PREFERENCE_KEY_AI_VISUAL_ANALYSIS_ENABLED,
-                value
-            )
-            _aiVisualAnalysisEnabled.postValue(value)
-        }
-    }
 
     fun setMenuTransparency(value: Boolean) {
         viewModelScope.launch {

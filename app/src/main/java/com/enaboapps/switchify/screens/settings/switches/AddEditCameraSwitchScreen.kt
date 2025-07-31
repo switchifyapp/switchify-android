@@ -54,9 +54,7 @@ private fun MainContent(
         // Switch Name
         SwitchName(
             name = viewModel.name,
-            onNameChange = { viewModel.updateName(it) },
-            onGenerateName = { viewModel.generateAIName() },
-            isGenerating = viewModel.isGeneratingName.value
+            onNameChange = { viewModel.updateName(it) }
         )
 
         Spacer(modifier = Modifier.height(16.dp))
