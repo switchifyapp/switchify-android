@@ -28,6 +28,8 @@ accompanist = "0.37.3"
 face-detection = "16.1.7"
 room = "2.7.2"
 ksp = "2.2.0-2.0.2"
+supabase = "3.2.2"
+ktor = "3.2.2"
 
 [libraries]
 core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "core-ktx" }
@@ -70,12 +72,18 @@ face-detection = { group = "com.google.mlkit", name = "face-detection", version.
 room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
 room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
 room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
+supabase-bom = { group = "io.github.jan-tennert.supabase", name = "bom", version.ref = "supabase" }
+supabase-postgrest = { group = "io.github.jan-tennert.supabase", name = "postgrest-kt" }
+supabase-auth = { group = "io.github.jan-tennert.supabase", name = "auth-kt" }
+supabase-realtime = { group = "io.github.jan-tennert.supabase", name = "realtime-kt" }
+ktor-client-android = { group = "io.ktor", name = "ktor-client-android", version.ref = "ktor" }
 
 [plugins]
 compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 android-application = { id = "com.android.application", version.ref = "agp" }
 android-library = { id = "com.android.library", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 google-services = { id = "com.google.gms.google-services", version.ref = "google-services" }
 firebase-crashlytics = { id = "com.google.firebase.crashlytics", version.ref = "firebase-crashlytics-gradle" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }

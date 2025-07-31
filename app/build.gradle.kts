@@ -7,6 +7,7 @@ plugins {
     alias(libs.plugins.google.services)
     alias(libs.plugins.firebase.crashlytics)
     alias(libs.plugins.ksp)
+    alias(libs.plugins.kotlin.serialization)
 }
 
 composeCompiler {
@@ -123,6 +124,11 @@ dependencies {
     implementation(libs.firebase.auth)
     implementation(libs.firebase.crashlytics)
     implementation(libs.firebase.firestore)
+    implementation(platform(libs.supabase.bom))
+    implementation(libs.supabase.postgrest)
+    implementation(libs.supabase.auth)
+    implementation(libs.supabase.realtime)
+    implementation(libs.ktor.client.android)
     implementation(libs.gson)
     implementation(libs.androidx.material3.android)
     implementation(libs.app.update)
