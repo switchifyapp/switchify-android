@@ -11,7 +11,6 @@ import androidx.compose.ui.input.key.nativeKeyCode
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.enaboapps.switchify.service.ai.FirebaseAIManager
 import com.enaboapps.switchify.service.scanning.ScanSettings
 import com.enaboapps.switchify.switches.SWITCH_EVENT_TYPE_EXTERNAL
 import com.enaboapps.switchify.switches.SwitchAction
@@ -31,7 +30,6 @@ class AddEditExternalSwitchScreenModel : ViewModel() {
     private val store = SwitchEventStore.getInstance()
     private var code: String? = null
     private var isInitialized = false
-    private var aiManager: FirebaseAIManager? = null
 
     var name = ""
 
@@ -40,7 +38,6 @@ class AddEditExternalSwitchScreenModel : ViewModel() {
     val isValid = MutableLiveData(false)
     val allowLongPress = MutableLiveData(true)
     val refreshingLongPressActions = MutableLiveData(false)
-    val isGeneratingName = MutableLiveData(false)
 
     // Actions for press and long press
     val pressAction = MutableLiveData<SwitchAction>().apply {
@@ -50,7 +47,6 @@ class AddEditExternalSwitchScreenModel : ViewModel() {
 
     fun init(code: String?, context: Context) {
         this.code = code
-        aiManager = FirebaseAIManager()
 
         if (code != null) {
             reload(context)
@@ -106,10 +102,6 @@ class AddEditExternalSwitchScreenModel : ViewModel() {
         shouldSave.value = true
         switchCaptured.value = true
         
-        // Generate AI name if name is empty
-        if (name.isBlank()) {
-            generateAIName(key.nativeKeyCode, pressAction.value?.id)
-        }
     }
 
     fun addLongPressAction(action: SwitchAction) {
@@ -221,34 +213,6 @@ class AddEditExternalSwitchScreenModel : ViewModel() {
         }
     }
 
-    fun generateAIName(keyCode: Int? = null, actionId: Int? = null) {
-        val currentKeyCode = keyCode ?: code?.toIntOrNull()
-        val currentActionId = actionId ?: pressAction.value?.id
-
-        if (currentKeyCode == null || aiManager?.isAvailable() != true) {
-            return
-        }
-
-        isGeneratingName.value = true
-        
-        viewModelScope.launch {
-            try {
-                val keyName = getKeyName(currentKeyCode)
-                
-                val response = aiManager?.generateSwitchName(keyName)
-                
-                if (response?.isSuccess == true && !response.content.isNullOrBlank()) {
-                    name = response.content
-                    validateIfInitialized()
-                    Log.d(TAG, "AI generated switch name: ${response.content}")
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "Error generating AI name", e)
-            } finally {
-                isGeneratingName.value = false
-            }
-        }
-    }
 
     private fun getKeyName(keyCode: Int): String {
         return when (keyCode) {

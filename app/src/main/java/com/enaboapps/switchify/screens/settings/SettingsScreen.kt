@@ -37,12 +37,10 @@ import com.enaboapps.switchify.components.PreferenceValueSelector
 import com.enaboapps.switchify.components.ScrollableView
 import com.enaboapps.switchify.components.Section
 import com.enaboapps.switchify.nav.NavigationRoute
-import com.enaboapps.switchify.screens.settings.models.AISettingsModel
 import com.enaboapps.switchify.screens.settings.models.MenuSettingsModel
 import com.enaboapps.switchify.screens.settings.models.SelectionSettingsModel
 import com.enaboapps.switchify.screens.settings.models.SettingsScreenModel
 import com.enaboapps.switchify.screens.settings.sections.AboutSection
-import com.enaboapps.switchify.screens.settings.sections.AISection
 import com.enaboapps.switchify.screens.settings.sections.GesturesSettingsSection
 import com.enaboapps.switchify.screens.settings.sections.InputSection
 import com.enaboapps.switchify.screens.settings.sections.MenuSection
@@ -55,7 +53,6 @@ fun SettingsScreen(navController: NavController) {
     val context = LocalContext.current
     val settingsScreenModel: SettingsScreenModel = viewModel { SettingsScreenModel(context) }
     val selectionSettingsModel: SelectionSettingsModel = viewModel { SelectionSettingsModel(context) }
-    val aiSettingsModel: AISettingsModel = viewModel { AISettingsModel(context) }
     val menuSettingsModel: MenuSettingsModel = viewModel { MenuSettingsModel(context) }
     val preferenceManager = remember { PreferenceManager(context) }
     
@@ -93,7 +90,7 @@ fun SettingsScreen(navController: NavController) {
         }
 
         when (selectedTabIndex) {
-            0 -> GeneralSettingsTab(aiSettingsModel, menuSettingsModel, navController)
+            0 -> GeneralSettingsTab(menuSettingsModel, navController)
             1 -> ScanningSettingsTab(navController)
             2 -> SelectionSettingsTab(selectionSettingsModel)
             3 -> AboutSection()
@@ -102,7 +99,7 @@ fun SettingsScreen(navController: NavController) {
 }
 
 @Composable
-fun GeneralSettingsTab(aiSettingsModel: AISettingsModel, menuSettingsModel: MenuSettingsModel, navController: NavController) {
+fun GeneralSettingsTab(menuSettingsModel: MenuSettingsModel, navController: NavController) {
     ScrollableView {
         InputSection(navController)
         Section(titleResId = R.string.settings_section_access_techniques) {
@@ -116,7 +113,6 @@ fun GeneralSettingsTab(aiSettingsModel: AISettingsModel, menuSettingsModel: Menu
             )
         }
         GesturesSettingsSection(navController)
-        AISection(aiSettingsModel)
         MenuSection(menuSettingsModel)
     }
 }

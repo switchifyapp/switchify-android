@@ -45,7 +45,6 @@ firebase-analytics = { group = "com.google.firebase", name = "firebase-analytics
 firebase-auth = { group = "com.google.firebase", name = "firebase-auth" }
 firebase-crashlytics = { group = "com.google.firebase", name = "firebase-crashlytics" }
 firebase-firestore = { group = "com.google.firebase", name = "firebase-firestore" }
-firebase-ai = { group = "com.google.firebase", name = "firebase-ai" }
 credentials = { group = "androidx.credentials", name = "credentials", version.ref = "credentials" }
 google-id = { group = "com.google.android.libraries.identity.googleid", name = "googleid", version.ref = "google-id" }
 gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }

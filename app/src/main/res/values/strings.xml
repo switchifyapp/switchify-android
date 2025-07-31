@@ -377,7 +377,6 @@
     <string name="settings_summary_gesture_settings">Configure gesture settings</string>
 
     <!-- Settings - Menu Section -->
-    <string name="settings_section_ai">AI</string>
     <string name="settings_section_menu">Menu</string>
     <string name="settings_title_menu_transparency">Menu Transparency</string>
     <string name="settings_summary_menu_transparency">Enable transparency for the menu so that you can see content behind it</string>
@@ -606,19 +605,6 @@
     <string name="button_grant_usage_stats_permission">Grant Permission</string>
     <string name="usage_stats_settings_instructions">You\'ll be taken to Android settings. Find and tap on Switchify, then enable "Permit usage access".</string>
     
-    <!-- AI Menu Strings -->
-    <string name="menu_ai_suggestions">Smart Suggestions</string>
-    <string name="menu_ai_suggestions_description">Smart suggestions for important screen elements</string>
-    <string name="ai_menu_analyzing">Analyzing screen…</string>
-    <string name="ai_menu_no_elements">No interactive elements found</string>
-    <string name="ai_menu_no_suggestions">No suggestions available</string>
-    <string name="ai_menu_error">Analysis failed</string>
-    
-    <!-- AI Settings Strings -->
-    <string name="settings_title_ai_suggestions">AI Smart Suggestions</string>
-    <string name="settings_summary_ai_suggestions">Use AI to analyze and rank the most important screen elements</string>
-    <string name="settings_title_ai_visual_analysis">AI Visual Analysis</string>
-    <string name="settings_summary_ai_visual_analysis">Allow AI to analyze screenshots for better suggestions. When disabled, AI uses text-only analysis for faster responses.</string>
 
     <!-- Screenshot HUD Messages -->
     <string name="screenshot_saved_to_gallery">Screenshot saved to gallery</string>

@@ -7,7 +7,6 @@ import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.enaboapps.switchify.service.ai.FirebaseAIManager
 import com.enaboapps.switchify.switches.*
 import kotlinx.coroutines.launch
 
@@ -24,16 +23,13 @@ class AddEditCameraSwitchScreenModel : ViewModel() {
     val facialGestureTime = mutableLongStateOf(100L)
     val sensitivity = mutableIntStateOf(4) // Default sensitivity
     val showDeleteConfirmation = mutableStateOf(false)
-    val isGeneratingName = mutableStateOf(false)
 
     private lateinit var store: SwitchEventStore
     private var code: String? = null
-    private var aiManager: FirebaseAIManager? = null
 
     fun init(code: String?, context: Context) {
         store = SwitchEventStore.getInstance()
         this.code = code
-        aiManager = FirebaseAIManager()
 
         if (code != null) {
             val event = store.find(code)
@@ -46,10 +42,6 @@ class AddEditCameraSwitchScreenModel : ViewModel() {
             }
         } else {
             name = ""
-            // Generate AI name for new camera switch
-            if (name.isBlank()) {
-                generateAIName()
-            }
         }
         validate()
     }
@@ -63,10 +55,6 @@ class AddEditCameraSwitchScreenModel : ViewModel() {
         selectedGesture.value = gesture
         validate()
         
-        // Regenerate AI name when gesture changes
-        if (name.isBlank()) {
-            generateAIName()
-        }
     }
 
     fun setAction(newAction: SwitchAction) {
@@ -133,34 +121,6 @@ class AddEditCameraSwitchScreenModel : ViewModel() {
         }
     }
 
-    fun generateAIName() {
-        val gesture = selectedGesture.value
-        val currentAction = action.value
-        
-        if (gesture == null || aiManager?.isAvailable() != true) {
-            return
-        }
-
-        isGeneratingName.value = true
-        
-        viewModelScope.launch {
-            try {
-                val gestureName = getGestureDisplayName(gesture.id)
-                
-                val response = aiManager?.generateSwitchName(gestureName)
-                
-                if (response?.isSuccess == true && !response.content.isNullOrBlank()) {
-                    name = response.content
-                    validate()
-                    Log.d(TAG, "AI generated camera switch name: ${response.content}")
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "Error generating AI name", e)
-            } finally {
-                isGeneratingName.value = false
-            }
-        }
-    }
 
     private fun getGestureDisplayName(gestureId: String): String {
         return when (gestureId) {

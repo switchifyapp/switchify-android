@@ -8,7 +8,6 @@ import com.enaboapps.switchify.service.keyboard.KeyboardManager
 import com.enaboapps.switchify.service.menu.MenuItem
 import com.enaboapps.switchify.service.menu.MenuManager
 import com.enaboapps.switchify.service.menu.menus.gestures.GestureMenuStructure
-import com.enaboapps.switchify.service.menu.menus.ai.AIMenuStructure
 import com.enaboapps.switchify.service.menu.structure.MenuStructure
 import com.enaboapps.switchify.service.techniques.AccessTechnique
 import com.enaboapps.switchify.service.techniques.nodes.NodeExaminer
@@ -73,12 +72,6 @@ class MainMenuStructure(private val accessibilityService: SwitchifyAccessibility
                 isLinkToMenu = true,
                 action = { MenuManager.getInstance().openScrollMenu() }
             ),
-            // AI-powered node suggestions (Pro feature, unlocked device only)
-            if (deviceLockObserver.isUserUnlocked() == true &&
-                preferenceManager.getBooleanValue(PreferenceManager.Keys.PREFERENCE_KEY_AI_SUGGESTIONS_ENABLED) && 
-                IAPHandler.hasPurchasedPro()) {
-                AIMenuStructure.createAIMenuItem(accessibilityService)
-            } else null,
             if (deviceLockObserver.isUserUnlocked() == true) {
                 MenuItem(
                     id = "quick_apps",
