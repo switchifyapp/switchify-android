@@ -31,7 +31,7 @@ class SupabaseManager {
     }
     
     private val supabase = SupabaseClient.client
-    private val auth = SupabaseAuthManager.instance
+    private val auth = com.enaboapps.switchify.auth.repository.AuthRepository.instance
 
     /**
      * Saves user preferences to the database.

@@ -3,7 +3,6 @@ package com.enaboapps.switchify.backend.preferences
 import android.content.SharedPreferences
 import android.util.Log
 import androidx.core.content.edit
-import com.enaboapps.switchify.backend.supabase.SupabaseAuthManager
 import com.enaboapps.switchify.backend.supabase.SupabaseManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers

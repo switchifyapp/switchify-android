@@ -26,7 +26,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.enaboapps.switchify.R
-import com.enaboapps.switchify.backend.supabase.SupabaseAuthManager
+import com.enaboapps.switchify.auth.repository.AuthRepository
 import kotlinx.coroutines.launch
 import com.enaboapps.switchify.backend.iap.IAPHandler
 import com.enaboapps.switchify.components.BaseView
@@ -35,8 +35,8 @@ import com.enaboapps.switchify.nav.NavigationRoute
 
 @Composable
 fun AccountScreen(navController: NavController) {
-    val supabaseAuthManager = SupabaseAuthManager.instance
-    val currentUser = supabaseAuthManager.getCurrentUser()
+    val authRepository = AuthRepository.instance
+    val currentUser = authRepository.getCurrentUser()
     val userEmail = currentUser?.email ?: "Not Logged In"
     val scope = rememberCoroutineScope()
     val showDeleteAccountDialog = remember { mutableStateOf(false) }
@@ -52,7 +52,7 @@ fun AccountScreen(navController: NavController) {
 
     val deleteAccount = {
         scope.launch {
-            val result = supabaseAuthManager.deleteUser()
+            val result = authRepository.deleteUser()
             result.fold(
                 onSuccess = {
                     Toast.makeText(context, "Account deleted", Toast.LENGTH_SHORT).show()
@@ -82,17 +82,10 @@ fun AccountScreen(navController: NavController) {
         Spacer(modifier = Modifier.height(20.dp))
 
         FullWidthButton(
-            textResId = R.string.screen_title_change_password,
-            onClick = {
-                navController.navigate(NavigationRoute.ChangePassword.name)
-            }
-        )
-
-        FullWidthButton(
             textResId = R.string.button_sign_out,
             onClick = {
                 scope.launch {
-                    supabaseAuthManager.signOut()
+                    authRepository.signOut()
                     navController.popBackStack(navController.graph.startDestinationId, false)
                 }
             }

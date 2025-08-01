@@ -99,7 +99,7 @@ fun OnboardingScreen(navController: NavController) {
                             if (isNew) {
                                 viewModel.nextStep()
                             } else {
-                                navController.navigate(NavigationRoute.SignIn.name)
+                                navController.navigate(NavigationRoute.Authentication.name)
                             }
                         }
                     )
