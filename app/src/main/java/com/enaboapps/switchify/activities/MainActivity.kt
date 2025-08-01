@@ -49,8 +49,7 @@ class MainActivity : ComponentActivity() {
         preferenceManager = PreferenceManager(this)
         preferenceManager.enableSync()
         preferenceManager.preferenceSync.apply {
-            retrieveSettingsFromFirestore()
-            listenForSettingsChangesOnRemote()
+            retrieveSettingsFromSupabase()
         }
 
         // Initialize Logger

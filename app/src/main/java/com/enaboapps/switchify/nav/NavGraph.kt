@@ -9,10 +9,7 @@ import com.enaboapps.switchify.screens.DebugScreen
 import com.enaboapps.switchify.screens.EnableAccessibilityServiceScreen
 import com.enaboapps.switchify.screens.HomeScreen
 import com.enaboapps.switchify.screens.account.AccountScreen
-import com.enaboapps.switchify.screens.account.ChangePasswordScreen
-import com.enaboapps.switchify.screens.account.ForgotPasswordScreen
-import com.enaboapps.switchify.screens.account.SignInScreen
-import com.enaboapps.switchify.screens.account.SignUpScreen
+import com.enaboapps.switchify.screens.account.OtpAuthScreen
 import com.enaboapps.switchify.screens.paywall.AppPaywallScreen
 import com.enaboapps.switchify.screens.settings.SettingsScreen
 import com.enaboapps.switchify.screens.settings.gestures.GestureSettingsScreen
@@ -48,20 +45,11 @@ fun NavGraph(navController: NavHostController) {
         ) {
             AppPaywallScreen(navController)
         }
-        composable(NavigationRoute.SignIn.name) {
-            SignInScreen(navController)
-        }
-        composable(NavigationRoute.SignUp.name) {
-            SignUpScreen(navController)
-        }
-        composable(NavigationRoute.ForgotPassword.name) {
-            ForgotPasswordScreen(navController)
+        composable(NavigationRoute.Authentication.name) {
+            OtpAuthScreen(navController)
         }
         composable(NavigationRoute.Account.name) {
             AccountScreen(navController)
-        }
-        composable(NavigationRoute.ChangePassword.name) {
-            ChangePasswordScreen(navController)
         }
         composable(NavigationRoute.Settings.name) {
             SettingsScreen(navController)

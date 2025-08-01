@@ -57,7 +57,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.enaboapps.switchify.BuildConfig
 import com.enaboapps.switchify.R
-import com.enaboapps.switchify.auth.AuthManager
+import com.enaboapps.switchify.auth.repository.AuthRepository
 import com.enaboapps.switchify.backend.iap.IAPHandler
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.components.BaseView
@@ -85,7 +85,7 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
     val isAccessibilityServiceEnabled = serviceUtils.isAccessibilityServiceEnabled(context)
     val isSetupComplete = PreferenceManager(context).isSetupComplete()
     val isPro = remember { mutableStateOf(true) }
-    val signedIn = AuthManager.instance.isUserSignedIn()
+    val signedIn = AuthRepository.instance.isUserSignedIn()
     var showUpdateDialog by remember { mutableStateOf(false) }
     val switchEventStore = remember { SwitchEventStore.getInstance() }
     val switchConfigValidator = remember { SwitchConfigValidator(context) }
@@ -202,21 +202,21 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
         enableScroll = false,
         navBarActions = listOf(
             NavBarAction(
-                icon = if (AuthManager.instance.isUserSignedIn()) {
+                icon = if (AuthRepository.instance.isUserSignedIn()) {
                     Icons.Rounded.AccountCircle
                 } else {
                     Icons.AutoMirrored.Filled.Login
                 },
-                contentDescription = if (AuthManager.instance.isUserSignedIn()) {
+                contentDescription = if (AuthRepository.instance.isUserSignedIn()) {
                     "Account"
                 } else {
                     "Sign In"
                 },
                 onClick = {
-                    if (AuthManager.instance.isUserSignedIn()) {
+                    if (AuthRepository.instance.isUserSignedIn()) {
                         navController.navigate(NavigationRoute.Account.name)
                     } else {
-                        navController.navigate(NavigationRoute.SignIn.name)
+                        navController.navigate(NavigationRoute.Authentication.name)
                     }
                 }
             )

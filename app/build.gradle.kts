@@ -4,9 +4,8 @@ plugins {
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
-    alias(libs.plugins.google.services)
-    alias(libs.plugins.firebase.crashlytics)
     alias(libs.plugins.ksp)
+    alias(libs.plugins.kotlin.serialization)
 }
 
 composeCompiler {
@@ -67,6 +66,32 @@ android {
             "AMPLITUDE_API_KEY",
             "\"${localProperties.getProperty("amplitude.apiKey", "")}\""
         )
+
+        if (localProperties.getProperty(
+                "supabase.projectUrl",
+                ""
+            ).isEmpty()
+        ) {
+            throw GradleException("Supabase project URL is not set in local.properties")
+        }
+        buildConfigField(
+            "String",
+            "SUPABASE_URL",
+            "\"${localProperties.getProperty("supabase.projectUrl", "")}\""
+        )
+
+        if (localProperties.getProperty(
+                "supabase.publishableKey",
+                ""
+            ).isEmpty()
+        ) {
+            throw GradleException("Supabase publishable key is not set in local.properties")
+        }
+        buildConfigField(
+            "String",
+            "SUPABASE_ANON_KEY",
+            "\"${localProperties.getProperty("supabase.publishableKey", "")}\""
+        )
     }
 
     buildTypes {
@@ -118,11 +143,12 @@ dependencies {
     implementation(libs.compose.runtime.livedata)
     implementation(libs.activity.compose)
     implementation(libs.navigation.compose)
-    implementation(platform(libs.firebase.bom))
-    implementation(libs.firebase.analytics)
-    implementation(libs.firebase.auth)
-    implementation(libs.firebase.crashlytics)
-    implementation(libs.firebase.firestore)
+    implementation(platform(libs.supabase.bom))
+    implementation(libs.supabase.postgrest)
+    implementation(libs.supabase.auth)
+    implementation(libs.supabase.realtime)
+    implementation(libs.ktor.client.android)
+    implementation(libs.localbroadcastmanager)
     implementation(libs.gson)
     implementation(libs.androidx.material3.android)
     implementation(libs.app.update)

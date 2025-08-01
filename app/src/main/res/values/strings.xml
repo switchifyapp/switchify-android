@@ -213,10 +213,9 @@
     <string name="screen_title_debug">Debug Settings</string>
     <string name="screen_title_scan_colors">Scan Colors</string>
     <string name="screen_title_account">Account</string>
+    <string name="screen_title_authentication">Welcome</string>
     <string name="screen_title_sign_in">Sign In</string>
     <string name="screen_title_sign_up">Sign Up</string>
-    <string name="screen_title_change_password">Change Password</string>
-    <string name="screen_title_reset_password">Reset Password</string>
     <string name="screen_title_switch_stability">Switch Stability</string>
     <string name="screen_title_switches">Switches</string>
     <string name="screen_title_external_switches">External Switches</string>
@@ -418,43 +417,10 @@
     <string name="dialog_title_delete_account">Delete Account</string>
     <string name="dialog_message_delete_account">Are you sure you want to delete your account? This action cannot be undone.</string>
 
-    <!-- Password Change Screen -->
-    <string name="label_current_password">Current Password</string>
-    <string name="label_new_password">New Password</string>
-    <string name="label_confirm_new_password">Confirm New Password</string>
-    <string name="error_current_password_required">Current password is required</string>
-    <string name="error_new_password_required">New password is required</string>
-    <string name="error_confirm_password_required">Confirm new password is required</string>
-    <string name="error_passwords_do_not_match">New passwords do not match.</string>
-    <string name="error_password_not_strong">New password is not strong enough.</string>
     <string name="error_generic">An error occurred.</string>
-    <string name="message_password_changed">Password changed successfully.</string>
-    <string name="button_change_password">Change Password</string>
 
-    <!-- Forgot Password Screen -->
     <string name="label_email">Email</string>
     <string name="error_email_required">Email is required</string>
-    <string name="message_reset_link_sent">Reset link sent to your email. Please check your inbox.</string>
-    <string name="button_send_reset_link">Send Reset Link</string>
-
-    <!-- Sign Up Screen -->
-    <string name="create_an_account_to_save_settings">Create an account to save your settings. This will allow you to access your settings on any device.</string>
-    <string name="label_email_address">Email Address</string>
-    <string name="label_password">Password</string>
-    <string name="label_confirm_password">Confirm Password</string>
-    <string name="error_password_required">Password is required</string>
-    <string name="button_sign_up">Sign Up</string>
-    <string name="button_sign_up_with_google">Sign up with Google</string>
-    <string name="error_signing_up">Error signing up</string>
-
-    <!-- Sign In Screen -->
-    <string name="sign_in_to_access_settings">Sign in to access your settings.</string>
-    <string name="or">or</string>
-    <string name="button_sign_in">Sign In</string>
-    <string name="button_sign_in_with_google">Sign in with Google</string>
-    <string name="button_forgot_password">Forgot Password?</string>
-    <string name="error_signing_in">Sign in failed</string>
-    <string name="error_please_enter_email_and_password">Please enter your email and password</string>
 
     <!-- App Paywall Screen -->
     <string name="pro_thank_you">Thank you for trying out Switchify Pro! You can now access all of Switchify\'s features.</string>
@@ -609,4 +575,20 @@
     <!-- Screenshot HUD Messages -->
     <string name="screenshot_saved_to_gallery">Screenshot saved to gallery</string>
     <string name="screenshot_failed_to_save">Failed to save screenshot</string>
+
+    <!-- OTP Authentication Strings -->
+    <string name="welcome_back">Welcome back!</string>
+    <string name="create_account">Create Account</string>
+    <string name="enter_email_for_otp">Enter your email to receive a verification code</string>
+    <string name="enter_email_to_create_account">Enter your email to create your account</string>
+    <string name="button_send_otp">Send Verification Code</string>
+    <string name="button_create_account">Create Account</string>
+    <string name="please_wait">Please wait...</string>
+    <string name="verification_code_sent">Verification Code Sent</string>
+    <string name="enter_otp_sent_to">Enter the 6-digit code sent to %1$s</string>
+    <string name="label_verification_code">Verification Code</string>
+    <string name="button_verify">Verify</string>
+    <string name="button_resend_otp">Resend Code</string>
+    <string name="resend_in_seconds">Resend in %1$d seconds</string>
+    <string name="button_change_email">Change Email</string>
 </resources>

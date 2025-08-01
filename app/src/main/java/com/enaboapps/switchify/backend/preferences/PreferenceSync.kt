@@ -3,22 +3,20 @@ package com.enaboapps.switchify.backend.preferences
 import android.content.SharedPreferences
 import android.util.Log
 import androidx.core.content.edit
-import com.enaboapps.switchify.auth.AuthManager
-import com.enaboapps.switchify.backend.data.FirestoreManager
-import com.google.firebase.firestore.ListenerRegistration
+import com.enaboapps.switchify.backend.supabase.SupabaseManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 /**
- * Manages synchronization between local SharedPreferences and Firebase Firestore.
+ * Manages synchronization between local SharedPreferences and Supabase PostgreSQL.
  * Handles automatic syncing of user preferences across devices with support for
  * real-time updates and type-safe storage.
  */
 class PreferenceSync private constructor() {
     private var sharedPreferences: SharedPreferences? = null
     private val coroutineScope = CoroutineScope(Dispatchers.IO)
-    private var settingsListener: ListenerRegistration? = null
+    // TODO: Implement real-time listener for Supabase
     private var isInitialized = false
 
     companion object {
@@ -54,30 +52,27 @@ class PreferenceSync private constructor() {
         return true
     }
 
-    private fun getDocumentPath(): String? {
-        val userId = AuthManager.instance.getUserId() ?: run {
-            Log.w(TAG, "Could not get user ID")
-            return null
-        }
-        return "$COLLECTION_USER_SETTINGS/$DOCUMENT_PREFERENCES/$COLLECTION_USERS/$userId"
-    }
 
     /**
-     * Uploads current SharedPreferences to Firestore.
+     * Uploads current SharedPreferences to Supabase.
      */
-    fun uploadSettingsToFirestore() {
+    fun uploadSettingsToSupabase() {
         if (!checkInitialized()) return
 
         coroutineScope.launch {
             try {
                 val userSettings = getAllPreferences() ?: return@launch
-                val path = getDocumentPath() ?: return@launch
-
-                FirestoreManager.getInstance().saveDocument(
-                    path = path,
-                    data = userSettings
+                val stringSettings = userSettings.mapValues { it.value.toString() }
+                
+                val result = SupabaseManager.getInstance().saveUserPreferences(stringSettings)
+                result.fold(
+                    onSuccess = {
+                        Log.i(TAG, "Settings uploaded successfully")
+                    },
+                    onFailure = { e ->
+                        Log.e(TAG, "Error uploading settings", e)
+                    }
                 )
-                Log.i(TAG, "Settings uploaded successfully")
             } catch (e: Exception) {
                 Log.e(TAG, "Error uploading settings", e)
             }
@@ -85,49 +80,31 @@ class PreferenceSync private constructor() {
     }
 
     /**
-     * Downloads and applies settings from Firestore to SharedPreferences.
+     * Downloads and applies settings from Supabase to SharedPreferences.
      */
-    fun retrieveSettingsFromFirestore() {
+    fun retrieveSettingsFromSupabase() {
         if (!checkInitialized()) return
 
         coroutineScope.launch {
             try {
-                val path = getDocumentPath() ?: return@launch
-                val settings = FirestoreManager.getInstance().getDocument(path = path)
-                if (settings != null && settings.isNotEmpty()) {
-                    applySettings(settings)
-                    Log.i(TAG, "Settings retrieved and applied successfully")
-                } else {
-                    Log.w(TAG, "No settings found in Firestore")
-                }
+                val result = SupabaseManager.getInstance().getUserPreferences()
+                result.fold(
+                    onSuccess = { stringSettings ->
+                        if (stringSettings.isNotEmpty()) {
+                            val convertedSettings = convertStringSettingsToTyped(stringSettings)
+                            applySettings(convertedSettings)
+                            Log.i(TAG, "Settings retrieved and applied successfully")
+                        } else {
+                            Log.w(TAG, "No settings found")
+                        }
+                    },
+                    onFailure = { e ->
+                        Log.e(TAG, "Error retrieving settings", e)
+                    }
+                )
             } catch (e: Exception) {
                 Log.e(TAG, "Error retrieving settings", e)
             }
-        }
-    }
-
-    /**
-     * Sets up real-time listener for remote preference changes.
-     */
-    fun listenForSettingsChangesOnRemote() {
-        if (!checkInitialized()) return
-
-        try {
-            settingsListener?.remove()
-            val path = getDocumentPath() ?: return
-
-            settingsListener = FirestoreManager.getInstance().listenToDocument(
-                path = path,
-                onDocument = { settings ->
-                    settings?.let { applySettings(it) }
-                },
-                onError = { e ->
-                    Log.e(TAG, "Error in remote settings listener", e)
-                }
-            )
-            Log.i(TAG, "Registered listener for remote settings changes")
-        } catch (e: Exception) {
-            Log.e(TAG, "Error setting up remote settings listener", e)
         }
     }
 
@@ -146,6 +123,26 @@ class PreferenceSync private constructor() {
                     }
                 }
             } else null
+        }.toMap()
+    }
+
+    /**
+     * Converts string settings from Supabase back to typed values.
+     */
+    private fun convertStringSettingsToTyped(stringSettings: Map<String, String>): Map<String, Any> {
+        val prefs = sharedPreferences ?: return emptyMap()
+        return stringSettings.mapNotNull { (key, stringValue) ->
+            // Get the original type from current SharedPreferences to know how to convert
+            val existingValue = prefs.all[key]
+            val convertedValue = when (existingValue) {
+                is Boolean -> stringValue.toBooleanStrictOrNull()
+                is Int -> stringValue.toIntOrNull()
+                is Long -> stringValue.toLongOrNull()
+                is Float -> stringValue.toFloatOrNull()
+                else -> stringValue // String or unknown type
+            } ?: stringValue // Fallback to string if conversion fails
+            
+            key to convertedValue
         }.toMap()
     }
 
