@@ -5,6 +5,7 @@ import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.providers.builtin.OTP
 import io.github.jan.supabase.auth.OtpType
 import io.github.jan.supabase.auth.user.UserInfo
+import io.github.jan.supabase.postgrest.postgrest
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import com.enaboapps.switchify.backend.supabase.SupabaseClient as SupabaseClientProvider
@@ -77,13 +78,17 @@ class AuthRepository private constructor() {
     }
 
     /**
-     * Delete the current user.
-     * Note: User deletion must be implemented server-side in Supabase.
-     * This method only signs out the user.
+     * Delete the current user account and all associated data.
+     * This calls a server-side function to properly delete the user.
      */
     suspend fun deleteUser(): Result<Unit> = withContext(Dispatchers.IO) {
         try {
+            // Call the server-side function to delete user
+            supabaseClient.postgrest.rpc("delete_user_account")
+            
+            // Sign out locally to clear the session
             supabaseClient.auth.signOut()
+            
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
