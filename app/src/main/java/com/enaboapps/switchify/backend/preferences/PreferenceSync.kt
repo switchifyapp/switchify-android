@@ -56,7 +56,7 @@ class PreferenceSync private constructor() {
     /**
      * Uploads current SharedPreferences to Supabase.
      */
-    fun uploadSettingsToFirestore() {
+    fun uploadSettingsToSupabase() {
         if (!checkInitialized()) return
 
         coroutineScope.launch {
@@ -82,7 +82,7 @@ class PreferenceSync private constructor() {
     /**
      * Downloads and applies settings from Supabase to SharedPreferences.
      */
-    fun retrieveSettingsFromFirestore() {
+    fun retrieveSettingsFromSupabase() {
         if (!checkInitialized()) return
 
         coroutineScope.launch {

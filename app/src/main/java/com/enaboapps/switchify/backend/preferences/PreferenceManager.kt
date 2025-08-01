@@ -94,35 +94,35 @@ class PreferenceManager(context: Context) {
         sharedPreferences.edit {
             putInt(key, value)
         }
-        preferenceSync.uploadSettingsToFirestore()
+        preferenceSync.uploadSettingsToSupabase()
     }
 
     fun setFloatValue(key: String, value: Float) {
         sharedPreferences.edit {
             putFloat(key, value)
         }
-        preferenceSync.uploadSettingsToFirestore()
+        preferenceSync.uploadSettingsToSupabase()
     }
 
     fun setBooleanValue(key: String, value: Boolean) {
         sharedPreferences.edit {
             putBoolean(key, value)
         }
-        preferenceSync.uploadSettingsToFirestore()
+        preferenceSync.uploadSettingsToSupabase()
     }
 
     fun setLongValue(key: String, value: Long) {
         sharedPreferences.edit {
             putLong(key, value)
         }
-        preferenceSync.uploadSettingsToFirestore()
+        preferenceSync.uploadSettingsToSupabase()
     }
 
     fun setStringValue(key: String, value: String) {
         sharedPreferences.edit {
             putString(key, value)
         }
-        preferenceSync.uploadSettingsToFirestore()
+        preferenceSync.uploadSettingsToSupabase()
     }
 
     fun getFloatValue(key: String, defaultValue: Float = 0f): Float {
