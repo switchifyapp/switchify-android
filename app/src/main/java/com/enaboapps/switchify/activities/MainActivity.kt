@@ -50,7 +50,6 @@ class MainActivity : ComponentActivity() {
         preferenceManager.enableSync()
         preferenceManager.preferenceSync.apply {
             retrieveSettingsFromSupabase()
-            listenForSettingsChangesOnRemote()
         }
 
         // Initialize Logger

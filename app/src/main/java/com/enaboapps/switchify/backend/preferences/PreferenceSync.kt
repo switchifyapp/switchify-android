@@ -109,17 +109,6 @@ class PreferenceSync private constructor() {
     }
 
     /**
-     * Sets up real-time listener for remote preference changes.
-     * TODO: Implement Supabase real-time subscriptions
-     */
-    fun listenForSettingsChangesOnRemote() {
-        if (!checkInitialized()) return
-        
-        // TODO: Implement Supabase real-time listener
-        Log.i(TAG, "Real-time listeners not yet implemented for Supabase")
-    }
-
-    /**
      * Gets all non-blacklisted preferences with supported types.
      */
     private fun getAllPreferences(): Map<String, Any>? {
