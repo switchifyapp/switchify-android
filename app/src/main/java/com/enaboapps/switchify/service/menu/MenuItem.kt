@@ -274,17 +274,6 @@ private fun RegularMenuItem(
                 )
             }
 
-            if (labelResource != null && showLabelAsDescription && drawableId != 0) {
-                Text(
-                    text = Resources.getString(labelResource),
-                    color = MaterialTheme.colorScheme.onBackground,
-                    fontSize = menuSize.secondaryTextSize,
-                    textAlign = TextAlign.Center,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                )
-            }
             }
             
             // Add link indicator for menu link items
