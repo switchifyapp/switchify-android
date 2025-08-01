@@ -51,8 +51,10 @@ class SupabaseManager {
                 preferences = preferences
             )
             
-            // Upsert (insert or update) the preferences
-            supabase.from("user_preferences").upsert(userPrefs)
+            // Upsert (insert or update) the preferences with conflict resolution on user_id
+            supabase.from("user_preferences").upsert(userPrefs) {
+                onConflict = "user_id"
+            }
             
             Log.i(TAG, "User preferences saved successfully")
             Result.success(Unit)

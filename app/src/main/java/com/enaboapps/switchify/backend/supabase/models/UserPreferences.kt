@@ -4,7 +4,6 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class UserPreferences(
-    val id: String? = null,
     val user_id: String,
     val preferences: Map<String, String>,
     val created_at: String? = null,
