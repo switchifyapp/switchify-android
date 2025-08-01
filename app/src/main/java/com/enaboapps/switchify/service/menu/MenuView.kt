@@ -85,7 +85,7 @@ class MenuView(
                 val dynamicItems = menu.getDynamicMenuItems()
                 if (dynamicItems != null) {
                     // We have dynamic items to load
-                    val allItems = dynamicItems + staticItems
+                    val allItems = staticItems + dynamicItems
                     createMenuPages(allItems)
                 } else {
                     // No dynamic loading needed, just use static items
