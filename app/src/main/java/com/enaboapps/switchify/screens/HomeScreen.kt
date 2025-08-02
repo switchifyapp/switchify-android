@@ -23,9 +23,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Login
 import androidx.compose.material.icons.rounded.AccessibilityNew
-import androidx.compose.material.icons.rounded.AccountCircle
 import androidx.compose.material.icons.rounded.Apps
 import androidx.compose.material.icons.rounded.BugReport
 import androidx.compose.material.icons.rounded.Settings
@@ -57,7 +55,6 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.enaboapps.switchify.BuildConfig
 import com.enaboapps.switchify.R
-import com.enaboapps.switchify.auth.repository.AuthRepository
 import com.enaboapps.switchify.backend.iap.IAPHandler
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.components.BaseView
@@ -85,7 +82,6 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
     val isAccessibilityServiceEnabled = serviceUtils.isAccessibilityServiceEnabled(context)
     val isSetupComplete = PreferenceManager(context).isSetupComplete()
     val isPro = remember { mutableStateOf(true) }
-    val signedIn = AuthRepository.instance.isUserSignedIn()
     var showUpdateDialog by remember { mutableStateOf(false) }
     val switchEventStore = remember { SwitchEventStore.getInstance() }
     val switchConfigValidator = remember { SwitchConfigValidator(context) }
@@ -96,10 +92,8 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
     val hasUsageStatsPermission = remember { mutableStateOf(quickAppsManager.hasUsageStatsPermission()) }
 
     LaunchedEffect(Unit) {
-        if (!isSetupComplete && !signedIn) {
+        if (!isSetupComplete) {
             navController.navigate(NavigationRoute.Onboarding.name)
-        } else if (signedIn) {
-            PreferenceManager(context).setSetupComplete()
         }
         IAPHandler.refreshPurchaseStatus { proPurchased ->
             isPro.value = proPurchased
@@ -200,27 +194,6 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
         titleResId = R.string.screen_title_switchify,
         navController = navController,
         enableScroll = false,
-        navBarActions = listOf(
-            NavBarAction(
-                icon = if (AuthRepository.instance.isUserSignedIn()) {
-                    Icons.Rounded.AccountCircle
-                } else {
-                    Icons.AutoMirrored.Filled.Login
-                },
-                contentDescription = if (AuthRepository.instance.isUserSignedIn()) {
-                    "Account"
-                } else {
-                    "Sign In"
-                },
-                onClick = {
-                    if (AuthRepository.instance.isUserSignedIn()) {
-                        navController.navigate(NavigationRoute.Account.name)
-                    } else {
-                        navController.navigate(NavigationRoute.Authentication.name)
-                    }
-                }
-            )
-        ),
         headerContent = {
             StatusBannerComponent(
                 isAccessibilityServiceEnabled = isAccessibilityServiceEnabled,

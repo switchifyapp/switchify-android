@@ -363,6 +363,13 @@
     <string name="settings_tab_selection">Selection</string>
     <string name="settings_tab_about">About</string>
 
+    <!-- Settings - Account Section -->
+    <string name="settings_section_account">Account</string>
+    <string name="settings_title_account">Account</string>
+    <string name="settings_summary_account">Manage your account and sign out</string>
+    <string name="settings_title_sign_in">Sign In</string>
+    <string name="settings_summary_sign_in">Sign in to sync your preferences</string>
+
     <!-- Settings - Input Section -->
     <string name="settings_section_input">Input</string>
     <string name="settings_title_switches">Switches</string>
