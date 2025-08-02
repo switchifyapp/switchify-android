@@ -29,7 +29,7 @@ fun OtpAuthScreen(
     navController: NavController,
     isSignUp: Boolean = false
 ) {
-    var selectedTabIndex by remember { mutableStateOf(if (isSignUp) 1 else 0) }
+    var selectedTabIndex by remember { mutableIntStateOf(if (isSignUp) 1 else 0) }
     val currentIsSignUp = selectedTabIndex == 1
     
     val viewModel: AuthViewModel = viewModel(key = "auth_$currentIsSignUp") { 
@@ -46,66 +46,59 @@ fun OtpAuthScreen(
         navController = navController,
         padding = 0.dp
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+        // Tab Row
+        TabRow(
+            selectedTabIndex = selectedTabIndex,
+            modifier = Modifier.fillMaxWidth()
         ) {
-            // Tab Row
-            TabRow(
-                selectedTabIndex = selectedTabIndex,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Tab(
-                    selected = selectedTabIndex == 0,
-                    onClick = { selectedTabIndex = 0 },
-                    text = { Text("Sign In") }
-                )
-                Tab(
-                    selected = selectedTabIndex == 1,
-                    onClick = { selectedTabIndex = 1 },
-                    text = { Text("Sign Up") }
+            Tab(
+                selected = selectedTabIndex == 0,
+                onClick = { selectedTabIndex = 0 },
+                text = { Text("Sign In") }
+            )
+            Tab(
+                selected = selectedTabIndex == 1,
+                onClick = { selectedTabIndex = 1 },
+                text = { Text("Sign Up") }
+            )
+        }
+        
+        Spacer(modifier = Modifier.height(32.dp))
+        
+        // Content based on current state
+        when (uiState) {
+            AuthUiState.EmailInput -> {
+                EmailInputSection(
+                    email = email,
+                    onEmailChange = viewModel::updateEmail,
+                    onSendOtp = viewModel::sendOtp,
+                    errorMessage = errorMessage,
+                    onClearError = viewModel::clearError,
+                    isSignUp = currentIsSignUp
                 )
             }
-            
-            Spacer(modifier = Modifier.height(32.dp))
-            
-            // Content based on current state
-            when (uiState) {
-                AuthUiState.EmailInput -> {
-                    EmailInputSection(
-                        email = email,
-                        onEmailChange = viewModel::updateEmail,
-                        onSendOtp = viewModel::sendOtp,
-                        errorMessage = errorMessage,
-                        onClearError = viewModel::clearError,
-                        isSignUp = currentIsSignUp
-                    )
-                }
-                AuthUiState.Loading -> {
-                    LoadingSection()
-                }
-                AuthUiState.OtpVerification -> {
-                    OtpVerificationSection(
-                        email = email,
-                        otp = otp,
-                        onOtpChange = viewModel::updateOtp,
-                        onVerifyOtp = viewModel::verifyOtp,
-                        onResendOtp = viewModel::resendOtp,
-                        onBackToEmail = viewModel::goBackToEmailInput,
-                        errorMessage = errorMessage,
-                        onClearError = viewModel::clearError
-                    )
-                }
-                AuthUiState.Success -> {
-                    LaunchedEffect(Unit) {
-                        navController.navigate(NavigationRoute.Home.name) {
-                            popUpTo(navController.graph.startDestinationId) {
-                                inclusive = true
-                            }
-                            launchSingleTop = true
+            AuthUiState.Loading -> {
+                LoadingSection()
+            }
+            AuthUiState.OtpVerification -> {
+                OtpVerificationSection(
+                    email = email,
+                    otp = otp,
+                    onOtpChange = viewModel::updateOtp,
+                    onVerifyOtp = viewModel::verifyOtp,
+                    onResendOtp = viewModel::resendOtp,
+                    onBackToEmail = viewModel::goBackToEmailInput,
+                    errorMessage = errorMessage,
+                    onClearError = viewModel::clearError
+                )
+            }
+            AuthUiState.Success -> {
+                LaunchedEffect(Unit) {
+                    navController.navigate(NavigationRoute.Home.name) {
+                        popUpTo(navController.graph.startDestinationId) {
+                            inclusive = true
                         }
+                        launchSingleTop = true
                     }
                 }
             }
