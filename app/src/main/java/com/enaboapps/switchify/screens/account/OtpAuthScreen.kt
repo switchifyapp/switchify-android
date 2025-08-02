@@ -43,7 +43,8 @@ fun OtpAuthScreen(
 
     BaseView(
         titleResId = R.string.screen_title_authentication,
-        navController = navController
+        navController = navController,
+        padding = 0.dp
     ) {
         Column(
             modifier = Modifier
