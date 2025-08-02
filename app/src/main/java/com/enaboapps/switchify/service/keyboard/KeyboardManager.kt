@@ -1,5 +1,7 @@
 package com.enaboapps.switchify.service.keyboard
 
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import com.enaboapps.switchify.service.scanning.ScanSettings
 import com.enaboapps.switchify.service.selection.SelectionHandler
@@ -17,6 +19,7 @@ interface KeyboardStateListener {
  */
 object KeyboardManager {
     private const val TAG = "KeyboardManager"
+    private const val BYPASS_UPDATE_DELAY_MS = 250L
     
     // State tracking
     private var isKeyboardVisible = false
@@ -25,6 +28,9 @@ object KeyboardManager {
     
     // Listener for state changes
     private var keyboardStateListener: KeyboardStateListener? = null
+    
+    // Handler for delayed operations
+    private val mainHandler = Handler(Looper.getMainLooper())
     
     /**
      * Initialize the KeyboardManager.
@@ -135,8 +141,10 @@ object KeyboardManager {
         Log.d(TAG, "Returning to keyboard scanning")
         isEscapedFromKeyboard = false
         
-        // Update bypass state now that we're back in keyboard mode
-        updateBypassState()
+        // Update bypass state after a delay to ensure keyboard state has stabilized
+        mainHandler.postDelayed({
+            updateBypassState()
+        }, BYPASS_UPDATE_DELAY_MS)
     }
     
     /**
