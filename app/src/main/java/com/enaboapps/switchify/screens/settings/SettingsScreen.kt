@@ -47,6 +47,7 @@ import com.enaboapps.switchify.screens.settings.sections.MenuSection
 import com.enaboapps.switchify.screens.settings.sections.SelectionSection
 import com.enaboapps.switchify.screens.settings.shared.ScanModeSelectionSection
 import com.enaboapps.switchify.screens.settings.techniques.AccessTechniqueSelector
+import com.enaboapps.switchify.auth.repository.AuthRepository
 
 @Composable
 fun SettingsScreen(navController: NavController) {
@@ -100,7 +101,18 @@ fun SettingsScreen(navController: NavController) {
 
 @Composable
 fun GeneralSettingsTab(menuSettingsModel: MenuSettingsModel, navController: NavController) {
+    val authRepository = AuthRepository.instance
+    val isSignedIn = authRepository.isUserSignedIn()
+    
     ScrollableView {
+        Section(titleResId = R.string.settings_section_account) {
+            NavRouteLink(
+                titleResId = if (isSignedIn) R.string.settings_title_account else R.string.settings_title_sign_in,
+                summaryResId = if (isSignedIn) R.string.settings_summary_account else R.string.settings_summary_sign_in,
+                navController = navController,
+                route = if (isSignedIn) NavigationRoute.Account.name else NavigationRoute.Authentication.name
+            )
+        }
         InputSection(navController)
         Section(titleResId = R.string.settings_section_access_techniques) {
             AccessTechniqueSelector()

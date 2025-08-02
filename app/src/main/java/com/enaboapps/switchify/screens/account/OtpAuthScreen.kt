@@ -22,6 +22,7 @@ import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.FullWidthButton
 import com.enaboapps.switchify.components.TextArea
 import com.enaboapps.switchify.nav.NavigationRoute
+import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import kotlinx.coroutines.delay
 
 @Composable
@@ -29,6 +30,8 @@ fun OtpAuthScreen(
     navController: NavController,
     isSignUp: Boolean = false
 ) {
+    val context = LocalContext.current
+    val preferenceManager = remember { PreferenceManager(context) }
     var selectedTabIndex by remember { mutableIntStateOf(if (isSignUp) 1 else 0) }
     val currentIsSignUp = selectedTabIndex == 1
     
@@ -94,6 +97,8 @@ fun OtpAuthScreen(
             }
             AuthUiState.Success -> {
                 LaunchedEffect(Unit) {
+                    // Set setup complete when user signs in
+                    preferenceManager.setSetupComplete()
                     navController.navigate(NavigationRoute.Home.name) {
                         popUpTo(navController.graph.startDestinationId) {
                             inclusive = true
