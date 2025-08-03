@@ -3,6 +3,7 @@ package com.enaboapps.switchify.auth.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.enaboapps.switchify.auth.repository.AuthRepository
+import com.enaboapps.switchify.utils.ErrorMessageMapper
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -53,7 +54,10 @@ class AuthViewModel(private val isSignUp: Boolean = false) : ViewModel() {
                     _uiState.value = AuthUiState.OtpVerification
                 },
                 onFailure = { exception ->
-                    _errorMessage.value = exception.message ?: if (isSignUp) "Failed to send sign-up OTP" else "Failed to send sign-in OTP"
+                    _errorMessage.value = ErrorMessageMapper.mapExceptionToUserFriendlyMessage(
+                        exception, 
+                        if (isSignUp) "sendSignUpOtp" else "sendSignInOtp"
+                    )
                     _uiState.value = AuthUiState.EmailInput
                 }
             )
@@ -75,7 +79,10 @@ class AuthViewModel(private val isSignUp: Boolean = false) : ViewModel() {
                     _uiState.value = AuthUiState.Success
                 },
                 onFailure = { exception ->
-                    _errorMessage.value = exception.message ?: "Invalid OTP"
+                    _errorMessage.value = ErrorMessageMapper.mapExceptionToUserFriendlyMessage(
+                        exception, 
+                        "verifyOtp"
+                    )
                     _uiState.value = AuthUiState.OtpVerification
                 }
             )
