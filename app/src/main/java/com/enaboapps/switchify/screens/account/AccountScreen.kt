@@ -1,20 +1,27 @@
 package com.enaboapps.switchify.screens.account
 
 import android.widget.Toast
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
@@ -43,10 +50,12 @@ fun AccountScreen(navController: NavController) {
     val context = LocalContext.current
 
     val proStatus = remember { mutableStateOf("") }
+    val isLoading = remember { mutableStateOf(true) }
 
     LaunchedEffect(Unit) {
         IAPHandler.getProStatus { status ->
             proStatus.value = status
+            isLoading.value = false
         }
     }
 
@@ -69,33 +78,28 @@ fun AccountScreen(navController: NavController) {
         titleResId = R.string.screen_title_account,
         navController = navController
     ) {
-        EmailAddressView(email = userEmail)
-
-        Spacer(modifier = Modifier.height(20.dp))
-
-        Text(
-            text = "Pro Status: ${proStatus.value}",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+        // User Information Section
+        AccountInfoSection(email = userEmail)
+        
+        Spacer(modifier = Modifier.height(24.dp))
+        
+        // Pro Status Section
+        ProStatusSection(
+            proStatus = proStatus.value,
+            isLoading = isLoading.value
         )
-
-        Spacer(modifier = Modifier.height(20.dp))
-
-        FullWidthButton(
-            textResId = R.string.button_sign_out,
-            onClick = {
+        
+        Spacer(modifier = Modifier.height(32.dp))
+        
+        // Account Actions Section
+        AccountActionsSection(
+            onSignOut = {
                 scope.launch {
                     authRepository.signOut()
                     navController.popBackStack(navController.graph.startDestinationId, false)
                 }
-            }
-        )
-
-        Spacer(modifier = Modifier.height(20.dp))
-
-        FullWidthButton(
-            textResId = R.string.button_delete_account,
-            onClick = {
+            },
+            onDeleteAccount = {
                 showDeleteAccountDialog.value = true
             }
         )
@@ -127,34 +131,143 @@ fun AccountScreen(navController: NavController) {
 }
 
 /**
- * This composable represents the email address view
- * @param email The email address
+ * Account information section with user email
  */
 @Composable
-private fun EmailAddressView(email: String) {
+private fun AccountInfoSection(email: String) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp)
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        )
     ) {
         Column(
             modifier = Modifier
-                .padding(8.dp)
                 .fillMaxWidth()
+                .padding(20.dp)
         ) {
             Text(
-                text = "Email address",
-                style = MaterialTheme.typography.labelMedium,
-                modifier = Modifier.padding(8.dp)
+                text = stringResource(R.string.account_information),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Row {
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
                 Icon(
                     imageVector = Icons.Default.Email,
-                    contentDescription = "Email Icon",
-                    modifier = Modifier.padding(8.dp)
+                    contentDescription = "Email",
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(20.dp)
                 )
-                Text(text = email, modifier = Modifier.padding(8.dp))
+                Column {
+                    Text(
+                        text = stringResource(R.string.label_email_address),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = email,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
             }
         }
+    }
+}
+
+/**
+ * Pro status section with loading and status display
+ */
+@Composable
+private fun ProStatusSection(
+    proStatus: String,
+    isLoading: Boolean
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = if (proStatus.contains("Pro", ignoreCase = true)) {
+                MaterialTheme.colorScheme.primaryContainer
+            } else {
+                MaterialTheme.colorScheme.surfaceVariant
+            }
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Default.Star,
+                        contentDescription = "Pro Status",
+                        tint = if (proStatus.contains("Pro", ignoreCase = true)) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+                
+                Column {
+                    Text(
+                        text = stringResource(R.string.subscription_status),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = if (isLoading) {
+                            stringResource(R.string.loading_status)
+                        } else {
+                            proStatus.ifEmpty { stringResource(R.string.subscription_free) }
+                        },
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Account actions section with sign out and delete account buttons
+ */
+@Composable
+private fun AccountActionsSection(
+    onSignOut: () -> Unit,
+    onDeleteAccount: () -> Unit
+) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        FullWidthButton(
+            textResId = R.string.button_sign_out,
+            onClick = onSignOut
+        )
+        
+        FullWidthButton(
+            textResId = R.string.button_delete_account,
+            onClick = onDeleteAccount
+        )
     }
 }

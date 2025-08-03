@@ -427,7 +427,14 @@
     <string name="error_generic">An error occurred.</string>
 
     <string name="label_email">Email</string>
+    <string name="label_email_address">Email Address</string>
     <string name="error_email_required">Email is required</string>
+    
+    <!-- Account Screen -->
+    <string name="account_information">Account Information</string>
+    <string name="subscription_status">Subscription Status</string>
+    <string name="subscription_free">Free</string>
+    <string name="loading_status">Loading...</string>
 
     <!-- App Paywall Screen -->
     <string name="pro_thank_you">Thank you for trying out Switchify Pro! You can now access all of Switchify\'s features.</string>
