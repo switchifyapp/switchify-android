@@ -22,16 +22,17 @@ import com.enaboapps.switchify.utils.Resources
 
 @Composable
 fun CursorSettingsView() {
-    CursorSettings.init(LocalContext.current)
+    val context = LocalContext.current
+    CursorSettings.init(context)
     val cursorModes = listOf(
         CursorSettings.Modes.MODE_SINGLE,
         CursorSettings.Modes.MODE_BLOCK
     )
-    val preferenceManager = PreferenceManager(LocalContext.current)
+    val preferenceManager = PreferenceManager(context)
     var currentMode by remember { mutableStateOf(CursorSettings.getMode()) }
 
     val setCursorMode = { mode: String ->
-        CursorSettings.setMode(mode)
+        CursorSettings.setMode(mode, context)
         currentMode = mode
     }
     Section(titleResId = R.string.section_title_cursor_mode) {
@@ -82,6 +83,7 @@ fun CursorSettingsView() {
 
 @Composable
 private fun BlockSettingsView() {
+    val context = LocalContext.current
     var currentBlockCount by remember {
         mutableIntStateOf(
             CursorSettings.getCursorBlockCount()
@@ -95,7 +97,7 @@ private fun BlockSettingsView() {
             items = blockCounts,
             onItemSelected = { item ->
                 currentBlockCount = item.toInt()
-                CursorSettings.setCursorBlockCount(item.toInt())
+                CursorSettings.setCursorBlockCount(item.toInt(), context)
             },
             itemToString = { it.toString() },
             itemDescription = { Resources.getString(R.string.preference_summary_block_count) }

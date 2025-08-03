@@ -2,14 +2,11 @@ package com.enaboapps.switchify.service.techniques.cursor
 
 import android.content.Context
 import android.content.Intent
-import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 
 object CursorSettings {
 
     private var preferenceManager: PreferenceManager? = null
-
-    private var localBroadcastManager: LocalBroadcastManager? = null
 
     const val CURSOR_SETTINGS_CHANGED_ACTION = "com.enaboapps.switchify.CURSOR_SETTINGS_CHANGED"
 
@@ -20,11 +17,12 @@ object CursorSettings {
 
     fun init(context: Context) {
         preferenceManager = PreferenceManager(context)
-        localBroadcastManager = LocalBroadcastManager.getInstance(context)
     }
 
-    private fun broadcastChanged() {
-        localBroadcastManager?.sendBroadcast(Intent(CURSOR_SETTINGS_CHANGED_ACTION))
+    private fun broadcastChanged(context: Context) {
+        context.sendBroadcast(
+            Intent(CURSOR_SETTINGS_CHANGED_ACTION).setPackage(context.packageName)
+        )
     }
 
     fun getMode(): String {
@@ -42,12 +40,12 @@ object CursorSettings {
         return Modes.MODE_SINGLE
     }
 
-    fun setMode(mode: String) {
+    fun setMode(mode: String, context: Context) {
         preferenceManager?.setStringValue(
             PreferenceManager.PREFERENCE_KEY_CURSOR_MODE,
             mode
         )
-        broadcastChanged()
+        broadcastChanged(context)
     }
 
     fun isSingleMode(): Boolean {
@@ -107,35 +105,35 @@ object CursorSettings {
      * Set the cursor block count
      * @param count The cursor block count
      */
-    fun setCursorBlockCount(count: Int) {
+    fun setCursorBlockCount(count: Int, context: Context) {
         preferenceManager?.setStringValue(
             PreferenceManager.Keys.PREFERENCE_KEY_CURSOR_BLOCK_COUNT,
             count.toString()
         )
-        broadcastChanged()
+        broadcastChanged(context)
     }
 
     /**
      * Set the cursor block scan rate
      * @param rate The cursor block scan rate
      */
-    fun setCursorBlockScanRate(rate: Long) {
+    fun setCursorBlockScanRate(rate: Long, context: Context) {
         preferenceManager?.setLongValue(
             PreferenceManager.Keys.PREFERENCE_KEY_CURSOR_BLOCK_SCAN_RATE,
             rate
         )
-        broadcastChanged()
+        broadcastChanged(context)
     }
 
     /**
      * Set the fine cursor scan rate
      * @param rate The fine cursor scan rate
      */
-    fun setFineCursorScanRate(rate: Long) {
+    fun setFineCursorScanRate(rate: Long, context: Context) {
         preferenceManager?.setLongValue(
             PreferenceManager.Keys.PREFERENCE_KEY_CURSOR_FINE_SCAN_RATE,
             rate
         )
-        broadcastChanged()
+        broadcastChanged(context)
     }
 }

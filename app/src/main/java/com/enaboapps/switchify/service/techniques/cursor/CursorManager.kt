@@ -4,7 +4,6 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.enaboapps.switchify.service.gestures.GestureManager
 import com.enaboapps.switchify.service.gestures.GesturePoint
 import com.enaboapps.switchify.service.scanning.ScanDirection
@@ -34,9 +33,11 @@ class CursorManager(private val context: Context) : AccessTechniqueInterface {
     init {
         CursorSettings.init(context)
         blockManager.initializeBlocks()
-        LocalBroadcastManager.getInstance(context).registerReceiver(
+        androidx.core.content.ContextCompat.registerReceiver(
+            context,
             settingsChangedReceiver,
-            IntentFilter(CursorSettings.CURSOR_SETTINGS_CHANGED_ACTION)
+            IntentFilter(CursorSettings.CURSOR_SETTINGS_CHANGED_ACTION),
+            androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED
         )
     }
 

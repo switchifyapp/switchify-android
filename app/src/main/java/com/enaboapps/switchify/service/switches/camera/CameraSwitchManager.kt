@@ -12,7 +12,6 @@ import androidx.lifecycle.LifecycleOwner
 import android.content.BroadcastReceiver
 import android.content.Intent
 import android.content.IntentFilter
-import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.service.core.ServiceCore
 import com.enaboapps.switchify.service.pauseresume.PauseManager
@@ -129,7 +128,12 @@ class CameraSwitchManager(
             addAction(PauseManager.ACTION_PAUSE_STARTED)
             addAction(PauseManager.ACTION_PAUSE_ENDED)
         }
-        LocalBroadcastManager.getInstance(context).registerReceiver(pauseReceiver, filter)
+        androidx.core.content.ContextCompat.registerReceiver(
+            context, 
+            pauseReceiver, 
+            filter, 
+            androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED
+        )
         
         Log.d(TAG, "CameraSwitchManager initialized")
     }
@@ -559,7 +563,7 @@ class CameraSwitchManager(
      * Should be called when the camera manager is no longer needed.
      */
     fun cleanup() {
-        LocalBroadcastManager.getInstance(context).unregisterReceiver(pauseReceiver)
+        context.unregisterReceiver(pauseReceiver)
         stopCamera()
         faceDetector?.close()
         faceDetector = null

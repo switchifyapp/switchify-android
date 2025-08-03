@@ -1,16 +1,13 @@
 package com.enaboapps.switchify.screens.settings.switches.models
 
-import android.content.BroadcastReceiver
 import android.content.Context
-import android.content.Intent
-import android.content.IntentFilter
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.enaboapps.switchify.backend.iap.IAPHandler
 import com.enaboapps.switchify.switches.SWITCH_EVENT_TYPE_CAMERA
 import com.enaboapps.switchify.switches.SwitchEvent
 import com.enaboapps.switchify.switches.SwitchEventStore
+import com.enaboapps.switchify.switches.SwitchEventBus
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -49,32 +46,20 @@ class CameraSwitchesScreenModel : ViewModel() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
 
-            val cameraSwitchesFlow = callbackFlow {
-                trySend(store.getSwitchEvents().filter { it.type == SWITCH_EVENT_TYPE_CAMERA })
+            // Initial load
+            val initialCameraSwitches = store.getSwitchEvents()
+                .filter { it.type == SWITCH_EVENT_TYPE_CAMERA }
+            _uiState.value = _uiState.value.copy(
+                cameraSwitches = initialCameraSwitches,
+                isLoading = false
+            )
 
-                val receiver = object : BroadcastReceiver() {
-                    override fun onReceive(context: Context?, intent: Intent?) {
-                        if (intent?.action == SwitchEventStore.EVENTS_UPDATED) {
-                            val cameraSwitches = store.getSwitchEvents()
-                                .filter { it.type == SWITCH_EVENT_TYPE_CAMERA }
-                            trySend(cameraSwitches)
-                        }
-                    }
-                }
-
-                LocalBroadcastManager.getInstance(context)
-                    .registerReceiver(receiver, IntentFilter(SwitchEventStore.EVENTS_UPDATED))
-
-                awaitClose {
-                    LocalBroadcastManager.getInstance(context)
-                        .unregisterReceiver(receiver)
-                }
-            }
-
-            cameraSwitchesFlow.collect { cameraSwitches ->
+            // Listen for updates via Flow instead of LocalBroadcastManager
+            SwitchEventBus.switchEventsUpdated.collect {
+                val cameraSwitches = store.getSwitchEvents()
+                    .filter { it.type == SWITCH_EVENT_TYPE_CAMERA }
                 _uiState.value = _uiState.value.copy(
-                    cameraSwitches = cameraSwitches,
-                    isLoading = false
+                    cameraSwitches = cameraSwitches
                 )
             }
         }

@@ -148,7 +148,6 @@ dependencies {
     implementation(libs.supabase.auth)
     implementation(libs.supabase.realtime)
     implementation(libs.ktor.client.android)
-    implementation(libs.localbroadcastmanager)
     implementation(libs.gson)
     implementation(libs.androidx.material3.android)
     implementation(libs.app.update)

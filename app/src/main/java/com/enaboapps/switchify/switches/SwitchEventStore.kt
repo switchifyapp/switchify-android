@@ -3,7 +3,6 @@ package com.enaboapps.switchify.switches
 import android.content.Context
 import android.content.Intent
 import android.util.Log
-import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.service.scanning.ScanMode
 import com.enaboapps.switchify.utils.LogEvent
@@ -201,11 +200,15 @@ class SwitchEventStore private constructor() {
     }
 
     /**
-     * Broadcasts an event to all listeners to reload switch events.
+     * Notifies all listeners that switch events have been updated.
+     * Uses hybrid approach: Flow for same-process, Broadcast for cross-process.
      */
     private fun broadcastReloadEvent(context: Context) {
-        val localBroadcastManager = LocalBroadcastManager.getInstance(context)
-        localBroadcastManager.sendBroadcast(Intent(EVENTS_UPDATED))
+        // Notify same-process listeners via Flow
+        SwitchEventBus.notifySwitchEventsUpdated()
+        
+        // Notify cross-process listeners (e.g., accessibility service)
+        context.sendBroadcast(Intent(EVENTS_UPDATED).setPackage(context.packageName))
     }
 
 }

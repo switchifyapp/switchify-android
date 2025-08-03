@@ -2,7 +2,6 @@ package com.enaboapps.switchify.service.pauseresume
 
 import android.content.Context
 import android.content.Intent
-import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import java.lang.ref.WeakReference
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.service.window.ServiceMessageHUD
@@ -79,8 +78,8 @@ class PauseManager private constructor() {
         
         // Send broadcast that pause has started
         contextRef?.get()?.let { context ->
-            LocalBroadcastManager.getInstance(context).sendBroadcast(
-                Intent(ACTION_PAUSE_STARTED)
+            context.sendBroadcast(
+                Intent(ACTION_PAUSE_STARTED).setPackage(context.packageName)
             )
         }
         
@@ -138,8 +137,8 @@ class PauseManager private constructor() {
             
             // Send broadcast that pause has ended
             contextRef?.get()?.let { context ->
-                LocalBroadcastManager.getInstance(context).sendBroadcast(
-                    Intent(ACTION_PAUSE_ENDED)
+                context.sendBroadcast(
+                    Intent(ACTION_PAUSE_ENDED).setPackage(context.packageName)
                 )
             }
         }
