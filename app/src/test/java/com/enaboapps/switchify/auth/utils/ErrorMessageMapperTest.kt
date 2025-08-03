@@ -1,4 +1,4 @@
-package com.enaboapps.switchify.utils
+package com.enaboapps.switchify.auth.utils
 
 import org.junit.Test
 import org.junit.Assert.*

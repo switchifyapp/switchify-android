@@ -1,4 +1,4 @@
-package com.enaboapps.switchify.utils
+package com.enaboapps.switchify.auth.utils
 
 import android.util.Log
 

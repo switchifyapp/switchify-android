@@ -3,7 +3,7 @@ package com.enaboapps.switchify.auth.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.enaboapps.switchify.auth.repository.AuthRepository
-import com.enaboapps.switchify.utils.ErrorMessageMapper
+import com.enaboapps.switchify.auth.utils.ErrorMessageMapper
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
