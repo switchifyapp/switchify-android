@@ -9,15 +9,19 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.ui.Alignment
@@ -257,17 +261,25 @@ private fun AccountActionsSection(
     onSignOut: () -> Unit,
     onDeleteAccount: () -> Unit
 ) {
-    Column(
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        FullWidthButton(
-            textResId = R.string.button_sign_out,
-            onClick = onSignOut
-        )
+        Button(
+            onClick = onSignOut,
+            modifier = Modifier.weight(1f)
+        ) {
+            Text(text = stringResource(R.string.button_sign_out))
+        }
         
-        FullWidthButton(
-            textResId = R.string.button_delete_account,
-            onClick = onDeleteAccount
-        )
+        OutlinedButton(
+            onClick = onDeleteAccount,
+            modifier = Modifier.weight(1f),
+            colors = ButtonDefaults.outlinedButtonColors(
+                contentColor = MaterialTheme.colorScheme.error
+            )
+        ) {
+            Text(text = stringResource(R.string.button_delete_account))
+        }
     }
 }
