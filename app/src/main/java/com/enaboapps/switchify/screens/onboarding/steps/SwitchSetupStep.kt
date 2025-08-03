@@ -94,7 +94,7 @@ fun SwitchSetupStep(
                     description = stringResource(R.string.onboarding_switch_keyboard_desc)
                 )
 
-                Divider(modifier = Modifier.padding(vertical = 12.dp))
+                HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
 
                 SwitchOption(
                     icon = Icons.Default.Bluetooth,
@@ -102,7 +102,7 @@ fun SwitchSetupStep(
                     description = stringResource(R.string.onboarding_switch_bluetooth_desc)
                 )
 
-                Divider(modifier = Modifier.padding(vertical = 12.dp))
+                HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
 
                 SwitchOption(
                     icon = Icons.Default.CameraAlt,
