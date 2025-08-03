@@ -18,7 +18,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.enaboapps.switchify.R
-import com.enaboapps.switchify.components.FullWidthButton
+import com.enaboapps.switchify.components.ActionButton
 import com.enaboapps.switchify.nav.NavigationRoute
 import com.enaboapps.switchify.switches.SwitchConfigInvalidBanner
 
@@ -128,7 +128,7 @@ fun SwitchSetupStep(
                 
                 Spacer(modifier = Modifier.height(16.dp))
                 
-                FullWidthButton(
+                ActionButton(
                     textResId = R.string.onboarding_configure_switches,
                     onClick = {
                         navController.navigate(NavigationRoute.Switches.name)
@@ -172,7 +172,7 @@ fun SwitchSetupStep(
         Spacer(modifier = Modifier.height(16.dp))
 
         // Continue button
-        FullWidthButton(
+        ActionButton(
             textResId = R.string.onboarding_continue,
             onClick = onContinue,
             enabled = switchesValid

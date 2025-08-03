@@ -19,7 +19,7 @@ import com.enaboapps.switchify.R
 import com.enaboapps.switchify.auth.viewmodel.AuthUiState
 import com.enaboapps.switchify.auth.viewmodel.AuthViewModel
 import com.enaboapps.switchify.components.BaseView
-import com.enaboapps.switchify.components.FullWidthButton
+import com.enaboapps.switchify.components.ActionButton
 import com.enaboapps.switchify.components.TextArea
 import com.enaboapps.switchify.nav.NavigationRoute
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
@@ -152,7 +152,7 @@ private fun EmailInputSection(
 
     Spacer(modifier = Modifier.height(24.dp))
 
-    FullWidthButton(
+    ActionButton(
         textResId = if (isSignUp) R.string.button_create_account else R.string.button_send_otp,
         onClick = onSendOtp,
         enabled = email.isNotBlank()
@@ -236,7 +236,7 @@ private fun OtpVerificationSection(
 
     Spacer(modifier = Modifier.height(24.dp))
 
-    FullWidthButton(
+    ActionButton(
         textResId = R.string.button_verify,
         onClick = onVerifyOtp,
         enabled = otp.length == 6

@@ -13,7 +13,8 @@ import com.enaboapps.switchify.R
 import com.enaboapps.switchify.backend.iap.IAPHandler
 import com.enaboapps.switchify.nav.NavigationRoute
 import com.enaboapps.switchify.components.BaseView
-import com.enaboapps.switchify.components.FullWidthButton
+import com.enaboapps.switchify.components.ActionButton
+import com.enaboapps.switchify.components.ActionButtonType
 import com.enaboapps.switchify.components.Picker
 import com.enaboapps.switchify.components.PreferenceValueSelector
 import com.enaboapps.switchify.components.PreferenceTimeStepper
@@ -138,7 +139,7 @@ private fun MainContent(
         Spacer(modifier = Modifier.height(24.dp))
 
         // Save Button
-        FullWidthButton(
+        ActionButton(
             textResId = R.string.button_save,
             enabled = viewModel.isValid.value,
             onClick = {
@@ -185,9 +186,10 @@ private fun MainContent(
         // Delete Button (only show when editing)
         if (code != null) {
             Spacer(modifier = Modifier.height(8.dp))
-            FullWidthButton(
+            ActionButton(
                 textResId = R.string.button_delete,
-                onClick = { viewModel.showDeleteConfirmation.value = true }
+                onClick = { viewModel.showDeleteConfirmation.value = true },
+                type = ActionButtonType.DESTRUCTIVE
             )
         }
     }

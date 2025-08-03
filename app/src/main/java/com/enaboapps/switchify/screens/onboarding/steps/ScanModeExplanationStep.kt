@@ -17,7 +17,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.enaboapps.switchify.R
-import com.enaboapps.switchify.components.FullWidthButton
+import com.enaboapps.switchify.components.ActionButton
 import com.enaboapps.switchify.screens.settings.shared.ScanModeSelectionSection
 
 @Composable
@@ -83,7 +83,7 @@ fun ScanModeExplanationStep(
         Spacer(modifier = Modifier.height(32.dp))
 
         // Continue button
-        FullWidthButton(
+        ActionButton(
             textResId = R.string.onboarding_continue,
             onClick = onContinue
         )

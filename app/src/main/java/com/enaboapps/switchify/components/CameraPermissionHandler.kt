@@ -80,7 +80,7 @@ private fun RationaleContent(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        FullWidthButton(
+        ActionButton(
             textResId = R.string.camera_permission_grant,
             onClick = onRequestPermission
         )
@@ -125,7 +125,7 @@ private fun PermissionDeniedContent(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        FullWidthButton(
+        ActionButton(
             textResId = R.string.camera_permission_settings,
             onClick = {
                 val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
@@ -137,9 +137,10 @@ private fun PermissionDeniedContent(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        FullWidthButton(
+        ActionButton(
             textResId = R.string.camera_permission_back,
-            onClick = onNavigateBack
+            onClick = onNavigateBack,
+            type = ActionButtonType.SECONDARY
         )
     }
 } 
