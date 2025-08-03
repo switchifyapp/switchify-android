@@ -18,7 +18,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.enaboapps.switchify.R
-import com.enaboapps.switchify.components.FullWidthButton
+import com.enaboapps.switchify.components.ActionButton
 import kotlinx.coroutines.delay
 
 @Composable
@@ -82,20 +82,23 @@ fun ManualScanDemo(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            FullWidthButton(
+            ActionButton(
                 textResId = R.string.action_previous,
                 onClick = movePrevious,
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
+                applyPadding = false
             )
-            FullWidthButton(
+            ActionButton(
                 textResId = R.string.action_next,
                 onClick = moveNext,
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
+                applyPadding = false
             )
-            FullWidthButton(
+            ActionButton(
                 textResId = R.string.action_select,
                 onClick = selectItem,
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
+                applyPadding = false
             )
         }
     }

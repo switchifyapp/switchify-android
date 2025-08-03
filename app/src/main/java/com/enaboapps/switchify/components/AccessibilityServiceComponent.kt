@@ -187,7 +187,7 @@ fun AccessibilityServiceComponent(
 
         // Single action button - only show when not enabled
         if (!isEnabled) {
-            FullWidthButton(
+            ActionButton(
                 textResId = R.string.onboarding_enable_accessibility,
                 onClick = onEnableService
             )

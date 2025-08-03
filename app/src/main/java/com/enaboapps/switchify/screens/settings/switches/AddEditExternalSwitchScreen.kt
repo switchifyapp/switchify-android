@@ -38,7 +38,8 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.components.BaseView
-import com.enaboapps.switchify.components.FullWidthButton
+import com.enaboapps.switchify.components.ActionButton
+import com.enaboapps.switchify.components.ActionButtonType
 import com.enaboapps.switchify.components.TextArea
 import com.enaboapps.switchify.screens.settings.switches.actions.SwitchActionPicker
 import com.enaboapps.switchify.screens.settings.switches.models.AddEditExternalSwitchScreenModel
@@ -82,7 +83,7 @@ fun AddEditExternalSwitchScreen(navController: NavController, code: String? = nu
             ) {
                 SwitchActionSection(addEditExternalSwitchScreenModel)
                 if (shouldSave!!) {
-                    FullWidthButton(
+                    ActionButton(
                         textResId = R.string.button_save,
                         enabled = isValid!!,
                         onClick = {
@@ -104,8 +105,9 @@ fun AddEditExternalSwitchScreen(navController: NavController, code: String? = nu
                     )
                 }
                 if (editing) {
-                    FullWidthButton(
+                    ActionButton(
                         textResId = R.string.button_delete,
+                        type = ActionButtonType.DESTRUCTIVE,
                         onClick = {
                             showDeleteConfirmation.value = true
                         }
@@ -188,8 +190,9 @@ fun SwitchListener(navController: NavController, onKeyEvent: (KeyEvent) -> Unit)
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Spacer(modifier = Modifier.padding(16.dp))
-        FullWidthButton(
+        ActionButton(
             textResId = R.string.button_cancel,
+            type = ActionButtonType.SECONDARY,
             onClick = {
                 navController.popBackStack()
             }
@@ -265,7 +268,7 @@ fun SwitchActionSection(viewModel: AddEditExternalSwitchScreenModel) {
             )
             Spacer(modifier = Modifier.padding(8.dp))
         }
-        FullWidthButton(
+        ActionButton(
             textResId = R.string.button_add_long_press_action,
             onClick = {
                 viewModel.addLongPressAction(SwitchAction(SwitchAction.ACTION_SELECT))

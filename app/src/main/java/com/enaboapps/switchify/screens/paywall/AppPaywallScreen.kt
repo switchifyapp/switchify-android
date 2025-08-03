@@ -16,7 +16,7 @@ import com.enaboapps.switchify.R
 import com.enaboapps.switchify.backend.iap.IAPHandler
 import com.enaboapps.switchify.backend.iap.IAPHandler.PurchaseState
 import com.enaboapps.switchify.components.BaseView
-import com.enaboapps.switchify.components.FullWidthButton
+import com.enaboapps.switchify.components.ActionButton
 import com.enaboapps.switchify.screens.paywall.model.AppPaywallScreenModel
 import com.revenuecat.purchases.ui.revenuecatui.ExperimentalPreviewRevenueCatUIPurchasesAPI
 import com.revenuecat.purchases.ui.revenuecatui.PaywallDialog
@@ -48,7 +48,7 @@ fun AppPaywallScreen(navController: NavController) {
                 modifier = Modifier.padding(horizontal = 20.dp)
             )
             Spacer(modifier = Modifier.height(8.dp))
-            FullWidthButton(
+            ActionButton(
                 textResId = R.string.button_done,
                 onClick = {
                     navController.popBackStack()

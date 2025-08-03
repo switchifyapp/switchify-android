@@ -17,7 +17,7 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.components.BaseView
-import com.enaboapps.switchify.components.FullWidthButton
+import com.enaboapps.switchify.components.ActionButton
 import com.enaboapps.switchify.service.utils.QuickAppsManager
 import kotlinx.coroutines.delay
 
@@ -183,7 +183,7 @@ fun UsageStatsPermissionScreen(navController: NavController) {
             
             // Action Buttons
             if (!hasPermission) {
-                FullWidthButton(
+                ActionButton(
                     textResId = R.string.button_grant_usage_stats_permission,
                     onClick = {
                         quickAppsManager.openUsageStatsSettings()
@@ -206,7 +206,7 @@ fun UsageStatsPermissionScreen(navController: NavController) {
                     )
                 }
             } else {
-                FullWidthButton(
+                ActionButton(
                     textResId = R.string.button_done,
                     onClick = {
                         navController.popBackStack()

@@ -16,7 +16,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.enaboapps.switchify.R
-import com.enaboapps.switchify.components.FullWidthButton
+import com.enaboapps.switchify.components.ActionButton
 import com.enaboapps.switchify.components.ScrollableView
 
 @Composable
@@ -60,21 +60,21 @@ fun AboutSection() {
             )
         }
         Spacer(modifier = Modifier.height(24.dp))
-        FullWidthButton(
+        ActionButton(
             textResId = R.string.button_website,
             onClick = {
                 context.startActivity(Intent(Intent.ACTION_VIEW, websiteUrl.toUri()))
             }
         )
         Spacer(modifier = Modifier.height(16.dp))
-        FullWidthButton(
+        ActionButton(
             textResId = R.string.button_privacy_policy,
             onClick = {
                 context.startActivity(Intent(Intent.ACTION_VIEW, privacyPolicyUrl.toUri()))
             }
         )
         Spacer(modifier = Modifier.height(16.dp))
-        FullWidthButton(
+        ActionButton(
             textResId = R.string.action_feedback,
             onClick = {
                 val url = "https://switchify.featurebase.app/"

@@ -10,7 +10,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.enaboapps.switchify.R
-import com.enaboapps.switchify.components.FullWidthButton
+import com.enaboapps.switchify.components.ActionButton
 import com.enaboapps.switchify.components.Picker
 import com.enaboapps.switchify.screens.onboarding.UserType
 
@@ -83,7 +83,7 @@ fun UserTypeStep(
         Spacer(modifier = Modifier.weight(1f))
 
         // Continue button
-        FullWidthButton(
+        ActionButton(
             textResId = R.string.onboarding_continue,
             enabled = selectedType != null,
             onClick = {

@@ -14,14 +14,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.ui.Alignment
@@ -40,8 +37,9 @@ import com.enaboapps.switchify.R
 import com.enaboapps.switchify.auth.repository.AuthRepository
 import kotlinx.coroutines.launch
 import com.enaboapps.switchify.backend.iap.IAPHandler
+import com.enaboapps.switchify.components.ActionButton
+import com.enaboapps.switchify.components.ActionButtonType
 import com.enaboapps.switchify.components.BaseView
-import com.enaboapps.switchify.components.FullWidthButton
 import com.enaboapps.switchify.nav.NavigationRoute
 
 @Composable
@@ -265,21 +263,19 @@ private fun AccountActionsSection(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Button(
+        ActionButton(
+            textResId = R.string.button_sign_out,
             onClick = onSignOut,
-            modifier = Modifier.weight(1f)
-        ) {
-            Text(text = stringResource(R.string.button_sign_out))
-        }
-        
-        OutlinedButton(
-            onClick = onDeleteAccount,
             modifier = Modifier.weight(1f),
-            colors = ButtonDefaults.outlinedButtonColors(
-                contentColor = MaterialTheme.colorScheme.error
-            )
-        ) {
-            Text(text = stringResource(R.string.button_delete_account))
-        }
+            applyPadding = false
+        )
+        
+        ActionButton(
+            textResId = R.string.button_delete_account,
+            onClick = onDeleteAccount,
+            type = ActionButtonType.DESTRUCTIVE,
+            modifier = Modifier.weight(1f),
+            applyPadding = false
+        )
     }
 }
