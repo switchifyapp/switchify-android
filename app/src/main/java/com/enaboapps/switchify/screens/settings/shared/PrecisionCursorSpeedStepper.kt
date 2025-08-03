@@ -1,12 +1,14 @@
 package com.enaboapps.switchify.screens.settings.shared
 
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.platform.LocalContext
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.components.PreferenceTimeStepper
 import com.enaboapps.switchify.service.techniques.cursor.CursorSettings
 
 @Composable
 fun PrecisionCursorSpeedStepper() {
+    val context = LocalContext.current
     PreferenceTimeStepper(
         value = CursorSettings.getFineCursorScanRate(),
         titleResId = R.string.preference_title_precision_cursor_speed,
@@ -16,7 +18,7 @@ fun PrecisionCursorSpeedStepper() {
         max = 5000,
         step = 100,
         onValueChanged = { newValue ->
-            CursorSettings.setFineCursorScanRate(newValue)
+            CursorSettings.setFineCursorScanRate(newValue, context)
         }
     )
 } 

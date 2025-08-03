@@ -201,14 +201,14 @@ class SwitchEventStore private constructor() {
 
     /**
      * Notifies all listeners that switch events have been updated.
-     * Uses Flow-based event bus for same-process communication.
+     * Uses hybrid approach: Flow for same-process, Broadcast for cross-process.
      */
     private fun broadcastReloadEvent(context: Context) {
         // Notify same-process listeners via Flow
         SwitchEventBus.notifySwitchEventsUpdated()
         
-        // TODO: For cross-process communication (if needed), use regular BroadcastManager:
-        // context.sendBroadcast(Intent(EVENTS_UPDATED).setPackage(context.packageName))
+        // Notify cross-process listeners (e.g., accessibility service)
+        context.sendBroadcast(Intent(EVENTS_UPDATED).setPackage(context.packageName))
     }
 
 }

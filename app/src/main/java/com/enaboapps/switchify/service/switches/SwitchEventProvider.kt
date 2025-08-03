@@ -5,7 +5,6 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.util.Log
-import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.service.window.ServiceMessageHUD
 import com.enaboapps.switchify.switches.*
@@ -40,9 +39,11 @@ class SwitchEventProvider(private val context: Context) {
     }
 
     init {
-        LocalBroadcastManager.getInstance(context.applicationContext).registerReceiver(
+        androidx.core.content.ContextCompat.registerReceiver(
+            context.applicationContext,
             receiver,
-            IntentFilter(SwitchEventStore.EVENTS_UPDATED)
+            IntentFilter(SwitchEventStore.EVENTS_UPDATED),
+            androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED
         )
         coroutineScope.launch {
             loadInitialEvents()
