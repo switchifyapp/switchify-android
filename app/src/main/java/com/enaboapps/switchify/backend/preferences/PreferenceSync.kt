@@ -62,9 +62,8 @@ class PreferenceSync private constructor() {
         coroutineScope.launch {
             try {
                 val userSettings = getAllPreferences() ?: return@launch
-                val stringSettings = userSettings.mapValues { it.value.toString() }
                 
-                val result = SupabaseManager.getInstance().saveUserPreferences(stringSettings)
+                val result = SupabaseManager.getInstance().saveUserPreferences(userSettings)
                 result.fold(
                     onSuccess = {
                         Log.i(TAG, "Settings uploaded successfully")
@@ -89,10 +88,9 @@ class PreferenceSync private constructor() {
             try {
                 val result = SupabaseManager.getInstance().getUserPreferences()
                 result.fold(
-                    onSuccess = { stringSettings ->
-                        if (stringSettings.isNotEmpty()) {
-                            val convertedSettings = convertStringSettingsToTyped(stringSettings)
-                            applySettings(convertedSettings)
+                    onSuccess = { typedSettings ->
+                        if (typedSettings.isNotEmpty()) {
+                            applySettings(typedSettings)
                             Log.i(TAG, "Settings retrieved and applied successfully")
                         } else {
                             Log.w(TAG, "No settings found")
@@ -126,25 +124,6 @@ class PreferenceSync private constructor() {
         }.toMap()
     }
 
-    /**
-     * Converts string settings from Supabase back to typed values.
-     */
-    private fun convertStringSettingsToTyped(stringSettings: Map<String, String>): Map<String, Any> {
-        val prefs = sharedPreferences ?: return emptyMap()
-        return stringSettings.mapNotNull { (key, stringValue) ->
-            // Get the original type from current SharedPreferences to know how to convert
-            val existingValue = prefs.all[key]
-            val convertedValue = when (existingValue) {
-                is Boolean -> stringValue.toBooleanStrictOrNull()
-                is Int -> stringValue.toIntOrNull()
-                is Long -> stringValue.toLongOrNull()
-                is Float -> stringValue.toFloatOrNull()
-                else -> stringValue // String or unknown type
-            } ?: stringValue // Fallback to string if conversion fails
-            
-            key to convertedValue
-        }.toMap()
-    }
 
     /**
      * Applies settings to SharedPreferences with type conversion.
@@ -158,7 +137,7 @@ class PreferenceSync private constructor() {
                         is String -> putString(key, value)
                         is Boolean -> putBoolean(key, value)
                         is Long -> putLong(key, value)
-                        is Double -> putFloat(key, value.toFloat())
+                        is Float -> putFloat(key, value)
                         is Int -> putInt(key, value)
                         else -> Log.w(TAG, "Unsupported type for key: $key, value: $value")
                     }
