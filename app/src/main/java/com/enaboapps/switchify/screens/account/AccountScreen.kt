@@ -39,6 +39,7 @@ import kotlinx.coroutines.launch
 import com.enaboapps.switchify.backend.iap.IAPHandler
 import com.enaboapps.switchify.components.ActionButton
 import com.enaboapps.switchify.components.ActionButtonType
+import com.enaboapps.switchify.components.AdaptiveStack
 import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.nav.NavigationRoute
 
@@ -253,20 +254,21 @@ private fun ProStatusSection(
 
 /**
  * Account actions section with sign out and delete account buttons
+ * Uses AdaptiveStack for responsive layout on different screen sizes
  */
 @Composable
 private fun AccountActionsSection(
     onSignOut: () -> Unit,
     onDeleteAccount: () -> Unit
 ) {
-    Row(
+    AdaptiveStack(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
+        spacing = 16.dp
     ) {
         ActionButton(
             textResId = R.string.button_sign_out,
             onClick = onSignOut,
-            modifier = Modifier.weight(1f),
+            modifier = Modifier.adaptiveFill(),
             applyPadding = false
         )
         
@@ -274,7 +276,7 @@ private fun AccountActionsSection(
             textResId = R.string.button_delete_account,
             onClick = onDeleteAccount,
             type = ActionButtonType.DESTRUCTIVE,
-            modifier = Modifier.weight(1f),
+            modifier = Modifier.adaptiveFill(),
             applyPadding = false
         )
     }
