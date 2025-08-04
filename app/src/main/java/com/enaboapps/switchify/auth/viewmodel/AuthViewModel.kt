@@ -1,15 +1,20 @@
 package com.enaboapps.switchify.auth.viewmodel
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.enaboapps.switchify.auth.repository.AuthRepository
 import com.enaboapps.switchify.auth.utils.ErrorMessageMapper
+import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-class AuthViewModel(private val isSignUp: Boolean = false) : ViewModel() {
+class AuthViewModel(
+    private val isSignUp: Boolean = false,
+    private val context: Context? = null
+) : ViewModel() {
     
     private val authRepository = AuthRepository.instance
 
@@ -76,6 +81,12 @@ class AuthViewModel(private val isSignUp: Boolean = false) : ViewModel() {
             
             authRepository.verifyEmailOtp(_email.value, _otp.value).fold(
                 onSuccess = {
+                    // Sync settings from Supabase after successful login
+                    if (!isSignUp && context != null) {
+                        val preferenceManager = PreferenceManager(context)
+                        preferenceManager.enableSync()
+                        preferenceManager.preferenceSync.retrieveSettingsFromSupabase()
+                    }
                     _uiState.value = AuthUiState.Success
                 },
                 onFailure = { exception ->
