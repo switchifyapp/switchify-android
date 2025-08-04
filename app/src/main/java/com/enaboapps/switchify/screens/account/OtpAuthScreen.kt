@@ -57,12 +57,12 @@ fun OtpAuthScreen(
             Tab(
                 selected = selectedTabIndex == 0,
                 onClick = { selectedTabIndex = 0 },
-                text = { Text("Sign In") }
+                text = { Text(stringResource(R.string.screen_title_sign_in)) }
             )
             Tab(
                 selected = selectedTabIndex == 1,
                 onClick = { selectedTabIndex = 1 },
-                text = { Text("Sign Up") }
+                text = { Text(stringResource(R.string.screen_title_sign_up)) }
             )
         }
         
