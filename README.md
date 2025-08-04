@@ -11,7 +11,7 @@ An Android accessibility service that enables device control through adaptive sw
 
 ### 1. Clone the repository
 ```bash
-git clone https://github.com/yourusername/Switchify.git
+git clone https://github.com/enaboapps/Switchify.git
 cd Switchify
 ```
 
@@ -27,12 +27,13 @@ revenuecat.publicKey=<ask_for_key>
 
 # Amplitude API key (obtain from project owner)
 amplitude.apiKey=<ask_for_key>
+
+# Supabase configuration (obtain from project owner)
+supabase.url=<ask_for_url>
+supabase.anonKey=<ask_for_key>
 ```
 
-### 3. Add Firebase configuration
-Obtain the `google-services.json` file from the project owner and place it in the `app/` directory.
-
-### 4. Build and run
+### 3. Build and run
 ```bash
 ./gradlew build
 ```
