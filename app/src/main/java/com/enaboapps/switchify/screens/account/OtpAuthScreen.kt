@@ -36,7 +36,7 @@ fun OtpAuthScreen(
     val currentIsSignUp = selectedTabIndex == 1
     
     val viewModel: AuthViewModel = viewModel(key = "auth_$currentIsSignUp") { 
-        AuthViewModel(currentIsSignUp) 
+        AuthViewModel(currentIsSignUp, context) 
     }
     
     val uiState by viewModel.uiState.collectAsState()
