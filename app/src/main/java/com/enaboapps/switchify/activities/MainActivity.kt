@@ -48,9 +48,6 @@ class MainActivity : ComponentActivity() {
         // Initialize PreferenceManager
         preferenceManager = PreferenceManager(this)
         preferenceManager.enableSync()
-        preferenceManager.preferenceSync.apply {
-            retrieveSettingsFromSupabase()
-        }
 
         // Initialize Logger
         Logger.init(this)
@@ -63,6 +60,11 @@ class MainActivity : ComponentActivity() {
 
         Handler(Looper.getMainLooper()).postDelayed({
             SwitchEventStore.getInstance().initialize(this)
+        }, 1000)
+
+        // Delay settings sync to avoid blocking app startup
+        Handler(Looper.getMainLooper()).postDelayed({
+            preferenceManager.preferenceSync.retrieveSettingsFromSupabase()
         }, 1000)
 
         // Migrate files from regular storage to device protected storage
