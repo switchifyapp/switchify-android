@@ -15,6 +15,7 @@
         android:required="false" /> <!-- Required for camera switches -->
     <uses-permission android:name="android.permission.CAMERA" /> <!-- Required for camera switches -->
     <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS" tools:ignore="ProtectedPermissions" /> <!-- Required for recent apps -->
+    <uses-permission android:name="com.google.android.gms.permission.AD_ID" /> <!-- Required for advertising identifier access -->
 
     <application
         android:name=".SwitchifyApplication"
