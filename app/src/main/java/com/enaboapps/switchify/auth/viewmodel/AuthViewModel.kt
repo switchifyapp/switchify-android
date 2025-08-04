@@ -1,6 +1,8 @@
 package com.enaboapps.switchify.auth.viewmodel
 
 import android.content.Context
+import android.os.Handler
+import android.os.Looper
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.enaboapps.switchify.auth.repository.AuthRepository
@@ -81,13 +83,22 @@ class AuthViewModel(
             
             authRepository.verifyEmailOtp(_email.value, _otp.value).fold(
                 onSuccess = {
-                    // Sync settings from Supabase after successful login
-                    if (!isSignUp && context != null) {
-                        val preferenceManager = PreferenceManager(context)
-                        preferenceManager.enableSync()
-                        preferenceManager.preferenceSync.retrieveSettingsFromSupabase()
-                    }
                     _uiState.value = AuthUiState.Success
+                    
+                    // Delay settings sync to avoid blocking auth completion
+                    if (context != null) {
+                        Handler(Looper.getMainLooper()).postDelayed({
+                            val preferenceManager = PreferenceManager(context)
+                            preferenceManager.enableSync()
+                            if (!isSignUp) {
+                                // Sign in: pull settings from server
+                                preferenceManager.preferenceSync.retrieveSettingsFromSupabase()
+                            } else {
+                                // Sign up: push current settings to server
+                                preferenceManager.preferenceSync.uploadSettingsToSupabase()
+                            }
+                        }, 1000)
+                    }
                 },
                 onFailure = { exception ->
                     _errorMessage.value = ErrorMessageMapper.mapExceptionToUserFriendlyMessage(
