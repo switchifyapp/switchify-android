@@ -1,7 +1,8 @@
 package com.enaboapps.switchify.backend.supabase
 
 import android.util.Log
-import com.enaboapps.switchify.backend.supabase.models.UserPreferences
+import com.enaboapps.switchify.backend.supabase.models.TypedUserPreferences
+import com.enaboapps.switchify.backend.supabase.models.PreferenceTypeConverter
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.realtime.realtime
@@ -34,10 +35,10 @@ class SupabaseManager {
     private val auth = com.enaboapps.switchify.auth.repository.AuthRepository.instance
 
     /**
-     * Saves user preferences to the database.
+     * Saves user preferences to the database with type information.
      */
     suspend fun saveUserPreferences(
-        preferences: Map<String, String>
+        preferences: Map<String, Any>
     ): Result<Unit> = withContext(Dispatchers.IO) {
         if (!auth.isUserSignedIn()) {
             return@withContext Result.failure(Exception("User not signed in"))
@@ -46,9 +47,10 @@ class SupabaseManager {
         try {
             val userId = auth.getUserId() ?: return@withContext Result.failure(Exception("No user ID"))
             
-            val userPrefs = UserPreferences(
+            val typedPreferences = PreferenceTypeConverter.toTypedPreferences(preferences)
+            val userPrefs = TypedUserPreferences(
                 user_id = userId,
-                preferences = preferences
+                preferences = typedPreferences
             )
             
             // Upsert (insert or update) the preferences with conflict resolution on user_id
@@ -56,18 +58,18 @@ class SupabaseManager {
                 onConflict = "user_id"
             }
             
-            Log.i(TAG, "User preferences saved successfully")
+            Log.i(TAG, "Typed user preferences saved successfully")
             Result.success(Unit)
         } catch (e: Exception) {
-            Log.e(TAG, "Error saving user preferences", e)
+            Log.e(TAG, "Error saving typed user preferences", e)
             Result.failure(e)
         }
     }
 
     /**
-     * Retrieves user preferences from the database.
+     * Retrieves user preferences from the database with proper types.
      */
-    suspend fun getUserPreferences(): Result<Map<String, String>> = withContext(Dispatchers.IO) {
+    suspend fun getUserPreferences(): Result<Map<String, Any>> = withContext(Dispatchers.IO) {
         if (!auth.isUserSignedIn()) {
             return@withContext Result.failure(Exception("User not signed in"))
         }
@@ -80,22 +82,27 @@ class SupabaseManager {
                     filter {
                         eq("user_id", userId)
                     }
-                }.decodeSingleOrNull<UserPreferences>()
+                }.decodeSingleOrNull<TypedUserPreferences>()
             
-            val preferences = response?.preferences ?: emptyMap()
-            Log.i(TAG, "User preferences retrieved successfully")
+            val preferences = if (response?.preferences != null) {
+                PreferenceTypeConverter.fromTypedPreferences(response.preferences)
+            } else {
+                emptyMap()
+            }
+            
+            Log.i(TAG, "Typed user preferences retrieved successfully")
             Result.success(preferences)
         } catch (e: Exception) {
-            Log.e(TAG, "Error retrieving user preferences", e)
+            Log.e(TAG, "Error retrieving typed user preferences", e)
             Result.failure(e)
         }
     }
 
     /**
-     * Updates specific preference fields.
+     * Updates specific preference fields with proper types.
      */
     suspend fun updateUserPreferences(
-        updates: Map<String, String>
+        updates: Map<String, Any>
     ): Result<Unit> = withContext(Dispatchers.IO) {
         if (!auth.isUserSignedIn()) {
             return@withContext Result.failure(Exception("User not signed in"))
