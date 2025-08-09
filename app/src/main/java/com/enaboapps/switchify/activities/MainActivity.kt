@@ -18,7 +18,6 @@ import com.enaboapps.switchify.utils.Resources
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import io.sentry.Sentry
 
 class MainActivity : ComponentActivity() {
     private lateinit var preferenceManager: PreferenceManager
@@ -32,9 +31,6 @@ class MainActivity : ComponentActivity() {
         setup()
 
         Logger.log(LogEvent.AppLaunched)
-        
-        // Test Sentry integration
-        Sentry.captureMessage("MainActivity launched successfully")
 
         setContent {
             val navController = rememberNavController()
