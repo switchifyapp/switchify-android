@@ -27,17 +27,19 @@ import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import kotlinx.coroutines.delay
 
 @Composable
-fun OtpAuthScreen(
-    navController: NavController,
-    isSignUp: Boolean = false
+fun AuthScreen(
+    navController: NavController
 ) {
     val context = LocalContext.current
     val preferenceManager = remember { PreferenceManager(context) }
-    var selectedTabIndex by remember { mutableIntStateOf(if (isSignUp) 1 else 0) }
-    val currentIsSignUp = selectedTabIndex == 1
     
-    val viewModel: AuthViewModel = viewModel(key = "auth_$currentIsSignUp") { 
-        AuthViewModel(currentIsSignUp, context) 
+    val viewModel: AuthViewModel = viewModel { 
+        AuthViewModel() // No context stored
+    }
+    
+    // Initialize Google Sign-In with Context
+    LaunchedEffect(Unit) {
+        viewModel.initializeGoogleSignIn(context)
     }
     
     val uiState by viewModel.uiState.collectAsState()
@@ -45,31 +47,11 @@ fun OtpAuthScreen(
     val otp by viewModel.otp.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
 
-
     BaseView(
         titleResId = R.string.screen_title_authentication,
         navController = navController,
-        padding = 0.dp
+        padding = 16.dp
     ) {
-        // Tab Row
-        TabRow(
-            selectedTabIndex = selectedTabIndex,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Tab(
-                selected = selectedTabIndex == 0,
-                onClick = { selectedTabIndex = 0 },
-                text = { Text(stringResource(R.string.screen_title_sign_in)) }
-            )
-            Tab(
-                selected = selectedTabIndex == 1,
-                onClick = { selectedTabIndex = 1 },
-                text = { Text(stringResource(R.string.screen_title_sign_up)) }
-            )
-        }
-        
-        Spacer(modifier = Modifier.height(32.dp))
-        
         // Content based on current state
         when (uiState) {
             AuthUiState.EmailInput -> {
@@ -79,7 +61,6 @@ fun OtpAuthScreen(
                     onSendOtp = viewModel::sendOtp,
                     errorMessage = errorMessage,
                     onClearError = viewModel::clearError,
-                    isSignUp = currentIsSignUp,
                     onGoogleSignInClick = {
                         viewModel.signInWithGoogle()
                     }
@@ -102,6 +83,9 @@ fun OtpAuthScreen(
             }
             AuthUiState.Success -> {
                 LaunchedEffect(Unit) {
+                    // Handle settings sync after successful authentication
+                    viewModel.handleSettingsSync(context)
+                    
                     // Set setup complete when user signs in
                     preferenceManager.setSetupComplete()
                     navController.navigate(NavigationRoute.Home.name) {
@@ -123,11 +107,10 @@ private fun EmailInputSection(
     onSendOtp: () -> Unit,
     errorMessage: String?,
     onClearError: () -> Unit,
-    isSignUp: Boolean = false,
     onGoogleSignInClick: (() -> Unit)? = null
 ) {
     Text(
-        text = stringResource(if (isSignUp) R.string.create_account else R.string.welcome_back),
+        text = stringResource(R.string.welcome_to_switchify),
         style = MaterialTheme.typography.headlineMedium,
         fontWeight = FontWeight.Bold,
         textAlign = TextAlign.Center
@@ -136,7 +119,7 @@ private fun EmailInputSection(
     Spacer(modifier = Modifier.height(8.dp))
     
     Text(
-        text = stringResource(if (isSignUp) R.string.enter_email_to_create_account else R.string.enter_email_for_otp),
+        text = stringResource(R.string.enter_email_to_continue),
         style = MaterialTheme.typography.bodyLarge,
         textAlign = TextAlign.Center,
         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -159,7 +142,7 @@ private fun EmailInputSection(
     Spacer(modifier = Modifier.height(24.dp))
 
     ActionButton(
-        textResId = if (isSignUp) R.string.button_create_account else R.string.button_send_otp,
+        textResId = R.string.button_continue_with_email,
         onClick = onSendOtp,
         enabled = email.isNotBlank()
     )

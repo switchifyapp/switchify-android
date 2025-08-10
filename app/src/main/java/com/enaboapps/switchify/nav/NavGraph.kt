@@ -9,7 +9,7 @@ import com.enaboapps.switchify.screens.DebugScreen
 import com.enaboapps.switchify.screens.EnableAccessibilityServiceScreen
 import com.enaboapps.switchify.screens.HomeScreen
 import com.enaboapps.switchify.screens.account.AccountScreen
-import com.enaboapps.switchify.screens.account.OtpAuthScreen
+import com.enaboapps.switchify.screens.account.AuthScreen
 import com.enaboapps.switchify.screens.paywall.AppPaywallScreen
 import com.enaboapps.switchify.screens.settings.SettingsScreen
 import com.enaboapps.switchify.screens.settings.gestures.GestureSettingsScreen
@@ -46,7 +46,7 @@ fun NavGraph(navController: NavHostController) {
             AppPaywallScreen(navController)
         }
         composable(NavigationRoute.Authentication.name) {
-            OtpAuthScreen(navController)
+            AuthScreen(navController)
         }
         composable(NavigationRoute.Account.name) {
             AccountScreen(navController)

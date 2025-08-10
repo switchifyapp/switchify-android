@@ -16,13 +16,10 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-class AuthViewModel(
-    private val isSignUp: Boolean = false,
-    private val context: Context? = null
-) : ViewModel() {
+class AuthViewModel : ViewModel() {
     
     private val authRepository = AuthRepository.instance
-    private val googleSignInManager = if (context != null) GoogleSignInManager(context) else null
+    private var googleSignInManager: GoogleSignInManager? = null
 
     private val _uiState = MutableStateFlow<AuthUiState>(AuthUiState.EmailInput)
     val uiState: StateFlow<AuthUiState> = _uiState.asStateFlow()
@@ -36,7 +33,14 @@ class AuthViewModel(
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
     
-    val authMode: String get() = if (isSignUp) "Sign Up" else "Sign In"
+    /**
+     * Initialize Google Sign-In manager when Context is available
+     */
+    fun initializeGoogleSignIn(context: Context) {
+        if (googleSignInManager == null) {
+            googleSignInManager = GoogleSignInManager(context)
+        }
+    }
 
     fun updateEmail(newEmail: String) {
         _email.value = newEmail
@@ -60,16 +64,40 @@ class AuthViewModel(
             _uiState.value = AuthUiState.Loading
             _errorMessage.value = null
             
-            authRepository.sendEmailOtp(_email.value, isSignUp).fold(
+            // Try sign-in first, then fall back to sign-up if user doesn't exist
+            authRepository.sendEmailOtp(_email.value, false).fold(
                 onSuccess = {
                     _uiState.value = AuthUiState.OtpVerification
                 },
                 onFailure = { exception ->
-                    _errorMessage.value = ErrorMessageMapper.mapExceptionToUserFriendlyMessage(
-                        exception, 
-                        if (isSignUp) "sendSignUpOtp" else "sendSignInOtp"
-                    )
-                    _uiState.value = AuthUiState.EmailInput
+                    val errorMessage = exception.message?.lowercase() ?: ""
+                    
+                    // If user not found, try sign-up
+                    if (errorMessage.contains("user not found") || 
+                        errorMessage.contains("email not found") ||
+                        errorMessage.contains("invalid_credentials")) {
+                        
+                        // Attempt sign-up
+                        authRepository.sendEmailOtp(_email.value, true).fold(
+                            onSuccess = {
+                                _uiState.value = AuthUiState.OtpVerification
+                            },
+                            onFailure = { signUpException ->
+                                _errorMessage.value = ErrorMessageMapper.mapExceptionToUserFriendlyMessage(
+                                    signUpException, 
+                                    "sendUnifiedOtp"
+                                )
+                                _uiState.value = AuthUiState.EmailInput
+                            }
+                        )
+                    } else {
+                        // Other error, show original message
+                        _errorMessage.value = ErrorMessageMapper.mapExceptionToUserFriendlyMessage(
+                            exception, 
+                            "sendUnifiedOtp"
+                        )
+                        _uiState.value = AuthUiState.EmailInput
+                    }
                 }
             )
         }
@@ -88,21 +116,6 @@ class AuthViewModel(
             authRepository.verifyEmailOtp(_email.value, _otp.value).fold(
                 onSuccess = {
                     _uiState.value = AuthUiState.Success
-                    
-                    // Delay settings sync to avoid blocking auth completion
-                    if (context != null) {
-                        Handler(Looper.getMainLooper()).postDelayed({
-                            val preferenceManager = PreferenceManager(context)
-                            preferenceManager.enableSync()
-                            if (!isSignUp) {
-                                // Sign in: pull settings from server
-                                preferenceManager.preferenceSync.retrieveSettingsFromSupabase()
-                            } else {
-                                // Sign up: push current settings to server
-                                preferenceManager.preferenceSync.uploadSettingsToSupabase()
-                            }
-                        }, 1000)
-                    }
                 },
                 onFailure = { exception ->
                     _errorMessage.value = ErrorMessageMapper.mapExceptionToUserFriendlyMessage(
@@ -135,10 +148,24 @@ class AuthViewModel(
     fun getGoogleSignInManager(): GoogleSignInManager? = googleSignInManager
 
     /**
+     * Handle settings sync after successful authentication
+     */
+    fun handleSettingsSync(context: Context) {
+        Handler(Looper.getMainLooper()).postDelayed({
+            val preferenceManager = PreferenceManager(context)
+            preferenceManager.enableSync()
+            // For unified flow, always retrieve settings from server
+            // If it's a new user, server will have empty settings which is fine
+            preferenceManager.preferenceSync.retrieveSettingsFromSupabase()
+        }, 1000)
+    }
+
+    /**
      * Start Google Sign-In flow using Credential Manager
      */
     fun signInWithGoogle() {
-        if (googleSignInManager == null) {
+        val manager = googleSignInManager
+        if (manager == null) {
             _errorMessage.value = "Google Sign-In not available"
             return
         }
@@ -147,11 +174,8 @@ class AuthViewModel(
             _uiState.value = AuthUiState.Loading
             _errorMessage.value = null
 
-            val result = if (isSignUp) {
-                googleSignInManager.signInForNewUser()
-            } else {
-                googleSignInManager.signInForReturningUser()
-            }
+            // For unified flow, always try for new users (shows all Google accounts)
+            val result = manager.signInForNewUser()
             
             handleGoogleSignInResult(result)
         }
@@ -170,23 +194,13 @@ class AuthViewModel(
                     authRepository.signInWithGoogle(result.idToken, result.accessToken).fold(
                         onSuccess = {
                             _uiState.value = AuthUiState.Success
-                            
-                            // Handle settings sync for Google Sign-In users
-                            if (context != null) {
-                                Handler(Looper.getMainLooper()).postDelayed({
-                                    val preferenceManager = PreferenceManager(context)
-                                    preferenceManager.enableSync()
-                                    // For Google Sign-In, we'll pull settings from server as it's likely an existing user
-                                    preferenceManager.preferenceSync.retrieveSettingsFromSupabase()
-                                }, 1000)
-                            }
                         },
                         onFailure = { exception ->
                             // Log Google Sign-In Supabase authentication errors to Sentry
                             Sentry.captureException(exception) { scope ->
                                 scope.setTag("component", "AuthViewModel")
                                 scope.setTag("error_type", "GoogleSignInSupabaseError")
-                                scope.setExtra("isSignUp", isSignUp.toString())
+                                scope.setExtra("authFlow", "unified")
                                 scope.setExtra("idTokenLength", result.idToken.length.toString())
                                 scope.setExtra("hasEmail", (result.email != null).toString())
                                 scope.setExtra("hasDisplayName", (result.displayName != null).toString())
@@ -205,7 +219,7 @@ class AuthViewModel(
                 Sentry.captureMessage("Google Sign-In client error: ${result.message}") { scope ->
                     scope.setTag("component", "AuthViewModel")
                     scope.setTag("error_type", "GoogleSignInClientError")
-                    scope.setExtra("isSignUp", isSignUp.toString())
+                    scope.setExtra("authFlow", "unified")
                     scope.setExtra("errorMessage", result.message)
                 }
                 _errorMessage.value = "Google Sign-In failed: ${result.message}"

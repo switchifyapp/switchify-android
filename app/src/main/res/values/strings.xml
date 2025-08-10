@@ -587,12 +587,9 @@
     <string name="screenshot_failed_to_save">Failed to save screenshot</string>
 
     <!-- OTP Authentication Strings -->
-    <string name="welcome_back">Welcome back!</string>
-    <string name="create_account">Create Account</string>
-    <string name="enter_email_for_otp">Enter your email to receive a verification code</string>
-    <string name="enter_email_to_create_account">Enter your email to create your account</string>
-    <string name="button_send_otp">Send Verification Code</string>
-    <string name="button_create_account">Create Account</string>
+    <string name="welcome_to_switchify">Welcome to Switchify</string>
+    <string name="enter_email_to_continue">Enter your email to continue</string>
+    <string name="button_continue_with_email">Continue with Email</string>
     <string name="please_wait">Please wait...</string>
     <string name="verification_code_sent">Verification Code Sent</string>
     <string name="enter_otp_sent_to">Enter the 6-digit code sent to %1$s</string>
