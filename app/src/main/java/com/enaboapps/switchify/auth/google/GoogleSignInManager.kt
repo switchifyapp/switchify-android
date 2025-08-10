@@ -8,6 +8,7 @@ import androidx.credentials.exceptions.GetCredentialException
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.enaboapps.switchify.BuildConfig
+import io.sentry.Sentry
 import java.security.MessageDigest
 import java.util.UUID
 
@@ -50,8 +51,22 @@ class GoogleSignInManager(private val context: Context) {
             
             handleCredentialResponse(result)
         } catch (e: GetCredentialException) {
+            // Log specific Credential Manager errors to Sentry
+            Sentry.captureException(e) { scope ->
+                scope.setTag("component", "GoogleSignInManager")
+                scope.setTag("error_type", "GetCredentialException")
+                scope.setExtra("filterByAuthorizedAccounts", filterByAuthorizedAccounts.toString())
+                scope.setExtra("hasWebClientId", BuildConfig.GOOGLE_WEB_CLIENT_ID.isNotEmpty().toString())
+            }
             GoogleSignInResult.Error("Google Sign-In failed: ${e.message}")
         } catch (e: Exception) {
+            // Log unexpected errors to Sentry
+            Sentry.captureException(e) { scope ->
+                scope.setTag("component", "GoogleSignInManager")
+                scope.setTag("error_type", "UnexpectedException")
+                scope.setExtra("filterByAuthorizedAccounts", filterByAuthorizedAccounts.toString())
+                scope.setExtra("hasWebClientId", BuildConfig.GOOGLE_WEB_CLIENT_ID.isNotEmpty().toString())
+            }
             GoogleSignInResult.Error("Unexpected error: ${e.message}")
         }
     }
@@ -84,6 +99,13 @@ class GoogleSignInManager(private val context: Context) {
                         displayName = googleIdCredential.displayName
                     )
                 } catch (e: Exception) {
+                    // Log credential parsing errors to Sentry
+                    Sentry.captureException(e) { scope ->
+                        scope.setTag("component", "GoogleSignInManager")
+                        scope.setTag("error_type", "CredentialParsingException")
+                        scope.setExtra("credentialType", credential.type)
+                        scope.setExtra("credentialClass", credential::class.simpleName ?: "unknown")
+                    }
                     GoogleSignInResult.Error("Failed to parse Google credential: ${e.message}")
                 }
             }
