@@ -247,9 +247,6 @@
     <string name="screen_summary_settings">Configure switches and scanning</string>
     <string name="screen_summary_upgrade_pro">Tap for superpowers! 💪</string>
     <string name="screen_summary_debug">Developer options</string>
-    <string name="screen_summary_account_email">%1$s</string>
-    <string name="screen_summary_account_no_email">Manage your account</string>
-    <string name="screen_summary_sign_in_to_access_settings">Access saved settings</string>
     <string name="screen_summary_quick_apps_permission">Configure quick apps access</string>
 
     <!-- Dialog Titles -->
@@ -425,11 +422,9 @@
     <string name="dialog_title_delete_account">Delete Account</string>
     <string name="dialog_message_delete_account">Are you sure you want to delete your account? This action cannot be undone.</string>
 
-    <string name="error_generic">An error occurred.</string>
 
     <string name="label_email">Email</string>
     <string name="label_email_address">Email Address</string>
-    <string name="error_email_required">Email is required</string>
     
     <!-- Account Screen -->
     <string name="account_information">Account Information</string>
@@ -532,7 +527,6 @@
     <string name="onboarding_switch_bluetooth_desc">Connect wireless adaptive switches</string>
     <string name="onboarding_switch_camera">Camera Switch</string>
     <string name="onboarding_switch_camera_desc">Use facial gestures as switches</string>
-    <string name="onboarding_no_switches_configured">No switches configured yet</string>
     <string name="switch_config_banner_title">Switch Configuration Invalid</string>
     <string name="switch_config_banner_description">Your current switch configuration doesn\'t match the selected scan mode requirements. Please configure the required switch actions.</string>
     <string name="switch_config_banner_missing_actions">Missing required actions: %1$s</string>
