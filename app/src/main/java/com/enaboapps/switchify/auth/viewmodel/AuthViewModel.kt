@@ -7,6 +7,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.enaboapps.switchify.auth.repository.AuthRepository
 import com.enaboapps.switchify.auth.utils.ErrorMessageMapper
+import com.enaboapps.switchify.auth.google.GoogleSignInManager
+import com.enaboapps.switchify.auth.google.GoogleSignInResult
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -19,6 +21,7 @@ class AuthViewModel(
 ) : ViewModel() {
     
     private val authRepository = AuthRepository.instance
+    private val googleSignInManager = if (context != null) GoogleSignInManager(context) else null
 
     private val _uiState = MutableStateFlow<AuthUiState>(AuthUiState.EmailInput)
     val uiState: StateFlow<AuthUiState> = _uiState.asStateFlow()
@@ -123,6 +126,75 @@ class AuthViewModel(
 
     fun clearError() {
         _errorMessage.value = null
+    }
+
+    /**
+     * Get Google Sign-In manager instance
+     */
+    fun getGoogleSignInManager(): GoogleSignInManager? = googleSignInManager
+
+    /**
+     * Start Google Sign-In flow using Credential Manager
+     */
+    fun signInWithGoogle() {
+        if (googleSignInManager == null) {
+            _errorMessage.value = "Google Sign-In not available"
+            return
+        }
+
+        viewModelScope.launch {
+            _uiState.value = AuthUiState.Loading
+            _errorMessage.value = null
+
+            val result = if (isSignUp) {
+                googleSignInManager.signInForNewUser()
+            } else {
+                googleSignInManager.signInForReturningUser()
+            }
+            
+            handleGoogleSignInResult(result)
+        }
+    }
+
+    /**
+     * Handle Google Sign-In result and authenticate with Supabase
+     */
+    fun handleGoogleSignInResult(result: GoogleSignInResult) {
+        when (result) {
+            is GoogleSignInResult.Success -> {
+                viewModelScope.launch {
+                    _uiState.value = AuthUiState.Loading
+                    _errorMessage.value = null
+
+                    authRepository.signInWithGoogle(result.idToken, result.accessToken).fold(
+                        onSuccess = {
+                            _uiState.value = AuthUiState.Success
+                            
+                            // Handle settings sync for Google Sign-In users
+                            if (context != null) {
+                                Handler(Looper.getMainLooper()).postDelayed({
+                                    val preferenceManager = PreferenceManager(context)
+                                    preferenceManager.enableSync()
+                                    // For Google Sign-In, we'll pull settings from server as it's likely an existing user
+                                    preferenceManager.preferenceSync.retrieveSettingsFromSupabase()
+                                }, 1000)
+                            }
+                        },
+                        onFailure = { exception ->
+                            _errorMessage.value = ErrorMessageMapper.mapExceptionToUserFriendlyMessage(
+                                exception,
+                                "googleSignIn"
+                            )
+                            _uiState.value = AuthUiState.EmailInput
+                        }
+                    )
+                }
+            }
+            is GoogleSignInResult.Error -> {
+                _errorMessage.value = "Google Sign-In failed: ${result.message}"
+                _uiState.value = AuthUiState.EmailInput
+            }
+        }
     }
 
     private fun isValidEmail(email: String): Boolean {

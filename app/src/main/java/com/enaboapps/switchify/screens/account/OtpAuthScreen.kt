@@ -20,6 +20,7 @@ import com.enaboapps.switchify.auth.viewmodel.AuthUiState
 import com.enaboapps.switchify.auth.viewmodel.AuthViewModel
 import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.ActionButton
+import com.enaboapps.switchify.components.OfficialGoogleSignInButton
 import com.enaboapps.switchify.components.TextArea
 import com.enaboapps.switchify.nav.NavigationRoute
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
@@ -43,6 +44,7 @@ fun OtpAuthScreen(
     val email by viewModel.email.collectAsState()
     val otp by viewModel.otp.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
+
 
     BaseView(
         titleResId = R.string.screen_title_authentication,
@@ -77,7 +79,10 @@ fun OtpAuthScreen(
                     onSendOtp = viewModel::sendOtp,
                     errorMessage = errorMessage,
                     onClearError = viewModel::clearError,
-                    isSignUp = currentIsSignUp
+                    isSignUp = currentIsSignUp,
+                    onGoogleSignInClick = {
+                        viewModel.signInWithGoogle()
+                    }
                 )
             }
             AuthUiState.Loading -> {
@@ -118,7 +123,8 @@ private fun EmailInputSection(
     onSendOtp: () -> Unit,
     errorMessage: String?,
     onClearError: () -> Unit,
-    isSignUp: Boolean = false
+    isSignUp: Boolean = false,
+    onGoogleSignInClick: (() -> Unit)? = null
 ) {
     Text(
         text = stringResource(if (isSignUp) R.string.create_account else R.string.welcome_back),
@@ -157,6 +163,37 @@ private fun EmailInputSection(
         onClick = onSendOtp,
         enabled = email.isNotBlank()
     )
+
+    // Add divider and Google Sign-In option
+    if (onGoogleSignInClick != null) {
+        Spacer(modifier = Modifier.height(24.dp))
+        
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            HorizontalDivider(
+                modifier = Modifier.weight(1f),
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
+            )
+            Text(
+                text = stringResource(R.string.or),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 16.dp)
+            )
+            HorizontalDivider(
+                modifier = Modifier.weight(1f),
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
+            )
+        }
+        
+        Spacer(modifier = Modifier.height(24.dp))
+        
+        OfficialGoogleSignInButton(
+            onClick = onGoogleSignInClick
+        )
+    }
 
     if (errorMessage != null) {
         Spacer(modifier = Modifier.height(16.dp))

@@ -94,6 +94,19 @@ android {
             "SUPABASE_ANON_KEY",
             "\"${localProperties.getProperty("supabase.publishableKey", "")}\""
         )
+
+        if (localProperties.getProperty(
+                "google.webClientId",
+                ""
+            ).isEmpty()
+        ) {
+            throw GradleException("Google Web Client ID is not set in local.properties")
+        }
+        buildConfigField(
+            "String",
+            "GOOGLE_WEB_CLIENT_ID",
+            "\"${localProperties.getProperty("google.webClientId", "")}\""
+        )
     }
 
     buildTypes {
@@ -168,6 +181,10 @@ dependencies {
     implementation(libs.room.ktx)
     ksp(libs.room.compiler)
     implementation(libs.sentry.android)
+    // New Google Identity Services with Credential Manager
+    implementation(libs.credentials)
+    implementation(libs.credentials.play.services.auth)
+    implementation(libs.googleid)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.espresso.core)
