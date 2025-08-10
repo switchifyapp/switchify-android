@@ -4,6 +4,7 @@
     <!-- Common UI -->
     <string name="on">ON</string>
     <string name="off">OFF</string>
+    <string name="or">OR</string>
 
     <string name="app_description">Switchify enables you to use your device with adaptive switches. It scans your screen, allowing you to select a point to tap. You can also swipe, and do everything else you need to navigate your device. It also includes an item scan feature that allows you to navigate through items on your screen.</string>
 

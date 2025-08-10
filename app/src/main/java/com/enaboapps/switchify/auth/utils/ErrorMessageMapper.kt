@@ -45,6 +45,13 @@ object ErrorMessageMapper {
         "internal.*server.*error|server.*error|5\\d\\d.*error".toRegex(RegexOption.IGNORE_CASE) to
             "Server temporarily unavailable. Please try again in a few minutes.",
         
+        // Google OAuth specific errors
+        "google.*sign.*in.*failed|google.*auth.*error|play.*services.*error".toRegex(RegexOption.IGNORE_CASE) to
+            "Google Sign-In failed. Please try again.",
+        
+        "id.*token.*null|invalid.*id.*token|token.*verification.*failed".toRegex(RegexOption.IGNORE_CASE) to
+            "Google Sign-In authentication failed. Please try again.",
+        
         // Authentication service errors
         "auth.*error|authentication.*failed|unauthorized".toRegex(RegexOption.IGNORE_CASE) to
             "Authentication failed. Please try again."

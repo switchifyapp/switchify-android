@@ -3,6 +3,8 @@ package com.enaboapps.switchify.auth.repository
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.providers.builtin.OTP
+import io.github.jan.supabase.auth.providers.builtin.IDToken
+import io.github.jan.supabase.auth.providers.Google
 import io.github.jan.supabase.auth.OtpType
 import io.github.jan.supabase.auth.user.UserInfo
 import io.github.jan.supabase.postgrest.postgrest
@@ -75,6 +77,22 @@ class AuthRepository private constructor() {
      */
     fun getUserId(): String? {
         return supabaseClient.auth.currentUserOrNull()?.id
+    }
+
+    /**
+     * Sign in with Google using ID token obtained from Google Play Services
+     */
+    suspend fun signInWithGoogle(idToken: String, accessToken: String?): Result<Unit> {
+        return try {
+            supabaseClient.auth.signInWith(IDToken) {
+                this.idToken = idToken
+                this.accessToken = accessToken
+                this.provider = Google
+            }
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
     }
 
     /**
