@@ -10,6 +10,7 @@ import com.enaboapps.switchify.auth.utils.ErrorMessageMapper
 import com.enaboapps.switchify.auth.google.GoogleSignInManager
 import com.enaboapps.switchify.auth.google.GoogleSignInResult
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
+import io.sentry.Sentry
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -181,6 +182,15 @@ class AuthViewModel(
                             }
                         },
                         onFailure = { exception ->
+                            // Log Google Sign-In Supabase authentication errors to Sentry
+                            Sentry.captureException(exception) { scope ->
+                                scope.setTag("component", "AuthViewModel")
+                                scope.setTag("error_type", "GoogleSignInSupabaseError")
+                                scope.setExtra("isSignUp", isSignUp.toString())
+                                scope.setExtra("idTokenLength", result.idToken.length.toString())
+                                scope.setExtra("hasEmail", (result.email != null).toString())
+                                scope.setExtra("hasDisplayName", (result.displayName != null).toString())
+                            }
                             _errorMessage.value = ErrorMessageMapper.mapExceptionToUserFriendlyMessage(
                                 exception,
                                 "googleSignIn"
@@ -191,6 +201,13 @@ class AuthViewModel(
                 }
             }
             is GoogleSignInResult.Error -> {
+                // Log Google Sign-In client errors to Sentry
+                Sentry.captureMessage("Google Sign-In client error: ${result.message}") { scope ->
+                    scope.setTag("component", "AuthViewModel")
+                    scope.setTag("error_type", "GoogleSignInClientError")
+                    scope.setExtra("isSignUp", isSignUp.toString())
+                    scope.setExtra("errorMessage", result.message)
+                }
                 _errorMessage.value = "Google Sign-In failed: ${result.message}"
                 _uiState.value = AuthUiState.EmailInput
             }
