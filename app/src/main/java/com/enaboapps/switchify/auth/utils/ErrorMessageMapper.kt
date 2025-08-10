@@ -25,9 +25,9 @@ object ErrorMessageMapper {
         "incorrect.*code|invalid.*code|wrong.*code|code.*expired|token.*expired|otp.*expired|invalid.*token|token.*invalid".toRegex(RegexOption.IGNORE_CASE) to 
             "Incorrect verification code. Please check your code and try again.",
         
-        // Sign up specific - user already exists
+        // Sign up specific - user already exists (less relevant in unified flow)
         "user.*already.*registered|email.*already.*exists|already.*signed.*up".toRegex(RegexOption.IGNORE_CASE) to
-            "This email is already registered. Try signing in instead.",
+            "This email is already registered.",
         
         // Email-related errors (more general, comes after specific email format errors)
         "email.*not.*found|user.*not.*found|invalid.*email|email.*does.*not.*exist".toRegex(RegexOption.IGNORE_CASE) to 
