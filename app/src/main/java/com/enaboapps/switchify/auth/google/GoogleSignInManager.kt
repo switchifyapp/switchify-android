@@ -73,18 +73,22 @@ class GoogleSignInManager(private val context: Context) {
     private fun handleCredentialResponse(result: GetCredentialResponse): GoogleSignInResult {
         val credential = result.credential
         
-        return when (credential) {
-            is GoogleIdTokenCredential -> {
-                // Successfully got Google ID Token
-                GoogleSignInResult.Success(
-                    idToken = credential.idToken,
-                    accessToken = null, // Access token not available in Credential Manager flow
-                    email = credential.id,
-                    displayName = credential.displayName
-                )
+        return when (credential.type) {
+            GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL -> {
+                try {
+                    val googleIdCredential = GoogleIdTokenCredential.createFrom(credential.data)
+                    GoogleSignInResult.Success(
+                        idToken = googleIdCredential.idToken,
+                        accessToken = null, // Access token not available in Credential Manager flow
+                        email = googleIdCredential.id,
+                        displayName = googleIdCredential.displayName
+                    )
+                } catch (e: Exception) {
+                    GoogleSignInResult.Error("Failed to parse Google credential: ${e.message}")
+                }
             }
             else -> {
-                GoogleSignInResult.Error("Unexpected credential type: ${credential::class.simpleName}")
+                GoogleSignInResult.Error("Unexpected credential type: ${credential.type} (${credential::class.simpleName})")
             }
         }
     }
