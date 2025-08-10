@@ -415,6 +415,7 @@
     <string name="button_save">Save</string>
     <string name="button_delete">Delete</string>
     <string name="button_cancel">Cancel</string>
+    <string name="button_retry">Retry</string>
     <string name="button_add_long_press_action">Add Long Press Action</string>
     <string name="button_privacy_policy">Privacy Policy</string>
     <string name="button_delete_account">Delete Account</string>

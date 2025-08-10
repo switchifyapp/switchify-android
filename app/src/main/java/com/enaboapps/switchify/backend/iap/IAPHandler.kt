@@ -11,10 +11,12 @@ import com.enaboapps.switchify.service.window.ServiceMessageHUD
 import com.enaboapps.switchify.utils.LogEvent
 import com.enaboapps.switchify.utils.Logger
 import com.revenuecat.purchases.CustomerInfo
+import com.revenuecat.purchases.Offerings
 import com.revenuecat.purchases.Purchases
 import com.revenuecat.purchases.PurchasesConfiguration
 import com.revenuecat.purchases.PurchasesError
 import com.revenuecat.purchases.interfaces.ReceiveCustomerInfoCallback
+import com.revenuecat.purchases.interfaces.ReceiveOfferingsCallback
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
@@ -33,6 +35,10 @@ object IAPHandler {
     private val _purchaseState = MutableStateFlow<PurchaseState>(PurchaseState.Initial)
     val purchaseState: StateFlow<PurchaseState> = _purchaseState
 
+    // StateFlow to observe purchase capability changes
+    private val _purchaseCapability = MutableStateFlow<PurchaseCapability>(PurchaseCapability.Unknown)
+    val purchaseCapability: StateFlow<PurchaseCapability> = _purchaseCapability
+
     /**
      * Represents different states of the purchase process
      */
@@ -40,6 +46,16 @@ object IAPHandler {
         object Initial : PurchaseState()
         object Success : PurchaseState()
         object Error : PurchaseState()
+    }
+
+    /**
+     * Represents the capability to make purchases
+     */
+    sealed class PurchaseCapability {
+        object Available : PurchaseCapability()
+        object Unavailable : PurchaseCapability()
+        object Restricted : PurchaseCapability()
+        object Unknown : PurchaseCapability()
     }
 
     /**
@@ -98,6 +114,7 @@ object IAPHandler {
             .build()
         Purchases.configure(config)
         refreshPurchaseStatus()
+        checkPurchaseCapability()
     }
 
     /**
@@ -223,5 +240,89 @@ object IAPHandler {
             return
         }
         preferenceManager.setBooleanValue(PreferenceManager.PREFERENCE_KEY_PRO, status)
+    }
+
+    /**
+     * Checks if the user can make purchases
+     *
+     * @return True if purchases are available, false otherwise
+     */
+    fun canMakePurchases(): Boolean {
+        return when (_purchaseCapability.value) {
+            is PurchaseCapability.Available -> true
+            else -> false
+        }
+    }
+
+    /**
+     * Gets the current purchase capability
+     *
+     * @return Current PurchaseCapability state
+     */
+    fun getCurrentPurchaseCapability(): PurchaseCapability {
+        return _purchaseCapability.value
+    }
+
+    /**
+     * Gets a human-readable reason for purchase unavailability
+     *
+     * @return String describing why purchases are unavailable, or null if available
+     */
+    fun getPurchaseCapabilityReason(): String? {
+        return when (_purchaseCapability.value) {
+            is PurchaseCapability.Available -> null
+            is PurchaseCapability.Unavailable -> "In-app purchases are not available on this device"
+            is PurchaseCapability.Restricted -> "Purchases are restricted (parental controls or device policy)"
+            is PurchaseCapability.Unknown -> "Purchase capability is being determined..."
+        }
+    }
+
+    /**
+     * Checks purchase capability by attempting to fetch offerings
+     * This determines if billing is available and working
+     */
+    fun checkPurchaseCapability() {
+        if (!isRevenueCatInitialized) {
+            _purchaseCapability.value = PurchaseCapability.Unavailable
+            return
+        }
+
+        if (BuildConfig.DEBUG) {
+            _purchaseCapability.value = PurchaseCapability.Available
+            return
+        }
+
+        Purchases.sharedInstance.getOfferings(object : ReceiveOfferingsCallback {
+            override fun onReceived(offerings: Offerings) {
+                if (offerings.all.isEmpty()) {
+                    _purchaseCapability.value = PurchaseCapability.Unavailable
+                    Log.w(TAG, "No offerings available - purchases unavailable")
+                } else {
+                    _purchaseCapability.value = PurchaseCapability.Available
+                    Log.d(TAG, "Purchase capability: Available")
+                }
+            }
+
+            override fun onError(error: PurchasesError) {
+                val capability = when {
+                    error.message.contains("billing unavailable", ignoreCase = true) ||
+                    error.message.contains("billing not available", ignoreCase = true) ||
+                    error.message.contains("not supported", ignoreCase = true) -> {
+                        Log.w(TAG, "Billing unavailable: ${error.message}")
+                        PurchaseCapability.Unavailable
+                    }
+                    error.message.contains("restricted", ignoreCase = true) ||
+                    error.message.contains("parental", ignoreCase = true) -> {
+                        Log.w(TAG, "Billing restricted: ${error.message}")
+                        PurchaseCapability.Restricted
+                    }
+                    else -> {
+                        Log.e(TAG, "Error checking purchase capability: ${error.message}")
+                        PurchaseCapability.Unknown
+                    }
+                }
+                _purchaseCapability.value = capability
+            }
+        })
     }
 }

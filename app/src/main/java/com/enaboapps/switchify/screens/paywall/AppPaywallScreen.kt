@@ -15,6 +15,7 @@ import androidx.navigation.NavController
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.backend.iap.IAPHandler
 import com.enaboapps.switchify.backend.iap.IAPHandler.PurchaseState
+import com.enaboapps.switchify.backend.iap.IAPHandler.PurchaseCapability
 import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.ActionButton
 import com.enaboapps.switchify.screens.paywall.model.AppPaywallScreenModel
@@ -28,34 +29,93 @@ fun AppPaywallScreen(navController: NavController) {
     val model: AppPaywallScreenModel = viewModel()
 
     val purchaseState = IAPHandler.purchaseState.collectAsState()
+    val purchaseCapability = IAPHandler.purchaseCapability.collectAsState()
 
     val options = PaywallDialogOptions.Builder()
         .setListener(model)
         .setDismissRequest { navController.popBackStack() }
         .build()
 
-    if (purchaseState.value == PurchaseState.Success) {
-        BaseView(
-            titleResId = R.string.screen_title_pro_yours,
-            navController = navController,
-            enableScroll = false,
-            padding = 25.dp
-        ) {
-            Text(
-                text = stringResource(R.string.pro_thank_you),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.padding(horizontal = 20.dp)
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            ActionButton(
-                textResId = R.string.button_done,
-                onClick = {
-                    navController.popBackStack()
-                }
-            )
+    when {
+        purchaseState.value == PurchaseState.Success -> {
+            BaseView(
+                titleResId = R.string.screen_title_pro_yours,
+                navController = navController,
+                enableScroll = false,
+                padding = 25.dp
+            ) {
+                Text(
+                    text = stringResource(R.string.pro_thank_you),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.padding(horizontal = 20.dp)
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                ActionButton(
+                    textResId = R.string.button_done,
+                    onClick = {
+                        navController.popBackStack()
+                    }
+                )
+            }
         }
-    } else {
-        PaywallDialog(options)
+        
+        purchaseCapability.value is PurchaseCapability.Unavailable ||
+        purchaseCapability.value is PurchaseCapability.Restricted -> {
+            BaseView(
+                titleResId = R.string.screen_title_upgrade_pro,
+                navController = navController,
+                enableScroll = false,
+                padding = 25.dp
+            ) {
+                Text(
+                    text = IAPHandler.getPurchaseCapabilityReason() ?: "Purchases unavailable",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.padding(horizontal = 20.dp)
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = "Please check your device settings or contact support if you believe this is an error.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 20.dp)
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                ActionButton(
+                    textResId = R.string.button_done,
+                    onClick = {
+                        navController.popBackStack()
+                    }
+                )
+            }
+        }
+        
+        purchaseCapability.value is PurchaseCapability.Unknown -> {
+            BaseView(
+                titleResId = R.string.screen_title_upgrade_pro,
+                navController = navController,
+                enableScroll = false,
+                padding = 25.dp
+            ) {
+                Text(
+                    text = "Checking purchase availability...",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.padding(horizontal = 20.dp)
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                ActionButton(
+                    textResId = R.string.button_retry,
+                    onClick = {
+                        IAPHandler.checkPurchaseCapability()
+                    }
+                )
+            }
+        }
+        
+        else -> {
+            PaywallDialog(options)
+        }
     }
 }
