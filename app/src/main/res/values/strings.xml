@@ -418,10 +418,17 @@
     <string name="button_privacy_policy">Privacy Policy</string>
     <string name="button_delete_account">Delete Account</string>
     <string name="button_sign_out">Sign Out</string>
+    <string name="button_clear_and_sign_out">Clear &amp; Sign Out</string>
+    <string name="button_keep_and_sign_out">Keep &amp; Sign Out</string>
+    <string name="button_clear_and_delete">Clear &amp; Delete</string>
+    <string name="button_keep_and_delete">Keep &amp; Delete</string>
 
     <!-- Dialog Titles -->
     <string name="dialog_title_delete_account">Delete Account</string>
     <string name="dialog_message_delete_account">Are you sure you want to delete your account? This action cannot be undone.</string>
+    <string name="dialog_title_sign_out">Sign Out</string>
+    <string name="dialog_message_clear_preferences_sign_out">Would you like to clear your local preferences when signing out?</string>
+    <string name="dialog_message_clear_preferences_delete">Would you like to clear your local preferences when deleting your account?</string>
 
 
     <string name="label_email">Email</string>

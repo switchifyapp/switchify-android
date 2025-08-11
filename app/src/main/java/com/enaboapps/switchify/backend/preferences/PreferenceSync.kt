@@ -26,11 +26,6 @@ class PreferenceSync private constructor() {
 
     companion object {
         private const val TAG = "PreferenceSync"
-        private val BLACKLISTED_KEYS = setOf(
-            PreferenceManager.Keys.PREFERENCE_KEY_PRO,
-            PreferenceManager.Keys.PREFERENCE_KEY_ACCESS_TECHNIQUE,
-            PreferenceManager.Keys.PREFERENCE_KEY_SETUP_COMPLETE
-        )
 
         @Volatile
         private var instance: PreferenceSync? = null
@@ -200,7 +195,7 @@ class PreferenceSync private constructor() {
 
         return try {
             // Filter out blacklisted keys
-            val filteredChanges = changes.filterKeys { !BLACKLISTED_KEYS.contains(it) }
+            val filteredChanges = changes.filterKeys { !PreferenceManager.Keys.BLACKLISTED_KEYS.contains(it) }
             
             if (filteredChanges.isEmpty()) {
                 Log.d(TAG, "No valid changes to upload after filtering")
@@ -234,7 +229,7 @@ class PreferenceSync private constructor() {
     private fun getAllPreferences(): Map<String, Any>? {
         val prefs = sharedPreferences ?: return null
         return prefs.all.mapNotNull { (key, value) ->
-            if (!BLACKLISTED_KEYS.contains(key) && value != null) {
+            if (!PreferenceManager.Keys.BLACKLISTED_KEYS.contains(key) && value != null) {
                 when (value) {
                     is String, is Boolean, is Int, is Long, is Float -> key to value
                     else -> {
@@ -254,7 +249,7 @@ class PreferenceSync private constructor() {
         val prefs = sharedPreferences ?: return
         prefs.edit {
             settings.forEach { (key, value) ->
-                if (!BLACKLISTED_KEYS.contains(key)) {
+                if (!PreferenceManager.Keys.BLACKLISTED_KEYS.contains(key)) {
                     when (value) {
                         is String -> putString(key, value)
                         is Boolean -> putBoolean(key, value)
