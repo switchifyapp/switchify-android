@@ -28,7 +28,8 @@ class PreferenceSync private constructor() {
         private const val TAG = "PreferenceSync"
         private val BLACKLISTED_KEYS = setOf(
             PreferenceManager.Keys.PREFERENCE_KEY_PRO,
-            PreferenceManager.Keys.PREFERENCE_KEY_ACCESS_TECHNIQUE
+            PreferenceManager.Keys.PREFERENCE_KEY_ACCESS_TECHNIQUE,
+            PreferenceManager.Keys.PREFERENCE_KEY_SETUP_COMPLETE
         )
 
         @Volatile
