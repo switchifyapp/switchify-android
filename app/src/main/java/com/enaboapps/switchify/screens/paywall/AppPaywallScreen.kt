@@ -6,8 +6,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -26,7 +28,12 @@ import com.revenuecat.purchases.ui.revenuecatui.PaywallDialogOptions
 @OptIn(ExperimentalPreviewRevenueCatUIPurchasesAPI::class)
 @Composable
 fun AppPaywallScreen(navController: NavController) {
+    val context = LocalContext.current
     val model: AppPaywallScreenModel = viewModel()
+
+    LaunchedEffect(Unit) {
+        IAPHandler.initIfNeeded(context)
+    }
 
     val purchaseState = IAPHandler.purchaseState.collectAsState()
     val purchaseCapability = IAPHandler.purchaseCapability.collectAsState()
@@ -108,7 +115,9 @@ fun AppPaywallScreen(navController: NavController) {
                 ActionButton(
                     textResId = R.string.button_retry,
                     onClick = {
-                        IAPHandler.checkPurchaseCapability()
+                        IAPHandler.initIfNeeded(context) {
+                            IAPHandler.checkPurchaseCapability()
+                        }
                     }
                 )
             }

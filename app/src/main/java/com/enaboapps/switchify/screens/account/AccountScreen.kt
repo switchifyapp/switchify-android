@@ -60,9 +60,11 @@ fun AccountScreen(navController: NavController) {
     val isLoading = remember { mutableStateOf(true) }
 
     LaunchedEffect(Unit) {
-        IAPHandler.getProStatus { status ->
-            proStatus.value = status
-            isLoading.value = false
+        IAPHandler.initIfNeeded(context) {
+            IAPHandler.getProStatus { status ->
+                proStatus.value = status
+                isLoading.value = false
+            }
         }
     }
 

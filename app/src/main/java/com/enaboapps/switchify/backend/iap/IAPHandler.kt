@@ -81,18 +81,46 @@ object IAPHandler {
      * @param context The application context.
      * @param connectToRevenueCat Whether to connect to RevenueCat
      * @param debugLogsEnabled Enable debug logs for RevenueCat
+     * @param onInitialized Callback to be called when initialization is complete
      */
     fun initialize(
         context: Context,
         connectToRevenueCat: Boolean = true,
-        debugLogsEnabled: Boolean = BuildConfig.DEBUG
+        debugLogsEnabled: Boolean = BuildConfig.DEBUG,
+        onInitialized: () -> Unit = {}
     ) {
+        if (isRevenueCatInitialized) {
+            Log.e(TAG, "IAPHandler is already initialized")
+            onInitialized()
+            return
+        }
         preferenceManager = PreferenceManager(context)
         if (connectToRevenueCat) {
-            connect(context, debugLogsEnabled)
+            connect(context, debugLogsEnabled) {
+                onInitialized()
+            }
+        } else {
+            onInitialized()
         }
 
         Log.d(TAG, "Initialized IAP handler")
+    }
+
+    /**
+     * Initializes RevenueCat if needed. Safe to call multiple times.
+     * Use this in paywall/purchase screens before doing any purchase operations.
+     * 
+     * @param context The context to use for initialization
+     * @param onInitialized Callback called when RevenueCat is ready
+     */
+    fun initIfNeeded(context: Context, onInitialized: () -> Unit = {}) {
+        if (isRevenueCatInitialized) {
+            onInitialized()
+            return
+        }
+        
+        Log.d(TAG, "Initializing RevenueCat on demand")
+        connect(context, BuildConfig.DEBUG, onInitialized)
     }
 
     /**
@@ -100,10 +128,12 @@ object IAPHandler {
      *
      * @param context The application context
      * @param debugLogsEnabled Enable debug logs for RevenueCat
+     * @param onInitialized Callback to be called when initialization is complete
      */
-    fun connect(context: Context, debugLogsEnabled: Boolean = BuildConfig.DEBUG) {
+    fun connect(context: Context, debugLogsEnabled: Boolean = BuildConfig.DEBUG, onInitialized: () -> Unit = {}) {
         if (isRevenueCatInitialized) {
             Log.e(TAG, "RevenueCat is already initialized")
+            onInitialized()
             return
         }
         isRevenueCatInitialized = true
@@ -115,6 +145,7 @@ object IAPHandler {
         Purchases.configure(config)
         refreshPurchaseStatus()
         checkPurchaseCapability()
+        onInitialized()
     }
 
     /**
