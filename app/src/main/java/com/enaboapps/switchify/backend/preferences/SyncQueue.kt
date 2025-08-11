@@ -13,6 +13,8 @@ class SyncQueue private constructor() {
     private val coroutineScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private val pendingChanges = ConcurrentHashMap<String, Any>()
     private val currentSyncJob = AtomicReference<Job?>(null)
+    @Volatile
+    private var isPaused = false
     
     companion object {
         private const val TAG = "SyncQueue"
@@ -33,6 +35,11 @@ class SyncQueue private constructor() {
      * with 3-second delay.
      */
     fun queueChange(key: String, value: Any) {
+        if (isPaused) {
+            Log.d(TAG, "SyncQueue is paused, ignoring change for key: $key")
+            return
+        }
+        
         Log.d(TAG, "Queueing change for key: $key")
         
         // Add to pending changes
@@ -107,6 +114,23 @@ class SyncQueue private constructor() {
         Log.d(TAG, "Clearing sync queue")
         currentSyncJob.get()?.cancel()
         pendingChanges.clear()
+    }
+    
+    /**
+     * Pauses the sync queue to prevent conflicts during authentication sync.
+     */
+    fun pause() {
+        Log.d(TAG, "Pausing sync queue")
+        isPaused = true
+        currentSyncJob.get()?.cancel()
+    }
+    
+    /**
+     * Resumes the sync queue after authentication sync is complete.
+     */
+    fun resume() {
+        Log.d(TAG, "Resuming sync queue")
+        isPaused = false
     }
     
     /**

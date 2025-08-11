@@ -65,10 +65,6 @@ class MainActivity : ComponentActivity() {
             SwitchEventStore.getInstance().initialize(this)
         }, 1000)
 
-        // Delay settings sync to avoid blocking app startup
-        Handler(Looper.getMainLooper()).postDelayed({
-            preferenceManager.preferenceSync.retrieveSettingsFromSupabase()
-        }, 1000)
 
         // Migrate files from regular storage to device protected storage
         migrateFromRegularStorage()
