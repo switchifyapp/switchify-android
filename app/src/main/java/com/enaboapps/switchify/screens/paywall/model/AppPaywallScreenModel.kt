@@ -1,17 +1,20 @@
 package com.enaboapps.switchify.screens.paywall.model
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import com.enaboapps.switchify.backend.iap.IAPHandler
 import com.revenuecat.purchases.CustomerInfo
 import com.revenuecat.purchases.models.StoreTransaction
 import com.revenuecat.purchases.ui.revenuecatui.PaywallListener
 
-class AppPaywallScreenModel : ViewModel(), PaywallListener {
+class AppPaywallScreenModel(application: Application) : AndroidViewModel(application), PaywallListener {
     override fun onRestoreCompleted(customerInfo: CustomerInfo) {
         super.onRestoreCompleted(customerInfo)
 
         // Handle restore completion
-        IAPHandler.refreshPurchaseStatus()
+        IAPHandler.initIfNeeded(getApplication<Application>()) {
+            IAPHandler.refreshPurchaseStatus()
+        }
     }
 
     override fun onPurchaseCompleted(
@@ -21,6 +24,8 @@ class AppPaywallScreenModel : ViewModel(), PaywallListener {
         super.onPurchaseCompleted(customerInfo, storeTransaction)
 
         // Handle purchase completion
-        IAPHandler.refreshPurchaseStatus()
+        IAPHandler.initIfNeeded(getApplication<Application>()) {
+            IAPHandler.refreshPurchaseStatus()
+        }
     }
 }

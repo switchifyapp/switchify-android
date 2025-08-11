@@ -95,8 +95,10 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
         if (!isSetupComplete) {
             navController.navigate(NavigationRoute.Onboarding.name)
         }
-        IAPHandler.refreshPurchaseStatus { proPurchased ->
-            isPro.value = proPurchased
+        IAPHandler.initIfNeeded(context) {
+            IAPHandler.refreshPurchaseStatus { proPurchased ->
+                isPro.value = proPurchased
+            }
         }
         
         // Initialize switch store and wait for completion before validation
