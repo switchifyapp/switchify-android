@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.auth.repository.AuthRepository
+import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import kotlinx.coroutines.launch
 import com.enaboapps.switchify.backend.iap.IAPHandler
 import com.enaboapps.switchify.components.ActionButton
@@ -50,7 +51,10 @@ fun AccountScreen(navController: NavController) {
     val userEmail = currentUser?.email ?: "Not Logged In"
     val scope = rememberCoroutineScope()
     val showDeleteAccountDialog = remember { mutableStateOf(false) }
+    val showSignOutDialog = remember { mutableStateOf(false) }
+    val showDeletePrefsDialog = remember { mutableStateOf(false) }
     val context = LocalContext.current
+    val preferenceManager = remember { PreferenceManager(context) }
 
     val proStatus = remember { mutableStateOf("") }
     val isLoading = remember { mutableStateOf(true) }
@@ -97,10 +101,7 @@ fun AccountScreen(navController: NavController) {
         // Account Actions Section
         AccountActionsSection(
             onSignOut = {
-                scope.launch {
-                    authRepository.signOut()
-                    navController.popBackStack(navController.graph.startDestinationId, false)
-                }
+                showSignOutDialog.value = true
             },
             onDeleteAccount = {
                 showDeleteAccountDialog.value = true
@@ -115,7 +116,8 @@ fun AccountScreen(navController: NavController) {
                 confirmButton = {
                     TextButton(
                         onClick = {
-                            deleteAccount()
+                            showDeleteAccountDialog.value = false
+                            showDeletePrefsDialog.value = true
                         }
                     ) {
                         Text(stringResource(R.string.button_delete))
@@ -126,6 +128,74 @@ fun AccountScreen(navController: NavController) {
                         onClick = { showDeleteAccountDialog.value = false }
                     ) {
                         Text(stringResource(R.string.button_cancel))
+                    }
+                }
+            )
+        }
+
+        // Sign Out Confirmation Dialog
+        if (showSignOutDialog.value) {
+            AlertDialog(
+                onDismissRequest = { showSignOutDialog.value = false },
+                title = { Text(stringResource(R.string.dialog_title_sign_out)) },
+                text = { Text(stringResource(R.string.dialog_message_clear_preferences_sign_out)) },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            showSignOutDialog.value = false
+                            scope.launch {
+                                preferenceManager.clearWhitelistedPreferences()
+                                authRepository.signOut()
+                                navController.popBackStack(navController.graph.startDestinationId, false)
+                            }
+                        }
+                    ) {
+                        Text(stringResource(R.string.button_clear_and_sign_out))
+                    }
+                },
+                dismissButton = {
+                    TextButton(
+                        onClick = {
+                            showSignOutDialog.value = false
+                            scope.launch {
+                                authRepository.signOut()
+                                navController.popBackStack(navController.graph.startDestinationId, false)
+                            }
+                        }
+                    ) {
+                        Text(stringResource(R.string.button_keep_and_sign_out))
+                    }
+                }
+            )
+        }
+
+        // Delete Account Preferences Dialog  
+        if (showDeletePrefsDialog.value) {
+            AlertDialog(
+                onDismissRequest = { showDeletePrefsDialog.value = false },
+                title = { Text(stringResource(R.string.dialog_title_delete_account)) },
+                text = { Text(stringResource(R.string.dialog_message_clear_preferences_delete)) },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            showDeletePrefsDialog.value = false
+                            scope.launch {
+                                preferenceManager.clearWhitelistedPreferences()
+                                deleteAccount()
+                            }
+                        }
+                    ) {
+                        Text(stringResource(R.string.button_clear_and_delete))
+                    }
+                },
+                dismissButton = {
+                    TextButton(
+                        onClick = {
+                            showDeletePrefsDialog.value = false
+                            deleteAccount()
+                        }
+                    ) {
+                        Text(stringResource(R.string.button_keep_and_delete))
                     }
                 }
             )

@@ -48,6 +48,15 @@ class PreferenceManager(context: Context) {
         const val PREFERENCE_KEY_ONBOARDING_USER_TYPE = "onboarding_user_type"
         const val PREFERENCE_KEY_ONBOARDING_IS_NEW_USER = "onboarding_is_new_user"
         private const val PREFERENCE_FILE_NAME = "switchify_preferences"
+        
+        /**
+         * Keys that should NOT be synced across devices - single source of truth
+         */
+        val BLACKLISTED_KEYS = setOf(
+            PREFERENCE_KEY_PRO,
+            PREFERENCE_KEY_ACCESS_TECHNIQUE,
+            PREFERENCE_KEY_SETUP_COMPLETE
+        )
     }
 
     private val appContext = context.createDeviceProtectedStorageContext()
@@ -180,5 +189,26 @@ class PreferenceManager(context: Context) {
         } catch (e: ClassCastException) {
             defaultValue
         }
+    }
+
+    /**
+     * Clears all whitelisted preferences (synced preferences) while preserving blacklisted keys.
+     * Useful for logout/account deletion when user wants to clear their local data.
+     */
+    fun clearWhitelistedPreferences() {
+        sharedPreferences.edit {
+            // Get all current preferences
+            val allPrefs = sharedPreferences.all
+            
+            // Remove all except blacklisted keys
+            allPrefs.keys.forEach { key ->
+                if (!BLACKLISTED_KEYS.contains(key)) {
+                    remove(key)
+                }
+            }
+        }
+        
+        // Clear sync queue to prevent syncing cleared preferences
+        clearSyncQueue()
     }
 }
