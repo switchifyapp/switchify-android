@@ -154,9 +154,6 @@ class AuthViewModel : ViewModel() {
         Handler(Looper.getMainLooper()).postDelayed({
             val preferenceManager = PreferenceManager(context)
             preferenceManager.enableSync()
-            // For unified flow, always retrieve settings from server
-            // If it's a new user, server will have empty settings which is fine
-            preferenceManager.preferenceSync.retrieveSettingsFromSupabase()
         }, 1000)
     }
 

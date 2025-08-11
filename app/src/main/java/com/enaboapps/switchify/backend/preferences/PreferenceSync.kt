@@ -4,8 +4,13 @@ import android.content.SharedPreferences
 import android.util.Log
 import androidx.core.content.edit
 import com.enaboapps.switchify.backend.supabase.SupabaseManager
+import com.enaboapps.switchify.backend.supabase.SupabaseClient
+import io.github.jan.supabase.auth.status.SessionStatus
+import io.github.jan.supabase.auth.auth
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
@@ -15,9 +20,9 @@ import kotlinx.coroutines.launch
  */
 class PreferenceSync private constructor() {
     private var sharedPreferences: SharedPreferences? = null
-    private val coroutineScope = CoroutineScope(Dispatchers.IO)
-    // TODO: Implement real-time listener for Supabase
+    private val coroutineScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private var isInitialized = false
+    private var authObserverStarted = false
 
     companion object {
         private const val TAG = "PreferenceSync"
@@ -42,6 +47,104 @@ class PreferenceSync private constructor() {
     fun initialize(preferences: SharedPreferences) {
         sharedPreferences = preferences
         isInitialized = true
+        startAuthObserver()
+    }
+
+    /**
+     * Starts observing authentication state changes for automatic preference sync.
+     */
+    private fun startAuthObserver() {
+        if (authObserverStarted) return
+        
+        authObserverStarted = true
+        Log.d(TAG, "Starting authentication state observer")
+        
+        coroutineScope.launch {
+            try {
+                SupabaseClient.client.auth.sessionStatus.collect { sessionStatus ->
+                    when (sessionStatus) {
+                        is SessionStatus.Authenticated -> {
+                            Log.i(TAG, "User signed in - performing smart sync after delay")
+                            // Wait for Supabase to fully initialize
+                            coroutineScope.launch {
+                                delay(3000)
+                                performSmartSync()
+                            }
+                        }
+                        is SessionStatus.NotAuthenticated -> {
+                            Log.i(TAG, "User signed out - clearing sync queue")
+                            SyncQueue.getInstance().clearQueue()
+                        }
+                        SessionStatus.Initializing -> {
+                            Log.d(TAG, "Initializing session")
+                        }
+                        is SessionStatus.RefreshFailure -> {
+                            Log.w(TAG, "Session refresh failure")
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error in auth state observer", e)
+            }
+        }
+    }
+
+    /**
+     * Performs smart sync: pull from Supabase, if empty assume new user and push local prefs.
+     */
+    private suspend fun performSmartSync() {
+        if (!checkInitialized()) return
+        
+        try {
+            Log.i(TAG, "Starting smart sync")
+            
+            // Pull preferences from Supabase
+            val result = SupabaseManager.getInstance().getUserPreferences()
+            
+            result.fold(
+                onSuccess = { downloadedPrefs ->
+                    if (downloadedPrefs.isEmpty()) {
+                        Log.i(TAG, "No remote preferences found - new user, pushing local preferences")
+                        pushLocalPreferences()
+                    } else {
+                        Log.i(TAG, "Remote preferences found - existing user, applying downloaded preferences")
+                        applySettings(downloadedPrefs)
+                    }
+                },
+                onFailure = { e ->
+                    Log.e(TAG, "Failed to retrieve preferences during smart sync", e)
+                    // Fallback: still try to push local preferences for new users
+                    Log.i(TAG, "Fallback: pushing local preferences")
+                    pushLocalPreferences()
+                }
+            )
+        } catch (e: Exception) {
+            Log.e(TAG, "Error during smart sync", e)
+        }
+    }
+
+    /**
+     * Pushes current local preferences to Supabase.
+     */
+    private suspend fun pushLocalPreferences() {
+        try {
+            val localPrefs = getAllPreferences()
+            if (localPrefs?.isNotEmpty() == true) {
+                val result = SupabaseManager.getInstance().saveUserPreferences(localPrefs)
+                result.fold(
+                    onSuccess = {
+                        Log.i(TAG, "Local preferences pushed successfully")
+                    },
+                    onFailure = { e ->
+                        Log.e(TAG, "Failed to push local preferences", e)
+                    }
+                )
+            } else {
+                Log.d(TAG, "No local preferences to push")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error pushing local preferences", e)
+        }
     }
 
     private fun checkInitialized(): Boolean {
