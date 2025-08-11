@@ -27,7 +27,7 @@ object ErrorMessageMapper {
         
         // Sign up specific - user already exists (less relevant in unified flow)
         "user.*already.*registered|email.*already.*exists|already.*signed.*up".toRegex(RegexOption.IGNORE_CASE) to
-            "This email is already registered.",
+            "This email is already registered. Try signing in instead.",
         
         // Email-related errors (more general, comes after specific email format errors)
         "email.*not.*found|user.*not.*found|invalid.*email|email.*does.*not.*exist".toRegex(RegexOption.IGNORE_CASE) to 
