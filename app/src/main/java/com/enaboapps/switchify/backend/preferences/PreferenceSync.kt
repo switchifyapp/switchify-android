@@ -79,6 +79,45 @@ class PreferenceSync private constructor() {
     }
 
     /**
+     * Uploads batched preference changes to Supabase.
+     * Used by SyncQueue for efficient batched uploads.
+     */
+    suspend fun uploadBatchedChanges(changes: Map<String, Any>): Result<Unit> {
+        if (!checkInitialized()) {
+            return Result.failure(Exception("PreferenceSync not initialized"))
+        }
+
+        return try {
+            // Filter out blacklisted keys
+            val filteredChanges = changes.filterKeys { !BLACKLISTED_KEYS.contains(it) }
+            
+            if (filteredChanges.isEmpty()) {
+                Log.d(TAG, "No valid changes to upload after filtering")
+                return Result.success(Unit)
+            }
+
+            // Get current preferences and merge with changes
+            val currentPrefs = getAllPreferences() ?: emptyMap()
+            val mergedPrefs = currentPrefs + filteredChanges
+            
+            val result = SupabaseManager.getInstance().saveUserPreferences(mergedPrefs)
+            result.fold(
+                onSuccess = {
+                    Log.i(TAG, "Batched changes uploaded successfully: ${filteredChanges.keys}")
+                    Result.success(Unit)
+                },
+                onFailure = { e ->
+                    Log.e(TAG, "Error uploading batched changes", e)
+                    Result.failure(e)
+                }
+            )
+        } catch (e: Exception) {
+            Log.e(TAG, "Error uploading batched changes", e)
+            Result.failure(e)
+        }
+    }
+
+    /**
      * Downloads and applies settings from Supabase to SharedPreferences.
      */
     fun retrieveSettingsFromSupabase() {

@@ -77,9 +77,26 @@ class PreferenceManager(context: Context) {
     }
 
     val preferenceSync = PreferenceSync.getInstance()
+    private val syncQueue = SyncQueue.getInstance()
 
     fun enableSync() {
         preferenceSync.initialize(sharedPreferences)
+    }
+
+    /**
+     * Forces immediate sync of all pending changes without delay.
+     * Useful for scenarios like logout where you want to ensure all changes are synced.
+     */
+    fun forceSyncNow() {
+        syncQueue.forceSyncNow()
+    }
+
+    /**
+     * Clears the sync queue without uploading.
+     * Useful for logout scenarios.
+     */
+    fun clearSyncQueue() {
+        syncQueue.clearQueue()
     }
 
     fun setSetupComplete() {
@@ -94,35 +111,35 @@ class PreferenceManager(context: Context) {
         sharedPreferences.edit {
             putInt(key, value)
         }
-        preferenceSync.uploadSettingsToSupabase()
+        syncQueue.queueChange(key, value)
     }
 
     fun setFloatValue(key: String, value: Float) {
         sharedPreferences.edit {
             putFloat(key, value)
         }
-        preferenceSync.uploadSettingsToSupabase()
+        syncQueue.queueChange(key, value)
     }
 
     fun setBooleanValue(key: String, value: Boolean) {
         sharedPreferences.edit {
             putBoolean(key, value)
         }
-        preferenceSync.uploadSettingsToSupabase()
+        syncQueue.queueChange(key, value)
     }
 
     fun setLongValue(key: String, value: Long) {
         sharedPreferences.edit {
             putLong(key, value)
         }
-        preferenceSync.uploadSettingsToSupabase()
+        syncQueue.queueChange(key, value)
     }
 
     fun setStringValue(key: String, value: String) {
         sharedPreferences.edit {
             putString(key, value)
         }
-        preferenceSync.uploadSettingsToSupabase()
+        syncQueue.queueChange(key, value)
     }
 
     fun getFloatValue(key: String, defaultValue: Float = 0f): Float {
