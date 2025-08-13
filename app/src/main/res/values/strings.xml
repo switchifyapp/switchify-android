@@ -632,4 +632,8 @@
     <!-- Error Messages -->
     <string name="feedback_error_empty">Please provide feedback details</string>
     <string name="feedback_error_submit_failed">Failed to submit feedback. Please try again.</string>
+    
+    <!-- Home Screen Feedback Card -->
+    <string name="home_feedback_title">Send Feedback</string>
+    <string name="home_feedback_summary">Share your thoughts and help us improve</string>
 </resources>

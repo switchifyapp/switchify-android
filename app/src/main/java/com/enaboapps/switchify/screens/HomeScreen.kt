@@ -26,6 +26,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AccessibilityNew
 import androidx.compose.material.icons.rounded.Apps
 import androidx.compose.material.icons.rounded.BugReport
+import androidx.compose.material.icons.rounded.Feedback
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material3.AlertDialog
@@ -278,7 +279,22 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
                 )
             }
 
-
+            // Feedback Card
+            item {
+                GridCard(
+                    titleResId = R.string.home_feedback_title,
+                    summaryResId = R.string.home_feedback_summary,
+                    onClick = { navController.navigate(NavigationRoute.UserFeedback.name) },
+                    icon = {
+                        Icon(
+                            imageVector = Icons.Rounded.Feedback,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
+                )
+            }
 
             // Quick Apps Permission Card (only show if permission not granted)
             if (!hasUsageStatsPermission.value) {
