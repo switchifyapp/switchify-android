@@ -605,4 +605,31 @@
     <string name="button_resend_otp">Resend Code</string>
     <string name="resend_in_seconds">Resend in %1$d seconds</string>
     <string name="button_change_email">Change Email</string>
+    
+    <!-- User Feedback Screen -->
+    <string name="screen_title_feedback">Send Feedback</string>
+    <string name="feedback_type_section">Feedback Type</string>
+    <string name="feedback_details_section">Details</string>
+    <string name="feedback_type_bug_report">Bug Report</string>
+    <string name="feedback_type_feature_request">Feature Request</string>
+    <string name="feedback_type_suggestion">Suggestion</string>
+    <string name="feedback_type_other">Other</string>
+    <string name="feedback_text_label">Your Feedback</string>
+    <string name="feedback_text_placeholder">Please describe your feedback in detail...</string>
+    <string name="feedback_email_label">Email (Optional)</string>
+    <string name="feedback_email_placeholder">your.email@example.com</string>
+    <string name="feedback_submit">Submit Feedback</string>
+    <string name="feedback_submitting">Submitting...</string>
+    <string name="feedback_success_title">Thank You!</string>
+    <string name="feedback_success_message">Your feedback has been submitted successfully. We appreciate your input!</string>
+    
+    <!-- Feedback Type Descriptions -->
+    <string name="feedback_type_bug_description">Report issues or problems you\'re experiencing</string>
+    <string name="feedback_type_feature_description">Suggest new features or improvements</string>
+    <string name="feedback_type_suggestion_description">Share general suggestions or ideas</string>
+    <string name="feedback_type_other_description">Any other feedback or comments</string>
+    
+    <!-- Error Messages -->
+    <string name="feedback_error_empty">Please provide feedback details</string>
+    <string name="feedback_error_submit_failed">Failed to submit feedback. Please try again.</string>
 </resources>

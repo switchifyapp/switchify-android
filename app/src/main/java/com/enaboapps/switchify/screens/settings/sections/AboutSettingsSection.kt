@@ -15,12 +15,14 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.components.ActionButton
 import com.enaboapps.switchify.components.ScrollableView
+import com.enaboapps.switchify.nav.NavigationRoute
 
 @Composable
-fun AboutSection() {
+fun AboutSection(navController: NavController? = null) {
     val context = LocalContext.current
     val version = context.packageManager.getPackageInfo(context.packageName, 0).versionName
 
@@ -77,8 +79,11 @@ fun AboutSection() {
         ActionButton(
             textResId = R.string.action_feedback,
             onClick = {
-                val url = "https://switchify.featurebase.app/"
-                context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri()))
+                navController?.navigate(NavigationRoute.UserFeedback.name)
+                    ?: run {
+                        val url = "https://switchify.featurebase.app/"
+                        context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri()))
+                    }
             }
         )
     }

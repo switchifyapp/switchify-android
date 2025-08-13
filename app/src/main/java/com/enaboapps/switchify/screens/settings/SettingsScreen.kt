@@ -94,7 +94,7 @@ fun SettingsScreen(navController: NavController) {
             0 -> GeneralSettingsTab(menuSettingsModel, navController)
             1 -> ScanningSettingsTab(navController)
             2 -> SelectionSettingsTab(selectionSettingsModel)
-            3 -> AboutSection()
+            3 -> AboutSection(navController)
         }
     }
 }

@@ -27,6 +27,7 @@ import com.enaboapps.switchify.screens.settings.switches.SwitchesScreen
 import com.enaboapps.switchify.screens.settings.techniques.AccessTechniqueSettingsScreen
 import com.enaboapps.switchify.screens.onboarding.OnboardingScreen
 import com.enaboapps.switchify.screens.permissions.UsageStatsPermissionScreen
+import com.enaboapps.switchify.screens.UserFeedbackScreen
 
 @Composable
 fun NavGraph(navController: NavHostController) {
@@ -111,6 +112,9 @@ fun NavGraph(navController: NavHostController) {
         }
         composable(NavigationRoute.UsageStatsPermission.name) {
             UsageStatsPermissionScreen(navController)
+        }
+        composable(NavigationRoute.UserFeedback.name) {
+            UserFeedbackScreen(navController)
         }
     }
 }
