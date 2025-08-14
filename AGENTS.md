@@ -135,6 +135,13 @@ Do NOT use TodoWrite for:
 
 ## Version & Release Management
 
+### Release Cycle Process
+Complete release process:
+1. Bump version in `app/build.gradle.kts` (versionName field)
+2. Close current milestone in GitHub
+3. Create GitHub release with auto-generated release notes
+4. Tag automatically created during release process
+
 ### Version Bumps
 - Update version in build.gradle.kts
 - Create and close milestones appropriately
