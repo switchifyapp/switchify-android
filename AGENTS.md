@@ -1,0 +1,162 @@
+# Switchify Development Guidelines for AI Agents
+
+## Project Overview
+Switchify is an Android accessibility service app that helps users with mobility impairments navigate their devices using various input methods including switches, camera gestures, and scanning techniques.
+
+## Code Style & Standards
+
+### Kotlin Conventions
+- Follow existing code patterns and naming conventions
+- Use existing libraries and utilities already in the codebase
+- Check imports and dependencies - never assume libraries are available
+- Look at neighboring files and existing components for patterns
+- NO comments unless explicitly requested
+- Use meaningful variable and function names that are self-documenting
+
+### Architecture Patterns
+- Follow MVVM architecture with ViewModels and Compose UI
+- Use coroutines for async operations with appropriate dispatchers
+- Implement proper error handling without exposing sensitive data
+- Use dependency injection patterns already established
+
+### Security Best Practices
+- Never introduce code that exposes or logs secrets/keys
+- Never commit secrets or keys to repository
+- Follow defensive security practices only
+- Remove unnecessary telemetry and external data collection
+
+## Development Workflow
+
+### Branch & Issue Management
+- Create descriptive branch names: `feature/description-1234` or `fix/description-1234`
+- Always create GitHub issues before starting work
+- Assign issues to appropriate milestones
+- Use GitHub CLI (`gh`) for all GitHub operations
+
+### Commit Standards
+Follow this exact format:
+```
+Brief descriptive title
+
+- Bullet points describing changes
+- Focus on what and why, not just what
+- Include technical details relevant to reviewers
+
+🤖 Auto-generated
+```
+
+### Pull Request Process
+1. Create feature branch from main
+2. Make changes following code standards
+3. Test compilation with `./gradlew compileDebugKotlin`
+4. Commit with proper format
+5. Push branch and create PR with detailed description
+6. Include test plan in PR description
+
+### Testing Requirements
+- Always test compilation before committing
+- Run lint/typecheck commands if available (npm run lint, ruff, etc.)
+- Never assume test frameworks - check README or search codebase
+- Build must be successful before merging
+
+## Tool Usage Patterns
+
+### Preferred Tools
+- Use `Bash` tool for git operations and builds
+- Use `Grep` for searching code (never bash grep/rg)
+- Use `Glob` for file pattern matching
+- Use `Read` tool for examining files
+- Use `Edit` or `MultiEdit` for code changes
+- Use `TodoWrite` for task tracking on complex work
+
+### TodoWrite Usage
+Use TodoWrite tool for:
+- Complex multi-step tasks (3+ steps)
+- Non-trivial tasks requiring planning
+- User-requested todo lists
+- Multiple tasks provided by user
+- Tracking progress through implementation
+
+Do NOT use TodoWrite for:
+- Single straightforward tasks
+- Trivial tasks with <3 steps
+- Purely conversational requests
+
+### File Operations
+- ALWAYS prefer editing existing files over creating new ones
+- NEVER create documentation files unless explicitly requested
+- Use absolute paths, not relative paths
+- Read files before editing to understand context
+
+## Android-Specific Guidelines
+
+### UI Development
+- Use Jetpack Compose following existing patterns
+- Follow Material 3 design system
+- Check existing components before creating new ones
+- Use proper theming with MaterialTheme.colorScheme
+- Handle external links with Intent.ACTION_VIEW and toUri()
+
+### Accessibility Service Development
+- Understand this is an accessibility service with special permissions
+- Be careful with background processing and ANR prevention
+- Use proper coroutine scoping and dispatchers
+- Handle accessibility events efficiently
+- Consider performance impact of tree processing
+
+### Dependencies & Libraries
+- Check package.json, build.gradle.kts, or cargo.toml before using libraries
+- Use existing dependency patterns
+- Don't add new dependencies without understanding existing ones
+- Check if functionality already exists in codebase
+
+## Performance Considerations
+
+### Background Processing
+- Use appropriate coroutine dispatchers (Default for CPU work, IO for network)
+- Implement timeout mechanisms for long operations
+- Add early termination for oversized data sets
+- Use backpressure handling for high-frequency events
+- Optimize O(n²) algorithms for large datasets
+
+### Memory Management
+- Clean up resources properly
+- Use weak references where appropriate
+- Avoid memory leaks in long-running services
+- Profile performance-critical paths
+
+## Communication Style
+- Be concise and direct (under 4 lines typically)
+- Don't add unnecessary preamble or explanations
+- Focus on answering the specific question asked
+- One-word answers are fine when appropriate
+- Avoid "Here is what I will do" or similar verbose intros
+- Don't mention AI, assistant names, or automated capabilities in responses
+
+## Version & Release Management
+
+### Version Bumps
+- Update version in build.gradle.kts
+- Create and close milestones appropriately
+- Use semantic versioning
+- Create GitHub releases with auto-generated notes
+
+### Milestone Management
+- Create milestones for versions (v2.1.4, v2.1.5, etc.)
+- Assign issues to appropriate milestones
+- Close milestones when versions are released
+- Use milestone descriptions for release planning
+
+## Emergency Fixes
+For critical issues like ANRs:
+1. Identify root cause through code analysis
+2. Implement targeted fixes with minimal scope
+3. Add timeout mechanisms and early termination
+4. Test compilation immediately
+5. Create focused PRs with clear problem/solution description
+
+## External Integrations
+- Minimize external dependencies where possible
+- Remove unnecessary telemetry (like Sentry) for privacy
+- Use standard Android APIs over third-party when feasible
+- Document any required external service configurations
