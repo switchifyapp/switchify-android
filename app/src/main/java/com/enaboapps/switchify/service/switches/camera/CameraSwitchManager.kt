@@ -31,6 +31,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
+import java.util.concurrent.atomic.AtomicLong
 
 class CameraSwitchManager(
     private val context: Context,
@@ -73,7 +75,10 @@ class CameraSwitchManager(
     private val currentFaceState = FaceState()
     private var lastProcessedState = FaceState()
 
-    private val coroutineScope = CoroutineScope(Dispatchers.Main)
+    private val coroutineScope = CoroutineScope(Dispatchers.Default)
+    private val lastProcessingTime = AtomicLong(0)
+    private val processingTimeoutMs = 100L
+    private val frameSkipThreshold = 33L // Skip frames if processing takes more than 33ms
 
     private var faceDetector: FaceDetector? = null
     
@@ -215,22 +220,33 @@ class CameraSwitchManager(
     }
 
     /**
-     * Processes the image safely.
+     * Processes the image safely with frame dropping and timeout handling.
      * This must be called after the camera has been bound.
      */
     @OptIn(ExperimentalGetImage::class)
     private fun processImageSafely(imageProxy: ImageProxy) {
-        coroutineScope.launch(Dispatchers.Default) {
+        val currentTime = System.currentTimeMillis()
+        
+        // Frame dropping: skip if previous processing is still ongoing
+        if (currentTime - lastProcessingTime.get() < frameSkipThreshold) {
+            imageProxy.close()
+            return
+        }
+        
+        lastProcessingTime.set(currentTime)
+        
+        coroutineScope.launch {
+            val processingResult = withTimeoutOrNull(processingTimeoutMs) {
+                try {
+                    imageProxy.image?.let { mediaImage ->
+                        val image = InputImage.fromMediaImage(
+                            mediaImage,
+                            imageProxy.imageInfo.rotationDegrees
+                        )
 
-            try {
-                imageProxy.image?.let { mediaImage ->
-                    val image = InputImage.fromMediaImage(
-                        mediaImage,
-                        imageProxy.imageInfo.rotationDegrees
-                    )
-
-                    withContext(Dispatchers.Main) {
-                        faceDetector?.let { detector ->
+                        // Process face detection on background thread
+                        val detector = faceDetector
+                        if (detector != null) {
                             detector.process(image)
                                 .addOnSuccessListener { faces ->
                                     if (faces.isNotEmpty()) {
@@ -246,11 +262,18 @@ class CameraSwitchManager(
                                 .addOnCompleteListener {
                                     imageProxy.close()
                                 }
+                        } else {
+                            imageProxy.close()
                         }
-                    }
-                } ?: imageProxy.close()
-            } catch (e: Exception) {
-                Log.e(TAG, "Error processing image", e)
+                    } ?: imageProxy.close()
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error processing image", e)
+                    imageProxy.close()
+                }
+            }
+            
+            if (processingResult == null) {
+                Log.w(TAG, "Image processing timed out after ${processingTimeoutMs}ms")
                 imageProxy.close()
             }
         }

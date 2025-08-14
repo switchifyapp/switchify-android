@@ -31,6 +31,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.consumeAsFlow
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.isActive
 
 /**
  * This is the main service class for the Switchify application.
@@ -43,7 +47,10 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
     private lateinit var screenWatcher: ScreenWatcher
     private lateinit var scanSettings: ScanSettings
     private lateinit var deviceLockObserver: DeviceLockObserver
-    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    
+    // Backpressure handling for accessibility events
+    private val accessibilityEventChannel = Channel<AccessibilityEvent>(capacity = Channel.CONFLATED)
 
     companion object {
         private const val TAG = "SwitchifyAccessibilityService"
@@ -52,6 +59,19 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
     override fun onCreate() {
         super.onCreate()
         deviceLockObserver = DeviceLockObserver(this)
+        startAccessibilityEventProcessor()
+    }
+
+    private fun startAccessibilityEventProcessor() {
+        serviceScope.launch {
+            accessibilityEventChannel.consumeAsFlow()
+                .flowOn(Dispatchers.Default)
+                .collect { event ->
+                    if (isActive) {
+                        processAccessibilityEvent()
+                    }
+                }
+        }
     }
 
     private fun setup() {
@@ -155,18 +175,25 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
 
     /**
      * This method is called when an AccessibilityEvent is fired.
-     * It updates the nodes in the active window and the keyboard state.
+     * It uses a channel for backpressure handling to prevent overwhelming the main thread.
      */
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
-        serviceScope.launch {
-            NodeExaminer.examineAccessibilityTree(
-                rootInActiveWindow,
-                windows,
-                this@SwitchifyAccessibilityService,
-                this
-            )
-            KeyboardBridge.updateKeyboardState(windows, scanSettings)
+        event?.let { accessibilityEvent ->
+            accessibilityEventChannel.trySend(accessibilityEvent)
         }
+    }
+
+    /**
+     * Processes accessibility events with backpressure handling.
+     */
+    private suspend fun processAccessibilityEvent() {
+        NodeExaminer.examineAccessibilityTree(
+            rootInActiveWindow,
+            windows,
+            this@SwitchifyAccessibilityService,
+            serviceScope
+        )
+        KeyboardBridge.updateKeyboardState(windows, scanSettings)
     }
 
     override fun onInterrupt() {
@@ -187,32 +214,33 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
         SwitchifyLifecycleOwner.getInstance().handleLifecycleEvent(Lifecycle.Event.ON_START)
         SwitchifyLifecycleOwner.getInstance().handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
         
-        // Preload quick apps for faster menu access
-        QuickAppsManager(this).preloadApps { /* Cache warmed up */ }
-
+        // Stagger initialization to prevent overwhelming main thread
         serviceScope.launch {
-            NodeExaminer.examineAccessibilityTree(
-                rootInActiveWindow,
-                windows,
-                this@SwitchifyAccessibilityService,
-                this
-            )
-            KeyboardBridge.updateKeyboardState(windows, scanSettings)
-        }
-
-        // Update the SystemNodeScanner with the current layout info
-        serviceScope.launch {
-            val scanningManager = ServiceCore.getScanningManager() ?: return@launch
-            NodeExaminer.getActionableNodesFlow().collect { nodes ->
-                scanningManager.updateActionableNodes(nodes)
-            }
-        }
-
-        // Update the KeyboardScanner with the current layout info
-        serviceScope.launch {
-            val scanningManager = ServiceCore.getScanningManager() ?: return@launch
-            NodeExaminer.getKeyboardNodesFlow().collect { nodes ->
-                scanningManager.updateKeyboardNodes(nodes)
+            // Initial accessibility tree examination
+            processAccessibilityEvent()
+            
+            delay(100) // Allow initial processing to complete
+            
+            // Preload quick apps for faster menu access
+            QuickAppsManager(this@SwitchifyAccessibilityService).preloadApps { /* Cache warmed up */ }
+            
+            delay(50) // Brief delay between heavy operations
+            
+            // Update the SystemNodeScanner with the current layout info
+            val scanningManager = ServiceCore.getScanningManager()
+            if (scanningManager != null) {
+                launch {
+                    NodeExaminer.getActionableNodesFlow().collect { nodes ->
+                        scanningManager.updateActionableNodes(nodes)
+                    }
+                }
+                
+                // Update the KeyboardScanner with the current layout info  
+                launch {
+                    NodeExaminer.getKeyboardNodesFlow().collect { nodes ->
+                        scanningManager.updateKeyboardNodes(nodes)
+                    }
+                }
             }
         }
     }
