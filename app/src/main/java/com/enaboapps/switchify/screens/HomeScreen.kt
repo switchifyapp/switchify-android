@@ -27,6 +27,7 @@ import androidx.compose.material.icons.rounded.AccessibilityNew
 import androidx.compose.material.icons.rounded.Apps
 import androidx.compose.material.icons.rounded.BugReport
 import androidx.compose.material.icons.rounded.Feedback
+import androidx.compose.material.icons.rounded.Groups
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material3.AlertDialog
@@ -51,6 +52,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.core.net.toUri
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
@@ -288,6 +290,27 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
                     icon = {
                         Icon(
                             imageVector = Icons.Rounded.Feedback,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
+                )
+            }
+
+            // Discord Card
+            item {
+                val context = LocalContext.current
+                GridCard(
+                    titleResId = R.string.home_discord_title,
+                    summaryResId = R.string.home_discord_summary,
+                    onClick = {
+                        val intent = Intent(Intent.ACTION_VIEW, "https://discord.gg/nEg8SAs".toUri())
+                        context.startActivity(intent)
+                    },
+                    icon = {
+                        Icon(
+                            imageVector = Icons.Rounded.Groups,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.fillMaxSize()
