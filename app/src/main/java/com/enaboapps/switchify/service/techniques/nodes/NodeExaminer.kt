@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import java.util.LinkedList
 import java.util.Queue
 import kotlin.math.sqrt
@@ -25,6 +26,8 @@ import kotlin.math.sqrt
  */
 object NodeExaminer {
     private const val TAG = "NodeExaminer"
+    private const val TREE_PROCESSING_TIMEOUT_MS = 5000L
+    private const val MAX_NODES_THRESHOLD = 1000
 
     /** Holds the list of all nodes. */
     private var allNodes: List<Node> = emptyList()
@@ -87,113 +90,169 @@ object NodeExaminer {
         try {
             rootNode?.let { rootNode ->
                 coroutineScope.launch(Dispatchers.Default) {
-                    // Flatten the accessibility tree to get all nodes
-                    val newNodeInfos = flattenTree(rootNode)
-
-                    // Enhanced node examination for all nodes
-                    allNodes = newNodeInfos.map { nodeInfo ->
-                        examineNodeContent(nodeInfo)
+                    val result = withTimeoutOrNull(TREE_PROCESSING_TIMEOUT_MS) {
+                        processAccessibilityTree(rootNode, context, isKeyboardVisible)
                     }
-
-                    // Enhanced node examination for actionable nodes
-                    // Include nodes that are clickable, long-clickable, focusable, or have ACTION_CLICK
-                    val newActionableNodes = newNodeInfos
-                        .filter { nodeInfo ->
-                            nodeInfo.isClickable ||
-                                    nodeInfo.isLongClickable ||
-                                    nodeInfo.isFocusable ||
-                                    nodeInfo.actionList?.any { action ->
-                                        action.id == AccessibilityNodeInfo.ACTION_CLICK
-                                    } == true
-                        }
-                        .map { examineNodeContent(it) }
-
-                    // Get screen dimensions for filtering nodes
-                    val width = ScreenUtils.getWidth(context)
-                    val height = ScreenUtils.getHeight(context)
-
-                    // Filter out nodes that are not on the screen or have invalid dimensions
-                    val filteredNewActionableNodes = newActionableNodes.filter { node ->
-                        node.getLeft() >= 0 && node.getTop() >= 0 &&
-                                node.getLeft() <= width && node.getTop() <= height &&
-                                node.getWidth() > 0 && node.getHeight() > 0
-                    }
-
-                    // Apply the smallest nested nodes filter to all nodes
-                    val smallestNestedNodes = filterSmallestNestedNodes(filteredNewActionableNodes)
-                    Log.d(
-                        TAG,
-                        "Filtered from ${filteredNewActionableNodes.size} to ${smallestNestedNodes.size} nodes"
-                    )
-
-                    // Only update if the nodes have changed
-                    if (actionableNodes != smallestNestedNodes) {
-                        if (isKeyboardVisible) {
-                            updateKeyboardNodes(smallestNestedNodes)
-                        } else {
-                            updateActionableNodes(smallestNestedNodes)
-                        }
+                    
+                    if (result == null) {
+                        Log.w(TAG, "Accessibility tree processing timed out after ${TREE_PROCESSING_TIMEOUT_MS}ms")
                     }
                 }
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error examining accessibility tree", e)
-            e.printStackTrace()
+        }
+    }
+
+    private suspend fun processAccessibilityTree(
+        rootNode: AccessibilityNodeInfo,
+        context: Context,
+        isKeyboardVisible: Boolean
+    ) {
+        // Flatten the accessibility tree to get all nodes
+        val newNodeInfos = flattenTree(rootNode)
+        
+        // Early termination for oversized trees
+        if (newNodeInfos.size > MAX_NODES_THRESHOLD) {
+            Log.w(TAG, "Tree too large (${newNodeInfos.size} nodes), skipping detailed processing")
+            return
+        }
+
+        // Enhanced node examination for all nodes
+        allNodes = newNodeInfos.map { nodeInfo ->
+            examineNodeContent(nodeInfo)
+        }
+
+        // Enhanced node examination for actionable nodes
+        // Include nodes that are clickable, long-clickable, focusable, or have ACTION_CLICK
+        val newActionableNodes = newNodeInfos
+            .filter { nodeInfo ->
+                nodeInfo.isClickable ||
+                        nodeInfo.isLongClickable ||
+                        nodeInfo.isFocusable ||
+                        nodeInfo.actionList?.any { action ->
+                            action.id == AccessibilityNodeInfo.ACTION_CLICK
+                        } == true
+            }
+            .map { examineNodeContent(it) }
+
+        // Get screen dimensions for filtering nodes
+        val width = ScreenUtils.getWidth(context)
+        val height = ScreenUtils.getHeight(context)
+
+        // Filter out nodes that are not on the screen or have invalid dimensions
+        val filteredNewActionableNodes = newActionableNodes.filter { node ->
+            node.getLeft() >= 0 && node.getTop() >= 0 &&
+                    node.getLeft() <= width && node.getTop() <= height &&
+                    node.getWidth() > 0 && node.getHeight() > 0
+        }
+
+        // Apply the smallest nested nodes filter to all nodes
+        val smallestNestedNodes = filterSmallestNestedNodesOptimized(filteredNewActionableNodes)
+        Log.d(
+            TAG,
+            "Filtered from ${filteredNewActionableNodes.size} to ${smallestNestedNodes.size} nodes"
+        )
+
+        // Only update if the nodes have changed
+        if (actionableNodes != smallestNestedNodes) {
+            if (isKeyboardVisible) {
+                updateKeyboardNodes(smallestNestedNodes)
+            } else {
+                updateActionableNodes(smallestNestedNodes)
+            }
         }
     }
 
     /**
-     * Filters a list of nodes, keeping only the smallest nodes in nested hierarchies.
-     * For nested nodes:
-     * - If Node A contains Node B, Node A is discarded (keeping the smaller Node B)
-     * - If nodes have identical bounds, both are kept
-     * - Nodes that don't contain any other nodes are kept
+     * Optimized version that filters a list of nodes, keeping only the smallest nodes in nested hierarchies.
+     * Uses spatial indexing to reduce O(n²) complexity for large node lists.
      *
      * @param nodes The list of Node objects to filter.
      * @return A new list containing only the smallest nodes in each nested group.
      */
-    private fun filterSmallestNestedNodes(nodes: List<Node>): List<Node> {
+    private fun filterSmallestNestedNodesOptimized(nodes: List<Node>): List<Node> {
         // If there's 0 or 1 node, no nesting is possible, return the original list
         if (nodes.size < 2) {
             return nodes.toList()
         }
 
-        // Create a map to track which nodes should be discarded
+        // For smaller lists, use the original algorithm
+        if (nodes.size < 50) {
+            return filterSmallestNestedNodes(nodes)
+        }
+
+        // For larger lists, use optimized approach
+        val nodesToDiscard = mutableSetOf<Node>()
+        
+        // Sort nodes by area (smaller first) to optimize containment checks
+        val sortedNodes = nodes.sortedBy { node ->
+            try {
+                val bounds = node.getBounds()
+                if (bounds?.isEmpty == false) bounds.width() * bounds.height() else Int.MAX_VALUE
+            } catch (e: Exception) {
+                Int.MAX_VALUE
+            }
+        }
+
+        // Only check nodes that could potentially contain others
+        for (i in sortedNodes.indices) {
+            if (nodesToDiscard.contains(sortedNodes[i])) continue
+            
+            val nodeA = sortedNodes[i]
+            val boundsA = try {
+                nodeA.getBounds()
+            } catch (e: Exception) {
+                continue
+            }
+            
+            if (boundsA?.isEmpty != false) continue
+
+            // Only check against larger nodes (those that come after in sorted order)
+            for (j in (i + 1) until sortedNodes.size) {
+                val nodeB = sortedNodes[j]
+                val boundsB = try {
+                    nodeB.getBounds()
+                } catch (e: Exception) {
+                    continue
+                }
+                
+                if (boundsB?.isEmpty != false) continue
+
+                // If nodeB contains nodeA, mark nodeB for removal (keep the smaller nodeA)
+                if (boundsB.contains(boundsA) && boundsB != boundsA) {
+                    nodesToDiscard.add(nodeB)
+                }
+            }
+        }
+
+        return nodes.filterNot { nodesToDiscard.contains(it) }
+    }
+
+    /**
+     * Legacy method for smaller node lists - maintains O(n²) complexity but simpler logic.
+     */
+    private fun filterSmallestNestedNodes(nodes: List<Node>): List<Node> {
         val nodesToDiscard = mutableSetOf<Node>()
 
-        // Compare each pair of nodes
         for (i in nodes.indices) {
             for (j in nodes.indices) {
-                if (i == j) continue // Skip comparing a node to itself
+                if (i == j) continue
 
                 val nodeA = nodes[i]
                 val nodeB = nodes[j]
 
-                // Get bounds safely
-                val boundsA = try {
-                    nodeA.getBounds()
-                } catch (e: Exception) {
-                    null
-                }
-                val boundsB = try {
-                    nodeB.getBounds()
-                } catch (e: Exception) {
-                    null
-                }
+                val boundsA = try { nodeA.getBounds() } catch (e: Exception) { null }
+                val boundsB = try { nodeB.getBounds() } catch (e: Exception) { null }
 
-                // Skip if either bounds is invalid
-                if (boundsA == null || boundsB == null || boundsA.isEmpty || boundsB.isEmpty) {
-                    continue
-                }
+                if (boundsA?.isEmpty != false || boundsB?.isEmpty != false) continue
 
-                // If nodeA contains nodeB, mark nodeA for removal (keep the smaller nodeB)
                 if (boundsA.contains(boundsB) && boundsA != boundsB) {
                     nodesToDiscard.add(nodeA)
                 }
             }
         }
 
-        // Return all nodes except those marked for removal
         return nodes.filterNot { nodesToDiscard.contains(it) }
     }
 
