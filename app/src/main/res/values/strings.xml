@@ -223,8 +223,6 @@
     <string name="screen_title_scan_colors">Scan Colors</string>
     <string name="screen_title_account">Account</string>
     <string name="screen_title_authentication">Welcome</string>
-    <string name="screen_title_sign_in">Sign In</string>
-    <string name="screen_title_sign_up">Sign Up</string>
     <string name="screen_title_switch_stability">Switch Stability</string>
     <string name="screen_title_switches">Switches</string>
     <string name="screen_title_external_switches">External Switches</string>
@@ -623,7 +621,6 @@
     <string name="feedback_email_label">Email (Optional)</string>
     <string name="feedback_email_placeholder">your.email@example.com</string>
     <string name="feedback_submit">Submit Feedback</string>
-    <string name="feedback_submitting">Submitting...</string>
     <string name="feedback_success_title">Thank You!</string>
     <string name="feedback_success_message">Your feedback has been submitted successfully. We appreciate your input!</string>
     
