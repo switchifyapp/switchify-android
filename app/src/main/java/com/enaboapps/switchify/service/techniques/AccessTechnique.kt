@@ -1,14 +1,8 @@
 package com.enaboapps.switchify.service.techniques
 
 import android.content.Context
-import android.os.Handler
-import android.os.Looper
 import com.enaboapps.switchify.R
-import com.enaboapps.switchify.backend.iap.IAPHandler
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
-import com.enaboapps.switchify.service.window.ServiceMessageHUD
-import com.enaboapps.switchify.utils.LogEvent
-import com.enaboapps.switchify.utils.Logger
 import com.enaboapps.switchify.utils.Resources
 
 /**
@@ -103,10 +97,6 @@ object AccessTechnique {
         currentTechnique = value
         observer?.onAccessTechniqueChanged(value)
 
-        // If radar and not pro, start the timer to switch to cursor
-        if (value == Technique.RADAR && !IAPHandler.hasPurchasedPro()) {
-            startRadarTrialTimer()
-        }
 
         saveCurrentTechnique()
     }
@@ -143,20 +133,4 @@ object AccessTechnique {
         }
     }
 
-    /**
-     * Starts the radar trial timer.
-     * 20 seconds after the radar scan is selected, it switches to the cursor scan if the user is not a pro.
-     */
-    private fun startRadarTrialTimer() {
-        Handler(Looper.getMainLooper()).postDelayed({
-            if (getCurrentTechnique() == Technique.RADAR && !IAPHandler.hasPurchasedPro()) {
-                setCurrentTechnique(Technique.CURSOR)
-                ServiceMessageHUD.instance.showMessage(
-                    R.string.radar_trial_timer_expired,
-                    ServiceMessageHUD.MessageType.DISAPPEARING
-                )
-                Logger.log(LogEvent.RadarTrialExpired)
-            }
-        }, 20000)
-    }
 }

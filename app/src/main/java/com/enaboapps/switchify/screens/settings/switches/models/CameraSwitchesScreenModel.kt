@@ -3,7 +3,6 @@ package com.enaboapps.switchify.screens.settings.switches.models
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.enaboapps.switchify.backend.iap.IAPHandler
 import com.enaboapps.switchify.switches.SWITCH_EVENT_TYPE_CAMERA
 import com.enaboapps.switchify.switches.SwitchEvent
 import com.enaboapps.switchify.switches.SwitchEventStore
@@ -21,25 +20,11 @@ class CameraSwitchesScreenModel : ViewModel() {
 
     fun setup(context: Context) {
         observeCameraSwitches(context)
-        checkProStatus()
     }
 
-    private fun checkProStatus() {
-        viewModelScope.launch {
-            val isPro = IAPHandler.hasPurchasedPro()
-            _uiState.value = _uiState.value.copy(
-                shouldLimitSwitches = !isPro
-            )
-        }
-    }
 
     fun isAnotherSwitchAllowed(): Boolean {
-        if (!_uiState.value.shouldLimitSwitches) {
-            return true
-        }
-        // Count all switches, not just camera ones, for the total limit
-        val allSwitches = store.getSwitchEvents()
-        return allSwitches.size < numberOfSwitchesLimit
+        return true
     }
 
     private fun observeCameraSwitches(context: Context) {
@@ -65,22 +50,9 @@ class CameraSwitchesScreenModel : ViewModel() {
         }
     }
 
-    fun showProAlert() {
-        _uiState.value = _uiState.value.copy(
-            showProAlert = true
-        )
-    }
-
-    fun hideProAlert() {
-        _uiState.value = _uiState.value.copy(
-            showProAlert = false
-        )
-    }
 }
 
 data class CameraSwitchesUiState(
     val cameraSwitches: List<SwitchEvent> = emptyList(),
-    val isLoading: Boolean = false,
-    val shouldLimitSwitches: Boolean = false,
-    val showProAlert: Boolean = false
+    val isLoading: Boolean = false
 )
