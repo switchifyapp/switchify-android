@@ -83,7 +83,6 @@ fun ItemScanSettingsView() {
         PreferenceSwitch(
             titleResId = R.string.preference_title_item_scan_speech,
             summaryResId = R.string.preference_summary_item_scan_speech,
-            isRestrictedToPro = true,
             checked = preferenceManager.getBooleanValue(
                 PreferenceManager.PREFERENCE_KEY_ITEM_SCAN_SPEECH,
                 false

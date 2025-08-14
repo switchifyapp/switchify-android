@@ -2,7 +2,6 @@ package com.enaboapps.switchify.service.actions
 
 import android.accessibilityservice.AccessibilityService
 import android.util.Log
-import com.enaboapps.switchify.backend.iap.IAPHandler
 import com.enaboapps.switchify.service.core.SwitchifyAccessibilityService
 
 /**
@@ -43,9 +42,7 @@ object GlobalActionManager {
      * @return true if successful, false otherwise
      */
     fun goHome(): Boolean =
-        IAPHandler.runIfProPurchased(accessibilityService!!.applicationContext) {
-            performGlobalAction(AccessibilityService.GLOBAL_ACTION_HOME)
-        }
+        performGlobalAction(AccessibilityService.GLOBAL_ACTION_HOME)
 
     /**
      * Perform the back action.
@@ -62,9 +59,7 @@ object GlobalActionManager {
      * @return true if successful, false otherwise
      */
     fun openRecents(): Boolean =
-        IAPHandler.runIfProPurchased(accessibilityService!!.applicationContext) {
-            performGlobalAction(AccessibilityService.GLOBAL_ACTION_RECENTS)
-        }
+        performGlobalAction(AccessibilityService.GLOBAL_ACTION_RECENTS)
 
     /**
      * Open the quick settings panel.
@@ -73,9 +68,7 @@ object GlobalActionManager {
      * @return true if successful, false otherwise
      */
     fun openQuickSettings(): Boolean =
-        IAPHandler.runIfProPurchased(accessibilityService!!.applicationContext) {
-            performGlobalAction(AccessibilityService.GLOBAL_ACTION_QUICK_SETTINGS)
-        }
+        performGlobalAction(AccessibilityService.GLOBAL_ACTION_QUICK_SETTINGS)
 
     /**
      * Open the notifications panel.
@@ -84,9 +77,7 @@ object GlobalActionManager {
      * @return true if successful, false otherwise
      */
     fun openNotifications(): Boolean =
-        IAPHandler.runIfProPurchased(accessibilityService!!.applicationContext) {
-            performGlobalAction(AccessibilityService.GLOBAL_ACTION_NOTIFICATIONS)
-        }
+        performGlobalAction(AccessibilityService.GLOBAL_ACTION_NOTIFICATIONS)
 
     /**
      * Lock the device screen.

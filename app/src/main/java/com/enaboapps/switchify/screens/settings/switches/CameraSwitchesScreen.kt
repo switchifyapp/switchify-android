@@ -60,11 +60,7 @@ fun CameraSwitchesScreen(navController: NavController) {
             if (cameraPermissionState.status.isGranted) {
                 FloatingActionButton(
                     onClick = {
-                        if (!cameraSwitchesScreenModel.isAnotherSwitchAllowed()) {
-                            cameraSwitchesScreenModel.showProAlert()
-                        } else {
-                            navController.navigate(NavigationRoute.AddNewCameraSwitch.name)
-                        }
+                        navController.navigate(NavigationRoute.AddNewCameraSwitch.name)
                     }
                 ) {
                     Icon(
@@ -99,30 +95,6 @@ fun CameraSwitchesScreen(navController: NavController) {
             }
         }
 
-        if (uiState.showProAlert) {
-            AlertDialog(
-                onDismissRequest = { cameraSwitchesScreenModel.hideProAlert() },
-                title = { Text("Pro Feature") },
-                text = { Text("To add another switch, you need to purchase Switchify Pro.") },
-                confirmButton = {
-                    TextButton(
-                        onClick = {
-                            cameraSwitchesScreenModel.hideProAlert()
-                            navController.navigate(NavigationRoute.Paywall.name)
-                        }
-                    ) {
-                        Text("Purchase")
-                    }
-                },
-                dismissButton = {
-                    TextButton(
-                        onClick = { cameraSwitchesScreenModel.hideProAlert() }
-                    ) {
-                        Text("Cancel")
-                    }
-                }
-            )
-        }
     }
 }
 

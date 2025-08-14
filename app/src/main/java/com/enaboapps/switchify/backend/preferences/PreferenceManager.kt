@@ -47,6 +47,7 @@ class PreferenceManager(context: Context) {
         const val PREFERENCE_KEY_ONBOARDING_CURRENT_STEP = "onboarding_current_step"
         const val PREFERENCE_KEY_ONBOARDING_USER_TYPE = "onboarding_user_type"
         const val PREFERENCE_KEY_ONBOARDING_IS_NEW_USER = "onboarding_is_new_user"
+        const val PREFERENCE_KEY_DEBUG_TRIAL_DISABLED = "debug_trial_disabled"
         private const val PREFERENCE_FILE_NAME = "switchify_preferences"
         
         /**

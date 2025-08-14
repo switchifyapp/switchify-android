@@ -28,8 +28,6 @@
     <string name="saved_gesture_pattern">Saved gesture pattern. You can give it a more descriptive name in the app settings.</string>
     <string name="recording_canceled">Recording canceled. It will not be saved.</string>
 
-    <!-- Scanning Method Messages -->
-    <string name="radar_trial_timer_expired">Radar scan trial expired. Switching to cursor scan.</string>
 
     <!-- Menu Titles -->
     <string name="menu_title_gestures">Gestures</string>
@@ -124,8 +122,18 @@
     <string name="hud_auto_scroll_started">Auto-Scroll Started</string>
     <string name="hud_auto_scroll_stopped">Auto-Scroll Stopped</string>
 
-    <!-- Pro Feature Messages -->
-    <string name="pro_feature_message">This is a pro feature. Please purchase Switchify Pro to use it.</string>
+    <!-- Service Trial Messages -->
+    <string name="trial_started_message">1-hour service trial started. All features available!</string>
+    <string name="debug_trial_started_message">30-second DEBUG trial started. All features available!</string>
+    <string name="trial_warning_message">10 minutes remaining in service trial. Restart service for fresh trial.</string>
+    <string name="trial_expired_message">Service trial expired. Restart accessibility service for fresh 1-hour trial.</string>
+    <string name="pro_unlimited_access_message">Switchify Pro activated. Unlimited access to all features!</string>
+    <string name="debug_trial_disabled_message">Debug mode: Trials disabled. Unlimited access!</string>
+    <string name="debug_disable_trials_title">Disable Trials</string>
+    <string name="debug_disable_trials_summary">Completely disable trial system for unlimited access (debug only)</string>
+    
+    <!-- Legacy Pro Message (for backward compatibility) -->
+    <string name="pro_feature_message">All features are now available in trial mode.</string>
 
     
     
@@ -404,9 +412,7 @@
     <string name="settings_summary_scan_color">Configure the scan highlight color</string>
 
     <!-- Debug Screen -->
-    <string name="debug_section_test_pro">Test Pro</string>
-    <string name="debug_title_pro_enabled">Pro Enabled</string>
-    <string name="debug_summary_pro_enabled">Enable or disable pro features for testing purposes</string>
+    <string name="debug_section_service_trial">Service Trial</string>
 
     <!-- Button Labels -->
     <string name="button_website">Website</string>
@@ -492,8 +498,6 @@
     <string name="ok">OK</string>
     <string name="help">Help</string>
 
-    <!-- Pro Text Label -->
-    <string name="pro">PRO</string>
 
     <!-- Onboarding Strings -->
     <string name="onboarding_title">Set Up Switchify</string>

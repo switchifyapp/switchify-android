@@ -2,7 +2,6 @@ package com.enaboapps.switchify.service.gestures
 
 import android.accessibilityservice.AccessibilityService
 import com.enaboapps.switchify.R
-import com.enaboapps.switchify.backend.iap.IAPHandler
 import com.enaboapps.switchify.service.gestures.data.GestureData
 import com.enaboapps.switchify.service.window.ServiceMessageHUD
 import java.util.Timer
@@ -25,24 +24,22 @@ class GestureLockManager private constructor() {
 
     // Function to lock/unlock the gesture lock, showing a message to the user
     fun toggleGestureLock() {
-        IAPHandler.runIfProPurchased(accessibilityService!!.applicationContext) {
-            stopTimer()
+        stopTimer()
 
-            isLocked = !isLocked
-            if (isLocked) {
-                ServiceMessageHUD.instance.showMessage(
-                    R.string.gesture_lock_enabled,
-                    ServiceMessageHUD.MessageType.DISAPPEARING
-                )
-            } else {
-                ServiceMessageHUD.instance.showMessage(
-                    R.string.gesture_lock_disabled,
-                    ServiceMessageHUD.MessageType.DISAPPEARING
-                )
+        isLocked = !isLocked
+        if (isLocked) {
+            ServiceMessageHUD.instance.showMessage(
+                R.string.gesture_lock_enabled,
+                ServiceMessageHUD.MessageType.DISAPPEARING
+            )
+        } else {
+            ServiceMessageHUD.instance.showMessage(
+                R.string.gesture_lock_disabled,
+                ServiceMessageHUD.MessageType.DISAPPEARING
+            )
 
-                // Clear the locked gesture data
-                lockedGestureData = null
-            }
+            // Clear the locked gesture data
+            lockedGestureData = null
         }
     }
 

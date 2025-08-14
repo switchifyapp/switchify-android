@@ -24,7 +24,6 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.enaboapps.switchify.R
-import com.enaboapps.switchify.backend.iap.IAPHandler
 
 @Composable
 private fun ButtonToggle(
@@ -90,11 +89,9 @@ fun PreferenceSwitch(
     summaryResId: Int,
     explanationResId: Int? = null,
     checked: Boolean,
-    isRestrictedToPro: Boolean = false,
     onCheckedChange: (Boolean) -> Unit
 ) {
     var isChecked by remember { mutableStateOf(checked) }
-    val isPro = IAPHandler.hasPurchasedPro()
 
     PreferenceComponentBase(
         titleResId = titleResId,
@@ -103,17 +100,13 @@ fun PreferenceSwitch(
     ) {
         Row {
             Spacer(modifier = Modifier.width(8.dp))
-            if (!isRestrictedToPro || isPro) {
-                ButtonToggle(
-                    checked = isChecked,
-                    onCheckedChange = {
-                        isChecked = it
-                        onCheckedChange(it)
-                    }
-                )
-            } else {
-                ProTextLabel()
-            }
+            ButtonToggle(
+                checked = isChecked,
+                onCheckedChange = {
+                    isChecked = it
+                    onCheckedChange(it)
+                }
+            )
         }
     }
 }

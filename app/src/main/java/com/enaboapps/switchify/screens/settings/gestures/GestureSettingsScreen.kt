@@ -37,7 +37,6 @@ fun GestureSettingsScreen(navController: NavController) {
                 titleResId = R.string.preference_title_auto_scroll,
                 summaryResId = R.string.preference_summary_auto_scroll,
                 checked = autoScroll,
-                isRestrictedToPro = true,
                 onCheckedChange = {
                     preferenceManager.setBooleanValue(
                         PreferenceManager.Keys.PREFERENCE_KEY_AUTO_SCROLL,
@@ -69,7 +68,6 @@ fun GestureSettingsScreen(navController: NavController) {
                 titleResId = R.string.preference_title_gesture_lock,
                 summaryResId = R.string.preference_summary_gesture_lock,
                 checked = gestureLock,
-                isRestrictedToPro = true,
                 onCheckedChange = {
                     preferenceManager.setBooleanValue(
                         PreferenceManager.Keys.PREFERENCE_KEY_GESTURE_LOCK,

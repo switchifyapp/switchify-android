@@ -10,7 +10,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.enaboapps.switchify.R
-import com.enaboapps.switchify.backend.iap.IAPHandler
 import com.enaboapps.switchify.nav.NavigationRoute
 import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.ActionButton
@@ -143,40 +142,13 @@ private fun MainContent(
             textResId = R.string.button_save,
             enabled = viewModel.isValid.value,
             onClick = {
-                if (code == null) {
-                    // Check Pro status for new switches
-                    if (IAPHandler.hasPurchasedPro()) {
-                        viewModel.save(context) { success ->
-                            scope.launch {
-                                if (success) {
-                                    navController.popBackStack()
-                                } else {
-                                    Toast.makeText(context, "Error saving switch", Toast.LENGTH_SHORT)
-                                        .show()
-                                }
-                            }
-                        }
-                    } else {
-                        // Show Pro feature message
-                        Toast.makeText(
-                            context,
-                            context.getString(R.string.pro_feature_message),
-                            Toast.LENGTH_LONG
-                        ).show()
-                        
-                        // Open Pro upgrade screen
-                        navController.navigate(NavigationRoute.Paywall.name)
-                    }
-                } else {
-                    // Allow editing existing switches
-                    viewModel.save(context) { success ->
-                        scope.launch {
-                            if (success) {
-                                navController.popBackStack()
-                            } else {
-                                Toast.makeText(context, "Error saving switch", Toast.LENGTH_SHORT)
-                                    .show()
-                            }
+                viewModel.save(context) { success ->
+                    scope.launch {
+                        if (success) {
+                            navController.popBackStack()
+                        } else {
+                            Toast.makeText(context, "Error saving switch", Toast.LENGTH_SHORT)
+                                .show()
                         }
                     }
                 }

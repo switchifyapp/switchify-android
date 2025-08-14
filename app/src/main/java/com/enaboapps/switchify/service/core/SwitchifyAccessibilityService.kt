@@ -22,6 +22,7 @@ import com.enaboapps.switchify.service.utils.DeviceLockObserver
 import com.enaboapps.switchify.service.utils.KeyboardBridge
 import com.enaboapps.switchify.service.utils.QuickAppsManager
 import com.enaboapps.switchify.service.utils.ScreenWatcher
+import com.enaboapps.switchify.service.trial.ServiceTrialManager
 import com.enaboapps.switchify.service.window.SwitchifyAccessibilityWindow
 import com.enaboapps.switchify.utils.LogEvent
 import com.enaboapps.switchify.utils.Logger
@@ -47,6 +48,7 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
     private lateinit var screenWatcher: ScreenWatcher
     private lateinit var scanSettings: ScanSettings
     private lateinit var deviceLockObserver: DeviceLockObserver
+    private lateinit var trialManager: ServiceTrialManager
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     
     // Backpressure handling for accessibility events
@@ -82,6 +84,15 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
         Resources.init(this)
 
         IAPHandler.initialize(context = this, connectToRevenueCat = false)
+
+        // Initialize trial manager with service shutdown callback
+        trialManager = ServiceTrialManager(
+            context = this,
+            onTrialExpired = {
+                // Gracefully shut down the accessibility service when trial expires
+                disableSelf()
+            }
+        )
 
         AccessTechnique.init(this.applicationContext)
 
@@ -209,6 +220,9 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
 
         setup()
 
+        // Start the 1-hour trial for this service session
+        trialManager.startTrial()
+
         Logger.log(LogEvent.ServiceConnected)
 
         SwitchifyLifecycleOwner.getInstance().handleLifecycleEvent(Lifecycle.Event.ON_START)
@@ -260,6 +274,11 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
     }
 
     override fun onDestroy() {
+        // Stop the trial when service is destroyed
+        if (::trialManager.isInitialized) {
+            trialManager.stopTrial()
+        }
+        
         SwitchifyAccessibilityWindow.instance.onServiceDestroy()
         SwitchifyLifecycleOwner.getInstance().handleLifecycleEvent(Lifecycle.Event.ON_DESTROY)
         SwitchifyLifecycleOwner.cleanup()

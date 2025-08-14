@@ -3,7 +3,6 @@ package com.enaboapps.switchify.service.actions
 import android.content.Context
 import android.media.AudioManager
 import android.util.Log
-import com.enaboapps.switchify.backend.iap.IAPHandler
 import com.enaboapps.switchify.service.core.SwitchifyAccessibilityService
 
 /**
@@ -32,16 +31,14 @@ object AudioActionManager {
      * @return true if successful, false otherwise
      */
     fun volumeUp(): Boolean {
-        return IAPHandler.runIfProPurchased(accessibilityService!!.applicationContext) {
-            audioManager?.let {
-                it.adjustStreamVolume(
-                    AudioManager.STREAM_ACCESSIBILITY,
-                    AudioManager.ADJUST_RAISE,
-                    AudioManager.FLAG_SHOW_UI
-                )
-                true
-            } == true
-        }
+        return audioManager?.let {
+            it.adjustStreamVolume(
+                AudioManager.STREAM_ACCESSIBILITY,
+                AudioManager.ADJUST_RAISE,
+                AudioManager.FLAG_SHOW_UI
+            )
+            true
+        } ?: false
     }
 
     /**
@@ -50,16 +47,14 @@ object AudioActionManager {
      * @return true if successful, false otherwise
      */
     fun volumeDown(): Boolean {
-        return IAPHandler.runIfProPurchased(accessibilityService!!.applicationContext) {
-            audioManager?.let {
-                it.adjustStreamVolume(
-                    AudioManager.STREAM_ACCESSIBILITY,
-                    AudioManager.ADJUST_LOWER,
-                    AudioManager.FLAG_SHOW_UI
-                )
-                true
-            } == true
-        }
+        return audioManager?.let {
+            it.adjustStreamVolume(
+                AudioManager.STREAM_ACCESSIBILITY,
+                AudioManager.ADJUST_LOWER,
+                AudioManager.FLAG_SHOW_UI
+            )
+            true
+        } ?: false
     }
 
     /**
@@ -68,16 +63,14 @@ object AudioActionManager {
      * @return true if successful, false otherwise
      */
     fun setFullVolume(): Boolean {
-        return IAPHandler.runIfProPurchased(accessibilityService!!.applicationContext) {
-            audioManager?.let {
-                it.setStreamVolume(
-                    AudioManager.STREAM_ACCESSIBILITY,
-                    it.getStreamMaxVolume(AudioManager.STREAM_ACCESSIBILITY),
-                    AudioManager.FLAG_SHOW_UI
-                )
-                true
-            } == true
-        }
+        return audioManager?.let {
+            it.setStreamVolume(
+                AudioManager.STREAM_ACCESSIBILITY,
+                it.getStreamMaxVolume(AudioManager.STREAM_ACCESSIBILITY),
+                AudioManager.FLAG_SHOW_UI
+            )
+            true
+        } ?: false
     }
 
     /**
@@ -86,16 +79,14 @@ object AudioActionManager {
      * @return true if successful, false otherwise
      */
     fun mute(): Boolean {
-        return IAPHandler.runIfProPurchased(accessibilityService!!.applicationContext) {
-            audioManager?.let {
-                it.setStreamVolume(
-                    AudioManager.STREAM_ACCESSIBILITY,
-                    0,
-                    AudioManager.FLAG_SHOW_UI
-                )
-                true
-            } == true
-        }
+        return audioManager?.let {
+            it.setStreamVolume(
+                AudioManager.STREAM_ACCESSIBILITY,
+                0,
+                AudioManager.FLAG_SHOW_UI
+            )
+            true
+        } ?: false
     }
 
     /**
@@ -104,16 +95,14 @@ object AudioActionManager {
      * @return true if successful, false otherwise
      */
     fun setHalfVolume(): Boolean {
-        return IAPHandler.runIfProPurchased(accessibilityService!!.applicationContext) {
-            audioManager?.let {
-                it.setStreamVolume(
-                    AudioManager.STREAM_ACCESSIBILITY,
-                    it.getStreamMaxVolume(AudioManager.STREAM_ACCESSIBILITY) / 2,
-                    AudioManager.FLAG_SHOW_UI
-                )
-                true
-            } == true
-        }
+        return audioManager?.let {
+            it.setStreamVolume(
+                AudioManager.STREAM_ACCESSIBILITY,
+                it.getStreamMaxVolume(AudioManager.STREAM_ACCESSIBILITY) / 2,
+                AudioManager.FLAG_SHOW_UI
+            )
+            true
+        } ?: false
     }
 
     /**

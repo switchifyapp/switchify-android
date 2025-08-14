@@ -50,11 +50,7 @@ fun ExternalSwitchesScreen(navController: NavController) {
         floatingActionButton = {
             FloatingActionButton(
                 onClick = {
-                    if (!externalSwitchesScreenModel.isAnotherSwitchAllowed()) {
-                        externalSwitchesScreenModel.showProAlert()
-                    } else {
-                        navController.navigate(NavigationRoute.AddNewExternalSwitch.name)
-                    }
+                    navController.navigate(NavigationRoute.AddNewExternalSwitch.name)
                 }
             ) {
                 Icon(
@@ -82,30 +78,6 @@ fun ExternalSwitchesScreen(navController: NavController) {
             }
         }
 
-        if (uiState.showProAlert) {
-            AlertDialog(
-                onDismissRequest = { externalSwitchesScreenModel.hideProAlert() },
-                title = { Text("Pro Feature") },
-                text = { Text("To add another switch, you need to purchase Switchify Pro.") },
-                confirmButton = {
-                    TextButton(
-                        onClick = {
-                            externalSwitchesScreenModel.hideProAlert()
-                            navController.navigate(NavigationRoute.Paywall.name)
-                        }
-                    ) {
-                        Text("Purchase")
-                    }
-                },
-                dismissButton = {
-                    TextButton(
-                        onClick = { externalSwitchesScreenModel.hideProAlert() }
-                    ) {
-                        Text("Cancel")
-                    }
-                }
-            )
-        }
     }
 }
 
