@@ -119,7 +119,9 @@ abstract class BaseNodeScanner : ScanTreeCallback {
         shortWindowUpdates.clear()
         longWindowUpdates.clear()
         warningCount = 0
-        scanTree.cleanup()
+        if (::scanTree.isInitialized) {
+            scanTree.cleanup()
+        }
     }
 
     private fun recordUpdateTimestamp() {
@@ -172,7 +174,7 @@ abstract class BaseNodeScanner : ScanTreeCallback {
         // Clean short window
         while (shortWindowUpdates.isNotEmpty()) {
             val first = shortWindowUpdates.first()
-            if (first != null && first < currentTime - SHORT_WINDOW_MS) {
+            if (first < currentTime - SHORT_WINDOW_MS) {
                 shortWindowUpdates.removeFirst()
             } else {
                 break
@@ -182,7 +184,7 @@ abstract class BaseNodeScanner : ScanTreeCallback {
         // Clean long window
         while (longWindowUpdates.isNotEmpty()) {
             val first = longWindowUpdates.first()
-            if (first != null && first < currentTime - LONG_WINDOW_MS) {
+            if (first < currentTime - LONG_WINDOW_MS) {
                 longWindowUpdates.removeFirst()
             } else {
                 break
@@ -208,7 +210,7 @@ abstract class BaseNodeScanner : ScanTreeCallback {
         revertToCursorJob?.cancel()
         revertToCursorJob = coroutineScope.launch {
             delay(EMPTY_NODES_TIMEOUT_MS)
-            if (scanTree.isEmpty()) {
+            if (::scanTree.isInitialized && scanTree.isEmpty()) {
                 switchToCursorMode("empty nodes")
             }
         }
@@ -220,12 +222,16 @@ abstract class BaseNodeScanner : ScanTreeCallback {
     }
 
     protected open fun buildFromNodes(nodes: List<Node>) {
-        scanTree.buildTree(nodes)
+        if (::scanTree.isInitialized) {
+            scanTree.buildTree(nodes)
+        }
     }
 
     private fun switchToCursorMode(reason: String) {
         coroutineScope.launch(Dispatchers.Main) {
-            scanTree.stopScanningAndReset()
+            if (::scanTree.isInitialized) {
+                scanTree.stopScanningAndReset()
+            }
             if (AccessTechnique.getCurrentTechnique() == AccessTechnique.Technique.ITEM_SCAN) {
                 AccessTechnique.setCurrentTechnique(AccessTechnique.Technique.CURSOR)
                 Log.d(TAG, "Switched to cursor mode due to $reason")
