@@ -118,9 +118,9 @@ Switchify works on Android devices running Android 10 or newer. The app requires
 - **Institutional**: Special education facilities, rehabilitation centers, assisted living
 
 ### Business Model
-- **Freemium**: Core accessibility features available free
-- **Premium Features**: Advanced customization, unlimited gesture patterns, cloud sync
-- **Enterprise**: Institutional licensing with centralized management
+- **Free Trial**: Core accessibility features available through 1-hour trials with unlimited restarts
+- **Pro Purchase**: One-time purchase or subscription for unlimited access to all features
+- **Full Feature Access**: All accessibility techniques and customization options available to both trial and pro users
 
 ### Competitive Advantages
 1. **Multiple Access Techniques**: Users can choose from four different navigation methods
