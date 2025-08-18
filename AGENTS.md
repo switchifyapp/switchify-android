@@ -27,11 +27,25 @@ Switchify is an Android accessibility service app that helps users with mobility
 
 ## Development Workflow
 
+### Required Workflow Process
+**MANDATORY**: Follow this exact workflow for ALL development tasks:
+
+1. **Milestone Creation**: Always create milestone `v*.*.*` format first
+2. **Issue Creation**: Create GitHub issue and assign to milestone (with user consent)
+3. **Branch Creation**: Create branch `feature/description-issue#` or `fix/description-issue#`
+4. **Development**: Make changes following code standards
+5. **Testing**: Test compilation with `./gradlew compileDebugKotlin`
+6. **Commit & Push**: Commit with proper format and push branch
+7. **Pull Request**: Create PR with detailed description
+8. **User Approval**: Ask user if they want to merge (yes/no)
+9. **Proactive Communication**: Always ask yes/no for perceived next steps
+
 ### Branch & Issue Management
 - Create descriptive branch names: `feature/description-1234` or `fix/description-1234`
 - Always create GitHub issues before starting work
-- Assign issues to appropriate milestones
+- Assign issues to appropriate milestones WITH USER CONSENT
 - Use GitHub CLI (`gh`) for all GitHub operations
+- Always be proactive and ask yes/no for what you perceive to be the next step
 
 ### Commit Standards
 Follow this exact format:
@@ -46,12 +60,15 @@ Brief descriptive title
 ```
 
 ### Pull Request Process
-1. Create feature branch from main
-2. Make changes following code standards
-3. Test compilation with `./gradlew compileDebugKotlin`
-4. Commit with proper format
-5. Push branch and create PR with detailed description
-6. Include test plan in PR description
+1. Create milestone v*.*.* format
+2. Create GitHub issue and assign to milestone (with user consent)
+3. Create feature branch from main
+4. Make changes following code standards
+5. Test compilation with `./gradlew compileDebugKotlin`
+6. Commit with proper format
+7. Push branch and create PR with detailed description
+8. Include test plan in PR description
+9. Ask user if they want to merge (yes/no)
 
 ### Testing Requirements
 - Always test compilation before committing
