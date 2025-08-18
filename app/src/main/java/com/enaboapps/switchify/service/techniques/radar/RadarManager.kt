@@ -88,9 +88,9 @@ class RadarManager(private val context: Context) : AccessTechniqueInterface {
     
     private fun getStartingAngle(): Float {
         return if (scanSettings.getRadarStartingPosition() == ScanSettings.RADAR_START_TOP) {
-            90f  // 90 degrees = pointing downward when starting from top
+            0f  // 0 degrees = pointing right when starting from top (horizontal)
         } else {
-            -90f  // -90 degrees = pointing upward when starting from bottom
+            180f  // 180 degrees = pointing left when starting from bottom (horizontal)
         }
     }
 
@@ -119,9 +119,9 @@ class RadarManager(private val context: Context) : AccessTechniqueInterface {
     }
     
     private fun shouldChangeDirection(): Boolean {
-        // Change direction when reaching horizontal positions (0° and 180°)
+        // Change direction when reaching vertical positions (90° and 270°)
         val normalizedAngle = (currentAngle + 360) % 360
-        return (normalizedAngle >= 359 || normalizedAngle <= 1) || (normalizedAngle >= 179 && normalizedAngle <= 181)
+        return (normalizedAngle >= 89 && normalizedAngle <= 91) || (normalizedAngle >= 269 && normalizedAngle <= 271)
     }
 
     private fun moveCircle() {
