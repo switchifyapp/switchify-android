@@ -20,6 +20,17 @@ class RadarManager(private val context: Context) : AccessTechniqueInterface {
         private const val ROTATION_STEP = 1f  // 1 degree per step
         private const val MOVEMENT_STEP = 0.01f  // 1% of the max distance per step
         private const val SLOW_DOWN_FACTOR = 4f  // Factor to slow down by (4x slower)
+        
+        // Angle constants for radar positioning
+        private const val ANGLE_RIGHT = 0f  // Horizontal right
+        private const val ANGLE_LEFT = 180f  // Horizontal left
+        private const val ANGLE_TOLERANCE = 1f  // Tolerance for angle matching
+        
+        // Distance and position constants
+        private const val INITIAL_DISTANCE_RATIO = 0f  // Starting distance from pivot
+        private const val MAX_DISTANCE_RATIO = 1f  // Maximum distance from pivot
+        private const val SCREEN_EDGE_POSITION = 0f  // Screen edge coordinate
+        private const val PIVOT_DIVISOR = 2f  // Divisor for calculating pivot position
     }
 
     enum class RadarStep {
@@ -47,17 +58,17 @@ class RadarManager(private val context: Context) : AccessTechniqueInterface {
     private val radarUI = RadarUI(context)
 
     private var currentAngle = getStartingAngle()
-    private var currentDistanceRatio = 0f
-    private var targetScreenX = 0f  // Target screen X coordinate for current angle
-    private var targetScreenY = 0f  // Target screen Y coordinate for current angle
+    private var currentDistanceRatio = INITIAL_DISTANCE_RATIO
+    private var targetScreenX = INITIAL_DISTANCE_RATIO  // Target screen X coordinate for current angle
+    private var targetScreenY = INITIAL_DISTANCE_RATIO  // Target screen Y coordinate for current angle
     private var scanningScheduler: ScanningScheduler? = null
 
     // Windscreen wiper pivot point - configurable top or bottom
     private val wiperPivotX: Float
-        get() = ScreenUtils.getWidth(context) / 2f
+        get() = ScreenUtils.getWidth(context) / PIVOT_DIVISOR
     private val wiperPivotY: Float
         get() = if (scanSettings.getRadarStartingPosition() == ScanSettings.RADAR_START_TOP) {
-            0f  // Top edge
+            SCREEN_EDGE_POSITION  // Top edge
         } else {
             ScreenUtils.getHeight(context).toFloat()  // Bottom edge
         }
@@ -88,9 +99,9 @@ class RadarManager(private val context: Context) : AccessTechniqueInterface {
     
     private fun getStartingAngle(): Float {
         return if (scanSettings.getRadarStartingPosition() == ScanSettings.RADAR_START_TOP) {
-            0f  // 0 degrees = pointing right when starting from top (horizontal)
+            ANGLE_RIGHT  // Pointing right when starting from top (horizontal)
         } else {
-            180f  // 180 degrees = pointing left when starting from bottom (horizontal)
+            ANGLE_LEFT  // Pointing left when starting from bottom (horizontal)
         }
     }
 
@@ -119,9 +130,16 @@ class RadarManager(private val context: Context) : AccessTechniqueInterface {
     }
     
     private fun shouldChangeDirection(): Boolean {
-        // Change direction when reaching vertical positions (90° and 270°)
+        // Change direction when completing 180° sweep from horizontal starting position
         val normalizedAngle = (currentAngle + 360) % 360
-        return (normalizedAngle >= 89 && normalizedAngle <= 91) || (normalizedAngle >= 269 && normalizedAngle <= 271)
+        
+        return if (scanSettings.getRadarStartingPosition() == ScanSettings.RADAR_START_TOP) {
+            // Starting from right (0°), change direction at left (180°)
+            (normalizedAngle >= ANGLE_LEFT - ANGLE_TOLERANCE && normalizedAngle <= ANGLE_LEFT + ANGLE_TOLERANCE)
+        } else {
+            // Starting from left (180°), change direction at right (0°/360°)
+            (normalizedAngle >= FULL_CIRCLE - ANGLE_TOLERANCE || normalizedAngle <= ANGLE_RIGHT + ANGLE_TOLERANCE)
+        }
     }
 
     private fun moveCircle() {
@@ -142,8 +160,8 @@ class RadarManager(private val context: Context) : AccessTechniqueInterface {
 
             CircleMovement.INWARD -> {
                 currentDistanceRatio -= MOVEMENT_STEP
-                if (currentDistanceRatio <= 0f) {
-                    currentDistanceRatio = 0f
+                if (currentDistanceRatio <= INITIAL_DISTANCE_RATIO) {
+                    currentDistanceRatio = INITIAL_DISTANCE_RATIO
                     circleMovement = CircleMovement.OUTWARD
                 }
             }
@@ -179,8 +197,8 @@ class RadarManager(private val context: Context) : AccessTechniqueInterface {
         if (cos < 0) {
             val t = -wiperPivotX / cos
             val y = wiperPivotY + t * sin
-            if (y >= 0 && y <= screenHeight) {
-                intersections.add(Pair(0f, y))
+            if (y >= SCREEN_EDGE_POSITION && y <= screenHeight) {
+                intersections.add(Pair(SCREEN_EDGE_POSITION, y))
             }
         }
         
@@ -188,7 +206,7 @@ class RadarManager(private val context: Context) : AccessTechniqueInterface {
         if (cos > 0) {
             val t = (screenWidth - wiperPivotX) / cos
             val y = wiperPivotY + t * sin
-            if (y >= 0 && y <= screenHeight) {
+            if (y >= SCREEN_EDGE_POSITION && y <= screenHeight) {
                 intersections.add(Pair(screenWidth, y))
             }
         }
@@ -197,8 +215,8 @@ class RadarManager(private val context: Context) : AccessTechniqueInterface {
         if (sin < 0) {
             val t = -wiperPivotY / sin
             val x = wiperPivotX + t * cos
-            if (x >= 0 && x <= screenWidth) {
-                intersections.add(Pair(x, 0f))
+            if (x >= SCREEN_EDGE_POSITION && x <= screenWidth) {
+                intersections.add(Pair(x, SCREEN_EDGE_POSITION))
             }
         }
         
@@ -206,7 +224,7 @@ class RadarManager(private val context: Context) : AccessTechniqueInterface {
         if (sin > 0) {
             val t = (screenHeight - wiperPivotY) / sin
             val x = wiperPivotX + t * cos
-            if (x >= 0 && x <= screenWidth) {
+            if (x >= SCREEN_EDGE_POSITION && x <= screenWidth) {
                 intersections.add(Pair(x, screenHeight))
             }
         }
@@ -313,7 +331,7 @@ class RadarManager(private val context: Context) : AccessTechniqueInterface {
                         // Second press: select line position and move to circle movement
                         slowDownState = SlowDownState.NORMAL_SPEED
                         currentStep = RadarStep.MOVING
-                        currentDistanceRatio = if (circleMovement == CircleMovement.OUTWARD) 0f else 1f
+                        currentDistanceRatio = if (circleMovement == CircleMovement.OUTWARD) INITIAL_DISTANCE_RATIO else MAX_DISTANCE_RATIO
                         updateRadarCircle()
                         resumeNormalSpeed()
                     }
@@ -355,7 +373,7 @@ class RadarManager(private val context: Context) : AccessTechniqueInterface {
         when (currentStep) {
             RadarStep.ROTATING -> {
                 currentStep = RadarStep.MOVING
-                currentDistanceRatio = if (circleMovement == CircleMovement.OUTWARD) 0f else 1f
+                currentDistanceRatio = if (circleMovement == CircleMovement.OUTWARD) INITIAL_DISTANCE_RATIO else MAX_DISTANCE_RATIO
                 updateRadarCircle()
                 startAutoScanIfEnabled()
             }
@@ -403,9 +421,9 @@ class RadarManager(private val context: Context) : AccessTechniqueInterface {
     override fun resetForNextUse() {
         currentStep = RadarStep.IDLE
         currentAngle = getStartingAngle()  // Reset to correct starting angle based on position
-        currentDistanceRatio = 0f
-        targetScreenX = 0f
-        targetScreenY = 0f
+        currentDistanceRatio = INITIAL_DISTANCE_RATIO
+        targetScreenX = INITIAL_DISTANCE_RATIO
+        targetScreenY = INITIAL_DISTANCE_RATIO
         rotationDirection = RotationDirection.CLOCKWISE
         circleMovement = CircleMovement.OUTWARD
         slowDownState = SlowDownState.NORMAL_SPEED
