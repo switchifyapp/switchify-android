@@ -81,6 +81,7 @@ class CameraSwitchManager(
     private val frameSkipThreshold = 33L // Skip frames if processing takes more than 33ms
 
     private var faceDetector: FaceDetector? = null
+    private var isReceiverRegistered = false
     
     private val pauseReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -133,12 +134,15 @@ class CameraSwitchManager(
             addAction(PauseManager.ACTION_PAUSE_STARTED)
             addAction(PauseManager.ACTION_PAUSE_ENDED)
         }
-        androidx.core.content.ContextCompat.registerReceiver(
-            context, 
-            pauseReceiver, 
-            filter, 
-            androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED
-        )
+        if (!isReceiverRegistered) {
+            androidx.core.content.ContextCompat.registerReceiver(
+                context, 
+                pauseReceiver, 
+                filter, 
+                androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED
+            )
+            isReceiverRegistered = true
+        }
         
         Log.d(TAG, "CameraSwitchManager initialized")
     }
@@ -586,7 +590,14 @@ class CameraSwitchManager(
      * Should be called when the camera manager is no longer needed.
      */
     fun cleanup() {
-        context.unregisterReceiver(pauseReceiver)
+        if (isReceiverRegistered) {
+            try {
+                context.unregisterReceiver(pauseReceiver)
+                isReceiverRegistered = false
+            } catch (e: IllegalArgumentException) {
+                Log.w(TAG, "Receiver was not registered or already unregistered", e)
+            }
+        }
         stopCamera()
         faceDetector?.close()
         faceDetector = null
