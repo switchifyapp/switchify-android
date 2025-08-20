@@ -76,8 +76,14 @@ class RadarManager(private val context: Context) : AccessTechniqueInterface {
         get() {
             val width = ScreenUtils.getWidth(context).toFloat()
             val height = ScreenUtils.getHeight(context).toFloat()
-            // For windscreen wiper, use full diagonal distance from pivot point
-            return sqrt(width * width + height * height)
+            // For windscreen wiper, calculate max distance to screen edge from pivot
+            return if (scanSettings.getRadarStartingPosition() == ScanSettings.RADAR_START_TOP) {
+                // From top edge, max distance is to bottom edge
+                height
+            } else {
+                // From bottom edge, max distance is to top edge plus width for diagonal reach
+                sqrt(width * width + height * height) / 2f
+            }
         }
 
     private var currentStep = RadarStep.IDLE
@@ -134,11 +140,23 @@ class RadarManager(private val context: Context) : AccessTechniqueInterface {
         val normalizedAngle = (currentAngle + 360) % 360
         
         return if (scanSettings.getRadarStartingPosition() == ScanSettings.RADAR_START_TOP) {
-            // Starting from right (0°), change direction at left (180°)
-            (normalizedAngle >= ANGLE_LEFT - ANGLE_TOLERANCE && normalizedAngle <= ANGLE_LEFT + ANGLE_TOLERANCE)
+            // Starting from right (0°), change direction when reaching horizontal limits
+            if (rotationDirection == RotationDirection.CLOCKWISE) {
+                // Clockwise from 0° -> stop at 180°
+                (normalizedAngle >= ANGLE_LEFT - ANGLE_TOLERANCE && normalizedAngle <= ANGLE_LEFT + ANGLE_TOLERANCE)
+            } else {
+                // Anti-clockwise from 0° -> stop at 0° (don't go past horizontal)
+                (normalizedAngle >= FULL_CIRCLE - ANGLE_TOLERANCE || normalizedAngle <= ANGLE_RIGHT + ANGLE_TOLERANCE)
+            }
         } else {
-            // Starting from left (180°), change direction at right (0°/360°)
-            (normalizedAngle >= FULL_CIRCLE - ANGLE_TOLERANCE || normalizedAngle <= ANGLE_RIGHT + ANGLE_TOLERANCE)
+            // Starting from left (180°), change direction when reaching horizontal limits
+            if (rotationDirection == RotationDirection.CLOCKWISE) {
+                // Clockwise from 180° -> stop at 0°
+                (normalizedAngle >= FULL_CIRCLE - ANGLE_TOLERANCE || normalizedAngle <= ANGLE_RIGHT + ANGLE_TOLERANCE)
+            } else {
+                // Anti-clockwise from 180° -> stop at 180° (don't go past horizontal)
+                (normalizedAngle >= ANGLE_LEFT - ANGLE_TOLERANCE && normalizedAngle <= ANGLE_LEFT + ANGLE_TOLERANCE)
+            }
         }
     }
 
