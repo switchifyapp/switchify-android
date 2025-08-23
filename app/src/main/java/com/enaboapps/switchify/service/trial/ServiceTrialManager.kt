@@ -67,8 +67,8 @@ class ServiceTrialManager(
      * Called when the accessibility service connects.
      */
     fun startTrial() {
-        // Check if trials are disabled for debugging
-        if (isTrialDisabled()) {
+        // Check if trials are disabled for debugging (only in debug builds)
+        if (BuildConfig.DEBUG && isTrialDisabled()) {
             Log.d(TAG, "Trials disabled for debugging - unlimited access")
             ServiceMessageHUD.instance.showMessage(
                 R.string.debug_trial_disabled_message,
