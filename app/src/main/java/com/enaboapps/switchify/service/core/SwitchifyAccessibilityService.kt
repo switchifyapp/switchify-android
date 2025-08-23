@@ -26,7 +26,6 @@ import com.enaboapps.switchify.service.trial.ServiceTrialManager
 import com.enaboapps.switchify.service.window.SwitchifyAccessibilityWindow
 import com.enaboapps.switchify.utils.LogEvent
 import com.enaboapps.switchify.utils.Logger
-import com.enaboapps.switchify.utils.Resources
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -80,8 +79,6 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
         SwitchifyLifecycleOwner.getInstance().handleLifecycleEvent(Lifecycle.Event.ON_CREATE)
 
         Logger.init(this)
-
-        Resources.init(this)
 
         IAPHandler.initialize(context = this, connectToRevenueCat = false)
 

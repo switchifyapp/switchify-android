@@ -2,6 +2,7 @@ package com.enaboapps.switchify
 
 import android.app.Application
 import android.util.Log
+import com.enaboapps.switchify.utils.Resources
 
 class SwitchifyApplication : Application() {
     
@@ -11,6 +12,8 @@ class SwitchifyApplication : Application() {
     
     override fun onCreate() {
         super.onCreate()
+        
+        Resources.init(this)
         
         Log.i(TAG, "SwitchifyApplication initialized")
     }
