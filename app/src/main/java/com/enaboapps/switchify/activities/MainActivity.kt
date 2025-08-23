@@ -14,7 +14,6 @@ import com.enaboapps.switchify.nav.NavGraph
 import com.enaboapps.switchify.switches.SwitchEventStore
 import com.enaboapps.switchify.utils.LogEvent
 import com.enaboapps.switchify.utils.Logger
-import com.enaboapps.switchify.utils.Resources
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -54,9 +53,6 @@ class MainActivity : ComponentActivity() {
 
         // Initialize Logger
         Logger.init(this)
-
-        // Initialize Resources
-        Resources.init(this)
 
         // Initialize IAP
         IAPHandler.initialize(this)
