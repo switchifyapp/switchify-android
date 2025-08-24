@@ -161,6 +161,26 @@ class CursorLineManager(
         onPointSelected(PointF(currentX.toFloat(), currentY.toFloat()))
     }
 
+    override fun stepScanningUp() {
+        currentDirection = ScanDirection.UP
+        stepScanning()
+    }
+
+    override fun stepScanningDown() {
+        currentDirection = ScanDirection.DOWN
+        stepScanning()
+    }
+
+    override fun stepScanningLeft() {
+        currentDirection = ScanDirection.LEFT
+        stepScanning()
+    }
+
+    override fun stepScanningRight() {
+        currentDirection = ScanDirection.RIGHT
+        stepScanning()
+    }
+
     override fun cleanup() {
         super.cleanup()
         scanningScheduler.shutdown()

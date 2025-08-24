@@ -150,6 +150,34 @@ class CursorManager(private val context: Context) : AccessTechniqueInterface {
     }
 
     /**
+     * Steps up in the cursor scanning (not applicable for cursor mode).
+     */
+    override fun stepScanningUp() {
+        getManager().stepScanningUp()
+    }
+
+    /**
+     * Steps down in the cursor scanning (not applicable for cursor mode).
+     */
+    override fun stepScanningDown() {
+        getManager().stepScanningDown()
+    }
+
+    /**
+     * Steps left in the cursor scanning.
+     */
+    override fun stepScanningLeft() {
+        getManager().stepScanningLeft()
+    }
+
+    /**
+     * Steps right in the cursor scanning.
+     */
+    override fun stepScanningRight() {
+        getManager().stepScanningRight()
+    }
+
+    /**
      * Cleans up the cursor manager.
      */
     override fun cleanup() {

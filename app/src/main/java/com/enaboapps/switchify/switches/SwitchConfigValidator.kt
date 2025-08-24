@@ -30,6 +30,7 @@ class SwitchConfigValidator(private val context: Context) {
         return when {
             scanSettings.isAutoScanMode() -> isValidForAutoScan(configuredActions)
             scanSettings.isManualScanMode() -> isValidForManualScan(configuredActions)
+            scanSettings.isDirectionalScanMode() -> isValidForDirectionalScan(configuredActions)
             else -> false
         }
     }
@@ -52,6 +53,22 @@ class SwitchConfigValidator(private val context: Context) {
                 SwitchAction.ACTION_SELECT,
                 SwitchAction.ACTION_MOVE_TO_NEXT_ITEM,
                 SwitchAction.ACTION_MOVE_TO_PREVIOUS_ITEM
+            )
+        )
+    }
+    
+    /**
+     * Check if configuration is valid for directional scan mode
+     * Directional scan requires UP, DOWN, LEFT, RIGHT, and SELECT actions
+     */
+    private fun isValidForDirectionalScan(configuredActions: Set<Int>): Boolean {
+        return configuredActions.containsAll(
+            setOf(
+                SwitchAction.ACTION_SELECT,
+                SwitchAction.ACTION_MOVE_UP,
+                SwitchAction.ACTION_MOVE_DOWN,
+                SwitchAction.ACTION_MOVE_LEFT,
+                SwitchAction.ACTION_MOVE_RIGHT
             )
         )
     }
@@ -97,6 +114,13 @@ class SwitchConfigValidator(private val context: Context) {
                 SwitchAction.ACTION_MOVE_TO_NEXT_ITEM,
                 SwitchAction.ACTION_MOVE_TO_PREVIOUS_ITEM
             )
+            scanSettings.isDirectionalScanMode() -> setOf(
+                SwitchAction.ACTION_SELECT,
+                SwitchAction.ACTION_MOVE_UP,
+                SwitchAction.ACTION_MOVE_DOWN,
+                SwitchAction.ACTION_MOVE_LEFT,
+                SwitchAction.ACTION_MOVE_RIGHT
+            )
             else -> emptySet()
         }
         
@@ -110,6 +134,7 @@ class SwitchConfigValidator(private val context: Context) {
         return when {
             scanSettings.isAutoScanMode() -> ScanMode(ScanMode.Modes.MODE_AUTO).getModeName()
             scanSettings.isManualScanMode() -> ScanMode(ScanMode.Modes.MODE_MANUAL).getModeName()
+            scanSettings.isDirectionalScanMode() -> ScanMode(ScanMode.Modes.MODE_DIRECTIONAL).getModeName()
             else -> "Unknown"
         }
     }

@@ -22,6 +22,14 @@ interface AccessTechniqueInterface {
 
     fun stepScanningBackward()
 
+    fun stepScanningUp()
+
+    fun stepScanningDown()
+
+    fun stepScanningLeft()
+
+    fun stepScanningRight()
+
     fun performSelectionAction()
 
     fun resetUI()

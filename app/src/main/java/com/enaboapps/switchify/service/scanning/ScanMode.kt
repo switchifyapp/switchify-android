@@ -15,6 +15,7 @@ class ScanMode(val id: String) {
     object Modes {
         const val MODE_AUTO = "auto"
         const val MODE_MANUAL = "manual"
+        const val MODE_DIRECTIONAL = "directional"
     }
 
     companion object {
@@ -24,7 +25,8 @@ class ScanMode(val id: String) {
          */
         val modes = listOf(
             ScanMode(Modes.MODE_AUTO),
-            ScanMode(Modes.MODE_MANUAL)
+            ScanMode(Modes.MODE_MANUAL),
+            ScanMode(Modes.MODE_DIRECTIONAL)
         )
 
         /**
@@ -45,6 +47,7 @@ class ScanMode(val id: String) {
         return when (id) {
             Modes.MODE_AUTO -> Resources.getString(R.string.scanning_mode_auto)
             Modes.MODE_MANUAL -> Resources.getString(R.string.scanning_mode_manual)
+            Modes.MODE_DIRECTIONAL -> Resources.getString(R.string.scanning_mode_directional)
             else -> Resources.getString(R.string.unknown)
         }
     }
@@ -57,6 +60,7 @@ class ScanMode(val id: String) {
         return when (id) {
             Modes.MODE_AUTO -> Resources.getString(R.string.scanning_mode_auto_desc)
             Modes.MODE_MANUAL -> Resources.getString(R.string.scanning_mode_manual_desc)
+            Modes.MODE_DIRECTIONAL -> Resources.getString(R.string.scanning_mode_directional_desc)
             else -> Resources.getString(R.string.unknown)
         }
     }
