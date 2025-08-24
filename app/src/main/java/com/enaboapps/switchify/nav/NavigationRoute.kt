@@ -27,4 +27,5 @@ sealed class NavigationRoute(val name: String) {
     data object GesturePatterns : NavigationRoute("GesturePatterns")
     data object UsageStatsPermission : NavigationRoute("UsageStatsPermission")
     data object UserFeedback : NavigationRoute("UserFeedback")
+    data object CameraSettings : NavigationRoute("CameraSettings")
 }

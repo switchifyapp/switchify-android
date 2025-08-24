@@ -25,6 +25,7 @@ import com.enaboapps.switchify.screens.settings.switches.ExternalSwitchesScreen
 import com.enaboapps.switchify.screens.settings.switches.SwitchStabilityScreen
 import com.enaboapps.switchify.screens.settings.switches.SwitchesScreen
 import com.enaboapps.switchify.screens.settings.techniques.AccessTechniqueSettingsScreen
+import com.enaboapps.switchify.screens.settings.CameraSettingsScreen
 import com.enaboapps.switchify.screens.onboarding.OnboardingScreen
 import com.enaboapps.switchify.screens.permissions.UsageStatsPermissionScreen
 import com.enaboapps.switchify.screens.UserFeedbackScreen
@@ -115,6 +116,9 @@ fun NavGraph(navController: NavHostController) {
         }
         composable(NavigationRoute.UserFeedback.name) {
             UserFeedbackScreen(navController)
+        }
+        composable(NavigationRoute.CameraSettings.name) {
+            CameraSettingsScreen(navController)
         }
     }
 }
