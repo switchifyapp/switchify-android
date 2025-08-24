@@ -97,6 +97,8 @@
     <string name="scanning_mode_auto_desc">Use a single switch to scan and select</string>
     <string name="scanning_mode_manual">Manual</string>
     <string name="scanning_mode_manual_desc">Use multiple switches to manually move and select</string>
+    <string name="scanning_mode_directional">Directional</string>
+    <string name="scanning_mode_directional_desc">Use four switches to move up, down, left, and right</string>
 
     <!-- Camera Permission Messages -->
     <string name="camera_permission_required">Camera Permission Required</string>
@@ -157,6 +159,14 @@
     <string name="action_next_item_desc">Move to the next item</string>
     <string name="action_previous_item">Move to Previous Item</string>
     <string name="action_previous_item_desc">Move to the previous item</string>
+    <string name="action_move_up">Move Up</string>
+    <string name="action_move_up_desc">Move to the item above</string>
+    <string name="action_move_down">Move Down</string>
+    <string name="action_move_down_desc">Move to the item below</string>
+    <string name="action_move_left">Move Left</string>
+    <string name="action_move_left_desc">Move to the item on the left</string>
+    <string name="action_move_right">Move Right</string>
+    <string name="action_move_right_desc">Move to the item on the right</string>
     <string name="action_next">Next</string>
     <string name="action_previous">Previous</string>
 

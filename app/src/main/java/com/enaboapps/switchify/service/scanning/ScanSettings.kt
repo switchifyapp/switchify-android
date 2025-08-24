@@ -33,6 +33,14 @@ class ScanSettings(context: Context) {
     }
 
     /**
+     * Check if the scan mode is directional
+     * @return true if the scan mode is directional, false otherwise
+     */
+    fun isDirectionalScanMode(): Boolean {
+        return ScanMode.fromId(preferenceManager.getStringValue(PreferenceManager.Keys.PREFERENCE_KEY_SCAN_MODE)).id == ScanMode.Modes.MODE_DIRECTIONAL
+    }
+
+    /**
      * Get the scan rate
      * @return The scan rate
      */
@@ -166,7 +174,7 @@ class ScanSettings(context: Context) {
      */
     fun isMoveRepeatEnabled(): Boolean {
         return preferenceManager.getBooleanValue(PreferenceManager.Keys.PREFERENCE_KEY_MOVE_REPEAT) == true &&
-                isManualScanMode()
+                (isManualScanMode() || isDirectionalScanMode())
     }
 
     /**
