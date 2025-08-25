@@ -388,7 +388,26 @@
     <string name="no_face_detected">No face detected</string>
     <string name="section_title_detected_expressions">Detected Expressions</string>
     <string name="section_title_camera_settings">Camera Settings</string>
+    <string name="section_title_threshold_settings">Threshold Settings</string>
     <string name="placeholder_future_settings">Additional camera settings will be available here in future updates</string>
+    
+    <!-- Camera Threshold Preferences -->
+    <string name="preference_title_smile_time">Smile Hold Time</string>
+    <string name="preference_summary_smile_time">How long to hold a smile to trigger</string>
+    <string name="preference_title_left_wink_time">Left Wink Hold Time</string>
+    <string name="preference_summary_left_wink_time">How long to hold a left wink to trigger</string>
+    <string name="preference_title_right_wink_time">Right Wink Hold Time</string>
+    <string name="preference_summary_right_wink_time">How long to hold a right wink to trigger</string>
+    <string name="preference_title_blink_time">Blink Hold Time</string>
+    <string name="preference_summary_blink_time">How long to hold a blink to trigger</string>
+    <string name="preference_title_head_turn_left_sensitivity">Head Turn Left Sensitivity</string>
+    <string name="preference_summary_head_turn_left_sensitivity">How sensitive left head turn detection should be</string>
+    <string name="preference_title_head_turn_right_sensitivity">Head Turn Right Sensitivity</string>
+    <string name="preference_summary_head_turn_right_sensitivity">How sensitive right head turn detection should be</string>
+    <string name="preference_title_head_turn_up_sensitivity">Head Turn Up Sensitivity</string>
+    <string name="preference_summary_head_turn_up_sensitivity">How sensitive upward head turn detection should be</string>
+    <string name="preference_title_head_turn_down_sensitivity">Head Turn Down Sensitivity</string>
+    <string name="preference_summary_head_turn_down_sensitivity">How sensitive downward head turn detection should be</string>
 
     <!-- Settings - Account Section -->
     <string name="settings_section_account">Account</string>

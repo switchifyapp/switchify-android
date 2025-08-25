@@ -100,41 +100,6 @@ private fun MainContent(
             onChange = { viewModel.setAction(it) }
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Show different settings based on gesture type
-        viewModel.selectedGesture.value?.let { gesture ->
-            if (gesture.isHeadTurn()) {
-                // Head Turn Sensitivity (only for head turn gestures)
-                PreferenceValueSelector(
-                    value = viewModel.sensitivity.intValue,
-                    titleResId = R.string.preference_title_head_turn_sensitivity,
-                    summaryResId = R.string.preference_summary_head_turn_sensitivity,
-                    min = 1,
-                    max = 10,
-                    displayFormatter = { sensitivity ->
-                        "${CameraSwitchManager.getHeadTurnThreshold(sensitivity).toInt()}°"
-                    },
-                    onValueChanged = { newValue ->
-                        viewModel.setSensitivity(newValue)
-                    }
-                )
-            } else {
-                // Facial Gesture Time (only for non-head turn gestures)
-                PreferenceTimeStepper(
-                    value = viewModel.facialGestureTime.longValue,
-                    titleResId = R.string.preference_title_facial_gesture_time,
-                    summaryResId = R.string.preference_summary_facial_gesture_time,
-                    min = 100,
-                    max = 10000,
-                    step = 100,
-                    onValueChanged = { newValue ->
-                        viewModel.setFacialGestureTime(newValue)
-                    }
-                )
-            }
-        }
-
         Spacer(modifier = Modifier.height(24.dp))
 
         // Save Button

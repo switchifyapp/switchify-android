@@ -9,8 +9,6 @@ data class SwitchEvent(
     @SerializedName("type") var type: String = SWITCH_EVENT_TYPE_EXTERNAL,
     @SerializedName("name") var name: String,
     @SerializedName("code") var code: String,
-    @SerializedName("facial_gesture_time") var facialGestureTime: Long = 100L,
-    @SerializedName("sensitivity") var sensitivity: Int = 4, // Default sensitivity 4 = 20 degrees
     @SerializedName("press_action") var pressAction: SwitchAction,
     @SerializedName("hold_actions") var holdActions: List<SwitchAction>
 ) {
@@ -18,15 +16,13 @@ data class SwitchEvent(
         "type" to (type.takeIf { it.isNotEmpty() } ?: SWITCH_EVENT_TYPE_EXTERNAL),
         "name" to name,
         "code" to code,
-        "facial_gesture_time" to (facialGestureTime.takeIf { it > 0 } ?: 100L),
-        "sensitivity" to sensitivity,
         "press_action" to pressAction.toMap(),
         "hold_actions" to holdActions.map { it.toMap() }
     )
 
     fun log() {
         println(
-            "SwitchEvent: $type, $name, $code, $facialGestureTime, ${pressAction.id}, ${
+            "SwitchEvent: $type, $name, $code, ${pressAction.id}, ${
                 holdActions.joinToString(
                     separator = ";"
                 ) { it.id.toString() }

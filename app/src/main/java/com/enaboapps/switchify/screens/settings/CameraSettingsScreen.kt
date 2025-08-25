@@ -23,6 +23,8 @@ import androidx.navigation.NavController
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.CameraPermissionHandler
+import com.enaboapps.switchify.components.PreferenceValueSelector
+import com.enaboapps.switchify.components.PreferenceTimeStepper
 import com.enaboapps.switchify.components.ScrollableView
 import com.enaboapps.switchify.components.Section
 import com.enaboapps.switchify.service.switches.camera.CameraSwitchManager
@@ -67,6 +69,16 @@ private fun CameraSettingsContent(
     val detectedExpressions by viewModel.detectedExpressions.collectAsState()
     val isFaceDetected by viewModel.isFaceDetected.collectAsState()
     
+    // Collect threshold state flows
+    val smileTime by viewModel.smileTime.collectAsState()
+    val leftWinkTime by viewModel.leftWinkTime.collectAsState()
+    val rightWinkTime by viewModel.rightWinkTime.collectAsState()
+    val blinkTime by viewModel.blinkTime.collectAsState()
+    val headTurnLeftSensitivity by viewModel.headTurnLeftSensitivity.collectAsState()
+    val headTurnRightSensitivity by viewModel.headTurnRightSensitivity.collectAsState()
+    val headTurnUpSensitivity by viewModel.headTurnUpSensitivity.collectAsState()
+    val headTurnDownSensitivity by viewModel.headTurnDownSensitivity.collectAsState()
+    
     LaunchedEffect(lifecycleOwner) {
         viewModel.startCamera(lifecycleOwner)
     }
@@ -96,6 +108,98 @@ private fun CameraSettingsContent(
         
         Section(titleResId = R.string.section_title_detected_expressions) {
             DetectedExpressionsList(detectedExpressions = detectedExpressions)
+        }
+        
+        Section(titleResId = R.string.section_title_threshold_settings) {
+            // Time steppers for gesture hold times
+            PreferenceTimeStepper(
+                value = smileTime,
+                titleResId = R.string.preference_title_smile_time,
+                summaryResId = R.string.preference_summary_smile_time,
+                min = 100,
+                max = 5000,
+                step = 100,
+                onValueChanged = { viewModel.setSmileTime(it) }
+            )
+            
+            PreferenceTimeStepper(
+                value = leftWinkTime,
+                titleResId = R.string.preference_title_left_wink_time,
+                summaryResId = R.string.preference_summary_left_wink_time,
+                min = 100,
+                max = 3000,
+                step = 50,
+                onValueChanged = { viewModel.setLeftWinkTime(it) }
+            )
+            
+            PreferenceTimeStepper(
+                value = rightWinkTime,
+                titleResId = R.string.preference_title_right_wink_time,
+                summaryResId = R.string.preference_summary_right_wink_time,
+                min = 100,
+                max = 3000,
+                step = 50,
+                onValueChanged = { viewModel.setRightWinkTime(it) }
+            )
+            
+            PreferenceTimeStepper(
+                value = blinkTime,
+                titleResId = R.string.preference_title_blink_time,
+                summaryResId = R.string.preference_summary_blink_time,
+                min = 100,
+                max = 2000,
+                step = 50,
+                onValueChanged = { viewModel.setBlinkTime(it) }
+            )
+            
+            // Value selectors for head turn sensitivities
+            PreferenceValueSelector(
+                value = headTurnLeftSensitivity,
+                titleResId = R.string.preference_title_head_turn_left_sensitivity,
+                summaryResId = R.string.preference_summary_head_turn_left_sensitivity,
+                min = 1,
+                max = 10,
+                displayFormatter = { sensitivity ->
+                    "${CameraSwitchManager.getHeadTurnThreshold(sensitivity).toInt()}°"
+                },
+                onValueChanged = { viewModel.setHeadTurnLeftSensitivity(it) }
+            )
+            
+            PreferenceValueSelector(
+                value = headTurnRightSensitivity,
+                titleResId = R.string.preference_title_head_turn_right_sensitivity,
+                summaryResId = R.string.preference_summary_head_turn_right_sensitivity,
+                min = 1,
+                max = 10,
+                displayFormatter = { sensitivity ->
+                    "${CameraSwitchManager.getHeadTurnThreshold(sensitivity).toInt()}°"
+                },
+                onValueChanged = { viewModel.setHeadTurnRightSensitivity(it) }
+            )
+            
+            PreferenceValueSelector(
+                value = headTurnUpSensitivity,
+                titleResId = R.string.preference_title_head_turn_up_sensitivity,
+                summaryResId = R.string.preference_summary_head_turn_up_sensitivity,
+                min = 1,
+                max = 10,
+                displayFormatter = { sensitivity ->
+                    "${CameraSwitchManager.getHeadTurnThreshold(sensitivity).toInt()}°"
+                },
+                onValueChanged = { viewModel.setHeadTurnUpSensitivity(it) }
+            )
+            
+            PreferenceValueSelector(
+                value = headTurnDownSensitivity,
+                titleResId = R.string.preference_title_head_turn_down_sensitivity,
+                summaryResId = R.string.preference_summary_head_turn_down_sensitivity,
+                min = 1,
+                max = 10,
+                displayFormatter = { sensitivity ->
+                    "${CameraSwitchManager.getHeadTurnThreshold(sensitivity).toInt()}°"
+                },
+                onValueChanged = { viewModel.setHeadTurnDownSensitivity(it) }
+            )
         }
         
         Section(titleResId = R.string.section_title_camera_settings) {
