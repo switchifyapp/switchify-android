@@ -198,24 +198,32 @@ class FaceProcessingService(context: Context) {
         val upThreshold = getHeadTurnUpThreshold()
         val downThreshold = getHeadTurnDownThreshold()
         
+        // Calculate the largest head turn movement to avoid multiple simultaneous detections
+        val headTurnMagnitudes = mutableMapOf<String, Float>()
+        
         if (headRotationY > leftThreshold) {
-            detectedGestures.add(CameraSwitchFacialGesture.HEAD_TURN_LEFT)
-            android.util.Log.d("FaceProcessingService", "Head turn left detected (Y: $headRotationY > $leftThreshold)")
+            headTurnMagnitudes[CameraSwitchFacialGesture.HEAD_TURN_LEFT] = headRotationY - leftThreshold
         }
         
         if (headRotationY < -rightThreshold) {
-            detectedGestures.add(CameraSwitchFacialGesture.HEAD_TURN_RIGHT)
-            android.util.Log.d("FaceProcessingService", "Head turn right detected (Y: $headRotationY < -$rightThreshold)")
+            headTurnMagnitudes[CameraSwitchFacialGesture.HEAD_TURN_RIGHT] = kotlin.math.abs(headRotationY + rightThreshold)
         }
         
         if (headRotationX < -upThreshold) {
-            detectedGestures.add(CameraSwitchFacialGesture.HEAD_TURN_UP)
-            android.util.Log.d("FaceProcessingService", "Head turn up detected (X: $headRotationX < -$upThreshold)")
+            headTurnMagnitudes[CameraSwitchFacialGesture.HEAD_TURN_UP] = kotlin.math.abs(headRotationX + upThreshold)
         }
         
         if (headRotationX > downThreshold) {
-            detectedGestures.add(CameraSwitchFacialGesture.HEAD_TURN_DOWN)
-            android.util.Log.d("FaceProcessingService", "Head turn down detected (X: $headRotationX > $downThreshold)")
+            headTurnMagnitudes[CameraSwitchFacialGesture.HEAD_TURN_DOWN] = headRotationX - downThreshold
+        }
+        
+        // Only add the gesture with the largest magnitude
+        if (headTurnMagnitudes.isNotEmpty()) {
+            val largestTurn = headTurnMagnitudes.maxByOrNull { it.value }
+            if (largestTurn != null) {
+                detectedGestures.add(largestTurn.key)
+                android.util.Log.d("FaceProcessingService", "Largest head turn detected: ${largestTurn.key} (magnitude: ${largestTurn.value})")
+            }
         }
         
         return FaceDetectionResult(detectedGestures, faceState)
