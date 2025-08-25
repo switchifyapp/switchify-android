@@ -14,11 +14,12 @@ import com.enaboapps.switchify.service.face.FaceProcessingService
 import com.enaboapps.switchify.service.switches.camera.CameraSwitchManager
 import com.enaboapps.switchify.switches.CameraSwitchFacialGesture
 import com.google.common.util.concurrent.ListenableFuture
-import com.google.mlkit.vision.common.InputImage
-import com.google.mlkit.vision.face.Face
-import com.google.mlkit.vision.face.FaceDetection
-import com.google.mlkit.vision.face.FaceDetector
-import com.google.mlkit.vision.face.FaceDetectorOptions
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.ImageFormat
+import android.graphics.Rect
+import android.graphics.YuvImage
+import java.io.ByteArrayOutputStream
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -85,7 +86,6 @@ class CameraSettingsScreenModel(private val context: Context) : ViewModel() {
     private var imageAnalyzer: ImageAnalysis? = null
     private var preview: Preview? = null
     private var previewView: PreviewView? = null
-    private var faceDetector: FaceDetector? = null
     private val isProcessing = AtomicBoolean(false)
     
     private companion object {
@@ -94,19 +94,44 @@ class CameraSettingsScreenModel(private val context: Context) : ViewModel() {
     }
     
     init {
-        initializeFaceDetector()
     }
     
-    private fun initializeFaceDetector() {
-        faceDetector = FaceDetection.getClient(
-            FaceDetectorOptions.Builder()
-                .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_ACCURATE)
-                .setLandmarkMode(FaceDetectorOptions.LANDMARK_MODE_ALL)
-                .setClassificationMode(FaceDetectorOptions.CLASSIFICATION_MODE_ALL)
-                .setMinFaceSize(MIN_FACE_SIZE)
-                .enableTracking()
-                .build()
-        )
+    @OptIn(ExperimentalGetImage::class)
+    private fun imageProxyToBitmap(imageProxy: ImageProxy): Bitmap? {
+        return try {
+            val image = imageProxy.image ?: return null
+            
+            // Handle YUV format (most common from camera)
+            if (image.format == ImageFormat.YUV_420_888) {
+                val yBuffer = image.planes[0].buffer
+                val uBuffer = image.planes[1].buffer
+                val vBuffer = image.planes[2].buffer
+                
+                val ySize = yBuffer.remaining()
+                val uSize = uBuffer.remaining()
+                val vSize = vBuffer.remaining()
+                
+                val nv21 = ByteArray(ySize + uSize + vSize)
+                yBuffer.get(nv21, 0, ySize)
+                vBuffer.get(nv21, ySize, vSize)
+                uBuffer.get(nv21, ySize + vSize, uSize)
+                
+                val yuvImage = YuvImage(nv21, ImageFormat.NV21, image.width, image.height, null)
+                val out = ByteArrayOutputStream()
+                yuvImage.compressToJpeg(Rect(0, 0, image.width, image.height), 100, out)
+                val imageBytes = out.toByteArray()
+                return BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
+            } else {
+                // Fallback for other formats
+                val buffer = image.planes[0].buffer
+                val bytes = ByteArray(buffer.remaining())
+                buffer.get(bytes)
+                return BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error converting ImageProxy to Bitmap", e)
+            null
+        }
     }
     
     fun startCamera(lifecycleOwner: LifecycleOwner) {
@@ -175,30 +200,23 @@ class CameraSettingsScreenModel(private val context: Context) : ViewModel() {
         
         try {
             imageProxy.image?.let { mediaImage ->
-                val image = InputImage.fromMediaImage(
-                    mediaImage,
-                    imageProxy.imageInfo.rotationDegrees
-                )
-                
-                faceDetector?.process(image)
-                    ?.addOnSuccessListener { faces ->
-                        if (faces.isNotEmpty()) {
-                            _isFaceDetected.value = true
-                            processFace(faces[0])
-                        } else {
-                            _isFaceDetected.value = false
-                            _detectedExpressions.value = emptySet()
-                        }
-                    }
-                    ?.addOnFailureListener { e ->
-                        Log.e(TAG, "Face detection failed", e)
+                val bitmap = imageProxyToBitmap(imageProxy)
+                bitmap?.let {
+                    val result = faceProcessingService.processFace(it)
+                    if (result != null) {
+                        _isFaceDetected.value = true
+                        processFaceResult(result)
+                    } else {
                         _isFaceDetected.value = false
                         _detectedExpressions.value = emptySet()
                     }
-                    ?.addOnCompleteListener {
-                        isProcessing.set(false)
-                        imageProxy.close()
-                    }
+                } ?: run {
+                    _isFaceDetected.value = false
+                    _detectedExpressions.value = emptySet()
+                }
+                
+                isProcessing.set(false)
+                imageProxy.close()
             } ?: run {
                 isProcessing.set(false)
                 imageProxy.close()
@@ -210,13 +228,7 @@ class CameraSettingsScreenModel(private val context: Context) : ViewModel() {
         }
     }
     
-    private fun processFace(face: Face) {
-        // TODO: Convert Face to Bitmap for MediaPipe processing
-        // For now, create empty result to maintain functionality
-        val result = FaceProcessingService.FaceDetectionResult(
-            emptySet(),
-            FaceProcessingService.FaceState()
-        )
+    private fun processFaceResult(result: FaceProcessingService.FaceDetectionResult) {
         currentFaceState = result.faceState
         
         val validatedGestures = mutableSetOf<String>()
@@ -306,8 +318,7 @@ class CameraSettingsScreenModel(private val context: Context) : ViewModel() {
             imageAnalyzer = null
             preview = null
             previewView = null
-            faceDetector?.close()
-            faceDetector = null
+            faceProcessingService.close()
             
             // Reset gesture states
             gestureStates.forEach { (_, state) ->

@@ -71,11 +71,13 @@ class CameraSwitchManager(
 
     private var currentFaceState = FaceProcessingService.FaceState()
     private var lastProcessedState = FaceProcessingService.FaceState()
+    private var consecutiveNoFaceFrames = 0
+    private val maxNoFaceFrames = 3 // Require 3 consecutive no-face frames before resetting
 
     private val coroutineScope = CoroutineScope(Dispatchers.Default)
     private val lastProcessingTime = AtomicLong(0)
     private val processingTimeoutMs = 100L
-    private val frameSkipThreshold = 33L // Skip frames if processing takes more than 33ms
+    private val frameSkipThreshold = 100L // Skip frames if processing takes more than 100ms (more stable)
 
     private var isReceiverRegistered = false
     
@@ -236,11 +238,20 @@ class CameraSwitchManager(
                         bitmap?.let {
                             val result = faceProcessingService.processFace(it)
                             if (result != null) {
+                                consecutiveNoFaceFrames = 0
                                 processFaceResult(result)
                             } else {
+                                consecutiveNoFaceFrames++
+                                if (consecutiveNoFaceFrames >= maxNoFaceFrames) {
+                                    reset()
+                                }
+                            }
+                        } ?: run {
+                            consecutiveNoFaceFrames++
+                            if (consecutiveNoFaceFrames >= maxNoFaceFrames) {
                                 reset()
                             }
-                        } ?: reset()
+                        }
                         imageProxy.close()
                     } ?: imageProxy.close()
                 } catch (e: Exception) {
@@ -260,10 +271,34 @@ class CameraSwitchManager(
     private fun imageProxyToBitmap(imageProxy: ImageProxy): Bitmap? {
         return try {
             val image = imageProxy.image ?: return null
-            val buffer = image.planes[0].buffer
-            val bytes = ByteArray(buffer.remaining())
-            buffer.get(bytes)
-            BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+            
+            // Handle YUV format (most common from camera)
+            if (image.format == ImageFormat.YUV_420_888) {
+                val yBuffer = image.planes[0].buffer
+                val uBuffer = image.planes[1].buffer
+                val vBuffer = image.planes[2].buffer
+                
+                val ySize = yBuffer.remaining()
+                val uSize = uBuffer.remaining()
+                val vSize = vBuffer.remaining()
+                
+                val nv21 = ByteArray(ySize + uSize + vSize)
+                yBuffer.get(nv21, 0, ySize)
+                vBuffer.get(nv21, ySize, vSize)
+                uBuffer.get(nv21, ySize + vSize, uSize)
+                
+                val yuvImage = YuvImage(nv21, ImageFormat.NV21, image.width, image.height, null)
+                val out = ByteArrayOutputStream()
+                yuvImage.compressToJpeg(Rect(0, 0, image.width, image.height), 85, out)
+                val imageBytes = out.toByteArray()
+                return BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
+            } else {
+                // Fallback for other formats
+                val buffer = image.planes[0].buffer
+                val bytes = ByteArray(buffer.remaining())
+                buffer.get(bytes)
+                return BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+            }
         } catch (e: Exception) {
             Log.e(TAG, "Error converting ImageProxy to Bitmap", e)
             null
@@ -422,6 +457,7 @@ class CameraSwitchManager(
         }
         activeGesture = null
         lastProcessedState = FaceProcessingService.FaceState()  // Reset the last processed state
+        consecutiveNoFaceFrames = 0 // Reset smoothing counter
     }
 
     /**

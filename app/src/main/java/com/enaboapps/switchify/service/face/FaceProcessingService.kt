@@ -5,7 +5,6 @@ import android.graphics.Bitmap
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.service.switches.camera.CameraSwitchManager
 import com.enaboapps.switchify.switches.CameraSwitchFacialGesture
-import com.google.mlkit.vision.face.Face
 import com.google.mediapipe.framework.image.BitmapImageBuilder
 import com.google.mediapipe.tasks.core.BaseOptions
 import com.google.mediapipe.tasks.vision.core.RunningMode
@@ -23,8 +22,8 @@ class FaceProcessingService(context: Context) {
     private var faceLandmarker: FaceLandmarker? = null
     
     companion object {
-        const val SMILE_THRESHOLD = 0.5f
-        const val EYE_BLINK_THRESHOLD = 0.8f
+        const val SMILE_THRESHOLD = 0.3f
+        const val EYE_BLINK_THRESHOLD = 0.5f
     }
     
     init {
@@ -41,13 +40,16 @@ class FaceProcessingService(context: Context) {
                 .setBaseOptions(baseOptions)
                 .setRunningMode(RunningMode.IMAGE)
                 .setOutputFaceBlendshapes(true)
-                .setOutputFacialTransformationMatrixes(true)
+                .setOutputFacialTransformationMatrixes(false)
                 .setNumFaces(1)
+                .setMinFaceDetectionConfidence(0.3f)
+                .setMinFacePresenceConfidence(0.3f)
+                .setMinTrackingConfidence(0.3f)
                 .build()
             
             faceLandmarker = FaceLandmarker.createFromOptions(context, options)
         } catch (e: Exception) {
-            e.printStackTrace()
+            android.util.Log.e("FaceProcessingService", "Failed to initialize MediaPipe FaceLandmarker", e)
             faceLandmarker = null
         }
     }
@@ -84,7 +86,7 @@ class FaceProcessingService(context: Context) {
             val result = landmarker.detect(mpImage)
             processLandmarkerResult(result)
         } catch (e: Exception) {
-            e.printStackTrace()
+            android.util.Log.e("FaceProcessingService", "Error processing face", e)
             null
         }
     }
@@ -96,14 +98,86 @@ class FaceProcessingService(context: Context) {
             return FaceDetectionResult(emptySet(), FaceState())
         }
         
-        // For now, return basic detection - will enhance with blendshapes later
+        // Simplified approach - just detect basic face presence first
+        var leftEyeOpen = true
+        var rightEyeOpen = true 
+        var isSmiling = false
+        val headRotationX = 0f
+        val headRotationY = 0f
+        
+        // Try to get blendshapes if available
+        try {
+            if (result.faceBlendshapes().isPresent && result.faceBlendshapes().get().isNotEmpty()) {
+                val blendShapes = result.faceBlendshapes().get()[0]
+                val blendShapeMap = mutableMapOf<String, Float>()
+                
+                for (i in 0 until blendShapes.size) {
+                    val category = blendShapes[i]
+                    blendShapeMap[category.categoryName()] = category.score()
+                }
+                
+                val leftEyeBlink = blendShapeMap["eyeBlinkLeft"] ?: 0f
+                val rightEyeBlink = blendShapeMap["eyeBlinkRight"] ?: 0f  
+                val mouthSmileLeft = blendShapeMap["mouthSmileLeft"] ?: 0f
+                val mouthSmileRight = blendShapeMap["mouthSmileRight"] ?: 0f
+                
+                leftEyeOpen = leftEyeBlink < EYE_BLINK_THRESHOLD
+                rightEyeOpen = rightEyeBlink < EYE_BLINK_THRESHOLD
+                isSmiling = (mouthSmileLeft + mouthSmileRight) / 2f > SMILE_THRESHOLD
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("FaceProcessingService", "Error processing blendshapes", e)
+        }
+        
         val faceState = FaceState(
-            leftEyeOpen = true,
-            rightEyeOpen = true,
-            isSmiling = false,
-            headRotationY = 0f,
-            headRotationX = 0f
+            leftEyeOpen = leftEyeOpen,
+            rightEyeOpen = rightEyeOpen,
+            isSmiling = isSmiling,
+            headRotationY = headRotationY,
+            headRotationX = headRotationX,
+            blendShapes = null // Skip blendshapes array for now
         )
+        
+        if (isSmiling) {
+            detectedGestures.add(CameraSwitchFacialGesture.SMILE)
+            android.util.Log.d("FaceProcessingService", "Smile detected")
+        }
+        
+        // Eye gesture detection - check in priority order
+        if (!leftEyeOpen && !rightEyeOpen) {
+            // Both eyes closed = blink (highest priority)
+            detectedGestures.add(CameraSwitchFacialGesture.BLINK)
+            android.util.Log.d("FaceProcessingService", "Blink detected")
+        } else if (!leftEyeOpen && rightEyeOpen) {
+            // Only left eye closed = left wink
+            detectedGestures.add(CameraSwitchFacialGesture.LEFT_WINK)
+            android.util.Log.d("FaceProcessingService", "Left wink detected")
+        } else if (leftEyeOpen && !rightEyeOpen) {
+            // Only right eye closed = right wink
+            detectedGestures.add(CameraSwitchFacialGesture.RIGHT_WINK)
+            android.util.Log.d("FaceProcessingService", "Right wink detected")
+        }
+        
+        val leftThreshold = getHeadTurnLeftThreshold()
+        val rightThreshold = getHeadTurnRightThreshold()
+        val upThreshold = getHeadTurnUpThreshold()
+        val downThreshold = getHeadTurnDownThreshold()
+        
+        if (headRotationY > leftThreshold) {
+            detectedGestures.add(CameraSwitchFacialGesture.HEAD_TURN_LEFT)
+        }
+        
+        if (headRotationY < -rightThreshold) {
+            detectedGestures.add(CameraSwitchFacialGesture.HEAD_TURN_RIGHT)
+        }
+        
+        if (headRotationX > upThreshold) {
+            detectedGestures.add(CameraSwitchFacialGesture.HEAD_TURN_UP)
+        }
+        
+        if (headRotationX < -downThreshold) {
+            detectedGestures.add(CameraSwitchFacialGesture.HEAD_TURN_DOWN)
+        }
         
         return FaceDetectionResult(detectedGestures, faceState)
     }
