@@ -161,6 +161,10 @@ class ScanningManager(
             SwitchAction.ACTION_CHANGE_SCANNING_DIRECTION -> currentScanMethod.swapScanDirection()
             SwitchAction.ACTION_MOVE_TO_NEXT_ITEM -> currentScanMethod.stepScanningForward()
             SwitchAction.ACTION_MOVE_TO_PREVIOUS_ITEM -> currentScanMethod.stepScanningBackward()
+            SwitchAction.ACTION_MOVE_UP -> currentScanMethod.stepScanningUp()
+            SwitchAction.ACTION_MOVE_DOWN -> currentScanMethod.stepScanningDown()
+            SwitchAction.ACTION_MOVE_LEFT -> currentScanMethod.stepScanningLeft()
+            SwitchAction.ACTION_MOVE_RIGHT -> currentScanMethod.stepScanningRight()
             SwitchAction.ACTION_TOGGLE_GESTURE_LOCK -> GestureManager.instance
                 .toggleGestureLock()
 
@@ -204,16 +208,43 @@ class ScanningManager(
      */
     fun startMoveRepeat(action: SwitchAction): Boolean {
         if (scanSettings.isMoveRepeatEnabled()) {
-            if (action.id == SwitchAction.ACTION_MOVE_TO_NEXT_ITEM) {
-                moveRepeatManager?.setNextAction {
-                    performAction(SwitchAction(SwitchAction.ACTION_MOVE_TO_NEXT_ITEM))
+            when (action.id) {
+                SwitchAction.ACTION_MOVE_TO_NEXT_ITEM -> {
+                    moveRepeatManager?.setNextAction {
+                        performAction(SwitchAction(SwitchAction.ACTION_MOVE_TO_NEXT_ITEM))
+                    }
+                    return moveRepeatManager?.start() ?: false
                 }
-                return moveRepeatManager?.start() ?: false
-            } else if (action.id == SwitchAction.ACTION_MOVE_TO_PREVIOUS_ITEM) {
-                moveRepeatManager?.setPreviousAction {
-                    performAction(SwitchAction(SwitchAction.ACTION_MOVE_TO_PREVIOUS_ITEM))
+                SwitchAction.ACTION_MOVE_TO_PREVIOUS_ITEM -> {
+                    moveRepeatManager?.setPreviousAction {
+                        performAction(SwitchAction(SwitchAction.ACTION_MOVE_TO_PREVIOUS_ITEM))
+                    }
+                    return moveRepeatManager?.start() ?: false
                 }
-                return moveRepeatManager?.start() ?: false
+                SwitchAction.ACTION_MOVE_UP -> {
+                    moveRepeatManager?.setNextAction {
+                        performAction(SwitchAction(SwitchAction.ACTION_MOVE_UP))
+                    }
+                    return moveRepeatManager?.start() ?: false
+                }
+                SwitchAction.ACTION_MOVE_DOWN -> {
+                    moveRepeatManager?.setNextAction {
+                        performAction(SwitchAction(SwitchAction.ACTION_MOVE_DOWN))
+                    }
+                    return moveRepeatManager?.start() ?: false
+                }
+                SwitchAction.ACTION_MOVE_LEFT -> {
+                    moveRepeatManager?.setPreviousAction {
+                        performAction(SwitchAction(SwitchAction.ACTION_MOVE_LEFT))
+                    }
+                    return moveRepeatManager?.start() ?: false
+                }
+                SwitchAction.ACTION_MOVE_RIGHT -> {
+                    moveRepeatManager?.setNextAction {
+                        performAction(SwitchAction(SwitchAction.ACTION_MOVE_RIGHT))
+                    }
+                    return moveRepeatManager?.start() ?: false
+                }
             }
         }
         return false

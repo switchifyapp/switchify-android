@@ -381,6 +381,66 @@ class ScanTree(
     }
 
     /**
+     * Manually steps up in the scanning tree.
+     * This method is used for directional navigation through the tree.
+     */
+    override fun stepScanningUp() {
+        if (checkManualScanSetup()) {
+            return
+        }
+
+        if (!handlePreMovement()) {
+            val movementSuccessful = navigator.moveSelectionUp()
+            handlePostMovement(movementSuccessful)
+        }
+    }
+
+    /**
+     * Manually steps down in the scanning tree.
+     * This method is used for directional navigation through the tree.
+     */
+    override fun stepScanningDown() {
+        if (checkManualScanSetup()) {
+            return
+        }
+
+        if (!handlePreMovement()) {
+            val movementSuccessful = navigator.moveSelectionDown()
+            handlePostMovement(movementSuccessful)
+        }
+    }
+
+    /**
+     * Manually steps left in the scanning tree.
+     * This method is used for directional navigation through the tree.
+     */
+    override fun stepScanningLeft() {
+        if (checkManualScanSetup()) {
+            return
+        }
+
+        if (!handlePreMovement()) {
+            val movementSuccessful = navigator.moveSelectionToPrevious()
+            handlePostMovement(movementSuccessful)
+        }
+    }
+
+    /**
+     * Manually steps right in the scanning tree.
+     * This method is used for directional navigation through the tree.
+     */
+    override fun stepScanningRight() {
+        if (checkManualScanSetup()) {
+            return
+        }
+
+        if (!handlePreMovement()) {
+            val movementSuccessful = navigator.moveSelectionToNext()
+            handlePostMovement(movementSuccessful)
+        }
+    }
+
+    /**
      * Swaps the scanning direction between vertical and horizontal.
      * This method is called when the user wants to change the scanning direction.
      */

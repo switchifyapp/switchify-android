@@ -82,13 +82,14 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
 
         IAPHandler.initialize(context = this, connectToRevenueCat = false)
 
-        // Initialize trial manager with service shutdown callback
+        // Initialize trial manager with service shutdown callback and lock detection
         trialManager = ServiceTrialManager(
             context = this,
             onTrialExpired = {
                 // Gracefully shut down the accessibility service when trial expires
                 disableSelf()
-            }
+            },
+            deviceLockCheck = { deviceLockObserver.isUserUnlocked() }
         )
 
         AccessTechnique.init(this.applicationContext)

@@ -474,4 +474,20 @@ class RadarManager(private val context: Context) : AccessTechniqueInterface {
             RadarStep.IDLE -> {}  // Do nothing
         }
     }
+
+    override fun stepScanningUp() {
+        // Not applicable for radar mode
+    }
+
+    override fun stepScanningDown() {
+        // Not applicable for radar mode
+    }
+
+    override fun stepScanningLeft() {
+        stepScanningBackward()
+    }
+
+    override fun stepScanningRight() {
+        stepScanningForward()
+    }
 }

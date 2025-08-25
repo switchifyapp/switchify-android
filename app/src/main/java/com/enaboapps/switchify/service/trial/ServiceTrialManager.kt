@@ -15,6 +15,7 @@ import com.enaboapps.switchify.utils.Logger
 /**
  * Manages the trial period for non-pro users of the accessibility service.
  * Pro users have unlimited access. Non-pro users get fresh trials with unlimited restarts.
+ * Trials are only started when the device is unlocked to prevent unauthorized access.
  * 
  * Trial Duration:
  * - Release builds: 1-hour trials
@@ -22,7 +23,8 @@ import com.enaboapps.switchify.utils.Logger
  */
 class ServiceTrialManager(
     private val context: Context,
-    private val onTrialExpired: () -> Unit
+    private val onTrialExpired: () -> Unit,
+    private val deviceLockCheck: () -> Boolean
 ) {
     private val preferenceManager = PreferenceManager(context)
     companion object {
@@ -64,6 +66,7 @@ class ServiceTrialManager(
     /**
      * Starts the trial period for this service session.
      * Only applies to non-pro users. Pro users have unlimited access.
+     * New trials are prevented when the device is locked for security, but existing trials continue.
      * Called when the accessibility service connects.
      */
     fun startTrial() {
@@ -87,10 +90,22 @@ class ServiceTrialManager(
             return
         }
 
+        // Check if device is locked - prevent NEW trial activation for security
+        if (!deviceLockCheck()) {
+            Log.d(TAG, "Device is locked - preventing NEW trial activation")
+            ServiceMessageHUD.instance.showMessage(
+                R.string.trial_blocked_device_locked_message,
+                ServiceMessageHUD.MessageType.PERMANENT
+            )
+            return
+        }
+
         if (isTrialActive) {
             Log.w(TAG, "Trial already active")
             return
         }
+
+        Log.d(TAG, "Device is unlocked - proceeding with trial activation")
 
         trialStartTime = System.currentTimeMillis()
         isTrialActive = true
