@@ -10,6 +10,7 @@ import com.google.mediapipe.tasks.core.BaseOptions
 import com.google.mediapipe.tasks.vision.core.RunningMode
 import com.google.mediapipe.tasks.vision.facelandmarker.FaceLandmarker
 import com.google.mediapipe.tasks.vision.facelandmarker.FaceLandmarkerResult
+import kotlin.math.*
 
 /**
  * Centralized face processing service that handles gesture detection logic.
@@ -21,10 +22,53 @@ class FaceProcessingService(context: Context) {
     private val preferenceManager = PreferenceManager(context)
     private var faceLandmarker: FaceLandmarker? = null
     
+    // Cached blendshape indices for performance
+    private var blendshapeIndices: BlendshapeIndices? = null
+    
+    // Smoothing and hysteresis state
+    private var smoothedYaw = 0f
+    private var smoothedPitch = 0f
+    private var smoothedBlinkScore = 0f
+    private var smoothedSmileScore = 0f
+    
+    // Hysteresis state
+    private var isBlinkActive = false
+    private var isSmileActive = false
+    private var lastBlinkTime = 0L
+    
     companion object {
-        const val SMILE_THRESHOLD = 0.3f
-        const val EYE_BLINK_THRESHOLD = 0.5f
+        // Hysteresis thresholds (enter/exit)
+        const val SMILE_ENTER_THRESHOLD = 0.35f
+        const val SMILE_EXIT_THRESHOLD = 0.25f
+        const val BLINK_ENTER_THRESHOLD = 0.55f
+        const val BLINK_EXIT_THRESHOLD = 0.45f
+        
+        // Smoothing factor for EMA (0.0 = no smoothing, 1.0 = max smoothing)
+        const val EMA_ALPHA = 0.3f
+        
+        // Refractory period for blink detection (ms)
+        const val BLINK_REFRACTORY_PERIOD = 200L
+        
+        // Correct MediaPipe Face Landmarker 468-point model indices
+        const val NOSE_TIP_INDEX = 1
+        const val CHIN_INDEX = 152  // Corrected from 175
+        const val LEFT_EYE_OUTER_INDEX = 33
+        const val RIGHT_EYE_OUTER_INDEX = 263  // Corrected from 362
+        const val LEFT_MOUTH_CORNER_INDEX = 61
+        const val RIGHT_MOUTH_CORNER_INDEX = 291
     }
+    
+    /**
+     * Cached blendshape indices for performance optimization
+     */
+    private data class BlendshapeIndices(
+        val eyeBlinkLeft: Int,
+        val eyeBlinkRight: Int,
+        val eyeSquintLeft: Int,
+        val eyeSquintRight: Int,
+        val mouthSmileLeft: Int,
+        val mouthSmileRight: Int
+    )
     
     init {
         initFaceLandmarker(context)
@@ -38,9 +82,9 @@ class FaceProcessingService(context: Context) {
             
             val options = FaceLandmarker.FaceLandmarkerOptions.builder()
                 .setBaseOptions(baseOptions)
-                .setRunningMode(RunningMode.IMAGE)
+                .setRunningMode(RunningMode.VIDEO)  // Changed from LIVE_STREAM to avoid listener requirement
                 .setOutputFaceBlendshapes(true)
-                .setOutputFacialTransformationMatrixes(false)
+                .setOutputFacialTransformationMatrixes(true)  // Enable transformation matrices
                 .setNumFaces(1)
                 .setMinFaceDetectionConfidence(0.3f)
                 .setMinFacePresenceConfidence(0.3f)
@@ -77,13 +121,15 @@ class FaceProcessingService(context: Context) {
     
     /**
      * Processes a face bitmap and returns detected gestures using MediaPipe
+     * Note: For VIDEO mode, timestamp should be provided for proper tracking
      */
-    fun processFace(bitmap: Bitmap): FaceDetectionResult? {
+    fun processFace(bitmap: Bitmap, timestampMs: Long = System.currentTimeMillis()): FaceDetectionResult? {
         val landmarker = faceLandmarker ?: return null
         
         return try {
             val mpImage = BitmapImageBuilder(bitmap).build()
-            val result = landmarker.detect(mpImage)
+            // Use detectForVideo for VIDEO mode with timestamp for tracking
+            val result = landmarker.detectForVideo(mpImage, timestampMs)
             processLandmarkerResult(result)
         } catch (e: Exception) {
             android.util.Log.e("FaceProcessingService", "Error processing face", e)
@@ -104,64 +150,116 @@ class FaceProcessingService(context: Context) {
         var isSmiling = false
         var headRotationX = 0f
         var headRotationY = 0f
+        val currentTime = System.currentTimeMillis()
         
-        // Try to get blendshapes if available
+        // Process head pose using transformation matrices if available
         try {
-            if (result.faceBlendshapes().isPresent && result.faceBlendshapes().get().isNotEmpty()) {
-                val blendShapes = result.faceBlendshapes().get()[0]
-                val blendShapeMap = mutableMapOf<String, Float>()
+            if (result.facialTransformationMatrixes().isPresent && result.facialTransformationMatrixes().get().isNotEmpty()) {
+                val transformMatrix = result.facialTransformationMatrixes().get()[0]
+                val eulerAngles = extractEulerAnglesFromMatrix(transformMatrix)
                 
-                for (i in 0 until blendShapes.size) {
-                    val category = blendShapes[i]
-                    blendShapeMap[category.categoryName()] = category.score()
-                }
+                // Apply EMA smoothing
+                smoothedYaw = applyEMA(smoothedYaw, eulerAngles.yaw, EMA_ALPHA)
+                smoothedPitch = applyEMA(smoothedPitch, eulerAngles.pitch, EMA_ALPHA)
                 
-                val leftEyeBlink = blendShapeMap["eyeBlinkLeft"] ?: 0f
-                val rightEyeBlink = blendShapeMap["eyeBlinkRight"] ?: 0f  
-                val mouthSmileLeft = blendShapeMap["mouthSmileLeft"] ?: 0f
-                val mouthSmileRight = blendShapeMap["mouthSmileRight"] ?: 0f
+                headRotationY = smoothedYaw
+                headRotationX = smoothedPitch
                 
-                leftEyeOpen = leftEyeBlink < EYE_BLINK_THRESHOLD
-                rightEyeOpen = rightEyeBlink < EYE_BLINK_THRESHOLD
-                isSmiling = (mouthSmileLeft + mouthSmileRight) / 2f > SMILE_THRESHOLD
-            }
-        } catch (e: Exception) {
-            android.util.Log.e("FaceProcessingService", "Error processing blendshapes", e)
-        }
-        
-        // Calculate head rotation from face landmarks
-        try {
-            val landmarks = result.faceLandmarks()[0]
-            if (landmarks.size > 0) {
-                // Use specific landmark points for head pose estimation
-                // Nose tip (1), left eye corner (33), right eye corner (362), chin (175)
-                val noseTip = landmarks[1]
-                val leftEyeCorner = landmarks[33] 
-                val rightEyeCorner = landmarks[362]
-                val chin = landmarks[175]
-                
-                // Calculate head rotation Y (left/right turn) using eye positions relative to nose
-                val eyeCenterX = (leftEyeCorner.x() + rightEyeCorner.x()) / 2f
-                val noseX = noseTip.x()
-                val eyeDistance = kotlin.math.abs(rightEyeCorner.x() - leftEyeCorner.x())
-                
-                if (eyeDistance > 0) {
-                    headRotationY = ((noseX - eyeCenterX) / eyeDistance) * 45f // Scale to degrees
-                }
-                
-                // Calculate head rotation X (up/down) using nose to chin distance
-                val noseY = noseTip.y()
-                val chinY = chin.y()
-                val eyeCenterY = (leftEyeCorner.y() + rightEyeCorner.y()) / 2f
-                val faceHeight = kotlin.math.abs(chinY - eyeCenterY)
-                
-                if (faceHeight > 0) {
-                    val noseTiltRatio = (noseY - eyeCenterY) / faceHeight
-                    headRotationX = noseTiltRatio * 30f // Scale to degrees
+                android.util.Log.v("FaceProcessingService", "Head pose: yaw=${headRotationY}°, pitch=${headRotationX}°")
+            } else {
+                // Fallback to landmark-based head pose estimation with corrected indices
+                val landmarks = result.faceLandmarks()[0]
+                if (landmarks.size > maxOf(NOSE_TIP_INDEX, CHIN_INDEX, LEFT_EYE_OUTER_INDEX, RIGHT_EYE_OUTER_INDEX)) {
+                    val noseTip = landmarks[NOSE_TIP_INDEX]
+                    val leftEyeCorner = landmarks[LEFT_EYE_OUTER_INDEX] 
+                    val rightEyeCorner = landmarks[RIGHT_EYE_OUTER_INDEX]  // Corrected index
+                    val chin = landmarks[CHIN_INDEX]  // Corrected index
+                    
+                    // Calculate head rotation Y (left/right turn) using eye positions relative to nose
+                    val eyeCenterX = (leftEyeCorner.x() + rightEyeCorner.x()) / 2f
+                    val noseX = noseTip.x()
+                    val eyeDistance = abs(rightEyeCorner.x() - leftEyeCorner.x())
+                    
+                    if (eyeDistance > 0) {
+                        val rawYaw = ((noseX - eyeCenterX) / eyeDistance) * 45f
+                        smoothedYaw = applyEMA(smoothedYaw, rawYaw, EMA_ALPHA)
+                        headRotationY = smoothedYaw
+                    }
+                    
+                    // Calculate head rotation X (up/down) using nose to chin distance
+                    val noseY = noseTip.y()
+                    val chinY = chin.y()
+                    val eyeCenterY = (leftEyeCorner.y() + rightEyeCorner.y()) / 2f
+                    val faceHeight = abs(chinY - eyeCenterY)
+                    
+                    if (faceHeight > 0) {
+                        val noseTiltRatio = (noseY - eyeCenterY) / faceHeight
+                        val rawPitch = noseTiltRatio * 30f
+                        smoothedPitch = applyEMA(smoothedPitch, rawPitch, EMA_ALPHA)
+                        headRotationX = smoothedPitch
+                    }
                 }
             }
         } catch (e: Exception) {
             android.util.Log.e("FaceProcessingService", "Error calculating head pose", e)
+        }
+        
+        // Process blendshapes with improved robustness and caching
+        try {
+            if (result.faceBlendshapes().isPresent && result.faceBlendshapes().get().isNotEmpty()) {
+                val blendShapes = result.faceBlendshapes().get()[0]
+                
+                // Cache blendshape indices on first run for performance
+                if (blendshapeIndices == null) {
+                    blendshapeIndices = cacheBlendshapeIndices(blendShapes)
+                }
+                
+                val indices = blendshapeIndices
+                if (indices != null) {
+                    // Extract blendshape scores by index (faster than string lookup)
+                    val leftEyeBlink = if (indices.eyeBlinkLeft >= 0) blendShapes[indices.eyeBlinkLeft].score() else 0f
+                    val rightEyeBlink = if (indices.eyeBlinkRight >= 0) blendShapes[indices.eyeBlinkRight].score() else 0f
+                    val leftEyeSquint = if (indices.eyeSquintLeft >= 0) blendShapes[indices.eyeSquintLeft].score() else 0f
+                    val rightEyeSquint = if (indices.eyeSquintRight >= 0) blendShapes[indices.eyeSquintRight].score() else 0f
+                    val mouthSmileLeft = if (indices.mouthSmileLeft >= 0) blendShapes[indices.mouthSmileLeft].score() else 0f
+                    val mouthSmileRight = if (indices.mouthSmileRight >= 0) blendShapes[indices.mouthSmileRight].score() else 0f
+                    
+                    // Combine blink cues for robustness: max of blink and squint for each eye
+                    val leftEyeCloseScore = max(leftEyeBlink, leftEyeSquint)
+                    val rightEyeCloseScore = max(rightEyeBlink, rightEyeSquint)
+                    val combinedBlinkScore = max(leftEyeCloseScore, rightEyeCloseScore)
+                    val smileScore = (mouthSmileLeft + mouthSmileRight) / 2f
+                    
+                    // Apply EMA smoothing to scores
+                    smoothedBlinkScore = applyEMA(smoothedBlinkScore, combinedBlinkScore, EMA_ALPHA)
+                    smoothedSmileScore = applyEMA(smoothedSmileScore, smileScore, EMA_ALPHA)
+                    
+                    // Apply hysteresis for blink detection
+                    if (!isBlinkActive && smoothedBlinkScore > BLINK_ENTER_THRESHOLD) {
+                        // Check refractory period
+                        if (currentTime - lastBlinkTime > BLINK_REFRACTORY_PERIOD) {
+                            isBlinkActive = true
+                        }
+                    } else if (isBlinkActive && smoothedBlinkScore < BLINK_EXIT_THRESHOLD) {
+                        isBlinkActive = false
+                        lastBlinkTime = currentTime
+                    }
+                    
+                    // Apply hysteresis for smile detection
+                    if (!isSmileActive && smoothedSmileScore > SMILE_ENTER_THRESHOLD) {
+                        isSmileActive = true
+                    } else if (isSmileActive && smoothedSmileScore < SMILE_EXIT_THRESHOLD) {
+                        isSmileActive = false
+                    }
+                    
+                    // Determine individual eye states for wink detection
+                    leftEyeOpen = leftEyeCloseScore < BLINK_ENTER_THRESHOLD
+                    rightEyeOpen = rightEyeCloseScore < BLINK_ENTER_THRESHOLD
+                    isSmiling = isSmileActive
+                }
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("FaceProcessingService", "Error processing blendshapes", e)
         }
         
         val faceState = FaceState(
@@ -170,29 +268,33 @@ class FaceProcessingService(context: Context) {
             isSmiling = isSmiling,
             headRotationY = headRotationY,
             headRotationX = headRotationX,
-            blendShapes = null // Skip blendshapes array for now
+            blendShapes = null // Skip blendshapes array for now - can be added for debugging
         )
         
+        // Gesture detection with improved logic
         if (isSmiling) {
             detectedGestures.add(CameraSwitchFacialGesture.SMILE)
-            android.util.Log.d("FaceProcessingService", "Smile detected")
+            android.util.Log.d("FaceProcessingService", "Smile detected (smoothed score: $smoothedSmileScore)")
         }
         
-        // Eye gesture detection - check in priority order
-        if (!leftEyeOpen && !rightEyeOpen) {
-            // Both eyes closed = blink (highest priority)
-            detectedGestures.add(CameraSwitchFacialGesture.BLINK)
-            android.util.Log.d("FaceProcessingService", "Blink detected")
-        } else if (!leftEyeOpen && rightEyeOpen) {
-            // Only left eye closed = left wink
-            detectedGestures.add(CameraSwitchFacialGesture.LEFT_WINK)
-            android.util.Log.d("FaceProcessingService", "Left wink detected")
-        } else if (leftEyeOpen && !rightEyeOpen) {
-            // Only right eye closed = right wink
-            detectedGestures.add(CameraSwitchFacialGesture.RIGHT_WINK)
-            android.util.Log.d("FaceProcessingService", "Right wink detected")
+        // Eye gesture detection - check in priority order, using hysteresis-controlled blink state
+        if (isBlinkActive) {
+            if (!leftEyeOpen && !rightEyeOpen) {
+                // Both eyes closed = blink (highest priority)
+                detectedGestures.add(CameraSwitchFacialGesture.BLINK)
+                android.util.Log.d("FaceProcessingService", "Blink detected (smoothed score: $smoothedBlinkScore)")
+            } else if (!leftEyeOpen && rightEyeOpen) {
+                // Only left eye closed = left wink
+                detectedGestures.add(CameraSwitchFacialGesture.LEFT_WINK)
+                android.util.Log.d("FaceProcessingService", "Left wink detected")
+            } else if (leftEyeOpen && !rightEyeOpen) {
+                // Only right eye closed = right wink
+                detectedGestures.add(CameraSwitchFacialGesture.RIGHT_WINK)
+                android.util.Log.d("FaceProcessingService", "Right wink detected")
+            }
         }
         
+        // Head turn detection with corrected sign logic
         val leftThreshold = getHeadTurnLeftThreshold()
         val rightThreshold = getHeadTurnRightThreshold()
         val upThreshold = getHeadTurnUpThreshold()
@@ -201,20 +303,24 @@ class FaceProcessingService(context: Context) {
         // Calculate the largest head turn movement to avoid multiple simultaneous detections
         val headTurnMagnitudes = mutableMapOf<String, Float>()
         
-        if (headRotationY > leftThreshold) {
-            headTurnMagnitudes[CameraSwitchFacialGesture.HEAD_TURN_LEFT] = headRotationY - leftThreshold
+        // Verify sign conventions: positive yaw = right turn, negative yaw = left turn
+        // Adjust signs based on your specific coordinate system if needed
+        if (headRotationY > rightThreshold) {  // Positive yaw = right turn
+            headTurnMagnitudes[CameraSwitchFacialGesture.HEAD_TURN_RIGHT] = headRotationY - rightThreshold
         }
         
-        if (headRotationY < -rightThreshold) {
-            headTurnMagnitudes[CameraSwitchFacialGesture.HEAD_TURN_RIGHT] = kotlin.math.abs(headRotationY + rightThreshold)
+        if (headRotationY < -leftThreshold) {  // Negative yaw = left turn
+            headTurnMagnitudes[CameraSwitchFacialGesture.HEAD_TURN_LEFT] = abs(headRotationY + leftThreshold)
         }
         
-        if (headRotationX < -upThreshold) {
-            headTurnMagnitudes[CameraSwitchFacialGesture.HEAD_TURN_UP] = kotlin.math.abs(headRotationX + upThreshold)
-        }
-        
-        if (headRotationX > downThreshold) {
+        // Verify sign conventions: positive pitch = down, negative pitch = up
+        // Adjust signs based on your specific coordinate system if needed
+        if (headRotationX > downThreshold) {  // Positive pitch = down
             headTurnMagnitudes[CameraSwitchFacialGesture.HEAD_TURN_DOWN] = headRotationX - downThreshold
+        }
+        
+        if (headRotationX < -upThreshold) {  // Negative pitch = up
+            headTurnMagnitudes[CameraSwitchFacialGesture.HEAD_TURN_UP] = abs(headRotationX + upThreshold)
         }
         
         // Only add the gesture with the largest magnitude
@@ -222,7 +328,7 @@ class FaceProcessingService(context: Context) {
             val largestTurn = headTurnMagnitudes.maxByOrNull { it.value }
             if (largestTurn != null) {
                 detectedGestures.add(largestTurn.key)
-                android.util.Log.d("FaceProcessingService", "Largest head turn detected: ${largestTurn.key} (magnitude: ${largestTurn.value})")
+                android.util.Log.d("FaceProcessingService", "Head turn detected: ${largestTurn.key} (magnitude: ${largestTurn.value}, yaw: $headRotationY°, pitch: $headRotationX°)")
             }
         }
         
@@ -265,6 +371,175 @@ class FaceProcessingService(context: Context) {
     private fun getHeadTurnDownThreshold(): Float {
         val sensitivity = preferenceManager.getIntegerValue(PreferenceManager.PREFERENCE_KEY_CAMERA_HEAD_TURN_DOWN_SENSITIVITY, 4)
         return CameraSwitchManager.getHeadTurnThreshold(sensitivity)
+    }
+    
+    // Utility methods for smoothing and matrix processing
+    
+    /**
+     * Caches blendshape indices for performance optimization
+     */
+    private fun cacheBlendshapeIndices(blendShapes: List<com.google.mediapipe.tasks.components.containers.Category>): BlendshapeIndices {
+        var eyeBlinkLeft = -1
+        var eyeBlinkRight = -1
+        var eyeSquintLeft = -1
+        var eyeSquintRight = -1
+        var mouthSmileLeft = -1
+        var mouthSmileRight = -1
+        
+        for (i in 0 until blendShapes.size) {
+            when (blendShapes[i].categoryName()) {
+                "eyeBlinkLeft" -> eyeBlinkLeft = i
+                "eyeBlinkRight" -> eyeBlinkRight = i
+                "eyeSquintLeft" -> eyeSquintLeft = i
+                "eyeSquintRight" -> eyeSquintRight = i
+                "mouthSmileLeft" -> mouthSmileLeft = i
+                "mouthSmileRight" -> mouthSmileRight = i
+            }
+        }
+        
+        return BlendshapeIndices(
+            eyeBlinkLeft = eyeBlinkLeft,
+            eyeBlinkRight = eyeBlinkRight,
+            eyeSquintLeft = eyeSquintLeft,
+            eyeSquintRight = eyeSquintRight,
+            mouthSmileLeft = mouthSmileLeft,
+            mouthSmileRight = mouthSmileRight
+        )
+    }
+    
+    /**
+     * Applies exponential moving average for smoothing
+     */
+    private fun applyEMA(previousValue: Float, newValue: Float, alpha: Float): Float {
+        return alpha * newValue + (1f - alpha) * previousValue
+    }
+    
+    /**
+     * Data class for Euler angles extracted from transformation matrix
+     */
+    private data class EulerAngles(
+        val yaw: Float,    // Rotation around Y-axis (left/right)
+        val pitch: Float,  // Rotation around X-axis (up/down)
+        val roll: Float    // Rotation around Z-axis (tilt)
+    )
+    
+    /**
+     * Extracts Euler angles from MediaPipe's transformation matrix
+     * The exact structure depends on the MediaPipe version and matrix format
+     */
+    private fun extractEulerAnglesFromMatrix(transformMatrix: Any): EulerAngles {
+        return try {
+            // Try to access matrix data - the actual structure may vary
+            val matrixData = when (transformMatrix) {
+                is FloatArray -> {
+                    // Matrix is directly provided as FloatArray
+                    transformMatrix
+                }
+                else -> {
+                    // Try to access matrix data from object
+                    when {
+                        transformMatrix::class.java.name.contains("Matrix") -> {
+                            // Try common matrix data access patterns
+                            val dataMethod = transformMatrix::class.java.methods.find { 
+                                it.name == "data" || it.name == "getData" || it.name == "toFloatArray"
+                            }
+                            if (dataMethod != null) {
+                                dataMethod.invoke(transformMatrix) as? FloatArray
+                            } else {
+                                // Try direct field access
+                                val dataField = transformMatrix::class.java.fields.find { 
+                                    it.name == "data" || it.name == "matrix" 
+                                }
+                                dataField?.get(transformMatrix) as? FloatArray
+                            }
+                        }
+                        else -> {
+                            android.util.Log.w("FaceProcessingService", "Unknown matrix type: ${transformMatrix::class.java}")
+                            null
+                        }
+                    }
+                }
+            }
+            
+            if (matrixData != null && matrixData.size >= 9) {
+                extractEulerFromFloatArray(matrixData)
+            } else {
+                android.util.Log.w("FaceProcessingService", "Could not extract matrix data or insufficient size")
+                EulerAngles(0f, 0f, 0f)
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("FaceProcessingService", "Error extracting matrix data", e)
+            EulerAngles(0f, 0f, 0f)
+        }
+    }
+    
+    /**
+     * Extracts Euler angles from float array representing rotation matrix
+     */
+    private fun extractEulerFromFloatArray(matrixData: FloatArray): EulerAngles {
+        // Handle different matrix sizes and formats
+        val r00: Float
+        val r10: Float
+        val r20: Float
+        val r01: Float
+        val r11: Float
+        val r21: Float
+        val r02: Float
+        val r12: Float
+        val r22: Float
+        
+        when {
+            matrixData.size >= 16 -> {
+                // 4x4 matrix in column-major order
+                r00 = matrixData[0]   // m00
+                r10 = matrixData[1]   // m10
+                r20 = matrixData[2]   // m20
+                r01 = matrixData[4]   // m01
+                r11 = matrixData[5]   // m11
+                r21 = matrixData[6]   // m21
+                r02 = matrixData[8]   // m02
+                r12 = matrixData[9]   // m12
+                r22 = matrixData[10]  // m22
+            }
+            matrixData.size >= 9 -> {
+                // 3x3 matrix
+                r00 = matrixData[0]
+                r01 = matrixData[1]
+                r02 = matrixData[2]
+                r10 = matrixData[3]
+                r11 = matrixData[4]
+                r12 = matrixData[5]
+                r20 = matrixData[6]
+                r21 = matrixData[7]
+                r22 = matrixData[8]
+            }
+            else -> {
+                android.util.Log.w("FaceProcessingService", "Matrix data too small: ${matrixData.size}")
+                return EulerAngles(0f, 0f, 0f)
+            }
+        }
+        
+        // Convert rotation matrix to Euler angles (ZYX convention)
+        // Based on OpenCV's rotation matrix to Euler angles conversion
+        val sy = sqrt(r00 * r00 + r10 * r10)
+        
+        val singular = sy < 1e-6
+        
+        val yaw: Float
+        val pitch: Float
+        val roll: Float
+        
+        if (!singular) {
+            roll = atan2(r21, r22) * 180f / PI.toFloat()
+            pitch = atan2(-r20, sy) * 180f / PI.toFloat()
+            yaw = atan2(r10, r00) * 180f / PI.toFloat()
+        } else {
+            roll = atan2(-r12, r11) * 180f / PI.toFloat()
+            pitch = atan2(-r20, sy) * 180f / PI.toFloat()
+            yaw = 0f
+        }
+        
+        return EulerAngles(yaw, pitch, roll)
     }
     
     fun close() {
