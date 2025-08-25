@@ -257,15 +257,41 @@ class CameraSettingsScreenModel(private val context: Context) : ViewModel() {
                 handleGestureStateChange(CameraSwitchFacialGesture.BLINK, eyesClosed, validatedGestures)
             }
             
-            // Handle Head Turn gestures - they trigger immediately without timing
+            // Handle Head Turn gestures with timing like other gestures
             result.detectedGestures.forEach { gesture ->
                 when (gesture) {
-                    CameraSwitchFacialGesture.HEAD_TURN_LEFT,
-                    CameraSwitchFacialGesture.HEAD_TURN_RIGHT,
-                    CameraSwitchFacialGesture.HEAD_TURN_UP,
-                    CameraSwitchFacialGesture.HEAD_TURN_DOWN -> {
-                        validatedGestures.add(gesture)
+                    CameraSwitchFacialGesture.HEAD_TURN_LEFT -> {
+                        val wasActive = gestureStates[gesture]?.isActive == true
+                        if (!wasActive) {
+                            handleGestureStateChange(gesture, true, validatedGestures)
+                        }
                     }
+                    CameraSwitchFacialGesture.HEAD_TURN_RIGHT -> {
+                        val wasActive = gestureStates[gesture]?.isActive == true
+                        if (!wasActive) {
+                            handleGestureStateChange(gesture, true, validatedGestures)
+                        }
+                    }
+                    CameraSwitchFacialGesture.HEAD_TURN_UP -> {
+                        val wasActive = gestureStates[gesture]?.isActive == true
+                        if (!wasActive) {
+                            handleGestureStateChange(gesture, true, validatedGestures)
+                        }
+                    }
+                    CameraSwitchFacialGesture.HEAD_TURN_DOWN -> {
+                        val wasActive = gestureStates[gesture]?.isActive == true
+                        if (!wasActive) {
+                            handleGestureStateChange(gesture, true, validatedGestures)
+                        }
+                    }
+                }
+            }
+            
+            // Stop head turn gestures that are no longer detected
+            listOf(CameraSwitchFacialGesture.HEAD_TURN_LEFT, CameraSwitchFacialGesture.HEAD_TURN_RIGHT,
+                   CameraSwitchFacialGesture.HEAD_TURN_UP, CameraSwitchFacialGesture.HEAD_TURN_DOWN).forEach { gesture ->
+                if (gestureStates[gesture]?.isActive == true && gesture !in result.detectedGestures) {
+                    handleGestureStateChange(gesture, false, validatedGestures)
                 }
             }
             

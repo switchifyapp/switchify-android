@@ -385,41 +385,19 @@ class CameraSwitchManager(
                 )
             }
 
-            // Handle Head Turn gestures using centralized detection
-            val isHeadTurnedLeft = result.detectedGestures.contains(CameraSwitchFacialGesture.HEAD_TURN_LEFT)
-            val wasHeadTurnedLeft = getHeadTurnThreshold(
-                preferenceManager.getIntegerValue(PreferenceManager.PREFERENCE_KEY_CAMERA_HEAD_TURN_LEFT_SENSITIVITY, 4)
-            ).let { lastProcessedState.headRotationY > it }
-            
-            if (isHeadTurnedLeft != wasHeadTurnedLeft && switchEventProvider.isFacialGestureAssigned(CameraSwitchFacialGesture.HEAD_TURN_LEFT)) {
-                handleGestureStateChange(CameraSwitchFacialGesture(CameraSwitchFacialGesture.HEAD_TURN_LEFT), isHeadTurnedLeft)
-            }
-
-            val isHeadTurnedRight = result.detectedGestures.contains(CameraSwitchFacialGesture.HEAD_TURN_RIGHT)
-            val wasHeadTurnedRight = getHeadTurnThreshold(
-                preferenceManager.getIntegerValue(PreferenceManager.PREFERENCE_KEY_CAMERA_HEAD_TURN_RIGHT_SENSITIVITY, 4)
-            ).let { lastProcessedState.headRotationY < -it }
-            
-            if (isHeadTurnedRight != wasHeadTurnedRight && switchEventProvider.isFacialGestureAssigned(CameraSwitchFacialGesture.HEAD_TURN_RIGHT)) {
-                handleGestureStateChange(CameraSwitchFacialGesture(CameraSwitchFacialGesture.HEAD_TURN_RIGHT), isHeadTurnedRight)
-            }
-
-            val isHeadTurnedUp = result.detectedGestures.contains(CameraSwitchFacialGesture.HEAD_TURN_UP)
-            val wasHeadTurnedUp = getHeadTurnThreshold(
-                preferenceManager.getIntegerValue(PreferenceManager.PREFERENCE_KEY_CAMERA_HEAD_TURN_UP_SENSITIVITY, 4)
-            ).let { lastProcessedState.headRotationX > it }
-            
-            if (isHeadTurnedUp != wasHeadTurnedUp && switchEventProvider.isFacialGestureAssigned(CameraSwitchFacialGesture.HEAD_TURN_UP)) {
-                handleGestureStateChange(CameraSwitchFacialGesture(CameraSwitchFacialGesture.HEAD_TURN_UP), isHeadTurnedUp)
-            }
-
-            val isHeadTurnedDown = result.detectedGestures.contains(CameraSwitchFacialGesture.HEAD_TURN_DOWN)
-            val wasHeadTurnedDown = getHeadTurnThreshold(
-                preferenceManager.getIntegerValue(PreferenceManager.PREFERENCE_KEY_CAMERA_HEAD_TURN_DOWN_SENSITIVITY, 4)
-            ).let { lastProcessedState.headRotationX < -it }
-            
-            if (isHeadTurnedDown != wasHeadTurnedDown && switchEventProvider.isFacialGestureAssigned(CameraSwitchFacialGesture.HEAD_TURN_DOWN)) {
-                handleGestureStateChange(CameraSwitchFacialGesture(CameraSwitchFacialGesture.HEAD_TURN_DOWN), isHeadTurnedDown)
+            // Handle Head Turn gestures using centralized detection from FaceProcessingService
+            listOf(
+                CameraSwitchFacialGesture.HEAD_TURN_LEFT,
+                CameraSwitchFacialGesture.HEAD_TURN_RIGHT,
+                CameraSwitchFacialGesture.HEAD_TURN_UP,
+                CameraSwitchFacialGesture.HEAD_TURN_DOWN
+            ).forEach { headTurnGesture ->
+                val isCurrentlyDetected = result.detectedGestures.contains(headTurnGesture)
+                val wasActivelyDetected = gestureStates[headTurnGesture]?.isActive == true
+                
+                if (isCurrentlyDetected != wasActivelyDetected && switchEventProvider.isFacialGestureAssigned(headTurnGesture)) {
+                    handleGestureStateChange(CameraSwitchFacialGesture(headTurnGesture), isCurrentlyDetected)
+                }
             }
 
             // Update last processed state
@@ -525,13 +503,9 @@ class CameraSwitchManager(
                 gestureStates[switchEvent.code]?.let { state ->
                     if (state.isActive && state.startTime > 0) {
                         val timeElapsed = System.currentTimeMillis() - state.startTime
-                        // Head turn gestures trigger immediately, others need to meet time requirement
-                        val shouldTrigger = if (gesture.isHeadTurn()) {
-                            true
-                        } else {
-                            val requiredTime = faceProcessingService.getGestureTime(gesture.id)
-                            timeElapsed >= requiredTime
-                        }
+                        // All gestures need to meet their time requirement
+                        val requiredTime = faceProcessingService.getGestureTime(gesture.id)
+                        val shouldTrigger = timeElapsed >= requiredTime
                         
                         if (shouldTrigger) {
                             if (!scanningManager.checkOngoingTasks()) {
