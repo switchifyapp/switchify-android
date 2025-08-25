@@ -24,11 +24,12 @@ import com.enaboapps.switchify.switches.CameraSwitchFacialGesture
 import com.enaboapps.switchify.switches.SwitchAction
 import com.enaboapps.switchify.switches.SwitchEvent
 import com.google.common.util.concurrent.ListenableFuture
-import com.google.mlkit.vision.common.InputImage
-import com.google.mlkit.vision.face.Face
-import com.google.mlkit.vision.face.FaceDetection
-import com.google.mlkit.vision.face.FaceDetector
-import com.google.mlkit.vision.face.FaceDetectorOptions
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.ImageFormat
+import android.graphics.Rect
+import android.graphics.YuvImage
+import java.io.ByteArrayOutputStream
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -76,7 +77,6 @@ class CameraSwitchManager(
     private val processingTimeoutMs = 100L
     private val frameSkipThreshold = 33L // Skip frames if processing takes more than 33ms
 
-    private var faceDetector: FaceDetector? = null
     private var isReceiverRegistered = false
     
     private val pauseReceiver = object : BroadcastReceiver() {
@@ -114,15 +114,7 @@ class CameraSwitchManager(
         }
         activeGesture = null
         lastProcessedState = FaceProcessingService.FaceState()
-        faceDetector = FaceDetection.getClient(
-            FaceDetectorOptions.Builder()
-                .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_ACCURATE)
-                .setLandmarkMode(FaceDetectorOptions.LANDMARK_MODE_ALL)
-                .setClassificationMode(FaceDetectorOptions.CLASSIFICATION_MODE_ALL)
-                .setMinFaceSize(MIN_FACE_SIZE)
-                .enableTracking()  // Enable face tracking for better performance
-                .build()
-        )
+        // MediaPipe initialization handled by FaceProcessingService
         isInitialized = true
         
         // Register for pause broadcasts
@@ -239,32 +231,17 @@ class CameraSwitchManager(
             val processingResult = withTimeoutOrNull(processingTimeoutMs) {
                 try {
                     imageProxy.image?.let { mediaImage ->
-                        val image = InputImage.fromMediaImage(
-                            mediaImage,
-                            imageProxy.imageInfo.rotationDegrees
-                        )
 
-                        // Process face detection on background thread
-                        val detector = faceDetector
-                        if (detector != null) {
-                            detector.process(image)
-                                .addOnSuccessListener { faces ->
-                                    if (faces.isNotEmpty()) {
-                                        processFace(faces[0])
-                                    } else {
-                                        reset()
-                                    }
-                                }
-                                .addOnFailureListener { e ->
-                                    Log.e(TAG, "Face detection failed", e)
-                                    reset()
-                                }
-                                .addOnCompleteListener {
-                                    imageProxy.close()
-                                }
-                        } else {
-                            imageProxy.close()
-                        }
+                        val bitmap = imageProxyToBitmap(imageProxy)
+                        bitmap?.let {
+                            val result = faceProcessingService.processFace(it)
+                            if (result != null) {
+                                processFaceResult(result)
+                            } else {
+                                reset()
+                            }
+                        } ?: reset()
+                        imageProxy.close()
                     } ?: imageProxy.close()
                 } catch (e: Exception) {
                     Log.e(TAG, "Error processing image", e)
@@ -279,11 +256,24 @@ class CameraSwitchManager(
         }
     }
 
+    @OptIn(ExperimentalGetImage::class)
+    private fun imageProxyToBitmap(imageProxy: ImageProxy): Bitmap? {
+        return try {
+            val image = imageProxy.image ?: return null
+            val buffer = image.planes[0].buffer
+            val bytes = ByteArray(buffer.remaining())
+            buffer.get(bytes)
+            BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error converting ImageProxy to Bitmap", e)
+            null
+        }
+    }
+
     /**
-     * Processes the face.
-     * This must be called after the image has been processed.
+     * Processes the face detection result.
      */
-    private fun processFace(face: Face) {
+    private fun processFaceResult(result: FaceProcessingService.FaceDetectionResult) {
         if (!checkInitialization()) {
             return
         }
@@ -294,8 +284,7 @@ class CameraSwitchManager(
             Log.d(TAG, "Ignoring face processing - currently paused")
             return
         }
-        // Get face processing result from centralized service
-        val result = faceProcessingService.processFace(face)
+        
         currentFaceState = result.faceState
 
         // Debug logging for state tracking
@@ -564,8 +553,7 @@ class CameraSwitchManager(
             }
         }
         stopCamera()
-        faceDetector?.close()
-        faceDetector = null
+        // MediaPipe cleanup handled by FaceProcessingService
         isInitialized = false
     }
 

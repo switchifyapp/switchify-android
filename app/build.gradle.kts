@@ -181,6 +181,7 @@ dependencies {
     implementation(libs.androidx.camera.view)
     implementation(libs.accompanist.permissions)
     implementation(libs.face.detection)
+    implementation(libs.mediapipe.tasks.vision)
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)
     ksp(libs.room.compiler)

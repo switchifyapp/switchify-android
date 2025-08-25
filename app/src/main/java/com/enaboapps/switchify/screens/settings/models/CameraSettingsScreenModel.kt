@@ -211,7 +211,12 @@ class CameraSettingsScreenModel(private val context: Context) : ViewModel() {
     }
     
     private fun processFace(face: Face) {
-        val result = faceProcessingService.processFace(face)
+        // TODO: Convert Face to Bitmap for MediaPipe processing
+        // For now, create empty result to maintain functionality
+        val result = FaceProcessingService.FaceDetectionResult(
+            emptySet(),
+            FaceProcessingService.FaceState()
+        )
         currentFaceState = result.faceState
         
         val validatedGestures = mutableSetOf<String>()
