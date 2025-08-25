@@ -98,12 +98,12 @@ class FaceProcessingService(context: Context) {
             return FaceDetectionResult(emptySet(), FaceState())
         }
         
-        // Simplified approach - just detect basic face presence first
+        // Extract face data
         var leftEyeOpen = true
         var rightEyeOpen = true 
         var isSmiling = false
-        val headRotationX = 0f
-        val headRotationY = 0f
+        var headRotationX = 0f
+        var headRotationY = 0f
         
         // Try to get blendshapes if available
         try {
@@ -127,6 +127,41 @@ class FaceProcessingService(context: Context) {
             }
         } catch (e: Exception) {
             android.util.Log.e("FaceProcessingService", "Error processing blendshapes", e)
+        }
+        
+        // Calculate head rotation from face landmarks
+        try {
+            val landmarks = result.faceLandmarks()[0]
+            if (landmarks.size > 0) {
+                // Use specific landmark points for head pose estimation
+                // Nose tip (1), left eye corner (33), right eye corner (362), chin (175)
+                val noseTip = landmarks[1]
+                val leftEyeCorner = landmarks[33] 
+                val rightEyeCorner = landmarks[362]
+                val chin = landmarks[175]
+                
+                // Calculate head rotation Y (left/right turn) using eye positions relative to nose
+                val eyeCenterX = (leftEyeCorner.x() + rightEyeCorner.x()) / 2f
+                val noseX = noseTip.x()
+                val eyeDistance = kotlin.math.abs(rightEyeCorner.x() - leftEyeCorner.x())
+                
+                if (eyeDistance > 0) {
+                    headRotationY = ((noseX - eyeCenterX) / eyeDistance) * 45f // Scale to degrees
+                }
+                
+                // Calculate head rotation X (up/down) using nose to chin distance
+                val noseY = noseTip.y()
+                val chinY = chin.y()
+                val eyeCenterY = (leftEyeCorner.y() + rightEyeCorner.y()) / 2f
+                val faceHeight = kotlin.math.abs(chinY - eyeCenterY)
+                
+                if (faceHeight > 0) {
+                    val noseTiltRatio = (noseY - eyeCenterY) / faceHeight
+                    headRotationX = noseTiltRatio * 30f // Scale to degrees
+                }
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("FaceProcessingService", "Error calculating head pose", e)
         }
         
         val faceState = FaceState(
@@ -165,18 +200,22 @@ class FaceProcessingService(context: Context) {
         
         if (headRotationY > leftThreshold) {
             detectedGestures.add(CameraSwitchFacialGesture.HEAD_TURN_LEFT)
+            android.util.Log.d("FaceProcessingService", "Head turn left detected (Y: $headRotationY > $leftThreshold)")
         }
         
         if (headRotationY < -rightThreshold) {
             detectedGestures.add(CameraSwitchFacialGesture.HEAD_TURN_RIGHT)
+            android.util.Log.d("FaceProcessingService", "Head turn right detected (Y: $headRotationY < -$rightThreshold)")
         }
         
-        if (headRotationX > upThreshold) {
+        if (headRotationX < -upThreshold) {
             detectedGestures.add(CameraSwitchFacialGesture.HEAD_TURN_UP)
+            android.util.Log.d("FaceProcessingService", "Head turn up detected (X: $headRotationX < -$upThreshold)")
         }
         
-        if (headRotationX < -downThreshold) {
+        if (headRotationX > downThreshold) {
             detectedGestures.add(CameraSwitchFacialGesture.HEAD_TURN_DOWN)
+            android.util.Log.d("FaceProcessingService", "Head turn down detected (X: $headRotationX > $downThreshold)")
         }
         
         return FaceDetectionResult(detectedGestures, faceState)
