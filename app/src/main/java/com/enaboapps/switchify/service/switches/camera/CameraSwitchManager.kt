@@ -61,11 +61,8 @@ class CameraSwitchManager(
         CameraSwitchFacialGesture.SMILE to CameraSwitchState(false),
         CameraSwitchFacialGesture.LEFT_WINK to CameraSwitchState(true),
         CameraSwitchFacialGesture.RIGHT_WINK to CameraSwitchState(true),
-        CameraSwitchFacialGesture.BLINK to CameraSwitchState(true),
-        CameraSwitchFacialGesture.HEAD_TURN_LEFT to CameraSwitchState(false),
-        CameraSwitchFacialGesture.HEAD_TURN_RIGHT to CameraSwitchState(false),
-        CameraSwitchFacialGesture.HEAD_TURN_UP to CameraSwitchState(false),
-        CameraSwitchFacialGesture.HEAD_TURN_DOWN to CameraSwitchState(false)
+        CameraSwitchFacialGesture.BLINK to CameraSwitchState(true)
+        // Head turns removed - handled directly without state tracking
     )
 
     // Track currently active gesture
@@ -392,18 +389,17 @@ class CameraSwitchManager(
                 )
             }
 
-            // Handle Head Turn gestures using centralized detection from FaceProcessingService
-            listOf(
-                CameraSwitchFacialGesture.HEAD_TURN_LEFT,
-                CameraSwitchFacialGesture.HEAD_TURN_RIGHT,
-                CameraSwitchFacialGesture.HEAD_TURN_UP,
-                CameraSwitchFacialGesture.HEAD_TURN_DOWN
-            ).forEach { headTurnGesture ->
-                val isCurrentlyDetected = result.detectedGestures.contains(headTurnGesture)
-                val wasActivelyDetected = gestureStates[headTurnGesture]?.isActive == true
-                
-                if (isCurrentlyDetected != wasActivelyDetected && switchEventProvider.isFacialGestureAssigned(headTurnGesture)) {
-                    handleGestureStateChange(CameraSwitchFacialGesture(headTurnGesture), isCurrentlyDetected)
+            // Handle Head Turns - instant trigger when detected (no state tracking needed)
+            result.detectedGestures.forEach { gestureId ->
+                when (gestureId) {
+                    CameraSwitchFacialGesture.HEAD_TURN_LEFT,
+                    CameraSwitchFacialGesture.HEAD_TURN_RIGHT, 
+                    CameraSwitchFacialGesture.HEAD_TURN_UP,
+                    CameraSwitchFacialGesture.HEAD_TURN_DOWN -> {
+                        if (switchEventProvider.isFacialGestureAssigned(gestureId)) {
+                            triggerHeadTurnGesture(CameraSwitchFacialGesture(gestureId))
+                        }
+                    }
                 }
             }
 
@@ -542,6 +538,20 @@ class CameraSwitchManager(
 
     private fun findSwitchEventForGesture(gesture: CameraSwitchFacialGesture): SwitchEvent? =
         switchEventProvider.findCamera(gesture.id)
+
+    /**
+     * Efficiently triggers head turn gestures without state management overhead
+     */
+    private fun triggerHeadTurnGesture(gesture: CameraSwitchFacialGesture) {
+        if (!checkInitialization()) return
+        
+        findSwitchEventForGesture(gesture)?.let { switchEvent ->
+            if (!scanningManager.checkOngoingTasks()) {
+                scanningManager.performAction(switchEvent.pressAction)
+                Log.d(TAG, "Head turn triggered: ${gesture.id}")
+            }
+        }
+    }
 
 
     private fun onPauseStarted() {
