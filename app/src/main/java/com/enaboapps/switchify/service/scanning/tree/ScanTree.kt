@@ -97,12 +97,12 @@ class ScanTree(
     }
 
     /**
-     * Checks if the manual scan setup is valid.
+     * Checks if the manual or directional scan setup is valid.
      *
-     * @return True if the manual scan setup is valid, false otherwise.
+     * @return True if the manual or directional scan setup is valid, false otherwise.
      */
     private fun checkManualScanSetup(): Boolean {
-        if (scanSettings.isManualScanMode() && !isManualScanActive) {
+        if ((scanSettings.isManualScanMode() || scanSettings.isDirectionalScanMode()) && !isManualScanActive) {
             isManualScanActive = true
             highlighter.unhighlightAll()
             highlightCurrent()
