@@ -363,6 +363,10 @@ class FaceProcessingService(context: Context) {
                 preferenceManager.getLongValue(PreferenceManager.PREFERENCE_KEY_CAMERA_RIGHT_WINK_TIME, 300L)
             CameraSwitchFacialGesture.BLINK -> 
                 preferenceManager.getLongValue(PreferenceManager.PREFERENCE_KEY_CAMERA_BLINK_TIME, 400L)
+            CameraSwitchFacialGesture.HEAD_TURN_LEFT,
+            CameraSwitchFacialGesture.HEAD_TURN_RIGHT,
+            CameraSwitchFacialGesture.HEAD_TURN_UP,
+            CameraSwitchFacialGesture.HEAD_TURN_DOWN -> 0L // Instant trigger, no hold time
             else -> 500L // Default fallback
         }
     }
