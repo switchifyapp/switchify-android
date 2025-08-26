@@ -202,13 +202,14 @@ class CameraSettingsScreenModel(private val context: Context) : ViewModel() {
             imageProxy.image?.let { mediaImage ->
                 val bitmap = imageProxyToBitmap(imageProxy)
                 bitmap?.let {
-                    val result = faceProcessingService.processFace(it)
-                    if (result != null) {
-                        _isFaceDetected.value = true
-                        processFaceResult(result)
-                    } else {
-                        _isFaceDetected.value = false
-                        _detectedExpressions.value = emptySet()
+                    faceProcessingService.processFace(it) { result ->
+                        if (result != null) {
+                            _isFaceDetected.value = true
+                            processFaceResult(result)
+                        } else {
+                            _isFaceDetected.value = false
+                            _detectedExpressions.value = emptySet()
+                        }
                     }
                 } ?: run {
                     _isFaceDetected.value = false

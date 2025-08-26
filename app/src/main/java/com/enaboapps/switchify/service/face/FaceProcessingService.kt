@@ -2,6 +2,8 @@ package com.enaboapps.switchify.service.face
 
 import android.content.Context
 import android.graphics.Bitmap
+import android.os.Handler
+import android.os.HandlerThread
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.service.switches.camera.CameraSwitchManager
 import com.enaboapps.switchify.switches.CameraSwitchFacialGesture
@@ -21,6 +23,10 @@ class FaceProcessingService(context: Context) {
     
     private val preferenceManager = PreferenceManager(context)
     private var faceLandmarker: FaceLandmarker? = null
+    
+    // Background processing
+    private val processingThread = HandlerThread("FaceProcessing").apply { start() }
+    private val processingHandler = Handler(processingThread.looper)
     
     // Cached blendshape indices for performance
     private var blendshapeIndices: BlendshapeIndices? = null
@@ -120,20 +126,29 @@ class FaceProcessingService(context: Context) {
 
     
     /**
-     * Processes a face bitmap and returns detected gestures using MediaPipe
-     * Note: For VIDEO mode, timestamp should be provided for proper tracking
+     * Processes a face bitmap in the background and calls back with detected gestures
      */
-    fun processFace(bitmap: Bitmap, timestampMs: Long = System.currentTimeMillis()): FaceDetectionResult? {
-        val landmarker = faceLandmarker ?: return null
-        
-        return try {
-            val mpImage = BitmapImageBuilder(bitmap).build()
-            // Use detectForVideo for VIDEO mode with timestamp for tracking
-            val result = landmarker.detectForVideo(mpImage, timestampMs)
-            processLandmarkerResult(result)
-        } catch (e: Exception) {
-            android.util.Log.e("FaceProcessingService", "Error processing face", e)
-            null
+    fun processFace(
+        bitmap: Bitmap, 
+        timestampMs: Long = System.currentTimeMillis(),
+        callback: (FaceDetectionResult?) -> Unit
+    ) {
+        processingHandler.post {
+            val landmarker = faceLandmarker
+            if (landmarker == null) {
+                callback(null)
+                return@post
+            }
+            
+            try {
+                val mpImage = BitmapImageBuilder(bitmap).build()
+                val result = landmarker.detectForVideo(mpImage, timestampMs)
+                val detectionResult = processLandmarkerResult(result)
+                callback(detectionResult)
+            } catch (e: Exception) {
+                android.util.Log.e("FaceProcessingService", "Error processing face", e)
+                callback(null)
+            }
         }
     }
     
@@ -475,6 +490,7 @@ class FaceProcessingService(context: Context) {
     
     /**
      * Extracts Euler angles from float array representing rotation matrix
+     * Handles 4x4 transformation matrix in row-major format as per MediaPipe documentation
      */
     private fun extractEulerFromFloatArray(matrixData: FloatArray): EulerAngles {
         // Handle different matrix sizes and formats
@@ -490,19 +506,20 @@ class FaceProcessingService(context: Context) {
         
         when {
             matrixData.size >= 16 -> {
-                // 4x4 matrix in column-major order
-                r00 = matrixData[0]   // m00
-                r10 = matrixData[1]   // m10
-                r20 = matrixData[2]   // m20
-                r01 = matrixData[4]   // m01
-                r11 = matrixData[5]   // m11
-                r21 = matrixData[6]   // m21
-                r02 = matrixData[8]   // m02
-                r12 = matrixData[9]   // m12
-                r22 = matrixData[10]  // m22
+                // 4x4 matrix in row-major order - extract 3x3 rotation matrix R
+                // MediaPipe transformation matrix format: [R t; 0 1] where R is 3x3 rotation
+                r00 = matrixData[0]   // Row 0, Col 0
+                r01 = matrixData[1]   // Row 0, Col 1  
+                r02 = matrixData[2]   // Row 0, Col 2
+                r10 = matrixData[4]   // Row 1, Col 0
+                r11 = matrixData[5]   // Row 1, Col 1
+                r12 = matrixData[6]   // Row 1, Col 2
+                r20 = matrixData[8]   // Row 2, Col 0
+                r21 = matrixData[9]   // Row 2, Col 1
+                r22 = matrixData[10]  // Row 2, Col 2
             }
             matrixData.size >= 9 -> {
-                // 3x3 matrix
+                // 3x3 matrix in row-major order
                 r00 = matrixData[0]
                 r01 = matrixData[1]
                 r02 = matrixData[2]
@@ -519,9 +536,9 @@ class FaceProcessingService(context: Context) {
             }
         }
         
-        // Convert rotation matrix to Euler angles (ZYX convention)
-        // Based on OpenCV's rotation matrix to Euler angles conversion
-        val sy = sqrt(r00 * r00 + r10 * r10)
+        // Convert rotation matrix to Euler angles (YXZ convention for face pose)
+        // This convention is commonly used for face tracking: Yaw (Y), Pitch (X), Roll (Z)
+        val sy = sqrt(r00 * r00 + r01 * r01)
         
         val singular = sy < 1e-6
         
@@ -530,13 +547,15 @@ class FaceProcessingService(context: Context) {
         val roll: Float
         
         if (!singular) {
-            roll = atan2(r21, r22) * 180f / PI.toFloat()
-            pitch = atan2(-r20, sy) * 180f / PI.toFloat()
-            yaw = atan2(r10, r00) * 180f / PI.toFloat()
+            // Standard rotation: extract yaw (left/right), pitch (up/down), roll (tilt)
+            yaw = atan2(r02, r22) * 180f / PI.toFloat()      // Rotation around Y-axis (left/right) - fixed sign
+            pitch = atan2(r12, sy) * 180f / PI.toFloat()       // Rotation around X-axis (up/down)  
+            roll = atan2(-r10, r00) * 180f / PI.toFloat()      // Rotation around Z-axis (tilt)
         } else {
-            roll = atan2(-r12, r11) * 180f / PI.toFloat()
-            pitch = atan2(-r20, sy) * 180f / PI.toFloat()
-            yaw = 0f
+            // Handle gimbal lock case
+            yaw = atan2(r02, r22) * 180f / PI.toFloat()      // Fixed sign for consistency
+            pitch = atan2(r12, sy) * 180f / PI.toFloat()
+            roll = 0f
         }
         
         return EulerAngles(yaw, pitch, roll)
@@ -545,5 +564,6 @@ class FaceProcessingService(context: Context) {
     fun close() {
         faceLandmarker?.close()
         faceLandmarker = null
+        processingThread.quitSafely()
     }
 }

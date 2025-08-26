@@ -236,14 +236,15 @@ class CameraSwitchManager(
 
                         val bitmap = imageProxyToBitmap(imageProxy)
                         bitmap?.let {
-                            val result = faceProcessingService.processFace(it)
-                            if (result != null) {
-                                consecutiveNoFaceFrames = 0
-                                processFaceResult(result)
-                            } else {
-                                consecutiveNoFaceFrames++
-                                if (consecutiveNoFaceFrames >= maxNoFaceFrames) {
-                                    reset()
+                            faceProcessingService.processFace(it) { result ->
+                                if (result != null) {
+                                    consecutiveNoFaceFrames = 0
+                                    processFaceResult(result)
+                                } else {
+                                    consecutiveNoFaceFrames++
+                                    if (consecutiveNoFaceFrames >= maxNoFaceFrames) {
+                                        reset()
+                                    }
                                 }
                             }
                         } ?: run {
