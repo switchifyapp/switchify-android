@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.os.Handler
 import android.os.HandlerThread
+import android.util.Log
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.service.switches.camera.CameraSwitchManager
 import com.enaboapps.switchify.switches.CameraSwitchFacialGesture
@@ -43,6 +44,8 @@ class FaceProcessingService(context: Context) {
     private var lastBlinkTime = 0L
     
     companion object {
+        private const val TAG = "FaceProcessingService"
+        
         // Hysteresis thresholds (enter/exit)
         const val SMILE_ENTER_THRESHOLD = 0.35f
         const val SMILE_EXIT_THRESHOLD = 0.25f
@@ -57,11 +60,9 @@ class FaceProcessingService(context: Context) {
         
         // Correct MediaPipe Face Landmarker 468-point model indices
         const val NOSE_TIP_INDEX = 1
-        const val CHIN_INDEX = 152  // Corrected from 175
+        const val CHIN_INDEX = 152
         const val LEFT_EYE_OUTER_INDEX = 33
-        const val RIGHT_EYE_OUTER_INDEX = 263  // Corrected from 362
-        const val LEFT_MOUTH_CORNER_INDEX = 61
-        const val RIGHT_MOUTH_CORNER_INDEX = 291
+        const val RIGHT_EYE_OUTER_INDEX = 263
     }
     
     /**
@@ -99,7 +100,7 @@ class FaceProcessingService(context: Context) {
             
             faceLandmarker = FaceLandmarker.createFromOptions(context, options)
         } catch (e: Exception) {
-            android.util.Log.e("FaceProcessingService", "Failed to initialize MediaPipe FaceLandmarker", e)
+            Log.e(TAG, "Failed to initialize MediaPipe FaceLandmarker", e)
             faceLandmarker = null
         }
     }
@@ -122,9 +123,35 @@ class FaceProcessingService(context: Context) {
         val headRotationY: Float = 0f,
         val headRotationX: Float = 0f,
         val blendShapes: FloatArray? = null
-    )
+    ) {
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (javaClass != other?.javaClass) return false
 
-    
+            other as FaceState
+
+            if (leftEyeOpen != other.leftEyeOpen) return false
+            if (rightEyeOpen != other.rightEyeOpen) return false
+            if (isSmiling != other.isSmiling) return false
+            if (headRotationY != other.headRotationY) return false
+            if (headRotationX != other.headRotationX) return false
+            if (!blendShapes.contentEquals(other.blendShapes)) return false
+
+            return true
+        }
+
+        override fun hashCode(): Int {
+            var result = leftEyeOpen.hashCode()
+            result = 31 * result + rightEyeOpen.hashCode()
+            result = 31 * result + isSmiling.hashCode()
+            result = 31 * result + headRotationY.hashCode()
+            result = 31 * result + headRotationX.hashCode()
+            result = 31 * result + (blendShapes?.contentHashCode() ?: 0)
+            return result
+        }
+    }
+
+
     /**
      * Processes a face bitmap in the background and calls back with detected gestures
      */
@@ -146,7 +173,7 @@ class FaceProcessingService(context: Context) {
                 val detectionResult = processLandmarkerResult(result)
                 callback(detectionResult)
             } catch (e: Exception) {
-                android.util.Log.e("FaceProcessingService", "Error processing face", e)
+                Log.e(TAG, "Error processing face", e)
                 callback(null)
             }
         }
@@ -180,7 +207,7 @@ class FaceProcessingService(context: Context) {
                 headRotationY = smoothedYaw
                 headRotationX = smoothedPitch
                 
-                android.util.Log.v("FaceProcessingService", "Head pose: yaw=${headRotationY}°, pitch=${headRotationX}°")
+                Log.v(TAG, "Head pose: yaw=${headRotationY}°, pitch=${headRotationX}°")
             } else {
                 // Fallback to landmark-based head pose estimation with corrected indices
                 val landmarks = result.faceLandmarks()[0]
@@ -216,7 +243,7 @@ class FaceProcessingService(context: Context) {
                 }
             }
         } catch (e: Exception) {
-            android.util.Log.e("FaceProcessingService", "Error calculating head pose", e)
+            Log.e(TAG, "Error calculating head pose", e)
         }
         
         // Process blendshapes with improved robustness and caching
@@ -274,7 +301,7 @@ class FaceProcessingService(context: Context) {
                 }
             }
         } catch (e: Exception) {
-            android.util.Log.e("FaceProcessingService", "Error processing blendshapes", e)
+            Log.e(TAG, "Error processing blendshapes", e)
         }
         
         val faceState = FaceState(
@@ -289,7 +316,7 @@ class FaceProcessingService(context: Context) {
         // Gesture detection with improved logic
         if (isSmiling) {
             detectedGestures.add(CameraSwitchFacialGesture.SMILE)
-            android.util.Log.d("FaceProcessingService", "Smile detected (smoothed score: $smoothedSmileScore)")
+            Log.d(TAG, "Smile detected (smoothed score: $smoothedSmileScore)")
         }
         
         // Eye gesture detection - check in priority order, using hysteresis-controlled blink state
@@ -297,15 +324,15 @@ class FaceProcessingService(context: Context) {
             if (!leftEyeOpen && !rightEyeOpen) {
                 // Both eyes closed = blink (highest priority)
                 detectedGestures.add(CameraSwitchFacialGesture.BLINK)
-                android.util.Log.d("FaceProcessingService", "Blink detected (smoothed score: $smoothedBlinkScore)")
-            } else if (!leftEyeOpen && rightEyeOpen) {
+                Log.d(TAG, "Blink detected (smoothed score: $smoothedBlinkScore)")
+            } else if (!leftEyeOpen) {
                 // Only left eye closed = left wink
                 detectedGestures.add(CameraSwitchFacialGesture.LEFT_WINK)
-                android.util.Log.d("FaceProcessingService", "Left wink detected")
-            } else if (leftEyeOpen && !rightEyeOpen) {
+                Log.d(TAG, "Left wink detected")
+            } else if (!rightEyeOpen) {
                 // Only right eye closed = right wink
                 detectedGestures.add(CameraSwitchFacialGesture.RIGHT_WINK)
-                android.util.Log.d("FaceProcessingService", "Right wink detected")
+                Log.d(TAG, "Right wink detected")
             }
         }
         
@@ -343,7 +370,7 @@ class FaceProcessingService(context: Context) {
             val largestTurn = headTurnMagnitudes.maxByOrNull { it.value }
             if (largestTurn != null) {
                 detectedGestures.add(largestTurn.key)
-                android.util.Log.d("FaceProcessingService", "Head turn detected: ${largestTurn.key} (magnitude: ${largestTurn.value}, yaw: $headRotationY°, pitch: $headRotationX°)")
+                Log.d(TAG, "Head turn detected: ${largestTurn.key} (magnitude: ${largestTurn.value}, yaw: $headRotationY°, pitch: $headRotationX°)")
             }
         }
         
@@ -473,7 +500,7 @@ class FaceProcessingService(context: Context) {
                             }
                         }
                         else -> {
-                            android.util.Log.w("FaceProcessingService", "Unknown matrix type: ${transformMatrix::class.java}")
+                            Log.w(TAG, "Unknown matrix type: ${transformMatrix::class.java}")
                             null
                         }
                     }
@@ -483,11 +510,11 @@ class FaceProcessingService(context: Context) {
             if (matrixData != null && matrixData.size >= 9) {
                 extractEulerFromFloatArray(matrixData)
             } else {
-                android.util.Log.w("FaceProcessingService", "Could not extract matrix data or insufficient size")
+                Log.w(TAG, "Could not extract matrix data or insufficient size")
                 EulerAngles(0f, 0f, 0f)
             }
         } catch (e: Exception) {
-            android.util.Log.e("FaceProcessingService", "Error extracting matrix data", e)
+            Log.e(TAG, "Error extracting matrix data", e)
             EulerAngles(0f, 0f, 0f)
         }
     }
@@ -535,7 +562,7 @@ class FaceProcessingService(context: Context) {
                 r22 = matrixData[8]
             }
             else -> {
-                android.util.Log.w("FaceProcessingService", "Matrix data too small: ${matrixData.size}")
+                Log.w(TAG, "Matrix data too small: ${matrixData.size}")
                 return EulerAngles(0f, 0f, 0f)
             }
         }
