@@ -260,6 +260,9 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
     override fun onUnbind(intent: Intent?): Boolean {
         cameraSwitchManager?.cleanup()
         deviceLockObserver.stopObserving()
+        if (::screenWatcher.isInitialized) {
+            screenWatcher.unregister(this)
+        }
         ServiceCore.cleanup()
         GlobalActionManager.cleanup()
         AudioActionManager.cleanup()
@@ -275,6 +278,11 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
         // Stop the trial when service is destroyed
         if (::trialManager.isInitialized) {
             trialManager.stopTrial()
+        }
+        
+        // Unregister ScreenWatcher to prevent receiver leak
+        if (::screenWatcher.isInitialized) {
+            screenWatcher.unregister(this)
         }
         
         SwitchifyAccessibilityWindow.instance.onServiceDestroy()
