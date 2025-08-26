@@ -78,6 +78,10 @@ class ScreenWatcher(
      * Unregister the broadcast receiver to prevent memory leaks.
      */
     fun unregister(context: Context) {
-        context.unregisterReceiver(screenReceiver)
+        try {
+            context.unregisterReceiver(screenReceiver)
+        } catch (e: IllegalArgumentException) {
+            // Receiver not registered, ignore
+        }
     }
 }
