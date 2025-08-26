@@ -1,6 +1,8 @@
 package com.enaboapps.switchify.screens.settings.models
 
 import android.content.Context
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import androidx.annotation.OptIn
 import androidx.camera.core.*
@@ -29,6 +31,7 @@ class CameraSettingsScreenModel(private val context: Context) : ViewModel() {
     
     private val preferenceManager = PreferenceManager(context)
     private val faceProcessingService = FaceProcessingService(context)
+    private val mainHandler = Handler(Looper.getMainLooper())
     
     private val _detectedExpressions = MutableStateFlow<Set<String>>(emptySet())
     val detectedExpressions: StateFlow<Set<String>> = _detectedExpressions.asStateFlow()
@@ -203,12 +206,15 @@ class CameraSettingsScreenModel(private val context: Context) : ViewModel() {
                 val bitmap = imageProxyToBitmap(imageProxy)
                 bitmap?.let {
                     faceProcessingService.processFace(it) { result ->
-                        if (result != null) {
-                            _isFaceDetected.value = true
-                            processFaceResult(result)
-                        } else {
-                            _isFaceDetected.value = false
-                            _detectedExpressions.value = emptySet()
+                        // Post to main thread to ensure UI updates are handled correctly
+                        mainHandler.post {
+                            if (result != null) {
+                                _isFaceDetected.value = true
+                                processFaceResult(result)
+                            } else {
+                                _isFaceDetected.value = false
+                                _detectedExpressions.value = emptySet()
+                            }
                         }
                     }
                 } ?: run {

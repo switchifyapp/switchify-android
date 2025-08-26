@@ -3,6 +3,8 @@ package com.enaboapps.switchify.service.switches.camera
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import androidx.annotation.OptIn
 import androidx.camera.core.*
@@ -75,6 +77,7 @@ class CameraSwitchManager(
     private val maxNoFaceFrames = 3 // Require 3 consecutive no-face frames before resetting
 
     private val coroutineScope = CoroutineScope(Dispatchers.Default)
+    private val mainHandler = Handler(Looper.getMainLooper())
     private val lastProcessingTime = AtomicLong(0)
     private val processingTimeoutMs = 100L
     private val frameSkipThreshold = 100L // Skip frames if processing takes more than 100ms (more stable)
@@ -237,13 +240,16 @@ class CameraSwitchManager(
                         val bitmap = imageProxyToBitmap(imageProxy)
                         bitmap?.let {
                             faceProcessingService.processFace(it) { result ->
-                                if (result != null) {
-                                    consecutiveNoFaceFrames = 0
-                                    processFaceResult(result)
-                                } else {
-                                    consecutiveNoFaceFrames++
-                                    if (consecutiveNoFaceFrames >= maxNoFaceFrames) {
-                                        reset()
+                                // Post to main thread to ensure UI actions are handled correctly
+                                mainHandler.post {
+                                    if (result != null) {
+                                        consecutiveNoFaceFrames = 0
+                                        processFaceResult(result)
+                                    } else {
+                                        consecutiveNoFaceFrames++
+                                        if (consecutiveNoFaceFrames >= maxNoFaceFrames) {
+                                            reset()
+                                        }
                                     }
                                 }
                             }
