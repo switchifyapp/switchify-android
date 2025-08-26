@@ -3,6 +3,8 @@ package com.enaboapps.switchify.service.switches.camera
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import androidx.annotation.OptIn
 import androidx.camera.core.*
@@ -24,11 +26,12 @@ import com.enaboapps.switchify.switches.CameraSwitchFacialGesture
 import com.enaboapps.switchify.switches.SwitchAction
 import com.enaboapps.switchify.switches.SwitchEvent
 import com.google.common.util.concurrent.ListenableFuture
-import com.google.mlkit.vision.common.InputImage
-import com.google.mlkit.vision.face.Face
-import com.google.mlkit.vision.face.FaceDetection
-import com.google.mlkit.vision.face.FaceDetector
-import com.google.mlkit.vision.face.FaceDetectorOptions
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.ImageFormat
+import android.graphics.Rect
+import android.graphics.YuvImage
+import java.io.ByteArrayOutputStream
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -58,25 +61,28 @@ class CameraSwitchManager(
         CameraSwitchFacialGesture.SMILE to CameraSwitchState(false),
         CameraSwitchFacialGesture.LEFT_WINK to CameraSwitchState(true),
         CameraSwitchFacialGesture.RIGHT_WINK to CameraSwitchState(true),
-        CameraSwitchFacialGesture.BLINK to CameraSwitchState(true),
-        CameraSwitchFacialGesture.HEAD_TURN_LEFT to CameraSwitchState(false),
-        CameraSwitchFacialGesture.HEAD_TURN_RIGHT to CameraSwitchState(false),
-        CameraSwitchFacialGesture.HEAD_TURN_UP to CameraSwitchState(false),
-        CameraSwitchFacialGesture.HEAD_TURN_DOWN to CameraSwitchState(false)
+        CameraSwitchFacialGesture.BLINK to CameraSwitchState(true)
+        // Head turns removed - handled directly without state tracking
     )
 
     // Track currently active gesture
     private var activeGesture: String? = null
 
+    // Head turn rate limiting
+    private var lastHeadTurnTime = 0L
+    private val headTurnCooldown = 500L // 500ms minimum between head turn triggers
+
     private var currentFaceState = FaceProcessingService.FaceState()
     private var lastProcessedState = FaceProcessingService.FaceState()
+    private var consecutiveNoFaceFrames = 0
+    private val maxNoFaceFrames = 3 // Require 3 consecutive no-face frames before resetting
 
     private val coroutineScope = CoroutineScope(Dispatchers.Default)
+    private val mainHandler = Handler(Looper.getMainLooper())
     private val lastProcessingTime = AtomicLong(0)
     private val processingTimeoutMs = 100L
-    private val frameSkipThreshold = 33L // Skip frames if processing takes more than 33ms
+    private val frameSkipThreshold = 100L // Skip frames if processing takes more than 100ms (more stable)
 
-    private var faceDetector: FaceDetector? = null
     private var isReceiverRegistered = false
     
     private val pauseReceiver = object : BroadcastReceiver() {
@@ -114,15 +120,7 @@ class CameraSwitchManager(
         }
         activeGesture = null
         lastProcessedState = FaceProcessingService.FaceState()
-        faceDetector = FaceDetection.getClient(
-            FaceDetectorOptions.Builder()
-                .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_ACCURATE)
-                .setLandmarkMode(FaceDetectorOptions.LANDMARK_MODE_ALL)
-                .setClassificationMode(FaceDetectorOptions.CLASSIFICATION_MODE_ALL)
-                .setMinFaceSize(MIN_FACE_SIZE)
-                .enableTracking()  // Enable face tracking for better performance
-                .build()
-        )
+        // MediaPipe initialization handled by FaceProcessingService
         isInitialized = true
         
         // Register for pause broadcasts
@@ -239,32 +237,30 @@ class CameraSwitchManager(
             val processingResult = withTimeoutOrNull(processingTimeoutMs) {
                 try {
                     imageProxy.image?.let { mediaImage ->
-                        val image = InputImage.fromMediaImage(
-                            mediaImage,
-                            imageProxy.imageInfo.rotationDegrees
-                        )
 
-                        // Process face detection on background thread
-                        val detector = faceDetector
-                        if (detector != null) {
-                            detector.process(image)
-                                .addOnSuccessListener { faces ->
-                                    if (faces.isNotEmpty()) {
-                                        processFace(faces[0])
+                        val bitmap = imageProxyToBitmap(imageProxy)
+                        bitmap?.let {
+                            faceProcessingService.processFace(it) { result ->
+                                // Post to main thread to ensure UI actions are handled correctly
+                                mainHandler.post {
+                                    if (result != null) {
+                                        consecutiveNoFaceFrames = 0
+                                        processFaceResult(result)
                                     } else {
-                                        reset()
+                                        consecutiveNoFaceFrames++
+                                        if (consecutiveNoFaceFrames >= maxNoFaceFrames) {
+                                            reset()
+                                        }
                                     }
                                 }
-                                .addOnFailureListener { e ->
-                                    Log.e(TAG, "Face detection failed", e)
-                                    reset()
-                                }
-                                .addOnCompleteListener {
-                                    imageProxy.close()
-                                }
-                        } else {
-                            imageProxy.close()
+                            }
+                        } ?: run {
+                            consecutiveNoFaceFrames++
+                            if (consecutiveNoFaceFrames >= maxNoFaceFrames) {
+                                reset()
+                            }
                         }
+                        imageProxy.close()
                     } ?: imageProxy.close()
                 } catch (e: Exception) {
                     Log.e(TAG, "Error processing image", e)
@@ -279,11 +275,48 @@ class CameraSwitchManager(
         }
     }
 
+    @OptIn(ExperimentalGetImage::class)
+    private fun imageProxyToBitmap(imageProxy: ImageProxy): Bitmap? {
+        return try {
+            val image = imageProxy.image ?: return null
+            
+            // Handle YUV format (most common from camera)
+            if (image.format == ImageFormat.YUV_420_888) {
+                val yBuffer = image.planes[0].buffer
+                val uBuffer = image.planes[1].buffer
+                val vBuffer = image.planes[2].buffer
+                
+                val ySize = yBuffer.remaining()
+                val uSize = uBuffer.remaining()
+                val vSize = vBuffer.remaining()
+                
+                val nv21 = ByteArray(ySize + uSize + vSize)
+                yBuffer.get(nv21, 0, ySize)
+                vBuffer.get(nv21, ySize, vSize)
+                uBuffer.get(nv21, ySize + vSize, uSize)
+                
+                val yuvImage = YuvImage(nv21, ImageFormat.NV21, image.width, image.height, null)
+                val out = ByteArrayOutputStream()
+                yuvImage.compressToJpeg(Rect(0, 0, image.width, image.height), 85, out)
+                val imageBytes = out.toByteArray()
+                return BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
+            } else {
+                // Fallback for other formats
+                val buffer = image.planes[0].buffer
+                val bytes = ByteArray(buffer.remaining())
+                buffer.get(bytes)
+                return BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error converting ImageProxy to Bitmap", e)
+            null
+        }
+    }
+
     /**
-     * Processes the face.
-     * This must be called after the image has been processed.
+     * Processes the face detection result.
      */
-    private fun processFace(face: Face) {
+    private fun processFaceResult(result: FaceProcessingService.FaceDetectionResult) {
         if (!checkInitialization()) {
             return
         }
@@ -294,8 +327,7 @@ class CameraSwitchManager(
             Log.d(TAG, "Ignoring face processing - currently paused")
             return
         }
-        // Get face processing result from centralized service
-        val result = faceProcessingService.processFace(face)
+        
         currentFaceState = result.faceState
 
         // Debug logging for state tracking
@@ -361,41 +393,18 @@ class CameraSwitchManager(
                 )
             }
 
-            // Handle Head Turn gestures using centralized detection
-            val isHeadTurnedLeft = result.detectedGestures.contains(CameraSwitchFacialGesture.HEAD_TURN_LEFT)
-            val wasHeadTurnedLeft = getHeadTurnThreshold(
-                preferenceManager.getIntegerValue(PreferenceManager.PREFERENCE_KEY_CAMERA_HEAD_TURN_LEFT_SENSITIVITY, 4)
-            ).let { lastProcessedState.headRotationY > it }
-            
-            if (isHeadTurnedLeft != wasHeadTurnedLeft && switchEventProvider.isFacialGestureAssigned(CameraSwitchFacialGesture.HEAD_TURN_LEFT)) {
-                handleGestureStateChange(CameraSwitchFacialGesture(CameraSwitchFacialGesture.HEAD_TURN_LEFT), isHeadTurnedLeft)
-            }
-
-            val isHeadTurnedRight = result.detectedGestures.contains(CameraSwitchFacialGesture.HEAD_TURN_RIGHT)
-            val wasHeadTurnedRight = getHeadTurnThreshold(
-                preferenceManager.getIntegerValue(PreferenceManager.PREFERENCE_KEY_CAMERA_HEAD_TURN_RIGHT_SENSITIVITY, 4)
-            ).let { lastProcessedState.headRotationY < -it }
-            
-            if (isHeadTurnedRight != wasHeadTurnedRight && switchEventProvider.isFacialGestureAssigned(CameraSwitchFacialGesture.HEAD_TURN_RIGHT)) {
-                handleGestureStateChange(CameraSwitchFacialGesture(CameraSwitchFacialGesture.HEAD_TURN_RIGHT), isHeadTurnedRight)
-            }
-
-            val isHeadTurnedUp = result.detectedGestures.contains(CameraSwitchFacialGesture.HEAD_TURN_UP)
-            val wasHeadTurnedUp = getHeadTurnThreshold(
-                preferenceManager.getIntegerValue(PreferenceManager.PREFERENCE_KEY_CAMERA_HEAD_TURN_UP_SENSITIVITY, 4)
-            ).let { lastProcessedState.headRotationX > it }
-            
-            if (isHeadTurnedUp != wasHeadTurnedUp && switchEventProvider.isFacialGestureAssigned(CameraSwitchFacialGesture.HEAD_TURN_UP)) {
-                handleGestureStateChange(CameraSwitchFacialGesture(CameraSwitchFacialGesture.HEAD_TURN_UP), isHeadTurnedUp)
-            }
-
-            val isHeadTurnedDown = result.detectedGestures.contains(CameraSwitchFacialGesture.HEAD_TURN_DOWN)
-            val wasHeadTurnedDown = getHeadTurnThreshold(
-                preferenceManager.getIntegerValue(PreferenceManager.PREFERENCE_KEY_CAMERA_HEAD_TURN_DOWN_SENSITIVITY, 4)
-            ).let { lastProcessedState.headRotationX < -it }
-            
-            if (isHeadTurnedDown != wasHeadTurnedDown && switchEventProvider.isFacialGestureAssigned(CameraSwitchFacialGesture.HEAD_TURN_DOWN)) {
-                handleGestureStateChange(CameraSwitchFacialGesture(CameraSwitchFacialGesture.HEAD_TURN_DOWN), isHeadTurnedDown)
+            // Handle Head Turns - instant trigger when detected (no state tracking needed)
+            result.detectedGestures.forEach { gestureId ->
+                when (gestureId) {
+                    CameraSwitchFacialGesture.HEAD_TURN_LEFT,
+                    CameraSwitchFacialGesture.HEAD_TURN_RIGHT, 
+                    CameraSwitchFacialGesture.HEAD_TURN_UP,
+                    CameraSwitchFacialGesture.HEAD_TURN_DOWN -> {
+                        if (switchEventProvider.isFacialGestureAssigned(gestureId)) {
+                            triggerHeadTurnGesture(CameraSwitchFacialGesture(gestureId))
+                        }
+                    }
+                }
             }
 
             // Update last processed state
@@ -432,7 +441,9 @@ class CameraSwitchManager(
             state.startTime = 0
         }
         activeGesture = null
+        lastHeadTurnTime = 0L // Reset head turn rate limiting
         lastProcessedState = FaceProcessingService.FaceState()  // Reset the last processed state
+        consecutiveNoFaceFrames = 0 // Reset smoothing counter
     }
 
     /**
@@ -500,13 +511,9 @@ class CameraSwitchManager(
                 gestureStates[switchEvent.code]?.let { state ->
                     if (state.isActive && state.startTime > 0) {
                         val timeElapsed = System.currentTimeMillis() - state.startTime
-                        // Head turn gestures trigger immediately, others need to meet time requirement
-                        val shouldTrigger = if (gesture.isHeadTurn()) {
-                            true
-                        } else {
-                            val requiredTime = faceProcessingService.getGestureTime(gesture.id)
-                            timeElapsed >= requiredTime
-                        }
+                        // All gestures need to meet their time requirement
+                        val requiredTime = faceProcessingService.getGestureTime(gesture.id)
+                        val shouldTrigger = timeElapsed >= requiredTime
                         
                         if (shouldTrigger) {
                             if (!scanningManager.checkOngoingTasks()) {
@@ -537,6 +544,26 @@ class CameraSwitchManager(
     private fun findSwitchEventForGesture(gesture: CameraSwitchFacialGesture): SwitchEvent? =
         switchEventProvider.findCamera(gesture.id)
 
+    /**
+     * Efficiently triggers head turn gestures with rate limiting to prevent rapid fire
+     */
+    private fun triggerHeadTurnGesture(gesture: CameraSwitchFacialGesture) {
+        if (!checkInitialization()) return
+        
+        val currentTime = System.currentTimeMillis()
+        if (currentTime - lastHeadTurnTime < headTurnCooldown) {
+            return // Rate limit - too soon since last trigger
+        }
+        
+        findSwitchEventForGesture(gesture)?.let { switchEvent ->
+            if (!scanningManager.checkOngoingTasks()) {
+                scanningManager.performAction(switchEvent.pressAction)
+                lastHeadTurnTime = currentTime
+                Log.d(TAG, "Head turn triggered: ${gesture.id}")
+            }
+        }
+    }
+
 
     private fun onPauseStarted() {
         Log.d(TAG, "Pause started - stopping camera")
@@ -564,8 +591,7 @@ class CameraSwitchManager(
             }
         }
         stopCamera()
-        faceDetector?.close()
-        faceDetector = null
+        // MediaPipe cleanup handled by FaceProcessingService
         isInitialized = false
     }
 

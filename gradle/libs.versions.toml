@@ -21,7 +21,7 @@ revenuecat = "9.3.1"
 amplitude-analytics = "1.22.2"
 camerax = "1.4.2"
 accompanist = "0.37.3"
-face-detection = "16.1.7"
+mediapipe = "0.10.26"
 room = "2.7.2"
 ksp = "2.2.0-2.0.2"
 supabase = "3.2.2"
@@ -61,7 +61,7 @@ androidx-camera-core = { group = "androidx.camera", name = "camera-core", versio
 androidx-camera-lifecycle = { group = "androidx.camera", name = "camera-lifecycle", version.ref = "camerax" }
 androidx-camera-view = { group = "androidx.camera", name = "camera-view", version.ref = "camerax" }
 accompanist-permissions = { group = "com.google.accompanist", name = "accompanist-permissions", version.ref = "accompanist" }
-face-detection = { group = "com.google.mlkit", name = "face-detection", version.ref = "face-detection" }
+mediapipe-tasks-vision = { group = "com.google.mediapipe", name = "tasks-vision", version.ref = "mediapipe" }
 room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
 room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
 room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
