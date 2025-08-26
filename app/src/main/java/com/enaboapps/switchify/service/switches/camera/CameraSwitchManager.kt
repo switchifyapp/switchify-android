@@ -68,6 +68,10 @@ class CameraSwitchManager(
     // Track currently active gesture
     private var activeGesture: String? = null
 
+    // Head turn rate limiting
+    private var lastHeadTurnTime = 0L
+    private val headTurnCooldown = 500L // 500ms minimum between head turn triggers
+
     private var currentFaceState = FaceProcessingService.FaceState()
     private var lastProcessedState = FaceProcessingService.FaceState()
     private var consecutiveNoFaceFrames = 0
@@ -437,6 +441,7 @@ class CameraSwitchManager(
             state.startTime = 0
         }
         activeGesture = null
+        lastHeadTurnTime = 0L // Reset head turn rate limiting
         lastProcessedState = FaceProcessingService.FaceState()  // Reset the last processed state
         consecutiveNoFaceFrames = 0 // Reset smoothing counter
     }
@@ -540,14 +545,20 @@ class CameraSwitchManager(
         switchEventProvider.findCamera(gesture.id)
 
     /**
-     * Efficiently triggers head turn gestures without state management overhead
+     * Efficiently triggers head turn gestures with rate limiting to prevent rapid fire
      */
     private fun triggerHeadTurnGesture(gesture: CameraSwitchFacialGesture) {
         if (!checkInitialization()) return
         
+        val currentTime = System.currentTimeMillis()
+        if (currentTime - lastHeadTurnTime < headTurnCooldown) {
+            return // Rate limit - too soon since last trigger
+        }
+        
         findSwitchEventForGesture(gesture)?.let { switchEvent ->
             if (!scanningManager.checkOngoingTasks()) {
                 scanningManager.performAction(switchEvent.pressAction)
+                lastHeadTurnTime = currentTime
                 Log.d(TAG, "Head turn triggered: ${gesture.id}")
             }
         }
