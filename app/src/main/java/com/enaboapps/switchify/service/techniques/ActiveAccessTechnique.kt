@@ -188,10 +188,24 @@ class ActiveAccessTechnique(private val context: Context) : AccessTechniqueObser
         systemNodeScanner?.cleanup()
         systemNodeScanner = null
         cleanupKeyboard()
+        
+        // Unregister ScreenWatcher to prevent receiver leak
+        screenWatcher?.unregister(context)
+        screenWatcher = null
 
         SelectionHandler.cleanup()
 
         NodeScannerUI.instance.hideAll()
+    }
+    
+    /**
+     * Cleanup method to be called when ActiveAccessTechnique is no longer needed.
+     * This ensures proper cleanup of all resources including ScreenWatcher.
+     */
+    fun destroy() {
+        cleanupAll()
+        AccessTechnique.observer = null
+        KeyboardManager.setKeyboardStateListener(null)
     }
 
     fun updateActionableNodes(nodes: List<Node>) {

@@ -278,7 +278,7 @@ class ScanningManager(
      */
     fun shutdown() {
         pauseScanning()
-        activeScanMethod.cleanupAll()
+        activeScanMethod.destroy()
         moveRepeatManager = null
     }
 }
