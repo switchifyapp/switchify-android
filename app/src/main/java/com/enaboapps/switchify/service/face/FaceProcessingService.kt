@@ -65,6 +65,27 @@ class FaceProcessingService(context: Context) {
         const val CHIN_INDEX = 152
         const val LEFT_EYE_OUTER_INDEX = 33
         const val RIGHT_EYE_OUTER_INDEX = 263
+        
+        /**
+         * Convert sensitivity level (1-10) to rotation threshold in degrees.
+         * Higher sensitivity = lower threshold (easier to trigger)
+         * Lower sensitivity = higher threshold (harder to trigger)
+         */
+        fun getHeadTurnThreshold(sensitivity: Int): Float {
+            return when (sensitivity.coerceIn(1, 10)) {
+                1 -> 5.0f   // Very high sensitivity (easy to trigger)
+                2 -> 8.0f
+                3 -> 12.0f
+                4 -> 16.0f
+                5 -> 20.0f  // Default
+                6 -> 24.0f
+                7 -> 28.0f
+                8 -> 32.0f
+                9 -> 36.0f
+                10 -> 40.0f  // Very low sensitivity (hard to trigger)
+                else -> 20.0f
+            }
+        }
     }
     
     /**
@@ -413,22 +434,29 @@ class FaceProcessingService(context: Context) {
     // Head turn threshold getters using global preferences
     private fun getHeadTurnLeftThreshold(): Float {
         val sensitivity = preferenceManager.getIntegerValue(PreferenceManager.PREFERENCE_KEY_CAMERA_HEAD_TURN_LEFT_SENSITIVITY, 4)
-        return CameraSwitchManager.getHeadTurnThreshold(sensitivity)
+        return convertSensitivityToThreshold(sensitivity)
     }
     
     private fun getHeadTurnRightThreshold(): Float {
         val sensitivity = preferenceManager.getIntegerValue(PreferenceManager.PREFERENCE_KEY_CAMERA_HEAD_TURN_RIGHT_SENSITIVITY, 4)
-        return CameraSwitchManager.getHeadTurnThreshold(sensitivity)
+        return convertSensitivityToThreshold(sensitivity)
     }
     
     private fun getHeadTurnUpThreshold(): Float {
         val sensitivity = preferenceManager.getIntegerValue(PreferenceManager.PREFERENCE_KEY_CAMERA_HEAD_TURN_UP_SENSITIVITY, 4)
-        return CameraSwitchManager.getHeadTurnThreshold(sensitivity)
+        return convertSensitivityToThreshold(sensitivity)
     }
     
     private fun getHeadTurnDownThreshold(): Float {
         val sensitivity = preferenceManager.getIntegerValue(PreferenceManager.PREFERENCE_KEY_CAMERA_HEAD_TURN_DOWN_SENSITIVITY, 4)
-        return CameraSwitchManager.getHeadTurnThreshold(sensitivity)
+        return convertSensitivityToThreshold(sensitivity)
+    }
+    
+    /**
+     * Convert sensitivity level (1-8) to rotation threshold in degrees.
+     */
+    private fun convertSensitivityToThreshold(sensitivity: Int): Float {
+        return getHeadTurnThreshold(sensitivity)
     }
     
     // Utility methods for smoothing and matrix processing

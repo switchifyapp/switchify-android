@@ -28,6 +28,7 @@ import com.enaboapps.switchify.components.PreferenceTimeStepper
 import com.enaboapps.switchify.components.ScrollableView
 import com.enaboapps.switchify.components.Section
 import com.enaboapps.switchify.service.switches.camera.CameraSwitchManager
+import com.enaboapps.switchify.service.face.FaceProcessingService
 import com.enaboapps.switchify.switches.CameraSwitchFacialGesture
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberPermissionState
@@ -372,7 +373,7 @@ private fun SensitivityTab(
                 min = 1,
                 max = 10,
                 displayFormatter = { sensitivity ->
-                    "${CameraSwitchManager.getHeadTurnThreshold(sensitivity).toInt()}°"
+                    "${FaceProcessingService.getHeadTurnThreshold(sensitivity).toInt()}°"
                 },
                 onValueChanged = { viewModel.setHeadTurnLeftSensitivity(it) }
             )
@@ -384,7 +385,7 @@ private fun SensitivityTab(
                 min = 1,
                 max = 10,
                 displayFormatter = { sensitivity ->
-                    "${CameraSwitchManager.getHeadTurnThreshold(sensitivity).toInt()}°"
+                    "${FaceProcessingService.getHeadTurnThreshold(sensitivity).toInt()}°"
                 },
                 onValueChanged = { viewModel.setHeadTurnRightSensitivity(it) }
             )
@@ -396,7 +397,7 @@ private fun SensitivityTab(
                 min = 1,
                 max = 10,
                 displayFormatter = { sensitivity ->
-                    "${CameraSwitchManager.getHeadTurnThreshold(sensitivity).toInt()}°"
+                    "${FaceProcessingService.getHeadTurnThreshold(sensitivity).toInt()}°"
                 },
                 onValueChanged = { viewModel.setHeadTurnUpSensitivity(it) }
             )
@@ -408,7 +409,7 @@ private fun SensitivityTab(
                 min = 1,
                 max = 10,
                 displayFormatter = { sensitivity ->
-                    "${CameraSwitchManager.getHeadTurnThreshold(sensitivity).toInt()}°"
+                    "${FaceProcessingService.getHeadTurnThreshold(sensitivity).toInt()}°"
                 },
                 onValueChanged = { viewModel.setHeadTurnDownSensitivity(it) }
             )
