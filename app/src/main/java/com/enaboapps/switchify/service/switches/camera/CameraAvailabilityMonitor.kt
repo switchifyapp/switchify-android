@@ -30,6 +30,8 @@ class CameraAvailabilityMonitor(private val context: Context) {
     private var cameraWasTakenByExternalApp = false
     private var retryCount = 0
     private var lastRetryTime = 0L
+    private var lastRestartTime = 0L
+    private var cameraWasWorkingBefore = false
     
     var onCameraAvailable: ((String) -> Unit)? = null
     var onCameraUnavailable: ((String) -> Unit)? = null
@@ -39,9 +41,10 @@ class CameraAvailabilityMonitor(private val context: Context) {
         private const val TAG = "CameraAvailabilityMonitor"
         private const val FRONT_CAMERA_ID = "1"
         private const val MAX_RETRY_COUNT = 5
-        private const val BASE_RETRY_DELAY = 1000L // 1 second
+        private const val BASE_RETRY_DELAY = 2000L // 2 seconds  
         private const val MAX_RETRY_DELAY = 30000L // 30 seconds
         private const val MIN_RETRY_INTERVAL = 5000L // 5 seconds between retries
+        private const val MIN_RESTART_COOLDOWN = 10000L // 10 seconds between restarts
     }
     
     fun startMonitoring() {
@@ -57,16 +60,26 @@ class CameraAvailabilityMonitor(private val context: Context) {
                     
                     if (cameraId == FRONT_CAMERA_ID) {
                         if (cameraWasTakenByExternalApp) {
+                            val currentTime = System.currentTimeMillis()
+                            
+                            // Enforce cooldown to prevent restart loops
+                            if (currentTime - lastRestartTime < MIN_RESTART_COOLDOWN) {
+                                Log.d(TAG, "Camera available but still in restart cooldown period")
+                                return
+                            }
+                            
                             Log.i(TAG, "Front camera recovered after external app usage")
                             cameraWasTakenByExternalApp = false
                             retryCount = 0
                             retryJob?.cancel()
+                            lastRestartTime = currentTime
                             
                             // Notify recovery with delay to ensure camera is fully available
                             mainHandler.postDelayed({
                                 onCameraRecovered?.invoke(cameraId)
-                            }, 500)
+                            }, 1000) // Increased delay
                         } else {
+                            cameraWasWorkingBefore = true
                             onCameraAvailable?.invoke(cameraId)
                         }
                     }
@@ -75,7 +88,8 @@ class CameraAvailabilityMonitor(private val context: Context) {
                 override fun onCameraUnavailable(cameraId: String) {
                     Log.d(TAG, "Camera $cameraId became unavailable")
                     
-                    if (cameraId == FRONT_CAMERA_ID) {
+                    if (cameraId == FRONT_CAMERA_ID && cameraWasWorkingBefore) {
+                        // Only treat as external app usage if camera was working before
                         cameraWasTakenByExternalApp = true
                         onCameraUnavailable?.invoke(cameraId)
                         startRecoveryRetries()
@@ -174,5 +188,10 @@ class CameraAvailabilityMonitor(private val context: Context) {
         cameraWasTakenByExternalApp = false
         retryCount = 0
         retryJob?.cancel()
+    }
+    
+    fun markCameraAsWorking() {
+        cameraWasWorkingBefore = true
+        Log.d(TAG, "Camera marked as working - monitoring for external app usage")
     }
 }

@@ -181,6 +181,7 @@ class CameraSwitchManager(
                     bindPreview(lifecycleOwner)
                     Log.d(TAG, "Camera started successfully")
                     cameraAvailabilityMonitor.resetRecoveryState()
+                    cameraAvailabilityMonitor.markCameraAsWorking()
                 } catch (e: Exception) {
                     Log.e(TAG, "Failed to start camera", e)
                     showCameraError()
