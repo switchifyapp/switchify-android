@@ -205,7 +205,7 @@ class ActiveAccessTechnique(private val context: Context) : AccessTechniqueObser
     fun destroy() {
         cleanupAll()
         AccessTechnique.observer = null
-        KeyboardManager.setKeyboardStateListener(null)
+        KeyboardManager.removeKeyboardStateListener()
     }
 
     fun updateActionableNodes(nodes: List<Node>) {
