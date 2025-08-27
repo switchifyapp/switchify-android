@@ -90,6 +90,7 @@ class CameraSettingsScreenModel(private val context: Context) : ViewModel() {
     private var preview: Preview? = null
     private var previewView: PreviewView? = null
     private val isProcessing = AtomicBoolean(false)
+    @Volatile private var isCleanedUp = false
     
     private companion object {
         const val TAG = "CameraSettingsScreenModel"
@@ -195,8 +196,8 @@ class CameraSettingsScreenModel(private val context: Context) : ViewModel() {
     
     @OptIn(ExperimentalGetImage::class)
     private fun processImage(imageProxy: ImageProxy) {
-        // Skip processing if already processing another frame
-        if (isProcessing.getAndSet(true)) {
+        // Skip processing if cleaned up or already processing another frame
+        if (isCleanedUp || isProcessing.getAndSet(true)) {
             imageProxy.close()
             return
         }
@@ -346,6 +347,7 @@ class CameraSettingsScreenModel(private val context: Context) : ViewModel() {
     
     fun cleanup() {
         try {
+            isCleanedUp = true
             cameraProvider?.unbindAll()
             cameraProvider = null
             imageAnalyzer = null

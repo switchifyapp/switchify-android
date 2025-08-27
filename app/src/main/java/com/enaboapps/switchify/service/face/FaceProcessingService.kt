@@ -29,6 +29,8 @@ class FaceProcessingService(context: Context) {
     private val processingThread = HandlerThread("FaceProcessing").apply { start() }
     private val processingHandler = Handler(processingThread.looper)
     
+    @Volatile private var isCleanedUp = false
+    
     // Cached blendshape indices for performance
     private var blendshapeIndices: BlendshapeIndices? = null
     
@@ -160,7 +162,17 @@ class FaceProcessingService(context: Context) {
         timestampMs: Long = System.currentTimeMillis(),
         callback: (FaceDetectionResult?) -> Unit
     ) {
+        if (isCleanedUp) {
+            callback(null)
+            return
+        }
+        
         processingHandler.post {
+            if (isCleanedUp) {
+                callback(null)
+                return@post
+            }
+            
             val landmarker = faceLandmarker
             if (landmarker == null) {
                 callback(null)
@@ -593,6 +605,8 @@ class FaceProcessingService(context: Context) {
     }
     
     fun close() {
+        isCleanedUp = true
+        processingHandler.removeCallbacksAndMessages(null)
         faceLandmarker?.close()
         faceLandmarker = null
         processingThread.quitSafely()
