@@ -591,7 +591,7 @@ class CameraSwitchManager(
             }
         }
         stopCamera()
-        // MediaPipe cleanup handled by FaceProcessingService
+        faceProcessingService.close()
         isInitialized = false
     }
 
