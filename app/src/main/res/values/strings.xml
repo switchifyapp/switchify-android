@@ -115,6 +115,8 @@
     <string name="hud_select_drag">Select where to drag to</string>
     <string name="hud_select_swipe">Select where to swipe to</string>
     <string name="hud_camera_access_error">Camera access is not granted. Please grant camera access in the app settings and then restart the Accessibility Service.</string>
+    <string name="hud_camera_unavailable_external_app">Camera taken by external app</string>
+    <string name="hud_camera_recovered">Camera restored - gestures active</string>
     <string name="hud_no_switches_found">No Switches Found</string>
     <string name="hud_switches_loaded">Switches Loaded</string>
     <string name="hud_pause">Switchify is paused. You can now use your switches with other apps. To resume, don\'t press any switches for 30 seconds.</string>

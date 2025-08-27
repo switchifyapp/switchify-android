@@ -37,6 +37,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.coroutines.delay
 import java.util.concurrent.atomic.AtomicLong
 
 class CameraSwitchManager(
@@ -46,6 +47,7 @@ class CameraSwitchManager(
 ) {
     private val preferenceManager = PreferenceManager(context)
     private val faceProcessingService = FaceProcessingService(context)
+    private val cameraAvailabilityMonitor = CameraAvailabilityMonitor(context)
     private var cameraProviderFuture: ListenableFuture<ProcessCameraProvider>? = null
     private var cameraProvider: ProcessCameraProvider? = null
     private var imageAnalyzer: ImageAnalysis? = null
@@ -84,6 +86,8 @@ class CameraSwitchManager(
     private val frameSkipThreshold = 100L // Skip frames if processing takes more than 100ms (more stable)
 
     private var isReceiverRegistered = false
+    private var lifecycleOwner: LifecycleOwner? = null
+    private var shouldAutoRestart = false
     
     private val pauseReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -138,6 +142,8 @@ class CameraSwitchManager(
             isReceiverRegistered = true
         }
         
+        setupCameraAvailabilityMonitoring()
+        
         Log.d(TAG, "CameraSwitchManager initialized")
     }
 
@@ -160,6 +166,9 @@ class CameraSwitchManager(
             return
         }
 
+        this.lifecycleOwner = lifecycleOwner
+        shouldAutoRestart = true
+
         if (!isCameraAccessGranted()) {
             showCameraError()
             return
@@ -171,6 +180,7 @@ class CameraSwitchManager(
                     cameraProvider = future.get()
                     bindPreview(lifecycleOwner)
                     Log.d(TAG, "Camera started successfully")
+                    cameraAvailabilityMonitor.resetRecoveryState()
                 } catch (e: Exception) {
                     Log.e(TAG, "Failed to start camera", e)
                     showCameraError()
@@ -452,6 +462,7 @@ class CameraSwitchManager(
      */
     fun stopCamera() {
         try {
+            shouldAutoRestart = false
             cameraProvider?.unbindAll()
             cameraProvider = null
             imageAnalyzer = null
@@ -590,9 +601,51 @@ class CameraSwitchManager(
                 Log.w(TAG, "Receiver was not registered or already unregistered", e)
             }
         }
+        cameraAvailabilityMonitor.stopMonitoring()
         stopCamera()
         faceProcessingService.close()
+        lifecycleOwner = null
+        shouldAutoRestart = false
         isInitialized = false
+    }
+    
+    private fun setupCameraAvailabilityMonitoring() {
+        cameraAvailabilityMonitor.onCameraAvailable = { cameraId ->
+            Log.d(TAG, "Camera $cameraId available")
+        }
+        
+        cameraAvailabilityMonitor.onCameraUnavailable = { cameraId ->
+            Log.i(TAG, "Camera $cameraId taken by external app")
+            ServiceMessageHUD.instance.showMessage(
+                R.string.hud_camera_unavailable_external_app,
+                ServiceMessageHUD.MessageType.DISAPPEARING
+            )
+        }
+        
+        cameraAvailabilityMonitor.onCameraRecovered = { cameraId ->
+            Log.i(TAG, "Camera $cameraId recovered from external app")
+            ServiceMessageHUD.instance.showMessage(
+                R.string.hud_camera_recovered,
+                ServiceMessageHUD.MessageType.DISAPPEARING
+            )
+            
+            // Automatically restart camera if it should be running
+            if (shouldAutoRestart && lifecycleOwner != null) {
+                coroutineScope.launch(Dispatchers.Main) {
+                    delay(1000) // Give camera time to fully become available
+                    try {
+                        if (isCameraAccessGranted()) {
+                            startCamera(lifecycleOwner!!)
+                            Log.i(TAG, "Camera automatically restarted after recovery")
+                        }
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Failed to restart camera after recovery", e)
+                    }
+                }
+            }
+        }
+        
+        cameraAvailabilityMonitor.startMonitoring()
     }
 
     companion object {
