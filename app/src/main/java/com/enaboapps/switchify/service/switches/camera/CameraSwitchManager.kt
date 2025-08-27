@@ -1,57 +1,37 @@
 package com.enaboapps.switchify.service.switches.camera
 
-import android.Manifest
 import android.content.Context
-import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
-import androidx.annotation.OptIn
-import androidx.camera.core.*
-import androidx.camera.lifecycle.ProcessCameraProvider
-import androidx.core.content.ContextCompat
-import androidx.lifecycle.LifecycleOwner
 import android.content.BroadcastReceiver
 import android.content.Intent
 import android.content.IntentFilter
-import com.enaboapps.switchify.R
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.service.core.ServiceCore
 import com.enaboapps.switchify.service.face.FaceProcessingService
 import com.enaboapps.switchify.service.pauseresume.PauseManager
 import com.enaboapps.switchify.service.scanning.ScanningManager
 import com.enaboapps.switchify.service.switches.SwitchEventProvider
-import com.enaboapps.switchify.service.window.ServiceMessageHUD
 import com.enaboapps.switchify.switches.CameraSwitchFacialGesture
 import com.enaboapps.switchify.switches.SwitchAction
 import com.enaboapps.switchify.switches.SwitchEvent
-import com.google.common.util.concurrent.ListenableFuture
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
-import android.graphics.ImageFormat
-import android.graphics.Rect
-import android.graphics.YuvImage
-import java.io.ByteArrayOutputStream
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import kotlinx.coroutines.withTimeoutOrNull
-import kotlinx.coroutines.delay
-import java.util.concurrent.atomic.AtomicLong
 
+/**
+ * Manages camera switch gesture processing and triggers actions.
+ * Camera processing is now handled by CameraForegroundService.
+ * This class focuses only on gesture state management and action triggering.
+ */
 class CameraSwitchManager(
     private val context: Context,
     private val scanningManager: ScanningManager,
     private val switchEventProvider: SwitchEventProvider
 ) {
     private val preferenceManager = PreferenceManager(context)
-    private val faceProcessingService = FaceProcessingService(context)
-    private val cameraAvailabilityMonitor = CameraAvailabilityMonitor(context)
-    private var cameraProviderFuture: ListenableFuture<ProcessCameraProvider>? = null
-    private var cameraProvider: ProcessCameraProvider? = null
-    private var imageAnalyzer: ImageAnalysis? = null
-    private var preview: Preview? = null
     private var isInitialized = false
 
     private data class CameraSwitchState(
@@ -64,7 +44,7 @@ class CameraSwitchManager(
         CameraSwitchFacialGesture.LEFT_WINK to CameraSwitchState(true),
         CameraSwitchFacialGesture.RIGHT_WINK to CameraSwitchState(true),
         CameraSwitchFacialGesture.BLINK to CameraSwitchState(true)
-        // Head turns removed - handled directly without state tracking
+        // Head turns handled directly without state tracking
     )
 
     // Track currently active gesture
@@ -74,20 +54,10 @@ class CameraSwitchManager(
     private var lastHeadTurnTime = 0L
     private val headTurnCooldown = 500L // 500ms minimum between head turn triggers
 
-    private var currentFaceState = FaceProcessingService.FaceState()
-    private var lastProcessedState = FaceProcessingService.FaceState()
-    private var consecutiveNoFaceFrames = 0
-    private val maxNoFaceFrames = 3 // Require 3 consecutive no-face frames before resetting
-
     private val coroutineScope = CoroutineScope(Dispatchers.Default)
     private val mainHandler = Handler(Looper.getMainLooper())
-    private val lastProcessingTime = AtomicLong(0)
-    private val processingTimeoutMs = 100L
-    private val frameSkipThreshold = 100L // Skip frames if processing takes more than 100ms (more stable)
 
     private var isReceiverRegistered = false
-    private var lifecycleOwner: LifecycleOwner? = null
-    private var shouldAutoRestart = false
     
     private val pauseReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -98,457 +68,192 @@ class CameraSwitchManager(
         }
     }
 
+    companion object {
+        private const val TAG = "CameraSwitchManager"
+    }
+
+    /**
+     * Initialize the camera switch manager
+     */
+    fun initialize() {
+        if (isInitialized) {
+            Log.d(TAG, "Already initialized")
+            return
+        }
+
+        try {
+            registerPauseReceiver()
+            isInitialized = true
+            Log.d(TAG, "Camera switch manager initialized")
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to initialize", e)
+        }
+    }
+
+    private fun registerPauseReceiver() {
+        if (!isReceiverRegistered) {
+            val filter = IntentFilter().apply {
+                addAction(PauseManager.ACTION_PAUSE_STARTED)
+                addAction(PauseManager.ACTION_PAUSE_ENDED)
+            }
+            
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                context.registerReceiver(pauseReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
+            } else {
+                context.registerReceiver(pauseReceiver, filter)
+            }
+            isReceiverRegistered = true
+            Log.d(TAG, "Pause receiver registered")
+        }
+    }
+
     private fun checkInitialization(): Boolean {
         if (!isInitialized) {
-            Log.e(
-                TAG,
-                "CameraSwitchManager must be initialized before use. Call initialize() first."
-            )
+            Log.w(TAG, "Manager not initialized")
             return false
         }
         return true
     }
 
-    private fun isCameraAccessGranted(): Boolean =
-        context.checkSelfPermission(Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
-
-    /**
-     * Initializes the camera switch manager.
-     * This must be called before using any camera functionality.
-     */
-    fun initialize() {
-        reset()
-        gestureStates.forEach { (_, state) ->
-            state.isActive = false
-            state.startTime = 0
-        }
+    private fun onPauseStarted() {
+        Log.d(TAG, "Pause started - resetting gesture states")
+        gestureStates.values.forEach { it.isActive = false }
         activeGesture = null
-        lastProcessedState = FaceProcessingService.FaceState()
-        // MediaPipe initialization handled by FaceProcessingService
-        isInitialized = true
-        
-        // Register for pause broadcasts
-        val filter = IntentFilter().apply {
-            addAction(PauseManager.ACTION_PAUSE_STARTED)
-            addAction(PauseManager.ACTION_PAUSE_ENDED)
-        }
-        if (!isReceiverRegistered) {
-            androidx.core.content.ContextCompat.registerReceiver(
-                context, 
-                pauseReceiver, 
-                filter, 
-                androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED
-            )
-            isReceiverRegistered = true
-        }
-        
-        setupCameraAvailabilityMonitoring()
-        
-        Log.d(TAG, "CameraSwitchManager initialized")
     }
 
-    private fun showCameraError() {
-        coroutineScope.launch(Dispatchers.Main) {
-            ServiceMessageHUD.instance.showMessage(
-                R.string.hud_camera_access_error,
-                ServiceMessageHUD.MessageType.DISAPPEARING
-            )
-        }
+    private fun onPauseEnded() {
+        Log.d(TAG, "Pause ended - ready for gestures")
     }
 
     /**
-     * Starts the camera.
-     * This must be called after the manager has been initialized.
+     * Processes face detection results from CameraForegroundService.
+     * This is the main entry point for gesture processing.
      */
-    fun startCamera(lifecycleOwner: LifecycleOwner) {
-        if (!checkInitialization()) {
-            Log.e(TAG, "Cannot start camera - manager not initialized")
-            return
-        }
-
-        this.lifecycleOwner = lifecycleOwner
-        shouldAutoRestart = true
-
-        if (!isCameraAccessGranted()) {
-            showCameraError()
-            return
-        }
-
-        cameraProviderFuture = ProcessCameraProvider.getInstance(context).also { future ->
-            future.addListener({
-                try {
-                    cameraProvider = future.get()
-                    bindPreview(lifecycleOwner)
-                    Log.d(TAG, "Camera started successfully")
-                    cameraAvailabilityMonitor.resetRecoveryState()
-                    cameraAvailabilityMonitor.markCameraAsWorking()
-                } catch (e: Exception) {
-                    Log.e(TAG, "Failed to start camera", e)
-                    showCameraError()
-                }
-            }, ContextCompat.getMainExecutor(context))
-        }
-    }
-
-    /**
-     * Binds the preview to the camera.
-     * This must be called after the camera has been started.
-     */
-    @OptIn(ExperimentalGetImage::class)
-    private fun bindPreview(lifecycleOwner: LifecycleOwner) {
+    fun processFaceResult(result: FaceProcessingService.FaceDetectionResult) {
         if (!checkInitialization()) {
             return
         }
 
-        val cameraSelector = CameraSelector.Builder()
-            .requireLensFacing(CameraSelector.LENS_FACING_FRONT)
-            .build()
-
-        imageAnalyzer = ImageAnalysis.Builder()
-            .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-            .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_YUV_420_888)
-            .build()
-            .apply {
-                setAnalyzer(ContextCompat.getMainExecutor(context)) { imageProxy ->
-                    processImageSafely(imageProxy)
-                }
-            }
-
-        try {
-            cameraProvider?.unbindAll()
-            cameraProvider?.bindToLifecycle(
-                lifecycleOwner,
-                cameraSelector,
-                Preview.Builder().build().also { preview = it },
-                imageAnalyzer
-            )
-            Log.d(TAG, "Camera bound successfully")
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to bind camera use cases", e)
-        }
-    }
-
-    /**
-     * Processes the image safely with frame dropping and timeout handling.
-     * This must be called after the camera has been bound.
-     */
-    @OptIn(ExperimentalGetImage::class)
-    private fun processImageSafely(imageProxy: ImageProxy) {
-        val currentTime = System.currentTimeMillis()
-        
-        // Frame dropping: skip if previous processing is still ongoing
-        if (currentTime - lastProcessingTime.get() < frameSkipThreshold) {
-            imageProxy.close()
-            return
-        }
-        
-        lastProcessingTime.set(currentTime)
-        
-        coroutineScope.launch {
-            val processingResult = withTimeoutOrNull(processingTimeoutMs) {
-                try {
-                    imageProxy.image?.let { mediaImage ->
-
-                        val bitmap = imageProxyToBitmap(imageProxy)
-                        bitmap?.let {
-                            faceProcessingService.processFace(it) { result ->
-                                // Post to main thread to ensure UI actions are handled correctly
-                                mainHandler.post {
-                                    if (result != null) {
-                                        consecutiveNoFaceFrames = 0
-                                        processFaceResult(result)
-                                    } else {
-                                        consecutiveNoFaceFrames++
-                                        if (consecutiveNoFaceFrames >= maxNoFaceFrames) {
-                                            reset()
-                                        }
-                                    }
-                                }
-                            }
-                        } ?: run {
-                            consecutiveNoFaceFrames++
-                            if (consecutiveNoFaceFrames >= maxNoFaceFrames) {
-                                reset()
-                            }
-                        }
-                        imageProxy.close()
-                    } ?: imageProxy.close()
-                } catch (e: Exception) {
-                    Log.e(TAG, "Error processing image", e)
-                    imageProxy.close()
-                }
-            }
-            
-            if (processingResult == null) {
-                Log.w(TAG, "Image processing timed out after ${processingTimeoutMs}ms")
-                imageProxy.close()
-            }
-        }
-    }
-
-    @OptIn(ExperimentalGetImage::class)
-    private fun imageProxyToBitmap(imageProxy: ImageProxy): Bitmap? {
-        return try {
-            val image = imageProxy.image ?: return null
-            
-            // Handle YUV format (most common from camera)
-            if (image.format == ImageFormat.YUV_420_888) {
-                val yBuffer = image.planes[0].buffer
-                val uBuffer = image.planes[1].buffer
-                val vBuffer = image.planes[2].buffer
-                
-                val ySize = yBuffer.remaining()
-                val uSize = uBuffer.remaining()
-                val vSize = vBuffer.remaining()
-                
-                val nv21 = ByteArray(ySize + uSize + vSize)
-                yBuffer.get(nv21, 0, ySize)
-                vBuffer.get(nv21, ySize, vSize)
-                uBuffer.get(nv21, ySize + vSize, uSize)
-                
-                val yuvImage = YuvImage(nv21, ImageFormat.NV21, image.width, image.height, null)
-                val out = ByteArrayOutputStream()
-                yuvImage.compressToJpeg(Rect(0, 0, image.width, image.height), 85, out)
-                val imageBytes = out.toByteArray()
-                return BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
-            } else {
-                // Fallback for other formats
-                val buffer = image.planes[0].buffer
-                val bytes = ByteArray(buffer.remaining())
-                buffer.get(bytes)
-                return BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Error converting ImageProxy to Bitmap", e)
-            null
-        }
-    }
-
-    /**
-     * Processes the face detection result.
-     */
-    private fun processFaceResult(result: FaceProcessingService.FaceDetectionResult) {
-        if (!checkInitialization()) {
-            return
-        }
-        
-        // Don't process gestures during pause
         val pauseManager = ServiceCore.getPauseManager()
         if (pauseManager.isPaused) {
-            Log.d(TAG, "Ignoring face processing - currently paused")
             return
+        }
+
+        // Process detected gestures
+        result.detectedGestures.forEach { gestureId ->
+            when (gestureId) {
+                CameraSwitchFacialGesture.SMILE -> {
+                    handleGestureStateChange(
+                        CameraSwitchFacialGesture(CameraSwitchFacialGesture.SMILE),
+                        true
+                    )
+                }
+                CameraSwitchFacialGesture.LEFT_WINK -> {
+                    handleGestureStateChange(
+                        CameraSwitchFacialGesture(CameraSwitchFacialGesture.LEFT_WINK),
+                        true
+                    )
+                }
+                CameraSwitchFacialGesture.RIGHT_WINK -> {
+                    handleGestureStateChange(
+                        CameraSwitchFacialGesture(CameraSwitchFacialGesture.RIGHT_WINK),
+                        true
+                    )
+                }
+                CameraSwitchFacialGesture.BLINK -> {
+                    handleGestureStateChange(
+                        CameraSwitchFacialGesture(CameraSwitchFacialGesture.BLINK),
+                        true
+                    )
+                }
+                CameraSwitchFacialGesture.HEAD_TURN_LEFT,
+                CameraSwitchFacialGesture.HEAD_TURN_RIGHT, 
+                CameraSwitchFacialGesture.HEAD_TURN_UP,
+                CameraSwitchFacialGesture.HEAD_TURN_DOWN -> {
+                    triggerHeadTurnGesture(CameraSwitchFacialGesture(gestureId))
+                }
+            }
+        }
+
+        // Handle face state changes for gesture ending
+        val faceState = result.faceState
+        if (faceState.isSmiling) {
+            handleGestureStateChange(CameraSwitchFacialGesture(CameraSwitchFacialGesture.SMILE), false)
+        }
+        if (faceState.leftEyeOpen) {
+            handleGestureStateChange(CameraSwitchFacialGesture(CameraSwitchFacialGesture.LEFT_WINK), false)
+        }
+        if (faceState.rightEyeOpen) {
+            handleGestureStateChange(CameraSwitchFacialGesture(CameraSwitchFacialGesture.RIGHT_WINK), false)
+        }
+        if (faceState.leftEyeOpen && faceState.rightEyeOpen) {
+            handleGestureStateChange(CameraSwitchFacialGesture(CameraSwitchFacialGesture.BLINK), false)
+        }
+    }
+
+    private fun handleGestureStateChange(gesture: CameraSwitchFacialGesture, isStarting: Boolean) {
+        val state = gestureStates[gesture.id] ?: return
+        
+        if (isStarting && !state.isActive) {
+            gestureStarted(gesture)
+        } else if (!isStarting && state.isActive) {
+            gestureCompleted(gesture)
+        }
+    }
+
+    private fun gestureStarted(gesture: CameraSwitchFacialGesture) {
+        val state = gestureStates[gesture.id] ?: return
+        state.isActive = true
+        state.startTime = System.currentTimeMillis()
+        activeGesture = gesture.id
+        
+        Log.d(TAG, "Gesture started: ${gesture.getName()}")
+    }
+
+    private fun gestureCompleted(gesture: CameraSwitchFacialGesture) {
+        val state = gestureStates[gesture.id] ?: return
+        if (!state.isActive) return
+        
+        state.isActive = false
+        val duration = System.currentTimeMillis() - state.startTime
+        
+        Log.d(TAG, "Gesture completed: ${gesture.getName()}, duration: ${duration}ms")
+        
+        // Check if this gesture meets the minimum hold time requirement
+        val requiredHoldTime = getRequiredHoldTime(gesture)
+        if (duration >= requiredHoldTime) {
+            triggerSwitchAction(gesture)
         }
         
-        currentFaceState = result.faceState
-
-        // Debug logging for state tracking
-        Log.v(
-            TAG,
-            "Face state - L:${currentFaceState.leftEyeOpen} R:${currentFaceState.rightEyeOpen} " +
-                    "Active:${activeGesture} LastL:${lastProcessedState.leftEyeOpen} LastR:${lastProcessedState.rightEyeOpen} " +
-                    "HeadX:${currentFaceState.headRotationX} HeadY:${currentFaceState.headRotationY}"
-        )
-
-        // Only process if the state has changed
-        if (currentFaceState != lastProcessedState) {
-            // Handle Smile
-            if (currentFaceState.isSmiling != lastProcessedState.isSmiling && switchEventProvider.isFacialGestureAssigned(
-                    CameraSwitchFacialGesture.SMILE
-                )
-            ) {
-                handleGestureStateChange(
-                    CameraSwitchFacialGesture(CameraSwitchFacialGesture.SMILE),
-                    currentFaceState.isSmiling
-                )
-            }
-
-            // Handle Left Wink (only when right eye is open)
-            if (currentFaceState.leftEyeOpen != lastProcessedState.leftEyeOpen && currentFaceState.rightEyeOpen && switchEventProvider.isFacialGestureAssigned(
-                    CameraSwitchFacialGesture.LEFT_WINK
-                )
-            ) {
-                handleGestureStateChange(
-                    CameraSwitchFacialGesture(CameraSwitchFacialGesture.LEFT_WINK),
-                    !currentFaceState.leftEyeOpen
-                )
-            }
-
-            // Handle Right Wink (only when left eye is open)
-            if (currentFaceState.rightEyeOpen != lastProcessedState.rightEyeOpen && currentFaceState.leftEyeOpen && switchEventProvider.isFacialGestureAssigned(
-                    CameraSwitchFacialGesture.RIGHT_WINK
-                )
-            ) {
-                handleGestureStateChange(
-                    CameraSwitchFacialGesture(CameraSwitchFacialGesture.RIGHT_WINK),
-                    !currentFaceState.rightEyeOpen
-                )
-            }
-
-            // Handle Blink
-            val eyesClosed = !currentFaceState.leftEyeOpen && !currentFaceState.rightEyeOpen
-            if (eyesClosed && switchEventProvider.isFacialGestureAssigned(
-                    CameraSwitchFacialGesture.BLINK
-                )
-            ) {
-                handleGestureStateChange(
-                    CameraSwitchFacialGesture(CameraSwitchFacialGesture.BLINK),
-                    true
-                )
-            } else if (!eyesClosed && switchEventProvider.isFacialGestureAssigned(
-                    CameraSwitchFacialGesture.BLINK
-                )
-            ) {
-                handleGestureStateChange(
-                    CameraSwitchFacialGesture(CameraSwitchFacialGesture.BLINK),
-                    false
-                )
-            }
-
-            // Handle Head Turns - instant trigger when detected (no state tracking needed)
-            result.detectedGestures.forEach { gestureId ->
-                when (gestureId) {
-                    CameraSwitchFacialGesture.HEAD_TURN_LEFT,
-                    CameraSwitchFacialGesture.HEAD_TURN_RIGHT, 
-                    CameraSwitchFacialGesture.HEAD_TURN_UP,
-                    CameraSwitchFacialGesture.HEAD_TURN_DOWN -> {
-                        if (switchEventProvider.isFacialGestureAssigned(gestureId)) {
-                            triggerHeadTurnGesture(CameraSwitchFacialGesture(gestureId))
-                        }
-                    }
-                }
-            }
-
-            // Update last processed state
-            lastProcessedState = currentFaceState
+        if (activeGesture == gesture.id) {
+            activeGesture = null
         }
     }
 
-    /**
-     * Handles the gesture state change.
-     * This must be called after the face has been processed.
-     */
-    private fun handleGestureStateChange(gesture: CameraSwitchFacialGesture, isStarting: Boolean) {
-        if (!checkInitialization()) {
-            return
-
-        }
-        if (isStarting) {
-            gestureStarted(gesture)
-        } else {
-            // Only complete gestures that were actually started
-            if (activeGesture == gesture.id) {
-                gestureCompleted(gesture)
-            }
-        }
-    }
-
-    /**
-     * Resets the gesture states.
-     * This must be called after the camera has been stopped.
-     */
-    private fun reset() {
-        gestureStates.forEach { (_, state) ->
-            state.isActive = false
-            state.startTime = 0
-        }
-        activeGesture = null
-        lastHeadTurnTime = 0L // Reset head turn rate limiting
-        lastProcessedState = FaceProcessingService.FaceState()  // Reset the last processed state
-        consecutiveNoFaceFrames = 0 // Reset smoothing counter
-    }
-
-    /**
-     * Stops the camera.
-     * This must be called after the manager has been initialized.
-     */
-    fun stopCamera() {
-        try {
-            shouldAutoRestart = false
-            cameraProvider?.unbindAll()
-            cameraProvider = null
-            imageAnalyzer = null
-            preview = null
-            cameraProviderFuture = null
-            // Don't set isInitialized to false here so we can restart the camera
-            Log.d(TAG, "Camera stopped successfully")
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to stop camera", e)
-            showCameraError()
+    private fun getRequiredHoldTime(gesture: CameraSwitchFacialGesture): Long {
+        return when (gesture.id) {
+            CameraSwitchFacialGesture.SMILE -> 
+                preferenceManager.getLongValue(PreferenceManager.PREFERENCE_KEY_CAMERA_SMILE_TIME, 500L)
+            CameraSwitchFacialGesture.LEFT_WINK -> 
+                preferenceManager.getLongValue(PreferenceManager.PREFERENCE_KEY_CAMERA_LEFT_WINK_TIME, 300L)
+            CameraSwitchFacialGesture.RIGHT_WINK -> 
+                preferenceManager.getLongValue(PreferenceManager.PREFERENCE_KEY_CAMERA_RIGHT_WINK_TIME, 300L)
+            CameraSwitchFacialGesture.BLINK -> 
+                preferenceManager.getLongValue(PreferenceManager.PREFERENCE_KEY_CAMERA_BLINK_TIME, 400L)
+            CameraSwitchFacialGesture.HEAD_TURN_LEFT,
+            CameraSwitchFacialGesture.HEAD_TURN_RIGHT,
+            CameraSwitchFacialGesture.HEAD_TURN_UP,
+            CameraSwitchFacialGesture.HEAD_TURN_DOWN -> 0L // Instant trigger
+            else -> 1000L
         }
     }
 
-    /**
-     * Starts a new gesture.
-     * This must be called after the manager has been initialized.
-     */
-    private fun gestureStarted(gesture: CameraSwitchFacialGesture) {
-        if (!checkInitialization()) {
-            return
-        }
-
-        // Only start a new gesture if no other gesture is active
-        if (activeGesture == null) {
-            findSwitchEventForGesture(gesture)?.let { switchEvent ->
-                gestureStates[switchEvent.code]?.apply {
-                    isActive = true
-                    startTime = System.currentTimeMillis()
-                }
-                activeGesture = switchEvent.code
-                if (switchEvent.pressAction.id == SwitchAction.ACTION_SELECT) {
-                    scanningManager.pauseScanning()
-                }
-                Log.d(TAG, "Activated gesture: ${switchEvent.code}")
-            }
-        } else {
-            Log.v(TAG, "Ignored gesture ${gesture.id} - $activeGesture is already active")
-        }
-    }
-
-    /**
-     * Completes a gesture.
-     * This must be called after the manager has been initialized.
-     */
-    private fun gestureCompleted(gesture: CameraSwitchFacialGesture) {
-        if (!checkInitialization()) {
-            return
-        }
-        Log.d(TAG, "Gesture completed: ${gesture.id}")
-
-        findSwitchEventForGesture(gesture)?.let { switchEvent ->
-            // Only process completion if this is the active gesture
-            if (activeGesture == switchEvent.code) {
-                if (switchEvent.pressAction.id == SwitchAction.ACTION_SELECT) {
-                    scanningManager.resumeScanning()
-                }
-                gestureStates[switchEvent.code]?.let { state ->
-                    if (state.isActive && state.startTime > 0) {
-                        val timeElapsed = System.currentTimeMillis() - state.startTime
-                        // All gestures need to meet their time requirement
-                        val requiredTime = faceProcessingService.getGestureTime(gesture.id)
-                        val shouldTrigger = timeElapsed >= requiredTime
-                        
-                        if (shouldTrigger) {
-                            if (!scanningManager.checkOngoingTasks()) {
-                                scanningManager.performAction(switchEvent.pressAction)
-                            }
-                            Log.d(
-                                TAG,
-                                "${gesture.id} completed successfully after ${timeElapsed}ms"
-                            )
-                        } else {
-                            val requiredTime = faceProcessingService.getGestureTime(gesture.id)
-                            Log.d(
-                                TAG,
-                                "${gesture.id} interrupted after ${timeElapsed}ms (needed ${requiredTime}ms)"
-                            )
-                        }
-                    }
-                    state.isActive = false
-                }
-                activeGesture = null
-                Log.d(TAG, "Cleared active gesture: ${switchEvent.code}")
-            } else {
-                Log.d(TAG, "Ignored completion of ${gesture.id} - not the active gesture")
+    private fun triggerSwitchAction(gesture: CameraSwitchFacialGesture) {
+        val switchEvent = findSwitchEventForGesture(gesture)
+        if (switchEvent != null) {
+            coroutineScope.launch(Dispatchers.Main) {
+                Log.i(TAG, "Triggering switch action for gesture: ${gesture.getName()}")
+                scanningManager.performAction(switchEvent.pressAction)
             }
         }
     }
@@ -556,109 +261,41 @@ class CameraSwitchManager(
     private fun findSwitchEventForGesture(gesture: CameraSwitchFacialGesture): SwitchEvent? =
         switchEventProvider.findCamera(gesture.id)
 
-    /**
-     * Efficiently triggers head turn gestures with rate limiting to prevent rapid fire
-     */
     private fun triggerHeadTurnGesture(gesture: CameraSwitchFacialGesture) {
-        if (!checkInitialization()) return
-        
         val currentTime = System.currentTimeMillis()
         if (currentTime - lastHeadTurnTime < headTurnCooldown) {
-            return // Rate limit - too soon since last trigger
+            return // Rate limiting
         }
         
-        findSwitchEventForGesture(gesture)?.let { switchEvent ->
-            if (!scanningManager.checkOngoingTasks()) {
+        lastHeadTurnTime = currentTime
+        
+        val switchEvent = findSwitchEventForGesture(gesture)
+        if (switchEvent != null) {
+            coroutineScope.launch(Dispatchers.Main) {
+                Log.i(TAG, "Triggering head turn gesture: ${gesture.getName()}")
                 scanningManager.performAction(switchEvent.pressAction)
-                lastHeadTurnTime = currentTime
-                Log.d(TAG, "Head turn triggered: ${gesture.id}")
             }
         }
     }
 
-
-    private fun onPauseStarted() {
-        Log.d(TAG, "Pause started - stopping camera")
-        stopCamera()
-    }
-    
-    private fun onPauseEnded() {
-        Log.d(TAG, "Pause ended - restarting camera")
-        if (context is LifecycleOwner) {
-            startCamera(context)
-        }
-    }
-    
     /**
-     * Cleans up the camera manager resources.
-     * Should be called when the camera manager is no longer needed.
+     * Clean up resources
      */
     fun cleanup() {
-        if (isReceiverRegistered) {
-            try {
+        try {
+            if (isReceiverRegistered) {
                 context.unregisterReceiver(pauseReceiver)
                 isReceiverRegistered = false
-            } catch (e: IllegalArgumentException) {
-                Log.w(TAG, "Receiver was not registered or already unregistered", e)
             }
-        }
-        cameraAvailabilityMonitor.stopMonitoring()
-        stopCamera()
-        faceProcessingService.close()
-        lifecycleOwner = null
-        shouldAutoRestart = false
-        isInitialized = false
-    }
-    
-    private fun setupCameraAvailabilityMonitoring() {
-        cameraAvailabilityMonitor.onCameraAvailable = { cameraId ->
-            Log.d(TAG, "Camera $cameraId available")
-        }
-        
-        cameraAvailabilityMonitor.onCameraUnavailable = { cameraId ->
-            Log.i(TAG, "Camera $cameraId taken by external app")
-            ServiceMessageHUD.instance.showMessage(
-                R.string.hud_camera_unavailable_external_app,
-                ServiceMessageHUD.MessageType.DISAPPEARING
-            )
-        }
-        
-        cameraAvailabilityMonitor.onCameraRecovered = { cameraId ->
-            Log.i(TAG, "Camera $cameraId recovered from external app")
-            ServiceMessageHUD.instance.showMessage(
-                R.string.hud_camera_recovered,
-                ServiceMessageHUD.MessageType.DISAPPEARING
-            )
             
-            // Automatically restart camera if it should be running
-            if (shouldAutoRestart && lifecycleOwner != null) {
-                coroutineScope.launch(Dispatchers.Main) {
-                    delay(1000) // Give camera time to fully become available
-                    try {
-                        if (isCameraAccessGranted()) {
-                            startCamera(lifecycleOwner!!)
-                            Log.i(TAG, "Camera automatically restarted after recovery")
-                        }
-                    } catch (e: Exception) {
-                        Log.e(TAG, "Failed to restart camera after recovery", e)
-                    }
-                }
-            }
-        }
-        
-        cameraAvailabilityMonitor.startMonitoring()
-    }
-
-    companion object {
-        private const val TAG = "CameraSwitchManager"
-        private const val MIN_FACE_SIZE = 0.2f
-        
-        /**
-         * Calculates the head turn threshold based on sensitivity setting
-         * Sensitivity 1-10 maps to 5-50 degrees (5° increments)
-         */
-        fun getHeadTurnThreshold(sensitivity: Int): Float {
-            return (sensitivity.coerceIn(1, 10) * 5).toFloat()
+            gestureStates.values.forEach { it.isActive = false }
+            activeGesture = null
+            isInitialized = false
+            
+            Log.d(TAG, "Camera switch manager cleaned up")
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "Error during cleanup", e)
         }
     }
 }
