@@ -79,6 +79,13 @@ private fun CameraSettingsContent(
     val headTurnUpSensitivity by viewModel.headTurnUpSensitivity.collectAsState()
     val headTurnDownSensitivity by viewModel.headTurnDownSensitivity.collectAsState()
     
+    var selectedTabIndex by remember { mutableIntStateOf(0) }
+    val tabTitles = listOf(
+        stringResource(R.string.tab_test_gestures),
+        stringResource(R.string.tab_timing_settings), 
+        stringResource(R.string.tab_sensitivity)
+    )
+    
     LaunchedEffect(lifecycleOwner) {
         viewModel.startCamera(lifecycleOwner)
     }
@@ -89,125 +96,54 @@ private fun CameraSettingsContent(
         }
     }
 
-    ScrollableView {
-        Section(titleResId = R.string.section_title_expression_testing) {
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column {
+            TabRow(
+                selectedTabIndex = selectedTabIndex,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                tabTitles.forEachIndexed { index, title ->
+                    Tab(
+                        text = { Text(title) },
+                        selected = selectedTabIndex == index,
+                        onClick = { selectedTabIndex = index }
+                    )
+                }
+            }
+            
+            when (selectedTabIndex) {
+                0 -> TestGesturesTab(
+                    detectedExpressions = detectedExpressions,
+                    isFaceDetected = isFaceDetected
+                )
+                1 -> TimingSettingsTab(
+                    viewModel = viewModel,
+                    smileTime = smileTime,
+                    leftWinkTime = leftWinkTime,
+                    rightWinkTime = rightWinkTime,
+                    blinkTime = blinkTime
+                )
+                2 -> SensitivityTab(
+                    viewModel = viewModel,
+                    headTurnLeftSensitivity = headTurnLeftSensitivity,
+                    headTurnRightSensitivity = headTurnRightSensitivity,
+                    headTurnUpSensitivity = headTurnUpSensitivity,
+                    headTurnDownSensitivity = headTurnDownSensitivity
+                )
+            }
+        }
+        
+        // Small persistent camera preview in bottom right
+        Card(
+            modifier = Modifier
+                .size(120.dp)
+                .align(Alignment.BottomEnd)
+                .padding(16.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+        ) {
             CameraPreview(
                 viewModel = viewModel,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(300.dp)
-            )
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            ExpressionFeedback(
-                detectedExpressions = detectedExpressions,
-                isFaceDetected = isFaceDetected
-            )
-        }
-        
-        Section(titleResId = R.string.section_title_detected_expressions) {
-            DetectedExpressionsList(detectedExpressions = detectedExpressions)
-        }
-        
-        Section(titleResId = R.string.section_title_threshold_settings) {
-            // Time steppers for gesture hold times
-            PreferenceTimeStepper(
-                value = smileTime,
-                titleResId = R.string.preference_title_smile_time,
-                summaryResId = R.string.preference_summary_smile_time,
-                min = 100,
-                max = 5000,
-                step = 100,
-                onValueChanged = { viewModel.setSmileTime(it) }
-            )
-            
-            PreferenceTimeStepper(
-                value = leftWinkTime,
-                titleResId = R.string.preference_title_left_wink_time,
-                summaryResId = R.string.preference_summary_left_wink_time,
-                min = 100,
-                max = 3000,
-                step = 50,
-                onValueChanged = { viewModel.setLeftWinkTime(it) }
-            )
-            
-            PreferenceTimeStepper(
-                value = rightWinkTime,
-                titleResId = R.string.preference_title_right_wink_time,
-                summaryResId = R.string.preference_summary_right_wink_time,
-                min = 100,
-                max = 3000,
-                step = 50,
-                onValueChanged = { viewModel.setRightWinkTime(it) }
-            )
-            
-            PreferenceTimeStepper(
-                value = blinkTime,
-                titleResId = R.string.preference_title_blink_time,
-                summaryResId = R.string.preference_summary_blink_time,
-                min = 100,
-                max = 2000,
-                step = 50,
-                onValueChanged = { viewModel.setBlinkTime(it) }
-            )
-            
-            // Value selectors for head turn sensitivities
-            PreferenceValueSelector(
-                value = headTurnLeftSensitivity,
-                titleResId = R.string.preference_title_head_turn_left_sensitivity,
-                summaryResId = R.string.preference_summary_head_turn_left_sensitivity,
-                min = 1,
-                max = 10,
-                displayFormatter = { sensitivity ->
-                    "${CameraSwitchManager.getHeadTurnThreshold(sensitivity).toInt()}°"
-                },
-                onValueChanged = { viewModel.setHeadTurnLeftSensitivity(it) }
-            )
-            
-            PreferenceValueSelector(
-                value = headTurnRightSensitivity,
-                titleResId = R.string.preference_title_head_turn_right_sensitivity,
-                summaryResId = R.string.preference_summary_head_turn_right_sensitivity,
-                min = 1,
-                max = 10,
-                displayFormatter = { sensitivity ->
-                    "${CameraSwitchManager.getHeadTurnThreshold(sensitivity).toInt()}°"
-                },
-                onValueChanged = { viewModel.setHeadTurnRightSensitivity(it) }
-            )
-            
-            PreferenceValueSelector(
-                value = headTurnUpSensitivity,
-                titleResId = R.string.preference_title_head_turn_up_sensitivity,
-                summaryResId = R.string.preference_summary_head_turn_up_sensitivity,
-                min = 1,
-                max = 10,
-                displayFormatter = { sensitivity ->
-                    "${CameraSwitchManager.getHeadTurnThreshold(sensitivity).toInt()}°"
-                },
-                onValueChanged = { viewModel.setHeadTurnUpSensitivity(it) }
-            )
-            
-            PreferenceValueSelector(
-                value = headTurnDownSensitivity,
-                titleResId = R.string.preference_title_head_turn_down_sensitivity,
-                summaryResId = R.string.preference_summary_head_turn_down_sensitivity,
-                min = 1,
-                max = 10,
-                displayFormatter = { sensitivity ->
-                    "${CameraSwitchManager.getHeadTurnThreshold(sensitivity).toInt()}°"
-                },
-                onValueChanged = { viewModel.setHeadTurnDownSensitivity(it) }
-            )
-        }
-        
-        Section(titleResId = R.string.section_title_camera_settings) {
-            Text(
-                text = stringResource(R.string.placeholder_future_settings),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(16.dp)
+                modifier = Modifier.fillMaxSize()
             )
         }
     }
@@ -227,6 +163,10 @@ private fun CameraPreview(
                 PreviewView(context).apply {
                     viewModel.bindPreview(this)
                 }
+            },
+            update = { previewView ->
+                // Rebind preview when switching back to this tab
+                viewModel.bindPreview(previewView)
             },
             modifier = Modifier
                 .fillMaxSize()
@@ -338,6 +278,139 @@ private fun ExpressionItem(
                 text = description,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSecondaryContainer
+            )
+        }
+    }
+}
+
+@Composable
+private fun TestGesturesTab(
+    detectedExpressions: Set<String>,
+    isFaceDetected: Boolean
+) {
+    ScrollableView {
+        Section(titleResId = R.string.section_title_expression_testing) {
+            ExpressionFeedback(
+                detectedExpressions = detectedExpressions,
+                isFaceDetected = isFaceDetected
+            )
+        }
+        
+        Section(titleResId = R.string.section_title_detected_expressions) {
+            DetectedExpressionsList(detectedExpressions = detectedExpressions)
+        }
+    }
+}
+
+@Composable
+private fun TimingSettingsTab(
+    viewModel: CameraSettingsScreenModel,
+    smileTime: Long,
+    leftWinkTime: Long,
+    rightWinkTime: Long,
+    blinkTime: Long
+) {
+    ScrollableView {
+        Section(titleResId = R.string.section_title_threshold_settings) {
+            PreferenceTimeStepper(
+                value = smileTime,
+                titleResId = R.string.preference_title_smile_time,
+                summaryResId = R.string.preference_summary_smile_time,
+                min = 100,
+                max = 5000,
+                step = 100,
+                onValueChanged = { viewModel.setSmileTime(it) }
+            )
+            
+            PreferenceTimeStepper(
+                value = leftWinkTime,
+                titleResId = R.string.preference_title_left_wink_time,
+                summaryResId = R.string.preference_summary_left_wink_time,
+                min = 100,
+                max = 3000,
+                step = 50,
+                onValueChanged = { viewModel.setLeftWinkTime(it) }
+            )
+            
+            PreferenceTimeStepper(
+                value = rightWinkTime,
+                titleResId = R.string.preference_title_right_wink_time,
+                summaryResId = R.string.preference_summary_right_wink_time,
+                min = 100,
+                max = 3000,
+                step = 50,
+                onValueChanged = { viewModel.setRightWinkTime(it) }
+            )
+            
+            PreferenceTimeStepper(
+                value = blinkTime,
+                titleResId = R.string.preference_title_blink_time,
+                summaryResId = R.string.preference_summary_blink_time,
+                min = 100,
+                max = 2000,
+                step = 50,
+                onValueChanged = { viewModel.setBlinkTime(it) }
+            )
+        }
+    }
+}
+
+@Composable
+private fun SensitivityTab(
+    viewModel: CameraSettingsScreenModel,
+    headTurnLeftSensitivity: Int,
+    headTurnRightSensitivity: Int,
+    headTurnUpSensitivity: Int,
+    headTurnDownSensitivity: Int
+) {
+    ScrollableView {
+        Section(titleResId = R.string.section_title_sensitivity_settings) {
+            PreferenceValueSelector(
+                value = headTurnLeftSensitivity,
+                titleResId = R.string.preference_title_head_turn_left_sensitivity,
+                summaryResId = R.string.preference_summary_head_turn_left_sensitivity,
+                min = 1,
+                max = 10,
+                displayFormatter = { sensitivity ->
+                    "${CameraSwitchManager.getHeadTurnThreshold(sensitivity).toInt()}°"
+                },
+                onValueChanged = { viewModel.setHeadTurnLeftSensitivity(it) }
+            )
+            
+            PreferenceValueSelector(
+                value = headTurnRightSensitivity,
+                titleResId = R.string.preference_title_head_turn_right_sensitivity,
+                summaryResId = R.string.preference_summary_head_turn_right_sensitivity,
+                min = 1,
+                max = 10,
+                displayFormatter = { sensitivity ->
+                    "${CameraSwitchManager.getHeadTurnThreshold(sensitivity).toInt()}°"
+                },
+                onValueChanged = { viewModel.setHeadTurnRightSensitivity(it) }
+            )
+            
+            PreferenceValueSelector(
+                value = headTurnUpSensitivity,
+                titleResId = R.string.preference_title_head_turn_up_sensitivity,
+                summaryResId = R.string.preference_summary_head_turn_up_sensitivity,
+                min = 1,
+                max = 10,
+                displayFormatter = { sensitivity ->
+                    "${CameraSwitchManager.getHeadTurnThreshold(sensitivity).toInt()}°"
+                },
+                onValueChanged = { viewModel.setHeadTurnUpSensitivity(it) }
+            )
+            
+            PreferenceValueSelector(
+                value = headTurnDownSensitivity,
+                titleResId = R.string.preference_title_head_turn_down_sensitivity,
+                summaryResId = R.string.preference_summary_head_turn_down_sensitivity,
+                min = 1,
+                max = 10,
+                displayFormatter = { sensitivity ->
+                    "${CameraSwitchManager.getHeadTurnThreshold(sensitivity).toInt()}°"
+                },
+                onValueChanged = { viewModel.setHeadTurnDownSensitivity(it) }
             )
         }
     }
