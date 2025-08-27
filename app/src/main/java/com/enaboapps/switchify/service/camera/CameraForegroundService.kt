@@ -65,6 +65,14 @@ class CameraForegroundService : Service() {
     private var droppedFrameCount = 0L
     private var processedFrameCount = 0L
     
+    // Performance optimization
+    private var lastProcessingStartTime = 0L
+    private var lastFrameProcessedTime = 0L
+    private var isMediaPipeProcessing = false
+    private val mediaPipeMutex = Mutex()
+    private var averageProcessingTime = 0L
+    private var processedFramesForAverage = 0
+    
     companion object {
         private const val TAG = "CameraForegroundService"
         private const val NOTIFICATION_ID = 2001
@@ -74,6 +82,11 @@ class CameraForegroundService : Service() {
         // Processing configuration
         private const val IMAGE_ANALYSIS_TARGET_RESOLUTION_WIDTH = 640
         private const val IMAGE_ANALYSIS_TARGET_RESOLUTION_HEIGHT = 480
+        
+        // Performance tuning
+        private const val TARGET_FPS = 15 // Reduced from 30fps to reduce processing load
+        private const val MIN_FRAME_INTERVAL_MS = 1000L / TARGET_FPS // ~67ms between frames
+        private const val MAX_PROCESSING_TIME_MS = 150L // Skip if processing takes longer than 150ms
     }
     
     /**
@@ -267,11 +280,19 @@ class CameraForegroundService : Service() {
             return
         }
         
+        val currentTime = System.currentTimeMillis()
+        
+        // Frame rate throttling - skip frames if processing too frequently
+        if (currentTime - lastFrameProcessedTime < MIN_FRAME_INTERVAL_MS) {
+            droppedFrameCount++
+            imageProxy.close()
+            return
+        }
+        
         // Try to acquire mutex immediately - if busy, drop frame to prevent backlog
         val acquired = processingMutex.tryLock()
         if (!acquired) {
             droppedFrameCount++
-            val currentTime = System.currentTimeMillis()
             if (currentTime - lastFrameTime > 5000L) { // Log every 5 seconds
                 Log.w(TAG, "Backpressure detected - dropped $droppedFrameCount frames, processed $processedFrameCount frames")
                 lastFrameTime = currentTime
@@ -281,6 +302,8 @@ class CameraForegroundService : Service() {
             imageProxy.close()
             return
         }
+        
+        lastFrameProcessedTime = currentTime
         
         serviceScope.launch {
             try {
@@ -292,42 +315,54 @@ class CameraForegroundService : Service() {
                 try {
                     processedFrameCount++
                     
-                    // Convert YUV to RGB bitmap
-                    val bitmap = yuvToRgbConverter?.convertYuvToBitmap(mediaImage)
+                    // Skip processing if MediaPipe is still busy (prevent queue buildup)
+                    val canProcessMediaPipe = mediaPipeMutex.tryLock()
+                    if (!canProcessMediaPipe) {
+                        Log.d(TAG, "Skipping MediaPipe processing - still busy with previous frame")
+                        return@launch
+                    }
                     
-                    if (bitmap != null) {
-                        // Notify frame callback
-                        frameProcessingCallback?.invoke(bitmap)
+                    try {
+                        lastProcessingStartTime = System.currentTimeMillis()
                         
-                        // Process with MediaPipe for face detection
-                        faceProcessingService?.processFace(
-                            bitmap = bitmap,
-                            timestampMs = imageProxy.imageInfo.timestamp / 1_000_000L // Convert to milliseconds
-                        ) { result ->
-                            // Pass the result to both callbacks
-                            faceResultCallback?.invoke(result)
+                        // Only convert YUV to RGB when MediaPipe is actually ready to process
+                        // This avoids expensive conversion operations when they would be wasted
+                        faceProcessingService?.let { faceService ->
+                            // Convert YUV to RGB bitmap only when MediaPipe can process it
+                            val bitmap = yuvToRgbConverter?.convertYuvToBitmap(mediaImage)
                             
-                            result?.let { faceResult ->
-                                // Also trigger gesture callbacks for backwards compatibility
-                                faceResult.detectedGestures.forEach { gesture ->
-                                    gestureDetectedCallback?.invoke(gesture)
-                                }
+                            if (bitmap != null) {
+                                // Notify frame callback (optional - can disable for performance)
+                                // frameProcessingCallback?.invoke(bitmap)
                                 
-                                // Check individual face state properties for additional gesture detection
-                                val faceState = faceResult.faceState
-                                if (!faceState.leftEyeOpen || !faceState.rightEyeOpen) {
-                                    gestureDetectedCallback?.invoke("blink")
+                                // Process with MediaPipe asynchronously
+                                faceService.processFace(
+                                    bitmap = bitmap,
+                                    timestampMs = imageProxy.imageInfo.timestamp / 1_000_000L
+                                ) { result ->
+                                    // Process result on background thread to avoid blocking
+                                    serviceScope.launch(Dispatchers.Default) {
+                                        try {
+                                            // Track processing performance
+                                            val endTime = System.currentTimeMillis()
+                                            val processingTime = endTime - lastProcessingStartTime
+                                            updateProcessingTimeStats(processingTime)
+                                            
+                                            // Pass result to AccessibilityService
+                                            faceResultCallback?.invoke(result)
+                                        } catch (e: Exception) {
+                                            Log.e(TAG, "Error in gesture callback processing", e)
+                                        }
+                                    }
                                 }
-                                if (faceState.isSmiling) {
-                                    gestureDetectedCallback?.invoke("smile")
-                                }
-                                // You can add head turn detection based on headRotationY/X values
-                                if (kotlin.math.abs(faceState.headRotationY) > 20f) {
-                                    val direction = if (faceState.headRotationY > 0) "left" else "right"
-                                    gestureDetectedCallback?.invoke("head_turn_$direction")
-                                }
+                            } else {
+                                Log.w(TAG, "YUV to RGB conversion failed, skipping frame")
                             }
+                        } ?: run {
+                            Log.w(TAG, "FaceProcessingService not available, skipping frame")
                         }
+                    } finally {
+                        mediaPipeMutex.unlock()
                     }
                     
                 } catch (e: Exception) {
@@ -373,6 +408,31 @@ class CameraForegroundService : Service() {
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setShowWhen(false)
             .build()
+    }
+    
+    /**
+     * Update processing time statistics for performance monitoring
+     */
+    private fun updateProcessingTimeStats(processingTime: Long) {
+        processedFramesForAverage++
+        
+        // Calculate rolling average of processing time
+        if (processedFramesForAverage == 1) {
+            averageProcessingTime = processingTime
+        } else {
+            // Use exponential moving average for smoother results
+            averageProcessingTime = (averageProcessingTime * 0.9 + processingTime * 0.1).toLong()
+        }
+        
+        // Log performance stats periodically
+        if (processedFramesForAverage % 100 == 0) {
+            Log.i(TAG, "Performance stats: Avg processing time: ${averageProcessingTime}ms, Processed frames: $processedFramesForAverage")
+            
+            // Warn if processing is consistently slow
+            if (averageProcessingTime > MAX_PROCESSING_TIME_MS) {
+                Log.w(TAG, "Processing time averaging ${averageProcessingTime}ms exceeds target ${MAX_PROCESSING_TIME_MS}ms")
+            }
+        }
     }
     
     /**
