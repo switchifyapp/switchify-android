@@ -173,8 +173,8 @@ abstract class BaseNodeScanner : ScanTreeCallback {
     private fun cleanupWindows(currentTime: Long) {
         // Clean short window
         while (shortWindowUpdates.isNotEmpty()) {
-            val first = shortWindowUpdates.first()
-            if (first < currentTime - SHORT_WINDOW_MS) {
+            val first = shortWindowUpdates.firstOrNull()
+            if (first != null && first < currentTime - SHORT_WINDOW_MS) {
                 shortWindowUpdates.removeFirst()
             } else {
                 break
@@ -183,8 +183,8 @@ abstract class BaseNodeScanner : ScanTreeCallback {
 
         // Clean long window
         while (longWindowUpdates.isNotEmpty()) {
-            val first = longWindowUpdates.first()
-            if (first < currentTime - LONG_WINDOW_MS) {
+            val first = longWindowUpdates.firstOrNull()
+            if (first != null && first < currentTime - LONG_WINDOW_MS) {
                 longWindowUpdates.removeFirst()
             } else {
                 break
