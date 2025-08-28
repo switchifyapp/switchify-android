@@ -11,7 +11,7 @@ import androidx.compose.ui.platform.LocalContext
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.components.PreferenceSwitch
-import com.enaboapps.switchify.components.PreferenceTimeStepper
+import com.enaboapps.switchify.components.PreferenceValueSelector
 import com.enaboapps.switchify.components.Section
 import com.enaboapps.switchify.service.techniques.directcontrol.DirectControlSettings
 
@@ -26,15 +26,16 @@ fun DirectControlSettingsView() {
     // precision multiplier fixed internally; no UI
 
     Section(titleResId = R.string.section_title_direct_control_movement) {
-        PreferenceTimeStepper(
-            value = speedLevel.toLong(),
+        PreferenceValueSelector(
+            value = speedLevel,
             titleResId = R.string.preference_title_direct_control_speed,
             summaryResId = R.string.preference_summary_direct_control_speed,
             min = 1,
             max = 5,
-            step = 1,
+            buttonLabelFormatter = { it.toString() },
+            displayFormatter = { it.toString() },
             onValueChanged = { v ->
-                speedLevel = v.toInt()
+                speedLevel = v
                 prefs.setIntegerValue(DirectControlSettings.KEY_SPEED_LEVEL, speedLevel)
             }
         )
