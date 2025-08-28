@@ -24,6 +24,7 @@ fun DirectControlSettingsView() {
     var speedLevel by remember { mutableIntStateOf(settings.speedLevel()) }
     var precisionEnabled by remember { mutableStateOf(settings.precisionEnabled()) }
     // precision multiplier fixed internally; no UI
+    var repeatDelay by remember { mutableIntStateOf(settings.repeatDelay().toInt()) }
 
     Section(titleResId = R.string.section_title_direct_control_movement) {
         PreferenceValueSelector(
@@ -32,11 +33,39 @@ fun DirectControlSettingsView() {
             summaryResId = R.string.preference_summary_direct_control_speed,
             min = 1,
             max = 5,
-            buttonLabelFormatter = { it.toString() },
-            displayFormatter = { it.toString() },
+            buttonLabelFormatter = {
+                when (it) {
+                    1 -> LocalContext.current.getString(R.string.direct_control_step_1)
+                    2 -> LocalContext.current.getString(R.string.direct_control_step_2)
+                    3 -> LocalContext.current.getString(R.string.direct_control_step_3)
+                    4 -> LocalContext.current.getString(R.string.direct_control_step_4)
+                    else -> LocalContext.current.getString(R.string.direct_control_step_5)
+                }
+            },
+            displayFormatter = {
+                when (it) {
+                    1 -> LocalContext.current.getString(R.string.direct_control_step_1)
+                    2 -> LocalContext.current.getString(R.string.direct_control_step_2)
+                    3 -> LocalContext.current.getString(R.string.direct_control_step_3)
+                    4 -> LocalContext.current.getString(R.string.direct_control_step_4)
+                    else -> LocalContext.current.getString(R.string.direct_control_step_5)
+                }
+            },
             onValueChanged = { v ->
                 speedLevel = v
                 prefs.setIntegerValue(DirectControlSettings.KEY_SPEED_LEVEL, speedLevel)
+            }
+        )
+        PreferenceTimeStepper(
+            value = repeatDelay.toLong(),
+            titleResId = R.string.preference_title_direct_control_repeat_delay,
+            summaryResId = R.string.preference_summary_direct_control_repeat_delay,
+            min = 25,
+            max = 1000,
+            step = 25,
+            onValueChanged = { v ->
+                repeatDelay = v.toInt()
+                prefs.setLongValue(DirectControlSettings.KEY_REPEAT_DELAY, v)
             }
         )
     }

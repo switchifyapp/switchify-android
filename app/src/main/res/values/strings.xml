@@ -549,8 +549,15 @@
 
     <!-- Direct Control Settings -->
     <string name="section_title_direct_control_movement">Movement</string>
-    <string name="preference_title_direct_control_speed">Movement Speed</string>
-    <string name="preference_summary_direct_control_speed">Overall pointer speed (1–5)</string>
+    <string name="preference_title_direct_control_speed">Pointer Step</string>
+    <string name="preference_summary_direct_control_speed">Distance per move (1–5)</string>
+    <string name="preference_title_direct_control_repeat_delay">Hold Repeat Rate</string>
+    <string name="preference_summary_direct_control_repeat_delay">Delay between moves while holding (ms)</string>
+    <string name="direct_control_step_1">Tiny</string>
+    <string name="direct_control_step_2">Small</string>
+    <string name="direct_control_step_3">Medium</string>
+    <string name="direct_control_step_4">Large</string>
+    <string name="direct_control_step_5">X‑Large</string>
     <string name="section_title_direct_control_precision">Precision</string>
     <string name="preference_title_direct_control_precision_enabled">Precision Mode</string>
     <string name="preference_summary_direct_control_precision_enabled">Reduce movement for fine control</string>

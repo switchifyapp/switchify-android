@@ -37,10 +37,12 @@ class DirectControlSettings(context: Context) {
     fun decayWindowMs(): Long = 300
     fun precisionEnabled(): Boolean = prefs.getBooleanValue(KEY_PRECISION_ENABLED, false)
     fun precisionMultiplier(): Float = 0.5f
+    fun repeatDelay(): Long = prefs.getLongValue(KEY_REPEAT_DELAY, 100L).coerceIn(25L, 1000L)
 
     companion object {
         // New simplified setting
         const val KEY_SPEED_LEVEL = "direct_control_speed_level"
+        const val KEY_REPEAT_DELAY = "direct_control_repeat_delay"
 
         // Legacy keys retained for backward compatibility (no longer used by UI)
         const val KEY_BASE_STEP = "direct_control_base_step"
