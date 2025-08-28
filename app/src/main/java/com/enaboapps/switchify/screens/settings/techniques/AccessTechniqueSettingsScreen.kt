@@ -8,12 +8,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.ScrollableView
+import com.enaboapps.switchify.service.scanning.ScanSettings
 
 @Composable
 fun AccessTechniqueSettingsScreen(navController: NavController) {
@@ -25,12 +27,16 @@ fun AccessTechniqueSettingsScreen(navController: NavController) {
         padding = 0.dp,
         enableScroll = false
     ) {
+        val hasDirectControl = ScanSettings(LocalContext.current).isDirectionalScanMode()
+        val tabs = buildList<Int> {
+            if (hasDirectControl) add(R.string.settings_tab_direct_control)
+            add(R.string.settings_tab_point_scan)
+            add(R.string.settings_tab_radar)
+            add(R.string.settings_tab_item_scan)
+        }
+
         TabRow(selectedTabIndex = selectedTabIndex) {
-            listOf(
-                R.string.settings_tab_point_scan,
-                R.string.settings_tab_radar,
-                R.string.settings_tab_item_scan
-            ).forEachIndexed { index, tabResId ->
+            tabs.forEachIndexed { index, tabResId ->
                 Tab(
                     selected = selectedTabIndex == index,
                     onClick = { selectedTabIndex = index },
@@ -39,10 +45,12 @@ fun AccessTechniqueSettingsScreen(navController: NavController) {
             }
         }
 
-        when (selectedTabIndex) {
-            0 -> PointScanSettingsTab()
-            1 -> RadarSettingsTab()
-            2 -> ItemScanSettingsTab()
+        val currentTab = tabs.getOrNull(selectedTabIndex)
+        when (currentTab) {
+            R.string.settings_tab_direct_control -> DirectControlSettingsTab()
+            R.string.settings_tab_point_scan -> PointScanSettingsTab()
+            R.string.settings_tab_radar -> RadarSettingsTab()
+            R.string.settings_tab_item_scan -> ItemScanSettingsTab()
         }
     }
 }
@@ -66,4 +74,11 @@ private fun ItemScanSettingsTab() {
     ScrollableView {
         ItemScanSettingsView()
     }
-} 
+}
+
+@Composable
+private fun DirectControlSettingsTab() {
+    ScrollableView {
+        DirectControlSettingsView()
+    }
+}

@@ -538,6 +538,7 @@
     <!-- Access Technique Settings Screen -->
     <string name="screen_title_access_technique_settings">Access Technique Settings</string>
     <string name="settings_tab_point_scan">Point Scan</string>
+    <string name="settings_tab_direct_control">Direct Control</string>
     <string name="settings_tab_radar">Radar</string>
     <string name="settings_tab_item_scan">Item Scan</string>
 
@@ -545,6 +546,20 @@
     <string name="settings_section_access_techniques">Access Techniques</string>
     <string name="settings_title_access_technique">Access Technique Settings</string>
     <string name="settings_summary_access_technique">Configure point scan, radar, and item scan settings</string>
+
+    <!-- Direct Control Settings -->
+    <string name="section_title_direct_control_movement">Movement</string>
+    <string name="preference_title_direct_control_base_step">Base Step</string>
+    <string name="preference_summary_direct_control_base_step">Pixels per nudge; starting speed</string>
+    <string name="preference_title_direct_control_max_step">Max Step</string>
+    <string name="preference_summary_direct_control_max_step">Maximum pixels per nudge with acceleration</string>
+    <string name="preference_title_direct_control_accel_increment">Acceleration Increment</string>
+    <string name="preference_summary_direct_control_accel_increment">Step increase while holding movement</string>
+    <string name="section_title_direct_control_precision">Precision</string>
+    <string name="preference_title_direct_control_precision_enabled">Precision Mode</string>
+    <string name="preference_summary_direct_control_precision_enabled">Reduce movement for fine control</string>
+    <string name="preference_title_direct_control_precision_multiplier">Precision Multiplier</string>
+    <string name="preference_summary_direct_control_precision_multiplier">Percentage of normal speed when precision is on</string>
 
     <string name="ok">OK</string>
     <string name="help">Help</string>
