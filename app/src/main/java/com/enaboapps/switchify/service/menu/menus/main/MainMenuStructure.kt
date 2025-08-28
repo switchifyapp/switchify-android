@@ -133,15 +133,15 @@ class MainMenuStructure(private val accessibilityService: SwitchifyAccessibility
                     }
                 )
             } else null,
-            if (AccessTechnique.getCurrentTechnique() != AccessTechnique.Technique.CURSOR &&
+            if (AccessTechnique.getCurrentTechnique() != AccessTechnique.Technique.POINT_SCAN &&
                 !scanSettings.isDirectionalScanMode()
             ) {
                 MenuItem(
-                    id = "switch_to_cursor",
-                    labelResource = R.string.access_technique_cursor,
-                    drawableId = R.drawable.ic_cursor,
+                    id = "switch_to_point_scan",
+                    labelResource = R.string.access_technique_point_scan,
+                    drawableId = R.drawable.ic_point_scan,
                     action = {
-                        MenuManager.getInstance().switchToCursor()
+                        MenuManager.getInstance().switchToPointScan()
                     }
                 )
             } else null,

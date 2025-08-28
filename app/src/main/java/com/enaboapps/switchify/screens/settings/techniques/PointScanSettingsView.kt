@@ -14,66 +14,66 @@ import com.enaboapps.switchify.R
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.components.Picker
 import com.enaboapps.switchify.components.Section
-import com.enaboapps.switchify.screens.settings.shared.BlockCursorSpeedStepper
-import com.enaboapps.switchify.screens.settings.shared.PrecisionCursorSpeedStepper
-import com.enaboapps.switchify.screens.settings.shared.SingleCursorSpeedStepper
-import com.enaboapps.switchify.service.techniques.cursor.CursorSettings
+import com.enaboapps.switchify.screens.settings.shared.BlockPointScanSpeedStepper
+import com.enaboapps.switchify.screens.settings.shared.PrecisionPointScanSpeedStepper
+import com.enaboapps.switchify.screens.settings.shared.SinglePointScanSpeedStepper
+import com.enaboapps.switchify.service.techniques.pointscan.PointScanSettings
 import com.enaboapps.switchify.utils.Resources
 
 @Composable
-fun CursorSettingsView() {
+fun PointScanSettingsView() {
     val context = LocalContext.current
-    CursorSettings.init(context)
+    PointScanSettings.init(context)
     val cursorModes = listOf(
-        CursorSettings.Modes.MODE_SINGLE,
-        CursorSettings.Modes.MODE_BLOCK
+        PointScanSettings.Modes.MODE_SINGLE,
+        PointScanSettings.Modes.MODE_BLOCK
     )
     val preferenceManager = PreferenceManager(context)
-    var currentMode by remember { mutableStateOf(CursorSettings.getMode()) }
+    var currentMode by remember { mutableStateOf(PointScanSettings.getMode()) }
 
     val setCursorMode = { mode: String ->
-        CursorSettings.setMode(mode, context)
+        PointScanSettings.setMode(mode, context)
         currentMode = mode
     }
-    Section(titleResId = R.string.section_title_cursor_mode) {
+    Section(titleResId = R.string.section_title_point_scan_mode) {
         Picker(
-            titleResId = R.string.picker_title_select_cursor_mode,
+            titleResId = R.string.picker_title_select_point_scan_mode,
             selectedItem = currentMode,
             items = cursorModes,
             onItemSelected = setCursorMode,
-            itemToString = { CursorSettings.getModeName(it) },
-            itemDescription = { CursorSettings.getModeDescription(it) }
+            itemToString = { PointScanSettings.getModeName(it) },
+            itemDescription = { PointScanSettings.getModeDescription(it) }
         )
     }
 
-    Section(titleResId = R.string.section_title_cursor_speed) {
+    Section(titleResId = R.string.section_title_point_scan_speed) {
         AnimatedVisibility(
-            visible = currentMode == CursorSettings.Modes.MODE_SINGLE,
+            visible = currentMode == PointScanSettings.Modes.MODE_SINGLE,
             enter = fadeIn(),
             exit = fadeOut()
         ) {
-            SingleCursorSpeedStepper()
+            SinglePointScanSpeedStepper()
         }
 
         AnimatedVisibility(
-            visible = currentMode == CursorSettings.Modes.MODE_BLOCK,
+            visible = currentMode == PointScanSettings.Modes.MODE_BLOCK,
             enter = fadeIn(),
             exit = fadeOut()
         ) {
-            PrecisionCursorSpeedStepper()
+            PrecisionPointScanSpeedStepper()
         }
 
         AnimatedVisibility(
-            visible = currentMode == CursorSettings.Modes.MODE_BLOCK,
+            visible = currentMode == PointScanSettings.Modes.MODE_BLOCK,
             enter = fadeIn(),
             exit = fadeOut()
         ) {
-            BlockCursorSpeedStepper()
+            BlockPointScanSpeedStepper()
         }
     }
 
     AnimatedVisibility(
-        visible = currentMode == CursorSettings.Modes.MODE_BLOCK,
+        visible = currentMode == PointScanSettings.Modes.MODE_BLOCK,
         enter = fadeIn(),
         exit = fadeOut()
     ) {
@@ -86,7 +86,7 @@ private fun BlockSettingsView() {
     val context = LocalContext.current
     var currentBlockCount by remember {
         mutableIntStateOf(
-            CursorSettings.getCursorBlockCount()
+            PointScanSettings.getCursorBlockCount()
         )
     }
     val blockCounts = listOf("2", "3", "4", "5", "6", "7", "8", "9", "10")
@@ -97,7 +97,7 @@ private fun BlockSettingsView() {
             items = blockCounts,
             onItemSelected = { item ->
                 currentBlockCount = item.toInt()
-                CursorSettings.setCursorBlockCount(item.toInt(), context)
+                PointScanSettings.setCursorBlockCount(item.toInt(), context)
             },
             itemToString = { it.toString() },
             itemDescription = { Resources.getString(R.string.preference_summary_block_count) }

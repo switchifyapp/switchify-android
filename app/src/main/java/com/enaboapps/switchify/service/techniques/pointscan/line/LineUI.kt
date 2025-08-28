@@ -1,4 +1,4 @@
-package com.enaboapps.switchify.service.techniques.cursor.line
+package com.enaboapps.switchify.service.techniques.pointscan.line
 
 import android.content.Context
 import android.graphics.Color
@@ -8,7 +8,7 @@ import android.widget.RelativeLayout
 import androidx.core.graphics.toColorInt
 import com.enaboapps.switchify.service.scanning.ScanColorManager
 import com.enaboapps.switchify.service.techniques.AccessTechniqueUIBase
-import com.enaboapps.switchify.service.techniques.cursor.blocks.CursorBlock
+import com.enaboapps.switchify.service.techniques.pointscan.blocks.PointScanBlock
 import com.enaboapps.switchify.service.techniques.shared.ScanMethodUIConstants
 import com.enaboapps.switchify.service.utils.ScreenUtils
 
@@ -23,7 +23,7 @@ class LineUI(private val context: Context) : AccessTechniqueUIBase() {
     private var xCursorLine: RelativeLayout? = null
     private var yCursorLine: RelativeLayout? = null
     private var blockOutline: RelativeLayout? = null
-    private var currentBlock: CursorBlock? = null
+    private var currentBlock: PointScanBlock? = null
 
     private fun getScreenBounds(): Rect {
         return Rect(0, 0, ScreenUtils.getWidth(context), ScreenUtils.getHeight(context))
@@ -248,7 +248,7 @@ class LineUI(private val context: Context) : AccessTechniqueUIBase() {
      *
      * @param block The block to set, or null for screen dimensions.
      */
-    fun setBlock(block: CursorBlock?) {
+    fun setBlock(block: PointScanBlock?) {
         currentBlock = block
         // Update existing lines if they're visible
         xCursorLine?.let { line ->

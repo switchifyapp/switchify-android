@@ -33,10 +33,7 @@ object AccessTechnique {
      * This enum represents the type of the scanning method
      */
     object Technique {
-        /**
-         * This type represents the cursor
-         */
-        const val CURSOR = "cursor"
+        const val POINT_SCAN = "point_scan"
 
         /**
          * This type represents the radar
@@ -68,7 +65,7 @@ object AccessTechnique {
      */
     fun getName(accessTechnique: String): String {
         return when (accessTechnique) {
-            Technique.CURSOR -> Resources.getString(R.string.access_technique_cursor)
+            Technique.POINT_SCAN, "cursor" -> Resources.getString(R.string.access_technique_point_scan)
             Technique.RADAR -> Resources.getString(R.string.access_technique_radar)
             Technique.ITEM_SCAN -> Resources.getString(R.string.access_technique_item_scan)
             else -> Resources.getString(R.string.unknown)
@@ -82,7 +79,7 @@ object AccessTechnique {
      */
     fun getDescription(accessTechnique: String): String {
         return when (accessTechnique) {
-            Technique.CURSOR -> Resources.getString(R.string.access_technique_desc_cursor)
+            Technique.POINT_SCAN, "cursor" -> Resources.getString(R.string.access_technique_desc_point_scan)
             Technique.RADAR -> Resources.getString(R.string.access_technique_desc_radar)
             Technique.ITEM_SCAN -> Resources.getString(R.string.access_technique_desc_item_scan)
             else -> Resources.getString(R.string.unknown)
@@ -106,11 +103,12 @@ object AccessTechnique {
      */
     internal fun loadCurrentTechnique() {
         preferenceManager?.let { preferenceManager ->
-            val storedType = preferenceManager.getStringValue(
+            var storedType = preferenceManager.getStringValue(
                 PreferenceManager.PREFERENCE_KEY_ACCESS_TECHNIQUE
             )
             println("Stored type: $storedType")
             if (storedType.isNotEmpty()) {
+                if (storedType == "cursor") storedType = Technique.POINT_SCAN
                 currentTechnique = storedType
             } else {
                 // Set default technique for new users and save it

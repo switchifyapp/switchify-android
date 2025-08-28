@@ -83,11 +83,8 @@ class ScanningManager(
         activeScanMethod.updateKeyboardNodes(nodes)
     }
 
-    /**
-     * Sets the scanning method to cursor type.
-     */
-    fun setCursorType() {
-        setType(AccessTechnique.Technique.CURSOR)
+    fun setPointScanType() {
+        setType(AccessTechnique.Technique.POINT_SCAN)
     }
 
     /**

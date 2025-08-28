@@ -14,7 +14,7 @@ import com.enaboapps.switchify.service.techniques.AccessTechnique
 @Composable
 fun AccessTechniqueSelector() {
     val scanTechniques = listOf(
-        AccessTechnique.Technique.CURSOR,
+        AccessTechnique.Technique.POINT_SCAN,
         AccessTechnique.Technique.RADAR,
         AccessTechnique.Technique.ITEM_SCAN
     )

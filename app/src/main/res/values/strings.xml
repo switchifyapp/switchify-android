@@ -89,8 +89,8 @@
     <string name="access_technique_desc_item_scan">Sequentially scanning the items on the screen</string>
     <string name="access_technique_radar">Radar</string>
     <string name="access_technique_desc_radar">Moving a radar around the screen</string>
-    <string name="access_technique_cursor">Cursor</string>
-    <string name="access_technique_desc_cursor">Moving a set of crosshairs over the screen</string>
+    <string name="access_technique_point_scan">Point Scan</string>
+    <string name="access_technique_desc_point_scan">Move crosshairs to a point and select</string>
 
     <!-- Scan Modes -->
     <string name="scanning_mode_auto">Auto</string>
@@ -280,18 +280,18 @@
     <string name="action_feedback">Feedback</string>
 
     <!-- Cursor Settings Screen -->
-    <string name="section_title_cursor_mode">Cursor Mode</string>
-    <string name="section_title_cursor_speed">Cursor Speed (only applies to auto scan)</string>
-    <string name="picker_title_select_cursor_mode">Select Cursor Mode</string>
-    <string name="preference_title_precision_cursor_speed">Cursor Speed (precision)</string>
-    <string name="preference_summary_precision_cursor_speed">Adjust the speed at which the cursor moves when you are selecting a point</string>
-    <string name="preference_title_block_cursor_speed">Cursor Speed (block)</string>
-    <string name="preference_summary_block_cursor_speed">Adjust the speed at which the cursor moves when you are selecting a block</string>
-    <string name="preference_title_single_cursor_speed">Cursor Speed</string>
-    <string name="preference_summary_single_cursor_speed">Adjust the speed at which the cursor moves</string>
-    <string name="feature_explanation_precision_cursor_speed">This is how fast the cursor moves when you are selecting a point. In Block Mode, this is the speed when you are moving the cursor in a block.</string>
-    <string name="feature_explanation_block_cursor_speed">This is how fast the cursor moves when you are selecting a block. Once you select a block, the precision cursor speed will be used.</string>
-    <string name="feature_explanation_single_cursor_speed">This is how fast the cursor moves when you are selecting a point.</string>
+    <string name="section_title_point_scan_mode">Point Scan Mode</string>
+    <string name="section_title_point_scan_speed">Point Scan Speed (only applies to auto scan)</string>
+    <string name="picker_title_select_point_scan_mode">Select Point Scan Mode</string>
+    <string name="preference_title_precision_point_scan_speed">Point Scan Speed (precision)</string>
+    <string name="preference_summary_precision_point_scan_speed">Adjust the speed at which the pointer crosshair moves when you are selecting a point</string>
+    <string name="preference_title_block_point_scan_speed">Point Scan Speed (block)</string>
+    <string name="preference_summary_block_point_scan_speed">Adjust the speed at which scanning moves when you are selecting a block</string>
+    <string name="preference_title_single_point_scan_speed">Point Scan Speed</string>
+    <string name="preference_summary_single_point_scan_speed">Adjust the speed at which scanning moves</string>
+    <string name="feature_explanation_precision_point_scan_speed">This is how fast scanning moves when you are selecting a point. In Block Mode, this is the speed when you are moving within a block.</string>
+    <string name="feature_explanation_block_point_scan_speed">This is how fast scanning moves when you are selecting a block. Once you select a block, the precision point scan speed will be used.</string>
+    <string name="feature_explanation_single_point_scan_speed">This is how fast scanning moves when you are selecting a point.</string>
     <string name="section_title_block_settings">Block Settings</string>
     <string name="preference_title_block_count">Block Count</string>
     <string name="preference_summary_block_count">The number of blocks to scan</string>
@@ -535,14 +535,14 @@
 
     <!-- Access Technique Settings Screen -->
     <string name="screen_title_access_technique_settings">Access Technique Settings</string>
-    <string name="settings_tab_cursor">Cursor</string>
+    <string name="settings_tab_point_scan">Point Scan</string>
     <string name="settings_tab_radar">Radar</string>
     <string name="settings_tab_item_scan">Item Scan</string>
 
     <!-- Access Technique Settings -->
     <string name="settings_section_access_techniques">Access Techniques</string>
     <string name="settings_title_access_technique">Access Technique Settings</string>
-    <string name="settings_summary_access_technique">Configure cursor, radar, and item scan settings</string>
+    <string name="settings_summary_access_technique">Configure point scan, radar, and item scan settings</string>
 
     <string name="ok">OK</string>
     <string name="help">Help</string>

@@ -8,7 +8,7 @@ import com.enaboapps.switchify.service.gestures.GesturePoint
 import com.enaboapps.switchify.service.menu.MenuItem
 import com.enaboapps.switchify.service.scanning.ScanNodeInterface
 import com.enaboapps.switchify.service.selection.SelectionHandler
-import com.enaboapps.switchify.service.techniques.cursor.blocks.CursorBlock
+import com.enaboapps.switchify.service.techniques.pointscan.blocks.PointScanBlock
 import com.enaboapps.switchify.service.techniques.nodes.scanners.NodeScannerUI
 import com.enaboapps.switchify.utils.Resources
 
@@ -76,11 +76,11 @@ class Node(
         }
 
         /**
-         * This function creates a node from a CursorBlock
-         * @param cursorBlock The CursorBlock to create the node from
+         * This function creates a node from a PointScanBlock
+         * @param cursorBlock The PointScanBlock to create the node from
          * @return The node
          */
-        fun fromCursorBlock(cursorBlock: CursorBlock): Node {
+        fun fromPointScanBlock(cursorBlock: PointScanBlock): Node {
             val node = Node()
             node.x = cursorBlock.left
             node.y = cursorBlock.top
