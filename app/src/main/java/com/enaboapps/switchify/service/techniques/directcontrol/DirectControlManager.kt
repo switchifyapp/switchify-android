@@ -30,6 +30,11 @@ class DirectControlManager(private val context: Context) : AccessTechniqueInterf
 
     override fun resumeAutoScanning() { /* no-op */ }
 
+    override fun cleanup() {
+        super.cleanup()
+        overlay.reset()
+    }
+
     override fun stepScanningForward() { stepScanningRight() }
 
     override fun stepScanningBackward() { stepScanningLeft() }

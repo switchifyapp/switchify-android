@@ -139,6 +139,8 @@ class ActiveAccessTechnique(private val context: Context) : AccessTechniqueObser
                 radarManager = null
                 systemNodeScanner?.cleanup()
                 systemNodeScanner = null
+                directControlManager?.cleanup()
+                directControlManager = null
             }
 
             AccessTechnique.Technique.RADAR -> {
@@ -146,6 +148,8 @@ class ActiveAccessTechnique(private val context: Context) : AccessTechniqueObser
                 pointScanManager = null
                 systemNodeScanner?.cleanup()
                 systemNodeScanner = null
+                directControlManager?.cleanup()
+                directControlManager = null
             }
 
             AccessTechnique.Technique.ITEM_SCAN -> {
@@ -153,6 +157,8 @@ class ActiveAccessTechnique(private val context: Context) : AccessTechniqueObser
                 pointScanManager = null
                 radarManager?.cleanup()
                 radarManager = null
+                directControlManager?.cleanup()
+                directControlManager = null
             }
 
             AccessTechnique.Technique.MENU -> {
@@ -162,6 +168,8 @@ class ActiveAccessTechnique(private val context: Context) : AccessTechniqueObser
                 radarManager = null
                 systemNodeScanner?.cleanup()
                 systemNodeScanner = null
+                directControlManager?.cleanup()
+                directControlManager = null
             }
 
             AccessTechnique.Technique.DIRECT_CONTROL -> {
@@ -193,6 +201,8 @@ class ActiveAccessTechnique(private val context: Context) : AccessTechniqueObser
         systemNodeScanner = null
         pointScanManager?.cleanup()
         pointScanManager = null
+        directControlManager?.cleanup()
+        directControlManager = null
 
         SelectionHandler.cleanup()
 
@@ -206,6 +216,8 @@ class ActiveAccessTechnique(private val context: Context) : AccessTechniqueObser
         radarManager = null
         systemNodeScanner?.cleanup()
         systemNodeScanner = null
+        directControlManager?.cleanup()
+        directControlManager = null
         cleanupKeyboard()
         
         // Unregister ScreenWatcher to prevent receiver leak
