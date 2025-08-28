@@ -11,6 +11,7 @@ import com.enaboapps.switchify.service.techniques.nodes.scanners.keyboard.Keyboa
 import com.enaboapps.switchify.service.techniques.nodes.scanners.system.SystemNodeHolder
 import com.enaboapps.switchify.service.techniques.nodes.scanners.system.SystemNodeScanner
 import com.enaboapps.switchify.service.techniques.radar.RadarManager
+import com.enaboapps.switchify.service.techniques.directcontrol.DirectControlManager
 import com.enaboapps.switchify.service.keyboard.KeyboardStateListener
 import com.enaboapps.switchify.service.utils.ScreenWatcher
 
@@ -22,6 +23,7 @@ class ActiveAccessTechnique(private val context: Context) : AccessTechniqueObser
     private var pointScanManager: PointScanManager? = null
     private var radarManager: RadarManager? = null
     private var systemNodeScanner: SystemNodeScanner? = null
+    private var directControlManager: DirectControlManager? = null
     private var keyboardScanner: KeyboardScanner? = null
 
     private var screenWatcher: ScreenWatcher? = null
@@ -48,6 +50,7 @@ class ActiveAccessTechnique(private val context: Context) : AccessTechniqueObser
             else -> when (AccessTechnique.getCurrentTechnique()) {
                 AccessTechnique.Technique.POINT_SCAN -> getPointScanManager()
                 AccessTechnique.Technique.RADAR -> getRadarManager()
+                AccessTechnique.Technique.DIRECT_CONTROL -> getDirectControlManager()
                 AccessTechnique.Technique.ITEM_SCAN -> {
                     ensureNodeScannerStarted()
                     getNodeScanner().scanTree
@@ -101,6 +104,13 @@ class ActiveAccessTechnique(private val context: Context) : AccessTechniqueObser
         return radarManager!!
     }
 
+    private fun getDirectControlManager(): DirectControlManager {
+        if (directControlManager == null) {
+            directControlManager = DirectControlManager(context)
+        }
+        return directControlManager!!
+    }
+
     fun getNodeScanner(): SystemNodeScanner {
         ensureNodeScannerStarted()
         return systemNodeScanner!!
@@ -146,6 +156,15 @@ class ActiveAccessTechnique(private val context: Context) : AccessTechniqueObser
             }
 
             AccessTechnique.Technique.MENU -> {
+                pointScanManager?.cleanup()
+                pointScanManager = null
+                radarManager?.cleanup()
+                radarManager = null
+                systemNodeScanner?.cleanup()
+                systemNodeScanner = null
+            }
+
+            AccessTechnique.Technique.DIRECT_CONTROL -> {
                 pointScanManager?.cleanup()
                 pointScanManager = null
                 radarManager?.cleanup()

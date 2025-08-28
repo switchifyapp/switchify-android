@@ -103,6 +103,10 @@ class ScanningManager(
         activeScanMethod.getNodeScanner().startTimeoutToRevertToCursor()
     }
 
+    fun setDirectControlType() {
+        setType(AccessTechnique.Technique.DIRECT_CONTROL)
+    }
+
     /**
      * Sets the scanning method to menu type.
      */

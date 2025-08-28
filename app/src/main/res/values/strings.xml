@@ -91,6 +91,8 @@
     <string name="access_technique_desc_radar">Moving a radar around the screen</string>
     <string name="access_technique_point_scan">Point Scan</string>
     <string name="access_technique_desc_point_scan">Move crosshairs to a point and select</string>
+    <string name="access_technique_direct_control">Direct Control</string>
+    <string name="access_technique_desc_direct_control">Hold to move freely and select like a mouse</string>
 
     <!-- Scan Modes -->
     <string name="scanning_mode_auto">Auto</string>

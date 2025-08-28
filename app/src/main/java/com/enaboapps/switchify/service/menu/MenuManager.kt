@@ -82,6 +82,10 @@ class MenuManager {
         scanningManager?.setItemScanType()
     }
 
+    fun switchToDirectControl() {
+        scanningManager?.setDirectControlType()
+    }
+
     /**
      * This function opens the main menu
      */
