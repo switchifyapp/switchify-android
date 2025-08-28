@@ -15,11 +15,13 @@ import com.enaboapps.switchify.service.utils.DeviceLockObserver
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.backend.iap.IAPHandler
 import com.enaboapps.switchify.service.actions.GlobalActionManager
+import com.enaboapps.switchify.service.scanning.ScanSettings
 
 class MainMenuStructure(private val accessibilityService: SwitchifyAccessibilityService) {
     private val gestureMenuStructure = GestureMenuStructure(accessibilityService)
     private val deviceLockObserver = DeviceLockObserver(accessibilityService)
     private val preferenceManager = PreferenceManager(accessibilityService)
+    private val scanSettings = ScanSettings(accessibilityService)
 
     val deviceItem = MenuItem(
         id = "device",
@@ -119,7 +121,9 @@ class MainMenuStructure(private val accessibilityService: SwitchifyAccessibility
                     }
                 )
             } else null,
-            if (AccessTechnique.getCurrentTechnique() != AccessTechnique.Technique.RADAR) {
+            if (AccessTechnique.getCurrentTechnique() != AccessTechnique.Technique.RADAR &&
+                !scanSettings.isDirectionalScanMode()
+            ) {
                 MenuItem(
                     id = "switch_to_radar",
                     labelResource = R.string.access_technique_radar,
@@ -129,7 +133,9 @@ class MainMenuStructure(private val accessibilityService: SwitchifyAccessibility
                     }
                 )
             } else null,
-            if (AccessTechnique.getCurrentTechnique() != AccessTechnique.Technique.CURSOR) {
+            if (AccessTechnique.getCurrentTechnique() != AccessTechnique.Technique.CURSOR &&
+                !scanSettings.isDirectionalScanMode()
+            ) {
                 MenuItem(
                     id = "switch_to_cursor",
                     labelResource = R.string.access_technique_cursor,
