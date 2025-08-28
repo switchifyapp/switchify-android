@@ -27,7 +27,7 @@ fun AccessTechniqueSettingsScreen(navController: NavController) {
     ) {
         TabRow(selectedTabIndex = selectedTabIndex) {
             listOf(
-                R.string.settings_tab_cursor,
+                R.string.settings_tab_point_scan,
                 R.string.settings_tab_radar,
                 R.string.settings_tab_item_scan
             ).forEachIndexed { index, tabResId ->
@@ -40,7 +40,7 @@ fun AccessTechniqueSettingsScreen(navController: NavController) {
         }
 
         when (selectedTabIndex) {
-            0 -> CursorSettingsTab()
+            0 -> PointScanSettingsTab()
             1 -> RadarSettingsTab()
             2 -> ItemScanSettingsTab()
         }
@@ -48,9 +48,9 @@ fun AccessTechniqueSettingsScreen(navController: NavController) {
 }
 
 @Composable
-private fun CursorSettingsTab() {
+private fun PointScanSettingsTab() {
     ScrollableView {
-        CursorSettingsView()
+        PointScanSettingsView()
     }
 }
 

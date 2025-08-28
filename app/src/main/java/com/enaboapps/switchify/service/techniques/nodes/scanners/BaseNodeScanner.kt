@@ -233,8 +233,8 @@ abstract class BaseNodeScanner : ScanTreeCallback {
                 scanTree.stopScanningAndReset()
             }
             if (AccessTechnique.getCurrentTechnique() == AccessTechnique.Technique.ITEM_SCAN) {
-                AccessTechnique.setCurrentTechnique(AccessTechnique.Technique.CURSOR)
-                Log.d(TAG, "Switched to cursor mode due to $reason")
+                AccessTechnique.setCurrentTechnique(AccessTechnique.Technique.POINT_SCAN)
+                Log.d(TAG, "Switched to point scan mode due to $reason")
             }
         }
     }

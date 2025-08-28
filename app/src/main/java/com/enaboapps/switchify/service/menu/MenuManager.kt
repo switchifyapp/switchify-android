@@ -70,8 +70,8 @@ class MenuManager {
         gestureVisualManager = GestureVisualManager(accessibilityService)
     }
 
-    fun switchToCursor() {
-        scanningManager?.setCursorType()
+    fun switchToPointScan() {
+        scanningManager?.setPointScanType()
     }
 
     fun switchToRadar() {

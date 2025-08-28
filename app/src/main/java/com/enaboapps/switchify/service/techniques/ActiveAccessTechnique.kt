@@ -4,7 +4,7 @@ import android.content.Context
 import com.enaboapps.switchify.service.keyboard.KeyboardManager
 import com.enaboapps.switchify.service.menu.MenuManager
 import com.enaboapps.switchify.service.selection.SelectionHandler
-import com.enaboapps.switchify.service.techniques.cursor.CursorManager
+import com.enaboapps.switchify.service.techniques.pointscan.PointScanManager
 import com.enaboapps.switchify.service.techniques.nodes.Node
 import com.enaboapps.switchify.service.techniques.nodes.scanners.NodeScannerUI
 import com.enaboapps.switchify.service.techniques.nodes.scanners.keyboard.KeyboardScanner
@@ -19,7 +19,7 @@ import com.enaboapps.switchify.service.utils.ScreenWatcher
  */
 class ActiveAccessTechnique(private val context: Context) : AccessTechniqueObserver,
     KeyboardStateListener {
-    private var cursorManager: CursorManager? = null
+    private var pointScanManager: PointScanManager? = null
     private var radarManager: RadarManager? = null
     private var systemNodeScanner: SystemNodeScanner? = null
     private var keyboardScanner: KeyboardScanner? = null
@@ -46,7 +46,7 @@ class ActiveAccessTechnique(private val context: Context) : AccessTechniqueObser
             }
 
             else -> when (AccessTechnique.getCurrentTechnique()) {
-                AccessTechnique.Technique.CURSOR -> getCursorManager()
+                AccessTechnique.Technique.POINT_SCAN -> getPointScanManager()
                 AccessTechnique.Technique.RADAR -> getRadarManager()
                 AccessTechnique.Technique.ITEM_SCAN -> {
                     ensureNodeScannerStarted()
@@ -56,7 +56,7 @@ class ActiveAccessTechnique(private val context: Context) : AccessTechniqueObser
                 AccessTechnique.Technique.MENU -> {
                     val menuHierarchy = MenuManager.getInstance().menuHierarchy
                     val topMenu = menuHierarchy?.getTopMenu()
-                    topMenu?.scanTree ?: getCursorManager()
+                    topMenu?.scanTree ?: getPointScanManager()
                 }
 
                 else -> {
@@ -87,11 +87,11 @@ class ActiveAccessTechnique(private val context: Context) : AccessTechniqueObser
         onScanningStartCallback = callback
     }
 
-    private fun getCursorManager(): CursorManager {
-        if (cursorManager == null) {
-            cursorManager = CursorManager(context)
+    private fun getPointScanManager(): PointScanManager {
+        if (pointScanManager == null) {
+            pointScanManager = PointScanManager(context)
         }
-        return cursorManager!!
+        return pointScanManager!!
     }
 
     private fun getRadarManager(): RadarManager {
@@ -124,7 +124,7 @@ class ActiveAccessTechnique(private val context: Context) : AccessTechniqueObser
         }
 
         when (currentTechnique) {
-            AccessTechnique.Technique.CURSOR -> {
+            AccessTechnique.Technique.POINT_SCAN -> {
                 radarManager?.cleanup()
                 radarManager = null
                 systemNodeScanner?.cleanup()
@@ -132,22 +132,22 @@ class ActiveAccessTechnique(private val context: Context) : AccessTechniqueObser
             }
 
             AccessTechnique.Technique.RADAR -> {
-                cursorManager?.cleanup()
-                cursorManager = null
+                pointScanManager?.cleanup()
+                pointScanManager = null
                 systemNodeScanner?.cleanup()
                 systemNodeScanner = null
             }
 
             AccessTechnique.Technique.ITEM_SCAN -> {
-                cursorManager?.cleanup()
-                cursorManager = null
+                pointScanManager?.cleanup()
+                pointScanManager = null
                 radarManager?.cleanup()
                 radarManager = null
             }
 
             AccessTechnique.Technique.MENU -> {
-                cursorManager?.cleanup()
-                cursorManager = null
+                pointScanManager?.cleanup()
+                pointScanManager = null
                 radarManager?.cleanup()
                 radarManager = null
                 systemNodeScanner?.cleanup()
@@ -172,8 +172,8 @@ class ActiveAccessTechnique(private val context: Context) : AccessTechniqueObser
         radarManager = null
         systemNodeScanner?.cleanup()
         systemNodeScanner = null
-        cursorManager?.cleanup()
-        cursorManager = null
+        pointScanManager?.cleanup()
+        pointScanManager = null
 
         SelectionHandler.cleanup()
 
@@ -181,8 +181,8 @@ class ActiveAccessTechnique(private val context: Context) : AccessTechniqueObser
     }
 
     fun cleanupAll() {
-        cursorManager?.cleanup()
-        cursorManager = null
+        pointScanManager?.cleanup()
+        pointScanManager = null
         radarManager?.cleanup()
         radarManager = null
         systemNodeScanner?.cleanup()

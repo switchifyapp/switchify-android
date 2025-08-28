@@ -1,4 +1,4 @@
-package com.enaboapps.switchify.service.techniques.cursor.blocks
+package com.enaboapps.switchify.service.techniques.pointscan.blocks
 
 import android.content.Context
 import android.graphics.Color
@@ -8,7 +8,7 @@ import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.service.techniques.AccessTechniqueUIBase
 import com.enaboapps.switchify.service.utils.ScreenUtils
 
-class CursorBlockGridUI(private val context: Context) : AccessTechniqueUIBase() {
+class PointScanBlockGridUI(private val context: Context) : AccessTechniqueUIBase() {
     private val preferenceManager = PreferenceManager(context)
     private var gridViews: List<RelativeLayout> = emptyList()
     private var screenOutline: RelativeLayout? = null

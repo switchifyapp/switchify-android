@@ -1,10 +1,10 @@
-package com.enaboapps.switchify.service.techniques.cursor
+package com.enaboapps.switchify.service.techniques.pointscan
 
 import android.content.Context
 import android.content.Intent
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 
-object CursorSettings {
+object PointScanSettings {
 
     private var preferenceManager: PreferenceManager? = null
 

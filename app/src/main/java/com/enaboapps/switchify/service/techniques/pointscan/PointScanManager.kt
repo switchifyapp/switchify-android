@@ -1,4 +1,4 @@
-package com.enaboapps.switchify.service.techniques.cursor
+package com.enaboapps.switchify.service.techniques.pointscan
 
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -9,18 +9,18 @@ import com.enaboapps.switchify.service.gestures.GesturePoint
 import com.enaboapps.switchify.service.scanning.ScanDirection
 import com.enaboapps.switchify.service.selection.SelectionHandler
 import com.enaboapps.switchify.service.techniques.AccessTechniqueInterface
-import com.enaboapps.switchify.service.techniques.cursor.blocks.CursorBlock
-import com.enaboapps.switchify.service.techniques.cursor.blocks.CursorBlockManager
-import com.enaboapps.switchify.service.techniques.cursor.line.CursorLineManager
+import com.enaboapps.switchify.service.techniques.pointscan.blocks.PointScanBlock
+import com.enaboapps.switchify.service.techniques.pointscan.blocks.PointScanBlockManager
+import com.enaboapps.switchify.service.techniques.pointscan.line.PointScanLineManager
 
 /**
- * CursorManager class manages the cursor movement, quadrants, and scanning for the Switchify accessibility service.
+ * PointScanManager manages point scanning movement, quadrants, and selection.
  *
  * @param context The application context.
  */
-class CursorManager(private val context: Context) : AccessTechniqueInterface {
-    private val blockManager = CursorBlockManager(context, onBlockSelected = { setBlock(it) })
-    private val lineManager = CursorLineManager(context, onPointSelected = {
+class PointScanManager(private val context: Context) : AccessTechniqueInterface {
+    private val blockManager = PointScanBlockManager(context, onBlockSelected = { setBlock(it) })
+    private val lineManager = PointScanLineManager(context, onPointSelected = {
         handleFinalSelectionPoint(it.x.toInt(), it.y.toInt())
     })
 
@@ -31,12 +31,12 @@ class CursorManager(private val context: Context) : AccessTechniqueInterface {
     }
 
     init {
-        CursorSettings.init(context)
+        PointScanSettings.init(context)
         blockManager.initializeBlocks()
         androidx.core.content.ContextCompat.registerReceiver(
             context,
             settingsChangedReceiver,
-            IntentFilter(CursorSettings.CURSOR_SETTINGS_CHANGED_ACTION),
+            IntentFilter(PointScanSettings.CURSOR_SETTINGS_CHANGED_ACTION),
             androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED
         )
     }
@@ -129,7 +129,7 @@ class CursorManager(private val context: Context) : AccessTechniqueInterface {
      */
     override fun stepScanningForward() {
         getManager().stepScanningForward()
-        if (CursorSettings.isBlockMode() && getCurrentBlock() == null) blockManager.showBlocks()
+        if (PointScanSettings.isBlockMode() && getCurrentBlock() == null) blockManager.showBlocks()
     }
 
     /**
@@ -137,16 +137,16 @@ class CursorManager(private val context: Context) : AccessTechniqueInterface {
      */
     override fun stepScanningBackward() {
         getManager().stepScanningBackward()
-        if (CursorSettings.isBlockMode() && getCurrentBlock() == null) blockManager.showBlocks()
+        if (PointScanSettings.isBlockMode() && getCurrentBlock() == null) blockManager.showBlocks()
     }
 
     /**
      * Performs the selection action.
      */
     override fun performSelectionAction() {
-        blockManager.getScanTree().setSpeed(CursorSettings.getCursorBlockScanRate())
+        blockManager.getScanTree().setSpeed(PointScanSettings.getCursorBlockScanRate())
         getManager().performSelectionAction()
-        if (CursorSettings.isBlockMode() && getCurrentBlock() == null) blockManager.showBlocks()
+        if (PointScanSettings.isBlockMode() && getCurrentBlock() == null) blockManager.showBlocks()
     }
 
     /**
@@ -191,11 +191,11 @@ class CursorManager(private val context: Context) : AccessTechniqueInterface {
      * @return The appropriate AccessTechniqueInterface.
      */
     private fun getManager(): AccessTechniqueInterface {
-        if (CursorSettings.isSingleMode()) {
+        if (PointScanSettings.isSingleMode()) {
             return lineManager
         }
 
-        return (if (CursorSettings.isBlockMode() && getCurrentBlock() == null) {
+        return (if (PointScanSettings.isBlockMode() && getCurrentBlock() == null) {
             blockManager.getScanTree()
         } else {
             lineManager
@@ -204,5 +204,5 @@ class CursorManager(private val context: Context) : AccessTechniqueInterface {
 
     fun getCurrentPosition(): Pair<Int, Int> = lineManager.getCurrentPosition()
     fun getCurrentDirection(): ScanDirection = lineManager.getCurrentDirection()
-    fun getCurrentBlock(): CursorBlock? = lineManager.getCurrentBlock()
+    fun getCurrentBlock(): PointScanBlock? = lineManager.getCurrentBlock()
 }

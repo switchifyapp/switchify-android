@@ -1,6 +1,6 @@
-package com.enaboapps.switchify.service.techniques.cursor.blocks
+package com.enaboapps.switchify.service.techniques.pointscan.blocks
 
-data class CursorBlock(
+data class PointScanBlock(
     val position: Int,
     val row: Int,
     val column: Int,

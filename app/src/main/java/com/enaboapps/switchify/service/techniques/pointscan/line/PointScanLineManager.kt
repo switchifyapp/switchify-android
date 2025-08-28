@@ -1,4 +1,4 @@
-package com.enaboapps.switchify.service.techniques.cursor.line
+package com.enaboapps.switchify.service.techniques.pointscan.line
 
 import android.content.Context
 import android.graphics.PointF
@@ -7,12 +7,12 @@ import com.enaboapps.switchify.service.scanning.ScanDirection
 import com.enaboapps.switchify.service.scanning.ScanSettings
 import com.enaboapps.switchify.service.scanning.ScanningScheduler
 import com.enaboapps.switchify.service.techniques.AccessTechniqueInterface
-import com.enaboapps.switchify.service.techniques.cursor.CursorSettings
-import com.enaboapps.switchify.service.techniques.cursor.blocks.CursorBlock
+import com.enaboapps.switchify.service.techniques.pointscan.PointScanSettings
+import com.enaboapps.switchify.service.techniques.pointscan.blocks.PointScanBlock
 import com.enaboapps.switchify.service.techniques.shared.ScanMethodUIConstants
 import com.enaboapps.switchify.service.utils.ScreenUtils
 
-class CursorLineManager(
+class PointScanLineManager(
     private val context: Context,
     private val lineMovement: Int = 10,
     private val onPointSelected: (PointF) -> Unit
@@ -22,7 +22,7 @@ class CursorLineManager(
     private var currentDirection: ScanDirection = ScanDirection.RIGHT
     private var currentX: Int = 0
     private var currentY: Int = 0
-    private var currentBlock: CursorBlock? = null
+    private var currentBlock: PointScanBlock? = null
     private val lineUI = LineUI(context)
 
     private val scanSettings = ScanSettings(context)
@@ -87,7 +87,7 @@ class CursorLineManager(
 
     override fun startAutoScanning() {
         if (scanningScheduler.isScanning() == false && scanSettings.isAutoScanMode()) {
-            val rate = CursorSettings.getFineCursorScanRate()
+            val rate = PointScanSettings.getFineCursorScanRate()
             scanningScheduler.startScanning(initialDelay = rate, period = rate)
         }
     }
@@ -195,7 +195,7 @@ class CursorLineManager(
         currentDirection = ScanDirection.RIGHT
     }
 
-    fun setBlock(block: CursorBlock?) {
+    fun setBlock(block: PointScanBlock?) {
         currentBlock = block
         lineUI.setBlock(block)
         if (block != null) {
@@ -211,5 +211,5 @@ class CursorLineManager(
 
     fun getCurrentPosition(): Pair<Int, Int> = Pair(currentX, currentY)
     fun getCurrentDirection(): ScanDirection = currentDirection
-    fun getCurrentBlock(): CursorBlock? = currentBlock
+    fun getCurrentBlock(): PointScanBlock? = currentBlock
 }
