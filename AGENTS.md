@@ -25,6 +25,11 @@ Switchify is an Android accessibility service app that helps users with mobility
 - Follow defensive security practices only
 - Remove unnecessary telemetry and external data collection
 
+### Build Properties
+- Leave properties files alone. Do not create or modify `local.properties`, `gradle.properties`, or any other properties files.
+- Never add dummy keys or SDK paths. Builds must rely on the developer's local environment.
+- If a build requires keys or SDK configuration, ask the user to set them locally; do not commit or push any properties changes.
+
 ## Development Workflow
 
 ### Required Workflow Process
