@@ -3,7 +3,7 @@ package com.enaboapps.switchify.service.gestures
 import android.graphics.PointF
 
 /**
- * This object represents the cursor point
+ * This object represents the current point position used for gestures
  */
 object GesturePoint {
     /**

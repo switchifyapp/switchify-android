@@ -96,7 +96,7 @@ class LinearGesturePerformer(
      *
      * @param type Gesture type determining calculation and execution behavior
      * @param showMessage Whether to display instructional HUD messages to user
-     * @param startingPoint Explicit start coordinates, defaults to current cursor position
+     * @param startingPoint Explicit start coordinates, defaults to current point position
      */
     fun startGesture(
         type: GestureType,
@@ -144,7 +144,7 @@ class LinearGesturePerformer(
      * 5. State Cleanup: Cleans up visual feedback and resets gesture state
      *
      * Smart End Point Calculation:
-     * - DRAG/CUSTOM_SWIPE: Uses current cursor position for dynamic targeting
+     * - DRAG/CUSTOM_SWIPE: Uses current point position for dynamic targeting
      * - SWIPE directions: Calculates screen-relative distances for consistent behavior
      * - SCROLL directions: Applies content-appropriate distances for scrolling actions
      *

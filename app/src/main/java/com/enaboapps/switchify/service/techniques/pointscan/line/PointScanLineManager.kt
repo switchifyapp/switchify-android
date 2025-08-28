@@ -46,40 +46,40 @@ class PointScanLineManager(
             ScanDirection.LEFT -> {
                 if (currentX > bounds.left + lineMovement) {
                     currentX -= lineMovement
-                    lineUI.showXCursorLine(currentX)
+                    lineUI.showXScanLine(currentX)
                 } else {
                     currentX = bounds.right
-                    lineUI.showXCursorLine(currentX)
+                    lineUI.showXScanLine(currentX)
                 }
             }
 
             ScanDirection.RIGHT -> {
                 if (currentX < bounds.right - lineMovement) {
                     currentX += lineMovement
-                    lineUI.showXCursorLine(currentX)
+                    lineUI.showXScanLine(currentX)
                 } else {
                     currentX = bounds.left
-                    lineUI.showXCursorLine(currentX)
+                    lineUI.showXScanLine(currentX)
                 }
             }
 
             ScanDirection.UP -> {
                 if (currentY > bounds.top + lineMovement) {
                     currentY -= lineMovement
-                    lineUI.showYCursorLine(currentY)
+                    lineUI.showYScanLine(currentY)
                 } else {
                     currentY = bounds.bottom
-                    lineUI.showYCursorLine(currentY)
+                    lineUI.showYScanLine(currentY)
                 }
             }
 
             ScanDirection.DOWN -> {
                 if (currentY < bounds.bottom - lineMovement) {
                     currentY += lineMovement
-                    lineUI.showYCursorLine(currentY)
+                    lineUI.showYScanLine(currentY)
                 } else {
                     currentY = bounds.top
-                    lineUI.showYCursorLine(currentY)
+                    lineUI.showYScanLine(currentY)
                 }
             }
         }
@@ -147,13 +147,13 @@ class PointScanLineManager(
     override fun performSelectionAction() {
         if (scanningScheduler.isScanning() == false && scanSettings.isAutoScanMode()) {
             startAutoScanning()
-            lineUI.showXCursorLine(currentX)
+            lineUI.showXScanLine(currentX)
             return
         }
 
         if (currentDirection == ScanDirection.LEFT || currentDirection == ScanDirection.RIGHT) {
             currentDirection = ScanDirection.DOWN
-            lineUI.showYCursorLine(currentY)
+            lineUI.showYScanLine(currentY)
 
             return
         }
@@ -201,11 +201,11 @@ class PointScanLineManager(
         if (block != null) {
             currentX = block.left
             currentY = block.top
-            lineUI.showXCursorLine(currentX)
+            lineUI.showXScanLine(currentX)
         } else {
             currentX = 0
             currentY = 0
-            lineUI.showXCursorLine(currentX)
+            lineUI.showXScanLine(currentX)
         }
     }
 

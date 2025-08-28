@@ -125,7 +125,7 @@ class PointScanManager(private val context: Context) : AccessTechniqueInterface 
     }
 
     /**
-     * Moves the cursor to the next item.
+     * Moves the scan to the next position.
      */
     override fun stepScanningForward() {
         getManager().stepScanningForward()
@@ -133,7 +133,7 @@ class PointScanManager(private val context: Context) : AccessTechniqueInterface 
     }
 
     /**
-     * Moves the cursor to the previous item.
+     * Moves the scan to the previous position.
      */
     override fun stepScanningBackward() {
         getManager().stepScanningBackward()
@@ -150,35 +150,35 @@ class PointScanManager(private val context: Context) : AccessTechniqueInterface 
     }
 
     /**
-     * Steps up in the cursor scanning (not applicable for cursor mode).
+     * Steps up in point scan.
      */
     override fun stepScanningUp() {
         getManager().stepScanningUp()
     }
 
     /**
-     * Steps down in the cursor scanning (not applicable for cursor mode).
+     * Steps down in point scan.
      */
     override fun stepScanningDown() {
         getManager().stepScanningDown()
     }
 
     /**
-     * Steps left in the cursor scanning.
+     * Steps left in point scan.
      */
     override fun stepScanningLeft() {
         getManager().stepScanningLeft()
     }
 
     /**
-     * Steps right in the cursor scanning.
+     * Steps right in point scan.
      */
     override fun stepScanningRight() {
         getManager().stepScanningRight()
     }
 
     /**
-     * Cleans up the cursor manager.
+     * Cleans up the point scan manager.
      */
     override fun cleanup() {
         blockManager.cleanup()

@@ -279,7 +279,7 @@
     <!-- Actions -->
     <string name="action_feedback">Feedback</string>
 
-    <!-- Cursor Settings Screen -->
+    <!-- Point Scan Settings Screen -->
     <string name="section_title_point_scan_mode">Point Scan Mode</string>
     <string name="section_title_point_scan_speed">Point Scan Speed (only applies to auto scan)</string>
     <string name="picker_title_select_point_scan_mode">Select Point Scan Mode</string>

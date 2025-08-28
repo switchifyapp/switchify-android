@@ -73,8 +73,8 @@ object PointScanSettings {
     }
 
     /**
-     * Get the cursor scan rate
-     * @return The cursor scan rate
+     * Get the point scan block scan rate
+     * @return The block scan rate
      */
     fun getCursorBlockScanRate(): Long {
         return preferenceManager?.getLongValue(PreferenceManager.Keys.PREFERENCE_KEY_CURSOR_BLOCK_SCAN_RATE)
@@ -82,8 +82,8 @@ object PointScanSettings {
     }
 
     /**
-     * Get the cursor block count
-     * @return The cursor block count
+     * Get the point scan block count
+     * @return The block count
      */
     fun getCursorBlockCount(): Int {
         return preferenceManager?.getStringValue(
@@ -93,8 +93,8 @@ object PointScanSettings {
     }
 
     /**
-     * Get the fine cursor scan rate
-     * @return The fine cursor scan rate
+     * Get the fine point scan rate
+     * @return The fine scan rate
      */
     fun getFineCursorScanRate(): Long {
         return preferenceManager?.getLongValue(PreferenceManager.Keys.PREFERENCE_KEY_CURSOR_FINE_SCAN_RATE)
@@ -102,8 +102,8 @@ object PointScanSettings {
     }
 
     /**
-     * Set the cursor block count
-     * @param count The cursor block count
+     * Set the point scan block count
+     * @param count The block count
      */
     fun setCursorBlockCount(count: Int, context: Context) {
         preferenceManager?.setStringValue(
@@ -114,8 +114,8 @@ object PointScanSettings {
     }
 
     /**
-     * Set the cursor block scan rate
-     * @param rate The cursor block scan rate
+     * Set the point scan block scan rate
+     * @param rate The block scan rate
      */
     fun setCursorBlockScanRate(rate: Long, context: Context) {
         preferenceManager?.setLongValue(
@@ -126,8 +126,8 @@ object PointScanSettings {
     }
 
     /**
-     * Set the fine cursor scan rate
-     * @param rate The fine cursor scan rate
+     * Set the fine point scan rate
+     * @param rate The fine scan rate
      */
     fun setFineCursorScanRate(rate: Long, context: Context) {
         preferenceManager?.setLongValue(
