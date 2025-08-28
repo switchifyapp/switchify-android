@@ -8,6 +8,7 @@ import android.util.Log
 import android.content.BroadcastReceiver
 import android.content.Intent
 import android.content.IntentFilter
+import androidx.core.content.ContextCompat
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.service.core.ServiceCore
 import com.enaboapps.switchify.service.face.FaceProcessingService
@@ -97,11 +98,12 @@ class CameraSwitchManager(
                 addAction(PauseManager.ACTION_PAUSE_ENDED)
             }
             
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                context.registerReceiver(pauseReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
-            } else {
-                context.registerReceiver(pauseReceiver, filter)
-            }
+            ContextCompat.registerReceiver(
+                context,
+                pauseReceiver,
+                filter,
+                ContextCompat.RECEIVER_NOT_EXPORTED
+            )
             isReceiverRegistered = true
             Log.d(TAG, "Pause receiver registered")
         }

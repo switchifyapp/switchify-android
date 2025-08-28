@@ -91,6 +91,8 @@
     <string name="access_technique_desc_radar">Moving a radar around the screen</string>
     <string name="access_technique_point_scan">Point Scan</string>
     <string name="access_technique_desc_point_scan">Move crosshairs to a point and select</string>
+    <string name="access_technique_direct_control">Direct Control</string>
+    <string name="access_technique_desc_direct_control">Hold to move freely and select like a mouse</string>
 
     <!-- Scan Modes -->
     <string name="scanning_mode_auto">Auto</string>
@@ -536,6 +538,7 @@
     <!-- Access Technique Settings Screen -->
     <string name="screen_title_access_technique_settings">Access Technique Settings</string>
     <string name="settings_tab_point_scan">Point Scan</string>
+    <string name="settings_tab_direct_control">Direct Control</string>
     <string name="settings_tab_radar">Radar</string>
     <string name="settings_tab_item_scan">Item Scan</string>
 
@@ -543,6 +546,21 @@
     <string name="settings_section_access_techniques">Access Techniques</string>
     <string name="settings_title_access_technique">Access Technique Settings</string>
     <string name="settings_summary_access_technique">Configure point scan, radar, and item scan settings</string>
+
+    <!-- Direct Control Settings -->
+    <string name="section_title_direct_control_movement">Movement</string>
+    <string name="preference_title_direct_control_speed">Pointer Step</string>
+    <string name="preference_summary_direct_control_speed">Distance per move (1–5)</string>
+    <string name="preference_title_direct_control_repeat_delay">Hold Repeat Rate</string>
+    <string name="preference_summary_direct_control_repeat_delay">Delay between moves while holding (ms)</string>
+    <string name="direct_control_step_1">Tiny</string>
+    <string name="direct_control_step_2">Small</string>
+    <string name="direct_control_step_3">Medium</string>
+    <string name="direct_control_step_4">Large</string>
+    <string name="direct_control_step_5">X‑Large</string>
+    <string name="section_title_direct_control_precision">Precision</string>
+    <string name="preference_title_direct_control_precision_enabled">Precision Mode</string>
+    <string name="preference_summary_direct_control_precision_enabled">Reduce movement for fine control</string>
 
     <string name="ok">OK</string>
     <string name="help">Help</string>

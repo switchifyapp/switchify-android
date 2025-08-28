@@ -103,6 +103,10 @@ class ScanningManager(
         activeScanMethod.getNodeScanner().startTimeoutToRevertToCursor()
     }
 
+    fun setDirectControlType() {
+        setType(AccessTechnique.Technique.DIRECT_CONTROL)
+    }
+
     /**
      * Sets the scanning method to menu type.
      */
@@ -204,7 +208,10 @@ class ScanningManager(
      * @return True if the move repeat was started, false otherwise.
      */
     fun startMoveRepeat(action: SwitchAction): Boolean {
-        if (scanSettings.isMoveRepeatEnabled()) {
+        val allowRepeat = scanSettings.isMoveRepeatEnabled() ||
+                com.enaboapps.switchify.service.techniques.AccessTechnique.getCurrentTechnique() ==
+                com.enaboapps.switchify.service.techniques.AccessTechnique.Technique.DIRECT_CONTROL
+        if (allowRepeat) {
             when (action.id) {
                 SwitchAction.ACTION_MOVE_TO_NEXT_ITEM -> {
                     moveRepeatManager?.setNextAction {
