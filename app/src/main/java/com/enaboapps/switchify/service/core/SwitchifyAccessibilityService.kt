@@ -157,6 +157,16 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
 
         scanSettings = ScanSettings(this)
 
+        // Enforce compatible technique when launching in Directional mode
+        if (scanSettings.isDirectionalScanMode()) {
+            val currentTechnique = AccessTechnique.getCurrentTechnique()
+            if (currentTechnique == AccessTechnique.Technique.POINT_SCAN ||
+                currentTechnique == AccessTechnique.Technique.RADAR
+            ) {
+                AccessTechnique.setCurrentTechnique(AccessTechnique.Technique.DIRECT_CONTROL)
+            }
+        }
+
         GestureManager.instance.setup(this)
         SelectionHandler.init(this)
 
