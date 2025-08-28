@@ -11,6 +11,7 @@ import androidx.compose.ui.platform.LocalContext
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.components.PreferenceSwitch
+import com.enaboapps.switchify.components.PreferenceTimeStepper
 import com.enaboapps.switchify.components.PreferenceValueSelector
 import com.enaboapps.switchify.components.Section
 import com.enaboapps.switchify.service.techniques.directcontrol.DirectControlSettings
@@ -25,6 +26,13 @@ fun DirectControlSettingsView() {
     var precisionEnabled by remember { mutableStateOf(settings.precisionEnabled()) }
     // precision multiplier fixed internally; no UI
     var repeatDelay by remember { mutableIntStateOf(settings.repeatDelay().toInt()) }
+    
+    // Store context strings to avoid @Composable calls in lambdas
+    val step1 = context.getString(R.string.direct_control_step_1)
+    val step2 = context.getString(R.string.direct_control_step_2)
+    val step3 = context.getString(R.string.direct_control_step_3)
+    val step4 = context.getString(R.string.direct_control_step_4)
+    val step5 = context.getString(R.string.direct_control_step_5)
 
     Section(titleResId = R.string.section_title_direct_control_movement) {
         PreferenceValueSelector(
@@ -35,20 +43,20 @@ fun DirectControlSettingsView() {
             max = 5,
             buttonLabelFormatter = {
                 when (it) {
-                    1 -> LocalContext.current.getString(R.string.direct_control_step_1)
-                    2 -> LocalContext.current.getString(R.string.direct_control_step_2)
-                    3 -> LocalContext.current.getString(R.string.direct_control_step_3)
-                    4 -> LocalContext.current.getString(R.string.direct_control_step_4)
-                    else -> LocalContext.current.getString(R.string.direct_control_step_5)
+                    1 -> step1
+                    2 -> step2
+                    3 -> step3
+                    4 -> step4
+                    else -> step5
                 }
             },
             displayFormatter = {
                 when (it) {
-                    1 -> LocalContext.current.getString(R.string.direct_control_step_1)
-                    2 -> LocalContext.current.getString(R.string.direct_control_step_2)
-                    3 -> LocalContext.current.getString(R.string.direct_control_step_3)
-                    4 -> LocalContext.current.getString(R.string.direct_control_step_4)
-                    else -> LocalContext.current.getString(R.string.direct_control_step_5)
+                    1 -> step1
+                    2 -> step2
+                    3 -> step3
+                    4 -> step4
+                    else -> step5
                 }
             },
             onValueChanged = { v ->
@@ -63,7 +71,7 @@ fun DirectControlSettingsView() {
             min = 25,
             max = 1000,
             step = 25,
-            onValueChanged = { v ->
+            onValueChanged = { v: Long ->
                 repeatDelay = v.toInt()
                 prefs.setLongValue(DirectControlSettings.KEY_REPEAT_DELAY, v)
             }
