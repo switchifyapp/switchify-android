@@ -28,7 +28,6 @@ import com.enaboapps.switchify.components.Picker
 import com.enaboapps.switchify.components.Section
 import com.enaboapps.switchify.nav.NavigationRoute
 import com.enaboapps.switchify.service.scanning.ScanMode
-import com.enaboapps.switchify.service.techniques.AccessTechnique
 
 @Composable
 fun ScanModeSelectionSection(
@@ -56,14 +55,6 @@ fun ScanModeSelectionSection(
             items = ScanMode.modes.toList(),
             onItemSelected = { mode ->
                 setScanMode(mode)
-                if (mode.id == ScanMode.Modes.MODE_DIRECTIONAL) {
-                    val currentTechnique = AccessTechnique.getCurrentTechnique()
-                    if (currentTechnique == AccessTechnique.Technique.POINT_SCAN ||
-                        currentTechnique == AccessTechnique.Technique.RADAR
-                    ) {
-                        AccessTechnique.setCurrentTechnique(AccessTechnique.Technique.DIRECT_CONTROL)
-                    }
-                }
                 onChange?.invoke(mode.id)
             },
             itemToString = { it.getModeName() },
