@@ -4,7 +4,7 @@
     android:viewportWidth="32"
     android:viewportHeight="32"
     android:tint="?attr/colorControlNormal">
-  <!-- Cursor arrow -->
+  <!-- Point scan crosshair/arrow -->
   <path
       android:fillColor="@android:color/white"
       android:pathData="M8,4L8,24L12,20L16,28L20,26L16,18L24,18L8,4Z"/>

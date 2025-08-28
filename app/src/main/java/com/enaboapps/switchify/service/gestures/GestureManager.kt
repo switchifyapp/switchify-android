@@ -334,7 +334,7 @@ class GestureManager private constructor() {
      * Initiates a custom swipe gesture for user-defined directions and distances.
      *
      * Custom swipes enable flexible gesture input where:
-     * - Start point is determined by current cursor position
+     * - Start point is determined by current point position
      * - End point is determined by user input or automatic calculation
      * - Direction and distance are not constrained to predefined patterns
      *
@@ -349,7 +349,7 @@ class GestureManager private constructor() {
      *
      * This method:
      * 1. Retrieves current gesture state from GestureStateManager
-     * 2. Determines end point (provided or current cursor position)
+     * 2. Determines end point (provided or current point position)
      * 3. Executes the complete gesture through LinearGesturePerformer
      * 4. Integrates with unified dispatch pipeline for consistent handling
      *

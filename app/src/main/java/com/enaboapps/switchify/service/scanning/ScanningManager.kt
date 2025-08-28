@@ -20,7 +20,7 @@ import com.enaboapps.switchify.switches.SwitchAction
 
 /**
  * ScanningManager is responsible for managing the scanning process in the application.
- * It coordinates different scanning methods (cursor, radar, item scan) and handles user actions.
+ * It coordinates different scanning methods (point scan, radar, item scan) and handles user actions.
  *
  * @property accessibilityService The accessibility service instance used for system-level actions.
  */
@@ -95,7 +95,7 @@ class ScanningManager(
     }
 
     /**
-     * Sets the scanning method to item scan type and starts the timeout to revert to cursor.
+     * Sets the scanning method to item scan type and starts the timeout to revert to point scan.
      */
     fun setItemScanType() {
         setType(AccessTechnique.Technique.ITEM_SCAN)

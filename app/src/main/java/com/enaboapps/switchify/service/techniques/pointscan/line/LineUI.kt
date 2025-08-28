@@ -13,15 +13,14 @@ import com.enaboapps.switchify.service.techniques.shared.ScanMethodUIConstants
 import com.enaboapps.switchify.service.utils.ScreenUtils
 
 /**
- * LineUI class handles the creation, updating, and removal of cursor lines
- * for the Switchify accessibility service.
+ * LineUI class handles the creation, updating, and removal of scan (crosshair) lines.
  *
  * @property context The application context.
  */
 class LineUI(private val context: Context) : AccessTechniqueUIBase() {
-    // Cursor lines
-    private var xCursorLine: RelativeLayout? = null
-    private var yCursorLine: RelativeLayout? = null
+    // Scan lines
+    private var xScanLine: RelativeLayout? = null
+    private var yScanLine: RelativeLayout? = null
     private var blockOutline: RelativeLayout? = null
     private var currentBlock: PointScanBlock? = null
 
@@ -96,17 +95,17 @@ class LineUI(private val context: Context) : AccessTechniqueUIBase() {
      *
      * @param x The x-coordinate for the line.
      */
-    fun showXCursorLine(x: Int) {
+    fun showXScanLine(x: Int) {
         val bounds = getBounds()
         val yPosition = bounds.top
         val height = bounds.height()
 
-        if (xCursorLine == null) {
-            xCursorLine = RelativeLayout(context).apply {
+        if (xScanLine == null) {
+            xScanLine = RelativeLayout(context).apply {
                 val color = ScanColorManager.getScanColorSetFromPreferences(context).secondaryColor
                 setBackgroundColor(color.toColorInt())
             }
-            xCursorLine?.let {
+            xScanLine?.let {
                 super.addView(
                     it,
                     x,
@@ -116,7 +115,7 @@ class LineUI(private val context: Context) : AccessTechniqueUIBase() {
                 )
             }
         } else {
-            updateXCursorLine(x)
+            updateXScanLine(x)
         }
     }
 
@@ -125,17 +124,17 @@ class LineUI(private val context: Context) : AccessTechniqueUIBase() {
      *
      * @param y The y-coordinate for the line.
      */
-    fun showYCursorLine(y: Int) {
+    fun showYScanLine(y: Int) {
         val bounds = getBounds()
         val xPosition = bounds.left
         val width = bounds.width()
 
-        if (yCursorLine == null) {
-            yCursorLine = RelativeLayout(context).apply {
+        if (yScanLine == null) {
+            yScanLine = RelativeLayout(context).apply {
                 val color = ScanColorManager.getScanColorSetFromPreferences(context).secondaryColor
                 setBackgroundColor(color.toColorInt())
             }
-            yCursorLine?.let {
+            yScanLine?.let {
                 super.addView(
                     it,
                     xPosition,
@@ -145,26 +144,26 @@ class LineUI(private val context: Context) : AccessTechniqueUIBase() {
                 )
             }
         } else {
-            updateYCursorLine(y)
+            updateYScanLine(y)
         }
     }
 
     /**
      * Removes the horizontal cursor line.
      */
-    fun removeXCursorLine() {
-        removeXCursorLineSafely()
+    fun removeXScanLine() {
+        removeXScanLineSafely()
     }
 
     /**
      * Removes the vertical cursor line.
      */
-    fun removeYCursorLine() {
-        removeYCursorLineSafely()
+    fun removeYScanLine() {
+        removeYScanLineSafely()
     }
 
-    private fun removeXCursorLineSafely() {
-        xCursorLine?.let { line ->
+    private fun removeXScanLineSafely() {
+        xScanLine?.let { line ->
             try {
                 if (line.parent != null) {
                     super.removeView(line)
@@ -172,13 +171,13 @@ class LineUI(private val context: Context) : AccessTechniqueUIBase() {
             } catch (e: Exception) {
                 e.printStackTrace()
             } finally {
-                xCursorLine = null
+                xScanLine = null
             }
         }
     }
 
-    private fun removeYCursorLineSafely() {
-        yCursorLine?.let { line ->
+    private fun removeYScanLineSafely() {
+        yScanLine?.let { line ->
             try {
                 if (line.parent != null) {
                     super.removeView(line)
@@ -186,7 +185,7 @@ class LineUI(private val context: Context) : AccessTechniqueUIBase() {
             } catch (e: Exception) {
                 e.printStackTrace()
             } finally {
-                yCursorLine = null
+                yScanLine = null
             }
         }
     }
@@ -196,11 +195,11 @@ class LineUI(private val context: Context) : AccessTechniqueUIBase() {
      *
      * @param x The new x-coordinate for the line.
      */
-    private fun updateXCursorLine(x: Int) {
+    private fun updateXScanLine(x: Int) {
         val bounds = getBounds()
         val width = ScanMethodUIConstants.LINE_THICKNESS
         val height = bounds.height()
-        xCursorLine?.let {
+        xScanLine?.let {
             super.updateView(it, x, bounds.top, width, height)
         }
     }
@@ -210,11 +209,11 @@ class LineUI(private val context: Context) : AccessTechniqueUIBase() {
      *
      * @param y The new y-coordinate for the line.
      */
-    private fun updateYCursorLine(y: Int) {
+    private fun updateYScanLine(y: Int) {
         val bounds = getBounds()
         val width = bounds.width()
         val height = ScanMethodUIConstants.LINE_THICKNESS
-        yCursorLine?.let {
+        yScanLine?.let {
             super.updateView(it, bounds.left, y, width, height)
         }
     }
@@ -224,8 +223,8 @@ class LineUI(private val context: Context) : AccessTechniqueUIBase() {
      */
     fun reset() {
         try {
-            removeXCursorLineSafely()
-            removeYCursorLineSafely()
+            removeXScanLineSafely()
+            removeYScanLineSafely()
             removeBlockOutlineSafely()
             setBlock(null)
             super.hide()
@@ -236,8 +235,8 @@ class LineUI(private val context: Context) : AccessTechniqueUIBase() {
     }
 
     private fun forceCleanup() {
-        xCursorLine = null
-        yCursorLine = null
+        xScanLine = null
+        yScanLine = null
         blockOutline = null
         currentBlock = null
         super.hide()
@@ -251,7 +250,7 @@ class LineUI(private val context: Context) : AccessTechniqueUIBase() {
     fun setBlock(block: PointScanBlock?) {
         currentBlock = block
         // Update existing lines if they're visible
-        xCursorLine?.let { line ->
+        xScanLine?.let { line ->
             val bounds = getBounds()
             super.updateView(
                 line,
@@ -261,7 +260,7 @@ class LineUI(private val context: Context) : AccessTechniqueUIBase() {
                 bounds.height()
             )
         }
-        yCursorLine?.let { line ->
+        yScanLine?.let { line ->
             val bounds = getBounds()
             super.updateView(
                 line,
