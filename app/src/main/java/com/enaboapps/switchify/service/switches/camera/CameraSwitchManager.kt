@@ -255,6 +255,7 @@ class CameraSwitchManager(
         if (switchEvent != null) {
             coroutineScope.launch(Dispatchers.Main) {
                 Log.i(TAG, "Triggering switch action for gesture: ${gesture.getName()}")
+                if (scanningManager.checkOngoingTasks()) return@launch
                 scanningManager.performAction(switchEvent.pressAction)
             }
         }
@@ -275,6 +276,7 @@ class CameraSwitchManager(
         if (switchEvent != null) {
             coroutineScope.launch(Dispatchers.Main) {
                 Log.i(TAG, "Triggering head turn gesture: ${gesture.getName()}")
+                if (scanningManager.checkOngoingTasks()) return@launch
                 scanningManager.performAction(switchEvent.pressAction)
             }
         }
