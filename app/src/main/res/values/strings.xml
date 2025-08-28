@@ -549,17 +549,11 @@
 
     <!-- Direct Control Settings -->
     <string name="section_title_direct_control_movement">Movement</string>
-    <string name="preference_title_direct_control_base_step">Base Step</string>
-    <string name="preference_summary_direct_control_base_step">Pixels per nudge; starting speed</string>
-    <string name="preference_title_direct_control_max_step">Max Step</string>
-    <string name="preference_summary_direct_control_max_step">Maximum pixels per nudge with acceleration</string>
-    <string name="preference_title_direct_control_accel_increment">Acceleration Increment</string>
-    <string name="preference_summary_direct_control_accel_increment">Step increase while holding movement</string>
+    <string name="preference_title_direct_control_speed">Movement Speed</string>
+    <string name="preference_summary_direct_control_speed">Overall pointer speed (1–5)</string>
     <string name="section_title_direct_control_precision">Precision</string>
     <string name="preference_title_direct_control_precision_enabled">Precision Mode</string>
     <string name="preference_summary_direct_control_precision_enabled">Reduce movement for fine control</string>
-    <string name="preference_title_direct_control_precision_multiplier">Precision Multiplier</string>
-    <string name="preference_summary_direct_control_precision_multiplier">Percentage of normal speed when precision is on</string>
 
     <string name="ok">OK</string>
     <string name="help">Help</string>
