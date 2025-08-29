@@ -1,20 +1,49 @@
 package com.enaboapps.switchify.service.core
 
+import android.util.Log
 import com.enaboapps.switchify.service.scanning.ScanSettings
 import com.enaboapps.switchify.service.techniques.AccessTechnique
 
 class TechniqueEnforcer(
     private val scanSettings: ScanSettings
 ) {
+    private companion object {
+        private const val TAG = "TechniqueEnforcer"
+    }
 
-    fun enforceDirectionalCompatibility() {
-        if (scanSettings.isDirectionalScanMode()) {
-            val currentTechnique = AccessTechnique.getCurrentTechnique()
-            if (currentTechnique == AccessTechnique.Technique.POINT_SCAN ||
-                currentTechnique == AccessTechnique.Technique.RADAR
-            ) {
-                AccessTechnique.setCurrentTechnique(AccessTechnique.Technique.DIRECT_CONTROL)
+    /**
+     * Enforces technique compatibility based on scan mode.
+     * 
+     * Compatibility Rules:
+     * - Point Scan & Radar: Only work with Linear/Auto scanning modes
+     * - Direct Control: Only works with Directional scanning mode
+     * - Item Scan: Works with all scanning modes (universal fallback)
+     */
+    fun enforceCompatibility() {
+        val currentTechnique = AccessTechnique.getCurrentTechnique()
+        val isDirectionalMode = scanSettings.isDirectionalScanMode()
+        
+        val shouldSwitch = when {
+            // Point Scan and Radar don't work in Directional mode
+            isDirectionalMode && (currentTechnique == AccessTechnique.Technique.POINT_SCAN || 
+                                 currentTechnique == AccessTechnique.Technique.RADAR) -> {
+                Log.d(TAG, "Switching from $currentTechnique to Item Scan - incompatible with directional mode")
+                true
             }
+            
+            // Direct Control doesn't work in Linear/Auto modes
+            !isDirectionalMode && currentTechnique == AccessTechnique.Technique.DIRECT_CONTROL -> {
+                Log.d(TAG, "Switching from Direct Control to Item Scan - incompatible with linear/auto mode")
+                true
+            }
+            
+            else -> false
+        }
+        
+        if (shouldSwitch) {
+            // Item Scan works with all modes, so use it as universal fallback
+            AccessTechnique.setCurrentTechnique(AccessTechnique.Technique.ITEM_SCAN)
         }
     }
+    
 }
