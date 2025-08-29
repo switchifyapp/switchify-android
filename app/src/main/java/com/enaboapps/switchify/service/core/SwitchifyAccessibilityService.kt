@@ -15,6 +15,8 @@ import com.enaboapps.switchify.service.gestures.GestureManager
 import com.enaboapps.switchify.service.gestures.GestureLockManager
 import com.enaboapps.switchify.service.scanning.ScanSettings
 import com.enaboapps.switchify.service.selection.SelectionHandler
+import com.enaboapps.switchify.service.scanning.ScanningManager
+import com.enaboapps.switchify.service.switches.external.ExternalSwitchListener
 import com.enaboapps.switchify.service.switches.SwitchEventProvider
 import com.enaboapps.switchify.service.switches.camera.CameraSwitchManager
 import com.enaboapps.switchify.service.camera.CameraForegroundService
@@ -242,7 +244,7 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
         }
     }
 
-    private fun registerScreenWatcher(scanningManager: ScanningManager, externalSwitchListener: com.enaboapps.switchify.service.switches.external.ExternalSwitchListener) {
+    private fun registerScreenWatcher(scanningManager: ScanningManager, externalSwitchListener: ExternalSwitchListener) {
         screenWatcher = ScreenWatcher(
             onScreenSleep = {
                 val pauseManager = ServiceCore.getPauseManager()
