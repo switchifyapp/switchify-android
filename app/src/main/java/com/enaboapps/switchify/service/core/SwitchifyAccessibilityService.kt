@@ -59,12 +59,33 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     
     // Camera foreground service binding
-    private val cameraController = CameraServiceController()
+    private var cameraService: CameraForegroundService? = null
+    private var isCameraServiceBound = false
     
     // Backpressure handling for accessibility events
     private val accessibilityEventChannel = Channel<AccessibilityEvent>(capacity = Channel.CONFLATED)
 
-    // Service connection for camera foreground service is encapsulated in CameraServiceController
+    // Service connection for camera foreground service
+    private val cameraServiceConnection = object : ServiceConnection {
+        override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
+            Log.d(TAG, "Camera service connected")
+            val binder = service as CameraForegroundService.CameraServiceBinder
+            cameraService = binder.getService()
+            isCameraServiceBound = true
+            
+            // Initialize the camera service
+            if (cameraService?.initialize() == true) {
+                setupCameraServiceCallbacks()
+                startCameraServiceIfNeeded()
+            }
+        }
+        
+        override fun onServiceDisconnected(name: ComponentName?) {
+            Log.d(TAG, "Camera service disconnected")
+            cameraService = null
+            isCameraServiceBound = false
+        }
+    }
 
     companion object {
         private const val TAG = "SwitchifyAccessibilityService"
@@ -166,14 +187,31 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
      * Bind to the camera foreground service
      */
     private fun bindCameraForegroundService() {
-        cameraController.bindIfNeeded()
+        val switchEventProvider = ServiceCore.getSwitchEventProvider()
+        if (switchEventProvider?.hasCameraSwitch == true && !isCameraServiceBound) {
+            val intent = Intent(this, CameraForegroundService::class.java)
+            startService(intent) // Start the service first
+            bindService(intent, cameraServiceConnection, Context.BIND_AUTO_CREATE)
+            Log.d(TAG, "Binding to camera foreground service")
+        }
     }
     
     /**
      * Unbind from the camera foreground service
      */
     private fun unbindCameraForegroundService() {
-        cameraController.unbindIfBound()
+        if (isCameraServiceBound) {
+            cameraService?.stopCamera()
+            unbindService(cameraServiceConnection)
+            
+            // Stop the service
+            val intent = Intent(this, CameraForegroundService::class.java)
+            stopService(intent)
+            
+            isCameraServiceBound = false
+            cameraService = null
+            Log.d(TAG, "Unbound from camera foreground service")
+        }
     }
     
     /**
@@ -181,7 +219,7 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
      */
     private fun setupCameraServiceCallbacks() {
         // Set up face processing callback to pass results to CameraSwitchManager
-        cameraController.service?.setFaceResultCallback { result ->
+        cameraService?.setFaceResultCallback { result ->
             result?.let { faceResult ->
                 // Pass the face detection result to CameraSwitchManager for gesture processing
                 cameraSwitchManager?.processFaceResult(faceResult)
@@ -198,7 +236,11 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
      * Start camera service if conditions are met
      */
     private fun startCameraServiceIfNeeded() {
-        cameraController.startIfAvailable()
+        val switchEventProvider = ServiceCore.getSwitchEventProvider()
+        if (switchEventProvider?.hasCameraSwitch == true && deviceLockObserver.isUserUnlocked()) {
+            cameraService?.startCamera(this)
+            Log.d(TAG, "Started camera service")
+        }
     }
 
     private fun registerScreenWatcher(scanningManager: ScanningManager, externalSwitchListener: ExternalSwitchListener) {
@@ -386,60 +428,6 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
         }
 
         Log.d(TAG, "Camera switch availability changed: $available")
-    }
-
-    private inner class CameraServiceController {
-        var service: CameraForegroundService? = null
-        private var isBound = false
-
-        private val connection = object : ServiceConnection {
-            override fun onServiceConnected(name: ComponentName?, binder: IBinder?) {
-                Log.d(TAG, "Camera service connected")
-                val svc = (binder as CameraForegroundService.CameraServiceBinder).getService()
-                service = svc
-                isBound = true
-                if (service?.initialize() == true) {
-                    setupCameraServiceCallbacks()
-                    startIfAvailable()
-                }
-            }
-
-            override fun onServiceDisconnected(name: ComponentName?) {
-                Log.d(TAG, "Camera service disconnected")
-                service = null
-                isBound = false
-            }
-        }
-
-        fun bindIfNeeded() {
-            val provider = ServiceCore.getSwitchEventProvider()
-            if (provider?.hasCameraSwitch == true && !isBound) {
-                val intent = Intent(this@SwitchifyAccessibilityService, CameraForegroundService::class.java)
-                startService(intent)
-                bindService(intent, connection, Context.BIND_AUTO_CREATE)
-                Log.d(TAG, "Binding to camera foreground service")
-            }
-        }
-
-        fun unbindIfBound() {
-            if (isBound) {
-                service?.stopCamera()
-                unbindService(connection)
-                val intent = Intent(this@SwitchifyAccessibilityService, CameraForegroundService::class.java)
-                stopService(intent)
-                isBound = false
-                service = null
-                Log.d(TAG, "Unbound from camera foreground service")
-            }
-        }
-
-        fun startIfAvailable() {
-            val provider = ServiceCore.getSwitchEventProvider()
-            if (provider?.hasCameraSwitch == true && deviceLockObserver.isUserUnlocked()) {
-                service?.startCamera(this@SwitchifyAccessibilityService)
-                Log.d(TAG, "Started camera service")
-            }
-        }
     }
 
     override val lifecycle: Lifecycle
