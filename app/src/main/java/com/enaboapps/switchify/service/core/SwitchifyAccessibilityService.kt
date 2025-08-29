@@ -86,6 +86,9 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
 
     companion object {
         private const val TAG = "SwitchifyAccessibilityService"
+        private const val STARTUP_EXAM_DELAY_MS = 100L
+        private const val QUICK_APPS_PRELOAD_DELAY_MS = 50L
+        private const val CAMERA_MANAGER_INIT_DELAY_MS = 500L
     }
 
     override fun onCreate() {
@@ -265,7 +268,7 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
         if (deviceLockObserver.isUserUnlocked() && switchEventProvider.hasCameraSwitch && cameraSwitchManager == null) {
             cameraSwitchManager = CameraSwitchManager(this, scanningManager, switchEventProvider)
             serviceScope.launch {
-                delay(500) // Small delay to ensure service is ready
+                delay(CAMERA_MANAGER_INIT_DELAY_MS)
                 cameraSwitchManager?.initialize()
             }
         }
@@ -328,31 +331,28 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
         SwitchifyLifecycleOwner.getInstance().handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
         
         // Stagger initialization to prevent overwhelming main thread
-        serviceScope.launch {
-            // Initial accessibility tree examination
-            processAccessibilityEvent()
-            
-            delay(100) // Allow initial processing to complete
-            
-            // Preload quick apps for faster menu access
-            QuickAppsManager(this@SwitchifyAccessibilityService).preloadApps { /* Cache warmed up */ }
-            
-            delay(50) // Brief delay between heavy operations
-            
-            // Update the SystemNodeScanner with the current layout info
-            val scanningManager = ServiceCore.getScanningManager()
-            if (scanningManager != null) {
-                launch {
-                    NodeExaminer.getActionableNodesFlow().collect { nodes ->
-                        scanningManager.updateActionableNodes(nodes)
-                    }
+        serviceScope.launch { startStartupTasks() }
+    }
+
+    private suspend fun startStartupTasks() {
+        // Initial accessibility tree examination
+        processAccessibilityEvent()
+        delay(STARTUP_EXAM_DELAY_MS)
+
+        // Preload quick apps for faster menu access
+        QuickAppsManager(this@SwitchifyAccessibilityService).preloadApps { /* Cache warmed up */ }
+        delay(QUICK_APPS_PRELOAD_DELAY_MS)
+
+        // Update the SystemNodeScanner and KeyboardScanner with the current layout info
+        ServiceCore.getScanningManager()?.let { scanningManager ->
+            serviceScope.launch {
+                NodeExaminer.getActionableNodesFlow().collect { nodes ->
+                    scanningManager.updateActionableNodes(nodes)
                 }
-                
-                // Update the KeyboardScanner with the current layout info  
-                launch {
-                    NodeExaminer.getKeyboardNodesFlow().collect { nodes ->
-                        scanningManager.updateKeyboardNodes(nodes)
-                    }
+            }
+            serviceScope.launch {
+                NodeExaminer.getKeyboardNodesFlow().collect { nodes ->
+                    scanningManager.updateKeyboardNodes(nodes)
                 }
             }
         }
