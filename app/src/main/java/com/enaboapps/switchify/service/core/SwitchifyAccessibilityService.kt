@@ -124,15 +124,7 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
 
         scanSettings = ScanSettings(this)
 
-        // Enforce compatible technique when launching in Directional mode
-        if (scanSettings.isDirectionalScanMode()) {
-            val currentTechnique = AccessTechnique.getCurrentTechnique()
-            if (currentTechnique == AccessTechnique.Technique.POINT_SCAN ||
-                currentTechnique == AccessTechnique.Technique.RADAR
-            ) {
-                AccessTechnique.setCurrentTechnique(AccessTechnique.Technique.DIRECT_CONTROL)
-            }
-        }
+        enforceDirectionalTechniqueCompatibility()
 
         GestureManager.instance.setup(this)
         SelectionHandler.init(this)
@@ -142,8 +134,8 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
                 initProtectedServiceComponents()
             },
             onLocked = {
-                Log.d(TAG, "Device locked")
-            })
+            logd("Device locked")
+        })
 
         // Initialize components that require device unlock
         initProtectedServiceComponents()
@@ -154,7 +146,7 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
      */
     private fun initProtectedServiceComponents() {
         if (deviceLockObserver.isUserUnlocked()) {
-            Log.d(TAG, "Device unlocked, initializing protected components")
+            logd("Device unlocked, initializing protected components")
             // Initialize components that require device unlock
             IAPHandler.connect(context = this)
             initCameraSwitchManager()
@@ -218,6 +210,17 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
 
     private fun unregisterScreenWatcher() {
         if (::screenWatcher.isInitialized) screenWatcher.unregister(this)
+    }
+
+    private fun enforceDirectionalTechniqueCompatibility() {
+        if (scanSettings.isDirectionalScanMode()) {
+            val currentTechnique = AccessTechnique.getCurrentTechnique()
+            if (currentTechnique == AccessTechnique.Technique.POINT_SCAN ||
+                currentTechnique == AccessTechnique.Technique.RADAR
+            ) {
+                AccessTechnique.setCurrentTechnique(AccessTechnique.Technique.DIRECT_CONTROL)
+            }
+        }
     }
 
     /**
@@ -385,7 +388,7 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
             unbindCameraForegroundService()
         }
 
-        Log.d(TAG, "Camera switch availability changed: $available")
+        logd("Camera switch availability changed: $available")
     }
 
     private inner class CameraServiceController {
@@ -394,7 +397,7 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
 
         private val connection = object : ServiceConnection {
             override fun onServiceConnected(name: ComponentName?, binder: IBinder?) {
-                Log.d(TAG, "Camera service connected")
+                logd("Camera service connected")
                 val svc = (binder as CameraForegroundService.CameraServiceBinder).getService()
                 service = svc
                 isBound = true
@@ -405,7 +408,7 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
             }
 
             override fun onServiceDisconnected(name: ComponentName?) {
-                Log.d(TAG, "Camera service disconnected")
+                logd("Camera service disconnected")
                 service = null
                 isBound = false
             }
@@ -417,7 +420,7 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
                 val intent = Intent(this@SwitchifyAccessibilityService, CameraForegroundService::class.java)
                 startService(intent)
                 bindService(intent, connection, Context.BIND_AUTO_CREATE)
-                Log.d(TAG, "Binding to camera foreground service")
+                logd("Binding to camera foreground service")
             }
         }
 
@@ -429,7 +432,7 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
                 stopService(intent)
                 isBound = false
                 service = null
-                Log.d(TAG, "Unbound from camera foreground service")
+                logd("Unbound from camera foreground service")
             }
         }
 
@@ -437,11 +440,15 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
             val provider = ServiceCore.getSwitchEventProvider()
             if (provider?.hasCameraSwitch == true && deviceLockObserver.isUserUnlocked()) {
                 service?.startCamera(this@SwitchifyAccessibilityService)
-                Log.d(TAG, "Started camera service")
+                logd("Started camera service")
             }
         }
     }
 
     override val lifecycle: Lifecycle
         get() = SwitchifyLifecycleOwner.getInstance().lifecycle
+
+    private fun logd(message: String) {
+        Log.d(TAG, message)
+    }
 }
