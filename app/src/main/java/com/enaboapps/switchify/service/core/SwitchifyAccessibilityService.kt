@@ -38,9 +38,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.flow.consumeAsFlow
-import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.cancelChildren
 
@@ -52,42 +49,32 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
     SwitchEventProvider.CameraSwitchListener {
 
     private var cameraSwitchManager: CameraSwitchManager? = null
-    private lateinit var screenWatcher: ScreenWatcher
+    private lateinit var screenWatcherManager: ScreenWatcherManager
     private lateinit var scanSettings: ScanSettings
+    private lateinit var techniqueEnforcer: TechniqueEnforcer
     private lateinit var deviceLockObserver: DeviceLockObserver
     private lateinit var trialManager: ServiceTrialManager
+    private lateinit var startupOrchestrator: StartupOrchestrator
+    private lateinit var nodeUpdateCoordinator: NodeUpdateCoordinator
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     
     // Camera foreground service binding
-    private val cameraController = CameraServiceController()
+    private lateinit var cameraController: CameraServiceController
     
-    // Backpressure handling for accessibility events
-    private val accessibilityEventChannel = Channel<AccessibilityEvent>(capacity = Channel.CONFLATED)
+    private lateinit var eventPipeline: AccessibilityEventPipeline
 
     // Service connection for camera foreground service is encapsulated in CameraServiceController
 
     companion object {
         private const val TAG = "SwitchifyAccessibilityService"
-        private const val STARTUP_EXAM_DELAY_MS = 100L
-        private const val QUICK_APPS_PRELOAD_DELAY_MS = 50L
         private const val CAMERA_MANAGER_INIT_DELAY_MS = 500L
     }
 
     override fun onCreate() {
         super.onCreate()
         deviceLockObserver = DeviceLockObserver(this)
-        startAccessibilityEventProcessor()
-    }
-
-    private var eventJob: kotlinx.coroutines.Job? = null
-    private fun startAccessibilityEventProcessor() {
-        eventJob?.cancel()
-        eventJob = serviceScope.launch {
-            accessibilityEventChannel
-                .consumeAsFlow()
-                .flowOn(Dispatchers.Default)
-                .collect { if (isActive) processAccessibilityEvent() }
-        }
+        screenWatcherManager = ScreenWatcherManager(this)
+        startupOrchestrator = StartupOrchestrator(this, serviceScope)
     }
 
     private fun setup() {
@@ -120,11 +107,22 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
 
         switchEventProvider.addCameraSwitchListener(this)
 
-        registerScreenWatcher(scanningManager, externalSwitchListener)
+        screenWatcherManager.register(scanningManager, externalSwitchListener)
 
         scanSettings = ScanSettings(this)
+        techniqueEnforcer = TechniqueEnforcer(scanSettings)
+        nodeUpdateCoordinator = NodeUpdateCoordinator(this, serviceScope, scanSettings)
+        cameraController = CameraServiceController(
+            context = this,
+            lifecycleOwner = this,
+            deviceLockObserver = deviceLockObserver,
+            onServiceConnected = { service -> setupCameraServiceCallbacks() },
+            onServiceDisconnected = { /* No-op */ }
+        )
+        eventPipeline = AccessibilityEventPipeline(serviceScope) { nodeUpdateCoordinator.processAccessibilityUpdate() }
+        eventPipeline.start()
 
-        enforceDirectionalTechniqueCompatibility()
+        techniqueEnforcer.enforceDirectionalCompatibility()
 
         GestureManager.instance.setup(this)
         SelectionHandler.init(this)
@@ -179,49 +177,8 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
                 cameraSwitchManager?.processFaceResult(faceResult)
             }
         }
-        
-        // Optional: Setup frame processing callback if needed for UI updates
-        // cameraService?.setFrameProcessingCallback { bitmap ->
-        //     // Handle processed frames if needed
-        // }
-    }
-    
-    /**
-     * Start camera service if conditions are met
-     */
-    private fun startCameraServiceIfNeeded() {
-        cameraController.startIfAvailable()
     }
 
-    private fun registerScreenWatcher(scanningManager: ScanningManager, externalSwitchListener: ExternalSwitchListener) {
-        screenWatcher = ScreenWatcher(
-            onScreenSleep = {
-                val pauseManager = ServiceCore.getPauseManager()
-                if (pauseManager.isPaused) pauseManager.resume()
-                GestureLockManager.instance.disableLock()
-                Tasks.getInstance().checkOngoingTasks()
-                externalSwitchListener.reset()
-                scanningManager.reset()
-            },
-            onOrientationChanged = { scanningManager.reset() }
-        )
-        screenWatcher.register(this)
-    }
-
-    private fun unregisterScreenWatcher() {
-        if (::screenWatcher.isInitialized) screenWatcher.unregister(this)
-    }
-
-    private fun enforceDirectionalTechniqueCompatibility() {
-        if (scanSettings.isDirectionalScanMode()) {
-            val currentTechnique = AccessTechnique.getCurrentTechnique()
-            if (currentTechnique == AccessTechnique.Technique.POINT_SCAN ||
-                currentTechnique == AccessTechnique.Technique.RADAR
-            ) {
-                AccessTechnique.setCurrentTechnique(AccessTechnique.Technique.DIRECT_CONTROL)
-            }
-        }
-    }
 
     /**
      * Initializes the camera switch manager for gesture processing.
@@ -257,22 +214,10 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
      */
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         event?.let { accessibilityEvent ->
-            accessibilityEventChannel.trySend(accessibilityEvent)
+            eventPipeline.trySend(accessibilityEvent)
         }
     }
 
-    /**
-     * Processes accessibility events with backpressure handling.
-     */
-    private suspend fun processAccessibilityEvent() {
-        NodeExaminer.examineAccessibilityTree(
-            rootInActiveWindow,
-            windows,
-            this@SwitchifyAccessibilityService,
-            serviceScope
-        )
-        KeyboardBridge.updateKeyboardState(windows, scanSettings)
-    }
 
     override fun onInterrupt() {
         SwitchifyAccessibilityWindow.instance.cleanup()
@@ -296,40 +241,19 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
         SwitchifyLifecycleOwner.getInstance().handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
         
         // Stagger initialization to prevent overwhelming main thread
-        serviceScope.launch { startStartupTasks() }
-    }
-
-    private suspend fun startStartupTasks() {
-        // Initial accessibility tree examination
-        processAccessibilityEvent()
-        delay(STARTUP_EXAM_DELAY_MS)
-
-        // Preload quick apps for faster menu access
-        QuickAppsManager(this@SwitchifyAccessibilityService).preloadApps { /* Cache warmed up */ }
-        delay(QUICK_APPS_PRELOAD_DELAY_MS)
-
-        // Update the SystemNodeScanner and KeyboardScanner with the current layout info
-        ServiceCore.getScanningManager()?.let { scanningManager ->
-            serviceScope.launch {
-                NodeExaminer.getActionableNodesFlow().collect { nodes ->
-                    scanningManager.updateActionableNodes(nodes)
-                }
-            }
-            serviceScope.launch {
-                NodeExaminer.getKeyboardNodesFlow().collect { nodes ->
-                    scanningManager.updateKeyboardNodes(nodes)
-                }
-            }
+        serviceScope.launch { 
+            startupOrchestrator.executeStartupTasks { nodeUpdateCoordinator.processAccessibilityUpdate() } 
         }
     }
+
 
     override fun onUnbind(intent: Intent?): Boolean {
         cameraSwitchManager?.cleanup()
         unbindCameraForegroundService()
         deviceLockObserver.stopObserving()
-        unregisterScreenWatcher()
+        screenWatcherManager.unregister()
         serviceScope.coroutineContext.cancelChildren()
-        eventJob?.cancel()
+        eventPipeline.stop()
         ServiceCore.cleanup()
         GlobalActionManager.cleanup()
         AudioActionManager.cleanup()
@@ -348,9 +272,9 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
         }
         
         // Unregister ScreenWatcher to prevent receiver leak
-        unregisterScreenWatcher()
+        screenWatcherManager.unregister()
         serviceScope.coroutineContext.cancelChildren()
-        eventJob?.cancel()
+        eventPipeline.stop()
         
         SwitchifyAccessibilityWindow.instance.onServiceDestroy()
         SwitchifyLifecycleOwner.getInstance().handleLifecycleEvent(Lifecycle.Event.ON_DESTROY)
@@ -391,59 +315,6 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
         logd("Camera switch availability changed: $available")
     }
 
-    private inner class CameraServiceController {
-        var service: CameraForegroundService? = null
-        private var isBound = false
-
-        private val connection = object : ServiceConnection {
-            override fun onServiceConnected(name: ComponentName?, binder: IBinder?) {
-                logd("Camera service connected")
-                val svc = (binder as CameraForegroundService.CameraServiceBinder).getService()
-                service = svc
-                isBound = true
-                if (service?.initialize() == true) {
-                    setupCameraServiceCallbacks()
-                    startIfAvailable()
-                }
-            }
-
-            override fun onServiceDisconnected(name: ComponentName?) {
-                logd("Camera service disconnected")
-                service = null
-                isBound = false
-            }
-        }
-
-        fun bindIfNeeded() {
-            val provider = ServiceCore.getSwitchEventProvider()
-            if (provider?.hasCameraSwitch == true && !isBound) {
-                val intent = Intent(this@SwitchifyAccessibilityService, CameraForegroundService::class.java)
-                startService(intent)
-                bindService(intent, connection, Context.BIND_AUTO_CREATE)
-                logd("Binding to camera foreground service")
-            }
-        }
-
-        fun unbindIfBound() {
-            if (isBound) {
-                service?.stopCamera()
-                unbindService(connection)
-                val intent = Intent(this@SwitchifyAccessibilityService, CameraForegroundService::class.java)
-                stopService(intent)
-                isBound = false
-                service = null
-                logd("Unbound from camera foreground service")
-            }
-        }
-
-        fun startIfAvailable() {
-            val provider = ServiceCore.getSwitchEventProvider()
-            if (provider?.hasCameraSwitch == true && deviceLockObserver.isUserUnlocked()) {
-                service?.startCamera(this@SwitchifyAccessibilityService)
-                logd("Started camera service")
-            }
-        }
-    }
 
     override val lifecycle: Lifecycle
         get() = SwitchifyLifecycleOwner.getInstance().lifecycle

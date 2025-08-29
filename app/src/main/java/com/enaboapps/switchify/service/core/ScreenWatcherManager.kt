@@ -1,0 +1,33 @@
+package com.enaboapps.switchify.service.core
+
+import android.content.Context
+import com.enaboapps.switchify.service.scanning.ScanningManager
+import com.enaboapps.switchify.service.switches.external.ExternalSwitchListener
+import com.enaboapps.switchify.service.utils.ScreenWatcher
+import com.enaboapps.switchify.service.gestures.GestureLockManager
+
+class ScreenWatcherManager(
+    private val context: Context
+) {
+    private var screenWatcher: ScreenWatcher? = null
+
+    fun register(scanningManager: ScanningManager, externalSwitchListener: ExternalSwitchListener) {
+        screenWatcher = ScreenWatcher(
+            onScreenSleep = {
+                val pauseManager = ServiceCore.getPauseManager()
+                if (pauseManager.isPaused) pauseManager.resume()
+                GestureLockManager.instance.disableLock()
+                Tasks.getInstance().checkOngoingTasks()
+                externalSwitchListener.reset()
+                scanningManager.reset()
+            },
+            onOrientationChanged = { scanningManager.reset() }
+        )
+        screenWatcher?.register(context)
+    }
+
+    fun unregister() {
+        screenWatcher?.unregister(context)
+        screenWatcher = null
+    }
+}
