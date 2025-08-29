@@ -100,15 +100,14 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
         startAccessibilityEventProcessor()
     }
 
+    private var eventJob: kotlinx.coroutines.Job? = null
     private fun startAccessibilityEventProcessor() {
-        serviceScope.launch {
-            accessibilityEventChannel.consumeAsFlow()
+        eventJob?.cancel()
+        eventJob = serviceScope.launch {
+            accessibilityEventChannel
+                .consumeAsFlow()
                 .flowOn(Dispatchers.Default)
-                .collect { event ->
-                    if (isActive) {
-                        processAccessibilityEvent()
-                    }
-                }
+                .collect { if (isActive) processAccessibilityEvent() }
         }
     }
 
@@ -369,6 +368,7 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
         deviceLockObserver.stopObserving()
         unregisterScreenWatcher()
         serviceScope.coroutineContext.cancelChildren()
+        eventJob?.cancel()
         ServiceCore.cleanup()
         GlobalActionManager.cleanup()
         AudioActionManager.cleanup()
@@ -389,6 +389,7 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
         // Unregister ScreenWatcher to prevent receiver leak
         unregisterScreenWatcher()
         serviceScope.coroutineContext.cancelChildren()
+        eventJob?.cancel()
         
         SwitchifyAccessibilityWindow.instance.onServiceDestroy()
         SwitchifyLifecycleOwner.getInstance().handleLifecycleEvent(Lifecycle.Event.ON_DESTROY)
