@@ -122,7 +122,7 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
         eventPipeline = AccessibilityEventPipeline(serviceScope) { nodeUpdateCoordinator.processAccessibilityUpdate() }
         eventPipeline.start()
 
-        techniqueEnforcer.enforceDirectionalCompatibility()
+        techniqueEnforcer.enforceCompatibility()
 
         GestureManager.instance.setup(this)
         SelectionHandler.init(this)
