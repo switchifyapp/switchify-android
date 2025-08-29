@@ -40,6 +40,7 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.consumeAsFlow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.isActive
+import kotlinx.coroutines.cancelChildren
 
 /**
  * This is the main service class for the Switchify application.
@@ -139,24 +140,7 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
 
         switchEventProvider.addCameraSwitchListener(this)
 
-        screenWatcher = ScreenWatcher(
-            onScreenSleep = {
-                // Resume from pause if currently paused
-                val pauseManager = ServiceCore.getPauseManager()
-                if (pauseManager.isPaused) {
-                    pauseManager.resume()
-                }
-                
-                // Disable gesture lock if active
-                GestureLockManager.instance.disableLock()
-                
-                Tasks.getInstance().checkOngoingTasks()
-                externalSwitchListener.reset()
-                scanningManager.reset()
-            },
-            onOrientationChanged = { scanningManager.reset() }
-        )
-        screenWatcher.register(this)
+        registerScreenWatcher(scanningManager, externalSwitchListener)
 
         scanSettings = ScanSettings(this)
 
@@ -256,6 +240,25 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
             cameraService?.startCamera(this)
             Log.d(TAG, "Started camera service")
         }
+    }
+
+    private fun registerScreenWatcher(scanningManager: ScanningManager, externalSwitchListener: com.enaboapps.switchify.service.switches.external.ExternalSwitchListener) {
+        screenWatcher = ScreenWatcher(
+            onScreenSleep = {
+                val pauseManager = ServiceCore.getPauseManager()
+                if (pauseManager.isPaused) pauseManager.resume()
+                GestureLockManager.instance.disableLock()
+                Tasks.getInstance().checkOngoingTasks()
+                externalSwitchListener.reset()
+                scanningManager.reset()
+            },
+            onOrientationChanged = { scanningManager.reset() }
+        )
+        screenWatcher.register(this)
+    }
+
+    private fun unregisterScreenWatcher() {
+        if (::screenWatcher.isInitialized) screenWatcher.unregister(this)
     }
 
     /**
@@ -362,9 +365,8 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
         cameraSwitchManager?.cleanup()
         unbindCameraForegroundService()
         deviceLockObserver.stopObserving()
-        if (::screenWatcher.isInitialized) {
-            screenWatcher.unregister(this)
-        }
+        unregisterScreenWatcher()
+        serviceScope.coroutineContext.cancelChildren()
         ServiceCore.cleanup()
         GlobalActionManager.cleanup()
         AudioActionManager.cleanup()
@@ -383,9 +385,8 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
         }
         
         // Unregister ScreenWatcher to prevent receiver leak
-        if (::screenWatcher.isInitialized) {
-            screenWatcher.unregister(this)
-        }
+        unregisterScreenWatcher()
+        serviceScope.coroutineContext.cancelChildren()
         
         SwitchifyAccessibilityWindow.instance.onServiceDestroy()
         SwitchifyLifecycleOwner.getInstance().handleLifecycleEvent(Lifecycle.Event.ON_DESTROY)
