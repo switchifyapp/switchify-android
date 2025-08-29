@@ -114,6 +114,14 @@ fun GeneralSettingsTab(menuSettingsModel: MenuSettingsModel, navController: NavC
             )
         }
         InputSection(navController)
+        GesturesSettingsSection(navController)
+        MenuSection(menuSettingsModel)
+    }
+}
+
+@Composable
+fun ScanningSettingsTab(navController: NavController) {
+    ScrollableView {
         Section(titleResId = R.string.settings_section_access_techniques) {
             AccessTechniqueSelector()
             Spacer(modifier = Modifier.padding(vertical = 8.dp))
@@ -124,14 +132,7 @@ fun GeneralSettingsTab(menuSettingsModel: MenuSettingsModel, navController: NavC
                 route = NavigationRoute.AccessTechniqueSettings.name
             )
         }
-        GesturesSettingsSection(navController)
-        MenuSection(menuSettingsModel)
-    }
-}
-
-@Composable
-fun ScanningSettingsTab(navController: NavController) {
-    ScrollableView {
+        
         ScanModeSelectionSection(navController)
 
         Section(titleResId = R.string.settings_section_scan_appearance) {
