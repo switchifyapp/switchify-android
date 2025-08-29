@@ -11,6 +11,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
@@ -76,7 +77,7 @@ fun AccessTechniqueSelector() {
     if (!isDirectionalMode) {
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            text = context.getString(R.string.direct_control_requires_directional_mode),
+            text = stringResource(R.string.direct_control_requires_directional_mode),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
         )
