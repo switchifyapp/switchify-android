@@ -38,9 +38,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.flow.consumeAsFlow
-import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.cancelChildren
 
@@ -61,8 +58,7 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
     // Camera foreground service binding
     private val cameraController = CameraServiceController()
     
-    // Backpressure handling for accessibility events
-    private val accessibilityEventChannel = Channel<AccessibilityEvent>(capacity = Channel.CONFLATED)
+    private lateinit var eventPipeline: AccessibilityEventPipeline
 
     // Service connection for camera foreground service is encapsulated in CameraServiceController
 
@@ -76,18 +72,8 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
     override fun onCreate() {
         super.onCreate()
         deviceLockObserver = DeviceLockObserver(this)
-        startAccessibilityEventProcessor()
-    }
-
-    private var eventJob: kotlinx.coroutines.Job? = null
-    private fun startAccessibilityEventProcessor() {
-        eventJob?.cancel()
-        eventJob = serviceScope.launch {
-            accessibilityEventChannel
-                .consumeAsFlow()
-                .flowOn(Dispatchers.Default)
-                .collect { if (isActive) processAccessibilityEvent() }
-        }
+        eventPipeline = AccessibilityEventPipeline(serviceScope) { processAccessibilityEvent() }
+        eventPipeline.start()
     }
 
     private fun setup() {
@@ -257,7 +243,7 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
      */
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         event?.let { accessibilityEvent ->
-            accessibilityEventChannel.trySend(accessibilityEvent)
+            eventPipeline.trySend(accessibilityEvent)
         }
     }
 
@@ -329,7 +315,7 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
         deviceLockObserver.stopObserving()
         unregisterScreenWatcher()
         serviceScope.coroutineContext.cancelChildren()
-        eventJob?.cancel()
+        eventPipeline.stop()
         ServiceCore.cleanup()
         GlobalActionManager.cleanup()
         AudioActionManager.cleanup()
@@ -350,7 +336,7 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
         // Unregister ScreenWatcher to prevent receiver leak
         unregisterScreenWatcher()
         serviceScope.coroutineContext.cancelChildren()
-        eventJob?.cancel()
+        eventPipeline.stop()
         
         SwitchifyAccessibilityWindow.instance.onServiceDestroy()
         SwitchifyLifecycleOwner.getInstance().handleLifecycleEvent(Lifecycle.Event.ON_DESTROY)
