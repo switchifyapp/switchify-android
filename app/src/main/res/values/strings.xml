@@ -546,6 +546,7 @@
     <string name="settings_section_access_techniques">Access Techniques</string>
     <string name="settings_title_access_technique">Access Technique Settings</string>
     <string name="settings_summary_access_technique">Configure point scan, radar, and item scan settings</string>
+    <string name="direct_control_requires_directional_mode">Direct Control requires Directional scanning mode</string>
 
     <!-- Direct Control Settings -->
     <string name="section_title_direct_control_movement">Movement</string>
