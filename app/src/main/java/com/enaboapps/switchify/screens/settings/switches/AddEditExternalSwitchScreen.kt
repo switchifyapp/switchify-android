@@ -72,20 +72,25 @@ fun AddEditExternalSwitchScreen(navController: NavController, code: String? = nu
             titleResId = screenTitle,
             navController = navController
         ) {
-            SwitchName(
-                name = addEditExternalSwitchScreenModel.name,
-                onNameChange = { addEditExternalSwitchScreenModel.updateName(it) }
-            )
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                SwitchName(
+                    name = addEditExternalSwitchScreenModel.name,
+                    onNameChange = { addEditExternalSwitchScreenModel.updateName(it) }
+                )
+                Spacer(modifier = Modifier.padding(8.dp))
                 SwitchActionSection(addEditExternalSwitchScreenModel)
-                if (shouldSave!!) {
+                Spacer(modifier = Modifier.padding(12.dp))
+                androidx.compose.foundation.layout.Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
                     ActionButton(
                         textResId = R.string.button_save,
-                        enabled = isValid!!,
+                        enabled = (shouldSave == true) && (isValid == true),
                         onClick = {
                             addEditExternalSwitchScreenModel.save(context) { success ->
                                 scope.launch {
@@ -101,17 +106,21 @@ fun AddEditExternalSwitchScreen(navController: NavController, code: String? = nu
                                     }
                                 }
                             }
-                        }
+                        },
+                        modifier = Modifier.weight(1f),
+                        applyPadding = false
                     )
-                }
-                if (editing) {
-                    ActionButton(
-                        textResId = R.string.button_delete,
-                        type = ActionButtonType.DESTRUCTIVE,
-                        onClick = {
-                            showDeleteConfirmation.value = true
-                        }
-                    )
+                    if (editing) {
+                        ActionButton(
+                            textResId = R.string.button_delete,
+                            type = ActionButtonType.DESTRUCTIVE,
+                            onClick = {
+                                showDeleteConfirmation.value = true
+                            },
+                            modifier = Modifier.weight(1f),
+                            applyPadding = false
+                        )
+                    }
                 }
             }
 
@@ -273,7 +282,9 @@ fun SwitchActionSection(viewModel: AddEditExternalSwitchScreenModel) {
             textResId = R.string.button_add_long_press_action,
             onClick = {
                 viewModel.addLongPressAction(SwitchAction(SwitchAction.ACTION_SELECT))
-            }
+            },
+            modifier = Modifier.fillMaxWidth(),
+            applyPadding = false
         )
     }
 }
