@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -59,6 +60,18 @@ fun AccessTechniqueSelector() {
         ServiceBridge.sendCommand(
             ServiceBridge.ServiceCommand.UpdateConfiguration(PreferenceManager.Keys.PREFERENCE_KEY_ACCESS_TECHNIQUE, method)
         )
+    }
+
+    LaunchedEffect(Unit) {
+        ServiceBridge.serviceEvents.collect { event ->
+            when (event) {
+                is ServiceBridge.ServiceEvent.ConfigurationUpdated,
+                is ServiceBridge.ServiceEvent.TechniqueEnforced -> {
+                    currentMethod = preferenceManager.getStringValue(PreferenceManager.Keys.PREFERENCE_KEY_ACCESS_TECHNIQUE)
+                }
+                else -> {}
+            }
+        }
     }
 
     Picker(

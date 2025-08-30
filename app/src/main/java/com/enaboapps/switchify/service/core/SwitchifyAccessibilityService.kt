@@ -390,8 +390,7 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
                             ServiceBridge.emitEvent(ServiceBridge.ServiceEvent.ConfigurationUpdated)
                         }
                         else -> {
-                            // Generic configuration update
-                            logd("Configuration updated: ${command.key} = ${command.value}")
+                            logd("Configuration updated: ${command.key}")
                             ServiceBridge.emitEvent(ServiceBridge.ServiceEvent.ConfigurationUpdated)
                         }
                     }

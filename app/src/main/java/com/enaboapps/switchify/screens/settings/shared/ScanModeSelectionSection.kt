@@ -12,6 +12,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -67,6 +68,19 @@ fun ScanModeSelectionSection(
         )
         
         // Visual demonstration of selected scan mode
+        LaunchedEffect(Unit) {
+            ServiceBridge.serviceEvents.collect { event ->
+                when (event) {
+                    is ServiceBridge.ServiceEvent.ConfigurationUpdated -> {
+                        currentMode = ScanMode.fromId(
+                            preferenceManager.getStringValue(PreferenceManager.Keys.PREFERENCE_KEY_SCAN_MODE)
+                        )
+                    }
+                    else -> {}
+                }
+            }
+        }
+
         AnimatedVisibility(
             visible = currentMode.id == ScanMode.Modes.MODE_AUTO,
             enter = fadeIn(),
