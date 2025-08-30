@@ -30,7 +30,6 @@ object PointScanSettings {
             val storedMode = preferenceManager.getStringValue(
                 PreferenceManager.PREFERENCE_KEY_CURSOR_MODE
             )
-            println("Stored mode: $storedMode")
             return if (storedMode == Modes.MODE_SINGLE || storedMode == Modes.MODE_BLOCK) {
                 storedMode
             } else {
