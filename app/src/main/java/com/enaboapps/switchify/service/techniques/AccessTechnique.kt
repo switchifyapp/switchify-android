@@ -94,6 +94,7 @@ object AccessTechnique {
      * @param value The type of the access technique
      */
     fun setCurrentTechnique(value: String) {
+        if (currentTechnique == value) return
         currentTechnique = value
         observer?.onAccessTechniqueChanged(value)
 
@@ -117,7 +118,6 @@ object AccessTechnique {
             var storedType = preferenceManager.getStringValue(
                 PreferenceManager.PREFERENCE_KEY_ACCESS_TECHNIQUE
             )
-            println("Stored type: $storedType")
             if (storedType.isNotEmpty()) {
                 if (storedType == "cursor") storedType = Technique.POINT_SCAN
                 currentTechnique = storedType
