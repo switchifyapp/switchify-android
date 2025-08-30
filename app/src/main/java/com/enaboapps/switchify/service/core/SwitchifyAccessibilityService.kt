@@ -376,7 +376,8 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
                             ServiceBridge.emitEvent(ServiceBridge.ServiceEvent.ConfigurationUpdated)
                         }
                         PreferenceManager.Keys.PREFERENCE_KEY_ACCESS_TECHNIQUE -> {
-                            // Access technique changed - enforce compatibility (may change scan mode)
+                            // Access technique changed - reload from preferences and enforce compatibility
+                            AccessTechnique.reloadFromPreferences()
                             techniqueEnforcer.enforceCompatibility()
                             ServiceBridge.emitEvent(ServiceBridge.ServiceEvent.ConfigurationUpdated)
                         }
