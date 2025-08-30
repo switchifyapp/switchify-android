@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+# Enforce Switchify commit message format
+# Expected:
+# Line 1: Brief descriptive title
+# Line 2: blank
+# Lines 3..N-2: bullets starting with '- ' (at least one)
+# Last line: the literal "🤖 Auto-generated"
+
+set -euo pipefail
+
+MSG_FILE="$1"
+mapfile -t LINES < "$MSG_FILE"
+
+fail() {
+  echo "Commit message does not follow Switchify format:" >&2
+  echo "" >&2
+  echo "Expected format:" >&2
+  echo "Title line" >&2
+  echo "" >&2
+  echo "- Bullet points describing changes" >&2
+  echo "- Focus on what and why, not just what" >&2
+  echo "- Include technical details relevant to reviewers" >&2
+  echo "" >&2
+  echo "🤖 Auto-generated" >&2
+  echo "" >&2
+  exit 1
+}
+
+# Strip trailing empty lines
+while (( ${#LINES[@]} > 0 )) && [[ -z "${LINES[-1]// }" ]]; do unset 'LINES[-1]'; done
+
+(( ${#LINES[@]} >= 4 )) || fail
+
+TITLE="${LINES[0]}"
+SECOND="${LINES[1]:-}"
+LAST="${LINES[-1]}"
+
+[[ -n "$TITLE" ]] || fail
+[[ -z "${SECOND// }" ]] || fail
+
+# Find at least one bullet beginning with '- '
+BULLET_FOUND=0
+for ((i=2; i<${#LINES[@]}-1; i++)); do
+  if [[ "${LINES[$i]}" =~ ^-\  ]]; then BULLET_FOUND=1; break; fi
+done
+(( BULLET_FOUND == 1 )) || fail
+
+[[ "$LAST" == "🤖 Auto-generated" ]] || fail
+
+exit 0
+

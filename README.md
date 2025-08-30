@@ -47,6 +47,15 @@ supabase.anonKey=<ask_for_key>
 5. Commit and push your changes
 6. Create a pull request
 
+### Git hooks
+
+Enable repo-provided hooks to enforce commit message format:
+
+```bash
+git config core.hooksPath .githooks
+chmod +x .githooks/commit-msg
+```
+
 ## Links
 
 - [Google Play Store](https://play.google.com/store/apps/details?id=com.enaboapps.switchify)
