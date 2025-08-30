@@ -47,6 +47,20 @@ supabase.anonKey=<ask_for_key>
 5. Commit and push your changes
 6. Create a pull request
 
+### Commit messages
+
+Use Conventional Commits for concise messages:
+
+- Format: `type: subject`
+- Allowed `type`: feat, fix, docs, chore, refactor, perf, test, build, ci, style, revert
+
+Enable repo-provided hook to enforce the format:
+
+```bash
+git config core.hooksPath .githooks
+chmod +x .githooks/commit-msg
+```
+
 ## Links
 
 - [Google Play Store](https://play.google.com/store/apps/details?id=com.enaboapps.switchify)

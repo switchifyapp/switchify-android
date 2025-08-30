@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# Enforce simple Conventional Commits style: "type: subject"
+# Allowed types: feat, fix, docs, chore, refactor, perf, test, build, ci, style, revert
+
+set -euo pipefail
+
+MSG_FILE="$1"
+FIRST_LINE=$(head -n1 "$MSG_FILE")
+
+TYPE_REGEX='^(feat|fix|docs|chore|refactor|perf|test|build|ci|style|revert)(!:)?(\([^)]+\))?: .+'
+
+if [[ "$FIRST_LINE" =~ $TYPE_REGEX ]]; then
+  exit 0
+fi
+
+cat >&2 <<EOF
+Commit message must start with Conventional Commit style:
+
+  <type>: <subject>
+
+Allowed types: feat, fix, docs, chore, refactor, perf, test, build, ci, style, revert
+
+Examples:
+  fix: correct technique enforcement on mode change
+  feat: add camera switch gesture sensitivity setting
+  docs: clarify ServiceBridge in-process scope
+EOF
+exit 1
