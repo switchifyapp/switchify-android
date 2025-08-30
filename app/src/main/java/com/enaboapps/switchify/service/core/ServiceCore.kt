@@ -18,7 +18,7 @@ object ServiceCore {
     fun init(accessibilityService: SwitchifyAccessibilityService) {
         // Initialize PauseManager singleton
         PauseManager.getInstance().init(accessibilityService)
-        
+
         scanningManagerRef = WeakReference(ScanningManager(accessibilityService))
         switchEventProviderRef = WeakReference(SwitchEventProvider(accessibilityService))
         val scanningManager = scanningManagerRef.get() ?: return

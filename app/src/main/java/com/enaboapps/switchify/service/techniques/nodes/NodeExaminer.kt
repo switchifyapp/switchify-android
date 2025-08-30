@@ -93,9 +93,12 @@ object NodeExaminer {
                     val result = withTimeoutOrNull(TREE_PROCESSING_TIMEOUT_MS) {
                         processAccessibilityTree(rootNode, context, isKeyboardVisible)
                     }
-                    
+
                     if (result == null) {
-                        Log.w(TAG, "Accessibility tree processing timed out after ${TREE_PROCESSING_TIMEOUT_MS}ms")
+                        Log.w(
+                            TAG,
+                            "Accessibility tree processing timed out after ${TREE_PROCESSING_TIMEOUT_MS}ms"
+                        )
                     }
                 }
             }
@@ -111,7 +114,7 @@ object NodeExaminer {
     ) {
         // Flatten the accessibility tree to get all nodes
         val newNodeInfos = flattenTree(rootNode)
-        
+
         // Early termination for oversized trees
         if (newNodeInfos.size > MAX_NODES_THRESHOLD) {
             Log.w(TAG, "Tree too large (${newNodeInfos.size} nodes), skipping detailed processing")
@@ -184,7 +187,7 @@ object NodeExaminer {
 
         // For larger lists, use optimized approach
         val nodesToDiscard = mutableSetOf<Node>()
-        
+
         // Sort nodes by area (smaller first) to optimize containment checks
         val sortedNodes = nodes.sortedBy { node ->
             try {
@@ -198,14 +201,14 @@ object NodeExaminer {
         // Only check nodes that could potentially contain others
         for (i in sortedNodes.indices) {
             if (nodesToDiscard.contains(sortedNodes[i])) continue
-            
+
             val nodeA = sortedNodes[i]
             val boundsA = try {
                 nodeA.getBounds()
             } catch (e: Exception) {
                 continue
             }
-            
+
             if (boundsA?.isEmpty != false) continue
 
             // Only check against larger nodes (those that come after in sorted order)
@@ -216,7 +219,7 @@ object NodeExaminer {
                 } catch (e: Exception) {
                     continue
                 }
-                
+
                 if (boundsB?.isEmpty != false) continue
 
                 // If nodeB contains nodeA, mark nodeB for removal (keep the smaller nodeA)
@@ -242,8 +245,16 @@ object NodeExaminer {
                 val nodeA = nodes[i]
                 val nodeB = nodes[j]
 
-                val boundsA = try { nodeA.getBounds() } catch (e: Exception) { null }
-                val boundsB = try { nodeB.getBounds() } catch (e: Exception) { null }
+                val boundsA = try {
+                    nodeA.getBounds()
+                } catch (e: Exception) {
+                    null
+                }
+                val boundsB = try {
+                    nodeB.getBounds()
+                } catch (e: Exception) {
+                    null
+                }
 
                 if (boundsA?.isEmpty != false || boundsB?.isEmpty != false) continue
 

@@ -1,11 +1,11 @@
 package com.enaboapps.switchify.service.menu.menus
 
+import com.enaboapps.switchify.R
 import com.enaboapps.switchify.service.core.SwitchifyAccessibilityService
 import com.enaboapps.switchify.service.menu.MenuItem
+import com.enaboapps.switchify.service.menu.MenuManager
 import com.enaboapps.switchify.service.menu.MenuView
 import com.enaboapps.switchify.service.menu.structure.MenuStructureHolder
-import com.enaboapps.switchify.service.menu.MenuManager
-import com.enaboapps.switchify.R
 
 /**
  * This class represents a base menu
@@ -27,7 +27,7 @@ open class BaseMenu(
      */
     fun getMenuItems(): List<MenuItem> {
         val isAtFirstMenu = MenuManager.getInstance().menuHierarchy?.isAtFirstMenu() ?: true
-        
+
         return if (!isAtFirstMenu && showNavMenuItems) {
             val previousMenuItem = MenuItem(
                 id = "previous_menu_first",

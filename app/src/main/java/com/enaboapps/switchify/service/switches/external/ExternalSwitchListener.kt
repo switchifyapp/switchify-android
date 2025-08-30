@@ -3,10 +3,10 @@ package com.enaboapps.switchify.service.switches.external
 import android.content.Context
 import android.util.Log
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
+import com.enaboapps.switchify.service.core.ServiceCore
 import com.enaboapps.switchify.service.scanning.ScanningManager
 import com.enaboapps.switchify.service.selection.SelectionHandler
 import com.enaboapps.switchify.service.switches.SwitchEventProvider
-import com.enaboapps.switchify.service.core.ServiceCore
 import com.enaboapps.switchify.switches.SwitchEvent
 
 /**

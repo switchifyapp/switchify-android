@@ -45,7 +45,7 @@ import com.enaboapps.switchify.service.gestures.data.GestureType
 class GestureDispatcher(
     private val accessibilityService: SwitchifyAccessibilityService
 ) {
-    
+
     /**
      * Callback interface for handling gesture execution results.
      *
@@ -79,7 +79,7 @@ class GestureDispatcher(
          */
         fun onGestureError(gestureType: GestureType, error: Throwable)
     }
-    
+
     /**
      * Standard result handler that integrates seamlessly with the unified state management system.
      *
@@ -100,25 +100,30 @@ class GestureDispatcher(
      * - Proper cleanup of gesture-related state
      * - Coordination with visual feedback and other subsystems
      */
-    private class DefaultResultHandler(private val gestureType: GestureType) : GestureResultHandler {
-        
+    private class DefaultResultHandler(private val gestureType: GestureType) :
+        GestureResultHandler {
+
         override fun onGestureCompleted(gestureType: GestureType) {
             // Update state through GestureStateManager
             GestureStateManager.notifyGestureDispatchCompleted(gestureType)
         }
-        
+
         override fun onGestureCancelled(gestureType: GestureType) {
             // Update state through GestureStateManager
             GestureStateManager.notifyGestureDispatchCancelled(gestureType)
         }
-        
+
         override fun onGestureError(gestureType: GestureType, error: Throwable) {
             // Log error and update state
-            android.util.Log.e("GestureDispatcher", "Gesture dispatch error for $gestureType", error)
+            android.util.Log.e(
+                "GestureDispatcher",
+                "Gesture dispatch error for $gestureType",
+                error
+            )
             GestureStateManager.notifyGestureDispatchError(gestureType, error)
         }
     }
-    
+
     /**
      * Core dispatch method that orchestrates the complete gesture execution pipeline.
      *
@@ -159,17 +164,17 @@ class GestureDispatcher(
         resultHandler: GestureResultHandler? = null
     ) {
         val handler = resultHandler ?: DefaultResultHandler(gestureType)
-        
+
         try {
             // Handle gesture pattern recording and gesture lock
             gestureData?.let { data ->
                 GestureLockManager.instance.setLockedGestureData(data)
                 GesturePatternRecorder.addGesture(data, accessibilityService)
             }
-            
+
             // Notify state manager of dispatch attempt
             GestureStateManager.notifyGestureDispatchStarted(gestureType)
-            
+
             accessibilityService.dispatchGesture(
                 gestureDescription,
                 object : AccessibilityService.GestureResultCallback() {
@@ -178,16 +183,24 @@ class GestureDispatcher(
                         try {
                             handler.onGestureCompleted(gestureType)
                         } catch (e: Exception) {
-                            android.util.Log.e("GestureDispatcher", "Error in completion handler", e)
+                            android.util.Log.e(
+                                "GestureDispatcher",
+                                "Error in completion handler",
+                                e
+                            )
                         }
                     }
-                    
+
                     override fun onCancelled(gestureDescription: GestureDescription?) {
                         super.onCancelled(gestureDescription)
                         try {
                             handler.onGestureCancelled(gestureType)
                         } catch (e: Exception) {
-                            android.util.Log.e("GestureDispatcher", "Error in cancellation handler", e)
+                            android.util.Log.e(
+                                "GestureDispatcher",
+                                "Error in cancellation handler",
+                                e
+                            )
                         }
                     }
                 },
@@ -197,21 +210,25 @@ class GestureDispatcher(
             handler.onGestureError(gestureType, e)
         }
     }
-    
+
     /**
      * Convenience method for dispatching simple gestures with automatic result handling.
-     * 
+     *
      * @param gestureDescription The gesture description to dispatch
      * @param gestureType The type of gesture being dispatched
      * @param gestureData Optional gesture data for pattern recording and gesture lock
      */
-    fun dispatchSimple(gestureDescription: GestureDescription, gestureType: GestureType, gestureData: GestureData? = null) {
+    fun dispatchSimple(
+        gestureDescription: GestureDescription,
+        gestureType: GestureType,
+        gestureData: GestureData? = null
+    ) {
         dispatch(gestureDescription, gestureType, gestureData)
     }
-    
+
     /**
      * Dispatches a gesture with custom completion and cancellation actions.
-     * 
+     *
      * @param gestureDescription The gesture description to dispatch
      * @param gestureType The type of gesture being dispatched
      * @param gestureData Optional gesture data for pattern recording and gesture lock
@@ -232,25 +249,29 @@ class GestureDispatcher(
                 GestureStateManager.notifyGestureDispatchCompleted(gestureType)
                 onCompleted?.invoke()
             }
-            
+
             override fun onGestureCancelled(gestureType: GestureType) {
                 GestureStateManager.notifyGestureDispatchCancelled(gestureType)
                 onCancelled?.invoke()
             }
-            
+
             override fun onGestureError(gestureType: GestureType, error: Throwable) {
-                android.util.Log.e("GestureDispatcher", "Gesture dispatch error for $gestureType", error)
+                android.util.Log.e(
+                    "GestureDispatcher",
+                    "Gesture dispatch error for $gestureType",
+                    error
+                )
                 GestureStateManager.notifyGestureDispatchError(gestureType, error)
                 onError?.invoke(error)
             }
         }
-        
+
         dispatch(gestureDescription, gestureType, gestureData, handler)
     }
-    
+
     /**
      * Checks if the accessibility service is available for gesture dispatch.
-     * 
+     *
      * @return True if service is available, false otherwise
      */
     fun isServiceAvailable(): Boolean {

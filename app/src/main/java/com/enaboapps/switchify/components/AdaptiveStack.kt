@@ -14,16 +14,16 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 /**
- * Adaptive stack component that switches between vertical (Column) and horizontal (Row) 
+ * Adaptive stack component that switches between vertical (Column) and horizontal (Row)
  * layouts based on device type. Uses vertical layout for phones and horizontal for tablets.
  * Perfect for button groups and other UI elements that need responsive behavior.
- * 
+ *
  * @param modifier Modifier to be applied to the container
  * @param spacing Space between items in the stack
  * @param horizontalAlignment Horizontal alignment when in vertical mode (Column)
  * @param verticalAlignment Vertical alignment when in horizontal mode (Row)
  * @param content The content to be laid out adaptively
- * 
+ *
  * Usage examples:
  * ```
  * // Basic usage - vertical on phone, horizontal on tablet
@@ -44,7 +44,7 @@ fun AdaptiveStack(
     val configuration = LocalConfiguration.current
     val isTablet = configuration.screenWidthDp >= 600 && configuration.smallestScreenWidthDp >= 600
     val isPhone = !isTablet
-    
+
     if (isPhone) {
         // Vertical layout for phones
         Column(
@@ -78,7 +78,7 @@ class AdaptiveStackScope(
     private val rowScope: RowScope?
 ) {
     val isTablet: Boolean get() = !isPhone
-    
+
     /**
      * Extension function that applies fillMaxWidth() when on phone (vertical mode),
      * and weight(1f) when on tablet (horizontal mode).
@@ -91,10 +91,10 @@ class AdaptiveStackScope(
             this@adaptiveFill.weight(1f)
         }
     }
-    
+
     /**
      * Modifier that applies different modifiers based on device type.
-     * 
+     *
      * @param phoneModifier Modifier to apply on phones (vertical layout)
      * @param tabletModifier Modifier to apply on tablets (horizontal layout)
      */

@@ -36,7 +36,8 @@ object IAPHandler {
     val purchaseState: StateFlow<PurchaseState> = _purchaseState
 
     // StateFlow to observe purchase capability changes
-    private val _purchaseCapability = MutableStateFlow<PurchaseCapability>(PurchaseCapability.Unknown)
+    private val _purchaseCapability =
+        MutableStateFlow<PurchaseCapability>(PurchaseCapability.Unknown)
     val purchaseCapability: StateFlow<PurchaseCapability> = _purchaseCapability
 
     /**
@@ -109,7 +110,7 @@ object IAPHandler {
     /**
      * Initializes RevenueCat if needed. Safe to call multiple times.
      * Use this in paywall/purchase screens before doing any purchase operations.
-     * 
+     *
      * @param context The context to use for initialization
      * @param onInitialized Callback called when RevenueCat is ready
      */
@@ -118,7 +119,7 @@ object IAPHandler {
             onInitialized()
             return
         }
-        
+
         Log.d(TAG, "Initializing RevenueCat on demand")
         connect(context, BuildConfig.DEBUG, onInitialized)
     }
@@ -130,7 +131,11 @@ object IAPHandler {
      * @param debugLogsEnabled Enable debug logs for RevenueCat
      * @param onInitialized Callback to be called when initialization is complete
      */
-    fun connect(context: Context, debugLogsEnabled: Boolean = BuildConfig.DEBUG, onInitialized: () -> Unit = {}) {
+    fun connect(
+        context: Context,
+        debugLogsEnabled: Boolean = BuildConfig.DEBUG,
+        onInitialized: () -> Unit = {}
+    ) {
         if (isRevenueCatInitialized) {
             Log.e(TAG, "RevenueCat is already initialized")
             onInitialized()
@@ -337,16 +342,18 @@ object IAPHandler {
             override fun onError(error: PurchasesError) {
                 val capability = when {
                     error.message.contains("billing unavailable", ignoreCase = true) ||
-                    error.message.contains("billing not available", ignoreCase = true) ||
-                    error.message.contains("not supported", ignoreCase = true) -> {
+                            error.message.contains("billing not available", ignoreCase = true) ||
+                            error.message.contains("not supported", ignoreCase = true) -> {
                         Log.w(TAG, "Billing unavailable: ${error.message}")
                         PurchaseCapability.Unavailable
                     }
+
                     error.message.contains("restricted", ignoreCase = true) ||
-                    error.message.contains("parental", ignoreCase = true) -> {
+                            error.message.contains("parental", ignoreCase = true) -> {
                         Log.w(TAG, "Billing restricted: ${error.message}")
                         PurchaseCapability.Restricted
                     }
+
                     else -> {
                         Log.e(TAG, "Error checking purchase capability: ${error.message}")
                         PurchaseCapability.Unknown

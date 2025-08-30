@@ -1,6 +1,8 @@
 package com.enaboapps.switchify.service.menu.menus.main
 
 import com.enaboapps.switchify.R
+import com.enaboapps.switchify.backend.preferences.PreferenceManager
+import com.enaboapps.switchify.service.actions.GlobalActionManager
 import com.enaboapps.switchify.service.core.ServiceCore
 import com.enaboapps.switchify.service.core.SwitchifyAccessibilityService
 import com.enaboapps.switchify.service.gestures.GesturePoint
@@ -9,13 +11,10 @@ import com.enaboapps.switchify.service.menu.MenuItem
 import com.enaboapps.switchify.service.menu.MenuManager
 import com.enaboapps.switchify.service.menu.menus.gestures.GestureMenuStructure
 import com.enaboapps.switchify.service.menu.structure.MenuStructure
+import com.enaboapps.switchify.service.scanning.ScanSettings
 import com.enaboapps.switchify.service.techniques.AccessTechnique
 import com.enaboapps.switchify.service.techniques.nodes.NodeExaminer
 import com.enaboapps.switchify.service.utils.DeviceLockObserver
-import com.enaboapps.switchify.backend.preferences.PreferenceManager
-import com.enaboapps.switchify.backend.iap.IAPHandler
-import com.enaboapps.switchify.service.actions.GlobalActionManager
-import com.enaboapps.switchify.service.scanning.ScanSettings
 
 class MainMenuStructure(private val accessibilityService: SwitchifyAccessibilityService) {
     private val gestureMenuStructure = GestureMenuStructure(accessibilityService)

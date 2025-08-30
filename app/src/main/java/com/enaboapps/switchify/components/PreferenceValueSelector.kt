@@ -68,15 +68,15 @@ fun PreferenceValueSelector(
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Medium
                     )
-                    
+
                     Spacer(modifier = Modifier.height(4.dp))
-                    
+
                     Text(
                         text = stringResource(summaryResId),
                         style = MaterialTheme.typography.bodySmall
                     )
                 }
-                
+
                 // Current value display
                 Text(
                     text = displayFormatter(currentValue),
@@ -87,7 +87,7 @@ fun PreferenceValueSelector(
                     color = MaterialTheme.colorScheme.onSurface
                 )
             }
-            
+
             // Value buttons below
             FlowRow(
                 modifier = Modifier
@@ -110,9 +110,9 @@ fun PreferenceValueSelector(
                         },
                         modifier = Modifier,
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = if (currentValue == i) 
-                                MaterialTheme.colorScheme.primary 
-                            else 
+                            containerColor = if (currentValue == i)
+                                MaterialTheme.colorScheme.primary
+                            else
                                 MaterialTheme.colorScheme.surfaceVariant,
                             contentColor = if (currentValue == i)
                                 MaterialTheme.colorScheme.onPrimary

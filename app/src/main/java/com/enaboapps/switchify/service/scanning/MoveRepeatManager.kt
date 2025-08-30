@@ -45,11 +45,12 @@ class MoveRepeatManager(private val context: Context) {
         Log.d(TAG, "start")
         setup()
         if (!isRunning()) {
-            val delay = if (AccessTechnique.getCurrentTechnique() == AccessTechnique.Technique.DIRECT_CONTROL) {
-                DirectControlSettings(context).repeatDelay()
-            } else {
-                scanSettings.getMoveRepeatDelay()
-            }
+            val delay =
+                if (AccessTechnique.getCurrentTechnique() == AccessTechnique.Technique.DIRECT_CONTROL) {
+                    DirectControlSettings(context).repeatDelay()
+                } else {
+                    scanSettings.getMoveRepeatDelay()
+                }
             scanningScheduler?.startScanning(0, delay)
             return true
         }

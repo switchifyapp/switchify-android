@@ -2,7 +2,6 @@ package com.enaboapps.switchify.service.gestures.visuals
 
 import android.content.Context
 import android.graphics.Color
-import androidx.core.graphics.toColorInt
 import android.graphics.drawable.GradientDrawable
 import android.os.Handler
 import android.os.Looper
@@ -10,6 +9,7 @@ import android.view.animation.Animation
 import android.view.animation.ScaleAnimation
 import android.widget.ImageView
 import android.widget.RelativeLayout
+import androidx.core.graphics.toColorInt
 import com.enaboapps.switchify.service.scanning.ScanColorManager
 import com.enaboapps.switchify.service.window.SwitchifyAccessibilityWindow
 import java.lang.ref.WeakReference

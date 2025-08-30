@@ -1,7 +1,6 @@
 package com.enaboapps.switchify.service.gestures.visuals
 
 import android.content.Context
-import androidx.core.graphics.toColorInt
 import android.graphics.drawable.GradientDrawable
 import android.os.Handler
 import android.os.Looper
@@ -9,6 +8,7 @@ import android.view.animation.Animation
 import android.view.animation.ScaleAnimation
 import android.widget.ImageView
 import android.widget.RelativeLayout
+import androidx.core.graphics.toColorInt
 import com.enaboapps.switchify.service.gestures.GestureStateManager
 import com.enaboapps.switchify.service.scanning.ScanColorManager
 import com.enaboapps.switchify.service.window.SwitchifyAccessibilityWindow
@@ -20,38 +20,38 @@ import java.lang.ref.WeakReference
  * Integrates with GestureStateManager for coordinated state management.
  */
 class GestureVisualManager(context: Context) : GestureStateManager.GestureStateListener {
-    
+
     private val contextRef: WeakReference<Context> = WeakReference(context)
     private val accessibilityWindow = SwitchifyAccessibilityWindow.instance
     private val animatedGestureArrow = AnimatedGestureArrow(context)
-    
+
     // Active visual tracking
     private var currentCircle: WeakReference<RelativeLayout>? = null
     private var currentAnimation: ScaleAnimation? = null
     private var removeHandler: Handler? = null
-    
+
     companion object {
         // Standardized circle size - compromise between existing 40px and 60px
         private const val STANDARD_CIRCLE_SIZE = 48
     }
-    
+
     init {
         // Register as state listener for coordinated visual feedback
         GestureStateManager.addStateListener("visual_manager", this)
     }
-    
+
     /**
      * Shows a static circle at the specified coordinates.
      * @param x The x-coordinate of the circle's center
-     * @param y The y-coordinate of the circle's center  
+     * @param y The y-coordinate of the circle's center
      * @param duration Duration in milliseconds, null for persistent circle
      */
     fun showStaticCircle(x: Int, y: Int, duration: Long? = null) {
         clearCurrentVisual()
-        
+
         val context = contextRef.get() ?: return
         val circleLayout = createCircleLayout(context, STANDARD_CIRCLE_SIZE)
-        
+
         accessibilityWindow.addView(
             circleLayout,
             x - STANDARD_CIRCLE_SIZE / 2,
@@ -59,17 +59,17 @@ class GestureVisualManager(context: Context) : GestureStateManager.GestureStateL
             STANDARD_CIRCLE_SIZE,
             STANDARD_CIRCLE_SIZE
         )
-        
+
         currentCircle = WeakReference(circleLayout)
-        
+
         // Auto-remove after duration if specified
-        duration?.let { 
+        duration?.let {
             removeHandler = Handler(Looper.getMainLooper()).apply {
                 postDelayed({ clearCurrentVisual() }, it)
             }
         }
     }
-    
+
     /**
      * Shows a countdown circle with shrinking animation.
      * @param x The x-coordinate of the circle's center
@@ -78,10 +78,10 @@ class GestureVisualManager(context: Context) : GestureStateManager.GestureStateL
      */
     fun showCountdownCircle(x: Int, y: Int, duration: Long) {
         clearCurrentVisual()
-        
+
         val context = contextRef.get() ?: return
         val circleLayout = createCircleLayout(context, STANDARD_CIRCLE_SIZE)
-        
+
         accessibilityWindow.addView(
             circleLayout,
             x - STANDARD_CIRCLE_SIZE / 2,
@@ -89,9 +89,9 @@ class GestureVisualManager(context: Context) : GestureStateManager.GestureStateL
             STANDARD_CIRCLE_SIZE,
             STANDARD_CIRCLE_SIZE
         )
-        
+
         currentCircle = WeakReference(circleLayout)
-        
+
         // Create shrinking animation
         val scaleAnimation = ScaleAnimation(
             1f, 0f, 1f, 0f,
@@ -101,16 +101,16 @@ class GestureVisualManager(context: Context) : GestureStateManager.GestureStateL
             this.duration = duration
             fillAfter = true
         }
-        
+
         currentAnimation = scaleAnimation
         circleLayout.getChildAt(0)?.startAnimation(scaleAnimation)
-        
+
         // Auto-remove after animation
         removeHandler = Handler(Looper.getMainLooper()).apply {
             postDelayed({ clearCurrentVisual() }, duration)
         }
     }
-    
+
     /**
      * Shows an animated arrow from start to end point.
      * @param x1 Start x-coordinate
@@ -122,14 +122,14 @@ class GestureVisualManager(context: Context) : GestureStateManager.GestureStateL
     fun showArrowAnimation(x1: Int, y1: Int, x2: Int, y2: Int, duration: Long) {
         animatedGestureArrow.showArrowAnimation(x1, y1, x2, y2, duration)
     }
-    
+
     /**
      * Hides any currently displayed circle visual.
      */
     fun hideCircle() {
         clearCurrentVisual()
     }
-    
+
     /**
      * Creates a standardized circle layout with unified styling.
      */
@@ -141,32 +141,32 @@ class GestureVisualManager(context: Context) : GestureStateManager.GestureStateL
             )
             setSize(size, size)
         }
-        
+
         val imageView = ImageView(context).apply {
             setImageDrawable(gradientDrawable)
         }
-        
+
         return RelativeLayout(context).apply {
             addView(imageView, RelativeLayout.LayoutParams(size, size))
         }
     }
-    
+
     /**
      * Clears any current visual and associated handlers/animations.
      */
     private fun clearCurrentVisual() {
         currentAnimation?.cancel()
         removeHandler?.removeCallbacksAndMessages(null)
-        
+
         currentCircle?.get()?.let { circle ->
             accessibilityWindow.removeView(circle)
         }
-        
+
         currentCircle = null
         currentAnimation = null
         removeHandler = null
     }
-    
+
     /**
      * Implements GestureStateListener to coordinate visual feedback with state changes.
      */
@@ -178,17 +178,19 @@ class GestureVisualManager(context: Context) : GestureStateManager.GestureStateL
                     hideCircle()
                 }
             }
+
             GestureStateManager.EVENT_AUTO_SELECT_CANCELLED -> {
                 // Hide countdown visual when auto-select is cancelled
                 hideCircle()
             }
+
             GestureStateManager.EVENT_STATE_RESET -> {
                 // Clear all visuals on state reset
                 clearCurrentVisual()
             }
         }
     }
-    
+
     /**
      * Releases all resources and clears references.
      */

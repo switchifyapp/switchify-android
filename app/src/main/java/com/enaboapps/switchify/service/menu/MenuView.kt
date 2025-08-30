@@ -68,7 +68,7 @@ class MenuView(
 
     /** Preference manager */
     private val preferenceManager = PreferenceManager(context)
-    
+
     /** Flag to track if setup has been completed */
     private var isSetupComplete = false
 
@@ -79,7 +79,7 @@ class MenuView(
     private fun setup(onComplete: () -> Unit) {
         CoroutineScope(Dispatchers.Main).launch {
             val staticItems = menu.getMenuItems()
-            
+
             // Check if we need to load dynamic items
             try {
                 val dynamicItems = menu.getDynamicMenuItems()
@@ -98,7 +98,7 @@ class MenuView(
                     createMenuPages(staticItems)
                 }
             }
-            
+
             isSetupComplete = true
             onComplete()
         }
@@ -118,7 +118,7 @@ class MenuView(
 
         // Calculate items per row based on screen width
         val itemsPerRow = calculateItemsPerRow()
-        
+
         // Calculate total items per page based on rows and items per row
         val numOfItemsPerPage = numOfRowsPerPage * itemsPerRow
 
@@ -159,21 +159,21 @@ class MenuView(
         val screenWidthPx = context.resources.displayMetrics.widthPixels
         val density = context.resources.displayMetrics.density
         val screenWidthDp = screenWidthPx / density
-        
+
         // Reserve 200dp for margins and padding
         val availableWidthDp = screenWidthDp - 200
-        
+
         // Get menu item width based on device type
         val menuItemSize = MenuSizeManager.getRegularItemSize(context)
         val itemWidthDp = menuItemSize.width.value
-        
+
         // Add spacing between items (12dp)
         val itemSpacing = 12f
         val totalItemWidth = itemWidthDp + itemSpacing
-        
+
         // Calculate how many items can fit
         val itemsPerRow = (availableWidthDp / totalItemWidth).toInt()
-        
+
         // Ensure minimum 2 items per row, maximum 5 items per row
         return itemsPerRow.coerceIn(2, 5)
     }
@@ -305,7 +305,7 @@ class MenuView(
         createLinearLayout()
         MenuViewHandler.instance.setup(context)
         MenuViewHandler.instance.addViewOffScreen(baseLayout)
-        
+
         if (!isSetupComplete) {
             // Setup hasn't been done yet, do it now
             setup {

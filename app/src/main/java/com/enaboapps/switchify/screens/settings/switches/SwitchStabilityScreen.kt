@@ -14,7 +14,8 @@ import com.enaboapps.switchify.screens.settings.switches.models.SwitchStabilityS
 @Composable
 fun SwitchStabilityScreen(navController: NavController) {
     val context = LocalContext.current
-    val switchStabilityScreenModel: SwitchStabilityScreenModel = viewModel { SwitchStabilityScreenModel(context) }
+    val switchStabilityScreenModel: SwitchStabilityScreenModel =
+        viewModel { SwitchStabilityScreenModel(context) }
     val ignoredRepeat = switchStabilityScreenModel.switchIgnoreRepeat.observeAsState()
     BaseView(
         titleResId = R.string.screen_title_switch_stability,

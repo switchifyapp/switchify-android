@@ -17,26 +17,22 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.AccessibilityNew
 import androidx.compose.material.icons.rounded.Apps
 import androidx.compose.material.icons.rounded.BugReport
 import androidx.compose.material.icons.rounded.Feedback
 import androidx.compose.material.icons.rounded.Groups
 import androidx.compose.material.icons.rounded.Settings
-import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -49,23 +45,20 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.core.net.toUri
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
 import androidx.navigation.NavController
 import com.enaboapps.switchify.BuildConfig
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.backend.iap.IAPHandler
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.components.BaseView
-import com.enaboapps.switchify.components.NavBarAction
 import com.enaboapps.switchify.components.StatusBannerComponent
 import com.enaboapps.switchify.nav.NavigationRoute
-import com.enaboapps.switchify.service.utils.ServiceUtils
 import com.enaboapps.switchify.service.utils.QuickAppsManager
+import com.enaboapps.switchify.service.utils.ServiceUtils
 import com.enaboapps.switchify.switches.SwitchConfigInvalidBanner
 import com.enaboapps.switchify.switches.SwitchConfigValidator
 import com.enaboapps.switchify.switches.SwitchEventStore
@@ -92,7 +85,8 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
     var updateProgress by remember { mutableFloatStateOf(0f) }
     var isDownloading by remember { mutableStateOf(false) }
     val quickAppsManager = remember { QuickAppsManager(context) }
-    val hasUsageStatsPermission = remember { mutableStateOf(quickAppsManager.hasUsageStatsPermission()) }
+    val hasUsageStatsPermission =
+        remember { mutableStateOf(quickAppsManager.hasUsageStatsPermission()) }
 
     LaunchedEffect(Unit) {
         if (!isSetupComplete) {
@@ -103,7 +97,7 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
                 isPro.value = proPurchased
             }
         }
-        
+
         // Initialize switch store and wait for completion before validation
         switchEventStore.initializeAsync(context)
         isSwitchConfigValid = switchConfigValidator.isConfigurationValid()
@@ -203,11 +197,11 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
             StatusBannerComponent(
                 isAccessibilityServiceEnabled = isAccessibilityServiceEnabled,
                 isPro = isPro.value,
-                onAccessibilityClick = { 
-                    navController.navigate(NavigationRoute.EnableAccessibilityService.name) 
+                onAccessibilityClick = {
+                    navController.navigate(NavigationRoute.EnableAccessibilityService.name)
                 },
-                onProUpgradeClick = { 
-                    navController.navigate(NavigationRoute.Paywall.name) 
+                onProUpgradeClick = {
+                    navController.navigate(NavigationRoute.Paywall.name)
                 }
             )
         }
@@ -264,71 +258,15 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
                     .weight(1f)
                     .fillMaxSize()
             ) {
-            // Settings Card
-            item {
-                GridCard(
-                    titleResId = R.string.screen_title_settings,
-                    summaryResId = R.string.screen_summary_settings,
-                    onClick = { navController.navigate(NavigationRoute.Settings.name) },
-                    icon = {
-                        Icon(
-                            imageVector = Icons.Rounded.Settings,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.fillMaxSize()
-                        )
-                    }
-                )
-            }
-
-            // Feedback Card
-            item {
-                GridCard(
-                    titleResId = R.string.home_feedback_title,
-                    summaryResId = R.string.home_feedback_summary,
-                    onClick = { navController.navigate(NavigationRoute.UserFeedback.name) },
-                    icon = {
-                        Icon(
-                            imageVector = Icons.Rounded.Feedback,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.fillMaxSize()
-                        )
-                    }
-                )
-            }
-
-            // Discord Card
-            item {
-                val context = LocalContext.current
-                GridCard(
-                    titleResId = R.string.home_discord_title,
-                    summaryResId = R.string.home_discord_summary,
-                    onClick = {
-                        val intent = Intent(Intent.ACTION_VIEW, "https://discord.gg/2VgnwhS9".toUri())
-                        context.startActivity(intent)
-                    },
-                    icon = {
-                        Icon(
-                            imageVector = Icons.Rounded.Groups,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.fillMaxSize()
-                        )
-                    }
-                )
-            }
-
-            // Quick Apps Permission Card (only show if permission not granted)
-            if (!hasUsageStatsPermission.value) {
+                // Settings Card
                 item {
                     GridCard(
-                        titleResId = R.string.menu_title_quick_apps,
-                        summaryResId = R.string.screen_summary_quick_apps_permission,
-                        onClick = { navController.navigate(NavigationRoute.UsageStatsPermission.name) },
+                        titleResId = R.string.screen_title_settings,
+                        summaryResId = R.string.screen_summary_settings,
+                        onClick = { navController.navigate(NavigationRoute.Settings.name) },
                         icon = {
                             Icon(
-                                imageVector = Icons.Rounded.Apps,
+                                imageVector = Icons.Rounded.Settings,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.fillMaxSize()
@@ -336,18 +274,16 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
                         }
                     )
                 }
-            }
 
-            // Debug Card (only visible in debug mode)
-            if (BuildConfig.DEBUG) {
+                // Feedback Card
                 item {
                     GridCard(
-                        titleResId = R.string.screen_title_debug,
-                        summaryResId = R.string.screen_summary_debug,
-                        onClick = { navController.navigate(NavigationRoute.Debug.name) },
+                        titleResId = R.string.home_feedback_title,
+                        summaryResId = R.string.home_feedback_summary,
+                        onClick = { navController.navigate(NavigationRoute.UserFeedback.name) },
                         icon = {
                             Icon(
-                                imageVector = Icons.Rounded.BugReport,
+                                imageVector = Icons.Rounded.Feedback,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.fillMaxSize()
@@ -355,8 +291,67 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
                         }
                     )
                 }
+
+                // Discord Card
+                item {
+                    val context = LocalContext.current
+                    GridCard(
+                        titleResId = R.string.home_discord_title,
+                        summaryResId = R.string.home_discord_summary,
+                        onClick = {
+                            val intent =
+                                Intent(Intent.ACTION_VIEW, "https://discord.gg/2VgnwhS9".toUri())
+                            context.startActivity(intent)
+                        },
+                        icon = {
+                            Icon(
+                                imageVector = Icons.Rounded.Groups,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        }
+                    )
+                }
+
+                // Quick Apps Permission Card (only show if permission not granted)
+                if (!hasUsageStatsPermission.value) {
+                    item {
+                        GridCard(
+                            titleResId = R.string.menu_title_quick_apps,
+                            summaryResId = R.string.screen_summary_quick_apps_permission,
+                            onClick = { navController.navigate(NavigationRoute.UsageStatsPermission.name) },
+                            icon = {
+                                Icon(
+                                    imageVector = Icons.Rounded.Apps,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                            }
+                        )
+                    }
+                }
+
+                // Debug Card (only visible in debug mode)
+                if (BuildConfig.DEBUG) {
+                    item {
+                        GridCard(
+                            titleResId = R.string.screen_title_debug,
+                            summaryResId = R.string.screen_summary_debug,
+                            onClick = { navController.navigate(NavigationRoute.Debug.name) },
+                            icon = {
+                                Icon(
+                                    imageVector = Icons.Rounded.BugReport,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                            }
+                        )
+                    }
+                }
             }
-        }
         } // End Column
 
         if (showUpdateDialog) {

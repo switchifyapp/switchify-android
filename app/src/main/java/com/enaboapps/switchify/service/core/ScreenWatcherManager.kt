@@ -1,10 +1,10 @@
 package com.enaboapps.switchify.service.core
 
 import android.content.Context
+import com.enaboapps.switchify.service.gestures.GestureLockManager
 import com.enaboapps.switchify.service.scanning.ScanningManager
 import com.enaboapps.switchify.service.switches.external.ExternalSwitchListener
 import com.enaboapps.switchify.service.utils.ScreenWatcher
-import com.enaboapps.switchify.service.gestures.GestureLockManager
 
 class ScreenWatcherManager(
     private val context: Context

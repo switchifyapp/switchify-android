@@ -9,7 +9,7 @@ import com.enaboapps.switchify.components.PreferenceTimeStepper
 @Composable
 fun RadarSpeedStepper() {
     val preferenceManager = PreferenceManager(LocalContext.current)
-    
+
     PreferenceTimeStepper(
         value = preferenceManager.getLongValue(
             PreferenceManager.PREFERENCE_KEY_RADAR_SCAN_RATE,

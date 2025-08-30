@@ -19,11 +19,11 @@ import kotlinx.coroutines.launch
  */
 object SelectionHandler {
     private const val TAG = "SelectionHandler"
-    
+
     private var selectAction: (() -> Unit)? = null
     private var startScanningAction: (() -> Unit)? = null
     private var gestureVisualManager: GestureVisualManager? = null
-    
+
     // State management now handled by GestureStateManager
 
     private lateinit var scanSettings: ScanSettings
@@ -78,7 +78,9 @@ object SelectionHandler {
             return
         }
 
-        GestureStateManager.setMethodTypeForStartScanning(AccessTechnique.getCurrentTechnique().toString())
+        GestureStateManager.setMethodTypeForStartScanning(
+            AccessTechnique.getCurrentTechnique().toString()
+        )
 
         // If bypass auto-select is enabled, perform the selection action and return
         if (GestureStateManager.shouldBypassAutoSelect()) {
@@ -104,14 +106,14 @@ object SelectionHandler {
             if (selectAction != null) {
                 val delayTime = scanSettings.getAutoSelectDelay()
                 val point = GesturePoint.getPoint()
-                
+
                 // Show visual feedback
                 gestureVisualManager?.showCountdownCircle(
                     point.x.toInt(),
                     point.y.toInt(),
                     delayTime
                 )
-                
+
                 // Start auto-select with unified state manager
                 GestureStateManager.startAutoSelect(delayTime) {
                     selectAction?.invoke()
@@ -130,7 +132,9 @@ object SelectionHandler {
         CoroutineScope(Dispatchers.Main).launch {
             delay(300)
             if (scanSettings.getAutomaticallyStartScanAfterSelection()) {
-                if (GestureStateManager.getMethodTypeForStartScanning() == AccessTechnique.getCurrentTechnique().toString()) {
+                if (GestureStateManager.getMethodTypeForStartScanning() == AccessTechnique.getCurrentTechnique()
+                        .toString()
+                ) {
                     startScanningAction?.invoke()
                 }
             }
@@ -150,15 +154,18 @@ object SelectionHandler {
     fun cleanup() {
         Log.d(TAG, "cleanup() called")
         Log.d(TAG, "Stack trace:", Throwable())
-        
+
         gestureVisualManager?.hideCircle()
-        
+
         // Don't reset gesture state if a linear gesture is in progress
         if (!GestureStateManager.isGestureInProgress()) {
             Log.d(TAG, "No active gesture - resetting all state")
             GestureStateManager.resetAllState()
         } else {
-            Log.d(TAG, "Active gesture detected - preserving gesture state, only resetting selection state")
+            Log.d(
+                TAG,
+                "Active gesture detected - preserving gesture state, only resetting selection state"
+            )
             // Only reset auto-select and selection-specific state, preserve gesture execution state
             GestureStateManager.cancelAutoSelect()
             GestureStateManager.setBypassAutoSelect(false)

@@ -1,9 +1,24 @@
 package com.enaboapps.switchify.screens.account
 
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -18,12 +33,12 @@ import androidx.navigation.NavController
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.auth.viewmodel.AuthUiState
 import com.enaboapps.switchify.auth.viewmodel.AuthViewModel
-import com.enaboapps.switchify.components.BaseView
+import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.components.ActionButton
+import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.OfficialGoogleSignInButton
 import com.enaboapps.switchify.components.TextArea
 import com.enaboapps.switchify.nav.NavigationRoute
-import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import kotlinx.coroutines.delay
 
 @Composable
@@ -32,16 +47,16 @@ fun AuthScreen(
 ) {
     val context = LocalContext.current
     val preferenceManager = remember { PreferenceManager(context) }
-    
-    val viewModel: AuthViewModel = viewModel { 
+
+    val viewModel: AuthViewModel = viewModel {
         AuthViewModel() // No context stored
     }
-    
+
     // Initialize Google Sign-In with Context
     LaunchedEffect(Unit) {
         viewModel.initializeGoogleSignIn(context)
     }
-    
+
     val uiState by viewModel.uiState.collectAsState()
     val email by viewModel.email.collectAsState()
     val otp by viewModel.otp.collectAsState()
@@ -66,9 +81,11 @@ fun AuthScreen(
                     }
                 )
             }
+
             AuthUiState.Loading -> {
                 LoadingSection()
             }
+
             AuthUiState.OtpVerification -> {
                 OtpVerificationSection(
                     email = email,
@@ -81,11 +98,12 @@ fun AuthScreen(
                     onClearError = viewModel::clearError
                 )
             }
+
             AuthUiState.Success -> {
                 LaunchedEffect(Unit) {
                     // Handle settings sync after successful authentication
                     viewModel.handleSettingsSync(context)
-                    
+
                     // Set setup complete when user signs in
                     preferenceManager.setSetupComplete()
                     navController.navigate(NavigationRoute.Home.name) {
@@ -115,21 +133,21 @@ private fun EmailInputSection(
         fontWeight = FontWeight.Bold,
         textAlign = TextAlign.Center
     )
-    
+
     Spacer(modifier = Modifier.height(8.dp))
-    
+
     Text(
         text = stringResource(R.string.enter_email_to_continue),
         style = MaterialTheme.typography.bodyLarge,
         textAlign = TextAlign.Center,
         color = MaterialTheme.colorScheme.onSurfaceVariant
     )
-    
+
     Spacer(modifier = Modifier.height(32.dp))
 
     TextArea(
         value = email,
-        onValueChange = { 
+        onValueChange = {
             onEmailChange(it)
             if (errorMessage != null) onClearError()
         },
@@ -150,7 +168,7 @@ private fun EmailInputSection(
     // Add divider and Google Sign-In option
     if (onGoogleSignInClick != null) {
         Spacer(modifier = Modifier.height(24.dp))
-        
+
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.fillMaxWidth()
@@ -170,9 +188,9 @@ private fun EmailInputSection(
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
             )
         }
-        
+
         Spacer(modifier = Modifier.height(24.dp))
-        
+
         OfficialGoogleSignInButton(
             onClick = onGoogleSignInClick
         )
@@ -230,21 +248,21 @@ private fun OtpVerificationSection(
         fontWeight = FontWeight.Bold,
         textAlign = TextAlign.Center
     )
-    
+
     Spacer(modifier = Modifier.height(8.dp))
-    
+
     Text(
         text = stringResource(R.string.enter_otp_sent_to, email),
         style = MaterialTheme.typography.bodyLarge,
         textAlign = TextAlign.Center,
         color = MaterialTheme.colorScheme.onSurfaceVariant
     )
-    
+
     Spacer(modifier = Modifier.height(32.dp))
 
     TextArea(
         value = otp,
-        onValueChange = { 
+        onValueChange = {
             onOtpChange(it)
             if (errorMessage != null) onClearError()
         },

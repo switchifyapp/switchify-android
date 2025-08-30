@@ -1,43 +1,56 @@
 package com.enaboapps.switchify.screens.settings
 
 import android.Manifest
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.*
+import androidx.camera.view.PreviewView
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.CameraPermissionHandler
-import com.enaboapps.switchify.components.PreferenceValueSelector
 import com.enaboapps.switchify.components.PreferenceTimeStepper
+import com.enaboapps.switchify.components.PreferenceValueSelector
 import com.enaboapps.switchify.components.ScrollableView
 import com.enaboapps.switchify.components.Section
-import com.enaboapps.switchify.service.switches.camera.CameraSwitchManager
+import com.enaboapps.switchify.screens.settings.models.CameraSettingsScreenModel
 import com.enaboapps.switchify.service.face.FaceProcessingService
 import com.enaboapps.switchify.switches.CameraSwitchFacialGesture
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberPermissionState
-import androidx.camera.view.PreviewView
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.lifecycle.compose.LocalLifecycleOwner
-import androidx.lifecycle.viewmodel.compose.viewModel
-import com.enaboapps.switchify.screens.settings.models.CameraSettingsScreenModel
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
@@ -69,7 +82,7 @@ private fun CameraSettingsContent(
 ) {
     val detectedExpressions by viewModel.detectedExpressions.collectAsState()
     val isFaceDetected by viewModel.isFaceDetected.collectAsState()
-    
+
     // Collect threshold state flows
     val smileTime by viewModel.smileTime.collectAsState()
     val leftWinkTime by viewModel.leftWinkTime.collectAsState()
@@ -79,18 +92,18 @@ private fun CameraSettingsContent(
     val headTurnRightSensitivity by viewModel.headTurnRightSensitivity.collectAsState()
     val headTurnUpSensitivity by viewModel.headTurnUpSensitivity.collectAsState()
     val headTurnDownSensitivity by viewModel.headTurnDownSensitivity.collectAsState()
-    
+
     var selectedTabIndex by remember { mutableIntStateOf(0) }
     val tabTitles = listOf(
         stringResource(R.string.tab_test_gestures),
-        stringResource(R.string.tab_timing_settings), 
+        stringResource(R.string.tab_timing_settings),
         stringResource(R.string.tab_sensitivity)
     )
-    
+
     LaunchedEffect(lifecycleOwner) {
         viewModel.startCamera(lifecycleOwner)
     }
-    
+
     DisposableEffect(Unit) {
         onDispose {
             viewModel.cleanup()
@@ -111,12 +124,13 @@ private fun CameraSettingsContent(
                     )
                 }
             }
-            
+
             when (selectedTabIndex) {
                 0 -> TestGesturesTab(
                     detectedExpressions = detectedExpressions,
                     isFaceDetected = isFaceDetected
                 )
+
                 1 -> TimingSettingsTab(
                     viewModel = viewModel,
                     smileTime = smileTime,
@@ -124,6 +138,7 @@ private fun CameraSettingsContent(
                     rightWinkTime = rightWinkTime,
                     blinkTime = blinkTime
                 )
+
                 2 -> SensitivityTab(
                     viewModel = viewModel,
                     headTurnLeftSensitivity = headTurnLeftSensitivity,
@@ -133,7 +148,7 @@ private fun CameraSettingsContent(
                 )
             }
         }
-        
+
         // Small persistent camera preview in bottom right
         Card(
             modifier = Modifier
@@ -205,6 +220,7 @@ private fun ExpressionFeedback(
                         textAlign = TextAlign.Center
                     )
                 }
+
                 detectedExpressions.isNotEmpty() -> {
                     detectedExpressions.forEach { expression ->
                         val gestureName = CameraSwitchFacialGesture(expression).getName()
@@ -217,6 +233,7 @@ private fun ExpressionFeedback(
                         )
                     }
                 }
+
                 else -> {
                     Text(
                         text = stringResource(R.string.no_expression_detected),
@@ -296,7 +313,7 @@ private fun TestGesturesTab(
                 isFaceDetected = isFaceDetected
             )
         }
-        
+
         Section(titleResId = R.string.section_title_detected_expressions) {
             DetectedExpressionsList(detectedExpressions = detectedExpressions)
         }
@@ -322,7 +339,7 @@ private fun TimingSettingsTab(
                 step = 100,
                 onValueChanged = { viewModel.setSmileTime(it) }
             )
-            
+
             PreferenceTimeStepper(
                 value = leftWinkTime,
                 titleResId = R.string.preference_title_left_wink_time,
@@ -332,7 +349,7 @@ private fun TimingSettingsTab(
                 step = 50,
                 onValueChanged = { viewModel.setLeftWinkTime(it) }
             )
-            
+
             PreferenceTimeStepper(
                 value = rightWinkTime,
                 titleResId = R.string.preference_title_right_wink_time,
@@ -342,7 +359,7 @@ private fun TimingSettingsTab(
                 step = 50,
                 onValueChanged = { viewModel.setRightWinkTime(it) }
             )
-            
+
             PreferenceTimeStepper(
                 value = blinkTime,
                 titleResId = R.string.preference_title_blink_time,
@@ -377,7 +394,7 @@ private fun SensitivityTab(
                 },
                 onValueChanged = { viewModel.setHeadTurnLeftSensitivity(it) }
             )
-            
+
             PreferenceValueSelector(
                 value = headTurnRightSensitivity,
                 titleResId = R.string.preference_title_head_turn_right_sensitivity,
@@ -389,7 +406,7 @@ private fun SensitivityTab(
                 },
                 onValueChanged = { viewModel.setHeadTurnRightSensitivity(it) }
             )
-            
+
             PreferenceValueSelector(
                 value = headTurnUpSensitivity,
                 titleResId = R.string.preference_title_head_turn_up_sensitivity,
@@ -401,7 +418,7 @@ private fun SensitivityTab(
                 },
                 onValueChanged = { viewModel.setHeadTurnUpSensitivity(it) }
             )
-            
+
             PreferenceValueSelector(
                 value = headTurnDownSensitivity,
                 titleResId = R.string.preference_title_head_turn_down_sensitivity,

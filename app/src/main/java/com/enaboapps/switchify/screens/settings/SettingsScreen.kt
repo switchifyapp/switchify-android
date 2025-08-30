@@ -1,39 +1,27 @@
 package com.enaboapps.switchify.screens.settings
 
-import android.content.Intent
-import androidx.core.net.toUri
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.enaboapps.switchify.R
+import com.enaboapps.switchify.auth.repository.AuthRepository
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.components.BaseView
-import com.enaboapps.switchify.components.ActionButton
 import com.enaboapps.switchify.components.NavRouteLink
-import com.enaboapps.switchify.components.PreferenceSwitch
-import com.enaboapps.switchify.components.PreferenceTimeStepper
-import com.enaboapps.switchify.components.PreferenceValueSelector
 import com.enaboapps.switchify.components.ScrollableView
 import com.enaboapps.switchify.components.Section
 import com.enaboapps.switchify.nav.NavigationRoute
@@ -47,26 +35,30 @@ import com.enaboapps.switchify.screens.settings.sections.MenuSection
 import com.enaboapps.switchify.screens.settings.sections.SelectionSection
 import com.enaboapps.switchify.screens.settings.shared.ScanModeSelectionSection
 import com.enaboapps.switchify.screens.settings.techniques.AccessTechniqueSelector
-import com.enaboapps.switchify.auth.repository.AuthRepository
 
 @Composable
 fun SettingsScreen(navController: NavController) {
     val context = LocalContext.current
-    val settingsScreenModel: SettingsScreenModel = viewModel { SettingsScreenModel(context) }
-    val selectionSettingsModel: SelectionSettingsModel = viewModel { SelectionSettingsModel(context) }
+    viewModel { SettingsScreenModel(context) }
+    val selectionSettingsModel: SelectionSettingsModel =
+        viewModel { SelectionSettingsModel(context) }
     val menuSettingsModel: MenuSettingsModel = viewModel { MenuSettingsModel(context) }
     val preferenceManager = remember { PreferenceManager(context) }
-    
+
     // Load the saved tab index, default to 0 if not found
-    var selectedTabIndex by remember { 
-        val savedIndex = preferenceManager.getIntegerValue(PreferenceManager.PREFERENCE_KEY_SETTINGS_TAB, 0)
+    var selectedTabIndex by remember {
+        val savedIndex =
+            preferenceManager.getIntegerValue(PreferenceManager.PREFERENCE_KEY_SETTINGS_TAB, 0)
         // Ensure the saved index is within valid range (0-3)
         mutableIntStateOf(savedIndex.coerceIn(0, 3))
     }
-    
+
     // Save tab selection when it changes
     LaunchedEffect(selectedTabIndex) {
-        preferenceManager.setIntegerValue(PreferenceManager.PREFERENCE_KEY_SETTINGS_TAB, selectedTabIndex)
+        preferenceManager.setIntegerValue(
+            PreferenceManager.PREFERENCE_KEY_SETTINGS_TAB,
+            selectedTabIndex
+        )
     }
 
     BaseView(
@@ -103,7 +95,7 @@ fun SettingsScreen(navController: NavController) {
 fun GeneralSettingsTab(menuSettingsModel: MenuSettingsModel, navController: NavController) {
     val authRepository = AuthRepository.instance
     val isSignedIn = authRepository.isUserSignedIn()
-    
+
     ScrollableView {
         Section(titleResId = R.string.settings_section_account) {
             NavRouteLink(
@@ -132,7 +124,7 @@ fun ScanningSettingsTab(navController: NavController) {
                 route = NavigationRoute.AccessTechniqueSettings.name
             )
         }
-        
+
         ScanModeSelectionSection(navController)
 
         Section(titleResId = R.string.settings_section_scan_appearance) {

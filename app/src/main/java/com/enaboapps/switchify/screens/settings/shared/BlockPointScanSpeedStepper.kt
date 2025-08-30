@@ -10,7 +10,7 @@ import com.enaboapps.switchify.service.core.ServiceBridge
 @Composable
 fun BlockPointScanSpeedStepper() {
     val preferenceManager = PreferenceManager(LocalContext.current)
-    
+
     PreferenceTimeStepper(
         value = preferenceManager.getLongValue(
             PreferenceManager.PREFERENCE_KEY_CURSOR_BLOCK_SCAN_RATE,

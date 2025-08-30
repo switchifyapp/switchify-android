@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Star
@@ -21,28 +20,27 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.auth.repository.AuthRepository
-import com.enaboapps.switchify.backend.preferences.PreferenceManager
-import kotlinx.coroutines.launch
 import com.enaboapps.switchify.backend.iap.IAPHandler
+import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.components.ActionButton
 import com.enaboapps.switchify.components.ActionButtonType
 import com.enaboapps.switchify.components.AdaptiveStack
 import com.enaboapps.switchify.components.BaseView
-import com.enaboapps.switchify.nav.NavigationRoute
+import kotlinx.coroutines.launch
 
 @Composable
 fun AccountScreen(navController: NavController) {
@@ -89,17 +87,17 @@ fun AccountScreen(navController: NavController) {
     ) {
         // User Information Section
         AccountInfoSection(email = userEmail)
-        
+
         Spacer(modifier = Modifier.height(24.dp))
-        
+
         // Pro Status Section
         ProStatusSection(
             proStatus = proStatus.value,
             isLoading = isLoading.value
         )
-        
+
         Spacer(modifier = Modifier.height(32.dp))
-        
+
         // Account Actions Section
         AccountActionsSection(
             onSignOut = {
@@ -148,7 +146,10 @@ fun AccountScreen(navController: NavController) {
                             scope.launch {
                                 preferenceManager.clearWhitelistedPreferences()
                                 authRepository.signOut()
-                                navController.popBackStack(navController.graph.startDestinationId, false)
+                                navController.popBackStack(
+                                    navController.graph.startDestinationId,
+                                    false
+                                )
                             }
                         }
                     ) {
@@ -161,7 +162,10 @@ fun AccountScreen(navController: NavController) {
                             showSignOutDialog.value = false
                             scope.launch {
                                 authRepository.signOut()
-                                navController.popBackStack(navController.graph.startDestinationId, false)
+                                navController.popBackStack(
+                                    navController.graph.startDestinationId,
+                                    false
+                                )
                             }
                         }
                     ) {
@@ -227,9 +231,9 @@ private fun AccountInfoSection(email: String) {
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            
+
             Spacer(modifier = Modifier.height(16.dp))
-            
+
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -301,7 +305,7 @@ private fun ProStatusSection(
                         modifier = Modifier.size(20.dp)
                     )
                 }
-                
+
                 Column {
                     Text(
                         text = stringResource(R.string.subscription_status),
@@ -343,7 +347,7 @@ private fun AccountActionsSection(
             modifier = Modifier.adaptiveFill(),
             applyPadding = false
         )
-        
+
         ActionButton(
             textResId = R.string.button_delete_account,
             onClick = onDeleteAccount,

@@ -541,13 +541,6 @@ class ScanTree(
     }
 
     /**
-     * Stops the scanning process.
-     */
-    override fun stopScanningAndReset() {
-        super.stopScanningAndReset()
-    }
-
-    /**
      * Resets the UI to its initial state.
      */
     override fun resetUI() {

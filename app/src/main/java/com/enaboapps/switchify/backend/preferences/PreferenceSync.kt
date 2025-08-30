@@ -3,10 +3,10 @@ package com.enaboapps.switchify.backend.preferences
 import android.content.SharedPreferences
 import android.util.Log
 import androidx.core.content.edit
-import com.enaboapps.switchify.backend.supabase.SupabaseManager
 import com.enaboapps.switchify.backend.supabase.SupabaseClient
-import io.github.jan.supabase.auth.status.SessionStatus
+import com.enaboapps.switchify.backend.supabase.SupabaseManager
 import io.github.jan.supabase.auth.auth
+import io.github.jan.supabase.auth.status.SessionStatus
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -48,19 +48,25 @@ class PreferenceSync private constructor() {
      */
     private fun startAuthObserver() {
         if (authObserverStarted) return
-        
+
         authObserverStarted = true
         Log.d(TAG, "Starting authentication state observer")
-        
+
         coroutineScope.launch {
             try {
                 SupabaseClient.client.auth.sessionStatus.collect { sessionStatus ->
                     Log.d(TAG, "🔐 Auth state changed: ${sessionStatus.javaClass.simpleName}")
-                    
+
                     when (sessionStatus) {
                         is SessionStatus.Authenticated -> {
-                            Log.i(TAG, "🟢 User authenticated - userId: ${sessionStatus.session.user?.id}")
-                            Log.i(TAG, "⏳ Pausing SyncQueue and starting smart sync with 3s delay...")
+                            Log.i(
+                                TAG,
+                                "🟢 User authenticated - userId: ${sessionStatus.session.user?.id}"
+                            )
+                            Log.i(
+                                TAG,
+                                "⏳ Pausing SyncQueue and starting smart sync with 3s delay..."
+                            )
                             // Pause sync queue to prevent conflicts during initial sync
                             SyncQueue.getInstance().pause()
                             // Wait for Supabase to fully initialize
@@ -71,13 +77,16 @@ class PreferenceSync private constructor() {
                                 performSmartSync()
                             }
                         }
+
                         is SessionStatus.NotAuthenticated -> {
                             Log.i(TAG, "🔴 User signed out - clearing sync queue")
                             SyncQueue.getInstance().clearQueue()
                         }
+
                         SessionStatus.Initializing -> {
                             Log.d(TAG, "🔄 Session initializing...")
                         }
+
                         is SessionStatus.RefreshFailure -> {
                             Log.w(TAG, "⚠️  Session refresh failure")
                         }
@@ -97,20 +106,20 @@ class PreferenceSync private constructor() {
             Log.w(TAG, "Smart sync aborted - PreferenceSync not initialized")
             return
         }
-        
+
         try {
             Log.i(TAG, "=== SMART SYNC START ===")
             Log.d(TAG, "User authenticated, beginning smart sync process")
-            
+
             // Pull preferences from Supabase
             Log.d(TAG, "Step 1: Pulling preferences from Supabase...")
             val result = SupabaseManager.getInstance().getUserPreferences()
-            
+
             result.fold(
                 onSuccess = { downloadedPrefs ->
                     Log.d(TAG, "Successfully retrieved preferences from Supabase")
                     Log.d(TAG, "Downloaded preferences count: ${downloadedPrefs.size}")
-                    
+
                     if (downloadedPrefs.isEmpty()) {
                         Log.i(TAG, "Step 2: Empty remote preferences detected - NEW USER")
                         Log.d(TAG, "Proceeding to push local preferences to Supabase")
@@ -148,12 +157,12 @@ class PreferenceSync private constructor() {
         try {
             Log.d(TAG, "Reading local preferences...")
             val localPrefs = getAllPreferences()
-            
+
             if (localPrefs?.isNotEmpty() == true) {
                 Log.i(TAG, "Found ${localPrefs.size} local preferences to push")
                 Log.d(TAG, "Local preference keys: ${localPrefs.keys}")
                 Log.d(TAG, "Uploading local preferences to Supabase...")
-                
+
                 val result = SupabaseManager.getInstance().saveUserPreferences(localPrefs)
                 result.fold(
                     onSuccess = {
@@ -195,8 +204,9 @@ class PreferenceSync private constructor() {
 
         return try {
             // Filter out blacklisted keys
-            val filteredChanges = changes.filterKeys { !PreferenceManager.Keys.BLACKLISTED_KEYS.contains(it) }
-            
+            val filteredChanges =
+                changes.filterKeys { !PreferenceManager.Keys.BLACKLISTED_KEYS.contains(it) }
+
             if (filteredChanges.isEmpty()) {
                 Log.d(TAG, "No valid changes to upload after filtering")
                 return Result.success(Unit)
@@ -205,7 +215,7 @@ class PreferenceSync private constructor() {
             // Get current preferences and merge with changes
             val currentPrefs = getAllPreferences() ?: emptyMap()
             val mergedPrefs = currentPrefs + filteredChanges
-            
+
             val result = SupabaseManager.getInstance().saveUserPreferences(mergedPrefs)
             result.fold(
                 onSuccess = {

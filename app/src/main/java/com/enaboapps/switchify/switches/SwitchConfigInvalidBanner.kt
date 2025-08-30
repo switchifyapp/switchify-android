@@ -41,73 +41,73 @@ fun SwitchConfigInvalidBanner(
     val missingActions = remember { validator.getMissingActions() }
 
     Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .then(
+                if (onClick != null) {
+                    Modifier.clickable { onClick() }
+                } else {
+                    Modifier
+                }
+            ),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.errorContainer
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp)
-                .then(
-                    if (onClick != null) {
-                        Modifier.clickable { onClick() }
-                    } else {
-                        Modifier
-                    }
-                ),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.errorContainer
-            ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalAlignment = Alignment.CenterVertically
+            // Warning icon
+            Icon(
+                imageVector = Icons.Rounded.Warning,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onErrorContainer,
+                modifier = Modifier.size(24.dp)
+            )
+
+            // Content column
+            Column(
+                modifier = Modifier.weight(1f)
             ) {
-                // Warning icon
-                Icon(
-                    imageVector = Icons.Rounded.Warning,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onErrorContainer,
-                    modifier = Modifier.size(24.dp)
+                Text(
+                    text = stringResource(R.string.switch_config_banner_title),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onErrorContainer
                 )
-                
-                // Content column
-                Column(
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text(
-                        text = stringResource(R.string.switch_config_banner_title),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onErrorContainer
-                    )
-                    
-                    Spacer(modifier = Modifier.height(4.dp))
 
-                    val description = if (missingActions.isNotEmpty()) {
-                        val actionNames = missingActions.joinToString(", ") { actionId ->
-                            SwitchAction(actionId).getActionName()
-                        }
-                        stringResource(R.string.switch_config_banner_missing_actions, actionNames)
-                    } else {
-                        stringResource(R.string.switch_config_banner_description)
+                Spacer(modifier = Modifier.height(4.dp))
+
+                val description = if (missingActions.isNotEmpty()) {
+                    val actionNames = missingActions.joinToString(", ") { actionId ->
+                        SwitchAction(actionId).getActionName()
                     }
-
-                    Text(
-                        text = description,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onErrorContainer,
-                        lineHeight = MaterialTheme.typography.bodyMedium.lineHeight
-                    )
+                    stringResource(R.string.switch_config_banner_missing_actions, actionNames)
+                } else {
+                    stringResource(R.string.switch_config_banner_description)
                 }
-                
-                // Settings icon
-                Icon(
-                    imageVector = Icons.Rounded.Settings,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.7f),
-                    modifier = Modifier.size(20.dp)
+
+                Text(
+                    text = description,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onErrorContainer,
+                    lineHeight = MaterialTheme.typography.bodyMedium.lineHeight
                 )
             }
+
+            // Settings icon
+            Icon(
+                imageVector = Icons.Rounded.Settings,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.7f),
+                modifier = Modifier.size(20.dp)
+            )
         }
+    }
 }

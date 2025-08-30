@@ -2,17 +2,17 @@ package com.enaboapps.switchify.service.techniques
 
 import android.content.Context
 import com.enaboapps.switchify.service.keyboard.KeyboardManager
+import com.enaboapps.switchify.service.keyboard.KeyboardStateListener
 import com.enaboapps.switchify.service.menu.MenuManager
 import com.enaboapps.switchify.service.selection.SelectionHandler
-import com.enaboapps.switchify.service.techniques.pointscan.PointScanManager
+import com.enaboapps.switchify.service.techniques.directcontrol.DirectControlManager
 import com.enaboapps.switchify.service.techniques.nodes.Node
 import com.enaboapps.switchify.service.techniques.nodes.scanners.NodeScannerUI
 import com.enaboapps.switchify.service.techniques.nodes.scanners.keyboard.KeyboardScanner
 import com.enaboapps.switchify.service.techniques.nodes.scanners.system.SystemNodeHolder
 import com.enaboapps.switchify.service.techniques.nodes.scanners.system.SystemNodeScanner
+import com.enaboapps.switchify.service.techniques.pointscan.PointScanManager
 import com.enaboapps.switchify.service.techniques.radar.RadarManager
-import com.enaboapps.switchify.service.techniques.directcontrol.DirectControlManager
-import com.enaboapps.switchify.service.keyboard.KeyboardStateListener
 import com.enaboapps.switchify.service.utils.ScreenWatcher
 
 /**
@@ -219,7 +219,7 @@ class ActiveAccessTechnique(private val context: Context) : AccessTechniqueObser
         directControlManager?.cleanup()
         directControlManager = null
         cleanupKeyboard()
-        
+
         // Unregister ScreenWatcher to prevent receiver leak
         screenWatcher?.unregister(context)
         screenWatcher = null
@@ -228,7 +228,7 @@ class ActiveAccessTechnique(private val context: Context) : AccessTechniqueObser
 
         NodeScannerUI.instance.hideAll()
     }
-    
+
     /**
      * Cleanup method to be called when ActiveAccessTechnique is no longer needed.
      * This ensures proper cleanup of all resources including ScreenWatcher.
@@ -248,7 +248,10 @@ class ActiveAccessTechnique(private val context: Context) : AccessTechniqueObser
         keyboardScanner?.updateNodes(nodes)
     }
 
-    override fun onKeyboardStateChanged(isKeyboardVisible: Boolean, isEscapedFromKeyboard: Boolean) {
+    override fun onKeyboardStateChanged(
+        isKeyboardVisible: Boolean,
+        isEscapedFromKeyboard: Boolean
+    ) {
         if (isKeyboardVisible) {
             cleanupAllExceptKeyboard()
         } else {

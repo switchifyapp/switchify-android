@@ -9,10 +9,10 @@ import com.enaboapps.switchify.service.scanning.ScanSettings
  * Utility class to validate switch configuration based on scan mode requirements
  */
 class SwitchConfigValidator(private val context: Context) {
-    
+
     private val scanSettings = ScanSettings(context)
     private val switchEventStore = SwitchEventStore.getInstance()
-    
+
     /**
      * Check if the current switch configuration is valid for the selected scan mode
      * @return true if configuration is valid, false otherwise
@@ -20,13 +20,16 @@ class SwitchConfigValidator(private val context: Context) {
     fun isConfigurationValid(): Boolean {
         // Defensive check: ensure switch store is initialized
         if (!switchEventStore.isInitialized()) {
-            Log.w("SwitchConfigValidator", "Switch store not initialized when checking configuration validity. " +
-                "This may cause incorrect validation results. Use SwitchEventStore.initializeAsync() first.")
+            Log.w(
+                "SwitchConfigValidator",
+                "Switch store not initialized when checking configuration validity. " +
+                        "This may cause incorrect validation results. Use SwitchEventStore.initializeAsync() first."
+            )
         }
-        
+
         // Get all configured switch actions
         val configuredActions = getConfiguredActions()
-        
+
         return when {
             scanSettings.isAutoScanMode() -> isValidForAutoScan(configuredActions)
             scanSettings.isManualScanMode() -> isValidForManualScan(configuredActions)
@@ -34,7 +37,7 @@ class SwitchConfigValidator(private val context: Context) {
             else -> false
         }
     }
-    
+
     /**
      * Check if configuration is valid for auto scan mode
      * Auto scan requires SELECT action
@@ -42,7 +45,7 @@ class SwitchConfigValidator(private val context: Context) {
     private fun isValidForAutoScan(configuredActions: Set<Int>): Boolean {
         return configuredActions.contains(SwitchAction.ACTION_SELECT)
     }
-    
+
     /**
      * Check if configuration is valid for manual scan mode
      * Manual scan requires NEXT, PREVIOUS, and SELECT actions
@@ -56,7 +59,7 @@ class SwitchConfigValidator(private val context: Context) {
             )
         )
     }
-    
+
     /**
      * Check if configuration is valid for directional scan mode
      * Directional scan requires UP, DOWN, LEFT, RIGHT, and SELECT actions
@@ -72,29 +75,29 @@ class SwitchConfigValidator(private val context: Context) {
             )
         )
     }
-    
+
     /**
      * Get all switch actions that are currently configured
      * @return Set of action IDs that are configured
      */
     private fun getConfiguredActions(): Set<Int> {
         val configuredActions = mutableSetOf<Int>()
-        
+
         // Get all switches and their actions
         val switchEvents = switchEventStore.getSwitchEvents()
         for (switchEvent in switchEvents) {
             // Add press action
             configuredActions.add(switchEvent.pressAction.id)
-            
+
             // Add hold actions
             switchEvent.holdActions.forEach { holdAction ->
                 configuredActions.add(holdAction.id)
             }
         }
-        
+
         return configuredActions
     }
-    
+
     /**
      * Get missing actions for the current scan mode
      * @return Set of missing action IDs
@@ -102,10 +105,13 @@ class SwitchConfigValidator(private val context: Context) {
     fun getMissingActions(): Set<Int> {
         // Defensive check: ensure switch store is initialized
         if (!switchEventStore.isInitialized()) {
-            Log.w("SwitchConfigValidator", "Switch store not initialized when getting missing actions. " +
-                "This may cause incorrect results. Use SwitchEventStore.initializeAsync() first.")
+            Log.w(
+                "SwitchConfigValidator",
+                "Switch store not initialized when getting missing actions. " +
+                        "This may cause incorrect results. Use SwitchEventStore.initializeAsync() first."
+            )
         }
-        
+
         val configuredActions = getConfiguredActions()
         val requiredActions = when {
             scanSettings.isAutoScanMode() -> setOf(SwitchAction.ACTION_SELECT)
@@ -114,6 +120,7 @@ class SwitchConfigValidator(private val context: Context) {
                 SwitchAction.ACTION_MOVE_TO_NEXT_ITEM,
                 SwitchAction.ACTION_MOVE_TO_PREVIOUS_ITEM
             )
+
             scanSettings.isDirectionalScanMode() -> setOf(
                 SwitchAction.ACTION_SELECT,
                 SwitchAction.ACTION_MOVE_UP,
@@ -121,12 +128,13 @@ class SwitchConfigValidator(private val context: Context) {
                 SwitchAction.ACTION_MOVE_LEFT,
                 SwitchAction.ACTION_MOVE_RIGHT
             )
+
             else -> emptySet()
         }
-        
+
         return requiredActions - configuredActions
     }
-    
+
     /**
      * Get current scan mode name for display
      */

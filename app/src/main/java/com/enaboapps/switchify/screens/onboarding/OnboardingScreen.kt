@@ -20,12 +20,17 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import com.enaboapps.switchify.R
 import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.NavBarAction
 import com.enaboapps.switchify.nav.NavigationRoute
-import com.enaboapps.switchify.screens.onboarding.steps.*
+import com.enaboapps.switchify.screens.onboarding.steps.AccessibilityExplanationStep
+import com.enaboapps.switchify.screens.onboarding.steps.PracticeStep
+import com.enaboapps.switchify.screens.onboarding.steps.ScanModeExplanationStep
+import com.enaboapps.switchify.screens.onboarding.steps.SwitchSetupStep
+import com.enaboapps.switchify.screens.onboarding.steps.UserTypeStep
+import com.enaboapps.switchify.screens.onboarding.steps.WelcomeStep
 import com.enaboapps.switchify.service.utils.ServiceUtils
-import com.enaboapps.switchify.R
 
 @Composable
 fun OnboardingScreen(navController: NavController) {
@@ -45,6 +50,7 @@ fun OnboardingScreen(navController: NavController) {
                 onClick = { viewModel.nextStep() }
             )
         )
+
         OnboardingStep.ACCESSIBILITY_SERVICE -> if (!uiState.accessibilityEnabled) {
             listOf(
                 NavBarAction(
@@ -53,15 +59,17 @@ fun OnboardingScreen(navController: NavController) {
                 )
             )
         } else emptyList()
+
         OnboardingStep.PRACTICE -> listOf(
             NavBarAction(
                 textResId = R.string.onboarding_skip_practice,
-                onClick = { 
+                onClick = {
                     viewModel.completeOnboarding()
                     navController.popBackStack()
                 }
             )
         )
+
         else -> emptyList()
     }
 

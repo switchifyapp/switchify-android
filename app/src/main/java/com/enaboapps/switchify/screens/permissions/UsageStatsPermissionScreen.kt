@@ -1,11 +1,27 @@
 package com.enaboapps.switchify.screens.permissions
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -16,8 +32,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.enaboapps.switchify.R
-import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.ActionButton
+import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.service.utils.QuickAppsManager
 import kotlinx.coroutines.delay
 
@@ -26,7 +42,7 @@ fun UsageStatsPermissionScreen(navController: NavController) {
     val context = LocalContext.current
     val quickAppsManager = remember { QuickAppsManager(context) }
     var hasPermission by remember { mutableStateOf(quickAppsManager.hasUsageStatsPermission()) }
-    
+
     // Check permission periodically when screen is active
     LaunchedEffect(Unit) {
         while (true) {
@@ -34,7 +50,7 @@ fun UsageStatsPermissionScreen(navController: NavController) {
             delay(1000) // Check every second
         }
     }
-    
+
     BaseView(
         titleResId = R.string.screen_title_usage_stats_permission,
         navController = navController
@@ -45,16 +61,16 @@ fun UsageStatsPermissionScreen(navController: NavController) {
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            
+
             Spacer(modifier = Modifier.height(24.dp))
-            
+
             // Status Banner
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(
-                    containerColor = if (hasPermission) 
+                    containerColor = if (hasPermission)
                         MaterialTheme.colorScheme.primaryContainer
-                    else 
+                    else
                         MaterialTheme.colorScheme.errorContainer
                 )
             ) {
@@ -67,15 +83,15 @@ fun UsageStatsPermissionScreen(navController: NavController) {
                     Icon(
                         imageVector = if (hasPermission) Icons.Default.Check else Icons.Default.Warning,
                         contentDescription = null,
-                        tint = if (hasPermission) 
+                        tint = if (hasPermission)
                             MaterialTheme.colorScheme.onPrimaryContainer
-                        else 
+                        else
                             MaterialTheme.colorScheme.onErrorContainer,
                         modifier = Modifier.size(24.dp)
                     )
-                    
+
                     Spacer(modifier = Modifier.width(12.dp))
-                    
+
                     Text(
                         text = stringResource(
                             if (hasPermission) R.string.usage_stats_permission_granted
@@ -83,16 +99,16 @@ fun UsageStatsPermissionScreen(navController: NavController) {
                         ),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
-                        color = if (hasPermission) 
+                        color = if (hasPermission)
                             MaterialTheme.colorScheme.onPrimaryContainer
-                        else 
+                        else
                             MaterialTheme.colorScheme.onErrorContainer
                     )
                 }
             }
-            
+
             Spacer(modifier = Modifier.height(32.dp))
-            
+
             // Main Content
             Card(
                 modifier = Modifier.fillMaxWidth()
@@ -105,9 +121,9 @@ fun UsageStatsPermissionScreen(navController: NavController) {
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold
                     )
-                    
+
                     Spacer(modifier = Modifier.height(12.dp))
-                    
+
                     Text(
                         text = stringResource(R.string.usage_stats_permission_explanation),
                         style = MaterialTheme.typography.bodyLarge,
@@ -115,9 +131,9 @@ fun UsageStatsPermissionScreen(navController: NavController) {
                     )
                 }
             }
-            
+
             Spacer(modifier = Modifier.height(24.dp))
-            
+
             // Benefits
             Card(
                 modifier = Modifier.fillMaxWidth()
@@ -130,9 +146,9 @@ fun UsageStatsPermissionScreen(navController: NavController) {
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold
                     )
-                    
+
                     Spacer(modifier = Modifier.height(16.dp))
-                    
+
                     BenefitItem("✨", stringResource(R.string.usage_stats_benefit_1))
                     Spacer(modifier = Modifier.height(8.dp))
                     BenefitItem("⚡", stringResource(R.string.usage_stats_benefit_2))
@@ -140,9 +156,9 @@ fun UsageStatsPermissionScreen(navController: NavController) {
                     BenefitItem("🚀", stringResource(R.string.usage_stats_benefit_3))
                 }
             }
-            
+
             Spacer(modifier = Modifier.height(24.dp))
-            
+
             // Privacy Note
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -168,9 +184,9 @@ fun UsageStatsPermissionScreen(navController: NavController) {
                             color = MaterialTheme.colorScheme.onSecondaryContainer
                         )
                     }
-                    
+
                     Spacer(modifier = Modifier.height(8.dp))
-                    
+
                     Text(
                         text = stringResource(R.string.usage_stats_privacy_note),
                         style = MaterialTheme.typography.bodyMedium,
@@ -178,9 +194,9 @@ fun UsageStatsPermissionScreen(navController: NavController) {
                     )
                 }
             }
-            
+
             Spacer(modifier = Modifier.height(32.dp))
-            
+
             // Action Buttons
             if (!hasPermission) {
                 ActionButton(
@@ -189,9 +205,9 @@ fun UsageStatsPermissionScreen(navController: NavController) {
                         quickAppsManager.openUsageStatsSettings()
                     }
                 )
-                
+
                 Spacer(modifier = Modifier.height(16.dp))
-                
+
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(

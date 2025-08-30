@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -13,8 +12,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.components.Picker
-import com.enaboapps.switchify.service.techniques.AccessTechnique
 import com.enaboapps.switchify.screens.settings.models.AccessTechniqueSettingsModel
+import com.enaboapps.switchify.service.techniques.AccessTechnique
 
 @Composable
 fun AccessTechniqueSelector() {
@@ -30,8 +29,9 @@ fun AccessTechniqueSelector() {
         itemToString = { AccessTechnique.getName(it) },
         itemDescription = { AccessTechnique.getDescription(it) }
     )
-    
-    val directControlAvailable = uiState.value.availableTechniques.contains(AccessTechnique.Technique.DIRECT_CONTROL)
+
+    val directControlAvailable =
+        uiState.value.availableTechniques.contains(AccessTechnique.Technique.DIRECT_CONTROL)
     if (!directControlAvailable) {
         Spacer(modifier = Modifier.height(8.dp))
         Text(

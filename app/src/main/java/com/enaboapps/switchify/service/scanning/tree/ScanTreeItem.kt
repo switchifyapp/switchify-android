@@ -1,8 +1,8 @@
 package com.enaboapps.switchify.service.scanning.tree
 
+import com.enaboapps.switchify.service.scanning.ScanNodeInterface
 import com.enaboapps.switchify.service.techniques.nodes.NodeSpeaker
 import com.enaboapps.switchify.service.techniques.nodes.scanners.NodeScannerUI
-import com.enaboapps.switchify.service.scanning.ScanNodeInterface
 
 /**
  * This class represents an item in the 2D scan tree

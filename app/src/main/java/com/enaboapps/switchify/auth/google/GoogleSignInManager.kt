@@ -5,9 +5,9 @@ import androidx.credentials.CredentialManager
 import androidx.credentials.GetCredentialRequest
 import androidx.credentials.GetCredentialResponse
 import androidx.credentials.exceptions.GetCredentialException
+import com.enaboapps.switchify.BuildConfig
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
-import com.enaboapps.switchify.BuildConfig
 import java.security.MessageDigest
 import java.util.UUID
 
@@ -16,9 +16,9 @@ import java.util.UUID
  * This replaces the deprecated GoogleSignInHelper
  */
 class GoogleSignInManager(private val context: Context) {
-    
+
     private val credentialManager = CredentialManager.create(context)
-    
+
     /**
      * Sign in with Google using Credential Manager
      * @param filterByAuthorizedAccounts If true, only shows accounts that have previously authorized the app
@@ -28,7 +28,7 @@ class GoogleSignInManager(private val context: Context) {
         return try {
             // Generate a secure nonce for the request
             val nonce = generateNonce()
-            
+
             // Create Google ID option
             val googleIdOption = GetGoogleIdOption.Builder()
                 .setFilterByAuthorizedAccounts(filterByAuthorizedAccounts)
@@ -36,18 +36,18 @@ class GoogleSignInManager(private val context: Context) {
                 .setAutoSelectEnabled(true)
                 .setNonce(nonce)
                 .build()
-            
+
             // Create credential request
             val request = GetCredentialRequest.Builder()
                 .addCredentialOption(googleIdOption)
                 .build()
-            
+
             // Get credentials
             val result = credentialManager.getCredential(
                 context = context,
                 request = request
             )
-            
+
             handleCredentialResponse(result)
         } catch (e: GetCredentialException) {
             GoogleSignInResult.Error("Google Sign-In failed: ${e.message}")
@@ -55,24 +55,24 @@ class GoogleSignInManager(private val context: Context) {
             GoogleSignInResult.Error("Unexpected error: ${e.message}")
         }
     }
-    
+
     /**
      * Sign in with Google for new users (shows all Google accounts)
      */
     suspend fun signInForNewUser(): GoogleSignInResult {
         return signIn(filterByAuthorizedAccounts = false)
     }
-    
+
     /**
      * Sign in with Google for returning users (shows only authorized accounts)
      */
     suspend fun signInForReturningUser(): GoogleSignInResult {
         return signIn(filterByAuthorizedAccounts = true)
     }
-    
+
     private fun handleCredentialResponse(result: GetCredentialResponse): GoogleSignInResult {
         val credential = result.credential
-        
+
         return when (credential.type) {
             GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL -> {
                 try {
@@ -87,12 +87,13 @@ class GoogleSignInManager(private val context: Context) {
                     GoogleSignInResult.Error("Failed to parse Google credential: ${e.message}")
                 }
             }
+
             else -> {
                 GoogleSignInResult.Error("Unexpected credential type: ${credential.type} (${credential::class.simpleName})")
             }
         }
     }
-    
+
     /**
      * Generate a cryptographically secure nonce for the Google ID token request
      * This helps prevent replay attacks
@@ -116,6 +117,6 @@ sealed class GoogleSignInResult {
         val email: String?,
         val displayName: String?
     ) : GoogleSignInResult()
-    
+
     data class Error(val message: String) : GoogleSignInResult()
 }

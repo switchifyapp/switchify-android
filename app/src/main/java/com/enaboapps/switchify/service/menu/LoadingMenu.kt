@@ -24,7 +24,7 @@ class LoadingMenu(
         ) {
             // No action for loading state
         }
-        
+
         baseMenu = BaseMenu(
             accessibilityService = accessibilityService,
             items = listOf(loadingItem),

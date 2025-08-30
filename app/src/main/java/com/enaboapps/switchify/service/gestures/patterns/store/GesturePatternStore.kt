@@ -34,7 +34,12 @@ class GesturePatternStore(context: Context) {
             val newPattern = GesturePattern(gestures = gestures, name = name)
             withContext(Dispatchers.IO) {
                 val maxOrder = dao.getMaxOrder() ?: -1
-                dao.insertPattern(GesturePatternEntity.fromGesturePattern(newPattern, order = maxOrder + 1))
+                dao.insertPattern(
+                    GesturePatternEntity.fromGesturePattern(
+                        newPattern,
+                        order = maxOrder + 1
+                    )
+                )
                 dao.insertGestures(gestures.map {
                     GestureDataEntity.fromGestureData(newPattern.id, it)
                 })
@@ -83,7 +88,7 @@ class GesturePatternStore(context: Context) {
             Log.e(TAG, "Error updating pattern: ${e.message}")
         }
     }
-    
+
     /**
      * Updates just the name of an existing pattern in the database.
      *
@@ -96,13 +101,13 @@ class GesturePatternStore(context: Context) {
             val existingPattern = withContext(Dispatchers.IO) {
                 dao.getPatternById(id)
             } ?: return
-            
+
             // Extract the gestures from the existing pattern
             val gestures = existingPattern.gestures.map { it.toGestureData() }
-            
+
             // Use the updatePattern method to update the name while preserving the gestures
             updatePattern(id, name, gestures)
-            
+
             Log.d(TAG, "Updated pattern name for ID: $id to: $name")
         } catch (e: Exception) {
             Log.e(TAG, "Error updating pattern name: ${e.message}")

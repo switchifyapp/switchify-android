@@ -2,7 +2,6 @@ package com.enaboapps.switchify.service.components
 
 import android.content.Context
 import android.util.AttributeSet
-import android.view.ViewGroup
 import android.widget.RelativeLayout
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.ComposeView
@@ -22,16 +21,16 @@ class AccessibilityComposeView @JvmOverloads constructor(
     private val composeView: ComposeView by lazy {
         ComposeView(context).apply {
             layoutParams = LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT
+                LayoutParams.WRAP_CONTENT,
+                LayoutParams.WRAP_CONTENT
             )
         }
     }
 
     init {
         layoutParams = LayoutParams(
-            ViewGroup.LayoutParams.WRAP_CONTENT,
-            ViewGroup.LayoutParams.WRAP_CONTENT
+            LayoutParams.WRAP_CONTENT,
+            LayoutParams.WRAP_CONTENT
         )
         addView(composeView)
         setContent(content)

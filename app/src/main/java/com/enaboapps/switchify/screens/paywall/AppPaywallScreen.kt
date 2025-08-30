@@ -16,10 +16,10 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.backend.iap.IAPHandler
-import com.enaboapps.switchify.backend.iap.IAPHandler.PurchaseState
 import com.enaboapps.switchify.backend.iap.IAPHandler.PurchaseCapability
-import com.enaboapps.switchify.components.BaseView
+import com.enaboapps.switchify.backend.iap.IAPHandler.PurchaseState
 import com.enaboapps.switchify.components.ActionButton
+import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.screens.paywall.model.AppPaywallScreenModel
 import com.revenuecat.purchases.ui.revenuecatui.ExperimentalPreviewRevenueCatUIPurchasesAPI
 import com.revenuecat.purchases.ui.revenuecatui.PaywallDialog
@@ -66,9 +66,9 @@ fun AppPaywallScreen(navController: NavController) {
                 )
             }
         }
-        
+
         purchaseCapability.value is PurchaseCapability.Unavailable ||
-        purchaseCapability.value is PurchaseCapability.Restricted -> {
+                purchaseCapability.value is PurchaseCapability.Restricted -> {
             BaseView(
                 titleResId = R.string.screen_title_upgrade_pro,
                 navController = navController,
@@ -97,7 +97,7 @@ fun AppPaywallScreen(navController: NavController) {
                 )
             }
         }
-        
+
         purchaseCapability.value is PurchaseCapability.Unknown -> {
             BaseView(
                 titleResId = R.string.screen_title_upgrade_pro,
@@ -122,7 +122,7 @@ fun AppPaywallScreen(navController: NavController) {
                 )
             }
         }
-        
+
         else -> {
             PaywallDialog(options)
         }

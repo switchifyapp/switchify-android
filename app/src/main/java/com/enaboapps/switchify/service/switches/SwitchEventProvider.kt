@@ -7,7 +7,11 @@ import android.content.IntentFilter
 import android.util.Log
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.service.window.ServiceMessageHUD
-import com.enaboapps.switchify.switches.*
+import com.enaboapps.switchify.switches.SWITCH_EVENT_TYPE_CAMERA
+import com.enaboapps.switchify.switches.SWITCH_EVENT_TYPE_EXTERNAL
+import com.enaboapps.switchify.switches.SwitchEvent
+import com.enaboapps.switchify.switches.SwitchEventLocalStorage
+import com.enaboapps.switchify.switches.SwitchEventStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay

@@ -3,8 +3,8 @@ package com.enaboapps.switchify.service.utils
 import android.accessibilityservice.AccessibilityServiceInfo
 import android.content.Context
 import android.content.Intent
-import androidx.core.net.toUri
 import android.view.accessibility.AccessibilityManager
+import androidx.core.net.toUri
 
 class ServiceUtils {
 
@@ -25,7 +25,7 @@ class ServiceUtils {
     // Function to send the user to the accessibility settings.
     fun openAccessibilitySettings(context: Context) {
         context.startActivity(
-            android.content.Intent(android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS)
+            Intent(android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS)
         )
     }
 

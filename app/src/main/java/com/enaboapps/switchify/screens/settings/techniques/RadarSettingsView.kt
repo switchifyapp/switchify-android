@@ -14,11 +14,11 @@ import com.enaboapps.switchify.service.scanning.ScanSettings
 fun RadarSettingsView() {
     val context = LocalContext.current
     val preferenceManager = PreferenceManager(context)
-    
+
     Section(titleResId = R.string.section_title_radar_speed) {
         RadarSpeedStepper()
     }
-    
+
     Section(titleResId = R.string.section_title_radar_interaction) {
         PreferenceSwitch(
             titleResId = R.string.preference_title_radar_slow_down_then_select,
@@ -34,7 +34,7 @@ fun RadarSettingsView() {
                 )
             }
         )
-        
+
         PreferenceValueSelector(
             value = when (preferenceManager.getStringValue(
                 PreferenceManager.Keys.PREFERENCE_KEY_RADAR_STARTING_POSITION,

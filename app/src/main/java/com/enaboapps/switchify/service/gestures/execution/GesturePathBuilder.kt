@@ -48,26 +48,29 @@ import com.enaboapps.switchify.service.gestures.data.GestureType
  * - Manages multi-finger gesture coordination for zoom operations
  */
 object GesturePathBuilder {
-    
+
     /**
      * Creates a simple tap gesture path.
-     * 
+     *
      * @param point The tap location
      * @param duration Duration of the tap in milliseconds
      * @return GestureDescription for the tap
      */
-    fun createTapPath(point: PointF, duration: Long = GestureData.TAP_DURATION): GestureDescription {
+    fun createTapPath(
+        point: PointF,
+        duration: Long = GestureData.TAP_DURATION
+    ): GestureDescription {
         val path = Path().apply {
             moveTo(point.x, point.y)
         }
-        
+
         val stroke = GestureDescription.StrokeDescription(path, 0, duration)
         return GestureDescription.Builder().addStroke(stroke).build()
     }
-    
+
     /**
      * Creates a double tap gesture with proper timing.
-     * 
+     *
      * @param point The tap location
      * @param tapDuration Duration of each tap
      * @param interval Interval between taps
@@ -83,22 +86,22 @@ object GesturePathBuilder {
         val firstTapStroke = GestureDescription.StrokeDescription(
             firstTapPath, 0, tapDuration
         )
-        
+
         // Second tap
         val secondTapPath = Path().apply { moveTo(point.x, point.y) }
         val secondTapStroke = GestureDescription.StrokeDescription(
             secondTapPath, interval, tapDuration
         )
-        
+
         return GestureDescription.Builder()
             .addStroke(firstTapStroke)
             .addStroke(secondTapStroke)
             .build()
     }
-    
+
     /**
      * Creates a tap and hold gesture path.
-     * 
+     *
      * @param point The tap location
      * @param duration Duration of the hold
      * @return GestureDescription for the tap and hold
@@ -110,14 +113,14 @@ object GesturePathBuilder {
         val path = Path().apply {
             moveTo(point.x, point.y)
         }
-        
+
         val stroke = GestureDescription.StrokeDescription(path, 0, duration)
         return GestureDescription.Builder().addStroke(stroke).build()
     }
-    
+
     /**
      * Creates a linear gesture path (drag, swipe, scroll).
-     * 
+     *
      * @param startPoint Starting point of the gesture
      * @param endPoint Ending point of the gesture
      * @param duration Duration of the gesture
@@ -132,14 +135,14 @@ object GesturePathBuilder {
             moveTo(startPoint.x, startPoint.y)
             lineTo(endPoint.x, endPoint.y)
         }
-        
+
         val stroke = GestureDescription.StrokeDescription(path, 0, duration)
         return GestureDescription.Builder().addStroke(stroke).build()
     }
-    
+
     /**
      * Creates a hold-and-drag gesture with proper timing.
-     * 
+     *
      * @param startPoint Starting point of the gesture
      * @param endPoint Ending point of the gesture
      * @param holdDuration Duration of the initial hold
@@ -157,7 +160,7 @@ object GesturePathBuilder {
         val holdStroke = GestureDescription.StrokeDescription(
             holdPath, 0, holdDuration
         )
-        
+
         // Drag stroke (starts slightly before hold ends for continuity)
         val dragPath = Path().apply {
             moveTo(startPoint.x, startPoint.y)
@@ -166,16 +169,16 @@ object GesturePathBuilder {
         val dragStroke = GestureDescription.StrokeDescription(
             dragPath, holdDuration - 5, dragDuration
         )
-        
+
         return GestureDescription.Builder()
             .addStroke(holdStroke)
             .addStroke(dragStroke)
             .build()
     }
-    
+
     /**
      * Creates a zoom gesture with correct pinch mechanics.
-     * 
+     *
      * @param centerPoint Center point of the zoom
      * @param isZoomIn True for zoom in (pinch), false for zoom out (spread)
      * @param duration Duration of the zoom gesture
@@ -188,7 +191,7 @@ object GesturePathBuilder {
     ): GestureDescription {
         val startSeparation = if (isZoomIn) 50f else 200f
         val endSeparation = if (isZoomIn) 200f else 50f
-        
+
         // First finger path (left side)
         val finger1Start = PointF(centerPoint.x - startSeparation / 2, centerPoint.y)
         val finger1End = PointF(centerPoint.x - endSeparation / 2, centerPoint.y)
@@ -197,7 +200,7 @@ object GesturePathBuilder {
             lineTo(finger1End.x, finger1End.y)
         }
         val finger1Stroke = GestureDescription.StrokeDescription(finger1Path, 0, duration)
-        
+
         // Second finger path (right side)
         val finger2Start = PointF(centerPoint.x + startSeparation / 2, centerPoint.y)
         val finger2End = PointF(centerPoint.x + endSeparation / 2, centerPoint.y)
@@ -206,16 +209,16 @@ object GesturePathBuilder {
             lineTo(finger2End.x, finger2End.y)
         }
         val finger2Stroke = GestureDescription.StrokeDescription(finger2Path, 0, duration)
-        
+
         return GestureDescription.Builder()
             .addStroke(finger1Stroke)
             .addStroke(finger2Stroke)
             .build()
     }
-    
+
     /**
      * Creates a custom gesture path from multiple strokes.
-     * 
+     *
      * @param strokes Array of stroke descriptions
      * @return GestureDescription combining all strokes
      */
@@ -226,10 +229,10 @@ object GesturePathBuilder {
         }
         return builder.build()
     }
-    
+
     /**
      * Gets the appropriate duration for a gesture type.
-     * 
+     *
      * @param gestureType The type of gesture
      * @return Duration in milliseconds
      */
@@ -239,16 +242,17 @@ object GesturePathBuilder {
             GestureType.DOUBLE_TAP -> GestureData.TAP_DURATION
             GestureType.TAP_AND_HOLD -> GestureData.TAP_AND_HOLD_DURATION
             GestureType.DRAG, GestureType.HOLD_AND_DRAG -> GestureData.DRAG_DURATION
-            GestureType.SCROLL_UP, GestureType.SCROLL_DOWN, 
+            GestureType.SCROLL_UP, GestureType.SCROLL_DOWN,
             GestureType.SCROLL_LEFT, GestureType.SCROLL_RIGHT -> GestureData.SCROLL_DURATION
+
             GestureType.ZOOM_IN, GestureType.ZOOM_OUT -> GestureData.ZOOM_DURATION
             else -> GestureData.SWIPE_DURATION
         }
     }
-    
+
     /**
      * Creates a gesture description based on gesture data.
-     * 
+     *
      * @param gestureData The gesture data containing type, points, and other parameters
      * @return Appropriate GestureDescription for the gesture data
      */
@@ -258,9 +262,10 @@ object GesturePathBuilder {
             GestureType.DOUBLE_TAP -> createDoubleTapPath(gestureData.startPoint)
             GestureType.TAP_AND_HOLD -> createTapAndHoldPath(gestureData.startPoint)
             GestureType.HOLD_AND_DRAG -> createHoldAndDragPath(
-                gestureData.startPoint, 
+                gestureData.startPoint,
                 gestureData.endPoint ?: gestureData.startPoint
             )
+
             GestureType.ZOOM_IN -> createZoomPath(gestureData.startPoint, true)
             GestureType.ZOOM_OUT -> createZoomPath(gestureData.startPoint, false)
             else -> {

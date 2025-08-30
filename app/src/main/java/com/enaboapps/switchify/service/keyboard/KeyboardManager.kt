@@ -20,58 +20,61 @@ interface KeyboardStateListener {
 object KeyboardManager {
     private const val TAG = "KeyboardManager"
     private const val BYPASS_UPDATE_DELAY_MS = 250L
-    
+
     // State tracking
     private var isKeyboardVisible = false
     private var isEscapedFromKeyboard = false
     private var isDirectlySelectKeyboardKeysEnabled = false
-    
+
     // Listener for state changes
     private var keyboardStateListener: KeyboardStateListener? = null
-    
+
     // Handler for delayed operations
     private val mainHandler = Handler(Looper.getMainLooper())
-    
+
     /**
      * Initialize the KeyboardManager.
      */
     fun initialize() {
         Log.d(TAG, "KeyboardManager initialized")
     }
-    
+
     /**
      * Set the keyboard state listener.
      */
     fun setKeyboardStateListener(listener: KeyboardStateListener) {
         keyboardStateListener = listener
     }
-    
+
     /**
      * Remove the keyboard state listener.
      */
     fun removeKeyboardStateListener() {
         keyboardStateListener = null
     }
-    
+
     /**
      * Notify the listener of state changes.
      */
     private fun notifyStateChanged() {
         keyboardStateListener?.onKeyboardStateChanged(isKeyboardVisible, isEscapedFromKeyboard)
     }
-    
+
     /**
      * Called when keyboard state changes from KeyboardBridge.
      */
     fun onKeyboardStateChanged(visible: Boolean, scanSettings: ScanSettings) {
-        Log.d(TAG, "Keyboard state changed: visible=$visible, wasVisible=$isKeyboardVisible, isEscaped=$isEscapedFromKeyboard")
-        
+        Log.d(
+            TAG,
+            "Keyboard state changed: visible=$visible, wasVisible=$isKeyboardVisible, isEscaped=$isEscapedFromKeyboard"
+        )
+
         val wasVisible = isKeyboardVisible
         val wasEscaped = isEscapedFromKeyboard
         isKeyboardVisible = visible
-        
+
         var stateChanged = false
-        
+
         when {
             // Keyboard appeared
             visible && !wasVisible -> {
@@ -79,14 +82,14 @@ object KeyboardManager {
                 isEscapedFromKeyboard = false
                 stateChanged = true
             }
-            
+
             // Keyboard disappeared
             !visible && wasVisible -> {
                 Log.d(TAG, "Keyboard disappeared - clearing escape state")
                 isEscapedFromKeyboard = false
                 stateChanged = true
             }
-            
+
             // Keyboard state unchanged - no action needed
             else -> {
                 Log.d(TAG, "Keyboard state unchanged")
@@ -101,7 +104,7 @@ object KeyboardManager {
             notifyStateChanged()
         }
     }
-    
+
     /**
      * Escape from keyboard scanning mode.
      * This is called when user wants to exit keyboard scanning and access the menu.
@@ -111,18 +114,18 @@ object KeyboardManager {
             Log.w(TAG, "Cannot escape - keyboard is not visible")
             return
         }
-        
+
         if (isEscapedFromKeyboard) {
             Log.d(TAG, "Already escaped from keyboard")
             return
         }
-        
+
         Log.d(TAG, "Escaping from keyboard scanning")
         isEscapedFromKeyboard = true
 
         SelectionHandler.setBypassAutoSelect(false)
     }
-    
+
     /**
      * Return to keyboard scanning mode.
      * This is called when user selects "Scan Keyboard" from the menu.
@@ -132,43 +135,44 @@ object KeyboardManager {
             Log.w(TAG, "Cannot return to keyboard - keyboard is not visible")
             return
         }
-        
+
         if (!isEscapedFromKeyboard) {
             Log.d(TAG, "Already in keyboard scanning mode")
             return
         }
-        
+
         Log.d(TAG, "Returning to keyboard scanning")
         isEscapedFromKeyboard = false
-        
+
         // Update bypass state after a delay to ensure keyboard state has stabilized
         mainHandler.postDelayed({
             updateBypassState()
         }, BYPASS_UPDATE_DELAY_MS)
     }
-    
+
     /**
      * Update bypass state using stored settings.
      */
     private fun updateBypassState() {
-        val bypass = isKeyboardVisible && isDirectlySelectKeyboardKeysEnabled && !isEscapedFromKeyboard()
+        val bypass =
+            isKeyboardVisible && isDirectlySelectKeyboardKeysEnabled && !isEscapedFromKeyboard()
         SelectionHandler.setBypassAutoSelect(bypass)
     }
-    
+
     /**
      * Check if keyboard is currently visible.
      */
     fun isKeyboardVisible(): Boolean {
         return isKeyboardVisible
     }
-    
+
     /**
      * Check if user has escaped from keyboard scanning.
      */
     fun isEscapedFromKeyboard(): Boolean {
         return isEscapedFromKeyboard
     }
-    
+
     /**
      * Check if "Scan Keyboard" menu item should be shown.
      * Only show when keyboard is visible but user has escaped.
@@ -176,14 +180,14 @@ object KeyboardManager {
     fun shouldShowScanKeyboardMenuItem(): Boolean {
         return isKeyboardVisible && isEscapedFromKeyboard
     }
-    
+
     /**
      * Check if keyboard escape prompt should be shown instead of menu prompt.
      */
     fun shouldShowKeyboardEscapePrompt(): Boolean {
         return isKeyboardVisible && !isEscapedFromKeyboard
     }
-    
+
     /**
      * Check if cycle break should be enabled in scanning.
      * Only enable cycle break when keyboard is visible and user hasn't escaped,
@@ -192,7 +196,7 @@ object KeyboardManager {
     fun shouldEnableCycleBreak(): Boolean {
         return isKeyboardVisible && !isEscapedFromKeyboard
     }
-    
+
     /**
      * Get current keyboard state for debugging.
      */

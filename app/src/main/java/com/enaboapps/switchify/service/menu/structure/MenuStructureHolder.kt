@@ -47,7 +47,7 @@ class MenuStructureHolder(accessibilityService: SwitchifyAccessibilityService) {
 
     // Edit Menu
     fun buildEditMenuObject() = editMenuStructure.buildEditMenuObject()
-    
+
     // Quick Apps Menu  
     fun buildQuickAppsMenuObject() = quickAppsMenuStructure.buildQuickAppsMenuObject()
 }

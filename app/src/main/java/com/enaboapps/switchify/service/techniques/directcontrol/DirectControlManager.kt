@@ -4,8 +4,8 @@ import android.content.Context
 import com.enaboapps.switchify.service.gestures.GestureManager
 import com.enaboapps.switchify.service.gestures.GesturePoint
 import com.enaboapps.switchify.service.scanning.ScanDirection
-import com.enaboapps.switchify.service.techniques.AccessTechniqueInterface
 import com.enaboapps.switchify.service.selection.SelectionHandler
+import com.enaboapps.switchify.service.techniques.AccessTechniqueInterface
 import com.enaboapps.switchify.service.utils.ScreenUtils
 
 class DirectControlManager(private val context: Context) : AccessTechniqueInterface {
@@ -16,28 +16,42 @@ class DirectControlManager(private val context: Context) : AccessTechniqueInterf
     private var lastMoveAt: Long = 0L
     private val overlay = DirectControlOverlay(context)
 
-    override fun swapScanDirection() { /* no-op for direct control */ }
+    override fun swapScanDirection() { /* no-op for direct control */
+    }
 
-    override fun startAutoScanning() { /* no-op */ }
+    override fun startAutoScanning() { /* no-op */
+    }
 
-    override fun stopScanningAndReset() { overlay.reset() }
+    override fun stopScanningAndReset() {
+        overlay.reset()
+    }
 
-    override fun resetUI() { overlay.reset() }
+    override fun resetUI() {
+        overlay.reset()
+    }
 
-    override fun resetForNextUse() { overlay.reset() }
+    override fun resetForNextUse() {
+        overlay.reset()
+    }
 
-    override fun pauseAutoScanning() { /* no-op */ }
+    override fun pauseAutoScanning() { /* no-op */
+    }
 
-    override fun resumeAutoScanning() { /* no-op */ }
+    override fun resumeAutoScanning() { /* no-op */
+    }
 
     override fun cleanup() {
         super.cleanup()
         overlay.reset()
     }
 
-    override fun stepScanningForward() { stepScanningRight() }
+    override fun stepScanningForward() {
+        stepScanningRight()
+    }
 
-    override fun stepScanningBackward() { stepScanningLeft() }
+    override fun stepScanningBackward() {
+        stepScanningLeft()
+    }
 
     override fun performSelectionAction() {
         GesturePoint.x = currentX

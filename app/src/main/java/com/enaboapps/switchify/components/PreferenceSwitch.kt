@@ -3,7 +3,6 @@ package com.enaboapps.switchify.components
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -42,7 +41,12 @@ private fun ButtonToggle(
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary
                 ),
-                shape = RoundedCornerShape(topStart = 8.dp, bottomStart = 8.dp, topEnd = 0.dp, bottomEnd = 0.dp),
+                shape = RoundedCornerShape(
+                    topStart = 8.dp,
+                    bottomStart = 8.dp,
+                    topEnd = 0.dp,
+                    bottomEnd = 0.dp
+                ),
                 modifier = Modifier
                     .semantics { role = Role.Switch }
             ) {
@@ -52,12 +56,17 @@ private fun ButtonToggle(
             OutlinedButton(
                 onClick = { onCheckedChange(false) },
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-                shape = RoundedCornerShape(topStart = 8.dp, bottomStart = 8.dp, topEnd = 0.dp, bottomEnd = 0.dp)
+                shape = RoundedCornerShape(
+                    topStart = 8.dp,
+                    bottomStart = 8.dp,
+                    topEnd = 0.dp,
+                    bottomEnd = 0.dp
+                )
             ) {
                 Text(stringResource(R.string.off))
             }
         }
-        
+
         // ON Button
         if (checked) {
             Button(
@@ -65,7 +74,12 @@ private fun ButtonToggle(
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary
                 ),
-                shape = RoundedCornerShape(topStart = 0.dp, bottomStart = 0.dp, topEnd = 8.dp, bottomEnd = 8.dp),
+                shape = RoundedCornerShape(
+                    topStart = 0.dp,
+                    bottomStart = 0.dp,
+                    topEnd = 8.dp,
+                    bottomEnd = 8.dp
+                ),
                 modifier = Modifier
                     .semantics { role = Role.Switch }
             ) {
@@ -75,7 +89,12 @@ private fun ButtonToggle(
             OutlinedButton(
                 onClick = { onCheckedChange(true) },
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-                shape = RoundedCornerShape(topStart = 0.dp, bottomStart = 0.dp, topEnd = 8.dp, bottomEnd = 8.dp)
+                shape = RoundedCornerShape(
+                    topStart = 0.dp,
+                    bottomStart = 0.dp,
+                    topEnd = 8.dp,
+                    bottomEnd = 8.dp
+                )
             ) {
                 Text(stringResource(R.string.on))
             }

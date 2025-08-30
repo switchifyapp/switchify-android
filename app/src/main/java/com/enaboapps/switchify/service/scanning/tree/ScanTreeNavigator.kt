@@ -110,7 +110,7 @@ class ScanTreeNavigator(
             currentNodeIndex = currentColumn,
             direction = scanDirection
         )
-        
+
         return if (result != null) {
             val (newTreeIndex, newNodeIndex) = result
             currentTreeItem = newTreeIndex
@@ -208,7 +208,7 @@ class ScanTreeNavigator(
      */
     fun moveSelectionUp(): Boolean {
         if (isInCycleBreak) return false
-        
+
         return if (scanSettings.isDirectionalScanMode()) {
             scanDirection = ScanDirection.UP
             handleDirectionalMovement()
@@ -222,7 +222,7 @@ class ScanTreeNavigator(
      */
     fun moveSelectionDown(): Boolean {
         if (isInCycleBreak) return false
-        
+
         return if (scanSettings.isDirectionalScanMode()) {
             scanDirection = ScanDirection.DOWN
             handleDirectionalMovement()
@@ -385,9 +385,9 @@ class ScanTreeNavigator(
      * In directional mode, escape is disabled to allow free movement.
      * @return True if an escape was handled, false otherwise.
      */
-    fun handleEscape(): Boolean = escapeState != EscapeState.None && 
-                                  !isInCycleBreak && 
-                                  !scanSettings.isDirectionalScanMode()
+    fun handleEscape(): Boolean = escapeState != EscapeState.None &&
+            !isInCycleBreak &&
+            !scanSettings.isDirectionalScanMode()
 
     /**
      * Checks if the auto scan cycle limit has been reached.
@@ -519,7 +519,7 @@ class ScanTreeNavigator(
         currentGroup = 0
         currentColumn = 0
         currentCycle = 0
-        
+
         if (scanSettings.isDirectionalScanMode()) {
             // In directional mode, start positioned at the first node
             val firstNode = spatialNavigator.getFirstNode()
@@ -535,7 +535,7 @@ class ScanTreeNavigator(
             isInGroup = false
             isScanningGroups = scanSettings.isGroupScanEnabled()
         }
-        
+
         escapeState = EscapeState.None
         isInCycleBreak = false
         justCompletedCycle = false

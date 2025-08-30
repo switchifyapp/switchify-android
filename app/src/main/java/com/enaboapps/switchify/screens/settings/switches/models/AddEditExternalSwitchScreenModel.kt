@@ -101,7 +101,7 @@ class AddEditExternalSwitchScreenModel : ViewModel() {
         validateIfInitialized()
         shouldSave.value = true
         switchCaptured.value = true
-        
+
     }
 
     fun addLongPressAction(action: SwitchAction) {

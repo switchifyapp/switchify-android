@@ -8,6 +8,7 @@ import com.enaboapps.switchify.components.NavRouteLink
 import com.enaboapps.switchify.components.ScrollableView
 import com.enaboapps.switchify.components.Section
 import com.enaboapps.switchify.nav.NavigationRoute
+
 @Composable
 fun SwitchesScreen(navController: NavController) {
     BaseView(

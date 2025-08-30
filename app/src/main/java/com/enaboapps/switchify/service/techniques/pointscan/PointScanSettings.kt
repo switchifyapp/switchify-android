@@ -2,8 +2,8 @@ package com.enaboapps.switchify.service.techniques.pointscan
 
 import android.content.Context
 import android.content.Intent
-import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.R
+import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.utils.Resources
 
 object PointScanSettings {

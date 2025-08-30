@@ -1,12 +1,11 @@
 package com.enaboapps.switchify.service.core
 
 import android.accessibilityservice.AccessibilityService
+import com.enaboapps.switchify.service.techniques.nodes.NodeExaminer
+import com.enaboapps.switchify.service.utils.QuickAppsManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import com.enaboapps.switchify.service.utils.QuickAppsManager
-import com.enaboapps.switchify.service.techniques.nodes.NodeExaminer
-import com.enaboapps.switchify.service.scanning.ScanningManager
 
 class StartupOrchestrator(
     private val service: AccessibilityService,

@@ -38,6 +38,7 @@ class ScanModeSettingsModel(context: Context) : ViewModel() {
                             )
                         )
                     }
+
                     else -> {}
                 }
             }

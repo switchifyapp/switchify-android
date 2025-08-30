@@ -5,10 +5,10 @@ import android.os.Handler
 import android.os.Looper
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.enaboapps.switchify.auth.repository.AuthRepository
-import com.enaboapps.switchify.auth.utils.ErrorMessageMapper
 import com.enaboapps.switchify.auth.google.GoogleSignInManager
 import com.enaboapps.switchify.auth.google.GoogleSignInResult
+import com.enaboapps.switchify.auth.repository.AuthRepository
+import com.enaboapps.switchify.auth.utils.ErrorMessageMapper
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import io.sentry.Sentry
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,7 +17,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 class AuthViewModel : ViewModel() {
-    
+
     private val authRepository = AuthRepository.instance
     private var googleSignInManager: GoogleSignInManager? = null
 
@@ -32,7 +32,7 @@ class AuthViewModel : ViewModel() {
 
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
-    
+
     /**
      * Initialize Google Sign-In manager when Context is available
      */
@@ -63,7 +63,7 @@ class AuthViewModel : ViewModel() {
         viewModelScope.launch {
             _uiState.value = AuthUiState.Loading
             _errorMessage.value = null
-            
+
             // Try sign-in first, then fall back to sign-up if user doesn't exist
             authRepository.sendEmailOtp(_email.value, false).fold(
                 onSuccess = {
@@ -71,29 +71,31 @@ class AuthViewModel : ViewModel() {
                 },
                 onFailure = { exception ->
                     val errorMessage = exception.message?.lowercase() ?: ""
-                    
+
                     // If user not found, try sign-up
-                    if (errorMessage.contains("user not found") || 
+                    if (errorMessage.contains("user not found") ||
                         errorMessage.contains("email not found") ||
-                        errorMessage.contains("invalid_credentials")) {
-                        
+                        errorMessage.contains("invalid_credentials")
+                    ) {
+
                         // Attempt sign-up
                         authRepository.sendEmailOtp(_email.value, true).fold(
                             onSuccess = {
                                 _uiState.value = AuthUiState.OtpVerification
                             },
                             onFailure = { signUpException ->
-                                _errorMessage.value = ErrorMessageMapper.mapExceptionToUserFriendlyMessage(
-                                    signUpException, 
-                                    "sendUnifiedOtp"
-                                )
+                                _errorMessage.value =
+                                    ErrorMessageMapper.mapExceptionToUserFriendlyMessage(
+                                        signUpException,
+                                        "sendUnifiedOtp"
+                                    )
                                 _uiState.value = AuthUiState.EmailInput
                             }
                         )
                     } else {
                         // Other error, show original message
                         _errorMessage.value = ErrorMessageMapper.mapExceptionToUserFriendlyMessage(
-                            exception, 
+                            exception,
                             "sendUnifiedOtp"
                         )
                         _uiState.value = AuthUiState.EmailInput
@@ -112,14 +114,14 @@ class AuthViewModel : ViewModel() {
         viewModelScope.launch {
             _uiState.value = AuthUiState.Loading
             _errorMessage.value = null
-            
+
             authRepository.verifyEmailOtp(_email.value, _otp.value).fold(
                 onSuccess = {
                     _uiState.value = AuthUiState.Success
                 },
                 onFailure = { exception ->
                     _errorMessage.value = ErrorMessageMapper.mapExceptionToUserFriendlyMessage(
-                        exception, 
+                        exception,
                         "verifyOtp"
                     )
                     _uiState.value = AuthUiState.OtpVerification
@@ -173,7 +175,7 @@ class AuthViewModel : ViewModel() {
 
             // For unified flow, always try for new users (shows all Google accounts)
             val result = manager.signInForNewUser()
-            
+
             handleGoogleSignInResult(result)
         }
     }
@@ -200,17 +202,22 @@ class AuthViewModel : ViewModel() {
                                 scope.setExtra("authFlow", "unified")
                                 scope.setExtra("idTokenLength", result.idToken.length.toString())
                                 scope.setExtra("hasEmail", (result.email != null).toString())
-                                scope.setExtra("hasDisplayName", (result.displayName != null).toString())
+                                scope.setExtra(
+                                    "hasDisplayName",
+                                    (result.displayName != null).toString()
+                                )
                             }
-                            _errorMessage.value = ErrorMessageMapper.mapExceptionToUserFriendlyMessage(
-                                exception,
-                                "googleSignIn"
-                            )
+                            _errorMessage.value =
+                                ErrorMessageMapper.mapExceptionToUserFriendlyMessage(
+                                    exception,
+                                    "googleSignIn"
+                                )
                             _uiState.value = AuthUiState.EmailInput
                         }
                     )
                 }
             }
+
             is GoogleSignInResult.Error -> {
                 // Log Google Sign-In client errors to Sentry
                 Sentry.captureMessage("Google Sign-In client error: ${result.message}") { scope ->

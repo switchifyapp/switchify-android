@@ -153,7 +153,7 @@ class ScanningManager(
      */
     fun performAction(action: SwitchAction) {
         if (!isAcceptingActions) return
-        
+
         if (GestureManager.instance.performGestureLockAction()) return
 
         when (action.id) {
@@ -209,8 +209,8 @@ class ScanningManager(
      */
     fun startMoveRepeat(action: SwitchAction): Boolean {
         val allowRepeat = scanSettings.isMoveRepeatEnabled() ||
-                com.enaboapps.switchify.service.techniques.AccessTechnique.getCurrentTechnique() ==
-                com.enaboapps.switchify.service.techniques.AccessTechnique.Technique.DIRECT_CONTROL
+                AccessTechnique.getCurrentTechnique() ==
+                AccessTechnique.Technique.DIRECT_CONTROL
         if (allowRepeat) {
             when (action.id) {
                 SwitchAction.ACTION_MOVE_TO_NEXT_ITEM -> {
@@ -219,30 +219,35 @@ class ScanningManager(
                     }
                     return moveRepeatManager?.start() ?: false
                 }
+
                 SwitchAction.ACTION_MOVE_TO_PREVIOUS_ITEM -> {
                     moveRepeatManager?.setPreviousAction {
                         performAction(SwitchAction(SwitchAction.ACTION_MOVE_TO_PREVIOUS_ITEM))
                     }
                     return moveRepeatManager?.start() ?: false
                 }
+
                 SwitchAction.ACTION_MOVE_UP -> {
                     moveRepeatManager?.setNextAction {
                         performAction(SwitchAction(SwitchAction.ACTION_MOVE_UP))
                     }
                     return moveRepeatManager?.start() ?: false
                 }
+
                 SwitchAction.ACTION_MOVE_DOWN -> {
                     moveRepeatManager?.setNextAction {
                         performAction(SwitchAction(SwitchAction.ACTION_MOVE_DOWN))
                     }
                     return moveRepeatManager?.start() ?: false
                 }
+
                 SwitchAction.ACTION_MOVE_LEFT -> {
                     moveRepeatManager?.setPreviousAction {
                         performAction(SwitchAction(SwitchAction.ACTION_MOVE_LEFT))
                     }
                     return moveRepeatManager?.start() ?: false
                 }
+
                 SwitchAction.ACTION_MOVE_RIGHT -> {
                     moveRepeatManager?.setNextAction {
                         performAction(SwitchAction(SwitchAction.ACTION_MOVE_RIGHT))

@@ -28,7 +28,7 @@ fun PointScanSettingsView() {
         PointScanSettings.Modes.MODE_SINGLE,
         PointScanSettings.Modes.MODE_BLOCK
     )
-    val preferenceManager = PreferenceManager(context)
+    PreferenceManager(context)
     var currentMode by remember { mutableStateOf(PointScanSettings.getMode()) }
 
     val setCursorMode = { mode: String ->
@@ -100,7 +100,12 @@ private fun BlockSettingsView() {
                 PointScanSettings.setCursorBlockCount(item.toInt(), context)
             },
             itemToString = { it.toString() },
-            itemDescription = { value -> Resources.getString(R.string.preference_summary_grid_size_dynamic, value) }
+            itemDescription = { value ->
+                Resources.getString(
+                    R.string.preference_summary_grid_size_dynamic,
+                    value
+                )
+            }
         )
     }
 }

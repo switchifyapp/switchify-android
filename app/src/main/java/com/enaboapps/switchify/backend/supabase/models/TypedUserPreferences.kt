@@ -30,7 +30,7 @@ object PreferenceTypeConverter {
             else -> TypedPreferenceValue(value.toString(), "string")
         }
     }
-    
+
     fun fromTypedValue(typedValue: TypedPreferenceValue): Any {
         return when (typedValue.type) {
             "boolean" -> typedValue.value.toBooleanStrictOrNull() ?: false
@@ -41,11 +41,11 @@ object PreferenceTypeConverter {
             else -> typedValue.value
         }
     }
-    
+
     fun fromTypedPreferences(typedPrefs: Map<String, TypedPreferenceValue>): Map<String, Any> {
         return typedPrefs.mapValues { (_, typedValue) -> fromTypedValue(typedValue) }
     }
-    
+
     fun toTypedPreferences(prefs: Map<String, Any>): Map<String, TypedPreferenceValue> {
         return prefs.mapValues { (_, value) -> toTypedValue(value) }
     }

@@ -7,7 +7,8 @@ import com.revenuecat.purchases.CustomerInfo
 import com.revenuecat.purchases.models.StoreTransaction
 import com.revenuecat.purchases.ui.revenuecatui.PaywallListener
 
-class AppPaywallScreenModel(application: Application) : AndroidViewModel(application), PaywallListener {
+class AppPaywallScreenModel(application: Application) : AndroidViewModel(application),
+    PaywallListener {
     override fun onRestoreCompleted(customerInfo: CustomerInfo) {
         super.onRestoreCompleted(customerInfo)
 

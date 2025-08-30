@@ -8,9 +8,13 @@ import androidx.navigation.navDeepLink
 import com.enaboapps.switchify.screens.DebugScreen
 import com.enaboapps.switchify.screens.EnableAccessibilityServiceScreen
 import com.enaboapps.switchify.screens.HomeScreen
+import com.enaboapps.switchify.screens.UserFeedbackScreen
 import com.enaboapps.switchify.screens.account.AccountScreen
 import com.enaboapps.switchify.screens.account.AuthScreen
+import com.enaboapps.switchify.screens.onboarding.OnboardingScreen
 import com.enaboapps.switchify.screens.paywall.AppPaywallScreen
+import com.enaboapps.switchify.screens.permissions.UsageStatsPermissionScreen
+import com.enaboapps.switchify.screens.settings.CameraSettingsScreen
 import com.enaboapps.switchify.screens.settings.SettingsScreen
 import com.enaboapps.switchify.screens.settings.gestures.GestureSettingsScreen
 import com.enaboapps.switchify.screens.settings.patterns.GesturePatternsScreen
@@ -25,10 +29,6 @@ import com.enaboapps.switchify.screens.settings.switches.ExternalSwitchesScreen
 import com.enaboapps.switchify.screens.settings.switches.SwitchStabilityScreen
 import com.enaboapps.switchify.screens.settings.switches.SwitchesScreen
 import com.enaboapps.switchify.screens.settings.techniques.AccessTechniqueSettingsScreen
-import com.enaboapps.switchify.screens.settings.CameraSettingsScreen
-import com.enaboapps.switchify.screens.onboarding.OnboardingScreen
-import com.enaboapps.switchify.screens.permissions.UsageStatsPermissionScreen
-import com.enaboapps.switchify.screens.UserFeedbackScreen
 
 @Composable
 fun NavGraph(navController: NavHostController) {

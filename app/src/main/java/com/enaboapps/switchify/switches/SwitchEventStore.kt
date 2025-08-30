@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.util.Log
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
+import com.enaboapps.switchify.service.core.ServiceBridge
 import com.enaboapps.switchify.service.scanning.ScanMode
 import com.enaboapps.switchify.utils.LogEvent
 import com.enaboapps.switchify.utils.Logger
@@ -11,7 +12,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.util.Collections
-import com.enaboapps.switchify.service.core.ServiceBridge
 
 /**
  * SwitchEventStore manages the storage of switch events using local storage.
@@ -207,7 +207,7 @@ class SwitchEventStore private constructor() {
     private fun broadcastReloadEvent(context: Context) {
         // Notify same-process listeners via ServiceBridge
         ServiceBridge.emitEvent(ServiceBridge.ServiceEvent.SwitchEventsUpdated)
-        
+
         // Notify cross-process listeners (e.g., accessibility service)
         context.sendBroadcast(Intent(EVENTS_UPDATED).setPackage(context.packageName))
     }

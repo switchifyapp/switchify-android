@@ -74,11 +74,11 @@ class GestureManager private constructor() {
         this.accessibilityService = accessibilityService
         AutoScrollManager.getInstance().init(accessibilityService)
         preferenceManager = PreferenceManager(accessibilityService)
-        
+
         // Initialize unified execution pipeline components
         gestureDispatcher = GestureDispatcher(accessibilityService)
         timingCoordinator = GestureTimingCoordinator()
-        
+
         linearGesturePerformer =
             LinearGesturePerformer(accessibilityService, GestureLockManager.instance)
         gestureVisualManager = GestureVisualManager(accessibilityService)
@@ -137,7 +137,7 @@ class GestureManager private constructor() {
                 } else {
                     getAssistedCurrentPoint()
                 }
-                
+
                 // Show visual feedback
                 val duration = GestureData.TAP_DURATION
                 gestureVisualManager.showStaticCircle(
@@ -145,14 +145,14 @@ class GestureManager private constructor() {
                     point.y.toInt(),
                     duration
                 )
-                
+
                 // Create and dispatch gesture using unified pipeline
                 val gestureDescription = GesturePathBuilder.createTapPath(point, duration)
                 val gestureData = GestureData(GestureType.TAP, point)
                 gestureDispatcher.dispatch(gestureDescription, GestureType.TAP, gestureData)
             }
         } catch (e: Exception) {
-            android.util.Log.e("GestureManager", "Error performing tap", e)
+            Log.e("GestureManager", "Error performing tap", e)
         }
     }
 
@@ -170,7 +170,7 @@ class GestureManager private constructor() {
                 } else {
                     getAssistedCurrentPoint()
                 }
-                
+
                 // Coordinate timing and visual feedback
                 val handler = timingCoordinator.createDefaultHandler(
                     onReady = { _, _ ->
@@ -182,21 +182,21 @@ class GestureManager private constructor() {
                         )
                     }
                 )
-                
+
                 timingCoordinator.coordinateDoubleTap(
                     handler,
                     gestureVisualManager,
                     GestureData.DOUBLE_TAP_INTERVAL,
                     GestureData.TAP_DURATION
                 )
-                
+
                 // Create and dispatch gesture using unified pipeline
                 val gestureDescription = GesturePathBuilder.createDoubleTapPath(point)
                 val gestureData = GestureData(GestureType.DOUBLE_TAP, point)
                 gestureDispatcher.dispatch(gestureDescription, GestureType.DOUBLE_TAP, gestureData)
             }
         } catch (e: Exception) {
-            android.util.Log.e("GestureManager", "Error performing double tap", e)
+            Log.e("GestureManager", "Error performing double tap", e)
         }
     }
 
@@ -214,7 +214,7 @@ class GestureManager private constructor() {
                 } else {
                     getAssistedCurrentPoint()
                 }
-                
+
                 // Show visual feedback
                 val duration = GestureData.TAP_AND_HOLD_DURATION
                 gestureVisualManager.showStaticCircle(
@@ -222,14 +222,18 @@ class GestureManager private constructor() {
                     point.y.toInt(),
                     duration
                 )
-                
+
                 // Create and dispatch gesture using unified pipeline
                 val gestureDescription = GesturePathBuilder.createTapAndHoldPath(point, duration)
                 val gestureData = GestureData(GestureType.TAP_AND_HOLD, point)
-                gestureDispatcher.dispatch(gestureDescription, GestureType.TAP_AND_HOLD, gestureData)
+                gestureDispatcher.dispatch(
+                    gestureDescription,
+                    GestureType.TAP_AND_HOLD,
+                    gestureData
+                )
             }
         } catch (e: Exception) {
-            android.util.Log.e("GestureManager", "Error performing tap and hold", e)
+            Log.e("GestureManager", "Error performing tap and hold", e)
         }
     }
 

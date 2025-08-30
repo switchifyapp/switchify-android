@@ -13,7 +13,7 @@ class TechniqueEnforcer(
 
     /**
      * Enforces technique compatibility based on scan mode.
-     * 
+     *
      * Compatibility Rules:
      * - Point Scan & Radar: Only work with Linear/Auto scanning modes
      * - Direct Control: Only works with Directional scanning mode
@@ -22,28 +22,34 @@ class TechniqueEnforcer(
     fun enforceCompatibility() {
         val currentTechnique = AccessTechnique.getCurrentTechnique()
         val isDirectionalMode = scanSettings.isDirectionalScanMode()
-        
+
         val shouldSwitch = when {
             // Point Scan and Radar don't work in Directional mode
-            isDirectionalMode && (currentTechnique == AccessTechnique.Technique.POINT_SCAN || 
-                                 currentTechnique == AccessTechnique.Technique.RADAR) -> {
-                Log.d(TAG, "Switching from $currentTechnique to Item Scan - incompatible with directional mode")
+            isDirectionalMode && (currentTechnique == AccessTechnique.Technique.POINT_SCAN ||
+                    currentTechnique == AccessTechnique.Technique.RADAR) -> {
+                Log.d(
+                    TAG,
+                    "Switching from $currentTechnique to Item Scan - incompatible with directional mode"
+                )
                 true
             }
-            
+
             // Direct Control doesn't work in Linear/Auto modes
             !isDirectionalMode && currentTechnique == AccessTechnique.Technique.DIRECT_CONTROL -> {
-                Log.d(TAG, "Switching from Direct Control to Item Scan - incompatible with linear/auto mode")
+                Log.d(
+                    TAG,
+                    "Switching from Direct Control to Item Scan - incompatible with linear/auto mode"
+                )
                 true
             }
-            
+
             else -> false
         }
-        
+
         if (shouldSwitch) {
             // Item Scan works with all modes, so use it as universal fallback
             AccessTechnique.setCurrentTechnique(AccessTechnique.Technique.ITEM_SCAN)
         }
     }
-    
+
 }

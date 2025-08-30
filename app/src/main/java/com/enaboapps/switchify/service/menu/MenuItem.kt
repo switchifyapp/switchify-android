@@ -7,14 +7,13 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.ui.draw.clip
-import androidx.compose.foundation.layout.offset
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -22,16 +21,16 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import com.enaboapps.switchify.R
 import com.enaboapps.switchify.service.components.AccessibilityComposeView
 import com.enaboapps.switchify.service.utils.ScreenUtils
 import com.enaboapps.switchify.utils.Resources
-import com.enaboapps.switchify.R
 
 /**
  * This class represents a menu item
@@ -86,10 +85,10 @@ class MenuItem(
             } else {
                 MenuSizeManager.getRegularItemSize(context)
             }
-            
+
             val widthPx = ScreenUtils.dpToPx(context, menuSize.width.value.toInt())
             val heightPx = ScreenUtils.dpToPx(context, menuSize.height.value.toInt())
-            
+
             view.layoutParams = LinearLayout.LayoutParams(widthPx, heightPx)
             linearLayout.addView(view)
         }
@@ -251,31 +250,34 @@ private fun RegularMenuItem(
                     .fillMaxSize()
                     .clickable(onClick = onClick),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(menuSize.elementSpacing, Alignment.CenterVertically)
+                verticalArrangement = Arrangement.spacedBy(
+                    menuSize.elementSpacing,
+                    Alignment.CenterVertically
+                )
             ) {
-            if (drawableId != 0) {
-                Icon(
-                    painter = painterResource(id = drawableId),
-                    contentDescription = labelResource?.let { Resources.getString(it) },
-                    modifier = Modifier.size(menuSize.iconSize),
-                    tint = MaterialTheme.colorScheme.primary
-                )
+                if (drawableId != 0) {
+                    Icon(
+                        painter = painterResource(id = drawableId),
+                        contentDescription = labelResource?.let { Resources.getString(it) },
+                        modifier = Modifier.size(menuSize.iconSize),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+
+                if (text != null) {
+                    Text(
+                        text = text,
+                        color = MaterialTheme.colorScheme.onBackground,
+                        fontSize = if (drawableId != 0) menuSize.primaryTextSize else menuSize.primaryTextSize,
+                        textAlign = TextAlign.Center,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(horizontal = 8.dp)
+                    )
+                }
+
             }
 
-            if (text != null) {
-                Text(
-                    text = text,
-                    color = MaterialTheme.colorScheme.onBackground,
-                    fontSize = if (drawableId != 0) menuSize.primaryTextSize else menuSize.primaryTextSize,
-                    textAlign = TextAlign.Center,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.padding(horizontal = 8.dp)
-                )
-            }
-
-            }
-            
             // Add link indicator for menu link items
             if (isLinkToMenu) {
                 val indicatorOffset = menuSize.cornerRadius + 2.dp

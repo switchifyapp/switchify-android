@@ -3,11 +3,12 @@ package com.enaboapps.switchify.screens.settings.switches.models
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.enaboapps.switchify.service.core.ServiceBridge
 import com.enaboapps.switchify.switches.SWITCH_EVENT_TYPE_EXTERNAL
 import com.enaboapps.switchify.switches.SwitchEvent
 import com.enaboapps.switchify.switches.SwitchEventStore
-import com.enaboapps.switchify.service.core.ServiceBridge
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 class ExternalSwitchesScreenModel : ViewModel() {

@@ -1,13 +1,12 @@
 package com.enaboapps.switchify.service.switches.camera
 
+import android.content.BroadcastReceiver
 import android.content.Context
-import android.os.Build
+import android.content.Intent
+import android.content.IntentFilter
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
-import android.content.BroadcastReceiver
-import android.content.Intent
-import android.content.IntentFilter
 import androidx.core.content.ContextCompat
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.service.core.ServiceCore
@@ -16,7 +15,6 @@ import com.enaboapps.switchify.service.pauseresume.PauseManager
 import com.enaboapps.switchify.service.scanning.ScanningManager
 import com.enaboapps.switchify.service.switches.SwitchEventProvider
 import com.enaboapps.switchify.switches.CameraSwitchFacialGesture
-import com.enaboapps.switchify.switches.SwitchAction
 import com.enaboapps.switchify.switches.SwitchEvent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -59,7 +57,7 @@ class CameraSwitchManager(
     private val mainHandler = Handler(Looper.getMainLooper())
 
     private var isReceiverRegistered = false
-    
+
     private val pauseReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             when (intent?.action) {
@@ -97,7 +95,7 @@ class CameraSwitchManager(
                 addAction(PauseManager.ACTION_PAUSE_STARTED)
                 addAction(PauseManager.ACTION_PAUSE_ENDED)
             }
-            
+
             ContextCompat.registerReceiver(
                 context,
                 pauseReceiver,
@@ -150,26 +148,30 @@ class CameraSwitchManager(
                         true
                     )
                 }
+
                 CameraSwitchFacialGesture.LEFT_WINK -> {
                     handleGestureStateChange(
                         CameraSwitchFacialGesture(CameraSwitchFacialGesture.LEFT_WINK),
                         true
                     )
                 }
+
                 CameraSwitchFacialGesture.RIGHT_WINK -> {
                     handleGestureStateChange(
                         CameraSwitchFacialGesture(CameraSwitchFacialGesture.RIGHT_WINK),
                         true
                     )
                 }
+
                 CameraSwitchFacialGesture.BLINK -> {
                     handleGestureStateChange(
                         CameraSwitchFacialGesture(CameraSwitchFacialGesture.BLINK),
                         true
                     )
                 }
+
                 CameraSwitchFacialGesture.HEAD_TURN_LEFT,
-                CameraSwitchFacialGesture.HEAD_TURN_RIGHT, 
+                CameraSwitchFacialGesture.HEAD_TURN_RIGHT,
                 CameraSwitchFacialGesture.HEAD_TURN_UP,
                 CameraSwitchFacialGesture.HEAD_TURN_DOWN -> {
                     triggerHeadTurnGesture(CameraSwitchFacialGesture(gestureId))
@@ -180,22 +182,34 @@ class CameraSwitchManager(
         // Handle face state changes for gesture ending
         val faceState = result.faceState
         if (faceState.isSmiling) {
-            handleGestureStateChange(CameraSwitchFacialGesture(CameraSwitchFacialGesture.SMILE), false)
+            handleGestureStateChange(
+                CameraSwitchFacialGesture(CameraSwitchFacialGesture.SMILE),
+                false
+            )
         }
         if (faceState.leftEyeOpen) {
-            handleGestureStateChange(CameraSwitchFacialGesture(CameraSwitchFacialGesture.LEFT_WINK), false)
+            handleGestureStateChange(
+                CameraSwitchFacialGesture(CameraSwitchFacialGesture.LEFT_WINK),
+                false
+            )
         }
         if (faceState.rightEyeOpen) {
-            handleGestureStateChange(CameraSwitchFacialGesture(CameraSwitchFacialGesture.RIGHT_WINK), false)
+            handleGestureStateChange(
+                CameraSwitchFacialGesture(CameraSwitchFacialGesture.RIGHT_WINK),
+                false
+            )
         }
         if (faceState.leftEyeOpen && faceState.rightEyeOpen) {
-            handleGestureStateChange(CameraSwitchFacialGesture(CameraSwitchFacialGesture.BLINK), false)
+            handleGestureStateChange(
+                CameraSwitchFacialGesture(CameraSwitchFacialGesture.BLINK),
+                false
+            )
         }
     }
 
     private fun handleGestureStateChange(gesture: CameraSwitchFacialGesture, isStarting: Boolean) {
         val state = gestureStates[gesture.id] ?: return
-        
+
         if (isStarting && !state.isActive) {
             gestureStarted(gesture)
         } else if (!isStarting && state.isActive) {
@@ -208,25 +222,25 @@ class CameraSwitchManager(
         state.isActive = true
         state.startTime = System.currentTimeMillis()
         activeGesture = gesture.id
-        
+
         Log.d(TAG, "Gesture started: ${gesture.getName()}")
     }
 
     private fun gestureCompleted(gesture: CameraSwitchFacialGesture) {
         val state = gestureStates[gesture.id] ?: return
         if (!state.isActive) return
-        
+
         state.isActive = false
         val duration = System.currentTimeMillis() - state.startTime
-        
+
         Log.d(TAG, "Gesture completed: ${gesture.getName()}, duration: ${duration}ms")
-        
+
         // Check if this gesture meets the minimum hold time requirement
         val requiredHoldTime = getRequiredHoldTime(gesture)
         if (duration >= requiredHoldTime) {
             triggerSwitchAction(gesture)
         }
-        
+
         if (activeGesture == gesture.id) {
             activeGesture = null
         }
@@ -234,14 +248,30 @@ class CameraSwitchManager(
 
     private fun getRequiredHoldTime(gesture: CameraSwitchFacialGesture): Long {
         return when (gesture.id) {
-            CameraSwitchFacialGesture.SMILE -> 
-                preferenceManager.getLongValue(PreferenceManager.PREFERENCE_KEY_CAMERA_SMILE_TIME, 500L)
-            CameraSwitchFacialGesture.LEFT_WINK -> 
-                preferenceManager.getLongValue(PreferenceManager.PREFERENCE_KEY_CAMERA_LEFT_WINK_TIME, 300L)
-            CameraSwitchFacialGesture.RIGHT_WINK -> 
-                preferenceManager.getLongValue(PreferenceManager.PREFERENCE_KEY_CAMERA_RIGHT_WINK_TIME, 300L)
-            CameraSwitchFacialGesture.BLINK -> 
-                preferenceManager.getLongValue(PreferenceManager.PREFERENCE_KEY_CAMERA_BLINK_TIME, 400L)
+            CameraSwitchFacialGesture.SMILE ->
+                preferenceManager.getLongValue(
+                    PreferenceManager.PREFERENCE_KEY_CAMERA_SMILE_TIME,
+                    500L
+                )
+
+            CameraSwitchFacialGesture.LEFT_WINK ->
+                preferenceManager.getLongValue(
+                    PreferenceManager.PREFERENCE_KEY_CAMERA_LEFT_WINK_TIME,
+                    300L
+                )
+
+            CameraSwitchFacialGesture.RIGHT_WINK ->
+                preferenceManager.getLongValue(
+                    PreferenceManager.PREFERENCE_KEY_CAMERA_RIGHT_WINK_TIME,
+                    300L
+                )
+
+            CameraSwitchFacialGesture.BLINK ->
+                preferenceManager.getLongValue(
+                    PreferenceManager.PREFERENCE_KEY_CAMERA_BLINK_TIME,
+                    400L
+                )
+
             CameraSwitchFacialGesture.HEAD_TURN_LEFT,
             CameraSwitchFacialGesture.HEAD_TURN_RIGHT,
             CameraSwitchFacialGesture.HEAD_TURN_UP,
@@ -269,9 +299,9 @@ class CameraSwitchManager(
         if (currentTime - lastHeadTurnTime < headTurnCooldown) {
             return // Rate limiting
         }
-        
+
         lastHeadTurnTime = currentTime
-        
+
         val switchEvent = findSwitchEventForGesture(gesture)
         if (switchEvent != null) {
             coroutineScope.launch(Dispatchers.Main) {
@@ -291,13 +321,13 @@ class CameraSwitchManager(
                 context.unregisterReceiver(pauseReceiver)
                 isReceiverRegistered = false
             }
-            
+
             gestureStates.values.forEach { it.isActive = false }
             activeGesture = null
             isInitialized = false
-            
+
             Log.d(TAG, "Camera switch manager cleaned up")
-            
+
         } catch (e: Exception) {
             Log.e(TAG, "Error during cleanup", e)
         }

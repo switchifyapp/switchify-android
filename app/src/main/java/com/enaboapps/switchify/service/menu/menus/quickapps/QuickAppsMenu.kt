@@ -14,14 +14,14 @@ class QuickAppsMenu(
     items = emptyList(),
     dynamicLoad = {
         val quickAppsManager = QuickAppsManager(accessibilityService)
-        
+
         // Use intelligent cache-first loading for optimal performance
         val apps = if (quickAppsManager.getCachedApps().isNotEmpty()) {
             quickAppsManager.getCachedApps()
         } else {
             quickAppsManager.getRecentApps()
         }
-        
+
         QuickAppsMenuStructure(accessibilityService).getMenuItems(apps)
     },
     showNavMenuItems = true

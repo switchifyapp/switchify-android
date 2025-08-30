@@ -43,7 +43,7 @@ class MainActivity : ComponentActivity() {
     private fun setup() {
         // Initialize Supabase client
         initializeSupabase()
-        
+
         // Initialize FileManager
         fileManager = FileManager.create(this)
 
@@ -65,7 +65,7 @@ class MainActivity : ComponentActivity() {
         // Migrate files from regular storage to device protected storage
         migrateFromRegularStorage()
     }
-    
+
     private fun initializeSupabase() {
         try {
             // Force initialization of Supabase client

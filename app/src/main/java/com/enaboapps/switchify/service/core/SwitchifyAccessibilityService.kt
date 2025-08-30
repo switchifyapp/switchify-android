@@ -1,7 +1,6 @@
 package com.enaboapps.switchify.service.core
 
 import android.accessibilityservice.AccessibilityService
-import android.content.Context
 import android.content.Intent
 import android.util.Log
 import android.view.KeyEvent
@@ -13,36 +12,24 @@ import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.service.actions.AudioActionManager
 import com.enaboapps.switchify.service.actions.GlobalActionManager
 import com.enaboapps.switchify.service.gestures.GestureManager
-import com.enaboapps.switchify.service.gestures.GestureLockManager
 import com.enaboapps.switchify.service.scanning.ScanSettings
 import com.enaboapps.switchify.service.selection.SelectionHandler
-import com.enaboapps.switchify.service.scanning.ScanningManager
-import com.enaboapps.switchify.service.switches.external.ExternalSwitchListener
 import com.enaboapps.switchify.service.switches.SwitchEventProvider
 import com.enaboapps.switchify.service.switches.camera.CameraSwitchManager
-import com.enaboapps.switchify.service.camera.CameraForegroundService
-import android.content.ComponentName
-import android.content.ServiceConnection
-import android.os.IBinder
 import com.enaboapps.switchify.service.techniques.AccessTechnique
-import com.enaboapps.switchify.service.techniques.nodes.NodeExaminer
-import com.enaboapps.switchify.service.utils.DeviceLockObserver
-import com.enaboapps.switchify.service.utils.KeyboardBridge
-import com.enaboapps.switchify.service.utils.QuickAppsManager
-import com.enaboapps.switchify.service.utils.ScreenWatcher
 import com.enaboapps.switchify.service.trial.ServiceTrialManager
+import com.enaboapps.switchify.service.utils.DeviceLockObserver
 import com.enaboapps.switchify.service.window.SwitchifyAccessibilityWindow
 import com.enaboapps.switchify.utils.LogEvent
 import com.enaboapps.switchify.utils.Logger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.cancelChildren
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
 
 /**
  * This is the main service class for the Switchify application.
@@ -60,10 +47,10 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
     private lateinit var startupOrchestrator: StartupOrchestrator
     private lateinit var nodeUpdateCoordinator: NodeUpdateCoordinator
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
-    
+
     // Camera foreground service binding
     private lateinit var cameraController: CameraServiceController
-    
+
     private lateinit var eventPipeline: AccessibilityEventPipeline
 
     // Service connection for camera foreground service is encapsulated in CameraServiceController
@@ -122,7 +109,8 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
             onServiceConnected = { service -> setupCameraServiceCallbacks() },
             onServiceDisconnected = { /* No-op */ }
         )
-        eventPipeline = AccessibilityEventPipeline(serviceScope) { nodeUpdateCoordinator.processAccessibilityUpdate() }
+        eventPipeline =
+            AccessibilityEventPipeline(serviceScope) { nodeUpdateCoordinator.processAccessibilityUpdate() }
         eventPipeline.start()
 
         setupServiceBridge()
@@ -137,8 +125,8 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
                 initProtectedServiceComponents()
             },
             onLocked = {
-            logd("Device locked")
-        })
+                logd("Device locked")
+            })
 
         // Initialize components that require device unlock
         initProtectedServiceComponents()
@@ -156,21 +144,21 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
             bindCameraForegroundService()
         }
     }
-    
+
     /**
      * Bind to the camera foreground service
      */
     private fun bindCameraForegroundService() {
         cameraController.bindIfNeeded()
     }
-    
+
     /**
      * Unbind from the camera foreground service
      */
     private fun unbindCameraForegroundService() {
         cameraController.unbindIfBound()
     }
-    
+
     /**
      * Setup callbacks for the camera service
      */
@@ -244,10 +232,10 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
 
         SwitchifyLifecycleOwner.getInstance().handleLifecycleEvent(Lifecycle.Event.ON_START)
         SwitchifyLifecycleOwner.getInstance().handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
-        
+
         // Stagger initialization to prevent overwhelming main thread
-        serviceScope.launch { 
-            startupOrchestrator.executeStartupTasks { nodeUpdateCoordinator.processAccessibilityUpdate() } 
+        serviceScope.launch {
+            startupOrchestrator.executeStartupTasks { nodeUpdateCoordinator.processAccessibilityUpdate() }
         }
     }
 
@@ -275,12 +263,12 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
         if (::trialManager.isInitialized) {
             trialManager.stopTrial()
         }
-        
+
         // Unregister ScreenWatcher to prevent receiver leak
         screenWatcherManager.unregister()
         serviceScope.coroutineContext.cancelChildren()
         eventPipeline.stop()
-        
+
         SwitchifyAccessibilityWindow.instance.onServiceDestroy()
         SwitchifyLifecycleOwner.getInstance().handleLifecycleEvent(Lifecycle.Event.ON_DESTROY)
         SwitchifyLifecycleOwner.cleanup()
@@ -330,11 +318,11 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
                 handleServiceCommand(command)
             }
             .launchIn(serviceScope)
-        
+
         // Notify app that service is ready
         ServiceBridge.emitEvent(ServiceBridge.ServiceEvent.ServiceReady)
     }
-    
+
     /**
      * Handles commands received from the app UI via ServiceBridge.
      */
@@ -345,14 +333,14 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
                     techniqueEnforcer.enforceCompatibility()
                     ServiceBridge.emitEvent(ServiceBridge.ServiceEvent.ConfigurationUpdated)
                 }
-                
+
                 ServiceBridge.ServiceCommand.ReloadSettings -> {
                     AccessTechnique.reloadFromPreferences()
                     techniqueEnforcer.enforceCompatibility()
                     ServiceCore.getScanningManager()?.reset()
                     ServiceBridge.emitEvent(ServiceBridge.ServiceEvent.ConfigurationUpdated)
                 }
-                
+
                 ServiceBridge.ServiceCommand.ClearCache -> {
                     // Clear any relevant caches
                     serviceScope.launch {
@@ -360,13 +348,13 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
                     }
                     ServiceBridge.emitEvent(ServiceBridge.ServiceEvent.ConfigurationUpdated)
                 }
-                
+
                 ServiceBridge.ServiceCommand.UpdateSwitches -> {
                     // Trigger switch event provider update
                     ServiceCore.getSwitchEventProvider()?.reload()
                     ServiceBridge.emitEvent(ServiceBridge.ServiceEvent.ConfigurationUpdated)
                 }
-                
+
                 is ServiceBridge.ServiceCommand.UpdateConfiguration -> {
                     // Handle specific configuration updates
                     when (command.key) {
@@ -375,12 +363,14 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
                             techniqueEnforcer.enforceCompatibility()
                             ServiceBridge.emitEvent(ServiceBridge.ServiceEvent.ConfigurationUpdated)
                         }
+
                         PreferenceManager.Keys.PREFERENCE_KEY_ACCESS_TECHNIQUE -> {
                             // Access technique changed - reload from preferences and enforce compatibility
                             AccessTechnique.reloadFromPreferences()
                             techniqueEnforcer.enforceCompatibility()
                             ServiceBridge.emitEvent(ServiceBridge.ServiceEvent.ConfigurationUpdated)
                         }
+
                         PreferenceManager.Keys.PREFERENCE_KEY_CURSOR_BLOCK_SCAN_RATE,
                         PreferenceManager.Keys.PREFERENCE_KEY_CURSOR_FINE_SCAN_RATE,
                         PreferenceManager.Keys.PREFERENCE_KEY_RADAR_SCAN_RATE,
@@ -389,6 +379,7 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
                             ServiceCore.getScanningManager()?.reset()
                             ServiceBridge.emitEvent(ServiceBridge.ServiceEvent.ConfigurationUpdated)
                         }
+
                         else -> {
                             logd("Configuration updated: ${command.key}")
                             ServiceBridge.emitEvent(ServiceBridge.ServiceEvent.ConfigurationUpdated)

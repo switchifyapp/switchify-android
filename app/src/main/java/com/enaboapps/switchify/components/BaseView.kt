@@ -53,7 +53,7 @@ fun BaseView(
         ) {
             // Header content (if provided)
             headerContent?.invoke()
-            
+
             // Main content
             if (enableScroll) {
                 ScrollableView(modifier = Modifier.weight(1f)) {

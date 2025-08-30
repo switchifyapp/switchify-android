@@ -45,7 +45,7 @@ enum class MenuSizeVariant {
  * Object containing predefined size configurations for different menu item variants
  */
 object MenuSizes {
-    
+
     /**
      * Phone Small - Compact size for small phone screens
      */
@@ -61,7 +61,7 @@ object MenuSizes {
         navigationIconSize = 16.dp,
         navigationCircleSize = 32.dp
     )
-    
+
     /**
      * Phone Regular - Standard size for phone screens
      */
@@ -77,7 +77,7 @@ object MenuSizes {
         navigationIconSize = 20.dp,
         navigationCircleSize = 40.dp
     )
-    
+
     /**
      * Tablet Small - Current small size (navigation items)
      */
@@ -93,7 +93,7 @@ object MenuSizes {
         navigationIconSize = 24.dp,
         navigationCircleSize = 48.dp
     )
-    
+
     /**
      * Tablet Regular - Current regular size (main menu items)
      */
@@ -109,7 +109,7 @@ object MenuSizes {
         navigationIconSize = 24.dp,
         navigationCircleSize = 48.dp
     )
-    
+
     /**
      * Get the appropriate size variant based on the given MenuSizeVariant
      */

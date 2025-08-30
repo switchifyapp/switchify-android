@@ -212,7 +212,7 @@ class MenuManager {
      */
     fun replaceCurrentMenu(menu: MenuView) {
         menuHierarchy?.popMenu()
-        
+
         // Wait 300ms before opening the new menu
         android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
             menuHierarchy?.openMenu(menu)

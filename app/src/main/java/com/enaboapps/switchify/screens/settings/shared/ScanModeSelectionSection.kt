@@ -11,7 +11,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -24,8 +23,8 @@ import com.enaboapps.switchify.components.NavRouteLink
 import com.enaboapps.switchify.components.Picker
 import com.enaboapps.switchify.components.Section
 import com.enaboapps.switchify.nav.NavigationRoute
-import com.enaboapps.switchify.service.scanning.ScanMode
 import com.enaboapps.switchify.screens.settings.models.ScanModeSettingsModel
+import com.enaboapps.switchify.service.scanning.ScanMode
 
 @Composable
 fun ScanModeSelectionSection(
@@ -47,7 +46,7 @@ fun ScanModeSelectionSection(
             itemToString = { it.getModeName() },
             itemDescription = { it.getModeDescription() }
         )
-        
+
         // Visual demonstration of selected scan mode
         AnimatedVisibility(
             visible = uiState.value.currentMode.id == ScanMode.Modes.MODE_AUTO,
@@ -67,7 +66,7 @@ fun ScanModeSelectionSection(
                 }
             }
         }
-        
+
         AnimatedVisibility(
             visible = uiState.value.currentMode.id == ScanMode.Modes.MODE_MANUAL,
             enter = fadeIn(),

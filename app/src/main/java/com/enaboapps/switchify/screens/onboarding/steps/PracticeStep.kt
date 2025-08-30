@@ -1,15 +1,54 @@
 package com.enaboapps.switchify.screens.onboarding.steps
 
-import androidx.compose.animation.*
-import androidx.compose.animation.core.*
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.Celebration
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.EmojiEmotions
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -22,7 +61,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.enaboapps.switchify.R
-import com.enaboapps.switchify.components.ActionButton
 import com.enaboapps.switchify.utils.Resources
 import kotlinx.coroutines.delay
 import kotlin.random.Random
@@ -42,7 +80,7 @@ fun PracticeStep(
     var activatedCount by remember { mutableIntStateOf(0) }
     var showCelebration by remember { mutableStateOf(false) }
     var motivationalMessage by remember { mutableStateOf("") }
-    
+
     val boxes = remember {
         mutableStateListOf(
             PracticeBox(
@@ -253,9 +291,9 @@ private fun PracticeBoxItem(
             defaultElevation = if (box.isActivated) 0.dp else 8.dp
         ),
         colors = CardDefaults.cardColors(
-            containerColor = if (box.isActivated) 
-                box.color.copy(alpha = 0.2f) 
-            else 
+            containerColor = if (box.isActivated)
+                box.color.copy(alpha = 0.2f)
+            else
                 MaterialTheme.colorScheme.surface
         ),
         border = if (!box.isActivated) {
@@ -269,9 +307,9 @@ private fun PracticeBoxItem(
                 .fillMaxWidth()
                 .heightIn(min = 120.dp)
                 .background(
-                    if (box.isActivated) 
-                        box.color.copy(alpha = 0.1f) 
-                    else 
+                    if (box.isActivated)
+                        box.color.copy(alpha = 0.1f)
+                    else
                         Color.Transparent
                 )
                 .padding(16.dp),
@@ -291,9 +329,9 @@ private fun PracticeBoxItem(
                         },
                     tint = if (box.isActivated) box.color else MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                
+
                 Spacer(modifier = Modifier.height(8.dp))
-                
+
                 Text(
                     text = box.label,
                     style = MaterialTheme.typography.bodyMedium,

@@ -1,11 +1,10 @@
 package com.enaboapps.switchify.auth.repository
 
-import io.github.jan.supabase.SupabaseClient
-import io.github.jan.supabase.auth.auth
-import io.github.jan.supabase.auth.providers.builtin.OTP
-import io.github.jan.supabase.auth.providers.builtin.IDToken
-import io.github.jan.supabase.auth.providers.Google
 import io.github.jan.supabase.auth.OtpType
+import io.github.jan.supabase.auth.auth
+import io.github.jan.supabase.auth.providers.Google
+import io.github.jan.supabase.auth.providers.builtin.IDToken
+import io.github.jan.supabase.auth.providers.builtin.OTP
 import io.github.jan.supabase.auth.user.UserInfo
 import io.github.jan.supabase.postgrest.postgrest
 import kotlinx.coroutines.Dispatchers
@@ -13,11 +12,11 @@ import kotlinx.coroutines.withContext
 import com.enaboapps.switchify.backend.supabase.SupabaseClient as SupabaseClientProvider
 
 class AuthRepository private constructor() {
-    
+
     companion object {
         val instance: AuthRepository by lazy { AuthRepository() }
     }
-    
+
     private val supabaseClient = SupabaseClientProvider.client
 
     suspend fun sendEmailOtp(email: String, isSignUp: Boolean = false): Result<Unit> {
@@ -103,10 +102,10 @@ class AuthRepository private constructor() {
         try {
             // Call the server-side function to delete user
             supabaseClient.postgrest.rpc("delete_user_account")
-            
+
             // Sign out locally to clear the session
             supabaseClient.auth.signOut()
-            
+
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)

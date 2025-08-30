@@ -1,10 +1,24 @@
 package com.enaboapps.switchify.screens
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -16,12 +30,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.enaboapps.switchify.R
+import com.enaboapps.switchify.auth.repository.AuthRepository
 import com.enaboapps.switchify.components.ActionButton
 import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.Picker
 import com.enaboapps.switchify.components.ScrollableView
 import com.enaboapps.switchify.components.Section
-import com.enaboapps.switchify.auth.repository.AuthRepository
 import io.sentry.Sentry
 import io.sentry.UserFeedback
 
@@ -34,10 +48,10 @@ fun UserFeedbackScreen(navController: NavController) {
     var isSubmitting by remember { mutableStateOf(false) }
     var showSuccessMessage by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
-    
+
     val context = LocalContext.current
     val focusManager = LocalFocusManager.current
-    
+
     // Auto-fill email if user is signed in
     LaunchedEffect(Unit) {
         val authRepository = AuthRepository.instance
@@ -103,7 +117,7 @@ fun UserFeedbackScreen(navController: NavController) {
                 Section(titleResId = R.string.feedback_details_section) {
                     OutlinedTextField(
                         value = feedbackText,
-                        onValueChange = { 
+                        onValueChange = {
                             feedbackText = it
                             errorMessage = null
                         },
@@ -124,9 +138,9 @@ fun UserFeedbackScreen(navController: NavController) {
                         singleLine = false,
                         isError = errorMessage != null
                     )
-                    
+
                     Spacer(modifier = Modifier.height(16.dp))
-                    
+
                     OutlinedTextField(
                         value = contactEmail,
                         onValueChange = { contactEmail = it },
@@ -171,7 +185,7 @@ fun UserFeedbackScreen(navController: NavController) {
                             errorMessage = context.getString(R.string.feedback_error_empty)
                             return@ActionButton
                         }
-                        
+
                         isSubmitting = true
                         submitFeedback(
                             feedbackText = feedbackText.trim(),
@@ -227,7 +241,7 @@ private fun submitFeedback(
             if (contactEmail.isNotBlank()) {
                 this.email = contactEmail
             }
-            
+
         }
 
         Sentry.captureUserFeedback(userFeedback)
@@ -245,7 +259,10 @@ private fun getFeedbackTypeTitle(type: FeedbackType, context: android.content.Co
     return context.getString(type.titleResId)
 }
 
-private fun getDescriptionForFeedbackType(type: FeedbackType, context: android.content.Context): String {
+private fun getDescriptionForFeedbackType(
+    type: FeedbackType,
+    context: android.content.Context
+): String {
     return when (type) {
         FeedbackType.BUG_REPORT -> context.getString(R.string.feedback_type_bug_description)
         FeedbackType.FEATURE_REQUEST -> context.getString(R.string.feedback_type_feature_description)

@@ -8,9 +8,9 @@ import android.util.Log
  * actionable error messages to users while preserving original errors for debugging.
  */
 object ErrorMessageMapper {
-    
+
     private const val TAG = "ErrorMessageMapper"
-    
+
     /**
      * Map of regex patterns to user-friendly error messages.
      * Patterns are case-insensitive for better matching.
@@ -19,51 +19,59 @@ object ErrorMessageMapper {
     private val errorPatterns = mapOf(
         // Email format issues (must come before general email errors)
         "invalid.*email.*format|malformed.*email|email.*format.*invalid".toRegex(RegexOption.IGNORE_CASE) to
-            "Please enter a valid email address.",
-        
+                "Please enter a valid email address.",
+
         // OTP/Token specific errors (must come before general invalid errors)
-        "incorrect.*code|invalid.*code|wrong.*code|code.*expired|token.*expired|otp.*expired|invalid.*token|token.*invalid".toRegex(RegexOption.IGNORE_CASE) to 
-            "Incorrect verification code. Please check your code and try again.",
-        
+        "incorrect.*code|invalid.*code|wrong.*code|code.*expired|token.*expired|otp.*expired|invalid.*token|token.*invalid".toRegex(
+            RegexOption.IGNORE_CASE
+        ) to
+                "Incorrect verification code. Please check your code and try again.",
+
         // Sign up specific - user already exists (less relevant in unified flow)
         "user.*already.*registered|email.*already.*exists|already.*signed.*up".toRegex(RegexOption.IGNORE_CASE) to
-            "This email is already registered. Try signing in instead.",
-        
+                "This email is already registered. Try signing in instead.",
+
         // Email-related errors (more general, comes after specific email format errors)
-        "email.*not.*found|user.*not.*found|invalid.*email|email.*does.*not.*exist".toRegex(RegexOption.IGNORE_CASE) to 
-            "Email address not found. Please check your email and try again.",
-        
+        "email.*not.*found|user.*not.*found|invalid.*email|email.*does.*not.*exist".toRegex(
+            RegexOption.IGNORE_CASE
+        ) to
+                "Email address not found. Please check your email and try again.",
+
         // Rate limiting
-        "rate.*limit|too.*many.*attempts|try.*again.*later|email.*rate.*limit".toRegex(RegexOption.IGNORE_CASE) to 
-            "Too many attempts. Please wait a few minutes before trying again.",
-        
+        "rate.*limit|too.*many.*attempts|try.*again.*later|email.*rate.*limit".toRegex(RegexOption.IGNORE_CASE) to
+                "Too many attempts. Please wait a few minutes before trying again.",
+
         // Network/Connection issues
-        "network.*error|connection.*failed|timeout|unable.*to.*connect|no.*internet".toRegex(RegexOption.IGNORE_CASE) to 
-            "Connection problem. Please check your internet and try again.",
-        
+        "network.*error|connection.*failed|timeout|unable.*to.*connect|no.*internet".toRegex(
+            RegexOption.IGNORE_CASE
+        ) to
+                "Connection problem. Please check your internet and try again.",
+
         // Server errors
         "internal.*server.*error|server.*error|5\\d\\d.*error".toRegex(RegexOption.IGNORE_CASE) to
-            "Server temporarily unavailable. Please try again in a few minutes.",
-        
+                "Server temporarily unavailable. Please try again in a few minutes.",
+
         // Account linking conflicts
-        "user.*already.*registered.*with.*different.*provider|email.*already.*exists.*with.*different.*provider|account.*linking.*required".toRegex(RegexOption.IGNORE_CASE) to
-            "This email is already registered with email/password. Please sign in with email instead, or link accounts in settings.",
-            
+        "user.*already.*registered.*with.*different.*provider|email.*already.*exists.*with.*different.*provider|account.*linking.*required".toRegex(
+            RegexOption.IGNORE_CASE
+        ) to
+                "This email is already registered with email/password. Please sign in with email instead, or link accounts in settings.",
+
         // Google OAuth specific errors
         "google.*sign.*in.*failed|google.*auth.*error|play.*services.*error".toRegex(RegexOption.IGNORE_CASE) to
-            "Google Sign-In failed. Please try again.",
-        
+                "Google Sign-In failed. Please try again.",
+
         "id.*token.*null|invalid.*id.*token|token.*verification.*failed".toRegex(RegexOption.IGNORE_CASE) to
-            "Google Sign-In authentication failed. Please try again.",
-        
+                "Google Sign-In authentication failed. Please try again.",
+
         // Authentication service errors
         "auth.*error|authentication.*failed|unauthorized".toRegex(RegexOption.IGNORE_CASE) to
-            "Authentication failed. Please try again."
+                "Authentication failed. Please try again."
     )
-    
+
     /**
      * Maps a raw API error message to a user-friendly message.
-     * 
+     *
      * @param apiError The raw error message from the API
      * @param context Optional context for logging (e.g., "sendOtp", "verifyOtp")
      * @return User-friendly error message
@@ -75,7 +83,7 @@ object ErrorMessageMapper {
         } catch (e: RuntimeException) {
             // Android Log not available in unit tests, ignore
         }
-        
+
         // Check each pattern for a match
         errorPatterns.forEach { (pattern, userMessage) ->
             if (pattern.containsMatchIn(apiError)) {
@@ -87,9 +95,10 @@ object ErrorMessageMapper {
                 return userMessage
             }
         }
-        
+
         // Fallback message for unmatched errors
-        val fallbackMessage = "Something went wrong. Please try again or contact support if the problem continues."
+        val fallbackMessage =
+            "Something went wrong. Please try again or contact support if the problem continues."
         try {
             Log.d(TAG, "No pattern matched, using fallback message: $fallbackMessage")
         } catch (e: RuntimeException) {
@@ -97,7 +106,7 @@ object ErrorMessageMapper {
         }
         return fallbackMessage
     }
-    
+
     /**
      * Convenience method for mapping exception messages.
      */
@@ -105,7 +114,7 @@ object ErrorMessageMapper {
         val errorMessage = exception.message ?: "Unknown error occurred"
         return mapErrorToUserFriendlyMessage(errorMessage, context)
     }
-    
+
     /**
      * For testing purposes - allows checking if a pattern would match without logging
      */

@@ -4,7 +4,6 @@ import android.app.AppOpsManager
 import android.app.usage.UsageStatsManager
 import android.content.Context
 import android.content.Intent
-import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.os.Process
 import android.provider.Settings
@@ -19,7 +18,7 @@ import kotlinx.coroutines.withContext
  * and providing launchable menu items for quick app access.
  */
 class QuickAppsManager(private val context: Context) {
-    
+
     companion object {
         private var cachedApps: List<RecentApp>? = null
         private var lastCacheTime: Long = 0
@@ -59,7 +58,7 @@ class QuickAppsManager(private val context: Context) {
     fun getCachedApps(): List<RecentApp> {
         return if (isCacheValid()) cachedApps ?: emptyList() else emptyList()
     }
-    
+
     /**
      * Checks if the current cache is still valid based on time.
      * @return true if cache exists and is within the cache duration
@@ -67,7 +66,7 @@ class QuickAppsManager(private val context: Context) {
     private fun isCacheValid(): Boolean {
         return cachedApps != null && (System.currentTimeMillis() - lastCacheTime) < CACHE_DURATION_MS
     }
-    
+
     /**
      * Intelligently loads recent apps using cache when available, fresh data when needed.
      * Returns cached data immediately if valid, otherwise loads fresh data asynchronously.
@@ -80,19 +79,19 @@ class QuickAppsManager(private val context: Context) {
             completion(cachedApps!!)
             return
         }
-        
+
         CoroutineScope(Dispatchers.IO).launch {
             val apps = getRecentApps()
             // Cache the results
             cachedApps = apps
             lastCacheTime = System.currentTimeMillis()
-            
+
             launch(Dispatchers.Main) {
                 completion(apps)
             }
         }
     }
-    
+
     /**
      * Convenience method for preloading apps (same as loadApps but clearer intent).
      * @param completion callback function that receives the list of recent apps
@@ -109,7 +108,8 @@ class QuickAppsManager(private val context: Context) {
         if (!hasUsageStatsPermission()) return@withContext emptyList()
 
         try {
-            val usageStatsManager = context.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
+            val usageStatsManager =
+                context.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
             val packageManager = context.packageManager
             val endTime = System.currentTimeMillis()
             val startTime = endTime - (QUERY_DAYS * 24L * 60 * 60 * 1000)
@@ -132,7 +132,9 @@ class QuickAppsManager(private val context: Context) {
                             appName = packageManager.getApplicationLabel(appInfo).toString(),
                             lastUsedTime = stats.lastTimeUsed
                         )
-                    } catch (e: PackageManager.NameNotFoundException) { null }
+                    } catch (e: PackageManager.NameNotFoundException) {
+                        null
+                    }
                 }
                 .distinctBy { it.packageName }
                 .take(MAX_RECENT_APPS) // Ensure we don't exceed limit after filtering

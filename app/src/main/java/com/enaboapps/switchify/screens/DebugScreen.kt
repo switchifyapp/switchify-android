@@ -3,7 +3,11 @@ package com.enaboapps.switchify.screens
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -19,8 +23,8 @@ import com.enaboapps.switchify.components.Section
 fun DebugScreen(navController: NavController) {
     val context = LocalContext.current
     val preferenceManager = remember { PreferenceManager(context) }
-    
-    var trialDisabled by remember { 
+
+    var trialDisabled by remember {
         mutableStateOf(
             preferenceManager.getBooleanValue(
                 PreferenceManager.PREFERENCE_KEY_DEBUG_TRIAL_DISABLED,
@@ -50,7 +54,7 @@ fun DebugScreen(navController: NavController) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
             )
-            
+
             PreferenceSwitch(
                 titleResId = R.string.debug_disable_trials_title,
                 summaryResId = R.string.debug_disable_trials_summary,

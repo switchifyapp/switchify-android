@@ -13,7 +13,7 @@ class ScanSettings(context: Context) {
         const val RADAR_START_TOP = "top"
         const val RADAR_START_BOTTOM = "bottom"
     }
-    
+
     private val preferenceManager = PreferenceManager(context)
 
     /**
@@ -91,7 +91,10 @@ class ScanSettings(context: Context) {
      * @return The radar starting position (top or bottom)
      */
     fun getRadarStartingPosition(): String {
-        return preferenceManager.getStringValue(PreferenceManager.Keys.PREFERENCE_KEY_RADAR_STARTING_POSITION, RADAR_START_TOP)
+        return preferenceManager.getStringValue(
+            PreferenceManager.Keys.PREFERENCE_KEY_RADAR_STARTING_POSITION,
+            RADAR_START_TOP
+        )
     }
 
     /**

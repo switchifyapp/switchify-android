@@ -1,6 +1,7 @@
 package com.enaboapps.switchify.screens.settings.switches
 
 import android.widget.Toast
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
@@ -9,6 +10,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -25,21 +27,19 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
-import androidx.compose.foundation.Image
-import androidx.compose.ui.graphics.ColorFilter
-import androidx.compose.foundation.layout.size
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.enaboapps.switchify.R
-import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.ActionButton
 import com.enaboapps.switchify.components.ActionButtonType
+import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.TextArea
 import com.enaboapps.switchify.screens.settings.switches.actions.SwitchActionPicker
 import com.enaboapps.switchify.screens.settings.switches.models.AddEditExternalSwitchScreenModel
@@ -157,17 +157,18 @@ fun AddEditExternalSwitchScreen(navController: NavController, code: String? = nu
 @Composable
 fun SwitchListener(navController: NavController, onKeyEvent: (KeyEvent) -> Unit) {
     val requester = remember { FocusRequester() }
-    Column(modifier = Modifier
-        .fillMaxSize()
-        .background(MaterialTheme.colorScheme.background)
-        .padding(16.dp)
-        .onKeyEvent { keyEvent ->
-            onKeyEvent(keyEvent)
-            true
-        }
-        .fillMaxWidth()
-        .focusRequester(requester)
-        .focusable(),
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+            .padding(16.dp)
+            .onKeyEvent { keyEvent ->
+                onKeyEvent(keyEvent)
+                true
+            }
+            .fillMaxWidth()
+            .focusRequester(requester)
+            .focusable(),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center) {
         Spacer(modifier = Modifier.weight(1f))
@@ -211,7 +212,7 @@ fun SwitchName(
     onNameChange: (String) -> Unit
 ) {
     var localName by remember { mutableStateOf(name) }
-    
+
     LaunchedEffect(name) {
         localName = name
     }

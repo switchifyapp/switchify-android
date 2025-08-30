@@ -113,7 +113,7 @@ class MenuPage(
     private fun inflateNavItems() {
         // Add divider before navigation items
         addDivider()
-        
+
         val rowLayout = createRowLayout()
         val navButtonView = createNavButtonView()
         navItems.forEach { menuItem ->
@@ -187,7 +187,7 @@ class MenuPage(
         val isNightMode = context.resources.configuration.uiMode and
                 Configuration.UI_MODE_NIGHT_MASK ==
                 Configuration.UI_MODE_NIGHT_YES
-        
+
         // Create a container for the divider that won't affect parent width
         val dividerContainer = LinearLayout(context).apply {
             orientation = LinearLayout.HORIZONTAL
@@ -199,7 +199,7 @@ class MenuPage(
                 setMargins(0, 16, 0, 16) // vertical spacing
             }
         }
-        
+
         val divider = View(context).apply {
             layoutParams = LinearLayout.LayoutParams(
                 ScreenUtils.dpToPx(context, 100), // Fixed width of 100dp
@@ -210,7 +210,7 @@ class MenuPage(
                 else "#20000000".toColorInt() // Semi-transparent black for light mode
             )
         }
-        
+
         dividerContainer.addView(divider)
         baseLayout.addView(dividerContainer)
     }

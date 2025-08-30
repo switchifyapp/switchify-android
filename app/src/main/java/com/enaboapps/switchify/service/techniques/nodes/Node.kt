@@ -8,8 +8,8 @@ import com.enaboapps.switchify.service.gestures.GesturePoint
 import com.enaboapps.switchify.service.menu.MenuItem
 import com.enaboapps.switchify.service.scanning.ScanNodeInterface
 import com.enaboapps.switchify.service.selection.SelectionHandler
-import com.enaboapps.switchify.service.techniques.pointscan.blocks.PointScanBlock
 import com.enaboapps.switchify.service.techniques.nodes.scanners.NodeScannerUI
+import com.enaboapps.switchify.service.techniques.pointscan.blocks.PointScanBlock
 import com.enaboapps.switchify.utils.Resources
 
 /**

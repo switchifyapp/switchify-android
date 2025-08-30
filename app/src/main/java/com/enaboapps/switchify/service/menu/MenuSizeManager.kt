@@ -8,7 +8,7 @@ import android.content.res.Configuration
  * based on device characteristics and user preferences
  */
 object MenuSizeManager {
-    
+
     /**
      * Determines the appropriate size variant for navigation (small) items
      * based on device characteristics
@@ -22,7 +22,7 @@ object MenuSizeManager {
             MenuSizeVariant.TABLET_SMALL
         }
     }
-    
+
     /**
      * Determines the appropriate size variant for regular (large) items
      * based on device characteristics
@@ -36,7 +36,7 @@ object MenuSizeManager {
             MenuSizeVariant.TABLET_REGULAR
         }
     }
-    
+
     /**
      * Gets the MenuItemSize for navigation (small) items
      * @param context The context to determine device characteristics
@@ -46,7 +46,7 @@ object MenuSizeManager {
         val variant = getSmallItemSizeVariant(context)
         return MenuSizes.getSizeForVariant(variant)
     }
-    
+
     /**
      * Gets the MenuItemSize for regular (large) items
      * @param context The context to determine device characteristics
@@ -56,7 +56,7 @@ object MenuSizeManager {
         val variant = getRegularItemSizeVariant(context)
         return MenuSizes.getSizeForVariant(variant)
     }
-    
+
     /**
      * Determines if the current device is a phone based on screen characteristics
      * Uses smallestScreenWidthDp to determine device type
@@ -65,13 +65,13 @@ object MenuSizeManager {
      */
     private fun isPhoneDevice(context: Context): Boolean {
         val configuration = context.resources.configuration
-        
+
         // Use smallestScreenWidthDp to determine device type
         // Phones typically have smallestScreenWidthDp < 600dp
         // Tablets typically have smallestScreenWidthDp >= 600dp
         return configuration.smallestScreenWidthDp < 600
     }
-    
+
     /**
      * Gets detailed device information for debugging purposes
      * @param context The context to check device characteristics
@@ -87,7 +87,7 @@ object MenuSizeManager {
             Configuration.SCREENLAYOUT_SIZE_XLARGE -> "XLarge"
             else -> "Undefined"
         }
-        
+
         return buildString {
             append("Device Type: ${if (isPhoneDevice(context)) "Phone" else "Tablet"}\n")
             append("Screen Size: $screenSizeName\n")

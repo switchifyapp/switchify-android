@@ -7,18 +7,19 @@ import com.enaboapps.switchify.service.menu.structure.MenuStructure
 import com.enaboapps.switchify.service.utils.QuickAppsManager
 
 class QuickAppsMenuStructure(private val accessibilityService: SwitchifyAccessibilityService) {
-    
+
     private val quickAppsManager = QuickAppsManager(accessibilityService)
-    
+
     /**
      * Get menu items from preloaded apps
      */
     fun getMenuItems(apps: List<QuickAppsManager.RecentApp>): List<MenuItem> {
         val items = mutableListOf<MenuItem>()
-        
+
         // Check if permission is granted
         if (!quickAppsManager.hasUsageStatsPermission()) {
-            items.add(MenuItem(
+            items.add(
+                MenuItem(
                 id = "permission_required",
                 labelResource = R.string.usage_stats_permission_required,
                 action = {
@@ -30,7 +31,8 @@ class QuickAppsMenuStructure(private val accessibilityService: SwitchifyAccessib
         }
 
         if (apps.isEmpty()) {
-            items.add(MenuItem(
+            items.add(
+                MenuItem(
                 id = "no_quick_apps",
                 labelResource = R.string.no_quick_apps_available,
                 action = { /* Do nothing */ }
@@ -41,10 +43,10 @@ class QuickAppsMenuStructure(private val accessibilityService: SwitchifyAccessib
                 items.add(quickAppsManager.createMenuItem(app))
             }
         }
-        
+
         return items
     }
-    
+
     fun buildQuickAppsMenuObject(): MenuStructure {
         return MenuStructure(
             id = "quick_apps_menu",

@@ -3,8 +3,8 @@ package com.enaboapps.switchify.service.techniques.pointscan.blocks
 import android.content.Context
 import com.enaboapps.switchify.service.scanning.tree.ScanTree
 import com.enaboapps.switchify.service.scanning.tree.ScanTreeCallback
-import com.enaboapps.switchify.service.techniques.pointscan.PointScanSettings
 import com.enaboapps.switchify.service.techniques.nodes.Node
+import com.enaboapps.switchify.service.techniques.pointscan.PointScanSettings
 import com.enaboapps.switchify.service.utils.ScreenUtils
 
 class PointScanBlockManager(

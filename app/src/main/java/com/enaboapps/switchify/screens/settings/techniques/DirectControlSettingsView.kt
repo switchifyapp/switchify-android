@@ -2,7 +2,6 @@ package com.enaboapps.switchify.screens.settings.techniques
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -26,7 +25,7 @@ fun DirectControlSettingsView() {
     var precisionEnabled by remember { mutableStateOf(settings.precisionEnabled()) }
     // precision multiplier fixed internally; no UI
     var repeatDelay by remember { mutableIntStateOf(settings.repeatDelay().toInt()) }
-    
+
     // Store context strings to avoid @Composable calls in lambdas
     val step1 = context.getString(R.string.direct_control_step_1)
     val step2 = context.getString(R.string.direct_control_step_2)

@@ -20,12 +20,12 @@ import java.util.concurrent.atomic.AtomicLong
  * Integrates with GestureStateManager for coordinated timing events.
  */
 class GestureTimingCoordinator {
-    
+
     private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
     private val mainHandler = Handler(Looper.getMainLooper())
     private val pendingActions = ConcurrentHashMap<String, Runnable>()
     private val sequenceCounter = AtomicLong(0)
-    
+
     /**
      * Interface for handling timed gesture events.
      */
@@ -35,10 +35,10 @@ class GestureTimingCoordinator {
         fun onSequenceComplete(sequenceId: String)
         fun onSequenceCancelled(sequenceId: String)
     }
-    
+
     /**
      * Coordinates a double tap gesture with proper timing and visual feedback.
-     * 
+     *
      * @param handler Handler for timed events
      * @param visualManager Visual feedback manager
      * @param tapInterval Interval between taps in milliseconds
@@ -52,23 +52,23 @@ class GestureTimingCoordinator {
         tapDuration: Long = 100L
     ): String {
         val sequenceId = generateSequenceId("double_tap")
-        
+
         scope.launch {
             try {
                 // First tap ready
                 handler.onGestureReady(GestureType.DOUBLE_TAP, sequenceId)
                 handler.onVisualUpdate(GestureType.DOUBLE_TAP, sequenceId, "first_tap")
-                
+
                 // Wait for interval
                 delay(tapInterval + tapDuration)
-                
+
                 // Check if sequence is still valid
                 if (isSequenceActive(sequenceId)) {
                     handler.onVisualUpdate(GestureType.DOUBLE_TAP, sequenceId, "second_tap")
-                    
+
                     // Wait for second tap completion
                     delay(tapDuration)
-                    
+
                     if (isSequenceActive(sequenceId)) {
                         handler.onSequenceComplete(sequenceId)
                     }
@@ -79,13 +79,13 @@ class GestureTimingCoordinator {
                 cleanupSequence(sequenceId)
             }
         }
-        
+
         return sequenceId
     }
-    
+
     /**
      * Coordinates a hold-and-drag gesture with proper timing.
-     * 
+     *
      * @param handler Handler for timed events
      * @param visualManager Visual feedback manager
      * @param holdDuration Duration of the hold phase
@@ -99,22 +99,22 @@ class GestureTimingCoordinator {
         dragDuration: Long = 1500L
     ): String {
         val sequenceId = generateSequenceId("hold_and_drag")
-        
+
         scope.launch {
             try {
                 // Hold phase starts
                 handler.onGestureReady(GestureType.HOLD_AND_DRAG, sequenceId)
                 handler.onVisualUpdate(GestureType.HOLD_AND_DRAG, sequenceId, "hold_start")
-                
+
                 // Wait for hold duration
                 delay(holdDuration - 5) // Start drag slightly before hold ends
-                
+
                 if (isSequenceActive(sequenceId)) {
                     handler.onVisualUpdate(GestureType.HOLD_AND_DRAG, sequenceId, "drag_start")
-                    
+
                     // Wait for drag completion
                     delay(dragDuration)
-                    
+
                     if (isSequenceActive(sequenceId)) {
                         handler.onVisualUpdate(GestureType.HOLD_AND_DRAG, sequenceId, "drag_end")
                         handler.onSequenceComplete(sequenceId)
@@ -126,13 +126,13 @@ class GestureTimingCoordinator {
                 cleanupSequence(sequenceId)
             }
         }
-        
+
         return sequenceId
     }
-    
+
     /**
      * Coordinates visual feedback timing for simple gestures.
-     * 
+     *
      * @param handler Handler for timed events
      * @param gestureType Type of gesture
      * @param duration Duration of the gesture
@@ -146,11 +146,11 @@ class GestureTimingCoordinator {
         visualStages: List<Pair<String, Long>> = emptyList()
     ): String {
         val sequenceId = generateSequenceId("visual_${gestureType.name.lowercase()}")
-        
+
         scope.launch {
             try {
                 handler.onGestureReady(gestureType, sequenceId)
-                
+
                 // Process visual stages
                 var currentTime = 0L
                 for ((stage, stageDelay) in visualStages) {
@@ -158,19 +158,19 @@ class GestureTimingCoordinator {
                         delay(stageDelay - currentTime)
                         currentTime = stageDelay
                     }
-                    
+
                     if (isSequenceActive(sequenceId)) {
                         handler.onVisualUpdate(gestureType, sequenceId, stage)
                     } else {
                         break
                     }
                 }
-                
+
                 // Wait for gesture completion if needed
                 if (duration > currentTime && isSequenceActive(sequenceId)) {
                     delay(duration - currentTime)
                 }
-                
+
                 if (isSequenceActive(sequenceId)) {
                     handler.onSequenceComplete(sequenceId)
                 }
@@ -180,13 +180,13 @@ class GestureTimingCoordinator {
                 cleanupSequence(sequenceId)
             }
         }
-        
+
         return sequenceId
     }
-    
+
     /**
      * Schedules a delayed action with proper cleanup.
-     * 
+     *
      * @param actionId Unique identifier for the action
      * @param delay Delay in milliseconds
      * @param action Action to execute
@@ -196,19 +196,23 @@ class GestureTimingCoordinator {
             try {
                 action()
             } catch (e: Exception) {
-                android.util.Log.e("GestureTimingCoordinator", "Error executing scheduled action: $actionId", e)
+                android.util.Log.e(
+                    "GestureTimingCoordinator",
+                    "Error executing scheduled action: $actionId",
+                    e
+                )
             } finally {
                 pendingActions.remove(actionId)
             }
         }
-        
+
         pendingActions[actionId] = runnable
         mainHandler.postDelayed(runnable, delay)
     }
-    
+
     /**
      * Cancels a scheduled action.
-     * 
+     *
      * @param actionId Identifier of the action to cancel
      */
     fun cancelAction(actionId: String) {
@@ -216,16 +220,16 @@ class GestureTimingCoordinator {
             mainHandler.removeCallbacks(runnable)
         }
     }
-    
+
     /**
      * Cancels a gesture sequence.
-     * 
+     *
      * @param sequenceId Identifier of the sequence to cancel
      */
     fun cancelSequence(sequenceId: String) {
         cleanupSequence(sequenceId)
     }
-    
+
     /**
      * Cancels all pending actions and sequences.
      */
@@ -235,18 +239,18 @@ class GestureTimingCoordinator {
             mainHandler.removeCallbacks(runnable)
         }
         pendingActions.clear()
-        
+
         // Cancel all coroutines
         scope.cancel()
     }
-    
+
     /**
      * Generates a unique sequence ID.
      */
     private fun generateSequenceId(prefix: String): String {
         return "${prefix}_${sequenceCounter.incrementAndGet()}_${System.currentTimeMillis()}"
     }
-    
+
     /**
      * Checks if a sequence is still active (not cancelled).
      */
@@ -255,7 +259,7 @@ class GestureTimingCoordinator {
         // This could be enhanced with a proper tracking mechanism
         return true // Simplified - assume sequences are active
     }
-    
+
     /**
      * Cleans up resources for a sequence.
      */
@@ -265,10 +269,10 @@ class GestureTimingCoordinator {
             key.startsWith(sequenceId)
         }
     }
-    
+
     /**
      * Creates a default timed gesture handler that integrates with GestureStateManager.
-     * 
+     *
      * @param onReady Optional callback when gesture is ready
      * @param onComplete Optional callback when sequence completes
      * @return Default TimedGestureHandler implementation
@@ -282,23 +286,27 @@ class GestureTimingCoordinator {
                 GestureStateManager.notifyGestureDispatchStarted(gestureType)
                 onReady?.invoke(gestureType, sequenceId)
             }
-            
-            override fun onVisualUpdate(gestureType: GestureType, sequenceId: String, stage: String) {
+
+            override fun onVisualUpdate(
+                gestureType: GestureType,
+                sequenceId: String,
+                stage: String
+            ) {
                 // Notify state manager of visual stage changes
                 GestureStateManager.setActiveVisualFeedback(true)
             }
-            
+
             override fun onSequenceComplete(sequenceId: String) {
                 GestureStateManager.setActiveVisualFeedback(false)
                 onComplete?.invoke(sequenceId)
             }
-            
+
             override fun onSequenceCancelled(sequenceId: String) {
                 GestureStateManager.setActiveVisualFeedback(false)
             }
         }
     }
-    
+
     /**
      * Releases all resources and cancels pending operations.
      */

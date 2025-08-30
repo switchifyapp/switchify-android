@@ -48,19 +48,22 @@ class PreferenceManager(context: Context) {
         const val PREFERENCE_KEY_ONBOARDING_USER_TYPE = "onboarding_user_type"
         const val PREFERENCE_KEY_ONBOARDING_IS_NEW_USER = "onboarding_is_new_user"
         const val PREFERENCE_KEY_DEBUG_TRIAL_DISABLED = "debug_trial_disabled"
-        
+
         // Camera threshold preferences - time steppers for each gesture
         const val PREFERENCE_KEY_CAMERA_SMILE_TIME = "camera_smile_time"
         const val PREFERENCE_KEY_CAMERA_LEFT_WINK_TIME = "camera_left_wink_time"
         const val PREFERENCE_KEY_CAMERA_RIGHT_WINK_TIME = "camera_right_wink_time"
         const val PREFERENCE_KEY_CAMERA_BLINK_TIME = "camera_blink_time"
-        const val PREFERENCE_KEY_CAMERA_HEAD_TURN_LEFT_SENSITIVITY = "camera_head_turn_left_sensitivity"
-        const val PREFERENCE_KEY_CAMERA_HEAD_TURN_RIGHT_SENSITIVITY = "camera_head_turn_right_sensitivity"
+        const val PREFERENCE_KEY_CAMERA_HEAD_TURN_LEFT_SENSITIVITY =
+            "camera_head_turn_left_sensitivity"
+        const val PREFERENCE_KEY_CAMERA_HEAD_TURN_RIGHT_SENSITIVITY =
+            "camera_head_turn_right_sensitivity"
         const val PREFERENCE_KEY_CAMERA_HEAD_TURN_UP_SENSITIVITY = "camera_head_turn_up_sensitivity"
-        const val PREFERENCE_KEY_CAMERA_HEAD_TURN_DOWN_SENSITIVITY = "camera_head_turn_down_sensitivity"
-        
+        const val PREFERENCE_KEY_CAMERA_HEAD_TURN_DOWN_SENSITIVITY =
+            "camera_head_turn_down_sensitivity"
+
         private const val PREFERENCE_FILE_NAME = "switchify_preferences"
-        
+
         /**
          * Keys that should NOT be synced across devices - single source of truth
          */
@@ -211,7 +214,7 @@ class PreferenceManager(context: Context) {
         sharedPreferences.edit {
             // Get all current preferences
             val allPrefs = sharedPreferences.all
-            
+
             // Remove all except blacklisted keys
             allPrefs.keys.forEach { key ->
                 if (!BLACKLISTED_KEYS.contains(key)) {
@@ -219,7 +222,7 @@ class PreferenceManager(context: Context) {
                 }
             }
         }
-        
+
         // Clear sync queue to prevent syncing cleared preferences
         clearSyncQueue()
     }

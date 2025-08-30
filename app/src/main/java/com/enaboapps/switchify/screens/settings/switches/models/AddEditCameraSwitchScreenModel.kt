@@ -1,21 +1,24 @@
 package com.enaboapps.switchify.screens.settings.switches.models
 
 import android.content.Context
-import android.util.Log
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
-import com.enaboapps.switchify.switches.*
-import kotlinx.coroutines.launch
+import com.enaboapps.switchify.switches.CameraSwitchFacialGesture
+import com.enaboapps.switchify.switches.SWITCH_EVENT_TYPE_CAMERA
+import com.enaboapps.switchify.switches.SwitchAction
+import com.enaboapps.switchify.switches.SwitchEvent
+import com.enaboapps.switchify.switches.SwitchEventStore
 
 class AddEditCameraSwitchScreenModel : ViewModel() {
-    
+
     companion object {
         private const val TAG = "AddEditCameraSwitchScreenModel"
     }
-    
+
     var name = ""
-    val selectedGesture = mutableStateOf<CameraSwitchFacialGesture?>(CameraSwitchFacialGesture(CameraSwitchFacialGesture.SMILE))
+    val selectedGesture = mutableStateOf<CameraSwitchFacialGesture?>(
+        CameraSwitchFacialGesture(CameraSwitchFacialGesture.SMILE)
+    )
     val action = mutableStateOf(SwitchAction(SwitchAction.ACTION_SELECT))
     val isValid = mutableStateOf(false)
     val showDeleteConfirmation = mutableStateOf(false)
@@ -48,7 +51,7 @@ class AddEditCameraSwitchScreenModel : ViewModel() {
     fun setGesture(gesture: CameraSwitchFacialGesture) {
         selectedGesture.value = gesture
         validate()
-        
+
     }
 
     fun setAction(newAction: SwitchAction) {

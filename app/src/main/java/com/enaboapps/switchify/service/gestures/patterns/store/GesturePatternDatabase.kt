@@ -28,8 +28,8 @@ abstract class GesturePatternDatabase : RoomDatabase() {
                     GesturePatternDatabase::class.java,
                     "gesture_pattern_database"
                 )
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
-                .build()
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                    .build()
                 INSTANCE = instance
                 instance
             }
@@ -40,7 +40,7 @@ abstract class GesturePatternDatabase : RoomDatabase() {
                 db.execSQL("ALTER TABLE gesture_patterns ADD COLUMN `order` INTEGER NOT NULL DEFAULT 0")
             }
         }
-        
+
         private val MIGRATION_2_3 = object : Migration(2, 3) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("CREATE INDEX IF NOT EXISTS `index_gesture_data_patternId` ON `gesture_data` (`patternId`)")

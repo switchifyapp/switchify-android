@@ -6,12 +6,12 @@ import android.view.animation.Animation
 import android.view.animation.TranslateAnimation
 import android.widget.ImageView
 import android.widget.RelativeLayout
+import androidx.core.graphics.toColorInt
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.service.scanning.ScanColorManager
 import com.enaboapps.switchify.service.utils.ScreenUtils
 import com.enaboapps.switchify.service.window.SwitchifyAccessibilityWindow
 import kotlin.math.atan2
-import androidx.core.graphics.toColorInt
 
 class AnimatedGestureArrow(private val context: Context) {
     private var arrowView: ImageView? = null
@@ -28,7 +28,7 @@ class AnimatedGestureArrow(private val context: Context) {
     ) {
         // Cancel any existing animation before starting a new one
         cancel()
-        
+
         val size = 150
         val halfSize = size / 2
         // Create arrow ImageView

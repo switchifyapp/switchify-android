@@ -31,14 +31,15 @@ object ZoomGesturePerformer {
         accessibilityService: AccessibilityService,
         point: PointF
     ) {
-        val gestureDispatcher = GestureDispatcher(accessibilityService as SwitchifyAccessibilityService)
+        val gestureDispatcher =
+            GestureDispatcher(accessibilityService as SwitchifyAccessibilityService)
 
         // Validate zoom type
         if (type != GestureType.ZOOM_IN && type != GestureType.ZOOM_OUT) {
             Log.e(TAG, "performZoomAction: Invalid zoom type: $type")
             return
         }
-        
+
         // Initialize zoom visual if needed
         if (zoomVisual == null) {
             zoomVisual = ZoomVisual(accessibilityService)
@@ -90,7 +91,7 @@ object ZoomGesturePerformer {
                 zoomVisual?.stop()
             }
         )
-        
+
         Log.d(TAG, "Gesture dispatched: $type")
     }
 

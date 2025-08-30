@@ -35,7 +35,10 @@ data class GestureDataEntity(
         return GestureData(
             gestureType = gestureType,
             startPoint = android.graphics.PointF(startX, startY),
-            endPoint = if (endX != null && endY != null) android.graphics.PointF(endX, endY) else null
+            endPoint = if (endX != null && endY != null) android.graphics.PointF(
+                endX,
+                endY
+            ) else null
         )
     }
 

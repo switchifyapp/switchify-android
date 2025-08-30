@@ -40,6 +40,7 @@ class AccessTechniqueSettingsModel(context: Context) : ViewModel() {
                             availableTechniques = computeAvailable()
                         )
                     }
+
                     else -> {}
                 }
             }

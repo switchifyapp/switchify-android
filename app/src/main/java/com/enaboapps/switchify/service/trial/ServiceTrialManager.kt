@@ -16,7 +16,7 @@ import com.enaboapps.switchify.utils.Logger
  * Manages the trial period for non-pro users of the accessibility service.
  * Pro users have unlimited access. Non-pro users get fresh trials with unlimited restarts.
  * Trials are only started when the device is unlocked to prevent unauthorized access.
- * 
+ *
  * Trial Duration:
  * - Release builds: 1-hour trials
  * - Debug builds: 30-second trials for testing
@@ -27,15 +27,17 @@ class ServiceTrialManager(
     private val deviceLockCheck: () -> Boolean
 ) {
     private val preferenceManager = PreferenceManager(context)
+
     companion object {
         private const val TAG = "ServiceTrialManager"
         private const val TRIAL_DURATION_MS = 3600000L // 1 hour in milliseconds
-        private const val WARNING_TIME_MS = 3000000L // 50 minutes into trial (10 minutes before expiry)
-        
+        private const val WARNING_TIME_MS =
+            3000000L // 50 minutes into trial (10 minutes before expiry)
+
         // Debug mode for testing - reduces trial to 30 seconds
         private const val DEBUG_TRIAL_DURATION_MS = 30000L // 30 seconds
         private const val DEBUG_WARNING_TIME_MS = 20000L // 10 seconds before expiry
-        
+
     }
 
     private var trialStartTime: Long = 0
@@ -117,7 +119,8 @@ class ServiceTrialManager(
         scheduleWarning()
         scheduleExpiry()
 
-        val messageRes = if (BuildConfig.DEBUG) R.string.debug_trial_started_message else R.string.trial_started_message
+        val messageRes =
+            if (BuildConfig.DEBUG) R.string.debug_trial_started_message else R.string.trial_started_message
         ServiceMessageHUD.instance.showMessage(
             messageRes,
             ServiceMessageHUD.MessageType.DISAPPEARING
@@ -140,7 +143,7 @@ class ServiceTrialManager(
      */
     fun getRemainingTime(): Long {
         if (!isTrialActive) return 0
-        
+
         val elapsed = System.currentTimeMillis() - trialStartTime
         val duration = if (BuildConfig.DEBUG) DEBUG_TRIAL_DURATION_MS else TRIAL_DURATION_MS
         val remaining = duration - elapsed
@@ -156,7 +159,7 @@ class ServiceTrialManager(
         val totalMinutes = (remainingMs / 60000).toInt()
         val minutes = totalMinutes % 60
         val hours = totalMinutes / 60
-        
+
         return if (hours > 0) {
             String.format("%d:%02d", hours, minutes)
         } else {

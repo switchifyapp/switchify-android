@@ -3,7 +3,6 @@ package com.enaboapps.switchify.service.techniques.nodes.scanners
 import android.content.Context
 import android.util.Log
 import com.enaboapps.switchify.service.keyboard.KeyboardManager
-import com.enaboapps.switchify.service.menu.MenuManager
 import com.enaboapps.switchify.service.menu.KeyboardEscapePrompt
 import com.enaboapps.switchify.service.scanning.tree.ScanTree
 import com.enaboapps.switchify.service.scanning.tree.ScanTreeCallback
@@ -259,7 +258,7 @@ abstract class BaseNodeScanner : ScanTreeCallback {
     override fun onSingleCycleCompleted(cycleNumber: Int) {
         Log.d(TAG, "Cycle completed: $cycleNumber")
     }
-    
+
     /**
      * Handles cycle break selection based on keyboard state.
      * If keyboard is visible and not escaped, escape from keyboard.

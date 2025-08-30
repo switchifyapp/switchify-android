@@ -58,6 +58,7 @@ class LinearGesturePerformer(
     private val gestureLockManager: GestureLockManager
 ) {
     private val gestureDispatcher = GestureDispatcher(accessibilityService)
+
     companion object {
         private const val TAG = "LinearGesturePerformer"
     }
@@ -104,9 +105,9 @@ class LinearGesturePerformer(
         startingPoint: PointF? = null
     ) {
         val startPoint = startingPoint ?: GesturePoint.getPoint()
-        
+
         Log.d(TAG, "startGesture called - type: $type, startPoint: $startPoint")
-        
+
         // Use unified state manager
         if (!GestureStateManager.startGesture(type, startPoint)) {
             Log.w(TAG, "startGesture failed - GestureStateManager.startGesture returned false")
@@ -115,7 +116,10 @@ class LinearGesturePerformer(
         }
 
         Log.d(TAG, "startGesture successful - state set in GestureStateManager")
-        Log.d(TAG, "GestureStateManager state after start: ${GestureStateManager.getStateSummary()}")
+        Log.d(
+            TAG,
+            "GestureStateManager state after start: ${GestureStateManager.getStateSummary()}"
+        )
 
         if (showMessage) {
             showGestureMessage(type)
@@ -164,11 +168,11 @@ class LinearGesturePerformer(
     fun endGesture(endPoint: PointF? = null) {
         val startPoint = GestureStateManager.getCurrentGestureStartPoint()
         val gestureType = GestureStateManager.getCurrentGestureType()
-        
+
         // Debug logging to identify the issue
         Log.d(TAG, "endGesture called - startPoint: $startPoint, gestureType: $gestureType")
         Log.d(TAG, "GestureStateManager state: ${GestureStateManager.getStateSummary()}")
-        
+
         if (startPoint == null || gestureType == null) {
             Log.w(TAG, "endGesture failed - startPoint or gestureType is null")
             GestureStateManager.cancelGesture()
@@ -178,7 +182,13 @@ class LinearGesturePerformer(
 
         val calculatedEndPoint = endPoint ?: calculateEndPoint(gestureType, startPoint)
         performGesture(gestureType, startPoint, calculatedEndPoint)
-        gestureLockManager.setLockedGestureData(GestureData(gestureType, startPoint, calculatedEndPoint))
+        gestureLockManager.setLockedGestureData(
+            GestureData(
+                gestureType,
+                startPoint,
+                calculatedEndPoint
+            )
+        )
 
         GestureStateManager.endGesture()
         gestureVisualManager.hideCircle()
@@ -291,6 +301,7 @@ class LinearGesturePerformer(
                 GestureType.HOLD_AND_DRAG -> {
                     GesturePathBuilder.createHoldAndDragPath(start, end)
                 }
+
                 else -> {
                     val duration = GesturePathBuilder.getDurationForGestureType(type)
                     GesturePathBuilder.createLinearPath(start, end, duration)
@@ -300,7 +311,7 @@ class LinearGesturePerformer(
             Log.d(TAG, "About to dispatch gesture: $type")
             // Create gesture data for pattern recording and gesture lock
             val gestureData = GestureData(type, start, end)
-            
+
             // Dispatch using unified dispatcher with gesture data
             gestureDispatcher.dispatch(gestureDescription, type, gestureData)
             Log.d(TAG, "Gesture dispatched successfully: $type")
