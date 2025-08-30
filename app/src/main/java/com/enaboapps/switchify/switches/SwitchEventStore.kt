@@ -11,6 +11,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.util.Collections
+import com.enaboapps.switchify.service.core.ServiceBridge
 
 /**
  * SwitchEventStore manages the storage of switch events using local storage.
@@ -204,8 +205,8 @@ class SwitchEventStore private constructor() {
      * Uses hybrid approach: Flow for same-process, Broadcast for cross-process.
      */
     private fun broadcastReloadEvent(context: Context) {
-        // Notify same-process listeners via Flow
-        SwitchEventBus.notifySwitchEventsUpdated()
+        // Notify same-process listeners via ServiceBridge
+        ServiceBridge.emitEvent(ServiceBridge.ServiceEvent.SwitchEventsUpdated)
         
         // Notify cross-process listeners (e.g., accessibility service)
         context.sendBroadcast(Intent(EVENTS_UPDATED).setPackage(context.packageName))

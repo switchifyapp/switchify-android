@@ -5,6 +5,7 @@ import androidx.compose.ui.platform.LocalContext
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.components.PreferenceTimeStepper
+import com.enaboapps.switchify.service.core.ServiceBridge
 
 @Composable
 fun BlockPointScanSpeedStepper() {
@@ -25,6 +26,13 @@ fun BlockPointScanSpeedStepper() {
             preferenceManager.setLongValue(
                 PreferenceManager.PREFERENCE_KEY_CURSOR_BLOCK_SCAN_RATE,
                 newValue
+            )
+            // Notify service of scan rate change
+            ServiceBridge.sendCommand(
+                ServiceBridge.ServiceCommand.UpdateConfiguration(
+                    PreferenceManager.Keys.PREFERENCE_KEY_CURSOR_BLOCK_SCAN_RATE,
+                    newValue
+                )
             )
         }
     )

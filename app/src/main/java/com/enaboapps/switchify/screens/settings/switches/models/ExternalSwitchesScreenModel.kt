@@ -6,8 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.enaboapps.switchify.switches.SWITCH_EVENT_TYPE_EXTERNAL
 import com.enaboapps.switchify.switches.SwitchEvent
 import com.enaboapps.switchify.switches.SwitchEventStore
-import com.enaboapps.switchify.switches.SwitchEventBus
-import kotlinx.coroutines.channels.awaitClose
+import com.enaboapps.switchify.service.core.ServiceBridge
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
@@ -39,13 +38,15 @@ class ExternalSwitchesScreenModel : ViewModel() {
                 isLoading = false
             )
 
-            // Listen for updates via Flow instead of LocalBroadcastManager
-            SwitchEventBus.switchEventsUpdated.collect {
-                val externalSwitches = store.getSwitchEvents()
-                    .filter { it.type == SWITCH_EVENT_TYPE_EXTERNAL }
-                _uiState.value = _uiState.value.copy(
-                    externalSwitches = externalSwitches
-                )
+            // Listen for updates via ServiceBridge instead of LocalBroadcastManager
+            ServiceBridge.serviceEvents.collect { event ->
+                if (event is ServiceBridge.ServiceEvent.SwitchEventsUpdated) {
+                    val externalSwitches = store.getSwitchEvents()
+                        .filter { it.type == SWITCH_EVENT_TYPE_EXTERNAL }
+                    _uiState.value = _uiState.value.copy(
+                        externalSwitches = externalSwitches
+                    )
+                }
             }
         }
     }
