@@ -1,5 +1,6 @@
 package com.enaboapps.switchify.service.core
 
+import android.util.Log
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -15,6 +16,7 @@ import kotlinx.coroutines.flow.asSharedFlow
  * - Settings change notifications
  */
 object ServiceBridge {
+    private const val TAG = "ServiceBridge"
     
     private val _serviceCommands = MutableSharedFlow<ServiceCommand>(
         replay = 0,
@@ -22,7 +24,7 @@ object ServiceBridge {
     )
     
     private val _serviceEvents = MutableSharedFlow<ServiceEvent>(
-        replay = 0, 
+        replay = 1, 
         extraBufferCapacity = 10
     )
     
@@ -42,7 +44,10 @@ object ServiceBridge {
      * Used by UI components to trigger service actions.
      */
     fun sendCommand(command: ServiceCommand) {
-        _serviceCommands.tryEmit(command)
+        val ok = _serviceCommands.tryEmit(command)
+        if (!ok) {
+            Log.w(TAG, "Dropped command: ${command::class.simpleName}")
+        }
     }
     
     /**
@@ -50,7 +55,10 @@ object ServiceBridge {
      * Used by the accessibility service to notify the app of changes.
      */
     fun emitEvent(event: ServiceEvent) {
-        _serviceEvents.tryEmit(event)
+        val ok = _serviceEvents.tryEmit(event)
+        if (!ok) {
+            Log.w(TAG, "Dropped event: ${event::class.simpleName}")
+        }
     }
     
     /**
