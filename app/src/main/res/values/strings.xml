@@ -90,7 +90,7 @@
     <string name="access_technique_radar">Radar</string>
     <string name="access_technique_desc_radar">Moving a radar around the screen</string>
     <string name="access_technique_point_scan">Point Scan</string>
-    <string name="access_technique_desc_point_scan">Move crosshairs to a point and select</string>
+    <string name="access_technique_desc_point_scan">Select an exact point using scanning lines</string>
     <string name="access_technique_direct_control">Direct Control</string>
     <string name="access_technique_desc_direct_control">Hold to move freely and select like a mouse</string>
 
@@ -283,20 +283,26 @@
 
     <!-- Point Scan Settings Screen -->
     <string name="section_title_point_scan_mode">Point Scan Mode</string>
-    <string name="section_title_point_scan_speed">Point Scan Speed (only applies to auto scan)</string>
+    <string name="section_title_point_scan_speed">Point scan speed (auto scan only)</string>
     <string name="picker_title_select_point_scan_mode">Select Point Scan Mode</string>
-    <string name="preference_title_precision_point_scan_speed">Point Scan Speed (precision)</string>
-    <string name="preference_summary_precision_point_scan_speed">Adjust the speed at which the pointer crosshair moves when you are selecting a point</string>
-    <string name="preference_title_block_point_scan_speed">Point Scan Speed (block)</string>
-    <string name="preference_summary_block_point_scan_speed">Adjust the speed at which scanning moves when you are selecting a block</string>
+    <string name="preference_title_precision_point_scan_speed">Line speed</string>
+    <string name="preference_summary_precision_point_scan_speed">Speed of the scanning line movement</string>
+    <string name="preference_title_block_point_scan_speed">Grid scan speed</string>
+    <string name="preference_summary_block_point_scan_speed">Speed when scanning grid blocks</string>
     <string name="preference_title_single_point_scan_speed">Point Scan Speed</string>
     <string name="preference_summary_single_point_scan_speed">Adjust the speed at which scanning moves</string>
     <string name="feature_explanation_precision_point_scan_speed">This is how fast scanning moves when you are selecting a point. In Block Mode, this is the speed when you are moving within a block.</string>
     <string name="feature_explanation_block_point_scan_speed">This is how fast scanning moves when you are selecting a block. Once you select a block, the precision point scan speed will be used.</string>
     <string name="feature_explanation_single_point_scan_speed">This is how fast scanning moves when you are selecting a point.</string>
     <string name="section_title_block_settings">Block Settings</string>
-    <string name="preference_title_block_count">Block Count</string>
-    <string name="preference_summary_block_count">The number of blocks to scan</string>
+    <string name="preference_title_block_count">Grid size</string>
+    <string name="preference_summary_block_count">Blocks per side</string>
+
+    <!-- Point Scan mode labels -->
+    <string name="point_scan_mode_line_only">Line only</string>
+    <string name="point_scan_mode_grid_line">Grid + line</string>
+    <string name="point_scan_mode_desc_line_only">Move a scanning line to choose a point</string>
+    <string name="point_scan_mode_desc_grid_line">Pick a grid block, then refine with a line</string>
 
     <!-- Item Scan Settings Screen -->
     <string name="section_title_item_scan_highlight_style">Item Scan Highlight Style</string>
