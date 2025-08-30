@@ -3,6 +3,8 @@ package com.enaboapps.switchify.service.techniques.pointscan
 import android.content.Context
 import android.content.Intent
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
+import com.enaboapps.switchify.R
+import com.enaboapps.switchify.utils.Resources
 
 object PointScanSettings {
 
@@ -57,17 +59,17 @@ object PointScanSettings {
 
     fun getModeName(mode: String): String {
         return when (mode) {
-            Modes.MODE_SINGLE -> "Single"
-            Modes.MODE_BLOCK -> "Block"
-            else -> "Unknown"
+            Modes.MODE_SINGLE -> Resources.getString(R.string.point_scan_mode_line_only)
+            Modes.MODE_BLOCK -> Resources.getString(R.string.point_scan_mode_grid_line)
+            else -> Resources.getString(R.string.unknown)
         }
     }
 
     fun getModeDescription(mode: String): String {
         return when (mode) {
-            Modes.MODE_SINGLE -> "Use a single line to select a point on the screen"
-            Modes.MODE_BLOCK -> "Use blocks to first select a region and then use a single line to select a point in the region"
-            else -> "Unknown"
+            Modes.MODE_SINGLE -> Resources.getString(R.string.point_scan_mode_desc_line_only)
+            Modes.MODE_BLOCK -> Resources.getString(R.string.point_scan_mode_desc_grid_line)
+            else -> Resources.getString(R.string.unknown)
         }
     }
 
