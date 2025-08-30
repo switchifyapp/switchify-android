@@ -79,23 +79,21 @@
             android:name="io.sentry.dsn"
             android:value="https://872454fb270c1a25980e0f339a5db34e@o4509809603575808.ingest.de.sentry.io/4509809608097872" />
 
-        <!-- enable automatic breadcrumbs for user interactions (clicks, swipes, scrolls) -->
+        <!-- Sentry privacy-safe defaults: disable noisy/PII-prone features -->
         <meta-data
             android:name="io.sentry.traces.user-interaction.enable"
-            android:value="true" />
-        <!-- enable screenshot for crashes (could contain sensitive/PII data) -->
+            android:value="false" />
         <meta-data
             android:name="io.sentry.attach-screenshot"
-            android:value="true" />
-        <!-- enable view hierarchy for crashes -->
+            android:value="false" />
         <meta-data
             android:name="io.sentry.attach-view-hierarchy"
-            android:value="true" />
+            android:value="false" />
 
-        <!-- enable the performance API by setting a sample-rate, adjust in production env -->
+        <!-- Disable performance tracing by default -->
         <meta-data
             android:name="io.sentry.traces.sample-rate"
-            android:value="1.0" />
+            android:value="0.0" />
     </application>
 
 </manifest>
