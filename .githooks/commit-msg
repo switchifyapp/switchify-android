@@ -1,51 +1,28 @@
 #!/usr/bin/env bash
-# Enforce Switchify commit message format
-# Expected:
-# Line 1: Brief descriptive title
-# Line 2: blank
-# Lines 3..N-2: bullets starting with '- ' (at least one)
-# Last line: the literal "🤖 Auto-generated"
+# Enforce simple Conventional Commits style: "type: subject"
+# Allowed types: feat, fix, docs, chore, refactor, perf, test, build, ci, style, revert
 
 set -euo pipefail
 
 MSG_FILE="$1"
-mapfile -t LINES < "$MSG_FILE"
+FIRST_LINE=$(head -n1 "$MSG_FILE")
 
-fail() {
-  echo "Commit message does not follow Switchify format:" >&2
-  echo "" >&2
-  echo "Expected format:" >&2
-  echo "Title line" >&2
-  echo "" >&2
-  echo "- Bullet points describing changes" >&2
-  echo "- Focus on what and why, not just what" >&2
-  echo "- Include technical details relevant to reviewers" >&2
-  echo "" >&2
-  echo "🤖 Auto-generated" >&2
-  echo "" >&2
-  exit 1
-}
+TYPE_REGEX='^(feat|fix|docs|chore|refactor|perf|test|build|ci|style|revert)(!:)?(\([^)]+\))?: .+'
 
-# Strip trailing empty lines
-while (( ${#LINES[@]} > 0 )) && [[ -z "${LINES[-1]// }" ]]; do unset 'LINES[-1]'; done
+if [[ "$FIRST_LINE" =~ $TYPE_REGEX ]]; then
+  exit 0
+fi
 
-(( ${#LINES[@]} >= 4 )) || fail
+cat >&2 <<EOF
+Commit message must start with Conventional Commit style:
 
-TITLE="${LINES[0]}"
-SECOND="${LINES[1]:-}"
-LAST="${LINES[-1]}"
+  <type>: <subject>
 
-[[ -n "$TITLE" ]] || fail
-[[ -z "${SECOND// }" ]] || fail
+Allowed types: feat, fix, docs, chore, refactor, perf, test, build, ci, style, revert
 
-# Find at least one bullet beginning with '- '
-BULLET_FOUND=0
-for ((i=2; i<${#LINES[@]}-1; i++)); do
-  if [[ "${LINES[$i]}" =~ ^-\  ]]; then BULLET_FOUND=1; break; fi
-done
-(( BULLET_FOUND == 1 )) || fail
-
-[[ "$LAST" == "🤖 Auto-generated" ]] || fail
-
-exit 0
-
+Examples:
+  fix: correct technique enforcement on mode change
+  feat: add camera switch gesture sensitivity setting
+  docs: clarify ServiceBridge in-process scope
+EOF
+exit 1

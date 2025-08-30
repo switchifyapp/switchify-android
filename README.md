@@ -47,9 +47,14 @@ supabase.anonKey=<ask_for_key>
 5. Commit and push your changes
 6. Create a pull request
 
-### Git hooks
+### Commit messages
 
-Enable repo-provided hooks to enforce commit message format:
+Use Conventional Commits for concise messages:
+
+- Format: `type: subject`
+- Allowed `type`: feat, fix, docs, chore, refactor, perf, test, build, ci, style, revert
+
+Enable repo-provided hook to enforce the format:
 
 ```bash
 git config core.hooksPath .githooks
