@@ -347,9 +347,9 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
                 }
                 
                 ServiceBridge.ServiceCommand.ReloadSettings -> {
-                    // TODO: Implement settings reload functionality
-                    // This should reload ScanSettings and other service configurations
-                    // Currently ScanSettings doesn't have a reload method - needs to be added
+                    AccessTechnique.reloadFromPreferences()
+                    techniqueEnforcer.enforceCompatibility()
+                    ServiceCore.getScanningManager()?.reset()
                     ServiceBridge.emitEvent(ServiceBridge.ServiceEvent.ConfigurationUpdated)
                 }
                 
