@@ -12,16 +12,12 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.enaboapps.switchify.R
-import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.components.AutoScanDemo
 import com.enaboapps.switchify.components.ManualScanDemo
 import com.enaboapps.switchify.components.NavRouteLink
@@ -29,38 +25,23 @@ import com.enaboapps.switchify.components.Picker
 import com.enaboapps.switchify.components.Section
 import com.enaboapps.switchify.nav.NavigationRoute
 import com.enaboapps.switchify.service.scanning.ScanMode
-import com.enaboapps.switchify.service.core.ServiceBridge
+import com.enaboapps.switchify.screens.settings.models.ScanModeSettingsModel
 
 @Composable
 fun ScanModeSelectionSection(
     navController: NavController,
     onChange: ((String) -> Unit)? = null
 ) {
-    val preferenceManager = PreferenceManager(LocalContext.current)
-    var currentMode by remember {
-        mutableStateOf(
-            ScanMode.fromId(
-                preferenceManager.getStringValue(PreferenceManager.Keys.PREFERENCE_KEY_SCAN_MODE)
-            )
-        )
-    }
-
-    val setScanMode = { mode: ScanMode ->
-        preferenceManager.setStringValue(PreferenceManager.Keys.PREFERENCE_KEY_SCAN_MODE, mode.id)
-        currentMode = mode
-    }
+    val viewModel = ScanModeSettingsModel(LocalContext.current)
+    val uiState = viewModel.uiState.collectAsState()
 
     Section(titleResId = R.string.section_title_scanning_mode) {
         Picker(
             titleResId = R.string.picker_title_select_scan_mode,
-            selectedItem = currentMode,
+            selectedItem = uiState.value.currentMode,
             items = ScanMode.modes.toList(),
             onItemSelected = { mode ->
-                setScanMode(mode)
-                // Request service to enforce technique compatibility for the new scan mode
-                ServiceBridge.sendCommand(
-                    ServiceBridge.ServiceCommand.UpdateConfiguration(PreferenceManager.Keys.PREFERENCE_KEY_SCAN_MODE, mode.id)
-                )
+                viewModel.selectMode(mode)
                 onChange?.invoke(mode.id)
             },
             itemToString = { it.getModeName() },
@@ -68,21 +49,8 @@ fun ScanModeSelectionSection(
         )
         
         // Visual demonstration of selected scan mode
-        LaunchedEffect(Unit) {
-            ServiceBridge.serviceEvents.collect { event ->
-                when (event) {
-                    is ServiceBridge.ServiceEvent.ConfigurationUpdated -> {
-                        currentMode = ScanMode.fromId(
-                            preferenceManager.getStringValue(PreferenceManager.Keys.PREFERENCE_KEY_SCAN_MODE)
-                        )
-                    }
-                    else -> {}
-                }
-            }
-        }
-
         AnimatedVisibility(
-            visible = currentMode.id == ScanMode.Modes.MODE_AUTO,
+            visible = uiState.value.currentMode.id == ScanMode.Modes.MODE_AUTO,
             enter = fadeIn(),
             exit = fadeOut()
         ) {
@@ -91,10 +59,7 @@ fun ScanModeSelectionSection(
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
             ) {
                 Column(modifier = Modifier.padding(horizontal = 32.dp, vertical = 24.dp)) {
-                    val userScanDelay = preferenceManager.getIntegerValue(
-                        PreferenceManager.Keys.PREFERENCE_KEY_SCAN_RATE,
-                        1000
-                    ).toLong()
+                    val userScanDelay = 1000L
                     AutoScanDemo(
                         color = MaterialTheme.colorScheme.primary,
                         scanDelay = userScanDelay
@@ -104,7 +69,7 @@ fun ScanModeSelectionSection(
         }
         
         AnimatedVisibility(
-            visible = currentMode.id == ScanMode.Modes.MODE_MANUAL,
+            visible = uiState.value.currentMode.id == ScanMode.Modes.MODE_MANUAL,
             enter = fadeIn(),
             exit = fadeOut()
         ) {
@@ -120,7 +85,7 @@ fun ScanModeSelectionSection(
             }
         }
         AnimatedVisibility(
-            visible = currentMode.id == ScanMode.Modes.MODE_AUTO,
+            visible = uiState.value.currentMode.id == ScanMode.Modes.MODE_AUTO,
             enter = fadeIn(),
             exit = fadeOut()
         ) {
@@ -135,7 +100,7 @@ fun ScanModeSelectionSection(
             }
         }
         AnimatedVisibility(
-            visible = currentMode.id == ScanMode.Modes.MODE_MANUAL,
+            visible = uiState.value.currentMode.id == ScanMode.Modes.MODE_MANUAL,
             enter = fadeIn(),
             exit = fadeOut()
         ) {
@@ -150,7 +115,7 @@ fun ScanModeSelectionSection(
             }
         }
         AnimatedVisibility(
-            visible = currentMode.id == ScanMode.Modes.MODE_AUTO,
+            visible = uiState.value.currentMode.id == ScanMode.Modes.MODE_AUTO,
             enter = fadeIn(),
             exit = fadeOut()
         ) {
