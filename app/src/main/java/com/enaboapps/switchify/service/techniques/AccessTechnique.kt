@@ -20,7 +20,7 @@ interface AccessTechniqueObserver {
  * This object is used to manage the access technique
  */
 object AccessTechnique {
-    private var currentTechnique: String = Technique.ITEM_SCAN
+    @Volatile private var currentTechnique: String = Technique.ITEM_SCAN
     private var preferenceManager: PreferenceManager? = null
     var observer: AccessTechniqueObserver? = null
 
