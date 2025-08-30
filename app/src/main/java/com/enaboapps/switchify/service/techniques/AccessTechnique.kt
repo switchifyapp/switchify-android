@@ -102,6 +102,14 @@ object AccessTechnique {
     }
 
     /**
+     * Reloads the current technique from preferences.
+     * Called when configuration changes from the app.
+     */
+    fun reloadFromPreferences() {
+        loadCurrentTechnique()
+    }
+
+    /**
      * Loads the current technique from the preferences
      */
     internal fun loadCurrentTechnique() {
