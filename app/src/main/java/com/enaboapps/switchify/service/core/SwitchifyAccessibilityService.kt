@@ -9,6 +9,7 @@ import android.view.accessibility.AccessibilityEvent
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import com.enaboapps.switchify.backend.iap.IAPHandler
+import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.service.actions.AudioActionManager
 import com.enaboapps.switchify.service.actions.GlobalActionManager
 import com.enaboapps.switchify.service.gestures.GestureManager
@@ -40,6 +41,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.cancelChildren
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 
 /**
  * This is the main service class for the Switchify application.
@@ -121,6 +124,8 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
         )
         eventPipeline = AccessibilityEventPipeline(serviceScope) { nodeUpdateCoordinator.processAccessibilityUpdate() }
         eventPipeline.start()
+
+        setupServiceBridge()
 
         techniqueEnforcer.enforceCompatibility()
 
@@ -315,6 +320,89 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
         logd("Camera switch availability changed: $available")
     }
 
+
+    /**
+     * Sets up ServiceBridge for app-to-service communication.
+     */
+    private fun setupServiceBridge() {
+        ServiceBridge.serviceCommands
+            .onEach { command ->
+                handleServiceCommand(command)
+            }
+            .launchIn(serviceScope)
+        
+        // Notify app that service is ready
+        ServiceBridge.emitEvent(ServiceBridge.ServiceEvent.ServiceReady)
+    }
+    
+    /**
+     * Handles commands received from the app UI via ServiceBridge.
+     */
+    private fun handleServiceCommand(command: ServiceBridge.ServiceCommand) {
+        try {
+            when (command) {
+                ServiceBridge.ServiceCommand.EnforceTechniqueCompatibility -> {
+                    techniqueEnforcer.enforceCompatibility()
+                    ServiceBridge.emitEvent(ServiceBridge.ServiceEvent.ConfigurationUpdated)
+                }
+                
+                ServiceBridge.ServiceCommand.ReloadSettings -> {
+                    // TODO: Implement settings reload functionality
+                    // This should reload ScanSettings and other service configurations
+                    // Currently ScanSettings doesn't have a reload method - needs to be added
+                    ServiceBridge.emitEvent(ServiceBridge.ServiceEvent.ConfigurationUpdated)
+                }
+                
+                ServiceBridge.ServiceCommand.ClearCache -> {
+                    // Clear any relevant caches
+                    serviceScope.launch {
+                        nodeUpdateCoordinator.processAccessibilityUpdate()
+                    }
+                    ServiceBridge.emitEvent(ServiceBridge.ServiceEvent.ConfigurationUpdated)
+                }
+                
+                ServiceBridge.ServiceCommand.UpdateSwitches -> {
+                    // Trigger switch event provider update
+                    ServiceCore.getSwitchEventProvider()?.reload()
+                    ServiceBridge.emitEvent(ServiceBridge.ServiceEvent.ConfigurationUpdated)
+                }
+                
+                is ServiceBridge.ServiceCommand.UpdateConfiguration -> {
+                    // Handle specific configuration updates
+                    when (command.key) {
+                        PreferenceManager.Keys.PREFERENCE_KEY_SCAN_MODE -> {
+                            // Scan mode changed - enforce technique compatibility
+                            techniqueEnforcer.enforceCompatibility()
+                            ServiceBridge.emitEvent(ServiceBridge.ServiceEvent.ConfigurationUpdated)
+                        }
+                        PreferenceManager.Keys.PREFERENCE_KEY_ACCESS_TECHNIQUE -> {
+                            // Access technique changed - enforce compatibility (may change scan mode)
+                            techniqueEnforcer.enforceCompatibility()
+                            ServiceBridge.emitEvent(ServiceBridge.ServiceEvent.ConfigurationUpdated)
+                        }
+                        PreferenceManager.Keys.PREFERENCE_KEY_CURSOR_BLOCK_SCAN_RATE,
+                        PreferenceManager.Keys.PREFERENCE_KEY_CURSOR_FINE_SCAN_RATE,
+                        PreferenceManager.Keys.PREFERENCE_KEY_RADAR_SCAN_RATE,
+                        PreferenceManager.Keys.PREFERENCE_KEY_SCAN_RATE -> {
+                            // Scan rate settings changed - service will pick up new values automatically
+                            ServiceCore.getScanningManager()?.reset()
+                            ServiceBridge.emitEvent(ServiceBridge.ServiceEvent.ConfigurationUpdated)
+                        }
+                        else -> {
+                            // Generic configuration update
+                            logd("Configuration updated: ${command.key} = ${command.value}")
+                            ServiceBridge.emitEvent(ServiceBridge.ServiceEvent.ConfigurationUpdated)
+                        }
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            logd("Error handling service command: ${e.message}")
+            ServiceBridge.emitEvent(
+                ServiceBridge.ServiceEvent.ServiceError("Command handling failed: ${e.message}")
+            )
+        }
+    }
 
     override val lifecycle: Lifecycle
         get() = SwitchifyLifecycleOwner.getInstance().lifecycle

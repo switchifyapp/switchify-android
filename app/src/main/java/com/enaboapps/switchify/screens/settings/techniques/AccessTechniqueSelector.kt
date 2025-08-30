@@ -18,7 +18,7 @@ import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.components.Picker
 import com.enaboapps.switchify.service.techniques.AccessTechnique
 import com.enaboapps.switchify.service.scanning.ScanSettings
-import com.enaboapps.switchify.service.scanning.ScanMode
+import com.enaboapps.switchify.service.core.ServiceBridge
 
 @Composable
 fun AccessTechniqueSelector() {
@@ -49,19 +49,16 @@ fun AccessTechniqueSelector() {
     }
 
     val setScanMethod = { method: String ->
-        // If selecting Direct Control and not in directional mode, switch to directional
-        if (method == AccessTechnique.Technique.DIRECT_CONTROL && !isDirectionalMode) {
-            preferenceManager.setStringValue(
-                PreferenceManager.Keys.PREFERENCE_KEY_SCAN_MODE, 
-                ScanMode.Modes.MODE_DIRECTIONAL
-            )
-        }
-        
         preferenceManager.setStringValue(
             PreferenceManager.Keys.PREFERENCE_KEY_ACCESS_TECHNIQUE,
             method
         )
         currentMethod = method
+        
+        // Let service handle technique compatibility and scan mode enforcement
+        ServiceBridge.sendCommand(
+            ServiceBridge.ServiceCommand.UpdateConfiguration(PreferenceManager.Keys.PREFERENCE_KEY_ACCESS_TECHNIQUE, method)
+        )
     }
 
     Picker(
