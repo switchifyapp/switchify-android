@@ -296,7 +296,8 @@
     <string name="feature_explanation_single_point_scan_speed">This is how fast scanning moves when you are selecting a point.</string>
     <string name="section_title_block_settings">Block Settings</string>
     <string name="preference_title_block_count">Grid size</string>
-    <string name="preference_summary_block_count">Blocks per side</string>
+    <string name="preference_summary_block_count">Grid size</string>
+    <string name="preference_summary_grid_size_dynamic">Creates a %1$s×%1$s grid</string>
 
     <!-- Point Scan mode labels -->
     <string name="point_scan_mode_line_only">Line only</string>
