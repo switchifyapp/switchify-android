@@ -1,6 +1,7 @@
 package com.enaboapps.switchify.components
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
@@ -24,6 +25,7 @@ import androidx.compose.ui.unit.dp
  * @param showBackButton Whether to show the back button. If null, auto-detect based on nav stack.
  * @param onBackPressed Custom back button action. If null, uses default nav controller pop.
  * @param headerContent Optional content to display above the main content.
+ * @param bottomBar Optional bar rendered below content (e.g., action row).
  * @param content The content of the screen.
  */
 @Composable
@@ -37,6 +39,7 @@ fun BaseView(
     showBackButton: Boolean? = null,
     onBackPressed: (() -> Unit)? = null,
     headerContent: @Composable (() -> Unit)? = null,
+    bottomBar: @Composable (() -> Unit)? = null,
     content: @Composable () -> Unit
 ) {
     val title = stringResource(titleResId)
@@ -56,9 +59,7 @@ fun BaseView(
 
             // Main content
             if (enableScroll) {
-                ScrollableView(modifier = Modifier.weight(1f)) {
-                    content()
-                }
+                ScrollableView(modifier = Modifier.weight(1f)) { content() }
             } else {
                 Column(
                     modifier = Modifier
@@ -69,6 +70,9 @@ fun BaseView(
                     content()
                 }
             }
+
+            // Bottom bar (if provided)
+            bottomBar?.invoke()
         }
     }
 }

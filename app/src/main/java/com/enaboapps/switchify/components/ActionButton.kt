@@ -1,5 +1,6 @@
 package com.enaboapps.switchify.components
 
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -8,6 +9,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 
@@ -76,7 +78,9 @@ fun ActionButton(
     modifier: Modifier = Modifier,
     type: ActionButtonType = ActionButtonType.PRIMARY,
     enabled: Boolean = true,
-    applyPadding: Boolean = true
+    applyPadding: Boolean = true,
+    leadingIcon: ImageVector? = null,
+    contentPadding: PaddingValues = ButtonDefaults.ContentPadding
 ) {
     val buttonModifier = if (applyPadding) {
         modifier.padding(16.dp)
@@ -89,9 +93,17 @@ fun ActionButton(
             Button(
                 onClick = onClick,
                 enabled = enabled,
-                modifier = buttonModifier
+                modifier = buttonModifier,
+                contentPadding = contentPadding
             ) {
-                Text(text = stringResource(textResId).uppercase())
+                if (leadingIcon != null) {
+                    androidx.compose.material3.Icon(
+                        imageVector = leadingIcon,
+                        contentDescription = null,
+                        modifier = Modifier.padding(end = 8.dp)
+                    )
+                }
+                Text(text = stringResource(textResId))
             }
         }
 
@@ -99,9 +111,17 @@ fun ActionButton(
             OutlinedButton(
                 onClick = onClick,
                 enabled = enabled,
-                modifier = buttonModifier
+                modifier = buttonModifier,
+                contentPadding = contentPadding
             ) {
-                Text(text = stringResource(textResId).uppercase())
+                if (leadingIcon != null) {
+                    androidx.compose.material3.Icon(
+                        imageVector = leadingIcon,
+                        contentDescription = null,
+                        modifier = Modifier.padding(end = 8.dp)
+                    )
+                }
+                Text(text = stringResource(textResId))
             }
         }
 
@@ -112,9 +132,17 @@ fun ActionButton(
                 modifier = buttonModifier,
                 colors = ButtonDefaults.outlinedButtonColors(
                     contentColor = MaterialTheme.colorScheme.error
-                )
+                ),
+                contentPadding = contentPadding
             ) {
-                Text(text = stringResource(textResId).uppercase())
+                if (leadingIcon != null) {
+                    androidx.compose.material3.Icon(
+                        imageVector = leadingIcon,
+                        contentDescription = null,
+                        modifier = Modifier.padding(end = 8.dp)
+                    )
+                }
+                Text(text = stringResource(textResId))
             }
         }
     }
