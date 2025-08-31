@@ -45,6 +45,7 @@ import com.enaboapps.switchify.BuildConfig
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.backend.iap.IAPHandler
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
+import com.enaboapps.switchify.backend.review.ReviewPrompter
 import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.InAppUpdateBar
 import com.enaboapps.switchify.components.StatusBannerComponent
@@ -89,18 +90,7 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
 
     val reviewManager = remember { ReviewManagerFactory.create(context) }
 
-    // Request review with 30-day cooldown
-    LaunchedEffect(Unit) {
-        val prefs = PreferenceManager(context)
-        val last = prefs.getLongValue(PreferenceManager.PREFERENCE_KEY_REVIEW_LAST_SHOWN, 0L)
-        val now = System.currentTimeMillis()
-        val thirtyDaysMs = 30L * 24 * 60 * 60 * 1000
-        if (now - last >= thirtyDaysMs) {
-            Logger.log(LogEvent.ReviewRequested)
-            requestReview(context, reviewManager)
-            prefs.setLongValue(PreferenceManager.PREFERENCE_KEY_REVIEW_LAST_SHOWN, now)
-        }
-    }
+    LaunchedEffect(Unit) { ReviewPrompter.requestIfDue(context, reviewManager) }
 
     BaseView(
         titleResId = R.string.screen_title_switchify,
@@ -303,30 +293,4 @@ private fun GridCard(
 
 // Update flow logic moved to InAppUpdateBar component
 
-private fun requestReview(context: Context, reviewManager: ReviewManager) {
-    try {
-        val request = reviewManager.requestReviewFlow()
-        request.addOnCompleteListener { task ->
-            if (task.isSuccessful) {
-                val reviewInfo = task.result
-                try {
-                    Logger.log(LogEvent.ReviewLaunched)
-                    reviewManager.launchReviewFlow(context as Activity, reviewInfo)
-                        .addOnCompleteListener {
-                            Logger.log(LogEvent.ReviewCompleted)
-                            Log.d("HomeScreen", "Review flow completed")
-                        }
-                        .addOnFailureListener { e ->
-                            Log.e("HomeScreen", "Error launching review flow", e)
-                        }
-                } catch (e: Exception) {
-                    Log.e("HomeScreen", "Exception launching review flow", e)
-                }
-            } else {
-                Log.e("HomeScreen", "Error requesting review flow", task.exception)
-            }
-        }
-    } catch (e: Exception) {
-        Log.e("HomeScreen", "Exception in requestReview", e)
-    }
-}
+private fun requestReview(context: Context, reviewManager: ReviewManager) {}
