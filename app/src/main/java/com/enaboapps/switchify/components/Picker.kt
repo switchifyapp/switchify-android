@@ -30,6 +30,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.enaboapps.switchify.theme.Dimens
 import com.enaboapps.switchify.R
 
 @Composable
@@ -73,7 +74,7 @@ fun <T> Picker(
             text = {
                 Column(
                     modifier = Modifier.verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    verticalArrangement = Arrangement.spacedBy(Dimens.spaceXs)
                 ) {
                     items.forEach { item ->
                         OutlinedCard(
@@ -83,12 +84,12 @@ fun <T> Picker(
                                     onItemSelected(item)
                                     expanded = false
                                 },
-                            shape = RoundedCornerShape(8.dp)
+                            shape = RoundedCornerShape(Dimens.spaceXs)
                         ) {
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(16.dp)
+                                    .padding(Dimens.spaceM)
                             ) {
                                 Text(
                                     text = itemToString(item),
@@ -149,14 +150,14 @@ private fun PickerItem(
                     fontWeight = FontWeight.Medium
                 )
                 if (description.isNotBlank()) {
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(Dimens.spaceXs))
                     Text(
                         text = description,
                         style = MaterialTheme.typography.bodySmall
                     )
                 }
                 if (extraDescription.isNotBlank()) {
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(Dimens.spaceXs))
                     Text(
                         text = extraDescription,
                         style = MaterialTheme.typography.bodySmall
@@ -175,7 +176,7 @@ private fun PickerItem(
             Icon(
                 imageVector = Icons.Default.KeyboardArrowDown,
                 contentDescription = null,
-                modifier = Modifier.padding(start = 16.dp)
+                modifier = Modifier.padding(start = Dimens.spaceM)
             )
         }
     }

@@ -18,6 +18,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.enaboapps.switchify.theme.Dimens
 
 @Composable
 fun UICard(
@@ -58,7 +59,7 @@ fun UICard(
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Medium
                 )
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(Dimens.spaceXs))
                 description?.let {
                     Text(
                         text = it,
@@ -79,7 +80,7 @@ fun UICard(
                 Icon(
                     imageVector = it,
                     contentDescription = null,
-                    modifier = Modifier.padding(start = 16.dp)
+                    modifier = Modifier.padding(start = Dimens.spaceM)
                 )
             }
         }
