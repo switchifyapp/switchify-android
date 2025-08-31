@@ -18,6 +18,7 @@ package com.enaboapps.switchify.utils
  * - Access Technique: RadarTrialExpired
  * - Settings: AccessibilitySettingsOpened
  * - IAP: ProCheckedViaSubscription, ProCheckedViaPurchase
+ * - Review: ReviewRequested, ReviewLaunched, ReviewCompleted
  */
 sealed class LogEvent(val eventName: String) {
 
@@ -51,4 +52,9 @@ sealed class LogEvent(val eventName: String) {
     // IAP Events
     object ProCheckedViaSubscription : LogEvent("pro_checked_via_subscription")
     object ProCheckedViaPurchase : LogEvent("pro_checked_via_purchase")
+
+    // In-app Review Events
+    object ReviewRequested : LogEvent("review_requested")
+    object ReviewLaunched : LogEvent("review_launched")
+    object ReviewCompleted : LogEvent("review_completed")
 }
