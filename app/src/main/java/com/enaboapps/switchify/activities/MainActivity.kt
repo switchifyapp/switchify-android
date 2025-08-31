@@ -14,6 +14,8 @@ import com.enaboapps.switchify.nav.NavGraph
 import com.enaboapps.switchify.switches.SwitchEventStore
 import com.enaboapps.switchify.utils.LogEvent
 import com.enaboapps.switchify.utils.Logger
+import com.revenuecat.purchases.Purchases
+import com.revenuecat.purchases.interfaces.UpdatedCustomerInfoListener
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -56,6 +58,11 @@ class MainActivity : ComponentActivity() {
 
         // Initialize IAP
         IAPHandler.initialize(this)
+
+        // Listen for CustomerInfo updates to keep entitlement state fresh
+        Purchases.sharedInstance.updatedCustomerInfoListener = UpdatedCustomerInfoListener {
+            IAPHandler.refreshPurchaseStatus()
+        }
 
         Handler(Looper.getMainLooper()).postDelayed({
             SwitchEventStore.getInstance().initialize(this)

@@ -17,6 +17,7 @@ import com.revenuecat.purchases.PurchasesConfiguration
 import com.revenuecat.purchases.PurchasesError
 import com.revenuecat.purchases.interfaces.ReceiveCustomerInfoCallback
 import com.revenuecat.purchases.interfaces.ReceiveOfferingsCallback
+import com.revenuecat.purchases.PurchasesErrorCode
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
@@ -340,20 +341,21 @@ object IAPHandler {
             }
 
             override fun onError(error: PurchasesError) {
-                val capability = when {
-                    error.message.contains("billing unavailable", ignoreCase = true) ||
-                            error.message.contains("billing not available", ignoreCase = true) ||
-                            error.message.contains("not supported", ignoreCase = true) -> {
+                val capability = when (error.code) {
+                    PurchasesErrorCode.bi -> {
                         Log.w(TAG, "Billing unavailable: ${error.message}")
                         PurchaseCapability.Unavailable
                     }
-
-                    error.message.contains("restricted", ignoreCase = true) ||
-                            error.message.contains("parental", ignoreCase = true) -> {
+                    PurchasesErrorCode.PurchaseNotAllowedError -> {
                         Log.w(TAG, "Billing restricted: ${error.message}")
                         PurchaseCapability.Restricted
                     }
-
+                    PurchasesErrorCode.StoreProblemError,
+                    PurchasesErrorCode.NetworkError,
+                    PurchasesErrorCode.UnknownError -> {
+                        Log.e(TAG, "Store/network error checking capability: ${error.message}")
+                        PurchaseCapability.Unknown
+                    }
                     else -> {
                         Log.e(TAG, "Error checking purchase capability: ${error.message}")
                         PurchaseCapability.Unknown

@@ -39,6 +39,7 @@ fun AppPaywallScreen(navController: NavController) {
     val purchaseCapability = IAPHandler.purchaseCapability.collectAsState()
 
     val options = PaywallDialogOptions.Builder()
+        .setRequiredEntitlementIdentifier(IAPHandler.ENTITLEMENT)
         .setListener(model)
         .setDismissRequest { navController.popBackStack() }
         .build()
