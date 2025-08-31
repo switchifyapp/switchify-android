@@ -5,15 +5,11 @@ import android.content.Context
 import android.content.Intent
 import android.util.Log
 import android.widget.Toast
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.IntentSenderRequest
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -27,19 +23,14 @@ import androidx.compose.material.icons.rounded.BugReport
 import androidx.compose.material.icons.rounded.Feedback
 import androidx.compose.material.icons.rounded.Groups
 import androidx.compose.material.icons.rounded.Settings
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -55,6 +46,7 @@ import com.enaboapps.switchify.R
 import com.enaboapps.switchify.backend.iap.IAPHandler
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.components.BaseView
+import com.enaboapps.switchify.components.InAppUpdateBar
 import com.enaboapps.switchify.components.StatusBannerComponent
 import com.enaboapps.switchify.nav.NavigationRoute
 import com.enaboapps.switchify.service.utils.QuickAppsManager
@@ -62,13 +54,6 @@ import com.enaboapps.switchify.service.utils.ServiceUtils
 import com.enaboapps.switchify.switches.SwitchConfigInvalidBanner
 import com.enaboapps.switchify.switches.SwitchConfigValidator
 import com.enaboapps.switchify.switches.SwitchEventStore
-import com.google.android.play.core.appupdate.AppUpdateManager
-import com.google.android.play.core.appupdate.AppUpdateManagerFactory
-import com.google.android.play.core.appupdate.AppUpdateOptions
-import com.google.android.play.core.install.InstallStateUpdatedListener
-import com.google.android.play.core.install.model.AppUpdateType
-import com.google.android.play.core.install.model.InstallStatus
-import com.google.android.play.core.install.model.UpdateAvailability
 import com.google.android.play.core.review.ReviewManager
 import com.google.android.play.core.review.ReviewManagerFactory
 
@@ -78,12 +63,9 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
     val isAccessibilityServiceEnabled = serviceUtils.isAccessibilityServiceEnabled(context)
     val isSetupComplete = PreferenceManager(context).isSetupComplete()
     val isPro = remember { mutableStateOf(true) }
-    var showUpdateDialog by remember { mutableStateOf(false) }
     val switchEventStore = remember { SwitchEventStore.getInstance() }
     val switchConfigValidator = remember { SwitchConfigValidator(context) }
     var isSwitchConfigValid by remember { mutableStateOf(true) }
-    var updateProgress by remember { mutableFloatStateOf(0f) }
-    var isDownloading by remember { mutableStateOf(false) }
     val quickAppsManager = remember { QuickAppsManager(context) }
     val hasUsageStatsPermission =
         remember { mutableStateOf(quickAppsManager.hasUsageStatsPermission()) }
@@ -103,91 +85,10 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
         isSwitchConfigValid = switchConfigValidator.isConfigurationValid()
     }
 
-    val appUpdateManager = remember { AppUpdateManagerFactory.create(context) }
-    val installStateUpdatedListener = remember {
-        InstallStateUpdatedListener { state ->
-            when (state.installStatus()) {
-                InstallStatus.DOWNLOADING -> {
-                    isDownloading = true
-                    val totalBytes = state.totalBytesToDownload().toFloat()
-                    if (totalBytes > 0) { // Prevent division by zero
-                        updateProgress = state.bytesDownloaded().toFloat() / totalBytes
-                    }
-                }
-
-                InstallStatus.DOWNLOADED -> {
-                    isDownloading = false
-                    showUpdateDialog = true
-                }
-
-                InstallStatus.FAILED -> {
-                    isDownloading = false
-                    Log.e("HomeScreen", "Update failed! Error code: ${state.installErrorCode()}")
-                    Toast.makeText(
-                        context,
-                        "Update failed: ${state.installErrorCode()}",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
-
-                InstallStatus.INSTALLED -> {
-                    isDownloading = false
-                    Log.d("HomeScreen", "Update installed successfully")
-                }
-
-                else -> {
-                    Log.d("HomeScreen", "Install Status: ${state.installStatus()}")
-                }
-            }
-        }
-    }
-
-    val updateResultLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.StartIntentSenderForResult()
-    ) { result ->
-        when (result.resultCode) {
-            Activity.RESULT_OK -> {
-                Log.d("HomeScreen", "Update flow started successfully")
-                Toast.makeText(context, "Downloading update...", Toast.LENGTH_SHORT).show()
-            }
-
-            Activity.RESULT_CANCELED -> {
-                Log.d("HomeScreen", "Update cancelled by user")
-                Toast.makeText(context, "Update cancelled", Toast.LENGTH_SHORT).show()
-            }
-
-            else -> {
-                Log.e("HomeScreen", "Update flow failed! Result code: ${result.resultCode}")
-                Toast.makeText(context, "Update failed to start", Toast.LENGTH_SHORT).show()
-            }
-        }
-    }
-
     val reviewManager = remember { ReviewManagerFactory.create(context) }
 
-    // Combine the effects to ensure proper registration/unregistration
-    DisposableEffect(Unit) {
-        // Register the listener
-        appUpdateManager.registerListener(installStateUpdatedListener)
-
-        // Check for updates
-        checkForUpdates(context, appUpdateManager, updateResultLauncher)
-
-        // Check if an update has already been downloaded
-        appUpdateManager.appUpdateInfo.addOnSuccessListener { info ->
-            if (info.installStatus() == InstallStatus.DOWNLOADED) {
-                showUpdateDialog = true
-            }
-        }
-
-        // Request review
-        requestReview(context, reviewManager)
-
-        onDispose {
-            // Always unregister the listener when the composable is disposed
-            appUpdateManager.unregisterListener(installStateUpdatedListener)
-        }
-    }
+    // Request review
+    LaunchedEffect(Unit) { requestReview(context, reviewManager) }
 
     BaseView(
         titleResId = R.string.screen_title_switchify,
@@ -204,41 +105,17 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
                     navController.navigate(NavigationRoute.Paywall.name)
                 }
             )
+        },
+        bottomBar = {
+            InAppUpdateBar { msg ->
+                Log.e("HomeScreen", msg)
+                Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+            }
         }
     ) {
         Column(
             modifier = Modifier.fillMaxSize()
         ) {
-            // Update Progress
-            if (isDownloading) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = stringResource(R.string.dialog_title_downloading_update),
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                        Text(
-                            text = "${(updateProgress * 100).toInt()}%",
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                    }
-                    LinearProgressIndicator(
-                        progress = { updateProgress },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 4.dp)
-                    )
-                }
-            }
-
             // Switch Configuration Banner
             if (!isSwitchConfigValid) {
                 SwitchConfigInvalidBanner(
@@ -354,30 +231,7 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
             }
         } // End Column
 
-        if (showUpdateDialog) {
-            AlertDialog(
-                onDismissRequest = { showUpdateDialog = false },
-                title = { Text(stringResource(R.string.dialog_title_update)) },
-                text = { Text(stringResource(R.string.dialog_message_update)) },
-                confirmButton = {
-                    TextButton(
-                        onClick = {
-                            showUpdateDialog = false
-                            appUpdateManager.completeUpdate()
-                        }
-                    ) {
-                        Text(stringResource(R.string.dialog_button_restart))
-                    }
-                },
-                dismissButton = {
-                    TextButton(
-                        onClick = { showUpdateDialog = false }
-                    ) {
-                        Text(stringResource(R.string.dialog_button_later))
-                    }
-                }
-            )
-        }
+        // Restart prompt handled in bottomBar component
     }
 }
 
@@ -435,50 +289,7 @@ private fun GridCard(
 }
 
 
-private fun checkForUpdates(
-    context: Context,
-    appUpdateManager: AppUpdateManager,
-    updateResultLauncher: androidx.activity.result.ActivityResultLauncher<IntentSenderRequest>
-) {
-    try {
-        appUpdateManager.appUpdateInfo
-            .addOnSuccessListener { appUpdateInfo ->
-                if (appUpdateInfo.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE &&
-                    appUpdateInfo.isUpdateTypeAllowed(AppUpdateType.FLEXIBLE)
-                ) {
-                    try {
-                        val updateOptions =
-                            AppUpdateOptions.newBuilder(AppUpdateType.FLEXIBLE).build()
-                        appUpdateManager.startUpdateFlowForResult(
-                            appUpdateInfo,
-                            updateResultLauncher,
-                            updateOptions
-                        )
-                        Log.d("HomeScreen", "Update available. Requesting update.")
-                    } catch (e: Exception) {
-                        Log.e("HomeScreen", "Error starting update flow", e)
-                        Toast.makeText(
-                            context,
-                            "Failed to start update: ${e.localizedMessage}",
-                            Toast.LENGTH_SHORT
-                        ).show()
-                    }
-                } else {
-                    Log.d("HomeScreen", "No update available or update type not allowed")
-                }
-            }
-            .addOnFailureListener { exception ->
-                Log.e("HomeScreen", "Failed to check for updates", exception)
-                Toast.makeText(
-                    context,
-                    "Failed to check for updates: ${exception.localizedMessage}",
-                    Toast.LENGTH_SHORT
-                ).show()
-            }
-    } catch (e: Exception) {
-        Log.e("HomeScreen", "Exception during update check", e)
-    }
-}
+// Update flow logic moved to InAppUpdateBar component
 
 private fun requestReview(context: Context, reviewManager: ReviewManager) {
     try {
