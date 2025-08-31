@@ -35,7 +35,45 @@ fun AddEditCameraSwitchScreen(navController: NavController, code: String? = null
 
     BaseView(
         titleResId = if (code == null) R.string.screen_title_add_switch else R.string.screen_title_edit_switch,
-        navController = navController
+        navController = navController,
+        bottomBar = {
+            val context = LocalContext.current
+            val scope = rememberCoroutineScope()
+            androidx.compose.foundation.layout.Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)
+            ) {
+                ActionButton(
+                    textResId = R.string.button_save,
+                    enabled = viewModel.isValid.value,
+                    onClick = {
+                        viewModel.save(context) { success ->
+                            scope.launch {
+                                if (success) {
+                                    navController.popBackStack()
+                                } else {
+                                    android.widget.Toast.makeText(context, "Error saving switch", android.widget.Toast.LENGTH_SHORT)
+                                        .show()
+                                }
+                            }
+                        }
+                    },
+                    modifier = Modifier.weight(1f),
+                    applyPadding = false
+                )
+                if (code != null) {
+                    ActionButton(
+                        textResId = R.string.button_delete,
+                        onClick = { viewModel.showDeleteConfirmation.value = true },
+                        type = ActionButtonType.DESTRUCTIVE,
+                        modifier = Modifier.weight(1f),
+                        applyPadding = false
+                    )
+                }
+            }
+        }
     ) {
         MainContent(code, viewModel, navController)
     }

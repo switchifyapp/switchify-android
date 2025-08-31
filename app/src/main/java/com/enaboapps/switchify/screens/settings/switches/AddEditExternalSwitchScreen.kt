@@ -70,22 +70,14 @@ fun AddEditExternalSwitchScreen(navController: NavController, code: String? = nu
     } else {
         BaseView(
             titleResId = screenTitle,
-            navController = navController
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                SwitchName(
-                    name = addEditExternalSwitchScreenModel.name,
-                    onNameChange = { addEditExternalSwitchScreenModel.updateName(it) }
-                )
-                Spacer(modifier = Modifier.padding(8.dp))
-                SwitchActionSection(addEditExternalSwitchScreenModel)
-                Spacer(modifier = Modifier.padding(12.dp))
+            navController = navController,
+            bottomBar = {
+                val context = LocalContext.current
+                val scope = rememberCoroutineScope()
                 androidx.compose.foundation.layout.Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     ActionButton(
@@ -97,10 +89,10 @@ fun AddEditExternalSwitchScreen(navController: NavController, code: String? = nu
                                     if (success) {
                                         navController.popBackStack()
                                     } else {
-                                        Toast.makeText(
+                                        android.widget.Toast.makeText(
                                             context,
                                             "Error saving switch",
-                                            Toast.LENGTH_SHORT
+                                            android.widget.Toast.LENGTH_SHORT
                                         )
                                             .show()
                                     }
@@ -114,14 +106,26 @@ fun AddEditExternalSwitchScreen(navController: NavController, code: String? = nu
                         ActionButton(
                             textResId = R.string.button_delete,
                             type = ActionButtonType.DESTRUCTIVE,
-                            onClick = {
-                                showDeleteConfirmation.value = true
-                            },
+                            onClick = { showDeleteConfirmation.value = true },
                             modifier = Modifier.weight(1f),
                             applyPadding = false
                         )
                     }
                 }
+            }
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                SwitchName(
+                    name = addEditExternalSwitchScreenModel.name,
+                    onNameChange = { addEditExternalSwitchScreenModel.updateName(it) }
+                )
+                Spacer(modifier = Modifier.padding(8.dp))
+                SwitchActionSection(addEditExternalSwitchScreenModel)
+                Spacer(modifier = Modifier.padding(12.dp))
             }
 
             if (showDeleteConfirmation.value) {
