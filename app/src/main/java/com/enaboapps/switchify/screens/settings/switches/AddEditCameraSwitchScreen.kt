@@ -143,40 +143,6 @@ private fun MainContent(
         )
 
         Spacer(modifier = Modifier.height(24.dp))
-
-        // Save/Delete Row
-        androidx.compose.foundation.layout.Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)
-        ) {
-            ActionButton(
-                textResId = R.string.button_save,
-                enabled = viewModel.isValid.value,
-                onClick = {
-                    viewModel.save(context) { success ->
-                        scope.launch {
-                            if (success) {
-                                navController.popBackStack()
-                            } else {
-                                Toast.makeText(context, "Error saving switch", Toast.LENGTH_SHORT)
-                                    .show()
-                            }
-                        }
-                    }
-                },
-                modifier = Modifier.weight(1f),
-                applyPadding = false
-            )
-            if (code != null) {
-                ActionButton(
-                    textResId = R.string.button_delete,
-                    onClick = { viewModel.showDeleteConfirmation.value = true },
-                    type = ActionButtonType.DESTRUCTIVE,
-                    modifier = Modifier.weight(1f),
-                    applyPadding = false
-                )
-            }
-        }
     }
 
     // Delete confirmation dialog
