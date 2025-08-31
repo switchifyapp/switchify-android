@@ -289,8 +289,3 @@ private fun GridCard(
         }
     }
 }
-
-
-// Update flow logic moved to InAppUpdateBar component
-
-private fun requestReview(context: Context, reviewManager: ReviewManager) {}
