@@ -1,49 +1,45 @@
 package com.enaboapps.switchify.service.utils
 
+import android.content.BroadcastReceiver
 import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.os.UserManager
-import android.util.Log
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.isActive
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 
-/**
- * Utility class to observe device lock/unlock state through polling.
- */
-class DeviceLockObserver(private val context: Context) {
+class DeviceLockObserver(context: Context) {
 
     companion object {
-        private const val TAG = "DeviceLockObserver"
-        private const val POLL_INTERVAL = 1000L // 1 second
-    }
-
-    private val userManager: UserManager by lazy {
-        context.getSystemService(Context.USER_SERVICE) as UserManager
-    }
-
-    private var unlocked: Boolean = userManager.isUserUnlocked
-        set(value) {
-            if (field != value) {
-                field = value
-                when (value) {
-                    true -> onDeviceUnlockedCallback?.invoke()
-                    false -> onDeviceLockedCallback?.invoke()
-                }
-            }
+        @JvmStatic
+        fun isUserUnlocked(context: Context): Boolean {
+            val um = context.applicationContext.getSystemService(Context.USER_SERVICE) as UserManager
+            return um.isUserUnlocked
         }
+    }
+
+    private val appContext = context.applicationContext
+    @Volatile private var unlocked: Boolean = isUserUnlocked(appContext)
 
     private var onDeviceUnlockedCallback: (() -> Unit)? = null
     private var onDeviceLockedCallback: (() -> Unit)? = null
-    private var pollingJob: Job? = null
-    private val coroutineScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
 
-    /**
-     * Starts observing unlock events through polling
-     */
+    private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
+
+    private val receiver = object : BroadcastReceiver() {
+        override fun onReceive(ctx: Context?, intent: Intent?) {
+            if (intent?.action == Intent.ACTION_USER_UNLOCKED) {
+                if (!unlocked) {
+                    unlocked = true
+                    dispatchUnlocked()
+                }
+            }
+        }
+    }
+
     fun startObserving(
         onUnlocked: () -> Unit,
         onLocked: () -> Unit
@@ -51,40 +47,25 @@ class DeviceLockObserver(private val context: Context) {
         onDeviceUnlockedCallback = onUnlocked
         onDeviceLockedCallback = onLocked
 
-        // Initial state check
-        checkAndUpdateUnlockState()
+        // Initial state notify if already unlocked
+        if (unlocked) dispatchUnlocked()
 
-        // Start polling in background
-        startPolling()
+        // Register for unlock broadcasts
+        val filter = IntentFilter(Intent.ACTION_USER_UNLOCKED)
+        appContext.registerReceiver(receiver, filter)
     }
 
-    private fun startPolling() {
-        pollingJob?.cancel()
-        pollingJob = coroutineScope.launch {
-            while (isActive) {
-                checkAndUpdateUnlockState()
-                delay(POLL_INTERVAL)
-            }
-        }
-    }
-
-    private fun checkAndUpdateUnlockState() {
-        unlocked = userManager.isUserUnlocked
-        Log.d(TAG, "Device unlock state changed: $unlocked")
-    }
-
-    /**
-     * Stops observing unlock events
-     */
     fun stopObserving() {
-        pollingJob?.cancel()
-        pollingJob = null
+        runCatching { appContext.unregisterReceiver(receiver) }
         onDeviceUnlockedCallback = null
         onDeviceLockedCallback = null
+        scope.cancel()
     }
 
-    /**
-     * Checks if the user is currently unlocked.
-     */
     fun isUserUnlocked(): Boolean = unlocked
+
+    private fun dispatchUnlocked() {
+        val cb = onDeviceUnlockedCallback ?: return
+        scope.launch(Dispatchers.Main) { cb.invoke() }
+    }
 }
