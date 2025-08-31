@@ -51,6 +51,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.enaboapps.switchify.theme.Dimens
 import com.enaboapps.switchify.R
 import kotlinx.coroutines.delay
 
@@ -79,13 +80,13 @@ fun AccessibilityServiceComponent(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(scrollState)
-            .padding(24.dp),
+            .padding(Dimens.spaceL),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         // Animated icon
         AnimatedAccessibilityIcon(isEnabled = isEnabled)
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(Dimens.spaceL))
 
         Text(
             text = stringResource(
@@ -144,7 +145,7 @@ fun AccessibilityServiceComponent(
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(Dimens.spaceL))
 
             // Privacy section
             Card(
@@ -152,7 +153,7 @@ fun AccessibilityServiceComponent(
                 border = CardDefaults.outlinedCardBorder()
             ) {
                 Row(
-                    modifier = Modifier.padding(16.dp),
+                    modifier = Modifier.padding(Dimens.spaceM),
                     verticalAlignment = Alignment.Top
                 ) {
                     Icon(
@@ -161,7 +162,7 @@ fun AccessibilityServiceComponent(
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(24.dp)
                     )
-                    Spacer(modifier = Modifier.width(12.dp))
+                    Spacer(modifier = Modifier.width(Dimens.spaceS))
                     Column {
                         Text(
                             text = stringResource(R.string.onboarding_accessibility_privacy_title),
@@ -195,7 +196,7 @@ fun AccessibilityServiceComponent(
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(32.dp)
                     )
-                    Spacer(modifier = Modifier.width(16.dp))
+                    Spacer(modifier = Modifier.width(Dimens.spaceM))
                     Column {
                         Text(
                             text = stringResource(R.string.onboarding_accessibility_enabled),
@@ -213,7 +214,7 @@ fun AccessibilityServiceComponent(
         }
 
         Spacer(modifier = Modifier.weight(1f))
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(Dimens.spaceM))
 
         // Single action button - only show when not enabled
         if (!isEnabled) {

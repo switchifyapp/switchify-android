@@ -25,6 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.enaboapps.switchify.theme.Dimens
 import com.enaboapps.switchify.utils.StringUtils
 
 @Composable
@@ -59,7 +60,7 @@ fun PreferenceTimeStepper(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
-            Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(Dimens.spaceS))
 
             // Icon buttons for increment/decrement
             Row(

@@ -25,6 +25,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.enaboapps.switchify.theme.Dimens
 import androidx.navigation.NavController
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.components.ActionButton
@@ -41,7 +42,7 @@ fun ScanModeExplanationStep(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(scrollState)
-            .padding(24.dp),
+            .padding(Dimens.spaceL),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
@@ -49,7 +50,7 @@ fun ScanModeExplanationStep(
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
             textAlign = TextAlign.Center,
-            modifier = Modifier.padding(bottom = 8.dp)
+            modifier = Modifier.padding(bottom = Dimens.spaceXs)
         )
 
         Text(
@@ -57,13 +58,13 @@ fun ScanModeExplanationStep(
             style = MaterialTheme.typography.bodyLarge,
             textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(bottom = 32.dp)
+            modifier = Modifier.padding(bottom = Dimens.spaceL + Dimens.spaceS)
         )
 
         // Scan Mode Selection  
         ScanModeSelectionSection(navController = navController)
 
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(Dimens.spaceL + Dimens.spaceS))
 
         // Info card
         Card(
@@ -73,7 +74,7 @@ fun ScanModeExplanationStep(
             )
         ) {
             Row(
-                modifier = Modifier.padding(16.dp),
+                modifier = Modifier.padding(Dimens.spaceM),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
@@ -82,7 +83,7 @@ fun ScanModeExplanationStep(
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(24.dp)
                 )
-                Spacer(modifier = Modifier.width(12.dp))
+                Spacer(modifier = Modifier.width(Dimens.spaceS))
                 Text(
                     text = stringResource(R.string.onboarding_scan_modes_tip),
                     style = MaterialTheme.typography.bodyMedium
@@ -90,7 +91,7 @@ fun ScanModeExplanationStep(
             }
         }
 
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(Dimens.spaceL + Dimens.spaceS))
 
         // Continue button
         ActionButton(
