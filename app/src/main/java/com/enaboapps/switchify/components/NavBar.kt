@@ -29,6 +29,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.enaboapps.switchify.theme.Dimens
 
 data class NavBarAction(
     val textResId: Int? = null,
@@ -92,7 +93,7 @@ fun NavBar(
                     color = MaterialTheme.colorScheme.onPrimary,
                     modifier = Modifier
                         .weight(1f)
-                        .padding(start = if (canGoBack) 0.dp else 16.dp)
+                        .padding(start = if (canGoBack) 0.dp else Dimens.spaceM)
                 )
 
                 actions.forEach { action ->

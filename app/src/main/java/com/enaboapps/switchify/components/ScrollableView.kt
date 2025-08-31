@@ -9,6 +9,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.enaboapps.switchify.theme.Dimens
 
 @Composable
 fun ScrollableView(
@@ -19,9 +20,9 @@ fun ScrollableView(
         modifier = modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(16.dp),
+            .padding(Dimens.spaceM),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         content()
     }
-} 
+}

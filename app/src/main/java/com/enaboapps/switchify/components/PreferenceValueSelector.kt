@@ -25,6 +25,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.enaboapps.switchify.theme.Dimens
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -48,12 +49,12 @@ fun PreferenceValueSelector(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 20.dp)
-            .padding(bottom = 8.dp)
+            .padding(bottom = Dimens.spaceXs)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp)
+                .padding(Dimens.spaceM)
         ) {
             // Title and summary row
             Row(
@@ -92,7 +93,7 @@ fun PreferenceValueSelector(
             FlowRow(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 12.dp),
+                    .padding(top = Dimens.spaceS),
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {

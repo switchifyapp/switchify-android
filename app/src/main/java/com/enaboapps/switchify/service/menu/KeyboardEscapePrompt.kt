@@ -22,6 +22,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.enaboapps.switchify.theme.Dimens
 import androidx.compose.ui.unit.sp
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.service.components.AccessibilityComposeView
@@ -72,7 +73,7 @@ class KeyboardEscapePrompt {
 
         Surface(
             modifier = Modifier
-                .padding(16.dp)
+                .padding(Dimens.spaceM)
                 .height(250.dp)
                 .clip(RoundedCornerShape(16.dp)),
             color = MaterialTheme.colorScheme.surface,
@@ -80,7 +81,7 @@ class KeyboardEscapePrompt {
         ) {
             Box(
                 modifier = Modifier
-                    .padding(24.dp),
+                    .padding(Dimens.spaceL),
                 contentAlignment = Alignment.Center
             ) {
                 Column(
@@ -91,7 +92,7 @@ class KeyboardEscapePrompt {
                         contentDescription = null,
                         modifier = Modifier
                             .size(48.dp)
-                            .padding(bottom = 16.dp),
+                            .padding(bottom = Dimens.spaceM),
                         tint = MaterialTheme.colorScheme.primary
                     )
                     Text(
@@ -99,7 +100,7 @@ class KeyboardEscapePrompt {
                         color = MaterialTheme.colorScheme.onPrimaryContainer,
                         fontSize = 18.sp,
                         textAlign = TextAlign.Center,
-                        modifier = Modifier.padding(8.dp)
+                        modifier = Modifier.padding(Dimens.spaceXs)
                     )
                 }
             }

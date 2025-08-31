@@ -23,6 +23,7 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.enaboapps.switchify.R
+import com.enaboapps.switchify.theme.Dimens
 
 @Composable
 private fun ButtonToggle(
@@ -118,7 +119,7 @@ fun PreferenceSwitch(
         explanationResId = explanationResId
     ) {
         Row {
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(Dimens.spaceXs))
             ButtonToggle(
                 checked = isChecked,
                 onCheckedChange = {

@@ -25,6 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.enaboapps.switchify.theme.Dimens
 import com.enaboapps.switchify.R
 
 @Composable
@@ -38,12 +39,12 @@ fun PreferenceComponentBase(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 20.dp)
-            .padding(bottom = 8.dp)
+            .padding(bottom = Dimens.spaceXs)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(Dimens.spaceM),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(
