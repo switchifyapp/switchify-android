@@ -40,10 +40,7 @@ fun NavGraph(navController: NavHostController) {
             OnboardingScreen(navController)
         }
         composable(
-            route = NavigationRoute.Paywall.name,
-            deepLinks = listOf(
-                navDeepLink { uriPattern = "https://switchify.app/pro" }
-            )
+            route = NavigationRoute.Paywall.name
         ) {
             AppPaywallScreen(navController)
         }
