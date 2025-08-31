@@ -47,6 +47,7 @@ class PreferenceManager(context: Context) {
         const val PREFERENCE_KEY_ONBOARDING_CURRENT_STEP = "onboarding_current_step"
         const val PREFERENCE_KEY_ONBOARDING_USER_TYPE = "onboarding_user_type"
         const val PREFERENCE_KEY_ONBOARDING_IS_NEW_USER = "onboarding_is_new_user"
+        const val PREFERENCE_KEY_REVIEW_LAST_SHOWN = "review_last_shown"
         const val PREFERENCE_KEY_DEBUG_TRIAL_DISABLED = "debug_trial_disabled"
 
         // Camera threshold preferences - time steppers for each gesture
@@ -70,7 +71,8 @@ class PreferenceManager(context: Context) {
         val BLACKLISTED_KEYS = setOf(
             PREFERENCE_KEY_PRO,
             PREFERENCE_KEY_ACCESS_TECHNIQUE,
-            PREFERENCE_KEY_SETUP_COMPLETE
+            PREFERENCE_KEY_SETUP_COMPLETE,
+            PREFERENCE_KEY_REVIEW_LAST_SHOWN
         )
     }
 

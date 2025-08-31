@@ -52,6 +52,8 @@ import com.enaboapps.switchify.nav.NavigationRoute
 import com.enaboapps.switchify.service.utils.QuickAppsManager
 import com.enaboapps.switchify.service.utils.ServiceUtils
 import com.enaboapps.switchify.switches.SwitchConfigInvalidBanner
+import com.enaboapps.switchify.utils.LogEvent
+import com.enaboapps.switchify.utils.Logger
 import com.enaboapps.switchify.switches.SwitchConfigValidator
 import com.enaboapps.switchify.switches.SwitchEventStore
 import com.google.android.play.core.review.ReviewManager
@@ -87,8 +89,18 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
 
     val reviewManager = remember { ReviewManagerFactory.create(context) }
 
-    // Request review
-    LaunchedEffect(Unit) { requestReview(context, reviewManager) }
+    // Request review with 30-day cooldown
+    LaunchedEffect(Unit) {
+        val prefs = PreferenceManager(context)
+        val last = prefs.getLongValue(PreferenceManager.PREFERENCE_KEY_REVIEW_LAST_SHOWN, 0L)
+        val now = System.currentTimeMillis()
+        val thirtyDaysMs = 30L * 24 * 60 * 60 * 1000
+        if (now - last >= thirtyDaysMs) {
+            Logger.log(LogEvent.ReviewRequested)
+            requestReview(context, reviewManager)
+            prefs.setLongValue(PreferenceManager.PREFERENCE_KEY_REVIEW_LAST_SHOWN, now)
+        }
+    }
 
     BaseView(
         titleResId = R.string.screen_title_switchify,
@@ -298,8 +310,10 @@ private fun requestReview(context: Context, reviewManager: ReviewManager) {
             if (task.isSuccessful) {
                 val reviewInfo = task.result
                 try {
+                    Logger.log(LogEvent.ReviewLaunched)
                     reviewManager.launchReviewFlow(context as Activity, reviewInfo)
                         .addOnCompleteListener {
+                            Logger.log(LogEvent.ReviewCompleted)
                             Log.d("HomeScreen", "Review flow completed")
                         }
                         .addOnFailureListener { e ->
