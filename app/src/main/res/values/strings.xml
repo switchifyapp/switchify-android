@@ -715,6 +715,4 @@
     <!-- Home Screen Feedback Card -->
     <string name="home_feedback_title">Send Feedback</string>
     <string name="home_feedback_summary">Share your thoughts and help us improve</string>
-    <string name="home_discord_title">Join Discord</string>
-    <string name="home_discord_summary">Connect with the community for support and tips</string>
 </resources>
