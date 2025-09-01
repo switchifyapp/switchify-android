@@ -10,19 +10,26 @@ import android.os.Binder
 import android.os.Build
 import android.os.IBinder
 import android.util.Log
+import android.hardware.camera2.CameraManager
 import androidx.annotation.OptIn
+import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
+import androidx.camera.core.CameraState
 import androidx.camera.core.ExperimentalGetImage
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.app.NotificationCompat
 import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.Observer
 import com.enaboapps.switchify.service.face.FaceProcessingService
+import com.enaboapps.switchify.service.window.ServiceMessageHUD
+import com.enaboapps.switchify.R
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -42,6 +49,7 @@ class CameraForegroundService : Service() {
     private var cameraProvider: ProcessCameraProvider? = null
     private var imageAnalysis: ImageAnalysis? = null
     private var cameraExecutor: ExecutorService? = null
+    private var boundCamera: Camera? = null
 
     // Processing components
     private var faceProcessingService: FaceProcessingService? = null
@@ -52,6 +60,8 @@ class CameraForegroundService : Service() {
     private var isProcessing = false
     private val processingMutex = Mutex()
     private var currentLifecycleOwner: LifecycleOwner? = null
+    private var isPausedForConflict = false
+    private var retryAttempt = 0
 
     // Callbacks
     private var frameProcessingCallback: ((Bitmap) -> Unit)? = null
@@ -70,6 +80,11 @@ class CameraForegroundService : Service() {
     private val mediaPipeMutex = Mutex()
     private var averageProcessingTime = 0L
     private var processedFramesForAverage = 0
+    private var watchdogJob: kotlinx.coroutines.Job? = null
+    private var retryJob: kotlinx.coroutines.Job? = null
+    private var cameraStateObserver: Observer<CameraState>? = null
+    private var cameraManager: CameraManager? = null
+    private var availabilityCallback: CameraManager.AvailabilityCallback? = null
 
     companion object {
         private const val TAG = "CameraForegroundService"
@@ -105,6 +120,13 @@ class CameraForegroundService : Service() {
         Log.d(TAG, "Service created")
         createNotificationChannel()
         startForeground(NOTIFICATION_ID, createNotification())
+        cameraManager = getSystemService(CAMERA_SERVICE) as CameraManager
+        availabilityCallback = object : CameraManager.AvailabilityCallback() {
+            override fun onCameraAvailable(cameraId: String) {
+                if (isPausedForConflict) scheduleRetry()
+            }
+        }
+        cameraManager?.registerAvailabilityCallback(availabilityCallback!!, null)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -169,6 +191,7 @@ class CameraForegroundService : Service() {
 
                 isProcessing = true
                 Log.i(TAG, "Camera started successfully")
+                startWatchdog()
             }
 
             true
@@ -186,10 +209,18 @@ class CameraForegroundService : Service() {
             serviceScope.launch(Dispatchers.Main) {
                 processingMutex.withLock {
                     isProcessing = false
+                    isPausedForConflict = false
                     cameraProvider?.unbindAll()
                     cameraProvider = null
                     imageAnalysis = null
                     currentLifecycleOwner = null
+                    boundCamera?.cameraInfo?.cameraState?.removeObserver(cameraStateObserver ?: return@launch)
+                    boundCamera = null
+                    cameraStateObserver = null
+                    retryJob?.cancel()
+                    retryJob = null
+                    watchdogJob?.cancel()
+                    watchdogJob = null
 
                     Log.i(TAG, "Camera stopped")
                 }
@@ -254,16 +285,112 @@ class CameraForegroundService : Service() {
         try {
             cameraProvider?.unbindAll()
 
-            cameraProvider?.bindToLifecycle(
+            boundCamera = cameraProvider?.bindToLifecycle(
                 lifecycleOwner,
                 cameraSelector,
                 imageAnalysis
             )
 
             Log.d(TAG, "Camera use cases bound successfully")
+            observeCameraState(lifecycleOwner)
+            isPausedForConflict = false
+            retryAttempt = 0
+            retryJob?.cancel()
+            retryJob = null
+            ServiceMessageHUD.instance.showMessage(
+                R.string.hud_camera_recovered,
+                ServiceMessageHUD.MessageType.DISAPPEARING
+            )
 
         } catch (e: Exception) {
             Log.e(TAG, "Failed to bind camera use cases", e)
+            handleRecoverableIssue()
+        }
+    }
+
+    private fun observeCameraState(lifecycleOwner: LifecycleOwner) {
+        cameraStateObserver?.let { boundCamera?.cameraInfo?.cameraState?.removeObserver(it) }
+        val observer = Observer<CameraState> { state ->
+            val error = state.error
+            if (error != null) {
+                when (error.code) {
+                    CameraState.ERROR_CAMERA_IN_USE,
+                    CameraState.ERROR_MAX_CAMERAS_IN_USE,
+                    CameraState.ERROR_OTHER_RECOVERABLE_ERROR -> onCameraInUse()
+                    CameraState.ERROR_CAMERA_DISABLED,
+                    CameraState.ERROR_DO_NOT_DISTURB_MODE_ENABLED,
+                    CameraState.ERROR_STREAM_CONFIG -> onCameraFatal()
+                    else -> onCameraInUse()
+                }
+            }
+        }
+        cameraStateObserver = observer
+        boundCamera?.cameraInfo?.cameraState?.observe(lifecycleOwner, observer)
+    }
+
+    private fun onCameraInUse() {
+        if (!isPausedForConflict) {
+            ServiceMessageHUD.instance.showMessage(
+                R.string.hud_camera_unavailable_external_app,
+                ServiceMessageHUD.MessageType.DISAPPEARING
+            )
+            pauseProcessing()
+            scheduleRetry()
+        }
+    }
+
+    private fun onCameraFatal() {
+        ServiceMessageHUD.instance.showMessage(
+            R.string.hud_camera_access_error,
+            ServiceMessageHUD.MessageType.DISAPPEARING
+        )
+        pauseProcessing()
+    }
+
+    private fun pauseProcessing() {
+        serviceScope.launch(Dispatchers.Main) {
+            isProcessing = false
+            isPausedForConflict = true
+            cameraProvider?.unbindAll()
+        }
+    }
+
+    private fun scheduleRetry() {
+        if (retryJob != null) return
+        val delayMs = kotlin.math.min(30000L, 1000L shl retryAttempt.coerceAtMost(5))
+        retryJob = serviceScope.launch(Dispatchers.Main) {
+            delay(delayMs)
+            retryJob = null
+            val owner = currentLifecycleOwner ?: return@launch
+            try {
+                if (cameraProvider == null) {
+                    val future = ProcessCameraProvider.getInstance(this@CameraForegroundService)
+                    cameraProvider = future.get()
+                }
+                setupImageAnalysis()
+                bindCameraUseCases(owner)
+                isProcessing = true
+            } catch (e: Exception) {
+                retryAttempt++
+                handleRecoverableIssue()
+            }
+        }
+    }
+
+    private fun handleRecoverableIssue() {
+        isPausedForConflict = true
+        scheduleRetry()
+    }
+
+    private fun startWatchdog() {
+        if (watchdogJob != null) return
+        watchdogJob = serviceScope.launch(Dispatchers.Default) {
+            while (true) {
+                delay(5000)
+                if (isProcessing && System.currentTimeMillis() - lastFrameProcessedTime > 5000) {
+                    onCameraInUse()
+                }
+            }
         }
     }
 
@@ -481,6 +608,12 @@ class CameraForegroundService : Service() {
             frameProcessingCallback = null
             gestureDetectedCallback = null
             faceResultCallback = null
+            retryJob?.cancel()
+            watchdogJob?.cancel()
+            cameraStateObserver = null
+            availabilityCallback?.let { cameraManager?.unregisterAvailabilityCallback(it) }
+            availabilityCallback = null
+            cameraManager = null
 
             Log.i(TAG, "Camera service cleaned up")
 
