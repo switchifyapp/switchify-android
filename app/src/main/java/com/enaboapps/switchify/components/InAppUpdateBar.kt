@@ -28,6 +28,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.enaboapps.switchify.R
 import com.google.android.play.core.appupdate.AppUpdateManager
 import com.google.android.play.core.appupdate.AppUpdateManagerFactory
@@ -93,6 +96,22 @@ fun InAppUpdateBar(
     DisposableEffect(Unit) {
         appUpdateManager.registerListener(listener)
         onDispose { appUpdateManager.unregisterListener(listener) }
+    }
+
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                appUpdateManager.appUpdateInfo.addOnSuccessListener { info ->
+                    if (info.installStatus() == InstallStatus.DOWNLOADED) {
+                        isDownloading = false
+                        showRestart = true
+                    }
+                }
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
     if (isDownloading) {
@@ -194,4 +213,3 @@ private fun startUpdate(
         onError("Failed to start update: ${e.localizedMessage}")
     }
 }
-
