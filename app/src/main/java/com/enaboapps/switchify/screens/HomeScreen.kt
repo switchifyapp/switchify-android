@@ -171,27 +171,7 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
                     )
                 }
 
-                // Discord Card
-                item {
-                    val context = LocalContext.current
-                    GridCard(
-                        titleResId = R.string.home_discord_title,
-                        summaryResId = R.string.home_discord_summary,
-                        onClick = {
-                            val intent =
-                                Intent(Intent.ACTION_VIEW, "https://discord.gg/2VgnwhS9".toUri())
-                            context.startActivity(intent)
-                        },
-                        icon = {
-                            Icon(
-                                imageVector = Icons.Rounded.Groups,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.fillMaxSize()
-                            )
-                        }
-                    )
-                }
+                
 
                 // Quick Apps Permission Card (only show if permission not granted)
                 if (!hasUsageStatsPermission.value) {
