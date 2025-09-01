@@ -342,15 +342,16 @@ object IAPHandler {
 
             override fun onError(error: PurchasesError) {
                 val capability = when (error.code) {
-                    PurchasesErrorCode.bi -> {
-                        Log.w(TAG, "Billing unavailable: ${error.message}")
-                        PurchaseCapability.Unavailable
-                    }
                     PurchasesErrorCode.PurchaseNotAllowedError -> {
                         Log.w(TAG, "Billing restricted: ${error.message}")
                         PurchaseCapability.Restricted
                     }
-                    PurchasesErrorCode.StoreProblemError,
+                    PurchasesErrorCode.ConfigurationError,
+                    PurchasesErrorCode.UnsupportedError,
+                    PurchasesErrorCode.StoreProblemError -> {
+                        Log.w(TAG, "Billing unavailable: ${error.message}")
+                        PurchaseCapability.Unavailable
+                    }
                     PurchasesErrorCode.NetworkError,
                     PurchasesErrorCode.UnknownError -> {
                         Log.e(TAG, "Store/network error checking capability: ${error.message}")
