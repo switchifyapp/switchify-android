@@ -10,6 +10,8 @@ import androidx.lifecycle.LifecycleOwner
 import com.enaboapps.switchify.backend.iap.IAPHandler
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.service.actions.AudioActionManager
+import com.enaboapps.switchify.service.window.ServiceMessageHUD
+import com.enaboapps.switchify.R
 import com.enaboapps.switchify.service.actions.GlobalActionManager
 import com.enaboapps.switchify.service.gestures.GestureManager
 import com.enaboapps.switchify.service.scanning.ScanSettings
