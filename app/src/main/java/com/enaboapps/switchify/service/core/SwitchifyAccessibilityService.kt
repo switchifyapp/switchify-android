@@ -22,6 +22,7 @@ import com.enaboapps.switchify.service.utils.DeviceLockObserver
 import com.enaboapps.switchify.service.window.SwitchifyAccessibilityWindow
 import com.enaboapps.switchify.utils.LogEvent
 import com.enaboapps.switchify.utils.Logger
+import com.enaboapps.switchify.switches.SwitchConfigValidator
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -319,6 +320,14 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
             }
             .launchIn(serviceScope)
 
+        serviceScope.launch {
+            ServiceBridge.serviceEvents.collect { event ->
+                if (event is ServiceBridge.ServiceEvent.SwitchEventsUpdated) {
+                    validateSwitchConfigurationAndHandle()
+                }
+            }
+        }
+
         // Notify app that service is ready
         ServiceBridge.emitEvent(ServiceBridge.ServiceEvent.ServiceReady)
     }
@@ -393,6 +402,27 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
                 ServiceBridge.ServiceEvent.ServiceError("Command handling failed: ${e.message}")
             )
         }
+    }
+
+    private fun validateSwitchConfigurationAndHandle() {
+        try {
+            val validator = SwitchConfigValidator(this)
+            if (!validator.isConfigurationValid()) {
+                ServiceMessageHUD.instance.showMessage(
+                    R.string.hud_switch_config_invalid,
+                    ServiceMessageHUD.MessageType.DISAPPEARING,
+                    ServiceMessageHUD.Time.MEDIUM
+                )
+                serviceScope.launch {
+                    delay(5000)
+                    val intent = packageManager.getLaunchIntentForPackage(packageName)?.apply {
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                    }
+                    if (intent != null) startActivity(intent)
+                    disableSelf()
+                }
+            }
+        } catch (_: Exception) { }
     }
 
     override val lifecycle: Lifecycle
