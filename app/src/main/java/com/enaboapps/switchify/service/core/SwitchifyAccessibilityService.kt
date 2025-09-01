@@ -30,6 +30,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
@@ -50,6 +51,7 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
     private lateinit var startupOrchestrator: StartupOrchestrator
     private lateinit var nodeUpdateCoordinator: NodeUpdateCoordinator
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    private var switchValidationJob: Job? = null
 
     // Camera foreground service binding
     private lateinit var cameraController: CameraServiceController
@@ -325,7 +327,11 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
         serviceScope.launch {
             ServiceBridge.serviceEvents.collect { event ->
                 if (event is ServiceBridge.ServiceEvent.SwitchEventsUpdated) {
-                    validateSwitchConfigurationAndHandle()
+                    switchValidationJob?.cancel()
+                    switchValidationJob = launch {
+                        delay(5000)
+                        validateSwitchConfigurationAndHandle()
+                    }
                 }
             }
         }
