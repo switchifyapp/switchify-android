@@ -7,6 +7,7 @@ import android.content.IntentFilter
 import android.util.Log
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.service.window.ServiceMessageHUD
+import com.enaboapps.switchify.service.core.ServiceBridge
 import com.enaboapps.switchify.switches.SWITCH_EVENT_TYPE_CAMERA
 import com.enaboapps.switchify.switches.SWITCH_EVENT_TYPE_EXTERNAL
 import com.enaboapps.switchify.switches.SwitchEvent
@@ -81,6 +82,8 @@ class SwitchEventProvider(private val context: Context) {
                     ServiceMessageHUD.Time.LONG
                 )
             }
+            // Notify service/app that switches are ready so it can validate configuration
+            ServiceBridge.emitEvent(ServiceBridge.ServiceEvent.SwitchEventsUpdated)
         }
     }
 
