@@ -427,7 +427,6 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
                         addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
                     }
                     if (intent != null) startActivity(intent)
-                    disableSelf()
                 }
             }
         } catch (_: Exception) { }
