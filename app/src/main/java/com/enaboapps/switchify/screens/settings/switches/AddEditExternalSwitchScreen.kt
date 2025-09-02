@@ -22,6 +22,7 @@ import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.key
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -125,6 +126,7 @@ fun AddEditExternalSwitchScreen(navController: NavController, code: String? = nu
                 }
             }
         ) {
+            key(refresh) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -137,6 +139,7 @@ fun AddEditExternalSwitchScreen(navController: NavController, code: String? = nu
                 Spacer(modifier = Modifier.padding(8.dp))
                 SwitchActionSection(addEditExternalSwitchScreenModel)
                 Spacer(modifier = Modifier.padding(12.dp))
+            }
             }
 
             if (showDeleteConfirmation.value) {
