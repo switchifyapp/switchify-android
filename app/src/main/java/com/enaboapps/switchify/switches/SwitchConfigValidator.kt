@@ -29,6 +29,10 @@ class SwitchConfigValidator(private val context: Context) {
 
         // Get all configured switch actions
         val configuredActions = getConfiguredActions()
+        val allowed = SupportedActionsPolicy.supportedActionIds(context) + SwitchAction.ACTION_NONE
+        if (!(configuredActions subtract allowed).isEmpty()) {
+            return false
+        }
 
         return when {
             scanSettings.isAutoScanMode() -> isValidForAutoScan(configuredActions)

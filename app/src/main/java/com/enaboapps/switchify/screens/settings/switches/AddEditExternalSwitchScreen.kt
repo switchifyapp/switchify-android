@@ -22,6 +22,7 @@ import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.key
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -44,6 +45,9 @@ import com.enaboapps.switchify.components.TextArea
 import com.enaboapps.switchify.screens.settings.switches.actions.SwitchActionPicker
 import com.enaboapps.switchify.screens.settings.switches.models.AddEditExternalSwitchScreenModel
 import com.enaboapps.switchify.switches.SwitchAction
+import com.enaboapps.switchify.switches.SupportedActionsPolicy
+import com.enaboapps.switchify.service.core.ServiceBridge
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 
 @Composable
@@ -68,6 +72,14 @@ fun AddEditExternalSwitchScreen(navController: NavController, code: String? = nu
             addEditExternalSwitchScreenModel.processKeyCode(keyEvent.key, context)
         })
     } else {
+        var refresh by remember { mutableStateOf(0) }
+        LaunchedEffect(Unit) {
+            ServiceBridge.serviceEvents.collect { event ->
+                if (event is ServiceBridge.ServiceEvent.ConfigurationUpdated) {
+                    refresh++
+                }
+            }
+        }
         BaseView(
             titleResId = screenTitle,
             navController = navController,
@@ -114,6 +126,7 @@ fun AddEditExternalSwitchScreen(navController: NavController, code: String? = nu
                 }
             }
         ) {
+            key(refresh) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -126,6 +139,7 @@ fun AddEditExternalSwitchScreen(navController: NavController, code: String? = nu
                 Spacer(modifier = Modifier.padding(8.dp))
                 SwitchActionSection(addEditExternalSwitchScreenModel)
                 Spacer(modifier = Modifier.padding(12.dp))
+            }
             }
 
             if (showDeleteConfirmation.value) {
@@ -253,7 +267,8 @@ fun SwitchActionSection(viewModel: AddEditExternalSwitchScreenModel) {
         switchAction = viewModel.pressAction.value!!,
         onChange = {
             viewModel.setPressAction(it, context)
-        }
+        },
+        items = SupportedActionsPolicy.supportedActions(context)
     )
 
     Spacer(modifier = Modifier.padding(16.dp))
@@ -278,7 +293,8 @@ fun SwitchActionSection(viewModel: AddEditExternalSwitchScreenModel) {
                 },
                 onDelete = {
                     viewModel.removeLongPressAction(index)
-                }
+                },
+                items = SupportedActionsPolicy.supportedActions(context)
             )
             Spacer(modifier = Modifier.padding(8.dp))
         }

@@ -15,7 +15,8 @@ fun SwitchActionPicker(
     titleResIdArgs: Array<Any>? = null,
     switchAction: SwitchAction,
     onChange: (SwitchAction) -> Unit,
-    onDelete: (() -> Unit)? = null
+    onDelete: (() -> Unit)? = null,
+    items: List<SwitchAction> = SwitchAction.actions
 ) {
     var currentAction by remember { mutableStateOf(switchAction) }
 
@@ -24,7 +25,7 @@ fun SwitchActionPicker(
             titleResId = titleResId,
             titleResIdArgs = titleResIdArgs,
             selectedItem = currentAction,
-            items = SwitchAction.actions,
+            items = items,
             onItemSelected = { newAction ->
                 currentAction = newAction
                 onChange(newAction)
