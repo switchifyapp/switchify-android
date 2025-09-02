@@ -139,7 +139,8 @@ private fun MainContent(
         SwitchActionPicker(
             titleResId = R.string.section_title_action,
             switchAction = viewModel.action.value,
-            onChange = { viewModel.setAction(it) }
+            onChange = { viewModel.setAction(it) },
+            items = com.enaboapps.switchify.switches.SupportedActionsPolicy.supportedActions(context)
         )
 
         Spacer(modifier = Modifier.height(24.dp))

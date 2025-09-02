@@ -253,7 +253,8 @@ fun SwitchActionSection(viewModel: AddEditExternalSwitchScreenModel) {
         switchAction = viewModel.pressAction.value!!,
         onChange = {
             viewModel.setPressAction(it, context)
-        }
+        },
+        items = com.enaboapps.switchify.switches.SupportedActionsPolicy.supportedActions(context)
     )
 
     Spacer(modifier = Modifier.padding(16.dp))
@@ -278,7 +279,8 @@ fun SwitchActionSection(viewModel: AddEditExternalSwitchScreenModel) {
                 },
                 onDelete = {
                     viewModel.removeLongPressAction(index)
-                }
+                },
+                items = com.enaboapps.switchify.switches.SupportedActionsPolicy.supportedActions(context)
             )
             Spacer(modifier = Modifier.padding(8.dp))
         }
