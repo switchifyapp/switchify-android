@@ -32,8 +32,12 @@ import com.enaboapps.switchify.switches.CameraSwitchFacialGesture
 import com.enaboapps.switchify.switches.SupportedActionsPolicy
 import com.enaboapps.switchify.service.core.ServiceBridge
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 
 @Composable
@@ -83,7 +87,7 @@ fun AddEditCameraSwitchScreen(navController: NavController, code: String? = null
             }
         }
     ) {
-        var refresh by remember { mutableStateOf(0) }
+        var refresh by remember { mutableIntStateOf(0) }
         LaunchedEffect(Unit) {
             ServiceBridge.serviceEvents.collect { event ->
                 if (event is ServiceBridge.ServiceEvent.ConfigurationUpdated) refresh++
