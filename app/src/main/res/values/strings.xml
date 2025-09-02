@@ -488,6 +488,9 @@
     <string name="button_clear_and_delete">Clear &amp; Delete</string>
     <string name="button_keep_and_delete">Keep &amp; Delete</string>
 
+    <string name="chips_press_action">Press Action: %1$s</string>
+    <string name="chips_long_press_action">Long Press Actions</string>"
+
     <!-- Dialog Titles -->
     <string name="dialog_title_delete_account">Delete Account</string>
     <string name="dialog_message_delete_account">Are you sure you want to delete your account? This action cannot be undone.</string>
