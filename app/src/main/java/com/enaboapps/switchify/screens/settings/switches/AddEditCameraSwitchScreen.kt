@@ -12,6 +12,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -26,6 +28,11 @@ import com.enaboapps.switchify.components.Picker
 import com.enaboapps.switchify.screens.settings.switches.actions.SwitchActionPicker
 import com.enaboapps.switchify.screens.settings.switches.models.AddEditCameraSwitchScreenModel
 import com.enaboapps.switchify.switches.CameraSwitchFacialGesture
+import com.enaboapps.switchify.switches.SupportedActionsPolicy
+import com.enaboapps.switchify.service.core.ServiceBridge
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import kotlinx.coroutines.launch
 
 @Composable
@@ -75,6 +82,12 @@ fun AddEditCameraSwitchScreen(navController: NavController, code: String? = null
             }
         }
     ) {
+        var refresh by remember { mutableStateOf(0) }
+        LaunchedEffect(Unit) {
+            ServiceBridge.serviceEvents.collect { event ->
+                if (event is ServiceBridge.ServiceEvent.ConfigurationUpdated) refresh++
+            }
+        }
         MainContent(code, viewModel, navController)
     }
 }
@@ -140,7 +153,7 @@ private fun MainContent(
             titleResId = R.string.section_title_action,
             switchAction = viewModel.action.value,
             onChange = { viewModel.setAction(it) },
-            items = com.enaboapps.switchify.switches.SupportedActionsPolicy.supportedActions(context)
+            items = SupportedActionsPolicy.supportedActions(context)
         )
 
         Spacer(modifier = Modifier.height(24.dp))

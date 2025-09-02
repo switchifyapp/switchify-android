@@ -44,6 +44,9 @@ import com.enaboapps.switchify.components.TextArea
 import com.enaboapps.switchify.screens.settings.switches.actions.SwitchActionPicker
 import com.enaboapps.switchify.screens.settings.switches.models.AddEditExternalSwitchScreenModel
 import com.enaboapps.switchify.switches.SwitchAction
+import com.enaboapps.switchify.switches.SupportedActionsPolicy
+import com.enaboapps.switchify.service.core.ServiceBridge
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 
 @Composable
@@ -68,6 +71,14 @@ fun AddEditExternalSwitchScreen(navController: NavController, code: String? = nu
             addEditExternalSwitchScreenModel.processKeyCode(keyEvent.key, context)
         })
     } else {
+        var refresh by remember { mutableStateOf(0) }
+        LaunchedEffect(Unit) {
+            ServiceBridge.serviceEvents.collect { event ->
+                if (event is ServiceBridge.ServiceEvent.ConfigurationUpdated) {
+                    refresh++
+                }
+            }
+        }
         BaseView(
             titleResId = screenTitle,
             navController = navController,
@@ -254,7 +265,7 @@ fun SwitchActionSection(viewModel: AddEditExternalSwitchScreenModel) {
         onChange = {
             viewModel.setPressAction(it, context)
         },
-        items = com.enaboapps.switchify.switches.SupportedActionsPolicy.supportedActions(context)
+        items = SupportedActionsPolicy.supportedActions(context)
     )
 
     Spacer(modifier = Modifier.padding(16.dp))
@@ -280,7 +291,7 @@ fun SwitchActionSection(viewModel: AddEditExternalSwitchScreenModel) {
                 onDelete = {
                     viewModel.removeLongPressAction(index)
                 },
-                items = com.enaboapps.switchify.switches.SupportedActionsPolicy.supportedActions(context)
+                items = SupportedActionsPolicy.supportedActions(context)
             )
             Spacer(modifier = Modifier.padding(8.dp))
         }
