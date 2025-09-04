@@ -23,6 +23,7 @@ import kotlin.math.sqrt
  * Enhanced with MediaPipe support for improved accuracy.
  */
 class FaceProcessingService(context: Context) {
+    private val appContext: Context = context.applicationContext
 
     private val preferenceManager = PreferenceManager(context)
     private var faceLandmarker: FaceLandmarker? = null
@@ -103,8 +104,16 @@ class FaceProcessingService(context: Context) {
         val mouthSmileRight: Int
     )
 
-    init {
-        initFaceLandmarker(context)
+    private fun ensureFaceLandmarker(context: Context): Boolean {
+        if (faceLandmarker != null) return true
+        return try {
+            initFaceLandmarker(context)
+            faceLandmarker != null
+        } catch (t: Throwable) {
+            Log.e(TAG, "Failed to initialize MediaPipe FaceLandmarker (fatal)", t)
+            faceLandmarker = null
+            false
+        }
     }
 
     private fun initFaceLandmarker(context: Context) {
@@ -197,6 +206,9 @@ class FaceProcessingService(context: Context) {
                 return@post
             }
 
+            if (faceLandmarker == null) {
+                ensureFaceLandmarker(appContext)
+            }
             val landmarker = faceLandmarker
             if (landmarker == null) {
                 callback(null)
