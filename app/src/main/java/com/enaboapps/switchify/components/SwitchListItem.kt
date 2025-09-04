@@ -13,6 +13,7 @@ import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.enaboapps.switchify.theme.Dimens
@@ -33,12 +34,14 @@ fun SwitchListItem(
         onClick = onClick,
         bottomContent = {
             if (chips.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(Dimens.spaceS))
-                Row {
+                Spacer(modifier = Modifier.height(Dimens.spaceXs))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
                     Text(chipsTitle ?: "")
                     Spacer(modifier = Modifier.width(Dimens.spaceS))
                     FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(Dimens.spaceS)
+                        horizontalArrangement = Arrangement.spacedBy(Dimens.spaceXs)
                     ) {
                         chips.take(3).forEach { label ->
                             AssistChip(

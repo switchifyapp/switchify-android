@@ -489,7 +489,7 @@
     <string name="button_keep_and_delete">Keep &amp; Delete</string>
 
     <string name="chips_press_action">Press Action: %1$s</string>
-    <string name="chips_long_press_action">Long Press Actions</string>"
+    <string name="chips_long_press_action">Long Press Actions:</string>
 
     <!-- Dialog Titles -->
     <string name="dialog_title_delete_account">Delete Account</string>
