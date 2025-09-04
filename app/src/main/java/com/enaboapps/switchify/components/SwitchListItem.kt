@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
@@ -32,6 +33,7 @@ fun SwitchListItem(
         runtimeDescription = subtitle,
         rightIcon = Icons.AutoMirrored.Filled.ArrowForward,
         onClick = onClick,
+        modifier = Modifier.padding(bottom = Dimens.spaceXs),
         bottomContent = {
             if (chips.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(Dimens.spaceXs))
