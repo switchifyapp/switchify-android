@@ -22,7 +22,21 @@ import kotlinx.coroutines.launch
  */
 abstract class BaseNodeScanner : ScanTreeCallback {
     protected lateinit var context: Context
-    lateinit var scanTree: ScanTree
+    private var _scanTree: ScanTree? = null
+    val scanTree: ScanTree
+        get() {
+            val existing = _scanTree
+            if (existing != null) return existing
+            check(::context.isInitialized) { "BaseNodeScanner.start(context) must be called before accessing scanTree" }
+            val created = ScanTree(
+                context = context,
+                stopScanningOnSelect = true,
+                hasCycleBreak = KeyboardManager.shouldEnableCycleBreak(),
+                callback = this
+            )
+            _scanTree = created
+            return created
+        }
     private val coroutineScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
     private var revertToCursorJob: Job? = null
 
@@ -61,12 +75,7 @@ abstract class BaseNodeScanner : ScanTreeCallback {
     open fun start(context: Context) {
         this.context = context
         startTimeoutToRevertToCursor()
-        scanTree = ScanTree(
-            context = context,
-            stopScanningOnSelect = true,
-            hasCycleBreak = KeyboardManager.shouldEnableCycleBreak(),
-            callback = this
-        )
+        scanTree
         startRapidUpdateCheck()
     }
 
@@ -118,9 +127,7 @@ abstract class BaseNodeScanner : ScanTreeCallback {
         shortWindowUpdates.clear()
         longWindowUpdates.clear()
         warningCount = 0
-        if (::scanTree.isInitialized) {
-            scanTree.cleanup()
-        }
+        _scanTree?.cleanup()
     }
 
     private fun recordUpdateTimestamp() {
@@ -209,9 +216,9 @@ abstract class BaseNodeScanner : ScanTreeCallback {
         revertToCursorJob?.cancel()
         revertToCursorJob = coroutineScope.launch {
             delay(EMPTY_NODES_TIMEOUT_MS)
-            if (::scanTree.isInitialized && scanTree.isEmpty()) {
-                switchToCursorMode("empty nodes")
-            }
+        if (_scanTree != null && scanTree.isEmpty()) {
+            switchToCursorMode("empty nodes")
+        }
         }
     }
 
@@ -221,16 +228,12 @@ abstract class BaseNodeScanner : ScanTreeCallback {
     }
 
     protected open fun buildFromNodes(nodes: List<Node>) {
-        if (::scanTree.isInitialized) {
-            scanTree.buildTree(nodes)
-        }
+        _scanTree?.buildTree(nodes)
     }
 
     private fun switchToCursorMode(reason: String) {
         coroutineScope.launch(Dispatchers.Main) {
-            if (::scanTree.isInitialized) {
-                scanTree.stopScanningAndReset()
-            }
+            _scanTree?.stopScanningAndReset()
             if (AccessTechnique.getCurrentTechnique() == AccessTechnique.Technique.ITEM_SCAN) {
                 AccessTechnique.setCurrentTechnique(AccessTechnique.Technique.POINT_SCAN)
                 Log.d(TAG, "Switched to point scan mode due to $reason")
