@@ -27,14 +27,17 @@ fun UICard(
     runtimeTitle: String? = null,
     descriptionResId: Int? = null,
     extraDescriptionResId: Int? = null,
+    runtimeDescription: String? = null,
+    runtimeExtraDescription: String? = null,
     rightIcon: ImageVector? = null,
     rightActionButton: @Composable () -> Unit = {},
     onClick: () -> Unit,
+    bottomContent: (@Composable () -> Unit)? = null,
     enabled: Boolean? = true
 ) {
     val title = titleResId?.let { stringResource(it) } ?: runtimeTitle ?: ""
-    val description = descriptionResId?.let { stringResource(it) }
-    val extraDescription = extraDescriptionResId?.let { stringResource(it) }
+    val description = runtimeDescription ?: descriptionResId?.let { stringResource(it) }
+    val extraDescription = runtimeExtraDescription ?: extraDescriptionResId?.let { stringResource(it) }
     Card(
         modifier = modifier
             .fillMaxWidth()
@@ -71,6 +74,10 @@ fun UICard(
                         text = it,
                         style = MaterialTheme.typography.bodySmall
                     )
+                }
+                bottomContent?.let {
+                    Spacer(modifier = Modifier.height(Dimens.spaceXs))
+                    it()
                 }
             }
 

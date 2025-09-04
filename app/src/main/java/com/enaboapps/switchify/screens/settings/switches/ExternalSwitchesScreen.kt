@@ -16,12 +16,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.LoadingIndicator
 import com.enaboapps.switchify.components.NavRouteLink
+import com.enaboapps.switchify.components.SwitchListItem
 import com.enaboapps.switchify.components.ScrollableView
 import com.enaboapps.switchify.components.Section
 import com.enaboapps.switchify.nav.NavigationRoute
@@ -115,10 +117,13 @@ private fun SwitchEventItem(
     navController: NavController,
     switchEvent: SwitchEvent
 ) {
-    NavRouteLink(
-        runtimeTitle = switchEvent.name,
-        summaryResId = R.string.switch_edit_this_switch,
-        navController = navController,
-        route = "${NavigationRoute.EditExternalSwitch.name}/${switchEvent.code}"
+    val press = switchEvent.pressAction.getActionName()
+    val chips = switchEvent.holdActions.map { it.getActionName() }
+    SwitchListItem(
+        title = switchEvent.name,
+        subtitle = stringResource(id = R.string.chips_press_action, press),
+        chips = chips,
+        chipsTitle = stringResource(id = R.string.chips_long_press_action),
+        onClick = { navController.navigate("${NavigationRoute.EditExternalSwitch.name}/${switchEvent.code}") }
     )
 }
