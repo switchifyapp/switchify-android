@@ -488,8 +488,6 @@
     <string name="button_clear_and_delete">Clear &amp; Delete</string>
     <string name="button_keep_and_delete">Keep &amp; Delete</string>
 
-    <string name="chips_press_action">Press Action: %1$s</string>
-    <string name="chips_long_press_action">Long Press Actions:</string>
 
     <!-- Dialog Titles -->
     <string name="dialog_title_delete_account">Delete Account</string>
@@ -718,4 +716,10 @@
     <!-- Home Screen Feedback Card -->
     <string name="home_feedback_title">Send Feedback</string>
     <string name="home_feedback_summary">Share your thoughts and help us improve</string>
+    
+    <!-- Switch List Item -->
+    <string name="switch_additional_actions">Additional Actions</string>
+    <string name="switch_more_actions">+%1$d more actions</string>
+    <string name="switch_type_external">External Switch</string>
+    <string name="switch_type_camera">Camera Switch</string>
 </resources>

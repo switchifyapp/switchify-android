@@ -24,6 +24,8 @@ import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.LoadingIndicator
 import com.enaboapps.switchify.components.NavRouteLink
 import com.enaboapps.switchify.components.SwitchListItem
+import com.enaboapps.switchify.components.SwitchAction
+import com.enaboapps.switchify.components.SwitchType
 import com.enaboapps.switchify.components.ScrollableView
 import com.enaboapps.switchify.components.Section
 import com.enaboapps.switchify.nav.NavigationRoute
@@ -117,13 +119,25 @@ private fun SwitchEventItem(
     navController: NavController,
     switchEvent: SwitchEvent
 ) {
-    val press = switchEvent.pressAction.getActionName()
-    val chips = switchEvent.holdActions.map { it.getActionName() }
+    val primaryAction = SwitchAction(
+        trigger = "Press",
+        actionName = switchEvent.pressAction.getActionName()
+    )
+    
+    val secondaryActions = switchEvent.holdActions.map { holdAction ->
+        SwitchAction(
+            trigger = "Hold",
+            actionName = holdAction.getActionName()
+        )
+    }
+    
     SwitchListItem(
-        title = switchEvent.name,
-        subtitle = stringResource(id = R.string.chips_press_action, press),
-        chips = chips,
-        chipsTitle = stringResource(id = R.string.chips_long_press_action),
+        switchName = switchEvent.name,
+        switchType = SwitchType.EXTERNAL,
+        primaryAction = primaryAction,
+        secondaryActions = secondaryActions,
+        isEnabled = true,
+        hasConfigurationIssues = false,
         onClick = { navController.navigate("${NavigationRoute.EditExternalSwitch.name}/${switchEvent.code}") }
     )
 }

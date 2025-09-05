@@ -24,6 +24,8 @@ import com.enaboapps.switchify.components.CameraPermissionHandler
 import com.enaboapps.switchify.components.LoadingIndicator
 import com.enaboapps.switchify.components.NavRouteLink
 import com.enaboapps.switchify.components.SwitchListItem
+import com.enaboapps.switchify.components.SwitchAction
+import com.enaboapps.switchify.components.SwitchType
 import com.enaboapps.switchify.components.ScrollableView
 import com.enaboapps.switchify.components.Section
 import com.enaboapps.switchify.nav.NavigationRoute
@@ -134,12 +136,18 @@ private fun SwitchEventItem(
     switchEvent: SwitchEvent
 ) {
     val gestureName = com.enaboapps.switchify.switches.CameraSwitchFacialGesture(switchEvent.code).getName()
-    val actionName = switchEvent.pressAction.getActionName()
-    val subtitle = "$gestureName — $actionName"
+    val primaryAction = SwitchAction(
+        trigger = gestureName,
+        actionName = switchEvent.pressAction.getActionName()
+    )
+    
     SwitchListItem(
-        title = switchEvent.name,
-        subtitle = subtitle,
-        chips = emptyList(),
+        switchName = switchEvent.name,
+        switchType = SwitchType.CAMERA,
+        primaryAction = primaryAction,
+        secondaryActions = emptyList(),
+        isEnabled = true,
+        hasConfigurationIssues = false,
         onClick = { navController.navigate("${NavigationRoute.EditCameraSwitch.name}/${switchEvent.code}") }
     )
 }
