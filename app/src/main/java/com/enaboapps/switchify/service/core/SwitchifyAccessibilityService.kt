@@ -154,14 +154,18 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
      * Bind to the camera foreground service
      */
     private fun bindCameraForegroundService() {
-        cameraController.bindIfNeeded()
+        if (::cameraController.isInitialized) {
+            cameraController.bindIfNeeded()
+        }
     }
 
     /**
      * Unbind from the camera foreground service
      */
     private fun unbindCameraForegroundService() {
-        cameraController.unbindIfBound()
+        if (::cameraController.isInitialized) {
+            cameraController.unbindIfBound()
+        }
     }
 
     /**
