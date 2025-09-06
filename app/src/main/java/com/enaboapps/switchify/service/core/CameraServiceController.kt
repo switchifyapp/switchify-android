@@ -1,11 +1,14 @@
 package com.enaboapps.switchify.service.core
 
+import android.Manifest
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
+import android.content.pm.PackageManager
 import android.os.IBinder
 import android.util.Log
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
 import com.enaboapps.switchify.service.camera.CameraForegroundService
 import com.enaboapps.switchify.service.utils.DeviceLockObserver
@@ -46,11 +49,13 @@ class CameraServiceController(
 
     fun bindIfNeeded() {
         val provider = ServiceCore.getSwitchEventProvider()
-        if (provider?.hasCameraSwitch == true && !isBound) {
+        if (provider?.hasCameraSwitch == true && !isBound && hasCameraPermission()) {
             val intent = Intent(context, CameraForegroundService::class.java)
             context.startService(intent)
             context.bindService(intent, connection, Context.BIND_AUTO_CREATE)
             logd("Binding to camera foreground service")
+        } else if (provider?.hasCameraSwitch == true && !hasCameraPermission()) {
+            logd("Camera permission not granted, skipping camera service binding")
         }
     }
 
@@ -68,10 +73,19 @@ class CameraServiceController(
 
     fun startIfAvailable() {
         val provider = ServiceCore.getSwitchEventProvider()
-        if (provider?.hasCameraSwitch == true && deviceLockObserver.isUserUnlocked()) {
+        if (provider?.hasCameraSwitch == true && deviceLockObserver.isUserUnlocked() && hasCameraPermission()) {
             service?.startCamera(lifecycleOwner)
             logd("Started camera service")
+        } else if (provider?.hasCameraSwitch == true && !hasCameraPermission()) {
+            logd("Camera permission not granted, cannot start camera service")
         }
+    }
+
+    private fun hasCameraPermission(): Boolean {
+        return ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.CAMERA
+        ) == PackageManager.PERMISSION_GRANTED
     }
 
     private fun logd(message: String) {
