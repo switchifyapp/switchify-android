@@ -48,6 +48,11 @@ class ScanningManager(
     private val currentScanMethod: AccessTechniqueInterface
         get() = activeScanMethod.currentAccessTechnique
 
+    /**
+     * Provides access to the active scan method manager for head control integration
+     */
+    fun getActiveScanMethod(): ActiveAccessTechnique = activeScanMethod
+
     init {
         activeScanMethod.setOnScanningStartCallback {
             if (scanSettings.getAutomaticallyStartScanAfterSelection()) {
@@ -105,6 +110,10 @@ class ScanningManager(
 
     fun setDirectControlType() {
         setType(AccessTechnique.Technique.DIRECT_CONTROL)
+    }
+
+    fun setHeadControlType() {
+        setType(AccessTechnique.Technique.HEAD_CONTROL)
     }
 
     /**

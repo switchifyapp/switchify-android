@@ -14,6 +14,7 @@ import com.enaboapps.switchify.service.face.FaceProcessingService
 import com.enaboapps.switchify.service.pauseresume.PauseManager
 import com.enaboapps.switchify.service.scanning.ScanningManager
 import com.enaboapps.switchify.service.switches.SwitchEventProvider
+import com.enaboapps.switchify.service.techniques.AccessTechnique
 import com.enaboapps.switchify.switches.CameraSwitchFacialGesture
 import com.enaboapps.switchify.switches.SwitchEvent
 import kotlinx.coroutines.CoroutineScope
@@ -137,6 +138,11 @@ class CameraSwitchManager(
         val pauseManager = ServiceCore.getPauseManager()
         if (pauseManager.isPaused) {
             return
+        }
+
+        // Update head control if it's the current technique
+        if (AccessTechnique.getCurrentTechnique() == AccessTechnique.Technique.HEAD_CONTROL) {
+            updateHeadControlPosition(result.faceState.headRotationX, result.faceState.headRotationY)
         }
 
         // Process detected gestures
@@ -330,6 +336,19 @@ class CameraSwitchManager(
 
         } catch (e: Exception) {
             Log.e(TAG, "Error during cleanup", e)
+        }
+    }
+
+    /**
+     * Updates head control position based on head rotation data
+     */
+    private fun updateHeadControlPosition(headRotationX: Float, headRotationY: Float) {
+        try {
+            val activeScanMethod = scanningManager.getActiveScanMethod()
+            val headControlManager = activeScanMethod.getHeadControlManagerInstance()
+            headControlManager.updateHeadPosition(headRotationX, headRotationY)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error updating head control position", e)
         }
     }
 }
