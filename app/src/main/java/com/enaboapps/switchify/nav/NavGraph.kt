@@ -15,6 +15,7 @@ import com.enaboapps.switchify.screens.onboarding.OnboardingScreen
 import com.enaboapps.switchify.screens.paywall.AppPaywallScreen
 import com.enaboapps.switchify.screens.permissions.UsageStatsPermissionScreen
 import com.enaboapps.switchify.screens.settings.CameraSettingsScreen
+import com.enaboapps.switchify.screens.settings.HeadControlSettingsScreen
 import com.enaboapps.switchify.screens.settings.SettingsScreen
 import com.enaboapps.switchify.screens.settings.gestures.GestureSettingsScreen
 import com.enaboapps.switchify.screens.settings.patterns.GesturePatternsScreen
@@ -116,6 +117,9 @@ fun NavGraph(navController: NavHostController) {
         }
         composable(NavigationRoute.CameraSettings.name) {
             CameraSettingsScreen(navController)
+        }
+        composable(NavigationRoute.HeadControlSettings.name) {
+            HeadControlSettingsScreen(navController)
         }
     }
 }
