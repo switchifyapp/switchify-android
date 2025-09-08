@@ -120,6 +120,7 @@ class CameraSwitchManager(
         Log.d(TAG, "Pause started - resetting gesture states")
         gestureStates.values.forEach { it.isActive = false }
         activeGesture = null
+        scanningManager.getHeadControlManagerOrNull()?.resetGestureState()
     }
 
     private fun onPauseEnded() {
@@ -333,6 +334,7 @@ class CameraSwitchManager(
 
             gestureStates.values.forEach { it.isActive = false }
             activeGesture = null
+            scanningManager.getHeadControlManagerOrNull()?.resetGestureState()
             isInitialized = false
 
             Log.d(TAG, "Camera switch manager cleaned up")

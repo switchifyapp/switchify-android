@@ -7,7 +7,6 @@ import com.enaboapps.switchify.service.scanning.ScanDirection
 import com.enaboapps.switchify.service.selection.SelectionHandler
 import com.enaboapps.switchify.service.techniques.AccessTechniqueInterface
 import com.enaboapps.switchify.service.utils.ScreenUtils
-import com.enaboapps.switchify.switches.CameraSwitchFacialGesture
 import android.util.Log
 
 class HeadControlManager(private val context: Context) : AccessTechniqueInterface {
