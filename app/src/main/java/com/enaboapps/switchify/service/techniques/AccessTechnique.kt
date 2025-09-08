@@ -70,7 +70,7 @@ object AccessTechnique {
         return when (accessTechnique) {
             Technique.POINT_SCAN, "cursor" -> Resources.getString(R.string.access_technique_point_scan)
             Technique.DIRECT_CONTROL -> Resources.getString(R.string.access_technique_direct_control)
-            Technique.HEAD_CONTROL -> "Head Control"
+            Technique.HEAD_CONTROL -> Resources.getString(R.string.access_technique_head_control)
             Technique.RADAR -> Resources.getString(R.string.access_technique_radar)
             Technique.ITEM_SCAN -> Resources.getString(R.string.access_technique_item_scan)
             else -> Resources.getString(R.string.unknown)
@@ -86,7 +86,7 @@ object AccessTechnique {
         return when (accessTechnique) {
             Technique.POINT_SCAN, "cursor" -> Resources.getString(R.string.access_technique_desc_point_scan)
             Technique.DIRECT_CONTROL -> Resources.getString(R.string.access_technique_desc_direct_control)
-            Technique.HEAD_CONTROL -> "Control cursor position using head movements detected by camera"
+            Technique.HEAD_CONTROL -> Resources.getString(R.string.access_technique_desc_head_control)
             Technique.RADAR -> Resources.getString(R.string.access_technique_desc_radar)
             Technique.ITEM_SCAN -> Resources.getString(R.string.access_technique_desc_item_scan)
             else -> Resources.getString(R.string.unknown)

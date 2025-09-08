@@ -1,6 +1,7 @@
 package com.enaboapps.switchify.service.techniques
 
 import android.content.Context
+import com.enaboapps.switchify.service.core.ServiceBridge
 import com.enaboapps.switchify.service.keyboard.KeyboardManager
 import com.enaboapps.switchify.service.keyboard.KeyboardStateListener
 import com.enaboapps.switchify.service.menu.MenuManager
@@ -87,6 +88,14 @@ class ActiveAccessTechnique(private val context: Context) : AccessTechniqueObser
 
     override fun onAccessTechniqueChanged(accessTechnique: String) {
         cleanup(accessTechnique)
+        // Trigger initialization of the new technique by accessing currentAccessTechnique
+        try {
+            currentAccessTechnique
+        } catch (e: Exception) {
+            android.util.Log.w("ActiveAccessTechnique", "Failed to initialize technique: $accessTechnique", e)
+        }
+        // Use ServiceBridge for camera evaluation instead of direct calls
+        ServiceBridge.sendCommand(ServiceBridge.ServiceCommand.AccessTechniqueChanged(accessTechnique))
     }
 
     fun setOnScanningStartCallback(callback: () -> Unit) {

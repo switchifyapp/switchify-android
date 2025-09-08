@@ -140,7 +140,7 @@ class CameraSwitchManager(
             return
         }
 
-        // Update head control if it's the current technique
+        // Update head control if it's the current technique and camera data is available
         if (AccessTechnique.getCurrentTechnique() == AccessTechnique.Technique.HEAD_CONTROL) {
             updateHeadControlPosition(result.faceState.headRotationX, result.faceState.headRotationY)
         }

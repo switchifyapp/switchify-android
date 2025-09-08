@@ -7,30 +7,30 @@ import android.view.KeyEvent
 import android.view.accessibility.AccessibilityEvent
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
+import com.enaboapps.switchify.R
 import com.enaboapps.switchify.backend.iap.IAPHandler
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.service.actions.AudioActionManager
-import com.enaboapps.switchify.service.window.ServiceMessageHUD
-import com.enaboapps.switchify.R
 import com.enaboapps.switchify.service.actions.GlobalActionManager
 import com.enaboapps.switchify.service.gestures.GestureManager
 import com.enaboapps.switchify.service.scanning.ScanSettings
 import com.enaboapps.switchify.service.selection.SelectionHandler
 import com.enaboapps.switchify.service.switches.SwitchEventProvider
-import com.enaboapps.switchify.service.switches.camera.CameraSwitchManager
+import com.enaboapps.switchify.service.camera.CameraManager
 import com.enaboapps.switchify.service.techniques.AccessTechnique
 import com.enaboapps.switchify.service.trial.ServiceTrialManager
 import com.enaboapps.switchify.service.utils.DeviceLockObserver
+import com.enaboapps.switchify.service.window.ServiceMessageHUD
 import com.enaboapps.switchify.service.window.SwitchifyAccessibilityWindow
+import com.enaboapps.switchify.switches.SwitchConfigValidator
 import com.enaboapps.switchify.utils.LogEvent
 import com.enaboapps.switchify.utils.Logger
-import com.enaboapps.switchify.switches.SwitchConfigValidator
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
@@ -42,7 +42,7 @@ import kotlinx.coroutines.launch
 class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
     SwitchEventProvider.CameraSwitchListener {
 
-    private var cameraSwitchManager: CameraSwitchManager? = null
+    private lateinit var cameraManager: CameraManager
     private lateinit var screenWatcherManager: ScreenWatcherManager
     private lateinit var scanSettings: ScanSettings
     private lateinit var techniqueEnforcer: TechniqueEnforcer
@@ -53,16 +53,12 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private var switchValidationJob: Job? = null
 
-    // Camera foreground service binding
-    private lateinit var cameraController: CameraServiceController
-
     private lateinit var eventPipeline: AccessibilityEventPipeline
 
     // Service connection for camera foreground service is encapsulated in CameraServiceController
 
     companion object {
         private const val TAG = "SwitchifyAccessibilityService"
-        private const val CAMERA_MANAGER_INIT_DELAY_MS = 500L
     }
 
     override fun onCreate() {
@@ -107,12 +103,12 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
         scanSettings = ScanSettings(this)
         techniqueEnforcer = TechniqueEnforcer(scanSettings)
         nodeUpdateCoordinator = NodeUpdateCoordinator(this, serviceScope, scanSettings)
-        cameraController = CameraServiceController(
+        cameraManager = CameraManager(
             context = this,
             lifecycleOwner = this,
             deviceLockObserver = deviceLockObserver,
-            onServiceConnected = { service -> setupCameraServiceCallbacks() },
-            onServiceDisconnected = { /* No-op */ }
+            serviceScope = serviceScope,
+            onServiceConnected = { setupCameraServiceCallbacks() }
         )
         eventPipeline =
             AccessibilityEventPipeline(serviceScope) { nodeUpdateCoordinator.processAccessibilityUpdate() }
@@ -145,70 +141,26 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
             logd("Device unlocked, initializing protected components")
             // Initialize components that require device unlock
             IAPHandler.connect(context = this)
-            initCameraSwitchManager()
-            bindCameraForegroundService()
+            // Evaluate camera state now that switches are loaded
+            cameraManager.evaluateAndUpdateCameraState()
         }
     }
 
-    /**
-     * Bind to the camera foreground service
-     */
-    private fun bindCameraForegroundService() {
-        if (::cameraController.isInitialized) {
-            cameraController.bindIfNeeded()
-        }
-    }
-
-    /**
-     * Unbind from the camera foreground service
-     */
-    private fun unbindCameraForegroundService() {
-        if (::cameraController.isInitialized) {
-            cameraController.unbindIfBound()
-        }
-    }
 
     /**
      * Setup callbacks for the camera service
      */
     private fun setupCameraServiceCallbacks() {
         // Set up face processing callback to pass results to CameraSwitchManager
-        cameraController.service?.setFaceResultCallback { result ->
+        cameraManager.getCameraController()?.service?.setFaceResultCallback { result ->
             result?.let { faceResult ->
                 // Pass the face detection result to CameraSwitchManager for gesture processing
-                cameraSwitchManager?.processFaceResult(faceResult)
+                cameraManager.getCameraSwitchManager()?.processFaceResult(faceResult)
             }
         }
     }
 
 
-    /**
-     * Initializes the camera switch manager for gesture processing.
-     * Camera processing is handled by CameraForegroundService.
-     */
-    private fun initCameraSwitchManager() {
-        val scanningManager = ServiceCore.getScanningManager() ?: return
-        val switchEventProvider = ServiceCore.getSwitchEventProvider() ?: return
-        if (deviceLockObserver.isUserUnlocked() && switchEventProvider.hasCameraSwitch && cameraSwitchManager == null) {
-            cameraSwitchManager = CameraSwitchManager(this, scanningManager, switchEventProvider)
-            serviceScope.launch {
-                delay(CAMERA_MANAGER_INIT_DELAY_MS)
-                cameraSwitchManager?.initialize()
-            }
-        }
-    }
-
-    /**
-     * Stops the camera switch manager if it is running.
-     */
-    private fun stopCameraSwitchManager() {
-        if (cameraSwitchManager != null) {
-            serviceScope.launch {
-                cameraSwitchManager?.cleanup()
-                cameraSwitchManager = null
-            }
-        }
-    }
 
     /**
      * This method is called when an AccessibilityEvent is fired.
@@ -250,8 +202,7 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
 
 
     override fun onUnbind(intent: Intent?): Boolean {
-        cameraSwitchManager?.cleanup()
-        unbindCameraForegroundService()
+        cameraManager.cleanup()
         deviceLockObserver.stopObserving()
         screenWatcherManager.unregister()
         serviceScope.coroutineContext.cancelChildren()
@@ -306,15 +257,9 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
     }
 
     override fun onCameraSwitchAvailabilityChanged(available: Boolean) {
-        if (available) {
-            initCameraSwitchManager()
-            bindCameraForegroundService()
-        } else {
-            stopCameraSwitchManager()
-            unbindCameraForegroundService()
-        }
-
         logd("Camera switch availability changed: $available")
+        // Re-evaluate camera state when switches change
+        cameraManager.evaluateAndUpdateCameraState()
     }
 
 
@@ -362,6 +307,12 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
                     ServiceBridge.emitEvent(ServiceBridge.ServiceEvent.ConfigurationUpdated)
                 }
 
+                ServiceBridge.ServiceCommand.HeadControlToggled -> {
+                    // Re-evaluate camera state when head control is toggled
+                    cameraManager.evaluateAndUpdateCameraState()
+                    ServiceBridge.emitEvent(ServiceBridge.ServiceEvent.ConfigurationUpdated)
+                }
+
                 ServiceBridge.ServiceCommand.ClearCache -> {
                     // Clear any relevant caches
                     serviceScope.launch {
@@ -373,6 +324,15 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
                 ServiceBridge.ServiceCommand.UpdateSwitches -> {
                     // Trigger switch event provider update
                     ServiceCore.getSwitchEventProvider()?.reload()
+                    // Re-evaluate camera state when switches are updated
+                    cameraManager.evaluateAndUpdateCameraState()
+                    ServiceBridge.emitEvent(ServiceBridge.ServiceEvent.ConfigurationUpdated)
+                }
+
+                is ServiceBridge.ServiceCommand.AccessTechniqueChanged -> {
+                    // Handle access technique changes and camera state evaluation
+                    logd("Access technique changed to: ${command.technique}")
+                    cameraManager.evaluateAndUpdateCameraState()
                     ServiceBridge.emitEvent(ServiceBridge.ServiceEvent.ConfigurationUpdated)
                 }
 
@@ -389,6 +349,8 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
                             // Access technique changed - reload from preferences and enforce compatibility
                             AccessTechnique.reloadFromPreferences()
                             techniqueEnforcer.enforceCompatibility()
+                            // Re-evaluate camera state when access technique changes
+                            cameraManager.evaluateAndUpdateCameraState()
                             ServiceBridge.emitEvent(ServiceBridge.ServiceEvent.ConfigurationUpdated)
                         }
 

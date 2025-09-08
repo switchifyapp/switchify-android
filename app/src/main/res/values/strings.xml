@@ -93,6 +93,8 @@
     <string name="access_technique_desc_point_scan">Select an exact point using scanning lines</string>
     <string name="access_technique_direct_control">Direct Control</string>
     <string name="access_technique_desc_direct_control">Hold to move freely and select like a mouse</string>
+    <string name="access_technique_head_control">Head Control</string>
+    <string name="access_technique_desc_head_control">Control cursor position using head movements detected by camera</string>
 
     <!-- Scan Modes -->
     <string name="scanning_mode_auto">Auto</string>

@@ -7,8 +7,13 @@ import com.enaboapps.switchify.service.scanning.ScanDirection
 import com.enaboapps.switchify.service.selection.SelectionHandler
 import com.enaboapps.switchify.service.techniques.AccessTechniqueInterface
 import com.enaboapps.switchify.service.utils.ScreenUtils
+import android.util.Log
 
 class HeadControlManager(private val context: Context) : AccessTechniqueInterface {
+    
+    companion object {
+        private const val TAG = "HeadControlManager"
+    }
     private var currentX: Int = ScreenUtils.getWidth(context) / 2
     private var currentY: Int = ScreenUtils.getHeight(context) / 2
     private val settings = HeadControlSettings(context)
@@ -25,10 +30,17 @@ class HeadControlManager(private val context: Context) : AccessTechniqueInterfac
     private val maxX = ScreenUtils.getWidth(context) - screenPadding
     private val minY = screenPadding
     private val maxY = ScreenUtils.getHeight(context) - screenPadding
+    
+    init {
+        // Auto-start head control when manager is created
+        Log.d(TAG, "HeadControlManager initialized - auto-starting")
+        startAutoScanning()
+    }
 
     override fun swapScanDirection() { /* no-op for head control */ }
 
     override fun startAutoScanning() { 
+        Log.d(TAG, "startAutoScanning called - showing overlay at $currentX, $currentY")
         overlay.showPointer(currentX, currentY)
     }
 
@@ -109,14 +121,17 @@ class HeadControlManager(private val context: Context) : AccessTechniqueInterfac
      * @param headRotationY Yaw rotation (negative = left, positive = right)
      */
     fun updateHeadPosition(headRotationX: Float, headRotationY: Float) {
-        if (!settings.isEnabled()) return
         
         val sensitivity = settings.sensitivity()
         val deadzone = settings.deadzone()
         
+        Log.d(TAG, "Head rotation - X: $headRotationX, Y: $headRotationY, sensitivity: $sensitivity, deadzone: $deadzone")
+        
         // Apply deadzone - ignore small head movements
         val adjustedX = if (kotlin.math.abs(headRotationY) > deadzone) headRotationY else 0f
         val adjustedY = if (kotlin.math.abs(headRotationX) > deadzone) headRotationX else 0f
+        
+        Log.d(TAG, "Adjusted - X: $adjustedX, Y: $adjustedY")
         
         // Convert head rotation to screen coordinates
         val screenWidth = ScreenUtils.getWidth(context)
@@ -135,6 +150,8 @@ class HeadControlManager(private val context: Context) : AccessTechniqueInterfac
         targetY = (screenHeight / 2 + normalizedY * screenHeight / 2 * sensitivity).toInt()
             .coerceIn(minY, maxY)
         
+        Log.d(TAG, "Target position - X: $targetX, Y: $targetY (screen: ${screenWidth}x${screenHeight})")
+        
         smoothMovement()
     }
     
@@ -151,6 +168,4 @@ class HeadControlManager(private val context: Context) : AccessTechniqueInterfac
 
     fun getCurrentPosition(): Pair<Int, Int> = Pair(currentX, currentY)
     fun getCurrentDirection(): ScanDirection = ScanDirection.RIGHT
-    
-    fun isEnabled(): Boolean = settings.isEnabled()
 }

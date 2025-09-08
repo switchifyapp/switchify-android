@@ -81,9 +81,20 @@ object ServiceBridge {
         object ClearCache : ServiceCommand()
 
         /**
+         * Request service to toggle head control.
+         */
+        object HeadControlToggled : ServiceCommand()
+
+        /**
          * Request service to update switch configuration.
          */
         object UpdateSwitches : ServiceCommand()
+
+        /**
+         * Request service to handle access technique change and re-evaluate camera state.
+         * @param technique The new access technique
+         */
+        data class AccessTechniqueChanged(val technique: String) : ServiceCommand()
 
         /**
          * Request service to validate and update configuration.
