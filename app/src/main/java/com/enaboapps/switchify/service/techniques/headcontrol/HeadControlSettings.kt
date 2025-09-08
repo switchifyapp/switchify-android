@@ -4,7 +4,7 @@ import android.content.Context
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 
 class HeadControlSettings(context: Context) {
-    private val prefs = PreferenceManager(context)
+    private val prefs = PreferenceManager(context.applicationContext)
 
     fun sensitivity(): Float = prefs.getFloatValue(KEY_SENSITIVITY, 0.8f).coerceIn(0.1f, 2.0f)
     
