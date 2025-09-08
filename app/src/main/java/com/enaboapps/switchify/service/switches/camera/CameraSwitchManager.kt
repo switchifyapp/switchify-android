@@ -343,12 +343,6 @@ class CameraSwitchManager(
      * Updates head control position based on head rotation data
      */
     private fun updateHeadControlPosition(headRotationX: Float, headRotationY: Float) {
-        try {
-            val activeScanMethod = scanningManager.getActiveScanMethod()
-            val headControlManager = activeScanMethod.getHeadControlManagerInstance()
-            headControlManager.updateHeadPosition(headRotationX, headRotationY)
-        } catch (e: Exception) {
-            Log.e(TAG, "Error updating head control position", e)
-        }
+        scanningManager.getHeadControlManagerOrNull()?.updateHeadPosition(headRotationX, headRotationY)
     }
 }

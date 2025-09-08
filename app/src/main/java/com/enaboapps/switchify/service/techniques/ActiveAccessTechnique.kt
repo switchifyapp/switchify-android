@@ -268,10 +268,6 @@ class ActiveAccessTechnique(private val context: Context) : AccessTechniqueObser
         headControlManager = null
         cleanupKeyboard()
 
-        // Unregister ScreenWatcher to prevent receiver leak
-        screenWatcher?.unregister(context)
-        screenWatcher = null
-
         SelectionHandler.cleanup()
 
         NodeScannerUI.instance.hideAll()
@@ -283,6 +279,9 @@ class ActiveAccessTechnique(private val context: Context) : AccessTechniqueObser
      */
     fun destroy() {
         cleanupAll()
+        // Unregister ScreenWatcher to prevent receiver leak
+        screenWatcher?.unregister(context)
+        screenWatcher = null
         AccessTechnique.observer = null
         KeyboardManager.removeKeyboardStateListener()
     }

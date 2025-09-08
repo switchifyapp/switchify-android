@@ -50,13 +50,13 @@ class CameraServiceController(
 
     fun bindIfNeeded() {
         val provider = ServiceCore.getSwitchEventProvider()
-        val needsCamera = provider?.hasCameraSwitch == true || 
-                         AccessTechnique.getCurrentTechnique() == AccessTechnique.Technique.HEAD_CONTROL
+        val headActive = AccessTechnique.getCurrentTechnique() == AccessTechnique.Technique.HEAD_CONTROL
+        val needsCamera = provider?.hasCameraSwitch == true || headActive
         if (needsCamera && !isBound && hasCameraPermission()) {
             val intent = Intent(context, CameraForegroundService::class.java)
             context.startService(intent)
             context.bindService(intent, connection, Context.BIND_AUTO_CREATE)
-            logd("Binding to camera foreground service (camera switches: ${provider?.hasCameraSwitch}, head control: ${AccessTechnique.getCurrentTechnique() == AccessTechnique.Technique.HEAD_CONTROL})")
+            logd("Binding to camera foreground service (camera switches: ${provider?.hasCameraSwitch}, head control: $headActive)")
         } else if (needsCamera && !hasCameraPermission()) {
             logd("Camera permission not granted, skipping camera service binding")
         }
@@ -76,11 +76,11 @@ class CameraServiceController(
 
     fun startIfAvailable() {
         val provider = ServiceCore.getSwitchEventProvider()
-        val needsCamera = provider?.hasCameraSwitch == true || 
-                         AccessTechnique.getCurrentTechnique() == AccessTechnique.Technique.HEAD_CONTROL
+        val headActive = AccessTechnique.getCurrentTechnique() == AccessTechnique.Technique.HEAD_CONTROL
+        val needsCamera = provider?.hasCameraSwitch == true || headActive
         if (needsCamera && deviceLockObserver.isUserUnlocked() && hasCameraPermission()) {
             service?.startCamera(lifecycleOwner)
-            logd("Started camera service (camera switches: ${provider?.hasCameraSwitch}, head control: ${AccessTechnique.getCurrentTechnique() == AccessTechnique.Technique.HEAD_CONTROL})")
+            logd("Started camera service (camera switches: ${provider?.hasCameraSwitch}, head control: $headActive)")
         } else if (needsCamera && !hasCameraPermission()) {
             logd("Camera permission not granted, cannot start camera service")
         }

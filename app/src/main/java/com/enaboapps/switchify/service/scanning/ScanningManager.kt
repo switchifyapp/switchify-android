@@ -53,6 +53,13 @@ class ScanningManager(
      */
     fun getActiveScanMethod(): ActiveAccessTechnique = activeScanMethod
 
+    /**
+     * Provides direct access to head control manager if available
+     */
+    fun getHeadControlManagerOrNull() = try {
+        activeScanMethod.getHeadControlManagerInstance()
+    } catch (_: Exception) { null }
+
     init {
         activeScanMethod.setOnScanningStartCallback {
             if (scanSettings.getAutomaticallyStartScanAfterSelection()) {
