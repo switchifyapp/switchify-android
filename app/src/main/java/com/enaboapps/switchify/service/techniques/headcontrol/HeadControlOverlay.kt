@@ -12,6 +12,8 @@ import android.widget.ImageView
 import androidx.core.content.ContextCompat
 import com.enaboapps.switchify.R
 import android.util.Log
+import androidx.core.graphics.toColorInt
+import com.enaboapps.switchify.service.scanning.ScanColorManager
 
 class HeadControlOverlay(private val context: Context) {
     companion object {
@@ -31,7 +33,7 @@ class HeadControlOverlay(private val context: Context) {
     private fun createOverlayView() {
         overlayView = ImageView(context).apply {
             setImageResource(R.drawable.ic_reselect) // Using existing icon
-            setColorFilter(Color.CYAN) // Distinct color for head control
+            setColorFilter(ScanColorManager.getScanColorSetFromPreferences(context).secondaryColor.toColorInt())
             scaleX = 1.2f
             scaleY = 1.2f
             alpha = 0.8f
