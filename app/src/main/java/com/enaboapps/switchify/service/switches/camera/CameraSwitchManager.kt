@@ -41,9 +41,9 @@ class CameraSwitchManager(
 
     private val gestureStates = mutableMapOf(
         CameraSwitchFacialGesture.SMILE to CameraSwitchState(false),
-        CameraSwitchFacialGesture.LEFT_WINK to CameraSwitchState(true),
-        CameraSwitchFacialGesture.RIGHT_WINK to CameraSwitchState(true),
-        CameraSwitchFacialGesture.BLINK to CameraSwitchState(true)
+        CameraSwitchFacialGesture.LEFT_WINK to CameraSwitchState(false),
+        CameraSwitchFacialGesture.RIGHT_WINK to CameraSwitchState(false),
+        CameraSwitchFacialGesture.BLINK to CameraSwitchState(false)
         // Head turns handled directly without state tracking
     )
 
@@ -190,7 +190,7 @@ class CameraSwitchManager(
 
         // Handle face state changes for gesture ending
         val faceState = result.faceState
-        if (faceState.isSmiling) {
+        if (!faceState.isSmiling) {
             handleGestureStateChange(
                 CameraSwitchFacialGesture(CameraSwitchFacialGesture.SMILE),
                 false
