@@ -735,4 +735,18 @@
     <string name="switch_more_actions">+%1$d more actions</string>
     <string name="switch_type_external">External Switch</string>
     <string name="switch_type_camera">Camera Switch</string>
+    
+    <!-- Head Control Gesture Selection -->
+    <string name="head_control_gesture_selection_title">Select Gesture</string>
+    <string name="head_control_gesture_selection_summary">Choose which gesture performs the select action</string>
+    <string name="head_control_gesture_enabled_title">Enable Gesture Selection</string>
+    <string name="head_control_gesture_enabled_summary">Allow gestures to perform select actions in head control mode</string>
+    <string name="head_control_gesture_hold_time_title">Gesture Hold Time</string>
+    <string name="head_control_gesture_hold_time_summary">How long to hold the gesture to trigger selection</string>
+    <string name="head_control_gesture_none">None</string>
+    <string name="head_control_gesture_smile">Smile</string>
+    <string name="head_control_gesture_left_wink">Left Wink</string>
+    <string name="head_control_gesture_right_wink">Right Wink</string>
+    <string name="head_control_gesture_blink">Blink</string>
+    <string name="head_control_gesture_section_title">Gesture Settings</string>
 </resources>

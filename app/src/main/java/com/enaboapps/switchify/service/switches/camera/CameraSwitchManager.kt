@@ -143,6 +143,9 @@ class CameraSwitchManager(
         // Update head control if it's the current technique and camera data is available
         if (AccessTechnique.getCurrentTechnique() == AccessTechnique.Technique.HEAD_CONTROL) {
             updateHeadControlPosition(result.faceState.headRotationX, result.faceState.headRotationY)
+            
+            // Process gestures for head control selection
+            processHeadControlGestures(result)
         }
 
         // Process detected gestures
@@ -344,5 +347,48 @@ class CameraSwitchManager(
      */
     private fun updateHeadControlPosition(headRotationX: Float, headRotationY: Float) {
         scanningManager.getHeadControlManagerOrNull()?.updateHeadPosition(headRotationX, headRotationY)
+    }
+    
+    /**
+     * Processes gestures for head control selection
+     */
+    private fun processHeadControlGestures(result: FaceProcessingService.FaceDetectionResult) {
+        val headControlManager = scanningManager.getHeadControlManagerOrNull() ?: return
+        
+        // Process detected gestures (gesture starting)
+        result.detectedGestures.forEach { gestureId ->
+            when (gestureId) {
+                CameraSwitchFacialGesture.SMILE,
+                CameraSwitchFacialGesture.LEFT_WINK,
+                CameraSwitchFacialGesture.RIGHT_WINK,
+                CameraSwitchFacialGesture.BLINK -> {
+                    headControlManager.processGesture(gestureId, true)
+                }
+                // Head turns are excluded from selection gestures
+            }
+        }
+        
+        // Handle face state changes for gesture ending
+        val faceState = result.faceState
+        
+        // Smile ending
+        if (!faceState.isSmiling) {
+            headControlManager.processGesture(CameraSwitchFacialGesture.SMILE, false)
+        }
+        
+        // Left wink ending
+        if (faceState.leftEyeOpen) {
+            headControlManager.processGesture(CameraSwitchFacialGesture.LEFT_WINK, false)
+        }
+        
+        // Right wink ending  
+        if (faceState.rightEyeOpen) {
+            headControlManager.processGesture(CameraSwitchFacialGesture.RIGHT_WINK, false)
+        }
+        
+        // Blink ending
+        if (faceState.leftEyeOpen && faceState.rightEyeOpen) {
+            headControlManager.processGesture(CameraSwitchFacialGesture.BLINK, false)
+        }
     }
 }
