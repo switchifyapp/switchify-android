@@ -156,6 +156,17 @@ class MainMenuStructure(private val accessibilityService: SwitchifyAccessibility
                     }
                 )
             } else null,
+            // Head control - show when not currently active
+            if (AccessTechnique.getCurrentTechnique() != AccessTechnique.Technique.HEAD_CONTROL) {
+                MenuItem(
+                    id = "switch_to_head_control", 
+                    labelResource = R.string.access_technique_head_control,
+                    drawableId = R.drawable.ic_reselect, // Using existing icon that represents cursor/selection
+                    action = {
+                        MenuManager.getInstance().switchToHeadControl()
+                    }
+                )
+            } else null,
             MenuItem(
                 id = "pause",
                 labelResource = R.string.menu_item_pause,

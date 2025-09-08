@@ -28,5 +28,11 @@ fun InputSection(navController: NavController) {
             navController = navController,
             route = NavigationRoute.CameraSettings.name
         )
+        NavRouteLink(
+            titleResId = R.string.head_control_settings_title,
+            summaryResId = R.string.head_control_settings_summary,
+            navController = navController,
+            route = NavigationRoute.HeadControlSettings.name
+        )
     }
 }

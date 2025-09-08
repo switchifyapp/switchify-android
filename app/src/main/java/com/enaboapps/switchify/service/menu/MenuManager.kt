@@ -86,6 +86,10 @@ class MenuManager {
         scanningManager?.setDirectControlType()
     }
 
+    fun switchToHeadControl() {
+        scanningManager?.setHeadControlType()
+    }
+
     /**
      * This function opens the main menu
      */

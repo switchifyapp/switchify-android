@@ -93,6 +93,8 @@
     <string name="access_technique_desc_point_scan">Select an exact point using scanning lines</string>
     <string name="access_technique_direct_control">Direct Control</string>
     <string name="access_technique_desc_direct_control">Hold to move freely and select like a mouse</string>
+    <string name="access_technique_head_control">Head Control</string>
+    <string name="access_technique_desc_head_control">Control cursor position using head movements detected by camera</string>
 
     <!-- Scan Modes -->
     <string name="scanning_mode_auto">Auto</string>
@@ -394,6 +396,8 @@
     <string name="screen_title_camera_settings">Camera Settings</string>
     <string name="camera_settings_summary">Test facial expressions and configure camera settings</string>
     <string name="camera_settings_title">Camera Settings</string>
+    <string name="head_control_settings_title">Head Control Settings</string>
+    <string name="head_control_settings_summary">Configure head movement sensitivity and response</string>
     <string name="section_title_expression_testing">Expression Testing</string>
     <string name="camera_preview_description">Live camera preview for testing facial expressions</string>
     <string name="expression_detected">%1$s detected!</string>
@@ -550,6 +554,7 @@
     <string name="settings_tab_direct_control">Direct Control</string>
     <string name="settings_tab_radar">Radar</string>
     <string name="settings_tab_item_scan">Item Scan</string>
+    <string name="settings_tab_head_control">Head Control</string>
 
     <!-- Access Technique Settings -->
     <string name="settings_section_access_techniques">Access Techniques</string>
@@ -571,6 +576,14 @@
     <string name="section_title_direct_control_precision">Precision</string>
     <string name="preference_title_direct_control_precision_enabled">Precision Mode</string>
     <string name="preference_summary_direct_control_precision_enabled">Reduce movement for fine control</string>
+    
+    <!-- Head Control Settings -->
+    <string name="screen_title_head_control_settings">Head Control Settings</string>
+    <string name="section_title_head_control_movement">Movement</string>
+    <string name="preference_title_head_control_sensitivity">Sensitivity</string>
+    <string name="preference_summary_head_control_sensitivity">How responsive head movement is to cursor movement</string>
+    <string name="preference_title_head_control_deadzone">Deadzone</string>
+    <string name="preference_summary_head_control_deadzone">Minimum head movement required before cursor moves</string>
 
     <string name="ok">OK</string>
     <string name="help">Help</string>
