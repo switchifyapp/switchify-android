@@ -31,6 +31,11 @@ class HeadControlManager(private val context: Context) : AccessTechniqueInterfac
     private val minY = screenPadding
     private val maxY = ScreenUtils.getHeight(context) - screenPadding
     
+    // Gesture selection state
+    private var isGestureActive = false
+    private var gestureStartTime = 0L
+    private var currentActiveGesture: String? = null
+    
     init {
         // Auto-start head control when manager is created
         Log.d(TAG, "HeadControlManager initialized - auto-starting")
@@ -63,6 +68,7 @@ class HeadControlManager(private val context: Context) : AccessTechniqueInterfac
 
     override fun pauseAutoScanning() { 
         overlay.hidePointer()
+        resetGestureState()
     }
 
     override fun resumeAutoScanning() { 
@@ -72,6 +78,7 @@ class HeadControlManager(private val context: Context) : AccessTechniqueInterfac
     override fun cleanup() {
         super.cleanup()
         overlay.reset()
+        resetGestureState()
     }
 
     override fun stepScanningForward() {
@@ -168,4 +175,68 @@ class HeadControlManager(private val context: Context) : AccessTechniqueInterfac
 
     fun getCurrentPosition(): Pair<Int, Int> = Pair(currentX, currentY)
     fun getCurrentDirection(): ScanDirection = ScanDirection.RIGHT
+    
+    /**
+     * Handles gesture detection for head control selection
+     */
+    fun processGesture(gestureId: String, isGestureStarting: Boolean) {
+        if (!settings.isGestureSelectionEnabled()) {
+            return
+        }
+        
+        val selectedGesture = settings.selectGesture()
+        
+        // Only process the gesture that matches our selected gesture
+        if (gestureId != selectedGesture) {
+            return
+        }
+        
+        if (isGestureStarting && !isGestureActive) {
+            Log.d(TAG, "Gesture started: $gestureId")
+            gestureStarted(gestureId)
+        } else if (!isGestureStarting && isGestureActive && currentActiveGesture == gestureId) {
+            Log.d(TAG, "Gesture ended: $gestureId")
+            gestureEnded(gestureId)
+        }
+    }
+    
+    private fun gestureStarted(gestureId: String) {
+        isGestureActive = true
+        gestureStartTime = System.currentTimeMillis()
+        currentActiveGesture = gestureId
+        Log.d(TAG, "Started tracking gesture: $gestureId")
+    }
+    
+    private fun gestureEnded(gestureId: String) {
+        if (!isGestureActive || currentActiveGesture != gestureId) {
+            return
+        }
+        
+        val duration = System.currentTimeMillis() - gestureStartTime
+        val requiredHoldTime = settings.gestureHoldTime()
+        
+        Log.d(TAG, "Gesture $gestureId held for ${duration}ms (required: ${requiredHoldTime}ms)")
+        
+        if (duration >= requiredHoldTime) {
+            Log.i(TAG, "Gesture selection triggered by $gestureId")
+            performSelectionAction()
+        } else {
+            Log.d(TAG, "Gesture $gestureId not held long enough")
+        }
+        
+        // Reset gesture state
+        isGestureActive = false
+        gestureStartTime = 0L
+        currentActiveGesture = null
+    }
+    
+    /**
+     * Resets gesture state (called when pausing or stopping head control)
+     */
+    fun resetGestureState() {
+        isGestureActive = false
+        gestureStartTime = 0L
+        currentActiveGesture = null
+        Log.d(TAG, "Gesture state reset")
+    }
 }
