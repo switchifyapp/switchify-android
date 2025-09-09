@@ -122,8 +122,8 @@ private fun MainContent(
         Spacer(modifier = Modifier.height(16.dp))
 
         if (code == null) {
-            // Facial Gesture Selection
-            val gestures = listOf(
+            // Facial Gesture Selection (excluding head turns which are used for cursor control)
+            val allGestures = listOf(
                 CameraSwitchFacialGesture(CameraSwitchFacialGesture.SMILE),
                 CameraSwitchFacialGesture(CameraSwitchFacialGesture.LEFT_WINK),
                 CameraSwitchFacialGesture(CameraSwitchFacialGesture.RIGHT_WINK),
@@ -133,6 +133,7 @@ private fun MainContent(
                 CameraSwitchFacialGesture(CameraSwitchFacialGesture.HEAD_TURN_UP),
                 CameraSwitchFacialGesture(CameraSwitchFacialGesture.HEAD_TURN_DOWN)
             )
+            val gestures = allGestures.filter { it.isAssignableAsSwitch() }
 
             Picker(
                 titleResId = R.string.section_title_facial_gesture,
