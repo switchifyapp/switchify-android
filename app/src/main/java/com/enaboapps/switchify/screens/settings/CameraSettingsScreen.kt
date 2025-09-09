@@ -329,7 +329,7 @@ private fun TimingSettingsTab(
     blinkTime: Long
 ) {
     ScrollableView {
-        Section(titleResId = R.string.section_title_threshold_settings) {
+        Section(titleResId = R.string.section_title_camera_switch_timing) {
             PreferenceTimeStepper(
                 value = smileTime,
                 titleResId = R.string.preference_title_smile_time,
