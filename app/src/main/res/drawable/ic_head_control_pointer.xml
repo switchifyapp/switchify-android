@@ -1,0 +1,23 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="32dp"
+    android:height="32dp"
+    android:viewportWidth="32"
+    android:viewportHeight="32"
+    android:tint="?attr/colorControlNormal">
+  <!-- Main pointer crosshair -->
+  <path
+      android:strokeColor="@android:color/white"
+      android:strokeWidth="2"
+      android:strokeLineCap="round"
+      android:pathData="M16,4L16,28M4,16L28,16"/>
+  <!-- Center circle -->
+  <path
+      android:strokeColor="@android:color/white"
+      android:strokeWidth="2.5"
+      android:fillColor="@android:color/white"
+      android:pathData="M16,16m-6,0a6,6 0,1 1,12 0a6,6 0,1 1,-12 0"/>
+  <!-- Precision center dot -->
+  <path
+      android:fillColor="@android:color/black"
+      android:pathData="M16,16m-2,0a2,2 0,1 1,4 0a2,2 0,1 1,-4 0"/>
+</vector>

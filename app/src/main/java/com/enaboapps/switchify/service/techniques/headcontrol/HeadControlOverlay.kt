@@ -18,7 +18,7 @@ class HeadControlOverlay(private val context: Context) : AccessTechniqueUIBase()
         if (pointerView == null) {
             pointerView = RelativeLayout(context).apply {
                 val imageView = ImageView(context).apply {
-                    setImageResource(R.drawable.ic_reselect)
+                    setImageResource(R.drawable.ic_head_control_pointer)
                     imageTintList = ColorStateList.valueOf(ScanColorManager.getScanColorSetFromPreferences(context).secondaryColor.toColorInt())
                     scaleX = 1.2f
                     scaleY = 1.2f
