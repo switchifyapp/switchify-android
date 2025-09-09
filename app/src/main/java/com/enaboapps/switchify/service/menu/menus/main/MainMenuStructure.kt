@@ -161,7 +161,7 @@ class MainMenuStructure(private val accessibilityService: SwitchifyAccessibility
                 MenuItem(
                     id = "switch_to_head_control", 
                     labelResource = R.string.access_technique_head_control,
-                    drawableId = R.drawable.ic_reselect, // Using existing icon that represents cursor/selection
+                    drawableId = R.drawable.ic_head_control_pointer, // Head control pointer icon
                     action = {
                         MenuManager.getInstance().switchToHeadControl()
                     }
