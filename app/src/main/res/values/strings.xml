@@ -748,5 +748,42 @@
     <string name="head_control_gesture_left_wink">Left Wink</string>
     <string name="head_control_gesture_right_wink">Right Wink</string>
     <string name="head_control_gesture_blink">Blink</string>
+    
+    <!-- Head Control Movement Mode -->
+    <string name="head_control_movement_mode">Movement Mode</string>
+    <string name="head_control_movement_mode_summary">Choose how head movement controls the cursor</string>
+    <string name="head_control_absolute_mode">Absolute Positioning</string>
+    <string name="head_control_continuous_mode">Continuous Movement</string>
+    <string name="head_control_movement_speed">Movement Speed</string>
+    <string name="head_control_movement_speed_summary">Speed of cursor movement in continuous mode</string>
+    <string name="head_control_horizontal_deadzone">Horizontal Dead Zone</string>
+    <string name="head_control_horizontal_deadzone_summary">Threshold for left/right head movement</string>
+    <string name="head_control_vertical_deadzone">Vertical Dead Zone</string>
+    <string name="head_control_vertical_deadzone_summary">Threshold for up/down head movement</string>
+    
+    <!-- Head Control String Resources -->
+    <string name="preference_title_head_control_movement_mode">Movement Mode</string>
+    <string name="preference_summary_head_control_movement_mode">Choose how head movement controls the cursor</string>
+    <string name="preference_title_head_control_movement_speed">Movement Speed</string>
+    <string name="preference_summary_head_control_movement_speed">Speed of cursor movement in continuous mode</string>
+    <string name="preference_title_head_control_horizontal_deadzone">Horizontal Dead Zone</string>
+    <string name="preference_summary_head_control_horizontal_deadzone">Threshold for left/right head movement</string>
+    <string name="preference_title_head_control_vertical_deadzone">Vertical Dead Zone</string>
+    <string name="preference_summary_head_control_vertical_deadzone">Threshold for up/down head movement</string>
+    
+    <!-- Separate directional thresholds -->
+    <string name="preference_title_head_control_separate_thresholds">Separate Directional Thresholds</string>
+    <string name="preference_summary_head_control_separate_thresholds">Use different thresholds for each direction</string>
+    
+    <!-- Individual direction thresholds -->
+    <string name="preference_title_head_control_left_deadzone">Left Turn Threshold</string>
+    <string name="preference_summary_head_control_left_deadzone">Threshold for left head movement</string>
+    <string name="preference_title_head_control_right_deadzone">Right Turn Threshold</string>
+    <string name="preference_summary_head_control_right_deadzone">Threshold for right head movement</string>
+    <string name="preference_title_head_control_up_deadzone">Up Tilt Threshold</string>
+    <string name="preference_summary_head_control_up_deadzone">Threshold for upward head movement</string>
+    <string name="preference_title_head_control_down_deadzone">Down Tilt Threshold</string>
+    <string name="preference_summary_head_control_down_deadzone">Threshold for downward head movement</string>
+    
     <string name="head_control_gesture_section_title">Gesture Settings</string>
 </resources>

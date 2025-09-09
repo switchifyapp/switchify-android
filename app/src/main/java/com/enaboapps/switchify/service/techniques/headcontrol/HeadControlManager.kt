@@ -36,6 +36,7 @@ class HeadControlManager(private val context: Context) : AccessTechniqueInterfac
     private var gestureStartTime = 0L
     private var currentActiveGesture: String? = null
     
+    
     init {
         // Auto-start head control when manager is created
         Log.d(TAG, "HeadControlManager initialized - auto-starting")
@@ -128,24 +129,44 @@ class HeadControlManager(private val context: Context) : AccessTechniqueInterfac
      * @param headRotationY Yaw rotation (negative = left, positive = right)
      */
     fun updateHeadPosition(headRotationX: Float, headRotationY: Float) {
-        
+        if (settings.isAbsoluteMode()) {
+            updateAbsoluteMode(headRotationX, headRotationY)
+        } else {
+            updateContinuousMode(headRotationX, headRotationY)
+        }
+    }
+    
+    private fun updateAbsoluteMode(headRotationX: Float, headRotationY: Float) {
         val sensitivity = settings.sensitivity()
-        val deadzone = settings.deadzone()
+        val leftDeadzone = settings.getEffectiveLeftDeadzone()
+        val rightDeadzone = settings.getEffectiveRightDeadzone()
+        val upDeadzone = settings.getEffectiveUpDeadzone()
+        val downDeadzone = settings.getEffectiveDownDeadzone()
         
-        Log.d(TAG, "Head rotation - X: $headRotationX, Y: $headRotationY, sensitivity: $sensitivity, deadzone: $deadzone")
+        Log.d(TAG, "Absolute mode - X: $headRotationX, Y: $headRotationY, sensitivity: $sensitivity, leftDZ: $leftDeadzone, rightDZ: $rightDeadzone, upDZ: $upDeadzone, downDZ: $downDeadzone")
         
-        // Apply deadzone - ignore small head movements
-        val adjustedX = if (kotlin.math.abs(headRotationY) > deadzone) headRotationY else 0f
-        val adjustedY = if (kotlin.math.abs(headRotationX) > deadzone) headRotationX else 0f
+        // Apply directional deadzones - ignore small head movements based on direction
+        val adjustedX = if (headRotationY > 0 && headRotationY > rightDeadzone) {
+            headRotationY
+        } else if (headRotationY < 0 && kotlin.math.abs(headRotationY) > leftDeadzone) {
+            headRotationY
+        } else {
+            0f
+        }
         
-        Log.d(TAG, "Adjusted - X: $adjustedX, Y: $adjustedY")
+        val adjustedY = if (headRotationX > 0 && headRotationX > downDeadzone) {
+            headRotationX
+        } else if (headRotationX < 0 && kotlin.math.abs(headRotationX) > upDeadzone) {
+            headRotationX
+        } else {
+            0f
+        }
         
         // Convert head rotation to screen coordinates
         val screenWidth = ScreenUtils.getWidth(context)
         val screenHeight = ScreenUtils.getHeight(context)
         
         // Map head rotation to screen position
-        // Assume head rotation range is approximately -30 to +30 degrees
         val headRotationRange = 30f
         
         val normalizedX = (adjustedX / headRotationRange).coerceIn(-1f, 1f)
@@ -157,10 +178,58 @@ class HeadControlManager(private val context: Context) : AccessTechniqueInterfac
         targetY = (screenHeight / 2 + normalizedY * screenHeight / 2 * sensitivity).toInt()
             .coerceIn(minY, maxY)
         
-        Log.d(TAG, "Target position - X: $targetX, Y: $targetY (screen: ${screenWidth}x${screenHeight})")
-        
         smoothMovement()
     }
+    
+    private fun updateContinuousMode(headRotationX: Float, headRotationY: Float) {
+        val leftDeadzone = settings.getEffectiveLeftDeadzone()
+        val rightDeadzone = settings.getEffectiveRightDeadzone()
+        val upDeadzone = settings.getEffectiveUpDeadzone()
+        val downDeadzone = settings.getEffectiveDownDeadzone()
+        val movementSpeed = settings.movementSpeed()
+        
+        Log.d(TAG, "Continuous mode - X: $headRotationX, Y: $headRotationY, leftDZ: $leftDeadzone, rightDZ: $rightDeadzone, upDZ: $upDeadzone, downDZ: $downDeadzone, speed: $movementSpeed")
+        
+        // Calculate horizontal movement with separate left/right thresholds
+        val horizontalMovement = if (headRotationY > 0 && headRotationY > rightDeadzone) {
+            // Moving right
+            val normalizedRotation = (headRotationY - rightDeadzone) / (30f - rightDeadzone)
+            normalizedRotation.coerceIn(0f, 1f) * movementSpeed
+        } else if (headRotationY < 0 && kotlin.math.abs(headRotationY) > leftDeadzone) {
+            // Moving left
+            val normalizedRotation = (kotlin.math.abs(headRotationY) - leftDeadzone) / (30f - leftDeadzone)
+            -(normalizedRotation.coerceIn(0f, 1f) * movementSpeed)
+        } else 0f
+        
+        // Calculate vertical movement with separate up/down thresholds
+        val verticalMovement = if (headRotationX > 0 && headRotationX > downDeadzone) {
+            // Moving down
+            val normalizedRotation = (headRotationX - downDeadzone) / (30f - downDeadzone)
+            normalizedRotation.coerceIn(0f, 1f) * movementSpeed
+        } else if (headRotationX < 0 && kotlin.math.abs(headRotationX) > upDeadzone) {
+            // Moving up
+            val normalizedRotation = (kotlin.math.abs(headRotationX) - upDeadzone) / (30f - upDeadzone)
+            -(normalizedRotation.coerceIn(0f, 1f) * movementSpeed)
+        } else 0f
+        
+        // Apply movement immediately
+        if (horizontalMovement != 0f || verticalMovement != 0f) {
+            // Calculate movement delta based on current frame
+            val movementDelta = 8f // Base movement per update
+            
+            targetX = (currentX + horizontalMovement * movementDelta).toInt()
+                .coerceIn(minX, maxX)
+            targetY = (currentY + verticalMovement * movementDelta).toInt()
+                .coerceIn(minY, maxY)
+            
+            // Apply movement immediately
+            currentX = targetX
+            currentY = targetY
+            
+            overlay.showPointer(currentX, currentY)
+        }
+    }
+    
     
     private fun smoothMovement() {
         // Apply smoothing to prevent jittery movement
