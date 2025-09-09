@@ -1,6 +1,7 @@
 package com.enaboapps.switchify.service.techniques.headcontrol
 
 import android.content.Context
+import com.enaboapps.switchify.BuildConfig
 import com.enaboapps.switchify.service.gestures.GestureManager
 import com.enaboapps.switchify.service.gestures.GesturePoint
 import com.enaboapps.switchify.service.scanning.ScanDirection
@@ -143,7 +144,9 @@ class HeadControlManager(private val context: Context) : AccessTechniqueInterfac
         val upDeadzone = settings.getEffectiveUpDeadzone()
         val downDeadzone = settings.getEffectiveDownDeadzone()
         
-        Log.d(TAG, "Absolute mode - X: $headRotationX, Y: $headRotationY, sensitivity: $sensitivity, leftDZ: $leftDeadzone, rightDZ: $rightDeadzone, upDZ: $upDeadzone, downDZ: $downDeadzone")
+        if (BuildConfig.DEBUG) {
+            Log.d(TAG, "Absolute mode - X: $headRotationX, Y: $headRotationY, sensitivity: $sensitivity, leftDZ: $leftDeadzone, rightDZ: $rightDeadzone, upDZ: $upDeadzone, downDZ: $downDeadzone")
+        }
         
         // Apply directional deadzones - ignore small head movements based on direction
         val adjustedX = if (headRotationY > 0 && headRotationY > rightDeadzone) {
@@ -188,7 +191,9 @@ class HeadControlManager(private val context: Context) : AccessTechniqueInterfac
         val downDeadzone = settings.getEffectiveDownDeadzone()
         val movementSpeed = settings.movementSpeed()
         
-        Log.d(TAG, "Continuous mode - X: $headRotationX, Y: $headRotationY, leftDZ: $leftDeadzone, rightDZ: $rightDeadzone, upDZ: $upDeadzone, downDZ: $downDeadzone, speed: $movementSpeed")
+        if (BuildConfig.DEBUG) {
+            Log.d(TAG, "Continuous mode - X: $headRotationX, Y: $headRotationY, leftDZ: $leftDeadzone, rightDZ: $rightDeadzone, upDZ: $upDeadzone, downDZ: $downDeadzone, speed: $movementSpeed")
+        }
         
         // Calculate horizontal movement with separate left/right thresholds
         val horizontalMovement = if (headRotationY > 0 && headRotationY > rightDeadzone) {

@@ -9,6 +9,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavController
+import java.util.Locale
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.components.BaseView
@@ -66,30 +67,21 @@ fun HeadControlSettingsScreen(navController: NavController) {
     val movementSpeedIndex = HeadControlSettings.MOVEMENT_SPEED_VALUES.indexOfFirst { kotlin.math.abs(it - currentMovementSpeed) < 0.1f }.let { if (it == -1) 5 else it }
     var movementSpeed by remember { mutableIntStateOf(movementSpeedIndex) }
     
-    // Use centralized directional deadzone values
-    val currentHorizontalDeadzone = settings.horizontalDeadzone()
-    val horizontalDeadzoneIndex = HeadControlSettings.DIRECTIONAL_DEADZONE_VALUES.indexOfFirst { kotlin.math.abs(it - currentHorizontalDeadzone) < 0.05f }.let { if (it == -1) 9 else it }
-    var horizontalDeadzone by remember { mutableIntStateOf(horizontalDeadzoneIndex) }
-    
-    val currentVerticalDeadzone = settings.verticalDeadzone()
-    val verticalDeadzoneIndex = HeadControlSettings.DIRECTIONAL_DEADZONE_VALUES.indexOfFirst { kotlin.math.abs(it - currentVerticalDeadzone) < 0.05f }.let { if (it == -1) 9 else it }
-    var verticalDeadzone by remember { mutableIntStateOf(verticalDeadzoneIndex) }
-    
     // Individual direction deadzone values
     val currentLeftDeadzone = settings.leftDeadzone()
-    val leftDeadzoneIndex = HeadControlSettings.DIRECTIONAL_DEADZONE_VALUES.indexOfFirst { kotlin.math.abs(it - currentLeftDeadzone) < 0.05f }.let { if (it == -1) 9 else it }
+    val leftDeadzoneIndex = HeadControlSettings.DIRECTIONAL_DEADZONE_VALUES.indexOfFirst { kotlin.math.abs(it - currentLeftDeadzone) < 0.05f }.takeIf { it != -1 } ?: 9
     var leftDeadzone by remember { mutableIntStateOf(leftDeadzoneIndex) }
     
     val currentRightDeadzone = settings.rightDeadzone()
-    val rightDeadzoneIndex = HeadControlSettings.DIRECTIONAL_DEADZONE_VALUES.indexOfFirst { kotlin.math.abs(it - currentRightDeadzone) < 0.05f }.let { if (it == -1) 9 else it }
+    val rightDeadzoneIndex = HeadControlSettings.DIRECTIONAL_DEADZONE_VALUES.indexOfFirst { kotlin.math.abs(it - currentRightDeadzone) < 0.05f }.takeIf { it != -1 } ?: 9
     var rightDeadzone by remember { mutableIntStateOf(rightDeadzoneIndex) }
     
     val currentUpDeadzone = settings.upDeadzone()
-    val upDeadzoneIndex = HeadControlSettings.DIRECTIONAL_DEADZONE_VALUES.indexOfFirst { kotlin.math.abs(it - currentUpDeadzone) < 0.05f }.let { if (it == -1) 9 else it }
+    val upDeadzoneIndex = HeadControlSettings.DIRECTIONAL_DEADZONE_VALUES.indexOfFirst { kotlin.math.abs(it - currentUpDeadzone) < 0.05f }.takeIf { it != -1 } ?: 9
     var upDeadzone by remember { mutableIntStateOf(upDeadzoneIndex) }
     
     val currentDownDeadzone = settings.downDeadzone()
-    val downDeadzoneIndex = HeadControlSettings.DIRECTIONAL_DEADZONE_VALUES.indexOfFirst { kotlin.math.abs(it - currentDownDeadzone) < 0.05f }.let { if (it == -1) 9 else it }
+    val downDeadzoneIndex = HeadControlSettings.DIRECTIONAL_DEADZONE_VALUES.indexOfFirst { kotlin.math.abs(it - currentDownDeadzone) < 0.05f }.takeIf { it != -1 } ?: 9
     var downDeadzone by remember { mutableIntStateOf(downDeadzoneIndex) }
     BaseView(
         titleResId = R.string.screen_title_head_control_settings,
@@ -128,8 +120,8 @@ fun HeadControlSettingsScreen(navController: NavController) {
                     titleResId = R.string.preference_title_head_control_sensitivity,
                     summaryResId = R.string.preference_summary_head_control_sensitivity,
                     values = IntArray(HeadControlSettings.SENSITIVITY_VALUES.size) { it },
-                    buttonLabelFormatter = { String.format("%.1f", HeadControlSettings.SENSITIVITY_VALUES[it]) },
-                    displayFormatter = { String.format("%.1f", HeadControlSettings.SENSITIVITY_VALUES[it]) },
+                    buttonLabelFormatter = { String.format(Locale.US, "%.1f", HeadControlSettings.SENSITIVITY_VALUES[it]) },
+                    displayFormatter = { String.format(Locale.US, "%.1f", HeadControlSettings.SENSITIVITY_VALUES[it]) },
                     onValueChanged = { index ->
                         sensitivity = index
                         prefs.setFloatValue(HeadControlSettings.KEY_SENSITIVITY, HeadControlSettings.SENSITIVITY_VALUES[index])
@@ -142,8 +134,8 @@ fun HeadControlSettingsScreen(navController: NavController) {
                         titleResId = R.string.preference_title_head_control_left_deadzone,
                         summaryResId = R.string.preference_summary_head_control_left_deadzone,
                         values = IntArray(HeadControlSettings.DIRECTIONAL_DEADZONE_VALUES.size) { it },
-                        buttonLabelFormatter = { String.format("%.1f°", HeadControlSettings.DIRECTIONAL_DEADZONE_VALUES[it]) },
-                        displayFormatter = { String.format("%.1f°", HeadControlSettings.DIRECTIONAL_DEADZONE_VALUES[it]) },
+                        buttonLabelFormatter = { String.format(Locale.US, "%.1f°", HeadControlSettings.DIRECTIONAL_DEADZONE_VALUES[it]) },
+                        displayFormatter = { String.format(Locale.US, "%.1f°", HeadControlSettings.DIRECTIONAL_DEADZONE_VALUES[it]) },
                         onValueChanged = { index ->
                             leftDeadzone = index
                             prefs.setFloatValue(HeadControlSettings.KEY_LEFT_DEADZONE, HeadControlSettings.DIRECTIONAL_DEADZONE_VALUES[index])
@@ -155,8 +147,8 @@ fun HeadControlSettingsScreen(navController: NavController) {
                         titleResId = R.string.preference_title_head_control_right_deadzone,
                         summaryResId = R.string.preference_summary_head_control_right_deadzone,
                         values = IntArray(HeadControlSettings.DIRECTIONAL_DEADZONE_VALUES.size) { it },
-                        buttonLabelFormatter = { String.format("%.1f°", HeadControlSettings.DIRECTIONAL_DEADZONE_VALUES[it]) },
-                        displayFormatter = { String.format("%.1f°", HeadControlSettings.DIRECTIONAL_DEADZONE_VALUES[it]) },
+                        buttonLabelFormatter = { String.format(Locale.US, "%.1f°", HeadControlSettings.DIRECTIONAL_DEADZONE_VALUES[it]) },
+                        displayFormatter = { String.format(Locale.US, "%.1f°", HeadControlSettings.DIRECTIONAL_DEADZONE_VALUES[it]) },
                         onValueChanged = { index ->
                             rightDeadzone = index
                             prefs.setFloatValue(HeadControlSettings.KEY_RIGHT_DEADZONE, HeadControlSettings.DIRECTIONAL_DEADZONE_VALUES[index])
@@ -168,8 +160,8 @@ fun HeadControlSettingsScreen(navController: NavController) {
                         titleResId = R.string.preference_title_head_control_up_deadzone,
                         summaryResId = R.string.preference_summary_head_control_up_deadzone,
                         values = IntArray(HeadControlSettings.DIRECTIONAL_DEADZONE_VALUES.size) { it },
-                        buttonLabelFormatter = { String.format("%.1f°", HeadControlSettings.DIRECTIONAL_DEADZONE_VALUES[it]) },
-                        displayFormatter = { String.format("%.1f°", HeadControlSettings.DIRECTIONAL_DEADZONE_VALUES[it]) },
+                        buttonLabelFormatter = { String.format(Locale.US, "%.1f°", HeadControlSettings.DIRECTIONAL_DEADZONE_VALUES[it]) },
+                        displayFormatter = { String.format(Locale.US, "%.1f°", HeadControlSettings.DIRECTIONAL_DEADZONE_VALUES[it]) },
                         onValueChanged = { index ->
                             upDeadzone = index
                             prefs.setFloatValue(HeadControlSettings.KEY_UP_DEADZONE, HeadControlSettings.DIRECTIONAL_DEADZONE_VALUES[index])
@@ -181,8 +173,8 @@ fun HeadControlSettingsScreen(navController: NavController) {
                         titleResId = R.string.preference_title_head_control_down_deadzone,
                         summaryResId = R.string.preference_summary_head_control_down_deadzone,
                         values = IntArray(HeadControlSettings.DIRECTIONAL_DEADZONE_VALUES.size) { it },
-                        buttonLabelFormatter = { String.format("%.1f°", HeadControlSettings.DIRECTIONAL_DEADZONE_VALUES[it]) },
-                        displayFormatter = { String.format("%.1f°", HeadControlSettings.DIRECTIONAL_DEADZONE_VALUES[it]) },
+                        buttonLabelFormatter = { String.format(Locale.US, "%.1f°", HeadControlSettings.DIRECTIONAL_DEADZONE_VALUES[it]) },
+                        displayFormatter = { String.format(Locale.US, "%.1f°", HeadControlSettings.DIRECTIONAL_DEADZONE_VALUES[it]) },
                         onValueChanged = { index ->
                             downDeadzone = index
                             prefs.setFloatValue(HeadControlSettings.KEY_DOWN_DEADZONE, HeadControlSettings.DIRECTIONAL_DEADZONE_VALUES[index])
@@ -194,8 +186,8 @@ fun HeadControlSettingsScreen(navController: NavController) {
                         titleResId = R.string.preference_title_head_control_deadzone,
                         summaryResId = R.string.preference_summary_head_control_deadzone,
                         values = IntArray(HeadControlSettings.DEADZONE_VALUES.size) { it },
-                        buttonLabelFormatter = { String.format("%.1f°", HeadControlSettings.DEADZONE_VALUES[it]) },
-                        displayFormatter = { String.format("%.1f°", HeadControlSettings.DEADZONE_VALUES[it]) },
+                        buttonLabelFormatter = { String.format(Locale.US, "%.1f°", HeadControlSettings.DEADZONE_VALUES[it]) },
+                        displayFormatter = { String.format(Locale.US, "%.1f°", HeadControlSettings.DEADZONE_VALUES[it]) },
                         onValueChanged = { index ->
                             deadzone = index
                             prefs.setFloatValue(HeadControlSettings.KEY_DEADZONE, HeadControlSettings.DEADZONE_VALUES[index])
@@ -209,8 +201,8 @@ fun HeadControlSettingsScreen(navController: NavController) {
                     titleResId = R.string.preference_title_head_control_movement_speed,
                     summaryResId = R.string.preference_summary_head_control_movement_speed,
                     values = IntArray(HeadControlSettings.MOVEMENT_SPEED_VALUES.size) { it },
-                    buttonLabelFormatter = { String.format("%.1f", HeadControlSettings.MOVEMENT_SPEED_VALUES[it]) },
-                    displayFormatter = { String.format("%.1f", HeadControlSettings.MOVEMENT_SPEED_VALUES[it]) },
+                    buttonLabelFormatter = { String.format(Locale.US, "%.1f", HeadControlSettings.MOVEMENT_SPEED_VALUES[it]) },
+                    displayFormatter = { String.format(Locale.US, "%.1f", HeadControlSettings.MOVEMENT_SPEED_VALUES[it]) },
                     onValueChanged = { index ->
                         movementSpeed = index
                         prefs.setFloatValue(HeadControlSettings.KEY_MOVEMENT_SPEED, HeadControlSettings.MOVEMENT_SPEED_VALUES[index])
@@ -223,8 +215,8 @@ fun HeadControlSettingsScreen(navController: NavController) {
                         titleResId = R.string.preference_title_head_control_left_deadzone,
                         summaryResId = R.string.preference_summary_head_control_left_deadzone,
                         values = IntArray(HeadControlSettings.DIRECTIONAL_DEADZONE_VALUES.size) { it },
-                        buttonLabelFormatter = { String.format("%.1f°", HeadControlSettings.DIRECTIONAL_DEADZONE_VALUES[it]) },
-                        displayFormatter = { String.format("%.1f°", HeadControlSettings.DIRECTIONAL_DEADZONE_VALUES[it]) },
+                        buttonLabelFormatter = { String.format(Locale.US, "%.1f°", HeadControlSettings.DIRECTIONAL_DEADZONE_VALUES[it]) },
+                        displayFormatter = { String.format(Locale.US, "%.1f°", HeadControlSettings.DIRECTIONAL_DEADZONE_VALUES[it]) },
                         onValueChanged = { index ->
                             leftDeadzone = index
                             prefs.setFloatValue(HeadControlSettings.KEY_LEFT_DEADZONE, HeadControlSettings.DIRECTIONAL_DEADZONE_VALUES[index])
@@ -236,8 +228,8 @@ fun HeadControlSettingsScreen(navController: NavController) {
                         titleResId = R.string.preference_title_head_control_right_deadzone,
                         summaryResId = R.string.preference_summary_head_control_right_deadzone,
                         values = IntArray(HeadControlSettings.DIRECTIONAL_DEADZONE_VALUES.size) { it },
-                        buttonLabelFormatter = { String.format("%.1f°", HeadControlSettings.DIRECTIONAL_DEADZONE_VALUES[it]) },
-                        displayFormatter = { String.format("%.1f°", HeadControlSettings.DIRECTIONAL_DEADZONE_VALUES[it]) },
+                        buttonLabelFormatter = { String.format(Locale.US, "%.1f°", HeadControlSettings.DIRECTIONAL_DEADZONE_VALUES[it]) },
+                        displayFormatter = { String.format(Locale.US, "%.1f°", HeadControlSettings.DIRECTIONAL_DEADZONE_VALUES[it]) },
                         onValueChanged = { index ->
                             rightDeadzone = index
                             prefs.setFloatValue(HeadControlSettings.KEY_RIGHT_DEADZONE, HeadControlSettings.DIRECTIONAL_DEADZONE_VALUES[index])
@@ -249,8 +241,8 @@ fun HeadControlSettingsScreen(navController: NavController) {
                         titleResId = R.string.preference_title_head_control_up_deadzone,
                         summaryResId = R.string.preference_summary_head_control_up_deadzone,
                         values = IntArray(HeadControlSettings.DIRECTIONAL_DEADZONE_VALUES.size) { it },
-                        buttonLabelFormatter = { String.format("%.1f°", HeadControlSettings.DIRECTIONAL_DEADZONE_VALUES[it]) },
-                        displayFormatter = { String.format("%.1f°", HeadControlSettings.DIRECTIONAL_DEADZONE_VALUES[it]) },
+                        buttonLabelFormatter = { String.format(Locale.US, "%.1f°", HeadControlSettings.DIRECTIONAL_DEADZONE_VALUES[it]) },
+                        displayFormatter = { String.format(Locale.US, "%.1f°", HeadControlSettings.DIRECTIONAL_DEADZONE_VALUES[it]) },
                         onValueChanged = { index ->
                             upDeadzone = index
                             prefs.setFloatValue(HeadControlSettings.KEY_UP_DEADZONE, HeadControlSettings.DIRECTIONAL_DEADZONE_VALUES[index])
@@ -262,8 +254,8 @@ fun HeadControlSettingsScreen(navController: NavController) {
                         titleResId = R.string.preference_title_head_control_down_deadzone,
                         summaryResId = R.string.preference_summary_head_control_down_deadzone,
                         values = IntArray(HeadControlSettings.DIRECTIONAL_DEADZONE_VALUES.size) { it },
-                        buttonLabelFormatter = { String.format("%.1f°", HeadControlSettings.DIRECTIONAL_DEADZONE_VALUES[it]) },
-                        displayFormatter = { String.format("%.1f°", HeadControlSettings.DIRECTIONAL_DEADZONE_VALUES[it]) },
+                        buttonLabelFormatter = { String.format(Locale.US, "%.1f°", HeadControlSettings.DIRECTIONAL_DEADZONE_VALUES[it]) },
+                        displayFormatter = { String.format(Locale.US, "%.1f°", HeadControlSettings.DIRECTIONAL_DEADZONE_VALUES[it]) },
                         onValueChanged = { index ->
                             downDeadzone = index
                             prefs.setFloatValue(HeadControlSettings.KEY_DOWN_DEADZONE, HeadControlSettings.DIRECTIONAL_DEADZONE_VALUES[index])
@@ -275,8 +267,8 @@ fun HeadControlSettingsScreen(navController: NavController) {
                         titleResId = R.string.preference_title_head_control_deadzone,
                         summaryResId = R.string.preference_summary_head_control_deadzone,
                         values = IntArray(HeadControlSettings.DEADZONE_VALUES.size) { it },
-                        buttonLabelFormatter = { String.format("%.1f°", HeadControlSettings.DEADZONE_VALUES[it]) },
-                        displayFormatter = { String.format("%.1f°", HeadControlSettings.DEADZONE_VALUES[it]) },
+                        buttonLabelFormatter = { String.format(Locale.US, "%.1f°", HeadControlSettings.DEADZONE_VALUES[it]) },
+                        displayFormatter = { String.format(Locale.US, "%.1f°", HeadControlSettings.DEADZONE_VALUES[it]) },
                         onValueChanged = { index ->
                             deadzone = index
                             prefs.setFloatValue(HeadControlSettings.KEY_DEADZONE, HeadControlSettings.DEADZONE_VALUES[index])

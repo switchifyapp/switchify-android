@@ -766,9 +766,9 @@
     <string name="preference_summary_head_control_movement_mode">Choose how head movement controls the cursor</string>
     <string name="preference_title_head_control_movement_speed">Movement Speed</string>
     <string name="preference_summary_head_control_movement_speed">Speed of cursor movement in continuous mode</string>
-    <string name="preference_title_head_control_horizontal_deadzone">Horizontal Dead Zone</string>
+    <string name="preference_title_head_control_horizontal_deadzone">Horizontal Deadzone</string>
     <string name="preference_summary_head_control_horizontal_deadzone">Threshold for left/right head movement</string>
-    <string name="preference_title_head_control_vertical_deadzone">Vertical Dead Zone</string>
+    <string name="preference_title_head_control_vertical_deadzone">Vertical Deadzone</string>
     <string name="preference_summary_head_control_vertical_deadzone">Threshold for up/down head movement</string>
     
     <!-- Separate directional thresholds -->
