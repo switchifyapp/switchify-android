@@ -42,10 +42,12 @@ import androidx.navigation.NavController
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.CameraPermissionHandler
+import com.enaboapps.switchify.components.NavigationHintCard
 import com.enaboapps.switchify.components.PreferenceTimeStepper
 import com.enaboapps.switchify.components.PreferenceValueSelector
 import com.enaboapps.switchify.components.ScrollableView
 import com.enaboapps.switchify.components.Section
+import com.enaboapps.switchify.nav.NavigationRoute
 import com.enaboapps.switchify.screens.settings.models.CameraSettingsScreenModel
 import com.enaboapps.switchify.service.face.FaceProcessingService
 import com.enaboapps.switchify.switches.CameraSwitchFacialGesture
@@ -68,7 +70,11 @@ fun CameraSettingsScreen(navController: NavController) {
         CameraPermissionHandler(
             permissionState = cameraPermissionState,
             onPermissionGranted = {
-                CameraSettingsContent(viewModel = viewModel, lifecycleOwner = lifecycleOwner)
+                CameraSettingsContent(
+                    viewModel = viewModel, 
+                    lifecycleOwner = lifecycleOwner,
+                    navController = navController
+                )
             },
             onNavigateBack = { navController.popBackStack() }
         )
@@ -78,7 +84,8 @@ fun CameraSettingsScreen(navController: NavController) {
 @Composable
 private fun CameraSettingsContent(
     viewModel: CameraSettingsScreenModel,
-    lifecycleOwner: LifecycleOwner
+    lifecycleOwner: LifecycleOwner,
+    navController: NavController
 ) {
     val detectedExpressions by viewModel.detectedExpressions.collectAsState()
     val isFaceDetected by viewModel.isFaceDetected.collectAsState()
@@ -112,6 +119,16 @@ private fun CameraSettingsContent(
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column {
+            // Navigation hint to Head Control Settings
+            NavigationHintCard(
+                titleResId = R.string.camera_settings_navigation_hint_title,
+                descriptionResId = R.string.camera_settings_navigation_hint_description,
+                onNavigate = {
+                    navController.navigate(NavigationRoute.HeadControlSettings.name)
+                },
+                modifier = Modifier.padding(vertical = 8.dp)
+            )
+            
             TabRow(
                 selectedTabIndex = selectedTabIndex,
                 modifier = Modifier.fillMaxWidth()
