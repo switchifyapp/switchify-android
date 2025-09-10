@@ -804,4 +804,7 @@
     <string name="preference_summary_head_control_down_deadzone">Threshold for downward head movement</string>
     
     <string name="head_control_gesture_section_title">Gesture Settings</string>
+    <string name="head_control_priority_title">Head Control Priority</string>
+    <string name="head_control_priority_summary">When enabled, Head Control selection takes priority over switch actions for the same gesture</string>
+    <string name="head_control_conflict_warning">Selected gesture is also assigned as a camera switch. Depending on priority, one of them will be ignored.</string>
 </resources>
