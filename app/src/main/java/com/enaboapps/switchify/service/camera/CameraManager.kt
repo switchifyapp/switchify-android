@@ -9,7 +9,6 @@ import com.enaboapps.switchify.service.switches.camera.CameraSwitchManager
 import com.enaboapps.switchify.service.techniques.AccessTechnique
 import com.enaboapps.switchify.service.utils.DeviceLockObserver
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
@@ -25,7 +24,6 @@ class CameraManager(
 ) {
     companion object {
         private const val TAG = "CameraManager"
-        private const val CAMERA_MANAGER_INIT_DELAY_MS = 500L
     }
 
     private var cameraController: CameraServiceController? = null
@@ -106,7 +104,6 @@ class CameraManager(
         if (cameraSwitchManager == null) {
             cameraSwitchManager = CameraSwitchManager(context, scanningManager, switchEventProvider)
             serviceScope.launch {
-                delay(CAMERA_MANAGER_INIT_DELAY_MS)
                 cameraSwitchManager?.initialize()
             }
         }
