@@ -7,6 +7,7 @@ import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -25,6 +26,8 @@ import com.enaboapps.switchify.components.ScrollableView
 import com.enaboapps.switchify.components.Section
 import com.enaboapps.switchify.service.techniques.headcontrol.HeadControlSettings
 import com.enaboapps.switchify.switches.CameraSwitchFacialGesture
+import com.enaboapps.switchify.switches.SwitchEventStore
+import com.enaboapps.switchify.switches.SWITCH_EVENT_TYPE_CAMERA
 
 @Composable
 fun AbsoluteModeSection(
@@ -272,6 +275,7 @@ fun HeadControlSelectionTab(
     val currentHoldTime = settings.gestureHoldTime()
     val holdTimeIndex = HeadControlSettings.HOLD_TIME_VALUES.indexOfFirst { kotlin.math.abs(it - currentHoldTime) < 50L }.let { if (it == -1) 2 else it }
     var gestureHoldTime by remember { mutableIntStateOf(holdTimeIndex) }
+    var conflictAssigned by remember { mutableStateOf(false) }
     
     ScrollableView {
         Section(titleResId = R.string.head_control_gesture_section_title) {
@@ -310,7 +314,11 @@ fun HeadControlSelectionTab(
                 )
                 
                 val selectedGestureId = availableGestures.getOrNull(selectedGesture) ?: currentGesture
-                val conflictAssigned = com.enaboapps.switchify.service.core.ServiceCore.getSwitchEventProvider()?.isFacialGestureAssigned(selectedGestureId) == true
+                LaunchedEffect(selectedGestureId) {
+                    val store = SwitchEventStore.getInstance()
+                    store.initializeAsync(context)
+                    conflictAssigned = store.getSwitchEvents().any { it.type == SWITCH_EVENT_TYPE_CAMERA && it.code == selectedGestureId }
+                }
                 if (conflictAssigned) {
                     Text(
                         text = stringResource(R.string.head_control_conflict_warning),
