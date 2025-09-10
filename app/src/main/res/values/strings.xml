@@ -737,6 +737,13 @@
     <string name="home_feedback_title">Send Feedback</string>
     <string name="home_feedback_summary">Share your thoughts and help us improve</string>
     
+    <!-- Home Screen Actions -->
+    <string name="home_actions_title">Quick Actions</string>
+    <string name="home_actions_subtitle">Tap to expand and access all features</string>
+    <string name="home_camera_permission_title">Enable Camera</string>
+    <string name="home_camera_permission_summary">Grant camera access for head control features</string>
+    <string name="home_actions_no_items">All features are already enabled! ✅</string>
+    
     <!-- Switch List Item -->
     <string name="switch_additional_actions">Additional Actions</string>
     <string name="switch_more_actions">+%1$d more actions</string>

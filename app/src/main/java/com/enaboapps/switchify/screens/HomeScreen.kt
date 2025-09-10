@@ -1,27 +1,21 @@
 package com.enaboapps.switchify.screens
 
-import android.app.Activity
-import android.content.Context
-import android.content.Intent
 import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Apps
-import androidx.compose.material.icons.rounded.BugReport
 import androidx.compose.material.icons.rounded.Feedback
-import androidx.compose.material.icons.rounded.Groups
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -39,7 +33,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.core.net.toUri
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import androidx.navigation.NavController
 import com.enaboapps.switchify.BuildConfig
 import com.enaboapps.switchify.R
@@ -47,19 +41,19 @@ import com.enaboapps.switchify.backend.iap.IAPHandler
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.backend.review.ReviewPrompter
 import com.enaboapps.switchify.components.BaseView
+import com.enaboapps.switchify.components.CollapsibleActionList
 import com.enaboapps.switchify.components.InAppUpdateBar
+import com.enaboapps.switchify.components.ScrollableView
 import com.enaboapps.switchify.components.StatusBannerComponent
 import com.enaboapps.switchify.nav.NavigationRoute
 import com.enaboapps.switchify.service.utils.QuickAppsManager
 import com.enaboapps.switchify.service.utils.ServiceUtils
 import com.enaboapps.switchify.switches.SwitchConfigInvalidBanner
-import com.enaboapps.switchify.utils.LogEvent
-import com.enaboapps.switchify.utils.Logger
 import com.enaboapps.switchify.switches.SwitchConfigValidator
 import com.enaboapps.switchify.switches.SwitchEventStore
-import com.google.android.play.core.review.ReviewManager
 import com.google.android.play.core.review.ReviewManagerFactory
 
+@OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = ServiceUtils()) {
     val context = LocalContext.current
@@ -72,6 +66,7 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
     val quickAppsManager = remember { QuickAppsManager(context) }
     val hasUsageStatsPermission =
         remember { mutableStateOf(quickAppsManager.hasUsageStatsPermission()) }
+    var isActionListExpanded by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         if (!isSetupComplete) {
@@ -115,9 +110,10 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
             }
         }
     ) {
-        Column(
-            modifier = Modifier.fillMaxSize()
-        ) {
+        ScrollableView {
+            Column(
+                modifier = Modifier.fillMaxSize()
+            ) {
             // Switch Configuration Banner
             if (!isSwitchConfigValid) {
                 SwitchConfigInvalidBanner(
@@ -127,95 +123,64 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
                 )
             }
 
-            // Grid Layout
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(2),
-                contentPadding = PaddingValues(16.dp),
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
+            // Collapsible Quick Actions List
+            CollapsibleActionList(
+                isExpanded = isActionListExpanded,
+                onToggleExpanded = { isActionListExpanded = !isActionListExpanded },
+                navController = navController,
+                hasUsageStatsPermission = hasUsageStatsPermission.value,
+                showDebug = BuildConfig.DEBUG,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Settings and Feedback Row
+            Row(
                 modifier = Modifier
-                    .weight(1f)
-                    .fillMaxSize()
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 // Settings Card
-                item {
-                    GridCard(
-                        titleResId = R.string.screen_title_settings,
-                        summaryResId = R.string.screen_summary_settings,
-                        onClick = { navController.navigate(NavigationRoute.Settings.name) },
-                        icon = {
-                            Icon(
-                                imageVector = Icons.Rounded.Settings,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.fillMaxSize()
-                            )
-                        }
-                    )
-                }
+                GridCard(
+                    titleResId = R.string.screen_title_settings,
+                    summaryResId = R.string.screen_summary_settings,
+                    onClick = { navController.navigate(NavigationRoute.Settings.name) },
+                    icon = {
+                        Icon(
+                            imageVector = Icons.Rounded.Settings,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    },
+                    modifier = Modifier.weight(1f)
+                )
 
                 // Feedback Card
-                item {
-                    GridCard(
-                        titleResId = R.string.home_feedback_title,
-                        summaryResId = R.string.home_feedback_summary,
-                        onClick = { navController.navigate(NavigationRoute.UserFeedback.name) },
-                        icon = {
-                            Icon(
-                                imageVector = Icons.Rounded.Feedback,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.fillMaxSize()
-                            )
-                        }
-                    )
-                }
-
-                
-
-                // Quick Apps Permission Card (only show if permission not granted)
-                if (!hasUsageStatsPermission.value) {
-                    item {
-                        GridCard(
-                            titleResId = R.string.menu_title_quick_apps,
-                            summaryResId = R.string.screen_summary_quick_apps_permission,
-                            onClick = { navController.navigate(NavigationRoute.UsageStatsPermission.name) },
-                            icon = {
-                                Icon(
-                                    imageVector = Icons.Rounded.Apps,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.fillMaxSize()
-                                )
-                            }
+                GridCard(
+                    titleResId = R.string.home_feedback_title,
+                    summaryResId = R.string.home_feedback_summary,
+                    onClick = { navController.navigate(NavigationRoute.UserFeedback.name) },
+                    icon = {
+                        Icon(
+                            imageVector = Icons.Rounded.Feedback,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.fillMaxSize()
                         )
-                    }
-                }
-
-                // Debug Card (only visible in debug mode)
-                if (BuildConfig.DEBUG) {
-                    item {
-                        GridCard(
-                            titleResId = R.string.screen_title_debug,
-                            summaryResId = R.string.screen_summary_debug,
-                            onClick = { navController.navigate(NavigationRoute.Debug.name) },
-                            icon = {
-                                Icon(
-                                    imageVector = Icons.Rounded.BugReport,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.fillMaxSize()
-                                )
-                            }
-                        )
-                    }
-                }
+                    },
+                    modifier = Modifier.weight(1f)
+                )
             }
-        } // End Column
+            } // End Column
+        } // End ScrollableView
 
         // Restart prompt handled in bottomBar component
     }
 }
+
 
 @Composable
 private fun GridCard(
@@ -224,9 +189,10 @@ private fun GridCard(
     summaryArgs: Array<Any>? = null,
     onClick: () -> Unit,
     icon: @Composable () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     Card(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .aspectRatio(1f)
             .clickable(onClick = onClick),
