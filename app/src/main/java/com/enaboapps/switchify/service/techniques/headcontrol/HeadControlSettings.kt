@@ -84,6 +84,8 @@ class HeadControlSettings(context: Context) {
     
     fun isGestureSelectionEnabled(): Boolean = prefs.getBooleanValue(KEY_GESTURE_SELECTION_ENABLED, true)
     
+    fun isHeadControlPriorityEnabled(): Boolean = prefs.getBooleanValue(KEY_GESTURE_PRIORITY_HEAD_CONTROL, true)
+    
     fun gestureHoldTime(): Long = prefs.getLongValue(KEY_GESTURE_HOLD_TIME, 500L).coerceIn(100L, 2000L)
     
     /**
@@ -112,6 +114,7 @@ class HeadControlSettings(context: Context) {
         const val KEY_SELECT_GESTURE = "head_control_select_gesture"
         const val KEY_GESTURE_SELECTION_ENABLED = "head_control_gesture_selection_enabled"
         const val KEY_GESTURE_HOLD_TIME = "head_control_gesture_hold_time"
+        const val KEY_GESTURE_PRIORITY_HEAD_CONTROL = "head_control_gesture_priority_head_control"
         const val KEY_ABSOLUTE_MODE = "head_control_absolute_mode"
         const val KEY_MOVEMENT_SPEED = "head_control_movement_speed"
         const val KEY_HORIZONTAL_DEADZONE = "head_control_horizontal_deadzone"

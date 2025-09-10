@@ -36,6 +36,11 @@ class GestureConflictDetector(private val context: Context) {
      * @return true if there's a conflict that should prioritize head control
      */
     fun shouldPrioritizeHeadControl(gestureId: String, switchEventProvider: SwitchEventProvider?): Boolean {
+        // Respect user-configured priority preference
+        if (!headControlSettings.isHeadControlPriorityEnabled()) {
+            return false
+        }
+        
         // Only check conflicts when head control is the active technique
         if (AccessTechnique.getCurrentTechnique() != AccessTechnique.Technique.HEAD_CONTROL) {
             return false

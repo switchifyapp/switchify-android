@@ -266,6 +266,7 @@ fun HeadControlSelectionTab(
     
     var selectedGesture by remember { mutableIntStateOf(gestureIndex) }
     var gestureSelectionEnabled by remember { mutableStateOf(settings.isGestureSelectionEnabled()) }
+    var headControlPriority by remember { mutableStateOf(settings.isHeadControlPriorityEnabled()) }
     
     // Use centralized hold time values
     val currentHoldTime = settings.gestureHoldTime()
@@ -284,6 +285,16 @@ fun HeadControlSelectionTab(
                 }
             )
             
+            PreferenceSwitch(
+                checked = headControlPriority,
+                titleResId = R.string.head_control_priority_title,
+                summaryResId = R.string.head_control_priority_summary,
+                onCheckedChange = { enabled ->
+                    headControlPriority = enabled
+                    prefs.setBooleanValue(HeadControlSettings.KEY_GESTURE_PRIORITY_HEAD_CONTROL, enabled)
+                }
+            )
+            
             if (gestureSelectionEnabled) {
                 PreferenceValueSelector(
                     value = selectedGesture,
@@ -297,6 +308,15 @@ fun HeadControlSelectionTab(
                         prefs.setStringValue(HeadControlSettings.KEY_SELECT_GESTURE, availableGestures[index])
                     }
                 )
+                
+                val selectedGestureId = availableGestures.getOrNull(selectedGesture) ?: currentGesture
+                val conflictAssigned = com.enaboapps.switchify.service.core.ServiceCore.getSwitchEventProvider()?.isFacialGestureAssigned(selectedGestureId) == true
+                if (conflictAssigned) {
+                    Text(
+                        text = stringResource(R.string.head_control_conflict_warning),
+                        color = androidx.compose.material3.MaterialTheme.colorScheme.error
+                    )
+                }
                 
                 PreferenceValueSelector(
                     value = gestureHoldTime,
