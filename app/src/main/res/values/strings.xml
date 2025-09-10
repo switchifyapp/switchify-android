@@ -744,6 +744,10 @@
     <string name="home_camera_permission_summary">Grant camera access for head control features</string>
     <string name="home_actions_no_items">All features are already enabled! ✅</string>
     
+    <!-- Camera Settings Navigation -->
+    <string name="camera_settings_navigation_hint_title">Head Control Movement Settings</string>
+    <string name="camera_settings_navigation_hint_description">Configure head movement sensitivity and cursor control for smooth head control experience</string>
+    
     <!-- Switch List Item -->
     <string name="switch_additional_actions">Additional Actions</string>
     <string name="switch_more_actions">+%1$d more actions</string>
