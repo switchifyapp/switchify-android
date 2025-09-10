@@ -30,6 +30,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -40,7 +43,7 @@ import java.util.concurrent.Executors
  * Foreground service dedicated to camera capture and MediaPipe processing.
  * Runs independently of AccessibilityService for better reliability and Android compliance.
  */
-class CameraForegroundService : Service() {
+class CameraForegroundService : Service(), CameraLifecycle {
 
     private val binder = CameraServiceBinder()
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
@@ -56,6 +59,9 @@ class CameraForegroundService : Service() {
     private var yuvToRgbConverter: YuvToRgbConverter? = null
 
     // State management
+    private val _lifecycleState = MutableStateFlow(CameraLifecycle.State.UNINITIALIZED)
+    override val lifecycleState: StateFlow<CameraLifecycle.State> = _lifecycleState.asStateFlow()
+    private val lifecycleMutex = Mutex()
     private var isInitialized = false
     private var isProcessing = false
     private val processingMutex = Mutex()
@@ -136,17 +142,44 @@ class CameraForegroundService : Service() {
 
     override fun onDestroy() {
         Log.d(TAG, "Service destroyed")
-        cleanup()
+        CoroutineScope(SupervisorJob() + Dispatchers.Default).launch {
+            try {
+                cleanup()
+            } finally {
+                serviceScope.cancel()
+            }
+        }
         super.onDestroy()
     }
 
     /**
-     * Initialize the camera service components
+     * Initialize the camera service components asynchronously.
      */
-    fun initialize(): Boolean {
-        return try {
-            if (isInitialized) {
+    override suspend fun initialize(): Boolean = lifecycleMutex.withLock {
+        when (lifecycleState.value) {
+            CameraLifecycle.State.READY -> {
                 Log.d(TAG, "Service already initialized")
+                return true
+            }
+            CameraLifecycle.State.INITIALIZING -> {
+                Log.d(TAG, "Initialization already in progress")
+                return false
+            }
+            CameraLifecycle.State.DESTROYED -> {
+                Log.w(TAG, "Cannot initialize destroyed service")
+                return false
+            }
+            else -> {
+                // Proceed with initialization
+            }
+        }
+        
+        return try {
+            _lifecycleState.value = CameraLifecycle.State.INITIALIZING
+            Log.d(TAG, "Initializing camera service")
+            
+            if (isInitialized) {
+                _lifecycleState.value = CameraLifecycle.State.READY
                 return true
             }
 
@@ -160,11 +193,13 @@ class CameraForegroundService : Service() {
             cameraExecutor = Executors.newSingleThreadExecutor()
 
             isInitialized = true
+            _lifecycleState.value = CameraLifecycle.State.READY
             Log.i(TAG, "Camera service initialized successfully")
             true
 
         } catch (e: Exception) {
             Log.e(TAG, "Failed to initialize camera service", e)
+            _lifecycleState.value = CameraLifecycle.State.ERROR
             false
         }
     }
@@ -181,18 +216,22 @@ class CameraForegroundService : Service() {
         return try {
             currentLifecycleOwner = lifecycleOwner
 
-            serviceScope.launch(Dispatchers.Main) {
-                val cameraProviderFuture =
-                    ProcessCameraProvider.getInstance(this@CameraForegroundService)
-                cameraProvider = cameraProviderFuture.get()
-
-                setupImageAnalysis()
-                bindCameraUseCases(lifecycleOwner)
-
-                isProcessing = true
-                Log.i(TAG, "Camera started successfully")
-                startWatchdog()
-            }
+            val cameraProviderFuture =
+                ProcessCameraProvider.getInstance(this@CameraForegroundService)
+            cameraProviderFuture.addListener({
+                serviceScope.launch(Dispatchers.Main) {
+                    try {
+                        cameraProvider = cameraProviderFuture.get()
+                        setupImageAnalysis()
+                        bindCameraUseCases(lifecycleOwner)
+                        isProcessing = true
+                        Log.i(TAG, "Camera started successfully")
+                        startWatchdog()
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Failed to start camera in listener", e)
+                    }
+                }
+            }, { serviceScope.launch(Dispatchers.Main) { it.run() } })
 
             true
         } catch (e: Exception) {
@@ -575,17 +614,39 @@ class CameraForegroundService : Service() {
     }
 
     /**
-     * Clean up all resources
+     * Clean up all resources asynchronously.
      */
-    private fun cleanup() {
-        try {
+    override suspend fun cleanup(): Boolean = lifecycleMutex.withLock {
+        when (lifecycleState.value) {
+            CameraLifecycle.State.DESTROYED -> {
+                Log.d(TAG, "Service already cleaned up")
+                return true
+            }
+            CameraLifecycle.State.CLEANING_UP -> {
+                Log.d(TAG, "Cleanup already in progress")
+                return false
+            }
+            CameraLifecycle.State.UNINITIALIZED -> {
+                Log.d(TAG, "Nothing to clean up")
+                _lifecycleState.value = CameraLifecycle.State.DESTROYED
+                return true
+            }
+            else -> {
+                // Proceed with cleanup
+            }
+        }
+        
+        return try {
+            _lifecycleState.value = CameraLifecycle.State.CLEANING_UP
+            Log.d(TAG, "Cleaning up camera service")
+            
             isProcessing = false
             isInitialized = false
 
             // Stop camera
             serviceScope.launch(Dispatchers.Main) {
                 cameraProvider?.unbindAll()
-            }
+            }.join()
 
             // Clean up processing components  
             faceProcessingService =
@@ -595,8 +656,7 @@ class CameraForegroundService : Service() {
             // Shut down executor
             cameraExecutor?.shutdown()
 
-            // Cancel coroutine scope
-            serviceScope.cancel()
+            // Coroutine scope will be cancelled in onDestroy
 
             // Clear references
             cameraProvider = null
@@ -615,10 +675,14 @@ class CameraForegroundService : Service() {
             availabilityCallback = null
             cameraManager = null
 
-            Log.i(TAG, "Camera service cleaned up")
+            _lifecycleState.value = CameraLifecycle.State.DESTROYED
+            Log.i(TAG, "Camera service cleaned up successfully")
+            true
 
         } catch (e: Exception) {
             Log.e(TAG, "Error during cleanup", e)
+            _lifecycleState.value = CameraLifecycle.State.ERROR
+            false
         }
     }
 }

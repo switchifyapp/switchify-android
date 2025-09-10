@@ -11,18 +11,25 @@ import android.util.Log
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
 import com.enaboapps.switchify.service.camera.CameraForegroundService
+import com.enaboapps.switchify.service.camera.CameraPermissionManager
 import com.enaboapps.switchify.service.utils.DeviceLockObserver
 import com.enaboapps.switchify.service.techniques.AccessTechnique
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeout
 
 class CameraServiceController(
     private val context: Context,
     private val lifecycleOwner: LifecycleOwner,
     private val deviceLockObserver: DeviceLockObserver,
+    private val serviceScope: CoroutineScope = CoroutineScope(Dispatchers.Main),
     private val onServiceConnected: (CameraForegroundService) -> Unit = {},
     private val onServiceDisconnected: () -> Unit = {}
 ) {
     var service: CameraForegroundService? = null
     private var isBound = false
+    private val permissionManager = CameraPermissionManager.getInstance(context)
 
     private companion object {
         private const val TAG = "CameraServiceController"
@@ -34,9 +41,11 @@ class CameraServiceController(
             val svc = (binder as CameraForegroundService.CameraServiceBinder).getService()
             service = svc
             isBound = true
-            if (service?.initialize() == true) {
-                onServiceConnected(svc)
-                startIfAvailable()
+            serviceScope.launch {
+                if (svc.initialize()) {
+                    onServiceConnected(svc)
+                    startIfAvailable()
+                }
             }
         }
 
@@ -52,12 +61,12 @@ class CameraServiceController(
         val provider = ServiceCore.getSwitchEventProvider()
         val headActive = AccessTechnique.getCurrentTechnique() == AccessTechnique.Technique.HEAD_CONTROL
         val needsCamera = provider?.hasCameraSwitch == true || headActive
-        if (needsCamera && !isBound && hasCameraPermission()) {
+        if (needsCamera && !isBound && permissionManager.hasPermission()) {
             val intent = Intent(context, CameraForegroundService::class.java)
             context.startService(intent)
             context.bindService(intent, connection, Context.BIND_AUTO_CREATE)
             logd("Binding to camera foreground service (camera switches: ${provider?.hasCameraSwitch}, head control: $headActive)")
-        } else if (needsCamera && !hasCameraPermission()) {
+        } else if (needsCamera && !permissionManager.hasPermission()) {
             logd("Camera permission not granted, skipping camera service binding")
         }
     }
@@ -65,12 +74,23 @@ class CameraServiceController(
     fun unbindIfBound() {
         if (isBound) {
             service?.stopCamera()
-            context.unbindService(connection)
-            val intent = Intent(context, CameraForegroundService::class.java)
-            context.stopService(intent)
-            isBound = false
-            service = null
-            logd("Unbound from camera foreground service")
+            serviceScope.launch {
+                try {
+                    withTimeout(5_000) {
+                        service?.cleanup()
+                    }
+                } catch (t: Throwable) {
+                    Log.w(TAG, "Cleanup failed or timed out; proceeding with unbind/stop", t)
+                } finally {
+                    if (isBound) {
+                        context.unbindService(connection)
+                        context.stopService(Intent(context, CameraForegroundService::class.java))
+                        isBound = false
+                        service = null
+                        logd("Unbound from camera foreground service")
+                    }
+                }
+            }
         }
     }
 
@@ -78,20 +98,14 @@ class CameraServiceController(
         val provider = ServiceCore.getSwitchEventProvider()
         val headActive = AccessTechnique.getCurrentTechnique() == AccessTechnique.Technique.HEAD_CONTROL
         val needsCamera = provider?.hasCameraSwitch == true || headActive
-        if (needsCamera && deviceLockObserver.isUserUnlocked() && hasCameraPermission()) {
+        if (needsCamera && deviceLockObserver.isUserUnlocked() && permissionManager.hasPermission()) {
             service?.startCamera(lifecycleOwner)
             logd("Started camera service (camera switches: ${provider?.hasCameraSwitch}, head control: $headActive)")
-        } else if (needsCamera && !hasCameraPermission()) {
+        } else if (needsCamera && !permissionManager.hasPermission()) {
             logd("Camera permission not granted, cannot start camera service")
         }
     }
 
-    private fun hasCameraPermission(): Boolean {
-        return ContextCompat.checkSelfPermission(
-            context,
-            Manifest.permission.CAMERA
-        ) == PackageManager.PERMISSION_GRANTED
-    }
 
     private fun logd(message: String) {
         Log.d(TAG, message)

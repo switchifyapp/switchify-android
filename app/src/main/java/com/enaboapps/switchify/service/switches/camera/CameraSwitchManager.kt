@@ -9,6 +9,8 @@ import android.os.Looper
 import android.util.Log
 import androidx.core.content.ContextCompat
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
+import com.enaboapps.switchify.service.camera.CameraLifecycle
+import com.enaboapps.switchify.service.camera.CameraPermissionManager
 import com.enaboapps.switchify.service.core.ServiceCore
 import com.enaboapps.switchify.service.face.FaceProcessingService
 import com.enaboapps.switchify.service.pauseresume.PauseManager
@@ -19,7 +21,14 @@ import com.enaboapps.switchify.switches.CameraSwitchFacialGesture
 import com.enaboapps.switchify.switches.SwitchEvent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 /**
  * Manages camera switch gesture processing and triggers actions.
@@ -30,9 +39,14 @@ class CameraSwitchManager(
     private val context: Context,
     private val scanningManager: ScanningManager,
     private val switchEventProvider: SwitchEventProvider
-) {
+) : CameraLifecycle {
     private val preferenceManager = PreferenceManager(context)
-    private var isInitialized = false
+    private val permissionManager = CameraPermissionManager.getInstance(context)
+    
+    // Lifecycle state management
+    private val _lifecycleState = MutableStateFlow(CameraLifecycle.State.UNINITIALIZED)
+    override val lifecycleState: StateFlow<CameraLifecycle.State> = _lifecycleState.asStateFlow()
+    private val lifecycleMutex = Mutex()
 
     private data class CameraSwitchState(
         var isActive: Boolean,
@@ -54,7 +68,7 @@ class CameraSwitchManager(
     private var lastHeadTurnTime = 0L
     private val headTurnCooldown = 500L // 500ms minimum between head turn triggers
 
-    private val coroutineScope = CoroutineScope(Dispatchers.Default)
+    private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val mainHandler = Handler(Looper.getMainLooper())
 
     private var isReceiverRegistered = false
@@ -73,20 +87,46 @@ class CameraSwitchManager(
     }
 
     /**
-     * Initialize the camera switch manager
+     * Initialize the camera switch manager asynchronously.
      */
-    fun initialize() {
-        if (isInitialized) {
-            Log.d(TAG, "Already initialized")
-            return
+    override suspend fun initialize(): Boolean = lifecycleMutex.withLock {
+        when (lifecycleState.value) {
+            CameraLifecycle.State.READY -> {
+                Log.d(TAG, "Already initialized")
+                return true
+            }
+            CameraLifecycle.State.INITIALIZING -> {
+                Log.d(TAG, "Initialization already in progress")
+                return false
+            }
+            CameraLifecycle.State.DESTROYED -> {
+                Log.w(TAG, "Cannot initialize destroyed manager")
+                return false
+            }
+            else -> {
+                // Proceed with initialization
+            }
         }
-
-        try {
+        
+        return try {
+            _lifecycleState.value = CameraLifecycle.State.INITIALIZING
+            Log.d(TAG, "Initializing camera switch manager")
+            
+            // Check camera permission first
+            if (!permissionManager.hasPermission()) {
+                Log.w(TAG, "Camera permission not granted")
+                _lifecycleState.value = CameraLifecycle.State.ERROR
+                return false
+            }
+            
             registerPauseReceiver()
-            isInitialized = true
-            Log.d(TAG, "Camera switch manager initialized")
+            _lifecycleState.value = CameraLifecycle.State.READY
+            Log.d(TAG, "Camera switch manager initialized successfully")
+            true
         } catch (e: Exception) {
             Log.e(TAG, "Failed to initialize", e)
+            _lifecycleState.value = CameraLifecycle.State.ERROR
+            false
         }
     }
 
@@ -109,8 +149,8 @@ class CameraSwitchManager(
     }
 
     private fun checkInitialization(): Boolean {
-        if (!isInitialized) {
-            Log.w(TAG, "Manager not initialized")
+        if (!isReady()) {
+            Log.w(TAG, "Manager not ready (state: ${lifecycleState.value})")
             return false
         }
         return true
@@ -323,10 +363,32 @@ class CameraSwitchManager(
     }
 
     /**
-     * Clean up resources
+     * Clean up resources asynchronously.
      */
-    fun cleanup() {
-        try {
+    override suspend fun cleanup(): Boolean = lifecycleMutex.withLock {
+        when (lifecycleState.value) {
+            CameraLifecycle.State.DESTROYED -> {
+                Log.d(TAG, "Already cleaned up")
+                return true
+            }
+            CameraLifecycle.State.CLEANING_UP -> {
+                Log.d(TAG, "Cleanup already in progress")
+                return false
+            }
+            CameraLifecycle.State.UNINITIALIZED -> {
+                Log.d(TAG, "Nothing to clean up")
+                _lifecycleState.value = CameraLifecycle.State.DESTROYED
+                return true
+            }
+            else -> {
+                // Proceed with cleanup
+            }
+        }
+        
+        return try {
+            _lifecycleState.value = CameraLifecycle.State.CLEANING_UP
+            Log.d(TAG, "Cleaning up camera switch manager")
+            
             if (isReceiverRegistered) {
                 context.unregisterReceiver(pauseReceiver)
                 isReceiverRegistered = false
@@ -335,12 +397,17 @@ class CameraSwitchManager(
             gestureStates.values.forEach { it.isActive = false }
             activeGesture = null
             scanningManager.getHeadControlManagerOrNull()?.resetGestureState()
-            isInitialized = false
-
-            Log.d(TAG, "Camera switch manager cleaned up")
-
+            
+            // Cancel coroutine scope
+            coroutineScope.cancel()
+            
+            _lifecycleState.value = CameraLifecycle.State.DESTROYED
+            Log.d(TAG, "Camera switch manager cleaned up successfully")
+            true
         } catch (e: Exception) {
             Log.e(TAG, "Error during cleanup", e)
+            _lifecycleState.value = CameraLifecycle.State.ERROR
+            false
         }
     }
 
