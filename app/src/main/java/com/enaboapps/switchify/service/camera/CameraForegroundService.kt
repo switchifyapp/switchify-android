@@ -142,8 +142,12 @@ class CameraForegroundService : Service(), CameraLifecycle {
 
     override fun onDestroy() {
         Log.d(TAG, "Service destroyed")
-        serviceScope.launch {
-            cleanup()
+        CoroutineScope(SupervisorJob() + Dispatchers.Default).launch {
+            try {
+                cleanup()
+            } finally {
+                serviceScope.cancel()
+            }
         }
         super.onDestroy()
     }
@@ -212,18 +216,22 @@ class CameraForegroundService : Service(), CameraLifecycle {
         return try {
             currentLifecycleOwner = lifecycleOwner
 
-            serviceScope.launch(Dispatchers.Main) {
-                val cameraProviderFuture =
-                    ProcessCameraProvider.getInstance(this@CameraForegroundService)
-                cameraProvider = cameraProviderFuture.get()
-
-                setupImageAnalysis()
-                bindCameraUseCases(lifecycleOwner)
-
-                isProcessing = true
-                Log.i(TAG, "Camera started successfully")
-                startWatchdog()
-            }
+            val cameraProviderFuture =
+                ProcessCameraProvider.getInstance(this@CameraForegroundService)
+            cameraProviderFuture.addListener({
+                serviceScope.launch(Dispatchers.Main) {
+                    try {
+                        cameraProvider = cameraProviderFuture.get()
+                        setupImageAnalysis()
+                        bindCameraUseCases(lifecycleOwner)
+                        isProcessing = true
+                        Log.i(TAG, "Camera started successfully")
+                        startWatchdog()
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Failed to start camera in listener", e)
+                    }
+                }
+            }, { serviceScope.launch(Dispatchers.Main) { it.run() } })
 
             true
         } catch (e: Exception) {
@@ -648,8 +656,7 @@ class CameraForegroundService : Service(), CameraLifecycle {
             // Shut down executor
             cameraExecutor?.shutdown()
 
-            // Cancel coroutine scope
-            serviceScope.cancel()
+            // Coroutine scope will be cancelled in onDestroy
 
             // Clear references
             cameraProvider = null

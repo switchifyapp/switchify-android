@@ -21,6 +21,8 @@ import com.enaboapps.switchify.switches.CameraSwitchFacialGesture
 import com.enaboapps.switchify.switches.SwitchEvent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -66,7 +68,7 @@ class CameraSwitchManager(
     private var lastHeadTurnTime = 0L
     private val headTurnCooldown = 500L // 500ms minimum between head turn triggers
 
-    private val coroutineScope = CoroutineScope(Dispatchers.Default)
+    private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val mainHandler = Handler(Looper.getMainLooper())
 
     private var isReceiverRegistered = false
@@ -395,6 +397,9 @@ class CameraSwitchManager(
             gestureStates.values.forEach { it.isActive = false }
             activeGesture = null
             scanningManager.getHeadControlManagerOrNull()?.resetGestureState()
+            
+            // Cancel coroutine scope
+            coroutineScope.cancel()
             
             _lifecycleState.value = CameraLifecycle.State.DESTROYED
             Log.d(TAG, "Camera switch manager cleaned up successfully")

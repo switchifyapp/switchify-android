@@ -17,6 +17,7 @@ import com.enaboapps.switchify.service.techniques.AccessTechnique
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeout
 
 class CameraServiceController(
     private val context: Context,
@@ -74,14 +75,22 @@ class CameraServiceController(
         if (isBound) {
             service?.stopCamera()
             serviceScope.launch {
-                service?.cleanup()
+                try {
+                    withTimeout(5_000) {
+                        service?.cleanup()
+                    }
+                } catch (t: Throwable) {
+                    Log.w(TAG, "Cleanup failed or timed out; proceeding with unbind/stop", t)
+                } finally {
+                    if (isBound) {
+                        context.unbindService(connection)
+                        context.stopService(Intent(context, CameraForegroundService::class.java))
+                        isBound = false
+                        service = null
+                        logd("Unbound from camera foreground service")
+                    }
+                }
             }
-            context.unbindService(connection)
-            val intent = Intent(context, CameraForegroundService::class.java)
-            context.stopService(intent)
-            isBound = false
-            service = null
-            logd("Unbound from camera foreground service")
         }
     }
 
