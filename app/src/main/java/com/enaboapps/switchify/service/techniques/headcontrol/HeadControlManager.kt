@@ -20,6 +20,10 @@ class HeadControlManager(private val context: Context) {
     
     companion object {
         private const val TAG = "HeadControlManager"
+        private const val SMOOTHING_FACTOR = 0.3f
+        private const val SCREEN_PADDING = 50
+        private const val HEAD_ROTATION_RANGE = 30f
+        private const val MOVEMENT_DELTA = 8f
     }
     private var currentX: Int = ScreenUtils.getWidth(context) / 2
     private var currentY: Int = ScreenUtils.getHeight(context) / 2
@@ -29,14 +33,12 @@ class HeadControlManager(private val context: Context) {
     // Head movement smoothing
     private var targetX: Int = currentX
     private var targetY: Int = currentY
-    private val smoothingFactor = 0.3f // 0 = no smoothing, 1 = instant
     
     // Movement bounds with padding
-    private val screenPadding = 50
-    private val minX = screenPadding
-    private val maxX = ScreenUtils.getWidth(context) - screenPadding
-    private val minY = screenPadding
-    private val maxY = ScreenUtils.getHeight(context) - screenPadding
+    private val minX = SCREEN_PADDING
+    private val maxX = ScreenUtils.getWidth(context) - SCREEN_PADDING
+    private val minY = SCREEN_PADDING
+    private val maxY = ScreenUtils.getHeight(context) - SCREEN_PADDING
     
     // Gesture selection state
     private var isGestureActive = false
@@ -55,36 +57,10 @@ class HeadControlManager(private val context: Context) {
     
     
     init {
-        // Auto-start head control when manager is created
-        Log.d(TAG, "HeadControlManager initialized - auto-starting")
         startHeadControl()
     }
 
     fun startHeadControl() { 
-        Log.d(TAG, "startHeadControl called - showing overlay at $currentX, $currentY")
-        showPointerIfAllowed()
-    }
-
-    fun stopHeadControl() {
-        overlay.reset()
-        resetGestureState()
-    }
-
-    fun resetToCenter() {
-        overlay.reset()
-        // Reset to center
-        currentX = ScreenUtils.getWidth(context) / 2
-        currentY = ScreenUtils.getHeight(context) / 2
-        targetX = currentX
-        targetY = currentY
-    }
-
-    fun pauseHeadControl() { 
-        overlay.hidePointer()
-        resetGestureState()
-    }
-
-    fun resumeHeadControl() { 
         showPointerIfAllowed()
     }
 
@@ -106,30 +82,6 @@ class HeadControlManager(private val context: Context) {
             GestureManager.instance.performTap()
         }
         SelectionHandler.performSelectionAction()
-    }
-
-    fun stepUp() {
-        val step = settings.baseStep()
-        targetY = (targetY - step).coerceAtLeast(minY)
-        smoothMovement()
-    }
-
-    fun stepDown() {
-        val step = settings.baseStep()
-        targetY = (targetY + step).coerceAtMost(maxY)
-        smoothMovement()
-    }
-
-    fun stepLeft() {
-        val step = settings.baseStep()
-        targetX = (targetX - step).coerceAtLeast(minX)
-        smoothMovement()
-    }
-
-    fun stepRight() {
-        val step = settings.baseStep()
-        targetX = (targetX + step).coerceAtMost(maxX)
-        smoothMovement()
     }
 
     /**
@@ -199,19 +151,19 @@ class HeadControlManager(private val context: Context) {
         var maxScore = 0f
 
         if (headRotationY > rightDeadzone) {
-            val score = (headRotationY - rightDeadzone) / (30f - rightDeadzone)
+            val score = (headRotationY - rightDeadzone) / (HEAD_ROTATION_RANGE - rightDeadzone)
             if (score > maxScore) { maxScore = score; candidate = Direction.RIGHT }
         }
         if (-headRotationY > leftDeadzone) {
-            val score = (-headRotationY - leftDeadzone) / (30f - leftDeadzone)
+            val score = (-headRotationY - leftDeadzone) / (HEAD_ROTATION_RANGE - leftDeadzone)
             if (score > maxScore) { maxScore = score; candidate = Direction.LEFT }
         }
         if (headRotationX > downDeadzone) {
-            val score = (headRotationX - downDeadzone) / (30f - downDeadzone)
+            val score = (headRotationX - downDeadzone) / (HEAD_ROTATION_RANGE - downDeadzone)
             if (score > maxScore) { maxScore = score; candidate = Direction.DOWN }
         }
         if (-headRotationX > upDeadzone) {
-            val score = (-headRotationX - upDeadzone) / (30f - upDeadzone)
+            val score = (-headRotationX - upDeadzone) / (HEAD_ROTATION_RANGE - upDeadzone)
             if (score > maxScore) { maxScore = score; candidate = Direction.UP }
         }
 
@@ -234,9 +186,6 @@ class HeadControlManager(private val context: Context) {
         val upDeadzone = settings.getEffectiveUpDeadzone()
         val downDeadzone = settings.getEffectiveDownDeadzone()
         
-        if (BuildConfig.DEBUG) {
-            Log.d(TAG, "Absolute mode - X: $headRotationX, Y: $headRotationY, sensitivity: $sensitivity, leftDZ: $leftDeadzone, rightDZ: $rightDeadzone, upDZ: $upDeadzone, downDZ: $downDeadzone")
-        }
         
         // Apply directional deadzones - ignore small head movements based on direction
         val adjustedX = if (headRotationY > 0 && headRotationY > rightDeadzone) {
@@ -260,10 +209,9 @@ class HeadControlManager(private val context: Context) {
         val screenHeight = ScreenUtils.getHeight(context)
         
         // Map head rotation to screen position
-        val headRotationRange = 30f
         
-        val normalizedX = (adjustedX / headRotationRange).coerceIn(-1f, 1f)
-        val normalizedY = (adjustedY / headRotationRange).coerceIn(-1f, 1f)
+        val normalizedX = (adjustedX / HEAD_ROTATION_RANGE).coerceIn(-1f, 1f)
+        val normalizedY = (adjustedY / HEAD_ROTATION_RANGE).coerceIn(-1f, 1f)
         
         // Convert to screen coordinates with sensitivity adjustment
         val desiredX = (screenWidth / 2 + normalizedX * screenWidth / 2 * sensitivity)
@@ -278,37 +226,33 @@ class HeadControlManager(private val context: Context) {
         val downDeadzone = settings.getEffectiveDownDeadzone()
         val movementSpeed = settings.movementSpeed()
         
-        if (BuildConfig.DEBUG) {
-            Log.d(TAG, "Continuous mode - X: $headRotationX, Y: $headRotationY, leftDZ: $leftDeadzone, rightDZ: $rightDeadzone, upDZ: $upDeadzone, downDZ: $downDeadzone, speed: $movementSpeed")
-        }
         
         // Calculate horizontal movement with separate left/right thresholds
         val horizontalMovement = if (headRotationY > 0 && headRotationY > rightDeadzone) {
             // Moving right
-            val normalizedRotation = (headRotationY - rightDeadzone) / (30f - rightDeadzone)
+            val normalizedRotation = (headRotationY - rightDeadzone) / (HEAD_ROTATION_RANGE - rightDeadzone)
             normalizedRotation.coerceIn(0f, 1f) * movementSpeed
         } else if (headRotationY < 0 && kotlin.math.abs(headRotationY) > leftDeadzone) {
             // Moving left
-            val normalizedRotation = (kotlin.math.abs(headRotationY) - leftDeadzone) / (30f - leftDeadzone)
+            val normalizedRotation = (kotlin.math.abs(headRotationY) - leftDeadzone) / (HEAD_ROTATION_RANGE - leftDeadzone)
             -(normalizedRotation.coerceIn(0f, 1f) * movementSpeed)
         } else 0f
         
         // Calculate vertical movement with separate up/down thresholds
         val verticalMovement = if (headRotationX > 0 && headRotationX > downDeadzone) {
             // Moving down
-            val normalizedRotation = (headRotationX - downDeadzone) / (30f - downDeadzone)
+            val normalizedRotation = (headRotationX - downDeadzone) / (HEAD_ROTATION_RANGE - downDeadzone)
             normalizedRotation.coerceIn(0f, 1f) * movementSpeed
         } else if (headRotationX < 0 && kotlin.math.abs(headRotationX) > upDeadzone) {
             // Moving up
-            val normalizedRotation = (kotlin.math.abs(headRotationX) - upDeadzone) / (30f - upDeadzone)
+            val normalizedRotation = (kotlin.math.abs(headRotationX) - upDeadzone) / (HEAD_ROTATION_RANGE - upDeadzone)
             -(normalizedRotation.coerceIn(0f, 1f) * movementSpeed)
         } else 0f
         
         // Apply movement immediately
         if (horizontalMovement != 0f || verticalMovement != 0f) {
-            val movementDelta = 8f
-            val desiredX = currentX + horizontalMovement * movementDelta
-            val desiredY = currentY + verticalMovement * movementDelta
+            val desiredX = currentX + horizontalMovement * MOVEMENT_DELTA
+            val desiredY = currentY + verticalMovement * MOVEMENT_DELTA
             return Pair(desiredX, desiredY)
         }
         return Pair(currentX.toFloat(), currentY.toFloat())
@@ -317,8 +261,8 @@ class HeadControlManager(private val context: Context) {
     
     private fun smoothMovement() {
         // Apply smoothing to prevent jittery movement
-        val deltaX = (targetX - currentX) * smoothingFactor
-        val deltaY = (targetY - currentY) * smoothingFactor
+        val deltaX = (targetX - currentX) * SMOOTHING_FACTOR
+        val deltaY = (targetY - currentY) * SMOOTHING_FACTOR
         
         currentX = (currentX + deltaX).toInt().coerceIn(minX, maxX)
         currentY = (currentY + deltaY).toInt().coerceIn(minY, maxY)
@@ -331,8 +275,6 @@ class HeadControlManager(private val context: Context) {
             overlay.showPointer(currentX, currentY)
         }
     }
-
-    fun getCurrentPosition(): Pair<Int, Int> = Pair(currentX, currentY)
     
     /**
      * Handles gesture detection for head control selection
@@ -350,10 +292,8 @@ class HeadControlManager(private val context: Context) {
         }
         
         if (isGestureStarting && !isGestureActive) {
-            Log.d(TAG, "Gesture started: $gestureId")
             gestureStarted(gestureId)
         } else if (!isGestureStarting && isGestureActive && currentActiveGesture == gestureId) {
-            Log.d(TAG, "Gesture ended: $gestureId")
             gestureEnded(gestureId)
         }
     }
@@ -362,7 +302,6 @@ class HeadControlManager(private val context: Context) {
         isGestureActive = true
         gestureStartTime = System.currentTimeMillis()
         currentActiveGesture = gestureId
-        Log.d(TAG, "Started tracking gesture: $gestureId")
     }
     
     private fun gestureEnded(gestureId: String) {
@@ -373,13 +312,8 @@ class HeadControlManager(private val context: Context) {
         val duration = System.currentTimeMillis() - gestureStartTime
         val requiredHoldTime = settings.gestureHoldTime()
         
-        Log.d(TAG, "Gesture $gestureId held for ${duration}ms (required: ${requiredHoldTime}ms)")
-        
         if (duration >= requiredHoldTime) {
-            Log.i(TAG, "Gesture selection triggered by $gestureId")
             performSelection()
-        } else {
-            Log.d(TAG, "Gesture $gestureId not held long enough")
         }
         
         // Reset gesture state
@@ -395,7 +329,6 @@ class HeadControlManager(private val context: Context) {
         isGestureActive = false
         gestureStartTime = 0L
         currentActiveGesture = null
-        Log.d(TAG, "Gesture state reset")
     }
     
     /**
@@ -403,30 +336,21 @@ class HeadControlManager(private val context: Context) {
      * @param menuMode true if navigating menus, false for screen navigation
      */
     fun setMenuMode(menuMode: Boolean) {
-        Log.d(TAG, "setMenuMode called with: $menuMode, current mode: $isInMenuMode")
         if (isInMenuMode != menuMode) {
-            Log.d(TAG, "Menu mode changed: $menuMode")
             isInMenuMode = menuMode
             
             if (menuMode) {
-                Log.d(TAG, "Entering menu mode - getting current menu view...")
                 val menuView = MenuManager.getInstance().getCurrentMenuView()
-                Log.d(TAG, "Current menu view: $menuView")
                 val nodes = menuView?.getSelectableNodes() ?: emptyList()
-                Log.d(TAG, "Got ${nodes.size} selectable nodes from menu view")
                 if (headControlScanner == null) {
-                    Log.d(TAG, "Creating new HeadControlItemScanner")
                     headControlScanner = HeadControlItemScanner()
                 }
-                Log.d(TAG, "About to set nodes on scanner...")
                 headControlScanner?.setNodes(nodes)
                 headControlScanner?.initializeSelectionNear(currentX.toFloat(), currentY.toFloat())
-                Log.d(TAG, "Set ${nodes.size} nodes for head control navigation")
                 overlay.hidePointer()
             } else {
                 headControlScanner?.clear()
                 headControlScanner = null
-                Log.d(TAG, "Cleared head control nodes")
                 showPointerIfAllowed()
                 repeatJob?.cancel()
                 repeatJob = null
@@ -445,7 +369,6 @@ class HeadControlManager(private val context: Context) {
             val nodes = menuView?.getSelectableNodes() ?: emptyList()
             headControlScanner?.setNodes(nodes)
             headControlScanner?.initializeSelectionNear(currentX.toFloat(), currentY.toFloat())
-            Log.d(TAG, "Refreshed ${nodes.size} nodes for head control navigation")
         }
     }
 }

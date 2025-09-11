@@ -11,15 +11,18 @@ class HeadControlItemScanner {
     private var lastHeadX: Float? = null
     private var lastHeadY: Float? = null
     private var lastStepTime: Long = 0L
-    private val movementThreshold = 10f
-    private val stepCooldownMs = 200L
+    
+    companion object {
+        private const val MOVEMENT_THRESHOLD = 10f
+        private const val STEP_COOLDOWN_MS = 200L
+        private const val DIRECTIONAL_TOLERANCE = 0.75f
+        private const val ANGULAR_COS_THRESHOLD = 0.5f
+    }
 
     fun setNodes(nodeList: List<ScanNodeInterface>) {
-        android.util.Log.d("HeadControlItemScanner", "setNodes called with ${nodeList.size} nodes")
         nodes = nodeList
         cacheNodePositions()
         selectedIndex = if (nodes.isNotEmpty()) 0 else -1
-        android.util.Log.d("HeadControlItemScanner", "Selected initial index: $selectedIndex, node positions: $nodePositions")
         highlightCurrent()
     }
 
@@ -32,10 +35,7 @@ class HeadControlItemScanner {
     }
 
     fun updateSelection(headX: Float, headY: Float) {
-        if (nodes.isEmpty()) {
-            android.util.Log.d("HeadControlItemScanner", "updateSelection: no nodes available")
-            return
-        }
+        if (nodes.isEmpty()) return
 
         val prevX = lastHeadX
         val prevY = lastHeadY
@@ -47,10 +47,10 @@ class HeadControlItemScanner {
         val dx = headX - prevX
         val dy = headY - prevY
         val movement = sqrt(dx.pow(2) + dy.pow(2))
-        if (movement < movementThreshold) return
+        if (movement < MOVEMENT_THRESHOLD) return
 
         val now = System.currentTimeMillis()
-        if (now - lastStepTime < stepCooldownMs) return
+        if (now - lastStepTime < STEP_COOLDOWN_MS) return
 
         if (selectedIndex !in nodes.indices) return
 
@@ -63,7 +63,6 @@ class HeadControlItemScanner {
         } ?: selectAngular(current, dx, dy)
 
         if (candidate != null && candidate != selectedIndex) {
-            android.util.Log.d("HeadControlItemScanner", "Stepping from $selectedIndex to $candidate (dx=$dx, dy=$dy)")
             unhighlightCurrent()
             selectedIndex = candidate
             highlightCurrent()
@@ -138,7 +137,7 @@ class HeadControlItemScanner {
     private fun selectHorizontal(current: Pair<Float, Float>, dx: Float): Int? {
         val right = dx > 0
         val (cx, cy) = current
-        val tolerance = currentNodeHeight() * 0.75f
+        val tolerance = currentNodeHeight() * DIRECTIONAL_TOLERANCE
         var bestIndex: Int? = null
         var bestDelta = Float.MAX_VALUE
         nodePositions.forEachIndexed { i, (nx, ny) ->
@@ -158,7 +157,7 @@ class HeadControlItemScanner {
     private fun selectVertical(current: Pair<Float, Float>, dy: Float): Int? {
         val down = dy > 0
         val (cx, cy) = current
-        val tolerance = currentNodeWidth() * 0.75f
+        val tolerance = currentNodeWidth() * DIRECTIONAL_TOLERANCE
         var bestIndex: Int? = null
         var bestDelta = Float.MAX_VALUE
         nodePositions.forEachIndexed { i, (nx, ny) ->
@@ -192,7 +191,7 @@ class HeadControlItemScanner {
             val wxMag = sqrt(wx.pow(2) + wy.pow(2))
             if (wxMag == 0f) return@forEachIndexed
             val cosTheta = proj / wxMag
-            if (cosTheta < 0.5f) return@forEachIndexed
+            if (cosTheta < ANGULAR_COS_THRESHOLD) return@forEachIndexed
             if (proj < bestProj) {
                 bestProj = proj
                 bestIndex = i

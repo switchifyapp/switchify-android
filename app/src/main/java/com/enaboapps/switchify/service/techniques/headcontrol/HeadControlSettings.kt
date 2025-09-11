@@ -61,22 +61,6 @@ class HeadControlSettings(context: Context) {
         }
     }
     
-    // Legacy methods for backward compatibility
-    fun getEffectiveHorizontalDeadzone(): Float {
-        return if (useSeparateDirectionalThresholds()) {
-            (leftDeadzone() + rightDeadzone()) / 2f
-        } else {
-            deadzone()
-        }
-    }
-    
-    fun getEffectiveVerticalDeadzone(): Float {
-        return if (useSeparateDirectionalThresholds()) {
-            (upDeadzone() + downDeadzone()) / 2f
-        } else {
-            deadzone()
-        }
-    }
     
     fun baseStep(): Int = prefs.getIntegerValue(KEY_BASE_STEP, 25).coerceIn(5, 100)
     
