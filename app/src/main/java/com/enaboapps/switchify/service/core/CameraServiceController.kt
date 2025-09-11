@@ -59,8 +59,9 @@ class CameraServiceController(
 
     fun bindIfNeeded() {
         val provider = ServiceCore.getSwitchEventProvider()
-        // Head control is now independent - TODO: check if head control is enabled
-        val headActive = false  // Simplified for now
+        // Head control is now independent - check if it's enabled
+        val headControlSettings = com.enaboapps.switchify.service.techniques.headcontrol.HeadControlSettings(context)
+        val headActive = headControlSettings.isHeadControlEnabled()
         val needsCamera = provider?.hasCameraSwitch == true || headActive
         if (needsCamera && !isBound && permissionManager.hasPermission()) {
             val intent = Intent(context, CameraForegroundService::class.java)
@@ -97,8 +98,9 @@ class CameraServiceController(
 
     fun startIfAvailable() {
         val provider = ServiceCore.getSwitchEventProvider()
-        // Head control is now independent - TODO: check if head control is enabled
-        val headActive = false  // Simplified for now
+        // Head control is now independent - check if it's enabled
+        val headControlSettings = com.enaboapps.switchify.service.techniques.headcontrol.HeadControlSettings(context)
+        val headActive = headControlSettings.isHeadControlEnabled()
         val needsCamera = provider?.hasCameraSwitch == true || headActive
         if (needsCamera && deviceLockObserver.isUserUnlocked() && permissionManager.hasPermission()) {
             service?.startCamera(lifecycleOwner)

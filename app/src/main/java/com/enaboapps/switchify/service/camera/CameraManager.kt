@@ -71,10 +71,9 @@ class CameraManager(
     private fun shouldCameraBeActive(currentTechnique: String, hasCameraSwitch: Boolean): Boolean {
         if (hasCameraSwitch) return true
         
-        // Head control is now independent - check if camera is needed for head tracking
-        // TODO: Add proper head control enabled check when settings are updated
-        // For now, assume head control might be used if no other camera switch is present
-        return false  // Simplified logic for now
+        // Head control is now independent - check if it's enabled
+        val headControlSettings = HeadControlSettings(context)
+        if (headControlSettings.isHeadControlEnabled()) return true
         
         return false
     }

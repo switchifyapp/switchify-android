@@ -107,7 +107,14 @@ class HeadControlSettings(context: Context) {
         return getAvailableSelectGestures().contains(gestureId)
     }
 
+    fun isHeadControlEnabled(): Boolean = prefs.getBooleanValue(KEY_ENABLED, false)
+    
+    fun setHeadControlEnabled(enabled: Boolean) {
+        prefs.setBooleanValue(KEY_ENABLED, enabled)
+    }
+
     companion object {
+        const val KEY_ENABLED = "head_control_enabled"
         const val KEY_SENSITIVITY = "head_control_sensitivity"
         const val KEY_DEADZONE = "head_control_deadzone"
         const val KEY_BASE_STEP = "head_control_base_step"

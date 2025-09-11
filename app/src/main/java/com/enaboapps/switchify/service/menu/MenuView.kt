@@ -12,6 +12,7 @@ import com.enaboapps.switchify.service.gestures.GesturePoint
 import com.enaboapps.switchify.service.menu.menus.BaseMenu
 import com.enaboapps.switchify.service.scanning.ScanningManager
 import com.enaboapps.switchify.service.scanning.tree.ScanTree
+import com.enaboapps.switchify.service.core.ServiceCore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -222,6 +223,9 @@ class MenuView(
         Handler(Looper.getMainLooper()).postDelayed({
             if (pageExists) {
                 scanTree.buildTree(menuPages[currentPage].translateMenuItemsToNodes(), 0)
+                
+                // Notify head control that menu nodes changed
+                ServiceCore.getHeadControlService()?.refreshMenuNodes()
             } else {
                 MenuManager.getInstance().closeMenuHierarchy()
             }

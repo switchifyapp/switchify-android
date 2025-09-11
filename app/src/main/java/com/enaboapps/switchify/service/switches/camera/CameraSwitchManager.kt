@@ -185,13 +185,12 @@ class CameraSwitchManager(
         }
 
         // Update head control when enabled (independent of access technique)
-        val headControlSettings = com.enaboapps.switchify.service.techniques.headcontrol.HeadControlSettings(context)
-        // TODO: Add proper head control enabled check - for now assume it could be enabled
-        if (true) {
-            updateHeadControlPosition(result.faceState.headRotationX, result.faceState.headRotationY)
+        val headControlService = ServiceCore.getHeadControlService()
+        if (headControlService?.isEnabled() == true) {
+            headControlService.updateHeadPosition(result.faceState.headRotationX, result.faceState.headRotationY)
             
             // Process gestures for head control selection
-            processHeadControlGestures(result)
+            processHeadControlGestures(result, headControlService)
         }
 
         // Process detected gestures with priority logic
@@ -463,15 +462,16 @@ class CameraSwitchManager(
      * Updates head control position based on head rotation data
      */
     private fun updateHeadControlPosition(headRotationX: Float, headRotationY: Float) {
-        // TODO: Need to access independent HeadControlManager instance
-        // Head control position will be updated through camera service bridge
+        // This method is no longer needed - head control position is updated directly through HeadControlService
     }
     
     /**
      * Processes gestures for head control selection
      */
-    private fun processHeadControlGestures(result: FaceProcessingService.FaceDetectionResult) {
-        // TODO: Need to access independent HeadControlManager instance
+    private fun processHeadControlGestures(
+        result: FaceProcessingService.FaceDetectionResult, 
+        headControlService: com.enaboapps.switchify.service.techniques.headcontrol.HeadControlService
+    ) {
         val priorityEnabled = HeadControlSettings(context).isHeadControlPriorityEnabled()
         val headControlSettings = HeadControlSettings(context)
         val selectedGesture = headControlSettings.selectGesture()
@@ -486,7 +486,7 @@ class CameraSwitchManager(
                 CameraSwitchFacialGesture.BLINK -> {
                     val isConflictGesture = gestureId == selectedGesture && switchAssigned
                     if (!isConflictGesture || priorityEnabled) {
-                        // TODO: Access independent HeadControlManager for gesture processing
+                        headControlService.processGesture(gestureId, true)
                     }
                 }
                 // Head turns are excluded from selection gestures
@@ -500,7 +500,7 @@ class CameraSwitchManager(
         if (!faceState.isSmiling) {
             val isConflictGesture = CameraSwitchFacialGesture.SMILE == selectedGesture && switchAssigned
             if (!isConflictGesture || priorityEnabled) {
-                // TODO: headControlManager.processGesture(CameraSwitchFacialGesture.SMILE, false)
+                headControlService.processGesture(CameraSwitchFacialGesture.SMILE, false)
             }
         }
         
@@ -508,7 +508,7 @@ class CameraSwitchManager(
         if (faceState.leftEyeOpen) {
             val isConflictGesture = CameraSwitchFacialGesture.LEFT_WINK == selectedGesture && switchAssigned
             if (!isConflictGesture || priorityEnabled) {
-                // TODO: headControlManager.processGesture(CameraSwitchFacialGesture.LEFT_WINK, false)
+                headControlService.processGesture(CameraSwitchFacialGesture.LEFT_WINK, false)
             }
         }
         
@@ -516,7 +516,7 @@ class CameraSwitchManager(
         if (faceState.rightEyeOpen) {
             val isConflictGesture = CameraSwitchFacialGesture.RIGHT_WINK == selectedGesture && switchAssigned
             if (!isConflictGesture || priorityEnabled) {
-                // TODO: headControlManager.processGesture(CameraSwitchFacialGesture.RIGHT_WINK, false)
+                headControlService.processGesture(CameraSwitchFacialGesture.RIGHT_WINK, false)
             }
         }
         
@@ -524,7 +524,7 @@ class CameraSwitchManager(
         if (faceState.leftEyeOpen && faceState.rightEyeOpen) {
             val isConflictGesture = CameraSwitchFacialGesture.BLINK == selectedGesture && switchAssigned
             if (!isConflictGesture || priorityEnabled) {
-                // TODO: headControlManager.processGesture(CameraSwitchFacialGesture.BLINK, false)
+                headControlService.processGesture(CameraSwitchFacialGesture.BLINK, false)
             }
         }
     }
