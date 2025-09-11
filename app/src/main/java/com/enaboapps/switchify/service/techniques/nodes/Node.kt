@@ -2,6 +2,8 @@ package com.enaboapps.switchify.service.techniques.nodes
 
 import android.graphics.PointF
 import android.graphics.Rect
+import android.os.Handler
+import android.os.Looper
 import android.view.accessibility.AccessibilityNodeInfo
 import com.enaboapps.switchify.service.gestures.GestureManager
 import com.enaboapps.switchify.service.gestures.GesturePoint
@@ -186,7 +188,9 @@ class Node(
             }
             SelectionHandler.performSelectionAction()
         } else {
-            onSelect?.invoke()
+            Handler(Looper.getMainLooper()).post {
+                onSelect?.invoke()
+            }
         }
     }
 

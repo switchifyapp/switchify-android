@@ -792,6 +792,11 @@
     <string name="preference_summary_head_control_horizontal_deadzone">Threshold for left/right head movement</string>
     <string name="preference_title_head_control_vertical_deadzone">Vertical Deadzone</string>
     <string name="preference_summary_head_control_vertical_deadzone">Threshold for up/down head movement</string>
+    <string name="section_title_head_control_menu_navigation">Menu Navigation</string>
+    <string name="preference_title_head_control_menu_repeat_initial">Repeat Start Delay</string>
+    <string name="preference_summary_head_control_menu_repeat_initial">How long to hold a direction before it starts stepping</string>
+    <string name="preference_title_head_control_menu_repeat_interval">Repeat Interval</string>
+    <string name="preference_summary_head_control_menu_repeat_interval">Time between steps while a direction is held</string>
     
     <!-- Separate directional thresholds -->
     <string name="preference_title_head_control_separate_thresholds">Separate Directional Thresholds</string>

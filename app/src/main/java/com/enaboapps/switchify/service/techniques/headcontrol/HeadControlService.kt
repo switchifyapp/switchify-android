@@ -30,9 +30,13 @@ class HeadControlService private constructor(private val context: Context) {
      * Initialize head control service
      */
     fun initialize() {
-        if (settings.isHeadControlEnabled()) {
-            Log.d(TAG, "Initializing head control")
+        val enabled = settings.isHeadControlEnabled()
+        Log.d(TAG, "initialize() called, head control enabled: $enabled")
+        if (enabled) {
+            Log.d(TAG, "Creating HeadControlManager")
             headControlManager = HeadControlManager(context)
+        } else {
+            Log.d(TAG, "Head control disabled, skipping manager creation")
         }
     }
     
@@ -50,6 +54,7 @@ class HeadControlService private constructor(private val context: Context) {
      * Update head position from camera
      */
     fun updateHeadPosition(headRotationX: Float, headRotationY: Float) {
+        Log.d(TAG, "updateHeadPosition called: ($headRotationX, $headRotationY), manager exists: ${headControlManager != null}")
         headControlManager?.updateHeadPosition(headRotationX, headRotationY)
     }
     
@@ -64,6 +69,7 @@ class HeadControlService private constructor(private val context: Context) {
      * Set menu mode for head control
      */
     fun setMenuMode(enabled: Boolean) {
+        Log.d(TAG, "setMenuMode called with: $enabled, manager exists: ${headControlManager != null}")
         headControlManager?.setMenuMode(enabled)
     }
     
@@ -78,10 +84,13 @@ class HeadControlService private constructor(private val context: Context) {
      * Enable or disable head control
      */
     fun setEnabled(enabled: Boolean) {
+        Log.d(TAG, "setEnabled called with: $enabled, current manager exists: ${headControlManager != null}")
         settings.setHeadControlEnabled(enabled)
         if (enabled && headControlManager == null) {
+            Log.d(TAG, "Initializing head control manager")
             initialize()
         } else if (!enabled) {
+            Log.d(TAG, "Disabling head control manager")
             headControlManager?.cleanup()
             headControlManager = null
         }

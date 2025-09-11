@@ -76,12 +76,15 @@ class MenuPage(
      * @return The nodes of the menu items
      */
     fun translateMenuItemsToNodes(): List<Node> {
+        val menuItems = getMenuItems()
+        android.util.Log.d("MenuPage", "translateMenuItemsToNodes - getMenuItems() returned ${menuItems.size} items")
         val nodes = mutableListOf<Node>()
-        getMenuItems().forEach { menuItem ->
+        menuItems.forEach { menuItem ->
             nodes.add(
                 Node.fromMenuItem(menuItem)
             )
         }
+        android.util.Log.d("MenuPage", "translateMenuItemsToNodes - created ${nodes.size} nodes")
         return nodes
     }
 

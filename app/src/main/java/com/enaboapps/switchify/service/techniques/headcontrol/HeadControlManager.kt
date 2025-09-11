@@ -8,6 +8,13 @@ import com.enaboapps.switchify.service.selection.SelectionHandler
 import com.enaboapps.switchify.service.utils.ScreenUtils
 import com.enaboapps.switchify.service.menu.MenuManager
 import android.util.Log
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 class HeadControlManager(private val context: Context) {
     
@@ -39,6 +46,12 @@ class HeadControlManager(private val context: Context) {
     // Menu navigation state
     private var isInMenuMode = false
     private var headControlScanner: HeadControlItemScanner? = null
+    private val menuScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    private var activeDirection: Direction? = null
+    private var heldDirection: Direction? = null
+    private var repeatJob: Job? = null
+
+    private enum class Direction { LEFT, RIGHT, UP, DOWN }
     
     
     init {
@@ -78,6 +91,8 @@ class HeadControlManager(private val context: Context) {
     fun cleanup() {
         overlay.reset()
         resetGestureState()
+        repeatJob?.cancel()
+        menuScope.cancel()
     }
 
     fun performSelection() {
@@ -131,7 +146,7 @@ class HeadControlManager(private val context: Context) {
         }
 
         if (isInMenuMode) {
-            headControlScanner?.updateSelection(pos.first, pos.second)
+            handleMenuDirection(headRotationX, headRotationY)
         } else {
             if (isAbsolute) {
                 targetX = pos.first.toInt().coerceIn(minX, maxX)
@@ -147,6 +162,71 @@ class HeadControlManager(private val context: Context) {
         }
     }
     
+    private fun handleMenuDirection(headRotationX: Float, headRotationY: Float) {
+        val dir = evaluateDirection(headRotationX, headRotationY)
+        heldDirection = dir
+        if (dir == null) {
+            if (activeDirection != null) {
+                repeatJob?.cancel()
+                repeatJob = null
+                activeDirection = null
+            }
+            return
+        }
+        if (dir != activeDirection) {
+            repeatJob?.cancel()
+            activeDirection = dir
+            doStep(dir)
+            repeatJob = menuScope.launch {
+                val initialDelay = settings.menuRepeatInitialDelay()
+                delay(initialDelay)
+                while (activeDirection != null && activeDirection == heldDirection) {
+                    doStep(dir)
+                    val interval = settings.menuRepeatInterval()
+                    delay(interval)
+                }
+            }
+        }
+    }
+
+    private fun evaluateDirection(headRotationX: Float, headRotationY: Float): Direction? {
+        val leftDeadzone = settings.getEffectiveLeftDeadzone()
+        val rightDeadzone = settings.getEffectiveRightDeadzone()
+        val upDeadzone = settings.getEffectiveUpDeadzone()
+        val downDeadzone = settings.getEffectiveDownDeadzone()
+
+        var candidate: Direction? = null
+        var maxScore = 0f
+
+        if (headRotationY > rightDeadzone) {
+            val score = (headRotationY - rightDeadzone) / (30f - rightDeadzone)
+            if (score > maxScore) { maxScore = score; candidate = Direction.RIGHT }
+        }
+        if (-headRotationY > leftDeadzone) {
+            val score = (-headRotationY - leftDeadzone) / (30f - leftDeadzone)
+            if (score > maxScore) { maxScore = score; candidate = Direction.LEFT }
+        }
+        if (headRotationX > downDeadzone) {
+            val score = (headRotationX - downDeadzone) / (30f - downDeadzone)
+            if (score > maxScore) { maxScore = score; candidate = Direction.DOWN }
+        }
+        if (-headRotationX > upDeadzone) {
+            val score = (-headRotationX - upDeadzone) / (30f - upDeadzone)
+            if (score > maxScore) { maxScore = score; candidate = Direction.UP }
+        }
+
+        return candidate
+    }
+
+    private fun doStep(dir: Direction) {
+        when (dir) {
+            Direction.LEFT -> headControlScanner?.stepLeft()
+            Direction.RIGHT -> headControlScanner?.stepRight()
+            Direction.UP -> headControlScanner?.stepUp()
+            Direction.DOWN -> headControlScanner?.stepDown()
+        }
+    }
+
     private fun updateAbsoluteMode(headRotationX: Float, headRotationY: Float): Pair<Float, Float> {
         val sensitivity = settings.sensitivity()
         val leftDeadzone = settings.getEffectiveLeftDeadzone()
@@ -323,15 +403,24 @@ class HeadControlManager(private val context: Context) {
      * @param menuMode true if navigating menus, false for screen navigation
      */
     fun setMenuMode(menuMode: Boolean) {
+        Log.d(TAG, "setMenuMode called with: $menuMode, current mode: $isInMenuMode")
         if (isInMenuMode != menuMode) {
             Log.d(TAG, "Menu mode changed: $menuMode")
             isInMenuMode = menuMode
             
             if (menuMode) {
+                Log.d(TAG, "Entering menu mode - getting current menu view...")
                 val menuView = MenuManager.getInstance().getCurrentMenuView()
+                Log.d(TAG, "Current menu view: $menuView")
                 val nodes = menuView?.getSelectableNodes() ?: emptyList()
-                if (headControlScanner == null) headControlScanner = HeadControlItemScanner()
+                Log.d(TAG, "Got ${nodes.size} selectable nodes from menu view")
+                if (headControlScanner == null) {
+                    Log.d(TAG, "Creating new HeadControlItemScanner")
+                    headControlScanner = HeadControlItemScanner()
+                }
+                Log.d(TAG, "About to set nodes on scanner...")
                 headControlScanner?.setNodes(nodes)
+                headControlScanner?.initializeSelectionNear(currentX.toFloat(), currentY.toFloat())
                 Log.d(TAG, "Set ${nodes.size} nodes for head control navigation")
                 overlay.hidePointer()
             } else {
@@ -339,6 +428,10 @@ class HeadControlManager(private val context: Context) {
                 headControlScanner = null
                 Log.d(TAG, "Cleared head control nodes")
                 showPointerIfAllowed()
+                repeatJob?.cancel()
+                repeatJob = null
+                activeDirection = null
+                heldDirection = null
             }
         }
     }
@@ -351,6 +444,7 @@ class HeadControlManager(private val context: Context) {
             val menuView = MenuManager.getInstance().getCurrentMenuView()
             val nodes = menuView?.getSelectableNodes() ?: emptyList()
             headControlScanner?.setNodes(nodes)
+            headControlScanner?.initializeSelectionNear(currentX.toFloat(), currentY.toFloat())
             Log.d(TAG, "Refreshed ${nodes.size} nodes for head control navigation")
         }
     }

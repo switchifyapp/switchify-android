@@ -327,9 +327,13 @@ class MenuView(
      * @return List of nodes that can be selected on the current page
      */
     fun getSelectableNodes(): List<com.enaboapps.switchify.service.scanning.ScanNodeInterface> {
+        android.util.Log.d("MenuView", "getSelectableNodes called - currentPage: $currentPage, menuPages.size: ${menuPages.size}")
         return if (currentPage < menuPages.size) {
-            menuPages[currentPage].translateMenuItemsToNodes()
+            val nodes = menuPages[currentPage].translateMenuItemsToNodes()
+            android.util.Log.d("MenuView", "translateMenuItemsToNodes returned ${nodes.size} nodes")
+            nodes
         } else {
+            android.util.Log.d("MenuView", "currentPage >= menuPages.size, returning empty list")
             emptyList()
         }
     }
