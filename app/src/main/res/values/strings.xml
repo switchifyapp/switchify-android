@@ -36,6 +36,10 @@
     <string name="menu_title_edit">Edit</string>
     <string name="menu_title_device">Device</string>
     <string name="menu_item_pause">Pause</string>
+    
+    <!-- Head Control Menu Items -->
+    <string name="menu_item_enable_head_control">Enable Head Control</string>
+    <string name="menu_item_disable_head_control">Disable Head Control</string>
 
     <!-- Scroll Menu Items -->
     <string name="menu_item_scroll_up">Scroll Up</string>

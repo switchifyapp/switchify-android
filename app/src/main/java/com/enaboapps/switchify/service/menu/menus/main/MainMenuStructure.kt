@@ -13,6 +13,7 @@ import com.enaboapps.switchify.service.menu.menus.gestures.GestureMenuStructure
 import com.enaboapps.switchify.service.menu.structure.MenuStructure
 import com.enaboapps.switchify.service.scanning.ScanSettings
 import com.enaboapps.switchify.service.techniques.AccessTechnique
+import com.enaboapps.switchify.service.techniques.headcontrol.HeadControlSettings
 import com.enaboapps.switchify.service.techniques.nodes.NodeExaminer
 import com.enaboapps.switchify.service.utils.DeviceLockObserver
 
@@ -144,6 +145,27 @@ class MainMenuStructure(private val accessibilityService: SwitchifyAccessibility
                     }
                 )
             } else null,
+            // Head control toggle - independent of access technique
+            MenuItem(
+                id = "toggle_head_control",
+                labelResource = if (HeadControlSettings(accessibilityService).isHeadControlEnabled()) 
+                    R.string.menu_item_disable_head_control 
+                else 
+                    R.string.menu_item_enable_head_control,
+                drawableId = R.drawable.ic_head_control_pointer,
+                action = {
+                    val headControlService = ServiceCore.getHeadControlService()
+                    val settings = HeadControlSettings(accessibilityService)
+                    val currentlyEnabled = settings.isHeadControlEnabled()
+                    
+                    // Toggle the setting
+                    settings.setHeadControlEnabled(!currentlyEnabled)
+                    headControlService?.setEnabled(!currentlyEnabled)
+                    
+                    // Close menu to show the effect
+                    MenuManager.getInstance().closeMenuHierarchy()
+                }
+            ),
             MenuItem(
                 id = "pause",
                 labelResource = R.string.menu_item_pause,
