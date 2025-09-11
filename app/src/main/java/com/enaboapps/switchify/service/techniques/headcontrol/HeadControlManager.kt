@@ -342,6 +342,9 @@ class HeadControlManager(private val context: Context) {
             if (menuMode) {
                 val menuView = MenuManager.getInstance().getCurrentMenuView()
                 val nodes = menuView?.getSelectableNodes() ?: emptyList()
+                if (nodes.isEmpty()) {
+                    Log.w(TAG, "Entering menu mode with no selectable nodes")
+                }
                 if (headControlScanner == null) {
                     headControlScanner = HeadControlItemScanner()
                 }

@@ -2,6 +2,7 @@ package com.enaboapps.switchify.service.techniques.headcontrol
 
 import android.content.Context
 import android.util.Log
+import com.enaboapps.switchify.BuildConfig
 import com.enaboapps.switchify.service.menu.MenuManager
 
 /**
@@ -54,7 +55,9 @@ class HeadControlService private constructor(private val context: Context) {
      * Update head position from camera
      */
     fun updateHeadPosition(headRotationX: Float, headRotationY: Float) {
-        Log.d(TAG, "updateHeadPosition called: ($headRotationX, $headRotationY), manager exists: ${headControlManager != null}")
+        if (BuildConfig.DEBUG) {
+            Log.v(TAG, "updateHeadPosition called: ($headRotationX, $headRotationY), manager exists: ${headControlManager != null}")
+        }
         headControlManager?.updateHeadPosition(headRotationX, headRotationY)
     }
     

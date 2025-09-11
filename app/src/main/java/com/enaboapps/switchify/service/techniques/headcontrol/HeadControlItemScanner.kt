@@ -90,43 +90,15 @@ class HeadControlItemScanner {
         lastHeadY = headY
     }
 
-    fun stepLeft() {
+    fun stepLeft() = stepInDirection { current -> selectHorizontal(current, -1f) }
+    fun stepRight() = stepInDirection { current -> selectHorizontal(current, 1f) }
+    fun stepUp() = stepInDirection { current -> selectVertical(current, -1f) }
+    fun stepDown() = stepInDirection { current -> selectVertical(current, 1f) }
+    
+    private fun stepInDirection(selectFunction: (Pair<Float, Float>) -> Int?) {
         if (selectedIndex !in nodes.indices) return
         val current = nodePositions[selectedIndex]
-        val candidate = selectHorizontal(current, -1f)
-        if (candidate != null && candidate != selectedIndex) {
-            unhighlightCurrent()
-            selectedIndex = candidate
-            highlightCurrent()
-        }
-    }
-
-    fun stepRight() {
-        if (selectedIndex !in nodes.indices) return
-        val current = nodePositions[selectedIndex]
-        val candidate = selectHorizontal(current, 1f)
-        if (candidate != null && candidate != selectedIndex) {
-            unhighlightCurrent()
-            selectedIndex = candidate
-            highlightCurrent()
-        }
-    }
-
-    fun stepUp() {
-        if (selectedIndex !in nodes.indices) return
-        val current = nodePositions[selectedIndex]
-        val candidate = selectVertical(current, -1f)
-        if (candidate != null && candidate != selectedIndex) {
-            unhighlightCurrent()
-            selectedIndex = candidate
-            highlightCurrent()
-        }
-    }
-
-    fun stepDown() {
-        if (selectedIndex !in nodes.indices) return
-        val current = nodePositions[selectedIndex]
-        val candidate = selectVertical(current, 1f)
+        val candidate = selectFunction(current)
         if (candidate != null && candidate != selectedIndex) {
             unhighlightCurrent()
             selectedIndex = candidate

@@ -134,12 +134,6 @@ class ActiveAccessTechnique(private val context: Context) : AccessTechniqueObser
         return keyboardScanner!!
     }
 
-    /**
-     * Get the technique that was active before switching to MENU mode
-     */
-    private fun getUnderlyingTechnique(): String? {
-        return underlyingTechnique
-    }
 
     fun resetNodeScanner() {
         getNodeScanner().scanTree.stopScanningAndReset()

@@ -41,10 +41,9 @@ class MenuHierarchy(
         addMenu(menu)
         menu.menuViewListener = this
         Handler(Looper.getMainLooper()).postDelayed(100) {
-            menu.open(scanningManager)
-            
-            // Notify head control that menu opened
+            // Notify head control first to prep state
             ServiceCore.getHeadControlService()?.setMenuMode(true)
+            menu.open(scanningManager)
         }
     }
 
