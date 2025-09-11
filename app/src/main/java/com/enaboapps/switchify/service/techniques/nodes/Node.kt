@@ -33,6 +33,8 @@ class Node(
 
 
     companion object {
+        private val mainHandler = Handler(Looper.getMainLooper())
+        
         /**
          * This function creates a node from AccessibilityNodeInfo
          * @param nodeInfo The AccessibilityNodeInfo
@@ -188,7 +190,7 @@ class Node(
             }
             SelectionHandler.performSelectionAction()
         } else {
-            Handler(Looper.getMainLooper()).post {
+            mainHandler.post {
                 onSelect?.invoke()
             }
         }

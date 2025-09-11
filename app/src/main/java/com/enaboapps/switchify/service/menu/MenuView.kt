@@ -11,6 +11,7 @@ import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.service.gestures.GesturePoint
 import com.enaboapps.switchify.service.menu.menus.BaseMenu
 import com.enaboapps.switchify.service.scanning.ScanningManager
+import com.enaboapps.switchify.service.scanning.ScanNodeInterface
 import com.enaboapps.switchify.service.scanning.tree.ScanTree
 import com.enaboapps.switchify.service.core.ServiceCore
 import kotlinx.coroutines.CoroutineScope
@@ -216,20 +217,15 @@ class MenuView(
                     pageLayout.viewTreeObserver.removeOnGlobalLayoutListener(this)
                     updateMaxDimensions()
                     resizeAndRepositionMenu()
+                    scanTree.buildTree(menuPages[currentPage].translateMenuItemsToNodes(), 0)
+                    
+                    // Notify head control that menu nodes changed
+                    ServiceCore.getHeadControlService()?.refreshMenuNodes()
                 }
             })
+        } else {
+            MenuManager.getInstance().closeMenuHierarchy()
         }
-
-        Handler(Looper.getMainLooper()).postDelayed({
-            if (pageExists) {
-                scanTree.buildTree(menuPages[currentPage].translateMenuItemsToNodes(), 0)
-                
-                // Notify head control that menu nodes changed
-                ServiceCore.getHeadControlService()?.refreshMenuNodes()
-            } else {
-                MenuManager.getInstance().closeMenuHierarchy()
-            }
-        }, 500)
     }
 
     /**
@@ -326,7 +322,7 @@ class MenuView(
      * Get selectable nodes for head control navigation
      * @return List of nodes that can be selected on the current page
      */
-    fun getSelectableNodes(): List<com.enaboapps.switchify.service.scanning.ScanNodeInterface> {
+    fun getSelectableNodes(): List<ScanNodeInterface> {
         android.util.Log.d("MenuView", "getSelectableNodes called - currentPage: $currentPage, menuPages.size: ${menuPages.size}")
         return if (currentPage < menuPages.size) {
             val nodes = menuPages[currentPage].translateMenuItemsToNodes()
