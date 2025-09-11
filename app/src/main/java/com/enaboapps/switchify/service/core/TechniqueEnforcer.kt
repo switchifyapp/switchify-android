@@ -34,8 +34,6 @@ class TechniqueEnforcer(
                 true
             }
 
-            // Head Control is now independent - no enforcement needed
-            false -> false
 
             else -> false
         }

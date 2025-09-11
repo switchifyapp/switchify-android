@@ -98,12 +98,24 @@ class HeadControlSettings(context: Context) {
     }
 
     fun menuRepeatInitialDelay(): Long =
-        prefs.getLongValue(KEY_MENU_REPEAT_INITIAL_DELAY, 600L).coerceIn(200L, 2000L)
+        prefs.getLongValue(KEY_MENU_REPEAT_INITIAL_DELAY, DEFAULT_MENU_REPEAT_INITIAL_DELAY)
+            .coerceIn(MIN_MENU_REPEAT_INITIAL_DELAY, MAX_MENU_REPEAT_INITIAL_DELAY)
 
     fun menuRepeatInterval(): Long =
-        prefs.getLongValue(KEY_MENU_REPEAT_INTERVAL, 250L).coerceIn(80L, 1500L)
+        prefs.getLongValue(KEY_MENU_REPEAT_INTERVAL, DEFAULT_MENU_REPEAT_INTERVAL)
+            .coerceIn(MIN_MENU_REPEAT_INTERVAL, MAX_MENU_REPEAT_INTERVAL)
 
     companion object {
+        // Default values
+        const val DEFAULT_MENU_REPEAT_INITIAL_DELAY = 600L
+        const val DEFAULT_MENU_REPEAT_INTERVAL = 250L
+        
+        // Min/max values
+        const val MIN_MENU_REPEAT_INITIAL_DELAY = 200L
+        const val MAX_MENU_REPEAT_INITIAL_DELAY = 2000L
+        const val MIN_MENU_REPEAT_INTERVAL = 80L
+        const val MAX_MENU_REPEAT_INTERVAL = 1500L
+        
         const val KEY_ENABLED = "head_control_enabled"
         const val KEY_SENSITIVITY = "head_control_sensitivity"
         const val KEY_DEADZONE = "head_control_deadzone"

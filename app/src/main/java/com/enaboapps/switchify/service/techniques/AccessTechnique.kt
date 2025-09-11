@@ -105,7 +105,11 @@ object AccessTechnique {
      * This is useful for getting the underlying technique before switching to MENU
      */
     fun getStoredTechnique(): String? {
-        return preferenceManager?.getStringValue(PreferenceManager.PREFERENCE_KEY_ACCESS_TECHNIQUE)?.takeIf { it.isNotEmpty() }
+        val stored = preferenceManager
+            ?.getStringValue(PreferenceManager.PREFERENCE_KEY_ACCESS_TECHNIQUE)
+            .orEmpty()
+        if (stored.isEmpty()) return null
+        return if (stored == "cursor") Technique.POINT_SCAN else stored
     }
 
     /**

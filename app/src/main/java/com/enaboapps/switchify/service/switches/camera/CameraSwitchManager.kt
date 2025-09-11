@@ -458,12 +458,6 @@ class CameraSwitchManager(
         }
     }
 
-    /**
-     * Updates head control position based on head rotation data
-     */
-    private fun updateHeadControlPosition(headRotationX: Float, headRotationY: Float) {
-        // This method is no longer needed - head control position is updated directly through HeadControlService
-    }
     
     /**
      * Processes gestures for head control selection

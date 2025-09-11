@@ -51,7 +51,7 @@ class CameraManager(
     fun evaluateAndUpdateCameraState() {
         val currentTechnique = AccessTechnique.getCurrentTechnique()
         val switchEventProvider = ServiceCore.getSwitchEventProvider()
-        val shouldHaveCamera = shouldCameraBeActive(currentTechnique, switchEventProvider?.hasCameraSwitch == true)
+        val shouldHaveCamera = shouldCameraBeActive(switchEventProvider?.hasCameraSwitch == true)
 
         Log.d(TAG, "evaluateAndUpdateCameraState - technique: $currentTechnique, shouldHaveCamera: $shouldHaveCamera, hasSwitch: ${switchEventProvider?.hasCameraSwitch}")
 
@@ -68,7 +68,7 @@ class CameraManager(
     /**
      * Determines if camera should be active based on current conditions.
      */
-    private fun shouldCameraBeActive(currentTechnique: String, hasCameraSwitch: Boolean): Boolean {
+    private fun shouldCameraBeActive(hasCameraSwitch: Boolean): Boolean {
         if (hasCameraSwitch) return true
         
         // Head control is now independent - check if it's enabled
