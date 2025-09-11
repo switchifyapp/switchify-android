@@ -575,6 +575,29 @@ class ScanTree(
         resetForNextUse() // Reset the scanning state
         tree.clear() // Clear the tree
     }
+    
+    /**
+     * Get the tree items for external spatial navigation
+     */
+    fun getTree(): List<ScanTreeItem> = tree
+    
+    /**
+     * Set the current scan position directly for spatial navigation
+     * @param treeIndex The tree item index to navigate to
+     * @param nodeIndex The node index within the tree item
+     */
+    fun setSpatialPosition(treeIndex: Int, nodeIndex: Int) {
+        if (treeIndex < tree.size && nodeIndex < tree[treeIndex].children.size) {
+            // Update navigator position directly
+            navigator.currentTreeItem = treeIndex
+            navigator.currentColumn = nodeIndex
+            navigator.isInTreeItem = true
+            navigator.isInGroup = false
+            navigator.isScanningGroups = false
+            // Highlight the new position
+            highlightCurrent()
+        }
+    }
 
     override fun cleanup() {
         super.cleanup()

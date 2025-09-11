@@ -27,13 +27,11 @@ fun AccessTechniqueSettingsScreen(navController: NavController) {
         padding = 0.dp,
         enableScroll = false
     ) {
-        val hasDirectControl = ScanSettings(LocalContext.current).isDirectionalScanMode()
-        val tabs = buildList<Int> {
-            if (hasDirectControl) add(R.string.settings_tab_direct_control)
-            add(R.string.settings_tab_point_scan)
-            add(R.string.settings_tab_radar)
-            add(R.string.settings_tab_item_scan)
-        }
+        val tabs = listOf(
+            R.string.settings_tab_point_scan,
+            R.string.settings_tab_radar,
+            R.string.settings_tab_item_scan
+        )
 
         TabRow(selectedTabIndex = selectedTabIndex) {
             tabs.forEachIndexed { index, tabResId ->
@@ -47,7 +45,6 @@ fun AccessTechniqueSettingsScreen(navController: NavController) {
 
         val currentTab = tabs.getOrNull(selectedTabIndex)
         when (currentTab) {
-            R.string.settings_tab_direct_control -> DirectControlSettingsTab()
             R.string.settings_tab_point_scan -> PointScanSettingsTab()
             R.string.settings_tab_radar -> RadarSettingsTab()
             R.string.settings_tab_item_scan -> ItemScanSettingsTab()
@@ -76,9 +73,3 @@ private fun ItemScanSettingsTab() {
     }
 }
 
-@Composable
-private fun DirectControlSettingsTab() {
-    ScrollableView {
-        DirectControlSettingsView()
-    }
-}

@@ -3,7 +3,6 @@ package com.enaboapps.switchify.service.scanning
 import android.content.Context
 import android.util.Log
 import com.enaboapps.switchify.service.techniques.AccessTechnique
-import com.enaboapps.switchify.service.techniques.directcontrol.DirectControlSettings
 
 /**
  * This class manages the move repeat functionality in the scanning process.
@@ -45,12 +44,7 @@ class MoveRepeatManager(private val context: Context) {
         Log.d(TAG, "start")
         setup()
         if (!isRunning()) {
-            val delay =
-                if (AccessTechnique.getCurrentTechnique() == AccessTechnique.Technique.DIRECT_CONTROL) {
-                    DirectControlSettings(context).repeatDelay()
-                } else {
-                    scanSettings.getMoveRepeatDelay()
-                }
+            val delay = scanSettings.getMoveRepeatDelay()
             scanningScheduler?.startScanning(0, delay)
             return true
         }

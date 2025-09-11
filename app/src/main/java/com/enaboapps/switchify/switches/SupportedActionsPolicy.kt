@@ -39,10 +39,6 @@ object SupportedActionsPolicy {
             settings.isDirectionalScanMode() -> {
                 setOf(
                     SwitchAction.ACTION_SELECT,
-                    SwitchAction.ACTION_MOVE_UP,
-                    SwitchAction.ACTION_MOVE_DOWN,
-                    SwitchAction.ACTION_MOVE_LEFT,
-                    SwitchAction.ACTION_MOVE_RIGHT,
                     SwitchAction.ACTION_STOP_SCANNING,
                     SwitchAction.ACTION_TOGGLE_GESTURE_LOCK,
                     SwitchAction.ACTION_PAUSE

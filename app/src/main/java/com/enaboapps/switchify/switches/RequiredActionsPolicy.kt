@@ -14,11 +14,7 @@ object RequiredActionsPolicy {
                 SwitchAction.ACTION_MOVE_TO_PREVIOUS_ITEM
             )
             settings.isDirectionalScanMode() -> setOf(
-                SwitchAction.ACTION_SELECT,
-                SwitchAction.ACTION_MOVE_UP,
-                SwitchAction.ACTION_MOVE_DOWN,
-                SwitchAction.ACTION_MOVE_LEFT,
-                SwitchAction.ACTION_MOVE_RIGHT
+                SwitchAction.ACTION_SELECT
             )
             else -> emptySet()
         }

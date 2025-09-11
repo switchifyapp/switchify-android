@@ -246,6 +246,42 @@ fun HeadControlMovementTab(
                 prefs.setBooleanValue(HeadControlSettings.KEY_SEPARATE_DIRECTIONAL_THRESHOLDS, enabled)
             }
         )
+
+        Section(titleResId = R.string.section_title_head_control_menu_navigation) {
+            val currentInitial = settings.menuRepeatInitialDelay()
+            val initialIndex = HeadControlSettings.MENU_REPEAT_INITIAL_VALUES.indexOfFirst { kotlin.math.abs(it - currentInitial) < 60L }.let { if (it == -1) 2 else it }
+            var initialDelay by remember { mutableIntStateOf(initialIndex) }
+
+            PreferenceValueSelector(
+                value = initialDelay,
+                titleResId = R.string.preference_title_head_control_menu_repeat_initial,
+                summaryResId = R.string.preference_summary_head_control_menu_repeat_initial,
+                values = IntArray(HeadControlSettings.MENU_REPEAT_INITIAL_VALUES.size) { it },
+                buttonLabelFormatter = { "${HeadControlSettings.MENU_REPEAT_INITIAL_VALUES[it]}ms" },
+                displayFormatter = { "${HeadControlSettings.MENU_REPEAT_INITIAL_VALUES[it]}ms" },
+                onValueChanged = { index ->
+                    initialDelay = index
+                    prefs.setLongValue(HeadControlSettings.KEY_MENU_REPEAT_INITIAL_DELAY, HeadControlSettings.MENU_REPEAT_INITIAL_VALUES[index])
+                }
+            )
+
+            val currentInterval = settings.menuRepeatInterval()
+            val intervalIndex = HeadControlSettings.MENU_REPEAT_INTERVAL_VALUES.indexOfFirst { kotlin.math.abs(it - currentInterval) < 40L }.let { if (it == -1) 2 else it }
+            var interval by remember { mutableIntStateOf(intervalIndex) }
+
+            PreferenceValueSelector(
+                value = interval,
+                titleResId = R.string.preference_title_head_control_menu_repeat_interval,
+                summaryResId = R.string.preference_summary_head_control_menu_repeat_interval,
+                values = IntArray(HeadControlSettings.MENU_REPEAT_INTERVAL_VALUES.size) { it },
+                buttonLabelFormatter = { "${HeadControlSettings.MENU_REPEAT_INTERVAL_VALUES[it]}ms" },
+                displayFormatter = { "${HeadControlSettings.MENU_REPEAT_INTERVAL_VALUES[it]}ms" },
+                onValueChanged = { index ->
+                    interval = index
+                    prefs.setLongValue(HeadControlSettings.KEY_MENU_REPEAT_INTERVAL, HeadControlSettings.MENU_REPEAT_INTERVAL_VALUES[index])
+                }
+            )
+        }
     }
 }
 

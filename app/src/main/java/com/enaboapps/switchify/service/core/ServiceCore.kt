@@ -4,12 +4,14 @@ import com.enaboapps.switchify.service.pauseresume.PauseManager
 import com.enaboapps.switchify.service.scanning.ScanningManager
 import com.enaboapps.switchify.service.switches.SwitchEventProvider
 import com.enaboapps.switchify.service.switches.external.ExternalSwitchListener
+import com.enaboapps.switchify.service.techniques.headcontrol.HeadControlService
 import java.lang.ref.WeakReference
 
 object ServiceCore {
     private lateinit var scanningManagerRef: WeakReference<ScanningManager>
     private lateinit var externalSwitchListenerRef: WeakReference<ExternalSwitchListener>
     private lateinit var switchEventProviderRef: WeakReference<SwitchEventProvider>
+    private lateinit var headControlServiceRef: WeakReference<HeadControlService>
 
     /**
      * Initializes the service core with the given context and accessibility service.
@@ -21,9 +23,14 @@ object ServiceCore {
 
         scanningManagerRef = WeakReference(ScanningManager(accessibilityService))
         switchEventProviderRef = WeakReference(SwitchEventProvider(accessibilityService))
+        headControlServiceRef = WeakReference(HeadControlService.getInstance(accessibilityService))
+        
         val scanningManager = scanningManagerRef.get() ?: return
         val switchEventProvider = switchEventProviderRef.get() ?: return
+        val headControlService = headControlServiceRef.get() ?: return
+        
         scanningManager.setup()
+        headControlService.initialize()
         externalSwitchListenerRef =
             WeakReference(
                 ExternalSwitchListener(
@@ -67,12 +74,22 @@ object ServiceCore {
     }
 
     /**
+     * Gets the head control service instance.
+     * @return The head control service instance or null if not initialized.
+     */
+    fun getHeadControlService(): HeadControlService? {
+        return headControlServiceRef.get()
+    }
+
+    /**
      * Cleans up the service core.
      */
     fun cleanup() {
         scanningManagerRef.get()?.shutdown()
+        headControlServiceRef.get()?.cleanup()
         scanningManagerRef = WeakReference(null)
         switchEventProviderRef = WeakReference(null)
         externalSwitchListenerRef = WeakReference(null)
+        headControlServiceRef = WeakReference(null)
     }
 }

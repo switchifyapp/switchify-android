@@ -20,10 +20,6 @@ data class SwitchAction(
             ACTION_CHANGE_SCANNING_DIRECTION,
             ACTION_MOVE_TO_NEXT_ITEM,
             ACTION_MOVE_TO_PREVIOUS_ITEM,
-            ACTION_MOVE_UP,
-            ACTION_MOVE_DOWN,
-            ACTION_MOVE_LEFT,
-            ACTION_MOVE_RIGHT,
             ACTION_TOGGLE_GESTURE_LOCK,
             ACTION_SYS_HOME,
             ACTION_SYS_BACK,
@@ -50,10 +46,6 @@ data class SwitchAction(
         const val ACTION_SYS_LOCK_SCREEN = 12
         const val ACTION_SYS_HEADSET_HOOK = 13
         const val ACTION_PAUSE = 14
-        const val ACTION_MOVE_UP = 15
-        const val ACTION_MOVE_DOWN = 16
-        const val ACTION_MOVE_LEFT = 17
-        const val ACTION_MOVE_RIGHT = 18
     }
 
     fun toMap(): Map<String, Any?> = mapOf("id" to id)
@@ -65,10 +57,6 @@ data class SwitchAction(
         ACTION_CHANGE_SCANNING_DIRECTION -> Resources.getString(R.string.action_change_scan_direction)
         ACTION_MOVE_TO_NEXT_ITEM -> Resources.getString(R.string.action_next_item)
         ACTION_MOVE_TO_PREVIOUS_ITEM -> Resources.getString(R.string.action_previous_item)
-        ACTION_MOVE_UP -> Resources.getString(R.string.action_move_up)
-        ACTION_MOVE_DOWN -> Resources.getString(R.string.action_move_down)
-        ACTION_MOVE_LEFT -> Resources.getString(R.string.action_move_left)
-        ACTION_MOVE_RIGHT -> Resources.getString(R.string.action_move_right)
         ACTION_TOGGLE_GESTURE_LOCK -> Resources.getString(R.string.system_gesture_lock)
         ACTION_SYS_HOME -> Resources.getString(R.string.system_home)
         ACTION_SYS_BACK -> Resources.getString(R.string.system_back)
@@ -88,10 +76,6 @@ data class SwitchAction(
         ACTION_CHANGE_SCANNING_DIRECTION -> Resources.getString(R.string.action_change_scan_direction_desc)
         ACTION_MOVE_TO_NEXT_ITEM -> Resources.getString(R.string.action_next_item_desc)
         ACTION_MOVE_TO_PREVIOUS_ITEM -> Resources.getString(R.string.action_previous_item_desc)
-        ACTION_MOVE_UP -> Resources.getString(R.string.action_move_up_desc)
-        ACTION_MOVE_DOWN -> Resources.getString(R.string.action_move_down_desc)
-        ACTION_MOVE_LEFT -> Resources.getString(R.string.action_move_left_desc)
-        ACTION_MOVE_RIGHT -> Resources.getString(R.string.action_move_right_desc)
         ACTION_TOGGLE_GESTURE_LOCK -> Resources.getString(R.string.system_gesture_lock_desc)
         ACTION_SYS_HOME -> Resources.getString(R.string.system_home_desc)
         ACTION_SYS_BACK -> Resources.getString(R.string.system_back_desc)

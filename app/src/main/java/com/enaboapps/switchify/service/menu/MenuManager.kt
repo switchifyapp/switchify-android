@@ -82,14 +82,6 @@ class MenuManager {
         scanningManager?.setItemScanType()
     }
 
-    fun switchToDirectControl() {
-        scanningManager?.setDirectControlType()
-    }
-
-    fun switchToHeadControl() {
-        scanningManager?.setHeadControlType()
-    }
-
     /**
      * This function opens the main menu
      */
@@ -231,5 +223,13 @@ class MenuManager {
 
         // Hide the current point visual
         gestureVisualManager.hideCircle()
+    }
+
+    /**
+     * Get the current menu view for head control navigation
+     * @return The current menu view or null if no menu is open
+     */
+    fun getCurrentMenuView(): MenuView? {
+        return menuHierarchy?.getTopMenu()
     }
 }

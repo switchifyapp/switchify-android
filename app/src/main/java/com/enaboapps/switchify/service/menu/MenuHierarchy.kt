@@ -5,6 +5,7 @@ import android.os.Looper
 import androidx.core.os.postDelayed
 import com.enaboapps.switchify.service.scanning.ScanningManager
 import com.enaboapps.switchify.service.techniques.AccessTechnique
+import com.enaboapps.switchify.service.core.ServiceCore
 
 class MenuHierarchy(
     private val scanningManager: ScanningManager
@@ -40,6 +41,8 @@ class MenuHierarchy(
         addMenu(menu)
         menu.menuViewListener = this
         Handler(Looper.getMainLooper()).postDelayed(100) {
+            // Notify head control first to prep state
+            ServiceCore.getHeadControlService()?.setMenuMode(true)
             menu.open(scanningManager)
         }
     }
@@ -51,6 +54,9 @@ class MenuHierarchy(
 
         // remove the menu view
         MenuViewHandler.instance.kill()
+
+        // Notify head control that menus closed
+        ServiceCore.getHeadControlService()?.setMenuMode(false)
 
         AccessTechnique.loadCurrentTechnique() // reload the current technique
     }

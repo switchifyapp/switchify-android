@@ -62,13 +62,11 @@ class AccessTechniqueSettingsModel(context: Context) : ViewModel() {
     }
 
     private fun computeAvailable(): List<String> {
-        val all = listOf(
+        return listOf(
             AccessTechnique.Technique.ITEM_SCAN,
             AccessTechnique.Technique.POINT_SCAN,
-            AccessTechnique.Technique.RADAR,
-            AccessTechnique.Technique.DIRECT_CONTROL
+            AccessTechnique.Technique.RADAR
         )
-        return if (scanSettings.isDirectionalScanMode()) all else all.filter { it != AccessTechnique.Technique.DIRECT_CONTROL }
     }
 }
 

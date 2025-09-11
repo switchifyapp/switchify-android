@@ -65,19 +65,11 @@ class SwitchConfigValidator(private val context: Context) {
     }
 
     /**
-     * Check if configuration is valid for directional scan mode
-     * Directional scan requires UP, DOWN, LEFT, RIGHT, and SELECT actions
+     * Check if configuration is valid for directional scan mode.
+     * Directional scan now requires only SELECT; directional stepping is handled by Head Control.
      */
     private fun isValidForDirectionalScan(configuredActions: Set<Int>): Boolean {
-        return configuredActions.containsAll(
-            setOf(
-                SwitchAction.ACTION_SELECT,
-                SwitchAction.ACTION_MOVE_UP,
-                SwitchAction.ACTION_MOVE_DOWN,
-                SwitchAction.ACTION_MOVE_LEFT,
-                SwitchAction.ACTION_MOVE_RIGHT
-            )
-        )
+        return configuredActions.contains(SwitchAction.ACTION_SELECT)
     }
 
     /**
@@ -117,24 +109,7 @@ class SwitchConfigValidator(private val context: Context) {
         }
 
         val configuredActions = getConfiguredActions()
-        val requiredActions = when {
-            scanSettings.isAutoScanMode() -> setOf(SwitchAction.ACTION_SELECT)
-            scanSettings.isManualScanMode() -> setOf(
-                SwitchAction.ACTION_SELECT,
-                SwitchAction.ACTION_MOVE_TO_NEXT_ITEM,
-                SwitchAction.ACTION_MOVE_TO_PREVIOUS_ITEM
-            )
-
-            scanSettings.isDirectionalScanMode() -> setOf(
-                SwitchAction.ACTION_SELECT,
-                SwitchAction.ACTION_MOVE_UP,
-                SwitchAction.ACTION_MOVE_DOWN,
-                SwitchAction.ACTION_MOVE_LEFT,
-                SwitchAction.ACTION_MOVE_RIGHT
-            )
-
-            else -> emptySet()
-        }
+        val requiredActions = RequiredActionsPolicy.requiredActionIds(context)
 
         return requiredActions - configuredActions
     }

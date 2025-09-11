@@ -6,8 +6,6 @@ import com.enaboapps.switchify.service.keyboard.KeyboardManager
 import com.enaboapps.switchify.service.keyboard.KeyboardStateListener
 import com.enaboapps.switchify.service.menu.MenuManager
 import com.enaboapps.switchify.service.selection.SelectionHandler
-import com.enaboapps.switchify.service.techniques.directcontrol.DirectControlManager
-import com.enaboapps.switchify.service.techniques.headcontrol.HeadControlManager
 import com.enaboapps.switchify.service.techniques.nodes.Node
 import com.enaboapps.switchify.service.techniques.nodes.scanners.NodeScannerUI
 import com.enaboapps.switchify.service.techniques.nodes.scanners.keyboard.KeyboardScanner
@@ -25,9 +23,10 @@ class ActiveAccessTechnique(private val context: Context) : AccessTechniqueObser
     private var pointScanManager: PointScanManager? = null
     private var radarManager: RadarManager? = null
     private var systemNodeScanner: SystemNodeScanner? = null
-    private var directControlManager: DirectControlManager? = null
-    private var headControlManager: HeadControlManager? = null
     private var keyboardScanner: KeyboardScanner? = null
+    
+    // Track the technique that was active before switching to MENU
+    private var underlyingTechnique: String? = null
 
     private var screenWatcher: ScreenWatcher? = null
 
@@ -53,8 +52,6 @@ class ActiveAccessTechnique(private val context: Context) : AccessTechniqueObser
             else -> when (AccessTechnique.getCurrentTechnique()) {
                 AccessTechnique.Technique.POINT_SCAN -> getPointScanManager()
                 AccessTechnique.Technique.RADAR -> getRadarManager()
-                AccessTechnique.Technique.DIRECT_CONTROL -> getDirectControlManager()
-                AccessTechnique.Technique.HEAD_CONTROL -> getHeadControlManager()
                 AccessTechnique.Technique.ITEM_SCAN -> {
                     ensureNodeScannerStarted()
                     getNodeScanner().scanTree
@@ -67,7 +64,8 @@ class ActiveAccessTechnique(private val context: Context) : AccessTechniqueObser
                 }
 
                 else -> {
-                    throw IllegalStateException("Invalid access technique type: ${AccessTechnique.getCurrentTechnique()}")
+                    // Default fallback to point scan for unknown techniques
+                    getPointScanManager()
                 }
             }
         }
@@ -87,6 +85,15 @@ class ActiveAccessTechnique(private val context: Context) : AccessTechniqueObser
     }
 
     override fun onAccessTechniqueChanged(accessTechnique: String) {
+        // Track the underlying technique when switching to MENU
+        if (accessTechnique == AccessTechnique.Technique.MENU && underlyingTechnique == null) {
+            // Store the technique from preferences as the underlying technique
+            underlyingTechnique = AccessTechnique.getStoredTechnique() ?: AccessTechnique.Technique.ITEM_SCAN
+        } else if (accessTechnique != AccessTechnique.Technique.MENU) {
+            // Clear underlying technique when not in menu mode
+            underlyingTechnique = null
+        }
+        
         cleanup(accessTechnique)
         // Trigger initialization of the new technique by accessing currentAccessTechnique
         try {
@@ -116,19 +123,6 @@ class ActiveAccessTechnique(private val context: Context) : AccessTechniqueObser
         return radarManager!!
     }
 
-    private fun getDirectControlManager(): DirectControlManager {
-        if (directControlManager == null) {
-            directControlManager = DirectControlManager(context)
-        }
-        return directControlManager!!
-    }
-
-    private fun getHeadControlManager(): HeadControlManager {
-        if (headControlManager == null) {
-            headControlManager = HeadControlManager(context)
-        }
-        return headControlManager!!
-    }
 
     fun getNodeScanner(): SystemNodeScanner {
         ensureNodeScannerStarted()
@@ -140,9 +134,6 @@ class ActiveAccessTechnique(private val context: Context) : AccessTechniqueObser
         return keyboardScanner!!
     }
 
-    fun getHeadControlManagerInstance(): HeadControlManager {
-        return getHeadControlManager()
-    }
 
     fun resetNodeScanner() {
         getNodeScanner().scanTree.stopScanningAndReset()
@@ -162,10 +153,6 @@ class ActiveAccessTechnique(private val context: Context) : AccessTechniqueObser
                 radarManager = null
                 systemNodeScanner?.cleanup()
                 systemNodeScanner = null
-                directControlManager?.cleanup()
-                directControlManager = null
-                headControlManager?.cleanup()
-                headControlManager = null
             }
 
             AccessTechnique.Technique.RADAR -> {
@@ -173,10 +160,6 @@ class ActiveAccessTechnique(private val context: Context) : AccessTechniqueObser
                 pointScanManager = null
                 systemNodeScanner?.cleanup()
                 systemNodeScanner = null
-                directControlManager?.cleanup()
-                directControlManager = null
-                headControlManager?.cleanup()
-                headControlManager = null
             }
 
             AccessTechnique.Technique.ITEM_SCAN -> {
@@ -184,10 +167,6 @@ class ActiveAccessTechnique(private val context: Context) : AccessTechniqueObser
                 pointScanManager = null
                 radarManager?.cleanup()
                 radarManager = null
-                directControlManager?.cleanup()
-                directControlManager = null
-                headControlManager?.cleanup()
-                headControlManager = null
             }
 
             AccessTechnique.Technique.MENU -> {
@@ -197,33 +176,9 @@ class ActiveAccessTechnique(private val context: Context) : AccessTechniqueObser
                 radarManager = null
                 systemNodeScanner?.cleanup()
                 systemNodeScanner = null
-                directControlManager?.cleanup()
-                directControlManager = null
-                headControlManager?.cleanup()
-                headControlManager = null
             }
 
-            AccessTechnique.Technique.DIRECT_CONTROL -> {
-                pointScanManager?.cleanup()
-                pointScanManager = null
-                radarManager?.cleanup()
-                radarManager = null
-                systemNodeScanner?.cleanup()
-                systemNodeScanner = null
-                headControlManager?.cleanup()
-                headControlManager = null
-            }
 
-            AccessTechnique.Technique.HEAD_CONTROL -> {
-                pointScanManager?.cleanup()
-                pointScanManager = null
-                radarManager?.cleanup()
-                radarManager = null
-                systemNodeScanner?.cleanup()
-                systemNodeScanner = null
-                directControlManager?.cleanup()
-                directControlManager = null
-            }
         }
 
         if (!KeyboardManager.isKeyboardVisible()) {
@@ -245,11 +200,6 @@ class ActiveAccessTechnique(private val context: Context) : AccessTechniqueObser
         systemNodeScanner = null
         pointScanManager?.cleanup()
         pointScanManager = null
-        directControlManager?.cleanup()
-        directControlManager = null
-        headControlManager?.cleanup()
-        headControlManager = null
-
         SelectionHandler.cleanup()
 
         NodeScannerUI.instance.hideAll()
@@ -262,10 +212,6 @@ class ActiveAccessTechnique(private val context: Context) : AccessTechniqueObser
         radarManager = null
         systemNodeScanner?.cleanup()
         systemNodeScanner = null
-        directControlManager?.cleanup()
-        directControlManager = null
-        headControlManager?.cleanup()
-        headControlManager = null
         cleanupKeyboard()
 
         SelectionHandler.cleanup()

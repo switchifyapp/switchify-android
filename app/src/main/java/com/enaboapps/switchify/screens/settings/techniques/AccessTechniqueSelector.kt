@@ -30,14 +30,4 @@ fun AccessTechniqueSelector() {
         itemDescription = { AccessTechnique.getDescription(it) }
     )
 
-    val directControlAvailable =
-        uiState.value.availableTechniques.contains(AccessTechnique.Technique.DIRECT_CONTROL)
-    if (!directControlAvailable) {
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = stringResource(R.string.direct_control_requires_directional_mode),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-        )
-    }
 }

@@ -11,9 +11,12 @@ import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.service.gestures.GesturePoint
 import com.enaboapps.switchify.service.menu.menus.BaseMenu
 import com.enaboapps.switchify.service.scanning.ScanningManager
+import com.enaboapps.switchify.service.scanning.ScanNodeInterface
 import com.enaboapps.switchify.service.scanning.tree.ScanTree
+import com.enaboapps.switchify.service.core.ServiceCore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
@@ -219,13 +222,18 @@ class MenuView(
             })
         }
 
-        Handler(Looper.getMainLooper()).postDelayed({
+        // Use coroutine for delayed tree building after layout completion
+        CoroutineScope(Dispatchers.Main).launch {
+            delay(500)
             if (pageExists) {
                 scanTree.buildTree(menuPages[currentPage].translateMenuItemsToNodes(), 0)
+                
+                // Notify head control that menu nodes changed
+                ServiceCore.getHeadControlService()?.refreshMenuNodes()
             } else {
                 MenuManager.getInstance().closeMenuHierarchy()
             }
-        }, 500)
+        }
     }
 
     /**
@@ -315,6 +323,22 @@ class MenuView(
         } else {
             // Setup already complete, just inflate
             inflateMenu()
+        }
+    }
+
+    /**
+     * Get selectable nodes for head control navigation
+     * @return List of nodes that can be selected on the current page
+     */
+    fun getSelectableNodes(): List<ScanNodeInterface> {
+        android.util.Log.d("MenuView", "getSelectableNodes called - currentPage: $currentPage, menuPages.size: ${menuPages.size}")
+        return if (currentPage < menuPages.size) {
+            val nodes = menuPages[currentPage].translateMenuItemsToNodes()
+            android.util.Log.d("MenuView", "translateMenuItemsToNodes returned ${nodes.size} nodes")
+            nodes
+        } else {
+            android.util.Log.d("MenuView", "currentPage >= menuPages.size, returning empty list")
+            emptyList()
         }
     }
 
