@@ -319,6 +319,18 @@ class MenuView(
     }
 
     /**
+     * Get selectable nodes for head control navigation
+     * @return List of nodes that can be selected on the current page
+     */
+    fun getSelectableNodes(): List<com.enaboapps.switchify.service.scanning.ScanNodeInterface> {
+        return if (currentPage < menuPages.size) {
+            menuPages[currentPage].translateMenuItemsToNodes()
+        } else {
+            emptyList()
+        }
+    }
+
+    /**
      * Closes the menu and performs necessary cleanup.
      * This method removes the menu from the window, shuts down the scan tree,
      * notifies the listener, and resets the max dimensions.

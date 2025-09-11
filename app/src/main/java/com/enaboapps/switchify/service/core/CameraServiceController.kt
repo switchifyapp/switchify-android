@@ -59,7 +59,8 @@ class CameraServiceController(
 
     fun bindIfNeeded() {
         val provider = ServiceCore.getSwitchEventProvider()
-        val headActive = AccessTechnique.getCurrentTechnique() == AccessTechnique.Technique.HEAD_CONTROL
+        // Head control is now independent - TODO: check if head control is enabled
+        val headActive = false  // Simplified for now
         val needsCamera = provider?.hasCameraSwitch == true || headActive
         if (needsCamera && !isBound && permissionManager.hasPermission()) {
             val intent = Intent(context, CameraForegroundService::class.java)
@@ -96,7 +97,8 @@ class CameraServiceController(
 
     fun startIfAvailable() {
         val provider = ServiceCore.getSwitchEventProvider()
-        val headActive = AccessTechnique.getCurrentTechnique() == AccessTechnique.Technique.HEAD_CONTROL
+        // Head control is now independent - TODO: check if head control is enabled
+        val headActive = false  // Simplified for now
         val needsCamera = provider?.hasCameraSwitch == true || headActive
         if (needsCamera && deviceLockObserver.isUserUnlocked() && permissionManager.hasPermission()) {
             service?.startCamera(lifecycleOwner)

@@ -35,7 +35,6 @@ object AccessTechnique {
      */
     object Technique {
         const val POINT_SCAN = "point_scan"
-        const val HEAD_CONTROL = "head_control"
 
         /**
          * This type represents the radar
@@ -68,7 +67,6 @@ object AccessTechnique {
     fun getName(accessTechnique: String): String {
         return when (accessTechnique) {
             Technique.POINT_SCAN, "cursor" -> Resources.getString(R.string.access_technique_point_scan)
-            Technique.HEAD_CONTROL -> Resources.getString(R.string.access_technique_head_control)
             Technique.RADAR -> Resources.getString(R.string.access_technique_radar)
             Technique.ITEM_SCAN -> Resources.getString(R.string.access_technique_item_scan)
             else -> Resources.getString(R.string.unknown)
@@ -83,7 +81,6 @@ object AccessTechnique {
     fun getDescription(accessTechnique: String): String {
         return when (accessTechnique) {
             Technique.POINT_SCAN, "cursor" -> Resources.getString(R.string.access_technique_desc_point_scan)
-            Technique.HEAD_CONTROL -> Resources.getString(R.string.access_technique_desc_head_control)
             Technique.RADAR -> Resources.getString(R.string.access_technique_desc_radar)
             Technique.ITEM_SCAN -> Resources.getString(R.string.access_technique_desc_item_scan)
             else -> Resources.getString(R.string.unknown)

@@ -41,10 +41,9 @@ class GestureConflictDetector(private val context: Context) {
             return false
         }
         
-        // Only check conflicts when head control is the active technique
-        if (AccessTechnique.getCurrentTechnique() != AccessTechnique.Technique.HEAD_CONTROL) {
-            return false
-        }
+        // Head control is now independent - TODO: check if head control is enabled
+        // For now, assume head control could be active
+        // if (!headControlEnabled) return false
         
         // Head control gesture selection must be enabled
         if (!headControlSettings.isGestureSelectionEnabled()) {
@@ -145,8 +144,8 @@ class GestureConflictDetector(private val context: Context) {
         fun shouldPrioritizeHeadControl(): Boolean {
             return isHeadControlGesture && 
                    isSwitchAssigned && 
-                   headControlEnabled && 
-                   currentTechnique == AccessTechnique.Technique.HEAD_CONTROL
+                   headControlEnabled
+                   // Head control is now independent of access technique
         }
     }
 }

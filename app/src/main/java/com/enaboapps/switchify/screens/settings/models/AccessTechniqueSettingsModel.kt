@@ -65,8 +65,7 @@ class AccessTechniqueSettingsModel(context: Context) : ViewModel() {
         return listOf(
             AccessTechnique.Technique.ITEM_SCAN,
             AccessTechnique.Technique.POINT_SCAN,
-            AccessTechnique.Technique.RADAR,
-            AccessTechnique.Technique.HEAD_CONTROL
+            AccessTechnique.Technique.RADAR
         )
     }
 }

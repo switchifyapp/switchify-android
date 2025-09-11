@@ -4,16 +4,12 @@ import android.content.Context
 import com.enaboapps.switchify.BuildConfig
 import com.enaboapps.switchify.service.gestures.GestureManager
 import com.enaboapps.switchify.service.gestures.GesturePoint
-import com.enaboapps.switchify.service.scanning.ScanDirection
 import com.enaboapps.switchify.service.selection.SelectionHandler
-import com.enaboapps.switchify.service.techniques.AccessTechniqueInterface
 import com.enaboapps.switchify.service.utils.ScreenUtils
 import com.enaboapps.switchify.service.menu.MenuManager
-import com.enaboapps.switchify.service.scanning.tree.ScanTree
-import com.enaboapps.switchify.service.scanning.tree.SpatialNavigator
 import android.util.Log
 
-class HeadControlManager(private val context: Context) : AccessTechniqueInterface {
+class HeadControlManager(private val context: Context) {
     
     companion object {
         private const val TAG = "HeadControlManager"
@@ -42,33 +38,26 @@ class HeadControlManager(private val context: Context) : AccessTechniqueInterfac
     
     // Menu navigation state
     private var isInMenuMode = false
-    private var currentMenuScanTree: ScanTree? = null
-    private var lastMenuTreeIndex = 0
-    private var lastMenuNodeIndex = 0
+    private var headControlScanner: HeadControlItemScanner? = null
     
     
     init {
         // Auto-start head control when manager is created
         Log.d(TAG, "HeadControlManager initialized - auto-starting")
-        startAutoScanning()
+        startHeadControl()
     }
 
-    override fun swapScanDirection() { /* no-op for head control */ }
-
-    override fun startAutoScanning() { 
-        Log.d(TAG, "startAutoScanning called - showing overlay at $currentX, $currentY")
-        overlay.showPointer(currentX, currentY)
+    fun startHeadControl() { 
+        Log.d(TAG, "startHeadControl called - showing overlay at $currentX, $currentY")
+        showPointerIfAllowed()
     }
 
-    override fun stopScanningAndReset() {
+    fun stopHeadControl() {
         overlay.reset()
+        resetGestureState()
     }
 
-    override fun resetUI() {
-        overlay.reset()
-    }
-
-    override fun resetForNextUse() {
+    fun resetToCenter() {
         overlay.reset()
         // Reset to center
         currentX = ScreenUtils.getWidth(context) / 2
@@ -77,30 +66,25 @@ class HeadControlManager(private val context: Context) : AccessTechniqueInterfac
         targetY = currentY
     }
 
-    override fun pauseAutoScanning() { 
+    fun pauseHeadControl() { 
         overlay.hidePointer()
         resetGestureState()
     }
 
-    override fun resumeAutoScanning() { 
-        overlay.showPointer(currentX, currentY)
+    fun resumeHeadControl() { 
+        showPointerIfAllowed()
     }
 
-    override fun cleanup() {
-        super.cleanup()
+    fun cleanup() {
         overlay.reset()
         resetGestureState()
     }
 
-    override fun stepScanningForward() {
-        stepScanningRight()
-    }
-
-    override fun stepScanningBackward() {
-        stepScanningLeft()
-    }
-
-    override fun performSelectionAction() {
+    fun performSelection() {
+        if (isInMenuMode) {
+            headControlScanner?.performSelection()
+            return
+        }
         GesturePoint.x = currentX
         GesturePoint.y = currentY
         SelectionHandler.setSelectAction {
@@ -109,25 +93,25 @@ class HeadControlManager(private val context: Context) : AccessTechniqueInterfac
         SelectionHandler.performSelectionAction()
     }
 
-    override fun stepScanningUp() {
+    fun stepUp() {
         val step = settings.baseStep()
         targetY = (targetY - step).coerceAtLeast(minY)
         smoothMovement()
     }
 
-    override fun stepScanningDown() {
+    fun stepDown() {
         val step = settings.baseStep()
         targetY = (targetY + step).coerceAtMost(maxY)
         smoothMovement()
     }
 
-    override fun stepScanningLeft() {
+    fun stepLeft() {
         val step = settings.baseStep()
         targetX = (targetX - step).coerceAtLeast(minX)
         smoothMovement()
     }
 
-    override fun stepScanningRight() {
+    fun stepRight() {
         val step = settings.baseStep()
         targetX = (targetX + step).coerceAtMost(maxX)
         smoothMovement()
@@ -139,16 +123,31 @@ class HeadControlManager(private val context: Context) : AccessTechniqueInterfac
      * @param headRotationY Yaw rotation (negative = left, positive = right)
      */
     fun updateHeadPosition(headRotationX: Float, headRotationY: Float) {
-        if (isInMenuMode) {
-            updateMenuNavigation(headRotationX, headRotationY)
-        } else if (settings.isAbsoluteMode()) {
+        val isAbsolute = settings.isAbsoluteMode()
+        val pos = if (isAbsolute) {
             updateAbsoluteMode(headRotationX, headRotationY)
         } else {
             updateContinuousMode(headRotationX, headRotationY)
         }
+
+        if (isInMenuMode) {
+            headControlScanner?.updateSelection(pos.first, pos.second)
+        } else {
+            if (isAbsolute) {
+                targetX = pos.first.toInt().coerceIn(minX, maxX)
+                targetY = pos.second.toInt().coerceIn(minY, maxY)
+                smoothMovement()
+            } else {
+                currentX = pos.first.toInt().coerceIn(minX, maxX)
+                currentY = pos.second.toInt().coerceIn(minY, maxY)
+                targetX = currentX
+                targetY = currentY
+                showPointerIfAllowed()
+            }
+        }
     }
     
-    private fun updateAbsoluteMode(headRotationX: Float, headRotationY: Float) {
+    private fun updateAbsoluteMode(headRotationX: Float, headRotationY: Float): Pair<Float, Float> {
         val sensitivity = settings.sensitivity()
         val leftDeadzone = settings.getEffectiveLeftDeadzone()
         val rightDeadzone = settings.getEffectiveRightDeadzone()
@@ -187,15 +186,12 @@ class HeadControlManager(private val context: Context) : AccessTechniqueInterfac
         val normalizedY = (adjustedY / headRotationRange).coerceIn(-1f, 1f)
         
         // Convert to screen coordinates with sensitivity adjustment
-        targetX = (screenWidth / 2 + normalizedX * screenWidth / 2 * sensitivity).toInt()
-            .coerceIn(minX, maxX)
-        targetY = (screenHeight / 2 + normalizedY * screenHeight / 2 * sensitivity).toInt()
-            .coerceIn(minY, maxY)
-        
-        smoothMovement()
+        val desiredX = (screenWidth / 2 + normalizedX * screenWidth / 2 * sensitivity)
+        val desiredY = (screenHeight / 2 + normalizedY * screenHeight / 2 * sensitivity)
+        return Pair(desiredX, desiredY)
     }
     
-    private fun updateContinuousMode(headRotationX: Float, headRotationY: Float) {
+    private fun updateContinuousMode(headRotationX: Float, headRotationY: Float): Pair<Float, Float> {
         val leftDeadzone = settings.getEffectiveLeftDeadzone()
         val rightDeadzone = settings.getEffectiveRightDeadzone()
         val upDeadzone = settings.getEffectiveUpDeadzone()
@@ -230,20 +226,12 @@ class HeadControlManager(private val context: Context) : AccessTechniqueInterfac
         
         // Apply movement immediately
         if (horizontalMovement != 0f || verticalMovement != 0f) {
-            // Calculate movement delta based on current frame
-            val movementDelta = 8f // Base movement per update
-            
-            targetX = (currentX + horizontalMovement * movementDelta).toInt()
-                .coerceIn(minX, maxX)
-            targetY = (currentY + verticalMovement * movementDelta).toInt()
-                .coerceIn(minY, maxY)
-            
-            // Apply movement immediately
-            currentX = targetX
-            currentY = targetY
-            
-            overlay.showPointer(currentX, currentY)
+            val movementDelta = 8f
+            val desiredX = currentX + horizontalMovement * movementDelta
+            val desiredY = currentY + verticalMovement * movementDelta
+            return Pair(desiredX, desiredY)
         }
+        return Pair(currentX.toFloat(), currentY.toFloat())
     }
     
     
@@ -255,11 +243,16 @@ class HeadControlManager(private val context: Context) : AccessTechniqueInterfac
         currentX = (currentX + deltaX).toInt().coerceIn(minX, maxX)
         currentY = (currentY + deltaY).toInt().coerceIn(minY, maxY)
         
-        overlay.showPointer(currentX, currentY)
+        showPointerIfAllowed()
+    }
+
+    private fun showPointerIfAllowed() {
+        if (!isInMenuMode) {
+            overlay.showPointer(currentX, currentY)
+        }
     }
 
     fun getCurrentPosition(): Pair<Int, Int> = Pair(currentX, currentY)
-    fun getCurrentDirection(): ScanDirection = ScanDirection.RIGHT
     
     /**
      * Handles gesture detection for head control selection
@@ -304,7 +297,7 @@ class HeadControlManager(private val context: Context) : AccessTechniqueInterfac
         
         if (duration >= requiredHoldTime) {
             Log.i(TAG, "Gesture selection triggered by $gestureId")
-            performSelectionAction()
+            performSelection()
         } else {
             Log.d(TAG, "Gesture $gestureId not held long enough")
         }
@@ -335,81 +328,30 @@ class HeadControlManager(private val context: Context) : AccessTechniqueInterfac
             isInMenuMode = menuMode
             
             if (menuMode) {
-                // Get the current menu's scan tree
-                val menuHierarchy = MenuManager.getInstance().menuHierarchy
-                currentMenuScanTree = menuHierarchy?.getTopMenu()?.scanTree
-                Log.d(TAG, "Acquired menu scan tree: ${currentMenuScanTree != null}")
+                val menuView = MenuManager.getInstance().getCurrentMenuView()
+                val nodes = menuView?.getSelectableNodes() ?: emptyList()
+                if (headControlScanner == null) headControlScanner = HeadControlItemScanner()
+                headControlScanner?.setNodes(nodes)
+                Log.d(TAG, "Set ${nodes.size} nodes for head control navigation")
+                overlay.hidePointer()
             } else {
-                currentMenuScanTree = null
-                Log.d(TAG, "Cleared menu scan tree")
+                headControlScanner?.clear()
+                headControlScanner = null
+                Log.d(TAG, "Cleared head control nodes")
+                showPointerIfAllowed()
             }
         }
     }
     
     /**
-     * Handle head movement for menu navigation using spatial positioning
+     * Refresh menu nodes when menu changes (e.g., page change)
      */
-    private fun updateMenuNavigation(headRotationX: Float, headRotationY: Float) {
-        // Update cursor position for visual feedback
-        if (settings.isAbsoluteMode()) {
-            updateAbsoluteMode(headRotationX, headRotationY)
-        } else {
-            updateContinuousMode(headRotationX, headRotationY)
-        }
-        
-        // If we have a menu scan tree, use spatial navigation
-        currentMenuScanTree?.let { scanTree ->
-            navigateMenuSpatially(scanTree)
-        }
-    }
-    
-    /**
-     * Navigate menu items based on current head position using SpatialNavigator
-     */
-    private fun navigateMenuSpatially(scanTree: ScanTree) {
-        try {
-            // Get the current scan tree items
-            val treeItems = scanTree.getTree()
-            if (treeItems.isEmpty()) return
-            
-            // Create spatial navigator
-            val spatialNavigator = SpatialNavigator(treeItems)
-            
-            // Find the closest menu item to current cursor position
-            var closestTreeIndex = 0
-            var closestNodeIndex = 0
-            var minDistance = Float.MAX_VALUE
-            
-            treeItems.forEachIndexed { treeIndex, treeItem ->
-                treeItem.children.forEachIndexed { nodeIndex, node ->
-                    val nodeCenterX = node.getLeft() + node.getWidth() / 2
-                    val nodeCenterY = node.getTop() + node.getHeight() / 2
-                    
-                    val distance = kotlin.math.sqrt(
-                        ((currentX - nodeCenterX) * (currentX - nodeCenterX) +
-                         (currentY - nodeCenterY) * (currentY - nodeCenterY)).toFloat()
-                    )
-                    
-                    if (distance < minDistance) {
-                        minDistance = distance
-                        closestTreeIndex = treeIndex
-                        closestNodeIndex = nodeIndex
-                    }
-                }
-            }
-            
-            // Only update if the closest item has changed
-            if (closestTreeIndex != lastMenuTreeIndex || closestNodeIndex != lastMenuNodeIndex) {
-                lastMenuTreeIndex = closestTreeIndex
-                lastMenuNodeIndex = closestNodeIndex
-                
-                // Update the scan tree to highlight the closest item
-                scanTree.setSpatialPosition(closestTreeIndex, closestNodeIndex)
-                
-                Log.d(TAG, "Menu navigation updated: tree=$closestTreeIndex, node=$closestNodeIndex")
-            }
-        } catch (e: Exception) {
-            Log.w(TAG, "Error in menu spatial navigation", e)
+    fun refreshMenuNodes() {
+        if (isInMenuMode) {
+            val menuView = MenuManager.getInstance().getCurrentMenuView()
+            val nodes = menuView?.getSelectableNodes() ?: emptyList()
+            headControlScanner?.setNodes(nodes)
+            Log.d(TAG, "Refreshed ${nodes.size} nodes for head control navigation")
         }
     }
 }

@@ -34,14 +34,8 @@ class TechniqueEnforcer(
                 true
             }
 
-            // Head Control doesn't work in Linear/Auto modes
-            !isDirectionalMode && currentTechnique == AccessTechnique.Technique.HEAD_CONTROL -> {
-                Log.d(
-                    TAG,
-                    "Switching from $currentTechnique to Item Scan - incompatible with linear/auto mode"
-                )
-                true
-            }
+            // Head Control is now independent - no enforcement needed
+            false -> false
 
             else -> false
         }

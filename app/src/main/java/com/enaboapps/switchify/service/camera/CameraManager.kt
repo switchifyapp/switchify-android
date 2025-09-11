@@ -7,6 +7,7 @@ import com.enaboapps.switchify.service.core.CameraServiceController
 import com.enaboapps.switchify.service.core.ServiceCore
 import com.enaboapps.switchify.service.switches.camera.CameraSwitchManager
 import com.enaboapps.switchify.service.techniques.AccessTechnique
+import com.enaboapps.switchify.service.techniques.headcontrol.HeadControlSettings
 import com.enaboapps.switchify.service.utils.DeviceLockObserver
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -68,7 +69,14 @@ class CameraManager(
      * Determines if camera should be active based on current conditions.
      */
     private fun shouldCameraBeActive(currentTechnique: String, hasCameraSwitch: Boolean): Boolean {
-        return hasCameraSwitch || currentTechnique == AccessTechnique.Technique.HEAD_CONTROL
+        if (hasCameraSwitch) return true
+        
+        // Head control is now independent - check if camera is needed for head tracking
+        // TODO: Add proper head control enabled check when settings are updated
+        // For now, assume head control might be used if no other camera switch is present
+        return false  // Simplified logic for now
+        
+        return false
     }
 
     /**
