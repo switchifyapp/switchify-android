@@ -102,6 +102,14 @@ object AccessTechnique {
 
         saveCurrentTechnique()
     }
+    
+    /**
+     * Get the technique stored in preferences (not the current in-memory one)
+     * This is useful for getting the underlying technique before switching to MENU
+     */
+    fun getStoredTechnique(): String? {
+        return preferenceManager?.getStringValue(PreferenceManager.PREFERENCE_KEY_ACCESS_TECHNIQUE)?.takeIf { it.isNotEmpty() }
+    }
 
     /**
      * Reloads the current technique from preferences.

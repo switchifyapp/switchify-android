@@ -26,6 +26,9 @@ class ActiveAccessTechnique(private val context: Context) : AccessTechniqueObser
     private var systemNodeScanner: SystemNodeScanner? = null
     private var headControlManager: HeadControlManager? = null
     private var keyboardScanner: KeyboardScanner? = null
+    
+    // Track the technique that was active before switching to MENU
+    private var underlyingTechnique: String? = null
 
     private var screenWatcher: ScreenWatcher? = null
 
@@ -58,9 +61,20 @@ class ActiveAccessTechnique(private val context: Context) : AccessTechniqueObser
                 }
 
                 AccessTechnique.Technique.MENU -> {
-                    val menuHierarchy = MenuManager.getInstance().menuHierarchy
-                    val topMenu = menuHierarchy?.getTopMenu()
-                    topMenu?.scanTree ?: getPointScanManager()
+                    // For compatible techniques like HEAD_CONTROL, use the underlying technique
+                    // instead of the menu's scan tree to enable spatial navigation
+                    when (getUnderlyingTechnique()) {
+                        AccessTechnique.Technique.HEAD_CONTROL -> {
+                            val headControl = getHeadControlManager()
+                            headControl.setMenuMode(true)
+                            headControl
+                        }
+                        else -> {
+                            val menuHierarchy = MenuManager.getInstance().menuHierarchy
+                            val topMenu = menuHierarchy?.getTopMenu()
+                            topMenu?.scanTree ?: getPointScanManager()
+                        }
+                    }
                 }
 
                 else -> {
@@ -84,6 +98,18 @@ class ActiveAccessTechnique(private val context: Context) : AccessTechniqueObser
     }
 
     override fun onAccessTechniqueChanged(accessTechnique: String) {
+        // Track the underlying technique when switching to MENU
+        if (accessTechnique == AccessTechnique.Technique.MENU && underlyingTechnique == null) {
+            // Store the technique from preferences as the underlying technique
+            underlyingTechnique = AccessTechnique.getStoredTechnique() ?: AccessTechnique.Technique.ITEM_SCAN
+        } else if (accessTechnique != AccessTechnique.Technique.MENU) {
+            // Clear underlying technique when not in menu mode
+            if (underlyingTechnique != null) {
+                getHeadControlManager().setMenuMode(false)
+            }
+            underlyingTechnique = null
+        }
+        
         cleanup(accessTechnique)
         // Trigger initialization of the new technique by accessing currentAccessTechnique
         try {
@@ -133,6 +159,13 @@ class ActiveAccessTechnique(private val context: Context) : AccessTechniqueObser
 
     fun getHeadControlManagerInstance(): HeadControlManager {
         return getHeadControlManager()
+    }
+    
+    /**
+     * Get the technique that was active before switching to MENU mode
+     */
+    private fun getUnderlyingTechnique(): String? {
+        return underlyingTechnique
     }
 
     fun resetNodeScanner() {

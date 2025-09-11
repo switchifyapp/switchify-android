@@ -8,6 +8,9 @@ import com.enaboapps.switchify.service.scanning.ScanDirection
 import com.enaboapps.switchify.service.selection.SelectionHandler
 import com.enaboapps.switchify.service.techniques.AccessTechniqueInterface
 import com.enaboapps.switchify.service.utils.ScreenUtils
+import com.enaboapps.switchify.service.menu.MenuManager
+import com.enaboapps.switchify.service.scanning.tree.ScanTree
+import com.enaboapps.switchify.service.scanning.tree.SpatialNavigator
 import android.util.Log
 
 class HeadControlManager(private val context: Context) : AccessTechniqueInterface {
@@ -36,6 +39,12 @@ class HeadControlManager(private val context: Context) : AccessTechniqueInterfac
     private var isGestureActive = false
     private var gestureStartTime = 0L
     private var currentActiveGesture: String? = null
+    
+    // Menu navigation state
+    private var isInMenuMode = false
+    private var currentMenuScanTree: ScanTree? = null
+    private var lastMenuTreeIndex = 0
+    private var lastMenuNodeIndex = 0
     
     
     init {
@@ -130,7 +139,9 @@ class HeadControlManager(private val context: Context) : AccessTechniqueInterfac
      * @param headRotationY Yaw rotation (negative = left, positive = right)
      */
     fun updateHeadPosition(headRotationX: Float, headRotationY: Float) {
-        if (settings.isAbsoluteMode()) {
+        if (isInMenuMode) {
+            updateMenuNavigation(headRotationX, headRotationY)
+        } else if (settings.isAbsoluteMode()) {
             updateAbsoluteMode(headRotationX, headRotationY)
         } else {
             updateContinuousMode(headRotationX, headRotationY)
@@ -312,5 +323,93 @@ class HeadControlManager(private val context: Context) : AccessTechniqueInterfac
         gestureStartTime = 0L
         currentActiveGesture = null
         Log.d(TAG, "Gesture state reset")
+    }
+    
+    /**
+     * Set whether head control is in menu mode
+     * @param menuMode true if navigating menus, false for screen navigation
+     */
+    fun setMenuMode(menuMode: Boolean) {
+        if (isInMenuMode != menuMode) {
+            Log.d(TAG, "Menu mode changed: $menuMode")
+            isInMenuMode = menuMode
+            
+            if (menuMode) {
+                // Get the current menu's scan tree
+                val menuHierarchy = MenuManager.getInstance().menuHierarchy
+                currentMenuScanTree = menuHierarchy?.getTopMenu()?.scanTree
+                Log.d(TAG, "Acquired menu scan tree: ${currentMenuScanTree != null}")
+            } else {
+                currentMenuScanTree = null
+                Log.d(TAG, "Cleared menu scan tree")
+            }
+        }
+    }
+    
+    /**
+     * Handle head movement for menu navigation using spatial positioning
+     */
+    private fun updateMenuNavigation(headRotationX: Float, headRotationY: Float) {
+        // Update cursor position for visual feedback
+        if (settings.isAbsoluteMode()) {
+            updateAbsoluteMode(headRotationX, headRotationY)
+        } else {
+            updateContinuousMode(headRotationX, headRotationY)
+        }
+        
+        // If we have a menu scan tree, use spatial navigation
+        currentMenuScanTree?.let { scanTree ->
+            navigateMenuSpatially(scanTree)
+        }
+    }
+    
+    /**
+     * Navigate menu items based on current head position using SpatialNavigator
+     */
+    private fun navigateMenuSpatially(scanTree: ScanTree) {
+        try {
+            // Get the current scan tree items
+            val treeItems = scanTree.getTree()
+            if (treeItems.isEmpty()) return
+            
+            // Create spatial navigator
+            val spatialNavigator = SpatialNavigator(treeItems)
+            
+            // Find the closest menu item to current cursor position
+            var closestTreeIndex = 0
+            var closestNodeIndex = 0
+            var minDistance = Float.MAX_VALUE
+            
+            treeItems.forEachIndexed { treeIndex, treeItem ->
+                treeItem.children.forEachIndexed { nodeIndex, node ->
+                    val nodeCenterX = node.getLeft() + node.getWidth() / 2
+                    val nodeCenterY = node.getTop() + node.getHeight() / 2
+                    
+                    val distance = kotlin.math.sqrt(
+                        ((currentX - nodeCenterX) * (currentX - nodeCenterX) +
+                         (currentY - nodeCenterY) * (currentY - nodeCenterY)).toFloat()
+                    )
+                    
+                    if (distance < minDistance) {
+                        minDistance = distance
+                        closestTreeIndex = treeIndex
+                        closestNodeIndex = nodeIndex
+                    }
+                }
+            }
+            
+            // Only update if the closest item has changed
+            if (closestTreeIndex != lastMenuTreeIndex || closestNodeIndex != lastMenuNodeIndex) {
+                lastMenuTreeIndex = closestTreeIndex
+                lastMenuNodeIndex = closestNodeIndex
+                
+                // Update the scan tree to highlight the closest item
+                scanTree.setSpatialPosition(closestTreeIndex, closestNodeIndex)
+                
+                Log.d(TAG, "Menu navigation updated: tree=$closestTreeIndex, node=$closestNodeIndex")
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Error in menu spatial navigation", e)
+        }
     }
 }
