@@ -82,9 +82,6 @@ class MenuManager {
         scanningManager?.setItemScanType()
     }
 
-    fun switchToDirectControl() {
-        scanningManager?.setDirectControlType()
-    }
 
     fun switchToHeadControl() {
         scanningManager?.setHeadControlType()

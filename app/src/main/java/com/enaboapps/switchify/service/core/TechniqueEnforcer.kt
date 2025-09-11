@@ -16,7 +16,7 @@ class TechniqueEnforcer(
      *
      * Compatibility Rules:
      * - Point Scan & Radar: Only work with Linear/Auto scanning modes
-     * - Direct Control: Only works with Directional scanning mode
+     * - Head Control: Works with Directional scanning mode
      * - Item Scan: Works with all scanning modes (universal fallback)
      */
     fun enforceCompatibility() {
@@ -34,11 +34,11 @@ class TechniqueEnforcer(
                 true
             }
 
-            // Direct Control doesn't work in Linear/Auto modes
-            !isDirectionalMode && currentTechnique == AccessTechnique.Technique.DIRECT_CONTROL -> {
+            // Head Control doesn't work in Linear/Auto modes
+            !isDirectionalMode && currentTechnique == AccessTechnique.Technique.HEAD_CONTROL -> {
                 Log.d(
                     TAG,
-                    "Switching from Direct Control to Item Scan - incompatible with linear/auto mode"
+                    "Switching from $currentTechnique to Item Scan - incompatible with linear/auto mode"
                 )
                 true
             }

@@ -144,18 +144,6 @@ class MainMenuStructure(private val accessibilityService: SwitchifyAccessibility
                     }
                 )
             } else null,
-            if (scanSettings.isDirectionalScanMode() &&
-                AccessTechnique.getCurrentTechnique() != AccessTechnique.Technique.DIRECT_CONTROL
-            ) {
-                MenuItem(
-                    id = "switch_to_direct_control",
-                    labelResource = R.string.access_technique_direct_control,
-                    drawableId = R.drawable.ic_gestures,
-                    action = {
-                        MenuManager.getInstance().switchToDirectControl()
-                    }
-                )
-            } else null,
             // Head control - show when not currently active
             if (AccessTechnique.getCurrentTechnique() != AccessTechnique.Technique.HEAD_CONTROL) {
                 MenuItem(

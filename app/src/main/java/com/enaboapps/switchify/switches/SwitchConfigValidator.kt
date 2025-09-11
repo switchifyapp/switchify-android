@@ -69,15 +69,7 @@ class SwitchConfigValidator(private val context: Context) {
      * Directional scan requires UP, DOWN, LEFT, RIGHT, and SELECT actions
      */
     private fun isValidForDirectionalScan(configuredActions: Set<Int>): Boolean {
-        return configuredActions.containsAll(
-            setOf(
-                SwitchAction.ACTION_SELECT,
-                SwitchAction.ACTION_MOVE_UP,
-                SwitchAction.ACTION_MOVE_DOWN,
-                SwitchAction.ACTION_MOVE_LEFT,
-                SwitchAction.ACTION_MOVE_RIGHT
-            )
-        )
+        return configuredActions.contains(SwitchAction.ACTION_SELECT)
     }
 
     /**
@@ -126,11 +118,7 @@ class SwitchConfigValidator(private val context: Context) {
             )
 
             scanSettings.isDirectionalScanMode() -> setOf(
-                SwitchAction.ACTION_SELECT,
-                SwitchAction.ACTION_MOVE_UP,
-                SwitchAction.ACTION_MOVE_DOWN,
-                SwitchAction.ACTION_MOVE_LEFT,
-                SwitchAction.ACTION_MOVE_RIGHT
+                SwitchAction.ACTION_SELECT
             )
 
             else -> emptySet()
