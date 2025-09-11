@@ -16,6 +16,7 @@ import com.enaboapps.switchify.service.scanning.tree.ScanTree
 import com.enaboapps.switchify.service.core.ServiceCore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
@@ -217,14 +218,21 @@ class MenuView(
                     pageLayout.viewTreeObserver.removeOnGlobalLayoutListener(this)
                     updateMaxDimensions()
                     resizeAndRepositionMenu()
-                    scanTree.buildTree(menuPages[currentPage].translateMenuItemsToNodes(), 0)
-                    
-                    // Notify head control that menu nodes changed
-                    ServiceCore.getHeadControlService()?.refreshMenuNodes()
                 }
             })
-        } else {
-            MenuManager.getInstance().closeMenuHierarchy()
+        }
+
+        // Use coroutine for delayed tree building after layout completion
+        CoroutineScope(Dispatchers.Main).launch {
+            delay(500)
+            if (pageExists) {
+                scanTree.buildTree(menuPages[currentPage].translateMenuItemsToNodes(), 0)
+                
+                // Notify head control that menu nodes changed
+                ServiceCore.getHeadControlService()?.refreshMenuNodes()
+            } else {
+                MenuManager.getInstance().closeMenuHierarchy()
+            }
         }
     }
 
