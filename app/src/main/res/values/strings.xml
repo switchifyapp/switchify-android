@@ -816,4 +816,5 @@
     <string name="head_control_priority_title">Head Control Priority</string>
     <string name="head_control_priority_summary">When enabled, Head Control selection takes priority over switch actions for the same gesture</string>
     <string name="head_control_conflict_warning">Selected gesture is also assigned as a camera switch. Depending on priority, one of them will be ignored.</string>
+    <string name="head_control_requires_camera_permission">Head control requires camera permission to function</string>
 </resources>

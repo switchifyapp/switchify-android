@@ -3,7 +3,10 @@ package com.enaboapps.switchify.service.techniques.headcontrol
 import android.content.Context
 import android.util.Log
 import com.enaboapps.switchify.BuildConfig
+import com.enaboapps.switchify.R
+import com.enaboapps.switchify.service.camera.CameraPermissionManager
 import com.enaboapps.switchify.service.menu.MenuManager
+import com.enaboapps.switchify.service.window.ServiceMessageHUD
 
 /**
  * Global service for head control functionality
@@ -84,10 +87,30 @@ class HeadControlService private constructor(private val context: Context) {
     }
     
     /**
-     * Enable or disable head control
+     * Show camera permission required notification
      */
-    fun setEnabled(enabled: Boolean) {
+    private fun showCameraPermissionRequiredNotification() {
+        ServiceMessageHUD.instance.showMessage(
+            R.string.head_control_requires_camera_permission,
+            ServiceMessageHUD.MessageType.DISAPPEARING
+        )
+    }
+    
+    /**
+     * Enable or disable head control with permission validation
+     * @param enabled Whether to enable head control
+     * @return true if operation succeeded, false if blocked due to missing permission
+     */
+    fun setEnabled(enabled: Boolean): Boolean {
         Log.d(TAG, "setEnabled called with: $enabled, current manager exists: ${headControlManager != null}")
+        
+        // Check camera permission when enabling
+        if (enabled && !CameraPermissionManager.getInstance(context).hasPermission()) {
+            Log.w(TAG, "Cannot enable head control - camera permission not granted")
+            showCameraPermissionRequiredNotification()
+            return false
+        }
+        
         settings.setHeadControlEnabled(enabled)
         if (enabled && headControlManager == null) {
             Log.d(TAG, "Initializing head control manager")
@@ -97,6 +120,8 @@ class HeadControlService private constructor(private val context: Context) {
             headControlManager?.cleanup()
             headControlManager = null
         }
+        
+        return true
     }
     
     /**
