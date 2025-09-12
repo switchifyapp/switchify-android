@@ -10,6 +10,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.components.Picker
 import com.enaboapps.switchify.screens.settings.models.AccessTechniqueSettingsModel
@@ -18,7 +19,9 @@ import com.enaboapps.switchify.service.techniques.AccessTechnique
 @Composable
 fun AccessTechniqueSelector() {
     val context = LocalContext.current
-    val viewModel = AccessTechniqueSettingsModel(context)
+    val viewModel: AccessTechniqueSettingsModel = viewModel {
+        AccessTechniqueSettingsModel(context)
+    }
     val uiState = viewModel.uiState.collectAsState()
 
     Picker(
