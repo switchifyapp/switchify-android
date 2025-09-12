@@ -30,10 +30,6 @@ class HeadControlManager(private val context: Context) {
     private val settings = HeadControlSettings(context)
     private val overlay = HeadControlOverlay(context)
     
-    // Head movement smoothing
-    private var targetX: Int = currentX
-    private var targetY: Int = currentY
-    
     // Movement bounds with padding
     private val minX = SCREEN_PADDING
     private val maxX = ScreenUtils.getWidth(context) - SCREEN_PADDING
@@ -90,27 +86,14 @@ class HeadControlManager(private val context: Context) {
      * @param headRotationY Yaw rotation (negative = left, positive = right)
      */
     fun updateHeadPosition(headRotationX: Float, headRotationY: Float) {
-        val isAbsolute = settings.isAbsoluteMode()
-        val pos = if (isAbsolute) {
-            updateAbsoluteMode(headRotationX, headRotationY)
-        } else {
-            updateContinuousMode(headRotationX, headRotationY)
-        }
-
         if (isInMenuMode) {
             handleMenuDirection(headRotationX, headRotationY)
         } else {
-            if (isAbsolute) {
-                targetX = pos.first.toInt().coerceIn(minX, maxX)
-                targetY = pos.second.toInt().coerceIn(minY, maxY)
-                smoothMovement()
-            } else {
-                currentX = pos.first.toInt().coerceIn(minX, maxX)
-                currentY = pos.second.toInt().coerceIn(minY, maxY)
-                targetX = currentX
-                targetY = currentY
-                showPointerIfAllowed()
-            }
+            // Calculate head movement
+            val pos = calculateMovement(headRotationX, headRotationY)
+            currentX = pos.first.toInt().coerceIn(minX, maxX)
+            currentY = pos.second.toInt().coerceIn(minY, maxY)
+            showPointerIfAllowed()
         }
     }
     
@@ -219,7 +202,7 @@ class HeadControlManager(private val context: Context) {
         return Pair(desiredX, desiredY)
     }
     
-    private fun updateContinuousMode(headRotationX: Float, headRotationY: Float): Pair<Float, Float> {
+    private fun calculateMovement(headRotationX: Float, headRotationY: Float): Pair<Float, Float> {
         val leftDeadzone = settings.getEffectiveLeftDeadzone()
         val rightDeadzone = settings.getEffectiveRightDeadzone()
         val upDeadzone = settings.getEffectiveUpDeadzone()
@@ -259,16 +242,6 @@ class HeadControlManager(private val context: Context) {
     }
     
     
-    private fun smoothMovement() {
-        // Apply smoothing to prevent jittery movement
-        val deltaX = (targetX - currentX) * SMOOTHING_FACTOR
-        val deltaY = (targetY - currentY) * SMOOTHING_FACTOR
-        
-        currentX = (currentX + deltaX).toInt().coerceIn(minX, maxX)
-        currentY = (currentY + deltaY).toInt().coerceIn(minY, maxY)
-        
-        showPointerIfAllowed()
-    }
 
     private fun showPointerIfAllowed() {
         if (!isInMenuMode) {

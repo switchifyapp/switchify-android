@@ -11,7 +11,6 @@ class HeadControlSettings(context: Context) {
     
     fun deadzone(): Float = prefs.getFloatValue(KEY_DEADZONE, 0.5f).coerceIn(0.1f, 30.0f)
     
-    fun isAbsoluteMode(): Boolean = prefs.getBooleanValue(KEY_ABSOLUTE_MODE, true)
     
     fun movementSpeed(): Float = prefs.getFloatValue(KEY_MOVEMENT_SPEED, 2.0f).coerceIn(0.5f, 5.0f)
     
@@ -124,7 +123,6 @@ class HeadControlSettings(context: Context) {
         const val KEY_GESTURE_SELECTION_ENABLED = "head_control_gesture_selection_enabled"
         const val KEY_GESTURE_HOLD_TIME = "head_control_gesture_hold_time"
         const val KEY_GESTURE_PRIORITY_HEAD_CONTROL = "head_control_gesture_priority_head_control"
-        const val KEY_ABSOLUTE_MODE = "head_control_absolute_mode"
         const val KEY_MOVEMENT_SPEED = "head_control_movement_speed"
         const val KEY_HORIZONTAL_DEADZONE = "head_control_horizontal_deadzone"
         const val KEY_VERTICAL_DEADZONE = "head_control_vertical_deadzone"

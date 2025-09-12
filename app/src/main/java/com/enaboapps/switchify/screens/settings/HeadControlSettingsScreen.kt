@@ -29,34 +29,9 @@ import com.enaboapps.switchify.switches.CameraSwitchFacialGesture
 import com.enaboapps.switchify.switches.SwitchEventStore
 import com.enaboapps.switchify.switches.SWITCH_EVENT_TYPE_CAMERA
 
-@Composable
-fun AbsoluteModeSection(
-    settings: HeadControlSettings,
-    prefs: PreferenceManager
-) {
-    // Use centralized values from HeadControlSettings
-    val currentSensitivity = settings.sensitivity()
-    val sensitivityIndex = HeadControlSettings.SENSITIVITY_VALUES.indexOfFirst { kotlin.math.abs(it - currentSensitivity) < 0.05f }.let { if (it == -1) 3 else it }
-    var sensitivity by remember { mutableIntStateOf(sensitivityIndex) }
-    
-    Section(titleResId = R.string.section_title_sensitivity) {
-        PreferenceValueSelector(
-            value = sensitivity,
-            titleResId = R.string.preference_title_head_control_sensitivity,
-            summaryResId = R.string.preference_summary_head_control_sensitivity,
-            values = IntArray(HeadControlSettings.SENSITIVITY_VALUES.size) { it },
-            buttonLabelFormatter = { String.format(Locale.US, "%.1f", HeadControlSettings.SENSITIVITY_VALUES[it]) },
-            displayFormatter = { String.format(Locale.US, "%.1f", HeadControlSettings.SENSITIVITY_VALUES[it]) },
-            onValueChanged = { index ->
-                sensitivity = index
-                prefs.setFloatValue(HeadControlSettings.KEY_SENSITIVITY, HeadControlSettings.SENSITIVITY_VALUES[index])
-            }
-        )
-    }
-}
 
-@Composable  
-fun ContinuousModeSection(
+@Composable
+fun MovementSection(
     settings: HeadControlSettings,
     prefs: PreferenceManager
 ) {
@@ -209,33 +184,12 @@ fun HeadControlMovementTab(
 ) {
     val context = LocalContext.current
     
-    // Movement mode state
-    var isAbsoluteMode by remember { mutableStateOf(settings.isAbsoluteMode()) }
-    
     // Separate directional thresholds state
     var useSeparateThresholds by remember { mutableStateOf(settings.useSeparateDirectionalThresholds()) }
     
     ScrollableView {
-        Section(titleResId = R.string.section_title_movement_mode) {
-            PreferenceValueSelector(
-                value = if (isAbsoluteMode) 0 else 1,
-                titleResId = R.string.preference_title_head_control_movement_mode,
-                summaryResId = R.string.preference_summary_head_control_movement_mode,
-                values = intArrayOf(0, 1),
-                buttonLabelFormatter = { if (it == 0) context.getString(R.string.head_control_absolute_mode) else context.getString(R.string.head_control_continuous_mode) },
-                displayFormatter = { if (it == 0) context.getString(R.string.head_control_absolute_mode) else context.getString(R.string.head_control_continuous_mode) },
-                onValueChanged = { index ->
-                    isAbsoluteMode = (index == 0)
-                    prefs.setBooleanValue(HeadControlSettings.KEY_ABSOLUTE_MODE, isAbsoluteMode)
-                }
-            )
-        }
-        
-        if (isAbsoluteMode) {
-            AbsoluteModeSection(settings = settings, prefs = prefs)
-        } else {
-            ContinuousModeSection(settings = settings, prefs = prefs)
-        }
+        // Movement speed settings
+        MovementSection(settings = settings, prefs = prefs)
         
         DeadzoneSection(
             settings = settings, 

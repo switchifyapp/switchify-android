@@ -772,22 +772,16 @@
     <string name="head_control_gesture_blink">Blink</string>
     
     <!-- Head Control Movement Mode -->
-    <string name="head_control_movement_mode">Movement Mode</string>
-    <string name="head_control_movement_mode_summary">Choose how head movement controls the cursor</string>
-    <string name="head_control_absolute_mode">Absolute Positioning</string>
-    <string name="head_control_continuous_mode">Continuous Movement</string>
     <string name="head_control_movement_speed">Movement Speed</string>
-    <string name="head_control_movement_speed_summary">Speed of cursor movement in continuous mode</string>
+    <string name="head_control_movement_speed_summary">Speed of cursor movement</string>
     <string name="head_control_horizontal_deadzone">Horizontal Dead Zone</string>
     <string name="head_control_horizontal_deadzone_summary">Threshold for left/right head movement</string>
     <string name="head_control_vertical_deadzone">Vertical Dead Zone</string>
     <string name="head_control_vertical_deadzone_summary">Threshold for up/down head movement</string>
     
     <!-- Head Control String Resources -->
-    <string name="preference_title_head_control_movement_mode">Movement Mode</string>
-    <string name="preference_summary_head_control_movement_mode">Choose how head movement controls the cursor</string>
     <string name="preference_title_head_control_movement_speed">Movement Speed</string>
-    <string name="preference_summary_head_control_movement_speed">Speed of cursor movement in continuous mode</string>
+    <string name="preference_summary_head_control_movement_speed">Speed of cursor movement</string>
     <string name="preference_title_head_control_horizontal_deadzone">Horizontal Deadzone</string>
     <string name="preference_summary_head_control_horizontal_deadzone">Threshold for left/right head movement</string>
     <string name="preference_title_head_control_vertical_deadzone">Vertical Deadzone</string>
