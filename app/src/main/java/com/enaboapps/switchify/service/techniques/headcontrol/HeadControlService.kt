@@ -3,7 +3,10 @@ package com.enaboapps.switchify.service.techniques.headcontrol
 import android.content.Context
 import android.util.Log
 import com.enaboapps.switchify.BuildConfig
+import com.enaboapps.switchify.R
+import com.enaboapps.switchify.service.camera.CameraPermissionManager
 import com.enaboapps.switchify.service.menu.MenuManager
+import com.enaboapps.switchify.service.window.ServiceMessageHUD
 
 /**
  * Global service for head control functionality
@@ -34,6 +37,12 @@ class HeadControlService private constructor(private val context: Context) {
         val enabled = settings.isHeadControlEnabled()
         Log.d(TAG, "initialize() called, head control enabled: $enabled")
         if (enabled) {
+            if (!CameraPermissionManager.getInstance(context).hasPermission()) {
+                Log.w(TAG, "Head control enabled in settings but camera permission missing; disabling.")
+                settings.setHeadControlEnabled(false)
+                showCameraPermissionRequiredNotification()
+                return
+            }
             Log.d(TAG, "Creating HeadControlManager")
             headControlManager = HeadControlManager(context)
         } else {
@@ -84,18 +93,48 @@ class HeadControlService private constructor(private val context: Context) {
     }
     
     /**
-     * Enable or disable head control
+     * Show camera permission required notification
      */
-    fun setEnabled(enabled: Boolean) {
+    private fun showCameraPermissionRequiredNotification() {
+        ServiceMessageHUD.instance.showMessage(
+            R.string.hud_head_control_requires_camera_permission,
+            ServiceMessageHUD.MessageType.DISAPPEARING
+        )
+    }
+    
+    /**
+     * Enable or disable head control with permission validation
+     * @param enabled Whether to enable head control
+     * @return true if operation succeeded, false if blocked due to missing permission
+     */
+    fun setEnabled(enabled: Boolean): Boolean {
         Log.d(TAG, "setEnabled called with: $enabled, current manager exists: ${headControlManager != null}")
-        settings.setHeadControlEnabled(enabled)
-        if (enabled && headControlManager == null) {
-            Log.d(TAG, "Initializing head control manager")
-            initialize()
-        } else if (!enabled) {
-            Log.d(TAG, "Disabling head control manager")
+        
+        // Check camera permission when enabling
+        if (enabled && !CameraPermissionManager.getInstance(context).hasPermission()) {
+            Log.w(TAG, "Cannot enable head control - camera permission not granted")
+            showCameraPermissionRequiredNotification()
+            return false
+        }
+        
+        return try {
+            settings.setHeadControlEnabled(enabled)
+            if (enabled && headControlManager == null) {
+                Log.d(TAG, "Initializing head control manager")
+                initialize()
+            } else if (!enabled) {
+                Log.d(TAG, "Disabling head control manager")
+                headControlManager?.cleanup()
+                headControlManager = null
+            }
+            true
+        } catch (t: Throwable) {
+            Log.e(TAG, "Failed to setEnabled($enabled)", t)
+            // Roll back to a safe state
+            settings.setHeadControlEnabled(false)
             headControlManager?.cleanup()
             headControlManager = null
+            false
         }
     }
     

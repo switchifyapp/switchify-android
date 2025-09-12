@@ -16,6 +16,7 @@ import com.enaboapps.switchify.service.techniques.AccessTechnique
 import com.enaboapps.switchify.service.techniques.headcontrol.HeadControlSettings
 import com.enaboapps.switchify.service.techniques.nodes.NodeExaminer
 import com.enaboapps.switchify.service.utils.DeviceLockObserver
+import com.enaboapps.switchify.service.camera.CameraPermissionManager
 
 class MainMenuStructure(private val accessibilityService: SwitchifyAccessibilityService) {
     private val gestureMenuStructure = GestureMenuStructure(accessibilityService)
@@ -145,27 +146,32 @@ class MainMenuStructure(private val accessibilityService: SwitchifyAccessibility
                     }
                 )
             } else null,
-            // Head control toggle - independent of access technique
-            MenuItem(
-                id = "toggle_head_control",
-                labelResource = if (HeadControlSettings(accessibilityService).isHeadControlEnabled()) 
-                    R.string.menu_item_disable_head_control 
-                else 
-                    R.string.menu_item_enable_head_control,
-                drawableId = R.drawable.ic_head_control_pointer,
-                action = {
-                    val headControlService = ServiceCore.getHeadControlService()
-                    val settings = HeadControlSettings(accessibilityService)
-                    val currentlyEnabled = settings.isHeadControlEnabled()
-                    
-                    // Toggle the setting
-                    settings.setHeadControlEnabled(!currentlyEnabled)
-                    headControlService?.setEnabled(!currentlyEnabled)
-                    
-                    // Close menu to show the effect
-                    MenuManager.getInstance().closeMenuHierarchy()
-                }
-            ),
+            // Head control toggle - only show if camera permission is granted
+            if (CameraPermissionManager.getInstance(accessibilityService).hasPermission()) {
+                MenuItem(
+                    id = "toggle_head_control",
+                    labelResource = if (HeadControlSettings(accessibilityService).isHeadControlEnabled()) 
+                        R.string.menu_item_disable_head_control 
+                    else 
+                        R.string.menu_item_enable_head_control,
+                    drawableId = R.drawable.ic_head_control_pointer,
+                    action = {
+                        val headControlService = ServiceCore.getHeadControlService()
+                        val settings = HeadControlSettings(accessibilityService)
+                        val currentlyEnabled = settings.isHeadControlEnabled()
+                        
+                        // Try to toggle head control
+                        val success = headControlService?.setEnabled(!currentlyEnabled) ?: false
+                        if (success) {
+                            // Only update settings if head control was successfully enabled/disabled
+                            settings.setHeadControlEnabled(!currentlyEnabled)
+                        }
+                        
+                        // Close menu to show the effect
+                        MenuManager.getInstance().closeMenuHierarchy()
+                    }
+                )
+            } else null,
             MenuItem(
                 id = "pause",
                 labelResource = R.string.menu_item_pause,
