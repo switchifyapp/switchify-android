@@ -813,4 +813,6 @@
     <string name="hud_head_control_requires_camera_permission">Head control requires camera permission to function</string>
     <string name="hud_head_control_requires_unlocked_device">Head control requires device to be unlocked to function</string>
     <string name="hud_head_control_enabled_after_unlock">Head control enabled after device unlock</string>
+    <string name="hud_head_control_enabled_after_permission_granted">Head control enabled after camera permission granted</string>
+    <string name="hud_head_control_disabled_permission_revoked">Head control disabled due to camera permission revocation</string>
 </resources>

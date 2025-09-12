@@ -1,8 +1,14 @@
 package com.enaboapps.switchify.service.camera
 
 import android.Manifest
+import android.content.BroadcastReceiver
 import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
+import android.net.Uri
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import androidx.core.content.ContextCompat
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,6 +23,7 @@ class CameraPermissionManager(private val context: Context) {
     
     companion object {
         private const val TAG = "CameraPermissionManager"
+        private const val PERMISSION_CHECK_INTERVAL = 5000L // Check every 5 seconds
         
         @Volatile
         private var INSTANCE: CameraPermissionManager? = null
@@ -31,6 +38,13 @@ class CameraPermissionManager(private val context: Context) {
     }
     
     private val _permissionState = MutableStateFlow(checkPermissionSync())
+    private var isMonitoring = false
+    private var permissionReceiver: BroadcastReceiver? = null
+    private val handler = Handler(Looper.getMainLooper())
+    
+    // Callbacks for permission changes
+    private var onPermissionGrantedCallback: (() -> Unit)? = null
+    private var onPermissionRevokedCallback: (() -> Unit)? = null
     
     /**
      * Observable camera permission state.
@@ -43,14 +57,121 @@ class CameraPermissionManager(private val context: Context) {
     fun hasPermission(): Boolean = _permissionState.value
     
     /**
+     * Start monitoring camera permission changes
+     * @param onGranted Callback when permission is granted
+     * @param onRevoked Callback when permission is revoked
+     */
+    fun startMonitoring(
+        onGranted: (() -> Unit)? = null,
+        onRevoked: (() -> Unit)? = null
+    ) {
+        if (isMonitoring) {
+            Log.d(TAG, "Permission monitoring already started")
+            return
+        }
+        
+        onPermissionGrantedCallback = onGranted
+        onPermissionRevokedCallback = onRevoked
+        
+        // Create broadcast receiver for permission changes
+        permissionReceiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context?, intent: Intent?) {
+                when (intent?.action) {
+                    Intent.ACTION_PACKAGE_REPLACED,
+                    Intent.ACTION_PACKAGE_CHANGED -> {
+                        val packageName = intent.data?.schemeSpecificPart
+                        if (packageName == context?.packageName) {
+                            // Our app's permissions might have changed
+                            handler.post { refreshPermissionState() }
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Register receiver for package changes (which can include permission changes)
+        val filter = IntentFilter().apply {
+            addAction(Intent.ACTION_PACKAGE_REPLACED)
+            addAction(Intent.ACTION_PACKAGE_CHANGED)
+            addDataScheme("package")
+        }
+        
+        try {
+            context.registerReceiver(permissionReceiver, filter)
+            isMonitoring = true
+            Log.d(TAG, "Started camera permission monitoring")
+            
+            // Start periodic checking as backup (some permission changes don't trigger broadcasts)
+            startPeriodicCheck()
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to register permission monitor", e)
+            permissionReceiver = null
+        }
+    }
+    
+    /**
+     * Stop monitoring camera permission changes
+     */
+    fun stopMonitoring() {
+        if (!isMonitoring) {
+            return
+        }
+        
+        try {
+            permissionReceiver?.let { receiver ->
+                context.unregisterReceiver(receiver)
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to unregister permission receiver", e)
+        }
+        
+        permissionReceiver = null
+        isMonitoring = false
+        onPermissionGrantedCallback = null
+        onPermissionRevokedCallback = null
+        
+        // Stop periodic checking
+        handler.removeCallbacksAndMessages(null)
+        
+        Log.d(TAG, "Stopped camera permission monitoring")
+    }
+    
+    /**
      * Refresh the permission state (call when permission might have changed).
      */
     fun refreshPermissionState() {
+        val wasGranted = _permissionState.value
         val newState = checkPermissionSync()
-        if (_permissionState.value != newState) {
-            Log.d(TAG, "Camera permission state changed: $newState")
+        
+        if (wasGranted != newState) {
+            Log.i(TAG, "Camera permission state changed: $wasGranted -> $newState")
             _permissionState.value = newState
+            
+            // Notify callbacks
+            if (newState && !wasGranted) {
+                // Permission granted
+                onPermissionGrantedCallback?.invoke()
+            } else if (!newState && wasGranted) {
+                // Permission revoked
+                onPermissionRevokedCallback?.invoke()
+            }
         }
+    }
+    
+    /**
+     * Start periodic permission checking as backup
+     */
+    private fun startPeriodicCheck() {
+        val checkRunnable = object : Runnable {
+            override fun run() {
+                if (isMonitoring) {
+                    refreshPermissionState()
+                    handler.postDelayed(this, PERMISSION_CHECK_INTERVAL)
+                }
+            }
+        }
+        handler.postDelayed(checkRunnable, PERMISSION_CHECK_INTERVAL)
     }
     
     /**
