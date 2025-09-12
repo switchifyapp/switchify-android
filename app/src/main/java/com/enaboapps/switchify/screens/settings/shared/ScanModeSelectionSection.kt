@@ -15,6 +15,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.components.AutoScanDemo
@@ -31,7 +32,10 @@ fun ScanModeSelectionSection(
     navController: NavController,
     onChange: ((String) -> Unit)? = null
 ) {
-    val viewModel = ScanModeSettingsModel(LocalContext.current)
+    val context = LocalContext.current
+    val viewModel: ScanModeSettingsModel = viewModel {
+        ScanModeSettingsModel(context)
+    }
     val uiState = viewModel.uiState.collectAsState()
 
     Section(titleResId = R.string.section_title_scanning_mode) {
