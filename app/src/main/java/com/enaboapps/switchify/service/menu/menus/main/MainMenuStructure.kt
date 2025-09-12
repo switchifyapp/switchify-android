@@ -160,9 +160,12 @@ class MainMenuStructure(private val accessibilityService: SwitchifyAccessibility
                         val settings = HeadControlSettings(accessibilityService)
                         val currentlyEnabled = settings.isHeadControlEnabled()
                         
-                        // Toggle the setting
-                        settings.setHeadControlEnabled(!currentlyEnabled)
-                        headControlService?.setEnabled(!currentlyEnabled)
+                        // Try to toggle head control
+                        val success = headControlService?.setEnabled(!currentlyEnabled) ?: false
+                        if (success) {
+                            // Only update settings if head control was successfully enabled/disabled
+                            settings.setHeadControlEnabled(!currentlyEnabled)
+                        }
                         
                         // Close menu to show the effect
                         MenuManager.getInstance().closeMenuHierarchy()

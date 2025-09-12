@@ -37,6 +37,12 @@ class HeadControlService private constructor(private val context: Context) {
         val enabled = settings.isHeadControlEnabled()
         Log.d(TAG, "initialize() called, head control enabled: $enabled")
         if (enabled) {
+            if (!CameraPermissionManager.getInstance(context).hasPermission()) {
+                Log.w(TAG, "Head control enabled in settings but camera permission missing; disabling.")
+                settings.setHeadControlEnabled(false)
+                showCameraPermissionRequiredNotification()
+                return
+            }
             Log.d(TAG, "Creating HeadControlManager")
             headControlManager = HeadControlManager(context)
         } else {
@@ -91,7 +97,7 @@ class HeadControlService private constructor(private val context: Context) {
      */
     private fun showCameraPermissionRequiredNotification() {
         ServiceMessageHUD.instance.showMessage(
-            R.string.head_control_requires_camera_permission,
+            R.string.hud_head_control_requires_camera_permission,
             ServiceMessageHUD.MessageType.DISAPPEARING
         )
     }
@@ -111,17 +117,25 @@ class HeadControlService private constructor(private val context: Context) {
             return false
         }
         
-        settings.setHeadControlEnabled(enabled)
-        if (enabled && headControlManager == null) {
-            Log.d(TAG, "Initializing head control manager")
-            initialize()
-        } else if (!enabled) {
-            Log.d(TAG, "Disabling head control manager")
+        return try {
+            settings.setHeadControlEnabled(enabled)
+            if (enabled && headControlManager == null) {
+                Log.d(TAG, "Initializing head control manager")
+                initialize()
+            } else if (!enabled) {
+                Log.d(TAG, "Disabling head control manager")
+                headControlManager?.cleanup()
+                headControlManager = null
+            }
+            true
+        } catch (t: Throwable) {
+            Log.e(TAG, "Failed to setEnabled($enabled)", t)
+            // Roll back to a safe state
+            settings.setHeadControlEnabled(false)
             headControlManager?.cleanup()
             headControlManager = null
+            false
         }
-        
-        return true
     }
     
     /**
