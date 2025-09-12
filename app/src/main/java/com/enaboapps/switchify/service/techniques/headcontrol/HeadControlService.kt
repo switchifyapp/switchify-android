@@ -6,6 +6,7 @@ import com.enaboapps.switchify.BuildConfig
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.service.camera.CameraPermissionManager
 import com.enaboapps.switchify.service.menu.MenuManager
+import com.enaboapps.switchify.service.utils.DeviceLockObserver
 import com.enaboapps.switchify.service.window.ServiceMessageHUD
 
 /**
@@ -29,6 +30,8 @@ class HeadControlService private constructor(private val context: Context) {
     
     private var headControlManager: HeadControlManager? = null
     private val settings = HeadControlSettings(context)
+    private var deviceLockObserver: DeviceLockObserver? = null
+    private var enableAfterUnlock = false
     
     /**
      * Initialize head control service
@@ -36,6 +39,10 @@ class HeadControlService private constructor(private val context: Context) {
     fun initialize() {
         val enabled = settings.isHeadControlEnabled()
         Log.d(TAG, "initialize() called, head control enabled: $enabled")
+        
+        // Setup device lock observer
+        setupDeviceLockObserver()
+        
         if (enabled) {
             if (!CameraPermissionManager.getInstance(context).hasPermission()) {
                 Log.w(TAG, "Head control enabled in settings but camera permission missing; disabling.")
@@ -43,6 +50,14 @@ class HeadControlService private constructor(private val context: Context) {
                 showCameraPermissionRequiredNotification()
                 return
             }
+            
+            if (!DeviceLockObserver.isUserUnlocked(context)) {
+                Log.w(TAG, "Head control enabled in settings but device is locked; will enable after unlock.")
+                enableAfterUnlock = true
+                showDeviceLockedNotification()
+                return
+            }
+            
             Log.d(TAG, "Creating HeadControlManager")
             headControlManager = HeadControlManager(context)
         } else {
@@ -103,25 +118,40 @@ class HeadControlService private constructor(private val context: Context) {
     }
     
     /**
-     * Enable or disable head control with permission validation
+     * Enable or disable head control with permission and device state validation
      * @param enabled Whether to enable head control
-     * @return true if operation succeeded, false if blocked due to missing permission
+     * @return true if operation succeeded, false if blocked due to missing permission or locked device
      */
     fun setEnabled(enabled: Boolean): Boolean {
         Log.d(TAG, "setEnabled called with: $enabled, current manager exists: ${headControlManager != null}")
         
-        // Check camera permission when enabling
-        if (enabled && !CameraPermissionManager.getInstance(context).hasPermission()) {
-            Log.w(TAG, "Cannot enable head control - camera permission not granted")
-            showCameraPermissionRequiredNotification()
-            return false
+        if (enabled) {
+            // Check camera permission first
+            if (!CameraPermissionManager.getInstance(context).hasPermission()) {
+                Log.w(TAG, "Cannot enable head control - camera permission not granted")
+                showCameraPermissionRequiredNotification()
+                return false
+            }
+            
+            // Check device unlock status
+            if (!DeviceLockObserver.isUserUnlocked(context)) {
+                Log.w(TAG, "Cannot enable head control - device is locked")
+                enableAfterUnlock = true
+                showDeviceLockedNotification()
+                return false
+            }
+        }
+        
+        // Clear pending unlock enablement if disabling
+        if (!enabled) {
+            enableAfterUnlock = false
         }
         
         return try {
             settings.setHeadControlEnabled(enabled)
             if (enabled && headControlManager == null) {
                 Log.d(TAG, "Initializing head control manager")
-                initialize()
+                headControlManager = HeadControlManager(context)
             } else if (!enabled) {
                 Log.d(TAG, "Disabling head control manager")
                 headControlManager?.cleanup()
@@ -139,11 +169,56 @@ class HeadControlService private constructor(private val context: Context) {
     }
     
     /**
+     * Setup device lock observer to monitor unlock events
+     */
+    private fun setupDeviceLockObserver() {
+        deviceLockObserver?.stopObserving()
+        deviceLockObserver = DeviceLockObserver(context)
+        deviceLockObserver?.startObserving(
+            onUnlocked = {
+                Log.d(TAG, "Device unlocked")
+                if (enableAfterUnlock) {
+                    Log.i(TAG, "Enabling head control after device unlock")
+                    enableAfterUnlock = false
+                    if (CameraPermissionManager.getInstance(context).hasPermission()) {
+                        headControlManager = HeadControlManager(context)
+                        ServiceMessageHUD.instance.showMessage(
+                            R.string.hud_head_control_enabled_after_unlock,
+                            ServiceMessageHUD.MessageType.DISAPPEARING
+                        )
+                    } else {
+                        Log.w(TAG, "Cannot enable head control after unlock - camera permission missing")
+                        showCameraPermissionRequiredNotification()
+                    }
+                }
+            },
+            onLocked = {
+                Log.d(TAG, "Device locked")
+                // Optionally disable head control when device locks
+                // For now, we'll let it continue running if already active
+            }
+        )
+    }
+    
+    /**
+     * Show device locked notification
+     */
+    private fun showDeviceLockedNotification() {
+        ServiceMessageHUD.instance.showMessage(
+            R.string.hud_head_control_requires_unlocked_device,
+            ServiceMessageHUD.MessageType.PERMANENT
+        )
+    }
+    
+    /**
      * Cleanup resources
      */
     fun cleanup() {
+        deviceLockObserver?.stopObserving()
+        deviceLockObserver = null
         headControlManager?.cleanup()
         headControlManager = null
+        enableAfterUnlock = false
         Log.d(TAG, "Head control service cleaned up")
     }
 }
