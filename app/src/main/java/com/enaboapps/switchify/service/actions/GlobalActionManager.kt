@@ -1,6 +1,7 @@
 package com.enaboapps.switchify.service.actions
 
 import android.accessibilityservice.AccessibilityService
+import android.os.Build
 import android.util.Log
 import com.enaboapps.switchify.service.core.SwitchifyAccessibilityService
 
@@ -89,11 +90,18 @@ object GlobalActionManager {
 
     /**
      * Toggle media playback using the headset hook action.
+     * Only available on API 31 (Android 12) and higher.
      *
-     * @return true if successful, false otherwise
+     * @return true if successful, false if not supported or failed
      */
-    fun toggleMediaPlayback(): Boolean =
-        performGlobalAction(AccessibilityService.GLOBAL_ACTION_KEYCODE_HEADSETHOOK)
+    fun toggleMediaPlayback(): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            performGlobalAction(AccessibilityService.GLOBAL_ACTION_KEYCODE_HEADSETHOOK)
+        } else {
+            Log.w(TAG, "GLOBAL_ACTION_KEYCODE_HEADSETHOOK requires API 31 (Android 12) or higher")
+            false
+        }
+    }
 
     /**
      * Open the power dialog.
