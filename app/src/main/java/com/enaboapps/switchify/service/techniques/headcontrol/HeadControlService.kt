@@ -32,6 +32,7 @@ class HeadControlService private constructor(private val context: Context) {
     private val settings = HeadControlSettings(context)
     private var deviceLockObserver: DeviceLockObserver? = null
     private var enableAfterUnlock = false
+    private val cameraPermissionManager = CameraPermissionManager.getInstance(context)
     
     /**
      * Initialize head control service
@@ -43,8 +44,11 @@ class HeadControlService private constructor(private val context: Context) {
         // Setup device lock observer
         setupDeviceLockObserver()
         
+        // Setup camera permission monitoring
+        setupCameraPermissionMonitoring()
+        
         if (enabled) {
-            if (!CameraPermissionManager.getInstance(context).hasPermission()) {
+            if (!cameraPermissionManager.hasPermission()) {
                 Log.w(TAG, "Head control enabled in settings but camera permission missing; disabling.")
                 settings.setHeadControlEnabled(false)
                 showCameraPermissionRequiredNotification()
@@ -201,6 +205,42 @@ class HeadControlService private constructor(private val context: Context) {
     }
     
     /**
+     * Setup camera permission monitoring to handle runtime permission changes
+     */
+    private fun setupCameraPermissionMonitoring() {
+        cameraPermissionManager.startMonitoring(
+            onGranted = {
+                Log.d(TAG, "Camera permission granted")
+                // Check if we should enable head control now that permission is available
+                if (settings.isHeadControlEnabled() && headControlManager == null) {
+                    if (DeviceLockObserver.isUserUnlocked(context)) {
+                        Log.i(TAG, "Enabling head control after camera permission granted")
+                        headControlManager = HeadControlManager(context)
+                        ServiceMessageHUD.instance.showMessage(
+                            R.string.hud_head_control_enabled_after_permission_granted,
+                            ServiceMessageHUD.MessageType.DISAPPEARING
+                        )
+                    } else {
+                        Log.d(TAG, "Camera permission granted but device is locked; will enable after unlock")
+                        enableAfterUnlock = true
+                    }
+                }
+            },
+            onRevoked = {
+                Log.w(TAG, "Camera permission revoked - disabling head control")
+                // Gracefully disable head control when permission is revoked
+                headControlManager?.cleanup()
+                headControlManager = null
+                // Don't change settings - user didn't intentionally disable
+                ServiceMessageHUD.instance.showMessage(
+                    R.string.hud_head_control_disabled_permission_revoked,
+                    ServiceMessageHUD.MessageType.PERMANENT
+                )
+            }
+        )
+    }
+    
+    /**
      * Show device locked notification
      */
     private fun showDeviceLockedNotification() {
@@ -214,6 +254,7 @@ class HeadControlService private constructor(private val context: Context) {
      * Cleanup resources
      */
     fun cleanup() {
+        cameraPermissionManager.stopMonitoring()
         deviceLockObserver?.stopObserving()
         deviceLockObserver = null
         headControlManager?.cleanup()
