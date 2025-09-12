@@ -17,7 +17,6 @@
     <!-- Performance checks -->
     <issue id="UnusedResources" severity="warning" />
     <issue id="UnusedIds" severity="informational" />
-    <issue id="UnusedSymbol" severity="error" />
     <issue id="ViewHolder" severity="warning" />
     <issue id="Overdraw" severity="warning" />
     <issue id="NestedScrolling" severity="warning" />
