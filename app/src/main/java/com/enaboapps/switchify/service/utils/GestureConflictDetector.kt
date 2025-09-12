@@ -41,9 +41,10 @@ class GestureConflictDetector(private val context: Context) {
             return false
         }
         
-        // Head control is now independent - TODO: check if head control is enabled
-        // For now, assume head control could be active
-        // if (!headControlEnabled) return false
+        // Head control is now independent - check if head control is enabled
+        if (!headControlSettings.isHeadControlEnabled()) {
+            return false
+        }
         
         // Head control gesture selection must be enabled
         if (!headControlSettings.isGestureSelectionEnabled()) {
@@ -57,7 +58,11 @@ class GestureConflictDetector(private val context: Context) {
         }
         
         // Check if this gesture is also assigned to a switch
-        return switchEventProvider?.isFacialGestureAssigned(gestureId) == true
+        val isSwitchAssigned = switchEventProvider?.isFacialGestureAssigned(gestureId) == true
+        
+        android.util.Log.d(TAG, "Gesture conflict check for $gestureId: priority=${headControlSettings.isHeadControlPriorityEnabled()}, headEnabled=${headControlSettings.isHeadControlEnabled()}, gestureSelection=${headControlSettings.isGestureSelectionEnabled()}, switchAssigned=$isSwitchAssigned")
+        
+        return isSwitchAssigned
     }
     
     /**
@@ -69,7 +74,9 @@ class GestureConflictDetector(private val context: Context) {
     fun detectConflicts(switchEventProvider: SwitchEventProvider?): Set<String> {
         val conflicts = mutableSetOf<String>()
         
-        if (!headControlSettings.isGestureSelectionEnabled() || switchEventProvider == null) {
+        if (!headControlSettings.isHeadControlEnabled() || 
+            !headControlSettings.isGestureSelectionEnabled() || 
+            switchEventProvider == null) {
             return conflicts
         }
         
@@ -123,7 +130,7 @@ class GestureConflictDetector(private val context: Context) {
             gestureId = gestureId,
             isHeadControlGesture = gestureId == headControlSettings.selectGesture(),
             isSwitchAssigned = switchEventProvider?.isFacialGestureAssigned(gestureId) == true,
-            headControlEnabled = headControlSettings.isGestureSelectionEnabled(),
+            headControlEnabled = headControlSettings.isHeadControlEnabled() && headControlSettings.isGestureSelectionEnabled(),
             currentTechnique = AccessTechnique.getCurrentTechnique()
         )
     }
@@ -145,7 +152,6 @@ class GestureConflictDetector(private val context: Context) {
             return isHeadControlGesture && 
                    isSwitchAssigned && 
                    headControlEnabled
-                   // Head control is now independent of access technique
         }
     }
 }
