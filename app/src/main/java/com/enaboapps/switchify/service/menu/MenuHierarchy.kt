@@ -30,6 +30,8 @@ class MenuHierarchy(
                 tree.lastOrNull()?.let {
                     it.menuViewListener = this
                     it.open(scanningManager)
+                    // Refresh head control menu nodes after navigation
+                    ServiceCore.getHeadControlService()?.refreshMenuNodes()
                 }
             }
         }
@@ -44,6 +46,10 @@ class MenuHierarchy(
             // Notify head control first to prep state
             ServiceCore.getHeadControlService()?.setMenuMode(true)
             menu.open(scanningManager)
+            // Refresh nodes after opening to ensure head control has updated menu state
+            Handler(Looper.getMainLooper()).postDelayed(50) {
+                ServiceCore.getHeadControlService()?.refreshMenuNodes()
+            }
         }
     }
 
