@@ -5,6 +5,7 @@ import androidx.credentials.CredentialManager
 import androidx.credentials.GetCredentialRequest
 import androidx.credentials.GetCredentialResponse
 import androidx.credentials.exceptions.GetCredentialException
+import androidx.credentials.exceptions.NoCredentialException
 import com.enaboapps.switchify.BuildConfig
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
@@ -49,6 +50,9 @@ class GoogleSignInManager(private val context: Context) {
             )
 
             handleCredentialResponse(result)
+        } catch (e: NoCredentialException) {
+            // No credentials available - user needs to sign in manually
+            GoogleSignInResult.Error("No Google credentials available. Please sign in manually.")
         } catch (e: GetCredentialException) {
             GoogleSignInResult.Error("Google Sign-In failed: ${e.message}")
         } catch (e: Exception) {
