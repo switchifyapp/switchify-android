@@ -11,6 +11,7 @@ import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.service.window.ServiceMessageHUD
 import com.enaboapps.switchify.utils.LogEvent
 import com.enaboapps.switchify.utils.Logger
+import java.util.Locale
 
 /**
  * Manages the trial period for non-pro users of the accessibility service.
@@ -161,9 +162,9 @@ class ServiceTrialManager(
         val hours = totalMinutes / 60
 
         return if (hours > 0) {
-            String.format("%d:%02d", hours, minutes)
+            String.format(Locale.ROOT, "%d:%02d", hours, minutes)
         } else {
-            String.format("%d min", minutes)
+            String.format(Locale.ROOT, "%d min", minutes)
         }
     }
 
