@@ -325,20 +325,24 @@ class HeadControlManager(private val context: Context) : MenuStateObserver {
     // MenuStateObserver implementation
     override fun onMenuOpened(menuView: MenuView) {
         Log.d(TAG, "Menu opened, entering menu navigation mode")
-        val nodes = menuView.getSelectableNodes()
         
-        if (nodes.isEmpty()) {
-            Log.w(TAG, "Menu opened but has no selectable nodes")
-            return
-        }
-        
-        // Setup menu navigation
+        // Always create scanner when menu opens, even if no nodes yet
         if (headControlScanner == null) {
             headControlScanner = HeadControlItemScanner()
         }
-        headControlScanner?.setNodes(nodes)
-        headControlScanner?.initializeSelectionNear(currentX.toFloat(), currentY.toFloat())
+        
+        // Hide pointer immediately when entering menu mode
         overlay.hidePointer()
+        
+        // Try to setup nodes if available, but don't fail if empty
+        val nodes = menuView.getSelectableNodes()
+        if (nodes.isNotEmpty()) {
+            headControlScanner?.setNodes(nodes)
+            headControlScanner?.initializeSelectionNear(currentX.toFloat(), currentY.toFloat())
+            Log.d(TAG, "Menu opened with ${nodes.size} selectable nodes")
+        } else {
+            Log.d(TAG, "Menu opened but nodes not ready yet, waiting for onMenuNodesChanged")
+        }
     }
     
     override fun onMenuClosed(menuView: MenuView) {
@@ -355,8 +359,14 @@ class HeadControlManager(private val context: Context) : MenuStateObserver {
             return
         }
         
+        // Ensure scanner exists (defensive programming)
+        if (headControlScanner == null) {
+            headControlScanner = HeadControlItemScanner()
+        }
+        
         headControlScanner?.setNodes(nodes)
         headControlScanner?.initializeSelectionNear(currentX.toFloat(), currentY.toFloat())
+        Log.d(TAG, "Scanner updated with ${nodes.size} nodes")
     }
     
     override fun onAllMenusClosed() {

@@ -52,7 +52,7 @@ class MenuHierarchy(
             // Notify observers that menu was opened
             MenuManager.getInstance().notifyMenuOpened(menu)
             // Notify observers of initial menu nodes after opening
-            Handler(Looper.getMainLooper()).postDelayed(50) {
+            Handler(Looper.getMainLooper()).postDelayed(600) {
                 MenuManager.getInstance().notifyMenuNodesChanged(menu)
             }
         }
