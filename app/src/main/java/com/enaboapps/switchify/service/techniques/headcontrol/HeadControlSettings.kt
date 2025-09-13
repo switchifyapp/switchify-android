@@ -141,14 +141,14 @@ class HeadControlSettings(context: Context) {
         // Maps to actual degree values internally while showing descriptive labels to users
         val USER_FRIENDLY_THRESHOLD_LEVELS = arrayOf(
             "Very Sensitive",    // 0.3° - Small head movements
-            "Sensitive",        // 0.8° - Slight movements needed  
-            "Normal",           // 1.5° - Recommended default
-            "Less Sensitive",   // 3.0° - Moderate movements
-            "Least Sensitive"   // 5.0° - Large movements needed
+            "Sensitive",        // 1.0° - Slight movements needed  
+            "Normal",           // 2.5° - Recommended default
+            "Less Sensitive",   // 8.0° - Moderate movements
+            "Least Sensitive"   // 20.0° - Large movements needed
         )
         
-        // Corresponding degree values for user-friendly levels
-        val USER_FRIENDLY_THRESHOLD_VALUES = floatArrayOf(0.3f, 0.8f, 1.5f, 3.0f, 5.0f)
+        // Corresponding degree values for user-friendly levels - better dispersal across 0.3° to 20° range
+        val USER_FRIENDLY_THRESHOLD_VALUES = floatArrayOf(0.3f, 1.0f, 2.5f, 8.0f, 20.0f)
         
         // Legacy arrays maintained for backward compatibility
         val DEADZONE_VALUES = floatArrayOf(0.1f, 0.3f, 0.5f, 0.8f, 1.0f, 1.5f, 2.0f, 3.0f, 5.0f)
