@@ -29,6 +29,20 @@ object SelectionHandler {
     private lateinit var scanSettings: ScanSettings
 
     /**
+     * Checks if SelectionHandler is initialized and logs warning if not
+     * @param action Description of the action being attempted
+     * @return true if initialized, false otherwise
+     */
+    private fun ensureInitializedOrWarn(action: String): Boolean {
+        return if (!::scanSettings.isInitialized) {
+            Log.w(TAG, "SelectionHandler not initialized, skipping $action")
+            false
+        } else {
+            true
+        }
+    }
+
+    /**
      * Initializes the selection handler.
      * This method is intended to be called once, ideally during application startup.
      * It uses the application context to avoid memory leaks.
@@ -72,6 +86,8 @@ object SelectionHandler {
      * Performs the selection action based on the current settings and state.
      */
     fun performSelectionAction() {
+        if (!ensureInitializedOrWarn("selection action")) return
+        
         // Check if a linear gesture is in progress
         if (GestureManager.instance.isPerformingLinearGesture()) {
             MenuManager.getInstance().openCustomGestureConfirmationMenu()
@@ -97,7 +113,7 @@ object SelectionHandler {
             return
         }
 
-        println("SelectionHandler.performSelectionAction()")
+        Log.d(TAG, "performSelectionAction()")
 
         // Check if auto-select is enabled
         val autoSelectEnabled = scanSettings.isAutoSelectEnabled()
@@ -129,6 +145,8 @@ object SelectionHandler {
      * Performs the start scanning action if it is enabled.
      */
     fun performStartScanningAction() {
+        if (!ensureInitializedOrWarn("start scanning action")) return
+        
         CoroutineScope(Dispatchers.Main).launch {
             delay(300)
             if (scanSettings.getAutomaticallyStartScanAfterSelection()) {

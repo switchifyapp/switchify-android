@@ -36,6 +36,11 @@ class MenuManager {
     }
 
     /**
+     * List of menu state observers
+     */
+    private val menuStateObservers = mutableListOf<MenuStateObserver>()
+
+    /**
      * The current point visual
      */
     private lateinit var gestureVisualManager: GestureVisualManager
@@ -231,5 +236,76 @@ class MenuManager {
      */
     fun getCurrentMenuView(): MenuView? {
         return menuHierarchy?.getTopMenu()
+    }
+
+    /**
+     * Register a menu state observer
+     * @param observer The observer to register
+     */
+    fun registerMenuStateObserver(observer: MenuStateObserver) {
+        if (!menuStateObservers.contains(observer)) {
+            menuStateObservers.add(observer)
+        }
+    }
+
+    /**
+     * Unregister a menu state observer
+     * @param observer The observer to unregister
+     */
+    fun unregisterMenuStateObserver(observer: MenuStateObserver) {
+        menuStateObservers.remove(observer)
+    }
+
+    /**
+     * Notify observers that a menu was opened
+     */
+    internal fun notifyMenuOpened(menuView: MenuView) {
+        menuStateObservers.forEach { observer ->
+            try {
+                observer.onMenuOpened(menuView)
+            } catch (e: Exception) {
+                // Log error but don't let one observer break others
+                android.util.Log.e("MenuManager", "Error notifying observer of menu opened", e)
+            }
+        }
+    }
+
+    /**
+     * Notify observers that a menu was closed
+     */
+    internal fun notifyMenuClosed(menuView: MenuView) {
+        menuStateObservers.forEach { observer ->
+            try {
+                observer.onMenuClosed(menuView)
+            } catch (e: Exception) {
+                android.util.Log.e("MenuManager", "Error notifying observer of menu closed", e)
+            }
+        }
+    }
+
+    /**
+     * Notify observers that menu nodes changed
+     */
+    internal fun notifyMenuNodesChanged(menuView: MenuView) {
+        menuStateObservers.forEach { observer ->
+            try {
+                observer.onMenuNodesChanged(menuView)
+            } catch (e: Exception) {
+                android.util.Log.e("MenuManager", "Error notifying observer of menu nodes changed", e)
+            }
+        }
+    }
+
+    /**
+     * Notify observers that all menus were closed
+     */
+    internal fun notifyAllMenusClosed() {
+        menuStateObservers.forEach { observer ->
+            try {
+                observer.onAllMenusClosed()
+            } catch (e: Exception) {
+                android.util.Log.e("MenuManager", "Error notifying observer of all menus closed", e)
+            }
+        }
     }
 }

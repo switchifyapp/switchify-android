@@ -96,20 +96,6 @@ class HeadControlService private constructor(private val context: Context) {
         headControlManager?.processGesture(gestureId, isStarting)
     }
     
-    /**
-     * Set menu mode for head control
-     */
-    fun setMenuMode(enabled: Boolean) {
-        Log.d(TAG, "setMenuMode called with: $enabled, manager exists: ${headControlManager != null}")
-        headControlManager?.setMenuMode(enabled)
-    }
-    
-    /**
-     * Refresh menu nodes when menu changes
-     */
-    fun refreshMenuNodes() {
-        headControlManager?.refreshMenuNodes()
-    }
     
     /**
      * Show camera permission required notification
