@@ -72,6 +72,12 @@ object SelectionHandler {
      * Performs the selection action based on the current settings and state.
      */
     fun performSelectionAction() {
+        // Safety check: Ensure SelectionHandler is initialized
+        if (!::scanSettings.isInitialized) {
+            Log.w(TAG, "SelectionHandler not initialized, skipping selection action")
+            return
+        }
+        
         // Check if a linear gesture is in progress
         if (GestureManager.instance.isPerformingLinearGesture()) {
             MenuManager.getInstance().openCustomGestureConfirmationMenu()
@@ -129,6 +135,12 @@ object SelectionHandler {
      * Performs the start scanning action if it is enabled.
      */
     fun performStartScanningAction() {
+        // Safety check: Ensure SelectionHandler is initialized
+        if (!::scanSettings.isInitialized) {
+            Log.w(TAG, "SelectionHandler not initialized, skipping start scanning action")
+            return
+        }
+        
         CoroutineScope(Dispatchers.Main).launch {
             delay(300)
             if (scanSettings.getAutomaticallyStartScanAfterSelection()) {

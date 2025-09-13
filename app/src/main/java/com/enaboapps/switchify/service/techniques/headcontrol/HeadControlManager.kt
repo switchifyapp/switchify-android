@@ -10,6 +10,8 @@ import com.enaboapps.switchify.service.gestures.GesturePoint
 import com.enaboapps.switchify.service.selection.SelectionHandler
 import com.enaboapps.switchify.service.utils.ScreenUtils
 import com.enaboapps.switchify.service.menu.MenuManager
+import com.enaboapps.switchify.service.menu.MenuStateObserver
+import com.enaboapps.switchify.service.menu.MenuView
 import com.enaboapps.switchify.service.window.ServiceMessageHUD
 import android.util.Log
 import kotlinx.coroutines.CoroutineScope
@@ -20,7 +22,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-class HeadControlManager(private val context: Context) {
+class HeadControlManager(private val context: Context) : MenuStateObserver {
     
     companion object {
         private const val TAG = "HeadControlManager"
@@ -47,24 +49,20 @@ class HeadControlManager(private val context: Context) {
     private var gestureStartTime = 0L
     private var currentActiveGesture: String? = null
     
-    // Menu navigation state
-    private var isInMenuMode = false
+    // Menu navigation state - now managed via observer pattern
     private var headControlScanner: HeadControlItemScanner? = null
     private val menuScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private var activeDirection: Direction? = null
     private var heldDirection: Direction? = null
     private var repeatJob: Job? = null
 
-    // Menu validation state
-    private val menuValidator = Handler(Looper.getMainLooper())
-    private var validationRunnable: Runnable? = null
-    private var lastMenuActivityTime = 0L
-
     private enum class Direction { LEFT, RIGHT, UP, DOWN }
     
     
     init {
         startHeadControl()
+        // Register as menu state observer
+        MenuManager.getInstance().registerMenuStateObserver(this)
     }
 
     fun startHeadControl() { 
@@ -72,17 +70,17 @@ class HeadControlManager(private val context: Context) {
     }
 
     fun cleanup() {
+        // Unregister from menu state observer
+        MenuManager.getInstance().unregisterMenuStateObserver(this)
         overlay.reset()
         resetGestureState()
         repeatJob?.cancel()
-        stopMenuValidation()
         menuScope.cancel()
     }
 
     fun performSelection() {
-        if (isInMenuMode) {
+        if (isInMenuMode()) {
             headControlScanner?.performSelection()
-            updateMenuActivity()
             return
         }
         GesturePoint.x = currentX
@@ -94,12 +92,19 @@ class HeadControlManager(private val context: Context) {
     }
 
     /**
+     * Check if currently in menu mode by checking if scanner is active
+     */
+    private fun isInMenuMode(): Boolean {
+        return headControlScanner != null
+    }
+
+    /**
      * Updates cursor position based on head rotation values
      * @param headRotationX Pitch rotation (negative = up, positive = down)
      * @param headRotationY Yaw rotation (negative = left, positive = right)
      */
     fun updateHeadPosition(headRotationX: Float, headRotationY: Float) {
-        if (isInMenuMode) {
+        if (isInMenuMode()) {
             handleMenuDirection(headRotationX, headRotationY)
         } else {
             // Calculate head movement
@@ -173,7 +178,6 @@ class HeadControlManager(private val context: Context) {
             Direction.UP -> headControlScanner?.stepUp()
             Direction.DOWN -> headControlScanner?.stepDown()
         }
-        updateMenuActivity()
     }
 
     private fun updateAbsoluteMode(headRotationX: Float, headRotationY: Float): Pair<Float, Float> {
@@ -258,7 +262,7 @@ class HeadControlManager(private val context: Context) {
     
 
     private fun showPointerIfAllowed() {
-        if (!isInMenuMode) {
+        if (!isInMenuMode()) {
             overlay.showPointer(currentX, currentY)
         }
     }
@@ -318,68 +322,14 @@ class HeadControlManager(private val context: Context) {
         currentActiveGesture = null
     }
     
-    /**
-     * Set whether head control is in menu mode
-     * @param menuMode true if navigating menus, false for screen navigation
-     */
-    fun setMenuMode(menuMode: Boolean) {
-        if (isInMenuMode != menuMode) {
-            isInMenuMode = menuMode
-            
-            if (menuMode) {
-                if (!validateAndSetupMenu()) {
-                    Log.w(TAG, "Menu validation failed, staying in cursor mode")
-                    isInMenuMode = false
-                    return
-                }
-                startMenuValidation()
-            } else {
-                stopMenuValidation()
-                headControlScanner?.clear()
-                headControlScanner = null
-                showPointerIfAllowed()
-                repeatJob?.cancel()
-                repeatJob = null
-                activeDirection = null
-                heldDirection = null
-            }
-        }
-    }
-    
-    /**
-     * Refresh menu nodes when menu changes (e.g., page change)
-     */
-    fun refreshMenuNodes() {
-        if (isInMenuMode) {
-            val menuView = MenuManager.getInstance().getCurrentMenuView()
-            val nodes = menuView?.getSelectableNodes() ?: emptyList()
-            
-            if (nodes.isEmpty()) {
-                Log.w(TAG, "Menu refresh resulted in no selectable nodes, exiting menu mode")
-                setMenuMode(false)
-                ServiceMessageHUD.instance.showMessage(
-                    R.string.hud_menu_became_empty_returning_to_cursor,
-                    ServiceMessageHUD.MessageType.DISAPPEARING
-                )
-                return
-            }
-            
-            headControlScanner?.setNodes(nodes)
-            headControlScanner?.initializeSelectionNear(currentX.toFloat(), currentY.toFloat())
-            lastMenuActivityTime = System.currentTimeMillis()
-        }
-    }
-    
-    /**
-     * Validate menu state and setup menu navigation
-     */
-    private fun validateAndSetupMenu(): Boolean {
-        val menuView = MenuManager.getInstance().getCurrentMenuView()
-        val nodes = menuView?.getSelectableNodes() ?: emptyList()
+    // MenuStateObserver implementation
+    override fun onMenuOpened(menuView: MenuView) {
+        Log.d(TAG, "Menu opened, entering menu navigation mode")
+        val nodes = menuView.getSelectableNodes()
         
-        if (menuView == null || nodes.isEmpty()) {
-            Log.w(TAG, "Cannot enter menu mode: menu view is null or has no selectable nodes")
-            return false
+        if (nodes.isEmpty()) {
+            Log.w(TAG, "Menu opened but has no selectable nodes")
+            return
         }
         
         // Setup menu navigation
@@ -389,87 +339,34 @@ class HeadControlManager(private val context: Context) {
         headControlScanner?.setNodes(nodes)
         headControlScanner?.initializeSelectionNear(currentX.toFloat(), currentY.toFloat())
         overlay.hidePointer()
-        lastMenuActivityTime = System.currentTimeMillis()
-        return true
     }
     
-    /**
-     * Start menu validation to monitor menu state
-     */
-    private fun startMenuValidation() {
-        validationRunnable = Runnable {
-            validateMenuState()
-            menuValidator.postDelayed(validationRunnable!!, MENU_VALIDATION_INTERVAL)
+    override fun onMenuClosed(menuView: MenuView) {
+        Log.d(TAG, "Menu closed")
+        // Don't clean up scanner here as another menu might be opening
+    }
+    
+    override fun onMenuNodesChanged(menuView: MenuView) {
+        Log.d(TAG, "Menu nodes changed, updating scanner")
+        val nodes = menuView.getSelectableNodes()
+        
+        if (nodes.isEmpty()) {
+            Log.w(TAG, "Menu nodes changed but no selectable nodes available")
+            return
         }
-        menuValidator.postDelayed(validationRunnable!!, MENU_VALIDATION_INTERVAL)
+        
+        headControlScanner?.setNodes(nodes)
+        headControlScanner?.initializeSelectionNear(currentX.toFloat(), currentY.toFloat())
     }
     
-    /**
-     * Stop menu validation
-     */
-    private fun stopMenuValidation() {
-        validationRunnable?.let { runnable ->
-            menuValidator.removeCallbacks(runnable)
-        }
-        validationRunnable = null
-    }
-    
-    /**
-     * Validate current menu state and handle recovery
-     */
-    private fun validateMenuState() {
-        if (isInMenuMode) {
-            val menuView = MenuManager.getInstance().getCurrentMenuView()
-            val nodes = menuView?.getSelectableNodes() ?: emptyList()
-            
-            if (menuView == null || nodes.isEmpty()) {
-                Log.i(TAG, "Menu disappeared or became empty, returning to cursor mode")
-                setMenuMode(false)
-                ServiceMessageHUD.instance.showMessage(
-                    R.string.hud_menu_closed_returning_to_cursor,
-                    ServiceMessageHUD.MessageType.DISAPPEARING
-                )
-                return
-            }
-            
-            // Check for menu idle timeout
-            val idleTime = System.currentTimeMillis() - lastMenuActivityTime
-            if (idleTime > MAX_MENU_IDLE_TIME) {
-                Log.i(TAG, "Menu idle timeout, returning to cursor mode")
-                setMenuMode(false)
-                ServiceMessageHUD.instance.showMessage(
-                    R.string.hud_menu_idle_timeout_returning_to_cursor,
-                    ServiceMessageHUD.MessageType.DISAPPEARING
-                )
-            }
-        }
-    }
-    
-    /**
-     * Emergency exit from menu mode for recovery
-     */
-    fun emergencyExitMenuMode() {
-        Log.w(TAG, "Emergency exit from menu mode")
-        isInMenuMode = false
+    override fun onAllMenusClosed() {
+        Log.d(TAG, "All menus closed, returning to cursor mode")
         headControlScanner?.clear()
         headControlScanner = null
-        stopMenuValidation()
         showPointerIfAllowed()
         repeatJob?.cancel()
         repeatJob = null
         activeDirection = null
         heldDirection = null
-        
-        ServiceMessageHUD.instance.showMessage(
-            R.string.hud_menu_mode_reset,
-            ServiceMessageHUD.MessageType.DISAPPEARING
-        )
-    }
-    
-    /**
-     * Update activity timestamp when menu navigation occurs
-     */
-    private fun updateMenuActivity() {
-        lastMenuActivityTime = System.currentTimeMillis()
     }
 }

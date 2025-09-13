@@ -24,14 +24,19 @@ class MenuHierarchy(
 
     fun popMenu() {
         if (canPopMenu()) {
-            tree.lastOrNull()?.close()
+            val closedMenu = tree.lastOrNull()
+            closedMenu?.close()
             tree = tree.dropLast(1)
+            
+            // Notify observers of menu closure
+            closedMenu?.let { MenuManager.getInstance().notifyMenuClosed(it) }
+            
             Handler(Looper.getMainLooper()).postDelayed(100) {
                 tree.lastOrNull()?.let {
                     it.menuViewListener = this
                     it.open(scanningManager)
-                    // Refresh head control menu nodes after navigation
-                    ServiceCore.getHeadControlService()?.refreshMenuNodes()
+                    // Notify observers of menu nodes change after navigation
+                    MenuManager.getInstance().notifyMenuNodesChanged(it)
                 }
             }
         }
@@ -43,12 +48,12 @@ class MenuHierarchy(
         addMenu(menu)
         menu.menuViewListener = this
         Handler(Looper.getMainLooper()).postDelayed(100) {
-            // Notify head control first to prep state
-            ServiceCore.getHeadControlService()?.setMenuMode(true)
             menu.open(scanningManager)
-            // Refresh nodes after opening to ensure head control has updated menu state
+            // Notify observers that menu was opened
+            MenuManager.getInstance().notifyMenuOpened(menu)
+            // Notify observers of initial menu nodes after opening
             Handler(Looper.getMainLooper()).postDelayed(50) {
-                ServiceCore.getHeadControlService()?.refreshMenuNodes()
+                MenuManager.getInstance().notifyMenuNodesChanged(menu)
             }
         }
     }
@@ -61,8 +66,8 @@ class MenuHierarchy(
         // remove the menu view
         MenuViewHandler.instance.kill()
 
-        // Notify head control that menus closed
-        ServiceCore.getHeadControlService()?.setMenuMode(false)
+        // Notify observers that all menus were closed
+        MenuManager.getInstance().notifyAllMenusClosed()
 
         AccessTechnique.loadCurrentTechnique() // reload the current technique
     }

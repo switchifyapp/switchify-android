@@ -228,8 +228,8 @@ class MenuView(
             if (pageExists) {
                 scanTree.buildTree(menuPages[currentPage].translateMenuItemsToNodes(), 0)
                 
-                // Notify head control that menu nodes changed
-                ServiceCore.getHeadControlService()?.refreshMenuNodes()
+                // Notify observers that menu nodes changed
+                MenuManager.getInstance().notifyMenuNodesChanged(this@MenuView)
             } else {
                 MenuManager.getInstance().closeMenuHierarchy()
             }
