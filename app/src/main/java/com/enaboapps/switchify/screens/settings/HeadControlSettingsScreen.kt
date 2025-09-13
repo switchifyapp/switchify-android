@@ -61,33 +61,33 @@ fun DirectionalDeadzoneControls(
     settings: HeadControlSettings,
     prefs: PreferenceManager
 ) {
-    // Individual direction deadzone values
+    // Individual direction deadzone values using user-friendly levels
     val currentLeftDeadzone = settings.leftDeadzone()
-    val leftDeadzoneIndex = HeadControlSettings.DIRECTIONAL_DEADZONE_VALUES.indexOfFirst { kotlin.math.abs(it - currentLeftDeadzone) < 0.05f }.takeIf { it != -1 } ?: 9
+    val leftDeadzoneIndex = HeadControlSettings.getUserFriendlyThresholdIndex(currentLeftDeadzone)
     var leftDeadzone by remember { mutableIntStateOf(leftDeadzoneIndex) }
     
     val currentRightDeadzone = settings.rightDeadzone()
-    val rightDeadzoneIndex = HeadControlSettings.DIRECTIONAL_DEADZONE_VALUES.indexOfFirst { kotlin.math.abs(it - currentRightDeadzone) < 0.05f }.takeIf { it != -1 } ?: 9
+    val rightDeadzoneIndex = HeadControlSettings.getUserFriendlyThresholdIndex(currentRightDeadzone)
     var rightDeadzone by remember { mutableIntStateOf(rightDeadzoneIndex) }
     
     val currentUpDeadzone = settings.upDeadzone()
-    val upDeadzoneIndex = HeadControlSettings.DIRECTIONAL_DEADZONE_VALUES.indexOfFirst { kotlin.math.abs(it - currentUpDeadzone) < 0.05f }.takeIf { it != -1 } ?: 9
+    val upDeadzoneIndex = HeadControlSettings.getUserFriendlyThresholdIndex(currentUpDeadzone)
     var upDeadzone by remember { mutableIntStateOf(upDeadzoneIndex) }
     
     val currentDownDeadzone = settings.downDeadzone()
-    val downDeadzoneIndex = HeadControlSettings.DIRECTIONAL_DEADZONE_VALUES.indexOfFirst { kotlin.math.abs(it - currentDownDeadzone) < 0.05f }.takeIf { it != -1 } ?: 9
+    val downDeadzoneIndex = HeadControlSettings.getUserFriendlyThresholdIndex(currentDownDeadzone)
     var downDeadzone by remember { mutableIntStateOf(downDeadzoneIndex) }
     
     PreferenceValueSelector(
         value = leftDeadzone,
         titleResId = R.string.preference_title_head_control_left_deadzone,
         summaryResId = R.string.preference_summary_head_control_left_deadzone,
-        values = IntArray(HeadControlSettings.DIRECTIONAL_DEADZONE_VALUES.size) { it },
-        buttonLabelFormatter = { String.format(Locale.US, "%.1f°", HeadControlSettings.DIRECTIONAL_DEADZONE_VALUES[it]) },
-        displayFormatter = { String.format(Locale.US, "%.1f°", HeadControlSettings.DIRECTIONAL_DEADZONE_VALUES[it]) },
+        values = IntArray(HeadControlSettings.USER_FRIENDLY_THRESHOLD_LEVELS.size) { it },
+        buttonLabelFormatter = { HeadControlSettings.USER_FRIENDLY_THRESHOLD_LEVELS[it] },
+        displayFormatter = { HeadControlSettings.USER_FRIENDLY_THRESHOLD_LEVELS[it] },
         onValueChanged = { index ->
             leftDeadzone = index
-            prefs.setFloatValue(HeadControlSettings.KEY_LEFT_DEADZONE, HeadControlSettings.DIRECTIONAL_DEADZONE_VALUES[index])
+            prefs.setFloatValue(HeadControlSettings.KEY_LEFT_DEADZONE, HeadControlSettings.getThresholdValueFromIndex(index))
         }
     )
     
@@ -95,12 +95,12 @@ fun DirectionalDeadzoneControls(
         value = rightDeadzone,
         titleResId = R.string.preference_title_head_control_right_deadzone,
         summaryResId = R.string.preference_summary_head_control_right_deadzone,
-        values = IntArray(HeadControlSettings.DIRECTIONAL_DEADZONE_VALUES.size) { it },
-        buttonLabelFormatter = { String.format(Locale.US, "%.1f°", HeadControlSettings.DIRECTIONAL_DEADZONE_VALUES[it]) },
-        displayFormatter = { String.format(Locale.US, "%.1f°", HeadControlSettings.DIRECTIONAL_DEADZONE_VALUES[it]) },
+        values = IntArray(HeadControlSettings.USER_FRIENDLY_THRESHOLD_LEVELS.size) { it },
+        buttonLabelFormatter = { HeadControlSettings.USER_FRIENDLY_THRESHOLD_LEVELS[it] },
+        displayFormatter = { HeadControlSettings.USER_FRIENDLY_THRESHOLD_LEVELS[it] },
         onValueChanged = { index ->
             rightDeadzone = index
-            prefs.setFloatValue(HeadControlSettings.KEY_RIGHT_DEADZONE, HeadControlSettings.DIRECTIONAL_DEADZONE_VALUES[index])
+            prefs.setFloatValue(HeadControlSettings.KEY_RIGHT_DEADZONE, HeadControlSettings.getThresholdValueFromIndex(index))
         }
     )
     
@@ -108,12 +108,12 @@ fun DirectionalDeadzoneControls(
         value = upDeadzone,
         titleResId = R.string.preference_title_head_control_up_deadzone,
         summaryResId = R.string.preference_summary_head_control_up_deadzone,
-        values = IntArray(HeadControlSettings.DIRECTIONAL_DEADZONE_VALUES.size) { it },
-        buttonLabelFormatter = { String.format(Locale.US, "%.1f°", HeadControlSettings.DIRECTIONAL_DEADZONE_VALUES[it]) },
-        displayFormatter = { String.format(Locale.US, "%.1f°", HeadControlSettings.DIRECTIONAL_DEADZONE_VALUES[it]) },
+        values = IntArray(HeadControlSettings.USER_FRIENDLY_THRESHOLD_LEVELS.size) { it },
+        buttonLabelFormatter = { HeadControlSettings.USER_FRIENDLY_THRESHOLD_LEVELS[it] },
+        displayFormatter = { HeadControlSettings.USER_FRIENDLY_THRESHOLD_LEVELS[it] },
         onValueChanged = { index ->
             upDeadzone = index
-            prefs.setFloatValue(HeadControlSettings.KEY_UP_DEADZONE, HeadControlSettings.DIRECTIONAL_DEADZONE_VALUES[index])
+            prefs.setFloatValue(HeadControlSettings.KEY_UP_DEADZONE, HeadControlSettings.getThresholdValueFromIndex(index))
         }
     )
     
@@ -121,12 +121,12 @@ fun DirectionalDeadzoneControls(
         value = downDeadzone,
         titleResId = R.string.preference_title_head_control_down_deadzone,
         summaryResId = R.string.preference_summary_head_control_down_deadzone,
-        values = IntArray(HeadControlSettings.DIRECTIONAL_DEADZONE_VALUES.size) { it },
-        buttonLabelFormatter = { String.format(Locale.US, "%.1f°", HeadControlSettings.DIRECTIONAL_DEADZONE_VALUES[it]) },
-        displayFormatter = { String.format(Locale.US, "%.1f°", HeadControlSettings.DIRECTIONAL_DEADZONE_VALUES[it]) },
+        values = IntArray(HeadControlSettings.USER_FRIENDLY_THRESHOLD_LEVELS.size) { it },
+        buttonLabelFormatter = { HeadControlSettings.USER_FRIENDLY_THRESHOLD_LEVELS[it] },
+        displayFormatter = { HeadControlSettings.USER_FRIENDLY_THRESHOLD_LEVELS[it] },
         onValueChanged = { index ->
             downDeadzone = index
-            prefs.setFloatValue(HeadControlSettings.KEY_DOWN_DEADZONE, HeadControlSettings.DIRECTIONAL_DEADZONE_VALUES[index])
+            prefs.setFloatValue(HeadControlSettings.KEY_DOWN_DEADZONE, HeadControlSettings.getThresholdValueFromIndex(index))
         }
     )
 }
@@ -137,19 +137,19 @@ fun UnifiedDeadzoneControl(
     prefs: PreferenceManager
 ) {
     val currentDeadzone = settings.deadzone()
-    val deadzoneIndex = HeadControlSettings.DEADZONE_VALUES.indexOfFirst { kotlin.math.abs(it - currentDeadzone) < 0.05f }.let { if (it == -1) 2 else it }
+    val deadzoneIndex = HeadControlSettings.getUserFriendlyThresholdIndex(currentDeadzone)
     var deadzone by remember { mutableIntStateOf(deadzoneIndex) }
     
     PreferenceValueSelector(
         value = deadzone,
         titleResId = R.string.preference_title_head_control_deadzone,
         summaryResId = R.string.preference_summary_head_control_deadzone,
-        values = IntArray(HeadControlSettings.DEADZONE_VALUES.size) { it },
-        buttonLabelFormatter = { String.format(Locale.US, "%.1f°", HeadControlSettings.DEADZONE_VALUES[it]) },
-        displayFormatter = { String.format(Locale.US, "%.1f°", HeadControlSettings.DEADZONE_VALUES[it]) },
+        values = IntArray(HeadControlSettings.USER_FRIENDLY_THRESHOLD_LEVELS.size) { it },
+        buttonLabelFormatter = { HeadControlSettings.USER_FRIENDLY_THRESHOLD_LEVELS[it] },
+        displayFormatter = { HeadControlSettings.USER_FRIENDLY_THRESHOLD_LEVELS[it] },
         onValueChanged = { index ->
             deadzone = index
-            prefs.setFloatValue(HeadControlSettings.KEY_DEADZONE, HeadControlSettings.DEADZONE_VALUES[index])
+            prefs.setFloatValue(HeadControlSettings.KEY_DEADZONE, HeadControlSettings.getThresholdValueFromIndex(index))
         }
     )
 }
