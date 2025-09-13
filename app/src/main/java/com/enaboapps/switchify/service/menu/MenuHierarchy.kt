@@ -35,8 +35,7 @@ class MenuHierarchy(
                 tree.lastOrNull()?.let {
                     it.menuViewListener = this
                     it.open(scanningManager)
-                    // Notify observers of menu nodes change after navigation
-                    MenuManager.getInstance().notifyMenuNodesChanged(it)
+                    // MenuView will handle nodes change notification after inflating
                 }
             }
         }
@@ -51,10 +50,7 @@ class MenuHierarchy(
             menu.open(scanningManager)
             // Notify observers that menu was opened
             MenuManager.getInstance().notifyMenuOpened(menu)
-            // Notify observers of initial menu nodes after opening
-            Handler(Looper.getMainLooper()).postDelayed(600) {
-                MenuManager.getInstance().notifyMenuNodesChanged(menu)
-            }
+            // MenuView will handle nodes change notification after inflating
         }
     }
 

@@ -26,12 +26,9 @@ class HeadControlManager(private val context: Context) : MenuStateObserver {
     
     companion object {
         private const val TAG = "HeadControlManager"
-        private const val SMOOTHING_FACTOR = 0.3f
         private const val SCREEN_PADDING = 50
         private const val HEAD_ROTATION_RANGE = 30f
         private const val MOVEMENT_DELTA = 8f
-        private const val MENU_VALIDATION_INTERVAL = 1000L // Check every second
-        private const val MAX_MENU_IDLE_TIME = 30000L // 30 seconds max idle in menu
     }
     private var currentX: Int = ScreenUtils.getWidth(context) / 2
     private var currentY: Int = ScreenUtils.getHeight(context) / 2
