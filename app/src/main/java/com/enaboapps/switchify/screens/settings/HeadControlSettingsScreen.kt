@@ -258,7 +258,6 @@ fun HeadControlSelectionTab(
     val gestureIndex = availableGestures.indexOf(currentGesture).let { if (it == -1) 0 else it }
     
     var selectedGesture by remember { mutableIntStateOf(gestureIndex) }
-    var gestureSelectionEnabled by remember { mutableStateOf(settings.isGestureSelectionEnabled()) }
     var headControlPriority by remember { mutableStateOf(settings.isHeadControlPriorityEnabled()) }
     
     // Use centralized hold time values
@@ -270,16 +269,6 @@ fun HeadControlSelectionTab(
     ScrollableView {
         Section(titleResId = R.string.head_control_gesture_section_title) {
             PreferenceSwitch(
-                checked = gestureSelectionEnabled,
-                titleResId = R.string.head_control_gesture_enabled_title,
-                summaryResId = R.string.head_control_gesture_enabled_summary,
-                onCheckedChange = { enabled ->
-                    gestureSelectionEnabled = enabled
-                    prefs.setBooleanValue(HeadControlSettings.KEY_GESTURE_SELECTION_ENABLED, enabled)
-                }
-            )
-            
-            PreferenceSwitch(
                 checked = headControlPriority,
                 titleResId = R.string.head_control_priority_title,
                 summaryResId = R.string.head_control_priority_summary,
@@ -289,46 +278,44 @@ fun HeadControlSelectionTab(
                 }
             )
             
-            if (gestureSelectionEnabled) {
-                PreferenceValueSelector(
-                    value = selectedGesture,
-                    titleResId = R.string.head_control_gesture_selection_title,
-                    summaryResId = R.string.head_control_gesture_selection_summary,
-                    values = IntArray(availableGestures.size) { it },
-                    buttonLabelFormatter = { gestureNames[availableGestures[it]] ?: "Unknown" },
-                    displayFormatter = { gestureNames[availableGestures[it]] ?: "Unknown" },
-                    onValueChanged = { index ->
-                        selectedGesture = index
-                        prefs.setStringValue(HeadControlSettings.KEY_SELECT_GESTURE, availableGestures[index])
-                    }
-                )
-                
-                val selectedGestureId = availableGestures.getOrNull(selectedGesture) ?: currentGesture
-                LaunchedEffect(selectedGestureId) {
-                    val store = SwitchEventStore.getInstance()
-                    store.initializeAsync(context)
-                    conflictAssigned = store.getSwitchEvents().any { it.type == SWITCH_EVENT_TYPE_CAMERA && it.code == selectedGestureId }
+            PreferenceValueSelector(
+                value = selectedGesture,
+                titleResId = R.string.head_control_gesture_selection_title,
+                summaryResId = R.string.head_control_gesture_selection_summary,
+                values = IntArray(availableGestures.size) { it },
+                buttonLabelFormatter = { gestureNames[availableGestures[it]] ?: "Unknown" },
+                displayFormatter = { gestureNames[availableGestures[it]] ?: "Unknown" },
+                onValueChanged = { index ->
+                    selectedGesture = index
+                    prefs.setStringValue(HeadControlSettings.KEY_SELECT_GESTURE, availableGestures[index])
                 }
-                if (conflictAssigned) {
-                    Text(
-                        text = stringResource(R.string.head_control_conflict_warning),
-                        color = androidx.compose.material3.MaterialTheme.colorScheme.error
-                    )
-                }
-                
-                PreferenceValueSelector(
-                    value = gestureHoldTime,
-                    titleResId = R.string.head_control_gesture_hold_time_title,
-                    summaryResId = R.string.head_control_gesture_hold_time_summary,
-                    values = IntArray(HeadControlSettings.HOLD_TIME_VALUES.size) { it },
-                    buttonLabelFormatter = { "${HeadControlSettings.HOLD_TIME_VALUES[it]}ms" },
-                    displayFormatter = { "${HeadControlSettings.HOLD_TIME_VALUES[it]}ms" },
-                    onValueChanged = { index ->
-                        gestureHoldTime = index
-                        prefs.setLongValue(HeadControlSettings.KEY_GESTURE_HOLD_TIME, HeadControlSettings.HOLD_TIME_VALUES[index])
-                    }
+            )
+            
+            val selectedGestureId = availableGestures.getOrNull(selectedGesture) ?: currentGesture
+            LaunchedEffect(selectedGestureId) {
+                val store = SwitchEventStore.getInstance()
+                store.initializeAsync(context)
+                conflictAssigned = store.getSwitchEvents().any { it.type == SWITCH_EVENT_TYPE_CAMERA && it.code == selectedGestureId }
+            }
+            if (conflictAssigned) {
+                Text(
+                    text = stringResource(R.string.head_control_conflict_warning),
+                    color = androidx.compose.material3.MaterialTheme.colorScheme.error
                 )
             }
+            
+            PreferenceValueSelector(
+                value = gestureHoldTime,
+                titleResId = R.string.head_control_gesture_hold_time_title,
+                summaryResId = R.string.head_control_gesture_hold_time_summary,
+                values = IntArray(HeadControlSettings.HOLD_TIME_VALUES.size) { it },
+                buttonLabelFormatter = { "${HeadControlSettings.HOLD_TIME_VALUES[it]}ms" },
+                displayFormatter = { "${HeadControlSettings.HOLD_TIME_VALUES[it]}ms" },
+                onValueChanged = { index ->
+                    gestureHoldTime = index
+                    prefs.setLongValue(HeadControlSettings.KEY_GESTURE_HOLD_TIME, HeadControlSettings.HOLD_TIME_VALUES[index])
+                }
+            )
         }
     }
 }

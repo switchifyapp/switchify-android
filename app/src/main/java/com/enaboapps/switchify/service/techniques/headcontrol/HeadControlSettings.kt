@@ -65,7 +65,6 @@ class HeadControlSettings(context: Context) {
     
     fun selectGesture(): String = prefs.getStringValue(KEY_SELECT_GESTURE, CameraSwitchFacialGesture.SMILE)
     
-    fun isGestureSelectionEnabled(): Boolean = prefs.getBooleanValue(KEY_GESTURE_SELECTION_ENABLED, true)
     
     fun isHeadControlPriorityEnabled(): Boolean = prefs.getBooleanValue(KEY_GESTURE_PRIORITY_HEAD_CONTROL, true)
     
@@ -120,7 +119,6 @@ class HeadControlSettings(context: Context) {
         const val KEY_DEADZONE = "head_control_deadzone"
         const val KEY_BASE_STEP = "head_control_base_step"
         const val KEY_SELECT_GESTURE = "head_control_select_gesture"
-        const val KEY_GESTURE_SELECTION_ENABLED = "head_control_gesture_selection_enabled"
         const val KEY_GESTURE_HOLD_TIME = "head_control_gesture_hold_time"
         const val KEY_GESTURE_PRIORITY_HEAD_CONTROL = "head_control_gesture_priority_head_control"
         const val KEY_MOVEMENT_SPEED = "head_control_movement_speed"
