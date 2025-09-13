@@ -268,10 +268,6 @@ class HeadControlManager(private val context: Context) : MenuStateObserver {
      * Handles gesture detection for head control selection
      */
     fun processGesture(gestureId: String, isGestureStarting: Boolean) {
-        if (!settings.isGestureSelectionEnabled()) {
-            return
-        }
-        
         val selectedGesture = settings.selectGesture()
         
         // Only process the gesture that matches our selected gesture
