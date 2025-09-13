@@ -136,11 +136,46 @@ class HeadControlSettings(context: Context) {
         
         // Centralized value arrays for UI
         val SENSITIVITY_VALUES = floatArrayOf(0.1f, 0.3f, 0.5f, 0.8f, 1.0f, 1.3f, 1.6f, 2.0f)
+        
+        // User-friendly threshold levels with meaningful labels
+        // Maps to actual degree values internally while showing descriptive labels to users
+        val USER_FRIENDLY_THRESHOLD_LEVELS = arrayOf(
+            "Very Sensitive",    // 0.3° - Small head movements
+            "Sensitive",        // 0.8° - Slight movements needed  
+            "Normal",           // 1.5° - Recommended default
+            "Less Sensitive",   // 3.0° - Moderate movements
+            "Least Sensitive"   // 5.0° - Large movements needed
+        )
+        
+        // Corresponding degree values for user-friendly levels
+        val USER_FRIENDLY_THRESHOLD_VALUES = floatArrayOf(0.3f, 0.8f, 1.5f, 3.0f, 5.0f)
+        
+        // Legacy arrays maintained for backward compatibility
         val DEADZONE_VALUES = floatArrayOf(0.1f, 0.3f, 0.5f, 0.8f, 1.0f, 1.5f, 2.0f, 3.0f, 5.0f)
         val DIRECTIONAL_DEADZONE_VALUES = floatArrayOf(0.1f, 0.2f, 0.3f, 0.4f, 0.5f, 0.6f, 0.7f, 0.8f, 0.9f, 1.0f, 1.5f, 2.0f, 2.5f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f, 9.0f, 10.0f, 12.0f, 15.0f, 20.0f, 25.0f, 30.0f)
         val MOVEMENT_SPEED_VALUES = floatArrayOf(0.5f, 0.8f, 1.0f, 1.2f, 1.5f, 2.0f, 2.5f, 3.0f, 3.5f, 4.0f, 4.5f, 5.0f)
         val HOLD_TIME_VALUES = longArrayOf(100L, 300L, 500L, 750L, 1000L, 1500L, 2000L)
         val MENU_REPEAT_INITIAL_VALUES = longArrayOf(300L, 450L, 600L, 800L, 1000L)
         val MENU_REPEAT_INTERVAL_VALUES = longArrayOf(120L, 180L, 250L, 350L, 500L)
+        
+        /**
+         * Get user-friendly threshold index from degree value
+         * Maps any degree value to the closest user-friendly level
+         */
+        fun getUserFriendlyThresholdIndex(degreeValue: Float): Int {
+            return USER_FRIENDLY_THRESHOLD_VALUES.indexOfFirst { kotlin.math.abs(it - degreeValue) < 0.1f }
+                .takeIf { it != -1 } ?: 2 // Default to "Normal" if no exact match
+        }
+        
+        /**
+         * Get degree value from user-friendly threshold index
+         */
+        fun getThresholdValueFromIndex(index: Int): Float {
+            return if (index in 0 until USER_FRIENDLY_THRESHOLD_VALUES.size) {
+                USER_FRIENDLY_THRESHOLD_VALUES[index]
+            } else {
+                USER_FRIENDLY_THRESHOLD_VALUES[2] // Default to "Normal"
+            }
+        }
     }
 }
