@@ -1,5 +1,7 @@
 package com.enaboapps.switchify.switches
 
+import com.enaboapps.switchify.service.face.FacialGestureRegistry
+
 /**
  * A class representing a camera switch facial gesture.
  * Used to identify and react to facial gestures in the camera switch.
@@ -18,39 +20,11 @@ class CameraSwitchFacialGesture(val id: String) {
         const val HEAD_TURN_DOWN = "head_turn_down"
     }
 
-    fun getName(): String {
-        return when (id) {
-            SMILE -> "Smile"
-            LEFT_WINK -> "Left Wink"
-            RIGHT_WINK -> "Right Wink"
-            BLINK -> "Blink"
-            HEAD_TURN_LEFT -> "Head Turn Left"
-            HEAD_TURN_RIGHT -> "Head Turn Right"
-            HEAD_TURN_UP -> "Head Turn Up"
-            HEAD_TURN_DOWN -> "Head Turn Down"
-            else -> "Unknown"
-        }
-    }
+    fun getName(): String = FacialGestureRegistry.getName(id)
 
-    fun getDescription(): String {
-        return when (id) {
-            SMILE -> "Smile"
-            LEFT_WINK -> "Wink with your left eye"
-            RIGHT_WINK -> "Wink with your right eye"
-            BLINK -> "Blink with your eyes"
-            HEAD_TURN_LEFT -> "Turn your head to the left"
-            HEAD_TURN_RIGHT -> "Turn your head to the right"
-            HEAD_TURN_UP -> "Turn your head up"
-            HEAD_TURN_DOWN -> "Turn your head down"
-            else -> "Unknown"
-        }
-    }
+    fun getDescription(): String = FacialGestureRegistry.getDescription(id)
 
-    fun isHeadTurn(): Boolean {
-        return id in listOf(HEAD_TURN_LEFT, HEAD_TURN_RIGHT, HEAD_TURN_UP, HEAD_TURN_DOWN)
-    }
+    fun isHeadTurn(): Boolean = FacialGestureRegistry.isHeadTurn(id)
 
-    fun isAssignableAsSwitch(): Boolean {
-        return !isHeadTurn()
-    }
+    fun isAssignableAsSwitch(): Boolean = FacialGestureRegistry.isAssignableAsSwitch(id)
 }

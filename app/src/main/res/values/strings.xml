@@ -768,6 +768,20 @@
     <string name="head_control_gesture_left_wink">Left Wink</string>
     <string name="head_control_gesture_right_wink">Right Wink</string>
     <string name="head_control_gesture_blink">Blink</string>
+    <string name="head_control_gesture_smile_description">Smile</string>
+    <string name="head_control_gesture_left_wink_description">Wink with your left eye</string>
+    <string name="head_control_gesture_right_wink_description">Wink with your right eye</string>
+    <string name="head_control_gesture_blink_description">Blink with your eyes</string>
+    
+    <!-- Gesture names and descriptions for head turns (used across UI/logic) -->
+    <string name="gesture_head_turn_left">Head Turn Left</string>
+    <string name="gesture_head_turn_left_description">Turn your head to the left</string>
+    <string name="gesture_head_turn_right">Head Turn Right</string>
+    <string name="gesture_head_turn_right_description">Turn your head to the right</string>
+    <string name="gesture_head_turn_up">Head Turn Up</string>
+    <string name="gesture_head_turn_up_description">Turn your head up</string>
+    <string name="gesture_head_turn_down">Head Turn Down</string>
+    <string name="gesture_head_turn_down_description">Turn your head down</string>
     
     <!-- Head Control Movement Mode -->
     <string name="head_control_movement_speed">Movement Speed</string>
