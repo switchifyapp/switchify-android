@@ -7,6 +7,9 @@ import com.enaboapps.switchify.BuildConfig
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.service.gestures.GestureManager
 import com.enaboapps.switchify.service.gestures.GesturePoint
+import com.enaboapps.switchify.service.face.FacialExpressionTimingManager
+import com.enaboapps.switchify.service.face.FacialExpressionStateTracker
+import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.service.selection.SelectionHandler
 import com.enaboapps.switchify.service.utils.ScreenUtils
 import com.enaboapps.switchify.service.menu.MenuManager
@@ -34,6 +37,9 @@ class HeadControlManager(private val context: Context) : MenuStateObserver {
     private var currentY: Int = ScreenUtils.getHeight(context) / 2
     private val settings = HeadControlSettings(context)
     private val overlay = HeadControlOverlay(context)
+    private val preferenceManager = PreferenceManager(context)
+    private val facialExpressionTimingManager = FacialExpressionTimingManager(preferenceManager)
+    private val facialExpressionStateTracker = FacialExpressionStateTracker(facialExpressionTimingManager)
     
     // Movement bounds with padding
     private val minX = SCREEN_PADDING
@@ -41,9 +47,7 @@ class HeadControlManager(private val context: Context) : MenuStateObserver {
     private val minY = SCREEN_PADDING
     private val maxY = ScreenUtils.getHeight(context) - SCREEN_PADDING
     
-    // Gesture selection state
-    private var isGestureActive = false
-    private var gestureStartTime = 0L
+    // Gesture selection state - now managed by unified FacialExpressionStateTracker
     private var currentActiveGesture: String? = null
     
     // Menu navigation state - now managed via observer pattern
@@ -275,34 +279,34 @@ class HeadControlManager(private val context: Context) : MenuStateObserver {
             return
         }
         
-        if (isGestureStarting && !isGestureActive) {
+        val isCurrentlyActive = facialExpressionStateTracker.isExpressionActive(gestureId)
+        
+        if (isGestureStarting && !isCurrentlyActive) {
             gestureStarted(gestureId)
-        } else if (!isGestureStarting && isGestureActive && currentActiveGesture == gestureId) {
+        } else if (!isGestureStarting && isCurrentlyActive && currentActiveGesture == gestureId) {
             gestureEnded(gestureId)
         }
     }
     
     private fun gestureStarted(gestureId: String) {
-        isGestureActive = true
-        gestureStartTime = System.currentTimeMillis()
+        facialExpressionStateTracker.startExpression(gestureId)
         currentActiveGesture = gestureId
     }
     
     private fun gestureEnded(gestureId: String) {
-        if (!isGestureActive || currentActiveGesture != gestureId) {
+        if (!facialExpressionStateTracker.isExpressionActive(gestureId) || currentActiveGesture != gestureId) {
             return
         }
         
-        val duration = System.currentTimeMillis() - gestureStartTime
-        val requiredHoldTime = settings.gestureHoldTime()
+        val duration = facialExpressionStateTracker.getExpressionActiveDuration(gestureId)
+        val requiredHoldTime = facialExpressionTimingManager.getHeadControlExpressionHoldTime()
         
         if (duration >= requiredHoldTime) {
             performSelection()
         }
         
         // Reset gesture state
-        isGestureActive = false
-        gestureStartTime = 0L
+        facialExpressionStateTracker.stopExpression(gestureId)
         currentActiveGesture = null
     }
     
@@ -310,8 +314,7 @@ class HeadControlManager(private val context: Context) : MenuStateObserver {
      * Resets gesture state (called when pausing or stopping head control)
      */
     fun resetGestureState() {
-        isGestureActive = false
-        gestureStartTime = 0L
+        facialExpressionStateTracker.resetAllExpressions()
         currentActiveGesture = null
     }
     
