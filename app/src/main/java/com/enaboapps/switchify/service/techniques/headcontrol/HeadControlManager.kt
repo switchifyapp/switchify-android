@@ -14,6 +14,7 @@ import com.enaboapps.switchify.service.menu.MenuStateObserver
 import com.enaboapps.switchify.service.menu.MenuView
 import com.enaboapps.switchify.service.window.ServiceMessageHUD
 import android.util.Log
+import com.enaboapps.switchify.service.core.Tasks
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -76,6 +77,8 @@ class HeadControlManager(private val context: Context) : MenuStateObserver {
     }
 
     fun performSelection() {
+        if (Tasks.getInstance().checkOngoingTasks())
+            return
         if (isInMenuMode()) {
             headControlScanner?.performSelection()
             return
