@@ -18,19 +18,7 @@ class CameraSwitchFacialGesture(val id: String) {
         const val HEAD_TURN_DOWN = "head_turn_down"
     }
 
-    fun getName(): String {
-        return when (id) {
-            SMILE -> "Smile"
-            LEFT_WINK -> "Left Wink"
-            RIGHT_WINK -> "Right Wink"
-            BLINK -> "Blink"
-            HEAD_TURN_LEFT -> "Head Turn Left"
-            HEAD_TURN_RIGHT -> "Head Turn Right"
-            HEAD_TURN_UP -> "Head Turn Up"
-            HEAD_TURN_DOWN -> "Head Turn Down"
-            else -> "Unknown"
-        }
-    }
+    fun getName(): String = com.enaboapps.switchify.service.face.FacialGestureRegistry.getName(id)
 
     fun getDescription(): String {
         return when (id) {
@@ -46,11 +34,7 @@ class CameraSwitchFacialGesture(val id: String) {
         }
     }
 
-    fun isHeadTurn(): Boolean {
-        return id in listOf(HEAD_TURN_LEFT, HEAD_TURN_RIGHT, HEAD_TURN_UP, HEAD_TURN_DOWN)
-    }
+    fun isHeadTurn(): Boolean = com.enaboapps.switchify.service.face.FacialGestureRegistry.isHeadTurn(id)
 
-    fun isAssignableAsSwitch(): Boolean {
-        return !isHeadTurn()
-    }
+    fun isAssignableAsSwitch(): Boolean = com.enaboapps.switchify.service.face.FacialGestureRegistry.isAssignableAsSwitch(id)
 }
