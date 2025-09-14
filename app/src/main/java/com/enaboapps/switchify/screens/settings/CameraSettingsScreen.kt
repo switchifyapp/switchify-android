@@ -187,14 +187,13 @@ private fun CameraPreview(
     viewModel: CameraSettingsScreenModel,
     modifier: Modifier = Modifier
 ) {
-    val localContext = LocalContext.current
     Card(
         modifier = modifier,
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         AndroidView(
-            factory = { androidContext ->
-                PreviewView(androidContext).apply {
+            factory = { context ->
+                PreviewView(context).apply {
                     viewModel.bindPreview(this)
                 }
             },
@@ -214,7 +213,6 @@ private fun ExpressionFeedback(
     detectedExpressions: Set<String>,
     isFaceDetected: Boolean
 ) {
-    val localContext = LocalContext.current
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -242,7 +240,7 @@ private fun ExpressionFeedback(
 
                 detectedExpressions.isNotEmpty() -> {
                     detectedExpressions.forEach { expression ->
-                        val gestureName = CameraSwitchFacialGesture(expression).getName(localContext)
+                        val gestureName = CameraSwitchFacialGesture(expression).getName()
                         Text(
                             text = stringResource(R.string.expression_detected, gestureName),
                             style = MaterialTheme.typography.bodyLarge,
@@ -268,7 +266,6 @@ private fun ExpressionFeedback(
 
 @Composable
 private fun DetectedExpressionsList(detectedExpressions: Set<String>) {
-    val localContext = LocalContext.current
     if (detectedExpressions.isEmpty()) {
         Text(
             text = "Try making facial expressions to see them detected here",
@@ -284,8 +281,8 @@ private fun DetectedExpressionsList(detectedExpressions: Set<String>) {
             items(detectedExpressions.toList()) { expression ->
                 val gesture = CameraSwitchFacialGesture(expression)
                 ExpressionItem(
-                    name = gesture.getName(localContext),
-                    description = gesture.getDescription(localContext)
+                    name = gesture.getName(),
+                    description = gesture.getDescription()
                 )
             }
         }

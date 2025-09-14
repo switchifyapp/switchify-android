@@ -1,8 +1,5 @@
 package com.enaboapps.switchify.switches
 
-import android.content.Context
-import com.enaboapps.switchify.service.face.FacialGestureRegistry
-
 /**
  * A class representing a camera switch facial gesture.
  * Used to identify and react to facial gestures in the camera switch.
@@ -21,23 +18,10 @@ class CameraSwitchFacialGesture(val id: String) {
         const val HEAD_TURN_DOWN = "head_turn_down"
     }
 
-    /**
-     * Gets the localized name of the gesture using the unified registry
-     * @param context Android context for string resource access
-     * @return Localized gesture name
-     */
-    fun getName(context: Context): String {
-        return FacialGestureRegistry.getGestureName(context, id)
-    }
-
-    /**
-     * Gets the gesture name without localization support
-     * @return Non-localized gesture name from hardcoded fallbacks
-     */
     fun getName(): String {
         return when (id) {
             SMILE -> "Smile"
-            LEFT_WINK -> "Left Wink" 
+            LEFT_WINK -> "Left Wink"
             RIGHT_WINK -> "Right Wink"
             BLINK -> "Blink"
             HEAD_TURN_LEFT -> "Head Turn Left"
@@ -48,29 +32,25 @@ class CameraSwitchFacialGesture(val id: String) {
         }
     }
 
-    /**
-     * Gets the localized description of the gesture using the unified registry
-     * @param context Android context for string resource access
-     * @return Localized gesture description
-     */
-    fun getDescription(context: Context): String {
-        return FacialGestureRegistry.getGestureDescription(context, id)
+    fun getDescription(): String {
+        return when (id) {
+            SMILE -> "Smile"
+            LEFT_WINK -> "Wink with your left eye"
+            RIGHT_WINK -> "Wink with your right eye"
+            BLINK -> "Blink with your eyes"
+            HEAD_TURN_LEFT -> "Turn your head to the left"
+            HEAD_TURN_RIGHT -> "Turn your head to the right"
+            HEAD_TURN_UP -> "Turn your head up"
+            HEAD_TURN_DOWN -> "Turn your head down"
+            else -> "Unknown"
+        }
     }
 
-
-    /**
-     * Checks if this gesture is a head turn gesture using the unified registry
-     * @return true if it's a head turn gesture, false otherwise
-     */
     fun isHeadTurn(): Boolean {
-        return FacialGestureRegistry.isHeadTurnGesture(id)
+        return id in listOf(HEAD_TURN_LEFT, HEAD_TURN_RIGHT, HEAD_TURN_UP, HEAD_TURN_DOWN)
     }
 
-    /**
-     * Checks if this gesture can be assigned as a switch using the unified registry
-     * @return true if assignable as switch, false otherwise
-     */
     fun isAssignableAsSwitch(): Boolean {
-        return FacialGestureRegistry.isAssignableAsSwitch(id)
+        return !isHeadTurn()
     }
 }
