@@ -768,6 +768,10 @@
     <string name="head_control_gesture_left_wink">Left Wink</string>
     <string name="head_control_gesture_right_wink">Right Wink</string>
     <string name="head_control_gesture_blink">Blink</string>
+    <string name="head_control_gesture_smile_description">Smile</string>
+    <string name="head_control_gesture_left_wink_description">Wink with your left eye</string>
+    <string name="head_control_gesture_right_wink_description">Wink with your right eye</string>
+    <string name="head_control_gesture_blink_description">Blink with your eyes</string>
     
     <!-- Gesture names and descriptions for head turns (used across UI/logic) -->
     <string name="gesture_head_turn_left">Head Turn Left</string>

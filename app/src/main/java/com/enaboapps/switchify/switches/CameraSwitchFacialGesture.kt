@@ -22,19 +22,7 @@ class CameraSwitchFacialGesture(val id: String) {
 
     fun getName(): String = FacialGestureRegistry.getName(id)
 
-    fun getDescription(): String {
-        return when (id) {
-            SMILE -> "Smile"
-            LEFT_WINK -> "Wink with your left eye"
-            RIGHT_WINK -> "Wink with your right eye"
-            BLINK -> "Blink with your eyes"
-            HEAD_TURN_LEFT -> "Turn your head to the left"
-            HEAD_TURN_RIGHT -> "Turn your head to the right"
-            HEAD_TURN_UP -> "Turn your head up"
-            HEAD_TURN_DOWN -> "Turn your head down"
-            else -> "Unknown"
-        }
-    }
+    fun getDescription(): String = FacialGestureRegistry.getDescription(id)
 
     fun isHeadTurn(): Boolean = FacialGestureRegistry.isHeadTurn(id)
 
