@@ -85,6 +85,8 @@ object ServiceBridge {
          */
         object HeadControlToggled : ServiceCommand()
 
+        data class SetHeadControlEnabled(val enabled: Boolean) : ServiceCommand()
+
         /**
          * Request service to update switch configuration.
          */

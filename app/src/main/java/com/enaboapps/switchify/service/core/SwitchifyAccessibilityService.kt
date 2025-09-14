@@ -312,6 +312,17 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
                     cameraManager.evaluateAndUpdateCameraState()
                     ServiceBridge.emitEvent(ServiceBridge.ServiceEvent.ConfigurationUpdated)
                 }
+                is ServiceBridge.ServiceCommand.SetHeadControlEnabled -> {
+                    val svc = ServiceCore.getHeadControlService()
+                    val settings = com.enaboapps.switchify.service.techniques.headcontrol.HeadControlSettings(this)
+                    val desired = command.enabled
+                    val ok = svc?.setEnabled(desired) == true
+                    if (ok) {
+                        settings.setHeadControlEnabled(desired)
+                        cameraManager.evaluateAndUpdateCameraState()
+                        ServiceBridge.emitEvent(ServiceBridge.ServiceEvent.ConfigurationUpdated)
+                    }
+                }
 
                 ServiceBridge.ServiceCommand.ClearCache -> {
                     // Clear any relevant caches

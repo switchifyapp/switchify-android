@@ -831,4 +831,8 @@
     <string name="hud_menu_became_empty_returning_to_cursor">Menu became empty, returning to cursor mode</string>
     <string name="hud_menu_idle_timeout_returning_to_cursor">Menu idle timeout, returning to cursor mode</string>
     <string name="hud_menu_mode_reset">Menu mode reset</string>
+
+    <string name="home_head_control_title">Head Control</string>
+    <string name="home_head_control_on_summary">Enabled — tap to disable</string>
+    <string name="home_head_control_off_summary">Disabled — tap to enable</string>
 </resources>

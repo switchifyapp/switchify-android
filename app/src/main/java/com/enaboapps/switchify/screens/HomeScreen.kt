@@ -47,6 +47,10 @@ import com.enaboapps.switchify.components.ScrollableView
 import com.enaboapps.switchify.components.StatusBannerComponent
 import com.enaboapps.switchify.nav.NavigationRoute
 import com.enaboapps.switchify.service.utils.QuickAppsManager
+import com.enaboapps.switchify.service.core.ServiceBridge
+import com.enaboapps.switchify.service.techniques.headcontrol.HeadControlSettings
+import com.enaboapps.switchify.service.camera.CameraPermissionManager
+import com.enaboapps.switchify.components.HeadControlToggleCard
 import com.enaboapps.switchify.service.utils.ServiceUtils
 import com.enaboapps.switchify.switches.SwitchConfigInvalidBanner
 import com.enaboapps.switchify.switches.SwitchConfigValidator
@@ -135,7 +139,11 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Settings and Feedback Row
+            // Determine whether to show head control toggle
+            val hasCameraPermission = remember { CameraPermissionManager.getInstance(context).hasPermission() }
+            val showHeadToggle = isAccessibilityServiceEnabled && hasCameraPermission
+
+            // Settings and second slot (Head Control when available, otherwise Feedback)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -157,22 +165,50 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
                     },
                     modifier = Modifier.weight(1f)
                 )
-
-                // Feedback Card
-                GridCard(
-                    titleResId = R.string.home_feedback_title,
-                    summaryResId = R.string.home_feedback_summary,
-                    onClick = { navController.navigate(NavigationRoute.UserFeedback.name) },
-                    icon = {
-                        Icon(
-                            imageVector = Icons.Rounded.Feedback,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.fillMaxSize()
-                        )
-                    },
-                    modifier = Modifier.weight(1f)
-                )
+                if (showHeadToggle) {
+                    HeadControlToggleCard(modifier = Modifier.weight(1f))
+                } else {
+                    GridCard(
+                        titleResId = R.string.home_feedback_title,
+                        summaryResId = R.string.home_feedback_summary,
+                        onClick = { navController.navigate(NavigationRoute.UserFeedback.name) },
+                        icon = {
+                            Icon(
+                                imageVector = Icons.Rounded.Feedback,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+            // Reuse showHeadToggle to place Feedback below when Head Control is shown above
+            if (showHeadToggle) {
+                Spacer(modifier = Modifier.height(16.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    GridCard(
+                        titleResId = R.string.home_feedback_title,
+                        summaryResId = R.string.home_feedback_summary,
+                        onClick = { navController.navigate(NavigationRoute.UserFeedback.name) },
+                        icon = {
+                            Icon(
+                                imageVector = Icons.Rounded.Feedback,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        },
+                        modifier = Modifier.weight(1f)
+                    )
+                    Box(modifier = Modifier.weight(1f))
+                }
             }
             } // End Column
         } // End ScrollableView
