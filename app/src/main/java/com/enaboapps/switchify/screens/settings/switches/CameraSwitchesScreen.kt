@@ -135,8 +135,7 @@ private fun SwitchEventItem(
     navController: NavController,
     switchEvent: SwitchEvent
 ) {
-    val context = LocalContext.current
-    val gestureName = com.enaboapps.switchify.switches.CameraSwitchFacialGesture(switchEvent.code).getName(context)
+    val gestureName = com.enaboapps.switchify.switches.CameraSwitchFacialGesture(switchEvent.code).getName()
     val primaryAction = SwitchAction(
         trigger = gestureName,
         actionName = switchEvent.pressAction.getActionName()
