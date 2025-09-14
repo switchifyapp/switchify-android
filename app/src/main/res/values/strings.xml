@@ -835,4 +835,14 @@
     <string name="home_head_control_title">Head Control</string>
     <string name="home_head_control_on_summary">Enabled — tap to disable</string>
     <string name="home_head_control_off_summary">Disabled — tap to enable</string>
+
+    <!-- Onboarding Head Control -->
+    <string name="onboarding_head_control_section_title">Camera-Based Control</string>
+    <string name="onboarding_head_control_title">Head Control</string>
+    <string name="onboarding_head_control_description">Control your device using head movements detected by your camera</string>
+    <string name="onboarding_head_control_feature_movement">Move cursor by tilting or turning your head</string>
+    <string name="onboarding_head_control_feature_gestures">Select items using facial gestures (smile, wink, blink)</string>
+    <string name="onboarding_head_control_feature_complement">Works alongside traditional switches</string>
+    <string name="onboarding_head_control_requirements">Requires camera permission and good lighting</string>
+    <string name="onboarding_head_control_learn_more">Learn more about Head Control</string>
 </resources>

@@ -25,6 +25,7 @@ import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.NavBarAction
 import com.enaboapps.switchify.nav.NavigationRoute
 import com.enaboapps.switchify.screens.onboarding.steps.AccessibilityExplanationStep
+import com.enaboapps.switchify.screens.onboarding.steps.HeadControlExplanationStep
 import com.enaboapps.switchify.screens.onboarding.steps.PracticeStep
 import com.enaboapps.switchify.screens.onboarding.steps.ScanModeExplanationStep
 import com.enaboapps.switchify.screens.onboarding.steps.SwitchSetupStep
@@ -44,6 +45,13 @@ fun OnboardingScreen(navController: NavController) {
 
     // Determine skip actions based on current step
     val navBarActions = when (uiState.currentStep) {
+        OnboardingStep.HEAD_CONTROL_EXPLANATION -> listOf(
+            NavBarAction(
+                textResId = R.string.onboarding_skip_for_now,
+                onClick = { viewModel.nextStep() }
+            )
+        )
+
         OnboardingStep.SWITCH_SETUP -> listOf(
             NavBarAction(
                 textResId = R.string.onboarding_skip_for_now,
@@ -120,6 +128,11 @@ fun OnboardingScreen(navController: NavController) {
                     )
 
                     OnboardingStep.SCAN_MODE_EXPLANATION -> ScanModeExplanationStep(
+                        navController = navController,
+                        onContinue = { viewModel.nextStep() }
+                    )
+
+                    OnboardingStep.HEAD_CONTROL_EXPLANATION -> HeadControlExplanationStep(
                         navController = navController,
                         onContinue = { viewModel.nextStep() }
                     )

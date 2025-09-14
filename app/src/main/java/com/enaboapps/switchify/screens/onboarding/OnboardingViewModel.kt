@@ -26,6 +26,7 @@ enum class OnboardingStep {
     WELCOME,
     USER_TYPE,
     SCAN_MODE_EXPLANATION,
+    HEAD_CONTROL_EXPLANATION,
     SWITCH_SETUP,
     ACCESSIBILITY_SERVICE,
     PRACTICE
@@ -51,6 +52,7 @@ class OnboardingViewModel(context: Context) : ViewModel() {
         OnboardingStep.WELCOME,
         OnboardingStep.USER_TYPE,
         OnboardingStep.SCAN_MODE_EXPLANATION,
+        OnboardingStep.HEAD_CONTROL_EXPLANATION,
         OnboardingStep.SWITCH_SETUP,
         OnboardingStep.ACCESSIBILITY_SERVICE,
         OnboardingStep.PRACTICE
