@@ -44,28 +44,28 @@ object FacialGestureRegistry {
         ),
         Meta(
             id = CameraSwitchFacialGesture.HEAD_TURN_LEFT,
-            nameResId = null,
+            nameResId = R.string.gesture_head_turn_left,
             fallbackName = "Head Turn Left",
             isHeadTurn = true,
             assignableAsSwitch = false
         ),
         Meta(
             id = CameraSwitchFacialGesture.HEAD_TURN_RIGHT,
-            nameResId = null,
+            nameResId = R.string.gesture_head_turn_right,
             fallbackName = "Head Turn Right",
             isHeadTurn = true,
             assignableAsSwitch = false
         ),
         Meta(
             id = CameraSwitchFacialGesture.HEAD_TURN_UP,
-            nameResId = null,
+            nameResId = R.string.gesture_head_turn_up,
             fallbackName = "Head Turn Up",
             isHeadTurn = true,
             assignableAsSwitch = false
         ),
         Meta(
             id = CameraSwitchFacialGesture.HEAD_TURN_DOWN,
-            nameResId = null,
+            nameResId = R.string.gesture_head_turn_down,
             fallbackName = "Head Turn Down",
             isHeadTurn = true,
             assignableAsSwitch = false
