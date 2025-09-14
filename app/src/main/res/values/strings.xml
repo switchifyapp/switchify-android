@@ -817,4 +817,24 @@
     <string name="hud_menu_became_empty_returning_to_cursor">Menu became empty, returning to cursor mode</string>
     <string name="hud_menu_idle_timeout_returning_to_cursor">Menu idle timeout, returning to cursor mode</string>
     <string name="hud_menu_mode_reset">Menu mode reset</string>
+    
+    <!-- Facial Gesture Registry - Unified String Resources -->
+    <string name="gesture_smile">Smile</string>
+    <string name="gesture_smile_description">Smile</string>
+    <string name="gesture_left_wink">Left Wink</string>
+    <string name="gesture_left_wink_description">Wink with your left eye</string>
+    <string name="gesture_right_wink">Right Wink</string>
+    <string name="gesture_right_wink_description">Wink with your right eye</string>
+    <string name="gesture_blink">Blink</string>
+    <string name="gesture_blink_description">Blink with your eyes</string>
+    <string name="gesture_head_turn_left">Head Turn Left</string>
+    <string name="gesture_head_turn_left_description">Turn your head to the left</string>
+    <string name="gesture_head_turn_right">Head Turn Right</string>
+    <string name="gesture_head_turn_right_description">Turn your head to the right</string>
+    <string name="gesture_head_turn_up">Head Turn Up</string>
+    <string name="gesture_head_turn_up_description">Turn your head up</string>
+    <string name="gesture_head_turn_down">Head Turn Down</string>
+    <string name="gesture_head_turn_down_description">Turn your head down</string>
+    <string name="gesture_unknown">Unknown</string>
+    <string name="gesture_unknown_description">Unknown gesture</string>
 </resources>

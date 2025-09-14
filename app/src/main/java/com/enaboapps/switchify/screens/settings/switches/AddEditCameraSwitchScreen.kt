@@ -142,12 +142,12 @@ private fun MainContent(
                 onItemSelected = { gesture ->
                     viewModel.setGesture(gesture)
                 },
-                itemToString = { it.getName() },
-                itemDescription = { it.getDescription() }
+                itemToString = { it.getName(context) },
+                itemDescription = { it.getDescription(context) }
             )
         } else {
             Text(
-                text = "This switch is already set up with ${viewModel.selectedGesture.value?.getName()}",
+                text = "This switch is already set up with ${viewModel.selectedGesture.value?.getName(context)}",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.padding(horizontal = 20.dp)

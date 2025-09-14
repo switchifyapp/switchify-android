@@ -26,6 +26,7 @@ class FaceProcessingService(context: Context) {
     private val appContext: Context = context.applicationContext
 
     private val preferenceManager = PreferenceManager(context)
+    private val facialExpressionTimingManager = FacialExpressionTimingManager(preferenceManager)
     private var faceLandmarker: FaceLandmarker? = null
 
     // Background processing
@@ -52,23 +53,19 @@ class FaceProcessingService(context: Context) {
     companion object {
         private const val TAG = "FaceProcessingService"
 
-        // Hysteresis thresholds (enter/exit)
-        const val SMILE_ENTER_THRESHOLD = 0.35f
-        const val SMILE_EXIT_THRESHOLD = 0.25f
-        const val BLINK_ENTER_THRESHOLD = 0.55f
-        const val BLINK_EXIT_THRESHOLD = 0.45f
+        // Constants now unified in FacialExpressionConstants
+        val SMILE_ENTER_THRESHOLD = FacialExpressionConstants.DetectionThresholds.SMILE_ENTER_THRESHOLD
+        val SMILE_EXIT_THRESHOLD = FacialExpressionConstants.DetectionThresholds.SMILE_EXIT_THRESHOLD
+        val BLINK_ENTER_THRESHOLD = FacialExpressionConstants.DetectionThresholds.BLINK_ENTER_THRESHOLD
+        val BLINK_EXIT_THRESHOLD = FacialExpressionConstants.DetectionThresholds.BLINK_EXIT_THRESHOLD
+        val EMA_ALPHA = FacialExpressionConstants.SignalProcessing.EMA_ALPHA
+        val BLINK_REFRACTORY_PERIOD = FacialExpressionConstants.SignalProcessing.BLINK_REFRACTORY_PERIOD
 
-        // Smoothing factor for EMA (0.0 = no smoothing, 1.0 = max smoothing)
-        const val EMA_ALPHA = 0.3f
-
-        // Refractory period for blink detection (ms)
-        const val BLINK_REFRACTORY_PERIOD = 200L
-
-        // Correct MediaPipe Face Landmarker 468-point model indices
-        const val NOSE_TIP_INDEX = 1
-        const val CHIN_INDEX = 152
-        const val LEFT_EYE_OUTER_INDEX = 33
-        const val RIGHT_EYE_OUTER_INDEX = 263
+        // MediaPipe Face Landmarker 468-point model indices - unified constants
+        val NOSE_TIP_INDEX = FacialExpressionConstants.LandmarkIndices.NOSE_TIP_INDEX
+        val CHIN_INDEX = FacialExpressionConstants.LandmarkIndices.CHIN_INDEX
+        val LEFT_EYE_OUTER_INDEX = FacialExpressionConstants.LandmarkIndices.LEFT_EYE_OUTER_INDEX
+        val RIGHT_EYE_OUTER_INDEX = FacialExpressionConstants.LandmarkIndices.RIGHT_EYE_OUTER_INDEX
 
         /**
          * Convert sensitivity level (1-10) to rotation threshold in degrees.
@@ -124,7 +121,7 @@ class FaceProcessingService(context: Context) {
 
             val options = FaceLandmarker.FaceLandmarkerOptions.builder()
                 .setBaseOptions(baseOptions)
-                .setRunningMode(RunningMode.VIDEO)  // Changed from LIVE_STREAM to avoid listener requirement
+                .setRunningMode(RunningMode.LIVE_STREAM)
                 .setOutputFaceBlendshapes(true)
                 .setOutputFacialTransformationMatrixes(true)  // Enable transformation matrices
                 .setNumFaces(1)
@@ -448,39 +445,10 @@ class FaceProcessingService(context: Context) {
 
     /**
      * Gets the required hold time for a specific gesture from preferences
+     * Now delegates to unified FacialExpressionTimingManager
      */
     fun getGestureTime(gestureId: String): Long {
-        return when (gestureId) {
-            CameraSwitchFacialGesture.SMILE ->
-                preferenceManager.getLongValue(
-                    PreferenceManager.PREFERENCE_KEY_CAMERA_SMILE_TIME,
-                    500L
-                )
-
-            CameraSwitchFacialGesture.LEFT_WINK ->
-                preferenceManager.getLongValue(
-                    PreferenceManager.PREFERENCE_KEY_CAMERA_LEFT_WINK_TIME,
-                    300L
-                )
-
-            CameraSwitchFacialGesture.RIGHT_WINK ->
-                preferenceManager.getLongValue(
-                    PreferenceManager.PREFERENCE_KEY_CAMERA_RIGHT_WINK_TIME,
-                    300L
-                )
-
-            CameraSwitchFacialGesture.BLINK ->
-                preferenceManager.getLongValue(
-                    PreferenceManager.PREFERENCE_KEY_CAMERA_BLINK_TIME,
-                    400L
-                )
-
-            CameraSwitchFacialGesture.HEAD_TURN_LEFT,
-            CameraSwitchFacialGesture.HEAD_TURN_RIGHT,
-            CameraSwitchFacialGesture.HEAD_TURN_UP,
-            CameraSwitchFacialGesture.HEAD_TURN_DOWN -> 0L // Instant trigger, no hold time
-            else -> 500L // Default fallback
-        }
+        return facialExpressionTimingManager.getExpressionHoldTime(gestureId)
     }
 
     // Head turn threshold getters using global preferences
@@ -538,12 +506,12 @@ class FaceProcessingService(context: Context) {
 
         for (i in 0 until blendShapes.size) {
             when (blendShapes[i].categoryName()) {
-                "eyeBlinkLeft" -> eyeBlinkLeft = i
-                "eyeBlinkRight" -> eyeBlinkRight = i
-                "eyeSquintLeft" -> eyeSquintLeft = i
-                "eyeSquintRight" -> eyeSquintRight = i
-                "mouthSmileLeft" -> mouthSmileLeft = i
-                "mouthSmileRight" -> mouthSmileRight = i
+                FacialExpressionConstants.BlendShapeNames.EYE_BLINK_LEFT -> eyeBlinkLeft = i
+                FacialExpressionConstants.BlendShapeNames.EYE_BLINK_RIGHT -> eyeBlinkRight = i
+                FacialExpressionConstants.BlendShapeNames.EYE_SQUINT_LEFT -> eyeSquintLeft = i
+                FacialExpressionConstants.BlendShapeNames.EYE_SQUINT_RIGHT -> eyeSquintRight = i
+                FacialExpressionConstants.BlendShapeNames.MOUTH_SMILE_LEFT -> mouthSmileLeft = i
+                FacialExpressionConstants.BlendShapeNames.MOUTH_SMILE_RIGHT -> mouthSmileRight = i
             }
         }
 

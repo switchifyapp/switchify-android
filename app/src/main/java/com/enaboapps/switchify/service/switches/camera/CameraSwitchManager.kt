@@ -13,6 +13,8 @@ import com.enaboapps.switchify.service.camera.CameraLifecycle
 import com.enaboapps.switchify.service.camera.CameraPermissionManager
 import com.enaboapps.switchify.service.core.ServiceCore
 import com.enaboapps.switchify.service.face.FaceProcessingService
+import com.enaboapps.switchify.service.face.FacialExpressionTimingManager
+import com.enaboapps.switchify.service.face.FacialExpressionStateTracker
 import com.enaboapps.switchify.service.pauseresume.PauseManager
 import com.enaboapps.switchify.service.scanning.ScanningManager
 import com.enaboapps.switchify.service.switches.SwitchEventProvider
@@ -45,24 +47,16 @@ class CameraSwitchManager(
     private val preferenceManager = PreferenceManager(context)
     private val permissionManager = CameraPermissionManager.getInstance(context)
     private val gestureConflictDetector = GestureConflictDetector(context)
+    private val facialExpressionTimingManager = FacialExpressionTimingManager(preferenceManager)
+    private val facialExpressionStateTracker = FacialExpressionStateTracker(facialExpressionTimingManager)
     
     // Lifecycle state management
     private val _lifecycleState = MutableStateFlow(CameraLifecycle.State.UNINITIALIZED)
     override val lifecycleState: StateFlow<CameraLifecycle.State> = _lifecycleState.asStateFlow()
     private val lifecycleMutex = Mutex()
 
-    private data class CameraSwitchState(
-        var isActive: Boolean,
-        var startTime: Long = 0
-    )
-
-    private val gestureStates = mutableMapOf(
-        CameraSwitchFacialGesture.SMILE to CameraSwitchState(false),
-        CameraSwitchFacialGesture.LEFT_WINK to CameraSwitchState(false),
-        CameraSwitchFacialGesture.RIGHT_WINK to CameraSwitchState(false),
-        CameraSwitchFacialGesture.BLINK to CameraSwitchState(false)
-        // Head turns handled directly without state tracking
-    )
+    // Facial expression state tracking now handled by unified FacialExpressionStateTracker
+    // Legacy CameraSwitchState and gestureStates removed in favor of unified implementation
 
     // Track currently active gesture
     private var activeGesture: String? = null
@@ -161,7 +155,7 @@ class CameraSwitchManager(
 
     private fun onPauseStarted() {
         Log.d(TAG, "Pause started - resetting gesture states")
-        gestureStates.values.forEach { it.isActive = false }
+        facialExpressionStateTracker.resetAllExpressions()
         activeGesture = null
         // Head control is now independent - gesture state managed separately
     }
@@ -305,32 +299,29 @@ class CameraSwitchManager(
     }
 
     private fun handleGestureStateChange(gesture: CameraSwitchFacialGesture, isStarting: Boolean) {
-        val state = gestureStates[gesture.id] ?: return
+        val isCurrentlyActive = facialExpressionStateTracker.isExpressionActive(gesture.id)
 
-        if (isStarting && !state.isActive) {
+        if (isStarting && !isCurrentlyActive) {
             gestureStarted(gesture)
-        } else if (!isStarting && state.isActive) {
+        } else if (!isStarting && isCurrentlyActive) {
             gestureCompleted(gesture)
         }
     }
 
     private fun gestureStarted(gesture: CameraSwitchFacialGesture) {
-        val state = gestureStates[gesture.id] ?: return
-        state.isActive = true
-        state.startTime = System.currentTimeMillis()
+        facialExpressionStateTracker.startExpression(gesture.id)
         activeGesture = gesture.id
 
-        Log.d(TAG, "Gesture started: ${gesture.getName()}")
+        Log.d(TAG, "Gesture started: ${gesture.getName(context)}")
     }
 
     private fun gestureCompleted(gesture: CameraSwitchFacialGesture) {
-        val state = gestureStates[gesture.id] ?: return
-        if (!state.isActive) return
+        if (!facialExpressionStateTracker.isExpressionActive(gesture.id)) return
 
-        state.isActive = false
-        val duration = System.currentTimeMillis() - state.startTime
+        val duration = facialExpressionStateTracker.getExpressionActiveDuration(gesture.id)
+        facialExpressionStateTracker.stopExpression(gesture.id)
 
-        Log.d(TAG, "Gesture completed: ${gesture.getName()}, duration: ${duration}ms")
+        Log.d(TAG, "Gesture completed: ${gesture.getName(context)}, duration: ${duration}ms")
 
         // Check if this gesture meets the minimum hold time requirement
         val requiredHoldTime = getRequiredHoldTime(gesture)
@@ -344,44 +335,14 @@ class CameraSwitchManager(
     }
 
     private fun getRequiredHoldTime(gesture: CameraSwitchFacialGesture): Long {
-        return when (gesture.id) {
-            CameraSwitchFacialGesture.SMILE ->
-                preferenceManager.getLongValue(
-                    PreferenceManager.PREFERENCE_KEY_CAMERA_SMILE_TIME,
-                    500L
-                )
-
-            CameraSwitchFacialGesture.LEFT_WINK ->
-                preferenceManager.getLongValue(
-                    PreferenceManager.PREFERENCE_KEY_CAMERA_LEFT_WINK_TIME,
-                    300L
-                )
-
-            CameraSwitchFacialGesture.RIGHT_WINK ->
-                preferenceManager.getLongValue(
-                    PreferenceManager.PREFERENCE_KEY_CAMERA_RIGHT_WINK_TIME,
-                    300L
-                )
-
-            CameraSwitchFacialGesture.BLINK ->
-                preferenceManager.getLongValue(
-                    PreferenceManager.PREFERENCE_KEY_CAMERA_BLINK_TIME,
-                    400L
-                )
-
-            CameraSwitchFacialGesture.HEAD_TURN_LEFT,
-            CameraSwitchFacialGesture.HEAD_TURN_RIGHT,
-            CameraSwitchFacialGesture.HEAD_TURN_UP,
-            CameraSwitchFacialGesture.HEAD_TURN_DOWN -> 0L // Instant trigger
-            else -> 1000L
-        }
+        return facialExpressionTimingManager.getExpressionHoldTime(gesture)
     }
 
     private fun triggerSwitchAction(gesture: CameraSwitchFacialGesture) {
         val switchEvent = findSwitchEventForGesture(gesture)
         if (switchEvent != null) {
             coroutineScope.launch(Dispatchers.Main) {
-                Log.i(TAG, "Triggering switch action for gesture: ${gesture.getName()}")
+                Log.i(TAG, "Triggering switch action for gesture: ${gesture.getName(context)}")
                 if (scanningManager.checkOngoingTasks()) return@launch
                 scanningManager.performAction(switchEvent.pressAction)
             }
@@ -402,7 +363,7 @@ class CameraSwitchManager(
         val switchEvent = findSwitchEventForGesture(gesture)
         if (switchEvent != null) {
             coroutineScope.launch(Dispatchers.Main) {
-                Log.i(TAG, "Triggering head turn gesture: ${gesture.getName()}")
+                Log.i(TAG, "Triggering head turn gesture: ${gesture.getName(context)}")
                 if (scanningManager.checkOngoingTasks()) return@launch
                 scanningManager.performAction(switchEvent.pressAction)
             }
@@ -441,7 +402,7 @@ class CameraSwitchManager(
                 isReceiverRegistered = false
             }
 
-            gestureStates.values.forEach { it.isActive = false }
+            facialExpressionStateTracker.resetAllExpressions()
             activeGesture = null
             // Head control is now independent - gesture state managed separately
             
