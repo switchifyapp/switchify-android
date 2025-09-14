@@ -312,7 +312,7 @@ class CameraSwitchManager(
         facialExpressionStateTracker.startExpression(gesture.id)
         activeGesture = gesture.id
 
-        Log.d(TAG, "Gesture started: ${gesture.getName()}")
+        Log.d(TAG, "Gesture started: ${gesture.getName(context)}")
     }
 
     private fun gestureCompleted(gesture: CameraSwitchFacialGesture) {
@@ -321,7 +321,7 @@ class CameraSwitchManager(
         val duration = facialExpressionStateTracker.getExpressionActiveDuration(gesture.id)
         facialExpressionStateTracker.stopExpression(gesture.id)
 
-        Log.d(TAG, "Gesture completed: ${gesture.getName()}, duration: ${duration}ms")
+        Log.d(TAG, "Gesture completed: ${gesture.getName(context)}, duration: ${duration}ms")
 
         // Check if this gesture meets the minimum hold time requirement
         val requiredHoldTime = getRequiredHoldTime(gesture)
@@ -342,7 +342,7 @@ class CameraSwitchManager(
         val switchEvent = findSwitchEventForGesture(gesture)
         if (switchEvent != null) {
             coroutineScope.launch(Dispatchers.Main) {
-                Log.i(TAG, "Triggering switch action for gesture: ${gesture.getName()}")
+                Log.i(TAG, "Triggering switch action for gesture: ${gesture.getName(context)}")
                 if (scanningManager.checkOngoingTasks()) return@launch
                 scanningManager.performAction(switchEvent.pressAction)
             }
@@ -363,7 +363,7 @@ class CameraSwitchManager(
         val switchEvent = findSwitchEventForGesture(gesture)
         if (switchEvent != null) {
             coroutineScope.launch(Dispatchers.Main) {
-                Log.i(TAG, "Triggering head turn gesture: ${gesture.getName()}")
+                Log.i(TAG, "Triggering head turn gesture: ${gesture.getName(context)}")
                 if (scanningManager.checkOngoingTasks()) return@launch
                 scanningManager.performAction(switchEvent.pressAction)
             }

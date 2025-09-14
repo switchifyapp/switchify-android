@@ -121,7 +121,7 @@ class FaceProcessingService(context: Context) {
 
             val options = FaceLandmarker.FaceLandmarkerOptions.builder()
                 .setBaseOptions(baseOptions)
-                .setRunningMode(RunningMode.VIDEO)  // Changed from LIVE_STREAM to avoid listener requirement
+                .setRunningMode(RunningMode.LIVE_STREAM)
                 .setOutputFaceBlendshapes(true)
                 .setOutputFacialTransformationMatrixes(true)  // Enable transformation matrices
                 .setNumFaces(1)
