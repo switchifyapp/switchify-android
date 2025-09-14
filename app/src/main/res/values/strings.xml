@@ -95,10 +95,6 @@
     <string name="access_technique_desc_radar">Moving a radar around the screen</string>
     <string name="access_technique_point_scan">Point Scan</string>
     <string name="access_technique_desc_point_scan">Select an exact point using scanning lines</string>
-    <string name="access_technique_direct_control">Direct Control</string>
-    <string name="access_technique_desc_direct_control">Hold to move freely and select like a mouse</string>
-    <string name="access_technique_head_control">Head Control</string>
-    <string name="access_technique_desc_head_control">Control cursor position using head movements detected by camera</string>
 
     <!-- Scan Modes -->
     <string name="scanning_mode_auto">Auto</string>
@@ -171,14 +167,6 @@
     <string name="action_next_item_desc">Move to the next item</string>
     <string name="action_previous_item">Move to Previous Item</string>
     <string name="action_previous_item_desc">Move to the previous item</string>
-    <string name="action_move_up">Move Up</string>
-    <string name="action_move_up_desc">Move to the item above</string>
-    <string name="action_move_down">Move Down</string>
-    <string name="action_move_down_desc">Move to the item below</string>
-    <string name="action_move_left">Move Left</string>
-    <string name="action_move_left_desc">Move to the item on the left</string>
-    <string name="action_move_right">Move Right</string>
-    <string name="action_move_right_desc">Move to the item on the right</string>
     <string name="action_next">Next</string>
     <string name="action_previous">Previous</string>
 
@@ -279,7 +267,6 @@
     <string name="screen_summary_quick_apps_permission">Configure quick apps access</string>
 
     <!-- Dialog Titles -->
-    <string name="dialog_title_update">Update Available</string>
     <string name="dialog_message_update">A new version has been downloaded. Would you like to install it now?</string>
     <string name="dialog_title_downloading_update">Downloading Update</string>
     <string name="dialog_button_restart">Restart</string>
@@ -303,7 +290,6 @@
     <string name="feature_explanation_single_point_scan_speed">This is how fast scanning moves when you are selecting a point.</string>
     <string name="section_title_block_settings">Block Settings</string>
     <string name="preference_title_block_count">Grid size</string>
-    <string name="preference_summary_block_count">Grid size</string>
     <string name="preference_summary_grid_size_dynamic">Creates a %1$s×%1$s grid</string>
 
     <!-- Point Scan mode labels -->
@@ -345,10 +331,6 @@
     <!-- Add/Edit Camera Switch Screen -->
     <string name="section_title_facial_gesture">Facial Gesture</string>
     <string name="section_title_action">Action</string>
-    <string name="preference_title_facial_gesture_time">Facial Gesture Time</string>
-    <string name="preference_summary_facial_gesture_time">The time to wait for a facial gesture to be detected</string>
-    <string name="preference_title_head_turn_sensitivity">Head Turn Sensitivity</string>
-    <string name="preference_summary_head_turn_sensitivity">How sensitive the head turn detection should be (1 = most sensitive, 10 = least sensitive)</string>
     <string name="dialog_title_delete">Confirm Deletion</string>
     <string name="dialog_message_delete">Are you sure you want to delete this switch?</string>
 
@@ -403,16 +385,11 @@
     <string name="head_control_settings_title">Head Control Settings</string>
     <string name="head_control_settings_summary">Configure head movement sensitivity and response</string>
     <string name="section_title_expression_testing">Expression Testing</string>
-    <string name="camera_preview_description">Live camera preview for testing facial expressions</string>
     <string name="expression_detected">%1$s detected!</string>
     <string name="no_expression_detected">No expression detected</string>
     <string name="no_face_detected">No face detected</string>
     <string name="section_title_detected_expressions">Detected Expressions</string>
-    <string name="section_title_camera_settings">Camera Settings</string>
-    <string name="section_title_threshold_settings">Threshold Settings</string>
     <string name="section_title_sensitivity_settings">Sensitivity Settings</string>
-    <string name="section_title_movement_mode">Movement Mode</string>
-    <string name="section_title_sensitivity">Sensitivity</string>
     <string name="section_title_movement_speed">Movement Speed</string>
     <string name="section_title_deadzone_settings">Deadzone Settings</string>
     
@@ -422,7 +399,6 @@
     <string name="tab_sensitivity">Sensitivity</string>
     <string name="tab_head_control_movement">Movement</string>
     <string name="tab_head_control_selection">Selection</string>
-    <string name="placeholder_future_settings">Additional camera settings will be available here in future updates</string>
     
     <!-- Camera Threshold Preferences -->
     <string name="section_title_camera_switch_timing">Camera Switch Timing</string>
@@ -546,7 +522,6 @@
 
     <!-- Switches Screen -->
     <string name="section_title_switches">Switches</string>
-    <string name="switch_edit_this_switch">Edit this switch</string>
 
     <!-- Gesture Settings Screen -->
     <string name="screen_title_gesture_settings">Gesture Settings</string>
@@ -562,37 +537,16 @@
     <!-- Access Technique Settings Screen -->
     <string name="screen_title_access_technique_settings">Access Technique Settings</string>
     <string name="settings_tab_point_scan">Point Scan</string>
-    <string name="settings_tab_direct_control">Direct Control</string>
     <string name="settings_tab_radar">Radar</string>
     <string name="settings_tab_item_scan">Item Scan</string>
-    <string name="settings_tab_head_control">Head Control</string>
 
     <!-- Access Technique Settings -->
     <string name="settings_section_access_techniques">Access Techniques</string>
     <string name="settings_title_access_technique">Access Technique Settings</string>
     <string name="settings_summary_access_technique">Configure point scan, radar, and item scan settings</string>
-    <string name="direct_control_requires_directional_mode">Direct Control requires Directional scanning mode</string>
-
-    <!-- Direct Control Settings -->
-    <string name="section_title_direct_control_movement">Movement</string>
-    <string name="preference_title_direct_control_speed">Pointer Step</string>
-    <string name="preference_summary_direct_control_speed">Distance per move (1–5)</string>
-    <string name="preference_title_direct_control_repeat_delay">Hold Repeat Rate</string>
-    <string name="preference_summary_direct_control_repeat_delay">Delay between moves while holding (ms)</string>
-    <string name="direct_control_step_1">Tiny</string>
-    <string name="direct_control_step_2">Small</string>
-    <string name="direct_control_step_3">Medium</string>
-    <string name="direct_control_step_4">Large</string>
-    <string name="direct_control_step_5">X‑Large</string>
-    <string name="section_title_direct_control_precision">Precision</string>
-    <string name="preference_title_direct_control_precision_enabled">Precision Mode</string>
-    <string name="preference_summary_direct_control_precision_enabled">Reduce movement for fine control</string>
     
     <!-- Head Control Settings -->
     <string name="screen_title_head_control_settings">Head Control Settings</string>
-    <string name="section_title_head_control_movement">Movement</string>
-    <string name="preference_title_head_control_sensitivity">Sensitivity</string>
-    <string name="preference_summary_head_control_sensitivity">How responsive head movement is to cursor movement</string>
     <string name="preference_title_head_control_deadzone">Deadzone</string>
     <string name="preference_summary_head_control_deadzone">Minimum head movement required before cursor moves</string>
 
@@ -746,7 +700,6 @@
     <string name="home_actions_subtitle">Tap to expand and access all features</string>
     <string name="home_camera_permission_title">Enable Camera</string>
     <string name="home_camera_permission_summary">Grant camera access for head control features</string>
-    <string name="home_actions_no_items">All features are already enabled! ✅</string>
     
     <!-- Camera Settings Navigation -->
     <string name="camera_settings_navigation_hint_title">Head Control Movement Settings</string>
@@ -763,7 +716,6 @@
     <string name="head_control_gesture_selection_summary">Choose which gesture performs the select action</string>
     <string name="head_control_gesture_hold_time_title">Gesture Selection Hold Time</string>
     <string name="head_control_gesture_hold_time_summary">How long to hold the gesture to trigger selection in head control mode</string>
-    <string name="head_control_gesture_none">None</string>
     <string name="head_control_gesture_smile">Smile</string>
     <string name="head_control_gesture_left_wink">Left Wink</string>
     <string name="head_control_gesture_right_wink">Right Wink</string>
@@ -784,20 +736,18 @@
     <string name="gesture_head_turn_down_description">Turn your head down</string>
     
     <!-- Head Control Movement Mode -->
-    <string name="head_control_movement_speed">Movement Speed</string>
-    <string name="head_control_movement_speed_summary">Speed of cursor movement</string>
-    <string name="head_control_horizontal_deadzone">Horizontal Dead Zone</string>
-    <string name="head_control_horizontal_deadzone_summary">Threshold for left/right head movement</string>
-    <string name="head_control_vertical_deadzone">Vertical Dead Zone</string>
-    <string name="head_control_vertical_deadzone_summary">Threshold for up/down head movement</string>
     
     <!-- Head Control String Resources -->
     <string name="preference_title_head_control_movement_speed">Movement Speed</string>
     <string name="preference_summary_head_control_movement_speed">Speed of cursor movement</string>
-    <string name="preference_title_head_control_horizontal_deadzone">Horizontal Deadzone</string>
-    <string name="preference_summary_head_control_horizontal_deadzone">Threshold for left/right head movement</string>
-    <string name="preference_title_head_control_vertical_deadzone">Vertical Deadzone</string>
-    <string name="preference_summary_head_control_vertical_deadzone">Threshold for up/down head movement</string>
+    <string name="preference_title_head_control_left_deadzone">Left Turn Threshold</string>
+    <string name="preference_summary_head_control_left_deadzone">Threshold for left head movement</string>
+    <string name="preference_title_head_control_right_deadzone">Right Turn Threshold</string>
+    <string name="preference_summary_head_control_right_deadzone">Threshold for right head movement</string>
+    <string name="preference_title_head_control_up_deadzone">Up Tilt Threshold</string>
+    <string name="preference_summary_head_control_up_deadzone">Threshold for upward head movement</string>
+    <string name="preference_title_head_control_down_deadzone">Down Tilt Threshold</string>
+    <string name="preference_summary_head_control_down_deadzone">Threshold for downward head movement</string>
     <string name="section_title_head_control_menu_navigation">Menu Navigation</string>
     <string name="preference_title_head_control_menu_repeat_initial">Repeat Start Delay</string>
     <string name="preference_summary_head_control_menu_repeat_initial">How long to hold a direction before it starts stepping</string>
@@ -809,14 +759,6 @@
     <string name="preference_summary_head_control_separate_thresholds">Use different thresholds for each direction</string>
     
     <!-- Individual direction thresholds -->
-    <string name="preference_title_head_control_left_deadzone">Left Turn Threshold</string>
-    <string name="preference_summary_head_control_left_deadzone">Threshold for left head movement</string>
-    <string name="preference_title_head_control_right_deadzone">Right Turn Threshold</string>
-    <string name="preference_summary_head_control_right_deadzone">Threshold for right head movement</string>
-    <string name="preference_title_head_control_up_deadzone">Up Tilt Threshold</string>
-    <string name="preference_summary_head_control_up_deadzone">Threshold for upward head movement</string>
-    <string name="preference_title_head_control_down_deadzone">Down Tilt Threshold</string>
-    <string name="preference_summary_head_control_down_deadzone">Threshold for downward head movement</string>
     
     <string name="head_control_gesture_section_title">Gesture Settings</string>
     <string name="head_control_priority_title">Head Control Priority</string>
@@ -827,17 +769,12 @@
     <string name="hud_head_control_enabled_after_unlock">Head control enabled after device unlock</string>
     <string name="hud_head_control_enabled_after_permission_granted">Head control enabled after camera permission granted</string>
     <string name="hud_head_control_disabled_permission_revoked">Head control disabled due to camera permission revocation</string>
-    <string name="hud_menu_closed_returning_to_cursor">Menu closed, returning to cursor mode</string>
-    <string name="hud_menu_became_empty_returning_to_cursor">Menu became empty, returning to cursor mode</string>
-    <string name="hud_menu_idle_timeout_returning_to_cursor">Menu idle timeout, returning to cursor mode</string>
-    <string name="hud_menu_mode_reset">Menu mode reset</string>
 
     <string name="home_head_control_title">Head Control</string>
     <string name="home_head_control_on_summary">Enabled — tap to disable</string>
     <string name="home_head_control_off_summary">Disabled — tap to enable</string>
 
     <!-- Onboarding Head Control -->
-    <string name="onboarding_head_control_section_title">Camera-Based Control</string>
     <string name="onboarding_head_control_title">Head Control</string>
     <string name="onboarding_head_control_description">Control your device using head movements detected by your camera</string>
     <string name="onboarding_head_control_feature_movement">Move cursor by tilting or turning your head</string>
