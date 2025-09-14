@@ -122,18 +122,9 @@ private fun MainContent(
         Spacer(modifier = Modifier.height(16.dp))
 
         if (code == null) {
-            // Facial Gesture Selection (excluding head turns which are used for cursor control)
-            val allGestures = listOf(
-                CameraSwitchFacialGesture(CameraSwitchFacialGesture.SMILE),
-                CameraSwitchFacialGesture(CameraSwitchFacialGesture.LEFT_WINK),
-                CameraSwitchFacialGesture(CameraSwitchFacialGesture.RIGHT_WINK),
-                CameraSwitchFacialGesture(CameraSwitchFacialGesture.BLINK),
-                CameraSwitchFacialGesture(CameraSwitchFacialGesture.HEAD_TURN_LEFT),
-                CameraSwitchFacialGesture(CameraSwitchFacialGesture.HEAD_TURN_RIGHT),
-                CameraSwitchFacialGesture(CameraSwitchFacialGesture.HEAD_TURN_UP),
-                CameraSwitchFacialGesture(CameraSwitchFacialGesture.HEAD_TURN_DOWN)
-            )
-            val gestures = allGestures.filter { it.isAssignableAsSwitch() }
+            val gestures = com.enaboapps.switchify.service.face.FacialGestureRegistry
+                .switchAssignableIds()
+                .map { CameraSwitchFacialGesture(it) }
 
             Picker(
                 titleResId = R.string.section_title_facial_gesture,

@@ -245,14 +245,7 @@ fun HeadControlSelectionTab(
     prefs: PreferenceManager,
     context: android.content.Context
 ) {
-    // Gesture selection state
-    val availableGestures = settings.getAvailableSelectGestures()
-    val gestureNames = mapOf(
-        CameraSwitchFacialGesture.SMILE to context.getString(R.string.head_control_gesture_smile),
-        CameraSwitchFacialGesture.LEFT_WINK to context.getString(R.string.head_control_gesture_left_wink),
-        CameraSwitchFacialGesture.RIGHT_WINK to context.getString(R.string.head_control_gesture_right_wink),
-        CameraSwitchFacialGesture.BLINK to context.getString(R.string.head_control_gesture_blink)
-    )
+    val availableGestures = com.enaboapps.switchify.service.face.FacialGestureRegistry.switchAssignableIds()
     
     val currentGesture = settings.selectGesture()
     val gestureIndex = availableGestures.indexOf(currentGesture).let { if (it == -1) 0 else it }
@@ -283,8 +276,8 @@ fun HeadControlSelectionTab(
                 titleResId = R.string.head_control_gesture_selection_title,
                 summaryResId = R.string.head_control_gesture_selection_summary,
                 values = IntArray(availableGestures.size) { it },
-                buttonLabelFormatter = { gestureNames[availableGestures[it]] ?: "Unknown" },
-                displayFormatter = { gestureNames[availableGestures[it]] ?: "Unknown" },
+                buttonLabelFormatter = { CameraSwitchFacialGesture(availableGestures[it]).getName() },
+                displayFormatter = { CameraSwitchFacialGesture(availableGestures[it]).getName() },
                 onValueChanged = { index ->
                     selectedGesture = index
                     prefs.setStringValue(HeadControlSettings.KEY_SELECT_GESTURE, availableGestures[index])
