@@ -1,5 +1,7 @@
 package com.enaboapps.switchify.switches
 
+import com.enaboapps.switchify.service.face.FacialGestureRegistry
+
 /**
  * A class representing a camera switch facial gesture.
  * Used to identify and react to facial gestures in the camera switch.
@@ -18,7 +20,7 @@ class CameraSwitchFacialGesture(val id: String) {
         const val HEAD_TURN_DOWN = "head_turn_down"
     }
 
-    fun getName(): String = com.enaboapps.switchify.service.face.FacialGestureRegistry.getName(id)
+    fun getName(): String = FacialGestureRegistry.getName(id)
 
     fun getDescription(): String {
         return when (id) {
@@ -34,7 +36,7 @@ class CameraSwitchFacialGesture(val id: String) {
         }
     }
 
-    fun isHeadTurn(): Boolean = com.enaboapps.switchify.service.face.FacialGestureRegistry.isHeadTurn(id)
+    fun isHeadTurn(): Boolean = FacialGestureRegistry.isHeadTurn(id)
 
-    fun isAssignableAsSwitch(): Boolean = com.enaboapps.switchify.service.face.FacialGestureRegistry.isAssignableAsSwitch(id)
+    fun isAssignableAsSwitch(): Boolean = FacialGestureRegistry.isAssignableAsSwitch(id)
 }
