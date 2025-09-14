@@ -7,7 +7,8 @@ import com.enaboapps.switchify.utils.Resources
 object FacialGestureRegistry {
     data class Meta(
         val id: String,
-        val nameResId: Int,
+        val nameResId: Int?,
+        val fallbackName: String,
         val isHeadTurn: Boolean,
         val assignableAsSwitch: Boolean
     )
@@ -16,56 +17,64 @@ object FacialGestureRegistry {
         Meta(
             id = CameraSwitchFacialGesture.SMILE,
             nameResId = R.string.head_control_gesture_smile,
+            fallbackName = "Smile",
             isHeadTurn = false,
             assignableAsSwitch = true
         ),
         Meta(
             id = CameraSwitchFacialGesture.LEFT_WINK,
             nameResId = R.string.head_control_gesture_left_wink,
+            fallbackName = "Left Wink",
             isHeadTurn = false,
             assignableAsSwitch = true
         ),
         Meta(
             id = CameraSwitchFacialGesture.RIGHT_WINK,
             nameResId = R.string.head_control_gesture_right_wink,
+            fallbackName = "Right Wink",
             isHeadTurn = false,
             assignableAsSwitch = true
         ),
         Meta(
             id = CameraSwitchFacialGesture.BLINK,
             nameResId = R.string.head_control_gesture_blink,
+            fallbackName = "Blink",
             isHeadTurn = false,
             assignableAsSwitch = true
         ),
         Meta(
             id = CameraSwitchFacialGesture.HEAD_TURN_LEFT,
-            nameResId = R.string.gesture_head_turn_left,
+            nameResId = null,
+            fallbackName = "Head Turn Left",
             isHeadTurn = true,
             assignableAsSwitch = false
         ),
         Meta(
             id = CameraSwitchFacialGesture.HEAD_TURN_RIGHT,
-            nameResId = R.string.gesture_head_turn_right,
+            nameResId = null,
+            fallbackName = "Head Turn Right",
             isHeadTurn = true,
             assignableAsSwitch = false
         ),
         Meta(
             id = CameraSwitchFacialGesture.HEAD_TURN_UP,
-            nameResId = R.string.gesture_head_turn_up,
+            nameResId = null,
+            fallbackName = "Head Turn Up",
             isHeadTurn = true,
             assignableAsSwitch = false
         ),
         Meta(
             id = CameraSwitchFacialGesture.HEAD_TURN_DOWN,
-            nameResId = R.string.gesture_head_turn_down,
+            nameResId = null,
+            fallbackName = "Head Turn Down",
             isHeadTurn = true,
             assignableAsSwitch = false
         )
     ).associateBy { it.id }
 
     fun getName(id: String): String {
-        val meta = entries[id]
-        return if (meta != null) Resources.getString(meta.nameResId) else ""
+        val meta = entries[id] ?: return ""
+        return meta.nameResId?.let { Resources.getString(it) } ?: meta.fallbackName
     }
 
     fun isHeadTurn(id: String): Boolean = entries[id]?.isHeadTurn == true
@@ -76,4 +85,3 @@ object FacialGestureRegistry {
 
     fun switchAssignableIds(): List<String> = entries.values.filter { it.assignableAsSwitch }.map { it.id }
 }
-
