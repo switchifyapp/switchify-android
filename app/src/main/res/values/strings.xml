@@ -719,6 +719,9 @@
     <string name="head_control_menu_gesture_hold_time_title">Menu Gesture Hold Time</string>
     <string name="head_control_menu_gesture_hold_time_summary">How long to hold the gesture to open the menu in head control mode</string>
     <string name="head_control_gesture_hold_time_title">Selection Gesture Hold Time</string>
+    <string name="head_control_duplicate_gestures_error">Selection and menu gestures cannot be the same. Menu gesture will be automatically changed.</string>
+    <string name="head_control_invalid_select_gesture_error">Invalid selection gesture detected. Please choose a valid gesture.</string>
+    <string name="head_control_invalid_menu_gesture_error">Invalid menu gesture detected. Please choose a valid gesture.</string>
     <string name="head_control_gesture_hold_time_summary">How long to hold the gesture to trigger selection in head control mode</string>
     <string name="head_control_gesture_smile">Smile</string>
     <string name="head_control_gesture_left_wink">Left Wink</string>

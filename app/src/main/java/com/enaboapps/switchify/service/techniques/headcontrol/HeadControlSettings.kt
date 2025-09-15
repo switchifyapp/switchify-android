@@ -4,6 +4,13 @@ import android.content.Context
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.switches.CameraSwitchFacialGesture
 
+enum class GestureValidationResult {
+    VALID,
+    DUPLICATE_GESTURES,
+    INVALID_SELECT_GESTURE,
+    INVALID_MENU_GESTURE
+}
+
 class HeadControlSettings(context: Context) {
     private val prefs = PreferenceManager(context.applicationContext)
 
@@ -67,6 +74,25 @@ class HeadControlSettings(context: Context) {
     
     fun menuGesture(): String = prefs.getStringValue(KEY_MENU_GESTURE, CameraSwitchFacialGesture.LEFT_WINK)
     
+    /**
+     * Set selection gesture with automatic conflict resolution
+     */
+    fun setSelectGesture(gestureId: String) {
+        prefs.setStringValue(KEY_SELECT_GESTURE, gestureId)
+        // Auto-resolve any conflicts that may arise
+        resolveGestureConflicts()
+    }
+    
+    /**
+     * Set menu gesture with validation
+     */
+    fun setMenuGesture(gestureId: String) {
+        // Only set if it doesn't conflict with current selection gesture
+        if (gestureId != selectGesture()) {
+            prefs.setStringValue(KEY_MENU_GESTURE, gestureId)
+        }
+    }
+    
     
     fun isHeadControlPriorityEnabled(): Boolean = prefs.getBooleanValue(KEY_GESTURE_PRIORITY_HEAD_CONTROL, true)
     
@@ -105,6 +131,55 @@ class HeadControlSettings(context: Context) {
      */
     fun isValidMenuGesture(gestureId: String): Boolean {
         return getAvailableSelectGestures().contains(gestureId) && gestureId != selectGesture()
+    }
+    
+    /**
+     * Check if there's a conflict between select and menu gestures
+     */
+    fun hasGestureConflict(): Boolean {
+        return selectGesture() == menuGesture()
+    }
+    
+    /**
+     * Validate and auto-resolve gesture conflicts
+     * Returns true if a conflict was resolved, false if no conflict existed
+     */
+    fun resolveGestureConflicts(): Boolean {
+        if (!hasGestureConflict()) {
+            return false
+        }
+        
+        // Find the first available gesture that's different from the select gesture
+        val availableMenuGestures = getAvailableMenuGestures()
+        if (availableMenuGestures.isNotEmpty()) {
+            prefs.setStringValue(KEY_MENU_GESTURE, availableMenuGestures[0])
+            return true
+        }
+        
+        return false
+    }
+    
+    /**
+     * Validate gesture settings and return any conflicts
+     */
+    fun validateGestureSettings(): GestureValidationResult {
+        val selectGest = selectGesture()
+        val menuGest = menuGesture()
+        
+        when {
+            selectGest == menuGest -> {
+                return GestureValidationResult.DUPLICATE_GESTURES
+            }
+            !isValidSelectGesture(selectGest) -> {
+                return GestureValidationResult.INVALID_SELECT_GESTURE
+            }
+            !getAvailableSelectGestures().contains(menuGest) -> {
+                return GestureValidationResult.INVALID_MENU_GESTURE
+            }
+            else -> {
+                return GestureValidationResult.VALID
+            }
+        }
     }
 
     fun isHeadControlEnabled(): Boolean = prefs.getBooleanValue(KEY_ENABLED, false)
