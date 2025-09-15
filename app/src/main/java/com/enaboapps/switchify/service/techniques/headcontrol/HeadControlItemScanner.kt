@@ -20,6 +20,8 @@ class HeadControlItemScanner {
     }
 
     fun setNodes(nodeList: List<ScanNodeInterface>) {
+        // Ensure atomic update of nodes and positions to prevent race conditions
+        unhighlightCurrent()
         nodes = nodeList
         cacheNodePositions()
         selectedIndex = if (nodes.isNotEmpty()) 0 else -1
@@ -96,7 +98,7 @@ class HeadControlItemScanner {
     fun stepDown() = stepInDirection { current -> selectVertical(current, 1f) }
     
     private fun stepInDirection(selectFunction: (Pair<Float, Float>) -> Int?) {
-        if (selectedIndex !in nodes.indices) return
+        if (selectedIndex !in nodes.indices || selectedIndex !in nodePositions.indices) return
         val current = nodePositions[selectedIndex]
         val candidate = selectFunction(current)
         if (candidate != null && candidate != selectedIndex) {
@@ -123,7 +125,7 @@ class HeadControlItemScanner {
                 bestIndex = i
             }
         }
-        return bestIndex
+        return if (bestIndex != null && bestIndex in nodes.indices) bestIndex else null
     }
 
     private fun selectVertical(current: Pair<Float, Float>, dy: Float): Int? {
@@ -143,7 +145,7 @@ class HeadControlItemScanner {
                 bestIndex = i
             }
         }
-        return bestIndex
+        return if (bestIndex != null && bestIndex in nodes.indices) bestIndex else null
     }
 
     private fun selectAngular(current: Pair<Float, Float>, dx: Float, dy: Float): Int? {
@@ -169,7 +171,7 @@ class HeadControlItemScanner {
                 bestIndex = i
             }
         }
-        return bestIndex
+        return if (bestIndex != null && bestIndex in nodes.indices) bestIndex else null
     }
 
     private fun currentNodeWidth(): Float {
