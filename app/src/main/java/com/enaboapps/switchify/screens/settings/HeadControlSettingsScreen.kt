@@ -1,5 +1,6 @@
 package com.enaboapps.switchify.screens.settings
 
+import android.widget.Toast
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.Tab
@@ -298,7 +299,7 @@ fun HeadControlSelectionTab(
                     selectedMenuGesture = newMenuGestureIndex
                     // Update preference if current menu gesture is no longer available
                     if (!updatedMenuGestures.contains(currentMenuGesture)) {
-                        prefs.setStringValue(HeadControlSettings.KEY_MENU_GESTURE, updatedMenuGestures[0])
+                        settings.setMenuGesture(updatedMenuGestures[0])
                     }
                 }
             }
@@ -313,7 +314,7 @@ fun HeadControlSelectionTab(
                     displayFormatter = { CameraSwitchFacialGesture(availableMenuGestures[it]).getName() },
                     onValueChanged = { index ->
                         selectedMenuGesture = index
-                        prefs.setStringValue(HeadControlSettings.KEY_MENU_GESTURE, availableMenuGestures[index])
+                        settings.setMenuGesture(availableMenuGestures[index])
                     }
                 )
             }
@@ -374,7 +375,9 @@ fun HeadControlSelectionTab(
                 // Auto-resolve conflicts when detected
                 LaunchedEffect(validationResult) {
                     if (validationResult == com.enaboapps.switchify.service.techniques.headcontrol.GestureValidationResult.DUPLICATE_GESTURES) {
-                        settings.resolveGestureConflicts()
+                        if (settings.resolveGestureConflicts()) {
+                            Toast.makeText(context, context.getString(R.string.head_control_gesture_auto_resolved), Toast.LENGTH_SHORT).show()
+                        }
                     }
                 }
             }
