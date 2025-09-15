@@ -60,8 +60,8 @@ class FaceProcessingService(context: Context) {
         const val SMILE_EXIT_THRESHOLD = 0.25f
         const val BLINK_ENTER_THRESHOLD = 0.55f
         const val BLINK_EXIT_THRESHOLD = 0.45f
-        const val JAW_OPEN_ENTER_THRESHOLD = 0.4f
-        const val JAW_OPEN_EXIT_THRESHOLD = 0.3f
+        const val JAW_OPEN_ENTER_THRESHOLD = 0.25f
+        const val JAW_OPEN_EXIT_THRESHOLD = 0.2f
 
         // Smoothing factor for EMA (0.0 = no smoothing, 1.0 = max smoothing)
         const val EMA_ALPHA = 0.3f
