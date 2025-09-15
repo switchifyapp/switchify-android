@@ -708,30 +708,30 @@ class FaceProcessingService(context: Context) {
             matrixData.size >= 16 -> {
                 // 4x4 matrix in column-major order - extract 3x3 rotation matrix R
                 // MediaPipe transformation matrix format: [R t; 0 1] where R is 3x3 rotation
-                // index = col * 4 + row
-                r00 = matrixData[0]   // Col 0, Row 0
-                r01 = matrixData[4]   // Col 1, Row 0  
-                r02 = matrixData[8]   // Col 2, Row 0
-                r10 = matrixData[1]   // Col 0, Row 1
-                r11 = matrixData[5]   // Col 1, Row 1
-                r12 = matrixData[9]   // Col 2, Row 1
-                r20 = matrixData[2]   // Col 0, Row 2
-                r21 = matrixData[6]   // Col 1, Row 2
-                r22 = matrixData[10]  // Col 2, Row 2
+                // index = row * 4 + col
+                r00 = matrixData[0]   // Row 0, Col 0
+                r01 = matrixData[1]   // Row 0, Col 1
+                r02 = matrixData[2]   // Row 0, Col 2
+                r10 = matrixData[4]   // Row 1, Col 0
+                r11 = matrixData[5]   // Row 1, Col 1
+                r12 = matrixData[6]   // Row 1, Col 2
+                r20 = matrixData[8]   // Row 2, Col 0
+                r21 = matrixData[9]   // Row 2, Col 1
+                r22 = matrixData[10]  // Row 2, Col 2
             }
 
             matrixData.size >= 9 -> {
-                // 3x3 matrix in column-major order
-                // index = col * 3 + row
-                r00 = matrixData[0]   // Col 0, Row 0
-                r01 = matrixData[3]   // Col 1, Row 0
-                r02 = matrixData[6]   // Col 2, Row 0
-                r10 = matrixData[1]   // Col 0, Row 1
-                r11 = matrixData[4]   // Col 1, Row 1
-                r12 = matrixData[7]   // Col 2, Row 1
-                r20 = matrixData[2]   // Col 0, Row 2
-                r21 = matrixData[5]   // Col 1, Row 2
-                r22 = matrixData[8]   // Col 2, Row 2
+                // 3x3 matrix in row-major order
+                // index = row * 3 + col
+                r00 = matrixData[0]   // Row 0, Col 0
+                r01 = matrixData[1]   // Row 0, Col 1
+                r02 = matrixData[2]   // Row 0, Col 2
+                r10 = matrixData[3]   // Row 1, Col 0
+                r11 = matrixData[4]   // Row 1, Col 1
+                r12 = matrixData[5]   // Row 1, Col 2
+                r20 = matrixData[6]   // Row 2, Col 0
+                r21 = matrixData[7]   // Row 2, Col 1
+                r22 = matrixData[8]   // Row 2, Col 2
             }
 
             else -> {
