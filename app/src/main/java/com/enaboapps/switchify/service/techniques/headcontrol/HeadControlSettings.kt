@@ -4,14 +4,44 @@ import android.content.Context
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.switches.CameraSwitchFacialGesture
 
+/**
+ * Represents the validation state of head control gesture settings
+ */
+enum class GestureValidationResult {
+    /** All gesture settings are valid */
+    VALID,
+    /** Select and menu gestures are the same (conflict) */
+    DUPLICATE_GESTURES,
+    /** Selection gesture is not valid for head control */
+    INVALID_SELECT_GESTURE,
+    /** Menu gesture is not valid for head control */
+    INVALID_MENU_GESTURE
+}
+
+/**
+ * Manages head control settings and preferences with gesture validation
+ * @param context Application context for preference access
+ */
 class HeadControlSettings(context: Context) {
     private val prefs = PreferenceManager(context.applicationContext)
 
+    /**
+     * Get head control sensitivity setting
+     * @return sensitivity value between 0.1 and 2.0
+     */
     fun sensitivity(): Float = prefs.getFloatValue(KEY_SENSITIVITY, 0.8f).coerceIn(0.1f, 2.0f)
     
+    /**
+     * Get global deadzone setting (used when separate directional thresholds are disabled)
+     * @return deadzone value in degrees between 0.1 and 30.0
+     */
     fun deadzone(): Float = prefs.getFloatValue(KEY_DEADZONE, 0.5f).coerceIn(0.1f, 30.0f)
     
     
+    /**
+     * Get cursor movement speed multiplier
+     * @return movement speed between 0.5 and 5.0
+     */
     fun movementSpeed(): Float = prefs.getFloatValue(KEY_MOVEMENT_SPEED, 2.0f).coerceIn(0.5f, 5.0f)
     
     fun horizontalDeadzone(): Float = prefs.getFloatValue(KEY_HORIZONTAL_DEADZONE, 1.0f).coerceIn(0.1f, 30.0f)
@@ -26,8 +56,16 @@ class HeadControlSettings(context: Context) {
     
     fun downDeadzone(): Float = prefs.getFloatValue(KEY_DOWN_DEADZONE, 1.0f).coerceIn(0.1f, 30.0f)
     
+    /**
+     * Check if separate directional thresholds are enabled
+     * @return true if using separate thresholds for each direction
+     */
     fun useSeparateDirectionalThresholds(): Boolean = prefs.getBooleanValue(KEY_SEPARATE_DIRECTIONAL_THRESHOLDS, false)
     
+    /**
+     * Get the effective left deadzone based on current threshold settings
+     * @return left deadzone value in degrees
+     */
     fun getEffectiveLeftDeadzone(): Float {
         return if (useSeparateDirectionalThresholds()) {
             leftDeadzone()
@@ -63,15 +101,63 @@ class HeadControlSettings(context: Context) {
     
     fun baseStep(): Int = prefs.getIntegerValue(KEY_BASE_STEP, 25).coerceIn(5, 100)
     
+    /**
+     * Get the currently configured selection gesture
+     * @return gesture ID for selection action
+     */
     fun selectGesture(): String = prefs.getStringValue(KEY_SELECT_GESTURE, CameraSwitchFacialGesture.SMILE)
     
+    /**
+     * Get the currently configured menu gesture
+     * @return gesture ID for menu action
+     */
     fun menuGesture(): String = prefs.getStringValue(KEY_MENU_GESTURE, CameraSwitchFacialGesture.LEFT_WINK)
     
+    /**
+     * Set selection gesture with automatic conflict resolution
+     * @param gestureId The facial gesture ID to set for selection
+     * @return true if the gesture was set successfully
+     */
+    fun setSelectGesture(gestureId: String): Boolean {
+        prefs.setStringValue(KEY_SELECT_GESTURE, gestureId)
+        // Only attempt resolution if there's actually a conflict
+        if (gestureId == menuGesture()) {
+            return resolveGestureConflicts()
+        }
+        return true
+    }
     
+    /**
+     * Set menu gesture with validation
+     * @param gestureId The facial gesture ID to set for menu trigger
+     * @return true if the gesture was set successfully, false if blocked due to conflict
+     */
+    fun setMenuGesture(gestureId: String): Boolean {
+        // Only set if it doesn't conflict with current selection gesture
+        if (gestureId != selectGesture()) {
+            prefs.setStringValue(KEY_MENU_GESTURE, gestureId)
+            return true
+        }
+        return false
+    }
+    
+    
+    /**
+     * Check if head control has gesture priority
+     * @return true if head control gestures take priority
+     */
     fun isHeadControlPriorityEnabled(): Boolean = prefs.getBooleanValue(KEY_GESTURE_PRIORITY_HEAD_CONTROL, true)
     
+    /**
+     * Get the hold time required for selection gesture activation
+     * @return hold time in milliseconds between 100 and 2000
+     */
     fun getSelectGestureHoldTime(): Long = prefs.getLongValue(KEY_SELECT_GESTURE_HOLD_TIME, 500L).coerceIn(100L, 2000L)
     
+    /**
+     * Get the hold time required for menu gesture activation
+     * @return hold time in milliseconds between 100 and 2000
+     */
     fun getMenuGestureHoldTime(): Long = prefs.getLongValue(KEY_MENU_GESTURE_HOLD_TIME, 750L).coerceIn(100L, 2000L)
     
     /**
@@ -105,6 +191,52 @@ class HeadControlSettings(context: Context) {
      */
     fun isValidMenuGesture(gestureId: String): Boolean {
         return getAvailableSelectGestures().contains(gestureId) && gestureId != selectGesture()
+    }
+    
+    /**
+     * Check if there's a conflict between select and menu gestures
+     */
+    /**
+     * Check if there's a conflict between select and menu gestures
+     * @return true if gestures are the same (conflict exists)
+     */
+    fun hasGestureConflict(): Boolean {
+        return selectGesture() == menuGesture()
+    }
+    
+    /**
+     * Validate and auto-resolve gesture conflicts by changing menu gesture
+     * @return true if a conflict was resolved, false if no conflict existed
+     */
+    fun resolveGestureConflicts(): Boolean {
+        if (!hasGestureConflict()) {
+            return false
+        }
+        
+        // Find the first available gesture that's different from the select gesture
+        val availableMenuGestures = getAvailableMenuGestures()
+        if (availableMenuGestures.isNotEmpty()) {
+            prefs.setStringValue(KEY_MENU_GESTURE, availableMenuGestures[0])
+            return true
+        }
+        
+        return false
+    }
+    
+    /**
+     * Validate gesture settings and return any conflicts
+     * @return GestureValidationResult indicating the validation status
+     */
+    fun validateGestureSettings(): GestureValidationResult {
+        val selectGest = selectGesture()
+        val menuGest = menuGesture()
+        
+        return when {
+            selectGest == menuGest -> GestureValidationResult.DUPLICATE_GESTURES
+            !isValidSelectGesture(selectGest) -> GestureValidationResult.INVALID_SELECT_GESTURE
+            !isValidMenuGesture(menuGest) -> GestureValidationResult.INVALID_MENU_GESTURE
+            else -> GestureValidationResult.VALID
+        }
     }
 
     fun isHeadControlEnabled(): Boolean = prefs.getBooleanValue(KEY_ENABLED, false)

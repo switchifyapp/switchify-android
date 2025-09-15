@@ -1,5 +1,6 @@
 package com.enaboapps.switchify.screens.settings
 
+import android.widget.Toast
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.Tab
@@ -280,7 +281,7 @@ fun HeadControlSelectionTab(
                 displayFormatter = { CameraSwitchFacialGesture(availableGestures[it]).getName() },
                 onValueChanged = { index ->
                     selectedGesture = index
-                    prefs.setStringValue(HeadControlSettings.KEY_SELECT_GESTURE, availableGestures[index])
+                    settings.setSelectGesture(availableGestures[index])
                 }
             )
             
@@ -298,7 +299,7 @@ fun HeadControlSelectionTab(
                     selectedMenuGesture = newMenuGestureIndex
                     // Update preference if current menu gesture is no longer available
                     if (!updatedMenuGestures.contains(currentMenuGesture)) {
-                        prefs.setStringValue(HeadControlSettings.KEY_MENU_GESTURE, updatedMenuGestures[0])
+                        settings.setMenuGesture(updatedMenuGestures[0])
                     }
                 }
             }
@@ -313,7 +314,7 @@ fun HeadControlSelectionTab(
                     displayFormatter = { CameraSwitchFacialGesture(availableMenuGestures[it]).getName() },
                     onValueChanged = { index ->
                         selectedMenuGesture = index
-                        prefs.setStringValue(HeadControlSettings.KEY_MENU_GESTURE, availableMenuGestures[index])
+                        settings.setMenuGesture(availableMenuGestures[index])
                     }
                 )
             }
@@ -349,6 +350,36 @@ fun HeadControlSelectionTab(
                     text = stringResource(R.string.head_control_conflict_warning),
                     color = androidx.compose.material3.MaterialTheme.colorScheme.error
                 )
+            }
+            
+            // Gesture conflict validation
+            val validationResult = settings.validateGestureSettings()
+            if (validationResult != com.enaboapps.switchify.service.techniques.headcontrol.GestureValidationResult.VALID) {
+                val errorMessage = when (validationResult) {
+                    com.enaboapps.switchify.service.techniques.headcontrol.GestureValidationResult.DUPLICATE_GESTURES -> 
+                        stringResource(R.string.head_control_duplicate_gestures_error)
+                    com.enaboapps.switchify.service.techniques.headcontrol.GestureValidationResult.INVALID_SELECT_GESTURE -> 
+                        stringResource(R.string.head_control_invalid_select_gesture_error)
+                    com.enaboapps.switchify.service.techniques.headcontrol.GestureValidationResult.INVALID_MENU_GESTURE -> 
+                        stringResource(R.string.head_control_invalid_menu_gesture_error)
+                    else -> ""
+                }
+                
+                if (errorMessage.isNotEmpty()) {
+                    Text(
+                        text = errorMessage,
+                        color = androidx.compose.material3.MaterialTheme.colorScheme.error
+                    )
+                }
+                
+                // Auto-resolve conflicts when detected
+                LaunchedEffect(validationResult) {
+                    if (validationResult == com.enaboapps.switchify.service.techniques.headcontrol.GestureValidationResult.DUPLICATE_GESTURES) {
+                        if (settings.resolveGestureConflicts()) {
+                            Toast.makeText(context, context.getString(R.string.head_control_gesture_auto_resolved), Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
             }
             
             PreferenceValueSelector(
