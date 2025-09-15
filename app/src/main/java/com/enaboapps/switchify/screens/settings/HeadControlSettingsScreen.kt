@@ -284,6 +284,40 @@ fun HeadControlSelectionTab(
                 }
             )
             
+            // Menu gesture selector - only show gestures that are different from selection gesture
+            val availableMenuGestures = settings.getAvailableMenuGestures()
+            val currentMenuGesture = settings.menuGesture()
+            val menuGestureIndex = availableMenuGestures.indexOf(currentMenuGesture).let { if (it == -1) 0 else it }
+            var selectedMenuGesture by remember { mutableIntStateOf(menuGestureIndex) }
+            
+            // Update available menu gestures when selection gesture changes
+            LaunchedEffect(selectedGesture) {
+                val updatedMenuGestures = settings.getAvailableMenuGestures()
+                if (updatedMenuGestures.isNotEmpty()) {
+                    val newMenuGestureIndex = updatedMenuGestures.indexOf(currentMenuGesture).let { if (it == -1) 0 else it }
+                    selectedMenuGesture = newMenuGestureIndex
+                    // Update preference if current menu gesture is no longer available
+                    if (!updatedMenuGestures.contains(currentMenuGesture)) {
+                        prefs.setStringValue(HeadControlSettings.KEY_MENU_GESTURE, updatedMenuGestures[0])
+                    }
+                }
+            }
+            
+            if (availableMenuGestures.isNotEmpty()) {
+                PreferenceValueSelector(
+                    value = selectedMenuGesture,
+                    titleResId = R.string.head_control_menu_gesture_title,
+                    summaryResId = R.string.head_control_menu_gesture_summary,
+                    values = IntArray(availableMenuGestures.size) { it },
+                    buttonLabelFormatter = { CameraSwitchFacialGesture(availableMenuGestures[it]).getName() },
+                    displayFormatter = { CameraSwitchFacialGesture(availableMenuGestures[it]).getName() },
+                    onValueChanged = { index ->
+                        selectedMenuGesture = index
+                        prefs.setStringValue(HeadControlSettings.KEY_MENU_GESTURE, availableMenuGestures[index])
+                    }
+                )
+            }
+            
             val selectedGestureId = availableGestures.getOrNull(selectedGesture) ?: currentGesture
             LaunchedEffect(selectedGestureId) {
                 val store = SwitchEventStore.getInstance()

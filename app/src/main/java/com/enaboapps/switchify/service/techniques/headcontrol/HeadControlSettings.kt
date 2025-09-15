@@ -65,6 +65,8 @@ class HeadControlSettings(context: Context) {
     
     fun selectGesture(): String = prefs.getStringValue(KEY_SELECT_GESTURE, CameraSwitchFacialGesture.SMILE)
     
+    fun menuGesture(): String = prefs.getStringValue(KEY_MENU_GESTURE, CameraSwitchFacialGesture.LEFT_WINK)
+    
     
     fun isHeadControlPriorityEnabled(): Boolean = prefs.getBooleanValue(KEY_GESTURE_PRIORITY_HEAD_CONTROL, true)
     
@@ -83,10 +85,24 @@ class HeadControlSettings(context: Context) {
     }
     
     /**
+     * Get available gestures for menu trigger (excludes current selection gesture)
+     */
+    fun getAvailableMenuGestures(): List<String> {
+        return getAvailableSelectGestures().filter { it != selectGesture() }
+    }
+    
+    /**
      * Check if the given gesture is valid for selection in head control
      */
     fun isValidSelectGesture(gestureId: String): Boolean {
         return getAvailableSelectGestures().contains(gestureId)
+    }
+    
+    /**
+     * Check if the given gesture is valid for menu trigger in head control
+     */
+    fun isValidMenuGesture(gestureId: String): Boolean {
+        return getAvailableSelectGestures().contains(gestureId) && gestureId != selectGesture()
     }
 
     fun isHeadControlEnabled(): Boolean = prefs.getBooleanValue(KEY_ENABLED, false)
@@ -119,6 +135,7 @@ class HeadControlSettings(context: Context) {
         const val KEY_DEADZONE = "head_control_deadzone"
         const val KEY_BASE_STEP = "head_control_base_step"
         const val KEY_SELECT_GESTURE = "head_control_select_gesture"
+        const val KEY_MENU_GESTURE = "head_control_menu_gesture"
         const val KEY_GESTURE_HOLD_TIME = "head_control_gesture_hold_time"
         const val KEY_GESTURE_PRIORITY_HEAD_CONTROL = "head_control_gesture_priority_head_control"
         const val KEY_MOVEMENT_SPEED = "head_control_movement_speed"
