@@ -310,7 +310,13 @@ class HeadControlManager(private val context: Context) : MenuStateObserver {
         }
         
         val duration = System.currentTimeMillis() - gestureStartTime
-        val requiredHoldTime = settings.gestureHoldTime()
+        val requiredHoldTime = if (gestureId == settings.selectGesture()) {
+            settings.getSelectGestureHoldTime()
+        } else if (gestureId == settings.menuGesture()) {
+            settings.getMenuGestureHoldTime()
+        } else {
+            settings.getSelectGestureHoldTime() // fallback
+        }
         
         if (duration >= requiredHoldTime) {
             if (gestureId == settings.selectGesture()) {
