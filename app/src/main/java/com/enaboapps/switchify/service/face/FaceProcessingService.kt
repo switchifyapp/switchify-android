@@ -43,10 +43,12 @@ class FaceProcessingService(context: Context) {
     private var smoothedPitch = 0f
     private var smoothedBlinkScore = 0f
     private var smoothedSmileScore = 0f
+    private var smoothedTongueScore = 0f
 
     // Hysteresis state
     private var isBlinkActive = false
     private var isSmileActive = false
+    private var isTongueActive = false
     private var lastBlinkTime = 0L
 
     companion object {
@@ -57,6 +59,8 @@ class FaceProcessingService(context: Context) {
         const val SMILE_EXIT_THRESHOLD = 0.25f
         const val BLINK_ENTER_THRESHOLD = 0.55f
         const val BLINK_EXIT_THRESHOLD = 0.45f
+        const val TONGUE_ENTER_THRESHOLD = 0.5f
+        const val TONGUE_EXIT_THRESHOLD = 0.4f
 
         // Smoothing factor for EMA (0.0 = no smoothing, 1.0 = max smoothing)
         const val EMA_ALPHA = 0.3f
@@ -101,7 +105,8 @@ class FaceProcessingService(context: Context) {
         val eyeSquintLeft: Int,
         val eyeSquintRight: Int,
         val mouthSmileLeft: Int,
-        val mouthSmileRight: Int
+        val mouthSmileRight: Int,
+        val tongueOut: Int
     )
 
     private fun ensureFaceLandmarker(context: Context): Boolean {
@@ -327,16 +332,20 @@ class FaceProcessingService(context: Context) {
                         if (indices.mouthSmileLeft >= 0) blendShapes[indices.mouthSmileLeft].score() else 0f
                     val mouthSmileRight =
                         if (indices.mouthSmileRight >= 0) blendShapes[indices.mouthSmileRight].score() else 0f
+                    val tongueOutScore =
+                        if (indices.tongueOut >= 0) blendShapes[indices.tongueOut].score() else 0f
 
                     // Combine blink cues for robustness: max of blink and squint for each eye
                     val leftEyeCloseScore = max(leftEyeBlink, leftEyeSquint)
                     val rightEyeCloseScore = max(rightEyeBlink, rightEyeSquint)
                     val combinedBlinkScore = max(leftEyeCloseScore, rightEyeCloseScore)
                     val smileScore = (mouthSmileLeft + mouthSmileRight) / 2f
+                    val tongueScore = tongueOutScore
 
                     // Apply EMA smoothing to scores
                     smoothedBlinkScore = applyEMA(smoothedBlinkScore, combinedBlinkScore, EMA_ALPHA)
                     smoothedSmileScore = applyEMA(smoothedSmileScore, smileScore, EMA_ALPHA)
+                    smoothedTongueScore = applyEMA(smoothedTongueScore, tongueScore, EMA_ALPHA)
 
                     // Apply hysteresis for blink detection
                     if (!isBlinkActive && smoothedBlinkScore > BLINK_ENTER_THRESHOLD) {
@@ -354,6 +363,13 @@ class FaceProcessingService(context: Context) {
                         isSmileActive = true
                     } else if (isSmileActive && smoothedSmileScore < SMILE_EXIT_THRESHOLD) {
                         isSmileActive = false
+                    }
+                    
+                    // Apply hysteresis for tongue out detection
+                    if (!isTongueActive && smoothedTongueScore > TONGUE_ENTER_THRESHOLD) {
+                        isTongueActive = true
+                    } else if (isTongueActive && smoothedTongueScore < TONGUE_EXIT_THRESHOLD) {
+                        isTongueActive = false
                     }
 
                     // Determine individual eye states for wink detection
@@ -379,6 +395,11 @@ class FaceProcessingService(context: Context) {
         if (isSmiling) {
             detectedGestures.add(CameraSwitchFacialGesture.SMILE)
             Log.d(TAG, "Smile detected (smoothed score: $smoothedSmileScore)")
+        }
+        
+        if (isTongueActive) {
+            detectedGestures.add(CameraSwitchFacialGesture.TONGUE_OUT)
+            Log.d(TAG, "Tongue out detected (smoothed score: $smoothedTongueScore)")
         }
 
         // Eye gesture detection - check in priority order, using hysteresis-controlled blink state
@@ -475,6 +496,12 @@ class FaceProcessingService(context: Context) {
                     400L
                 )
 
+            CameraSwitchFacialGesture.TONGUE_OUT ->
+                preferenceManager.getLongValue(
+                    PreferenceManager.PREFERENCE_KEY_CAMERA_TONGUE_OUT_TIME,
+                    500L
+                )
+
             CameraSwitchFacialGesture.HEAD_TURN_LEFT,
             CameraSwitchFacialGesture.HEAD_TURN_RIGHT,
             CameraSwitchFacialGesture.HEAD_TURN_UP,
@@ -535,6 +562,7 @@ class FaceProcessingService(context: Context) {
         var eyeSquintRight = -1
         var mouthSmileLeft = -1
         var mouthSmileRight = -1
+        var tongueOut = -1
 
         for (i in 0 until blendShapes.size) {
             when (blendShapes[i].categoryName()) {
@@ -544,6 +572,7 @@ class FaceProcessingService(context: Context) {
                 "eyeSquintRight" -> eyeSquintRight = i
                 "mouthSmileLeft" -> mouthSmileLeft = i
                 "mouthSmileRight" -> mouthSmileRight = i
+                "tongueOut" -> tongueOut = i
             }
         }
 
@@ -553,7 +582,8 @@ class FaceProcessingService(context: Context) {
             eyeSquintLeft = eyeSquintLeft,
             eyeSquintRight = eyeSquintRight,
             mouthSmileLeft = mouthSmileLeft,
-            mouthSmileRight = mouthSmileRight
+            mouthSmileRight = mouthSmileRight,
+            tongueOut = tongueOut
         )
     }
 

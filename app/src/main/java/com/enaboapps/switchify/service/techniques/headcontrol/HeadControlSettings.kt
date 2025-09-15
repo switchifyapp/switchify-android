@@ -168,7 +168,8 @@ class HeadControlSettings(context: Context) {
             CameraSwitchFacialGesture.SMILE,
             CameraSwitchFacialGesture.LEFT_WINK,
             CameraSwitchFacialGesture.RIGHT_WINK,
-            CameraSwitchFacialGesture.BLINK
+            CameraSwitchFacialGesture.BLINK,
+            CameraSwitchFacialGesture.TONGUE_OUT
         )
     }
     
