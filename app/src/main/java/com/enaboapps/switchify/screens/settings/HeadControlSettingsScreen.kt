@@ -254,7 +254,7 @@ fun HeadControlSelectionTab(
     var headControlPriority by remember { mutableStateOf(settings.isHeadControlPriorityEnabled()) }
     
     // Use centralized hold time values
-    val currentHoldTime = settings.gestureHoldTime()
+    val currentHoldTime = settings.getSelectGestureHoldTime()
     val holdTimeIndex = HeadControlSettings.HOLD_TIME_VALUES.indexOfFirst { kotlin.math.abs(it - currentHoldTime) < 50L }.let { if (it == -1) 2 else it }
     var gestureHoldTime by remember { mutableIntStateOf(holdTimeIndex) }
     var conflictAssigned by remember { mutableStateOf(false) }
@@ -284,6 +284,60 @@ fun HeadControlSelectionTab(
                 }
             )
             
+            // Menu gesture selector - only show gestures that are different from selection gesture
+            val availableMenuGestures = settings.getAvailableMenuGestures()
+            val currentMenuGesture = settings.menuGesture()
+            val menuGestureIndex = availableMenuGestures.indexOf(currentMenuGesture).let { if (it == -1) 0 else it }
+            var selectedMenuGesture by remember { mutableIntStateOf(menuGestureIndex) }
+            
+            // Update available menu gestures when selection gesture changes
+            LaunchedEffect(selectedGesture) {
+                val updatedMenuGestures = settings.getAvailableMenuGestures()
+                if (updatedMenuGestures.isNotEmpty()) {
+                    val newMenuGestureIndex = updatedMenuGestures.indexOf(currentMenuGesture).let { if (it == -1) 0 else it }
+                    selectedMenuGesture = newMenuGestureIndex
+                    // Update preference if current menu gesture is no longer available
+                    if (!updatedMenuGestures.contains(currentMenuGesture)) {
+                        prefs.setStringValue(HeadControlSettings.KEY_MENU_GESTURE, updatedMenuGestures[0])
+                    }
+                }
+            }
+            
+            if (availableMenuGestures.isNotEmpty()) {
+                PreferenceValueSelector(
+                    value = selectedMenuGesture,
+                    titleResId = R.string.head_control_menu_gesture_title,
+                    summaryResId = R.string.head_control_menu_gesture_summary,
+                    values = IntArray(availableMenuGestures.size) { it },
+                    buttonLabelFormatter = { CameraSwitchFacialGesture(availableMenuGestures[it]).getName() },
+                    displayFormatter = { CameraSwitchFacialGesture(availableMenuGestures[it]).getName() },
+                    onValueChanged = { index ->
+                        selectedMenuGesture = index
+                        prefs.setStringValue(HeadControlSettings.KEY_MENU_GESTURE, availableMenuGestures[index])
+                    }
+                )
+            }
+            
+            // Menu gesture hold time selector
+            if (availableMenuGestures.isNotEmpty()) {
+                val currentMenuHoldTime = settings.getMenuGestureHoldTime()
+                val menuHoldTimeIndex = HeadControlSettings.HOLD_TIME_VALUES.indexOfFirst { kotlin.math.abs(it - currentMenuHoldTime) < 50L }.let { if (it == -1) 3 else it }
+                var menuGestureHoldTime by remember { mutableIntStateOf(menuHoldTimeIndex) }
+                
+                PreferenceValueSelector(
+                    value = menuGestureHoldTime,
+                    titleResId = R.string.head_control_menu_gesture_hold_time_title,
+                    summaryResId = R.string.head_control_menu_gesture_hold_time_summary,
+                    values = IntArray(HeadControlSettings.HOLD_TIME_VALUES.size) { it },
+                    buttonLabelFormatter = { "${HeadControlSettings.HOLD_TIME_VALUES[it]}ms" },
+                    displayFormatter = { "${HeadControlSettings.HOLD_TIME_VALUES[it]}ms" },
+                    onValueChanged = { index ->
+                        menuGestureHoldTime = index
+                        prefs.setLongValue(HeadControlSettings.KEY_MENU_GESTURE_HOLD_TIME, HeadControlSettings.HOLD_TIME_VALUES[index])
+                    }
+                )
+            }
+            
             val selectedGestureId = availableGestures.getOrNull(selectedGesture) ?: currentGesture
             LaunchedEffect(selectedGestureId) {
                 val store = SwitchEventStore.getInstance()
@@ -306,7 +360,7 @@ fun HeadControlSelectionTab(
                 displayFormatter = { "${HeadControlSettings.HOLD_TIME_VALUES[it]}ms" },
                 onValueChanged = { index ->
                     gestureHoldTime = index
-                    prefs.setLongValue(HeadControlSettings.KEY_GESTURE_HOLD_TIME, HeadControlSettings.HOLD_TIME_VALUES[index])
+                    prefs.setLongValue(HeadControlSettings.KEY_SELECT_GESTURE_HOLD_TIME, HeadControlSettings.HOLD_TIME_VALUES[index])
                 }
             )
         }

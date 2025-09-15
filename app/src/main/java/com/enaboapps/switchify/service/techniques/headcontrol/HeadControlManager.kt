@@ -90,6 +90,18 @@ class HeadControlManager(private val context: Context) : MenuStateObserver {
         }
         SelectionHandler.performSelectionAction()
     }
+    
+    fun performMenuOpen() {
+        if (Tasks.getInstance().checkOngoingTasks())
+            return
+        // Don't open menu if already in menu mode
+        if (isInMenuMode()) {
+            return
+        }
+        GesturePoint.x = currentX
+        GesturePoint.y = currentY
+        MenuManager.getInstance().openMainMenu()
+    }
 
     /**
      * Check if currently in menu mode by checking if scanner is active
@@ -268,13 +280,14 @@ class HeadControlManager(private val context: Context) : MenuStateObserver {
     }
     
     /**
-     * Handles gesture detection for head control selection
+     * Handles gesture detection for head control selection and menu
      */
     fun processGesture(gestureId: String, isGestureStarting: Boolean) {
         val selectedGesture = settings.selectGesture()
+        val menuGesture = settings.menuGesture()
         
-        // Only process the gesture that matches our selected gesture
-        if (gestureId != selectedGesture) {
+        // Only process gestures that match our configured gestures
+        if (gestureId != selectedGesture && gestureId != menuGesture) {
             return
         }
         
@@ -297,10 +310,20 @@ class HeadControlManager(private val context: Context) : MenuStateObserver {
         }
         
         val duration = System.currentTimeMillis() - gestureStartTime
-        val requiredHoldTime = settings.gestureHoldTime()
+        val requiredHoldTime = if (gestureId == settings.selectGesture()) {
+            settings.getSelectGestureHoldTime()
+        } else if (gestureId == settings.menuGesture()) {
+            settings.getMenuGestureHoldTime()
+        } else {
+            settings.getSelectGestureHoldTime() // fallback
+        }
         
         if (duration >= requiredHoldTime) {
-            performSelection()
+            if (gestureId == settings.selectGesture()) {
+                performSelection()
+            } else if (gestureId == settings.menuGesture()) {
+                performMenuOpen()
+            }
         }
         
         // Reset gesture state
