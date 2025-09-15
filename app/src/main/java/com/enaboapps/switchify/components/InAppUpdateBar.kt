@@ -179,9 +179,10 @@ private fun tryResumeOrCheck(
                     return@addOnSuccessListener
                 }
 
-                val type = chooseUpdateType(info)
-                if (info.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE && info.isUpdateTypeAllowed(type)) {
-                    startUpdate(context, appUpdateManager, info, launcher, type, onError)
+                if (info.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE) {
+                    if (info.isUpdateTypeAllowed(AppUpdateType.FLEXIBLE)) {
+                        startUpdate(context, appUpdateManager, info, launcher, AppUpdateType.FLEXIBLE, onError)
+                    }
                 }
             }
             .addOnFailureListener { e -> onError("Failed to check updates: ${e.localizedMessage}") }
@@ -190,11 +191,6 @@ private fun tryResumeOrCheck(
     }
 }
 
-private fun chooseUpdateType(info: com.google.android.play.core.appupdate.AppUpdateInfo): Int {
-    val priority = runCatching { info.updatePriority() }.getOrDefault(0)
-    val staleness = runCatching { info.clientVersionStalenessDays() ?: 0 }.getOrDefault(0)
-    return if (priority >= 4 || staleness >= 5) AppUpdateType.IMMEDIATE else AppUpdateType.FLEXIBLE
-}
 
 private fun startUpdate(
     context: Context,
