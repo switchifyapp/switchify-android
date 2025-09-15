@@ -731,8 +731,8 @@
     <string name="head_control_gesture_smile_description">Smile</string>
     <string name="head_control_gesture_left_wink_description">Wink with your left eye</string>
     <string name="head_control_gesture_right_wink_description">Wink with your right eye</string>
-    <string name="head_control_gesture_jaw_open">Jaw Open</string>
-    <string name="head_control_gesture_jaw_open_description">Open your mouth</string>
+    <string name="head_control_gesture_mouth_open">Mouth Open</string>
+    <string name="head_control_gesture_mouth_open_description">Open your mouth</string>
     <string name="head_control_gesture_blink_description">Blink with your eyes</string>
     
     <!-- Gesture names and descriptions for head turns (used across UI/logic) -->

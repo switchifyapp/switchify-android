@@ -53,10 +53,10 @@ object FacialGestureRegistry {
             assignableAsSwitch = true
         ),
         Meta(
-            id = CameraSwitchFacialGesture.JAW_OPEN,
-            nameResId = R.string.head_control_gesture_jaw_open,
-            descriptionResId = R.string.head_control_gesture_jaw_open_description,
-            fallbackName = "Jaw Open",
+            id = CameraSwitchFacialGesture.MOUTH_OPEN,
+            nameResId = R.string.head_control_gesture_mouth_open,
+            descriptionResId = R.string.head_control_gesture_mouth_open_description,
+            fallbackName = "Mouth Open",
             fallbackDescription = "Open your mouth",
             isHeadTurn = false,
             assignableAsSwitch = true
