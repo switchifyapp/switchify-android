@@ -2,14 +2,19 @@ package com.enaboapps.switchify.screens.settings
 
 import android.Manifest
 import androidx.camera.view.PreviewView
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -28,11 +33,11 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -95,10 +100,14 @@ private fun CameraSettingsContent(
     val leftWinkTime by viewModel.leftWinkTime.collectAsState()
     val rightWinkTime by viewModel.rightWinkTime.collectAsState()
     val blinkTime by viewModel.blinkTime.collectAsState()
-    val headTurnLeftSensitivity by viewModel.headTurnLeftSensitivity.collectAsState()
-    val headTurnRightSensitivity by viewModel.headTurnRightSensitivity.collectAsState()
-    val headTurnUpSensitivity by viewModel.headTurnUpSensitivity.collectAsState()
-    val headTurnDownSensitivity by viewModel.headTurnDownSensitivity.collectAsState()
+    val mouthOpenTime by viewModel.mouthOpenTime.collectAsState()
+    
+    // Collect real-time blendshape scores
+    val smileScore by viewModel.smileScore.collectAsState()
+    val leftWinkScore by viewModel.leftWinkScore.collectAsState()
+    val rightWinkScore by viewModel.rightWinkScore.collectAsState()
+    val blinkScore by viewModel.blinkScore.collectAsState()
+    val mouthOpenScore by viewModel.mouthOpenScore.collectAsState()
 
     var selectedTabIndex by remember { mutableIntStateOf(0) }
     val tabTitles = listOf(
@@ -145,7 +154,12 @@ private fun CameraSettingsContent(
             when (selectedTabIndex) {
                 0 -> TestGesturesTab(
                     detectedExpressions = detectedExpressions,
-                    isFaceDetected = isFaceDetected
+                    isFaceDetected = isFaceDetected,
+                    smileScore = smileScore,
+                    leftWinkScore = leftWinkScore,
+                    rightWinkScore = rightWinkScore,
+                    blinkScore = blinkScore,
+                    mouthOpenScore = mouthOpenScore
                 )
 
                 1 -> TimingSettingsTab(
@@ -153,15 +167,12 @@ private fun CameraSettingsContent(
                     smileTime = smileTime,
                     leftWinkTime = leftWinkTime,
                     rightWinkTime = rightWinkTime,
-                    blinkTime = blinkTime
+                    blinkTime = blinkTime,
+                    mouthOpenTime = mouthOpenTime
                 )
 
                 2 -> SensitivityTab(
-                    viewModel = viewModel,
-                    headTurnLeftSensitivity = headTurnLeftSensitivity,
-                    headTurnRightSensitivity = headTurnRightSensitivity,
-                    headTurnUpSensitivity = headTurnUpSensitivity,
-                    headTurnDownSensitivity = headTurnDownSensitivity
+                    viewModel = viewModel
                 )
             }
         }
@@ -265,6 +276,111 @@ private fun ExpressionFeedback(
 }
 
 @Composable
+private fun ExpressionProgressBars(
+    smileScore: Float,
+    leftWinkScore: Float,
+    rightWinkScore: Float,
+    blinkScore: Float,
+    mouthOpenScore: Float
+) {
+    Column(
+        modifier = Modifier.padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        ExpressionProgressItem(
+            name = stringResource(R.string.head_control_gesture_smile),
+            score = smileScore,
+            threshold = 0.35f
+        )
+        ExpressionProgressItem(
+            name = stringResource(R.string.head_control_gesture_left_wink),
+            score = leftWinkScore,
+            threshold = 0.55f
+        )
+        ExpressionProgressItem(
+            name = stringResource(R.string.head_control_gesture_right_wink),
+            score = rightWinkScore,
+            threshold = 0.55f
+        )
+        ExpressionProgressItem(
+            name = stringResource(R.string.head_control_gesture_blink),
+            score = blinkScore,
+            threshold = 0.55f
+        )
+        ExpressionProgressItem(
+            name = stringResource(R.string.head_control_gesture_mouth_open),
+            score = mouthOpenScore,
+            threshold = 0.7f
+        )
+    }
+}
+
+@Composable
+private fun ExpressionProgressItem(
+    name: String,
+    score: Float,
+    threshold: Float
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = name,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium
+            )
+            Text(
+                text = String.format("%.2f", score),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(8.dp)
+                .clip(RoundedCornerShape(4.dp))
+        ) {
+            // Background
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
+            )
+            
+            // Progress bar
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(score.coerceIn(0f, 1f))
+                    .fillMaxHeight()
+                    .background(
+                        if (score >= threshold) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.secondary
+                    )
+            )
+            
+            // Threshold indicator line
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(threshold.coerceIn(0f, 1f))
+                    .fillMaxHeight()
+                    .background(
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    .width(2.dp)
+                    .align(Alignment.CenterEnd)
+            )
+        }
+    }
+}
+
+@Composable
 private fun DetectedExpressionsList(detectedExpressions: Set<String>) {
     if (detectedExpressions.isEmpty()) {
         Text(
@@ -321,7 +437,12 @@ private fun ExpressionItem(
 @Composable
 private fun TestGesturesTab(
     detectedExpressions: Set<String>,
-    isFaceDetected: Boolean
+    isFaceDetected: Boolean,
+    smileScore: Float,
+    leftWinkScore: Float,
+    rightWinkScore: Float,
+    blinkScore: Float,
+    mouthOpenScore: Float
 ) {
     ScrollableView {
         Section(titleResId = R.string.section_title_expression_testing) {
@@ -331,8 +452,14 @@ private fun TestGesturesTab(
             )
         }
 
-        Section(titleResId = R.string.section_title_detected_expressions) {
-            DetectedExpressionsList(detectedExpressions = detectedExpressions)
+        Section(titleResId = R.string.section_title_expression_levels) {
+            ExpressionProgressBars(
+                smileScore = smileScore,
+                leftWinkScore = leftWinkScore,
+                rightWinkScore = rightWinkScore,
+                blinkScore = blinkScore,
+                mouthOpenScore = mouthOpenScore
+            )
         }
     }
 }
@@ -343,7 +470,8 @@ private fun TimingSettingsTab(
     smileTime: Long,
     leftWinkTime: Long,
     rightWinkTime: Long,
-    blinkTime: Long
+    blinkTime: Long,
+    mouthOpenTime: Long
 ) {
     ScrollableView {
         Section(titleResId = R.string.section_title_camera_switch_timing) {
@@ -386,66 +514,31 @@ private fun TimingSettingsTab(
                 step = 50,
                 onValueChanged = { viewModel.setBlinkTime(it) }
             )
+
+            PreferenceTimeStepper(
+                value = mouthOpenTime,
+                titleResId = R.string.preference_title_mouth_open_time,
+                summaryResId = R.string.preference_summary_mouth_open_time,
+                min = 100,
+                max = 3000,
+                step = 50,
+                onValueChanged = { viewModel.setMouthOpenTime(it) }
+            )
         }
     }
 }
 
 @Composable
 private fun SensitivityTab(
-    viewModel: CameraSettingsScreenModel,
-    headTurnLeftSensitivity: Int,
-    headTurnRightSensitivity: Int,
-    headTurnUpSensitivity: Int,
-    headTurnDownSensitivity: Int
+    viewModel: CameraSettingsScreenModel
 ) {
     ScrollableView {
         Section(titleResId = R.string.section_title_sensitivity_settings) {
-            PreferenceValueSelector(
-                value = headTurnLeftSensitivity,
-                titleResId = R.string.preference_title_head_turn_left_sensitivity,
-                summaryResId = R.string.preference_summary_head_turn_left_sensitivity,
-                min = 1,
-                max = 10,
-                displayFormatter = { sensitivity ->
-                    "${FaceProcessingService.getHeadTurnThreshold(sensitivity).toInt()}°"
-                },
-                onValueChanged = { viewModel.setHeadTurnLeftSensitivity(it) }
-            )
-
-            PreferenceValueSelector(
-                value = headTurnRightSensitivity,
-                titleResId = R.string.preference_title_head_turn_right_sensitivity,
-                summaryResId = R.string.preference_summary_head_turn_right_sensitivity,
-                min = 1,
-                max = 10,
-                displayFormatter = { sensitivity ->
-                    "${FaceProcessingService.getHeadTurnThreshold(sensitivity).toInt()}°"
-                },
-                onValueChanged = { viewModel.setHeadTurnRightSensitivity(it) }
-            )
-
-            PreferenceValueSelector(
-                value = headTurnUpSensitivity,
-                titleResId = R.string.preference_title_head_turn_up_sensitivity,
-                summaryResId = R.string.preference_summary_head_turn_up_sensitivity,
-                min = 1,
-                max = 10,
-                displayFormatter = { sensitivity ->
-                    "${FaceProcessingService.getHeadTurnThreshold(sensitivity).toInt()}°"
-                },
-                onValueChanged = { viewModel.setHeadTurnUpSensitivity(it) }
-            )
-
-            PreferenceValueSelector(
-                value = headTurnDownSensitivity,
-                titleResId = R.string.preference_title_head_turn_down_sensitivity,
-                summaryResId = R.string.preference_summary_head_turn_down_sensitivity,
-                min = 1,
-                max = 10,
-                displayFormatter = { sensitivity ->
-                    "${FaceProcessingService.getHeadTurnThreshold(sensitivity).toInt()}°"
-                },
-                onValueChanged = { viewModel.setHeadTurnDownSensitivity(it) }
+            Text(
+                text = "Head turn gestures have been moved to Head Control settings",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(16.dp)
             )
         }
     }
