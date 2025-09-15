@@ -154,7 +154,19 @@ class FaceProcessingService(context: Context) {
      */
     data class FaceDetectionResult(
         val detectedGestures: Set<String>,
-        val faceState: FaceState
+        val faceState: FaceState,
+        val blendshapeScores: BlendshapeScores = BlendshapeScores()
+    )
+
+    /**
+     * Data class containing real-time blendshape scores for UI feedback
+     */
+    data class BlendshapeScores(
+        val smileScore: Float = 0f,
+        val leftEyeCloseScore: Float = 0f,
+        val rightEyeCloseScore: Float = 0f,
+        val blinkScore: Float = 0f,
+        val mouthCloseScore: Float = 1f // Default to closed (1.0)
     )
 
     /**
@@ -243,7 +255,7 @@ class FaceProcessingService(context: Context) {
         val detectedGestures = mutableSetOf<String>()
 
         if (result.faceLandmarks().isEmpty()) {
-            return FaceDetectionResult(emptySet(), FaceState())
+            return FaceDetectionResult(emptySet(), FaceState(), BlendshapeScores())
         }
 
         // Extract face data
@@ -252,6 +264,10 @@ class FaceProcessingService(context: Context) {
         var isSmiling = false
         var headRotationX = 0f
         var headRotationY = 0f
+        
+        // Raw blendshape scores for UI feedback
+        var rawLeftEyeCloseScore = 0f
+        var rawRightEyeCloseScore = 0f
         val currentTime = System.currentTimeMillis()
 
         // Process head pose using transformation matrices if available
@@ -345,9 +361,9 @@ class FaceProcessingService(context: Context) {
                         if (indices.mouthClose >= 0) blendShapes[indices.mouthClose].score() else 0f
 
                     // Combine blink cues for robustness: max of blink and squint for each eye
-                    val leftEyeCloseScore = max(leftEyeBlink, leftEyeSquint)
-                    val rightEyeCloseScore = max(rightEyeBlink, rightEyeSquint)
-                    val combinedBlinkScore = max(leftEyeCloseScore, rightEyeCloseScore)
+                    rawLeftEyeCloseScore = max(leftEyeBlink, leftEyeSquint)
+                    rawRightEyeCloseScore = max(rightEyeBlink, rightEyeSquint)
+                    val combinedBlinkScore = max(rawLeftEyeCloseScore, rawRightEyeCloseScore)
                     val smileScore = (mouthSmileLeft + mouthSmileRight) / 2f
 
                     // Apply EMA smoothing to scores
@@ -381,8 +397,8 @@ class FaceProcessingService(context: Context) {
                     }
 
                     // Determine individual eye states for wink detection
-                    leftEyeOpen = leftEyeCloseScore < BLINK_ENTER_THRESHOLD
-                    rightEyeOpen = rightEyeCloseScore < BLINK_ENTER_THRESHOLD
+                    leftEyeOpen = rawLeftEyeCloseScore < BLINK_ENTER_THRESHOLD
+                    rightEyeOpen = rawRightEyeCloseScore < BLINK_ENTER_THRESHOLD
                     isSmiling = isSmileActive
                 }
             }
@@ -484,7 +500,15 @@ class FaceProcessingService(context: Context) {
             }
         }
 
-        return FaceDetectionResult(detectedGestures, faceState)
+        val blendshapeScores = BlendshapeScores(
+            smileScore = smoothedSmileScore,
+            leftEyeCloseScore = rawLeftEyeCloseScore,
+            rightEyeCloseScore = rawRightEyeCloseScore,
+            blinkScore = smoothedBlinkScore,
+            mouthCloseScore = smoothedMouthCloseScore
+        )
+        
+        return FaceDetectionResult(detectedGestures, faceState, blendshapeScores)
     }
 
     /**

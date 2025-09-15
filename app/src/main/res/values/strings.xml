@@ -389,6 +389,7 @@
     <string name="no_expression_detected">No expression detected</string>
     <string name="no_face_detected">No face detected</string>
     <string name="section_title_detected_expressions">Detected Expressions</string>
+    <string name="section_title_expression_levels">Expression Levels</string>
     <string name="section_title_sensitivity_settings">Sensitivity Settings</string>
     <string name="section_title_movement_speed">Movement Speed</string>
     <string name="section_title_deadzone_settings">Deadzone Settings</string>
@@ -410,14 +411,8 @@
     <string name="preference_summary_right_wink_time">How long to hold a right wink to trigger camera switch</string>
     <string name="preference_title_blink_time">Blink Switch Hold Time</string>
     <string name="preference_summary_blink_time">How long to hold a blink to trigger camera switch</string>
-    <string name="preference_title_head_turn_left_sensitivity">Head Turn Left Sensitivity</string>
-    <string name="preference_summary_head_turn_left_sensitivity">How sensitive left head turn detection should be</string>
-    <string name="preference_title_head_turn_right_sensitivity">Head Turn Right Sensitivity</string>
-    <string name="preference_summary_head_turn_right_sensitivity">How sensitive right head turn detection should be</string>
-    <string name="preference_title_head_turn_up_sensitivity">Head Turn Up Sensitivity</string>
-    <string name="preference_summary_head_turn_up_sensitivity">How sensitive upward head turn detection should be</string>
-    <string name="preference_title_head_turn_down_sensitivity">Head Turn Down Sensitivity</string>
-    <string name="preference_summary_head_turn_down_sensitivity">How sensitive downward head turn detection should be</string>
+    <string name="preference_title_mouth_open_time">Mouth Open Switch Hold Time</string>
+    <string name="preference_summary_mouth_open_time">How long to hold mouth open to trigger camera switch</string>
 
     <!-- Settings - Account Section -->
     <string name="settings_section_account">Account</string>

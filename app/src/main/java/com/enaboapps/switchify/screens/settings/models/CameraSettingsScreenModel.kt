@@ -53,10 +53,7 @@ class CameraSettingsScreenModel(private val context: Context) : ViewModel() {
         CameraSwitchFacialGesture.LEFT_WINK to GestureState(),
         CameraSwitchFacialGesture.RIGHT_WINK to GestureState(),
         CameraSwitchFacialGesture.BLINK to GestureState(),
-        CameraSwitchFacialGesture.HEAD_TURN_LEFT to GestureState(),
-        CameraSwitchFacialGesture.HEAD_TURN_RIGHT to GestureState(),
-        CameraSwitchFacialGesture.HEAD_TURN_UP to GestureState(),
-        CameraSwitchFacialGesture.HEAD_TURN_DOWN to GestureState()
+        CameraSwitchFacialGesture.MOUTH_OPEN to GestureState()
     )
 
     private var lastProcessedState = FaceProcessingService.FaceState()
@@ -75,17 +72,24 @@ class CameraSettingsScreenModel(private val context: Context) : ViewModel() {
     private val _blinkTime = MutableStateFlow(getBlinkTime())
     val blinkTime: StateFlow<Long> = _blinkTime.asStateFlow()
 
-    private val _headTurnLeftSensitivity = MutableStateFlow(getHeadTurnLeftSensitivity())
-    val headTurnLeftSensitivity: StateFlow<Int> = _headTurnLeftSensitivity.asStateFlow()
+    private val _mouthOpenTime = MutableStateFlow(getMouthOpenTime())
+    val mouthOpenTime: StateFlow<Long> = _mouthOpenTime.asStateFlow()
 
-    private val _headTurnRightSensitivity = MutableStateFlow(getHeadTurnRightSensitivity())
-    val headTurnRightSensitivity: StateFlow<Int> = _headTurnRightSensitivity.asStateFlow()
+    // Real-time blendshape scores for progress bars
+    private val _smileScore = MutableStateFlow(0f)
+    val smileScore: StateFlow<Float> = _smileScore.asStateFlow()
 
-    private val _headTurnUpSensitivity = MutableStateFlow(getHeadTurnUpSensitivity())
-    val headTurnUpSensitivity: StateFlow<Int> = _headTurnUpSensitivity.asStateFlow()
+    private val _leftWinkScore = MutableStateFlow(0f)
+    val leftWinkScore: StateFlow<Float> = _leftWinkScore.asStateFlow()
 
-    private val _headTurnDownSensitivity = MutableStateFlow(getHeadTurnDownSensitivity())
-    val headTurnDownSensitivity: StateFlow<Int> = _headTurnDownSensitivity.asStateFlow()
+    private val _rightWinkScore = MutableStateFlow(0f)
+    val rightWinkScore: StateFlow<Float> = _rightWinkScore.asStateFlow()
+
+    private val _blinkScore = MutableStateFlow(0f)
+    val blinkScore: StateFlow<Float> = _blinkScore.asStateFlow()
+
+    private val _mouthOpenScore = MutableStateFlow(0f)
+    val mouthOpenScore: StateFlow<Float> = _mouthOpenScore.asStateFlow()
 
     private var cameraProviderFuture: ListenableFuture<ProcessCameraProvider>? = null
     private var cameraProvider: ProcessCameraProvider? = null
@@ -244,6 +248,13 @@ class CameraSettingsScreenModel(private val context: Context) : ViewModel() {
     private fun processFaceResult(result: FaceProcessingService.FaceDetectionResult) {
         currentFaceState = result.faceState
 
+        // Update real-time blendshape scores for UI progress bars
+        _smileScore.value = result.blendshapeScores.smileScore
+        _leftWinkScore.value = result.blendshapeScores.leftEyeCloseScore
+        _rightWinkScore.value = result.blendshapeScores.rightEyeCloseScore
+        _blinkScore.value = result.blendshapeScores.blinkScore
+        _mouthOpenScore.value = 1f - result.blendshapeScores.mouthCloseScore // Inverted for mouth open
+
         val validatedGestures = mutableSetOf<String>()
 
         // Only process if the state has changed
@@ -286,44 +297,18 @@ class CameraSettingsScreenModel(private val context: Context) : ViewModel() {
                 )
             }
 
-            // Handle Head Turn gestures with timing like other gestures
+            // Handle all facial gestures with timing
             result.detectedGestures.forEach { gesture ->
-                when (gesture) {
-                    CameraSwitchFacialGesture.HEAD_TURN_LEFT -> {
-                        val wasActive = gestureStates[gesture]?.isActive == true
-                        if (!wasActive) {
-                            handleGestureStateChange(gesture, true, validatedGestures)
-                        }
-                    }
-
-                    CameraSwitchFacialGesture.HEAD_TURN_RIGHT -> {
-                        val wasActive = gestureStates[gesture]?.isActive == true
-                        if (!wasActive) {
-                            handleGestureStateChange(gesture, true, validatedGestures)
-                        }
-                    }
-
-                    CameraSwitchFacialGesture.HEAD_TURN_UP -> {
-                        val wasActive = gestureStates[gesture]?.isActive == true
-                        if (!wasActive) {
-                            handleGestureStateChange(gesture, true, validatedGestures)
-                        }
-                    }
-
-                    CameraSwitchFacialGesture.HEAD_TURN_DOWN -> {
-                        val wasActive = gestureStates[gesture]?.isActive == true
-                        if (!wasActive) {
-                            handleGestureStateChange(gesture, true, validatedGestures)
-                        }
+                if (gestureStates.containsKey(gesture)) {
+                    val wasActive = gestureStates[gesture]?.isActive == true
+                    if (!wasActive) {
+                        handleGestureStateChange(gesture, true, validatedGestures)
                     }
                 }
             }
 
-            // Stop head turn gestures that are no longer detected
-            listOf(
-                CameraSwitchFacialGesture.HEAD_TURN_LEFT, CameraSwitchFacialGesture.HEAD_TURN_RIGHT,
-                CameraSwitchFacialGesture.HEAD_TURN_UP, CameraSwitchFacialGesture.HEAD_TURN_DOWN
-            ).forEach { gesture ->
+            // Stop gestures that are no longer detected
+            gestureStates.keys.forEach { gesture ->
                 if (gestureStates[gesture]?.isActive == true && gesture !in result.detectedGestures) {
                     handleGestureStateChange(gesture, false, validatedGestures)
                 }
@@ -432,31 +417,10 @@ class CameraSettingsScreenModel(private val context: Context) : ViewModel() {
         )
     }
 
-    fun getHeadTurnLeftSensitivity(): Int {
-        return preferenceManager.getIntegerValue(
-            PreferenceManager.PREFERENCE_KEY_CAMERA_HEAD_TURN_LEFT_SENSITIVITY,
-            4
-        )
-    }
-
-    fun getHeadTurnRightSensitivity(): Int {
-        return preferenceManager.getIntegerValue(
-            PreferenceManager.PREFERENCE_KEY_CAMERA_HEAD_TURN_RIGHT_SENSITIVITY,
-            4
-        )
-    }
-
-    fun getHeadTurnUpSensitivity(): Int {
-        return preferenceManager.getIntegerValue(
-            PreferenceManager.PREFERENCE_KEY_CAMERA_HEAD_TURN_UP_SENSITIVITY,
-            4
-        )
-    }
-
-    fun getHeadTurnDownSensitivity(): Int {
-        return preferenceManager.getIntegerValue(
-            PreferenceManager.PREFERENCE_KEY_CAMERA_HEAD_TURN_DOWN_SENSITIVITY,
-            4
+    fun getMouthOpenTime(): Long {
+        return preferenceManager.getLongValue(
+            PreferenceManager.PREFERENCE_KEY_CAMERA_MOUTH_OPEN_TIME,
+            500L
         )
     }
 
@@ -487,35 +451,11 @@ class CameraSettingsScreenModel(private val context: Context) : ViewModel() {
         _blinkTime.value = value
     }
 
-    fun setHeadTurnLeftSensitivity(value: Int) {
-        preferenceManager.setIntegerValue(
-            PreferenceManager.PREFERENCE_KEY_CAMERA_HEAD_TURN_LEFT_SENSITIVITY,
+    fun setMouthOpenTime(value: Long) {
+        preferenceManager.setLongValue(
+            PreferenceManager.PREFERENCE_KEY_CAMERA_MOUTH_OPEN_TIME,
             value
         )
-        _headTurnLeftSensitivity.value = value
-    }
-
-    fun setHeadTurnRightSensitivity(value: Int) {
-        preferenceManager.setIntegerValue(
-            PreferenceManager.PREFERENCE_KEY_CAMERA_HEAD_TURN_RIGHT_SENSITIVITY,
-            value
-        )
-        _headTurnRightSensitivity.value = value
-    }
-
-    fun setHeadTurnUpSensitivity(value: Int) {
-        preferenceManager.setIntegerValue(
-            PreferenceManager.PREFERENCE_KEY_CAMERA_HEAD_TURN_UP_SENSITIVITY,
-            value
-        )
-        _headTurnUpSensitivity.value = value
-    }
-
-    fun setHeadTurnDownSensitivity(value: Int) {
-        preferenceManager.setIntegerValue(
-            PreferenceManager.PREFERENCE_KEY_CAMERA_HEAD_TURN_DOWN_SENSITIVITY,
-            value
-        )
-        _headTurnDownSensitivity.value = value
+        _mouthOpenTime.value = value
     }
 }
