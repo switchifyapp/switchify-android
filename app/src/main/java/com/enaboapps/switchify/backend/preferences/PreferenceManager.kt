@@ -55,7 +55,7 @@ class PreferenceManager(context: Context) {
         const val PREFERENCE_KEY_CAMERA_LEFT_WINK_TIME = "camera_left_wink_time"
         const val PREFERENCE_KEY_CAMERA_RIGHT_WINK_TIME = "camera_right_wink_time"
         const val PREFERENCE_KEY_CAMERA_BLINK_TIME = "camera_blink_time"
-        const val PREFERENCE_KEY_CAMERA_TONGUE_OUT_TIME = "camera_tongue_out_time"
+        const val PREFERENCE_KEY_CAMERA_JAW_OPEN_TIME = "camera_jaw_open_time"
         const val PREFERENCE_KEY_CAMERA_HEAD_TURN_LEFT_SENSITIVITY =
             "camera_head_turn_left_sensitivity"
         const val PREFERENCE_KEY_CAMERA_HEAD_TURN_RIGHT_SENSITIVITY =

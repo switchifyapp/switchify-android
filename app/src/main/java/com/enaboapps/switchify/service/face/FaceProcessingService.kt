@@ -44,12 +44,12 @@ class FaceProcessingService(context: Context) {
     private var smoothedPitch = 0f
     private var smoothedBlinkScore = 0f
     private var smoothedSmileScore = 0f
-    private var smoothedTongueScore = 0f
+    private var smoothedJawOpenScore = 0f
 
     // Hysteresis state
     private var isBlinkActive = false
     private var isSmileActive = false
-    private var isTongueActive = false
+    private var isJawOpenActive = false
     private var lastBlinkTime = 0L
 
     companion object {
@@ -60,14 +60,14 @@ class FaceProcessingService(context: Context) {
         const val SMILE_EXIT_THRESHOLD = 0.25f
         const val BLINK_ENTER_THRESHOLD = 0.55f
         const val BLINK_EXIT_THRESHOLD = 0.45f
-        const val TONGUE_ENTER_THRESHOLD = 0.5f
-        const val TONGUE_EXIT_THRESHOLD = 0.4f
+        const val JAW_OPEN_ENTER_THRESHOLD = 0.4f
+        const val JAW_OPEN_EXIT_THRESHOLD = 0.3f
 
         // Smoothing factor for EMA (0.0 = no smoothing, 1.0 = max smoothing)
         const val EMA_ALPHA = 0.3f
         
-        // Minimum jaw open threshold for tongue detection (reduces false positives)
-        const val JAW_OPEN_MIN_FOR_TONGUE = 0.35f
+        // Jaw open detection minimum threshold
+        const val JAW_OPEN_MIN_THRESHOLD = 0.25f
 
         // Refractory period for blink detection (ms)
         const val BLINK_REFRACTORY_PERIOD = 200L
@@ -111,7 +111,6 @@ class FaceProcessingService(context: Context) {
         val mouthSmileLeft: Int,
         val mouthSmileRight: Int,
         val jawOpen: Int,
-        val tongueOut: Int
     )
 
     private fun ensureFaceLandmarker(context: Context): Boolean {
@@ -342,8 +341,6 @@ class FaceProcessingService(context: Context) {
                         if (indices.mouthSmileLeft >= 0) blendShapes[indices.mouthSmileLeft].score() else 0f
                     val mouthSmileRight =
                         if (indices.mouthSmileRight >= 0) blendShapes[indices.mouthSmileRight].score() else 0f
-                    val tongueOutScore =
-                        if (indices.tongueOut >= 0) blendShapes[indices.tongueOut].score() else 0f
                     val jawOpenScore =
                         if (indices.jawOpen >= 0) blendShapes[indices.jawOpen].score() else 0f
 
@@ -352,12 +349,11 @@ class FaceProcessingService(context: Context) {
                     val rightEyeCloseScore = max(rightEyeBlink, rightEyeSquint)
                     val combinedBlinkScore = max(leftEyeCloseScore, rightEyeCloseScore)
                     val smileScore = (mouthSmileLeft + mouthSmileRight) / 2f
-                    val tongueScore = tongueOutScore
 
                     // Apply EMA smoothing to scores
                     smoothedBlinkScore = applyEMA(smoothedBlinkScore, combinedBlinkScore, EMA_ALPHA)
                     smoothedSmileScore = applyEMA(smoothedSmileScore, smileScore, EMA_ALPHA)
-                    smoothedTongueScore = applyEMA(smoothedTongueScore, tongueScore, EMA_ALPHA)
+                    smoothedJawOpenScore = applyEMA(smoothedJawOpenScore, jawOpenScore, EMA_ALPHA)
 
                     // Apply hysteresis for blink detection
                     if (!isBlinkActive && smoothedBlinkScore > BLINK_ENTER_THRESHOLD) {
@@ -377,17 +373,11 @@ class FaceProcessingService(context: Context) {
                         isSmileActive = false
                     }
                     
-                    // Apply hysteresis for tongue out detection with jaw open validation
-                    // Only perform tongue detection if tongueOut blendshape is available on this device
-                    if (indices.tongueOut >= 0) {
-                        if (!isTongueActive && smoothedTongueScore > TONGUE_ENTER_THRESHOLD && jawOpenScore > JAW_OPEN_MIN_FOR_TONGUE) {
-                            isTongueActive = true
-                        } else if (isTongueActive && (smoothedTongueScore < TONGUE_EXIT_THRESHOLD || jawOpenScore <= JAW_OPEN_MIN_FOR_TONGUE)) {
-                            isTongueActive = false
-                        }
-                    } else {
-                        // Tongue out not available on this device - ensure state remains false
-                        isTongueActive = false
+                    // Apply hysteresis for jaw open detection
+                    if (!isJawOpenActive && smoothedJawOpenScore > JAW_OPEN_ENTER_THRESHOLD) {
+                        isJawOpenActive = true
+                    } else if (isJawOpenActive && smoothedJawOpenScore < JAW_OPEN_EXIT_THRESHOLD) {
+                        isJawOpenActive = false
                     }
 
                     // Determine individual eye states for wink detection
@@ -417,10 +407,10 @@ class FaceProcessingService(context: Context) {
             }
         }
         
-        if (isTongueActive) {
-            detectedGestures.add(CameraSwitchFacialGesture.TONGUE_OUT)
+        if (isJawOpenActive) {
+            detectedGestures.add(CameraSwitchFacialGesture.JAW_OPEN)
             if (BuildConfig.DEBUG) {
-                Log.d(TAG, "Tongue out detected (smoothed score: $smoothedTongueScore)")
+                Log.d(TAG, "Jaw open detected (smoothed score: $smoothedJawOpenScore)")
             }
         }
 
@@ -526,9 +516,9 @@ class FaceProcessingService(context: Context) {
                     400L
                 )
 
-            CameraSwitchFacialGesture.TONGUE_OUT ->
+            CameraSwitchFacialGesture.JAW_OPEN ->
                 preferenceManager.getLongValue(
-                    PreferenceManager.PREFERENCE_KEY_CAMERA_TONGUE_OUT_TIME,
+                    PreferenceManager.PREFERENCE_KEY_CAMERA_JAW_OPEN_TIME,
                     500L
                 )
 
@@ -593,7 +583,6 @@ class FaceProcessingService(context: Context) {
         var mouthSmileLeft = -1
         var mouthSmileRight = -1
         var jawOpen = -1
-        var tongueOut = -1
 
         for (i in 0 until blendShapes.size) {
             when (blendShapes[i].categoryName()) {
@@ -604,7 +593,6 @@ class FaceProcessingService(context: Context) {
                 "mouthSmileLeft" -> mouthSmileLeft = i
                 "mouthSmileRight" -> mouthSmileRight = i
                 "jawOpen" -> jawOpen = i
-                "tongueOut" -> tongueOut = i
             }
         }
 
@@ -615,8 +603,7 @@ class FaceProcessingService(context: Context) {
             eyeSquintRight = eyeSquintRight,
             mouthSmileLeft = mouthSmileLeft,
             mouthSmileRight = mouthSmileRight,
-            jawOpen = jawOpen,
-            tongueOut = tongueOut
+            jawOpen = jawOpen
         )
     }
 
