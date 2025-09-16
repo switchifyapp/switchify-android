@@ -45,6 +45,11 @@ class FaceProcessingService(context: Context) {
     private var smoothedBlinkScore = 0f
     private var smoothedSmileScore = 0f
     private var smoothedMouthCloseScore = 0f
+    private var baselineLeftEyeClose = 0f
+    private var baselineRightEyeClose = 0f
+    private var baselineSmile = 0f
+    private var baselineReadyEyes = false
+    private var baselineReadySmile = false
     private var smoothedMouthOpenScore = 0f
     private var mouthOpenCandidateStart = 0L
     private var mouthOpenReleaseCandidateStart = 0L
@@ -96,6 +101,8 @@ class FaceProcessingService(context: Context) {
         const val CHIN_INDEX = 152
         const val LEFT_EYE_OUTER_INDEX = 33
         const val RIGHT_EYE_OUTER_INDEX = 263
+        const val UPPER_LIP_INDEX = 13
+        const val LOWER_LIP_INDEX = 14
 
         /**
          * Convert sensitivity level (1-10) to rotation threshold in degrees.
@@ -117,6 +124,10 @@ class FaceProcessingService(context: Context) {
                 else -> 20.0f
             }
         }
+
+        private const val BASELINE_EMA_ALPHA = 0.01f
+        private const val ENTER_DELTA_EYE = 0.2f
+        private const val ENTER_DELTA_SMILE = 0.15f
     }
 
     /**
@@ -175,7 +186,8 @@ class FaceProcessingService(context: Context) {
     data class FaceDetectionResult(
         val detectedGestures: Set<String>,
         val faceState: FaceState,
-        val blendshapeScores: BlendshapeScores = BlendshapeScores()
+        val blendshapeScores: BlendshapeScores = BlendshapeScores(),
+        val gestureConfidence: Map<String, Float> = emptyMap()
     )
 
     /**
@@ -273,6 +285,7 @@ class FaceProcessingService(context: Context) {
 
     private fun processLandmarkerResult(result: com.google.mediapipe.tasks.vision.facelandmarker.FaceLandmarkerResult): FaceDetectionResult {
         val detectedGestures = mutableSetOf<String>()
+        val gestureConfidence = mutableMapOf<String, Float>()
 
         if (result.faceLandmarks().isEmpty()) {
             return FaceDetectionResult(emptySet(), FaceState(), BlendshapeScores())
@@ -413,6 +426,41 @@ class FaceProcessingService(context: Context) {
 
                     mouthOpenWindow.addLast(smoothedMouthOpenScore)
                     if (mouthOpenWindow.size > MOUTH_OPEN_WINDOW) mouthOpenWindow.removeFirst()
+
+                    // Passive baseline adaptation (only when not active)
+                    if (!isBlinkActive) {
+                        baselineLeftEyeClose = applyEMA(baselineLeftEyeClose, rawLeftEyeCloseScore, BASELINE_EMA_ALPHA)
+                        baselineRightEyeClose = applyEMA(baselineRightEyeClose, rawRightEyeCloseScore, BASELINE_EMA_ALPHA)
+                        baselineReadyEyes = true
+                    }
+                    if (!isSmileActive) {
+                        baselineSmile = applyEMA(baselineSmile, smoothedSmileScore, BASELINE_EMA_ALPHA)
+                        baselineReadySmile = true
+                    }
+
+                    // Compute simple confidence scores relative to baselines
+                    val eyeLBase = if (baselineReadyEyes) baselineLeftEyeClose else 0f
+                    val eyeRBase = if (baselineReadyEyes) baselineRightEyeClose else 0f
+                    val smileBase = if (baselineReadySmile) baselineSmile else 0f
+
+                    fun normalizeConfidence(value: Float, base: Float, delta: Float): Float {
+                        val enter = (base + delta).coerceIn(0f, 1f)
+                        val num = (value - enter).coerceAtLeast(0f)
+                        val den = (1f - enter).coerceAtLeast(1e-3f)
+                        return (num / den).coerceIn(0f, 1f)
+                    }
+
+                    val leftCloseConf = normalizeConfidence(rawLeftEyeCloseScore, eyeLBase, ENTER_DELTA_EYE)
+                    val rightCloseConf = normalizeConfidence(rawRightEyeCloseScore, eyeRBase, ENTER_DELTA_EYE)
+                    val blinkConf = max(leftCloseConf, rightCloseConf)
+                    val leftWinkConf = leftCloseConf * (1f - rightCloseConf)
+                    val rightWinkConf = rightCloseConf * (1f - leftCloseConf)
+                    val smileConf = normalizeConfidence(smoothedSmileScore, smileBase, ENTER_DELTA_SMILE)
+
+                    gestureConfidence[CameraSwitchFacialGesture.BLINK] = blinkConf
+                    gestureConfidence[CameraSwitchFacialGesture.LEFT_WINK] = leftWinkConf
+                    gestureConfidence[CameraSwitchFacialGesture.RIGHT_WINK] = rightWinkConf
+                    gestureConfidence[CameraSwitchFacialGesture.SMILE] = smileConf
 
                     // Apply hysteresis for blink detection
                     if (!isBlinkActive && smoothedBlinkScore > BLINK_ENTER_THRESHOLD) {
@@ -574,7 +622,7 @@ class FaceProcessingService(context: Context) {
             mouthCloseScore = smoothedMouthCloseScore
         )
         
-        return FaceDetectionResult(detectedGestures, faceState, blendshapeScores)
+        return FaceDetectionResult(detectedGestures, faceState, blendshapeScores, gestureConfidence)
     }
 
     /**
