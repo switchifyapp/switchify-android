@@ -47,6 +47,14 @@ class FaceProcessingService(context: Context) {
     private var smoothedMouthCloseScore = 0f
     private var smoothedMouthOpenScore = 0f
     private var mouthOpenCandidateStart = 0L
+    private var mouthOpenReleaseCandidateStart = 0L
+    private var mouthOpenBaseline = 0f
+    private var mouthOpenBaselineReady = false
+    private var mouthOpenBaselineSampling = true
+    private var mouthOpenBaselineStart = 0L
+    private var mouthOpenBaselineAccum = 0f
+    private var mouthOpenBaselineCount = 0
+    private val mouthOpenWindow: ArrayDeque<Float> = ArrayDeque()
 
     // Hysteresis state
     private var isBlinkActive = false
@@ -65,6 +73,14 @@ class FaceProcessingService(context: Context) {
         const val MOUTH_OPEN_ENTER_THRESHOLD = 0.60f
         const val MOUTH_OPEN_EXIT_THRESHOLD = 0.40f
         const val MOUTH_OPEN_DWELL_MS = 150L
+        const val MOUTH_OPEN_EXIT_DWELL_MS = 180L
+        const val MOUTH_OPEN_BASELINE_MS = 700L
+        const val MOUTH_OPEN_BASELINE_MIN_SAMPLES = 8
+        const val MOUTH_OPEN_DELTA_ENTER = 0.25f
+        const val MOUTH_OPEN_DELTA_EXIT = 0.10f
+        const val MOUTH_OPEN_WINDOW = 8
+        const val MOUTH_OPEN_ENTER_REQUIRED = 6
+        const val MOUTH_OPEN_EXIT_REQUIRED = 4
 
         // Smoothing factor for EMA (0.0 = no smoothing, 1.0 = max smoothing)
         const val EMA_ALPHA = 0.3f
@@ -379,6 +395,25 @@ class FaceProcessingService(context: Context) {
                     val mouthOpenSignal = if (jawOpenScore >= 0f) jawOpenScore else (1f - smoothedMouthCloseScore)
                     smoothedMouthOpenScore = applyEMA(smoothedMouthOpenScore, mouthOpenSignal, EMA_ALPHA)
 
+                    if (mouthOpenBaselineSampling) {
+                        if (mouthOpenBaselineStart == 0L) {
+                            mouthOpenBaselineStart = currentTime
+                            mouthOpenBaselineAccum = 0f
+                            mouthOpenBaselineCount = 0
+                        }
+                        mouthOpenBaselineAccum += smoothedMouthOpenScore
+                        mouthOpenBaselineCount += 1
+                        if ((currentTime - mouthOpenBaselineStart) >= MOUTH_OPEN_BASELINE_MS && mouthOpenBaselineCount >= MOUTH_OPEN_BASELINE_MIN_SAMPLES) {
+                            mouthOpenBaseline = (mouthOpenBaselineAccum / mouthOpenBaselineCount).coerceIn(0f, 1f)
+                            mouthOpenBaselineReady = true
+                            mouthOpenBaselineSampling = false
+                            mouthOpenBaselineStart = 0L
+                        }
+                    }
+
+                    mouthOpenWindow.addLast(smoothedMouthOpenScore)
+                    if (mouthOpenWindow.size > MOUTH_OPEN_WINDOW) mouthOpenWindow.removeFirst()
+
                     // Apply hysteresis for blink detection
                     if (!isBlinkActive && smoothedBlinkScore > BLINK_ENTER_THRESHOLD) {
                         // Check refractory period
@@ -398,8 +433,15 @@ class FaceProcessingService(context: Context) {
                     }
                     
                     // Apply hysteresis for mouth open detection using jawOpen when available (fallback to inverted mouthClose)
+                    val baseline = if (mouthOpenBaselineReady) mouthOpenBaseline else 0f
+                    val enterT = (baseline + MOUTH_OPEN_DELTA_ENTER).coerceIn(0f, 1f)
+                    val exitT = (baseline + MOUTH_OPEN_DELTA_EXIT).coerceIn(0f, 1f)
+
+                    val aboveEnter = mouthOpenWindow.count { it > enterT }
+                    val belowExit = mouthOpenWindow.count { it < exitT }
+
                     if (!isMouthOpenActive) {
-                        if (smoothedMouthOpenScore > MOUTH_OPEN_ENTER_THRESHOLD) {
+                        if (aboveEnter >= MOUTH_OPEN_ENTER_REQUIRED) {
                             if (mouthOpenCandidateStart == 0L) mouthOpenCandidateStart = currentTime
                             if (currentTime - mouthOpenCandidateStart >= MOUTH_OPEN_DWELL_MS) {
                                 isMouthOpenActive = true
@@ -409,9 +451,14 @@ class FaceProcessingService(context: Context) {
                             mouthOpenCandidateStart = 0L
                         }
                     } else {
-                        if (smoothedMouthOpenScore < MOUTH_OPEN_EXIT_THRESHOLD) {
-                            isMouthOpenActive = false
-                            mouthOpenCandidateStart = 0L
+                        if (belowExit >= MOUTH_OPEN_EXIT_REQUIRED) {
+                            if (mouthOpenReleaseCandidateStart == 0L) mouthOpenReleaseCandidateStart = currentTime
+                            if (currentTime - mouthOpenReleaseCandidateStart >= MOUTH_OPEN_EXIT_DWELL_MS) {
+                                isMouthOpenActive = false
+                                mouthOpenReleaseCandidateStart = 0L
+                            }
+                        } else {
+                            mouthOpenReleaseCandidateStart = 0L
                         }
                     }
 
@@ -807,5 +854,16 @@ class FaceProcessingService(context: Context) {
         faceLandmarker?.close()
         faceLandmarker = null
         processingThread.quitSafely()
+    }
+
+    fun requestMouthBaselineCalibration() {
+        mouthOpenBaselineSampling = true
+        mouthOpenBaselineReady = false
+        mouthOpenBaselineStart = 0L
+        mouthOpenBaselineAccum = 0f
+        mouthOpenBaselineCount = 0
+        mouthOpenWindow.clear()
+        mouthOpenCandidateStart = 0L
+        mouthOpenReleaseCandidateStart = 0L
     }
 }

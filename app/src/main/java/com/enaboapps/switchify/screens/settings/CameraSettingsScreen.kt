@@ -151,7 +151,8 @@ private fun CameraSettingsContent(
                 0 -> TestGesturesTab(
                     detectedExpressions = detectedExpressions,
                     isFaceDetected = isFaceDetected,
-                    onAdjustTiming = { selectedTabIndex = 1 }
+                    onAdjustTiming = { selectedTabIndex = 1 },
+                    onRecalibrate = { viewModel.recalibrateMouthBaseline() }
                 )
 
                 1 -> TimingSettingsTab(
@@ -240,7 +241,8 @@ private fun ExpressionFeedback(
 private fun TestGesturesTab(
     detectedExpressions: Set<String>,
     isFaceDetected: Boolean,
-    onAdjustTiming: () -> Unit
+    onAdjustTiming: () -> Unit,
+    onRecalibrate: () -> Unit
 ) {
     ScrollableView {
         Section(titleResId = R.string.section_title_expression_testing) {
@@ -254,8 +256,11 @@ private fun TestGesturesTab(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 8.dp),
-                horizontalArrangement = Arrangement.End
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
+                TextButton(onClick = onRecalibrate) {
+                    Text(text = "Recalibrate")
+                }
                 TextButton(onClick = onAdjustTiming) {
                     Text(text = stringResource(R.string.tab_timing_settings))
                 }

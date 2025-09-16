@@ -458,4 +458,8 @@ class CameraSettingsScreenModel(private val context: Context) : ViewModel() {
         )
         _mouthOpenTime.value = value
     }
+
+    fun recalibrateMouthBaseline() {
+        faceProcessingService.requestMouthBaselineCalibration()
+    }
 }
