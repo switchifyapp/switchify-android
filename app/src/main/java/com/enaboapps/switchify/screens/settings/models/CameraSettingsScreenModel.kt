@@ -20,13 +20,17 @@ import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.service.face.FaceProcessingService
 import com.enaboapps.switchify.switches.CameraSwitchFacialGesture
 import com.google.common.util.concurrent.ListenableFuture
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -92,6 +96,7 @@ class CameraSettingsScreenModel(private val context: Context) : ViewModel() {
     private var preview: Preview? = null
     private var previewView: PreviewView? = null
     private val isProcessing = AtomicBoolean(false)
+    private var lastProcessTime = 0L
 
     @Volatile
     private var isCleanedUp = false
@@ -99,6 +104,7 @@ class CameraSettingsScreenModel(private val context: Context) : ViewModel() {
     private companion object {
         const val TAG = "CameraSettingsScreenModel"
         const val MIN_FACE_SIZE = 0.2f
+        const val FRAME_PROCESSING_INTERVAL_MS = 66L // ~15 FPS
     }
 
     init {
@@ -180,7 +186,7 @@ class CameraSettingsScreenModel(private val context: Context) : ViewModel() {
             .build()
             .apply {
                 setAnalyzer(ContextCompat.getMainExecutor(context)) { imageProxy ->
-                    processImage(imageProxy)
+                    processImageAsync(imageProxy)
                 }
             }
 
@@ -199,44 +205,64 @@ class CameraSettingsScreenModel(private val context: Context) : ViewModel() {
     }
 
     @OptIn(ExperimentalGetImage::class)
-    private fun processImage(imageProxy: ImageProxy) {
+    private fun processImageAsync(imageProxy: ImageProxy) {
+        // Frame rate limiting: skip if not enough time has passed
+        val currentTime = System.currentTimeMillis()
+        if (currentTime - lastProcessTime < FRAME_PROCESSING_INTERVAL_MS) {
+            imageProxy.close()
+            return
+        }
+        
         // Skip processing if cleaned up or already processing another frame
         if (isCleanedUp || isProcessing.getAndSet(true)) {
             imageProxy.close()
             return
         }
 
-        try {
-            imageProxy.image?.let { mediaImage ->
-                val bitmap = imageProxyToBitmap(imageProxy)
-                bitmap?.let {
-                    faceProcessingService.processFace(it) { result ->
-                        // Post to main thread to ensure UI updates are handled correctly
-                        mainHandler.post {
-                            if (result != null) {
-                                _isFaceDetected.value = true
-                                processFaceResult(result)
-                            } else {
-                                _isFaceDetected.value = false
-                                _detectedExpressions.value = emptySet()
+        lastProcessTime = currentTime
+
+        // Launch background processing
+        viewModelScope.launch(Dispatchers.Default) {
+            try {
+                imageProxy.image?.let { mediaImage ->
+                    val bitmap = imageProxyToBitmap(imageProxy)
+                    bitmap?.let {
+                        faceProcessingService.processFace(it) { result ->
+                            // Switch back to main thread for UI updates
+                            viewModelScope.launch(Dispatchers.Main) {
+                                try {
+                                    if (result != null) {
+                                        _isFaceDetected.value = true
+                                        processFaceResult(result)
+                                    } else {
+                                        _isFaceDetected.value = false
+                                        _detectedExpressions.value = emptySet()
+                                    }
+                                } catch (e: Exception) {
+                                    Log.e(TAG, "Error updating UI with face result", e)
+                                }
                             }
+                        }
+                    } ?: run {
+                        // Switch to main thread for UI updates
+                        viewModelScope.launch(Dispatchers.Main) {
+                            _isFaceDetected.value = false
+                            _detectedExpressions.value = emptySet()
                         }
                     }
                 } ?: run {
-                    _isFaceDetected.value = false
-                    _detectedExpressions.value = emptySet()
+                    // Switch to main thread for UI updates
+                    viewModelScope.launch(Dispatchers.Main) {
+                        _isFaceDetected.value = false
+                        _detectedExpressions.value = emptySet()
+                    }
                 }
-
-                isProcessing.set(false)
-                imageProxy.close()
-            } ?: run {
+            } catch (e: Exception) {
+                Log.e(TAG, "Error processing image in background", e)
+            } finally {
                 isProcessing.set(false)
                 imageProxy.close()
             }
-        } catch (e: Exception) {
-            Log.e(TAG, "Error processing image", e)
-            isProcessing.set(false)
-            imageProxy.close()
         }
     }
 
