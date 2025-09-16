@@ -45,6 +45,17 @@ class FaceProcessingService(context: Context) {
     private var smoothedBlinkScore = 0f
     private var smoothedSmileScore = 0f
     private var smoothedMouthCloseScore = 0f
+    private var leftWinkActive = false
+    private var rightWinkActive = false
+    private var leftWinkCandidateStart = 0L
+    private var rightWinkCandidateStart = 0L
+    private var leftWinkReleaseCandidateStart = 0L
+    private var rightWinkReleaseCandidateStart = 0L
+    private var baselineLeftEyeClose = 0f
+    private var baselineRightEyeClose = 0f
+    private var baselineSmile = 0f
+    private var baselineReadyEyes = false
+    private var baselineReadySmile = false
     private var smoothedMouthOpenScore = 0f
     private var mouthOpenCandidateStart = 0L
     private var mouthOpenReleaseCandidateStart = 0L
@@ -96,6 +107,8 @@ class FaceProcessingService(context: Context) {
         const val CHIN_INDEX = 152
         const val LEFT_EYE_OUTER_INDEX = 33
         const val RIGHT_EYE_OUTER_INDEX = 263
+        const val UPPER_LIP_INDEX = 13
+        const val LOWER_LIP_INDEX = 14
 
         /**
          * Convert sensitivity level (1-10) to rotation threshold in degrees.
@@ -117,6 +130,18 @@ class FaceProcessingService(context: Context) {
                 else -> 20.0f
             }
         }
+
+        private const val BASELINE_EMA_ALPHA = 0.01f
+        private const val DRIFT_EMA_ALPHA = 0.005f
+        private const val ENTER_DELTA_EYE = 0.2f
+        private const val ENTER_DELTA_SMILE = 0.15f
+        private const val WINK_ENTER_CONF = 0.60f
+        private const val WINK_EXIT_CONF = 0.40f
+        private const val WINK_DWELL_MS = 120L
+        private const val WINK_EXIT_DWELL_MS = 100L
+
+        private const val HEAD_POSE_YAW_LIMIT = 35f
+        private const val HEAD_POSE_PITCH_LIMIT = 25f
     }
 
     /**
@@ -175,7 +200,8 @@ class FaceProcessingService(context: Context) {
     data class FaceDetectionResult(
         val detectedGestures: Set<String>,
         val faceState: FaceState,
-        val blendshapeScores: BlendshapeScores = BlendshapeScores()
+        val blendshapeScores: BlendshapeScores = BlendshapeScores(),
+        val gestureConfidence: Map<String, Float> = emptyMap()
     )
 
     /**
@@ -273,6 +299,7 @@ class FaceProcessingService(context: Context) {
 
     private fun processLandmarkerResult(result: com.google.mediapipe.tasks.vision.facelandmarker.FaceLandmarkerResult): FaceDetectionResult {
         val detectedGestures = mutableSetOf<String>()
+        val gestureConfidence = mutableMapOf<String, Float>()
 
         if (result.faceLandmarks().isEmpty()) {
             return FaceDetectionResult(emptySet(), FaceState(), BlendshapeScores())
@@ -411,11 +438,110 @@ class FaceProcessingService(context: Context) {
                         }
                     }
 
+                    val poseOk = kotlin.math.abs(headRotationY) <= HEAD_POSE_YAW_LIMIT &&
+                            kotlin.math.abs(headRotationX) <= HEAD_POSE_PITCH_LIMIT
+
                     mouthOpenWindow.addLast(smoothedMouthOpenScore)
                     if (mouthOpenWindow.size > MOUTH_OPEN_WINDOW) mouthOpenWindow.removeFirst()
 
+                    if (poseOk && !isBlinkActive) {
+                        baselineLeftEyeClose = applyEMA(baselineLeftEyeClose, rawLeftEyeCloseScore, BASELINE_EMA_ALPHA)
+                        baselineRightEyeClose = applyEMA(baselineRightEyeClose, rawRightEyeCloseScore, BASELINE_EMA_ALPHA)
+                        baselineReadyEyes = true
+                    }
+                    if (poseOk && !isSmileActive) {
+                        baselineSmile = applyEMA(baselineSmile, smoothedSmileScore, BASELINE_EMA_ALPHA)
+                        baselineReadySmile = true
+                    }
+
+                    if (mouthOpenBaselineReady && poseOk && !isMouthOpenActive) {
+                        mouthOpenBaseline = applyEMA(mouthOpenBaseline, smoothedMouthOpenScore, DRIFT_EMA_ALPHA)
+                    }
+
+                    // Compute simple confidence scores relative to baselines
+                    val eyeLBase = if (baselineReadyEyes) baselineLeftEyeClose else 0f
+                    val eyeRBase = if (baselineReadyEyes) baselineRightEyeClose else 0f
+                    val smileBase = if (baselineReadySmile) baselineSmile else 0f
+
+                    fun normalizeConfidence(value: Float, base: Float, delta: Float): Float {
+                        val enter = (base + delta).coerceIn(0f, 1f)
+                        val num = (value - enter).coerceAtLeast(0f)
+                        val den = (1f - enter).coerceAtLeast(1e-3f)
+                        return (num / den).coerceIn(0f, 1f)
+                    }
+
+                    val leftCloseConf = normalizeConfidence(rawLeftEyeCloseScore, eyeLBase, ENTER_DELTA_EYE)
+                    val rightCloseConf = normalizeConfidence(rawRightEyeCloseScore, eyeRBase, ENTER_DELTA_EYE)
+                    val blinkConf = max(leftCloseConf, rightCloseConf)
+                    val leftWinkConf = leftCloseConf * (1f - rightCloseConf)
+                    val rightWinkConf = rightCloseConf * (1f - leftCloseConf)
+                    val smileConf = normalizeConfidence(smoothedSmileScore, smileBase, ENTER_DELTA_SMILE)
+
+                    gestureConfidence[CameraSwitchFacialGesture.BLINK] = blinkConf
+                    gestureConfidence[CameraSwitchFacialGesture.LEFT_WINK] = leftWinkConf
+                    gestureConfidence[CameraSwitchFacialGesture.RIGHT_WINK] = rightWinkConf
+                    gestureConfidence[CameraSwitchFacialGesture.SMILE] = smileConf
+
+                    // Temporal state machine for winks with mutual exclusion and blink priority
+                    if (isBlinkActive) {
+                        leftWinkActive = false
+                        rightWinkActive = false
+                        leftWinkCandidateStart = 0L
+                        rightWinkCandidateStart = 0L
+                        leftWinkReleaseCandidateStart = 0L
+                        rightWinkReleaseCandidateStart = 0L
+                    } else {
+                        // Enter candidates only when the other eye confidence is low to ensure unilateral closure
+                        val otherLowL = rightWinkConf < 0.2f
+                        val otherLowR = leftWinkConf < 0.2f
+
+                        if (!leftWinkActive && poseOk && leftWinkConf > WINK_ENTER_CONF && otherLowL) {
+                            if (leftWinkCandidateStart == 0L) leftWinkCandidateStart = currentTime
+                            if (currentTime - leftWinkCandidateStart >= WINK_DWELL_MS) {
+                                leftWinkActive = true
+                                rightWinkActive = false
+                                leftWinkCandidateStart = 0L
+                                rightWinkCandidateStart = 0L
+                            }
+                        } else if (leftWinkConf <= WINK_ENTER_CONF || !poseOk) {
+                            leftWinkCandidateStart = 0L
+                        }
+
+                        if (!rightWinkActive && poseOk && rightWinkConf > WINK_ENTER_CONF && otherLowR) {
+                            if (rightWinkCandidateStart == 0L) rightWinkCandidateStart = currentTime
+                            if (currentTime - rightWinkCandidateStart >= WINK_DWELL_MS) {
+                                rightWinkActive = true
+                                leftWinkActive = false
+                                rightWinkCandidateStart = 0L
+                                leftWinkCandidateStart = 0L
+                            }
+                        } else if (rightWinkConf <= WINK_ENTER_CONF || !poseOk) {
+                            rightWinkCandidateStart = 0L
+                        }
+
+                        if (leftWinkActive && leftWinkConf < WINK_EXIT_CONF) {
+                            if (leftWinkReleaseCandidateStart == 0L) leftWinkReleaseCandidateStart = currentTime
+                            if (currentTime - leftWinkReleaseCandidateStart >= WINK_EXIT_DWELL_MS) {
+                                leftWinkActive = false
+                                leftWinkReleaseCandidateStart = 0L
+                            }
+                        } else if (leftWinkConf >= WINK_EXIT_CONF) {
+                            leftWinkReleaseCandidateStart = 0L
+                        }
+
+                        if (rightWinkActive && rightWinkConf < WINK_EXIT_CONF) {
+                            if (rightWinkReleaseCandidateStart == 0L) rightWinkReleaseCandidateStart = currentTime
+                            if (currentTime - rightWinkReleaseCandidateStart >= WINK_EXIT_DWELL_MS) {
+                                rightWinkActive = false
+                                rightWinkReleaseCandidateStart = 0L
+                            }
+                        } else if (rightWinkConf >= WINK_EXIT_CONF) {
+                            rightWinkReleaseCandidateStart = 0L
+                        }
+                    }
+
                     // Apply hysteresis for blink detection
-                    if (!isBlinkActive && smoothedBlinkScore > BLINK_ENTER_THRESHOLD) {
+                    if (!isBlinkActive && poseOk && smoothedBlinkScore > BLINK_ENTER_THRESHOLD) {
                         // Check refractory period
                         if (currentTime - lastBlinkTime > BLINK_REFRACTORY_PERIOD) {
                             isBlinkActive = true
@@ -426,7 +552,7 @@ class FaceProcessingService(context: Context) {
                     }
 
                     // Apply hysteresis for smile detection
-                    if (!isSmileActive && smoothedSmileScore > SMILE_ENTER_THRESHOLD) {
+                    if (!isSmileActive && poseOk && smoothedSmileScore > SMILE_ENTER_THRESHOLD) {
                         isSmileActive = true
                     } else if (isSmileActive && smoothedSmileScore < SMILE_EXIT_THRESHOLD) {
                         isSmileActive = false
@@ -441,7 +567,7 @@ class FaceProcessingService(context: Context) {
                     val belowExit = mouthOpenWindow.count { it < exitT }
 
                     if (!isMouthOpenActive) {
-                        if (aboveEnter >= MOUTH_OPEN_ENTER_REQUIRED) {
+                        if (poseOk && aboveEnter >= MOUTH_OPEN_ENTER_REQUIRED) {
                             if (mouthOpenCandidateStart == 0L) mouthOpenCandidateStart = currentTime
                             if (currentTime - mouthOpenCandidateStart >= MOUTH_OPEN_DWELL_MS) {
                                 isMouthOpenActive = true
@@ -481,8 +607,9 @@ class FaceProcessingService(context: Context) {
             blendShapes = null // Skip blendshapes array for now - can be added for debugging
         )
 
-        // Gesture detection with improved logic
-        if (isSmiling) {
+        // Gesture detection with improved logic and mutual exclusions
+        // Prefer Mouth Open over Smile when both could be active
+        if (isSmiling && !isMouthOpenActive) {
             detectedGestures.add(CameraSwitchFacialGesture.SMILE)
             if (BuildConfig.DEBUG) {
                 Log.d(TAG, "Smile detected (smoothed score: $smoothedSmileScore)")
@@ -496,7 +623,7 @@ class FaceProcessingService(context: Context) {
             }
         }
 
-        // Eye gesture detection - check in priority order, using hysteresis-controlled blink state
+        // Eye gesture detection - Blink has highest priority, then unilateral winks
         if (isBlinkActive) {
             if (!leftEyeOpen && !rightEyeOpen) {
                 // Both eyes closed = blink (highest priority)
@@ -516,6 +643,12 @@ class FaceProcessingService(context: Context) {
                 if (BuildConfig.DEBUG) {
                     Log.d(TAG, "Right wink detected")
                 }
+            }
+        } else {
+            if (leftWinkActive) {
+                detectedGestures.add(CameraSwitchFacialGesture.LEFT_WINK)
+            } else if (rightWinkActive) {
+                detectedGestures.add(CameraSwitchFacialGesture.RIGHT_WINK)
             }
         }
 
@@ -574,7 +707,7 @@ class FaceProcessingService(context: Context) {
             mouthCloseScore = smoothedMouthCloseScore
         )
         
-        return FaceDetectionResult(detectedGestures, faceState, blendshapeScores)
+        return FaceDetectionResult(detectedGestures, faceState, blendshapeScores, gestureConfidence)
     }
 
     /**
