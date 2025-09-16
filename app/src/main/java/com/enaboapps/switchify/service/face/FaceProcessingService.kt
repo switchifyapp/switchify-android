@@ -56,21 +56,10 @@ class FaceProcessingService(context: Context) {
     private var baselineSmile = 0f
     private var baselineReadyEyes = false
     private var baselineReadySmile = false
-    private var smoothedMouthOpenScore = 0f
-    private var mouthOpenCandidateStart = 0L
-    private var mouthOpenReleaseCandidateStart = 0L
-    private var mouthOpenBaseline = 0f
-    private var mouthOpenBaselineReady = false
-    private var mouthOpenBaselineSampling = true
-    private var mouthOpenBaselineStart = 0L
-    private var mouthOpenBaselineAccum = 0f
-    private var mouthOpenBaselineCount = 0
-    private val mouthOpenWindow: ArrayDeque<Float> = ArrayDeque()
 
     // Hysteresis state
     private var isBlinkActive = false
     private var isSmileActive = false
-    private var isMouthOpenActive = false
     private var lastBlinkTime = 0L
 
     companion object {
@@ -81,17 +70,6 @@ class FaceProcessingService(context: Context) {
         const val SMILE_EXIT_THRESHOLD = 0.25f
         const val BLINK_ENTER_THRESHOLD = 0.55f
         const val BLINK_EXIT_THRESHOLD = 0.45f
-        const val MOUTH_OPEN_ENTER_THRESHOLD = 0.60f
-        const val MOUTH_OPEN_EXIT_THRESHOLD = 0.40f
-        const val MOUTH_OPEN_DWELL_MS = 150L
-        const val MOUTH_OPEN_EXIT_DWELL_MS = 180L
-        const val MOUTH_OPEN_BASELINE_MS = 700L
-        const val MOUTH_OPEN_BASELINE_MIN_SAMPLES = 8
-        const val MOUTH_OPEN_DELTA_ENTER = 0.25f
-        const val MOUTH_OPEN_DELTA_EXIT = 0.10f
-        const val MOUTH_OPEN_WINDOW = 8
-        const val MOUTH_OPEN_ENTER_REQUIRED = 6
-        const val MOUTH_OPEN_EXIT_REQUIRED = 4
 
         // Smoothing factor for EMA (0.0 = no smoothing, 1.0 = max smoothing)
         const val EMA_ALPHA = 0.3f
@@ -419,30 +397,8 @@ class FaceProcessingService(context: Context) {
                     smoothedBlinkScore = applyEMA(smoothedBlinkScore, combinedBlinkScore, EMA_ALPHA)
                     smoothedSmileScore = applyEMA(smoothedSmileScore, smileScore, EMA_ALPHA)
                     smoothedMouthCloseScore = applyEMA(smoothedMouthCloseScore, mouthCloseScore, EMA_ALPHA)
-                    val mouthOpenSignal = if (jawOpenScore >= 0f) jawOpenScore else (1f - smoothedMouthCloseScore)
-                    smoothedMouthOpenScore = applyEMA(smoothedMouthOpenScore, mouthOpenSignal, EMA_ALPHA)
-
-                    if (mouthOpenBaselineSampling) {
-                        if (mouthOpenBaselineStart == 0L) {
-                            mouthOpenBaselineStart = currentTime
-                            mouthOpenBaselineAccum = 0f
-                            mouthOpenBaselineCount = 0
-                        }
-                        mouthOpenBaselineAccum += smoothedMouthOpenScore
-                        mouthOpenBaselineCount += 1
-                        if ((currentTime - mouthOpenBaselineStart) >= MOUTH_OPEN_BASELINE_MS && mouthOpenBaselineCount >= MOUTH_OPEN_BASELINE_MIN_SAMPLES) {
-                            mouthOpenBaseline = (mouthOpenBaselineAccum / mouthOpenBaselineCount).coerceIn(0f, 1f)
-                            mouthOpenBaselineReady = true
-                            mouthOpenBaselineSampling = false
-                            mouthOpenBaselineStart = 0L
-                        }
-                    }
-
                     val poseOk = kotlin.math.abs(headRotationY) <= HEAD_POSE_YAW_LIMIT &&
                             kotlin.math.abs(headRotationX) <= HEAD_POSE_PITCH_LIMIT
-
-                    mouthOpenWindow.addLast(smoothedMouthOpenScore)
-                    if (mouthOpenWindow.size > MOUTH_OPEN_WINDOW) mouthOpenWindow.removeFirst()
 
                     if (poseOk && !isBlinkActive) {
                         baselineLeftEyeClose = applyEMA(baselineLeftEyeClose, rawLeftEyeCloseScore, BASELINE_EMA_ALPHA)
@@ -454,9 +410,6 @@ class FaceProcessingService(context: Context) {
                         baselineReadySmile = true
                     }
 
-                    if (mouthOpenBaselineReady && poseOk && !isMouthOpenActive) {
-                        mouthOpenBaseline = applyEMA(mouthOpenBaseline, smoothedMouthOpenScore, DRIFT_EMA_ALPHA)
-                    }
 
                     // Compute simple confidence scores relative to baselines
                     val eyeLBase = if (baselineReadyEyes) baselineLeftEyeClose else 0f
@@ -558,35 +511,6 @@ class FaceProcessingService(context: Context) {
                         isSmileActive = false
                     }
                     
-                    // Apply hysteresis for mouth open detection using jawOpen when available (fallback to inverted mouthClose)
-                    val baseline = if (mouthOpenBaselineReady) mouthOpenBaseline else 0f
-                    val enterT = (baseline + MOUTH_OPEN_DELTA_ENTER).coerceIn(0f, 1f)
-                    val exitT = (baseline + MOUTH_OPEN_DELTA_EXIT).coerceIn(0f, 1f)
-
-                    val aboveEnter = mouthOpenWindow.count { it > enterT }
-                    val belowExit = mouthOpenWindow.count { it < exitT }
-
-                    if (!isMouthOpenActive) {
-                        if (poseOk && aboveEnter >= MOUTH_OPEN_ENTER_REQUIRED) {
-                            if (mouthOpenCandidateStart == 0L) mouthOpenCandidateStart = currentTime
-                            if (currentTime - mouthOpenCandidateStart >= MOUTH_OPEN_DWELL_MS) {
-                                isMouthOpenActive = true
-                                mouthOpenCandidateStart = 0L
-                            }
-                        } else {
-                            mouthOpenCandidateStart = 0L
-                        }
-                    } else {
-                        if (belowExit >= MOUTH_OPEN_EXIT_REQUIRED) {
-                            if (mouthOpenReleaseCandidateStart == 0L) mouthOpenReleaseCandidateStart = currentTime
-                            if (currentTime - mouthOpenReleaseCandidateStart >= MOUTH_OPEN_EXIT_DWELL_MS) {
-                                isMouthOpenActive = false
-                                mouthOpenReleaseCandidateStart = 0L
-                            }
-                        } else {
-                            mouthOpenReleaseCandidateStart = 0L
-                        }
-                    }
 
                     // Determine individual eye states for wink detection
                     leftEyeOpen = rawLeftEyeCloseScore < BLINK_ENTER_THRESHOLD
@@ -607,21 +531,14 @@ class FaceProcessingService(context: Context) {
             blendShapes = null // Skip blendshapes array for now - can be added for debugging
         )
 
-        // Gesture detection with improved logic and mutual exclusions
-        // Prefer Mouth Open over Smile when both could be active
-        if (isSmiling && !isMouthOpenActive) {
+        // Gesture detection with improved logic
+        if (isSmiling) {
             detectedGestures.add(CameraSwitchFacialGesture.SMILE)
             if (BuildConfig.DEBUG) {
                 Log.d(TAG, "Smile detected (smoothed score: $smoothedSmileScore)")
             }
         }
         
-        if (isMouthOpenActive) {
-            detectedGestures.add(CameraSwitchFacialGesture.MOUTH_OPEN)
-            if (BuildConfig.DEBUG) {
-                Log.d(TAG, "Mouth open detected (smoothed mouthClose score: $smoothedMouthCloseScore)")
-            }
-        }
 
         // Eye gesture detection - Blink has highest priority, then unilateral winks
         if (isBlinkActive) {
@@ -739,11 +656,6 @@ class FaceProcessingService(context: Context) {
                     400L
                 )
 
-            CameraSwitchFacialGesture.MOUTH_OPEN ->
-                preferenceManager.getLongValue(
-                    PreferenceManager.PREFERENCE_KEY_CAMERA_MOUTH_OPEN_TIME,
-                    500L
-                )
 
             CameraSwitchFacialGesture.HEAD_TURN_LEFT,
             CameraSwitchFacialGesture.HEAD_TURN_RIGHT,
@@ -989,14 +901,4 @@ class FaceProcessingService(context: Context) {
         processingThread.quitSafely()
     }
 
-    fun requestMouthBaselineCalibration() {
-        mouthOpenBaselineSampling = true
-        mouthOpenBaselineReady = false
-        mouthOpenBaselineStart = 0L
-        mouthOpenBaselineAccum = 0f
-        mouthOpenBaselineCount = 0
-        mouthOpenWindow.clear()
-        mouthOpenCandidateStart = 0L
-        mouthOpenReleaseCandidateStart = 0L
-    }
 }

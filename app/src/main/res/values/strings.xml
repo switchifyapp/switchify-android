@@ -411,8 +411,6 @@
     <string name="preference_summary_right_wink_time">How long to hold a right wink to trigger camera switch</string>
     <string name="preference_title_blink_time">Blink Switch Hold Time</string>
     <string name="preference_summary_blink_time">How long to hold a blink to trigger camera switch</string>
-    <string name="preference_title_mouth_open_time">Mouth Open Switch Hold Time</string>
-    <string name="preference_summary_mouth_open_time">How long to hold mouth open to trigger camera switch</string>
 
     <!-- Settings - Account Section -->
     <string name="settings_section_account">Account</string>
@@ -726,8 +724,6 @@
     <string name="head_control_gesture_smile_description">Smile</string>
     <string name="head_control_gesture_left_wink_description">Wink with your left eye</string>
     <string name="head_control_gesture_right_wink_description">Wink with your right eye</string>
-    <string name="head_control_gesture_mouth_open">Mouth Open</string>
-    <string name="head_control_gesture_mouth_open_description">Open your mouth</string>
     <string name="head_control_gesture_blink_description">Blink with your eyes</string>
     
     <!-- Gesture names and descriptions for head turns (used across UI/logic) -->

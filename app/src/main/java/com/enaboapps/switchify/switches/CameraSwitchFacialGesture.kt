@@ -14,7 +14,6 @@ class CameraSwitchFacialGesture(val id: String) {
         const val LEFT_WINK = "left_wink"
         const val RIGHT_WINK = "right_wink"
         const val BLINK = "blink"
-        const val MOUTH_OPEN = "mouth_open"
         const val HEAD_TURN_LEFT = "head_turn_left"
         const val HEAD_TURN_RIGHT = "head_turn_right"
         const val HEAD_TURN_UP = "head_turn_up"

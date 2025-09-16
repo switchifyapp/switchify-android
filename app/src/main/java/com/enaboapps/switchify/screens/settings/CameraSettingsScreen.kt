@@ -102,7 +102,6 @@ private fun CameraSettingsContent(
     val leftWinkTime by viewModel.leftWinkTime.collectAsState()
     val rightWinkTime by viewModel.rightWinkTime.collectAsState()
     val blinkTime by viewModel.blinkTime.collectAsState()
-    val mouthOpenTime by viewModel.mouthOpenTime.collectAsState()
     
     
 
@@ -151,8 +150,7 @@ private fun CameraSettingsContent(
                 0 -> TestGesturesTab(
                     detectedExpressions = detectedExpressions,
                     isFaceDetected = isFaceDetected,
-                    onAdjustTiming = { selectedTabIndex = 1 },
-                    onRecalibrate = { viewModel.recalibrateMouthBaseline() }
+                    onAdjustTiming = { selectedTabIndex = 1 }
                 )
 
                 1 -> TimingSettingsTab(
@@ -160,8 +158,7 @@ private fun CameraSettingsContent(
                     smileTime = smileTime,
                     leftWinkTime = leftWinkTime,
                     rightWinkTime = rightWinkTime,
-                    blinkTime = blinkTime,
-                    mouthOpenTime = mouthOpenTime
+                    blinkTime = blinkTime
                 )
             }
         }
@@ -241,8 +238,7 @@ private fun ExpressionFeedback(
 private fun TestGesturesTab(
     detectedExpressions: Set<String>,
     isFaceDetected: Boolean,
-    onAdjustTiming: () -> Unit,
-    onRecalibrate: () -> Unit
+    onAdjustTiming: () -> Unit
 ) {
     ScrollableView {
         Section(titleResId = R.string.section_title_expression_testing) {
@@ -256,11 +252,8 @@ private fun TestGesturesTab(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 8.dp),
-                horizontalArrangement = Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.End
             ) {
-                TextButton(onClick = onRecalibrate) {
-                    Text(text = "Recalibrate")
-                }
                 TextButton(onClick = onAdjustTiming) {
                     Text(text = stringResource(R.string.tab_timing_settings))
                 }
@@ -277,8 +270,7 @@ private fun GestureQuickCheckGrid(
         CameraSwitchFacialGesture.SMILE,
         CameraSwitchFacialGesture.LEFT_WINK,
         CameraSwitchFacialGesture.RIGHT_WINK,
-        CameraSwitchFacialGesture.BLINK,
-        CameraSwitchFacialGesture.MOUTH_OPEN
+        CameraSwitchFacialGesture.BLINK
     )
 
     val rows = gestures.chunked(3)
@@ -340,8 +332,7 @@ private fun TimingSettingsTab(
     smileTime: Long,
     leftWinkTime: Long,
     rightWinkTime: Long,
-    blinkTime: Long,
-    mouthOpenTime: Long
+    blinkTime: Long
 ) {
     ScrollableView {
         Section(titleResId = R.string.section_title_camera_switch_timing) {
@@ -385,15 +376,6 @@ private fun TimingSettingsTab(
                 onValueChanged = { viewModel.setBlinkTime(it) }
             )
 
-            PreferenceTimeStepper(
-                value = mouthOpenTime,
-                titleResId = R.string.preference_title_mouth_open_time,
-                summaryResId = R.string.preference_summary_mouth_open_time,
-                min = 100,
-                max = 3000,
-                step = 50,
-                onValueChanged = { viewModel.setMouthOpenTime(it) }
-            )
         }
     }
 }
