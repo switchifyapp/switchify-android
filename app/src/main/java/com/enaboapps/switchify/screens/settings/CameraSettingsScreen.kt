@@ -112,8 +112,7 @@ private fun CameraSettingsContent(
     var selectedTabIndex by remember { mutableIntStateOf(0) }
     val tabTitles = listOf(
         stringResource(R.string.tab_test_gestures),
-        stringResource(R.string.tab_timing_settings),
-        stringResource(R.string.tab_sensitivity)
+        stringResource(R.string.tab_timing_settings)
     )
 
     LaunchedEffect(lifecycleOwner) {
@@ -169,10 +168,6 @@ private fun CameraSettingsContent(
                     rightWinkTime = rightWinkTime,
                     blinkTime = blinkTime,
                     mouthOpenTime = mouthOpenTime
-                )
-
-                2 -> SensitivityTab(
-                    viewModel = viewModel
                 )
             }
         }
@@ -528,18 +523,4 @@ private fun TimingSettingsTab(
     }
 }
 
-@Composable
-private fun SensitivityTab(
-    viewModel: CameraSettingsScreenModel
-) {
-    ScrollableView {
-        Section(titleResId = R.string.section_title_sensitivity_settings) {
-            Text(
-                text = "Head turn gestures have been moved to Head Control settings",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(16.dp)
-            )
-        }
-    }
-}
+ 
