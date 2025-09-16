@@ -45,6 +45,12 @@ class FaceProcessingService(context: Context) {
     private var smoothedBlinkScore = 0f
     private var smoothedSmileScore = 0f
     private var smoothedMouthCloseScore = 0f
+    private var leftWinkActive = false
+    private var rightWinkActive = false
+    private var leftWinkCandidateStart = 0L
+    private var rightWinkCandidateStart = 0L
+    private var leftWinkReleaseCandidateStart = 0L
+    private var rightWinkReleaseCandidateStart = 0L
     private var baselineLeftEyeClose = 0f
     private var baselineRightEyeClose = 0f
     private var baselineSmile = 0f
@@ -128,6 +134,10 @@ class FaceProcessingService(context: Context) {
         private const val BASELINE_EMA_ALPHA = 0.01f
         private const val ENTER_DELTA_EYE = 0.2f
         private const val ENTER_DELTA_SMILE = 0.15f
+        private const val WINK_ENTER_CONF = 0.60f
+        private const val WINK_EXIT_CONF = 0.40f
+        private const val WINK_DWELL_MS = 120L
+        private const val WINK_EXIT_DWELL_MS = 100L
     }
 
     /**
@@ -462,6 +472,64 @@ class FaceProcessingService(context: Context) {
                     gestureConfidence[CameraSwitchFacialGesture.RIGHT_WINK] = rightWinkConf
                     gestureConfidence[CameraSwitchFacialGesture.SMILE] = smileConf
 
+                    // Temporal state machine for winks with mutual exclusion and blink priority
+                    if (isBlinkActive) {
+                        leftWinkActive = false
+                        rightWinkActive = false
+                        leftWinkCandidateStart = 0L
+                        rightWinkCandidateStart = 0L
+                        leftWinkReleaseCandidateStart = 0L
+                        rightWinkReleaseCandidateStart = 0L
+                    } else {
+                        // Enter candidates only when the other eye confidence is low to ensure unilateral closure
+                        val otherLowL = rightWinkConf < 0.2f
+                        val otherLowR = leftWinkConf < 0.2f
+
+                        if (!leftWinkActive && leftWinkConf > WINK_ENTER_CONF && otherLowL) {
+                            if (leftWinkCandidateStart == 0L) leftWinkCandidateStart = currentTime
+                            if (currentTime - leftWinkCandidateStart >= WINK_DWELL_MS) {
+                                leftWinkActive = true
+                                rightWinkActive = false
+                                leftWinkCandidateStart = 0L
+                                rightWinkCandidateStart = 0L
+                            }
+                        } else if (leftWinkConf <= WINK_ENTER_CONF) {
+                            leftWinkCandidateStart = 0L
+                        }
+
+                        if (!rightWinkActive && rightWinkConf > WINK_ENTER_CONF && otherLowR) {
+                            if (rightWinkCandidateStart == 0L) rightWinkCandidateStart = currentTime
+                            if (currentTime - rightWinkCandidateStart >= WINK_DWELL_MS) {
+                                rightWinkActive = true
+                                leftWinkActive = false
+                                rightWinkCandidateStart = 0L
+                                leftWinkCandidateStart = 0L
+                            }
+                        } else if (rightWinkConf <= WINK_ENTER_CONF) {
+                            rightWinkCandidateStart = 0L
+                        }
+
+                        if (leftWinkActive && leftWinkConf < WINK_EXIT_CONF) {
+                            if (leftWinkReleaseCandidateStart == 0L) leftWinkReleaseCandidateStart = currentTime
+                            if (currentTime - leftWinkReleaseCandidateStart >= WINK_EXIT_DWELL_MS) {
+                                leftWinkActive = false
+                                leftWinkReleaseCandidateStart = 0L
+                            }
+                        } else if (leftWinkConf >= WINK_EXIT_CONF) {
+                            leftWinkReleaseCandidateStart = 0L
+                        }
+
+                        if (rightWinkActive && rightWinkConf < WINK_EXIT_CONF) {
+                            if (rightWinkReleaseCandidateStart == 0L) rightWinkReleaseCandidateStart = currentTime
+                            if (currentTime - rightWinkReleaseCandidateStart >= WINK_EXIT_DWELL_MS) {
+                                rightWinkActive = false
+                                rightWinkReleaseCandidateStart = 0L
+                            }
+                        } else if (rightWinkConf >= WINK_EXIT_CONF) {
+                            rightWinkReleaseCandidateStart = 0L
+                        }
+                    }
+
                     // Apply hysteresis for blink detection
                     if (!isBlinkActive && smoothedBlinkScore > BLINK_ENTER_THRESHOLD) {
                         // Check refractory period
@@ -529,8 +597,9 @@ class FaceProcessingService(context: Context) {
             blendShapes = null // Skip blendshapes array for now - can be added for debugging
         )
 
-        // Gesture detection with improved logic
-        if (isSmiling) {
+        // Gesture detection with improved logic and mutual exclusions
+        // Prefer Mouth Open over Smile when both could be active
+        if (isSmiling && !isMouthOpenActive) {
             detectedGestures.add(CameraSwitchFacialGesture.SMILE)
             if (BuildConfig.DEBUG) {
                 Log.d(TAG, "Smile detected (smoothed score: $smoothedSmileScore)")
@@ -544,7 +613,7 @@ class FaceProcessingService(context: Context) {
             }
         }
 
-        // Eye gesture detection - check in priority order, using hysteresis-controlled blink state
+        // Eye gesture detection - Blink has highest priority, then unilateral winks
         if (isBlinkActive) {
             if (!leftEyeOpen && !rightEyeOpen) {
                 // Both eyes closed = blink (highest priority)
@@ -564,6 +633,12 @@ class FaceProcessingService(context: Context) {
                 if (BuildConfig.DEBUG) {
                     Log.d(TAG, "Right wink detected")
                 }
+            }
+        } else {
+            if (leftWinkActive) {
+                detectedGestures.add(CameraSwitchFacialGesture.LEFT_WINK)
+            } else if (rightWinkActive) {
+                detectedGestures.add(CameraSwitchFacialGesture.RIGHT_WINK)
             }
         }
 
