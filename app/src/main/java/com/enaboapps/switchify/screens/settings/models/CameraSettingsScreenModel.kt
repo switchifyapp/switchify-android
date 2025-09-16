@@ -53,7 +53,6 @@ class CameraSettingsScreenModel(private val context: Context) : ViewModel() {
         CameraSwitchFacialGesture.LEFT_WINK to GestureState(),
         CameraSwitchFacialGesture.RIGHT_WINK to GestureState(),
         CameraSwitchFacialGesture.BLINK to GestureState(),
-        CameraSwitchFacialGesture.MOUTH_OPEN to GestureState()
     )
 
     private var lastProcessedState = FaceProcessingService.FaceState()
@@ -72,8 +71,6 @@ class CameraSettingsScreenModel(private val context: Context) : ViewModel() {
     private val _blinkTime = MutableStateFlow(getBlinkTime())
     val blinkTime: StateFlow<Long> = _blinkTime.asStateFlow()
 
-    private val _mouthOpenTime = MutableStateFlow(getMouthOpenTime())
-    val mouthOpenTime: StateFlow<Long> = _mouthOpenTime.asStateFlow()
 
     // Real-time blendshape scores for progress bars
     private val _smileScore = MutableStateFlow(0f)
@@ -88,8 +85,6 @@ class CameraSettingsScreenModel(private val context: Context) : ViewModel() {
     private val _blinkScore = MutableStateFlow(0f)
     val blinkScore: StateFlow<Float> = _blinkScore.asStateFlow()
 
-    private val _mouthOpenScore = MutableStateFlow(0f)
-    val mouthOpenScore: StateFlow<Float> = _mouthOpenScore.asStateFlow()
 
     private var cameraProviderFuture: ListenableFuture<ProcessCameraProvider>? = null
     private var cameraProvider: ProcessCameraProvider? = null
@@ -253,7 +248,6 @@ class CameraSettingsScreenModel(private val context: Context) : ViewModel() {
         _leftWinkScore.value = result.blendshapeScores.leftEyeCloseScore
         _rightWinkScore.value = result.blendshapeScores.rightEyeCloseScore
         _blinkScore.value = result.blendshapeScores.blinkScore
-        _mouthOpenScore.value = 1f - result.blendshapeScores.mouthCloseScore // Inverted for mouth open
 
         val validatedGestures = mutableSetOf<String>()
 
@@ -417,12 +411,6 @@ class CameraSettingsScreenModel(private val context: Context) : ViewModel() {
         )
     }
 
-    fun getMouthOpenTime(): Long {
-        return preferenceManager.getLongValue(
-            PreferenceManager.PREFERENCE_KEY_CAMERA_MOUTH_OPEN_TIME,
-            500L
-        )
-    }
 
     // Preference setter methods
     fun setSmileTime(value: Long) {
@@ -451,15 +439,5 @@ class CameraSettingsScreenModel(private val context: Context) : ViewModel() {
         _blinkTime.value = value
     }
 
-    fun setMouthOpenTime(value: Long) {
-        preferenceManager.setLongValue(
-            PreferenceManager.PREFERENCE_KEY_CAMERA_MOUTH_OPEN_TIME,
-            value
-        )
-        _mouthOpenTime.value = value
-    }
 
-    fun recalibrateMouthBaseline() {
-        faceProcessingService.requestMouthBaselineCalibration()
-    }
 }
