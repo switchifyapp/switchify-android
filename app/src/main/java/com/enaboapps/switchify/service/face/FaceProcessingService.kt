@@ -45,6 +45,8 @@ class FaceProcessingService(context: Context) {
     private var smoothedBlinkScore = 0f
     private var smoothedSmileScore = 0f
     private var smoothedMouthCloseScore = 0f
+    private var smoothedMouthOpenScore = 0f
+    private var mouthOpenCandidateStart = 0L
 
     // Hysteresis state
     private var isBlinkActive = false
@@ -60,8 +62,9 @@ class FaceProcessingService(context: Context) {
         const val SMILE_EXIT_THRESHOLD = 0.25f
         const val BLINK_ENTER_THRESHOLD = 0.55f
         const val BLINK_EXIT_THRESHOLD = 0.45f
-        const val MOUTH_OPEN_ENTER_THRESHOLD = 0.7f
-        const val MOUTH_OPEN_EXIT_THRESHOLD = 0.75f
+        const val MOUTH_OPEN_ENTER_THRESHOLD = 0.60f
+        const val MOUTH_OPEN_EXIT_THRESHOLD = 0.40f
+        const val MOUTH_OPEN_DWELL_MS = 150L
 
         // Smoothing factor for EMA (0.0 = no smoothing, 1.0 = max smoothing)
         const val EMA_ALPHA = 0.3f
@@ -111,6 +114,7 @@ class FaceProcessingService(context: Context) {
         val mouthSmileLeft: Int,
         val mouthSmileRight: Int,
         val mouthClose: Int,
+        val jawOpen: Int,
     )
 
     private fun ensureFaceLandmarker(context: Context): Boolean {
@@ -359,6 +363,8 @@ class FaceProcessingService(context: Context) {
                         if (indices.mouthSmileRight >= 0) blendShapes[indices.mouthSmileRight].score() else 0f
                     val mouthCloseScore =
                         if (indices.mouthClose >= 0) blendShapes[indices.mouthClose].score() else 0f
+                    val jawOpenScore =
+                        if (indices.jawOpen >= 0) blendShapes[indices.jawOpen].score() else -1f
 
                     // Combine blink cues for robustness: max of blink and squint for each eye
                     rawLeftEyeCloseScore = max(leftEyeBlink, leftEyeSquint)
@@ -370,6 +376,8 @@ class FaceProcessingService(context: Context) {
                     smoothedBlinkScore = applyEMA(smoothedBlinkScore, combinedBlinkScore, EMA_ALPHA)
                     smoothedSmileScore = applyEMA(smoothedSmileScore, smileScore, EMA_ALPHA)
                     smoothedMouthCloseScore = applyEMA(smoothedMouthCloseScore, mouthCloseScore, EMA_ALPHA)
+                    val mouthOpenSignal = if (jawOpenScore >= 0f) jawOpenScore else (1f - smoothedMouthCloseScore)
+                    smoothedMouthOpenScore = applyEMA(smoothedMouthOpenScore, mouthOpenSignal, EMA_ALPHA)
 
                     // Apply hysteresis for blink detection
                     if (!isBlinkActive && smoothedBlinkScore > BLINK_ENTER_THRESHOLD) {
@@ -389,11 +397,22 @@ class FaceProcessingService(context: Context) {
                         isSmileActive = false
                     }
                     
-                    // Apply hysteresis for mouth open detection (inverted - mouthClose 1.0=closed, 0.0=open)
-                    if (!isMouthOpenActive && smoothedMouthCloseScore < MOUTH_OPEN_ENTER_THRESHOLD) {
-                        isMouthOpenActive = true
-                    } else if (isMouthOpenActive && smoothedMouthCloseScore > MOUTH_OPEN_EXIT_THRESHOLD) {
-                        isMouthOpenActive = false
+                    // Apply hysteresis for mouth open detection using jawOpen when available (fallback to inverted mouthClose)
+                    if (!isMouthOpenActive) {
+                        if (smoothedMouthOpenScore > MOUTH_OPEN_ENTER_THRESHOLD) {
+                            if (mouthOpenCandidateStart == 0L) mouthOpenCandidateStart = currentTime
+                            if (currentTime - mouthOpenCandidateStart >= MOUTH_OPEN_DWELL_MS) {
+                                isMouthOpenActive = true
+                                mouthOpenCandidateStart = 0L
+                            }
+                        } else {
+                            mouthOpenCandidateStart = 0L
+                        }
+                    } else {
+                        if (smoothedMouthOpenScore < MOUTH_OPEN_EXIT_THRESHOLD) {
+                            isMouthOpenActive = false
+                            mouthOpenCandidateStart = 0L
+                        }
                     }
 
                     // Determine individual eye states for wink detection
@@ -607,6 +626,7 @@ class FaceProcessingService(context: Context) {
         var mouthSmileLeft = -1
         var mouthSmileRight = -1
         var mouthClose = -1
+        var jawOpen = -1
 
         for (i in 0 until blendShapes.size) {
             when (blendShapes[i].categoryName()) {
@@ -617,6 +637,7 @@ class FaceProcessingService(context: Context) {
                 "mouthSmileLeft" -> mouthSmileLeft = i
                 "mouthSmileRight" -> mouthSmileRight = i
                 "mouthClose" -> mouthClose = i
+                "jawOpen" -> jawOpen = i
             }
         }
 
@@ -627,7 +648,8 @@ class FaceProcessingService(context: Context) {
             eyeSquintRight = eyeSquintRight,
             mouthSmileLeft = mouthSmileLeft,
             mouthSmileRight = mouthSmileRight,
-            mouthClose = mouthClose
+            mouthClose = mouthClose,
+            jawOpen = jawOpen
         )
     }
 
