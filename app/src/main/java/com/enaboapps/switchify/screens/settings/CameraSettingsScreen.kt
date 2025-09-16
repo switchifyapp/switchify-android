@@ -20,10 +20,12 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -102,12 +104,7 @@ private fun CameraSettingsContent(
     val blinkTime by viewModel.blinkTime.collectAsState()
     val mouthOpenTime by viewModel.mouthOpenTime.collectAsState()
     
-    // Collect real-time blendshape scores
-    val smileScore by viewModel.smileScore.collectAsState()
-    val leftWinkScore by viewModel.leftWinkScore.collectAsState()
-    val rightWinkScore by viewModel.rightWinkScore.collectAsState()
-    val blinkScore by viewModel.blinkScore.collectAsState()
-    val mouthOpenScore by viewModel.mouthOpenScore.collectAsState()
+    
 
     var selectedTabIndex by remember { mutableIntStateOf(0) }
     val tabTitles = listOf(
@@ -154,11 +151,7 @@ private fun CameraSettingsContent(
                 0 -> TestGesturesTab(
                     detectedExpressions = detectedExpressions,
                     isFaceDetected = isFaceDetected,
-                    smileScore = smileScore,
-                    leftWinkScore = leftWinkScore,
-                    rightWinkScore = rightWinkScore,
-                    blinkScore = blinkScore,
-                    mouthOpenScore = mouthOpenScore
+                    onAdjustTiming = { selectedTabIndex = 1 }
                 )
 
                 1 -> TimingSettingsTab(
@@ -216,246 +209,123 @@ private fun CameraPreview(
 
 @Composable
 private fun ExpressionFeedback(
-    detectedExpressions: Set<String>,
     isFaceDetected: Boolean
 ) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = when {
-                !isFaceDetected -> MaterialTheme.colorScheme.errorContainer
-                detectedExpressions.isNotEmpty() -> MaterialTheme.colorScheme.primaryContainer
-                else -> MaterialTheme.colorScheme.surfaceVariant
-            }
-        )
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            when {
-                !isFaceDetected -> {
-                    Text(
-                        text = stringResource(R.string.no_face_detected),
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onErrorContainer,
-                        fontWeight = FontWeight.Bold,
-                        textAlign = TextAlign.Center
-                    )
-                }
-
-                detectedExpressions.isNotEmpty() -> {
-                    detectedExpressions.forEach { expression ->
-                        val gestureName = CameraSwitchFacialGesture(expression).getName()
-                        Text(
-                            text = stringResource(R.string.expression_detected, gestureName),
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer,
-                            fontWeight = FontWeight.Bold,
-                            textAlign = TextAlign.Center
-                        )
-                    }
-                }
-
-                else -> {
-                    Text(
-                        text = stringResource(R.string.no_expression_detected),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun ExpressionProgressBars(
-    smileScore: Float,
-    leftWinkScore: Float,
-    rightWinkScore: Float,
-    blinkScore: Float,
-    mouthOpenScore: Float
-) {
-    Column(
-        modifier = Modifier.padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        ExpressionProgressItem(
-            name = stringResource(R.string.head_control_gesture_smile),
-            score = smileScore,
-            threshold = 0.35f
-        )
-        ExpressionProgressItem(
-            name = stringResource(R.string.head_control_gesture_left_wink),
-            score = leftWinkScore,
-            threshold = 0.55f
-        )
-        ExpressionProgressItem(
-            name = stringResource(R.string.head_control_gesture_right_wink),
-            score = rightWinkScore,
-            threshold = 0.55f
-        )
-        ExpressionProgressItem(
-            name = stringResource(R.string.head_control_gesture_blink),
-            score = blinkScore,
-            threshold = 0.55f
-        )
-        ExpressionProgressItem(
-            name = stringResource(R.string.head_control_gesture_mouth_open),
-            score = mouthOpenScore,
-            threshold = 0.7f
-        )
-    }
-}
-
-@Composable
-private fun ExpressionProgressItem(
-    name: String,
-    score: Float,
-    threshold: Float
-) {
-    Column(
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Row(
+    if (!isFaceDetected) {
+        Card(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.errorContainer
+            )
         ) {
-            Text(
-                text = name,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Medium
-            )
-            Text(
-                text = String.format("%.2f", score),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-        
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(8.dp)
-                .clip(RoundedCornerShape(4.dp))
-        ) {
-            // Background
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
-            )
-            
-            // Progress bar
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth(score.coerceIn(0f, 1f))
-                    .fillMaxHeight()
-                    .background(
-                        if (score >= threshold) MaterialTheme.colorScheme.primary
-                        else MaterialTheme.colorScheme.secondary
-                    )
-            )
-            
-            // Threshold indicator line
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth(threshold.coerceIn(0f, 1f))
-                    .fillMaxHeight()
-                    .background(
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    .width(2.dp)
-                    .align(Alignment.CenterEnd)
-            )
-        }
-    }
-}
-
-@Composable
-private fun DetectedExpressionsList(detectedExpressions: Set<String>) {
-    if (detectedExpressions.isEmpty()) {
-        Text(
-            text = "Try making facial expressions to see them detected here",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(16.dp)
-        )
-    } else {
-        LazyColumn(
-            modifier = Modifier.heightIn(max = 200.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            items(detectedExpressions.toList()) { expression ->
-                val gesture = CameraSwitchFacialGesture(expression)
-                ExpressionItem(
-                    name = gesture.getName(),
-                    description = gesture.getDescription()
+            Column(
+                modifier = Modifier.padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = stringResource(R.string.no_face_detected),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onErrorContainer,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center
                 )
             }
         }
     }
 }
 
-@Composable
-private fun ExpressionItem(
-    name: String,
-    description: String
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.secondaryContainer
-        )
-    ) {
-        Column(
-            modifier = Modifier.padding(12.dp)
-        ) {
-            Text(
-                text = name,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSecondaryContainer
-            )
-            Text(
-                text = description,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSecondaryContainer
-            )
-        }
-    }
-}
+ 
 
 @Composable
 private fun TestGesturesTab(
     detectedExpressions: Set<String>,
     isFaceDetected: Boolean,
-    smileScore: Float,
-    leftWinkScore: Float,
-    rightWinkScore: Float,
-    blinkScore: Float,
-    mouthOpenScore: Float
+    onAdjustTiming: () -> Unit
 ) {
     ScrollableView {
         Section(titleResId = R.string.section_title_expression_testing) {
             ExpressionFeedback(
-                detectedExpressions = detectedExpressions,
                 isFaceDetected = isFaceDetected
             )
+
+            GestureQuickCheckGrid(detectedExpressions = detectedExpressions)
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp),
+                horizontalArrangement = Arrangement.End
+            ) {
+                TextButton(onClick = onAdjustTiming) {
+                    Text(text = stringResource(R.string.tab_timing_settings))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun GestureQuickCheckGrid(
+    detectedExpressions: Set<String>
+) {
+    val gestures = listOf(
+        CameraSwitchFacialGesture.SMILE,
+        CameraSwitchFacialGesture.LEFT_WINK,
+        CameraSwitchFacialGesture.RIGHT_WINK,
+        CameraSwitchFacialGesture.BLINK,
+        CameraSwitchFacialGesture.MOUTH_OPEN
+    )
+
+    val rows = gestures.chunked(3)
+
+    Column(modifier = Modifier.padding(12.dp)) {
+        rows.forEach { rowItems ->
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                rowItems.forEach { id ->
+                    val active = detectedExpressions.contains(id)
+                    val name = CameraSwitchFacialGesture(id).getName()
+
+                    ElevatedCard(
+                        modifier = Modifier
+                            .weight(1f)
+                            .heightIn(min = 64.dp),
+                        colors = CardDefaults.elevatedCardColors(
+                            containerColor = if (active) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant
+                        )
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(12.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = name,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = if (active) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    }
+                }
+
+                repeat(3 - rowItems.size) {
+                    Box(modifier = Modifier.weight(1f)) {}
+                }
+            }
         }
 
-        Section(titleResId = R.string.section_title_expression_levels) {
-            ExpressionProgressBars(
-                smileScore = smileScore,
-                leftWinkScore = leftWinkScore,
-                rightWinkScore = rightWinkScore,
-                blinkScore = blinkScore,
-                mouthOpenScore = mouthOpenScore
-            )
-        }
+        Text(
+            text = stringResource(R.string.onboarding_head_control_requirements),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 4.dp)
+        )
     }
 }
 
