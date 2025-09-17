@@ -62,6 +62,9 @@ fun InAppUpdateBar(
                 InstallStatus.DOWNLOADED -> {
                     isDownloading = false
                     showRestart = true
+                    // Immediately show install prompt when download completes
+                    Log.d("InAppUpdateBar", "Update downloaded, prompting user to install")
+                    Toast.makeText(context, context.getString(R.string.update_downloaded_ready_to_install), Toast.LENGTH_LONG).show()
                 }
                 InstallStatus.FAILED -> {
                     isDownloading = false
@@ -70,6 +73,7 @@ fun InAppUpdateBar(
                 InstallStatus.INSTALLED -> {
                     isDownloading = false
                     showRestart = false
+                    Toast.makeText(context, context.getString(R.string.update_installed_successfully), Toast.LENGTH_SHORT).show()
                 }
                 else -> {}
             }
@@ -89,7 +93,12 @@ fun InAppUpdateBar(
     LaunchedEffect(Unit) {
         tryResumeOrCheck(context, appUpdateManager, launcher) { onError(it) }
         appUpdateManager.appUpdateInfo.addOnSuccessListener { info ->
-            if (info.installStatus() == InstallStatus.DOWNLOADED) showRestart = true
+            if (info.installStatus() == InstallStatus.DOWNLOADED) {
+                showRestart = true
+                Log.d("InAppUpdateBar", "Found already downloaded update on launch")
+                // Show persistent reminder for already downloaded update
+                Toast.makeText(context, context.getString(R.string.update_downloaded_ready_to_install), Toast.LENGTH_LONG).show()
+            }
         }
     }
 
@@ -106,6 +115,9 @@ fun InAppUpdateBar(
                     if (info.installStatus() == InstallStatus.DOWNLOADED) {
                         isDownloading = false
                         showRestart = true
+                        Log.d("InAppUpdateBar", "App resumed with downloaded update available")
+                        // Show reminder each time app resumes with pending update
+                        Toast.makeText(context, context.getString(R.string.update_pending_install_reminder), Toast.LENGTH_SHORT).show()
                     }
                 }
             }
@@ -143,22 +155,53 @@ fun InAppUpdateBar(
     }
 
     if (showRestart) {
-        Row(
+        Column(
             modifier = modifier
                 .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween
+                .padding(16.dp)
         ) {
-            Text(
-                text = stringResource(R.string.dialog_message_update),
-                style = MaterialTheme.typography.bodyMedium
-            )
-            Row {
-                TextButton(onClick = { showRestart = false }) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(R.string.update_ready_to_install),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        text = stringResource(R.string.dialog_message_update),
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
+                }
+            }
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp),
+                horizontalArrangement = Arrangement.End
+            ) {
+                TextButton(
+                    onClick = {
+                        showRestart = false
+                        // Show reminder toast for later
+                        Toast.makeText(context, context.getString(R.string.update_reminder_later), Toast.LENGTH_SHORT).show()
+                    }
+                ) {
                     Text(stringResource(R.string.dialog_button_later))
                 }
-                TextButton(onClick = { appUpdateManager.completeUpdate() }) {
-                    Text(stringResource(R.string.dialog_button_restart))
+                TextButton(
+                    onClick = {
+                        Log.d("InAppUpdateBar", "User initiated app restart for update")
+                        appUpdateManager.completeUpdate()
+                    }
+                ) {
+                    Text(
+                        text = stringResource(R.string.dialog_button_restart),
+                        color = MaterialTheme.colorScheme.primary
+                    )
                 }
             }
         }
