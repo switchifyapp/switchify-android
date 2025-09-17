@@ -1,5 +1,6 @@
 package com.enaboapps.switchify.screens.settings.models
 
+import android.app.Application
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -19,6 +20,7 @@ import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
@@ -34,10 +36,10 @@ import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
 import java.util.concurrent.atomic.AtomicBoolean
 
-class CameraSettingsScreenModel(private val context: Context) : ViewModel() {
+class CameraSettingsScreenModel(application: Application) : AndroidViewModel(application) {
 
-    private val preferenceManager = PreferenceManager(context)
-    private val faceProcessingService = FaceProcessingService(context)
+    private val preferenceManager = PreferenceManager(application)
+    private val faceProcessingService = FaceProcessingService(application)
     private val mainHandler = Handler(Looper.getMainLooper())
 
     private val _detectedExpressions = MutableStateFlow<Set<String>>(emptySet())
@@ -149,7 +151,7 @@ class CameraSettingsScreenModel(private val context: Context) : ViewModel() {
     }
 
     fun startCamera(lifecycleOwner: LifecycleOwner) {
-        cameraProviderFuture = ProcessCameraProvider.getInstance(context).also { future ->
+        cameraProviderFuture = ProcessCameraProvider.getInstance(getApplication()).also { future ->
             future.addListener({
                 try {
                     cameraProvider = future.get()
@@ -158,7 +160,7 @@ class CameraSettingsScreenModel(private val context: Context) : ViewModel() {
                 } catch (e: Exception) {
                     Log.e(TAG, "Failed to start camera", e)
                 }
-            }, ContextCompat.getMainExecutor(context))
+            }, ContextCompat.getMainExecutor(getApplication()))
         }
     }
 
@@ -185,7 +187,7 @@ class CameraSettingsScreenModel(private val context: Context) : ViewModel() {
             .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_YUV_420_888)
             .build()
             .apply {
-                setAnalyzer(ContextCompat.getMainExecutor(context)) { imageProxy ->
+                setAnalyzer(ContextCompat.getMainExecutor(getApplication())) { imageProxy ->
                     processImageAsync(imageProxy)
                 }
             }
