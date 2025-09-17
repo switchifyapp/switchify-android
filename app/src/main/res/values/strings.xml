@@ -272,6 +272,13 @@
     <string name="dialog_button_restart">Restart</string>
     <string name="dialog_button_later">Later</string>
 
+    <!-- Update Messages -->
+    <string name="update_ready_to_install">Update Ready to Install</string>
+    <string name="update_downloaded_ready_to_install">Update downloaded and ready to install!</string>
+    <string name="update_reminder_later">Update reminder: A new version is ready to install when you\'re ready.</string>
+    <string name="update_pending_install_reminder">Update pending: Tap to install the latest version.</string>
+    <string name="update_installed_successfully">Update installed successfully!</string>
+
     <!-- Actions -->
     <string name="action_feedback">Feedback</string>
 
