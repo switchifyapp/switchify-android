@@ -1,6 +1,7 @@
 package com.enaboapps.switchify.screens.settings
 
 import android.Manifest
+import android.app.Application
 import androidx.camera.view.PreviewView
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -67,7 +68,7 @@ fun CameraSettingsScreen(navController: NavController) {
     val context = LocalContext.current
     val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
     val cameraPermissionState = rememberPermissionState(Manifest.permission.CAMERA)
-    val viewModel: CameraSettingsScreenModel = viewModel { CameraSettingsScreenModel(context) }
+    val viewModel: CameraSettingsScreenModel = viewModel { CameraSettingsScreenModel(context.applicationContext as Application) }
 
     BaseView(
         titleResId = R.string.screen_title_camera_settings,
