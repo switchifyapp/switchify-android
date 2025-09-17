@@ -49,8 +49,7 @@ class HeadControlService private constructor(private val context: Context) {
         
         if (enabled) {
             if (!cameraPermissionManager.hasPermission()) {
-                Log.w(TAG, "Head control enabled in settings but camera permission missing; disabling.")
-                settings.setHeadControlEnabled(false)
+                Log.w(TAG, "Head control enabled in settings but camera permission missing; will enable when permission granted.")
                 showCameraPermissionRequiredNotification()
                 return
             }
@@ -138,22 +137,35 @@ class HeadControlService private constructor(private val context: Context) {
         }
         
         return try {
-            settings.setHeadControlEnabled(enabled)
             if (enabled && headControlManager == null) {
                 Log.d(TAG, "Initializing head control manager")
                 headControlManager = HeadControlManager(context)
+                // Only update settings after successful initialization
+                settings.setHeadControlEnabled(enabled)
             } else if (!enabled) {
                 Log.d(TAG, "Disabling head control manager")
                 headControlManager?.cleanup()
                 headControlManager = null
+                settings.setHeadControlEnabled(enabled)
+            } else {
+                // Already in desired state, just update settings
+                settings.setHeadControlEnabled(enabled)
             }
             true
-        } catch (t: Throwable) {
-            Log.e(TAG, "Failed to setEnabled($enabled)", t)
-            // Roll back to a safe state
+        } catch (securityException: SecurityException) {
+            Log.e(TAG, "Security exception when setting head control enabled=$enabled - disabling", securityException)
+            // Only disable for security/permission issues
             settings.setHeadControlEnabled(false)
             headControlManager?.cleanup()
             headControlManager = null
+            false
+        } catch (t: Throwable) {
+            Log.e(TAG, "Failed to setEnabled($enabled) - leaving setting unchanged", t)
+            // For other exceptions, don't change the setting but clean up manager if needed
+            if (enabled && headControlManager == null) {
+                // Failed to create manager, but don't disable the setting
+                Log.w(TAG, "Head control remains enabled in settings but manager failed to initialize")
+            }
             false
         }
     }
