@@ -2,6 +2,8 @@ package com.enaboapps.switchify.components
 
 import android.app.Activity
 import android.content.Context
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -47,7 +49,6 @@ fun InAppUpdateBar(
 ) {
     val context = LocalContext.current
     val appUpdateManager = remember { AppUpdateManagerFactory.create(context) }
-    var showRestart by remember { mutableStateOf(false) }
     var isDownloading by remember { mutableStateOf(false) }
     var progress by remember { mutableFloatStateOf(0f) }
 
@@ -61,10 +62,16 @@ fun InAppUpdateBar(
                 }
                 InstallStatus.DOWNLOADED -> {
                     isDownloading = false
-                    showRestart = true
-                    // Immediately show install prompt when download completes
-                    Log.d("InAppUpdateBar", "Update downloaded, prompting user to install")
+                    // Auto-install with user notification
+                    Log.d("InAppUpdateBar", "Update downloaded, auto-installing in 2 seconds")
                     Toast.makeText(context, context.getString(R.string.update_downloaded_ready_to_install), Toast.LENGTH_LONG).show()
+
+                    // Brief delay to allow user to see notification, then auto-install
+                    Handler(Looper.getMainLooper()).postDelayed({
+                        Log.d("InAppUpdateBar", "Starting automatic update installation")
+                        Toast.makeText(context, context.getString(R.string.update_installing_automatically), Toast.LENGTH_SHORT).show()
+                        appUpdateManager.completeUpdate()
+                    }, 2000) // 2 second delay for user awareness
                 }
                 InstallStatus.FAILED -> {
                     isDownloading = false
@@ -72,7 +79,6 @@ fun InAppUpdateBar(
                 }
                 InstallStatus.INSTALLED -> {
                     isDownloading = false
-                    showRestart = false
                     Toast.makeText(context, context.getString(R.string.update_installed_successfully), Toast.LENGTH_SHORT).show()
                 }
                 else -> {}
@@ -94,10 +100,15 @@ fun InAppUpdateBar(
         tryResumeOrCheck(context, appUpdateManager, launcher) { onError(it) }
         appUpdateManager.appUpdateInfo.addOnSuccessListener { info ->
             if (info.installStatus() == InstallStatus.DOWNLOADED) {
-                showRestart = true
-                Log.d("InAppUpdateBar", "Found already downloaded update on launch")
-                // Show persistent reminder for already downloaded update
+                Log.d("InAppUpdateBar", "Found already downloaded update on launch, auto-installing")
                 Toast.makeText(context, context.getString(R.string.update_downloaded_ready_to_install), Toast.LENGTH_LONG).show()
+
+                // Auto-install already downloaded update with brief delay
+                Handler(Looper.getMainLooper()).postDelayed({
+                    Log.d("InAppUpdateBar", "Auto-installing previously downloaded update")
+                    Toast.makeText(context, context.getString(R.string.update_installing_automatically), Toast.LENGTH_SHORT).show()
+                    appUpdateManager.completeUpdate()
+                }, 2000)
             }
         }
     }
@@ -114,10 +125,15 @@ fun InAppUpdateBar(
                 appUpdateManager.appUpdateInfo.addOnSuccessListener { info ->
                     if (info.installStatus() == InstallStatus.DOWNLOADED) {
                         isDownloading = false
-                        showRestart = true
-                        Log.d("InAppUpdateBar", "App resumed with downloaded update available")
-                        // Show reminder each time app resumes with pending update
+                        Log.d("InAppUpdateBar", "App resumed with downloaded update available, auto-installing")
                         Toast.makeText(context, context.getString(R.string.update_pending_install_reminder), Toast.LENGTH_SHORT).show()
+
+                        // Auto-install on resume with brief delay
+                        Handler(Looper.getMainLooper()).postDelayed({
+                            Log.d("InAppUpdateBar", "Auto-installing update after app resume")
+                            Toast.makeText(context, context.getString(R.string.update_installing_automatically), Toast.LENGTH_SHORT).show()
+                            appUpdateManager.completeUpdate()
+                        }, 2000)
                     }
                 }
             }
@@ -154,58 +170,6 @@ fun InAppUpdateBar(
         }
     }
 
-    if (showRestart) {
-        Column(
-            modifier = modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = stringResource(R.string.update_ready_to_install),
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Text(
-                        text = stringResource(R.string.dialog_message_update),
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.padding(top = 4.dp)
-                    )
-                }
-            }
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 8.dp),
-                horizontalArrangement = Arrangement.End
-            ) {
-                TextButton(
-                    onClick = {
-                        showRestart = false
-                        // Show reminder toast for later
-                        Toast.makeText(context, context.getString(R.string.update_reminder_later), Toast.LENGTH_SHORT).show()
-                    }
-                ) {
-                    Text(stringResource(R.string.dialog_button_later))
-                }
-                TextButton(
-                    onClick = {
-                        Log.d("InAppUpdateBar", "User initiated app restart for update")
-                        appUpdateManager.completeUpdate()
-                    }
-                ) {
-                    Text(
-                        text = stringResource(R.string.dialog_button_restart),
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
-            }
-        }
-    }
 }
 
 private fun tryResumeOrCheck(
