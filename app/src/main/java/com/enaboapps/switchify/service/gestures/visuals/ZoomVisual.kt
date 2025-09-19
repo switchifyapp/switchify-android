@@ -9,8 +9,6 @@ import android.view.animation.Animation
 import android.view.animation.ScaleAnimation
 import android.widget.ImageView
 import android.widget.RelativeLayout
-import androidx.core.graphics.toColorInt
-import com.enaboapps.switchify.service.scanning.ScanColorManager
 import com.enaboapps.switchify.service.window.SwitchifyAccessibilityWindow
 import java.lang.ref.WeakReference
 
@@ -66,27 +64,44 @@ class ZoomVisual(context: Context) {
     private fun createView(circumference: Float): RelativeLayout {
         val context = contextRef.get() ?: throw IllegalStateException("Context is null")
 
-        val gradientDrawable = GradientDrawable().apply {
+        // Create shadow circle for depth
+        val shadowDrawable = GradientDrawable().apply {
             shape = GradientDrawable.OVAL
             setColor(Color.TRANSPARENT)
-            setStroke(
-                12, // stroke width in pixels
-                ScanColorManager.getScanColorSetFromPreferences(context).secondaryColor.toColorInt()
-            )
+            setStroke(12, 0x30000000) // Semi-transparent black shadow
         }
 
-        val imageView = ImageView(context).apply {
-            setImageDrawable(gradientDrawable)
+        // Create main white circle
+        val mainDrawable = GradientDrawable().apply {
+            shape = GradientDrawable.OVAL
+            setColor(Color.TRANSPARENT)
+            setStroke(10, 0xFFFFFFFF.toInt()) // Pure white stroke
+        }
+
+        // Shadow circle (slightly offset)
+        val shadowView = ImageView(context).apply {
+            setImageDrawable(shadowDrawable)
+            layoutParams = RelativeLayout.LayoutParams(
+                circumference.toInt(),
+                circumference.toInt()
+            ).apply {
+                leftMargin = 3
+                topMargin = 3
+            }
+        }
+
+        // Main white circle
+        val mainView = ImageView(context).apply {
+            setImageDrawable(mainDrawable)
+            layoutParams = RelativeLayout.LayoutParams(
+                circumference.toInt(),
+                circumference.toInt()
+            )
         }
 
         return RelativeLayout(context).apply {
-            addView(
-                imageView,
-                RelativeLayout.LayoutParams(
-                    circumference.toInt(),
-                    circumference.toInt()
-                )
-            )
+            addView(shadowView)
+            addView(mainView)
         }
     }
 

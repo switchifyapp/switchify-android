@@ -3,16 +3,30 @@
     android:height="100dp"
     android:viewportWidth="100"
     android:viewportHeight="100">
-    
-    <!-- Circle at the bottom -->
+
+    <!-- Drop shadow for depth -->
     <path
-        android:name="circle"
-        android:fillColor="#FFFFFF"
-        android:pathData="M50,75 A12,12 0 1,1 50,51 A12,12 0 1,1 50,75 Z" />
-    
-    <!-- Arrow head pointing up -->
+        android:name="shadow"
+        android:fillColor="#30000000"
+        android:pathData="M51,27 L23,51 L36,51 L36,77 L66,77 L66,51 L79,51 Z" />
+
+    <!-- Main white arrow body -->
     <path
-        android:name="arrowhead"
+        android:name="arrow_body"
         android:fillColor="#FFFFFF"
-        android:pathData="M50,25 L20,50 L35,50 L50,35 L65,50 L80,50 Z" />
+        android:pathData="M50,25 L22,49 L35,49 L35,75 L65,75 L65,49 L78,49 Z" />
+
+    <!-- Inner highlight for modern depth -->
+    <path
+        android:name="highlight"
+        android:fillColor="#10FFFFFF"
+        android:pathData="M50,28 L26,47 L35,47 L35,72 L65,72 L65,47 L74,47 Z" />
+
+    <!-- Subtle outer stroke -->
+    <path
+        android:name="stroke"
+        android:fillColor="#00000000"
+        android:strokeColor="#20000000"
+        android:strokeWidth="1"
+        android:pathData="M50,25 L22,49 L35,49 L35,75 L65,75 L65,49 L78,49 Z" />
 </vector>

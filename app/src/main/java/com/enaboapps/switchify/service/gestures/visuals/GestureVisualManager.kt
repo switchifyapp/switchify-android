@@ -8,9 +8,7 @@ import android.view.animation.Animation
 import android.view.animation.ScaleAnimation
 import android.widget.ImageView
 import android.widget.RelativeLayout
-import androidx.core.graphics.toColorInt
 import com.enaboapps.switchify.service.gestures.GestureStateManager
-import com.enaboapps.switchify.service.scanning.ScanColorManager
 import com.enaboapps.switchify.service.window.SwitchifyAccessibilityWindow
 import java.lang.ref.WeakReference
 
@@ -131,23 +129,42 @@ class GestureVisualManager(context: Context) : GestureStateManager.GestureStateL
     }
 
     /**
-     * Creates a standardized circle layout with unified styling.
+     * Creates a standardized circle layout with modern white styling.
      */
     private fun createCircleLayout(context: Context, size: Int): RelativeLayout {
-        val gradientDrawable = GradientDrawable().apply {
+        // Create shadow circle (slightly offset and darker)
+        val shadowDrawable = GradientDrawable().apply {
             shape = GradientDrawable.OVAL
-            setColor(
-                ScanColorManager.getScanColorSetFromPreferences(context).secondaryColor.toColorInt()
-            )
+            setColor(0x20000000) // Semi-transparent black shadow
             setSize(size, size)
         }
 
-        val imageView = ImageView(context).apply {
-            setImageDrawable(gradientDrawable)
+        // Create main white circle
+        val mainDrawable = GradientDrawable().apply {
+            shape = GradientDrawable.OVAL
+            setColor(0xFFFFFFFF.toInt()) // Pure white
+            setStroke(1, 0x20000000) // Subtle dark stroke for definition
+            setSize(size, size)
+        }
+
+        // Shadow layer
+        val shadowView = ImageView(context).apply {
+            setImageDrawable(shadowDrawable)
+            layoutParams = RelativeLayout.LayoutParams(size, size).apply {
+                leftMargin = 2
+                topMargin = 2
+            }
+        }
+
+        // Main circle layer
+        val mainView = ImageView(context).apply {
+            setImageDrawable(mainDrawable)
+            layoutParams = RelativeLayout.LayoutParams(size, size)
         }
 
         return RelativeLayout(context).apply {
-            addView(imageView, RelativeLayout.LayoutParams(size, size))
+            addView(shadowView)
+            addView(mainView)
         }
     }
 
