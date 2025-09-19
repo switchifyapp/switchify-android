@@ -1,14 +1,11 @@
 package com.enaboapps.switchify.service.gestures.visuals
 
 import android.content.Context
-import android.graphics.PorterDuff
 import android.view.animation.Animation
 import android.view.animation.TranslateAnimation
 import android.widget.ImageView
 import android.widget.RelativeLayout
-import androidx.core.graphics.toColorInt
 import com.enaboapps.switchify.R
-import com.enaboapps.switchify.service.scanning.ScanColorManager
 import com.enaboapps.switchify.service.utils.ScreenUtils
 import com.enaboapps.switchify.service.window.SwitchifyAccessibilityWindow
 import kotlin.math.atan2
@@ -34,11 +31,7 @@ class AnimatedGestureArrow(private val context: Context) {
         // Create arrow ImageView
         val arrow = ImageView(context).apply {
             setImageResource(R.drawable.gesture_arrow)
-            // Apply the secondary scanning color
-            setColorFilter(
-                ScanColorManager.getScanColorSetFromPreferences(context).secondaryColor.toColorInt(),
-                PorterDuff.Mode.SRC_IN
-            )
+            // No color filter needed - using modern white design from drawable
             // Set the size of the arrow (adjust as needed)
             layoutParams = RelativeLayout.LayoutParams(size, size).apply {
                 // Position the arrow at the start coordinates within the full-screen container
