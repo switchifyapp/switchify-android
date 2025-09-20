@@ -101,7 +101,9 @@ class GestureVisualManager(context: Context) : GestureStateManager.GestureStateL
         }
 
         currentAnimation = scaleAnimation
-        circleLayout.getChildAt(0)?.startAnimation(scaleAnimation)
+        // Apply animation to both shadow and main circle views for proper countdown effect
+        circleLayout.getChildAt(0)?.startAnimation(scaleAnimation) // shadowView
+        circleLayout.getChildAt(1)?.startAnimation(scaleAnimation) // mainView
 
         // Auto-remove after animation
         removeHandler = Handler(Looper.getMainLooper()).apply {
