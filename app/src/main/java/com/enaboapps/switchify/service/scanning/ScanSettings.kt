@@ -71,11 +71,59 @@ class ScanSettings(context: Context) {
     }
 
     /**
-     * Get the radar scan rate
+     * Get the radar speed as time interval (converted from speed level)
      * @return The radar scan rate
      */
     fun getRadarScanRate(): Long {
-        return preferenceManager.getLongValue(PreferenceManager.Keys.PREFERENCE_KEY_RADAR_SCAN_RATE)
+        val speedLevel = preferenceManager.getIntegerValue(PreferenceManager.Keys.PREFERENCE_KEY_RADAR_SPEED_LEVEL, 13)
+        return radarSpeedLevelToInterval(speedLevel)
+    }
+
+    /**
+     * Get the radar speed level (1-25 scale)
+     * @return The speed level where 1 = slowest, 25 = fastest
+     */
+    fun getRadarSpeedLevel(): Int {
+        return preferenceManager.getIntegerValue(PreferenceManager.Keys.PREFERENCE_KEY_RADAR_SPEED_LEVEL, 13)
+    }
+
+    /**
+     * Set the radar speed level (1-25 scale)
+     * @param speedLevel The speed level where 1 = slowest, 25 = fastest
+     */
+    fun setRadarSpeedLevel(speedLevel: Int) {
+        val clampedSpeed = speedLevel.coerceIn(1, 25)
+        preferenceManager.setIntegerValue(
+            PreferenceManager.Keys.PREFERENCE_KEY_RADAR_SPEED_LEVEL,
+            clampedSpeed
+        )
+    }
+
+    /**
+     * Convert radar speed level to time interval in milliseconds
+     * @param speedLevel The speed level (1-25)
+     * @return Time interval in milliseconds
+     */
+    fun radarSpeedLevelToInterval(speedLevel: Int): Long {
+        val clampedSpeed = speedLevel.coerceIn(1, 25)
+        // Formula: timeInterval = 250 + (25 - speedLevel) * 40
+        // Speed 1 = 1210ms, Speed 25 = 10ms
+        return 250L + (25 - clampedSpeed) * 40L
+    }
+
+    /**
+     * Get radar speed level description for UI display
+     * @param speedLevel The speed level (1-25)
+     * @return User-friendly description
+     */
+    fun getRadarSpeedLevelDescription(speedLevel: Int): String {
+        return when (speedLevel.coerceIn(1, 25)) {
+            in 1..6 -> "Very Slow"
+            in 7..12 -> "Slow"
+            in 13..18 -> "Medium"
+            in 19..25 -> "Fast"
+            else -> "Medium"
+        }
     }
 
     /**
