@@ -350,7 +350,7 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
                         }
 
                         PreferenceManager.Keys.PREFERENCE_KEY_CURSOR_BLOCK_SCAN_RATE,
-                        PreferenceManager.Keys.PREFERENCE_KEY_CURSOR_FINE_SCAN_RATE,
+                        PreferenceManager.Keys.PREFERENCE_KEY_POINT_SCAN_LINE_SPEED_LEVEL,
                         PreferenceManager.Keys.PREFERENCE_KEY_RADAR_SCAN_RATE,
                         PreferenceManager.Keys.PREFERENCE_KEY_SCAN_RATE -> {
                             // Scan rate settings changed - service will pick up new values automatically

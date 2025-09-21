@@ -94,12 +94,62 @@ object PointScanSettings {
     }
 
     /**
-     * Get the fine point scan rate
-     * @return The fine scan rate
+     * Get the line speed as time interval (converted from speed level)
+     * @return The time interval in milliseconds
      */
     fun getFineCursorScanRate(): Long {
-        return preferenceManager?.getLongValue(PreferenceManager.Keys.PREFERENCE_KEY_CURSOR_FINE_SCAN_RATE)
-            ?: 1000L
+        val speedLevel = preferenceManager?.getIntegerValue(PreferenceManager.Keys.PREFERENCE_KEY_POINT_SCAN_LINE_SPEED_LEVEL, 13)
+            ?: 13 // Default to medium speed level 13
+        return speedLevelToInterval(speedLevel)
+    }
+
+    /**
+     * Get the line speed level (1-25 scale)
+     * @return The speed level where 1 = slowest, 25 = fastest
+     */
+    fun getLineSpeedLevel(): Int {
+        return preferenceManager?.getIntegerValue(PreferenceManager.Keys.PREFERENCE_KEY_POINT_SCAN_LINE_SPEED_LEVEL, 13)
+            ?: 13 // Default to medium speed
+    }
+
+    /**
+     * Set the line speed level (1-25 scale)
+     * @param speedLevel The speed level where 1 = slowest, 25 = fastest
+     */
+    fun setLineSpeedLevel(speedLevel: Int, context: Context) {
+        val clampedSpeed = speedLevel.coerceIn(1, 25)
+        preferenceManager?.setIntegerValue(
+            PreferenceManager.Keys.PREFERENCE_KEY_POINT_SCAN_LINE_SPEED_LEVEL,
+            clampedSpeed
+        )
+        broadcastChanged(context)
+    }
+
+    /**
+     * Convert line speed level to time interval in milliseconds
+     * @param speedLevel The speed level (1-25)
+     * @return Time interval in milliseconds
+     */
+    fun speedLevelToInterval(speedLevel: Int): Long {
+        val clampedSpeed = speedLevel.coerceIn(1, 25)
+        // Formula: timeInterval = 250 + (25 - speedLevel) * 40
+        // Speed 1 = 1210ms, Speed 25 = 10ms
+        return 250L + (25 - clampedSpeed) * 40L
+    }
+
+    /**
+     * Get speed level description for UI display
+     * @param speedLevel The speed level (1-25)
+     * @return User-friendly description
+     */
+    fun getSpeedLevelDescription(speedLevel: Int): String {
+        return when (speedLevel.coerceIn(1, 25)) {
+            in 1..6 -> "Very Slow"
+            in 7..12 -> "Slow"
+            in 13..18 -> "Medium"
+            in 19..25 -> "Fast"
+            else -> "Medium"
+        }
     }
 
     /**
@@ -127,14 +177,10 @@ object PointScanSettings {
     }
 
     /**
-     * Set the fine point scan rate
-     * @param rate The fine scan rate
+     * Set the fine point scan rate using speed level
+     * @param speedLevel The speed level (1-25)
      */
-    fun setFineCursorScanRate(rate: Long, context: Context) {
-        preferenceManager?.setLongValue(
-            PreferenceManager.Keys.PREFERENCE_KEY_CURSOR_FINE_SCAN_RATE,
-            rate
-        )
-        broadcastChanged(context)
+    fun setFineCursorScanRate(speedLevel: Int, context: Context) {
+        setLineSpeedLevel(speedLevel, context)
     }
 }
