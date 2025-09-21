@@ -9,11 +9,14 @@ import com.enaboapps.switchify.components.PreferenceValueSelector
 import com.enaboapps.switchify.components.Section
 import com.enaboapps.switchify.screens.settings.shared.RadarSpeedStepper
 import com.enaboapps.switchify.service.scanning.ScanSettings
+import com.enaboapps.switchify.service.techniques.radar.RadarSettings
 
 @Composable
 fun RadarSettingsView() {
     val context = LocalContext.current
-    val preferenceManager = PreferenceManager(context)
+
+    // Initialize RadarSettings
+    RadarSettings.init(context)
 
     Section(titleResId = R.string.section_title_radar_speed) {
         RadarSpeedStepper()
@@ -23,25 +26,16 @@ fun RadarSettingsView() {
         PreferenceSwitch(
             titleResId = R.string.preference_title_radar_slow_down_then_select,
             summaryResId = R.string.preference_summary_radar_slow_down_then_select,
-            checked = preferenceManager.getBooleanValue(
-                PreferenceManager.Keys.PREFERENCE_KEY_RADAR_SLOW_DOWN_THEN_SELECT,
-                false
-            ),
+            checked = RadarSettings.isSlowDownThenSelectEnabled(),
             onCheckedChange = {
-                preferenceManager.setBooleanValue(
-                    PreferenceManager.Keys.PREFERENCE_KEY_RADAR_SLOW_DOWN_THEN_SELECT,
-                    it
-                )
+                RadarSettings.setSlowDownThenSelectEnabled(it, context)
             }
         )
 
         PreferenceValueSelector(
-            value = when (preferenceManager.getStringValue(
-                PreferenceManager.Keys.PREFERENCE_KEY_RADAR_STARTING_POSITION,
-                ScanSettings.RADAR_START_TOP
-            )) {
-                ScanSettings.RADAR_START_TOP -> 0
-                ScanSettings.RADAR_START_BOTTOM -> 1
+            value = when (RadarSettings.getStartingPosition()) {
+                RadarSettings.StartingPosition.TOP -> 0
+                RadarSettings.StartingPosition.BOTTOM -> 1
                 else -> 0
             },
             titleResId = R.string.preference_title_radar_starting_position,
@@ -63,14 +57,11 @@ fun RadarSettingsView() {
             },
             onValueChanged = { index ->
                 val position = when (index) {
-                    0 -> ScanSettings.RADAR_START_TOP
-                    1 -> ScanSettings.RADAR_START_BOTTOM
-                    else -> ScanSettings.RADAR_START_TOP
+                    0 -> RadarSettings.StartingPosition.TOP
+                    1 -> RadarSettings.StartingPosition.BOTTOM
+                    else -> RadarSettings.StartingPosition.TOP
                 }
-                preferenceManager.setStringValue(
-                    PreferenceManager.Keys.PREFERENCE_KEY_RADAR_STARTING_POSITION,
-                    position
-                )
+                RadarSettings.setStartingPosition(position, context)
             }
         )
     }

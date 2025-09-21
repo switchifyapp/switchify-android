@@ -57,6 +57,10 @@ class RadarManager(private val context: Context) : AccessTechniqueInterface {
     private val scanSettings = ScanSettings(context)
     private val radarUI = RadarUI(context)
 
+    init {
+        RadarSettings.init(context)
+    }
+
     private var currentAngle = getStartingAngle()
     private var currentDistanceRatio = INITIAL_DISTANCE_RATIO
     private var targetScreenX =
@@ -69,7 +73,7 @@ class RadarManager(private val context: Context) : AccessTechniqueInterface {
     private val wiperPivotX: Float
         get() = ScreenUtils.getWidth(context) / PIVOT_DIVISOR
     private val wiperPivotY: Float
-        get() = if (scanSettings.getRadarStartingPosition() == ScanSettings.RADAR_START_TOP) {
+        get() = if (RadarSettings.getStartingPosition() == RadarSettings.StartingPosition.TOP) {
             SCREEN_EDGE_POSITION  // Top edge
         } else {
             ScreenUtils.getHeight(context).toFloat()  // Bottom edge
@@ -79,7 +83,7 @@ class RadarManager(private val context: Context) : AccessTechniqueInterface {
             val width = ScreenUtils.getWidth(context).toFloat()
             val height = ScreenUtils.getHeight(context).toFloat()
             // For windscreen wiper, calculate max distance to screen edge from pivot
-            return if (scanSettings.getRadarStartingPosition() == ScanSettings.RADAR_START_TOP) {
+            return if (RadarSettings.getStartingPosition() == RadarSettings.StartingPosition.TOP) {
                 // From top edge, max distance is to bottom edge
                 height
             } else {
@@ -106,7 +110,7 @@ class RadarManager(private val context: Context) : AccessTechniqueInterface {
     private fun isSetupRequired(): Boolean = scanningScheduler == null
 
     private fun getStartingAngle(): Float {
-        return if (scanSettings.getRadarStartingPosition() == ScanSettings.RADAR_START_TOP) {
+        return if (RadarSettings.getStartingPosition() == RadarSettings.StartingPosition.TOP) {
             ANGLE_RIGHT  // Pointing right when starting from top (horizontal)
         } else {
             ANGLE_LEFT  // Pointing left when starting from bottom (horizontal)
@@ -141,7 +145,7 @@ class RadarManager(private val context: Context) : AccessTechniqueInterface {
         // Change direction when completing 180° sweep from horizontal starting position
         val normalizedAngle = (currentAngle + 360) % 360
 
-        return if (scanSettings.getRadarStartingPosition() == ScanSettings.RADAR_START_TOP) {
+        return if (RadarSettings.getStartingPosition() == RadarSettings.StartingPosition.TOP) {
             // Starting from right (0°), change direction when reaching horizontal limits
             if (rotationDirection == RotationDirection.CLOCKWISE) {
                 // Clockwise from 0° -> stop at 180°
@@ -279,7 +283,7 @@ class RadarManager(private val context: Context) : AccessTechniqueInterface {
 
     private fun startAutoScanIfEnabled() {
         if (scanSettings.isAutoScanMode()) {
-            val rate = scanSettings.getRadarScanRate()
+            val rate = RadarSettings.getScanRate()
             scanningScheduler?.startScanning(rate, rate)
         }
     }
@@ -426,14 +430,14 @@ class RadarManager(private val context: Context) : AccessTechniqueInterface {
     }
 
     private fun slowDownScanning() {
-        val normalRate = scanSettings.getRadarScanRate()
+        val normalRate = RadarSettings.getScanRate()
         val slowedRate = (normalRate * SLOW_DOWN_FACTOR).toLong()
         scanningScheduler?.stopScanning()
         scanningScheduler?.startScanning(slowedRate, slowedRate)
     }
 
     private fun resumeNormalSpeed() {
-        val normalRate = scanSettings.getRadarScanRate()
+        val normalRate = RadarSettings.getScanRate()
         scanningScheduler?.stopScanning()
         scanningScheduler?.startScanning(normalRate, normalRate)
     }
