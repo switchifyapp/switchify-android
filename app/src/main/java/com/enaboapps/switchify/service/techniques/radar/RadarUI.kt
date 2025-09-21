@@ -174,10 +174,10 @@ class RadarUI(private val context: Context) : AccessTechniqueUIBase() {
         override fun onDraw(canvas: Canvas) {
             super.onDraw(canvas)
             // Windscreen wiper pivot point - configurable top or bottom
-            val scanSettings = ScanSettings(context)
+            RadarSettings.init(context)
             val pivotX = width / 2f
             val pivotY =
-                if (scanSettings.getRadarStartingPosition() == ScanSettings.RADAR_START_TOP) {
+                if (RadarSettings.getStartingPosition() == RadarSettings.StartingPosition.TOP) {
                     0f  // Top edge
                 } else {
                     height.toFloat()  // Bottom edge
