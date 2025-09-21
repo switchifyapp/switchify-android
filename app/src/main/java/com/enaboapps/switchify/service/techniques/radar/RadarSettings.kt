@@ -3,6 +3,7 @@ package com.enaboapps.switchify.service.techniques.radar
 import android.content.Context
 import android.content.Intent
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
+import com.enaboapps.switchify.service.utils.ContinuousLineSpeedUtils
 
 /**
  * Settings class for radar scanning technique
@@ -34,8 +35,8 @@ object RadarSettings {
      * @return The radar scan rate
      */
     fun getScanRate(): Long {
-        val speedLevel = preferenceManager?.getIntegerValue(PreferenceManager.Keys.PREFERENCE_KEY_RADAR_SPEED_LEVEL, 13) ?: 13
-        return speedLevelToInterval(speedLevel)
+        val speedLevel = preferenceManager?.getIntegerValue(PreferenceManager.Keys.PREFERENCE_KEY_RADAR_SPEED_LEVEL, ContinuousLineSpeedUtils.getDefaultSpeedLevel()) ?: ContinuousLineSpeedUtils.getDefaultSpeedLevel()
+        return ContinuousLineSpeedUtils.speedLevelToInterval(speedLevel)
     }
 
     /**
@@ -43,7 +44,7 @@ object RadarSettings {
      * @return The speed level where 1 = slowest, 25 = fastest
      */
     fun getSpeedLevel(): Int {
-        return preferenceManager?.getIntegerValue(PreferenceManager.Keys.PREFERENCE_KEY_RADAR_SPEED_LEVEL, 13) ?: 13
+        return preferenceManager?.getIntegerValue(PreferenceManager.Keys.PREFERENCE_KEY_RADAR_SPEED_LEVEL, ContinuousLineSpeedUtils.getDefaultSpeedLevel()) ?: ContinuousLineSpeedUtils.getDefaultSpeedLevel()
     }
 
     /**
@@ -66,10 +67,7 @@ object RadarSettings {
      * @return Time interval in milliseconds
      */
     fun speedLevelToInterval(speedLevel: Int): Long {
-        val clampedSpeed = speedLevel.coerceIn(1, 25)
-        // Formula: timeInterval = 10 + (25 - speedLevel) * 48
-        // Speed 1 = 1162ms, Speed 25 = 10ms
-        return 10L + (25 - clampedSpeed) * 48L
+        return ContinuousLineSpeedUtils.speedLevelToInterval(speedLevel)
     }
 
     /**
@@ -78,13 +76,7 @@ object RadarSettings {
      * @return User-friendly description
      */
     fun getSpeedLevelDescription(speedLevel: Int): String {
-        return when (speedLevel.coerceIn(1, 25)) {
-            in 1..6 -> "Very Slow"
-            in 7..12 -> "Slow"
-            in 13..18 -> "Medium"
-            in 19..25 -> "Fast"
-            else -> "Medium"
-        }
+        return ContinuousLineSpeedUtils.getSpeedLevelDescription(speedLevel)
     }
 
     /**

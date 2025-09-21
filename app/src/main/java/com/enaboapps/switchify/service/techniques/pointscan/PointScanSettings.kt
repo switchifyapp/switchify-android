@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
+import com.enaboapps.switchify.service.utils.ContinuousLineSpeedUtils
 import com.enaboapps.switchify.utils.Resources
 
 object PointScanSettings {
@@ -98,9 +99,9 @@ object PointScanSettings {
      * @return The time interval in milliseconds
      */
     fun getFineCursorScanRate(): Long {
-        val speedLevel = preferenceManager?.getIntegerValue(PreferenceManager.Keys.PREFERENCE_KEY_POINT_SCAN_LINE_SPEED_LEVEL, 13)
-            ?: 13 // Default to medium speed level 13
-        return speedLevelToInterval(speedLevel)
+        val speedLevel = preferenceManager?.getIntegerValue(PreferenceManager.Keys.PREFERENCE_KEY_POINT_SCAN_LINE_SPEED_LEVEL, ContinuousLineSpeedUtils.getDefaultSpeedLevel())
+            ?: ContinuousLineSpeedUtils.getDefaultSpeedLevel()
+        return ContinuousLineSpeedUtils.speedLevelToInterval(speedLevel)
     }
 
     /**
@@ -108,8 +109,8 @@ object PointScanSettings {
      * @return The speed level where 1 = slowest, 25 = fastest
      */
     fun getLineSpeedLevel(): Int {
-        return preferenceManager?.getIntegerValue(PreferenceManager.Keys.PREFERENCE_KEY_POINT_SCAN_LINE_SPEED_LEVEL, 13)
-            ?: 13 // Default to medium speed
+        return preferenceManager?.getIntegerValue(PreferenceManager.Keys.PREFERENCE_KEY_POINT_SCAN_LINE_SPEED_LEVEL, ContinuousLineSpeedUtils.getDefaultSpeedLevel())
+            ?: ContinuousLineSpeedUtils.getDefaultSpeedLevel()
     }
 
     /**
@@ -131,10 +132,7 @@ object PointScanSettings {
      * @return Time interval in milliseconds
      */
     fun speedLevelToInterval(speedLevel: Int): Long {
-        val clampedSpeed = speedLevel.coerceIn(1, 25)
-        // Formula: timeInterval = 10 + (25 - speedLevel) * 48
-        // Speed 1 = 1162ms, Speed 25 = 10ms
-        return 10L + (25 - clampedSpeed) * 48L
+        return ContinuousLineSpeedUtils.speedLevelToInterval(speedLevel)
     }
 
     /**
@@ -143,13 +141,7 @@ object PointScanSettings {
      * @return User-friendly description
      */
     fun getSpeedLevelDescription(speedLevel: Int): String {
-        return when (speedLevel.coerceIn(1, 25)) {
-            in 1..6 -> "Very Slow"
-            in 7..12 -> "Slow"
-            in 13..18 -> "Medium"
-            in 19..25 -> "Fast"
-            else -> "Medium"
-        }
+        return ContinuousLineSpeedUtils.getSpeedLevelDescription(speedLevel)
     }
 
     /**
