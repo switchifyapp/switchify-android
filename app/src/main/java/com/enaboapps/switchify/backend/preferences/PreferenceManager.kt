@@ -16,7 +16,7 @@ class PreferenceManager(context: Context) {
         const val PREFERENCE_KEY_POINT_SCAN_LINE_SPEED_LEVEL = "point_scan_line_speed_level"
         const val PREFERENCE_KEY_CURSOR_BLOCK_SCAN_RATE = "cursor_block_scan_rate"
         const val PREFERENCE_KEY_CURSOR_BLOCK_COUNT = "cursor_block_count"
-        const val PREFERENCE_KEY_RADAR_SCAN_RATE = "radar_scan_rate"
+        const val PREFERENCE_KEY_RADAR_SPEED_LEVEL = "radar_speed_level"
         const val PREFERENCE_KEY_RADAR_SLOW_DOWN_THEN_SELECT = "radar_slow_down_then_select"
         const val PREFERENCE_KEY_RADAR_STARTING_POSITION = "radar_starting_position"
         const val PREFERENCE_KEY_SWITCH_HOLD_TIME = "switch_hold_time"

@@ -3,28 +3,26 @@ package com.enaboapps.switchify.screens.settings.shared
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 import com.enaboapps.switchify.R
-import com.enaboapps.switchify.backend.preferences.PreferenceManager
-import com.enaboapps.switchify.components.PreferenceTimeStepper
+import com.enaboapps.switchify.components.PreferenceValueSelector
+import com.enaboapps.switchify.service.scanning.ScanSettings
 
 @Composable
 fun RadarSpeedStepper() {
-    val preferenceManager = PreferenceManager(LocalContext.current)
+    val context = LocalContext.current
+    val scanSettings = ScanSettings(context)
 
-    PreferenceTimeStepper(
-        value = preferenceManager.getLongValue(
-            PreferenceManager.PREFERENCE_KEY_RADAR_SCAN_RATE,
-            1000
-        ),
+    PreferenceValueSelector(
+        value = scanSettings.getRadarSpeedLevel(),
         titleResId = R.string.preference_title_radar_speed,
         summaryResId = R.string.preference_summary_radar_speed,
-        min = 10,
-        max = 5000,
-        step = 10,
-        onValueChanged = { newValue ->
-            preferenceManager.setLongValue(
-                PreferenceManager.PREFERENCE_KEY_RADAR_SCAN_RATE,
-                newValue
-            )
+        min = 1,
+        max = 25,
+        buttonLabelFormatter = { speedLevel -> speedLevel.toString() },
+        displayFormatter = { speedLevel ->
+            "Level $speedLevel (${scanSettings.getRadarSpeedLevelDescription(speedLevel)})"
+        },
+        onValueChanged = { newSpeedLevel ->
+            scanSettings.setRadarSpeedLevel(newSpeedLevel)
         }
     )
 } 
