@@ -5,13 +5,13 @@ import android.graphics.drawable.Drawable
 
 class PointScanBlockDrawable : Drawable() {
     private val strokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.argb(120, 0, 0, 0) // Semi-transparent black
+        color = Color.BLACK // Solid black for consistent appearance
         style = Paint.Style.STROKE
         strokeWidth = 6f
     }
 
     private val fillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.argb(120, 0, 0, 0) // Semi-transparent black
+        color = Color.BLACK // Solid black for consistent appearance
         style = Paint.Style.FILL
     }
 
