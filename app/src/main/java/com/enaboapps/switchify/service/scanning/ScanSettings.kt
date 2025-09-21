@@ -106,9 +106,9 @@ class ScanSettings(context: Context) {
      */
     fun radarSpeedLevelToInterval(speedLevel: Int): Long {
         val clampedSpeed = speedLevel.coerceIn(1, 25)
-        // Formula: timeInterval = 250 + (25 - speedLevel) * 40
-        // Speed 1 = 1210ms, Speed 25 = 10ms
-        return 250L + (25 - clampedSpeed) * 40L
+        // Formula: timeInterval = 10 + (25 - speedLevel) * 48
+        // Speed 1 = 1162ms, Speed 25 = 10ms
+        return 10L + (25 - clampedSpeed) * 48L
     }
 
     /**
