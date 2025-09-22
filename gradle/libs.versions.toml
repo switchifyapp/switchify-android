@@ -1,7 +1,7 @@
 [versions]
 compose-bom = "2025.09.00"
 compose-icons = "1.7.8"
-kotlin = "2.2.0"
+kotlin = "2.2.20"
 agp = "8.13.0"
 core-ktx = "1.17.0"
 lifecycle-runtime-ktx = "2.9.4"
@@ -21,11 +21,11 @@ camerax = "1.5.0"
 accompanist = "0.37.3"
 mediapipe = "0.10.26.1"
 room = "2.8.0"
-ksp = "2.2.0-2.0.2"
+ksp = "2.2.20-2.0.3"
 supabase = "3.2.3"
 ktor = "3.3.0"
 sentry = "8.21.1"
-sentry-gradle = "4.13.0"
+sentry-gradle = "5.11.0"
 
 [libraries]
 compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "compose-bom" }
