@@ -24,12 +24,13 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 class HeadControlManager(private val context: Context) : MenuStateObserver {
-    
+
     companion object {
         private const val TAG = "HeadControlManager"
         private const val SCREEN_PADDING = 50
         private const val HEAD_ROTATION_RANGE = 30f
         private const val MOVEMENT_DELTA = 8f
+        private const val INITIALIZATION_DELAY = 3000L // 3 seconds
     }
     private var currentX: Int = ScreenUtils.getWidth(context) / 2
     private var currentY: Int = ScreenUtils.getHeight(context) / 2
@@ -42,11 +43,15 @@ class HeadControlManager(private val context: Context) : MenuStateObserver {
     private val minY = SCREEN_PADDING
     private val maxY = ScreenUtils.getHeight(context) - SCREEN_PADDING
     
+    // Initialization state
+    private var isInitializing = true
+    private var initializationJob: Job? = null
+
     // Gesture selection state
     private var isGestureActive = false
     private var gestureStartTime = 0L
     private var currentActiveGesture: String? = null
-    
+
     // Menu navigation state - now managed via observer pattern
     private var headControlScanner: HeadControlItemScanner? = null
     private val menuScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
@@ -63,8 +68,39 @@ class HeadControlManager(private val context: Context) : MenuStateObserver {
         MenuManager.getInstance().registerMenuStateObserver(this)
     }
 
-    fun startHeadControl() { 
-        showPointerIfAllowed()
+    fun startHeadControl() {
+        // Cancel any existing initialization job
+        initializationJob?.cancel()
+
+        // Reset initialization state
+        isInitializing = true
+
+        // Show initialization message
+        ServiceMessageHUD.instance.showMessage(
+            R.string.hud_head_control_initializing,
+            ServiceMessageHUD.MessageType.DISAPPEARING
+        )
+
+        // Start initialization delay
+        initializationJob = menuScope.launch {
+            try {
+                delay(INITIALIZATION_DELAY)
+                isInitializing = false
+
+                // Show ready message
+                ServiceMessageHUD.instance.showMessage(
+                    R.string.hud_head_control_ready,
+                    ServiceMessageHUD.MessageType.DISAPPEARING
+                )
+
+                // Now show pointer if allowed
+                showPointerIfAllowed()
+            } catch (e: Exception) {
+                if (BuildConfig.DEBUG) {
+                    Log.e(TAG, "Initialization interrupted", e)
+                }
+            }
+        }
     }
 
     fun cleanup() {
@@ -72,6 +108,7 @@ class HeadControlManager(private val context: Context) : MenuStateObserver {
         MenuManager.getInstance().unregisterMenuStateObserver(this)
         overlay.reset()
         resetGestureState()
+        initializationJob?.cancel()
         repeatJob?.cancel()
         menuScope.cancel()
     }
@@ -274,7 +311,7 @@ class HeadControlManager(private val context: Context) : MenuStateObserver {
     
 
     private fun showPointerIfAllowed() {
-        if (!isInMenuMode()) {
+        if (!isInitializing && !isInMenuMode()) {
             overlay.showPointer(currentX, currentY)
         }
     }
