@@ -36,6 +36,7 @@ class HeadControlManager(private val context: Context) : MenuStateObserver {
     private var currentY: Int = ScreenUtils.getHeight(context) / 2
     private val settings = HeadControlSettings(context)
     private val overlay = HeadControlOverlay(context)
+    private val gestureOverlay = HeadControlGestureOverlay(context)
     
     // Movement bounds with padding
     private val minX = SCREEN_PADDING
@@ -93,8 +94,9 @@ class HeadControlManager(private val context: Context) : MenuStateObserver {
                     ServiceMessageHUD.MessageType.DISAPPEARING
                 )
 
-                // Now show pointer if allowed
+                // Now show pointer and gesture overlay if allowed
                 showPointerIfAllowed()
+                gestureOverlay.showOverlay()
             } catch (e: Exception) {
                 if (BuildConfig.DEBUG) {
                     Log.e(TAG, "Initialization interrupted", e)
@@ -107,6 +109,7 @@ class HeadControlManager(private val context: Context) : MenuStateObserver {
         // Unregister from menu state observer
         MenuManager.getInstance().unregisterMenuStateObserver(this)
         overlay.reset()
+        gestureOverlay.hideOverlay()
         resetGestureState()
         initializationJob?.cancel()
         repeatJob?.cancel()
@@ -322,12 +325,15 @@ class HeadControlManager(private val context: Context) : MenuStateObserver {
     fun processGesture(gestureId: String, isGestureStarting: Boolean) {
         val selectedGesture = settings.selectGesture()
         val menuGesture = settings.menuGesture()
-        
+
         // Only process gestures that match our configured gestures
         if (gestureId != selectedGesture && gestureId != menuGesture) {
             return
         }
-        
+
+        // Update gesture overlay progress based on gesture activity
+        updateGestureOverlayProgress(gestureId, isGestureStarting)
+
         if (isGestureStarting && !isGestureActive) {
             gestureStarted(gestureId)
         } else if (!isGestureStarting && isGestureActive && currentActiveGesture == gestureId) {
@@ -370,12 +376,26 @@ class HeadControlManager(private val context: Context) : MenuStateObserver {
     }
     
     /**
+     * Updates gesture overlay progress bars based on gesture activity
+     */
+    private fun updateGestureOverlayProgress(gestureId: String, isActive: Boolean) {
+        val selectedGesture = settings.selectGesture()
+        val menuGesture = settings.menuGesture()
+
+        when (gestureId) {
+            selectedGesture -> gestureOverlay.updateSelectProgress(isActive)
+            menuGesture -> gestureOverlay.updateMenuProgress(isActive)
+        }
+    }
+
+    /**
      * Resets gesture state (called when pausing or stopping head control)
      */
     fun resetGestureState() {
         isGestureActive = false
         gestureStartTime = 0L
         currentActiveGesture = null
+        gestureOverlay.resetProgress()
     }
     
     // MenuStateObserver implementation
@@ -387,8 +407,9 @@ class HeadControlManager(private val context: Context) : MenuStateObserver {
             headControlScanner = HeadControlItemScanner()
         }
         
-        // Hide pointer immediately when entering menu mode
+        // Hide pointer and gesture overlay immediately when entering menu mode
         overlay.hidePointer()
+        gestureOverlay.hideOverlay()
         
         // Try to setup nodes if available, but don't fail if empty
         val nodes = menuView.getSelectableNodes()
@@ -430,6 +451,9 @@ class HeadControlManager(private val context: Context) : MenuStateObserver {
         headControlScanner?.clear()
         headControlScanner = null
         showPointerIfAllowed()
+        if (!isInitializing) {
+            gestureOverlay.showOverlay()
+        }
         repeatJob?.cancel()
         repeatJob = null
         activeDirection = null
