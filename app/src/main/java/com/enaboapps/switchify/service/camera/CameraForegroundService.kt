@@ -4,11 +4,13 @@ import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
+import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.os.Binder
 import android.os.Build
 import android.os.IBinder
+import android.os.PowerManager
 import android.util.Log
 import android.hardware.camera2.CameraManager
 import androidx.annotation.OptIn
@@ -47,6 +49,9 @@ class CameraForegroundService : Service(), CameraLifecycle {
 
     private val binder = CameraServiceBinder()
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
+    // Wake lock to keep CPU active during camera processing
+    private var wakeLock: PowerManager.WakeLock? = null
 
     // Camera components
     private var cameraProvider: ProcessCameraProvider? = null
@@ -126,6 +131,15 @@ class CameraForegroundService : Service(), CameraLifecycle {
         Log.d(TAG, "Service created")
         createNotificationChannel()
         startForeground(NOTIFICATION_ID, createNotification())
+
+        // Acquire wake lock to keep CPU active during camera processing
+        wakeLock = (getSystemService(Context.POWER_SERVICE) as PowerManager).run {
+            newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "Switchify::CameraProcessing").apply {
+                acquire(30 * 60 * 1000L) // 30 minutes timeout for safety
+                Log.d(TAG, "Wake lock acquired - CPU will stay active for camera processing")
+            }
+        }
+
         cameraManager = getSystemService(CAMERA_SERVICE) as CameraManager
         availabilityCallback = object : CameraManager.AvailabilityCallback() {
             override fun onCameraAvailable(cameraId: String) {
@@ -142,6 +156,16 @@ class CameraForegroundService : Service(), CameraLifecycle {
 
     override fun onDestroy() {
         Log.d(TAG, "Service destroyed")
+
+        // Release wake lock
+        wakeLock?.let { wl ->
+            if (wl.isHeld) {
+                wl.release()
+                Log.d(TAG, "Wake lock released")
+            }
+            wakeLock = null
+        }
+
         CoroutineScope(SupervisorJob() + Dispatchers.Default).launch {
             try {
                 cleanup()
@@ -674,6 +698,15 @@ class CameraForegroundService : Service(), CameraLifecycle {
             availabilityCallback?.let { cameraManager?.unregisterAvailabilityCallback(it) }
             availabilityCallback = null
             cameraManager = null
+
+            // Ensure wake lock is released during cleanup
+            wakeLock?.let { wl ->
+                if (wl.isHeld) {
+                    wl.release()
+                    Log.d(TAG, "Wake lock released during cleanup")
+                }
+                wakeLock = null
+            }
 
             _lifecycleState.value = CameraLifecycle.State.DESTROYED
             Log.i(TAG, "Camera service cleaned up successfully")
