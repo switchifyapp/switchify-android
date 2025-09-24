@@ -181,6 +181,12 @@ class PointScanManager(private val context: Context) : AccessTechniqueInterface 
      * Cleans up the point scan manager.
      */
     override fun cleanup() {
+        super.cleanup()
+        try {
+            context.unregisterReceiver(settingsChangedReceiver)
+        } catch (e: IllegalArgumentException) {
+            // Receiver was not registered or already unregistered
+        }
         blockManager.cleanup()
         lineManager.cleanup()
     }
