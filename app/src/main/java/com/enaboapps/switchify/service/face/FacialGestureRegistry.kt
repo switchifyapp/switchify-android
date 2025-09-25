@@ -53,6 +53,15 @@ object FacialGestureRegistry {
             assignableAsSwitch = true
         ),
         Meta(
+            id = CameraSwitchFacialGesture.PUCKER,
+            nameResId = R.string.head_control_gesture_pucker,
+            descriptionResId = R.string.head_control_gesture_pucker_description,
+            fallbackName = "Pucker",
+            fallbackDescription = "Pucker your lips",
+            isHeadTurn = false,
+            assignableAsSwitch = true
+        ),
+        Meta(
             id = CameraSwitchFacialGesture.HEAD_TURN_LEFT,
             nameResId = R.string.gesture_head_turn_left,
             descriptionResId = R.string.gesture_head_turn_left_description,

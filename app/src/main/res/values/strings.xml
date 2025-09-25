@@ -418,6 +418,8 @@
     <string name="preference_summary_right_wink_time">How long to hold a right wink to trigger camera switch</string>
     <string name="preference_title_blink_time">Blink Switch Hold Time</string>
     <string name="preference_summary_blink_time">How long to hold a blink to trigger camera switch</string>
+    <string name="preference_title_pucker_time">Pucker Switch Hold Time</string>
+    <string name="preference_summary_pucker_time">How long to hold a pucker to trigger camera switch</string>
 
     <!-- Settings - Account Section -->
     <string name="settings_section_account">Account</string>
@@ -728,10 +730,12 @@
     <string name="head_control_gesture_left_wink">Left Wink</string>
     <string name="head_control_gesture_right_wink">Right Wink</string>
     <string name="head_control_gesture_blink">Blink</string>
+    <string name="head_control_gesture_pucker">Pucker</string>
     <string name="head_control_gesture_smile_description">Smile</string>
     <string name="head_control_gesture_left_wink_description">Wink with your left eye</string>
     <string name="head_control_gesture_right_wink_description">Wink with your right eye</string>
     <string name="head_control_gesture_blink_description">Blink with your eyes</string>
+    <string name="head_control_gesture_pucker_description">Pucker your lips</string>
     
     <!-- Gesture names and descriptions for head turns (used across UI/logic) -->
     <string name="gesture_head_turn_left">Head Turn Left</string>

@@ -12,6 +12,7 @@ class BlendshapeProcessor {
     private val blinkScoreEMA = ExponentialMovingAverage(alpha = 0.3f)
     private val smileScoreEMA = ExponentialMovingAverage(alpha = 0.3f)
     private val mouthCloseScoreEMA = ExponentialMovingAverage(alpha = 0.3f)
+    private val puckerScoreEMA = ExponentialMovingAverage(alpha = 0.3f)
 
     /**
      * Cached blendshape indices for performance optimization
@@ -22,7 +23,8 @@ class BlendshapeProcessor {
         val mouthSmileLeftIndex: Int = -1,
         val mouthSmileRightIndex: Int = -1,
         val mouthCloseIndex: Int = -1,
-        val jawOpenIndex: Int = -1
+        val jawOpenIndex: Int = -1,
+        val mouthPuckerIndex: Int = -1
     )
 
     /**
@@ -33,7 +35,8 @@ class BlendshapeProcessor {
         val leftEyeCloseScore: Float = 0f,
         val rightEyeCloseScore: Float = 0f,
         val blinkScore: Float = 0f,
-        val mouthCloseScore: Float = 1f // Default to closed (1.0)
+        val mouthCloseScore: Float = 1f, // Default to closed (1.0)
+        val puckerScore: Float = 0f
     )
 
     fun processBlendshapes(
@@ -56,6 +59,7 @@ class BlendshapeProcessor {
         var smileLeft = 0f
         var smileRight = 0f
         var mouthClose = 0f
+        var mouthPucker = 0f
 
         // Use cached indices for direct access
         if (indices.leftEyeCloseIndex >= 0 && indices.leftEyeCloseIndex < blendShapes.size) {
@@ -78,6 +82,10 @@ class BlendshapeProcessor {
             mouthClose = blendShapes[indices.mouthCloseIndex].score()
         }
 
+        if (indices.mouthPuckerIndex >= 0 && indices.mouthPuckerIndex < blendShapes.size) {
+            mouthPucker = blendShapes[indices.mouthPuckerIndex].score()
+        }
+
         // Calculate combined scores
         val blinkScore = kotlin.math.max(leftEyeClose, rightEyeClose)
         val smileScore = kotlin.math.max(smileLeft, smileRight)
@@ -86,13 +94,15 @@ class BlendshapeProcessor {
         val smoothedBlinkScore = blinkScoreEMA.update(blinkScore)
         val smoothedSmileScore = smileScoreEMA.update(smileScore)
         val smoothedMouthCloseScore = mouthCloseScoreEMA.update(mouthClose)
+        val smoothedPuckerScore = puckerScoreEMA.update(mouthPucker)
 
         return BlendshapeScores(
             smileScore = smoothedSmileScore,
             leftEyeCloseScore = leftEyeClose,
             rightEyeCloseScore = rightEyeClose,
             blinkScore = smoothedBlinkScore,
-            mouthCloseScore = smoothedMouthCloseScore
+            mouthCloseScore = smoothedMouthCloseScore,
+            puckerScore = smoothedPuckerScore
         )
     }
 
@@ -105,6 +115,7 @@ class BlendshapeProcessor {
         var mouthSmileRightIndex = -1
         var mouthCloseIndex = -1
         var jawOpenIndex = -1
+        var mouthPuckerIndex = -1
 
         for (i in blendShapes.indices) {
             when (blendShapes[i].categoryName()) {
@@ -114,6 +125,7 @@ class BlendshapeProcessor {
                 "mouthSmileRight" -> mouthSmileRightIndex = i
                 "mouthClose" -> mouthCloseIndex = i
                 "jawOpen" -> jawOpenIndex = i
+                "mouthPucker" -> mouthPuckerIndex = i
             }
         }
 
@@ -123,7 +135,8 @@ class BlendshapeProcessor {
             mouthSmileLeftIndex,
             mouthSmileRightIndex,
             mouthCloseIndex,
-            jawOpenIndex
+            jawOpenIndex,
+            mouthPuckerIndex
         )
     }
 
@@ -131,5 +144,6 @@ class BlendshapeProcessor {
         blinkScoreEMA.reset()
         smileScoreEMA.reset()
         mouthCloseScoreEMA.reset()
+        puckerScoreEMA.reset()
     }
 }

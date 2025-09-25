@@ -212,6 +212,7 @@ class HeadControlGestureOverlay(private val context: Context) : AccessTechniqueU
             "left_wink" -> "😉"
             "right_wink" -> "😉"
             "blink" -> "😑"
+            "pucker" -> "😗"
             else -> "👤"
         }
     }

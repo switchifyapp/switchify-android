@@ -103,6 +103,7 @@ private fun CameraSettingsContent(
     val leftWinkTime by viewModel.leftWinkTime.collectAsState()
     val rightWinkTime by viewModel.rightWinkTime.collectAsState()
     val blinkTime by viewModel.blinkTime.collectAsState()
+    val puckerTime by viewModel.puckerTime.collectAsState()
     
     
 
@@ -159,7 +160,8 @@ private fun CameraSettingsContent(
                     smileTime = smileTime,
                     leftWinkTime = leftWinkTime,
                     rightWinkTime = rightWinkTime,
-                    blinkTime = blinkTime
+                    blinkTime = blinkTime,
+                    puckerTime = puckerTime
                 )
             }
         }
@@ -271,7 +273,8 @@ private fun GestureQuickCheckGrid(
         CameraSwitchFacialGesture.SMILE,
         CameraSwitchFacialGesture.LEFT_WINK,
         CameraSwitchFacialGesture.RIGHT_WINK,
-        CameraSwitchFacialGesture.BLINK
+        CameraSwitchFacialGesture.BLINK,
+        CameraSwitchFacialGesture.PUCKER
     )
 
     val rows = gestures.chunked(3)
@@ -333,7 +336,8 @@ private fun TimingSettingsTab(
     smileTime: Long,
     leftWinkTime: Long,
     rightWinkTime: Long,
-    blinkTime: Long
+    blinkTime: Long,
+    puckerTime: Long
 ) {
     ScrollableView {
         Section(titleResId = R.string.section_title_camera_switch_timing) {
@@ -375,6 +379,16 @@ private fun TimingSettingsTab(
                 max = 2000,
                 step = 50,
                 onValueChanged = { viewModel.setBlinkTime(it) }
+            )
+
+            PreferenceTimeStepper(
+                value = puckerTime,
+                titleResId = R.string.preference_title_pucker_time,
+                summaryResId = R.string.preference_summary_pucker_time,
+                min = 100,
+                max = 3000,
+                step = 100,
+                onValueChanged = { viewModel.setPuckerTime(it) }
             )
 
         }

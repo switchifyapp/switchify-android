@@ -81,7 +81,8 @@ class FaceProcessingService(context: Context) {
         val leftEyeCloseScore: Float = 0f,
         val rightEyeCloseScore: Float = 0f,
         val blinkScore: Float = 0f,
-        val mouthCloseScore: Float = 1f // Default to closed (1.0)
+        val mouthCloseScore: Float = 1f, // Default to closed (1.0)
+        val puckerScore: Float = 0f
     )
 
     /**
@@ -181,7 +182,8 @@ class FaceProcessingService(context: Context) {
                 leftEyeCloseScore = processedScores.leftEyeCloseScore,
                 rightEyeCloseScore = processedScores.rightEyeCloseScore,
                 blinkScore = processedScores.blinkScore,
-                mouthCloseScore = processedScores.mouthCloseScore
+                mouthCloseScore = processedScores.mouthCloseScore,
+                puckerScore = processedScores.puckerScore
             )
         } else {
             BlendshapeScores()
@@ -255,6 +257,8 @@ class FaceProcessingService(context: Context) {
                 preferenceManager.getLongValue(PreferenceManager.PREFERENCE_KEY_CAMERA_RIGHT_WINK_TIME, 300L)
             CameraSwitchFacialGesture.BLINK ->
                 preferenceManager.getLongValue(PreferenceManager.PREFERENCE_KEY_CAMERA_BLINK_TIME, 400L)
+            CameraSwitchFacialGesture.PUCKER ->
+                preferenceManager.getLongValue(PreferenceManager.PREFERENCE_KEY_CAMERA_PUCKER_TIME, 500L)
             CameraSwitchFacialGesture.HEAD_TURN_LEFT,
             CameraSwitchFacialGesture.HEAD_TURN_RIGHT,
             CameraSwitchFacialGesture.HEAD_TURN_UP,
