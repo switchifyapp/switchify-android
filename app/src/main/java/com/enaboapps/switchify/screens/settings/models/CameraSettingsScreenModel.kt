@@ -25,6 +25,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.service.face.FaceProcessingService
+import com.enaboapps.switchify.service.face.FacialGestureRegistry
 import com.enaboapps.switchify.switches.CameraSwitchFacialGesture
 import com.google.common.util.concurrent.ListenableFuture
 import kotlinx.coroutines.Dispatchers
@@ -54,13 +55,9 @@ class CameraSettingsScreenModel(application: Application) : AndroidViewModel(app
         var startTime: Long = 0
     )
 
-    private val gestureStates = mutableMapOf(
-        CameraSwitchFacialGesture.SMILE to GestureState(),
-        CameraSwitchFacialGesture.LEFT_WINK to GestureState(),
-        CameraSwitchFacialGesture.RIGHT_WINK to GestureState(),
-        CameraSwitchFacialGesture.BLINK to GestureState(),
-        CameraSwitchFacialGesture.PUCKER to GestureState(),
-    )
+    private val gestureStates = FacialGestureRegistry.switchAssignableIds()
+        .associateWith { GestureState() }
+        .toMutableMap()
 
     private var lastProcessedState = FaceProcessingService.FaceState()
     private var currentFaceState = FaceProcessingService.FaceState()

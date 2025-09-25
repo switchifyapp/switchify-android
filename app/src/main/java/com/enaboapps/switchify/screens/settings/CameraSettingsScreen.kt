@@ -58,6 +58,7 @@ import com.enaboapps.switchify.components.Section
 import com.enaboapps.switchify.nav.NavigationRoute
 import com.enaboapps.switchify.screens.settings.models.CameraSettingsScreenModel
 import com.enaboapps.switchify.service.face.FaceProcessingService
+import com.enaboapps.switchify.service.face.FacialGestureRegistry
 import com.enaboapps.switchify.switches.CameraSwitchFacialGesture
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberPermissionState
@@ -269,13 +270,7 @@ private fun TestGesturesTab(
 private fun GestureQuickCheckGrid(
     detectedExpressions: Set<String>
 ) {
-    val gestures = listOf(
-        CameraSwitchFacialGesture.SMILE,
-        CameraSwitchFacialGesture.LEFT_WINK,
-        CameraSwitchFacialGesture.RIGHT_WINK,
-        CameraSwitchFacialGesture.BLINK,
-        CameraSwitchFacialGesture.PUCKER
-    )
+    val gestures = FacialGestureRegistry.switchAssignableIds()
 
     val rows = gestures.chunked(3)
 
