@@ -59,6 +59,7 @@ class CameraSettingsScreenModel(application: Application) : AndroidViewModel(app
         CameraSwitchFacialGesture.LEFT_WINK to GestureState(),
         CameraSwitchFacialGesture.RIGHT_WINK to GestureState(),
         CameraSwitchFacialGesture.BLINK to GestureState(),
+        CameraSwitchFacialGesture.PUCKER to GestureState(),
     )
 
     private var lastProcessedState = FaceProcessingService.FaceState()
@@ -77,6 +78,9 @@ class CameraSettingsScreenModel(application: Application) : AndroidViewModel(app
     private val _blinkTime = MutableStateFlow(getBlinkTime())
     val blinkTime: StateFlow<Long> = _blinkTime.asStateFlow()
 
+    private val _puckerTime = MutableStateFlow(getPuckerTime())
+    val puckerTime: StateFlow<Long> = _puckerTime.asStateFlow()
+
 
     // Real-time blendshape scores for progress bars
     private val _smileScore = MutableStateFlow(0f)
@@ -90,6 +94,9 @@ class CameraSettingsScreenModel(application: Application) : AndroidViewModel(app
 
     private val _blinkScore = MutableStateFlow(0f)
     val blinkScore: StateFlow<Float> = _blinkScore.asStateFlow()
+
+    private val _puckerScore = MutableStateFlow(0f)
+    val puckerScore: StateFlow<Float> = _puckerScore.asStateFlow()
 
 
     private var cameraProviderFuture: ListenableFuture<ProcessCameraProvider>? = null
@@ -276,6 +283,7 @@ class CameraSettingsScreenModel(application: Application) : AndroidViewModel(app
         _leftWinkScore.value = result.blendshapeScores.leftEyeCloseScore
         _rightWinkScore.value = result.blendshapeScores.rightEyeCloseScore
         _blinkScore.value = result.blendshapeScores.blinkScore
+        _puckerScore.value = result.blendshapeScores.puckerScore
 
         val validatedGestures = mutableSetOf<String>()
 
@@ -439,6 +447,13 @@ class CameraSettingsScreenModel(application: Application) : AndroidViewModel(app
         )
     }
 
+    fun getPuckerTime(): Long {
+        return preferenceManager.getLongValue(
+            PreferenceManager.PREFERENCE_KEY_CAMERA_PUCKER_TIME,
+            500L
+        )
+    }
+
 
     // Preference setter methods
     fun setSmileTime(value: Long) {
@@ -465,6 +480,11 @@ class CameraSettingsScreenModel(application: Application) : AndroidViewModel(app
     fun setBlinkTime(value: Long) {
         preferenceManager.setLongValue(PreferenceManager.PREFERENCE_KEY_CAMERA_BLINK_TIME, value)
         _blinkTime.value = value
+    }
+
+    fun setPuckerTime(value: Long) {
+        preferenceManager.setLongValue(PreferenceManager.PREFERENCE_KEY_CAMERA_PUCKER_TIME, value)
+        _puckerTime.value = value
     }
 
 

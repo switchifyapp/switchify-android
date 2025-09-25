@@ -16,6 +16,9 @@ class GestureDetector(private val preferenceManager: PreferenceManager) {
         // Mouth open detection threshold
         const val MOUTH_CLOSE_MAX_THRESHOLD = 0.8f
 
+        // Pucker gesture detection threshold
+        const val PUCKER_THRESHOLD = 0.5f
+
         // Head pose limits for gesture gating
         const val HEAD_POSE_YAW_LIMIT = 45f
         const val HEAD_POSE_PITCH_LIMIT = 30f
@@ -41,6 +44,12 @@ class GestureDetector(private val preferenceManager: PreferenceManager) {
         if (faceState.isSmiling) {
             detectedGestures.add(CameraSwitchFacialGesture.SMILE)
             gestureConfidence[CameraSwitchFacialGesture.SMILE] = blendshapeScores.smileScore
+        }
+
+        // Pucker detection (mouth-based gesture, less affected by head pose)
+        if (blendshapeScores.puckerScore > PUCKER_THRESHOLD) {
+            detectedGestures.add(CameraSwitchFacialGesture.PUCKER)
+            gestureConfidence[CameraSwitchFacialGesture.PUCKER] = blendshapeScores.puckerScore
         }
 
         // Eye-based gestures only if head pose is valid
