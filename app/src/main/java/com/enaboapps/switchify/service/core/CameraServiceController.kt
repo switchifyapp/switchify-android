@@ -18,6 +18,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 class CameraServiceController(
     private val context: Context,
@@ -29,6 +31,8 @@ class CameraServiceController(
 ) {
     var service: CameraForegroundService? = null
     private var isBound = false
+    private var isBinding = false
+    private val bindingMutex = Mutex()
     private val permissionManager = CameraPermissionManager.getInstance(context)
 
     private companion object {
@@ -39,9 +43,12 @@ class CameraServiceController(
         override fun onServiceConnected(name: ComponentName?, binder: IBinder?) {
             logd("Camera service connected")
             val svc = (binder as CameraForegroundService.CameraServiceBinder).getService()
-            service = svc
-            isBound = true
             serviceScope.launch {
+                bindingMutex.withLock {
+                    service = svc
+                    isBound = true
+                    isBinding = false
+                }
                 if (svc.initialize()) {
                     onServiceConnected(svc)
                     startIfAvailable()
@@ -51,45 +58,85 @@ class CameraServiceController(
 
         override fun onServiceDisconnected(name: ComponentName?) {
             logd("Camera service disconnected")
-            service = null
-            isBound = false
+            serviceScope.launch {
+                bindingMutex.withLock {
+                    service = null
+                    isBound = false
+                    isBinding = false
+                }
+            }
             onServiceDisconnected()
         }
     }
 
     fun bindIfNeeded() {
-        val provider = ServiceCore.getSwitchEventProvider()
-        // Head control is now independent - check if it's enabled
-        val headControlSettings = com.enaboapps.switchify.service.techniques.headcontrol.HeadControlSettings(context)
-        val headActive = headControlSettings.isHeadControlEnabled()
-        val needsCamera = provider?.hasCameraSwitch == true || headActive
-        if (needsCamera && !isBound && permissionManager.hasPermission()) {
-            val intent = Intent(context, CameraForegroundService::class.java)
-            context.startService(intent)
-            context.bindService(intent, connection, Context.BIND_AUTO_CREATE)
-            logd("Binding to camera foreground service (camera switches: ${provider?.hasCameraSwitch}, head control: $headActive)")
-        } else if (needsCamera && !permissionManager.hasPermission()) {
-            logd("Camera permission not granted, skipping camera service binding")
+        serviceScope.launch {
+            bindingMutex.withLock {
+                val provider = ServiceCore.getSwitchEventProvider()
+                // Head control is now independent - check if it's enabled
+                val headControlSettings = com.enaboapps.switchify.service.techniques.headcontrol.HeadControlSettings(context)
+                val headActive = headControlSettings.isHeadControlEnabled()
+                val needsCamera = provider?.hasCameraSwitch == true || headActive
+
+                if (needsCamera && !isBound && !isBinding && permissionManager.hasPermission()) {
+                    try {
+                        isBinding = true
+                        val intent = Intent(context, CameraForegroundService::class.java)
+                        context.startService(intent)
+                        val bound = context.bindService(intent, connection, Context.BIND_AUTO_CREATE)
+                        if (!bound) {
+                            logd("Failed to bind to camera service")
+                            isBinding = false
+                        } else {
+                            logd("Binding to camera foreground service (camera switches: ${provider?.hasCameraSwitch}, head control: $headActive)")
+                        }
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Exception during service binding", e)
+                        isBinding = false
+                    }
+                } else if (needsCamera && !permissionManager.hasPermission()) {
+                    logd("Camera permission not granted, skipping camera service binding")
+                }
+            }
         }
     }
 
     fun unbindIfBound() {
-        if (isBound) {
-            service?.stopCamera()
-            serviceScope.launch {
-                try {
-                    withTimeout(5_000) {
-                        service?.cleanup()
+        serviceScope.launch {
+            bindingMutex.withLock {
+                if (isBound || isBinding) {
+                    service?.stopCamera()
+
+                    try {
+                        withTimeout(5_000) {
+                            service?.cleanup()
+                        }
+                    } catch (t: Throwable) {
+                        Log.w(TAG, "Cleanup failed or timed out; proceeding with unbind/stop", t)
                     }
-                } catch (t: Throwable) {
-                    Log.w(TAG, "Cleanup failed or timed out; proceeding with unbind/stop", t)
-                } finally {
-                    if (isBound) {
-                        context.unbindService(connection)
-                        context.stopService(Intent(context, CameraForegroundService::class.java))
+
+                    // Safe unbinding with exception handling
+                    try {
+                        if (isBound) {
+                            context.unbindService(connection)
+                            logd("Successfully unbound from camera foreground service")
+                        }
+                    } catch (e: IllegalArgumentException) {
+                        Log.w(TAG, "Service was not registered or already unbound", e)
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Unexpected exception during service unbinding", e)
+                    } finally {
+                        // Always clean up state regardless of unbind success
+                        try {
+                            context.stopService(Intent(context, CameraForegroundService::class.java))
+                        } catch (e: Exception) {
+                            Log.w(TAG, "Exception stopping service", e)
+                        }
+
                         isBound = false
+                        isBinding = false
                         service = null
-                        logd("Unbound from camera foreground service")
+                        logd("Camera service state reset")
                     }
                 }
             }
