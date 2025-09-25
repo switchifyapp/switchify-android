@@ -130,8 +130,8 @@ fun PreferenceValueSelector(
             },
             text = {
                 LazyColumn {
-                    // Group values into rows of 3
-                    val groupedValues = valuesToDisplay.chunked(3)
+                    // Group values into rows of 2
+                    val groupedValues = valuesToDisplay.chunked(2)
                     items(groupedValues) { rowValues ->
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -162,8 +162,8 @@ fun PreferenceValueSelector(
                                     )
                                 }
                             }
-                            // Fill remaining slots if row has fewer than 3 items
-                            repeat(3 - rowValues.size) {
+                            // Fill remaining slots if row has fewer than 2 items
+                            repeat(2 - rowValues.size) {
                                 Spacer(modifier = Modifier.weight(1f))
                             }
                         }
