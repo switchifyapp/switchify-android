@@ -139,13 +139,51 @@ class HeadControlService private constructor(private val context: Context) {
         return try {
             if (enabled && headControlManager == null) {
                 Log.d(TAG, "Initializing head control manager")
-                headControlManager = HeadControlManager(context)
-                // Only update settings after successful initialization
-                settings.setHeadControlEnabled(enabled)
+                // Create HeadControlManager on main thread since it contains UI components
+                val mainHandler = android.os.Handler(android.os.Looper.getMainLooper())
+                var success = false
+                val latch = java.util.concurrent.CountDownLatch(1)
+
+                mainHandler.post {
+                    try {
+                        headControlManager = HeadControlManager(context)
+                        success = true
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Failed to create HeadControlManager on main thread", e)
+                        success = false
+                    } finally {
+                        latch.countDown()
+                    }
+                }
+
+                // Wait for main thread creation to complete
+                latch.await(2, java.util.concurrent.TimeUnit.SECONDS)
+
+                if (success) {
+                    // Only update settings after successful initialization
+                    settings.setHeadControlEnabled(enabled)
+                } else {
+                    return false
+                }
             } else if (!enabled) {
                 Log.d(TAG, "Disabling head control manager")
-                headControlManager?.cleanup()
-                headControlManager = null
+                // Cleanup on main thread since it involves UI components
+                val mainHandler = android.os.Handler(android.os.Looper.getMainLooper())
+                val latch = java.util.concurrent.CountDownLatch(1)
+
+                mainHandler.post {
+                    try {
+                        headControlManager?.cleanup()
+                        headControlManager = null
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Failed to cleanup HeadControlManager on main thread", e)
+                    } finally {
+                        latch.countDown()
+                    }
+                }
+
+                // Wait for main thread cleanup to complete
+                latch.await(2, java.util.concurrent.TimeUnit.SECONDS)
                 settings.setHeadControlEnabled(enabled)
             } else {
                 // Already in desired state, just update settings

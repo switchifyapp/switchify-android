@@ -58,27 +58,15 @@ fun HeadControlToggleCard(
 
     val iconScale by animateFloatAsState(targetValue = if (headEnabled) 1.1f else 1.0f, label = "iconScale")
 
-    // Listen for service events to update state when service actually changes
-    LaunchedEffect(Unit) {
-        ServiceBridge.serviceEvents.collect { event ->
-            if (event is ServiceBridge.ServiceEvent.ConfigurationUpdated) {
-                // Refresh state from settings when service reports configuration change
-                headEnabled = settings.isHeadControlEnabled()
-            }
-        }
-    }
-
     val onClick = onClick@ {
         if (coolingDown) return@onClick
         val desired = !headEnabled
-        // Don't immediately set local state - wait for service confirmation
+        headEnabled = desired
         ServiceBridge.sendCommand(ServiceBridge.ServiceCommand.SetHeadControlEnabled(desired))
         coolingDown = true
         scope.launch {
             delay(1000L)
             coolingDown = false
-            // Refresh state from settings after cooldown in case service event was missed
-            headEnabled = settings.isHeadControlEnabled()
         }
     }
 
