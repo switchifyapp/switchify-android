@@ -2,6 +2,7 @@ package com.enaboapps.switchify.service.techniques.headcontrol
 
 import android.content.Context
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
+import com.enaboapps.switchify.service.face.FacialGestureRegistry
 import com.enaboapps.switchify.switches.CameraSwitchFacialGesture
 
 /**
@@ -164,12 +165,7 @@ class HeadControlSettings(context: Context) {
      * Get available gestures for selection (excludes head turns which are used for cursor control)
      */
     fun getAvailableSelectGestures(): List<String> {
-        return listOf(
-            CameraSwitchFacialGesture.SMILE,
-            CameraSwitchFacialGesture.LEFT_WINK,
-            CameraSwitchFacialGesture.RIGHT_WINK,
-            CameraSwitchFacialGesture.BLINK
-        )
+        return FacialGestureRegistry.switchAssignableIds()
     }
     
     /**
