@@ -183,21 +183,79 @@ class HeadControlGestureOverlay(private val context: Context) : AccessTechniqueU
             val screenWidth = ScreenUtils.getWidth(context)
             val maxWidth = 480 // Wider max width for better content fit
 
-            // Force a layout pass to get proper measurements
-            view.post {
-                view.measure(
-                    android.view.View.MeasureSpec.makeMeasureSpec(maxWidth, android.view.View.MeasureSpec.AT_MOST),
-                    android.view.View.MeasureSpec.makeMeasureSpec(0, android.view.View.MeasureSpec.UNSPECIFIED)
-                )
+            // Safe positioning with proper view attachment validation
+            if (view.isAttachedToWindow) {
+                // View is already attached, proceed with measurement
+                safeMeasureAndPosition(view, screenWidth, maxWidth)
+            } else {
+                // View not attached yet, wait for attachment
+                view.post {
+                    // Double-check attachment after post
+                    if (view.isAttachedToWindow) {
+                        safeMeasureAndPosition(view, screenWidth, maxWidth)
+                    } else {
+                        // Still not attached, use ViewTreeObserver to wait
+                        view.viewTreeObserver.addOnGlobalLayoutListener(object : android.view.ViewTreeObserver.OnGlobalLayoutListener {
+                            override fun onGlobalLayout() {
+                                if (view.isAttachedToWindow) {
+                                    view.viewTreeObserver.removeOnGlobalLayoutListener(this)
+                                    safeMeasureAndPosition(view, screenWidth, maxWidth)
+                                }
+                            }
+                        })
 
-                val viewWidth = if (view.measuredWidth > 0) view.measuredWidth else 350
-                val viewHeight = if (view.measuredHeight > 0) view.measuredHeight else 100
-
-                val x = screenWidth - viewWidth - margin
-                val y = margin
-
-                updateView(view, x, y, viewWidth, viewHeight)
+                        // Fallback: Position without measurement after delay
+                        view.postDelayed({
+                            if (!view.isAttachedToWindow) {
+                                // Use fallback dimensions if still not attached
+                                val fallbackWidth = 350
+                                val fallbackHeight = 100
+                                val x = screenWidth - fallbackWidth - margin
+                                val y = margin
+                                updateView(view as androidx.compose.ui.platform.ComposeView, x, y, fallbackWidth, fallbackHeight)
+                            }
+                        }, 100) // 100ms fallback delay
+                    }
+                }
             }
+        }
+    }
+
+    private fun safeMeasureAndPosition(view: android.view.View, screenWidth: Int, maxWidth: Int) {
+        try {
+            // Safe measurement with exception handling
+            view.measure(
+                android.view.View.MeasureSpec.makeMeasureSpec(maxWidth, android.view.View.MeasureSpec.AT_MOST),
+                android.view.View.MeasureSpec.makeMeasureSpec(0, android.view.View.MeasureSpec.UNSPECIFIED)
+            )
+
+            val viewWidth = if (view.measuredWidth > 0) view.measuredWidth else 350
+            val viewHeight = if (view.measuredHeight > 0) view.measuredHeight else 100
+
+            val x = screenWidth - viewWidth - margin
+            val y = margin
+
+            updateView(view as androidx.compose.ui.platform.ComposeView, x, y, viewWidth, viewHeight)
+        } catch (e: IllegalStateException) {
+            // Handle ComposeView measurement errors
+            android.util.Log.w("HeadControlGestureOverlay", "ComposeView measurement failed, using fallback positioning", e)
+
+            // Use fallback dimensions
+            val fallbackWidth = 350
+            val fallbackHeight = 100
+            val x = screenWidth - fallbackWidth - margin
+            val y = margin
+            updateView(view as androidx.compose.ui.platform.ComposeView, x, y, fallbackWidth, fallbackHeight)
+        } catch (e: Exception) {
+            // Handle any other unexpected exceptions
+            android.util.Log.e("HeadControlGestureOverlay", "Unexpected error during view positioning", e)
+
+            // Use fallback dimensions
+            val fallbackWidth = 350
+            val fallbackHeight = 100
+            val x = screenWidth - fallbackWidth - margin
+            val y = margin
+            updateView(view as androidx.compose.ui.platform.ComposeView, x, y, fallbackWidth, fallbackHeight)
         }
     }
 
