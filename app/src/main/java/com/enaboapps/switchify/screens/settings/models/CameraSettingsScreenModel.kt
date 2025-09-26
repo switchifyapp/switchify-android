@@ -7,6 +7,8 @@ import android.graphics.BitmapFactory
 import android.graphics.ImageFormat
 import android.graphics.Rect
 import android.graphics.YuvImage
+import android.view.Surface
+import android.view.WindowManager
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
@@ -114,6 +116,27 @@ class CameraSettingsScreenModel(application: Application) : AndroidViewModel(app
     }
 
     init {
+        // Configure camera orientation for coordinate normalization
+        configureCameraOrientation()
+    }
+
+    /**
+     * Configure face processing service with current device rotation and camera orientation
+     */
+    private fun configureCameraOrientation() {
+        // Get device rotation from display
+        val context = getApplication<Application>().applicationContext
+        val rotation = try {
+            val windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
+            @Suppress("DEPRECATION")
+            windowManager.defaultDisplay?.rotation ?: Surface.ROTATION_0
+        } catch (e: Exception) {
+            // Fallback to portrait if we can't get rotation
+            Surface.ROTATION_0
+        }
+
+        // Configure face processing service (front camera by default)
+        faceProcessingService.setCameraOrientation(rotation, frontCamera = true)
     }
 
     @OptIn(ExperimentalGetImage::class)
