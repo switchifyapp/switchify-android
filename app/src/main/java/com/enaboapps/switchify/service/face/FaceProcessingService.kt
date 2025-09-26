@@ -38,7 +38,7 @@ class FaceProcessingService(context: Context) {
     private val mediaPipeManager = MediaPipeManager()
     private val blendshapeProcessor = BlendshapeProcessor()
     private val faceStateManager = FaceStateManager()
-    private val headPoseCalculator = HeadPoseCalculator()
+    private val headPoseCalculator = HeadPoseCalculator(appContext)
     private val gestureDetector = GestureDetector(preferenceManager)
 
     companion object {
@@ -137,6 +137,32 @@ class FaceProcessingService(context: Context) {
     }
 
     /**
+     * Start runtime detection to automatically determine coordinate system for this device
+     */
+    fun startCoordinateSystemDetection() {
+        headPoseCalculator.startRuntimeDetection()
+    }
+
+    /**
+     * Get current coordinate system information
+     */
+    fun getCoordinateSystemInfo(): String {
+        val coordinateSystem = headPoseCalculator.getCoordinateSystemInfo()
+        return "Device: ${coordinateSystem.deviceKey}\n" +
+               "Pitch Inverted: ${coordinateSystem.shouldApplyPitchInversion()}\n" +
+               "Yaw Inverted: ${coordinateSystem.shouldApplyYawInversion()}\n" +
+               "Confidence: ${"%.1f".format(coordinateSystem.confidence * 100)}%\n" +
+               "Runtime Detection: ${if (headPoseCalculator.isRuntimeDetectionActive()) "Active" else "Inactive"}"
+    }
+
+    /**
+     * Clear cached coordinate system (for testing)
+     */
+    fun clearCoordinateSystemCache() {
+        headPoseCalculator.clearCoordinateSystemCache()
+    }
+
+    /**
      * Main face processing method - preserved exact interface as original
      */
     fun processFace(
@@ -199,9 +225,10 @@ class FaceProcessingService(context: Context) {
             BlendshapeScores()
         }
 
-        // Process head pose using the modular calculator
+        // Process head pose using the modular calculator with face landmarks for coordinate detection
+        val faceLandmarks = if (result.faceLandmarks().isNotEmpty()) result.faceLandmarks()[0] else null
         val headPose = if (result.facialTransformationMatrixes().isPresent && result.facialTransformationMatrixes().get().isNotEmpty()) {
-            headPoseCalculator.extractEulerAngles(result.facialTransformationMatrixes().get()[0])
+            headPoseCalculator.extractEulerAngles(result.facialTransformationMatrixes().get()[0], faceLandmarks)
         } else {
             HeadPoseCalculator.EulerAngles(0f, 0f, 0f)
         }
