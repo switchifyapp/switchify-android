@@ -56,6 +56,7 @@ import com.enaboapps.switchify.R
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.PreferenceSwitch
+import com.enaboapps.switchify.components.PreferenceTimeStepper
 import com.enaboapps.switchify.components.PreferenceValueSelector
 import com.enaboapps.switchify.components.ScrollableView
 import com.enaboapps.switchify.components.Section
@@ -290,10 +291,8 @@ fun HeadControlSelectionTab(
     var selectedGesture by remember { mutableIntStateOf(gestureIndex) }
     var headControlPriority by remember { mutableStateOf(settings.isHeadControlPriorityEnabled()) }
     
-    // Use centralized hold time values
+    // Get current hold time directly
     val currentHoldTime = settings.getSelectGestureHoldTime()
-    val holdTimeIndex = HeadControlSettings.HOLD_TIME_VALUES.indexOfFirst { kotlin.math.abs(it - currentHoldTime) < 50L }.let { if (it == -1) 2 else it }
-    var gestureHoldTime by remember { mutableIntStateOf(holdTimeIndex) }
     var conflictAssigned by remember { mutableStateOf(false) }
     
     ScrollableView {
@@ -358,19 +357,16 @@ fun HeadControlSelectionTab(
             // Menu gesture hold time selector
             if (availableMenuGestures.isNotEmpty()) {
                 val currentMenuHoldTime = settings.getMenuGestureHoldTime()
-                val menuHoldTimeIndex = HeadControlSettings.HOLD_TIME_VALUES.indexOfFirst { kotlin.math.abs(it - currentMenuHoldTime) < 50L }.let { if (it == -1) 3 else it }
-                var menuGestureHoldTime by remember { mutableIntStateOf(menuHoldTimeIndex) }
                 
-                PreferenceValueSelector(
-                    value = menuGestureHoldTime,
+                PreferenceTimeStepper(
+                    value = currentMenuHoldTime,
                     titleResId = R.string.head_control_menu_gesture_hold_time_title,
                     summaryResId = R.string.head_control_menu_gesture_hold_time_summary,
-                    values = IntArray(HeadControlSettings.HOLD_TIME_VALUES.size) { it },
-                    buttonLabelFormatter = { "${HeadControlSettings.HOLD_TIME_VALUES[it]}ms" },
-                    displayFormatter = { "${HeadControlSettings.HOLD_TIME_VALUES[it]}ms" },
-                    onValueChanged = { index ->
-                        menuGestureHoldTime = index
-                        prefs.setLongValue(HeadControlSettings.KEY_MENU_GESTURE_HOLD_TIME, HeadControlSettings.HOLD_TIME_VALUES[index])
+                    min = 100L,
+                    max = 2000L,
+                    step = 100L,
+                    onValueChanged = { newValue ->
+                        prefs.setLongValue(HeadControlSettings.KEY_MENU_GESTURE_HOLD_TIME, newValue)
                     }
                 )
             }
@@ -418,16 +414,15 @@ fun HeadControlSelectionTab(
                 }
             }
             
-            PreferenceValueSelector(
-                value = gestureHoldTime,
+            PreferenceTimeStepper(
+                value = currentHoldTime,
                 titleResId = R.string.head_control_gesture_hold_time_title,
                 summaryResId = R.string.head_control_gesture_hold_time_summary,
-                values = IntArray(HeadControlSettings.HOLD_TIME_VALUES.size) { it },
-                buttonLabelFormatter = { "${HeadControlSettings.HOLD_TIME_VALUES[it]}ms" },
-                displayFormatter = { "${HeadControlSettings.HOLD_TIME_VALUES[it]}ms" },
-                onValueChanged = { index ->
-                    gestureHoldTime = index
-                    prefs.setLongValue(HeadControlSettings.KEY_SELECT_GESTURE_HOLD_TIME, HeadControlSettings.HOLD_TIME_VALUES[index])
+                min = 100L,
+                max = 2000L,
+                step = 100L,
+                onValueChanged = { newValue ->
+                    prefs.setLongValue(HeadControlSettings.KEY_SELECT_GESTURE_HOLD_TIME, newValue)
                 }
             )
         }
