@@ -13,6 +13,8 @@ import android.os.IBinder
 import android.os.PowerManager
 import android.util.Log
 import android.hardware.camera2.CameraManager
+import android.view.Surface
+import android.view.WindowManager
 import androidx.annotation.OptIn
 import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
@@ -212,6 +214,9 @@ class CameraForegroundService : Service(), CameraLifecycle {
 
             // Initialize FaceProcessingService
             faceProcessingService = FaceProcessingService(this)
+
+            // Configure camera orientation for coordinate normalization
+            configureCameraOrientation()
 
             // Initialize camera executor
             cameraExecutor = Executors.newSingleThreadExecutor()
@@ -635,6 +640,25 @@ class CameraForegroundService : Service(), CameraLifecycle {
                 )
             }
         }
+    }
+
+    /**
+     * Configure face processing service with current device rotation and camera orientation
+     */
+    private fun configureCameraOrientation() {
+        // Get device rotation from display
+        val rotation = try {
+            val windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
+            @Suppress("DEPRECATION")
+            windowManager.defaultDisplay?.rotation ?: Surface.ROTATION_0
+        } catch (e: Exception) {
+            // Fallback to portrait if we can't get rotation
+            Surface.ROTATION_0
+        }
+
+        // Configure face processing service (front camera by default)
+        faceProcessingService?.setCameraOrientation(rotation, frontCamera = true)
+        Log.d(TAG, "Camera orientation configured for coordinate normalization")
     }
 
     /**

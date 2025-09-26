@@ -5,6 +5,7 @@ import android.graphics.Bitmap
 import android.os.Handler
 import android.os.HandlerThread
 import android.util.Log
+import android.view.Surface
 import com.enaboapps.switchify.BuildConfig
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.service.face.detection.GestureDetector
@@ -124,6 +125,15 @@ class FaceProcessingService(context: Context) {
             result = 31 * result + (blendShapes?.contentHashCode() ?: 0)
             return result
         }
+    }
+
+    /**
+     * Configure camera orientation for coordinate system normalization
+     * @param rotation Device rotation (Surface.ROTATION_0, ROTATION_90, etc.)
+     * @param frontCamera Whether using front-facing camera (default: true)
+     */
+    fun setCameraOrientation(rotation: Int, frontCamera: Boolean = true) {
+        headPoseCalculator.setCameraOrientation(rotation, frontCamera)
     }
 
     /**

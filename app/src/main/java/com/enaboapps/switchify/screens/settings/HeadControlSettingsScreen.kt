@@ -1,23 +1,57 @@
 package com.enaboapps.switchify.screens.settings
 
+import android.Manifest
 import android.widget.Toast
+import androidx.camera.view.PreviewView
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.enaboapps.switchify.components.CameraPermissionHandler
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.rememberPermissionState
+import kotlinx.coroutines.delay
 import java.util.Locale
+import kotlin.math.abs
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.components.BaseView
@@ -26,6 +60,8 @@ import com.enaboapps.switchify.components.PreferenceValueSelector
 import com.enaboapps.switchify.components.ScrollableView
 import com.enaboapps.switchify.components.Section
 import com.enaboapps.switchify.service.techniques.headcontrol.HeadControlSettings
+import com.enaboapps.switchify.service.core.ServiceCore
+import com.enaboapps.switchify.screens.settings.models.HeadControlTestTabModel
 import com.enaboapps.switchify.switches.CameraSwitchFacialGesture
 import com.enaboapps.switchify.switches.SwitchEventStore
 import com.enaboapps.switchify.switches.SWITCH_EVENT_TYPE_CAMERA
@@ -398,6 +434,265 @@ fun HeadControlSelectionTab(
     }
 }
 
+// Helper function to calculate movement (similar to HeadControlManager logic)
+private fun calculateTestMovement(headRotationX: Float, headRotationY: Float, settings: HeadControlSettings): Pair<Float, Float> {
+    val leftDeadzone = settings.getEffectiveLeftDeadzone()
+    val rightDeadzone = settings.getEffectiveRightDeadzone()
+    val upDeadzone = settings.getEffectiveUpDeadzone()
+    val downDeadzone = settings.getEffectiveDownDeadzone()
+    val movementSpeed = settings.movementSpeed()
+    val headRotationRange = 30f // Same as HeadControlManager.HEAD_ROTATION_RANGE
+    val movementDelta = 2f // Scaled down from HeadControlManager.MOVEMENT_DELTA
+
+    // Calculate horizontal movement
+    val horizontalMovement = if (headRotationY > 0 && headRotationY > rightDeadzone) {
+        val normalizedRotation = (headRotationY - rightDeadzone) / (headRotationRange - rightDeadzone)
+        normalizedRotation.coerceIn(0f, 1f) * movementSpeed
+    } else if (headRotationY < 0 && abs(headRotationY) > leftDeadzone) {
+        val normalizedRotation = (abs(headRotationY) - leftDeadzone) / (headRotationRange - leftDeadzone)
+        -(normalizedRotation.coerceIn(0f, 1f) * movementSpeed)
+    } else 0f
+
+    // Calculate vertical movement
+    val verticalMovement = if (headRotationX > 0 && headRotationX > downDeadzone) {
+        val normalizedRotation = (headRotationX - downDeadzone) / (headRotationRange - downDeadzone)
+        normalizedRotation.coerceIn(0f, 1f) * movementSpeed
+    } else if (headRotationX < 0 && abs(headRotationX) > upDeadzone) {
+        val normalizedRotation = (abs(headRotationX) - upDeadzone) / (headRotationRange - upDeadzone)
+        -(normalizedRotation.coerceIn(0f, 1f) * movementSpeed)
+    } else 0f
+
+    return Pair(horizontalMovement * movementDelta, verticalMovement * movementDelta)
+}
+
+@OptIn(ExperimentalPermissionsApi::class)
+@Composable
+fun HeadControlTestTab(
+    settings: HeadControlSettings,
+    context: android.content.Context
+) {
+    val cameraPermissionState = rememberPermissionState(Manifest.permission.CAMERA)
+
+    CameraPermissionHandler(
+        permissionState = cameraPermissionState,
+        onPermissionGranted = {
+            HeadControlTestContent(settings = settings, context = context)
+        },
+        onNavigateBack = { /* No navigation back needed in test tab */ }
+    )
+}
+
+@Composable
+private fun HeadControlTestContent(
+    settings: HeadControlSettings,
+    context: android.content.Context
+) {
+    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    val viewModel: HeadControlTestTabModel = viewModel {
+        HeadControlTestTabModel(context.applicationContext as android.app.Application)
+    }
+
+    val configuration = LocalConfiguration.current
+    val density = LocalDensity.current
+
+    // Screen dimensions
+    val screenWidthDp = configuration.screenWidthDp.dp
+    val screenHeightDp = configuration.screenHeightDp.dp
+
+    // Convert to pixels for calculations
+    val screenWidthPx = with(density) { screenWidthDp.toPx() }
+    val screenHeightPx = with(density) { screenHeightDp.toPx() }
+
+    // Ball state
+    var ballX by remember { mutableFloatStateOf(screenWidthPx / 2f) }
+    var ballY by remember { mutableFloatStateOf(screenHeightPx / 2f) }
+    val ballRadius = with(density) { 24.dp.toPx() }
+
+    // Collect head pose data from view model
+    val headRotationX by viewModel.headRotationX.collectAsState()
+    val headRotationY by viewModel.headRotationY.collectAsState()
+    val isFaceDetected by viewModel.isFaceDetected.collectAsState()
+
+    // Update ball position based on real head pose data
+    LaunchedEffect(headRotationX, headRotationY) {
+        if (isFaceDetected) {
+            // Calculate movement based on current settings
+            val movement = calculateTestMovement(headRotationX, headRotationY, settings)
+
+            // Apply movement with bounds checking
+            ballX = (ballX + movement.first).coerceIn(ballRadius, screenWidthPx - ballRadius)
+            ballY = (ballY + movement.second).coerceIn(ballRadius, screenHeightPx - ballRadius)
+        }
+    }
+
+    // Reset function
+    val resetBall = {
+        ballX = screenWidthPx / 2f
+        ballY = screenHeightPx / 2f
+        viewModel.resetHeadPose()
+    }
+
+    // Apply movement based on head pose (using current settings)
+    val movementSpeed = settings.movementSpeed()
+    val leftDeadzone = settings.getEffectiveLeftDeadzone()
+    val rightDeadzone = settings.getEffectiveRightDeadzone()
+    val upDeadzone = settings.getEffectiveUpDeadzone()
+    val downDeadzone = settings.getEffectiveDownDeadzone()
+
+    ScrollableView {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            // Title and instructions
+            Text(
+                text = stringResource(R.string.head_control_test_title),
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = stringResource(R.string.head_control_test_instructions),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Camera preview with overlay
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(300.dp)
+                    .clip(RoundedCornerShape(12.dp))
+            ) {
+                Box(
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    // Camera preview
+                    AndroidView(
+                        factory = { context ->
+                            PreviewView(context).apply {
+                                scaleType = PreviewView.ScaleType.FILL_CENTER
+                                viewModel.setupCamera(this, lifecycleOwner)
+                            }
+                        },
+                        modifier = Modifier.fillMaxSize()
+                    )
+
+                    // Ball overlay
+                    Canvas(
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        val cardWidth = size.width
+                        val cardHeight = size.height
+
+                        // Scale ball position to card dimensions
+                        val normalizedX = (ballX / screenWidthPx).coerceIn(0f, 1f)
+                        val normalizedY = (ballY / screenHeightPx).coerceIn(0f, 1f)
+
+                        val ballDrawX = normalizedX * cardWidth
+                        val ballDrawY = normalizedY * cardHeight
+
+                        // Draw the ball
+                        drawCircle(
+                            color = Color(0xFF2196F3), // Blue color
+                            radius = ballRadius * 0.3f, // Scale down for the card
+                            center = Offset(ballDrawX, ballDrawY)
+                        )
+                    }
+
+                    // Face detection status
+                    if (!isFaceDetected) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(Color.Black.copy(alpha = 0.3f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "Position your face in the camera",
+                                color = Color.White,
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Current head pose values
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                Text(
+                    text = stringResource(R.string.head_control_test_horizontal, headRotationY),
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Text(
+                    text = stringResource(R.string.head_control_test_vertical, headRotationX),
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Face detection status
+            Text(
+                text = if (isFaceDetected) "Face detected ✓" else "No face detected",
+                style = MaterialTheme.typography.bodySmall,
+                color = if (isFaceDetected)
+                    MaterialTheme.colorScheme.primary
+                else
+                    MaterialTheme.colorScheme.error
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Reset button
+            Button(
+                onClick = resetBall,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(stringResource(R.string.head_control_test_reset))
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Current settings display
+            Card(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp)
+                ) {
+                    Text(
+                        text = "Current Settings",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("Movement Speed: ${String.format(Locale.US, "%.1f", movementSpeed)}")
+                    if (settings.useSeparateDirectionalThresholds()) {
+                        Text("Left Deadzone: ${String.format(Locale.US, "%.1f°", leftDeadzone)}")
+                        Text("Right Deadzone: ${String.format(Locale.US, "%.1f°", rightDeadzone)}")
+                        Text("Up Deadzone: ${String.format(Locale.US, "%.1f°", upDeadzone)}")
+                        Text("Down Deadzone: ${String.format(Locale.US, "%.1f°", downDeadzone)}")
+                    } else {
+                        Text("Deadzone: ${String.format(Locale.US, "%.1f°", settings.deadzone())}")
+                    }
+                }
+            }
+        }
+    }
+}
+
 @Composable
 fun HeadControlSettingsScreen(navController: NavController) {
     val context = LocalContext.current
@@ -407,7 +702,8 @@ fun HeadControlSettingsScreen(navController: NavController) {
     var selectedTabIndex by remember { mutableIntStateOf(0) }
     val tabTitles = listOf(
         stringResource(R.string.tab_head_control_movement),
-        stringResource(R.string.tab_head_control_selection)
+        stringResource(R.string.tab_head_control_selection),
+        stringResource(R.string.tab_head_control_test)
     )
     
     BaseView(
@@ -432,6 +728,7 @@ fun HeadControlSettingsScreen(navController: NavController) {
             when (selectedTabIndex) {
                 0 -> HeadControlMovementTab(settings = settings, prefs = prefs)
                 1 -> HeadControlSelectionTab(settings = settings, prefs = prefs, context = context)
+                2 -> HeadControlTestTab(settings = settings, context = context)
             }
         }
     }
