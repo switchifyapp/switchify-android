@@ -95,22 +95,18 @@ class HeadPoseCalculator(private val context: Context) {
         when (deviceRotation) {
             Surface.ROTATION_90 -> {
                 // Device rotated 90° clockwise (landscape left)
-                // Head left/right becomes up/down, head up/down becomes left/right
-                val tempYaw = normalizedYaw
-                normalizedYaw = -normalizedPitch  // Head up/down -> cursor left/right (inverted)
-                normalizedPitch = tempYaw         // Head left/right -> cursor up/down
+                normalizedYaw = -pitch
+                normalizedPitch = yaw
             }
             Surface.ROTATION_180 -> {
-                // Device upside down - invert both axes
-                normalizedYaw = -normalizedYaw
-                normalizedPitch = -normalizedPitch
+                // Device upside down
+                normalizedYaw = -yaw
+                normalizedPitch = -pitch
             }
             Surface.ROTATION_270 -> {
                 // Device rotated 90° counter-clockwise (landscape right)
-                // Head left/right becomes up/down, head up/down becomes left/right
-                val tempYaw = normalizedYaw
-                normalizedYaw = -normalizedPitch  // Head up/down -> cursor left/right (inverted)
-                normalizedPitch = tempYaw         // Head left/right -> cursor up/down
+                normalizedYaw = pitch
+                normalizedPitch = -yaw
             }
             Surface.ROTATION_0 -> {
                 // Portrait - apply device-specific transformations only
