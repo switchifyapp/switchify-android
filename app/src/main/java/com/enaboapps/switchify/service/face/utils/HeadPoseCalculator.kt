@@ -97,8 +97,8 @@ class HeadPoseCalculator(private val context: Context) {
                 // Device rotated 90° clockwise (landscape left)
                 // Head left/right becomes up/down, head up/down becomes left/right
                 val tempYaw = normalizedYaw
-                normalizedYaw = normalizedPitch  // Head up/down -> cursor left/right
-                normalizedPitch = tempYaw        // Head left/right -> cursor up/down
+                normalizedYaw = -normalizedPitch  // Head up/down -> cursor left/right (inverted)
+                normalizedPitch = tempYaw         // Head left/right -> cursor up/down
             }
             Surface.ROTATION_180 -> {
                 // Device upside down - invert both axes
