@@ -81,6 +81,25 @@ class SwitchEventStore private constructor() {
      * Check if the store has been initialized and switch events loaded
      */
     fun isInitialized(): Boolean = isInitialized
+    
+    /**
+     * Read-only method to check if a specific gesture has a conflict with existing camera switches.
+     * This method loads switch events directly from storage without triggering service notifications.
+     * Used specifically for UI conflict detection to avoid unintended service activation.
+     * 
+     * @param context Application context
+     * @param gestureId The facial gesture ID to check for conflicts
+     * @return true if the gesture is assigned to a camera switch, false otherwise
+     */
+    suspend fun checkGestureConflictReadOnly(context: Context, gestureId: String): Boolean {
+        return try {
+            val events = localStorage.loadFromFile(context)
+            events.any { it.type == SWITCH_EVENT_TYPE_CAMERA && it.code == gestureId }
+        } catch (e: Exception) {
+            Log.e(tag, "Error checking gesture conflict read-only", e)
+            false
+        }
+    }
 
     fun find(code: String): SwitchEvent? =
         switchEvents.find { it.code == code }?.also {

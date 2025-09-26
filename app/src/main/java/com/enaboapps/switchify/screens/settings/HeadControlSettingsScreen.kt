@@ -374,8 +374,8 @@ fun HeadControlSelectionTab(
             val selectedGestureId = availableGestures.getOrNull(selectedGesture) ?: currentGesture
             LaunchedEffect(selectedGestureId) {
                 val store = SwitchEventStore.getInstance()
-                store.initializeAsync(context)
-                conflictAssigned = store.getSwitchEvents().any { it.type == SWITCH_EVENT_TYPE_CAMERA && it.code == selectedGestureId }
+                // Use read-only method to avoid triggering service initialization
+                conflictAssigned = store.checkGestureConflictReadOnly(context, selectedGestureId)
             }
             if (conflictAssigned) {
                 Text(
