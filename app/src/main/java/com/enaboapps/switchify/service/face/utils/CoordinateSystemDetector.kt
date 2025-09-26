@@ -11,7 +11,13 @@ import com.google.mediapipe.tasks.vision.facelandmarker.FaceLandmarkerResult
 
 /**
  * Detects the correct coordinate system for head pose on different devices.
- * Some devices need coordinate transformations, others work correctly with raw values.
+ *
+ * Some devices need coordinate transformations in portrait mode, others work correctly
+ * with raw values. This class provides device-specific detection with caching for
+ * optimal performance.
+ *
+ * Default behavior: No transformations needed (works for most devices)
+ * Custom systems: Can be set manually for specific device configurations
  */
 class CoordinateSystemDetector(private val context: Context) {
 
@@ -59,7 +65,7 @@ class CoordinateSystemDetector(private val context: Context) {
             val yawInverted = preferences.getBoolean(PREF_YAW_INVERTED, false)
             val confidence = preferences.getFloat(PREF_DETECTION_CONFIDENCE, 0.0f)
 
-            Log.d(TAG, "Using cached coordinate system for $deviceKey: pitch=$pitchInverted, yaw=$yawInverted, confidence=$confidence")
+            // Using cached coordinate system
 
             return CoordinateSystem(
                 pitchInverted = pitchInverted,
@@ -69,8 +75,7 @@ class CoordinateSystemDetector(private val context: Context) {
             )
         }
 
-        // No valid cached data, return default and trigger detection
-        Log.d(TAG, "No cached coordinate system for $deviceKey, using defaults")
+        // No valid cached data, return default
         return getDefaultCoordinateSystem(deviceKey)
     }
 
@@ -87,38 +92,20 @@ class CoordinateSystemDetector(private val context: Context) {
             apply()
         }
 
-        Log.i(TAG, "Saved coordinate system for ${coordinateSystem.deviceKey}: " +
-              "pitch=${coordinateSystem.pitchInverted}, yaw=${coordinateSystem.yawInverted}, " +
-              "confidence=${coordinateSystem.confidence}")
+        // Coordinate system saved to preferences
     }
 
     /**
-     * Get default coordinate system based on known device patterns
+     * Get default coordinate system based on conservative defaults
+     * Most devices work with no transformations in portrait mode
      */
     private fun getDefaultCoordinateSystem(deviceKey: String): CoordinateSystem {
-        // Known device patterns - these are educated guesses that can be overridden by detection
-        val pitchInverted = when {
-            deviceKey.contains("samsung") -> false
-            deviceKey.contains("pixel") -> false
-            deviceKey.contains("xiaomi") -> true
-            deviceKey.contains("oneplus") -> false
-            else -> false // Conservative default
-        }
-
-        val yawInverted = when {
-            deviceKey.contains("samsung") -> true
-            deviceKey.contains("pixel") -> true
-            deviceKey.contains("xiaomi") -> false
-            deviceKey.contains("oneplus") -> true
-            else -> true // Conservative default - most devices need yaw inversion
-        }
-
-        Log.d(TAG, "Using default coordinate system for $deviceKey: pitch=$pitchInverted, yaw=$yawInverted")
+        // Using default coordinate system (no transformations)
 
         return CoordinateSystem(
-            pitchInverted = pitchInverted,
-            yawInverted = yawInverted,
-            confidence = 0.5f, // Medium confidence for defaults
+            pitchInverted = false,  // Most devices don't need pitch inversion
+            yawInverted = false,    // Most devices don't need yaw inversion
+            confidence = 0.8f,     // High confidence in conservative default
             deviceKey = deviceKey
         )
     }
@@ -135,160 +122,26 @@ class CoordinateSystemDetector(private val context: Context) {
      */
     fun clearCache() {
         preferences.edit().clear().apply()
-        Log.d(TAG, "Cleared coordinate system cache")
+        // Coordinate system cache cleared
     }
 
     /**
-     * Runtime detection class for analyzing head movements during actual usage
+     * Create a coordinate system with specific transformations for testing
+     * @param pitchInverted Whether pitch should be inverted
+     * @param yawInverted Whether yaw should be inverted
      */
-    class RuntimeDetector {
-        private val samples = mutableListOf<DetectionSample>()
-        private var isDetecting = false
-
-        data class DetectionSample(
-            val timestamp: Long,
-            val rawPitch: Float,
-            val rawYaw: Float,
-            val noseTipY: Float,
-            val foreheadY: Float,
-            val leftEarY: Float,
-            val rightEarY: Float
+    fun createCustomCoordinateSystem(pitchInverted: Boolean, yawInverted: Boolean): CoordinateSystem {
+        val deviceKey = getDeviceKey()
+        val customSystem = CoordinateSystem(
+            pitchInverted = pitchInverted,
+            yawInverted = yawInverted,
+            confidence = 1.0f, // Manual configuration = high confidence
+            deviceKey = deviceKey
         )
 
-        /**
-         * Start runtime detection process
-         */
-        fun startDetection() {
-            isDetecting = true
-            samples.clear()
-            Log.d(TAG, "Started runtime coordinate system detection")
-        }
+        saveCoordinateSystem(customSystem)
+        // Custom coordinate system saved
 
-        /**
-         * Add sample during face processing
-         */
-        fun addSample(
-            rawPitch: Float,
-            rawYaw: Float,
-            faceLandmarks: List<com.google.mediapipe.tasks.components.containers.NormalizedLandmark>?
-        ) {
-            if (!isDetecting || faceLandmarks == null || faceLandmarks.size < 468) return
-
-            // Key landmark indices for face orientation
-            val noseTip = faceLandmarks[1]      // Nose tip
-            val forehead = faceLandmarks[9]     // Forehead center
-            val leftEar = faceLandmarks[234]    // Left ear
-            val rightEar = faceLandmarks[454]   // Right ear
-
-            samples.add(DetectionSample(
-                timestamp = System.currentTimeMillis(),
-                rawPitch = rawPitch,
-                rawYaw = rawYaw,
-                noseTipY = noseTip.y(),
-                foreheadY = forehead.y(),
-                leftEarY = leftEar.y(),
-                rightEarY = rightEar.y()
-            ))
-
-            // Stop detection after collecting enough samples
-            if (samples.size >= 200) {
-                stopDetectionAndAnalyze()
-            }
-        }
-
-        /**
-         * Stop detection and analyze collected samples
-         */
-        private fun stopDetectionAndAnalyze(): CoordinateSystem? {
-            isDetecting = false
-
-            if (samples.size < 50) {
-                Log.w(TAG, "Not enough samples for detection: ${samples.size}")
-                return null
-            }
-
-            return analyzeMovementPatterns()
-        }
-
-        /**
-         * Analyze movement patterns to determine coordinate system
-         */
-        private fun analyzeMovementPatterns(): CoordinateSystem {
-            // Analyze pitch direction by comparing geometric head position with reported pitch
-            val upMovements = mutableListOf<Float>()
-            val downMovements = mutableListOf<Float>()
-            val leftMovements = mutableListOf<Float>()
-            val rightMovements = mutableListOf<Float>()
-
-            for (sample in samples) {
-                // Determine geometric head orientation from landmarks
-                val isLookingUp = sample.noseTipY < sample.foreheadY * 0.95f
-                val isLookingDown = sample.noseTipY > sample.foreheadY * 1.05f
-                val isLookingLeft = sample.leftEarY < sample.rightEarY * 0.95f
-                val isLookingRight = sample.rightEarY < sample.leftEarY * 0.95f
-
-                // Collect pitch samples based on geometric orientation
-                when {
-                    isLookingUp -> upMovements.add(sample.rawPitch)
-                    isLookingDown -> downMovements.add(sample.rawPitch)
-                }
-
-                // Collect yaw samples based on geometric orientation
-                when {
-                    isLookingLeft -> leftMovements.add(sample.rawYaw)
-                    isLookingRight -> rightMovements.add(sample.rawYaw)
-                }
-            }
-
-            // Determine if pitch is inverted
-            val avgUpPitch = upMovements.takeIf { it.isNotEmpty() }?.average() ?: 0.0
-            val avgDownPitch = downMovements.takeIf { it.isNotEmpty() }?.average() ?: 0.0
-            val pitchInverted = avgUpPitch < avgDownPitch // Looking up should give positive pitch
-
-            // Determine if yaw is inverted
-            val avgLeftYaw = leftMovements.takeIf { it.isNotEmpty() }?.average() ?: 0.0
-            val avgRightYaw = rightMovements.takeIf { it.isNotEmpty() }?.average() ?: 0.0
-            val yawInverted = avgLeftYaw > avgRightYaw // Looking left should give negative yaw
-
-            // Calculate confidence based on sample size and consistency
-            val confidence = calculateConfidence(upMovements.size, downMovements.size,
-                                               leftMovements.size, rightMovements.size)
-
-            Log.i(TAG, "Runtime detection complete: pitch=$pitchInverted, yaw=$yawInverted, " +
-                  "confidence=$confidence (samples: up=${upMovements.size}, down=${downMovements.size}, " +
-                  "left=${leftMovements.size}, right=${rightMovements.size})")
-
-            return CoordinateSystem(
-                pitchInverted = pitchInverted,
-                yawInverted = yawInverted,
-                confidence = confidence,
-                deviceKey = "" // Will be set by caller
-            )
-        }
-
-        /**
-         * Calculate confidence based on sample distribution and consistency
-         */
-        private fun calculateConfidence(upSamples: Int, downSamples: Int,
-                                      leftSamples: Int, rightSamples: Int): Float {
-            val totalSamples = upSamples + downSamples + leftSamples + rightSamples
-            val minSamplesPerDirection = 10
-
-            // Low confidence if we don't have enough samples in each direction
-            if (upSamples < minSamplesPerDirection || downSamples < minSamplesPerDirection ||
-                leftSamples < minSamplesPerDirection || rightSamples < minSamplesPerDirection) {
-                return 0.3f
-            }
-
-            // Medium confidence for balanced samples
-            if (totalSamples > 100) {
-                return 0.8f
-            }
-
-            // Lower confidence for fewer samples
-            return 0.6f
-        }
-
-        fun isDetectionActive(): Boolean = isDetecting
+        return customSystem
     }
 }

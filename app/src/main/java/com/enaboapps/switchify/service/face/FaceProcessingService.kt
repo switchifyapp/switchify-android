@@ -137,13 +137,6 @@ class FaceProcessingService(context: Context) {
     }
 
     /**
-     * Start runtime detection to automatically determine coordinate system for this device
-     */
-    fun startCoordinateSystemDetection() {
-        headPoseCalculator.startRuntimeDetection()
-    }
-
-    /**
      * Get current coordinate system information
      */
     fun getCoordinateSystemInfo(): String {
@@ -151,8 +144,7 @@ class FaceProcessingService(context: Context) {
         return "Device: ${coordinateSystem.deviceKey}\n" +
                "Pitch Inverted: ${coordinateSystem.shouldApplyPitchInversion()}\n" +
                "Yaw Inverted: ${coordinateSystem.shouldApplyYawInversion()}\n" +
-               "Confidence: ${"%.1f".format(coordinateSystem.confidence * 100)}%\n" +
-               "Runtime Detection: ${if (headPoseCalculator.isRuntimeDetectionActive()) "Active" else "Inactive"}"
+               "Confidence: ${"%.0f".format(coordinateSystem.confidence * 100)}%"
     }
 
     /**
@@ -160,6 +152,13 @@ class FaceProcessingService(context: Context) {
      */
     fun clearCoordinateSystemCache() {
         headPoseCalculator.clearCoordinateSystemCache()
+    }
+
+    /**
+     * Set custom coordinate system for testing
+     */
+    fun setCustomCoordinateSystem(pitchInverted: Boolean, yawInverted: Boolean) {
+        headPoseCalculator.setCustomCoordinateSystem(pitchInverted, yawInverted)
     }
 
     /**

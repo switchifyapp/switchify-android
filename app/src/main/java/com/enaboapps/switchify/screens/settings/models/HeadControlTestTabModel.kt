@@ -199,17 +199,17 @@ class HeadControlTestTabModel(application: Application) : AndroidViewModel(appli
     }
 
     /**
-     * Start runtime coordinate system detection
-     */
-    fun startCoordinateSystemDetection() {
-        faceProcessingService.startCoordinateSystemDetection()
-    }
-
-    /**
      * Clear coordinate system cache for testing
      */
     fun clearCoordinateSystemCache() {
         faceProcessingService.clearCoordinateSystemCache()
+    }
+
+    /**
+     * Set custom coordinate system for testing
+     */
+    fun setCustomCoordinateSystem(pitchInverted: Boolean, yawInverted: Boolean) {
+        faceProcessingService.setCustomCoordinateSystem(pitchInverted, yawInverted)
     }
 
     /**

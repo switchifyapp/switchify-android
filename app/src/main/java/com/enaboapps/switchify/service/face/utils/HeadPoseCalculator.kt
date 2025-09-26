@@ -10,7 +10,14 @@ import kotlin.math.sqrt
 
 /**
  * Calculates head pose (Euler angles) from MediaPipe transformation matrices
- * with coordinate system normalization for consistent results across devices
+ * with automatic coordinate system normalization for consistent results across devices.
+ *
+ * Features:
+ * - Device-specific coordinate detection for portrait mode
+ * - Universal coordinate transformations for landscape modes
+ * - Automatic device rotation compensation
+ * - Front camera mirroring support
+ * - Exponential moving average smoothing
  */
 class HeadPoseCalculator(private val context: Context) {
     private val yawEMA = ExponentialMovingAverage(alpha = 0.3f)
@@ -22,7 +29,6 @@ class HeadPoseCalculator(private val context: Context) {
 
     // Coordinate system detection
     private val coordinateSystemDetector = CoordinateSystemDetector(context)
-    private val runtimeDetector = CoordinateSystemDetector.RuntimeDetector()
 
     companion object {
         private const val TAG = "HeadPoseCalculator"
@@ -73,67 +79,89 @@ class HeadPoseCalculator(private val context: Context) {
     }
 
     /**
-     * Normalize yaw and pitch values based on device rotation, camera orientation, and device-specific coordinate system
+     * Normalize yaw and pitch values based on device rotation and device-specific coordinate system
      * @param yaw Raw yaw angle in degrees
      * @param pitch Raw pitch angle in degrees
      * @param faceLandmarks Optional face landmarks for runtime detection
      * @return Pair of normalized (yaw, pitch) angles
      */
     private fun normalizeCoordinates(yaw: Float, pitch: Float, faceLandmarks: List<com.google.mediapipe.tasks.components.containers.NormalizedLandmark>?): Pair<Float, Float> {
+        return when (deviceRotation) {
+            Surface.ROTATION_0 -> normalizePortraitCoordinates(yaw, pitch)
+            Surface.ROTATION_90 -> normalizeLandscapeLeftCoordinates(yaw, pitch)
+            Surface.ROTATION_180 -> normalizeUpsideDownCoordinates(yaw, pitch)
+            Surface.ROTATION_270 -> normalizeLandscapeRightCoordinates(yaw, pitch)
+            else -> Pair(yaw, pitch) // Fallback to raw coordinates
+        }
+    }
+
+    /**
+     * Apply device-specific coordinate normalization for portrait mode
+     */
+    private fun normalizePortraitCoordinates(yaw: Float, pitch: Float): Pair<Float, Float> {
+        val coordinateSystem = coordinateSystemDetector.getCoordinateSystem()
         var normalizedYaw = yaw
         var normalizedPitch = pitch
 
-        // Get device-specific coordinate system
-        val coordinateSystem = coordinateSystemDetector.getCoordinateSystem()
-
-        // Feed data to runtime detector if it's running and we have landmarks
-        if (runtimeDetector.isDetectionActive() && faceLandmarks != null) {
-            runtimeDetector.addSample(pitch, yaw, faceLandmarks)
+        // Apply device-specific transformations for portrait mode
+        if (isFrontCamera && coordinateSystem.shouldApplyYawInversion()) {
+            normalizedYaw = -normalizedYaw
         }
 
-        // Apply device rotation compensation for physical device rotation
-        when (deviceRotation) {
-            Surface.ROTATION_90 -> {
-                // Device rotated 90° clockwise (landscape left)
-                normalizedYaw = -pitch
-                normalizedPitch = yaw
-            }
-            Surface.ROTATION_180 -> {
-                // Device upside down
-                normalizedYaw = -yaw
-                normalizedPitch = -pitch
-            }
-            Surface.ROTATION_270 -> {
-                // Device rotated 90° counter-clockwise (landscape right)
-                normalizedYaw = pitch
-                normalizedPitch = -yaw
-            }
-            Surface.ROTATION_0 -> {
-                // Portrait - apply device-specific transformations only
-                // Apply front camera mirroring only if device needs it
-                if (isFrontCamera && coordinateSystem.shouldApplyYawInversion()) {
-                    normalizedYaw = -normalizedYaw
-                }
-
-                // Apply pitch inversion only if device needs it
-                if (coordinateSystem.shouldApplyPitchInversion()) {
-                    normalizedPitch = -normalizedPitch
-                }
-            }
-        }
-
-        // For landscape modes, apply universal transforms like the original working code
-        if (deviceRotation != Surface.ROTATION_0) {
-            // Apply universal front camera mirroring and pitch inversion
-            if (isFrontCamera) {
-                normalizedYaw = -normalizedYaw
-            }
+        if (coordinateSystem.shouldApplyPitchInversion()) {
             normalizedPitch = -normalizedPitch
         }
 
-        Log.d(TAG, "Coordinate normalization: raw=($yaw, $pitch) -> normalized=($normalizedYaw, $normalizedPitch), " +
-              "device=${coordinateSystem.deviceKey}, rotation=$deviceRotation, " +
-              "pitchInv=${coordinateSystem.shouldApplyPitchInversion()}, yawInv=${coordinateSystem.shouldApplyYawInversion()}")
+        return Pair(normalizedYaw, normalizedPitch)
+    }
+
+    /**
+     * Apply coordinate normalization for landscape left (90° clockwise rotation)
+     */
+    private fun normalizeLandscapeLeftCoordinates(yaw: Float, pitch: Float): Pair<Float, Float> {
+        // Step 1: Apply rotation compensation (swap and transform axes)
+        var normalizedYaw = -pitch
+        var normalizedPitch = yaw
+
+        // Step 2: Apply universal transformations (working configuration)
+        if (isFrontCamera) {
+            normalizedYaw = -normalizedYaw
+        }
+        normalizedPitch = -normalizedPitch
+
+        return Pair(normalizedYaw, normalizedPitch)
+    }
+
+    /**
+     * Apply coordinate normalization for upside down (180° rotation)
+     */
+    private fun normalizeUpsideDownCoordinates(yaw: Float, pitch: Float): Pair<Float, Float> {
+        // Step 1: Apply rotation compensation
+        var normalizedYaw = -yaw
+        var normalizedPitch = -pitch
+
+        // Step 2: Apply universal transformations
+        if (isFrontCamera) {
+            normalizedYaw = -normalizedYaw
+        }
+        normalizedPitch = -normalizedPitch
+
+        return Pair(normalizedYaw, normalizedPitch)
+    }
+
+    /**
+     * Apply coordinate normalization for landscape right (270° counter-clockwise rotation)
+     */
+    private fun normalizeLandscapeRightCoordinates(yaw: Float, pitch: Float): Pair<Float, Float> {
+        // Step 1: Apply rotation compensation (swap and transform axes)
+        var normalizedYaw = pitch
+        var normalizedPitch = -yaw
+
+        // Step 2: Apply universal transformations
+        if (isFrontCamera) {
+            normalizedYaw = -normalizedYaw
+        }
+        normalizedPitch = -normalizedPitch
 
         return Pair(normalizedYaw, normalizedPitch)
     }
@@ -202,14 +230,6 @@ class HeadPoseCalculator(private val context: Context) {
     }
 
     /**
-     * Start runtime detection to automatically determine coordinate system for this device
-     */
-    fun startRuntimeDetection() {
-        runtimeDetector.startDetection()
-        Log.d(TAG, "Started runtime coordinate system detection")
-    }
-
-    /**
      * Get current coordinate system information
      */
     fun getCoordinateSystemInfo(): CoordinateSystemDetector.CoordinateSystem {
@@ -221,14 +241,14 @@ class HeadPoseCalculator(private val context: Context) {
      */
     fun clearCoordinateSystemCache() {
         coordinateSystemDetector.clearCache()
-        Log.d(TAG, "Cleared coordinate system cache")
+        // Coordinate system cache cleared
     }
 
     /**
-     * Check if runtime detection is currently active
+     * Set custom coordinate system for testing (overrides device detection)
      */
-    fun isRuntimeDetectionActive(): Boolean {
-        return runtimeDetector.isDetectionActive()
+    fun setCustomCoordinateSystem(pitchInverted: Boolean, yawInverted: Boolean): CoordinateSystemDetector.CoordinateSystem {
+        return coordinateSystemDetector.createCustomCoordinateSystem(pitchInverted, yawInverted)
     }
 
     fun reset() {
