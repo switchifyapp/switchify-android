@@ -192,6 +192,27 @@ class HeadControlTestTabModel(application: Application) : AndroidViewModel(appli
     }
 
     /**
+     * Get coordinate system information
+     */
+    fun getCoordinateSystemInfo(): String {
+        return faceProcessingService.getCoordinateSystemInfo()
+    }
+
+    /**
+     * Clear coordinate system cache for testing
+     */
+    fun clearCoordinateSystemCache() {
+        faceProcessingService.clearCoordinateSystemCache()
+    }
+
+    /**
+     * Set custom coordinate system for testing
+     */
+    fun setCustomCoordinateSystem(pitchInverted: Boolean, yawInverted: Boolean) {
+        faceProcessingService.setCustomCoordinateSystem(pitchInverted, yawInverted)
+    }
+
+    /**
      * Configure face processing service with current device rotation and camera orientation
      */
     private fun configureCameraOrientation() {

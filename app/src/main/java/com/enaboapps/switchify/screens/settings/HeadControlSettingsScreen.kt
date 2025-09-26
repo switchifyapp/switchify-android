@@ -513,6 +513,10 @@ private fun HeadControlTestContent(
     val headRotationY by viewModel.headRotationY.collectAsState()
     val isFaceDetected by viewModel.isFaceDetected.collectAsState()
 
+    // Coordinate system info state
+    var coordinateSystemInfo by remember { mutableStateOf("Loading...") }
+    var showCoordinateInfo by remember { mutableStateOf(false) }
+
     // Update ball position based on real head pose data
     LaunchedEffect(headRotationX, headRotationY) {
         if (isFaceDetected) {
