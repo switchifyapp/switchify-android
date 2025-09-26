@@ -122,9 +122,14 @@ class HeadPoseCalculator(private val context: Context) {
             }
         }
 
-        // For landscape modes, don't apply additional device-specific corrections
-        // The rotation compensation should handle the coordinate mapping correctly
-        // Device-specific corrections are mainly for portrait mode quirks
+        // For landscape modes, apply universal transforms like the original working code
+        if (deviceRotation != Surface.ROTATION_0) {
+            // Apply universal front camera mirroring and pitch inversion
+            if (isFrontCamera) {
+                normalizedYaw = -normalizedYaw
+            }
+            normalizedPitch = -normalizedPitch
+        }
 
         Log.d(TAG, "Coordinate normalization: raw=($yaw, $pitch) -> normalized=($normalizedYaw, $normalizedPitch), " +
               "device=${coordinateSystem.deviceKey}, rotation=$deviceRotation, " +
