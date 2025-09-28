@@ -1,5 +1,8 @@
 package com.enaboapps.switchify.service.gestures.placement
 
+import android.content.Context
+import com.enaboapps.switchify.R
+
 /**
  * Enumeration of finger count modes for gesture execution.
  *
@@ -56,10 +59,10 @@ enum class FingerMode {
      * Returns the display name for the finger mode.
      * Used in UI components and preference screens.
      */
-    fun getDisplayName(): String {
+    fun getDisplayName(context: Context): String {
         return when (this) {
-            ONE -> "1 Finger"
-            TWO -> "2 Fingers"
+            ONE -> context.getString(R.string.menu_item_one_finger)
+            TWO -> context.getString(R.string.menu_item_two_fingers)
         }
     }
 
@@ -67,10 +70,10 @@ enum class FingerMode {
      * Returns a description of the finger mode for help text.
      * Used in settings screens and accessibility descriptions.
      */
-    fun getDescription(): String {
+    fun getDescription(context: Context): String {
         return when (this) {
-            ONE -> "Use single finger for all gestures. Provides maximum precision."
-            TWO -> "Use two fingers for all gestures. Provides enhanced stability."
+            ONE -> context.getString(R.string.finger_mode_description_one)
+            TWO -> context.getString(R.string.finger_mode_description_two)
         }
     }
 

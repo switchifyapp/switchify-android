@@ -248,7 +248,7 @@ class GestureMenuStructure(private val context: Context) {
                     // Show feedback using string resource with format arguments
                     ServiceMessageHUD.instance.showMessage(
                         R.string.finger_mode_changed,
-                        arrayOf(FingerMode.ONE.getDisplayName()),
+                        arrayOf(FingerMode.ONE.getDisplayName(context)),
                         ServiceMessageHUD.MessageType.DISAPPEARING
                     )
                 }
@@ -262,7 +262,7 @@ class GestureMenuStructure(private val context: Context) {
                     GestureManager.instance.setFingerMode(FingerMode.TWO)
                     ServiceMessageHUD.instance.showMessage(
                         R.string.finger_mode_changed,
-                        arrayOf(FingerMode.TWO.getDisplayName()),
+                        arrayOf(FingerMode.TWO.getDisplayName(context)),
                         ServiceMessageHUD.MessageType.DISAPPEARING
                     )
                 }

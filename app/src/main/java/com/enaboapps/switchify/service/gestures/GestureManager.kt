@@ -486,7 +486,9 @@ class GestureManager private constructor() {
      */
     fun setFingerMode(fingerMode: FingerMode) {
         preferenceManager?.setStringValue(FINGER_MODE_PREFERENCE_KEY, fingerMode.name)
-        Log.d("GestureManager", "Finger mode set to: ${fingerMode.getDisplayName()}")
+        accessibilityService?.let { context ->
+            Log.d("GestureManager", "Finger mode set to: ${fingerMode.getDisplayName(context)}")
+        }
     }
 
     /**

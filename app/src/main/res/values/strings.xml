@@ -77,10 +77,8 @@
     <string name="menu_item_finger_mode">Finger Mode</string>
     <string name="menu_item_one_finger">1 Finger</string>
     <string name="menu_item_two_fingers">2 Fingers</string>
-    <string name="menu_item_auto_fingers">Auto</string>
     <string name="finger_mode_description_one">Use single finger for all gestures. Provides maximum precision.</string>
     <string name="finger_mode_description_two">Use two fingers for all gestures. Provides enhanced stability.</string>
-    <string name="finger_mode_description_auto">Automatically choose the best finger count for each gesture.</string>
     <string name="finger_mode_changed">Finger mode changed to %1$s</string>
 
     <!-- Media Menu Items -->
