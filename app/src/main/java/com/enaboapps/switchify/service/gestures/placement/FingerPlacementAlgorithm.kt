@@ -2,7 +2,6 @@ package com.enaboapps.switchify.service.gestures.placement
 
 import android.graphics.PointF
 import android.graphics.Rect
-import android.util.Log
 import com.enaboapps.switchify.service.gestures.data.GestureType
 import kotlin.math.abs
 import kotlin.math.min
@@ -84,8 +83,8 @@ class FingerPlacementAlgorithm {
         val startTime = System.currentTimeMillis()
         
         try {
-            Log.d(TAG, "Calculating placement: mode=$userFingerMode, type=$gestureType, " +
-                      "point=(${targetPoint.x.toInt()}, ${targetPoint.y.toInt()})")
+            // Debug logging (replace with proper logging in production)
+            // println("Calculating placement: mode=$userFingerMode, type=$gestureType, point=(${targetPoint.x.toInt()}, ${targetPoint.y.toInt()})")
             
             // Step 1: Determine optimal finger count based on user preference and context
             val optimalFingerCount = determineOptimalFingerCount(
@@ -111,13 +110,28 @@ class FingerPlacementAlgorithm {
             
             val calculationTime = System.currentTimeMillis() - startTime
             
-            Log.d(TAG, "Placement calculated in ${calculationTime}ms: ${placement.getDescription()}")
+            // Update placement metadata with actual calculation time
+            val updatedPlacement = when (placement) {
+                is SingleFingerPlacement -> placement.copy(
+                    metadata = placement.metadata.copy(calculationTimeMs = calculationTime)
+                )
+                is TwoFingerPlacement -> placement.copy(
+                    metadata = placement.metadata.copy(calculationTimeMs = calculationTime)
+                )
+                is MultiFingerPlacement -> placement.copy(
+                    metadata = placement.metadata.copy(calculationTimeMs = calculationTime)
+                )
+            }
             
-            return placement
+            // Debug logging (replace with proper logging in production)
+            // println("Placement calculated in ${calculationTime}ms: ${updatedPlacement.getDescription()}")
+            
+            return updatedPlacement
             
         } catch (e: Exception) {
             val calculationTime = System.currentTimeMillis() - startTime
-            Log.e(TAG, "Error calculating finger placement", e)
+            // Error logging (replace with proper logging in production)
+            // println("Error calculating finger placement: ${e.message}")
             
             // Fallback to single finger placement on error
             return createFallbackPlacement(
