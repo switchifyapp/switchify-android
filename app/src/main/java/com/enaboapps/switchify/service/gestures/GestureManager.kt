@@ -183,15 +183,9 @@ class GestureManager private constructor() {
 
                 Log.d("GestureManager", "Tap placement: ${fingerPlacement.getDescription()}")
 
-                // Show visual feedback for all finger positions
+                // Show enhanced multi-finger visual feedback
                 val duration = GestureData.TAP_DURATION
-                fingerPlacement.fingerPoints.forEach { fingerPoint ->
-                    gestureVisualManager.showStaticCircle(
-                        fingerPoint.x.toInt(),
-                        fingerPoint.y.toInt(),
-                        duration
-                    )
-                }
+                gestureVisualManager.showMultiFingerVisual(fingerPlacement, duration)
 
                 // Create dynamic gesture path based on algorithm results
                 val gestureDescription = GesturePathBuilder.createDynamicPath(
@@ -283,15 +277,9 @@ class GestureManager private constructor() {
 
                 Log.d("GestureManager", "Tap-and-hold placement: ${fingerPlacement.getDescription()}")
 
-                // Show visual feedback for all finger positions
+                // Show enhanced multi-finger visual feedback
                 val duration = GestureData.TAP_AND_HOLD_DURATION
-                fingerPlacement.fingerPoints.forEach { fingerPoint ->
-                    gestureVisualManager.showStaticCircle(
-                        fingerPoint.x.toInt(),
-                        fingerPoint.y.toInt(),
-                        duration
-                    )
-                }
+                gestureVisualManager.showMultiFingerVisual(fingerPlacement, duration)
 
                 // Create dynamic gesture path
                 val gestureDescription = GesturePathBuilder.createDynamicPath(

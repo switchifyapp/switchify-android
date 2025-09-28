@@ -1,16 +1,25 @@
 package com.enaboapps.switchify.service.gestures.visuals
 
 import android.content.Context
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.Paint
+import android.graphics.PointF
 import android.graphics.drawable.GradientDrawable
 import android.os.Handler
 import android.os.Looper
+import android.view.View
 import android.view.animation.Animation
 import android.view.animation.ScaleAnimation
 import android.widget.ImageView
 import android.widget.RelativeLayout
 import com.enaboapps.switchify.service.gestures.GestureStateManager
+import com.enaboapps.switchify.service.gestures.placement.FingerPlacement
+import com.enaboapps.switchify.service.gestures.placement.TwoFingerPlacement
 import com.enaboapps.switchify.service.window.SwitchifyAccessibilityWindow
 import java.lang.ref.WeakReference
+import kotlin.math.max
+import kotlin.math.min
 
 /**
  * Unified visual feedback manager for all gesture-related visual indicators.
@@ -23,10 +32,15 @@ class GestureVisualManager(context: Context) : GestureStateManager.GestureStateL
     private val accessibilityWindow = SwitchifyAccessibilityWindow.instance
     private val animatedGestureArrow = AnimatedGestureArrow(context)
 
-    // Active visual tracking
+    // Active visual tracking - single finger
     private var currentCircle: WeakReference<RelativeLayout>? = null
     private var currentAnimation: ScaleAnimation? = null
     private var removeHandler: Handler? = null
+    
+    // Multi-finger visual tracking
+    private var currentMultiFingerVisual: WeakReference<RelativeLayout>? = null
+    private val activeFingerCircles = mutableListOf<WeakReference<RelativeLayout>>()
+    private var multiFingerRemoveHandler: Handler? = null
 
     companion object {
         // Standardized circle size - compromise between existing 40px and 60px
@@ -124,10 +138,243 @@ class GestureVisualManager(context: Context) : GestureStateManager.GestureStateL
     }
 
     /**
+     * Shows multi-finger visual feedback with enhanced indicators.
+     * 
+     * This method creates a sophisticated visual representation of multi-finger
+     * gestures including individual finger circles, connection lines, and
+     * visual indicators of the finger placement strategy.
+     * 
+     * @param fingerPlacement The finger placement result from the algorithm
+     * @param duration Duration in milliseconds, null for persistent display
+     */
+    fun showMultiFingerVisual(fingerPlacement: FingerPlacement, duration: Long? = null) {
+        clearAllVisuals()
+        
+        val context = contextRef.get() ?: return
+        
+        when (fingerPlacement.fingerCount) {
+            1 -> {
+                // Use existing single finger visual
+                showStaticCircle(
+                    fingerPlacement.primaryPoint.x.toInt(),
+                    fingerPlacement.primaryPoint.y.toInt(),
+                    duration
+                )
+            }
+            2 -> {
+                showTwoFingerVisual(fingerPlacement as TwoFingerPlacement, duration)
+            }
+            else -> {
+                showMultipleFingerVisual(fingerPlacement, duration)
+            }
+        }
+    }
+    
+    /**
+     * Shows specialized two-finger visual with connection line and strategy indicator.
+     */
+    private fun showTwoFingerVisual(placement: TwoFingerPlacement, duration: Long?) {
+        val context = contextRef.get() ?: return
+        
+        // Create container for the entire two-finger visual
+        val containerLayout = createTwoFingerContainer(context, placement)
+        
+        // Calculate container bounds
+        val bounds = calculateContainerBounds(placement.fingerPoints)
+        
+        accessibilityWindow.addView(
+            containerLayout,
+            bounds.left,
+            bounds.top,
+            bounds.right - bounds.left,
+            bounds.bottom - bounds.top
+        )
+        
+        currentMultiFingerVisual = WeakReference(containerLayout)
+        
+        // Auto-remove after duration if specified
+        duration?.let {
+            multiFingerRemoveHandler = Handler(Looper.getMainLooper()).apply {
+                postDelayed({ clearAllVisuals() }, it)
+            }
+        }
+    }
+    
+    /**
+     * Shows visual for 3+ finger gestures with individual circles.
+     */
+    private fun showMultipleFingerVisual(placement: FingerPlacement, duration: Long?) {
+        val context = contextRef.get() ?: return
+        
+        // Clear any existing visuals
+        activeFingerCircles.clear()
+        
+        // Create individual circles for each finger
+        placement.fingerPoints.forEachIndexed { index, point ->
+            val circleLayout = createFingerCircle(context, index, placement.fingerCount)
+            
+            accessibilityWindow.addView(
+                circleLayout,
+                point.x.toInt() - STANDARD_CIRCLE_SIZE / 2,
+                point.y.toInt() - STANDARD_CIRCLE_SIZE / 2,
+                STANDARD_CIRCLE_SIZE,
+                STANDARD_CIRCLE_SIZE
+            )
+            
+            activeFingerCircles.add(WeakReference(circleLayout))
+        }
+        
+        // Auto-remove after duration if specified
+        duration?.let {
+            multiFingerRemoveHandler = Handler(Looper.getMainLooper()).apply {
+                postDelayed({ clearAllVisuals() }, it)
+            }
+        }
+    }
+    
+    /**
+     * Creates a container with two finger circles and connection line.
+     */
+    private fun createTwoFingerContainer(context: Context, placement: TwoFingerPlacement): RelativeLayout {
+        return RelativeLayout(context).apply {
+            // Add custom view that draws the connection line
+            addView(TwoFingerConnectionView(context, placement))
+            
+            // Add individual finger circles
+            val bounds = calculateContainerBounds(placement.fingerPoints)
+            
+            placement.fingerPoints.forEachIndexed { index, point ->
+                val circleLayout = createFingerCircle(context, index, 2)
+                
+                val layoutParams = RelativeLayout.LayoutParams(
+                    STANDARD_CIRCLE_SIZE, STANDARD_CIRCLE_SIZE
+                ).apply {
+                    leftMargin = (point.x - bounds.left).toInt() - STANDARD_CIRCLE_SIZE / 2
+                    topMargin = (point.y - bounds.top).toInt() - STANDARD_CIRCLE_SIZE / 2
+                }
+                
+                addView(circleLayout, layoutParams)
+            }
+        }
+    }
+    
+    /**
+     * Creates a finger circle with index indicator for multi-finger gestures.
+     */
+    private fun createFingerCircle(context: Context, fingerIndex: Int, totalFingers: Int): RelativeLayout {
+        // Choose colors based on finger index
+        val colors = when (fingerIndex) {
+            0 -> Pair(0xFFFFFFFF.toInt(), 0xFF4CAF50.toInt()) // White with green accent
+            1 -> Pair(0xFFFFFFFF.toInt(), 0xFF2196F3.toInt()) // White with blue accent
+            else -> Pair(0xFFFFFFFF.toInt(), 0xFF9C27B0.toInt()) // White with purple accent
+        }
+        
+        // Create shadow circle
+        val shadowDrawable = GradientDrawable().apply {
+            shape = GradientDrawable.OVAL
+            setColor(0x30000000) // Semi-transparent black shadow
+            setSize(STANDARD_CIRCLE_SIZE, STANDARD_CIRCLE_SIZE)
+        }
+        
+        // Create main circle with colored border
+        val mainDrawable = GradientDrawable().apply {
+            shape = GradientDrawable.OVAL
+            setColor(colors.first) // White fill
+            setStroke(3, colors.second) // Colored border
+            setSize(STANDARD_CIRCLE_SIZE, STANDARD_CIRCLE_SIZE)
+        }
+        
+        // Shadow layer
+        val shadowView = ImageView(context).apply {
+            setImageDrawable(shadowDrawable)
+            layoutParams = RelativeLayout.LayoutParams(STANDARD_CIRCLE_SIZE, STANDARD_CIRCLE_SIZE).apply {
+                leftMargin = 2
+                topMargin = 2
+            }
+        }
+        
+        // Main circle layer
+        val mainView = ImageView(context).apply {
+            setImageDrawable(mainDrawable)
+            layoutParams = RelativeLayout.LayoutParams(STANDARD_CIRCLE_SIZE, STANDARD_CIRCLE_SIZE)
+        }
+        
+        return RelativeLayout(context).apply {
+            addView(shadowView)
+            addView(mainView)
+        }
+    }
+    
+    /**
+     * Calculates bounding rectangle for a container holding multiple finger points.
+     */
+    private fun calculateContainerBounds(points: List<PointF>): android.graphics.Rect {
+        val margin = STANDARD_CIRCLE_SIZE
+        val minX = (points.minOf { it.x } - margin).toInt()
+        val maxX = (points.maxOf { it.x } + margin).toInt()
+        val minY = (points.minOf { it.y } - margin).toInt()
+        val maxY = (points.maxOf { it.y } + margin).toInt()
+        
+        return android.graphics.Rect(minX, minY, maxX, maxY)
+    }
+    
+    /**
+     * Custom view that draws connection lines between fingers.
+     */
+    private inner class TwoFingerConnectionView(
+        context: Context,
+        private val placement: TwoFingerPlacement
+    ) : View(context) {
+        
+        private val linePaint = Paint().apply {
+            color = Color.WHITE
+            strokeWidth = 4f
+            alpha = 180 // Semi-transparent
+            isAntiAlias = true
+            style = Paint.Style.STROKE
+        }
+        
+        private val shadowPaint = Paint().apply {
+            color = Color.BLACK
+            strokeWidth = 6f
+            alpha = 60 // Very subtle shadow
+            isAntiAlias = true
+            style = Paint.Style.STROKE
+        }
+        
+        override fun onDraw(canvas: Canvas) {
+            super.onDraw(canvas)
+            
+            val bounds = calculateContainerBounds(placement.fingerPoints)
+            val point1 = placement.primaryPoint
+            val point2 = placement.secondaryPoint
+            
+            // Convert to local coordinates
+            val localX1 = point1.x - bounds.left
+            val localY1 = point1.y - bounds.top
+            val localX2 = point2.x - bounds.left
+            val localY2 = point2.y - bounds.top
+            
+            // Draw shadow line
+            canvas.drawLine(localX1 + 1, localY1 + 1, localX2 + 1, localY2 + 1, shadowPaint)
+            
+            // Draw main connection line
+            canvas.drawLine(localX1, localY1, localX2, localY2, linePaint)
+        }
+    }
+    
+    /**
      * Hides any currently displayed circle visual.
      */
     fun hideCircle() {
         clearCurrentVisual()
+    }
+    
+    /**
+     * Hides all visual feedback (single and multi-finger).
+     */
+    fun hideAllVisuals() {
+        clearAllVisuals()
     }
 
     /**
@@ -171,7 +418,7 @@ class GestureVisualManager(context: Context) : GestureStateManager.GestureStateL
     }
 
     /**
-     * Clears any current visual and associated handlers/animations.
+     * Clears any current single-finger visual and associated handlers/animations.
      */
     private fun clearCurrentVisual() {
         currentAnimation?.cancel()
@@ -184,6 +431,33 @@ class GestureVisualManager(context: Context) : GestureStateManager.GestureStateL
         currentCircle = null
         currentAnimation = null
         removeHandler = null
+    }
+    
+    /**
+     * Clears all visual feedback (single and multi-finger).
+     */
+    private fun clearAllVisuals() {
+        // Clear single finger visuals
+        clearCurrentVisual()
+        
+        // Clear multi-finger visuals
+        multiFingerRemoveHandler?.removeCallbacksAndMessages(null)
+        
+        currentMultiFingerVisual?.get()?.let { visual ->
+            accessibilityWindow.removeView(visual)
+        }
+        
+        // Clear individual finger circles
+        activeFingerCircles.forEach { circleRef ->
+            circleRef.get()?.let { circle ->
+                accessibilityWindow.removeView(circle)
+            }
+        }
+        
+        // Reset state
+        currentMultiFingerVisual = null
+        activeFingerCircles.clear()
+        multiFingerRemoveHandler = null
     }
 
     /**
