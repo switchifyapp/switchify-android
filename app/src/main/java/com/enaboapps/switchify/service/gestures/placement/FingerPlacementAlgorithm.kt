@@ -404,16 +404,32 @@ class FingerPlacementAlgorithm {
             TwoFingerStrategy.ADAPTIVE -> {
                 // Use horizontal if it fits, otherwise vertical
                 val horizontalFits = (centerPoint.x - halfSpacing) >= screenBounds.left + EDGE_MARGIN &&
-                                   (centerPoint.x + halfSpacing) <= screenBounds.right - EDGE_MARGIN
-                
+                                     (centerPoint.x + halfSpacing) <= screenBounds.right - EDGE_MARGIN
+
                 if (horizontalFits) {
                     val leftPoint = PointF(centerPoint.x - halfSpacing, centerPoint.y)
                     val rightPoint = PointF(centerPoint.x + halfSpacing, centerPoint.y)
-                    Pair(leftPoint, rightPoint)
+                    val adjustedLeft = PointF(
+                        max(leftPoint.x, screenBounds.left + EDGE_MARGIN),
+                        leftPoint.y
+                    )
+                    val adjustedRight = PointF(
+                        min(rightPoint.x, screenBounds.right - EDGE_MARGIN),
+                        rightPoint.y
+                    )
+                    Pair(adjustedLeft, adjustedRight)
                 } else {
                     val topPoint = PointF(centerPoint.x, centerPoint.y - halfSpacing)
                     val bottomPoint = PointF(centerPoint.x, centerPoint.y + halfSpacing)
-                    Pair(topPoint, bottomPoint)
+                    val adjustedTop = PointF(
+                        topPoint.x,
+                        max(topPoint.y, screenBounds.top + EDGE_MARGIN)
+                    )
+                    val adjustedBottom = PointF(
+                        bottomPoint.x,
+                        min(bottomPoint.y, screenBounds.bottom - EDGE_MARGIN)
+                    )
+                    Pair(adjustedTop, adjustedBottom)
                 }
             }
         }

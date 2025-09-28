@@ -55,10 +55,10 @@ sealed interface FingerPlacement {
      */
     fun isValidPlacement(): Boolean {
         return fingerPoints.all { point ->
-            point.x >= screenBounds.left && 
-            point.x <= screenBounds.right &&
-            point.y >= screenBounds.top && 
-            point.y <= screenBounds.bottom
+            point.x >= screenBounds.left &&
+            point.x < screenBounds.right &&
+            point.y >= screenBounds.top &&
+            point.y < screenBounds.bottom
         }
     }
     
