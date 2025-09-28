@@ -5,6 +5,10 @@ import android.graphics.Path
 import android.graphics.PointF
 import com.enaboapps.switchify.service.gestures.data.GestureData
 import com.enaboapps.switchify.service.gestures.data.GestureType
+import com.enaboapps.switchify.service.gestures.placement.FingerPlacement
+import com.enaboapps.switchify.service.gestures.placement.SingleFingerPlacement
+import com.enaboapps.switchify.service.gestures.placement.TwoFingerPlacement
+import com.enaboapps.switchify.service.gestures.placement.MultiFingerPlacement
 
 /**
  * Central factory for creating standardized Android gesture paths with consistent timing and behavior.
@@ -247,6 +251,226 @@ object GesturePathBuilder {
 
             GestureType.ZOOM_IN, GestureType.ZOOM_OUT -> GestureData.ZOOM_DURATION
             else -> GestureData.SWIPE_DURATION
+        }
+    }
+
+    /**
+     * Creates a dynamic gesture path based on FingerPlacement results from the algorithm.
+     * 
+     * This is the core method-level integration point where the FingerPlacementAlgorithm's
+     * results are converted into executable Android gesture paths. The method automatically
+     * adapts to any finger count (1, 2, N) without requiring code changes.
+     *
+     * @param gestureType The type of gesture being performed
+     * @param fingerPlacement Algorithm result containing finger positions and metadata
+     * @param duration Gesture duration in milliseconds
+     * @return GestureDescription with appropriate multi-finger strokes
+     */
+    fun createDynamicPath(
+        gestureType: GestureType,
+        fingerPlacement: FingerPlacement,
+        duration: Long
+    ): GestureDescription {
+        return when (fingerPlacement) {
+            is SingleFingerPlacement -> createSingleFingerGesturePath(
+                gestureType, fingerPlacement, duration
+            )
+            is TwoFingerPlacement -> createTwoFingerGesturePath(
+                gestureType, fingerPlacement, duration
+            )
+            is MultiFingerPlacement -> createMultiFingerGesturePath(
+                gestureType, fingerPlacement, duration
+            )
+        }
+    }
+
+    /**
+     * Creates single-finger gesture paths (traditional behavior).
+     */
+    private fun createSingleFingerGesturePath(
+        gestureType: GestureType,
+        placement: SingleFingerPlacement,
+        duration: Long
+    ): GestureDescription {
+        val point = placement.primaryPoint
+        
+        return when (gestureType) {
+            GestureType.TAP -> createTapPath(point, duration)
+            GestureType.DOUBLE_TAP -> createDoubleTapPath(point)
+            GestureType.TAP_AND_HOLD -> createTapAndHoldPath(point, duration)
+            else -> {
+                // For linear gestures, we need an end point - use primary point for now
+                // In practice, LinearGesturePerformer will provide the end point
+                createLinearPath(point, point, duration)
+            }
+        }
+    }
+
+    /**
+     * Creates two-finger gesture paths with synchronized finger movements.
+     */
+    private fun createTwoFingerGesturePath(
+        gestureType: GestureType,
+        placement: TwoFingerPlacement,
+        duration: Long
+    ): GestureDescription {
+        val primaryPoint = placement.primaryPoint
+        val secondaryPoint = placement.secondaryPoint
+        
+        return when (gestureType) {
+            GestureType.TAP -> createTwoFingerTapPath(primaryPoint, secondaryPoint, duration)
+            GestureType.DOUBLE_TAP -> createTwoFingerDoubleTapPath(primaryPoint, secondaryPoint)
+            GestureType.TAP_AND_HOLD -> createTwoFingerTapAndHoldPath(primaryPoint, secondaryPoint, duration)
+            else -> {
+                // For linear gestures, both fingers move in parallel
+                // End points will be provided by LinearGesturePerformer for actual drags/swipes
+                createTwoFingerLinearPath(primaryPoint, secondaryPoint, primaryPoint, secondaryPoint, duration)
+            }
+        }
+    }
+
+    /**
+     * Creates multi-finger gesture paths (3+ fingers, future extension).
+     */
+    private fun createMultiFingerGesturePath(
+        gestureType: GestureType,
+        placement: MultiFingerPlacement,
+        duration: Long
+    ): GestureDescription {
+        // Future implementation for 3+ finger gestures
+        // For now, treat as multiple synchronized single-finger gestures
+        val builder = GestureDescription.Builder()
+        
+        placement.fingerPoints.forEach { fingerPoint ->
+            val path = createSingleFingerPath(gestureType, fingerPoint, duration)
+            // Add all strokes from the single-finger path to the builder
+            // Note: This is a simplified implementation
+            val singleFingerPath = Path().apply { moveTo(fingerPoint.x, fingerPoint.y) }
+            val stroke = GestureDescription.StrokeDescription(singleFingerPath, 0, duration)
+            builder.addStroke(stroke)
+        }
+        
+        return builder.build()
+    }
+
+    // Two-finger gesture path creation methods
+
+    /**
+     * Creates a two-finger tap path with synchronized timing.
+     */
+    private fun createTwoFingerTapPath(
+        point1: PointF,
+        point2: PointF,
+        duration: Long
+    ): GestureDescription {
+        // First finger
+        val path1 = Path().apply { moveTo(point1.x, point1.y) }
+        val stroke1 = GestureDescription.StrokeDescription(path1, 0, duration)
+        
+        // Second finger (synchronized)
+        val path2 = Path().apply { moveTo(point2.x, point2.y) }
+        val stroke2 = GestureDescription.StrokeDescription(path2, 0, duration)
+        
+        return GestureDescription.Builder()
+            .addStroke(stroke1)
+            .addStroke(stroke2)
+            .build()
+    }
+
+    /**
+     * Creates a two-finger double tap path.
+     */
+    private fun createTwoFingerDoubleTapPath(
+        point1: PointF,
+        point2: PointF,
+        tapDuration: Long = GestureData.TAP_DURATION,
+        interval: Long = GestureData.DOUBLE_TAP_INTERVAL
+    ): GestureDescription {
+        val builder = GestureDescription.Builder()
+        
+        // First tap - both fingers
+        val firstTap1 = Path().apply { moveTo(point1.x, point1.y) }
+        val firstTap2 = Path().apply { moveTo(point2.x, point2.y) }
+        builder.addStroke(GestureDescription.StrokeDescription(firstTap1, 0, tapDuration))
+        builder.addStroke(GestureDescription.StrokeDescription(firstTap2, 0, tapDuration))
+        
+        // Second tap - both fingers
+        val secondTap1 = Path().apply { moveTo(point1.x, point1.y) }
+        val secondTap2 = Path().apply { moveTo(point2.x, point2.y) }
+        builder.addStroke(GestureDescription.StrokeDescription(secondTap1, interval, tapDuration))
+        builder.addStroke(GestureDescription.StrokeDescription(secondTap2, interval, tapDuration))
+        
+        return builder.build()
+    }
+
+    /**
+     * Creates a two-finger tap and hold path.
+     */
+    private fun createTwoFingerTapAndHoldPath(
+        point1: PointF,
+        point2: PointF,
+        duration: Long
+    ): GestureDescription {
+        // Both fingers hold simultaneously
+        val path1 = Path().apply { moveTo(point1.x, point1.y) }
+        val path2 = Path().apply { moveTo(point2.x, point2.y) }
+        
+        val stroke1 = GestureDescription.StrokeDescription(path1, 0, duration)
+        val stroke2 = GestureDescription.StrokeDescription(path2, 0, duration)
+        
+        return GestureDescription.Builder()
+            .addStroke(stroke1)
+            .addStroke(stroke2)
+            .build()
+    }
+
+    /**
+     * Creates a two-finger linear path (drag, swipe, scroll).
+     */
+    private fun createTwoFingerLinearPath(
+        startPoint1: PointF,
+        startPoint2: PointF,
+        endPoint1: PointF,
+        endPoint2: PointF,
+        duration: Long
+    ): GestureDescription {
+        // First finger movement
+        val path1 = Path().apply {
+            moveTo(startPoint1.x, startPoint1.y)
+            lineTo(endPoint1.x, endPoint1.y)
+        }
+        
+        // Second finger movement (parallel)
+        val path2 = Path().apply {
+            moveTo(startPoint2.x, startPoint2.y)
+            lineTo(endPoint2.x, endPoint2.y)
+        }
+        
+        val stroke1 = GestureDescription.StrokeDescription(path1, 0, duration)
+        val stroke2 = GestureDescription.StrokeDescription(path2, 0, duration)
+        
+        return GestureDescription.Builder()
+            .addStroke(stroke1)
+            .addStroke(stroke2)
+            .build()
+    }
+
+    /**
+     * Creates a single-finger path for a specific gesture type (utility method).
+     */
+    private fun createSingleFingerPath(
+        gestureType: GestureType,
+        point: PointF,
+        duration: Long
+    ): Path {
+        return when (gestureType) {
+            GestureType.TAP, GestureType.TAP_AND_HOLD -> Path().apply {
+                moveTo(point.x, point.y)
+            }
+            else -> Path().apply {
+                moveTo(point.x, point.y)
+                // For linear gestures, lineTo will be added by the caller
+            }
         }
     }
 
