@@ -10,8 +10,7 @@ import com.enaboapps.switchify.service.menu.structure.MenuStructureHolder
  * 
  * This menu allows users to choose between different finger modes:
  * - 1 Finger: Force single-finger gestures for maximum precision
- * - 2 Fingers: Force two-finger gestures for enhanced stability  
- * - Auto: Algorithm automatically determines optimal finger count
+ * - 2 Fingers: Force two-finger gestures for enhanced stability
  *
  * The menu is integrated at the end of the gestures menu and provides
  * immediate feedback when finger modes are changed.

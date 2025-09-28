@@ -68,7 +68,7 @@ class FingerPlacementAlgorithm {
      *
      * @param gestureType The type of gesture being performed
      * @param targetPoint The primary target point for the gesture
-     * @param userFingerMode User's finger mode preference (1, 2, AUTO)
+     * @param userFingerMode User's finger mode preference (1, 2)
      * @param screenBounds Current screen bounds for boundary calculations
      * @param gestureContext Additional context information (future extension)
      * @return FingerPlacement result with finger positions and metadata
@@ -141,7 +141,8 @@ class FingerPlacementAlgorithm {
     }
 
     /**
-     * Determines the optimal finger count based on user preference, gesture type, and context.
+     * Determines the finger count based on user preference.
+     * Simplified to explicit user choice between 1 or 2 fingers.
      */
     private fun determineOptimalFingerCount(
         gestureType: GestureType,
@@ -152,39 +153,6 @@ class FingerPlacementAlgorithm {
         return when (userMode) {
             FingerMode.ONE -> 1
             FingerMode.TWO -> if (canFitTwoFingers(targetPoint, screenBounds)) 2 else 1
-            FingerMode.AUTO -> algorithmicFingerCountDecision(gestureType, targetPoint, screenBounds)
-        }
-    }
-
-    /**
-     * Algorithmic decision for optimal finger count in AUTO mode.
-     * Considers gesture type, available space, and optimization factors.
-     */
-    private fun algorithmicFingerCountDecision(
-        gestureType: GestureType,
-        targetPoint: PointF,
-        screenBounds: Rect
-    ): Int {
-        val availableSpace = calculateAvailableSpace(targetPoint, screenBounds)
-        
-        // Gesture-specific optimizations
-        val gesturePreference = getGestureTypeFingerPreference(gestureType)
-        
-        return when {
-            // Insufficient space for multiple fingers
-            availableSpace < MIN_TWO_FINGER_SPACE -> 1
-            
-            // Gesture type specifically benefits from multiple fingers
-            gesturePreference > 1 && availableSpace >= IDEAL_TWO_FINGER_SPACE -> 2
-            
-            // Precision gestures prefer single finger
-            isPrecisionGesture(gestureType) -> 1
-            
-            // Stability gestures benefit from two fingers if space allows
-            isStabilityGesture(gestureType) && availableSpace >= MIN_TWO_FINGER_SPACE -> 2
-            
-            // Default to single finger for unknown cases
-            else -> 1
         }
     }
 

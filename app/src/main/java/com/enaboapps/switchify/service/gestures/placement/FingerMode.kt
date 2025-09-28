@@ -52,24 +52,7 @@ enum class FingerMode {
      */
     TWO,
 
-    /**
-     * Algorithm automatically determines optimal finger count for each gesture.
-     * 
-     * Algorithm considers:
-     * - Available screen space around gesture target
-     * - Gesture type requirements and optimizations
-     * - UI context and target size
-     * - User's historical gesture success patterns (future enhancement)
-     * 
-     * Benefits:
-     * - Adaptive to different screen contexts
-     * - Optimizes for both precision and accessibility
-     * - Reduces cognitive load on mode selection
-     * - Learns and adapts to user patterns over time
-     * 
-     * Best for: Users who want system optimization and adaptive behavior
-     */
-    AUTO;
+    // Removed AUTO mode - users must explicitly choose between 1 or 2 fingers
 
     /**
      * Returns the display name for the finger mode.
@@ -79,7 +62,6 @@ enum class FingerMode {
         return when (this) {
             ONE -> "1 Finger"
             TWO -> "2 Fingers"
-            AUTO -> "Auto"
         }
     }
 
@@ -91,7 +73,6 @@ enum class FingerMode {
         return when (this) {
             ONE -> "Use single finger for all gestures. Provides maximum precision."
             TWO -> "Use two fingers for all gestures. Provides enhanced stability."
-            AUTO -> "Automatically choose the best finger count for each gesture."
         }
     }
 
@@ -104,20 +85,20 @@ enum class FingerMode {
             return try {
                 valueOf(value.uppercase())
             } catch (e: IllegalArgumentException) {
-                // Default to AUTO for unknown values (forward compatibility)
-                AUTO
+                // Default to ONE finger for unknown values
+                ONE
             }
         }
 
         /**
          * Returns the default finger mode for new users.
-         * AUTO provides the best balance of accessibility and usability.
+         * ONE provides reliable precision for all users.
          */
-        fun getDefault(): FingerMode = AUTO
+        fun getDefault(): FingerMode = ONE
 
         /**
          * Returns all available finger modes for UI selection.
-         * Currently returns ONE, TWO, AUTO - extensible for future modes.
+         * Currently returns ONE, TWO - simple explicit choice.
          */
         fun getAllModes(): List<FingerMode> = values().toList()
     }
