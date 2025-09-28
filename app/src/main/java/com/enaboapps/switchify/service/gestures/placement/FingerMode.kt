@@ -28,31 +28,29 @@ package com.enaboapps.switchify.service.gestures.placement
 enum class FingerMode {
     /**
      * Force single-finger gestures for all compatible gesture types.
-     * 
+     *
      * Benefits:
      * - Maximum precision and accuracy
      * - Compatible with all gesture types
      * - Minimal screen space requirements
      * - Traditional touch interaction model
-     * 
+     *
      * Best for: Users who prefer precise control and have good fine motor skills
      */
     ONE,
 
     /**
      * Force two-finger gestures for all compatible gesture types.
-     * 
+     *
      * Benefits:
      * - Enhanced stability and reduced tremor impact
      * - Easier targeting for users with motor impairments
      * - More visible gesture indicators
      * - Better feedback for gesture recognition
-     * 
+     *
      * Best for: Users with tremors, limited precision, or who benefit from larger targets
      */
-    TWO,
-
-    // Removed AUTO mode - users must explicitly choose between 1 or 2 fingers
+    TWO;
 
     /**
      * Returns the display name for the finger mode.

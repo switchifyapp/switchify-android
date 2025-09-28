@@ -72,27 +72,27 @@ class FingerPlacementAlgorithmTest {
     }
 
     @Test
-    fun testAutoModeConsidersGestureTypeForOptimalFingerCount() {
-        // Test precision gesture (TAP) in AUTO mode - should prefer single finger
+    fun testExplicitFingerModeSelection() {
+        // Test that ONE mode always gives single finger regardless of gesture type
         val tapPlacement = algorithm.calculateFingerPlacement(
-            gestureType = GestureType.TAP,
-            targetPoint = centerPoint,
-            userFingerMode = FingerMode.AUTO,
-            screenBounds = screenBounds
-        )
-
-        assertTrue("TAP should prefer single finger for precision", 
-            tapPlacement is SingleFingerPlacement)
-
-        // Test stability gesture (TAP_AND_HOLD) in AUTO mode - should prefer two fingers
-        val holdPlacement = algorithm.calculateFingerPlacement(
             gestureType = GestureType.TAP_AND_HOLD,
             targetPoint = centerPoint,
-            userFingerMode = FingerMode.AUTO,
+            userFingerMode = FingerMode.ONE,
             screenBounds = screenBounds
         )
 
-        assertTrue("TAP_AND_HOLD should prefer two fingers for stability",
+        assertTrue("ONE mode should always give single finger", 
+            tapPlacement is SingleFingerPlacement)
+
+        // Test that TWO mode gives two fingers when space allows
+        val holdPlacement = algorithm.calculateFingerPlacement(
+            gestureType = GestureType.TAP,
+            targetPoint = centerPoint,
+            userFingerMode = FingerMode.TWO,
+            screenBounds = screenBounds
+        )
+
+        assertTrue("TWO mode should give two fingers when space allows",
             holdPlacement is TwoFingerPlacement)
     }
 
@@ -144,7 +144,7 @@ class FingerPlacementAlgorithmTest {
             algorithm.calculateFingerPlacement(
                 gestureType = GestureType.TAP,
                 targetPoint = centerPoint,
-                userFingerMode = FingerMode.AUTO,
+                userFingerMode = FingerMode.ONE,
                 screenBounds = screenBounds
             )
         }
@@ -158,20 +158,20 @@ class FingerPlacementAlgorithmTest {
 
     @Test
     fun testExtensibilityToFutureFingerModes() {
-        // Test that algorithm gracefully handles unknown enum values
-        // This tests forward compatibility when new finger modes are added
+        // Test that algorithm works with all current finger modes
+        // This tests current behavior and structure for future extensibility
         
         val placement = algorithm.calculateFingerPlacement(
             gestureType = GestureType.TAP,
             targetPoint = centerPoint,
-            userFingerMode = FingerMode.AUTO, // Use AUTO as proxy for extensible behavior
+            userFingerMode = FingerMode.TWO,
             screenBounds = screenBounds
         )
 
         assertNotNull("Algorithm should handle all finger modes", placement)
         assertTrue("Should return valid placement", placement.isValidPlacement())
         assertTrue("Should have reasonable finger count", 
-            placement.fingerCount in 1..4) // Allow for future expansion
+            placement.fingerCount in 1..2) // Current implementation supports 1-2 fingers
     }
 
     @Test

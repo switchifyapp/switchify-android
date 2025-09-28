@@ -241,7 +241,7 @@ class GestureMenuStructure(private val context: Context) {
             MenuItem(
                 id = "one_finger_mode",
                 labelResource = R.string.menu_item_one_finger,
-                drawableId = R.drawable.ic_gesture_tap, // Single finger icon
+                drawableId = R.drawable.ic_one_finger, // One finger mode icon
                 closeOnSelect = false, // Keep menu open to show feedback
                 action = {
                     GestureManager.instance.setFingerMode(FingerMode.ONE)
@@ -256,27 +256,13 @@ class GestureMenuStructure(private val context: Context) {
             MenuItem(
                 id = "two_finger_mode",
                 labelResource = R.string.menu_item_two_fingers,
-                drawableId = R.drawable.ic_gesture_tap_hold, // Two finger representation
+                drawableId = R.drawable.ic_two_finger, // Two finger mode icon
                 closeOnSelect = false, // Keep menu open to show feedback
                 action = {
                     GestureManager.instance.setFingerMode(FingerMode.TWO)
                     ServiceMessageHUD.instance.showMessage(
                         R.string.finger_mode_changed,
                         arrayOf(FingerMode.TWO.getDisplayName()),
-                        ServiceMessageHUD.MessageType.DISAPPEARING
-                    )
-                }
-            ),
-            MenuItem(
-                id = "auto_finger_mode",
-                labelResource = R.string.menu_item_auto_fingers,
-                drawableId = R.drawable.ic_finger_mode, // Auto/smart selection icon
-                closeOnSelect = false, // Keep menu open to show feedback
-                action = {
-                    GestureManager.instance.setFingerMode(FingerMode.AUTO)
-                    ServiceMessageHUD.instance.showMessage(
-                        R.string.finger_mode_changed,
-                        arrayOf(FingerMode.AUTO.getDisplayName()),
                         ServiceMessageHUD.MessageType.DISAPPEARING
                     )
                 }
