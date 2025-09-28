@@ -86,6 +86,8 @@ enum class FingerMode {
             return try {
                 valueOf(value.uppercase())
             } catch (e: IllegalArgumentException) {
+                // Log the invalid value for debugging, but continue with default
+                android.util.Log.w("FingerMode", "Unknown finger mode value: $value, using default ONE", e)
                 // Default to ONE finger for unknown values
                 ONE
             }

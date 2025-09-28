@@ -489,7 +489,7 @@ class GestureVisualManager(context: Context) : GestureStateManager.GestureStateL
      */
     fun release() {
         GestureStateManager.removeStateListener("visual_manager")
-        clearCurrentVisual()
+        clearAllVisuals()
         contextRef.clear()
     }
 }
