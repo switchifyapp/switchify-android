@@ -6,9 +6,11 @@ import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.service.gestures.GestureManager
 import com.enaboapps.switchify.service.gestures.GesturePatternRecorder
 import com.enaboapps.switchify.service.gestures.data.GestureType
+import com.enaboapps.switchify.service.gestures.placement.FingerMode
 import com.enaboapps.switchify.service.menu.MenuItem
 import com.enaboapps.switchify.service.menu.MenuManager
 import com.enaboapps.switchify.service.menu.structure.MenuStructure
+import com.enaboapps.switchify.service.window.ServiceMessageHUD
 
 class GestureMenuStructure(private val context: Context) {
     private val preferenceManager = PreferenceManager(context)
@@ -89,6 +91,13 @@ class GestureMenuStructure(private val context: Context) {
                 drawableId = R.drawable.ic_zoom_gestures,
                 isLinkToMenu = true,
                 action = { MenuManager.getInstance().openZoomGesturesMenu() }
+            ),
+            MenuItem(
+                id = "finger_mode",
+                labelResource = R.string.menu_item_finger_mode,
+                drawableId = R.drawable.ic_finger_mode,
+                isLinkToMenu = true,
+                action = { MenuManager.getInstance().openFingerModeMenu() }
             ),
             toggleGestureLockMenuItem
         )
@@ -215,6 +224,62 @@ class GestureMenuStructure(private val context: Context) {
                 labelResource = R.string.menu_item_cancel,
                 drawableId = R.drawable.ic_cancel,
                 action = { GestureManager.instance.cancelLinearGesture() }
+            )
+        )
+    )
+
+    /**
+     * Finger mode selection menu structure.
+     * 
+     * This menu allows users to select between different finger modes for the
+     * multi-finger gesture system. The selected mode affects how many fingers
+     * are used for gesture execution across all gesture types (except zoom).
+     */
+    val fingerModeMenuObject = MenuStructure(
+        id = "finger_mode_menu",
+        items = listOf(
+            MenuItem(
+                id = "one_finger_mode",
+                labelResource = R.string.menu_item_one_finger,
+                drawableId = R.drawable.ic_gesture_tap, // Single finger icon
+                closeOnSelect = false, // Keep menu open to show feedback
+                action = {
+                    GestureManager.instance.setFingerMode(FingerMode.ONE)
+                    // Show feedback using string resource with format arguments
+                    ServiceMessageHUD.instance.showMessage(
+                        R.string.finger_mode_changed,
+                        arrayOf(FingerMode.ONE.getDisplayName()),
+                        ServiceMessageHUD.MessageType.DISAPPEARING
+                    )
+                }
+            ),
+            MenuItem(
+                id = "two_finger_mode",
+                labelResource = R.string.menu_item_two_fingers,
+                drawableId = R.drawable.ic_gesture_tap_hold, // Two finger representation
+                closeOnSelect = false, // Keep menu open to show feedback
+                action = {
+                    GestureManager.instance.setFingerMode(FingerMode.TWO)
+                    ServiceMessageHUD.instance.showMessage(
+                        R.string.finger_mode_changed,
+                        arrayOf(FingerMode.TWO.getDisplayName()),
+                        ServiceMessageHUD.MessageType.DISAPPEARING
+                    )
+                }
+            ),
+            MenuItem(
+                id = "auto_finger_mode",
+                labelResource = R.string.menu_item_auto_fingers,
+                drawableId = R.drawable.ic_finger_mode, // Auto/smart selection icon
+                closeOnSelect = false, // Keep menu open to show feedback
+                action = {
+                    GestureManager.instance.setFingerMode(FingerMode.AUTO)
+                    ServiceMessageHUD.instance.showMessage(
+                        R.string.finger_mode_changed,
+                        arrayOf(FingerMode.AUTO.getDisplayName()),
+                        ServiceMessageHUD.MessageType.DISAPPEARING
+                    )
+                }
             )
         )
     )
