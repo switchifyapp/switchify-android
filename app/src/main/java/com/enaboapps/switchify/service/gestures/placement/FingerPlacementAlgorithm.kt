@@ -42,18 +42,18 @@ class FingerPlacementAlgorithm {
         private const val TAG = "FingerPlacementAlgorithm"
         
         // Spacing constants for finger placement (in pixels)
-        const val MIN_FINGER_SPACING = 48f  // Minimum distance between finger centers
-        const val IDEAL_FINGER_SPACING = 64f // Ideal distance for comfortable use
-        const val MAX_FINGER_SPACING = 96f   // Maximum spacing before gesture feels disconnected
+        const val MIN_FINGER_SPACING = 100f  // Minimum distance between finger centers
+        const val IDEAL_FINGER_SPACING = 140f // Ideal distance for comfortable use
+        const val MAX_FINGER_SPACING = 200f  // Maximum spacing before gesture feels disconnected
         
         // Screen margin constants (pixels from screen edges)
         const val EDGE_MARGIN = 32f         // Minimum margin from screen edges
         const val SAFE_MARGIN = 48f         // Preferred margin for comfortable placement
         
         // Space requirements for different finger counts
-        const val MIN_TWO_FINGER_SPACE = 120  // Minimum space needed for 2 fingers
-        const val IDEAL_TWO_FINGER_SPACE = 160 // Ideal space for comfortable 2-finger gestures
-        const val MIN_THREE_FINGER_SPACE = 200 // Future: minimum space for 3 fingers
+        const val MIN_TWO_FINGER_SPACE = 200  // Minimum space needed for 2 fingers
+        const val IDEAL_TWO_FINGER_SPACE = 280 // Ideal space for comfortable 2-finger gestures
+        const val MIN_THREE_FINGER_SPACE = 380 // Future: minimum space for 3 fingers
         
         // Performance timing thresholds
         const val MAX_CALCULATION_TIME_MS = 5L // Maximum allowed calculation time
