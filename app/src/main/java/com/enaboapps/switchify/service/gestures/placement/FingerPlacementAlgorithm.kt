@@ -246,6 +246,7 @@ class FingerPlacementAlgorithm {
 
     /**
      * Creates two-finger placement with optimal spacing and strategy.
+     * Both fingers are equally offset from the target point for balanced placement.
      */
     private fun createTwoFingerPlacement(
         targetPoint: PointF,
@@ -256,7 +257,7 @@ class FingerPlacementAlgorithm {
     ): TwoFingerPlacement {
         val strategy = determineTwoFingerStrategy(targetPoint, availableSpace, screenBounds)
         val spacing = calculateOptimalSpacing(availableSpace, strategy)
-        val secondaryPoint = calculateSecondaryFingerPosition(
+        val (primaryPoint, secondaryPoint) = calculateEquallyOffsetFingerPositions(
             targetPoint, spacing, strategy, screenBounds
         )
         
@@ -279,7 +280,7 @@ class FingerPlacementAlgorithm {
         )
         
         return TwoFingerPlacement(
-            primaryPoint = targetPoint,
+            primaryPoint = primaryPoint,
             secondaryPoint = secondaryPoint,
             spacing = spacing,
             placementStrategy = strategy,
@@ -369,66 +370,82 @@ class FingerPlacementAlgorithm {
     }
 
     /**
-     * Calculates the secondary finger position based on strategy and spacing.
+     * Calculates equally offset finger positions centered around the target point.
+     * Both fingers are positioned at equal distance from the center for balanced placement.
      */
-    private fun calculateSecondaryFingerPosition(
-        primaryPoint: PointF,
+    private fun calculateEquallyOffsetFingerPositions(
+        centerPoint: PointF,
         spacing: Float,
         strategy: TwoFingerStrategy,
         screenBounds: Rect
-    ): PointF {
+    ): Pair<PointF, PointF> {
         val halfSpacing = spacing / 2f
         
         return when (strategy) {
             TwoFingerStrategy.HORIZONTAL -> {
-                // Place fingers horizontally side-by-side
-                val leftPoint = PointF(primaryPoint.x - halfSpacing, primaryPoint.y)
-                val rightPoint = PointF(primaryPoint.x + halfSpacing, primaryPoint.y)
+                // Place fingers horizontally, equally offset from center
+                val leftPoint = PointF(centerPoint.x - halfSpacing, centerPoint.y)
+                val rightPoint = PointF(centerPoint.x + halfSpacing, centerPoint.y)
                 
-                // Choose the secondary position that stays within bounds
-                if (leftPoint.x >= screenBounds.left + EDGE_MARGIN &&
-                    rightPoint.x <= screenBounds.right - EDGE_MARGIN) {
-                    rightPoint // Both fit, use right as secondary
-                } else if (leftPoint.x >= screenBounds.left + EDGE_MARGIN) {
-                    leftPoint
-                } else {
-                    rightPoint
-                }
+                // Ensure both points stay within bounds
+                val adjustedLeft = PointF(
+                    max(leftPoint.x, screenBounds.left + EDGE_MARGIN),
+                    leftPoint.y
+                )
+                val adjustedRight = PointF(
+                    min(rightPoint.x, screenBounds.right - EDGE_MARGIN),
+                    rightPoint.y
+                )
+                
+                Pair(adjustedLeft, adjustedRight)
             }
             
             TwoFingerStrategy.VERTICAL -> {
-                // Place fingers vertically above/below each other
-                val topPoint = PointF(primaryPoint.x, primaryPoint.y - halfSpacing)
-                val bottomPoint = PointF(primaryPoint.x, primaryPoint.y + halfSpacing)
+                // Place fingers vertically, equally offset from center
+                val topPoint = PointF(centerPoint.x, centerPoint.y - halfSpacing)
+                val bottomPoint = PointF(centerPoint.x, centerPoint.y + halfSpacing)
                 
-                if (topPoint.y >= screenBounds.top + EDGE_MARGIN &&
-                    bottomPoint.y <= screenBounds.bottom - EDGE_MARGIN) {
-                    bottomPoint // Both fit, use bottom as secondary
-                } else if (topPoint.y >= screenBounds.top + EDGE_MARGIN) {
-                    topPoint
-                } else {
-                    bottomPoint
-                }
+                // Ensure both points stay within bounds
+                val adjustedTop = PointF(
+                    topPoint.x,
+                    max(topPoint.y, screenBounds.top + EDGE_MARGIN)
+                )
+                val adjustedBottom = PointF(
+                    bottomPoint.x,
+                    min(bottomPoint.y, screenBounds.bottom - EDGE_MARGIN)
+                )
+                
+                Pair(adjustedTop, adjustedBottom)
             }
             
             TwoFingerStrategy.DIAGONAL -> {
-                // Place fingers diagonally
+                // Place fingers diagonally, equally offset from center
                 val diagonalOffset = halfSpacing / sqrt(2f)
-                PointF(
-                    primaryPoint.x + diagonalOffset,
-                    primaryPoint.y + diagonalOffset
+                val topLeftPoint = PointF(
+                    centerPoint.x - diagonalOffset,
+                    centerPoint.y - diagonalOffset
                 )
+                val bottomRightPoint = PointF(
+                    centerPoint.x + diagonalOffset,
+                    centerPoint.y + diagonalOffset
+                )
+                
+                Pair(topLeftPoint, bottomRightPoint)
             }
             
             TwoFingerStrategy.ADAPTIVE -> {
-                // Use the strategy that fits best in available space
-                val horizontalFits = (primaryPoint.x - halfSpacing) >= screenBounds.left + EDGE_MARGIN &&
-                                   (primaryPoint.x + halfSpacing) <= screenBounds.right - EDGE_MARGIN
+                // Use horizontal if it fits, otherwise vertical
+                val horizontalFits = (centerPoint.x - halfSpacing) >= screenBounds.left + EDGE_MARGIN &&
+                                   (centerPoint.x + halfSpacing) <= screenBounds.right - EDGE_MARGIN
                 
                 if (horizontalFits) {
-                    PointF(primaryPoint.x + halfSpacing, primaryPoint.y)
+                    val leftPoint = PointF(centerPoint.x - halfSpacing, centerPoint.y)
+                    val rightPoint = PointF(centerPoint.x + halfSpacing, centerPoint.y)
+                    Pair(leftPoint, rightPoint)
                 } else {
-                    PointF(primaryPoint.x, primaryPoint.y + halfSpacing)
+                    val topPoint = PointF(centerPoint.x, centerPoint.y - halfSpacing)
+                    val bottomPoint = PointF(centerPoint.x, centerPoint.y + halfSpacing)
+                    Pair(topPoint, bottomPoint)
                 }
             }
         }
@@ -436,6 +453,7 @@ class FingerPlacementAlgorithm {
 
     /**
      * Generates finger positions for multi-finger placement (3+ fingers).
+     * All fingers are equally offset from the center point for balanced placement.
      */
     private fun generateMultiFingerPositions(
         centerPoint: PointF,
@@ -444,14 +462,27 @@ class FingerPlacementAlgorithm {
         availableSpace: Int,
         screenBounds: Rect
     ): List<PointF> {
-        // Future implementation for 3+ finger patterns
-        // For now, return linear arrangement
         val positions = mutableListOf<PointF>()
         val spacing = min(availableSpace / fingerCount.toFloat(), IDEAL_FINGER_SPACING)
         
+        // Calculate equally offset positions centered around the target point
+        val totalSpacing = (fingerCount - 1) * spacing
+        val startOffset = -totalSpacing / 2f
+        
         for (i in 0 until fingerCount) {
-            val offset = (i - fingerCount / 2f) * spacing
-            positions.add(PointF(centerPoint.x + offset, centerPoint.y))
+            val offset = startOffset + (i * spacing)
+            val fingerPoint = PointF(
+                centerPoint.x + offset,
+                centerPoint.y
+            )
+            
+            // Ensure finger stays within screen bounds
+            val adjustedPoint = PointF(
+                max(min(fingerPoint.x, screenBounds.right - EDGE_MARGIN), screenBounds.left + EDGE_MARGIN),
+                fingerPoint.y
+            )
+            
+            positions.add(adjustedPoint)
         }
         
         return positions
