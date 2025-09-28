@@ -4,6 +4,7 @@ import com.enaboapps.switchify.service.core.SwitchifyAccessibilityService
 import com.enaboapps.switchify.service.gestures.visuals.GestureVisualManager
 import com.enaboapps.switchify.service.menu.menus.edit.EditMenu
 import com.enaboapps.switchify.service.menu.menus.gestures.CustomGestureConfirmationMenu
+import com.enaboapps.switchify.service.menu.menus.gestures.FingerModeMenu
 import com.enaboapps.switchify.service.menu.menus.gestures.GesturePatternsMenu
 import com.enaboapps.switchify.service.menu.menus.gestures.GesturesMenu
 import com.enaboapps.switchify.service.menu.menus.gestures.SwipeGesturesMenu
@@ -187,6 +188,14 @@ class MenuManager {
     fun openCustomGestureConfirmationMenu() {
         val customGestureConfirmationMenu = CustomGestureConfirmationMenu(accessibilityService!!)
         openMenu(customGestureConfirmationMenu.build())
+    }
+
+    /**
+     * This function opens the finger mode selection menu
+     */
+    fun openFingerModeMenu() {
+        val fingerModeMenu = FingerModeMenu(accessibilityService!!)
+        openMenu(fingerModeMenu.build())
     }
 
 

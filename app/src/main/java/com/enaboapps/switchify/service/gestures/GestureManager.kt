@@ -1,6 +1,7 @@
 package com.enaboapps.switchify.service.gestures
 
 import android.graphics.PointF
+import android.graphics.Rect
 import android.util.Log
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.service.core.SwitchifyAccessibilityService
@@ -9,6 +10,8 @@ import com.enaboapps.switchify.service.gestures.data.GestureType
 import com.enaboapps.switchify.service.gestures.execution.GestureDispatcher
 import com.enaboapps.switchify.service.gestures.execution.GesturePathBuilder
 import com.enaboapps.switchify.service.gestures.execution.GestureTimingCoordinator
+import com.enaboapps.switchify.service.gestures.placement.FingerPlacementAlgorithm
+import com.enaboapps.switchify.service.gestures.placement.FingerMode
 import com.enaboapps.switchify.service.gestures.visuals.GestureVisualManager
 import com.enaboapps.switchify.service.techniques.nodes.NodeExaminer
 
@@ -42,6 +45,9 @@ import com.enaboapps.switchify.service.techniques.nodes.NodeExaminer
 class GestureManager private constructor() {
     companion object {
         val instance: GestureManager by lazy { GestureManager() }
+        
+        // Preference key for finger mode setting
+        private const val FINGER_MODE_PREFERENCE_KEY = "gesture_finger_mode"
     }
 
     private var accessibilityService: SwitchifyAccessibilityService? = null
@@ -50,6 +56,7 @@ class GestureManager private constructor() {
     private lateinit var gestureVisualManager: GestureVisualManager
     private lateinit var gestureDispatcher: GestureDispatcher
     private lateinit var timingCoordinator: GestureTimingCoordinator
+    private val fingerPlacementAlgorithm: FingerPlacementAlgorithm = FingerPlacementAlgorithm()
 
     /**
      * Initializes the complete gesture system architecture with all required components.
@@ -110,21 +117,49 @@ class GestureManager private constructor() {
     }
 
     /**
-     * Executes a single tap gesture with full pipeline integration.
+     * Gets the current finger mode preference from user settings.
+     * 
+     * @return Current FingerMode setting, defaults to AUTO if not set
+     */
+    private fun getCurrentFingerMode(): FingerMode {
+        val modeString = preferenceManager?.getStringValue(FINGER_MODE_PREFERENCE_KEY)
+            ?: FingerMode.getDefault().name
+        return FingerMode.fromString(modeString)
+    }
+
+    /**
+     * Gets the current screen bounds for finger placement calculations.
+     * 
+     * @return Screen bounds rectangle, or default bounds if service unavailable
+     */
+    private fun getScreenBounds(): Rect {
+        return accessibilityService?.let { service ->
+            val displayMetrics = service.resources.displayMetrics
+            Rect(0, 0, displayMetrics.widthPixels, displayMetrics.heightPixels)
+        } ?: Rect(0, 0, 1080, 1920) // Default bounds as fallback
+    }
+
+    /**
+     * Executes a tap gesture with extensible multi-finger support using method-level algorithm.
      *
-     * Execution Flow:
+     * Method-Level Algorithm Integration:
      * 1. Point Resolution: Uses explicit coordinates or assisted selection
-     * 2. Visual Feedback: Shows static circle at tap location for user confirmation
-     * 3. Gesture Creation: GesturePathBuilder creates standardized tap path
-     * 4. Data Packaging: Creates GestureData for pattern recording and gesture lock
-     * 5. Unified Dispatch: GestureDispatcher handles execution with error callbacks
+     * 2. Finger Placement Calculation: Algorithm determines optimal finger count and positions
+     * 3. Dynamic Visual Feedback: Shows feedback for all determined finger positions
+     * 4. Dynamic Gesture Creation: GesturePathBuilder creates multi-finger paths automatically
+     * 5. Unified Dispatch: GestureDispatcher handles execution with multi-finger coordination
+     *
+     * Extensible Architecture:
+     * - No separate methods needed for different finger counts
+     * - Algorithm runs at method execution time for maximum flexibility
+     * - Automatically adapts to 1, 2, or N fingers based on user preference and context
+     * - Visual feedback and gesture paths scale with algorithm results
      *
      * Integration Points:
-     * - GestureVisualManager: Provides immediate visual feedback
-     * - GesturePathBuilder: Creates consistent tap gesture description
+     * - FingerPlacementAlgorithm: Calculates optimal finger placement per execution
+     * - GestureVisualManager: Provides visual feedback for all finger positions
+     * - GesturePathBuilder: Creates dynamic multi-finger gesture paths
      * - GestureDispatcher: Unified error handling and result callbacks
-     * - GesturePatternRecorder: Records gesture for pattern learning (via dispatcher)
-     * - GestureLockManager: Stores gesture data for potential locking (via dispatcher)
      *
      * @param x Optional explicit x coordinate, null uses assisted selection
      * @param y Optional explicit y coordinate, null uses assisted selection
@@ -132,23 +167,35 @@ class GestureManager private constructor() {
     fun performTap(x: Int? = null, y: Int? = null) {
         try {
             accessibilityService?.let {
-                val point = if (x != null && y != null) {
+                val targetPoint = if (x != null && y != null) {
                     PointF(x.toFloat(), y.toFloat())
                 } else {
                     getAssistedCurrentPoint()
                 }
 
-                // Show visual feedback
-                val duration = GestureData.TAP_DURATION
-                gestureVisualManager.showStaticCircle(
-                    point.x.toInt(),
-                    point.y.toInt(),
-                    duration
+                // Method-level algorithm execution: Calculate finger placement dynamically
+                val fingerPlacement = fingerPlacementAlgorithm.calculateFingerPlacement(
+                    gestureType = GestureType.TAP,
+                    targetPoint = targetPoint,
+                    userFingerMode = getCurrentFingerMode(),
+                    screenBounds = getScreenBounds()
                 )
 
-                // Create and dispatch gesture using unified pipeline
-                val gestureDescription = GesturePathBuilder.createTapPath(point, duration)
-                val gestureData = GestureData(GestureType.TAP, point)
+                Log.d("GestureManager", "Tap placement: ${fingerPlacement.getDescription()}")
+
+                // Show enhanced multi-finger visual feedback
+                val duration = GestureData.TAP_DURATION
+                gestureVisualManager.showMultiFingerVisual(fingerPlacement, duration)
+
+                // Create dynamic gesture path based on algorithm results
+                val gestureDescription = GesturePathBuilder.createDynamicPath(
+                    gestureType = GestureType.TAP,
+                    fingerPlacement = fingerPlacement,
+                    duration = duration
+                )
+
+                // Create gesture data with placement metadata
+                val gestureData = GestureData(GestureType.TAP, fingerPlacement.primaryPoint)
                 gestureDispatcher.dispatch(gestureDescription, GestureType.TAP, gestureData)
             }
         } catch (e: Exception) {
@@ -201,7 +248,12 @@ class GestureManager private constructor() {
     }
 
     /**
-     * Performs a tap and hold gesture at the current point.
+     * Performs a tap and hold gesture with extensible multi-finger support.
+     * 
+     * This method demonstrates the method-level algorithm approach where tap-and-hold
+     * gestures automatically benefit from enhanced stability when using two-finger mode.
+     * The algorithm considers that tap-and-hold gestures are stability gestures that
+     * benefit from multi-finger input for users with tremors or motor impairments.
      *
      * @param x The x coordinate of the tap gesture. If null, the current point will be used.
      * @param y The y coordinate of the tap gesture. If null, the current point will be used.
@@ -209,23 +261,34 @@ class GestureManager private constructor() {
     fun performTapAndHold(x: Int? = null, y: Int? = null) {
         try {
             accessibilityService?.let {
-                val point = if (x != null && y != null) {
+                val targetPoint = if (x != null && y != null) {
                     PointF(x.toFloat(), y.toFloat())
                 } else {
                     getAssistedCurrentPoint()
                 }
 
-                // Show visual feedback
-                val duration = GestureData.TAP_AND_HOLD_DURATION
-                gestureVisualManager.showStaticCircle(
-                    point.x.toInt(),
-                    point.y.toInt(),
-                    duration
+                // Method-level algorithm: Determine optimal finger placement
+                val fingerPlacement = fingerPlacementAlgorithm.calculateFingerPlacement(
+                    gestureType = GestureType.TAP_AND_HOLD,
+                    targetPoint = targetPoint,
+                    userFingerMode = getCurrentFingerMode(),
+                    screenBounds = getScreenBounds()
                 )
 
-                // Create and dispatch gesture using unified pipeline
-                val gestureDescription = GesturePathBuilder.createTapAndHoldPath(point, duration)
-                val gestureData = GestureData(GestureType.TAP_AND_HOLD, point)
+                Log.d("GestureManager", "Tap-and-hold placement: ${fingerPlacement.getDescription()}")
+
+                // Show enhanced multi-finger visual feedback
+                val duration = GestureData.TAP_AND_HOLD_DURATION
+                gestureVisualManager.showMultiFingerVisual(fingerPlacement, duration)
+
+                // Create dynamic gesture path
+                val gestureDescription = GesturePathBuilder.createDynamicPath(
+                    gestureType = GestureType.TAP_AND_HOLD,
+                    fingerPlacement = fingerPlacement,
+                    duration = duration
+                )
+
+                val gestureData = GestureData(GestureType.TAP_AND_HOLD, fingerPlacement.primaryPoint)
                 gestureDispatcher.dispatch(
                     gestureDescription,
                     GestureType.TAP_AND_HOLD,
@@ -391,6 +454,10 @@ class GestureManager private constructor() {
     /**
      * Performs a zoom action.
      *
+     * Note: Zoom gestures are intentionally excluded from the multi-finger system
+     * to avoid conflicts with existing pinch-to-zoom mechanics. Zoom gestures
+     * maintain their existing two-finger pinch implementation.
+     *
      * @param type The type of zoom action to perform.
      * @param startPoint The starting point of the gesture.
      */
@@ -405,5 +472,40 @@ class GestureManager private constructor() {
         accessibilityService?.let {
             ZoomGesturePerformer.performZoomAction(type, it, point)
         }
+    }
+
+    // Multi-finger gesture system management methods
+
+    /**
+     * Sets the finger mode preference for multi-finger gesture execution.
+     * 
+     * This method allows dynamic switching between finger modes without requiring
+     * app restart. The setting is immediately applied to all subsequent gesture calls.
+     * 
+     * @param fingerMode The desired finger mode (ONE, TWO, AUTO)
+     */
+    fun setFingerMode(fingerMode: FingerMode) {
+        preferenceManager?.setStringValue(FINGER_MODE_PREFERENCE_KEY, fingerMode.name)
+        accessibilityService?.let { context ->
+            Log.d("GestureManager", "Finger mode set to: ${fingerMode.getDisplayName(context)}")
+        }
+    }
+
+    /**
+     * Gets the current finger mode setting.
+     * 
+     * @return Current finger mode preference
+     */
+    fun getFingerMode(): FingerMode {
+        return getCurrentFingerMode()
+    }
+
+    /**
+     * Gets available finger modes for UI selection.
+     * 
+     * @return List of all available finger modes
+     */
+    fun getAvailableFingerModes(): List<FingerMode> {
+        return FingerMode.getAllModes()
     }
 }

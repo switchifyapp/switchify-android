@@ -34,6 +34,7 @@ class MenuStructureHolder(accessibilityService: SwitchifyAccessibilityService) {
     val tapGesturesMenuObject = gestureMenuStructure.tapGesturesMenuObject
     val customGestureConfirmationMenuObject =
         gestureMenuStructure.customGestureConfirmationMenuObject
+    val fingerModeMenuObject = gestureMenuStructure.fingerModeMenuObject
 
     // System Menus
     fun buildDeviceMenuObject() = systemMenuStructure.buildDeviceMenuObject()
