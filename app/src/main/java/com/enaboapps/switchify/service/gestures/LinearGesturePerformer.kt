@@ -69,7 +69,7 @@ class LinearGesturePerformer(
         private const val TAG = "LinearGesturePerformer"
         
         // Finger mode preference key (matches GestureManager)
-        private const val FINGER_MODE_PREFERENCE_KEY = "finger_mode_preference"
+        private const val FINGER_MODE_PREFERENCE_KEY = "gesture_finger_mode"
     }
 
     /**
@@ -512,7 +512,12 @@ class LinearGesturePerformer(
         val defaultMode = FingerMode.getDefault()
         Log.d(TAG, "DEBUG: Default finger mode = $defaultMode")
         
-        val finalModeString = modeString ?: defaultMode.name
+        // Handle empty strings and null values properly
+        val finalModeString = if (modeString.isNullOrEmpty()) {
+            defaultMode.name
+        } else {
+            modeString
+        }
         Log.d(TAG, "DEBUG: Final mode string = '$finalModeString'")
         
         val fingerMode = FingerMode.fromString(finalModeString)
