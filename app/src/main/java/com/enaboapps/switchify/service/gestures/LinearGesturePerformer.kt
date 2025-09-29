@@ -9,6 +9,7 @@ import com.enaboapps.switchify.service.gestures.data.GestureData
 import com.enaboapps.switchify.service.gestures.data.GestureType
 import com.enaboapps.switchify.service.gestures.placement.FingerPlacementAlgorithm
 import com.enaboapps.switchify.service.gestures.placement.FingerMode
+import com.enaboapps.switchify.service.gestures.placement.FingerModePreferences
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.service.gestures.execution.GestureDispatcher
 import com.enaboapps.switchify.service.gestures.execution.GesturePathBuilder
@@ -67,9 +68,6 @@ class LinearGesturePerformer(
 
     companion object {
         private const val TAG = "LinearGesturePerformer"
-        
-        // Finger mode preference key (matches GestureManager)
-        private const val FINGER_MODE_PREFERENCE_KEY = "gesture_finger_mode"
     }
 
     /**
@@ -136,21 +134,12 @@ class LinearGesturePerformer(
             val fingerMode = getCurrentFingerMode()
             val screenBounds = getScreenBounds()
             
-            Log.d(TAG, "DEBUG: Starting finger placement calculation")
-            Log.d(TAG, "DEBUG: fingerMode = $fingerMode")
-            Log.d(TAG, "DEBUG: gestureType = $type")
-            Log.d(TAG, "DEBUG: startPoint = $startPoint")
-            Log.d(TAG, "DEBUG: screenBounds = $screenBounds")
-            
             fingerPlacement = fingerPlacementAlgorithm.calculateFingerPlacement(
                 gestureType = type,
                 targetPoint = startPoint,
                 userFingerMode = fingerMode,
                 screenBounds = screenBounds
             )
-            
-            Log.d(TAG, "DEBUG: fingerPlacement result = $fingerPlacement")
-            Log.d(TAG, "DEBUG: fingerPlacement.fingerCount = ${fingerPlacement?.fingerCount}")
             
             // Store finger placement in state manager for use in endGesture()
             GestureStateManager.setCurrentFingerPlacement(fingerPlacement)
@@ -168,21 +157,12 @@ class LinearGesturePerformer(
         }
         
         // Show appropriate visual feedback based on finger placement
-        Log.d(TAG, "DEBUG: About to show visual feedback")
-        Log.d(TAG, "DEBUG: fingerPlacement = $fingerPlacement")
-        Log.d(TAG, "DEBUG: fingerPlacement != null = ${fingerPlacement != null}")
-        if (fingerPlacement != null) {
-            Log.d(TAG, "DEBUG: fingerPlacement.fingerCount = ${fingerPlacement.fingerCount}")
-        }
-        
         if (fingerPlacement != null && fingerPlacement.fingerCount > 1) {
             // Show multi-finger visual feedback with finger positions
-            Log.d(TAG, "DEBUG: Calling showMultiFingerVisual for ${fingerPlacement.fingerCount} fingers")
             gestureVisualManager.showMultiFingerVisual(fingerPlacement)
             Log.d(TAG, "Showing multi-finger start visual for ${fingerPlacement.fingerCount} fingers")
         } else {
             // Fall back to single finger visual feedback
-            Log.d(TAG, "DEBUG: Falling back to single finger visual feedback")
             gestureVisualManager.showStaticCircle(
                 startPoint.x.toInt(),
                 startPoint.y.toInt()
@@ -506,24 +486,7 @@ class LinearGesturePerformer(
      * @return Current FingerMode setting, defaults to ONE if not set
      */
     private fun getCurrentFingerMode(): FingerMode {
-        val modeString = preferenceManager.getStringValue(FINGER_MODE_PREFERENCE_KEY)
-        Log.d(TAG, "DEBUG: Raw preference value for '$FINGER_MODE_PREFERENCE_KEY' = '$modeString'")
-        
-        val defaultMode = FingerMode.getDefault()
-        Log.d(TAG, "DEBUG: Default finger mode = $defaultMode")
-        
-        // Handle empty strings and null values properly
-        val finalModeString = if (modeString.isNullOrEmpty()) {
-            defaultMode.name
-        } else {
-            modeString
-        }
-        Log.d(TAG, "DEBUG: Final mode string = '$finalModeString'")
-        
-        val fingerMode = FingerMode.fromString(finalModeString)
-        Log.d(TAG, "DEBUG: Parsed finger mode = $fingerMode")
-        
-        return fingerMode
+        return FingerModePreferences.getCurrentFingerMode(preferenceManager)
     }
     
     /**

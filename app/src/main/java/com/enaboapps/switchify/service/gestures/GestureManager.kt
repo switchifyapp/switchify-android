@@ -12,6 +12,7 @@ import com.enaboapps.switchify.service.gestures.execution.GesturePathBuilder
 import com.enaboapps.switchify.service.gestures.execution.GestureTimingCoordinator
 import com.enaboapps.switchify.service.gestures.placement.FingerPlacementAlgorithm
 import com.enaboapps.switchify.service.gestures.placement.FingerMode
+import com.enaboapps.switchify.service.gestures.placement.FingerModePreferences
 import com.enaboapps.switchify.service.gestures.visuals.GestureVisualManager
 import com.enaboapps.switchify.service.techniques.nodes.NodeExaminer
 
@@ -45,9 +46,6 @@ import com.enaboapps.switchify.service.techniques.nodes.NodeExaminer
 class GestureManager private constructor() {
     companion object {
         val instance: GestureManager by lazy { GestureManager() }
-        
-        // Preference key for finger mode setting
-        private const val FINGER_MODE_PREFERENCE_KEY = "gesture_finger_mode"
     }
 
     private var accessibilityService: SwitchifyAccessibilityService? = null
@@ -119,12 +117,12 @@ class GestureManager private constructor() {
     /**
      * Gets the current finger mode preference from user settings.
      * 
-     * @return Current FingerMode setting, defaults to AUTO if not set
+     * @return Current FingerMode setting, defaults to ONE if not set
      */
     private fun getCurrentFingerMode(): FingerMode {
-        val modeString = preferenceManager?.getStringValue(FINGER_MODE_PREFERENCE_KEY)
-            ?: FingerMode.getDefault().name
-        return FingerMode.fromString(modeString)
+        return preferenceManager?.let { pm ->
+            FingerModePreferences.getCurrentFingerMode(pm)
+        } ?: FingerMode.getDefault()
     }
 
     /**
@@ -482,13 +480,19 @@ class GestureManager private constructor() {
      * This method allows dynamic switching between finger modes without requiring
      * app restart. The setting is immediately applied to all subsequent gesture calls.
      * 
-     * @param fingerMode The desired finger mode (ONE, TWO, AUTO)
+     * @param fingerMode The desired finger mode (ONE, TWO, THREE, FOUR, FIVE)
      */
     fun setFingerMode(fingerMode: FingerMode) {
-        preferenceManager?.setStringValue(FINGER_MODE_PREFERENCE_KEY, fingerMode.name)
-        accessibilityService?.let { context ->
-            Log.d("GestureManager", "Finger mode set to: ${fingerMode.getDisplayName(context)}")
-        }
+        preferenceManager?.let { pm ->
+            val success = FingerModePreferences.setFingerMode(pm, fingerMode)
+            if (success) {
+                accessibilityService?.let { context ->
+                    Log.d("GestureManager", "Finger mode set to: ${fingerMode.getDisplayName(context)}")
+                }
+            } else {
+                Log.e("GestureManager", "Failed to set finger mode to: $fingerMode")
+            }
+        } ?: Log.e("GestureManager", "Cannot set finger mode: PreferenceManager is null")
     }
 
     /**
@@ -506,6 +510,6 @@ class GestureManager private constructor() {
      * @return List of all available finger modes
      */
     fun getAvailableFingerModes(): List<FingerMode> {
-        return FingerMode.getAllModes()
+        return FingerModePreferences.getAllModes()
     }
 }
