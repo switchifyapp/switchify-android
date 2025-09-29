@@ -84,30 +84,33 @@ data class GestureData(
             this
         }
         
+        // Only use finger mode override if the original data was valid
+        val overrideFingerMode = if (safeFingerCount == fingerCount) sanitizedGesture.fingerMode else null
+        
         // Always use the gesture methods with explicit finger mode override
         // This ensures pattern playback accuracy regardless of current user preference
         when (gestureType) {
             GestureType.TAP -> {
                 GestureManager.instance.performTap(
-                    x = startPoint.x.toInt(),
-                    y = startPoint.y.toInt(),
-                    overrideFingerMode = fingerMode
+                    x = sanitizedGesture.startPoint.x.toInt(),
+                    y = sanitizedGesture.startPoint.y.toInt(),
+                    overrideFingerMode = overrideFingerMode
                 )
             }
 
             GestureType.DOUBLE_TAP -> {
                 GestureManager.instance.performDoubleTap(
-                    x = startPoint.x.toInt(),
-                    y = startPoint.y.toInt(),
-                    overrideFingerMode = fingerMode
+                    x = sanitizedGesture.startPoint.x.toInt(),
+                    y = sanitizedGesture.startPoint.y.toInt(),
+                    overrideFingerMode = overrideFingerMode
                 )
             }
 
             GestureType.TAP_AND_HOLD -> {
                 GestureManager.instance.performTapAndHold(
-                    x = startPoint.x.toInt(),
-                    y = startPoint.y.toInt(),
-                    overrideFingerMode = fingerMode
+                    x = sanitizedGesture.startPoint.x.toInt(),
+                    y = sanitizedGesture.startPoint.y.toInt(),
+                    overrideFingerMode = overrideFingerMode
                 )
             }
 
@@ -119,7 +122,7 @@ data class GestureData(
             GestureType.SCROLL_DOWN,
             GestureType.SCROLL_LEFT,
             GestureType.SCROLL_RIGHT -> {
-                GestureManager.instance.performSwipeOrScroll(gestureType, startPoint, fingerMode)
+                GestureManager.instance.performSwipeOrScroll(gestureType, sanitizedGesture.startPoint, overrideFingerMode)
             }
 
             GestureType.CUSTOM_SWIPE,

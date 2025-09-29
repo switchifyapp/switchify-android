@@ -414,7 +414,13 @@ class GestureManager private constructor() {
         
         if (overrideFingerMode != null) {
             // Use explicit finger mode override for pattern playback
-            val fingerCount = overrideFingerMode.ordinal + 1
+            val fingerCount = when (overrideFingerMode) {
+                com.enaboapps.switchify.service.gestures.placement.FingerMode.ONE -> 1
+                com.enaboapps.switchify.service.gestures.placement.FingerMode.TWO -> 2
+                com.enaboapps.switchify.service.gestures.placement.FingerMode.THREE -> 3
+                com.enaboapps.switchify.service.gestures.placement.FingerMode.FOUR -> 4
+                com.enaboapps.switchify.service.gestures.placement.FingerMode.FIVE -> 5
+            }
             linearGesturePerformer.startGesture(type, fingerCount, false, point)
         } else {
             // Use current user preference for normal execution
