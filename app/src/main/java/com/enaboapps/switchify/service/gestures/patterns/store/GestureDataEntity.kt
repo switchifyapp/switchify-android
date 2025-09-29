@@ -29,7 +29,9 @@ data class GestureDataEntity(
     val startX: Float,
     val startY: Float,
     val endX: Float?,
-    val endY: Float?
+    val endY: Float?,
+    val fingerCount: Int = 1,
+    val fingerMode: String? = null
 ) {
     fun toGestureData(): GestureData {
         return GestureData(
@@ -38,7 +40,15 @@ data class GestureDataEntity(
             endPoint = if (endX != null && endY != null) android.graphics.PointF(
                 endX,
                 endY
-            ) else null
+            ) else null,
+            fingerCount = fingerCount,
+            fingerMode = fingerMode?.let { 
+                try {
+                    com.enaboapps.switchify.service.gestures.placement.FingerMode.fromString(it)
+                } catch (e: Exception) {
+                    com.enaboapps.switchify.service.gestures.placement.FingerMode.ONE
+                }
+            } ?: com.enaboapps.switchify.service.gestures.placement.FingerMode.ONE
         )
     }
 
@@ -50,7 +60,9 @@ data class GestureDataEntity(
                 startX = gestureData.startPoint.x,
                 startY = gestureData.startPoint.y,
                 endX = gestureData.endPoint?.x,
-                endY = gestureData.endPoint?.y
+                endY = gestureData.endPoint?.y,
+                fingerCount = gestureData.fingerCount,
+                fingerMode = gestureData.fingerMode.name
             )
         }
     }

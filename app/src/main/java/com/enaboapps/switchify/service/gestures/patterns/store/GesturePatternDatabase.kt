@@ -10,7 +10,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
     entities = [GesturePatternEntity::class, GestureDataEntity::class],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 @TypeConverters(GestureTypeConverter::class)
@@ -28,7 +28,7 @@ abstract class GesturePatternDatabase : RoomDatabase() {
                     GesturePatternDatabase::class.java,
                     "gesture_pattern_database"
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
                     .build()
                 INSTANCE = instance
                 instance
@@ -44,6 +44,15 @@ abstract class GesturePatternDatabase : RoomDatabase() {
         private val MIGRATION_2_3 = object : Migration(2, 3) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("CREATE INDEX IF NOT EXISTS `index_gesture_data_patternId` ON `gesture_data` (`patternId`)")
+            }
+        }
+
+        private val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // Add fingerCount column with default value of 1
+                db.execSQL("ALTER TABLE gesture_data ADD COLUMN fingerCount INTEGER NOT NULL DEFAULT 1")
+                // Add fingerMode column with default value of null
+                db.execSQL("ALTER TABLE gesture_data ADD COLUMN fingerMode TEXT")
             }
         }
     }

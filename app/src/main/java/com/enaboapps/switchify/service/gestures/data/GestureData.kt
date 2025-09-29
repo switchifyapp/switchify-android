@@ -6,7 +6,9 @@ import com.enaboapps.switchify.service.gestures.GestureManager
 data class GestureData(
     val gestureType: GestureType,
     val startPoint: PointF,
-    val endPoint: PointF? = null
+    val endPoint: PointF? = null,
+    val fingerCount: Int = 1,
+    val fingerMode: com.enaboapps.switchify.service.gestures.placement.FingerMode = com.enaboapps.switchify.service.gestures.placement.FingerMode.ONE
 ) {
     companion object {
         const val TAP_DURATION = 100L
