@@ -3,6 +3,7 @@ package com.enaboapps.switchify.service.gestures
 import android.graphics.PointF
 import android.util.Log
 import com.enaboapps.switchify.service.gestures.data.GestureType
+import com.enaboapps.switchify.service.gestures.placement.FingerPlacement
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -32,6 +33,9 @@ object GestureStateManager {
     private val currentGestureType = AtomicReference<GestureType?>(null)
     private val gestureStartPoint = AtomicReference<PointF?>(null)
     private val lastGestureTime = AtomicLong(0L)
+    
+    // Multi-finger placement state for linear gestures
+    private val currentFingerPlacement = AtomicReference<FingerPlacement?>(null)
 
     // Auto-select state
     private val autoSelectInProgress = AtomicBoolean(false)
@@ -135,6 +139,9 @@ object GestureStateManager {
 
         val type = currentGestureType.getAndSet(null)
         val startPoint = gestureStartPoint.getAndSet(null)
+        
+        // Clear finger placement to prevent memory leaks
+        clearFingerPlacement()
 
         notifyStateChange(
             EVENT_GESTURE_ENDED, mapOf(
@@ -160,6 +167,9 @@ object GestureStateManager {
 
         currentGestureType.set(null)
         gestureStartPoint.set(null)
+        
+        // Clear finger placement to prevent memory leaks
+        clearFingerPlacement()
 
         Log.d(TAG, "cancelGesture: cleared state")
 
@@ -193,6 +203,40 @@ object GestureStateManager {
         val point = gestureStartPoint.get()
         Log.d(TAG, "getCurrentGestureStartPoint called - returning: $point")
         return point
+    }
+    
+    // === Multi-Finger Placement State Management ===
+    
+    /**
+     * Sets the finger placement for the current gesture.
+     * Used by LinearGesturePerformer to store multi-finger positioning for linear gestures.
+     * 
+     * @param placement The finger placement calculated by FingerPlacementAlgorithm
+     */
+    fun setCurrentFingerPlacement(placement: FingerPlacement?) {
+        currentFingerPlacement.set(placement)
+        Log.d(TAG, "setCurrentFingerPlacement called - placement: ${placement?.getDescription() ?: "null"}")
+    }
+    
+    /**
+     * Gets the current finger placement, if any.
+     * Used by LinearGesturePerformer.endGesture() to retrieve multi-finger positioning.
+     * 
+     * @return The stored finger placement or null if not set
+     */
+    fun getCurrentFingerPlacement(): FingerPlacement? {
+        val placement = currentFingerPlacement.get()
+        Log.d(TAG, "getCurrentFingerPlacement called - returning: ${placement?.getDescription() ?: "null"}")
+        return placement
+    }
+    
+    /**
+     * Clears the current finger placement.
+     * Called during gesture cleanup to prevent memory leaks.
+     */
+    fun clearFingerPlacement() {
+        currentFingerPlacement.set(null)
+        Log.d(TAG, "clearFingerPlacement called - placement cleared")
     }
 
     // === Auto-Select State Management ===
@@ -308,6 +352,9 @@ object GestureStateManager {
         bypassAutoSelect.set(false)
         methodTypeInvokedForStartScanning.set(null)
         activeVisualFeedback.set(false)
+        
+        // Clear finger placement to prevent memory leaks
+        clearFingerPlacement()
 
         Log.d(TAG, "resetAllState: all state cleared")
 
