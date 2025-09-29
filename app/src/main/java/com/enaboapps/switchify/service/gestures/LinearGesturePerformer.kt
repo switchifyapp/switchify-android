@@ -9,9 +9,9 @@ import com.enaboapps.switchify.service.gestures.data.GestureData
 import com.enaboapps.switchify.service.gestures.data.GestureType
 import com.enaboapps.switchify.service.gestures.placement.FingerPlacementAlgorithm
 import com.enaboapps.switchify.service.gestures.placement.FingerMode
-import com.enaboapps.switchify.service.preferences.PreferenceManager
-import com.enaboapps.switchify.service.utils.ScreenUtils
-import com.enaboapps.switchify.service.window.ServiceMessageHUD
+import com.enaboapps.switchify.backend.preferences.PreferenceManager
+import com.enaboapps.switchify.service.gestures.execution.GestureDispatcher
+import com.enaboapps.switchify.service.gestures.execution.GesturePathBuilder
 import com.enaboapps.switchify.service.gestures.visuals.GestureVisualManager
 import com.enaboapps.switchify.service.utils.ScreenUtils
 import com.enaboapps.switchify.service.window.ServiceMessageHUD
