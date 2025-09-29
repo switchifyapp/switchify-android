@@ -59,17 +59,17 @@ class FingerPlacementAlgorithm {
         const val MAX_CALCULATION_TIME_MS = 5L // Maximum allowed calculation time
         
         // Natural finger spacing constants based on human hand anatomy (in pixels at ~160dpi)
-        // These values are derived from ergonomic studies of average adult hand measurements
-        private const val NATURAL_INDEX_TO_MIDDLE = 18f    // Index to middle finger spacing
-        private const val NATURAL_MIDDLE_TO_RING = 15f     // Middle to ring finger spacing  
-        private const val NATURAL_RING_TO_PINKY = 12f      // Ring to pinky finger spacing
-        private const val NATURAL_THUMB_OFFSET_X = 28f     // Thumb horizontal offset from index
-        private const val NATURAL_THUMB_OFFSET_Y = 20f     // Thumb vertical offset (lower position)
+        // These values are scaled up significantly for reliable multi-touch gesture recognition
+        private const val NATURAL_INDEX_TO_MIDDLE = 60f    // Index to middle finger spacing (was 18f)
+        private const val NATURAL_MIDDLE_TO_RING = 50f     // Middle to ring finger spacing (was 15f)  
+        private const val NATURAL_RING_TO_PINKY = 45f      // Ring to pinky finger spacing (was 12f)
+        private const val NATURAL_THUMB_OFFSET_X = 80f     // Thumb horizontal offset from index (was 28f)
+        private const val NATURAL_THUMB_OFFSET_Y = 60f     // Thumb vertical offset (was 20f)
         
         // Hand curvature constants for natural arc patterns
         private const val HAND_CURVATURE_FACTOR = 0.15f    // Arc curvature strength (0.1-0.3)
-        private const val MIDDLE_FINGER_FORWARD = 6f       // Middle finger slightly forward
-        private const val FINGER_LENGTH_VARIATION = 4f     // Natural length differences
+        private const val MIDDLE_FINGER_FORWARD = 20f      // Middle finger forward (was 6f)
+        private const val FINGER_LENGTH_VARIATION = 15f    // Natural length differences (was 4f)
         
         // Gesture-specific spacing multipliers
         private const val PINCH_GESTURE_SPREAD = 1.4f      // Wider spread for pinch gestures
@@ -500,7 +500,7 @@ class FingerPlacementAlgorithm {
         
         // Calculate dynamic spacing based on available space
         val availableSpace = calculateAvailableSpace(centerPoint, screenBounds)
-        val spacingMultiplier = min(1.0f, availableSpace / 200f) // Scale down if space is limited
+        val spacingMultiplier = min(2.0f, max(1.0f, availableSpace / 150f)) // Allow scaling up, minimum 1.0x
         
         // Natural finger positions: index (left), middle (center, slightly forward), ring (right)
         // Index finger position (leftmost)
@@ -540,7 +540,7 @@ class FingerPlacementAlgorithm {
         
         // Calculate dynamic spacing based on available space
         val availableSpace = calculateAvailableSpace(centerPoint, screenBounds)
-        val spacingMultiplier = min(1.0f, availableSpace / 250f) // Scale for 4 fingers
+        val spacingMultiplier = min(2.0f, max(1.0f, availableSpace / 200f)) // Allow scaling up for 4 fingers
         
         // Natural 4-finger positions: index, middle, ring, pinky in sequence
         
@@ -588,7 +588,7 @@ class FingerPlacementAlgorithm {
         
         // Calculate dynamic spacing based on available space
         val availableSpace = calculateAvailableSpace(centerPoint, screenBounds)
-        val spacingMultiplier = min(1.0f, availableSpace / 300f) // Scale for 5 fingers
+        val spacingMultiplier = min(2.0f, max(1.0f, availableSpace / 250f)) // Allow scaling up for 5 fingers
         
         // Natural 5-finger positions: thumb + four fingers
         
