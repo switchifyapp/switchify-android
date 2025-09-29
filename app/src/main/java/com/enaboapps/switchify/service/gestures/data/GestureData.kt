@@ -76,8 +76,12 @@ data class GestureData(
         // Validate finger count and fallback to safe defaults if corrupted
         val safeFingerCount = fingerCount.coerceIn(1, 5)
         
-        if (safeFingerCount != fingerCount) {
+        // Create sanitized gesture data if finger count was invalid
+        val sanitizedGesture = if (safeFingerCount != fingerCount) {
             android.util.Log.w("GestureData", "Invalid finger count $fingerCount, using safe value $safeFingerCount")
+            this.copy(fingerCount = safeFingerCount)
+        } else {
+            this
         }
         
         // Always use the gesture methods with explicit finger mode override
@@ -121,7 +125,7 @@ data class GestureData(
             GestureType.CUSTOM_SWIPE,
             GestureType.DRAG,
             GestureType.HOLD_AND_DRAG -> {
-                GestureManager.instance.performCustomGestureAction(this)
+                GestureManager.instance.performCustomGestureAction(sanitizedGesture)
             }
 
             GestureType.ZOOM_IN, GestureType.ZOOM_OUT -> {

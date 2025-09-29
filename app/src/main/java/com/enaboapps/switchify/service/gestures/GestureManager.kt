@@ -219,21 +219,28 @@ class GestureManager private constructor() {
     fun performDoubleTap(x: Int? = null, y: Int? = null, overrideFingerMode: FingerMode? = null) {
         try {
             accessibilityService?.let {
-                val point = if (x != null && y != null) {
+                val targetPoint = if (x != null && y != null) {
                     PointF(x.toFloat(), y.toFloat())
                 } else {
                     getAssistedCurrentPoint()
                 }
 
+                // Method-level algorithm: Determine optimal finger placement
+                val effectiveFingerMode = overrideFingerMode ?: getCurrentFingerMode()
+                val fingerPlacement = fingerPlacementAlgorithm.calculateFingerPlacement(
+                    gestureType = GestureType.DOUBLE_TAP,
+                    targetPoint = targetPoint,
+                    userFingerMode = effectiveFingerMode,
+                    screenBounds = getScreenBounds()
+                )
+
+                Log.d("GestureManager", "Double-tap placement: ${fingerPlacement.getDescription()}")
+
                 // Coordinate timing and visual feedback
                 val handler = timingCoordinator.createDefaultHandler(
                     onReady = { _, _ ->
-                        // Show first tap visual
-                        gestureVisualManager.showStaticCircle(
-                            point.x.toInt(),
-                            point.y.toInt(),
-                            GestureData.TAP_DURATION
-                        )
+                        // Show first tap visual with multi-finger support
+                        gestureVisualManager.showMultiFingerVisual(fingerPlacement, GestureData.TAP_DURATION)
                     }
                 )
 
@@ -244,14 +251,18 @@ class GestureManager private constructor() {
                     GestureData.TAP_DURATION
                 )
 
-                // Create and dispatch gesture using unified pipeline
-                val gestureDescription = GesturePathBuilder.createDoubleTapPath(point)
-                val effectiveFingerMode = overrideFingerMode ?: com.enaboapps.switchify.service.gestures.placement.FingerMode.ONE
+                // Create dynamic gesture path based on algorithm results
+                val gestureDescription = GesturePathBuilder.createDynamicPath(
+                    gestureType = GestureType.DOUBLE_TAP,
+                    fingerPlacement = fingerPlacement,
+                    duration = GestureData.TAP_DURATION
+                )
+                
                 val gestureData = GestureData(
                     gestureType = GestureType.DOUBLE_TAP,
-                    startPoint = point,
+                    startPoint = fingerPlacement.primaryPoint,
                     endPoint = null,
-                    fingerCount = effectiveFingerMode.ordinal + 1, // Convert finger mode to count
+                    fingerCount = fingerPlacement.fingerCount,
                     fingerMode = effectiveFingerMode
                 )
                 gestureDispatcher.dispatch(gestureDescription, GestureType.DOUBLE_TAP, gestureData)
