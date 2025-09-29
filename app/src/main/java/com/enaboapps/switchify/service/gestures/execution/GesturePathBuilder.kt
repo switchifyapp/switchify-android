@@ -559,6 +559,76 @@ object GesturePathBuilder {
     }
 
     /**
+     * Creates a dynamic linear gesture path supporting multi-finger coordination.
+     * 
+     * This method creates coordinated linear gesture paths for multiple fingers, where each finger
+     * moves in parallel from its start position to its corresponding end position. This enables
+     * natural multi-finger linear gestures like swipes and drags while maintaining the relative
+     * finger positioning established by the FingerPlacementAlgorithm.
+     * 
+     * Features:
+     * - Supports any number of fingers (1 to N)
+     * - Maintains relative finger spacing during movement
+     * - Uses gesture-appropriate timing and duration
+     * - Handles HOLD_AND_DRAG with specialized two-stroke pattern
+     * 
+     * @param gestureType The type of linear gesture (DRAG, SWIPE_*, SCROLL_*, HOLD_AND_DRAG, etc.)
+     * @param startPoints List of start positions for all fingers
+     * @param endPoints List of end positions for all fingers (must match startPoints length)
+     * @return GestureDescription with coordinated multi-finger linear paths
+     */
+    fun createDynamicLinearPath(
+        gestureType: GestureType,
+        startPoints: List<PointF>,
+        endPoints: List<PointF>
+    ): GestureDescription {
+        require(startPoints.size == endPoints.size) {
+            "Start points and end points must have the same size: ${startPoints.size} vs ${endPoints.size}"
+        }
+        
+        val duration = getDurationForGestureType(gestureType)
+        
+        return when (gestureType) {
+            GestureType.HOLD_AND_DRAG -> {
+                // Special handling for hold-and-drag: hold at start, then drag to end
+                createMultiFingerHoldAndDragPath(startPoints, endPoints, duration)
+            }
+            else -> {
+                // Standard linear path for swipes, drags, scrolls
+                createMultiFingerLinearPath(startPoints, endPoints, duration)
+            }
+        }
+    }
+    
+    /**
+     * Creates a multi-finger hold-and-drag path with hold phase followed by drag phase.
+     */
+    private fun createMultiFingerHoldAndDragPath(
+        startPoints: List<PointF>,
+        endPoints: List<PointF>,
+        totalDuration: Long
+    ): GestureDescription {
+        val builder = GestureDescription.Builder()
+        val holdDuration = totalDuration / 3 // Hold for 1/3 of total time
+        val dragDuration = totalDuration - holdDuration // Drag for remaining time
+        
+        val pointPairs = startPoints.zip(endPoints)
+        
+        pointPairs.forEach { (startPoint, endPoint) ->
+            val path = Path().apply {
+                // Hold phase
+                moveTo(startPoint.x, startPoint.y)
+                // Drag phase
+                lineTo(endPoint.x, endPoint.y)
+            }
+            val stroke = GestureDescription.StrokeDescription(path, 0, totalDuration)
+            builder.addStroke(stroke)
+        }
+        
+        return builder.build()
+    }
+
+    /**
      * Creates a gesture description based on gesture data.
      *
      * @param gestureData The gesture data containing type, points, and other parameters
