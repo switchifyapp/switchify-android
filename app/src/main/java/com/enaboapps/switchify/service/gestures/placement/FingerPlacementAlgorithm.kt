@@ -592,15 +592,15 @@ class FingerPlacementAlgorithm {
         
         // Natural 5-finger positions: thumb + four fingers
         
-        // Thumb position (naturally offset, lower and to the left)
-        val thumbX = centerPoint.x - (NATURAL_THUMB_OFFSET_X * spacingMultiplier)
-        val thumbY = centerPoint.y + (NATURAL_THUMB_OFFSET_Y * spacingMultiplier)
-        val thumbFinger = PointF(thumbX, thumbY)
-        
-        // Index finger (next to thumb, slightly inward)
+        // Index finger (next to thumb, slightly inward) - calculate first as base
         val indexX = centerPoint.x - (NATURAL_INDEX_TO_MIDDLE * spacingMultiplier)
         val indexY = centerPoint.y + (FINGER_LENGTH_VARIATION * spacingMultiplier)
         val indexFinger = PointF(indexX, indexY)
+        
+        // Thumb position (naturally offset from index finger)
+        val thumbX = indexX - (NATURAL_THUMB_OFFSET_X * spacingMultiplier)
+        val thumbY = indexFinger.y + (NATURAL_THUMB_OFFSET_Y * spacingMultiplier)
+        val thumbFinger = PointF(thumbX, thumbY)
         
         // Middle finger (center, slightly forward)
         val middleX = centerPoint.x
