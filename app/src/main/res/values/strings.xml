@@ -82,9 +82,9 @@
     <string name="menu_item_five_fingers">5 Fingers</string>
     <string name="finger_mode_description_one">Use single finger for all gestures. Provides maximum precision.</string>
     <string name="finger_mode_description_two">Use two fingers for all gestures. Provides enhanced stability.</string>
-    <string name="finger_mode_description_three">Use three fingers for all gestures. Maximum stability for severe tremors.</string>
-    <string name="finger_mode_description_four">Use four fingers for all gestures. Extreme stability for accessibility needs.</string>
-    <string name="finger_mode_description_five">Use five fingers for all gestures. Whole-hand gesture support for maximum accessibility.</string>
+    <string name="finger_mode_description_three">Use three fingers for all gestures. Extra stability and larger touch targets.</string>
+    <string name="finger_mode_description_four">Use four fingers for all gestures. Highest stability and coverage.</string>
+    <string name="finger_mode_description_five">Use five fingers for all gestures. Whole-hand support with the largest touch area.</string>
     <string name="finger_mode_changed">Finger mode changed to %1$s</string>
 
     <!-- Media Menu Items -->

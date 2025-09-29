@@ -94,7 +94,7 @@ object GesturePathBuilder {
         // Second tap
         val secondTapPath = Path().apply { moveTo(point.x, point.y) }
         val secondTapStroke = GestureDescription.StrokeDescription(
-            secondTapPath, interval, tapDuration
+            secondTapPath, tapDuration + interval, tapDuration
         )
 
         return GestureDescription.Builder()
@@ -393,8 +393,8 @@ object GesturePathBuilder {
         // Second tap - both fingers
         val secondTap1 = Path().apply { moveTo(point1.x, point1.y) }
         val secondTap2 = Path().apply { moveTo(point2.x, point2.y) }
-        builder.addStroke(GestureDescription.StrokeDescription(secondTap1, interval, tapDuration))
-        builder.addStroke(GestureDescription.StrokeDescription(secondTap2, interval, tapDuration))
+        builder.addStroke(GestureDescription.StrokeDescription(secondTap1, tapDuration + interval, tapDuration))
+        builder.addStroke(GestureDescription.StrokeDescription(secondTap2, tapDuration + interval, tapDuration))
         
         return builder.build()
     }
@@ -490,7 +490,7 @@ object GesturePathBuilder {
         // Second tap - all fingers
         fingerPoints.forEach { point ->
             val secondTap = Path().apply { moveTo(point.x, point.y) }
-            builder.addStroke(GestureDescription.StrokeDescription(secondTap, interval, tapDuration))
+            builder.addStroke(GestureDescription.StrokeDescription(secondTap, tapDuration + interval, tapDuration))
         }
         
         return builder.build()

@@ -284,8 +284,12 @@ class FingerPlacementAlgorithm {
         availableSpace: Int,
         screenBounds: Rect
     ): MultiFingerPlacement {
-        // Future implementation for 3+ finger gestures
-        val pattern = PlacementPattern.LINEAR
+        // Use appropriate geometric patterns based on finger count
+        val pattern = when (fingerCount) {
+            3 -> PlacementPattern.TRIANGLE
+            4, 5 -> PlacementPattern.CIRCULAR  // Square/Pentagon patterns use circular base
+            else -> PlacementPattern.LINEAR
+        }
         val fingerPoints = generateMultiFingerPositions(
             targetPoint, fingerCount, pattern, availableSpace, screenBounds
         )
