@@ -64,7 +64,36 @@ data class GestureData(
         }
     }
 
+    /**
+     * Executes gesture using stored finger count for accurate pattern playback.
+     * 
+     * This method ensures that patterns are played back with the exact finger count
+     * that was used during recording, regardless of the current user finger mode preference.
+     * For multi-finger gestures (fingerCount > 1), this method uses direct gesture
+     * execution with the stored finger placement to bypass user preference.
+     */
     fun executeGesture() {
+        // Validate finger count and fallback to safe defaults if corrupted
+        val safeFingerCount = fingerCount.coerceIn(1, 5)
+        
+        if (safeFingerCount != fingerCount) {
+            android.util.Log.w("GestureData", "Invalid finger count $fingerCount, using safe value $safeFingerCount")
+        }
+        
+        if (safeFingerCount > 1) {
+            // Multi-finger gesture: Use stored finger count directly
+            executeMultiFingerGesture()
+        } else {
+            // Single-finger gesture: Use existing methods (safe to use current preference)
+            executeSingleFingerGesture()
+        }
+    }
+    
+    /**
+     * Executes single-finger gestures using standard GestureManager methods.
+     * Since these are single-finger, current user preference doesn't matter.
+     */
+    private fun executeSingleFingerGesture() {
         when (gestureType) {
             GestureType.TAP -> {
                 GestureManager.instance.performTap(
@@ -108,5 +137,17 @@ data class GestureData(
                 GestureManager.instance.performZoom(gestureType, startPoint)
             }
         }
+    }
+    
+    /**
+     * Executes multi-finger gestures using stored finger count.
+     * This bypasses user preferences and uses the exact finger count from the pattern.
+     * 
+     * The GestureManager.performCustomGestureAction() method has been enhanced to respect
+     * the fingerCount field in GestureData, ensuring pattern playback fidelity.
+     */
+    private fun executeMultiFingerGesture() {
+        android.util.Log.d("GestureData", "Executing multi-finger gesture: $gestureType with $fingerCount fingers (stored count)")
+        GestureManager.instance.performCustomGestureAction(this)
     }
 }

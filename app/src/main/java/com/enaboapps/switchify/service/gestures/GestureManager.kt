@@ -365,7 +365,18 @@ class GestureManager private constructor() {
      * @return True indicating gesture was submitted (not necessarily completed)
      */
     fun performCustomGestureAction(gestureData: GestureData): Boolean {
-        linearGesturePerformer.startGesture(gestureData.gestureType, false, gestureData.startPoint)
+        if (gestureData.fingerCount > 1) {
+            // Use explicit finger count for pattern playback accuracy
+            linearGesturePerformer.startGesture(
+                gestureData.gestureType, 
+                gestureData.fingerCount, 
+                false, 
+                gestureData.startPoint
+            )
+        } else {
+            // Use standard method for single-finger gestures
+            linearGesturePerformer.startGesture(gestureData.gestureType, false, gestureData.startPoint)
+        }
         linearGesturePerformer.endGesture(gestureData.endPoint)
         return true
     }
