@@ -57,6 +57,23 @@ class FingerPlacementAlgorithm {
         
         // Performance timing thresholds
         const val MAX_CALCULATION_TIME_MS = 5L // Maximum allowed calculation time
+        
+        // Natural finger spacing constants based on human hand anatomy (in pixels at ~160dpi)
+        // These values are derived from ergonomic studies of average adult hand measurements
+        private const val NATURAL_INDEX_TO_MIDDLE = 18f    // Index to middle finger spacing
+        private const val NATURAL_MIDDLE_TO_RING = 15f     // Middle to ring finger spacing  
+        private const val NATURAL_RING_TO_PINKY = 12f      // Ring to pinky finger spacing
+        private const val NATURAL_THUMB_OFFSET_X = 28f     // Thumb horizontal offset from index
+        private const val NATURAL_THUMB_OFFSET_Y = 20f     // Thumb vertical offset (lower position)
+        
+        // Hand curvature constants for natural arc patterns
+        private const val HAND_CURVATURE_FACTOR = 0.15f    // Arc curvature strength (0.1-0.3)
+        private const val MIDDLE_FINGER_FORWARD = 6f       // Middle finger slightly forward
+        private const val FINGER_LENGTH_VARIATION = 4f     // Natural length differences
+        
+        // Gesture-specific spacing multipliers
+        private const val PINCH_GESTURE_SPREAD = 1.4f      // Wider spread for pinch gestures
+        private const val SCROLL_GESTURE_COMPACT = 0.8f    // Closer spacing for scrolling
     }
 
     /**
@@ -475,65 +492,144 @@ class FingerPlacementAlgorithm {
     }
     
     /**
-     * Generates positions for 3 fingers in a triangle pattern.
+     * Generates positions for 3 fingers in a natural tripod grip pattern.
+     * Uses index, middle, and ring fingers in natural hand curvature.
      */
     private fun generateThreeFingerPositions(centerPoint: PointF, screenBounds: Rect): List<PointF> {
-        val radius = min(IDEAL_FINGER_SPACING, 60f)
         val positions = mutableListOf<PointF>()
         
-        // Triangle pattern: one finger on top, two on bottom
-        val topPoint = PointF(centerPoint.x, centerPoint.y - radius * 0.6f)
-        val bottomLeftPoint = PointF(centerPoint.x - radius * 0.5f, centerPoint.y + radius * 0.3f)
-        val bottomRightPoint = PointF(centerPoint.x + radius * 0.5f, centerPoint.y + radius * 0.3f)
+        // Calculate dynamic spacing based on available space
+        val availableSpace = calculateAvailableSpace(centerPoint, screenBounds)
+        val spacingMultiplier = min(1.0f, availableSpace / 200f) // Scale down if space is limited
         
-        positions.add(clampToScreenBounds(topPoint, screenBounds))
-        positions.add(clampToScreenBounds(bottomLeftPoint, screenBounds))
-        positions.add(clampToScreenBounds(bottomRightPoint, screenBounds))
+        // Natural finger positions: index (left), middle (center, slightly forward), ring (right)
+        // Index finger position (leftmost)
+        val indexX = centerPoint.x - (NATURAL_INDEX_TO_MIDDLE * spacingMultiplier)
+        val indexY = centerPoint.y + (FINGER_LENGTH_VARIATION * spacingMultiplier) // Slightly back
+        val indexFinger = PointF(indexX, indexY)
+        
+        // Middle finger position (center, slightly forward for natural length)
+        val middleX = centerPoint.x
+        val middleY = centerPoint.y - (MIDDLE_FINGER_FORWARD * spacingMultiplier) // Forward
+        val middleFinger = PointF(middleX, middleY)
+        
+        // Ring finger position (rightmost)
+        val ringX = centerPoint.x + (NATURAL_MIDDLE_TO_RING * spacingMultiplier)
+        val ringY = centerPoint.y + (FINGER_LENGTH_VARIATION * spacingMultiplier) // Slightly back
+        val ringFinger = PointF(ringX, ringY)
+        
+        // Apply natural hand curvature - slight arc
+        val curvature = HAND_CURVATURE_FACTOR * spacingMultiplier
+        val indexCurved = applyHandCurvature(indexFinger, centerPoint, -1f, curvature)
+        val middleCurved = applyHandCurvature(middleFinger, centerPoint, 0f, curvature)
+        val ringCurved = applyHandCurvature(ringFinger, centerPoint, 1f, curvature)
+        
+        positions.add(clampToScreenBounds(indexCurved, screenBounds))
+        positions.add(clampToScreenBounds(middleCurved, screenBounds))
+        positions.add(clampToScreenBounds(ringCurved, screenBounds))
         
         return positions
     }
     
     /**
-     * Generates positions for 4 fingers in a square pattern.
+     * Generates positions for 4 fingers in a natural four-finger swipe pattern.
+     * Uses index, middle, ring, and pinky fingers in natural sequence.
      */
     private fun generateFourFingerPositions(centerPoint: PointF, screenBounds: Rect): List<PointF> {
-        val radius = min(IDEAL_FINGER_SPACING * 0.7f, 50f)
         val positions = mutableListOf<PointF>()
         
-        // Square pattern
-        val topLeftPoint = PointF(centerPoint.x - radius, centerPoint.y - radius)
-        val topRightPoint = PointF(centerPoint.x + radius, centerPoint.y - radius)
-        val bottomLeftPoint = PointF(centerPoint.x - radius, centerPoint.y + radius)
-        val bottomRightPoint = PointF(centerPoint.x + radius, centerPoint.y + radius)
+        // Calculate dynamic spacing based on available space
+        val availableSpace = calculateAvailableSpace(centerPoint, screenBounds)
+        val spacingMultiplier = min(1.0f, availableSpace / 250f) // Scale for 4 fingers
         
-        positions.add(clampToScreenBounds(topLeftPoint, screenBounds))
-        positions.add(clampToScreenBounds(topRightPoint, screenBounds))
-        positions.add(clampToScreenBounds(bottomLeftPoint, screenBounds))
-        positions.add(clampToScreenBounds(bottomRightPoint, screenBounds))
+        // Natural 4-finger positions: index, middle, ring, pinky in sequence
+        
+        // Index finger (leftmost)
+        val indexX = centerPoint.x - (NATURAL_INDEX_TO_MIDDLE + NATURAL_MIDDLE_TO_RING/2) * spacingMultiplier
+        val indexY = centerPoint.y + (FINGER_LENGTH_VARIATION * spacingMultiplier)
+        val indexFinger = PointF(indexX, indexY)
+        
+        // Middle finger (slightly forward)
+        val middleX = centerPoint.x - (NATURAL_MIDDLE_TO_RING/2) * spacingMultiplier
+        val middleY = centerPoint.y - (MIDDLE_FINGER_FORWARD * spacingMultiplier)
+        val middleFinger = PointF(middleX, middleY)
+        
+        // Ring finger
+        val ringX = centerPoint.x + (NATURAL_MIDDLE_TO_RING/2) * spacingMultiplier
+        val ringY = centerPoint.y + (FINGER_LENGTH_VARIATION * 0.5f * spacingMultiplier)
+        val ringFinger = PointF(ringX, ringY)
+        
+        // Pinky finger (rightmost, shortest)
+        val pinkyX = centerPoint.x + (NATURAL_MIDDLE_TO_RING/2 + NATURAL_RING_TO_PINKY) * spacingMultiplier
+        val pinkyY = centerPoint.y + (FINGER_LENGTH_VARIATION * 1.2f * spacingMultiplier) // Shorter finger
+        val pinkyFinger = PointF(pinkyX, pinkyY)
+        
+        // Apply natural hand curvature
+        val curvature = HAND_CURVATURE_FACTOR * spacingMultiplier
+        val indexCurved = applyHandCurvature(indexFinger, centerPoint, -1.5f, curvature)
+        val middleCurved = applyHandCurvature(middleFinger, centerPoint, -0.5f, curvature)
+        val ringCurved = applyHandCurvature(ringFinger, centerPoint, 0.5f, curvature)
+        val pinkyCurved = applyHandCurvature(pinkyFinger, centerPoint, 1.5f, curvature)
+        
+        positions.add(clampToScreenBounds(indexCurved, screenBounds))
+        positions.add(clampToScreenBounds(middleCurved, screenBounds))
+        positions.add(clampToScreenBounds(ringCurved, screenBounds))
+        positions.add(clampToScreenBounds(pinkyCurved, screenBounds))
         
         return positions
     }
     
     /**
-     * Generates positions for 5 fingers in a star/pentagon pattern.
+     * Generates positions for 5 fingers in a natural whole-hand pattern.
+     * Uses thumb + four fingers (index, middle, ring, pinky) in realistic placement.
      */
     private fun generateFiveFingerPositions(centerPoint: PointF, screenBounds: Rect): List<PointF> {
-        val radius = min(IDEAL_FINGER_SPACING * 0.8f, 55f)
         val positions = mutableListOf<PointF>()
         
-        // Pentagon pattern: center + 4 around
-        positions.add(clampToScreenBounds(centerPoint, screenBounds))
+        // Calculate dynamic spacing based on available space
+        val availableSpace = calculateAvailableSpace(centerPoint, screenBounds)
+        val spacingMultiplier = min(1.0f, availableSpace / 300f) // Scale for 5 fingers
         
-        // 4 fingers around the center in cardinal directions
-        val topPoint = PointF(centerPoint.x, centerPoint.y - radius)
-        val rightPoint = PointF(centerPoint.x + radius, centerPoint.y)
-        val bottomPoint = PointF(centerPoint.x, centerPoint.y + radius)
-        val leftPoint = PointF(centerPoint.x - radius, centerPoint.y)
+        // Natural 5-finger positions: thumb + four fingers
         
-        positions.add(clampToScreenBounds(topPoint, screenBounds))
-        positions.add(clampToScreenBounds(rightPoint, screenBounds))
-        positions.add(clampToScreenBounds(bottomPoint, screenBounds))
-        positions.add(clampToScreenBounds(leftPoint, screenBounds))
+        // Thumb position (naturally offset, lower and to the left)
+        val thumbX = centerPoint.x - (NATURAL_THUMB_OFFSET_X * spacingMultiplier)
+        val thumbY = centerPoint.y + (NATURAL_THUMB_OFFSET_Y * spacingMultiplier)
+        val thumbFinger = PointF(thumbX, thumbY)
+        
+        // Index finger (next to thumb, slightly inward)
+        val indexX = centerPoint.x - (NATURAL_INDEX_TO_MIDDLE * spacingMultiplier)
+        val indexY = centerPoint.y + (FINGER_LENGTH_VARIATION * spacingMultiplier)
+        val indexFinger = PointF(indexX, indexY)
+        
+        // Middle finger (center, slightly forward)
+        val middleX = centerPoint.x
+        val middleY = centerPoint.y - (MIDDLE_FINGER_FORWARD * spacingMultiplier)
+        val middleFinger = PointF(middleX, middleY)
+        
+        // Ring finger 
+        val ringX = centerPoint.x + (NATURAL_MIDDLE_TO_RING * spacingMultiplier)
+        val ringY = centerPoint.y + (FINGER_LENGTH_VARIATION * 0.5f * spacingMultiplier)
+        val ringFinger = PointF(ringX, ringY)
+        
+        // Pinky finger (rightmost, shortest)
+        val pinkyX = centerPoint.x + ((NATURAL_MIDDLE_TO_RING + NATURAL_RING_TO_PINKY) * spacingMultiplier)
+        val pinkyY = centerPoint.y + (FINGER_LENGTH_VARIATION * 1.5f * spacingMultiplier)
+        val pinkyFinger = PointF(pinkyX, pinkyY)
+        
+        // Apply natural hand curvature to four fingers (thumb stays natural)
+        val curvature = HAND_CURVATURE_FACTOR * spacingMultiplier
+        val indexCurved = applyHandCurvature(indexFinger, centerPoint, -1.0f, curvature)
+        val middleCurved = applyHandCurvature(middleFinger, centerPoint, 0f, curvature)
+        val ringCurved = applyHandCurvature(ringFinger, centerPoint, 1.0f, curvature)
+        val pinkyCurved = applyHandCurvature(pinkyFinger, centerPoint, 2.0f, curvature)
+        
+        // Add fingers in natural order: thumb, index, middle, ring, pinky
+        positions.add(clampToScreenBounds(thumbFinger, screenBounds)) // Thumb stays uncurved
+        positions.add(clampToScreenBounds(indexCurved, screenBounds))
+        positions.add(clampToScreenBounds(middleCurved, screenBounds))
+        positions.add(clampToScreenBounds(ringCurved, screenBounds))
+        positions.add(clampToScreenBounds(pinkyCurved, screenBounds))
         
         return positions
     }
@@ -555,6 +651,25 @@ class FingerPlacementAlgorithm {
         }
         
         return positions
+    }
+    
+    /**
+     * Applies natural hand curvature to finger positions for realistic placement.
+     * Creates a subtle arc that mimics how fingers naturally curve when placed on a screen.
+     */
+    private fun applyHandCurvature(
+        fingerPoint: PointF, 
+        centerPoint: PointF, 
+        position: Float, // -1 (left) to 1 (right)
+        curvatureStrength: Float
+    ): PointF {
+        // Calculate curvature offset - fingers curve slightly upward toward edges
+        val curvatureOffset = position * position * curvatureStrength * 8f // Parabolic curve
+        
+        return PointF(
+            fingerPoint.x,
+            fingerPoint.y - curvatureOffset // Upward curve
+        )
     }
     
     /**
