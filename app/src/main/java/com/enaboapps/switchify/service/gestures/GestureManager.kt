@@ -192,8 +192,14 @@ class GestureManager private constructor() {
                     duration = duration
                 )
 
-                // Create gesture data with placement metadata
-                val gestureData = GestureData(GestureType.TAP, fingerPlacement.primaryPoint)
+                // Create gesture data with placement metadata and finger count
+                val gestureData = GestureData(
+                    gestureType = GestureType.TAP,
+                    startPoint = fingerPlacement.primaryPoint,
+                    endPoint = null,
+                    fingerCount = fingerPlacement.fingerCount,
+                    fingerMode = getCurrentFingerMode()
+                )
                 gestureDispatcher.dispatch(gestureDescription, GestureType.TAP, gestureData)
             }
         } catch (e: Exception) {
@@ -237,7 +243,13 @@ class GestureManager private constructor() {
 
                 // Create and dispatch gesture using unified pipeline
                 val gestureDescription = GesturePathBuilder.createDoubleTapPath(point)
-                val gestureData = GestureData(GestureType.DOUBLE_TAP, point)
+                val gestureData = GestureData(
+                    gestureType = GestureType.DOUBLE_TAP,
+                    startPoint = point,
+                    endPoint = null,
+                    fingerCount = 1, // Double-tap typically single-finger only
+                    fingerMode = com.enaboapps.switchify.service.gestures.placement.FingerMode.ONE
+                )
                 gestureDispatcher.dispatch(gestureDescription, GestureType.DOUBLE_TAP, gestureData)
             }
         } catch (e: Exception) {
@@ -286,7 +298,13 @@ class GestureManager private constructor() {
                     duration = duration
                 )
 
-                val gestureData = GestureData(GestureType.TAP_AND_HOLD, fingerPlacement.primaryPoint)
+                val gestureData = GestureData(
+                    gestureType = GestureType.TAP_AND_HOLD,
+                    startPoint = fingerPlacement.primaryPoint,
+                    endPoint = null,
+                    fingerCount = fingerPlacement.fingerCount,
+                    fingerMode = getCurrentFingerMode()
+                )
                 gestureDispatcher.dispatch(
                     gestureDescription,
                     GestureType.TAP_AND_HOLD,
@@ -361,7 +379,13 @@ class GestureManager private constructor() {
     fun performSwipeOrScroll(type: GestureType, startPoint: PointF? = null) {
         val point = startPoint ?: GesturePoint.getPoint()
         if (AutoScrollManager.getInstance()
-                .startAutoScroll(GestureData(type, point))
+                .startAutoScroll(GestureData(
+                    gestureType = type,
+                    startPoint = point,
+                    endPoint = null,
+                    fingerCount = 1, // AutoScroll uses single-finger by default
+                    fingerMode = com.enaboapps.switchify.service.gestures.placement.FingerMode.ONE
+                ))
         ) return
         linearGesturePerformer.startGesture(type, startingPoint = point)
         linearGesturePerformer.endGesture()
@@ -463,8 +487,11 @@ class GestureManager private constructor() {
         val point = startPoint ?: GesturePoint.getPoint()
         GestureLockManager.instance.setLockedGestureData(
             GestureData(
-                type,
-                point
+                gestureType = type,
+                startPoint = point,
+                endPoint = null,
+                fingerCount = 2, // Zoom is always 2-finger pinch gesture
+                fingerMode = com.enaboapps.switchify.service.gestures.placement.FingerMode.TWO
             )
         )
         accessibilityService?.let {

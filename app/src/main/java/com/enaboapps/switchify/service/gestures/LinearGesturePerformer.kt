@@ -222,11 +222,19 @@ class LinearGesturePerformer(
 
         val calculatedEndPoint = endPoint ?: calculateEndPoint(gestureType, startPoint)
         performGesture(gestureType, startPoint, calculatedEndPoint)
+        
+        // Get finger count from current finger placement for gesture lock
+        val fingerPlacement = GestureStateManager.getCurrentFingerPlacement()
+        val fingerCount = fingerPlacement?.fingerCount ?: 1
+        val fingerMode = if (fingerCount > 1) getCurrentFingerMode() else com.enaboapps.switchify.service.gestures.placement.FingerMode.ONE
+        
         gestureLockManager.setLockedGestureData(
             GestureData(
-                gestureType,
-                startPoint,
-                calculatedEndPoint
+                gestureType = gestureType,
+                startPoint = startPoint,
+                endPoint = calculatedEndPoint,
+                fingerCount = fingerCount,
+                fingerMode = fingerMode
             )
         )
 
@@ -371,8 +379,18 @@ class LinearGesturePerformer(
                 )
                 
                 Log.d(TAG, "About to dispatch multi-finger gesture: $type with ${startFingerPositions.size} fingers")
-                // Create gesture data for pattern recording and gesture lock
-                val gestureData = GestureData(type, start, end)
+                // Create gesture data for pattern recording and gesture lock with finger count
+                val fingerCount = startFingerPositions.size
+                val currentFingerMode = getCurrentFingerMode()
+                val gestureData = GestureData(
+                    gestureType = type,
+                    startPoint = start,
+                    endPoint = end,
+                    fingerCount = fingerCount,
+                    fingerMode = currentFingerMode
+                )
+                
+                Log.d(TAG, "Recording gesture with $fingerCount fingers (mode: $currentFingerMode)")
                 
                 // Dispatch using unified dispatcher with gesture data
                 gestureDispatcher.dispatch(gestureDescription, type, gestureData)
@@ -396,8 +414,16 @@ class LinearGesturePerformer(
                 }
 
                 Log.d(TAG, "About to dispatch single-finger gesture: $type")
-                // Create gesture data for pattern recording and gesture lock
-                val gestureData = GestureData(type, start, end)
+                // Create gesture data for pattern recording and gesture lock with finger count
+                val gestureData = GestureData(
+                    gestureType = type,
+                    startPoint = start,
+                    endPoint = end,
+                    fingerCount = 1,
+                    fingerMode = com.enaboapps.switchify.service.gestures.placement.FingerMode.ONE
+                )
+                
+                Log.d(TAG, "Recording gesture with 1 finger (single-finger mode)")
 
                 // Dispatch using unified dispatcher with gesture data
                 gestureDispatcher.dispatch(gestureDescription, type, gestureData)
