@@ -16,7 +16,7 @@
       
   <!-- Right touch point circle -->
   <path
-      android:fillColor="@android:color/white"
+      android:fillColor="@color/icon_finger_dot"
       android:pathData="M18,10m-1.8,0a1.8,1.8 0,1 1,3.6 0a1.8,1.8 0,1 1,-3.6 0"/>
       
   <!-- Bottom-left touch point circle -->
@@ -27,7 +27,6 @@
   <!-- Bottom-right touch point circle -->
   <path
       android:fillColor="@color/icon_finger_dot"
-"
       android:pathData="M16,17m-1.8,0a1.8,1.8 0,1 1,3.6 0a1.8,1.8 0,1 1,-3.6 0"/>
       
   <!-- Number "5" in center -->
