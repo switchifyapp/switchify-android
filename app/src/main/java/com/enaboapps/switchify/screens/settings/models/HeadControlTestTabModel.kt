@@ -149,6 +149,7 @@ class HeadControlTestTabModel(application: Application) : AndroidViewModel(appli
         }
     }
 
+    @OptIn(ExperimentalGetImage::class)
     private fun imageProxyToBitmap(imageProxy: ImageProxy): Bitmap? {
         return try {
             val image = imageProxy.image ?: return null
