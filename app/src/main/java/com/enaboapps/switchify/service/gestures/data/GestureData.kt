@@ -45,10 +45,7 @@ data class GestureData(
 
 
     fun isScroll(): Boolean {
-        return gestureType == GestureType.SCROLL_UP ||
-                gestureType == GestureType.SCROLL_DOWN ||
-                gestureType == GestureType.SCROLL_LEFT ||
-                gestureType == GestureType.SCROLL_RIGHT
+        return gestureType.isScrollGesture()
     }
 
     fun performAutoScroll(): Boolean {
