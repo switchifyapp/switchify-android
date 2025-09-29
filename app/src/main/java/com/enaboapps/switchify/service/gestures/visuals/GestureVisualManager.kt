@@ -35,13 +35,14 @@ class GestureVisualManager(context: Context) : GestureStateManager.GestureStateL
         if (Looper.myLooper() == Looper.getMainLooper()) {
             action()
         } else {
-            Handler(Looper.getMainLooper()).post { action() }
+            mainHandler.post { action() }
         }
     }
 
     private val contextRef: WeakReference<Context> = WeakReference(context)
     private val accessibilityWindow = SwitchifyAccessibilityWindow.instance
     private val animatedGestureArrow = AnimatedGestureArrow(context)
+    private val mainHandler = Handler(Looper.getMainLooper())
 
     // Active visual tracking - single finger
     private var currentCircle: WeakReference<RelativeLayout>? = null
@@ -131,8 +132,10 @@ class GestureVisualManager(context: Context) : GestureStateManager.GestureStateL
 
         currentAnimation = scaleAnimation
         // Apply animation to both shadow and main circle views for proper countdown effect
-        circleLayout.getChildAt(0)?.startAnimation(scaleAnimation) // shadowView
-        circleLayout.getChildAt(1)?.startAnimation(scaleAnimation) // mainView
+        onMainThread {
+            circleLayout.getChildAt(0)?.startAnimation(scaleAnimation) // shadowView
+            circleLayout.getChildAt(1)?.startAnimation(scaleAnimation) // mainView
+        }
 
         // Auto-remove after animation
         removeHandler = Handler(Looper.getMainLooper()).apply {
@@ -345,13 +348,29 @@ class GestureVisualManager(context: Context) : GestureStateManager.GestureStateL
     
     /**
      * Calculates bounding rectangle for a container holding multiple finger points.
+     * Clamps to screen bounds to prevent off-screen rendering.
      */
     private fun calculateContainerBounds(points: List<PointF>): android.graphics.Rect {
         val margin = STANDARD_CIRCLE_SIZE
-        val minX = (points.minOf { it.x } - margin).toInt()
+        val minX = (points.minOf { it.x } - margin).toInt().coerceAtLeast(0)
         val maxX = (points.maxOf { it.x } + margin).toInt()
-        val minY = (points.minOf { it.y } - margin).toInt()
+        val minY = (points.minOf { it.y } - margin).toInt().coerceAtLeast(0)
         val maxY = (points.maxOf { it.y } + margin).toInt()
+        
+        // Get screen dimensions from accessibility window if available
+        val context = contextRef.get()
+        if (context != null) {
+            val displayMetrics = context.resources.displayMetrics
+            val screenWidth = displayMetrics.widthPixels
+            val screenHeight = displayMetrics.heightPixels
+            
+            return android.graphics.Rect(
+                minX,
+                minY,
+                maxX.coerceAtMost(screenWidth),
+                maxY.coerceAtMost(screenHeight)
+            )
+        }
         
         return android.graphics.Rect(minX, minY, maxX, maxY)
     }
