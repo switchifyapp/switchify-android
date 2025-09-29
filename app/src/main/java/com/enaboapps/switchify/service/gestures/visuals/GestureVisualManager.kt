@@ -262,11 +262,14 @@ class GestureVisualManager(context: Context) : GestureStateManager.GestureStateL
      * Creates a finger circle with index indicator for multi-finger gestures.
      */
     private fun createFingerCircle(context: Context, fingerIndex: Int, totalFingers: Int): RelativeLayout {
-        // Choose colors based on finger index
+        // Choose colors based on finger index with distinct colors for up to 5 fingers
         val colors = when (fingerIndex) {
             0 -> Pair(0xFFFFFFFF.toInt(), 0xFF4CAF50.toInt()) // White with green accent
             1 -> Pair(0xFFFFFFFF.toInt(), 0xFF2196F3.toInt()) // White with blue accent
-            else -> Pair(0xFFFFFFFF.toInt(), 0xFF9C27B0.toInt()) // White with purple accent
+            2 -> Pair(0xFFFFFFFF.toInt(), 0xFF9C27B0.toInt()) // White with purple accent
+            3 -> Pair(0xFFFFFFFF.toInt(), 0xFFFF5722.toInt()) // White with deep orange accent
+            4 -> Pair(0xFFFFFFFF.toInt(), 0xFFE91E63.toInt()) // White with pink accent
+            else -> Pair(0xFFFFFFFF.toInt(), 0xFF607D8B.toInt()) // White with blue-gray accent (fallback)
         }
         
         // Create shadow circle
