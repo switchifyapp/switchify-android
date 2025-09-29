@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Finger icon colors for dark theme -->
+    <color name="icon_finger_dot">#FF1E1E1E</color>
+    <color name="icon_finger_label">#FFFFFFFF</color>
+</resources>

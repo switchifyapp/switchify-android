@@ -152,16 +152,32 @@ class FingerPlacementAlgorithm {
     ): Int {
         return when (userMode) {
             FingerMode.ONE -> 1
-            FingerMode.TWO -> if (canFitTwoFingers(targetPoint, screenBounds)) 2 else 1
+            FingerMode.TWO -> if (canFitMultipleFingers(targetPoint, screenBounds, 2)) 2 else 1
+            FingerMode.THREE -> if (canFitMultipleFingers(targetPoint, screenBounds, 3)) 3 else 
+                               if (canFitMultipleFingers(targetPoint, screenBounds, 2)) 2 else 1
+            FingerMode.FOUR -> if (canFitMultipleFingers(targetPoint, screenBounds, 4)) 4 else 
+                              if (canFitMultipleFingers(targetPoint, screenBounds, 3)) 3 else
+                              if (canFitMultipleFingers(targetPoint, screenBounds, 2)) 2 else 1
+            FingerMode.FIVE -> if (canFitMultipleFingers(targetPoint, screenBounds, 5)) 5 else
+                              if (canFitMultipleFingers(targetPoint, screenBounds, 4)) 4 else
+                              if (canFitMultipleFingers(targetPoint, screenBounds, 3)) 3 else
+                              if (canFitMultipleFingers(targetPoint, screenBounds, 2)) 2 else 1
         }
     }
 
     /**
-     * Checks if two fingers can physically fit around the target point.
+     * Checks if the specified number of fingers can physically fit around the target point.
      */
-    private fun canFitTwoFingers(targetPoint: PointF, screenBounds: Rect): Boolean {
+    private fun canFitMultipleFingers(targetPoint: PointF, screenBounds: Rect, fingerCount: Int): Boolean {
         val availableSpace = calculateAvailableSpace(targetPoint, screenBounds)
-        return availableSpace >= MIN_TWO_FINGER_SPACE
+        val requiredSpace = when (fingerCount) {
+            2 -> MIN_TWO_FINGER_SPACE
+            3 -> MIN_TWO_FINGER_SPACE * 1.5f // 3 fingers need more space
+            4 -> MIN_TWO_FINGER_SPACE * 2.0f // 4 fingers need double space
+            5 -> MIN_TWO_FINGER_SPACE * 2.5f // 5 fingers need maximum space
+            else -> MIN_TWO_FINGER_SPACE
+        }
+        return availableSpace >= requiredSpace.toInt()
     }
 
     /**
@@ -268,8 +284,12 @@ class FingerPlacementAlgorithm {
         availableSpace: Int,
         screenBounds: Rect
     ): MultiFingerPlacement {
-        // Future implementation for 3+ finger gestures
-        val pattern = PlacementPattern.LINEAR
+        // Use appropriate geometric patterns based on finger count
+        val pattern = when (fingerCount) {
+            3 -> PlacementPattern.TRIANGLE
+            4, 5 -> PlacementPattern.CIRCULAR  // Square/Pentagon patterns use circular base
+            else -> PlacementPattern.LINEAR
+        }
         val fingerPoints = generateMultiFingerPositions(
             targetPoint, fingerCount, pattern, availableSpace, screenBounds
         )
@@ -437,7 +457,7 @@ class FingerPlacementAlgorithm {
 
     /**
      * Generates finger positions for multi-finger placement (3+ fingers).
-     * All fingers are equally offset from the center point for balanced placement.
+     * Uses smart placement patterns based on finger count and available space.
      */
     private fun generateMultiFingerPositions(
         centerPoint: PointF,
@@ -446,30 +466,105 @@ class FingerPlacementAlgorithm {
         availableSpace: Int,
         screenBounds: Rect
     ): List<PointF> {
+        return when (fingerCount) {
+            3 -> generateThreeFingerPositions(centerPoint, screenBounds)
+            4 -> generateFourFingerPositions(centerPoint, screenBounds)
+            5 -> generateFiveFingerPositions(centerPoint, screenBounds)
+            else -> generateLinearFingerPositions(centerPoint, fingerCount, screenBounds)
+        }
+    }
+    
+    /**
+     * Generates positions for 3 fingers in a triangle pattern.
+     */
+    private fun generateThreeFingerPositions(centerPoint: PointF, screenBounds: Rect): List<PointF> {
+        val radius = min(IDEAL_FINGER_SPACING, 60f)
         val positions = mutableListOf<PointF>()
-        val spacing = min(availableSpace / fingerCount.toFloat(), IDEAL_FINGER_SPACING)
         
-        // Calculate equally offset positions centered around the target point
+        // Triangle pattern: one finger on top, two on bottom
+        val topPoint = PointF(centerPoint.x, centerPoint.y - radius * 0.6f)
+        val bottomLeftPoint = PointF(centerPoint.x - radius * 0.5f, centerPoint.y + radius * 0.3f)
+        val bottomRightPoint = PointF(centerPoint.x + radius * 0.5f, centerPoint.y + radius * 0.3f)
+        
+        positions.add(clampToScreenBounds(topPoint, screenBounds))
+        positions.add(clampToScreenBounds(bottomLeftPoint, screenBounds))
+        positions.add(clampToScreenBounds(bottomRightPoint, screenBounds))
+        
+        return positions
+    }
+    
+    /**
+     * Generates positions for 4 fingers in a square pattern.
+     */
+    private fun generateFourFingerPositions(centerPoint: PointF, screenBounds: Rect): List<PointF> {
+        val radius = min(IDEAL_FINGER_SPACING * 0.7f, 50f)
+        val positions = mutableListOf<PointF>()
+        
+        // Square pattern
+        val topLeftPoint = PointF(centerPoint.x - radius, centerPoint.y - radius)
+        val topRightPoint = PointF(centerPoint.x + radius, centerPoint.y - radius)
+        val bottomLeftPoint = PointF(centerPoint.x - radius, centerPoint.y + radius)
+        val bottomRightPoint = PointF(centerPoint.x + radius, centerPoint.y + radius)
+        
+        positions.add(clampToScreenBounds(topLeftPoint, screenBounds))
+        positions.add(clampToScreenBounds(topRightPoint, screenBounds))
+        positions.add(clampToScreenBounds(bottomLeftPoint, screenBounds))
+        positions.add(clampToScreenBounds(bottomRightPoint, screenBounds))
+        
+        return positions
+    }
+    
+    /**
+     * Generates positions for 5 fingers in a star/pentagon pattern.
+     */
+    private fun generateFiveFingerPositions(centerPoint: PointF, screenBounds: Rect): List<PointF> {
+        val radius = min(IDEAL_FINGER_SPACING * 0.8f, 55f)
+        val positions = mutableListOf<PointF>()
+        
+        // Pentagon pattern: center + 4 around
+        positions.add(clampToScreenBounds(centerPoint, screenBounds))
+        
+        // 4 fingers around the center in cardinal directions
+        val topPoint = PointF(centerPoint.x, centerPoint.y - radius)
+        val rightPoint = PointF(centerPoint.x + radius, centerPoint.y)
+        val bottomPoint = PointF(centerPoint.x, centerPoint.y + radius)
+        val leftPoint = PointF(centerPoint.x - radius, centerPoint.y)
+        
+        positions.add(clampToScreenBounds(topPoint, screenBounds))
+        positions.add(clampToScreenBounds(rightPoint, screenBounds))
+        positions.add(clampToScreenBounds(bottomPoint, screenBounds))
+        positions.add(clampToScreenBounds(leftPoint, screenBounds))
+        
+        return positions
+    }
+    
+    /**
+     * Generates positions for any number of fingers in a linear pattern.
+     */
+    private fun generateLinearFingerPositions(centerPoint: PointF, fingerCount: Int, screenBounds: Rect): List<PointF> {
+        val positions = mutableListOf<PointF>()
+        val spacing = min(IDEAL_FINGER_SPACING * 0.8f, 40f)
+        
         val totalSpacing = (fingerCount - 1) * spacing
         val startOffset = -totalSpacing / 2f
         
         for (i in 0 until fingerCount) {
             val offset = startOffset + (i * spacing)
-            val fingerPoint = PointF(
-                centerPoint.x + offset,
-                centerPoint.y
-            )
-            
-            // Ensure finger stays within screen bounds
-            val adjustedPoint = PointF(
-                max(min(fingerPoint.x, screenBounds.right - EDGE_MARGIN), screenBounds.left + EDGE_MARGIN),
-                fingerPoint.y
-            )
-            
-            positions.add(adjustedPoint)
+            val fingerPoint = PointF(centerPoint.x + offset, centerPoint.y)
+            positions.add(clampToScreenBounds(fingerPoint, screenBounds))
         }
         
         return positions
+    }
+    
+    /**
+     * Clamps a point to stay within screen bounds with proper margins.
+     */
+    private fun clampToScreenBounds(point: PointF, screenBounds: Rect): PointF {
+        return PointF(
+            max(min(point.x, screenBounds.right - EDGE_MARGIN), screenBounds.left + EDGE_MARGIN),
+            max(min(point.y, screenBounds.bottom - EDGE_MARGIN), screenBounds.top + EDGE_MARGIN)
+        )
     }
 
     /**

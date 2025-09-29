@@ -1,4 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="red_500">#F44336</color>
+    
+    <!-- Finger icon colors for light theme -->
+    <color name="icon_finger_dot">#FFFFFFFF</color>
+    <color name="icon_finger_label">#FF000000</color>
 </resources>

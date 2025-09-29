@@ -27,10 +27,22 @@ import kotlin.math.min
  * Integrates with GestureStateManager for coordinated state management.
  */
 class GestureVisualManager(context: Context) : GestureStateManager.GestureStateListener {
+    
+    /**
+     * Ensures UI operations happen on the main thread.
+     */
+    private inline fun onMainThread(crossinline action: () -> Unit) {
+        if (Looper.myLooper() == Looper.getMainLooper()) {
+            action()
+        } else {
+            mainHandler.post { action() }
+        }
+    }
 
     private val contextRef: WeakReference<Context> = WeakReference(context)
     private val accessibilityWindow = SwitchifyAccessibilityWindow.instance
     private val animatedGestureArrow = AnimatedGestureArrow(context)
+    private val mainHandler = Handler(Looper.getMainLooper())
 
     // Active visual tracking - single finger
     private var currentCircle: WeakReference<RelativeLayout>? = null
@@ -64,13 +76,15 @@ class GestureVisualManager(context: Context) : GestureStateManager.GestureStateL
         val context = contextRef.get() ?: return
         val circleLayout = createCircleLayout(context, STANDARD_CIRCLE_SIZE)
 
-        accessibilityWindow.addView(
-            circleLayout,
-            x - STANDARD_CIRCLE_SIZE / 2,
-            y - STANDARD_CIRCLE_SIZE / 2,
-            STANDARD_CIRCLE_SIZE,
-            STANDARD_CIRCLE_SIZE
-        )
+        onMainThread {
+            accessibilityWindow.addView(
+                circleLayout,
+                x - STANDARD_CIRCLE_SIZE / 2,
+                y - STANDARD_CIRCLE_SIZE / 2,
+                STANDARD_CIRCLE_SIZE,
+                STANDARD_CIRCLE_SIZE
+            )
+        }
 
         currentCircle = WeakReference(circleLayout)
 
@@ -94,13 +108,15 @@ class GestureVisualManager(context: Context) : GestureStateManager.GestureStateL
         val context = contextRef.get() ?: return
         val circleLayout = createCircleLayout(context, STANDARD_CIRCLE_SIZE)
 
-        accessibilityWindow.addView(
-            circleLayout,
-            x - STANDARD_CIRCLE_SIZE / 2,
-            y - STANDARD_CIRCLE_SIZE / 2,
-            STANDARD_CIRCLE_SIZE,
-            STANDARD_CIRCLE_SIZE
-        )
+        onMainThread {
+            accessibilityWindow.addView(
+                circleLayout,
+                x - STANDARD_CIRCLE_SIZE / 2,
+                y - STANDARD_CIRCLE_SIZE / 2,
+                STANDARD_CIRCLE_SIZE,
+                STANDARD_CIRCLE_SIZE
+            )
+        }
 
         currentCircle = WeakReference(circleLayout)
 
@@ -116,8 +132,10 @@ class GestureVisualManager(context: Context) : GestureStateManager.GestureStateL
 
         currentAnimation = scaleAnimation
         // Apply animation to both shadow and main circle views for proper countdown effect
-        circleLayout.getChildAt(0)?.startAnimation(scaleAnimation) // shadowView
-        circleLayout.getChildAt(1)?.startAnimation(scaleAnimation) // mainView
+        onMainThread {
+            circleLayout.getChildAt(0)?.startAnimation(scaleAnimation) // shadowView
+            circleLayout.getChildAt(1)?.startAnimation(scaleAnimation) // mainView
+        }
 
         // Auto-remove after animation
         removeHandler = Handler(Looper.getMainLooper()).apply {
@@ -182,13 +200,15 @@ class GestureVisualManager(context: Context) : GestureStateManager.GestureStateL
         // Calculate container bounds
         val bounds = calculateContainerBounds(placement.fingerPoints)
         
-        accessibilityWindow.addView(
-            containerLayout,
-            bounds.left,
-            bounds.top,
-            bounds.right - bounds.left,
-            bounds.bottom - bounds.top
-        )
+        onMainThread {
+            accessibilityWindow.addView(
+                containerLayout,
+                bounds.left,
+                bounds.top,
+                bounds.right - bounds.left,
+                bounds.bottom - bounds.top
+            )
+        }
         
         currentMultiFingerVisual = WeakReference(containerLayout)
         
@@ -213,13 +233,15 @@ class GestureVisualManager(context: Context) : GestureStateManager.GestureStateL
         placement.fingerPoints.forEachIndexed { index, point ->
             val circleLayout = createFingerCircle(context, index, placement.fingerCount)
             
-            accessibilityWindow.addView(
-                circleLayout,
-                point.x.toInt() - STANDARD_CIRCLE_SIZE / 2,
-                point.y.toInt() - STANDARD_CIRCLE_SIZE / 2,
-                STANDARD_CIRCLE_SIZE,
-                STANDARD_CIRCLE_SIZE
-            )
+            onMainThread {
+                accessibilityWindow.addView(
+                    circleLayout,
+                    point.x.toInt() - STANDARD_CIRCLE_SIZE / 2,
+                    point.y.toInt() - STANDARD_CIRCLE_SIZE / 2,
+                    STANDARD_CIRCLE_SIZE,
+                    STANDARD_CIRCLE_SIZE
+                )
+            }
             
             activeFingerCircles.add(WeakReference(circleLayout))
         }
@@ -237,8 +259,15 @@ class GestureVisualManager(context: Context) : GestureStateManager.GestureStateL
      */
     private fun createTwoFingerContainer(context: Context, placement: TwoFingerPlacement): RelativeLayout {
         return RelativeLayout(context).apply {
+            isClickable = false
+            isFocusable = false
+            importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
             // Add custom view that draws the connection line
-            addView(TwoFingerConnectionView(context, placement))
+            addView(TwoFingerConnectionView(context, placement).apply {
+                isClickable = false
+                isFocusable = false
+                importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
+            })
             
             // Add individual finger circles
             val bounds = calculateContainerBounds(placement.fingerPoints)
@@ -262,11 +291,14 @@ class GestureVisualManager(context: Context) : GestureStateManager.GestureStateL
      * Creates a finger circle with index indicator for multi-finger gestures.
      */
     private fun createFingerCircle(context: Context, fingerIndex: Int, totalFingers: Int): RelativeLayout {
-        // Choose colors based on finger index
+        // Choose colors based on finger index with distinct colors for up to 5 fingers
         val colors = when (fingerIndex) {
             0 -> Pair(0xFFFFFFFF.toInt(), 0xFF4CAF50.toInt()) // White with green accent
             1 -> Pair(0xFFFFFFFF.toInt(), 0xFF2196F3.toInt()) // White with blue accent
-            else -> Pair(0xFFFFFFFF.toInt(), 0xFF9C27B0.toInt()) // White with purple accent
+            2 -> Pair(0xFFFFFFFF.toInt(), 0xFF9C27B0.toInt()) // White with purple accent
+            3 -> Pair(0xFFFFFFFF.toInt(), 0xFFFF5722.toInt()) // White with deep orange accent
+            4 -> Pair(0xFFFFFFFF.toInt(), 0xFFE91E63.toInt()) // White with pink accent
+            else -> Pair(0xFFFFFFFF.toInt(), 0xFF607D8B.toInt()) // White with blue-gray accent (fallback)
         }
         
         // Create shadow circle
@@ -291,15 +323,24 @@ class GestureVisualManager(context: Context) : GestureStateManager.GestureStateL
                 leftMargin = 2
                 topMargin = 2
             }
+            isClickable = false
+            isFocusable = false
+            importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
         }
         
         // Main circle layer
         val mainView = ImageView(context).apply {
             setImageDrawable(mainDrawable)
             layoutParams = RelativeLayout.LayoutParams(STANDARD_CIRCLE_SIZE, STANDARD_CIRCLE_SIZE)
+            isClickable = false
+            isFocusable = false
+            importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
         }
         
         return RelativeLayout(context).apply {
+            isClickable = false
+            isFocusable = false
+            importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
             addView(shadowView)
             addView(mainView)
         }
@@ -307,13 +348,29 @@ class GestureVisualManager(context: Context) : GestureStateManager.GestureStateL
     
     /**
      * Calculates bounding rectangle for a container holding multiple finger points.
+     * Clamps to screen bounds to prevent off-screen rendering.
      */
     private fun calculateContainerBounds(points: List<PointF>): android.graphics.Rect {
         val margin = STANDARD_CIRCLE_SIZE
-        val minX = (points.minOf { it.x } - margin).toInt()
+        val minX = (points.minOf { it.x } - margin).toInt().coerceAtLeast(0)
         val maxX = (points.maxOf { it.x } + margin).toInt()
-        val minY = (points.minOf { it.y } - margin).toInt()
+        val minY = (points.minOf { it.y } - margin).toInt().coerceAtLeast(0)
         val maxY = (points.maxOf { it.y } + margin).toInt()
+        
+        // Get screen dimensions from accessibility window if available
+        val context = contextRef.get()
+        if (context != null) {
+            val displayMetrics = context.resources.displayMetrics
+            val screenWidth = displayMetrics.widthPixels
+            val screenHeight = displayMetrics.heightPixels
+            
+            return android.graphics.Rect(
+                minX,
+                minY,
+                maxX.coerceAtMost(screenWidth),
+                maxY.coerceAtMost(screenHeight)
+            )
+        }
         
         return android.graphics.Rect(minX, minY, maxX, maxY)
     }
@@ -403,15 +460,24 @@ class GestureVisualManager(context: Context) : GestureStateManager.GestureStateL
                 leftMargin = 2
                 topMargin = 2
             }
+            isClickable = false
+            isFocusable = false
+            importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
         }
 
         // Main circle layer
         val mainView = ImageView(context).apply {
             setImageDrawable(mainDrawable)
             layoutParams = RelativeLayout.LayoutParams(size, size)
+            isClickable = false
+            isFocusable = false
+            importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
         }
 
         return RelativeLayout(context).apply {
+            isClickable = false
+            isFocusable = false
+            importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
             addView(shadowView)
             addView(mainView)
         }
@@ -425,7 +491,9 @@ class GestureVisualManager(context: Context) : GestureStateManager.GestureStateL
         removeHandler?.removeCallbacksAndMessages(null)
 
         currentCircle?.get()?.let { circle ->
-            accessibilityWindow.removeView(circle)
+            onMainThread {
+                accessibilityWindow.removeView(circle)
+            }
         }
 
         currentCircle = null
@@ -444,13 +512,17 @@ class GestureVisualManager(context: Context) : GestureStateManager.GestureStateL
         multiFingerRemoveHandler?.removeCallbacksAndMessages(null)
         
         currentMultiFingerVisual?.get()?.let { visual ->
-            accessibilityWindow.removeView(visual)
+            onMainThread {
+                accessibilityWindow.removeView(visual)
+            }
         }
         
         // Clear individual finger circles
         activeFingerCircles.forEach { circleRef ->
             circleRef.get()?.let { circle ->
-                accessibilityWindow.removeView(circle)
+                onMainThread {
+                    accessibilityWindow.removeView(circle)
+                }
             }
         }
         
@@ -466,20 +538,18 @@ class GestureVisualManager(context: Context) : GestureStateManager.GestureStateL
     override fun onStateChanged(event: String, data: Map<String, Any>) {
         when (event) {
             GestureStateManager.EVENT_GESTURE_ENDED -> {
-                // Auto-hide visual feedback when gesture ends
-                if (data["cancelled"] == true) {
-                    hideCircle()
-                }
+                // Always clear all visuals when a gesture ends
+                clearAllVisuals()
             }
 
             GestureStateManager.EVENT_AUTO_SELECT_CANCELLED -> {
-                // Hide countdown visual when auto-select is cancelled
-                hideCircle()
+                // Clear all visuals when auto-select is cancelled
+                clearAllVisuals()
             }
 
             GestureStateManager.EVENT_STATE_RESET -> {
                 // Clear all visuals on state reset
-                clearCurrentVisual()
+                clearAllVisuals()
             }
         }
     }

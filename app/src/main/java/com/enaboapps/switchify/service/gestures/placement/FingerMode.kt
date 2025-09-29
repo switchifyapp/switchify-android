@@ -53,7 +53,46 @@ enum class FingerMode {
      *
      * Best for: Users with tremors, limited precision, or who benefit from larger targets
      */
-    TWO;
+    TWO,
+
+    /**
+     * Force three-finger gestures for all compatible gesture types.
+     *
+     * Benefits:
+     * - Maximum stability for severe tremors
+     * - Very large touch area for easier targeting
+     * - Enhanced visual feedback
+     * - Better grip support for limited dexterity
+     *
+     * Best for: Users with severe motor impairments or those who need maximum stability
+     */
+    THREE,
+
+    /**
+     * Force four-finger gestures for all compatible gesture types.
+     *
+     * Benefits:
+     * - Extreme stability for accessibility needs
+     * - Very large gesture area
+     * - Maximum visual feedback
+     * - Support for users with limited finger control
+     *
+     * Best for: Users with significant motor challenges who benefit from whole-hand gestures
+     */
+    FOUR,
+
+    /**
+     * Force five-finger gestures for all compatible gesture types.
+     *
+     * Benefits:
+     * - Whole-hand gesture support
+     * - Maximum accessibility for severe impairments
+     * - Largest possible touch area
+     * - Ultimate stability and feedback
+     *
+     * Best for: Users with severe motor impairments who can only perform whole-hand movements
+     */
+    FIVE;
 
     /**
      * Returns the display name for the finger mode.
@@ -63,6 +102,9 @@ enum class FingerMode {
         return when (this) {
             ONE -> context.getString(R.string.menu_item_one_finger)
             TWO -> context.getString(R.string.menu_item_two_fingers)
+            THREE -> context.getString(R.string.menu_item_three_fingers)
+            FOUR -> context.getString(R.string.menu_item_four_fingers)
+            FIVE -> context.getString(R.string.menu_item_five_fingers)
         }
     }
 
@@ -74,6 +116,9 @@ enum class FingerMode {
         return when (this) {
             ONE -> context.getString(R.string.finger_mode_description_one)
             TWO -> context.getString(R.string.finger_mode_description_two)
+            THREE -> context.getString(R.string.finger_mode_description_three)
+            FOUR -> context.getString(R.string.finger_mode_description_four)
+            FIVE -> context.getString(R.string.finger_mode_description_five)
         }
     }
 

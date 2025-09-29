@@ -241,11 +241,10 @@ class GestureMenuStructure(private val context: Context) {
             MenuItem(
                 id = "one_finger_mode",
                 labelResource = R.string.menu_item_one_finger,
-                drawableId = R.drawable.ic_one_finger, // One finger mode icon
+                drawableId = R.drawable.ic_one_finger,
                 closeOnSelect = false, // Keep menu open to show feedback
                 action = {
                     GestureManager.instance.setFingerMode(FingerMode.ONE)
-                    // Show feedback using string resource with format arguments
                     ServiceMessageHUD.instance.showMessage(
                         R.string.finger_mode_changed,
                         arrayOf(FingerMode.ONE.getDisplayName(context)),
@@ -256,13 +255,55 @@ class GestureMenuStructure(private val context: Context) {
             MenuItem(
                 id = "two_finger_mode",
                 labelResource = R.string.menu_item_two_fingers,
-                drawableId = R.drawable.ic_two_finger, // Two finger mode icon
+                drawableId = R.drawable.ic_two_finger,
                 closeOnSelect = false, // Keep menu open to show feedback
                 action = {
                     GestureManager.instance.setFingerMode(FingerMode.TWO)
                     ServiceMessageHUD.instance.showMessage(
                         R.string.finger_mode_changed,
                         arrayOf(FingerMode.TWO.getDisplayName(context)),
+                        ServiceMessageHUD.MessageType.DISAPPEARING
+                    )
+                }
+            ),
+            MenuItem(
+                id = "three_finger_mode",
+                labelResource = R.string.menu_item_three_fingers,
+                drawableId = R.drawable.ic_three_finger,
+                closeOnSelect = false, // Keep menu open to show feedback
+                action = {
+                    GestureManager.instance.setFingerMode(FingerMode.THREE)
+                    ServiceMessageHUD.instance.showMessage(
+                        R.string.finger_mode_changed,
+                        arrayOf(FingerMode.THREE.getDisplayName(context)),
+                        ServiceMessageHUD.MessageType.DISAPPEARING
+                    )
+                }
+            ),
+            MenuItem(
+                id = "four_finger_mode",
+                labelResource = R.string.menu_item_four_fingers,
+                drawableId = R.drawable.ic_four_finger,
+                closeOnSelect = false, // Keep menu open to show feedback
+                action = {
+                    GestureManager.instance.setFingerMode(FingerMode.FOUR)
+                    ServiceMessageHUD.instance.showMessage(
+                        R.string.finger_mode_changed,
+                        arrayOf(FingerMode.FOUR.getDisplayName(context)),
+                        ServiceMessageHUD.MessageType.DISAPPEARING
+                    )
+                }
+            ),
+            MenuItem(
+                id = "five_finger_mode",
+                labelResource = R.string.menu_item_five_fingers,
+                drawableId = R.drawable.ic_five_finger,
+                closeOnSelect = false, // Keep menu open to show feedback
+                action = {
+                    GestureManager.instance.setFingerMode(FingerMode.FIVE)
+                    ServiceMessageHUD.instance.showMessage(
+                        R.string.finger_mode_changed,
+                        arrayOf(FingerMode.FIVE.getDisplayName(context)),
                         ServiceMessageHUD.MessageType.DISAPPEARING
                     )
                 }
