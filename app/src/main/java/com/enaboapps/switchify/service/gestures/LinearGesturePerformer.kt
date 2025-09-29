@@ -131,10 +131,11 @@ class LinearGesturePerformer(
         )
         
         // Calculate finger placement for multi-finger gesture support
+        var fingerPlacement: com.enaboapps.switchify.service.gestures.placement.FingerPlacement? = null
         try {
             val fingerMode = getCurrentFingerMode()
             val screenBounds = getScreenBounds()
-            val fingerPlacement = fingerPlacementAlgorithm.calculateFingerPlacement(
+            fingerPlacement = fingerPlacementAlgorithm.calculateFingerPlacement(
                 gestureType = type,
                 targetPoint = startPoint,
                 userFingerMode = fingerMode,
@@ -153,10 +154,19 @@ class LinearGesturePerformer(
         if (showMessage) {
             showGestureMessage(type)
         }
-        gestureVisualManager.showStaticCircle(
-            startPoint.x.toInt(),
-            startPoint.y.toInt()
-        )
+        
+        // Show appropriate visual feedback based on finger placement
+        if (fingerPlacement != null && fingerPlacement.fingerCount > 1) {
+            // Show multi-finger visual feedback with finger positions
+            gestureVisualManager.showMultiFingerVisual(fingerPlacement)
+            Log.d(TAG, "Showing multi-finger start visual for ${fingerPlacement.fingerCount} fingers")
+        } else {
+            // Fall back to single finger visual feedback
+            gestureVisualManager.showStaticCircle(
+                startPoint.x.toInt(),
+                startPoint.y.toInt()
+            )
+        }
     }
 
     /**
@@ -205,7 +215,7 @@ class LinearGesturePerformer(
         if (startPoint == null || gestureType == null) {
             Log.w(TAG, "endGesture failed - startPoint or gestureType is null")
             GestureStateManager.cancelGesture()
-            gestureVisualManager.hideCircle()
+            gestureVisualManager.hideAllVisuals()
             return
         }
 
@@ -220,7 +230,7 @@ class LinearGesturePerformer(
         )
 
         GestureStateManager.endGesture()
-        gestureVisualManager.hideCircle()
+        gestureVisualManager.hideAllVisuals()
     }
 
     /**
@@ -228,7 +238,7 @@ class LinearGesturePerformer(
      */
     fun cancelGesture() {
         GestureStateManager.cancelGesture()
-        gestureVisualManager.hideCircle()
+        gestureVisualManager.hideAllVisuals()
     }
 
     // State reset is now handled by GestureStateManager
@@ -416,7 +426,7 @@ class LinearGesturePerformer(
     /**
      * Provides multi-finger visual feedback showing paths for all fingers.
      * Shows coordinated visual feedback for all finger paths in multi-finger gestures,
-     * giving users a clear understanding of the gesture motion.
+     * giving users a clear understanding of the gesture motion with synchronized arrows.
      *
      * @param startPositions List of start positions for all fingers
      * @param endPositions List of end positions for all fingers
@@ -429,16 +439,14 @@ class LinearGesturePerformer(
     ) {
         val duration = getDurationForGestureType(type)
         
-        // Show arrow animation for each finger path
-        startPositions.zip(endPositions).forEach { (start, end) ->
-            gestureVisualManager.showArrowAnimation(
-                start.x.toInt(), start.y.toInt(),
-                end.x.toInt(), end.y.toInt(),
-                duration
-            )
-        }
+        // Use coordinated multi-finger arrow animation for better visual feedback
+        gestureVisualManager.showMultiFingerArrowAnimation(
+            startPositions,
+            endPositions,
+            duration
+        )
         
-        Log.d(TAG, "Showing visual feedback for ${startPositions.size} finger paths")
+        Log.d(TAG, "Showing coordinated multi-finger visual feedback for ${startPositions.size} finger paths")
     }
 
     /**

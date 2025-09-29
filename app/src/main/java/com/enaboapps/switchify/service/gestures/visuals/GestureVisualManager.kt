@@ -53,6 +53,9 @@ class GestureVisualManager(context: Context) : GestureStateManager.GestureStateL
     private var currentMultiFingerVisual: WeakReference<RelativeLayout>? = null
     private val activeFingerCircles = mutableListOf<WeakReference<RelativeLayout>>()
     private var multiFingerRemoveHandler: Handler? = null
+    
+    // Multi-finger arrow animation tracking
+    private val activeMultiFingerArrows = mutableListOf<AnimatedGestureArrow>()
 
     companion object {
         // Standardized circle size - compromise between existing 40px and 60px
@@ -153,6 +156,63 @@ class GestureVisualManager(context: Context) : GestureStateManager.GestureStateL
      */
     fun showArrowAnimation(x1: Int, y1: Int, x2: Int, y2: Int, duration: Long) {
         animatedGestureArrow.showArrowAnimation(x1, y1, x2, y2, duration)
+    }
+    
+    /**
+     * Shows coordinated multi-finger arrow animations for linear gestures.
+     * 
+     * This method creates synchronized arrow animations for all fingers in a multi-finger
+     * linear gesture, providing clear visual feedback about the coordinated movement pattern.
+     * Each arrow maintains the same direction and timing while showing individual finger paths.
+     * 
+     * @param startPositions List of start positions for all fingers
+     * @param endPositions List of end positions for all fingers (must match startPositions length)
+     * @param duration Animation duration in milliseconds for all arrows
+     */
+    fun showMultiFingerArrowAnimation(
+        startPositions: List<PointF>,
+        endPositions: List<PointF>,
+        duration: Long
+    ) {
+        require(startPositions.size == endPositions.size) {
+            "Start positions and end positions must have the same size: ${startPositions.size} vs ${endPositions.size}"
+        }
+        
+        val context = contextRef.get() ?: return
+        
+        // Create coordinated arrow animations for each finger path
+        val arrowInstances = mutableListOf<AnimatedGestureArrow>()
+        
+        startPositions.zip(endPositions).forEachIndexed { index, (start, end) ->
+            val arrowInstance = AnimatedGestureArrow(context)
+            arrowInstances.add(arrowInstance)
+            
+            // Start arrow animation with slight delay for visual effect (staggered by 50ms)
+            val staggeredDelay = index * 50L
+            
+            mainHandler.postDelayed({
+                arrowInstance.showArrowAnimation(
+                    start.x.toInt(),
+                    start.y.toInt(),
+                    end.x.toInt(),
+                    end.y.toInt(),
+                    duration
+                ) {
+                    // Clean up this arrow instance when animation completes
+                    arrowInstances.remove(arrowInstance)
+                }
+            }, staggeredDelay)
+        }
+        
+        // Store arrow instances for potential cleanup
+        activeMultiFingerArrows.addAll(arrowInstances)
+        
+        // Auto cleanup after animation duration + stagger time
+        val totalDuration = duration + (startPositions.size * 50L)
+        mainHandler.postDelayed({
+            activeMultiFingerArrows.forEach { it.cancel() }
+            activeMultiFingerArrows.clear()
+        }, totalDuration)
     }
 
     /**
@@ -525,6 +585,12 @@ class GestureVisualManager(context: Context) : GestureStateManager.GestureStateL
                 }
             }
         }
+        
+        // Clear multi-finger arrow animations
+        activeMultiFingerArrows.forEach { arrow ->
+            arrow.cancel()
+        }
+        activeMultiFingerArrows.clear()
         
         // Reset state
         currentMultiFingerVisual = null
