@@ -394,11 +394,20 @@ class GestureManager private constructor() {
     }
 
     /**
-     * Performs a swipe or scroll action.
+     * Performs a swipe or scroll action with intelligent finger mode selection.
+     * 
+     * Scroll Gesture Override:
+     * - All scroll gestures (SCROLL_UP, SCROLL_DOWN, SCROLL_LEFT, SCROLL_RIGHT) are forced 
+     *   to use single-finger input regardless of user preference or override settings
+     * - This ensures optimal scrolling experience and consistency across all scroll operations
+     * 
+     * Swipe Gesture Behavior:
+     * - Swipe gestures continue to respect user preference or explicit overrides
+     * - Maintains existing flexibility for navigation and interaction gestures
      *
-     * @param type The GestureType of the swipe.
-     * @param startPoint The starting point of the gesture.
-     * @param overrideFingerMode Optional finger mode override for pattern playback
+     * @param type The GestureType of the swipe or scroll
+     * @param startPoint The starting point of the gesture
+     * @param overrideFingerMode Optional finger mode override for pattern playback (ignored for scroll gestures)
      */
     fun performSwipeOrScroll(type: GestureType, startPoint: PointF? = null, overrideFingerMode: FingerMode? = null) {
         val point = startPoint ?: GesturePoint.getPoint()
@@ -412,8 +421,12 @@ class GestureManager private constructor() {
                 ))
         ) return
         
-        if (overrideFingerMode != null) {
-            // Use explicit finger mode override for pattern playback
+        // Enforce single-finger for all scroll gestures
+        if (type.isScrollGesture()) {
+            // Force single-finger for scroll gestures regardless of user preference or override
+            linearGesturePerformer.startGesture(type, explicitFingerCount = 1, showMessage = false, startingPoint = point)
+        } else if (overrideFingerMode != null) {
+            // Use explicit finger mode override for swipe pattern playback
             val fingerCount = when (overrideFingerMode) {
                 com.enaboapps.switchify.service.gestures.placement.FingerMode.ONE -> 1
                 com.enaboapps.switchify.service.gestures.placement.FingerMode.TWO -> 2
@@ -423,7 +436,7 @@ class GestureManager private constructor() {
             }
             linearGesturePerformer.startGesture(type, fingerCount, false, point)
         } else {
-            // Use current user preference for normal execution
+            // Use current user preference for normal swipe execution
             linearGesturePerformer.startGesture(type, startingPoint = point)
         }
         linearGesturePerformer.endGesture()

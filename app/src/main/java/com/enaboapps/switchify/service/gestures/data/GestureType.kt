@@ -65,5 +65,20 @@ enum class GestureType {
 
     // Multi-touch gestures - complex gesture coordination
     ZOOM_IN,            // Pinch-to-zoom in
-    ZOOM_OUT            // Pinch-to-zoom out
+    ZOOM_OUT;           // Pinch-to-zoom out
+
+    /**
+     * Checks if this gesture type is a scroll gesture.
+     * 
+     * Scroll gestures are content navigation gestures that should always use
+     * single-finger input for optimal accessibility and user experience.
+     * 
+     * @return true if this is a scroll gesture, false otherwise
+     */
+    fun isScrollGesture(): Boolean {
+        return when (this) {
+            SCROLL_UP, SCROLL_DOWN, SCROLL_LEFT, SCROLL_RIGHT -> true
+            else -> false
+        }
+    }
 }
