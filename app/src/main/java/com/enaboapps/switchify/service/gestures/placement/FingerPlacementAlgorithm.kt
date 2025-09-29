@@ -308,7 +308,7 @@ class FingerPlacementAlgorithm {
             else -> PlacementPattern.LINEAR
         }
         val fingerPoints = generateMultiFingerPositions(
-            targetPoint, fingerCount, pattern, availableSpace, screenBounds
+            targetPoint, fingerCount, pattern, availableSpace, screenBounds, gestureType
         )
         
         val metadata = PlacementMetadata(
@@ -481,26 +481,27 @@ class FingerPlacementAlgorithm {
         fingerCount: Int,
         pattern: PlacementPattern,
         availableSpace: Int,
-        screenBounds: Rect
+        screenBounds: Rect,
+        gestureType: GestureType
     ): List<PointF> {
         return when (fingerCount) {
-            3 -> generateThreeFingerPositions(centerPoint, screenBounds)
-            4 -> generateFourFingerPositions(centerPoint, screenBounds)
-            5 -> generateFiveFingerPositions(centerPoint, screenBounds)
+            3 -> generateThreeFingerPositions(centerPoint, screenBounds, gestureType)
+            4 -> generateFourFingerPositions(centerPoint, screenBounds, gestureType)
+            5 -> generateFiveFingerPositions(centerPoint, screenBounds, gestureType)
             else -> generateLinearFingerPositions(centerPoint, fingerCount, screenBounds)
         }
     }
     
     /**
      * Generates positions for 3 fingers in a natural tripod grip pattern.
-     * Uses index, middle, and ring fingers in natural hand curvature.
+     * Uses index, middle, and ring fingers in natural hand curvature with gesture-context aware spacing.
      */
-    private fun generateThreeFingerPositions(centerPoint: PointF, screenBounds: Rect): List<PointF> {
+    private fun generateThreeFingerPositions(centerPoint: PointF, screenBounds: Rect, gestureType: GestureType): List<PointF> {
         val positions = mutableListOf<PointF>()
         
-        // Calculate dynamic spacing based on available space
+        // Calculate gesture-context aware spacing multiplier
         val availableSpace = calculateAvailableSpace(centerPoint, screenBounds)
-        val spacingMultiplier = min(2.0f, max(1.0f, availableSpace / 150f)) // Allow scaling up, minimum 1.0x
+        val spacingMultiplier = computeSpacingMultiplier(availableSpace, 150f, gestureType)
         
         // Natural finger positions: index (left), middle (center, slightly forward), ring (right)
         // Index finger position (leftmost)
@@ -533,14 +534,14 @@ class FingerPlacementAlgorithm {
     
     /**
      * Generates positions for 4 fingers in a natural four-finger swipe pattern.
-     * Uses index, middle, ring, and pinky fingers in natural sequence.
+     * Uses index, middle, ring, and pinky fingers in natural sequence with gesture-context aware spacing.
      */
-    private fun generateFourFingerPositions(centerPoint: PointF, screenBounds: Rect): List<PointF> {
+    private fun generateFourFingerPositions(centerPoint: PointF, screenBounds: Rect, gestureType: GestureType): List<PointF> {
         val positions = mutableListOf<PointF>()
         
-        // Calculate dynamic spacing based on available space
+        // Calculate gesture-context aware spacing multiplier
         val availableSpace = calculateAvailableSpace(centerPoint, screenBounds)
-        val spacingMultiplier = min(2.0f, max(1.0f, availableSpace / 200f)) // Allow scaling up for 4 fingers
+        val spacingMultiplier = computeSpacingMultiplier(availableSpace, 200f, gestureType)
         
         // Natural 4-finger positions: index, middle, ring, pinky in sequence
         
@@ -581,14 +582,14 @@ class FingerPlacementAlgorithm {
     
     /**
      * Generates positions for 5 fingers in a natural whole-hand pattern.
-     * Uses thumb + four fingers (index, middle, ring, pinky) in realistic placement.
+     * Uses thumb + four fingers (index, middle, ring, pinky) in realistic placement with gesture-context aware spacing.
      */
-    private fun generateFiveFingerPositions(centerPoint: PointF, screenBounds: Rect): List<PointF> {
+    private fun generateFiveFingerPositions(centerPoint: PointF, screenBounds: Rect, gestureType: GestureType): List<PointF> {
         val positions = mutableListOf<PointF>()
         
-        // Calculate dynamic spacing based on available space
+        // Calculate gesture-context aware spacing multiplier
         val availableSpace = calculateAvailableSpace(centerPoint, screenBounds)
-        val spacingMultiplier = min(2.0f, max(1.0f, availableSpace / 250f)) // Allow scaling up for 5 fingers
+        val spacingMultiplier = computeSpacingMultiplier(availableSpace, 250f, gestureType)
         
         // Natural 5-finger positions: thumb + four fingers
         
@@ -653,6 +654,50 @@ class FingerPlacementAlgorithm {
         return positions
     }
     
+    /**
+     * Computes gesture-context aware spacing multiplier for natural finger placement.
+     * 
+     * This helper applies gesture-specific spacing adjustments to the base spacing multiplier
+     * to optimize finger positioning for different gesture types:
+     * - Drag/scroll gestures use closer spacing (0.8x) for more controlled movements
+     * - Zoom gestures use wider spacing (1.4x) for better pinch-to-zoom recognition
+     * - Other gestures use neutral spacing (1.0x) for standard interactions
+     *
+     * @param availableSpace Available screen space around target point
+     * @param baseDivisor Divisor for calculating base spacing from available space
+     * @param gestureType Type of gesture being performed
+     * @return Final spacing multiplier combining base spacing and gesture-specific adjustment
+     */
+    private fun computeSpacingMultiplier(
+        availableSpace: Int,
+        baseDivisor: Float,
+        gestureType: GestureType
+    ): Float {
+        // Calculate base multiplier from available space (1.0x to 2.0x range)
+        val baseMultiplier = min(2.0f, max(1.0f, availableSpace / baseDivisor))
+        
+        // Apply gesture-specific adjustment
+        val gestureAdjustment = when (gestureType) {
+            // Drag and scroll gestures benefit from closer finger spacing for precision
+            GestureType.DRAG, 
+            GestureType.HOLD_AND_DRAG,
+            GestureType.SCROLL_UP,
+            GestureType.SCROLL_DOWN,
+            GestureType.SCROLL_LEFT,
+            GestureType.SCROLL_RIGHT -> SCROLL_GESTURE_COMPACT
+            
+            // Zoom gestures benefit from wider spacing for pinch-to-zoom recognition
+            GestureType.ZOOM_IN,
+            GestureType.ZOOM_OUT -> PINCH_GESTURE_SPREAD
+            
+            // Other gestures use neutral spacing
+            else -> 1.0f
+        }
+        
+        // Combine base multiplier with gesture adjustment, clamped to safe range
+        return min(2.0f, max(1.0f, baseMultiplier * gestureAdjustment))
+    }
+
     /**
      * Applies natural hand curvature to finger positions for realistic placement.
      * Creates a subtle arc that mimics how fingers naturally curve when placed on a screen.
