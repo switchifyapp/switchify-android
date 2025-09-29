@@ -1,0 +1,32 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+  
+  <!-- Top-left touch point circle -->
+  <path
+      android:fillColor="@android:color/white"
+      android:pathData="M7,8m-2,0a2,2 0,1 1,4 0a2,2 0,1 1,-4 0"/>
+      
+  <!-- Top-right touch point circle -->
+  <path
+      android:fillColor="@android:color/white"
+      android:pathData="M17,8m-2,0a2,2 0,1 1,4 0a2,2 0,1 1,-4 0"/>
+      
+  <!-- Bottom-left touch point circle -->
+  <path
+      android:fillColor="@android:color/white"
+      android:pathData="M7,16m-2,0a2,2 0,1 1,4 0a2,2 0,1 1,-4 0"/>
+      
+  <!-- Bottom-right touch point circle -->
+  <path
+      android:fillColor="@android:color/white"
+      android:pathData="M17,16m-2,0a2,2 0,1 1,4 0a2,2 0,1 1,-4 0"/>
+      
+  <!-- Number "4" in center -->
+  <path
+      android:fillColor="#000000"
+      android:pathData="M11,9h1v2h1v-2h1v3h-1v2h-1v-2h-1v-3zM12,12v1h1v-1h-1z"/>
+      
+</vector>
