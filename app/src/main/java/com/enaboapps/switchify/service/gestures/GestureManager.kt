@@ -371,18 +371,13 @@ class GestureManager private constructor() {
      * @return True indicating gesture was submitted (not necessarily completed)
      */
     fun performCustomGestureAction(gestureData: GestureData): Boolean {
-        if (gestureData.fingerCount > 1) {
-            // Use explicit finger count for pattern playback accuracy
-            linearGesturePerformer.startGesture(
-                gestureData.gestureType, 
-                gestureData.fingerCount, 
-                false, 
-                gestureData.startPoint
-            )
-        } else {
-            // Use standard method for single-finger gestures
-            linearGesturePerformer.startGesture(gestureData.gestureType, false, gestureData.startPoint)
-        }
+        // Always use stored finger count for pattern playback accuracy
+        linearGesturePerformer.startGesture(
+            gestureData.gestureType, 
+            gestureData.fingerCount, 
+            false, 
+            gestureData.startPoint
+        )
         linearGesturePerformer.endGesture(gestureData.endPoint)
         return true
     }
@@ -392,8 +387,9 @@ class GestureManager private constructor() {
      *
      * @param type The GestureType of the swipe.
      * @param startPoint The starting point of the gesture.
+     * @param overrideFingerMode Optional finger mode override for pattern playback
      */
-    fun performSwipeOrScroll(type: GestureType, startPoint: PointF? = null) {
+    fun performSwipeOrScroll(type: GestureType, startPoint: PointF? = null, overrideFingerMode: FingerMode? = null) {
         val point = startPoint ?: GesturePoint.getPoint()
         if (AutoScrollManager.getInstance()
                 .startAutoScroll(GestureData(
@@ -404,7 +400,15 @@ class GestureManager private constructor() {
                     fingerMode = com.enaboapps.switchify.service.gestures.placement.FingerMode.ONE
                 ))
         ) return
-        linearGesturePerformer.startGesture(type, startingPoint = point)
+        
+        if (overrideFingerMode != null) {
+            // Use explicit finger mode override for pattern playback
+            val fingerCount = overrideFingerMode.ordinal + 1
+            linearGesturePerformer.startGesture(type, fingerCount, false, point)
+        } else {
+            // Use current user preference for normal execution
+            linearGesturePerformer.startGesture(type, startingPoint = point)
+        }
         linearGesturePerformer.endGesture()
     }
 

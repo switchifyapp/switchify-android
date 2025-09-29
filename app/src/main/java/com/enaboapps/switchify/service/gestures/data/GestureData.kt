@@ -115,7 +115,7 @@ data class GestureData(
             GestureType.SCROLL_DOWN,
             GestureType.SCROLL_LEFT,
             GestureType.SCROLL_RIGHT -> {
-                GestureManager.instance.performSwipeOrScroll(gestureType, startPoint)
+                GestureManager.instance.performSwipeOrScroll(gestureType, startPoint, fingerMode)
             }
 
             GestureType.CUSTOM_SWIPE,
