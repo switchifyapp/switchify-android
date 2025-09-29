@@ -161,8 +161,9 @@ class GestureManager private constructor() {
      *
      * @param x Optional explicit x coordinate, null uses assisted selection
      * @param y Optional explicit y coordinate, null uses assisted selection
+     * @param overrideFingerMode Optional finger mode override for pattern playback
      */
-    fun performTap(x: Int? = null, y: Int? = null) {
+    fun performTap(x: Int? = null, y: Int? = null, overrideFingerMode: FingerMode? = null) {
         try {
             accessibilityService?.let {
                 val targetPoint = if (x != null && y != null) {
@@ -172,10 +173,11 @@ class GestureManager private constructor() {
                 }
 
                 // Method-level algorithm execution: Calculate finger placement dynamically
+                val effectiveFingerMode = overrideFingerMode ?: getCurrentFingerMode()
                 val fingerPlacement = fingerPlacementAlgorithm.calculateFingerPlacement(
                     gestureType = GestureType.TAP,
                     targetPoint = targetPoint,
-                    userFingerMode = getCurrentFingerMode(),
+                    userFingerMode = effectiveFingerMode,
                     screenBounds = getScreenBounds()
                 )
 
@@ -198,7 +200,7 @@ class GestureManager private constructor() {
                     startPoint = fingerPlacement.primaryPoint,
                     endPoint = null,
                     fingerCount = fingerPlacement.fingerCount,
-                    fingerMode = getCurrentFingerMode()
+                    fingerMode = effectiveFingerMode
                 )
                 gestureDispatcher.dispatch(gestureDescription, GestureType.TAP, gestureData)
             }
@@ -212,8 +214,9 @@ class GestureManager private constructor() {
      *
      * @param x The x coordinate of the tap gesture. If null, the current point will be used.
      * @param y The y coordinate of the tap gesture. If null, the current point will be used.
+     * @param overrideFingerMode Optional finger mode override for pattern playback
      */
-    fun performDoubleTap(x: Int? = null, y: Int? = null) {
+    fun performDoubleTap(x: Int? = null, y: Int? = null, overrideFingerMode: FingerMode? = null) {
         try {
             accessibilityService?.let {
                 val point = if (x != null && y != null) {
@@ -243,12 +246,13 @@ class GestureManager private constructor() {
 
                 // Create and dispatch gesture using unified pipeline
                 val gestureDescription = GesturePathBuilder.createDoubleTapPath(point)
+                val effectiveFingerMode = overrideFingerMode ?: com.enaboapps.switchify.service.gestures.placement.FingerMode.ONE
                 val gestureData = GestureData(
                     gestureType = GestureType.DOUBLE_TAP,
                     startPoint = point,
                     endPoint = null,
-                    fingerCount = 1, // Double-tap typically single-finger only
-                    fingerMode = com.enaboapps.switchify.service.gestures.placement.FingerMode.ONE
+                    fingerCount = effectiveFingerMode.ordinal + 1, // Convert finger mode to count
+                    fingerMode = effectiveFingerMode
                 )
                 gestureDispatcher.dispatch(gestureDescription, GestureType.DOUBLE_TAP, gestureData)
             }
@@ -267,8 +271,9 @@ class GestureManager private constructor() {
      *
      * @param x The x coordinate of the tap gesture. If null, the current point will be used.
      * @param y The y coordinate of the tap gesture. If null, the current point will be used.
+     * @param overrideFingerMode Optional finger mode override for pattern playback
      */
-    fun performTapAndHold(x: Int? = null, y: Int? = null) {
+    fun performTapAndHold(x: Int? = null, y: Int? = null, overrideFingerMode: FingerMode? = null) {
         try {
             accessibilityService?.let {
                 val targetPoint = if (x != null && y != null) {
@@ -278,10 +283,11 @@ class GestureManager private constructor() {
                 }
 
                 // Method-level algorithm: Determine optimal finger placement
+                val effectiveFingerMode = overrideFingerMode ?: getCurrentFingerMode()
                 val fingerPlacement = fingerPlacementAlgorithm.calculateFingerPlacement(
                     gestureType = GestureType.TAP_AND_HOLD,
                     targetPoint = targetPoint,
-                    userFingerMode = getCurrentFingerMode(),
+                    userFingerMode = effectiveFingerMode,
                     screenBounds = getScreenBounds()
                 )
 
@@ -303,7 +309,7 @@ class GestureManager private constructor() {
                     startPoint = fingerPlacement.primaryPoint,
                     endPoint = null,
                     fingerCount = fingerPlacement.fingerCount,
-                    fingerMode = getCurrentFingerMode()
+                    fingerMode = effectiveFingerMode
                 )
                 gestureDispatcher.dispatch(
                     gestureDescription,
