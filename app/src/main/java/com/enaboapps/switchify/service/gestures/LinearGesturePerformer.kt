@@ -78,6 +78,91 @@ class LinearGesturePerformer(
     // State management is now handled by GestureStateManager
 
     /**
+     * Phase 1: Initiates a two-phase linear gesture with explicit finger count override.
+     * 
+     * This overloaded version bypasses user preference and uses the specified finger count,
+     * primarily used for pattern playback where gestures must use their recorded finger count.
+     * 
+     * @param type Gesture type determining calculation and execution behavior
+     * @param explicitFingerCount Override finger count, bypassing user preference
+     * @param showMessage Whether to display instructional HUD messages to user
+     * @param startingPoint Explicit start coordinates, defaults to current point position
+     */
+    fun startGesture(
+        type: GestureType,
+        explicitFingerCount: Int,
+        showMessage: Boolean = true,
+        startingPoint: PointF? = null
+    ) {
+        val startPoint = startingPoint ?: GesturePoint.getPoint()
+
+        Log.d(TAG, "startGesture called with explicit finger count - type: $type, fingerCount: $explicitFingerCount, startPoint: $startPoint")
+
+        // Use unified state manager
+        if (!GestureStateManager.startGesture(type, startPoint)) {
+            Log.w(TAG, "startGesture failed - GestureStateManager.startGesture returned false")
+            Log.d(TAG, "GestureStateManager state: ${GestureStateManager.getStateSummary()}")
+            return // Already performing gesture or too soon since last gesture
+        }
+
+        Log.d(TAG, "startGesture successful - state set in GestureStateManager")
+        Log.d(
+            TAG,
+            "GestureStateManager state after start: ${GestureStateManager.getStateSummary()}"
+        )
+        
+        // Calculate finger placement using explicit finger count (pattern playback mode)
+        var fingerPlacement: com.enaboapps.switchify.service.gestures.placement.FingerPlacement? = null
+        try {
+            // Convert finger count to appropriate FingerMode for algorithm
+            val overrideFingerMode = when (explicitFingerCount.coerceIn(1, 5)) {
+                1 -> com.enaboapps.switchify.service.gestures.placement.FingerMode.ONE
+                2 -> com.enaboapps.switchify.service.gestures.placement.FingerMode.TWO
+                3 -> com.enaboapps.switchify.service.gestures.placement.FingerMode.THREE
+                4 -> com.enaboapps.switchify.service.gestures.placement.FingerMode.FOUR
+                5 -> com.enaboapps.switchify.service.gestures.placement.FingerMode.FIVE
+                else -> com.enaboapps.switchify.service.gestures.placement.FingerMode.ONE
+            }
+            
+            val screenBounds = getScreenBounds()
+            
+            fingerPlacement = fingerPlacementAlgorithm.calculateFingerPlacement(
+                gestureType = type,
+                targetPoint = startPoint,
+                userFingerMode = overrideFingerMode, // Use explicit finger mode override
+                screenBounds = screenBounds
+            )
+            
+            // Store finger placement in state manager for use in endGesture()
+            GestureStateManager.setCurrentFingerPlacement(fingerPlacement)
+            
+            Log.d(TAG, "Explicit finger placement calculated and stored: ${fingerPlacement.getDescription()}")
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to calculate explicit finger placement, falling back to single-finger", e)
+            Log.e(TAG, "Exception details: ${e.message}")
+            e.printStackTrace()
+            // Continue with single-finger gesture - finger placement will be null
+        }
+
+        if (showMessage) {
+            showGestureMessage(type)
+        }
+        
+        // Show appropriate visual feedback based on finger placement
+        if (fingerPlacement != null && fingerPlacement.fingerCount > 1) {
+            // Show multi-finger visual feedback with finger positions
+            gestureVisualManager.showMultiFingerVisual(fingerPlacement)
+            Log.d(TAG, "Showing multi-finger start visual for ${fingerPlacement.fingerCount} fingers (explicit count)")
+        } else {
+            // Fall back to single finger visual feedback
+            gestureVisualManager.showStaticCircle(
+                startPoint.x.toInt(),
+                startPoint.y.toInt()
+            )
+        }
+    }
+    
+    /**
      * Phase 1: Initiates a two-phase linear gesture with immediate visual feedback.
      *
      * This method begins the two-phase gesture execution model by:
@@ -222,11 +307,19 @@ class LinearGesturePerformer(
 
         val calculatedEndPoint = endPoint ?: calculateEndPoint(gestureType, startPoint)
         performGesture(gestureType, startPoint, calculatedEndPoint)
+        
+        // Get finger count from current finger placement for gesture lock
+        val fingerPlacement = GestureStateManager.getCurrentFingerPlacement()
+        val fingerCount = fingerPlacement?.fingerCount ?: 1
+        val fingerMode = if (fingerCount > 1) getCurrentFingerMode() else com.enaboapps.switchify.service.gestures.placement.FingerMode.ONE
+        
         gestureLockManager.setLockedGestureData(
             GestureData(
-                gestureType,
-                startPoint,
-                calculatedEndPoint
+                gestureType = gestureType,
+                startPoint = startPoint,
+                endPoint = calculatedEndPoint,
+                fingerCount = fingerCount,
+                fingerMode = fingerMode
             )
         )
 
@@ -371,8 +464,18 @@ class LinearGesturePerformer(
                 )
                 
                 Log.d(TAG, "About to dispatch multi-finger gesture: $type with ${startFingerPositions.size} fingers")
-                // Create gesture data for pattern recording and gesture lock
-                val gestureData = GestureData(type, start, end)
+                // Create gesture data for pattern recording and gesture lock with finger count
+                val fingerCount = startFingerPositions.size
+                val currentFingerMode = getCurrentFingerMode()
+                val gestureData = GestureData(
+                    gestureType = type,
+                    startPoint = start,
+                    endPoint = end,
+                    fingerCount = fingerCount,
+                    fingerMode = currentFingerMode
+                )
+                
+                Log.d(TAG, "Recording gesture with $fingerCount fingers (mode: $currentFingerMode)")
                 
                 // Dispatch using unified dispatcher with gesture data
                 gestureDispatcher.dispatch(gestureDescription, type, gestureData)
@@ -396,8 +499,16 @@ class LinearGesturePerformer(
                 }
 
                 Log.d(TAG, "About to dispatch single-finger gesture: $type")
-                // Create gesture data for pattern recording and gesture lock
-                val gestureData = GestureData(type, start, end)
+                // Create gesture data for pattern recording and gesture lock with finger count
+                val gestureData = GestureData(
+                    gestureType = type,
+                    startPoint = start,
+                    endPoint = end,
+                    fingerCount = 1,
+                    fingerMode = com.enaboapps.switchify.service.gestures.placement.FingerMode.ONE
+                )
+                
+                Log.d(TAG, "Recording gesture with 1 finger (single-finger mode)")
 
                 // Dispatch using unified dispatcher with gesture data
                 gestureDispatcher.dispatch(gestureDescription, type, gestureData)
