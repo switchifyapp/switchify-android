@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import com.enaboapps.switchify.BuildConfig
 import com.enaboapps.switchify.R
+import com.enaboapps.switchify.service.core.ServiceBridge
 import com.enaboapps.switchify.service.camera.CameraPermissionManager
 import com.enaboapps.switchify.service.menu.MenuManager
 import com.enaboapps.switchify.service.utils.DeviceLockObserver
@@ -145,31 +146,27 @@ class HeadControlService private constructor(private val context: Context) {
         return try {
             if (enabled && headControlManager == null) {
                 Log.d(TAG, "Initializing head control manager")
-                // Create HeadControlManager on main thread since it contains UI components
-                val mainHandler = android.os.Handler(android.os.Looper.getMainLooper())
-                var success = false
-                val latch = java.util.concurrent.CountDownLatch(1)
 
+                // Update settings first, before creating manager
+                // This ensures the flag is set even if manager creation is slow
+                settings.setHeadControlEnabled(enabled)
+                Log.d(TAG, "Head control setting updated to enabled")
+                
+                // Notify UI of state change
+                ServiceBridge.emitEvent(ServiceBridge.ServiceEvent.ConfigurationUpdated)
+
+                // Create HeadControlManager on main thread since it contains UI components
+                // This happens asynchronously - manager will notify camera when ready
+                val mainHandler = android.os.Handler(android.os.Looper.getMainLooper())
                 mainHandler.post {
                     try {
                         headControlManager = HeadControlManager(context)
-                        success = true
+                        Log.d(TAG, "HeadControlManager created successfully, will initialize asynchronously")
                     } catch (e: Exception) {
                         Log.e(TAG, "Failed to create HeadControlManager on main thread", e)
-                        success = false
-                    } finally {
-                        latch.countDown()
+                        // Revert setting on failure
+                        settings.setHeadControlEnabled(false)
                     }
-                }
-
-                // Wait for main thread creation to complete
-                latch.await(2, java.util.concurrent.TimeUnit.SECONDS)
-
-                if (success) {
-                    // Only update settings after successful initialization
-                    settings.setHeadControlEnabled(enabled)
-                } else {
-                    return false
                 }
             } else if (!enabled) {
                 Log.d(TAG, "Disabling head control manager")
@@ -191,9 +188,14 @@ class HeadControlService private constructor(private val context: Context) {
                 // Wait for main thread cleanup to complete
                 latch.await(2, java.util.concurrent.TimeUnit.SECONDS)
                 settings.setHeadControlEnabled(enabled)
+                
+                // Notify UI of state change
+                ServiceBridge.emitEvent(ServiceBridge.ServiceEvent.ConfigurationUpdated)
             } else {
                 // Already in desired state, just update settings
                 settings.setHeadControlEnabled(enabled)
+                // Notify UI of state change
+                ServiceBridge.emitEvent(ServiceBridge.ServiceEvent.ConfigurationUpdated)
             }
             true
         } catch (securityException: SecurityException) {
@@ -202,6 +204,8 @@ class HeadControlService private constructor(private val context: Context) {
             settings.setHeadControlEnabled(false)
             headControlManager?.cleanup()
             headControlManager = null
+            // Notify UI of state change
+            ServiceBridge.emitEvent(ServiceBridge.ServiceEvent.ConfigurationUpdated)
             false
         } catch (t: Throwable) {
             Log.e(TAG, "Failed to setEnabled($enabled) - leaving setting unchanged", t)
