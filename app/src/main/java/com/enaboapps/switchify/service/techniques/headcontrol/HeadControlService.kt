@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import com.enaboapps.switchify.BuildConfig
 import com.enaboapps.switchify.R
+import com.enaboapps.switchify.service.core.ServiceBridge
 import com.enaboapps.switchify.service.camera.CameraPermissionManager
 import com.enaboapps.switchify.service.menu.MenuManager
 import com.enaboapps.switchify.service.utils.DeviceLockObserver
@@ -150,6 +151,9 @@ class HeadControlService private constructor(private val context: Context) {
                 // This ensures the flag is set even if manager creation is slow
                 settings.setHeadControlEnabled(enabled)
                 Log.d(TAG, "Head control setting updated to enabled")
+                
+                // Notify UI of state change
+                ServiceBridge.emitEvent(ServiceBridge.ServiceEvent.ConfigurationUpdated)
 
                 // Create HeadControlManager on main thread since it contains UI components
                 // This happens asynchronously - manager will notify camera when ready
@@ -184,9 +188,14 @@ class HeadControlService private constructor(private val context: Context) {
                 // Wait for main thread cleanup to complete
                 latch.await(2, java.util.concurrent.TimeUnit.SECONDS)
                 settings.setHeadControlEnabled(enabled)
+                
+                // Notify UI of state change
+                ServiceBridge.emitEvent(ServiceBridge.ServiceEvent.ConfigurationUpdated)
             } else {
                 // Already in desired state, just update settings
                 settings.setHeadControlEnabled(enabled)
+                // Notify UI of state change
+                ServiceBridge.emitEvent(ServiceBridge.ServiceEvent.ConfigurationUpdated)
             }
             true
         } catch (securityException: SecurityException) {
@@ -195,6 +204,8 @@ class HeadControlService private constructor(private val context: Context) {
             settings.setHeadControlEnabled(false)
             headControlManager?.cleanup()
             headControlManager = null
+            // Notify UI of state change
+            ServiceBridge.emitEvent(ServiceBridge.ServiceEvent.ConfigurationUpdated)
             false
         } catch (t: Throwable) {
             Log.e(TAG, "Failed to setEnabled($enabled) - leaving setting unchanged", t)
