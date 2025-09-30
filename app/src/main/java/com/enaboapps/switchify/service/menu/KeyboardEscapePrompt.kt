@@ -22,12 +22,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.enaboapps.switchify.theme.Dimens
 import androidx.compose.ui.unit.sp
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.service.components.AccessibilityComposeView
 import com.enaboapps.switchify.service.keyboard.KeyboardManager
 import com.enaboapps.switchify.service.window.SwitchifyAccessibilityWindow
+import com.enaboapps.switchify.theme.Dimens
 
 /**
  * This class manages the prompt to ask the user if they want to open the menu or escape from keyboard.

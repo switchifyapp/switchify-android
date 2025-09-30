@@ -60,7 +60,7 @@ fun PreferenceTimeStepper(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
-        Spacer(modifier = Modifier.height(Dimens.spaceS))
+            Spacer(modifier = Modifier.height(Dimens.spaceS))
 
             // Icon buttons for increment/decrement
             Row(

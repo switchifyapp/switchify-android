@@ -4,28 +4,28 @@
     android:viewportWidth="32"
     android:viewportHeight="32"
     android:tint="?attr/colorControlNormal">
-  <!-- Disk/save icon base -->
-  <path
-      android:strokeColor="@android:color/white"
-      android:strokeWidth="2"
-      android:pathData="M6,6L26,6A2,2 0 0,1 28,8L28,24A2,2 0 0,1 26,26L6,26A2,2 0 0,1 4,24L4,8A2,2 0 0,1 6,6Z"
-      android:fillType="nonZero"/>
-  <!-- Disk slot -->
-  <path
-      android:fillColor="@android:color/white"
-      android:pathData="M8,6L24,6L24,12L8,12L8,6Z"/>
-  <!-- Disk hole -->
-  <path
-      android:fillColor="@android:color/black"
-      android:pathData="M20,8L22,8L22,10L20,10L20,8Z"/>
-  <!-- Save checkmark -->
-  <path
-      android:strokeColor="@android:color/white"
-      android:strokeWidth="2"
-      android:strokeLineCap="round"
-      android:pathData="M12,18L15,21L20,16"/>
-  <!-- Recording indicator -->
-  <path
-      android:fillColor="@android:color/white"
-      android:pathData="M6,2C6.6,2 7,2.4 7,3C7,3.6 6.6,4 6,4C5.4,4 5,3.6 5,3C5,2.4 5.4,2 6,2Z"/>
+    <!-- Disk/save icon base -->
+    <path
+        android:strokeColor="@android:color/white"
+        android:strokeWidth="2"
+        android:pathData="M6,6L26,6A2,2 0 0,1 28,8L28,24A2,2 0 0,1 26,26L6,26A2,2 0 0,1 4,24L4,8A2,2 0 0,1 6,6Z"
+        android:fillType="nonZero" />
+    <!-- Disk slot -->
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M8,6L24,6L24,12L8,12L8,6Z" />
+    <!-- Disk hole -->
+    <path
+        android:fillColor="@android:color/black"
+        android:pathData="M20,8L22,8L22,10L20,10L20,8Z" />
+    <!-- Save checkmark -->
+    <path
+        android:strokeColor="@android:color/white"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"
+        android:pathData="M12,18L15,21L20,16" />
+    <!-- Recording indicator -->
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M6,2C6.6,2 7,2.4 7,3C7,3.6 6.6,4 6,4C5.4,4 5,3.6 5,3C5,2.4 5.4,2 6,2Z" />
 </vector>

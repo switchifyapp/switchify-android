@@ -13,13 +13,13 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.enaboapps.switchify.service.scanning.ScanSettings
 import com.enaboapps.switchify.switches.SWITCH_EVENT_TYPE_EXTERNAL
+import com.enaboapps.switchify.switches.SupportedActionsPolicy
 import com.enaboapps.switchify.switches.SwitchAction
 import com.enaboapps.switchify.switches.SwitchAction.Companion.ACTION_MOVE_TO_NEXT_ITEM
 import com.enaboapps.switchify.switches.SwitchAction.Companion.ACTION_MOVE_TO_PREVIOUS_ITEM
 import com.enaboapps.switchify.switches.SwitchEvent
 import com.enaboapps.switchify.switches.SwitchEventStore
 import kotlinx.coroutines.Dispatchers
-import com.enaboapps.switchify.switches.SupportedActionsPolicy
 import kotlinx.coroutines.launch
 
 class AddEditExternalSwitchScreenModel : ViewModel() {
@@ -68,7 +68,10 @@ class AddEditExternalSwitchScreenModel : ViewModel() {
                 name = event?.name ?: ""
                 val initialPress = event?.pressAction ?: SwitchAction(SwitchAction.ACTION_SELECT)
                 val allowed = SupportedActionsPolicy.supportedActionIds(context)
-                pressAction.value = if (allowed.contains(initialPress.id)) initialPress else SwitchAction(SwitchAction.ACTION_SELECT)
+                pressAction.value =
+                    if (allowed.contains(initialPress.id)) initialPress else SwitchAction(
+                        SwitchAction.ACTION_SELECT
+                    )
                 longPressActions.value = (event?.holdActions ?: emptyList()).map { a ->
                     if (allowed.contains(a.id)) a else SwitchAction(SwitchAction.ACTION_SELECT)
                 }

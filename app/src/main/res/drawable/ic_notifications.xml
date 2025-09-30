@@ -4,16 +4,16 @@
     android:viewportWidth="32"
     android:viewportHeight="32"
     android:tint="?attr/colorControlNormal">
-  <!-- Bell shape -->
-  <path
-      android:fillColor="@android:color/white"
-      android:pathData="M16,6C18.2,6 20,7.8 20,10L20,16L22,18L10,18L12,16L12,10C12,7.8 13.8,6 16,6Z"/>
-  <!-- Bell clapper -->
-  <path
-      android:fillColor="@android:color/white"
-      android:pathData="M16,4C16.6,4 17,4.4 17,5C17,5.6 16.6,6 16,6C15.4,6 15,5.6 15,5C15,4.4 15.4,4 16,4Z"/>
-  <!-- Notification base -->
-  <path
-      android:fillColor="@android:color/white"
-      android:pathData="M14,20L18,20C18,21.1 17.1,22 16,22C14.9,22 14,21.1 14,20Z"/>
+    <!-- Bell shape -->
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M16,6C18.2,6 20,7.8 20,10L20,16L22,18L10,18L12,16L12,10C12,7.8 13.8,6 16,6Z" />
+    <!-- Bell clapper -->
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M16,4C16.6,4 17,4.4 17,5C17,5.6 16.6,6 16,6C15.4,6 15,5.6 15,5C15,4.4 15.4,4 16,4Z" />
+    <!-- Notification base -->
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M14,20L18,20C18,21.1 17.1,22 16,22C14.9,22 14,21.1 14,20Z" />
 </vector>

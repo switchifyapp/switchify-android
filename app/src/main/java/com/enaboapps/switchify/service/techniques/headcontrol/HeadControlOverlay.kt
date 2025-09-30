@@ -2,7 +2,6 @@ package com.enaboapps.switchify.service.techniques.headcontrol
 
 import android.content.Context
 import android.content.res.ColorStateList
-import android.graphics.Color
 import android.widget.ImageView
 import android.widget.RelativeLayout
 import androidx.core.graphics.toColorInt
@@ -19,7 +18,9 @@ class HeadControlOverlay(private val context: Context) : AccessTechniqueUIBase()
             pointerView = RelativeLayout(context).apply {
                 val imageView = ImageView(context).apply {
                     setImageResource(R.drawable.ic_head_control_pointer)
-                    imageTintList = ColorStateList.valueOf(ScanColorManager.getScanColorSetFromPreferences(context).secondaryColor.toColorInt())
+                    imageTintList = ColorStateList.valueOf(
+                        ScanColorManager.getScanColorSetFromPreferences(context).secondaryColor.toColorInt()
+                    )
                     scaleX = 1.2f
                     scaleY = 1.2f
                     alpha = 0.8f

@@ -75,7 +75,10 @@ class ScanSettings(context: Context) {
      * @return The radar scan rate
      */
     fun getRadarScanRate(): Long {
-        val speedLevel = preferenceManager.getIntegerValue(PreferenceManager.Keys.PREFERENCE_KEY_RADAR_SPEED_LEVEL, 13)
+        val speedLevel = preferenceManager.getIntegerValue(
+            PreferenceManager.Keys.PREFERENCE_KEY_RADAR_SPEED_LEVEL,
+            13
+        )
         return radarSpeedLevelToInterval(speedLevel)
     }
 
@@ -84,7 +87,10 @@ class ScanSettings(context: Context) {
      * @return The speed level where 1 = slowest, 25 = fastest
      */
     fun getRadarSpeedLevel(): Int {
-        return preferenceManager.getIntegerValue(PreferenceManager.Keys.PREFERENCE_KEY_RADAR_SPEED_LEVEL, 13)
+        return preferenceManager.getIntegerValue(
+            PreferenceManager.Keys.PREFERENCE_KEY_RADAR_SPEED_LEVEL,
+            13
+        )
     }
 
     /**

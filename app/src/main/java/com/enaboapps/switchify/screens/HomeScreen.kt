@@ -33,7 +33,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import androidx.navigation.NavController
 import com.enaboapps.switchify.BuildConfig
 import com.enaboapps.switchify.R
@@ -42,19 +41,18 @@ import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.backend.review.ReviewPrompter
 import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.CollapsibleActionList
+import com.enaboapps.switchify.components.HeadControlToggleCard
 import com.enaboapps.switchify.components.InAppUpdateBar
 import com.enaboapps.switchify.components.ScrollableView
 import com.enaboapps.switchify.components.StatusBannerComponent
 import com.enaboapps.switchify.nav.NavigationRoute
-import com.enaboapps.switchify.service.utils.QuickAppsManager
-import com.enaboapps.switchify.service.core.ServiceBridge
-import com.enaboapps.switchify.service.techniques.headcontrol.HeadControlSettings
 import com.enaboapps.switchify.service.camera.CameraPermissionManager
-import com.enaboapps.switchify.components.HeadControlToggleCard
+import com.enaboapps.switchify.service.utils.QuickAppsManager
 import com.enaboapps.switchify.service.utils.ServiceUtils
 import com.enaboapps.switchify.switches.SwitchConfigInvalidBanner
 import com.enaboapps.switchify.switches.SwitchConfigValidator
 import com.enaboapps.switchify.switches.SwitchEventStore
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.android.play.core.review.ReviewManagerFactory
 
 @OptIn(ExperimentalPermissionsApi::class)
@@ -118,88 +116,47 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
             Column(
                 modifier = Modifier.fillMaxSize()
             ) {
-            // Switch Configuration Banner
-            if (!isSwitchConfigValid) {
-                SwitchConfigInvalidBanner(
-                    onClick = {
-                        navController.navigate(NavigationRoute.Switches.name)
-                    }
-                )
-            }
-
-            // Collapsible Quick Actions List
-            CollapsibleActionList(
-                isExpanded = isActionListExpanded,
-                onToggleExpanded = { isActionListExpanded = !isActionListExpanded },
-                navController = navController,
-                hasUsageStatsPermission = hasUsageStatsPermission.value,
-                showDebug = BuildConfig.DEBUG,
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Determine whether to show head control toggle
-            val hasCameraPermission = remember { CameraPermissionManager.getInstance(context).hasPermission() }
-            val showHeadToggle = isAccessibilityServiceEnabled && hasCameraPermission
-
-            // Settings and second slot (Head Control when available, otherwise Feedback)
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                // Settings Card
-                GridCard(
-                    titleResId = R.string.screen_title_settings,
-                    summaryResId = R.string.screen_summary_settings,
-                    onClick = { navController.navigate(NavigationRoute.Settings.name) },
-                    icon = {
-                        Icon(
-                            imageVector = Icons.Rounded.Settings,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.fillMaxSize()
-                        )
-                    },
-                    modifier = Modifier.weight(1f)
-                )
-                if (showHeadToggle) {
-                    HeadControlToggleCard(modifier = Modifier.weight(1f))
-                } else {
-                    GridCard(
-                        titleResId = R.string.home_feedback_title,
-                        summaryResId = R.string.home_feedback_summary,
-                        onClick = { navController.navigate(NavigationRoute.UserFeedback.name) },
-                        icon = {
-                            Icon(
-                                imageVector = Icons.Rounded.Feedback,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.fillMaxSize()
-                            )
-                        },
-                        modifier = Modifier.weight(1f)
+                // Switch Configuration Banner
+                if (!isSwitchConfigValid) {
+                    SwitchConfigInvalidBanner(
+                        onClick = {
+                            navController.navigate(NavigationRoute.Switches.name)
+                        }
                     )
                 }
-            }
-            // Reuse showHeadToggle to place Feedback below when Head Control is shown above
-            if (showHeadToggle) {
+
+                // Collapsible Quick Actions List
+                CollapsibleActionList(
+                    isExpanded = isActionListExpanded,
+                    onToggleExpanded = { isActionListExpanded = !isActionListExpanded },
+                    navController = navController,
+                    hasUsageStatsPermission = hasUsageStatsPermission.value,
+                    showDebug = BuildConfig.DEBUG,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
                 Spacer(modifier = Modifier.height(16.dp))
+
+                // Determine whether to show head control toggle
+                val hasCameraPermission =
+                    remember { CameraPermissionManager.getInstance(context).hasPermission() }
+                val showHeadToggle = isAccessibilityServiceEnabled && hasCameraPermission
+
+                // Settings and second slot (Head Control when available, otherwise Feedback)
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp),
                     horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
+                    // Settings Card
                     GridCard(
-                        titleResId = R.string.home_feedback_title,
-                        summaryResId = R.string.home_feedback_summary,
-                        onClick = { navController.navigate(NavigationRoute.UserFeedback.name) },
+                        titleResId = R.string.screen_title_settings,
+                        summaryResId = R.string.screen_summary_settings,
+                        onClick = { navController.navigate(NavigationRoute.Settings.name) },
                         icon = {
                             Icon(
-                                imageVector = Icons.Rounded.Feedback,
+                                imageVector = Icons.Rounded.Settings,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.fillMaxSize()
@@ -207,9 +164,51 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
                         },
                         modifier = Modifier.weight(1f)
                     )
-                    Box(modifier = Modifier.weight(1f))
+                    if (showHeadToggle) {
+                        HeadControlToggleCard(modifier = Modifier.weight(1f))
+                    } else {
+                        GridCard(
+                            titleResId = R.string.home_feedback_title,
+                            summaryResId = R.string.home_feedback_summary,
+                            onClick = { navController.navigate(NavigationRoute.UserFeedback.name) },
+                            icon = {
+                                Icon(
+                                    imageVector = Icons.Rounded.Feedback,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                            },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
                 }
-            }
+                // Reuse showHeadToggle to place Feedback below when Head Control is shown above
+                if (showHeadToggle) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        GridCard(
+                            titleResId = R.string.home_feedback_title,
+                            summaryResId = R.string.home_feedback_summary,
+                            onClick = { navController.navigate(NavigationRoute.UserFeedback.name) },
+                            icon = {
+                                Icon(
+                                    imageVector = Icons.Rounded.Feedback,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                            },
+                            modifier = Modifier.weight(1f)
+                        )
+                        Box(modifier = Modifier.weight(1f))
+                    }
+                }
             } // End Column
         } // End ScrollableView
 

@@ -7,7 +7,6 @@ import com.enaboapps.switchify.service.core.CameraServiceController
 import com.enaboapps.switchify.service.core.ServiceCore
 import com.enaboapps.switchify.service.switches.camera.CameraSwitchManager
 import com.enaboapps.switchify.service.techniques.AccessTechnique
-import com.enaboapps.switchify.service.techniques.headcontrol.HeadControlSettings
 import com.enaboapps.switchify.service.utils.DeviceLockObserver
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -52,17 +51,20 @@ class CameraManager(
         val currentTechnique = AccessTechnique.getCurrentTechnique()
         val switchEventProvider = ServiceCore.getSwitchEventProvider()
         val headControlService = ServiceCore.getHeadControlService()
-        
+
         // Check if we need camera for switches
         val hasCameraSwitch = switchEventProvider?.hasCameraSwitch == true
-        
+
         // Check head control status
         val headControlEnabled = headControlService?.isEnabled() == true
         val headControlReady = headControlService?.isReady() == true
-        
+
         val shouldHaveCamera = shouldCameraBeActive(hasCameraSwitch)
 
-        Log.d(TAG, "evaluateAndUpdateCameraState - technique: $currentTechnique, shouldHaveCamera: $shouldHaveCamera, hasSwitch: $hasCameraSwitch, headEnabled: $headControlEnabled, headReady: $headControlReady")
+        Log.d(
+            TAG,
+            "evaluateAndUpdateCameraState - technique: $currentTechnique, shouldHaveCamera: $shouldHaveCamera, hasSwitch: $hasCameraSwitch, headEnabled: $headControlEnabled, headReady: $headControlReady"
+        )
 
         if (shouldHaveCamera && !isCameraActive()) {
             startCamera()
@@ -73,7 +75,10 @@ class CameraManager(
             bindCameraService()
         } else if (headControlEnabled && !headControlReady && !hasCameraSwitch) {
             // HeadControl is enabled but not ready yet - schedule retry
-            Log.d(TAG, "HeadControl is enabled but not ready yet - camera startup will be triggered when ready")
+            Log.d(
+                TAG,
+                "HeadControl is enabled but not ready yet - camera startup will be triggered when ready"
+            )
         }
     }
 
@@ -82,7 +87,7 @@ class CameraManager(
      */
     private fun shouldCameraBeActive(hasCameraSwitch: Boolean): Boolean {
         if (hasCameraSwitch) return true
-        
+
         // Head control is now independent - check if it's enabled AND fully ready
         val headControlService = ServiceCore.getHeadControlService()
         if (headControlService?.isReady() == true) {
@@ -92,7 +97,7 @@ class CameraManager(
             Log.d(TAG, "Head control is enabled but not ready yet - camera should wait")
             return false
         }
-        
+
         return false
     }
 
@@ -176,7 +181,7 @@ class CameraManager(
      * Gets the camera service controller instance.
      */
     fun getCameraController(): CameraServiceController? = cameraController
-    
+
     /**
      * Called when HeadControl initialization is complete.
      * This triggers a re-evaluation of camera state to start camera if needed.

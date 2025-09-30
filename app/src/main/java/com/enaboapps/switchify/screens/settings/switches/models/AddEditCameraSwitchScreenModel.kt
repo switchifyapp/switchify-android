@@ -5,9 +5,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import com.enaboapps.switchify.switches.CameraSwitchFacialGesture
 import com.enaboapps.switchify.switches.SWITCH_EVENT_TYPE_CAMERA
+import com.enaboapps.switchify.switches.SupportedActionsPolicy
 import com.enaboapps.switchify.switches.SwitchAction
 import com.enaboapps.switchify.switches.SwitchEvent
-import com.enaboapps.switchify.switches.SupportedActionsPolicy
 import com.enaboapps.switchify.switches.SwitchEventStore
 
 class AddEditCameraSwitchScreenModel : ViewModel() {
@@ -37,7 +37,10 @@ class AddEditCameraSwitchScreenModel : ViewModel() {
                 name = it.name
                 selectedGesture.value = CameraSwitchFacialGesture(it.code)
                 val allowed = SupportedActionsPolicy.supportedActionIds(context)
-                action.value = if (allowed.contains(it.pressAction.id)) it.pressAction else SwitchAction(SwitchAction.ACTION_SELECT)
+                action.value =
+                    if (allowed.contains(it.pressAction.id)) it.pressAction else SwitchAction(
+                        SwitchAction.ACTION_SELECT
+                    )
             }
         } else {
             name = ""

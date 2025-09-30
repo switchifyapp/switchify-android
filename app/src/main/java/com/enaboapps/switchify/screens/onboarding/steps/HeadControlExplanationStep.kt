@@ -48,7 +48,8 @@ fun HeadControlExplanationStep(
     val scrollState = rememberScrollState()
     val serviceUtils = remember { ServiceUtils() }
     val isServiceActive = remember { serviceUtils.isAccessibilityServiceEnabled(context) }
-    val hasCameraPermission = remember { CameraPermissionManager.getInstance(context).hasPermission() }
+    val hasCameraPermission =
+        remember { CameraPermissionManager.getInstance(context).hasPermission() }
 
     Column(
         modifier = Modifier

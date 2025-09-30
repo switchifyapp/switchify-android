@@ -16,9 +16,8 @@ import com.enaboapps.switchify.service.face.FaceProcessingService
 import com.enaboapps.switchify.service.pauseresume.PauseManager
 import com.enaboapps.switchify.service.scanning.ScanningManager
 import com.enaboapps.switchify.service.switches.SwitchEventProvider
-import com.enaboapps.switchify.service.techniques.AccessTechnique
-import com.enaboapps.switchify.service.utils.GestureConflictDetector
 import com.enaboapps.switchify.service.techniques.headcontrol.HeadControlSettings
+import com.enaboapps.switchify.service.utils.GestureConflictDetector
 import com.enaboapps.switchify.switches.CameraSwitchFacialGesture
 import com.enaboapps.switchify.switches.SwitchEvent
 import kotlinx.coroutines.CoroutineScope
@@ -45,7 +44,7 @@ class CameraSwitchManager(
     private val preferenceManager = PreferenceManager(context)
     private val permissionManager = CameraPermissionManager.getInstance(context)
     private val gestureConflictDetector = GestureConflictDetector(context)
-    
+
     // Lifecycle state management
     private val _lifecycleState = MutableStateFlow(CameraLifecycle.State.UNINITIALIZED)
     override val lifecycleState: StateFlow<CameraLifecycle.State> = _lifecycleState.asStateFlow()
@@ -99,30 +98,33 @@ class CameraSwitchManager(
                 Log.d(TAG, "Already initialized")
                 return true
             }
+
             CameraLifecycle.State.INITIALIZING -> {
                 Log.d(TAG, "Initialization already in progress")
                 return false
             }
+
             CameraLifecycle.State.DESTROYED -> {
                 Log.w(TAG, "Cannot initialize destroyed manager")
                 return false
             }
+
             else -> {
                 // Proceed with initialization
             }
         }
-        
+
         return try {
             _lifecycleState.value = CameraLifecycle.State.INITIALIZING
             Log.d(TAG, "Initializing camera switch manager")
-            
+
             // Check camera permission first
             if (!permissionManager.hasPermission()) {
                 Log.w(TAG, "Camera permission not granted")
                 _lifecycleState.value = CameraLifecycle.State.ERROR
                 return false
             }
-            
+
             registerPauseReceiver()
             _lifecycleState.value = CameraLifecycle.State.READY
             Log.d(TAG, "Camera switch manager initialized successfully")
@@ -188,8 +190,11 @@ class CameraSwitchManager(
         // Update head control when enabled (independent of access technique)
         val headControlService = ServiceCore.getHeadControlService()
         if (headControlService?.isEnabled() == true) {
-            headControlService.updateHeadPosition(result.faceState.headRotationX, result.faceState.headRotationY)
-            
+            headControlService.updateHeadPosition(
+                result.faceState.headRotationX,
+                result.faceState.headRotationY
+            )
+
             // Process gestures for head control selection
             processHeadControlGestures(result, headControlService)
         }
@@ -198,15 +203,18 @@ class CameraSwitchManager(
         result.detectedGestures.forEach { gestureId ->
             // Check if head control should take priority for this gesture
             val shouldSkipSwitch = gestureConflictDetector.shouldPrioritizeHeadControl(
-                gestureId, 
+                gestureId,
                 switchEventProvider
             )
-            
+
             if (shouldSkipSwitch) {
-                Log.d(TAG, "Skipping switch processing for gesture $gestureId - head control priority")
+                Log.d(
+                    TAG,
+                    "Skipping switch processing for gesture $gestureId - head control priority"
+                )
                 return@forEach
             }
-            
+
             when (gestureId) {
                 CameraSwitchFacialGesture.SMILE -> {
                     handleGestureStateChange(
@@ -254,11 +262,11 @@ class CameraSwitchManager(
 
         // Handle face state changes for gesture ending with priority logic
         val faceState = result.faceState
-        
+
         // Check smile ending
         if (!faceState.isSmiling) {
             val shouldSkipSwitch = gestureConflictDetector.shouldPrioritizeHeadControl(
-                CameraSwitchFacialGesture.SMILE, 
+                CameraSwitchFacialGesture.SMILE,
                 switchEventProvider
             )
             if (!shouldSkipSwitch) {
@@ -268,11 +276,11 @@ class CameraSwitchManager(
                 )
             }
         }
-        
+
         // Check left wink ending
         if (faceState.leftEyeOpen) {
             val shouldSkipSwitch = gestureConflictDetector.shouldPrioritizeHeadControl(
-                CameraSwitchFacialGesture.LEFT_WINK, 
+                CameraSwitchFacialGesture.LEFT_WINK,
                 switchEventProvider
             )
             if (!shouldSkipSwitch) {
@@ -282,11 +290,11 @@ class CameraSwitchManager(
                 )
             }
         }
-        
+
         // Check right wink ending
         if (faceState.rightEyeOpen) {
             val shouldSkipSwitch = gestureConflictDetector.shouldPrioritizeHeadControl(
-                CameraSwitchFacialGesture.RIGHT_WINK, 
+                CameraSwitchFacialGesture.RIGHT_WINK,
                 switchEventProvider
             )
             if (!shouldSkipSwitch) {
@@ -296,7 +304,7 @@ class CameraSwitchManager(
                 )
             }
         }
-        
+
         // Check blink ending
         if (faceState.leftEyeOpen && faceState.rightEyeOpen) {
             val shouldSkipSwitch = gestureConflictDetector.shouldPrioritizeHeadControl(
@@ -446,24 +454,27 @@ class CameraSwitchManager(
                 Log.d(TAG, "Already cleaned up")
                 return true
             }
+
             CameraLifecycle.State.CLEANING_UP -> {
                 Log.d(TAG, "Cleanup already in progress")
                 return false
             }
+
             CameraLifecycle.State.UNINITIALIZED -> {
                 Log.d(TAG, "Nothing to clean up")
                 _lifecycleState.value = CameraLifecycle.State.DESTROYED
                 return true
             }
+
             else -> {
                 // Proceed with cleanup
             }
         }
-        
+
         return try {
             _lifecycleState.value = CameraLifecycle.State.CLEANING_UP
             Log.d(TAG, "Cleaning up camera switch manager")
-            
+
             if (isReceiverRegistered) {
                 context.unregisterReceiver(pauseReceiver)
                 isReceiverRegistered = false
@@ -472,10 +483,10 @@ class CameraSwitchManager(
             gestureStates.values.forEach { it.isActive = false }
             activeGesture = null
             // Head control is now independent - gesture state managed separately
-            
+
             // Cancel coroutine scope
             coroutineScope.cancel()
-            
+
             _lifecycleState.value = CameraLifecycle.State.DESTROYED
             Log.d(TAG, "Camera switch manager cleaned up successfully")
             true
@@ -486,19 +497,19 @@ class CameraSwitchManager(
         }
     }
 
-    
+
     /**
      * Processes gestures for head control selection
      */
     private fun processHeadControlGestures(
-        result: FaceProcessingService.FaceDetectionResult, 
+        result: FaceProcessingService.FaceDetectionResult,
         headControlService: com.enaboapps.switchify.service.techniques.headcontrol.HeadControlService
     ) {
         val priorityEnabled = HeadControlSettings(context).isHeadControlPriorityEnabled()
         val headControlSettings = HeadControlSettings(context)
         val selectedGesture = headControlSettings.selectGesture()
         val switchAssigned = switchEventProvider.isFacialGestureAssigned(selectedGesture)
-        
+
         // Process detected gestures (gesture starting)
         result.detectedGestures.forEach { gestureId ->
             when (gestureId) {
@@ -515,37 +526,41 @@ class CameraSwitchManager(
                 // Head turns are excluded from selection gestures
             }
         }
-        
+
         // Handle face state changes for gesture ending
         val faceState = result.faceState
-        
+
         // Smile ending
         if (!faceState.isSmiling) {
-            val isConflictGesture = CameraSwitchFacialGesture.SMILE == selectedGesture && switchAssigned
+            val isConflictGesture =
+                CameraSwitchFacialGesture.SMILE == selectedGesture && switchAssigned
             if (!isConflictGesture || priorityEnabled) {
                 headControlService.processGesture(CameraSwitchFacialGesture.SMILE, false)
             }
         }
-        
+
         // Left wink ending
         if (faceState.leftEyeOpen) {
-            val isConflictGesture = CameraSwitchFacialGesture.LEFT_WINK == selectedGesture && switchAssigned
+            val isConflictGesture =
+                CameraSwitchFacialGesture.LEFT_WINK == selectedGesture && switchAssigned
             if (!isConflictGesture || priorityEnabled) {
                 headControlService.processGesture(CameraSwitchFacialGesture.LEFT_WINK, false)
             }
         }
-        
+
         // Right wink ending  
         if (faceState.rightEyeOpen) {
-            val isConflictGesture = CameraSwitchFacialGesture.RIGHT_WINK == selectedGesture && switchAssigned
+            val isConflictGesture =
+                CameraSwitchFacialGesture.RIGHT_WINK == selectedGesture && switchAssigned
             if (!isConflictGesture || priorityEnabled) {
                 headControlService.processGesture(CameraSwitchFacialGesture.RIGHT_WINK, false)
             }
         }
-        
+
         // Blink ending
         if (faceState.leftEyeOpen && faceState.rightEyeOpen) {
-            val isConflictGesture = CameraSwitchFacialGesture.BLINK == selectedGesture && switchAssigned
+            val isConflictGesture =
+                CameraSwitchFacialGesture.BLINK == selectedGesture && switchAssigned
             if (!isConflictGesture || priorityEnabled) {
                 headControlService.processGesture(CameraSwitchFacialGesture.BLINK, false)
             }
@@ -553,7 +568,8 @@ class CameraSwitchManager(
 
         // Pucker ending
         if (!result.detectedGestures.contains(CameraSwitchFacialGesture.PUCKER)) {
-            val isConflictGesture = CameraSwitchFacialGesture.PUCKER == selectedGesture && switchAssigned
+            val isConflictGesture =
+                CameraSwitchFacialGesture.PUCKER == selectedGesture && switchAssigned
             if (!isConflictGesture || priorityEnabled) {
                 headControlService.processGesture(CameraSwitchFacialGesture.PUCKER, false)
             }

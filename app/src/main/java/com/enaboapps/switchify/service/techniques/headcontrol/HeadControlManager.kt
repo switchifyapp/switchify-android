@@ -1,21 +1,19 @@
 package com.enaboapps.switchify.service.techniques.headcontrol
 
 import android.content.Context
-import android.os.Handler
-import android.os.Looper
+import android.util.Log
 import com.enaboapps.switchify.BuildConfig
 import com.enaboapps.switchify.R
+import com.enaboapps.switchify.service.core.ServiceCore
+import com.enaboapps.switchify.service.core.Tasks
 import com.enaboapps.switchify.service.gestures.GestureManager
 import com.enaboapps.switchify.service.gestures.GesturePoint
-import com.enaboapps.switchify.service.selection.SelectionHandler
-import com.enaboapps.switchify.service.utils.ScreenUtils
 import com.enaboapps.switchify.service.menu.MenuManager
 import com.enaboapps.switchify.service.menu.MenuStateObserver
 import com.enaboapps.switchify.service.menu.MenuView
+import com.enaboapps.switchify.service.selection.SelectionHandler
+import com.enaboapps.switchify.service.utils.ScreenUtils
 import com.enaboapps.switchify.service.window.ServiceMessageHUD
-import android.util.Log
-import com.enaboapps.switchify.service.core.ServiceCore
-import com.enaboapps.switchify.service.core.Tasks
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -34,18 +32,19 @@ class HeadControlManager(private val context: Context) : MenuStateObserver {
         private const val MOVEMENT_DELTA = 8f
         private const val INITIALIZATION_DELAY = 3000L // 3 seconds
     }
+
     private var currentX: Int = ScreenUtils.getWidth(context) / 2
     private var currentY: Int = ScreenUtils.getHeight(context) / 2
     private val settings = HeadControlSettings(context)
     private val overlay = HeadControlOverlay(context)
     private val gestureOverlay = HeadControlGestureOverlay(context)
-    
+
     // Movement bounds with padding
     private val minX = SCREEN_PADDING
     private val maxX = ScreenUtils.getWidth(context) - SCREEN_PADDING
     private val minY = SCREEN_PADDING
     private val maxY = ScreenUtils.getHeight(context) - SCREEN_PADDING
-    
+
     // Initialization state
     private var isInitializing = true
     private var initializationJob: Job? = null
@@ -65,8 +64,8 @@ class HeadControlManager(private val context: Context) : MenuStateObserver {
     private var isMenuNodesReady = false
 
     private enum class Direction { LEFT, RIGHT, UP, DOWN }
-    
-    
+
+
     init {
         startHeadControl()
         // Register as menu state observer
@@ -91,7 +90,7 @@ class HeadControlManager(private val context: Context) : MenuStateObserver {
         initializationJob = menuScope.launch {
             try {
                 delay(INITIALIZATION_DELAY)
-                
+
                 // UI operations must run on Main thread
                 withContext(Dispatchers.Main) {
                     isInitializing = false
@@ -107,7 +106,7 @@ class HeadControlManager(private val context: Context) : MenuStateObserver {
                     showPointerIfAllowed()
                     gestureOverlay.showOverlay()
                 }
-                
+
                 // Notify camera system that head control is ready (can run off Main)
                 notifyHeadControlReady()
             } catch (e: Exception) {
@@ -123,7 +122,7 @@ class HeadControlManager(private val context: Context) : MenuStateObserver {
      * @return true if initialization is complete and head control is ready
      */
     fun isReady(): Boolean = isReady && !isInitializing
-    
+
     /**
      * Notify the camera system that head control initialization is complete.
      */
@@ -154,7 +153,7 @@ class HeadControlManager(private val context: Context) : MenuStateObserver {
         initializationJob?.cancel()
         repeatJob?.cancel()
         menuScope.cancel()
-        
+
         // Reset state
         isInitializing = true
         isReady = false
@@ -177,7 +176,7 @@ class HeadControlManager(private val context: Context) : MenuStateObserver {
         }
         SelectionHandler.performSelectionAction()
     }
-    
+
     fun performMenuOpen() {
         if (Tasks.getInstance().checkOngoingTasks())
             return
@@ -213,7 +212,7 @@ class HeadControlManager(private val context: Context) : MenuStateObserver {
             showPointerIfAllowed()
         }
     }
-    
+
     private fun handleMenuDirection(headRotationX: Float, headRotationY: Float) {
         // Defensive check: only process direction if menu nodes are ready
         if (!isMenuNodesReady) {
@@ -257,19 +256,27 @@ class HeadControlManager(private val context: Context) : MenuStateObserver {
 
         if (headRotationY > rightDeadzone) {
             val score = (headRotationY - rightDeadzone) / (HEAD_ROTATION_RANGE - rightDeadzone)
-            if (score > maxScore) { maxScore = score; candidate = Direction.RIGHT }
+            if (score > maxScore) {
+                maxScore = score; candidate = Direction.RIGHT
+            }
         }
         if (-headRotationY > leftDeadzone) {
             val score = (-headRotationY - leftDeadzone) / (HEAD_ROTATION_RANGE - leftDeadzone)
-            if (score > maxScore) { maxScore = score; candidate = Direction.LEFT }
+            if (score > maxScore) {
+                maxScore = score; candidate = Direction.LEFT
+            }
         }
         if (headRotationX > downDeadzone) {
             val score = (headRotationX - downDeadzone) / (HEAD_ROTATION_RANGE - downDeadzone)
-            if (score > maxScore) { maxScore = score; candidate = Direction.DOWN }
+            if (score > maxScore) {
+                maxScore = score; candidate = Direction.DOWN
+            }
         }
         if (-headRotationX > upDeadzone) {
             val score = (-headRotationX - upDeadzone) / (HEAD_ROTATION_RANGE - upDeadzone)
-            if (score > maxScore) { maxScore = score; candidate = Direction.UP }
+            if (score > maxScore) {
+                maxScore = score; candidate = Direction.UP
+            }
         }
 
         return candidate
@@ -290,8 +297,8 @@ class HeadControlManager(private val context: Context) : MenuStateObserver {
         val rightDeadzone = settings.getEffectiveRightDeadzone()
         val upDeadzone = settings.getEffectiveUpDeadzone()
         val downDeadzone = settings.getEffectiveDownDeadzone()
-        
-        
+
+
         // Apply directional deadzones - ignore small head movements based on direction
         val adjustedX = if (headRotationY > 0 && headRotationY > rightDeadzone) {
             headRotationY
@@ -300,7 +307,7 @@ class HeadControlManager(private val context: Context) : MenuStateObserver {
         } else {
             0f
         }
-        
+
         val adjustedY = if (headRotationX > 0 && headRotationX > downDeadzone) {
             headRotationX
         } else if (headRotationX < 0 && kotlin.math.abs(headRotationX) > upDeadzone) {
@@ -308,52 +315,56 @@ class HeadControlManager(private val context: Context) : MenuStateObserver {
         } else {
             0f
         }
-        
+
         // Convert head rotation to screen coordinates
         val screenWidth = ScreenUtils.getWidth(context)
         val screenHeight = ScreenUtils.getHeight(context)
-        
+
         // Map head rotation to screen position
-        
+
         val normalizedX = (adjustedX / HEAD_ROTATION_RANGE).coerceIn(-1f, 1f)
         val normalizedY = (adjustedY / HEAD_ROTATION_RANGE).coerceIn(-1f, 1f)
-        
+
         // Convert to screen coordinates with sensitivity adjustment
         val desiredX = (screenWidth / 2 + normalizedX * screenWidth / 2 * sensitivity)
         val desiredY = (screenHeight / 2 + normalizedY * screenHeight / 2 * sensitivity)
         return Pair(desiredX, desiredY)
     }
-    
+
     private fun calculateMovement(headRotationX: Float, headRotationY: Float): Pair<Float, Float> {
         val leftDeadzone = settings.getEffectiveLeftDeadzone()
         val rightDeadzone = settings.getEffectiveRightDeadzone()
         val upDeadzone = settings.getEffectiveUpDeadzone()
         val downDeadzone = settings.getEffectiveDownDeadzone()
         val movementSpeed = settings.movementSpeed()
-        
-        
+
+
         // Calculate horizontal movement with separate left/right thresholds
         val horizontalMovement = if (headRotationY > 0 && headRotationY > rightDeadzone) {
             // Moving right
-            val normalizedRotation = (headRotationY - rightDeadzone) / (HEAD_ROTATION_RANGE - rightDeadzone)
+            val normalizedRotation =
+                (headRotationY - rightDeadzone) / (HEAD_ROTATION_RANGE - rightDeadzone)
             normalizedRotation.coerceIn(0f, 1f) * movementSpeed
         } else if (headRotationY < 0 && kotlin.math.abs(headRotationY) > leftDeadzone) {
             // Moving left
-            val normalizedRotation = (kotlin.math.abs(headRotationY) - leftDeadzone) / (HEAD_ROTATION_RANGE - leftDeadzone)
+            val normalizedRotation =
+                (kotlin.math.abs(headRotationY) - leftDeadzone) / (HEAD_ROTATION_RANGE - leftDeadzone)
             -(normalizedRotation.coerceIn(0f, 1f) * movementSpeed)
         } else 0f
-        
+
         // Calculate vertical movement with separate up/down thresholds
         val verticalMovement = if (headRotationX > 0 && headRotationX > downDeadzone) {
             // Moving down
-            val normalizedRotation = (headRotationX - downDeadzone) / (HEAD_ROTATION_RANGE - downDeadzone)
+            val normalizedRotation =
+                (headRotationX - downDeadzone) / (HEAD_ROTATION_RANGE - downDeadzone)
             normalizedRotation.coerceIn(0f, 1f) * movementSpeed
         } else if (headRotationX < 0 && kotlin.math.abs(headRotationX) > upDeadzone) {
             // Moving up
-            val normalizedRotation = (kotlin.math.abs(headRotationX) - upDeadzone) / (HEAD_ROTATION_RANGE - upDeadzone)
+            val normalizedRotation =
+                (kotlin.math.abs(headRotationX) - upDeadzone) / (HEAD_ROTATION_RANGE - upDeadzone)
             -(normalizedRotation.coerceIn(0f, 1f) * movementSpeed)
         } else 0f
-        
+
         // Apply movement immediately
         if (horizontalMovement != 0f || verticalMovement != 0f) {
             val desiredX = currentX + horizontalMovement * MOVEMENT_DELTA
@@ -362,15 +373,14 @@ class HeadControlManager(private val context: Context) : MenuStateObserver {
         }
         return Pair(currentX.toFloat(), currentY.toFloat())
     }
-    
-    
+
 
     private fun showPointerIfAllowed() {
         if (!isInitializing && !isInMenuMode()) {
             overlay.showPointer(currentX, currentY)
         }
     }
-    
+
     /**
      * Handles gesture detection for head control selection and menu
      */
@@ -392,18 +402,18 @@ class HeadControlManager(private val context: Context) : MenuStateObserver {
             gestureEnded(gestureId)
         }
     }
-    
+
     private fun gestureStarted(gestureId: String) {
         isGestureActive = true
         gestureStartTime = System.currentTimeMillis()
         currentActiveGesture = gestureId
     }
-    
+
     private fun gestureEnded(gestureId: String) {
         if (!isGestureActive || currentActiveGesture != gestureId) {
             return
         }
-        
+
         val duration = System.currentTimeMillis() - gestureStartTime
         val requiredHoldTime = if (gestureId == settings.selectGesture()) {
             settings.getSelectGestureHoldTime()
@@ -412,7 +422,7 @@ class HeadControlManager(private val context: Context) : MenuStateObserver {
         } else {
             settings.getSelectGestureHoldTime() // fallback
         }
-        
+
         if (duration >= requiredHoldTime) {
             if (gestureId == settings.selectGesture()) {
                 performSelection()
@@ -420,13 +430,13 @@ class HeadControlManager(private val context: Context) : MenuStateObserver {
                 performMenuOpen()
             }
         }
-        
+
         // Reset gesture state
         isGestureActive = false
         gestureStartTime = 0L
         currentActiveGesture = null
     }
-    
+
     /**
      * Updates gesture overlay progress bars based on gesture activity
      */
@@ -449,7 +459,7 @@ class HeadControlManager(private val context: Context) : MenuStateObserver {
         currentActiveGesture = null
         gestureOverlay.resetProgress()
     }
-    
+
     // MenuStateObserver implementation
     override fun onMenuOpened(menuView: MenuView) {
         Log.d(TAG, "Menu opened, entering menu navigation mode")
@@ -481,12 +491,12 @@ class HeadControlManager(private val context: Context) : MenuStateObserver {
             Log.d(TAG, "Menu opened but nodes not ready yet, waiting for onMenuNodesChanged")
         }
     }
-    
+
     override fun onMenuClosed(menuView: MenuView) {
         Log.d(TAG, "Menu closed")
         // Don't clean up scanner here as another menu might be opening
     }
-    
+
     override fun onMenuNodesChanged(menuView: MenuView) {
         Log.d(TAG, "Menu nodes changed, updating scanner")
         val nodes = menuView.getSelectableNodes()
@@ -512,7 +522,7 @@ class HeadControlManager(private val context: Context) : MenuStateObserver {
 
         Log.d(TAG, "Scanner updated with ${nodes.size} nodes, menu mode now active")
     }
-    
+
     override fun onAllMenusClosed() {
         Log.d(TAG, "All menus closed, returning to cursor mode")
         headControlScanner?.clear()

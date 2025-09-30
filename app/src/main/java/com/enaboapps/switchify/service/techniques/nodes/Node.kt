@@ -34,7 +34,7 @@ class Node(
 
     companion object {
         private val mainHandler = Handler(Looper.getMainLooper())
-        
+
         /**
          * This function creates a node from AccessibilityNodeInfo
          * @param nodeInfo The AccessibilityNodeInfo

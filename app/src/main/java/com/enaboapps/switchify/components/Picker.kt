@@ -30,8 +30,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.enaboapps.switchify.theme.Dimens
 import com.enaboapps.switchify.R
+import com.enaboapps.switchify.theme.Dimens
 
 @Composable
 fun <T> Picker(

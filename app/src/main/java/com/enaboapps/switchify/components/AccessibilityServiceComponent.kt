@@ -51,8 +51,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.enaboapps.switchify.theme.Dimens
 import com.enaboapps.switchify.R
+import com.enaboapps.switchify.theme.Dimens
 import kotlinx.coroutines.delay
 
 @Composable

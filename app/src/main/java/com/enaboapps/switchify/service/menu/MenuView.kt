@@ -1,8 +1,6 @@
 package com.enaboapps.switchify.service.menu
 
 import android.content.Context
-import android.os.Handler
-import android.os.Looper
 import android.view.ViewGroup
 import android.view.ViewGroup.LayoutParams.WRAP_CONTENT
 import android.view.ViewTreeObserver
@@ -10,10 +8,9 @@ import android.widget.LinearLayout
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.service.gestures.GesturePoint
 import com.enaboapps.switchify.service.menu.menus.BaseMenu
-import com.enaboapps.switchify.service.scanning.ScanningManager
 import com.enaboapps.switchify.service.scanning.ScanNodeInterface
+import com.enaboapps.switchify.service.scanning.ScanningManager
 import com.enaboapps.switchify.service.scanning.tree.ScanTree
-import com.enaboapps.switchify.service.core.ServiceCore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -227,7 +224,7 @@ class MenuView(
             delay(500)
             if (pageExists) {
                 scanTree.buildTree(menuPages[currentPage].translateMenuItemsToNodes(), 0)
-                
+
                 // Notify observers that menu nodes changed
                 MenuManager.getInstance().notifyMenuNodesChanged(this@MenuView)
             } else {
@@ -331,7 +328,10 @@ class MenuView(
      * @return List of nodes that can be selected on the current page
      */
     fun getSelectableNodes(): List<ScanNodeInterface> {
-        android.util.Log.d("MenuView", "getSelectableNodes called - currentPage: $currentPage, menuPages.size: ${menuPages.size}")
+        android.util.Log.d(
+            "MenuView",
+            "getSelectableNodes called - currentPage: $currentPage, menuPages.size: ${menuPages.size}"
+        )
         return if (currentPage < menuPages.size) {
             val nodes = menuPages[currentPage].translateMenuItemsToNodes()
             android.util.Log.d("MenuView", "translateMenuItemsToNodes returned ${nodes.size} nodes")

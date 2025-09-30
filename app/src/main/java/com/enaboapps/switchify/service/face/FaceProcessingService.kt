@@ -5,7 +5,6 @@ import android.graphics.Bitmap
 import android.os.Handler
 import android.os.HandlerThread
 import android.util.Log
-import android.view.Surface
 import com.enaboapps.switchify.BuildConfig
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.service.face.detection.GestureDetector
@@ -14,10 +13,6 @@ import com.enaboapps.switchify.service.face.processing.MediaPipeManager
 import com.enaboapps.switchify.service.face.state.FaceStateManager
 import com.enaboapps.switchify.service.face.utils.HeadPoseCalculator
 import com.enaboapps.switchify.switches.CameraSwitchFacialGesture
-import kotlin.math.abs
-import kotlin.math.atan2
-import kotlin.math.max
-import kotlin.math.sqrt
 
 /**
  * Modular face processing service using class-based architecture.
@@ -142,9 +137,9 @@ class FaceProcessingService(context: Context) {
     fun getCoordinateSystemInfo(): String {
         val coordinateSystem = headPoseCalculator.getCoordinateSystemInfo()
         return "Device: ${coordinateSystem.deviceKey}\n" +
-               "Pitch Inverted: ${coordinateSystem.shouldApplyPitchInversion()}\n" +
-               "Yaw Inverted: ${coordinateSystem.shouldApplyYawInversion()}\n" +
-               "Confidence: ${"%.0f".format(coordinateSystem.confidence * 100)}%"
+                "Pitch Inverted: ${coordinateSystem.shouldApplyPitchInversion()}\n" +
+                "Yaw Inverted: ${coordinateSystem.shouldApplyYawInversion()}\n" +
+                "Confidence: ${"%.0f".format(coordinateSystem.confidence * 100)}%"
     }
 
     /**
@@ -208,29 +203,37 @@ class FaceProcessingService(context: Context) {
         val gestureConfidence = mutableMapOf<String, Float>()
 
         // Process blendshapes using the modular processor
-        val blendshapeScores = if (result.faceBlendshapes().isPresent && result.faceBlendshapes().get().isNotEmpty()) {
-            val processedScores = blendshapeProcessor.processBlendshapes(result.faceBlendshapes().get()[0])
+        val blendshapeScores =
+            if (result.faceBlendshapes().isPresent && result.faceBlendshapes().get().isNotEmpty()) {
+                val processedScores =
+                    blendshapeProcessor.processBlendshapes(result.faceBlendshapes().get()[0])
 
-            // Convert to original format for compatibility
-            BlendshapeScores(
-                smileScore = processedScores.smileScore,
-                leftEyeCloseScore = processedScores.leftEyeCloseScore,
-                rightEyeCloseScore = processedScores.rightEyeCloseScore,
-                blinkScore = processedScores.blinkScore,
-                mouthCloseScore = processedScores.mouthCloseScore,
-                puckerScore = processedScores.puckerScore
-            )
-        } else {
-            BlendshapeScores()
-        }
+                // Convert to original format for compatibility
+                BlendshapeScores(
+                    smileScore = processedScores.smileScore,
+                    leftEyeCloseScore = processedScores.leftEyeCloseScore,
+                    rightEyeCloseScore = processedScores.rightEyeCloseScore,
+                    blinkScore = processedScores.blinkScore,
+                    mouthCloseScore = processedScores.mouthCloseScore,
+                    puckerScore = processedScores.puckerScore
+                )
+            } else {
+                BlendshapeScores()
+            }
 
         // Process head pose using the modular calculator with face landmarks for coordinate detection
-        val faceLandmarks = if (result.faceLandmarks().isNotEmpty()) result.faceLandmarks()[0] else null
-        val headPose = if (result.facialTransformationMatrixes().isPresent && result.facialTransformationMatrixes().get().isNotEmpty()) {
-            headPoseCalculator.extractEulerAngles(result.facialTransformationMatrixes().get()[0], faceLandmarks)
-        } else {
-            HeadPoseCalculator.EulerAngles(0f, 0f, 0f)
-        }
+        val faceLandmarks =
+            if (result.faceLandmarks().isNotEmpty()) result.faceLandmarks()[0] else null
+        val headPose =
+            if (result.facialTransformationMatrixes().isPresent && result.facialTransformationMatrixes()
+                    .get().isNotEmpty()
+            ) {
+                headPoseCalculator.extractEulerAngles(
+                    result.facialTransformationMatrixes().get()[0], faceLandmarks
+                )
+            } else {
+                HeadPoseCalculator.EulerAngles(0f, 0f, 0f)
+            }
 
         // Process face state using the state manager
         val faceState = faceStateManager.processFaceState(
@@ -262,7 +265,9 @@ class FaceProcessingService(context: Context) {
 
         // Detect gestures using the gesture detector
         val detectedGestures = gestureDetector.detectGestures(
-            blendshapeScores = blendshapeProcessor.processBlendshapes(result.faceBlendshapes().get()[0]),
+            blendshapeScores = blendshapeProcessor.processBlendshapes(
+                result.faceBlendshapes().get()[0]
+            ),
             faceState = faceState,
             winkResults = winkResults,
             timestampMs = timestampMs
@@ -286,15 +291,35 @@ class FaceProcessingService(context: Context) {
     fun getGestureTime(gestureId: String): Long {
         return when (gestureId) {
             CameraSwitchFacialGesture.SMILE ->
-                preferenceManager.getLongValue(PreferenceManager.PREFERENCE_KEY_CAMERA_SMILE_TIME, 500L)
+                preferenceManager.getLongValue(
+                    PreferenceManager.PREFERENCE_KEY_CAMERA_SMILE_TIME,
+                    500L
+                )
+
             CameraSwitchFacialGesture.LEFT_WINK ->
-                preferenceManager.getLongValue(PreferenceManager.PREFERENCE_KEY_CAMERA_LEFT_WINK_TIME, 300L)
+                preferenceManager.getLongValue(
+                    PreferenceManager.PREFERENCE_KEY_CAMERA_LEFT_WINK_TIME,
+                    300L
+                )
+
             CameraSwitchFacialGesture.RIGHT_WINK ->
-                preferenceManager.getLongValue(PreferenceManager.PREFERENCE_KEY_CAMERA_RIGHT_WINK_TIME, 300L)
+                preferenceManager.getLongValue(
+                    PreferenceManager.PREFERENCE_KEY_CAMERA_RIGHT_WINK_TIME,
+                    300L
+                )
+
             CameraSwitchFacialGesture.BLINK ->
-                preferenceManager.getLongValue(PreferenceManager.PREFERENCE_KEY_CAMERA_BLINK_TIME, 400L)
+                preferenceManager.getLongValue(
+                    PreferenceManager.PREFERENCE_KEY_CAMERA_BLINK_TIME,
+                    400L
+                )
+
             CameraSwitchFacialGesture.PUCKER ->
-                preferenceManager.getLongValue(PreferenceManager.PREFERENCE_KEY_CAMERA_PUCKER_TIME, 500L)
+                preferenceManager.getLongValue(
+                    PreferenceManager.PREFERENCE_KEY_CAMERA_PUCKER_TIME,
+                    500L
+                )
+
             CameraSwitchFacialGesture.HEAD_TURN_LEFT,
             CameraSwitchFacialGesture.HEAD_TURN_RIGHT,
             CameraSwitchFacialGesture.HEAD_TURN_UP,

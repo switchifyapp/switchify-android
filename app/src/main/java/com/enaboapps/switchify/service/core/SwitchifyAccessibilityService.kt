@@ -7,16 +7,15 @@ import android.view.KeyEvent
 import android.view.accessibility.AccessibilityEvent
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
-import com.enaboapps.switchify.R
 import com.enaboapps.switchify.backend.iap.IAPHandler
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.service.actions.AudioActionManager
 import com.enaboapps.switchify.service.actions.GlobalActionManager
+import com.enaboapps.switchify.service.camera.CameraManager
 import com.enaboapps.switchify.service.gestures.GestureManager
 import com.enaboapps.switchify.service.scanning.ScanSettings
 import com.enaboapps.switchify.service.selection.SelectionHandler
 import com.enaboapps.switchify.service.switches.SwitchEventProvider
-import com.enaboapps.switchify.service.camera.CameraManager
 import com.enaboapps.switchify.service.techniques.AccessTechnique
 import com.enaboapps.switchify.service.trial.ServiceTrialManager
 import com.enaboapps.switchify.service.utils.DeviceLockObserver
@@ -105,7 +104,7 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
             serviceScope = serviceScope,
             onServiceConnected = { setupCameraServiceCallbacks() }
         )
-        
+
         // Register camera manager with ServiceCore for HeadControl coordination
         ServiceCore.setCameraManager(cameraManager)
         eventPipeline =
@@ -157,7 +156,6 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
             }
         }
     }
-
 
 
     /**
@@ -299,6 +297,7 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
                     cameraManager.evaluateAndUpdateCameraState()
                     ServiceBridge.emitEvent(ServiceBridge.ServiceEvent.ConfigurationUpdated)
                 }
+
                 is ServiceBridge.ServiceCommand.SetHeadControlEnabled -> {
                     val svc = ServiceCore.getHeadControlService()
                     val desired = command.enabled

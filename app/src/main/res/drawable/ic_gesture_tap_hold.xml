@@ -4,19 +4,19 @@
     android:viewportWidth="32"
     android:viewportHeight="32"
     android:tint="?attr/colorControlNormal">
-  <!-- Main circle for tap -->
-  <path
-      android:fillColor="@android:color/white"
-      android:pathData="M16,8C20.4,8 24,11.6 24,16C24,20.4 20.4,24 16,24C11.6,24 8,20.4 8,16C8,11.6 11.6,8 16,8Z"/>
-  <!-- Clock/timer indicator -->
-  <path
-      android:fillColor="@android:color/black"
-      android:pathData="M16,12L16,16L19,16"/>
-  <!-- Hold duration arc -->
-  <path
-      android:fillColor="@android:color/white"
-      android:strokeColor="@android:color/white"
-      android:strokeWidth="2"
-      android:pathData="M26,16A10,10 0 0,1 16,26A10,10 0 0,1 6,16A10,10 0 0,1 16,6"
-      android:fillType="nonZero"/>
+    <!-- Main circle for tap -->
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M16,8C20.4,8 24,11.6 24,16C24,20.4 20.4,24 16,24C11.6,24 8,20.4 8,16C8,11.6 11.6,8 16,8Z" />
+    <!-- Clock/timer indicator -->
+    <path
+        android:fillColor="@android:color/black"
+        android:pathData="M16,12L16,16L19,16" />
+    <!-- Hold duration arc -->
+    <path
+        android:fillColor="@android:color/white"
+        android:strokeColor="@android:color/white"
+        android:strokeWidth="2"
+        android:pathData="M26,16A10,10 0 0,1 16,26A10,10 0 0,1 6,16A10,10 0 0,1 16,6"
+        android:fillType="nonZero" />
 </vector>

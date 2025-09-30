@@ -11,11 +11,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.key
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -28,16 +30,9 @@ import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.Picker
 import com.enaboapps.switchify.screens.settings.switches.actions.SwitchActionPicker
 import com.enaboapps.switchify.screens.settings.switches.models.AddEditCameraSwitchScreenModel
+import com.enaboapps.switchify.service.core.ServiceBridge
 import com.enaboapps.switchify.switches.CameraSwitchFacialGesture
 import com.enaboapps.switchify.switches.SupportedActionsPolicy
-import com.enaboapps.switchify.service.core.ServiceBridge
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 
 @Composable
@@ -66,7 +61,11 @@ fun AddEditCameraSwitchScreen(navController: NavController, code: String? = null
                                 if (success) {
                                     navController.popBackStack()
                                 } else {
-                                    android.widget.Toast.makeText(context, "Error saving switch", android.widget.Toast.LENGTH_SHORT)
+                                    android.widget.Toast.makeText(
+                                        context,
+                                        "Error saving switch",
+                                        android.widget.Toast.LENGTH_SHORT
+                                    )
                                         .show()
                                 }
                             }

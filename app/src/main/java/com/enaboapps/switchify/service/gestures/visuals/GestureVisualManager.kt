@@ -18,8 +18,6 @@ import com.enaboapps.switchify.service.gestures.placement.FingerPlacement
 import com.enaboapps.switchify.service.gestures.placement.TwoFingerPlacement
 import com.enaboapps.switchify.service.window.SwitchifyAccessibilityWindow
 import java.lang.ref.WeakReference
-import kotlin.math.max
-import kotlin.math.min
 
 /**
  * Unified visual feedback manager for all gesture-related visual indicators.
@@ -27,7 +25,7 @@ import kotlin.math.min
  * Integrates with GestureStateManager for coordinated state management.
  */
 class GestureVisualManager(context: Context) : GestureStateManager.GestureStateListener {
-    
+
     /**
      * Ensures UI operations happen on the main thread.
      */
@@ -48,12 +46,12 @@ class GestureVisualManager(context: Context) : GestureStateManager.GestureStateL
     private var currentCircle: WeakReference<RelativeLayout>? = null
     private var currentAnimation: ScaleAnimation? = null
     private var removeHandler: Handler? = null
-    
+
     // Multi-finger visual tracking
     private var currentMultiFingerVisual: WeakReference<RelativeLayout>? = null
     private val activeFingerCircles = mutableListOf<WeakReference<RelativeLayout>>()
     private var multiFingerRemoveHandler: Handler? = null
-    
+
     // Multi-finger arrow animation tracking
     private val activeMultiFingerArrows = mutableListOf<AnimatedGestureArrow>()
 
@@ -157,14 +155,14 @@ class GestureVisualManager(context: Context) : GestureStateManager.GestureStateL
     fun showArrowAnimation(x1: Int, y1: Int, x2: Int, y2: Int, duration: Long) {
         animatedGestureArrow.showArrowAnimation(x1, y1, x2, y2, duration)
     }
-    
+
     /**
      * Shows coordinated multi-finger arrow animations for linear gestures.
-     * 
+     *
      * This method creates synchronized arrow animations for all fingers in a multi-finger
      * linear gesture, providing clear visual feedback about the coordinated movement pattern.
      * Each arrow maintains the same direction and timing while showing individual finger paths.
-     * 
+     *
      * @param startPositions List of start positions for all fingers
      * @param endPositions List of end positions for all fingers (must match startPositions length)
      * @param duration Animation duration in milliseconds for all arrows
@@ -177,19 +175,19 @@ class GestureVisualManager(context: Context) : GestureStateManager.GestureStateL
         require(startPositions.size == endPositions.size) {
             "Start positions and end positions must have the same size: ${startPositions.size} vs ${endPositions.size}"
         }
-        
+
         val context = contextRef.get() ?: return
-        
+
         // Create coordinated arrow animations for each finger path
         val arrowInstances = mutableListOf<AnimatedGestureArrow>()
-        
+
         startPositions.zip(endPositions).forEachIndexed { index, (start, end) ->
             val arrowInstance = AnimatedGestureArrow(context)
             arrowInstances.add(arrowInstance)
-            
+
             // Start arrow animation with slight delay for visual effect (staggered by 50ms)
             val staggeredDelay = index * 50L
-            
+
             mainHandler.postDelayed({
                 arrowInstance.showArrowAnimation(
                     start.x.toInt(),
@@ -203,10 +201,10 @@ class GestureVisualManager(context: Context) : GestureStateManager.GestureStateL
                 }
             }, staggeredDelay)
         }
-        
+
         // Store arrow instances for potential cleanup
         activeMultiFingerArrows.addAll(arrowInstances)
-        
+
         // Auto cleanup after animation duration + stagger time
         val totalDuration = duration + (startPositions.size * 50L)
         mainHandler.postDelayed({
@@ -217,19 +215,19 @@ class GestureVisualManager(context: Context) : GestureStateManager.GestureStateL
 
     /**
      * Shows multi-finger visual feedback with enhanced indicators.
-     * 
+     *
      * This method creates a sophisticated visual representation of multi-finger
      * gestures including individual finger circles, connection lines, and
      * visual indicators of the finger placement strategy.
-     * 
+     *
      * @param fingerPlacement The finger placement result from the algorithm
      * @param duration Duration in milliseconds, null for persistent display
      */
     fun showMultiFingerVisual(fingerPlacement: FingerPlacement, duration: Long? = null) {
         clearAllVisuals()
-        
+
         val context = contextRef.get() ?: return
-        
+
         when (fingerPlacement.fingerCount) {
             1 -> {
                 // Use existing single finger visual
@@ -239,27 +237,29 @@ class GestureVisualManager(context: Context) : GestureStateManager.GestureStateL
                     duration
                 )
             }
+
             2 -> {
                 showTwoFingerVisual(fingerPlacement as TwoFingerPlacement, duration)
             }
+
             else -> {
                 showMultipleFingerVisual(fingerPlacement, duration)
             }
         }
     }
-    
+
     /**
      * Shows specialized two-finger visual with connection line and strategy indicator.
      */
     private fun showTwoFingerVisual(placement: TwoFingerPlacement, duration: Long?) {
         val context = contextRef.get() ?: return
-        
+
         // Create container for the entire two-finger visual
         val containerLayout = createTwoFingerContainer(context, placement)
-        
+
         // Calculate container bounds
         val bounds = calculateContainerBounds(placement.fingerPoints)
-        
+
         onMainThread {
             accessibilityWindow.addView(
                 containerLayout,
@@ -269,9 +269,9 @@ class GestureVisualManager(context: Context) : GestureStateManager.GestureStateL
                 bounds.bottom - bounds.top
             )
         }
-        
+
         currentMultiFingerVisual = WeakReference(containerLayout)
-        
+
         // Auto-remove after duration if specified
         duration?.let {
             multiFingerRemoveHandler = Handler(Looper.getMainLooper()).apply {
@@ -279,20 +279,20 @@ class GestureVisualManager(context: Context) : GestureStateManager.GestureStateL
             }
         }
     }
-    
+
     /**
      * Shows visual for 3+ finger gestures with individual circles.
      */
     private fun showMultipleFingerVisual(placement: FingerPlacement, duration: Long?) {
         val context = contextRef.get() ?: return
-        
+
         // Clear any existing visuals
         activeFingerCircles.clear()
-        
+
         // Create individual circles for each finger
         placement.fingerPoints.forEachIndexed { index, point ->
             val circleLayout = createFingerCircle(context, index, placement.fingerCount)
-            
+
             onMainThread {
                 accessibilityWindow.addView(
                     circleLayout,
@@ -302,10 +302,10 @@ class GestureVisualManager(context: Context) : GestureStateManager.GestureStateL
                     STANDARD_CIRCLE_SIZE
                 )
             }
-            
+
             activeFingerCircles.add(WeakReference(circleLayout))
         }
-        
+
         // Auto-remove after duration if specified
         duration?.let {
             multiFingerRemoveHandler = Handler(Looper.getMainLooper()).apply {
@@ -313,11 +313,14 @@ class GestureVisualManager(context: Context) : GestureStateManager.GestureStateL
             }
         }
     }
-    
+
     /**
      * Creates a container with two finger circles and connection line.
      */
-    private fun createTwoFingerContainer(context: Context, placement: TwoFingerPlacement): RelativeLayout {
+    private fun createTwoFingerContainer(
+        context: Context,
+        placement: TwoFingerPlacement
+    ): RelativeLayout {
         return RelativeLayout(context).apply {
             isClickable = false
             isFocusable = false
@@ -328,29 +331,33 @@ class GestureVisualManager(context: Context) : GestureStateManager.GestureStateL
                 isFocusable = false
                 importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
             })
-            
+
             // Add individual finger circles
             val bounds = calculateContainerBounds(placement.fingerPoints)
-            
+
             placement.fingerPoints.forEachIndexed { index, point ->
                 val circleLayout = createFingerCircle(context, index, 2)
-                
+
                 val layoutParams = RelativeLayout.LayoutParams(
                     STANDARD_CIRCLE_SIZE, STANDARD_CIRCLE_SIZE
                 ).apply {
                     leftMargin = (point.x - bounds.left).toInt() - STANDARD_CIRCLE_SIZE / 2
                     topMargin = (point.y - bounds.top).toInt() - STANDARD_CIRCLE_SIZE / 2
                 }
-                
+
                 addView(circleLayout, layoutParams)
             }
         }
     }
-    
+
     /**
      * Creates a finger circle with index indicator for multi-finger gestures.
      */
-    private fun createFingerCircle(context: Context, fingerIndex: Int, totalFingers: Int): RelativeLayout {
+    private fun createFingerCircle(
+        context: Context,
+        fingerIndex: Int,
+        totalFingers: Int
+    ): RelativeLayout {
         // Choose colors based on finger index with distinct colors for up to 5 fingers
         val colors = when (fingerIndex) {
             0 -> Pair(0xFFFFFFFF.toInt(), 0xFF4CAF50.toInt()) // White with green accent
@@ -358,16 +365,19 @@ class GestureVisualManager(context: Context) : GestureStateManager.GestureStateL
             2 -> Pair(0xFFFFFFFF.toInt(), 0xFF9C27B0.toInt()) // White with purple accent
             3 -> Pair(0xFFFFFFFF.toInt(), 0xFFFF5722.toInt()) // White with deep orange accent
             4 -> Pair(0xFFFFFFFF.toInt(), 0xFFE91E63.toInt()) // White with pink accent
-            else -> Pair(0xFFFFFFFF.toInt(), 0xFF607D8B.toInt()) // White with blue-gray accent (fallback)
+            else -> Pair(
+                0xFFFFFFFF.toInt(),
+                0xFF607D8B.toInt()
+            ) // White with blue-gray accent (fallback)
         }
-        
+
         // Create shadow circle
         val shadowDrawable = GradientDrawable().apply {
             shape = GradientDrawable.OVAL
             setColor(0x30000000) // Semi-transparent black shadow
             setSize(STANDARD_CIRCLE_SIZE, STANDARD_CIRCLE_SIZE)
         }
-        
+
         // Create main circle with colored border
         val mainDrawable = GradientDrawable().apply {
             shape = GradientDrawable.OVAL
@@ -375,19 +385,20 @@ class GestureVisualManager(context: Context) : GestureStateManager.GestureStateL
             setStroke(3, colors.second) // Colored border
             setSize(STANDARD_CIRCLE_SIZE, STANDARD_CIRCLE_SIZE)
         }
-        
+
         // Shadow layer
         val shadowView = ImageView(context).apply {
             setImageDrawable(shadowDrawable)
-            layoutParams = RelativeLayout.LayoutParams(STANDARD_CIRCLE_SIZE, STANDARD_CIRCLE_SIZE).apply {
-                leftMargin = 2
-                topMargin = 2
-            }
+            layoutParams =
+                RelativeLayout.LayoutParams(STANDARD_CIRCLE_SIZE, STANDARD_CIRCLE_SIZE).apply {
+                    leftMargin = 2
+                    topMargin = 2
+                }
             isClickable = false
             isFocusable = false
             importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
         }
-        
+
         // Main circle layer
         val mainView = ImageView(context).apply {
             setImageDrawable(mainDrawable)
@@ -396,7 +407,7 @@ class GestureVisualManager(context: Context) : GestureStateManager.GestureStateL
             isFocusable = false
             importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
         }
-        
+
         return RelativeLayout(context).apply {
             isClickable = false
             isFocusable = false
@@ -405,7 +416,7 @@ class GestureVisualManager(context: Context) : GestureStateManager.GestureStateL
             addView(mainView)
         }
     }
-    
+
     /**
      * Calculates bounding rectangle for a container holding multiple finger points.
      * Clamps to screen bounds to prevent off-screen rendering.
@@ -416,14 +427,14 @@ class GestureVisualManager(context: Context) : GestureStateManager.GestureStateL
         val maxX = (points.maxOf { it.x } + margin).toInt()
         val minY = (points.minOf { it.y } - margin).toInt().coerceAtLeast(0)
         val maxY = (points.maxOf { it.y } + margin).toInt()
-        
+
         // Get screen dimensions from accessibility window if available
         val context = contextRef.get()
         if (context != null) {
             val displayMetrics = context.resources.displayMetrics
             val screenWidth = displayMetrics.widthPixels
             val screenHeight = displayMetrics.heightPixels
-            
+
             return android.graphics.Rect(
                 minX,
                 minY,
@@ -431,10 +442,10 @@ class GestureVisualManager(context: Context) : GestureStateManager.GestureStateL
                 maxY.coerceAtMost(screenHeight)
             )
         }
-        
+
         return android.graphics.Rect(minX, minY, maxX, maxY)
     }
-    
+
     /**
      * Custom view that draws connection lines between fingers.
      */
@@ -442,7 +453,7 @@ class GestureVisualManager(context: Context) : GestureStateManager.GestureStateL
         context: Context,
         private val placement: TwoFingerPlacement
     ) : View(context) {
-        
+
         private val linePaint = Paint().apply {
             color = Color.WHITE
             strokeWidth = 4f
@@ -450,7 +461,7 @@ class GestureVisualManager(context: Context) : GestureStateManager.GestureStateL
             isAntiAlias = true
             style = Paint.Style.STROKE
         }
-        
+
         private val shadowPaint = Paint().apply {
             color = Color.BLACK
             strokeWidth = 6f
@@ -458,35 +469,35 @@ class GestureVisualManager(context: Context) : GestureStateManager.GestureStateL
             isAntiAlias = true
             style = Paint.Style.STROKE
         }
-        
+
         override fun onDraw(canvas: Canvas) {
             super.onDraw(canvas)
-            
+
             val bounds = calculateContainerBounds(placement.fingerPoints)
             val point1 = placement.primaryPoint
             val point2 = placement.secondaryPoint
-            
+
             // Convert to local coordinates
             val localX1 = point1.x - bounds.left
             val localY1 = point1.y - bounds.top
             val localX2 = point2.x - bounds.left
             val localY2 = point2.y - bounds.top
-            
+
             // Draw shadow line
             canvas.drawLine(localX1 + 1, localY1 + 1, localX2 + 1, localY2 + 1, shadowPaint)
-            
+
             // Draw main connection line
             canvas.drawLine(localX1, localY1, localX2, localY2, linePaint)
         }
     }
-    
+
     /**
      * Hides any currently displayed circle visual.
      */
     fun hideCircle() {
         clearCurrentVisual()
     }
-    
+
     /**
      * Hides all visual feedback (single and multi-finger).
      */
@@ -560,23 +571,23 @@ class GestureVisualManager(context: Context) : GestureStateManager.GestureStateL
         currentAnimation = null
         removeHandler = null
     }
-    
+
     /**
      * Clears all visual feedback (single and multi-finger).
      */
     private fun clearAllVisuals() {
         // Clear single finger visuals
         clearCurrentVisual()
-        
+
         // Clear multi-finger visuals
         multiFingerRemoveHandler?.removeCallbacksAndMessages(null)
-        
+
         currentMultiFingerVisual?.get()?.let { visual ->
             onMainThread {
                 accessibilityWindow.removeView(visual)
             }
         }
-        
+
         // Clear individual finger circles
         activeFingerCircles.forEach { circleRef ->
             circleRef.get()?.let { circle ->
@@ -585,13 +596,13 @@ class GestureVisualManager(context: Context) : GestureStateManager.GestureStateL
                 }
             }
         }
-        
+
         // Clear multi-finger arrow animations
         activeMultiFingerArrows.forEach { arrow ->
             arrow.cancel()
         }
         activeMultiFingerArrows.clear()
-        
+
         // Reset state
         currentMultiFingerVisual = null
         activeFingerCircles.clear()

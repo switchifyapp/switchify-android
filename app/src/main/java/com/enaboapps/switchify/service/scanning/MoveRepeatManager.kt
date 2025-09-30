@@ -2,7 +2,6 @@ package com.enaboapps.switchify.service.scanning
 
 import android.content.Context
 import android.util.Log
-import com.enaboapps.switchify.service.techniques.AccessTechnique
 
 /**
  * This class manages the move repeat functionality in the scanning process.

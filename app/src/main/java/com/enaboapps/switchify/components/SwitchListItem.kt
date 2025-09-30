@@ -41,15 +41,15 @@ fun SwitchListItem(
     // Core switch information
     switchName: String,
     switchType: SwitchType,
-    
+
     // Action information
     primaryAction: SwitchAction,
     secondaryActions: List<SwitchAction> = emptyList(),
-    
+
     // State and meta
     isEnabled: Boolean = true,
     hasConfigurationIssues: Boolean = false,
-    
+
     // Interaction
     onClick: () -> Unit
 ) {
@@ -90,22 +90,22 @@ fun SwitchListItem(
                             modifier = Modifier.size(16.dp)
                         )
                     }
-                    
+
                     Spacer(modifier = Modifier.width(Dimens.spaceS))
-                    
+
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = switchName,
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold,
-                            color = if (isEnabled) 
-                                MaterialTheme.colorScheme.onSurface 
-                            else 
+                            color = if (isEnabled)
+                                MaterialTheme.colorScheme.onSurface
+                            else
                                 MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
-                        
+
                         Text(
                             text = stringResource(switchType.displayNameRes),
                             style = MaterialTheme.typography.bodySmall,
@@ -115,7 +115,7 @@ fun SwitchListItem(
                         )
                     }
                 }
-                
+
                 Row(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -129,7 +129,7 @@ fun SwitchListItem(
                         )
                         Spacer(modifier = Modifier.width(Dimens.spaceXs))
                     }
-                    
+
                     if (!isEnabled) {
                         Icon(
                             imageVector = Icons.Default.Block,
@@ -139,7 +139,7 @@ fun SwitchListItem(
                         )
                         Spacer(modifier = Modifier.width(Dimens.spaceXs))
                     }
-                    
+
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                         contentDescription = null,
@@ -148,29 +148,29 @@ fun SwitchListItem(
                     )
                 }
             }
-            
+
             Spacer(modifier = Modifier.height(Dimens.spaceS))
-            
+
             // Primary action - most prominent
             ActionCard(
                 action = primaryAction,
                 isPrimary = true,
                 isEnabled = isEnabled
             )
-            
+
             // Secondary actions - less prominent but clearly organized
             if (secondaryActions.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(Dimens.spaceS))
-                
+
                 Text(
                     text = stringResource(R.string.switch_additional_actions),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontWeight = FontWeight.Medium
                 )
-                
+
                 Spacer(modifier = Modifier.height(Dimens.spaceXs))
-                
+
                 Column(
                     verticalArrangement = Arrangement.spacedBy(Dimens.spaceXs)
                 ) {
@@ -181,7 +181,7 @@ fun SwitchListItem(
                             isEnabled = isEnabled
                         )
                     }
-                    
+
                     if (secondaryActions.size > 2) {
                         Row(
                             modifier = Modifier
@@ -192,7 +192,10 @@ fun SwitchListItem(
                             horizontalArrangement = Arrangement.Center
                         ) {
                             Text(
-                                text = stringResource(R.string.switch_more_actions, secondaryActions.size - 2),
+                                text = stringResource(
+                                    R.string.switch_more_actions,
+                                    secondaryActions.size - 2
+                                ),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -219,7 +222,7 @@ private fun ActionCard(
             alpha = if (isEnabled) 1f else 0.4f
         )
     }
-    
+
     val textColor = if (isPrimary) {
         MaterialTheme.colorScheme.onPrimaryContainer.let {
             if (isEnabled) it else it.copy(alpha = 0.6f)
@@ -229,7 +232,7 @@ private fun ActionCard(
             if (isEnabled) it else it.copy(alpha = 0.6f)
         }
     }
-    
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -240,30 +243,30 @@ private fun ActionCard(
     ) {
         Text(
             text = action.trigger,
-            style = if (isPrimary) 
-                MaterialTheme.typography.labelMedium 
-            else 
+            style = if (isPrimary)
+                MaterialTheme.typography.labelMedium
+            else
                 MaterialTheme.typography.labelSmall,
             color = textColor,
             fontWeight = if (isPrimary) FontWeight.SemiBold else FontWeight.Medium
         )
-        
+
         Spacer(modifier = Modifier.width(Dimens.spaceXs))
-        
+
         Icon(
             imageVector = Icons.AutoMirrored.Filled.ArrowForward,
             contentDescription = null,
             tint = textColor,
             modifier = Modifier.size(12.dp)
         )
-        
+
         Spacer(modifier = Modifier.width(Dimens.spaceXs))
-        
+
         Text(
             text = action.actionName,
-            style = if (isPrimary) 
-                MaterialTheme.typography.bodyMedium 
-            else 
+            style = if (isPrimary)
+                MaterialTheme.typography.bodyMedium
+            else
                 MaterialTheme.typography.bodySmall,
             color = textColor,
             fontWeight = if (isPrimary) FontWeight.Medium else FontWeight.Normal,
@@ -286,13 +289,13 @@ enum class SwitchType(
     val color: androidx.compose.ui.graphics.Color
 ) {
     EXTERNAL(
-        R.string.switch_type_external, 
-        Icons.Default.Cable, 
+        R.string.switch_type_external,
+        Icons.Default.Cable,
         androidx.compose.ui.graphics.Color(0xFF2196F3)
     ),
     CAMERA(
-        R.string.switch_type_camera, 
-        Icons.Default.Camera, 
+        R.string.switch_type_camera,
+        Icons.Default.Camera,
         androidx.compose.ui.graphics.Color(0xFF4CAF50)
     )
 }

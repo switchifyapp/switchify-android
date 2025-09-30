@@ -4,8 +4,8 @@
     android:viewportWidth="32"
     android:viewportHeight="32"
     android:tint="?attr/colorControlNormal">
-  <!-- Downward arrow -->
-  <path
-      android:fillColor="@android:color/white"
-      android:pathData="M16,26L22,20L18,20L18,6L14,6L14,20L10,20L16,26Z"/>
+    <!-- Downward arrow -->
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M16,26L22,20L18,20L18,6L14,6L14,20L10,20L16,26Z" />
 </vector>

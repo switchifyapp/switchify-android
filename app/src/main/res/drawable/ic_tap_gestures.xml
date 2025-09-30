@@ -4,23 +4,23 @@
     android:viewportWidth="32"
     android:viewportHeight="32"
     android:tint="?attr/colorControlNormal">
-  <!-- Finger/touch point -->
-  <path
-      android:fillColor="@android:color/white"
-      android:pathData="M16,12C17.7,12 19,13.3 19,15C19,16.7 17.7,18 16,18C14.3,18 13,16.7 13,15C13,13.3 14.3,12 16,12Z"/>
-  <!-- Touch ripple circles -->
-  <path
-      android:strokeColor="@android:color/white"
-      android:strokeWidth="1.5"
-      android:pathData="M16,15m-5,0a5,5 0,1,1 10,0a5,5 0,1,1 -10,0"
-      android:fillType="nonZero"/>
-  <path
-      android:strokeColor="@android:color/white"
-      android:strokeWidth="1"
-      android:pathData="M16,15m-8,0a8,8 0,1,1 16,0a8,8 0,1,1 -16,0"
-      android:fillType="nonZero"/>
-  <!-- Navigation arrows pointing to submenu -->
-  <path
-      android:fillColor="@android:color/white"
-      android:pathData="M24,14L24,16L27,15L24,14Z"/>
+    <!-- Finger/touch point -->
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M16,12C17.7,12 19,13.3 19,15C19,16.7 17.7,18 16,18C14.3,18 13,16.7 13,15C13,13.3 14.3,12 16,12Z" />
+    <!-- Touch ripple circles -->
+    <path
+        android:strokeColor="@android:color/white"
+        android:strokeWidth="1.5"
+        android:pathData="M16,15m-5,0a5,5 0,1,1 10,0a5,5 0,1,1 -10,0"
+        android:fillType="nonZero" />
+    <path
+        android:strokeColor="@android:color/white"
+        android:strokeWidth="1"
+        android:pathData="M16,15m-8,0a8,8 0,1,1 16,0a8,8 0,1,1 -16,0"
+        android:fillType="nonZero" />
+    <!-- Navigation arrows pointing to submenu -->
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M24,14L24,16L27,15L24,14Z" />
 </vector>

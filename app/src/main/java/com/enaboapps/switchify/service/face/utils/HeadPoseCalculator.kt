@@ -4,7 +4,6 @@ import android.content.Context
 import android.util.Log
 import android.view.Surface
 import kotlin.math.PI
-import kotlin.math.abs
 import kotlin.math.atan2
 import kotlin.math.sqrt
 
@@ -56,7 +55,10 @@ class HeadPoseCalculator(private val context: Context) {
             Surface.ROTATION_270 -> "LANDSCAPE_RIGHT"
             else -> "UNKNOWN"
         }
-        Log.d(TAG, "Camera orientation configured: rotation=$rotationName, frontCamera=$frontCamera")
+        Log.d(
+            TAG,
+            "Camera orientation configured: rotation=$rotationName, frontCamera=$frontCamera"
+        )
 
         deviceRotation = rotation
         isFrontCamera = frontCamera
@@ -65,11 +67,18 @@ class HeadPoseCalculator(private val context: Context) {
     /**
      * Extract smoothed and normalized Euler angles from transformation matrix
      */
-    fun extractEulerAngles(transformMatrix: Any, faceLandmarks: List<com.google.mediapipe.tasks.components.containers.NormalizedLandmark>? = null): EulerAngles {
+    fun extractEulerAngles(
+        transformMatrix: Any,
+        faceLandmarks: List<com.google.mediapipe.tasks.components.containers.NormalizedLandmark>? = null
+    ): EulerAngles {
         val rawAngles = extractEulerAnglesFromMatrix(transformMatrix)
 
         // Apply coordinate system normalization based on device detection
-        val (normalizedYaw, normalizedPitch) = normalizeCoordinates(rawAngles.yaw, rawAngles.pitch, faceLandmarks)
+        val (normalizedYaw, normalizedPitch) = normalizeCoordinates(
+            rawAngles.yaw,
+            rawAngles.pitch,
+            faceLandmarks
+        )
 
         // Apply smoothing to normalized values
         val smoothedYaw = yawEMA.update(normalizedYaw)
@@ -85,7 +94,11 @@ class HeadPoseCalculator(private val context: Context) {
      * @param faceLandmarks Optional face landmarks for runtime detection
      * @return Pair of normalized (yaw, pitch) angles
      */
-    private fun normalizeCoordinates(yaw: Float, pitch: Float, faceLandmarks: List<com.google.mediapipe.tasks.components.containers.NormalizedLandmark>?): Pair<Float, Float> {
+    private fun normalizeCoordinates(
+        yaw: Float,
+        pitch: Float,
+        faceLandmarks: List<com.google.mediapipe.tasks.components.containers.NormalizedLandmark>?
+    ): Pair<Float, Float> {
         return when (deviceRotation) {
             Surface.ROTATION_0 -> normalizePortraitCoordinates(yaw, pitch)
             Surface.ROTATION_90 -> normalizeLandscapeLeftCoordinates(yaw, pitch)
@@ -247,7 +260,10 @@ class HeadPoseCalculator(private val context: Context) {
     /**
      * Set custom coordinate system for testing (overrides device detection)
      */
-    fun setCustomCoordinateSystem(pitchInverted: Boolean, yawInverted: Boolean): CoordinateSystemDetector.CoordinateSystem {
+    fun setCustomCoordinateSystem(
+        pitchInverted: Boolean,
+        yawInverted: Boolean
+    ): CoordinateSystemDetector.CoordinateSystem {
         return coordinateSystemDetector.createCustomCoordinateSystem(pitchInverted, yawInverted)
     }
 

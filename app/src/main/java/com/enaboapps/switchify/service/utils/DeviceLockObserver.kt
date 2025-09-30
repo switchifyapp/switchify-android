@@ -16,13 +16,15 @@ class DeviceLockObserver(context: Context) {
     companion object {
         @JvmStatic
         fun isUserUnlocked(context: Context): Boolean {
-            val um = context.applicationContext.getSystemService(Context.USER_SERVICE) as UserManager
+            val um =
+                context.applicationContext.getSystemService(Context.USER_SERVICE) as UserManager
             return um.isUserUnlocked
         }
     }
 
     private val appContext = context.applicationContext
-    @Volatile private var unlocked: Boolean = isUserUnlocked(appContext)
+    @Volatile
+    private var unlocked: Boolean = isUserUnlocked(appContext)
 
     private var onDeviceUnlockedCallback: (() -> Unit)? = null
     private var onDeviceLockedCallback: (() -> Unit)? = null

@@ -26,6 +26,7 @@ object SupportedActionsPolicy {
                     SwitchAction.ACTION_PAUSE
                 ) + sys
             }
+
             settings.isManualScanMode() -> {
                 setOf(
                     SwitchAction.ACTION_SELECT,
@@ -36,6 +37,7 @@ object SupportedActionsPolicy {
                     SwitchAction.ACTION_PAUSE
                 ) + sys
             }
+
             settings.isDirectionalScanMode() -> {
                 setOf(
                     SwitchAction.ACTION_SELECT,
@@ -44,6 +46,7 @@ object SupportedActionsPolicy {
                     SwitchAction.ACTION_PAUSE
                 ) + sys
             }
+
             else -> emptySet()
         }
     }

@@ -11,10 +11,13 @@ import com.enaboapps.switchify.switches.CameraSwitchFacialGesture
 enum class GestureValidationResult {
     /** All gesture settings are valid */
     VALID,
+
     /** Select and menu gestures are the same (conflict) */
     DUPLICATE_GESTURES,
+
     /** Selection gesture is not valid for head control */
     INVALID_SELECT_GESTURE,
+
     /** Menu gesture is not valid for head control */
     INVALID_MENU_GESTURE
 }
@@ -31,38 +34,41 @@ class HeadControlSettings(context: Context) {
      * @return sensitivity value between 0.1 and 2.0
      */
     fun sensitivity(): Float = prefs.getFloatValue(KEY_SENSITIVITY, 0.8f).coerceIn(0.1f, 2.0f)
-    
+
     /**
      * Get global deadzone setting (used when separate directional thresholds are disabled)
      * @return deadzone value in degrees between 0.1 and 30.0
      */
     fun deadzone(): Float = prefs.getFloatValue(KEY_DEADZONE, 0.5f).coerceIn(0.1f, 30.0f)
-    
-    
+
+
     /**
      * Get cursor movement speed multiplier
      * @return movement speed between 0.5 and 5.0
      */
     fun movementSpeed(): Float = prefs.getFloatValue(KEY_MOVEMENT_SPEED, 2.0f).coerceIn(0.5f, 5.0f)
-    
-    fun horizontalDeadzone(): Float = prefs.getFloatValue(KEY_HORIZONTAL_DEADZONE, 1.0f).coerceIn(0.1f, 30.0f)
-    
-    fun verticalDeadzone(): Float = prefs.getFloatValue(KEY_VERTICAL_DEADZONE, 1.0f).coerceIn(0.1f, 30.0f)
-    
+
+    fun horizontalDeadzone(): Float =
+        prefs.getFloatValue(KEY_HORIZONTAL_DEADZONE, 1.0f).coerceIn(0.1f, 30.0f)
+
+    fun verticalDeadzone(): Float =
+        prefs.getFloatValue(KEY_VERTICAL_DEADZONE, 1.0f).coerceIn(0.1f, 30.0f)
+
     fun leftDeadzone(): Float = prefs.getFloatValue(KEY_LEFT_DEADZONE, 1.0f).coerceIn(0.1f, 30.0f)
-    
+
     fun rightDeadzone(): Float = prefs.getFloatValue(KEY_RIGHT_DEADZONE, 1.0f).coerceIn(0.1f, 30.0f)
-    
+
     fun upDeadzone(): Float = prefs.getFloatValue(KEY_UP_DEADZONE, 1.0f).coerceIn(0.1f, 30.0f)
-    
+
     fun downDeadzone(): Float = prefs.getFloatValue(KEY_DOWN_DEADZONE, 1.0f).coerceIn(0.1f, 30.0f)
-    
+
     /**
      * Check if separate directional thresholds are enabled
      * @return true if using separate thresholds for each direction
      */
-    fun useSeparateDirectionalThresholds(): Boolean = prefs.getBooleanValue(KEY_SEPARATE_DIRECTIONAL_THRESHOLDS, false)
-    
+    fun useSeparateDirectionalThresholds(): Boolean =
+        prefs.getBooleanValue(KEY_SEPARATE_DIRECTIONAL_THRESHOLDS, false)
+
     /**
      * Get the effective left deadzone based on current threshold settings
      * @return left deadzone value in degrees
@@ -74,7 +80,7 @@ class HeadControlSettings(context: Context) {
             deadzone()
         }
     }
-    
+
     fun getEffectiveRightDeadzone(): Float {
         return if (useSeparateDirectionalThresholds()) {
             rightDeadzone()
@@ -82,7 +88,7 @@ class HeadControlSettings(context: Context) {
             deadzone()
         }
     }
-    
+
     fun getEffectiveUpDeadzone(): Float {
         return if (useSeparateDirectionalThresholds()) {
             upDeadzone()
@@ -90,7 +96,7 @@ class HeadControlSettings(context: Context) {
             deadzone()
         }
     }
-    
+
     fun getEffectiveDownDeadzone(): Float {
         return if (useSeparateDirectionalThresholds()) {
             downDeadzone()
@@ -98,22 +104,24 @@ class HeadControlSettings(context: Context) {
             deadzone()
         }
     }
-    
-    
+
+
     fun baseStep(): Int = prefs.getIntegerValue(KEY_BASE_STEP, 25).coerceIn(5, 100)
-    
+
     /**
      * Get the currently configured selection gesture
      * @return gesture ID for selection action
      */
-    fun selectGesture(): String = prefs.getStringValue(KEY_SELECT_GESTURE, CameraSwitchFacialGesture.SMILE)
-    
+    fun selectGesture(): String =
+        prefs.getStringValue(KEY_SELECT_GESTURE, CameraSwitchFacialGesture.SMILE)
+
     /**
      * Get the currently configured menu gesture
      * @return gesture ID for menu action
      */
-    fun menuGesture(): String = prefs.getStringValue(KEY_MENU_GESTURE, CameraSwitchFacialGesture.LEFT_WINK)
-    
+    fun menuGesture(): String =
+        prefs.getStringValue(KEY_MENU_GESTURE, CameraSwitchFacialGesture.LEFT_WINK)
+
     /**
      * Set selection gesture with automatic conflict resolution
      * @param gestureId The facial gesture ID to set for selection
@@ -127,7 +135,7 @@ class HeadControlSettings(context: Context) {
         }
         return true
     }
-    
+
     /**
      * Set menu gesture with validation
      * @param gestureId The facial gesture ID to set for menu trigger
@@ -141,54 +149,57 @@ class HeadControlSettings(context: Context) {
         }
         return false
     }
-    
-    
+
+
     /**
      * Check if head control has gesture priority
      * @return true if head control gestures take priority
      */
-    fun isHeadControlPriorityEnabled(): Boolean = prefs.getBooleanValue(KEY_GESTURE_PRIORITY_HEAD_CONTROL, true)
-    
+    fun isHeadControlPriorityEnabled(): Boolean =
+        prefs.getBooleanValue(KEY_GESTURE_PRIORITY_HEAD_CONTROL, true)
+
     /**
      * Get the hold time required for selection gesture activation
      * @return hold time in milliseconds between 100 and 2000
      */
-    fun getSelectGestureHoldTime(): Long = prefs.getLongValue(KEY_SELECT_GESTURE_HOLD_TIME, 500L).coerceIn(100L, 2000L)
-    
+    fun getSelectGestureHoldTime(): Long =
+        prefs.getLongValue(KEY_SELECT_GESTURE_HOLD_TIME, 500L).coerceIn(100L, 2000L)
+
     /**
      * Get the hold time required for menu gesture activation
      * @return hold time in milliseconds between 100 and 2000
      */
-    fun getMenuGestureHoldTime(): Long = prefs.getLongValue(KEY_MENU_GESTURE_HOLD_TIME, 750L).coerceIn(100L, 2000L)
-    
+    fun getMenuGestureHoldTime(): Long =
+        prefs.getLongValue(KEY_MENU_GESTURE_HOLD_TIME, 750L).coerceIn(100L, 2000L)
+
     /**
      * Get available gestures for selection (excludes head turns which are used for cursor control)
      */
     fun getAvailableSelectGestures(): List<String> {
         return FacialGestureRegistry.switchAssignableIds()
     }
-    
+
     /**
      * Get available gestures for menu trigger (excludes current selection gesture)
      */
     fun getAvailableMenuGestures(): List<String> {
         return getAvailableSelectGestures().filter { it != selectGesture() }
     }
-    
+
     /**
      * Check if the given gesture is valid for selection in head control
      */
     fun isValidSelectGesture(gestureId: String): Boolean {
         return getAvailableSelectGestures().contains(gestureId)
     }
-    
+
     /**
      * Check if the given gesture is valid for menu trigger in head control
      */
     fun isValidMenuGesture(gestureId: String): Boolean {
         return getAvailableSelectGestures().contains(gestureId) && gestureId != selectGesture()
     }
-    
+
     /**
      * Check if there's a conflict between select and menu gestures
      */
@@ -199,7 +210,7 @@ class HeadControlSettings(context: Context) {
     fun hasGestureConflict(): Boolean {
         return selectGesture() == menuGesture()
     }
-    
+
     /**
      * Validate and auto-resolve gesture conflicts by changing menu gesture
      * @return true if a conflict was resolved, false if no conflict existed
@@ -208,17 +219,17 @@ class HeadControlSettings(context: Context) {
         if (!hasGestureConflict()) {
             return false
         }
-        
+
         // Find the first available gesture that's different from the select gesture
         val availableMenuGestures = getAvailableMenuGestures()
         if (availableMenuGestures.isNotEmpty()) {
             prefs.setStringValue(KEY_MENU_GESTURE, availableMenuGestures[0])
             return true
         }
-        
+
         return false
     }
-    
+
     /**
      * Validate gesture settings and return any conflicts
      * @return GestureValidationResult indicating the validation status
@@ -226,7 +237,7 @@ class HeadControlSettings(context: Context) {
     fun validateGestureSettings(): GestureValidationResult {
         val selectGest = selectGesture()
         val menuGest = menuGesture()
-        
+
         return when {
             selectGest == menuGest -> GestureValidationResult.DUPLICATE_GESTURES
             !isValidSelectGesture(selectGest) -> GestureValidationResult.INVALID_SELECT_GESTURE
@@ -236,7 +247,7 @@ class HeadControlSettings(context: Context) {
     }
 
     fun isHeadControlEnabled(): Boolean = prefs.getBooleanValue(KEY_ENABLED, false)
-    
+
     fun setHeadControlEnabled(enabled: Boolean) {
         prefs.setBooleanValue(KEY_ENABLED, enabled)
     }
@@ -253,13 +264,13 @@ class HeadControlSettings(context: Context) {
         // Default values
         const val DEFAULT_MENU_REPEAT_INITIAL_DELAY = 600L
         const val DEFAULT_MENU_REPEAT_INTERVAL = 250L
-        
+
         // Min/max values
         const val MIN_MENU_REPEAT_INITIAL_DELAY = 200L
         const val MAX_MENU_REPEAT_INITIAL_DELAY = 2000L
         const val MIN_MENU_REPEAT_INTERVAL = 80L
         const val MAX_MENU_REPEAT_INTERVAL = 1500L
-        
+
         const val KEY_ENABLED = "head_control_enabled"
         const val KEY_SENSITIVITY = "head_control_sensitivity"
         const val KEY_DEADZONE = "head_control_deadzone"
@@ -276,13 +287,14 @@ class HeadControlSettings(context: Context) {
         const val KEY_RIGHT_DEADZONE = "head_control_right_deadzone"
         const val KEY_UP_DEADZONE = "head_control_up_deadzone"
         const val KEY_DOWN_DEADZONE = "head_control_down_deadzone"
-        const val KEY_SEPARATE_DIRECTIONAL_THRESHOLDS = "head_control_separate_directional_thresholds"
+        const val KEY_SEPARATE_DIRECTIONAL_THRESHOLDS =
+            "head_control_separate_directional_thresholds"
         const val KEY_MENU_REPEAT_INITIAL_DELAY = "head_control_menu_repeat_initial_delay"
         const val KEY_MENU_REPEAT_INTERVAL = "head_control_menu_repeat_interval"
-        
+
         // Centralized value arrays for UI
         val SENSITIVITY_VALUES = floatArrayOf(0.1f, 0.3f, 0.5f, 0.8f, 1.0f, 1.3f, 1.6f, 2.0f)
-        
+
         // User-friendly threshold levels with meaningful labels
         // Maps to actual degree values internally while showing descriptive labels to users
         val USER_FRIENDLY_THRESHOLD_LEVELS = arrayOf(
@@ -292,18 +304,46 @@ class HeadControlSettings(context: Context) {
             "Less Sensitive",   // 8.0° - Moderate movements
             "Least Sensitive"   // 20.0° - Large movements needed
         )
-        
+
         // Corresponding degree values for user-friendly levels - better dispersal across 0.3° to 20° range
         val USER_FRIENDLY_THRESHOLD_VALUES = floatArrayOf(0.3f, 1.0f, 2.5f, 8.0f, 20.0f)
-        
+
         // Legacy arrays maintained for backward compatibility
         val DEADZONE_VALUES = floatArrayOf(0.1f, 0.3f, 0.5f, 0.8f, 1.0f, 1.5f, 2.0f, 3.0f, 5.0f)
-        val DIRECTIONAL_DEADZONE_VALUES = floatArrayOf(0.1f, 0.2f, 0.3f, 0.4f, 0.5f, 0.6f, 0.7f, 0.8f, 0.9f, 1.0f, 1.5f, 2.0f, 2.5f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f, 9.0f, 10.0f, 12.0f, 15.0f, 20.0f, 25.0f, 30.0f)
-        val MOVEMENT_SPEED_VALUES = floatArrayOf(0.5f, 0.8f, 1.0f, 1.2f, 1.5f, 2.0f, 2.5f, 3.0f, 3.5f, 4.0f, 4.5f, 5.0f)
+        val DIRECTIONAL_DEADZONE_VALUES = floatArrayOf(
+            0.1f,
+            0.2f,
+            0.3f,
+            0.4f,
+            0.5f,
+            0.6f,
+            0.7f,
+            0.8f,
+            0.9f,
+            1.0f,
+            1.5f,
+            2.0f,
+            2.5f,
+            3.0f,
+            4.0f,
+            5.0f,
+            6.0f,
+            7.0f,
+            8.0f,
+            9.0f,
+            10.0f,
+            12.0f,
+            15.0f,
+            20.0f,
+            25.0f,
+            30.0f
+        )
+        val MOVEMENT_SPEED_VALUES =
+            floatArrayOf(0.5f, 0.8f, 1.0f, 1.2f, 1.5f, 2.0f, 2.5f, 3.0f, 3.5f, 4.0f, 4.5f, 5.0f)
         val HOLD_TIME_VALUES = longArrayOf(100L, 300L, 500L, 750L, 1000L, 1500L, 2000L)
         val MENU_REPEAT_INITIAL_VALUES = longArrayOf(300L, 450L, 600L, 800L, 1000L)
         val MENU_REPEAT_INTERVAL_VALUES = longArrayOf(120L, 180L, 250L, 350L, 500L)
-        
+
         /**
          * Get user-friendly threshold index from degree value
          * Maps any degree value to the closest user-friendly level
@@ -312,7 +352,7 @@ class HeadControlSettings(context: Context) {
             return USER_FRIENDLY_THRESHOLD_VALUES.indexOfFirst { kotlin.math.abs(it - degreeValue) < 0.1f }
                 .takeIf { it != -1 } ?: 2 // Default to "Normal" if no exact match
         }
-        
+
         /**
          * Get degree value from user-friendly threshold index
          */

@@ -4,15 +4,15 @@ import android.graphics.PointF
 import android.graphics.Rect
 import android.util.Log
 import com.enaboapps.switchify.R
+import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.service.core.SwitchifyAccessibilityService
 import com.enaboapps.switchify.service.gestures.data.GestureData
 import com.enaboapps.switchify.service.gestures.data.GestureType
-import com.enaboapps.switchify.service.gestures.placement.FingerPlacementAlgorithm
-import com.enaboapps.switchify.service.gestures.placement.FingerMode
-import com.enaboapps.switchify.service.gestures.placement.FingerModePreferences
-import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.service.gestures.execution.GestureDispatcher
 import com.enaboapps.switchify.service.gestures.execution.GesturePathBuilder
+import com.enaboapps.switchify.service.gestures.placement.FingerMode
+import com.enaboapps.switchify.service.gestures.placement.FingerModePreferences
+import com.enaboapps.switchify.service.gestures.placement.FingerPlacementAlgorithm
 import com.enaboapps.switchify.service.gestures.visuals.GestureVisualManager
 import com.enaboapps.switchify.service.utils.ScreenUtils
 import com.enaboapps.switchify.service.window.ServiceMessageHUD
@@ -79,10 +79,10 @@ class LinearGesturePerformer(
 
     /**
      * Phase 1: Initiates a two-phase linear gesture with explicit finger count override.
-     * 
+     *
      * This overloaded version bypasses user preference and uses the specified finger count,
      * primarily used for pattern playback where gestures must use their recorded finger count.
-     * 
+     *
      * @param type Gesture type determining calculation and execution behavior
      * @param explicitFingerCount Override finger count, bypassing user preference
      * @param showMessage Whether to display instructional HUD messages to user
@@ -96,7 +96,10 @@ class LinearGesturePerformer(
     ) {
         val startPoint = startingPoint ?: GesturePoint.getPoint()
 
-        Log.d(TAG, "startGesture called with explicit finger count - type: $type, fingerCount: $explicitFingerCount, startPoint: $startPoint")
+        Log.d(
+            TAG,
+            "startGesture called with explicit finger count - type: $type, fingerCount: $explicitFingerCount, startPoint: $startPoint"
+        )
 
         // Use unified state manager
         if (!GestureStateManager.startGesture(type, startPoint)) {
@@ -110,9 +113,10 @@ class LinearGesturePerformer(
             TAG,
             "GestureStateManager state after start: ${GestureStateManager.getStateSummary()}"
         )
-        
+
         // Calculate finger placement using explicit finger count (pattern playback mode)
-        var fingerPlacement: com.enaboapps.switchify.service.gestures.placement.FingerPlacement? = null
+        var fingerPlacement: com.enaboapps.switchify.service.gestures.placement.FingerPlacement? =
+            null
         try {
             // Convert finger count to appropriate FingerMode for algorithm
             val overrideFingerMode = when (explicitFingerCount.coerceIn(1, 5)) {
@@ -123,22 +127,29 @@ class LinearGesturePerformer(
                 5 -> com.enaboapps.switchify.service.gestures.placement.FingerMode.FIVE
                 else -> com.enaboapps.switchify.service.gestures.placement.FingerMode.ONE
             }
-            
+
             val screenBounds = getScreenBounds()
-            
+
             fingerPlacement = fingerPlacementAlgorithm.calculateFingerPlacement(
                 gestureType = type,
                 targetPoint = startPoint,
                 userFingerMode = overrideFingerMode, // Use explicit finger mode override
                 screenBounds = screenBounds
             )
-            
+
             // Store finger placement in state manager for use in endGesture()
             GestureStateManager.setCurrentFingerPlacement(fingerPlacement)
-            
-            Log.d(TAG, "Explicit finger placement calculated and stored: ${fingerPlacement.getDescription()}")
+
+            Log.d(
+                TAG,
+                "Explicit finger placement calculated and stored: ${fingerPlacement.getDescription()}"
+            )
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to calculate explicit finger placement, falling back to single-finger", e)
+            Log.e(
+                TAG,
+                "Failed to calculate explicit finger placement, falling back to single-finger",
+                e
+            )
             Log.e(TAG, "Exception details: ${e.message}")
             e.printStackTrace()
             // Continue with single-finger gesture - finger placement will be null
@@ -147,12 +158,15 @@ class LinearGesturePerformer(
         if (showMessage) {
             showGestureMessage(type)
         }
-        
+
         // Show appropriate visual feedback based on finger placement
         if (fingerPlacement != null && fingerPlacement.fingerCount > 1) {
             // Show multi-finger visual feedback with finger positions
             gestureVisualManager.showMultiFingerVisual(fingerPlacement)
-            Log.d(TAG, "Showing multi-finger start visual for ${fingerPlacement.fingerCount} fingers (explicit count)")
+            Log.d(
+                TAG,
+                "Showing multi-finger start visual for ${fingerPlacement.fingerCount} fingers (explicit count)"
+            )
         } else {
             // Fall back to single finger visual feedback
             gestureVisualManager.showStaticCircle(
@@ -161,7 +175,7 @@ class LinearGesturePerformer(
             )
         }
     }
-    
+
     /**
      * Phase 1: Initiates a two-phase linear gesture with immediate visual feedback.
      *
@@ -212,24 +226,28 @@ class LinearGesturePerformer(
             TAG,
             "GestureStateManager state after start: ${GestureStateManager.getStateSummary()}"
         )
-        
+
         // Calculate finger placement for multi-finger gesture support
-        var fingerPlacement: com.enaboapps.switchify.service.gestures.placement.FingerPlacement? = null
+        var fingerPlacement: com.enaboapps.switchify.service.gestures.placement.FingerPlacement? =
+            null
         try {
             val fingerMode = getCurrentFingerMode()
             val screenBounds = getScreenBounds()
-            
+
             fingerPlacement = fingerPlacementAlgorithm.calculateFingerPlacement(
                 gestureType = type,
                 targetPoint = startPoint,
                 userFingerMode = fingerMode,
                 screenBounds = screenBounds
             )
-            
+
             // Store finger placement in state manager for use in endGesture()
             GestureStateManager.setCurrentFingerPlacement(fingerPlacement)
-            
-            Log.d(TAG, "Finger placement calculated and stored: ${fingerPlacement.getDescription()}")
+
+            Log.d(
+                TAG,
+                "Finger placement calculated and stored: ${fingerPlacement.getDescription()}"
+            )
         } catch (e: Exception) {
             Log.e(TAG, "Failed to calculate finger placement, falling back to single-finger", e)
             Log.e(TAG, "Exception details: ${e.message}")
@@ -240,12 +258,15 @@ class LinearGesturePerformer(
         if (showMessage) {
             showGestureMessage(type)
         }
-        
+
         // Show appropriate visual feedback based on finger placement
         if (fingerPlacement != null && fingerPlacement.fingerCount > 1) {
             // Show multi-finger visual feedback with finger positions
             gestureVisualManager.showMultiFingerVisual(fingerPlacement)
-            Log.d(TAG, "Showing multi-finger start visual for ${fingerPlacement.fingerCount} fingers")
+            Log.d(
+                TAG,
+                "Showing multi-finger start visual for ${fingerPlacement.fingerCount} fingers"
+            )
         } else {
             // Fall back to single finger visual feedback
             gestureVisualManager.showStaticCircle(
@@ -307,12 +328,13 @@ class LinearGesturePerformer(
 
         val calculatedEndPoint = endPoint ?: calculateEndPoint(gestureType, startPoint)
         performGesture(gestureType, startPoint, calculatedEndPoint)
-        
+
         // Get finger count from current finger placement for gesture lock
         val fingerPlacement = GestureStateManager.getCurrentFingerPlacement()
         val fingerCount = fingerPlacement?.fingerCount ?: 1
-        val fingerMode = if (fingerCount > 1) getCurrentFingerMode() else com.enaboapps.switchify.service.gestures.placement.FingerMode.ONE
-        
+        val fingerMode =
+            if (fingerCount > 1) getCurrentFingerMode() else com.enaboapps.switchify.service.gestures.placement.FingerMode.ONE
+
         gestureLockManager.setLockedGestureData(
             GestureData(
                 gestureType = gestureType,
@@ -429,41 +451,49 @@ class LinearGesturePerformer(
     private fun performGesture(type: GestureType, start: PointF, end: PointF) {
         try {
             Log.d(TAG, "performGesture called - type: $type, start: $start, end: $end")
-            
+
             // Check if we have multi-finger placement to work with
             val fingerPlacement = GestureStateManager.getCurrentFingerPlacement()
-            
+
             if (fingerPlacement != null) {
                 // Multi-finger gesture execution path
-                Log.d(TAG, "Executing multi-finger gesture with placement: ${fingerPlacement.getDescription()}")
-                
+                Log.d(
+                    TAG,
+                    "Executing multi-finger gesture with placement: ${fingerPlacement.getDescription()}"
+                )
+
                 // Calculate end positions for all fingers
                 val endFingerPositions = calculateEndFingerPositions(fingerPlacement, start, end)
-                
+
                 // Get start finger positions
                 val startFingerPositions = when (fingerPlacement) {
                     is com.enaboapps.switchify.service.gestures.placement.SingleFingerPlacement -> {
                         listOf(fingerPlacement.primaryPoint)
                     }
+
                     is com.enaboapps.switchify.service.gestures.placement.TwoFingerPlacement -> {
                         listOf(fingerPlacement.primaryPoint, fingerPlacement.secondaryPoint)
                     }
+
                     is com.enaboapps.switchify.service.gestures.placement.MultiFingerPlacement -> {
                         fingerPlacement.fingerPoints
                     }
                 }
-                
+
                 // Show visual feedback for all finger paths
                 showMultiFingerVisualFeedback(startFingerPositions, endFingerPositions, type)
-                
+
                 // Create multi-finger gesture description
                 val gestureDescription = GesturePathBuilder.createDynamicLinearPath(
                     type,
                     startFingerPositions,
                     endFingerPositions
                 )
-                
-                Log.d(TAG, "About to dispatch multi-finger gesture: $type with ${startFingerPositions.size} fingers")
+
+                Log.d(
+                    TAG,
+                    "About to dispatch multi-finger gesture: $type with ${startFingerPositions.size} fingers"
+                )
                 // Create gesture data for pattern recording and gesture lock with finger count
                 val fingerCount = startFingerPositions.size
                 val currentFingerMode = getCurrentFingerMode()
@@ -474,13 +504,13 @@ class LinearGesturePerformer(
                     fingerCount = fingerCount,
                     fingerMode = currentFingerMode
                 )
-                
+
                 Log.d(TAG, "Recording gesture with $fingerCount fingers (mode: $currentFingerMode)")
-                
+
                 // Dispatch using unified dispatcher with gesture data
                 gestureDispatcher.dispatch(gestureDescription, type, gestureData)
                 Log.d(TAG, "Multi-finger gesture dispatched successfully: $type")
-                
+
             } else {
                 // Fall back to single-finger gesture execution (legacy behavior)
                 Log.d(TAG, "Executing single-finger gesture (legacy mode)")
@@ -507,7 +537,7 @@ class LinearGesturePerformer(
                     fingerCount = 1,
                     fingerMode = com.enaboapps.switchify.service.gestures.placement.FingerMode.ONE
                 )
-                
+
                 Log.d(TAG, "Recording gesture with 1 finger (single-finger mode)")
 
                 // Dispatch using unified dispatcher with gesture data
@@ -534,7 +564,7 @@ class LinearGesturePerformer(
             duration
         )
     }
-    
+
     /**
      * Provides multi-finger visual feedback showing paths for all fingers.
      * Shows coordinated visual feedback for all finger paths in multi-finger gestures,
@@ -550,15 +580,18 @@ class LinearGesturePerformer(
         type: GestureType
     ) {
         val duration = getDurationForGestureType(type)
-        
+
         // Use coordinated multi-finger arrow animation for better visual feedback
         gestureVisualManager.showMultiFingerArrowAnimation(
             startPositions,
             endPositions,
             duration
         )
-        
-        Log.d(TAG, "Showing coordinated multi-finger visual feedback for ${startPositions.size} finger paths")
+
+        Log.d(
+            TAG,
+            "Showing coordinated multi-finger visual feedback for ${startPositions.size} finger paths"
+        )
     }
 
     /**
@@ -588,21 +621,21 @@ class LinearGesturePerformer(
     fun cancelOngoingGestures() {
         GestureStateManager.cancelGesture()
     }
-    
+
     // === Helper Methods for Multi-Finger Support ===
-    
+
     /**
      * Gets the current finger mode preference from user settings.
-     * 
+     *
      * @return Current FingerMode setting, defaults to ONE if not set
      */
     private fun getCurrentFingerMode(): FingerMode {
         return FingerModePreferences.getCurrentFingerMode(preferenceManager)
     }
-    
+
     /**
      * Gets the current screen bounds for finger placement calculations.
-     * 
+     *
      * @return Screen bounds rectangle, or default bounds if service unavailable
      */
     private fun getScreenBounds(): Rect {
@@ -611,11 +644,11 @@ class LinearGesturePerformer(
             Rect(0, 0, displayMetrics.widthPixels, displayMetrics.heightPixels)
         } ?: Rect(0, 0, 1080, 1920) // Default bounds as fallback
     }
-    
+
     /**
      * Calculates end finger positions by translating all start finger positions by the gesture vector.
      * This maintains the relative finger positioning while moving all fingers in the same direction and distance.
-     * 
+     *
      * @param startFingerPlacement The original finger placement from gesture start
      * @param gestureStartPoint The single start point of the gesture
      * @param gestureEndPoint The single end point of the gesture
@@ -629,39 +662,53 @@ class LinearGesturePerformer(
         // Calculate the gesture vector (direction and distance)
         val gestureVectorX = gestureEndPoint.x - gestureStartPoint.x
         val gestureVectorY = gestureEndPoint.y - gestureStartPoint.y
-        
-        Log.d(TAG, "Calculating end finger positions - gesture vector: ($gestureVectorX, $gestureVectorY)")
-        
+
+        Log.d(
+            TAG,
+            "Calculating end finger positions - gesture vector: ($gestureVectorX, $gestureVectorY)"
+        )
+
         // Get all finger positions from the placement
         val startFingerPositions = when (startFingerPlacement) {
             is com.enaboapps.switchify.service.gestures.placement.SingleFingerPlacement -> {
                 listOf(startFingerPlacement.primaryPoint)
             }
+
             is com.enaboapps.switchify.service.gestures.placement.TwoFingerPlacement -> {
                 listOf(startFingerPlacement.primaryPoint, startFingerPlacement.secondaryPoint)
             }
+
             is com.enaboapps.switchify.service.gestures.placement.MultiFingerPlacement -> {
                 startFingerPlacement.fingerPoints
             }
         }
-        
+
         // Translate all finger positions by the gesture vector
         val endFingerPositions = startFingerPositions.map { startPos ->
             val endPos = PointF(startPos.x + gestureVectorX, startPos.y + gestureVectorY)
-            Log.d(TAG, "Finger position: (${startPos.x}, ${startPos.y}) -> (${endPos.x}, ${endPos.y})")
+            Log.d(
+                TAG,
+                "Finger position: (${startPos.x}, ${startPos.y}) -> (${endPos.x}, ${endPos.y})"
+            )
             endPos
         }
-        
+
         // Apply screen bounds clamping to keep fingers within screen
         val screenBounds = getScreenBounds()
         val clampedEndPositions = endFingerPositions.map { pos ->
             val clampedPos = PointF(
-                pos.x.coerceIn(screenBounds.left.toFloat() + 32f, screenBounds.right.toFloat() - 32f),
-                pos.y.coerceIn(screenBounds.top.toFloat() + 32f, screenBounds.bottom.toFloat() - 32f)
+                pos.x.coerceIn(
+                    screenBounds.left.toFloat() + 32f,
+                    screenBounds.right.toFloat() - 32f
+                ),
+                pos.y.coerceIn(
+                    screenBounds.top.toFloat() + 32f,
+                    screenBounds.bottom.toFloat() - 32f
+                )
             )
             clampedPos
         }
-        
+
         Log.d(TAG, "Calculated ${clampedEndPositions.size} end finger positions")
         return clampedEndPositions
     }

@@ -11,12 +11,12 @@ import com.enaboapps.switchify.switches.CameraSwitchFacialGesture
  * and camera switch assignments.
  */
 class GestureConflictDetector(private val context: Context) {
-    
+
     private val headControlSettings = HeadControlSettings(context)
-    
+
     companion object {
         private const val TAG = "GestureConflictDetector"
-        
+
         /**
          * Gestures that can be used for both head control selection and switch assignments
          */
@@ -27,67 +27,75 @@ class GestureConflictDetector(private val context: Context) {
             CameraSwitchFacialGesture.BLINK
         )
     }
-    
+
     /**
      * Checks if the given gesture conflicts with head control selection when head control is active.
-     * 
+     *
      * @param gestureId The gesture ID to check
      * @param switchEventProvider Provider to check switch assignments
      * @return true if there's a conflict that should prioritize head control
      */
-    fun shouldPrioritizeHeadControl(gestureId: String, switchEventProvider: SwitchEventProvider?): Boolean {
+    fun shouldPrioritizeHeadControl(
+        gestureId: String,
+        switchEventProvider: SwitchEventProvider?
+    ): Boolean {
         // Respect user-configured priority preference
         if (!headControlSettings.isHeadControlPriorityEnabled()) {
             return false
         }
-        
+
         // Head control is now independent - check if head control is enabled
         if (!headControlSettings.isHeadControlEnabled()) {
             return false
         }
-        
+
         // Check if this gesture is the configured head control selection gesture
         val headControlGesture = headControlSettings.selectGesture()
         if (gestureId != headControlGesture) {
             return false
         }
-        
+
         // Check if this gesture is also assigned to a switch
         val isSwitchAssigned = switchEventProvider?.isFacialGestureAssigned(gestureId) == true
-        
-        android.util.Log.d(TAG, "Gesture conflict check for $gestureId: priority=${headControlSettings.isHeadControlPriorityEnabled()}, headEnabled=${headControlSettings.isHeadControlEnabled()}, switchAssigned=$isSwitchAssigned")
-        
+
+        android.util.Log.d(
+            TAG,
+            "Gesture conflict check for $gestureId: priority=${headControlSettings.isHeadControlPriorityEnabled()}, headEnabled=${headControlSettings.isHeadControlEnabled()}, switchAssigned=$isSwitchAssigned"
+        )
+
         return isSwitchAssigned
     }
-    
+
     /**
      * Detects all gesture conflicts between head control and switch assignments.
-     * 
+     *
      * @param switchEventProvider Provider to check switch assignments
      * @return Set of gesture IDs that have conflicts
      */
     fun detectConflicts(switchEventProvider: SwitchEventProvider?): Set<String> {
         val conflicts = mutableSetOf<String>()
-        
-        if (!headControlSettings.isHeadControlEnabled() || 
-            switchEventProvider == null) {
+
+        if (!headControlSettings.isHeadControlEnabled() ||
+            switchEventProvider == null
+        ) {
             return conflicts
         }
-        
+
         val headControlGesture = headControlSettings.selectGesture()
-        
+
         // Check if the head control selection gesture is assigned to a switch
-        if (CONFLICTABLE_GESTURES.contains(headControlGesture) && 
-            switchEventProvider.isFacialGestureAssigned(headControlGesture)) {
+        if (CONFLICTABLE_GESTURES.contains(headControlGesture) &&
+            switchEventProvider.isFacialGestureAssigned(headControlGesture)
+        ) {
             conflicts.add(headControlGesture)
         }
-        
+
         return conflicts
     }
-    
+
     /**
      * Gets the current head control selection gesture.
-     * 
+     *
      * @return The gesture ID configured for head control selection, or null if disabled
      */
     fun getHeadControlSelectionGesture(): String? {
@@ -97,29 +105,32 @@ class GestureConflictDetector(private val context: Context) {
             null
         }
     }
-    
+
     /**
      * Checks if a specific gesture is valid for head control selection.
-     * 
+     *
      * @param gestureId The gesture ID to validate
      * @return true if the gesture can be used for head control selection
      */
     fun isValidHeadControlGesture(gestureId: String): Boolean {
         return headControlSettings.isValidSelectGesture(gestureId)
     }
-    
+
     /**
      * Gets information about a gesture conflict.
-     * 
+     *
      * @param gestureId The gesture to get conflict info for
      * @param switchEventProvider Provider to check switch assignments
      * @return ConflictInfo describing the conflict, or null if no conflict
      */
-    fun getConflictInfo(gestureId: String, switchEventProvider: SwitchEventProvider?): ConflictInfo? {
+    fun getConflictInfo(
+        gestureId: String,
+        switchEventProvider: SwitchEventProvider?
+    ): ConflictInfo? {
         if (!shouldPrioritizeHeadControl(gestureId, switchEventProvider)) {
             return null
         }
-        
+
         return ConflictInfo(
             gestureId = gestureId,
             isHeadControlGesture = gestureId == headControlSettings.selectGesture(),
@@ -128,7 +139,7 @@ class GestureConflictDetector(private val context: Context) {
             currentTechnique = AccessTechnique.getCurrentTechnique()
         )
     }
-    
+
     /**
      * Data class containing information about a gesture conflict.
      */
@@ -143,9 +154,9 @@ class GestureConflictDetector(private val context: Context) {
          * Returns true if head control should take priority over switch actions.
          */
         fun shouldPrioritizeHeadControl(): Boolean {
-            return isHeadControlGesture && 
-                   isSwitchAssigned && 
-                   headControlEnabled
+            return isHeadControlGesture &&
+                    isSwitchAssigned &&
+                    headControlEnabled
         }
     }
 }

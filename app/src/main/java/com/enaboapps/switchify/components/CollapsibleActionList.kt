@@ -65,7 +65,7 @@ fun CollapsibleActionList(
 ) {
     val cameraPermissionState = rememberPermissionState(Manifest.permission.CAMERA)
     val hasCameraPermission = cameraPermissionState.status.isGranted
-    
+
     val actionItems = remember(hasUsageStatsPermission, showDebug, hasCameraPermission) {
         listOfNotNull(
             if (!hasUsageStatsPermission) {

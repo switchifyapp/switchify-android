@@ -11,7 +11,7 @@ class HeadControlItemScanner {
     private var lastHeadX: Float? = null
     private var lastHeadY: Float? = null
     private var lastStepTime: Long = 0L
-    
+
     companion object {
         private const val MOVEMENT_THRESHOLD = 10f
         private const val STEP_COOLDOWN_MS = 200L
@@ -96,7 +96,7 @@ class HeadControlItemScanner {
     fun stepRight() = stepInDirection { current -> selectHorizontal(current, 1f) }
     fun stepUp() = stepInDirection { current -> selectVertical(current, -1f) }
     fun stepDown() = stepInDirection { current -> selectVertical(current, 1f) }
-    
+
     private fun stepInDirection(selectFunction: (Pair<Float, Float>) -> Int?) {
         if (selectedIndex !in nodes.indices || selectedIndex !in nodePositions.indices) return
         val current = nodePositions[selectedIndex]
@@ -175,11 +175,13 @@ class HeadControlItemScanner {
     }
 
     private fun currentNodeWidth(): Float {
-        return if (selectedIndex in nodes.indices) nodes[selectedIndex].getWidth().toFloat() else 200f
+        return if (selectedIndex in nodes.indices) nodes[selectedIndex].getWidth()
+            .toFloat() else 200f
     }
 
     private fun currentNodeHeight(): Float {
-        return if (selectedIndex in nodes.indices) nodes[selectedIndex].getHeight().toFloat() else 200f
+        return if (selectedIndex in nodes.indices) nodes[selectedIndex].getHeight()
+            .toFloat() else 200f
     }
 
     fun performSelection(): Boolean {

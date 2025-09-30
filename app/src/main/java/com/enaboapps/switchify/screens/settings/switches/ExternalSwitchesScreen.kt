@@ -16,18 +16,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.LoadingIndicator
-import com.enaboapps.switchify.components.NavRouteLink
-import com.enaboapps.switchify.components.SwitchListItem
-import com.enaboapps.switchify.components.SwitchAction
-import com.enaboapps.switchify.components.SwitchType
 import com.enaboapps.switchify.components.ScrollableView
 import com.enaboapps.switchify.components.Section
+import com.enaboapps.switchify.components.SwitchAction
+import com.enaboapps.switchify.components.SwitchListItem
+import com.enaboapps.switchify.components.SwitchType
 import com.enaboapps.switchify.nav.NavigationRoute
 import com.enaboapps.switchify.screens.settings.switches.models.ExternalSwitchesScreenModel
 import com.enaboapps.switchify.switches.SwitchEvent
@@ -123,14 +121,14 @@ private fun SwitchEventItem(
         trigger = "Press",
         actionName = switchEvent.pressAction.getActionName()
     )
-    
+
     val secondaryActions = switchEvent.holdActions.map { holdAction ->
         SwitchAction(
             trigger = "Hold",
             actionName = holdAction.getActionName()
         )
     }
-    
+
     SwitchListItem(
         switchName = switchEvent.name,
         switchType = SwitchType.EXTERNAL,

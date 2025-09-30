@@ -300,7 +300,11 @@ class MenuManager {
             try {
                 observer.onMenuNodesChanged(menuView)
             } catch (e: Exception) {
-                android.util.Log.e("MenuManager", "Error notifying observer of menu nodes changed", e)
+                android.util.Log.e(
+                    "MenuManager",
+                    "Error notifying observer of menu nodes changed",
+                    e
+                )
             }
         }
     }

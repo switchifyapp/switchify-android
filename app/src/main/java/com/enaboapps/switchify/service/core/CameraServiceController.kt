@@ -1,25 +1,21 @@
 package com.enaboapps.switchify.service.core
 
-import android.Manifest
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
-import android.content.pm.PackageManager
 import android.os.IBinder
 import android.util.Log
-import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
 import com.enaboapps.switchify.service.camera.CameraForegroundService
 import com.enaboapps.switchify.service.camera.CameraPermissionManager
 import com.enaboapps.switchify.service.utils.DeviceLockObserver
-import com.enaboapps.switchify.service.techniques.AccessTechnique
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withTimeout
 
 class CameraServiceController(
     private val context: Context,
@@ -83,7 +79,8 @@ class CameraServiceController(
                         isBinding = true
                         val intent = Intent(context, CameraForegroundService::class.java)
                         context.startService(intent)
-                        val bound = context.bindService(intent, connection, Context.BIND_AUTO_CREATE)
+                        val bound =
+                            context.bindService(intent, connection, Context.BIND_AUTO_CREATE)
                         if (!bound) {
                             logd("Failed to bind to camera service")
                             isBinding = false
@@ -128,7 +125,12 @@ class CameraServiceController(
                     } finally {
                         // Always clean up state regardless of unbind success
                         try {
-                            context.stopService(Intent(context, CameraForegroundService::class.java))
+                            context.stopService(
+                                Intent(
+                                    context,
+                                    CameraForegroundService::class.java
+                                )
+                            )
                         } catch (e: Exception) {
                             Log.w(TAG, "Exception stopping service", e)
                         }

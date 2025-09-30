@@ -3,12 +3,10 @@ package com.enaboapps.switchify.screens.settings.techniques
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 import com.enaboapps.switchify.R
-import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.components.PreferenceSwitch
 import com.enaboapps.switchify.components.PreferenceValueSelector
 import com.enaboapps.switchify.components.Section
 import com.enaboapps.switchify.screens.settings.shared.RadarSpeedStepper
-import com.enaboapps.switchify.service.scanning.ScanSettings
 import com.enaboapps.switchify.service.techniques.radar.RadarSettings
 
 @Composable

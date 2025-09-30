@@ -10,9 +10,9 @@ import com.enaboapps.switchify.service.gestures.data.GestureType
 import com.enaboapps.switchify.service.gestures.execution.GestureDispatcher
 import com.enaboapps.switchify.service.gestures.execution.GesturePathBuilder
 import com.enaboapps.switchify.service.gestures.execution.GestureTimingCoordinator
-import com.enaboapps.switchify.service.gestures.placement.FingerPlacementAlgorithm
 import com.enaboapps.switchify.service.gestures.placement.FingerMode
 import com.enaboapps.switchify.service.gestures.placement.FingerModePreferences
+import com.enaboapps.switchify.service.gestures.placement.FingerPlacementAlgorithm
 import com.enaboapps.switchify.service.gestures.visuals.GestureVisualManager
 import com.enaboapps.switchify.service.techniques.nodes.NodeExaminer
 
@@ -116,7 +116,7 @@ class GestureManager private constructor() {
 
     /**
      * Gets the current finger mode preference from user settings.
-     * 
+     *
      * @return Current FingerMode setting, defaults to ONE if not set
      */
     private fun getCurrentFingerMode(): FingerMode {
@@ -127,7 +127,7 @@ class GestureManager private constructor() {
 
     /**
      * Gets the current screen bounds for finger placement calculations.
-     * 
+     *
      * @return Screen bounds rectangle, or default bounds if service unavailable
      */
     private fun getScreenBounds(): Rect {
@@ -240,7 +240,10 @@ class GestureManager private constructor() {
                 val handler = timingCoordinator.createDefaultHandler(
                     onReady = { _, _ ->
                         // Show first tap visual with multi-finger support
-                        gestureVisualManager.showMultiFingerVisual(fingerPlacement, GestureData.TAP_DURATION)
+                        gestureVisualManager.showMultiFingerVisual(
+                            fingerPlacement,
+                            GestureData.TAP_DURATION
+                        )
                     }
                 )
 
@@ -257,7 +260,7 @@ class GestureManager private constructor() {
                     fingerPlacement = fingerPlacement,
                     duration = GestureData.TAP_DURATION
                 )
-                
+
                 val gestureData = GestureData(
                     gestureType = GestureType.DOUBLE_TAP,
                     startPoint = fingerPlacement.primaryPoint,
@@ -274,7 +277,7 @@ class GestureManager private constructor() {
 
     /**
      * Performs a tap and hold gesture with extensible multi-finger support.
-     * 
+     *
      * This method demonstrates the method-level algorithm approach where tap-and-hold
      * gestures automatically benefit from enhanced stability when using two-finger mode.
      * The algorithm considers that tap-and-hold gestures are stability gestures that
@@ -302,7 +305,10 @@ class GestureManager private constructor() {
                     screenBounds = getScreenBounds()
                 )
 
-                Log.d("GestureManager", "Tap-and-hold placement: ${fingerPlacement.getDescription()}")
+                Log.d(
+                    "GestureManager",
+                    "Tap-and-hold placement: ${fingerPlacement.getDescription()}"
+                )
 
                 // Show enhanced multi-finger visual feedback
                 val duration = GestureData.TAP_AND_HOLD_DURATION
@@ -384,9 +390,9 @@ class GestureManager private constructor() {
     fun performCustomGestureAction(gestureData: GestureData): Boolean {
         // Always use stored finger count for pattern playback accuracy
         linearGesturePerformer.startGesture(
-            gestureData.gestureType, 
-            gestureData.fingerCount, 
-            false, 
+            gestureData.gestureType,
+            gestureData.fingerCount,
+            false,
             gestureData.startPoint
         )
         linearGesturePerformer.endGesture(gestureData.endPoint)
@@ -395,12 +401,12 @@ class GestureManager private constructor() {
 
     /**
      * Performs a swipe or scroll action with intelligent finger mode selection.
-     * 
+     *
      * Scroll Gesture Override:
-     * - All scroll gestures (SCROLL_UP, SCROLL_DOWN, SCROLL_LEFT, SCROLL_RIGHT) are forced 
+     * - All scroll gestures (SCROLL_UP, SCROLL_DOWN, SCROLL_LEFT, SCROLL_RIGHT) are forced
      *   to use single-finger input regardless of user preference or override settings
      * - This ensures optimal scrolling experience and consistency across all scroll operations
-     * 
+     *
      * Swipe Gesture Behavior:
      * - Swipe gestures continue to respect user preference or explicit overrides
      * - Maintains existing flexibility for navigation and interaction gestures
@@ -409,22 +415,33 @@ class GestureManager private constructor() {
      * @param startPoint The starting point of the gesture
      * @param overrideFingerMode Optional finger mode override for pattern playback (ignored for scroll gestures)
      */
-    fun performSwipeOrScroll(type: GestureType, startPoint: PointF? = null, overrideFingerMode: FingerMode? = null) {
+    fun performSwipeOrScroll(
+        type: GestureType,
+        startPoint: PointF? = null,
+        overrideFingerMode: FingerMode? = null
+    ) {
         val point = startPoint ?: GesturePoint.getPoint()
         if (AutoScrollManager.getInstance()
-                .startAutoScroll(GestureData(
-                    gestureType = type,
-                    startPoint = point,
-                    endPoint = null,
-                    fingerCount = 1, // AutoScroll uses single-finger by default
-                    fingerMode = com.enaboapps.switchify.service.gestures.placement.FingerMode.ONE
-                ))
+                .startAutoScroll(
+                    GestureData(
+                        gestureType = type,
+                        startPoint = point,
+                        endPoint = null,
+                        fingerCount = 1, // AutoScroll uses single-finger by default
+                        fingerMode = com.enaboapps.switchify.service.gestures.placement.FingerMode.ONE
+                    )
+                )
         ) return
-        
+
         // Enforce single-finger for all scroll gestures
         if (type.isScrollGesture()) {
             // Force single-finger for scroll gestures regardless of user preference or override
-            linearGesturePerformer.startGesture(type, explicitFingerCount = 1, showMessage = false, startingPoint = point)
+            linearGesturePerformer.startGesture(
+                type,
+                explicitFingerCount = 1,
+                showMessage = false,
+                startingPoint = point
+            )
         } else if (overrideFingerMode != null) {
             // Use explicit finger mode override for swipe pattern playback
             val fingerCount = when (overrideFingerMode) {
@@ -554,10 +571,10 @@ class GestureManager private constructor() {
 
     /**
      * Sets the finger mode preference for multi-finger gesture execution.
-     * 
+     *
      * This method allows dynamic switching between finger modes without requiring
      * app restart. The setting is immediately applied to all subsequent gesture calls.
-     * 
+     *
      * @param fingerMode The desired finger mode (ONE, TWO, THREE, FOUR, FIVE)
      */
     fun setFingerMode(fingerMode: FingerMode) {
@@ -565,7 +582,10 @@ class GestureManager private constructor() {
             val success = FingerModePreferences.setFingerMode(pm, fingerMode)
             if (success) {
                 accessibilityService?.let { context ->
-                    Log.d("GestureManager", "Finger mode set to: ${fingerMode.getDisplayName(context)}")
+                    Log.d(
+                        "GestureManager",
+                        "Finger mode set to: ${fingerMode.getDisplayName(context)}"
+                    )
                 }
             } else {
                 Log.e("GestureManager", "Failed to set finger mode to: $fingerMode")
@@ -575,7 +595,7 @@ class GestureManager private constructor() {
 
     /**
      * Gets the current finger mode setting.
-     * 
+     *
      * @return Current finger mode preference
      */
     fun getFingerMode(): FingerMode {
@@ -584,7 +604,7 @@ class GestureManager private constructor() {
 
     /**
      * Gets available finger modes for UI selection.
-     * 
+     *
      * @return List of all available finger modes
      */
     fun getAvailableFingerModes(): List<FingerMode> {

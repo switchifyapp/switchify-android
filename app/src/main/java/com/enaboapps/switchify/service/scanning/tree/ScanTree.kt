@@ -575,12 +575,12 @@ class ScanTree(
         resetForNextUse() // Reset the scanning state
         tree.clear() // Clear the tree
     }
-    
+
     /**
      * Get the tree items for external spatial navigation
      */
     fun getTree(): List<ScanTreeItem> = tree
-    
+
     /**
      * Set the current scan position directly for spatial navigation
      * @param treeIndex The tree item index to navigate to

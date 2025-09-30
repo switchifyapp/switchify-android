@@ -4,17 +4,17 @@
     android:viewportWidth="32"
     android:viewportHeight="32"
     android:tint="?attr/colorControlNormal">
-  <!-- List items with scan highlight -->
-  <path
-      android:fillColor="@android:color/white"
-      android:pathData="M4,6L28,6L28,10L4,10L4,6Z"/>
-  <path
-      android:fillColor="@android:color/white"
-      android:pathData="M4,12L28,12L28,16L4,16L4,12Z"/>
-  <path
-      android:fillColor="@android:color/white"
-      android:pathData="M4,18L28,18L28,22L4,22L4,18Z"/>
-  <path
-      android:fillColor="@android:color/white"
-      android:pathData="M4,24L28,24L28,28L4,28L4,24Z"/>
+    <!-- List items with scan highlight -->
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M4,6L28,6L28,10L4,10L4,6Z" />
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M4,12L28,12L28,16L4,16L4,12Z" />
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M4,18L28,18L28,22L4,22L4,18Z" />
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M4,24L28,24L28,28L4,28L4,24Z" />
 </vector>

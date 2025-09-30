@@ -63,7 +63,7 @@ data class GestureData(
 
     /**
      * Executes gesture using stored finger count for accurate pattern playback.
-     * 
+     *
      * This method ensures that patterns are played back with the exact finger count
      * that was used during recording, regardless of the current user finger mode preference.
      * For multi-finger gestures (fingerCount > 1), this method uses direct gesture
@@ -72,18 +72,22 @@ data class GestureData(
     fun executeGesture() {
         // Validate finger count and fallback to safe defaults if corrupted
         val safeFingerCount = fingerCount.coerceIn(1, 5)
-        
+
         // Create sanitized gesture data if finger count was invalid
         val sanitizedGesture = if (safeFingerCount != fingerCount) {
-            android.util.Log.w("GestureData", "Invalid finger count $fingerCount, using safe value $safeFingerCount")
+            android.util.Log.w(
+                "GestureData",
+                "Invalid finger count $fingerCount, using safe value $safeFingerCount"
+            )
             this.copy(fingerCount = safeFingerCount)
         } else {
             this
         }
-        
+
         // Only use finger mode override if the original data was valid
-        val overrideFingerMode = if (safeFingerCount == fingerCount) sanitizedGesture.fingerMode else null
-        
+        val overrideFingerMode =
+            if (safeFingerCount == fingerCount) sanitizedGesture.fingerMode else null
+
         // Always use the gesture methods with explicit finger mode override
         // This ensures pattern playback accuracy regardless of current user preference
         when (gestureType) {
@@ -119,7 +123,11 @@ data class GestureData(
             GestureType.SCROLL_DOWN,
             GestureType.SCROLL_LEFT,
             GestureType.SCROLL_RIGHT -> {
-                GestureManager.instance.performSwipeOrScroll(gestureType, sanitizedGesture.startPoint, overrideFingerMode)
+                GestureManager.instance.performSwipeOrScroll(
+                    gestureType,
+                    sanitizedGesture.startPoint,
+                    overrideFingerMode
+                )
             }
 
             GestureType.CUSTOM_SWIPE,

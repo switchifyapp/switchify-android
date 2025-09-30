@@ -4,16 +4,16 @@
     android:viewportWidth="32"
     android:viewportHeight="32"
     android:tint="?attr/colorControlNormal">
-  <!-- First tap circle -->
-  <path
-      android:fillColor="@android:color/white"
-      android:pathData="M10,12C12.2,12 14,13.8 14,16C14,18.2 12.2,20 10,20C7.8,20 6,18.2 6,16C6,13.8 7.8,12 10,12Z"/>
-  <!-- Second tap circle (slightly offset) -->
-  <path
-      android:fillColor="@android:color/white"
-      android:pathData="M22,12C24.2,12 26,13.8 26,16C26,18.2 24.2,20 22,20C19.8,20 18,18.2 18,16C18,13.8 19.8,12 22,12Z"/>
-  <!-- "2" indicator -->
-  <path
-      android:fillColor="@android:color/white"
-      android:pathData="M15,10L17,10L17,12L19,12L19,14L15,14L15,16L19,16L19,18L13,18L13,16L15,16L15,14L13,14L13,12L15,12L15,10Z"/>
+    <!-- First tap circle -->
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M10,12C12.2,12 14,13.8 14,16C14,18.2 12.2,20 10,20C7.8,20 6,18.2 6,16C6,13.8 7.8,12 10,12Z" />
+    <!-- Second tap circle (slightly offset) -->
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M22,12C24.2,12 26,13.8 26,16C26,18.2 24.2,20 22,20C19.8,20 18,18.2 18,16C18,13.8 19.8,12 22,12Z" />
+    <!-- "2" indicator -->
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M15,10L17,10L17,12L19,12L19,14L15,14L15,16L19,16L19,18L13,18L13,16L15,16L15,14L13,14L13,12L15,12L15,10Z" />
 </vector>

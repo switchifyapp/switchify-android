@@ -24,7 +24,7 @@ class ActiveAccessTechnique(private val context: Context) : AccessTechniqueObser
     private var radarManager: RadarManager? = null
     private var systemNodeScanner: SystemNodeScanner? = null
     private var keyboardScanner: KeyboardScanner? = null
-    
+
     // Track the technique that was active before switching to MENU
     private var underlyingTechnique: String? = null
 
@@ -88,21 +88,30 @@ class ActiveAccessTechnique(private val context: Context) : AccessTechniqueObser
         // Track the underlying technique when switching to MENU
         if (accessTechnique == AccessTechnique.Technique.MENU && underlyingTechnique == null) {
             // Store the technique from preferences as the underlying technique
-            underlyingTechnique = AccessTechnique.getStoredTechnique() ?: AccessTechnique.Technique.ITEM_SCAN
+            underlyingTechnique =
+                AccessTechnique.getStoredTechnique() ?: AccessTechnique.Technique.ITEM_SCAN
         } else if (accessTechnique != AccessTechnique.Technique.MENU) {
             // Clear underlying technique when not in menu mode
             underlyingTechnique = null
         }
-        
+
         cleanup(accessTechnique)
         // Trigger initialization of the new technique by accessing currentAccessTechnique
         try {
             currentAccessTechnique
         } catch (e: Exception) {
-            android.util.Log.w("ActiveAccessTechnique", "Failed to initialize technique: $accessTechnique", e)
+            android.util.Log.w(
+                "ActiveAccessTechnique",
+                "Failed to initialize technique: $accessTechnique",
+                e
+            )
         }
         // Use ServiceBridge for camera evaluation instead of direct calls
-        ServiceBridge.sendCommand(ServiceBridge.ServiceCommand.AccessTechniqueChanged(accessTechnique))
+        ServiceBridge.sendCommand(
+            ServiceBridge.ServiceCommand.AccessTechniqueChanged(
+                accessTechnique
+            )
+        )
     }
 
     fun setOnScanningStartCallback(callback: () -> Unit) {

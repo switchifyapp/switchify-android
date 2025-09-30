@@ -3,6 +3,7 @@ package com.enaboapps.switchify.service.menu.menus.main
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.service.actions.GlobalActionManager
+import com.enaboapps.switchify.service.camera.CameraPermissionManager
 import com.enaboapps.switchify.service.core.ServiceCore
 import com.enaboapps.switchify.service.core.SwitchifyAccessibilityService
 import com.enaboapps.switchify.service.gestures.GesturePoint
@@ -16,7 +17,6 @@ import com.enaboapps.switchify.service.techniques.AccessTechnique
 import com.enaboapps.switchify.service.techniques.headcontrol.HeadControlSettings
 import com.enaboapps.switchify.service.techniques.nodes.NodeExaminer
 import com.enaboapps.switchify.service.utils.DeviceLockObserver
-import com.enaboapps.switchify.service.camera.CameraPermissionManager
 
 class MainMenuStructure(private val accessibilityService: SwitchifyAccessibilityService) {
     private val gestureMenuStructure = GestureMenuStructure(accessibilityService)
@@ -150,23 +150,23 @@ class MainMenuStructure(private val accessibilityService: SwitchifyAccessibility
             if (CameraPermissionManager.getInstance(accessibilityService).hasPermission()) {
                 MenuItem(
                     id = "toggle_head_control",
-                    labelResource = if (HeadControlSettings(accessibilityService).isHeadControlEnabled()) 
-                        R.string.menu_item_disable_head_control 
-                    else 
+                    labelResource = if (HeadControlSettings(accessibilityService).isHeadControlEnabled())
+                        R.string.menu_item_disable_head_control
+                    else
                         R.string.menu_item_enable_head_control,
                     drawableId = R.drawable.ic_head_control_pointer,
                     action = {
                         val headControlService = ServiceCore.getHeadControlService()
                         val settings = HeadControlSettings(accessibilityService)
                         val currentlyEnabled = settings.isHeadControlEnabled()
-                        
+
                         // Try to toggle head control
                         val success = headControlService?.setEnabled(!currentlyEnabled) ?: false
                         if (success) {
                             // Only update settings if head control was successfully enabled/disabled
                             settings.setHeadControlEnabled(!currentlyEnabled)
                         }
-                        
+
                         // Close menu to show the effect
                         MenuManager.getInstance().closeMenuHierarchy()
                     }

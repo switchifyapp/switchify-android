@@ -110,7 +110,6 @@ class ScanningManager(
     }
 
 
-
     /**
      * Sets the scanning method to menu type.
      */

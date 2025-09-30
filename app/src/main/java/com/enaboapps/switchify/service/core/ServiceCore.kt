@@ -26,11 +26,11 @@ object ServiceCore {
         scanningManagerRef = WeakReference(ScanningManager(accessibilityService))
         switchEventProviderRef = WeakReference(SwitchEventProvider(accessibilityService))
         headControlServiceRef = WeakReference(HeadControlService.getInstance(accessibilityService))
-        
+
         val scanningManager = scanningManagerRef.get() ?: return
         val switchEventProvider = switchEventProviderRef.get() ?: return
         val headControlService = headControlServiceRef.get() ?: return
-        
+
         scanningManager.setup()
         headControlService.initialize()
         externalSwitchListenerRef =
@@ -82,7 +82,7 @@ object ServiceCore {
     fun getHeadControlService(): HeadControlService? {
         return headControlServiceRef.get()
     }
-    
+
     /**
      * Sets the camera manager instance.
      * @param cameraManager The camera manager instance to set.
@@ -90,7 +90,7 @@ object ServiceCore {
     fun setCameraManager(cameraManager: CameraManager) {
         cameraManagerRef = WeakReference(cameraManager)
     }
-    
+
     /**
      * Gets the camera manager instance.
      * @return The camera manager instance or null if not initialized.

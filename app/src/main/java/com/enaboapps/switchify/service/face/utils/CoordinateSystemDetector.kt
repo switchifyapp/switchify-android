@@ -3,11 +3,6 @@ package com.enaboapps.switchify.service.face.utils
 import android.content.Context
 import android.content.SharedPreferences
 import android.os.Build
-import android.util.Log
-import com.google.mediapipe.framework.image.MPImage
-import com.google.mediapipe.tasks.vision.core.RunningMode
-import com.google.mediapipe.tasks.vision.facelandmarker.FaceLandmarker
-import com.google.mediapipe.tasks.vision.facelandmarker.FaceLandmarkerResult
 
 /**
  * Detects the correct coordinate system for head pose on different devices.
@@ -114,7 +109,9 @@ class CoordinateSystemDetector(private val context: Context) {
      * Generate a unique key for this device
      */
     private fun getDeviceKey(): String {
-        return "${Build.BRAND.lowercase()}_${Build.MODEL.lowercase().replace(" ", "_").replace("-", "_")}"
+        return "${Build.BRAND.lowercase()}_${
+            Build.MODEL.lowercase().replace(" ", "_").replace("-", "_")
+        }"
     }
 
     /**
@@ -130,7 +127,10 @@ class CoordinateSystemDetector(private val context: Context) {
      * @param pitchInverted Whether pitch should be inverted
      * @param yawInverted Whether yaw should be inverted
      */
-    fun createCustomCoordinateSystem(pitchInverted: Boolean, yawInverted: Boolean): CoordinateSystem {
+    fun createCustomCoordinateSystem(
+        pitchInverted: Boolean,
+        yawInverted: Boolean
+    ): CoordinateSystem {
         val deviceKey = getDeviceKey()
         val customSystem = CoordinateSystem(
             pitchInverted = pitchInverted,

@@ -3,32 +3,32 @@
     android:height="100dp"
     android:viewportWidth="100"
     android:viewportHeight="100">
-    
+
     <!-- Large circular switch button at bottom -->
     <path
         android:fillColor="#000000"
         android:pathData="M 35 80 A 15 15 0 1 0 65 80 A 15 15 0 1 0 35 80" />
-    
+
     <!-- Index finger pointing down (center, thicker) -->
     <path
         android:fillColor="#000000"
         android:pathData="M44,55 L44,20 Q44,15 50,15 Q56,15 56,20 L56,55 Q56,60 50,60 Q44,60 44,55 Z" />
-    
+
     <!-- Middle finger (left, thicker) -->
     <path
         android:fillColor="#000000"
         android:pathData="M28,50 L28,20 Q28,15 34,15 Q40,15 40,20 L40,50 Q40,55 34,55 Q28,55 28,50 Z" />
-    
+
     <!-- Ring finger (right, thicker) -->
     <path
         android:fillColor="#000000"
         android:pathData="M60,50 L60,20 Q60,15 66,15 Q72,15 72,20 L72,50 Q72,55 66,55 Q60,55 60,50 Z" />
-    
+
     <!-- Palm -->
     <path
         android:fillColor="#000000"
         android:pathData="M30,20 Q30,15 35,15 L65,15 Q70,15 70,20 L70,35 Q70,40 65,40 L35,40 Q30,40 30,35 Z" />
-    
+
     <!-- Thumb (now on correct side) -->
     <path
         android:fillColor="#000000"

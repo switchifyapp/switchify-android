@@ -7,12 +7,12 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
+import android.hardware.camera2.CameraManager
 import android.os.Binder
 import android.os.Build
 import android.os.IBinder
 import android.os.PowerManager
 import android.util.Log
-import android.hardware.camera2.CameraManager
 import android.view.Surface
 import android.view.WindowManager
 import androidx.annotation.OptIn
@@ -26,9 +26,9 @@ import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.app.NotificationCompat
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.Observer
+import com.enaboapps.switchify.R
 import com.enaboapps.switchify.service.face.FaceProcessingService
 import com.enaboapps.switchify.service.window.ServiceMessageHUD
-import com.enaboapps.switchify.R
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -187,23 +187,26 @@ class CameraForegroundService : Service(), CameraLifecycle {
                 Log.d(TAG, "Service already initialized")
                 return true
             }
+
             CameraLifecycle.State.INITIALIZING -> {
                 Log.d(TAG, "Initialization already in progress")
                 return false
             }
+
             CameraLifecycle.State.DESTROYED -> {
                 Log.w(TAG, "Cannot initialize destroyed service")
                 return false
             }
+
             else -> {
                 // Proceed with initialization
             }
         }
-        
+
         return try {
             _lifecycleState.value = CameraLifecycle.State.INITIALIZING
             Log.d(TAG, "Initializing camera service")
-            
+
             if (isInitialized) {
                 _lifecycleState.value = CameraLifecycle.State.READY
                 return true
@@ -282,7 +285,9 @@ class CameraForegroundService : Service(), CameraLifecycle {
                     cameraProvider = null
                     imageAnalysis = null
                     currentLifecycleOwner = null
-                    boundCamera?.cameraInfo?.cameraState?.removeObserver(cameraStateObserver ?: return@launch)
+                    boundCamera?.cameraInfo?.cameraState?.removeObserver(
+                        cameraStateObserver ?: return@launch
+                    )
                     boundCamera = null
                     cameraStateObserver = null
                     retryJob?.cancel()
@@ -385,9 +390,11 @@ class CameraForegroundService : Service(), CameraLifecycle {
                     CameraState.ERROR_CAMERA_IN_USE,
                     CameraState.ERROR_MAX_CAMERAS_IN_USE,
                     CameraState.ERROR_OTHER_RECOVERABLE_ERROR -> onCameraInUse()
+
                     CameraState.ERROR_CAMERA_DISABLED,
                     CameraState.ERROR_DO_NOT_DISTURB_MODE_ENABLED,
                     CameraState.ERROR_STREAM_CONFIG -> onCameraFatal()
+
                     else -> onCameraInUse()
                 }
             }
@@ -670,24 +677,27 @@ class CameraForegroundService : Service(), CameraLifecycle {
                 Log.d(TAG, "Service already cleaned up")
                 return true
             }
+
             CameraLifecycle.State.CLEANING_UP -> {
                 Log.d(TAG, "Cleanup already in progress")
                 return false
             }
+
             CameraLifecycle.State.UNINITIALIZED -> {
                 Log.d(TAG, "Nothing to clean up")
                 _lifecycleState.value = CameraLifecycle.State.DESTROYED
                 return true
             }
+
             else -> {
                 // Proceed with cleanup
             }
         }
-        
+
         return try {
             _lifecycleState.value = CameraLifecycle.State.CLEANING_UP
             Log.d(TAG, "Cleaning up camera service")
-            
+
             isProcessing = false
             isInitialized = false
 

@@ -99,7 +99,7 @@ object AccessTechnique {
 
         saveCurrentTechnique()
     }
-    
+
     /**
      * Get the technique stored in preferences (not the current in-memory one)
      * This is useful for getting the underlying technique before switching to MENU

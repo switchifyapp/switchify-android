@@ -216,9 +216,9 @@ abstract class BaseNodeScanner : ScanTreeCallback {
         revertToCursorJob?.cancel()
         revertToCursorJob = coroutineScope.launch {
             delay(EMPTY_NODES_TIMEOUT_MS)
-        if (_scanTree != null && scanTree.isEmpty()) {
-            switchToCursorMode("empty nodes")
-        }
+            if (_scanTree != null && scanTree.isEmpty()) {
+                switchToCursorMode("empty nodes")
+            }
         }
     }
 

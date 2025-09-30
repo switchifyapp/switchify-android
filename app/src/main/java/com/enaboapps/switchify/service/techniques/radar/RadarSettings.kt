@@ -35,7 +35,10 @@ object RadarSettings {
      * @return The radar scan rate
      */
     fun getScanRate(): Long {
-        val speedLevel = preferenceManager?.getIntegerValue(PreferenceManager.Keys.PREFERENCE_KEY_RADAR_SPEED_LEVEL, ContinuousLineSpeedUtils.getDefaultSpeedLevel()) ?: ContinuousLineSpeedUtils.getDefaultSpeedLevel()
+        val speedLevel = preferenceManager?.getIntegerValue(
+            PreferenceManager.Keys.PREFERENCE_KEY_RADAR_SPEED_LEVEL,
+            ContinuousLineSpeedUtils.getDefaultSpeedLevel()
+        ) ?: ContinuousLineSpeedUtils.getDefaultSpeedLevel()
         return ContinuousLineSpeedUtils.speedLevelToInterval(speedLevel)
     }
 
@@ -44,7 +47,10 @@ object RadarSettings {
      * @return The speed level where 1 = slowest, 25 = fastest
      */
     fun getSpeedLevel(): Int {
-        return preferenceManager?.getIntegerValue(PreferenceManager.Keys.PREFERENCE_KEY_RADAR_SPEED_LEVEL, ContinuousLineSpeedUtils.getDefaultSpeedLevel()) ?: ContinuousLineSpeedUtils.getDefaultSpeedLevel()
+        return preferenceManager?.getIntegerValue(
+            PreferenceManager.Keys.PREFERENCE_KEY_RADAR_SPEED_LEVEL,
+            ContinuousLineSpeedUtils.getDefaultSpeedLevel()
+        ) ?: ContinuousLineSpeedUtils.getDefaultSpeedLevel()
     }
 
     /**
@@ -84,7 +90,8 @@ object RadarSettings {
      * @return true if radar slow down then select mode is enabled, false otherwise
      */
     fun isSlowDownThenSelectEnabled(): Boolean {
-        return preferenceManager?.getBooleanValue(PreferenceManager.Keys.PREFERENCE_KEY_RADAR_SLOW_DOWN_THEN_SELECT) ?: false
+        return preferenceManager?.getBooleanValue(PreferenceManager.Keys.PREFERENCE_KEY_RADAR_SLOW_DOWN_THEN_SELECT)
+            ?: false
     }
 
     /**

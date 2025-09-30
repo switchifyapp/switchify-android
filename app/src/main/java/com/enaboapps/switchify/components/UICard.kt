@@ -37,7 +37,8 @@ fun UICard(
 ) {
     val title = titleResId?.let { stringResource(it) } ?: runtimeTitle ?: ""
     val description = runtimeDescription ?: descriptionResId?.let { stringResource(it) }
-    val extraDescription = runtimeExtraDescription ?: extraDescriptionResId?.let { stringResource(it) }
+    val extraDescription =
+        runtimeExtraDescription ?: extraDescriptionResId?.let { stringResource(it) }
     Card(
         modifier = modifier
             .fillMaxWidth()

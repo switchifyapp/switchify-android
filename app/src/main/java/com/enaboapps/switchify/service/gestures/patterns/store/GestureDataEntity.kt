@@ -42,7 +42,7 @@ data class GestureDataEntity(
                 endY
             ) else null,
             fingerCount = fingerCount,
-            fingerMode = fingerMode?.let { 
+            fingerMode = fingerMode?.let {
                 try {
                     com.enaboapps.switchify.service.gestures.placement.FingerMode.fromString(it)
                 } catch (e: Exception) {

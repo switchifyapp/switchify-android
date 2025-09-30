@@ -87,7 +87,7 @@ object SelectionHandler {
      */
     fun performSelectionAction() {
         if (!ensureInitializedOrWarn("selection action")) return
-        
+
         // Check if a linear gesture is in progress
         if (GestureManager.instance.isPerformingLinearGesture()) {
             MenuManager.getInstance().openCustomGestureConfirmationMenu()
@@ -146,7 +146,7 @@ object SelectionHandler {
      */
     fun performStartScanningAction() {
         if (!ensureInitializedOrWarn("start scanning action")) return
-        
+
         CoroutineScope(Dispatchers.Main).launch {
             delay(300)
             if (scanSettings.getAutomaticallyStartScanAfterSelection()) {

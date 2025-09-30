@@ -47,7 +47,10 @@ class MediaPipeManager {
         }
     }
 
-    fun detectForVideo(bitmap: Bitmap, timestampMs: Long): com.google.mediapipe.tasks.vision.facelandmarker.FaceLandmarkerResult? {
+    fun detectForVideo(
+        bitmap: Bitmap,
+        timestampMs: Long
+    ): com.google.mediapipe.tasks.vision.facelandmarker.FaceLandmarkerResult? {
         val landmarker = faceLandmarker ?: return null
         return try {
             val mpImage = BitmapImageBuilder(bitmap).build()

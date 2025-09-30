@@ -7,11 +7,11 @@ import android.graphics.BitmapFactory
 import android.graphics.ImageFormat
 import android.graphics.Rect
 import android.graphics.YuvImage
-import android.view.Surface
-import android.view.WindowManager
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import android.view.Surface
+import android.view.WindowManager
 import androidx.annotation.OptIn
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ExperimentalGetImage

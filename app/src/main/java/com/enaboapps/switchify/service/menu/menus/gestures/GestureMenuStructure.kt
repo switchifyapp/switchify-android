@@ -230,7 +230,7 @@ class GestureMenuStructure(private val context: Context) {
 
     /**
      * Finger mode selection menu structure.
-     * 
+     *
      * This menu allows users to select between different finger modes for the
      * multi-finger gesture system. The selected mode affects how many fingers
      * are used for gesture execution across all gesture types (except zoom).

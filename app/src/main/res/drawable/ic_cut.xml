@@ -4,22 +4,22 @@
     android:viewportWidth="32"
     android:viewportHeight="32"
     android:tint="?attr/colorControlNormal">
-  <!-- Scissors handles -->
-  <path
-      android:fillColor="@android:color/white"
-      android:pathData="M6,10C7.1,10 8,10.9 8,12C8,13.1 7.1,14 6,14C4.9,14 4,13.1 4,12C4,10.9 4.9,10 6,10Z"/>
-  <path
-      android:fillColor="@android:color/white"
-      android:pathData="M6,18C7.1,18 8,18.9 8,20C8,21.1 7.1,22 6,22C4.9,22 4,21.1 4,20C4,18.9 4.9,18 6,18Z"/>
-  <!-- Scissors blades -->
-  <path
-      android:strokeColor="@android:color/white"
-      android:strokeWidth="1.5"
-      android:pathData="M8,12L24,24M8,20L24,8"/>
-  <!-- Cut line indicator -->
-  <path
-      android:strokeColor="@android:color/white"
-      android:strokeWidth="1"
-      android:strokeLineCap="round"
-      android:pathData="M26,6L26,8M26,10L26,12M26,14L26,16M26,18L26,20M26,22L26,24M26,26L26,28"/>
+    <!-- Scissors handles -->
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M6,10C7.1,10 8,10.9 8,12C8,13.1 7.1,14 6,14C4.9,14 4,13.1 4,12C4,10.9 4.9,10 6,10Z" />
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M6,18C7.1,18 8,18.9 8,20C8,21.1 7.1,22 6,22C4.9,22 4,21.1 4,20C4,18.9 4.9,18 6,18Z" />
+    <!-- Scissors blades -->
+    <path
+        android:strokeColor="@android:color/white"
+        android:strokeWidth="1.5"
+        android:pathData="M8,12L24,24M8,20L24,8" />
+    <!-- Cut line indicator -->
+    <path
+        android:strokeColor="@android:color/white"
+        android:strokeWidth="1"
+        android:strokeLineCap="round"
+        android:pathData="M26,6L26,8M26,10L26,12M26,14L26,16M26,18L26,20M26,22L26,24M26,26L26,28" />
 </vector>

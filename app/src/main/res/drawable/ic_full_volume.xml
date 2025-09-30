@@ -4,18 +4,18 @@
     android:viewportWidth="32"
     android:viewportHeight="32"
     android:tint="?attr/colorControlNormal">
-  <!-- Speaker cone -->
-  <path
-      android:fillColor="@android:color/white"
-      android:pathData="M4,12L4,20L8,20L14,24L14,8L8,12L4,12Z"/>
-  <!-- Maximum volume waves -->
-  <path
-      android:strokeColor="@android:color/white"
-      android:strokeWidth="1.5"
-      android:pathData="M17,14A2,2 0 0,1 17,18M19,12A4,4 0 0,1 19,20M21,10A6,6 0 0,1 21,22M23,8A8,8 0 0,1 23,24"
-      android:fillType="nonZero"/>
-  <!-- Max indicator -->
-  <path
-      android:fillColor="@android:color/white"
-      android:pathData="M26,6L26,8L28,8L28,10L30,10L30,8L32,8L32,6L30,6L30,4L28,4L28,6L26,6Z"/>
+    <!-- Speaker cone -->
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M4,12L4,20L8,20L14,24L14,8L8,12L4,12Z" />
+    <!-- Maximum volume waves -->
+    <path
+        android:strokeColor="@android:color/white"
+        android:strokeWidth="1.5"
+        android:pathData="M17,14A2,2 0 0,1 17,18M19,12A4,4 0 0,1 19,20M21,10A6,6 0 0,1 21,22M23,8A8,8 0 0,1 23,24"
+        android:fillType="nonZero" />
+    <!-- Max indicator -->
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M26,6L26,8L28,8L28,10L30,10L30,8L32,8L32,6L30,6L30,4L28,4L28,6L26,6Z" />
 </vector>

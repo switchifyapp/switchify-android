@@ -69,10 +69,10 @@ enum class GestureType {
 
     /**
      * Checks if this gesture type is a scroll gesture.
-     * 
+     *
      * Scroll gestures are content navigation gestures that should always use
      * single-finger input for optimal accessibility and user experience.
-     * 
+     *
      * @return true if this is a scroll gesture, false otherwise
      */
     fun isScrollGesture(): Boolean {

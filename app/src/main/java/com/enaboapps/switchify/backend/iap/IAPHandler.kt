@@ -15,9 +15,9 @@ import com.revenuecat.purchases.Offerings
 import com.revenuecat.purchases.Purchases
 import com.revenuecat.purchases.PurchasesConfiguration
 import com.revenuecat.purchases.PurchasesError
+import com.revenuecat.purchases.PurchasesErrorCode
 import com.revenuecat.purchases.interfaces.ReceiveCustomerInfoCallback
 import com.revenuecat.purchases.interfaces.ReceiveOfferingsCallback
-import com.revenuecat.purchases.PurchasesErrorCode
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
@@ -346,17 +346,20 @@ object IAPHandler {
                         Log.w(TAG, "Billing restricted: ${error.message}")
                         PurchaseCapability.Restricted
                     }
+
                     PurchasesErrorCode.ConfigurationError,
                     PurchasesErrorCode.UnsupportedError,
                     PurchasesErrorCode.StoreProblemError -> {
                         Log.w(TAG, "Billing unavailable: ${error.message}")
                         PurchaseCapability.Unavailable
                     }
+
                     PurchasesErrorCode.NetworkError,
                     PurchasesErrorCode.UnknownError -> {
                         Log.e(TAG, "Store/network error checking capability: ${error.message}")
                         PurchaseCapability.Unknown
                     }
+
                     else -> {
                         Log.e(TAG, "Error checking purchase capability: ${error.message}")
                         PurchaseCapability.Unknown

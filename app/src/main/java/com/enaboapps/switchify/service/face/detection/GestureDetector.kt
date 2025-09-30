@@ -3,7 +3,6 @@ package com.enaboapps.switchify.service.face.detection
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.service.face.processing.BlendshapeProcessor
 import com.enaboapps.switchify.service.face.state.FaceStateManager
-import com.enaboapps.switchify.service.face.utils.HeadPoseCalculator
 import com.enaboapps.switchify.switches.CameraSwitchFacialGesture
 import kotlin.math.abs
 
@@ -38,7 +37,7 @@ class GestureDetector(private val preferenceManager: PreferenceManager) {
 
         // Check if head pose allows for reliable eye gesture detection
         val validHeadPose = abs(faceState.headRotationY) < HEAD_POSE_YAW_LIMIT &&
-                           abs(faceState.headRotationX) < HEAD_POSE_PITCH_LIMIT
+                abs(faceState.headRotationX) < HEAD_POSE_PITCH_LIMIT
 
         // Smile detection
         if (faceState.isSmiling) {
@@ -64,18 +63,25 @@ class GestureDetector(private val preferenceManager: PreferenceManager) {
             val (leftWink, rightWink) = winkResults
             if (leftWink) {
                 detectedGestures.add(CameraSwitchFacialGesture.LEFT_WINK)
-                gestureConfidence[CameraSwitchFacialGesture.LEFT_WINK] = blendshapeScores.leftEyeCloseScore
+                gestureConfidence[CameraSwitchFacialGesture.LEFT_WINK] =
+                    blendshapeScores.leftEyeCloseScore
             }
             if (rightWink) {
                 detectedGestures.add(CameraSwitchFacialGesture.RIGHT_WINK)
-                gestureConfidence[CameraSwitchFacialGesture.RIGHT_WINK] = blendshapeScores.rightEyeCloseScore
+                gestureConfidence[CameraSwitchFacialGesture.RIGHT_WINK] =
+                    blendshapeScores.rightEyeCloseScore
             }
 
             // Note: Mouth open detection removed as MOUTH_OPEN gesture doesn't exist in constants
         }
 
         // Head turn detection
-        detectHeadTurns(faceState.headRotationY, faceState.headRotationX, detectedGestures, gestureConfidence)
+        detectHeadTurns(
+            faceState.headRotationY,
+            faceState.headRotationX,
+            detectedGestures,
+            gestureConfidence
+        )
 
         return detectedGestures
     }
@@ -98,24 +104,32 @@ class GestureDetector(private val preferenceManager: PreferenceManager) {
         val downTurnMagnitude = if (pitch > downThreshold) abs(pitch - downThreshold) else 0f
 
         // Only trigger the strongest head turn to avoid conflicts
-        val maxMagnitude = maxOf(leftTurnMagnitude, rightTurnMagnitude, upTurnMagnitude, downTurnMagnitude)
+        val maxMagnitude =
+            maxOf(leftTurnMagnitude, rightTurnMagnitude, upTurnMagnitude, downTurnMagnitude)
 
         when (maxMagnitude) {
             leftTurnMagnitude -> if (leftTurnMagnitude > 0f) {
                 detectedGestures.add(CameraSwitchFacialGesture.HEAD_TURN_LEFT)
-                gestureConfidence[CameraSwitchFacialGesture.HEAD_TURN_LEFT] = normalizeConfidence(leftTurnMagnitude, leftThreshold, 15f)
+                gestureConfidence[CameraSwitchFacialGesture.HEAD_TURN_LEFT] =
+                    normalizeConfidence(leftTurnMagnitude, leftThreshold, 15f)
             }
+
             rightTurnMagnitude -> if (rightTurnMagnitude > 0f) {
                 detectedGestures.add(CameraSwitchFacialGesture.HEAD_TURN_RIGHT)
-                gestureConfidence[CameraSwitchFacialGesture.HEAD_TURN_RIGHT] = normalizeConfidence(rightTurnMagnitude, rightThreshold, 15f)
+                gestureConfidence[CameraSwitchFacialGesture.HEAD_TURN_RIGHT] =
+                    normalizeConfidence(rightTurnMagnitude, rightThreshold, 15f)
             }
+
             upTurnMagnitude -> if (upTurnMagnitude > 0f) {
                 detectedGestures.add(CameraSwitchFacialGesture.HEAD_TURN_UP)
-                gestureConfidence[CameraSwitchFacialGesture.HEAD_TURN_UP] = normalizeConfidence(upTurnMagnitude, upThreshold, 15f)
+                gestureConfidence[CameraSwitchFacialGesture.HEAD_TURN_UP] =
+                    normalizeConfidence(upTurnMagnitude, upThreshold, 15f)
             }
+
             downTurnMagnitude -> if (downTurnMagnitude > 0f) {
                 detectedGestures.add(CameraSwitchFacialGesture.HEAD_TURN_DOWN)
-                gestureConfidence[CameraSwitchFacialGesture.HEAD_TURN_DOWN] = normalizeConfidence(downTurnMagnitude, downThreshold, 15f)
+                gestureConfidence[CameraSwitchFacialGesture.HEAD_TURN_DOWN] =
+                    normalizeConfidence(downTurnMagnitude, downThreshold, 15f)
             }
         }
     }

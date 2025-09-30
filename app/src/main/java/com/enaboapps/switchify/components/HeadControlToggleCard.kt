@@ -24,12 +24,12 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.service.camera.CameraPermissionManager
@@ -47,7 +47,8 @@ fun HeadControlToggleCard(
     val context = LocalContext.current
 
     val isServiceActive = remember { serviceUtils.isAccessibilityServiceEnabled(context) }
-    val hasCameraPermission = remember { CameraPermissionManager.getInstance(context).hasPermission() }
+    val hasCameraPermission =
+        remember { CameraPermissionManager.getInstance(context).hasPermission() }
 
     if (!isServiceActive || !hasCameraPermission) return
 
@@ -55,7 +56,7 @@ fun HeadControlToggleCard(
     var headEnabled by remember { mutableStateOf(settings.isHeadControlEnabled()) }
     var coolingDown by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
-    
+
     // Listen to ServiceBridge events for actual state changes
     LaunchedEffect(Unit) {
         ServiceBridge.serviceEvents.collect { event ->
@@ -66,9 +67,12 @@ fun HeadControlToggleCard(
         }
     }
 
-    val iconScale by animateFloatAsState(targetValue = if (headEnabled) 1.1f else 1.0f, label = "iconScale")
+    val iconScale by animateFloatAsState(
+        targetValue = if (headEnabled) 1.1f else 1.0f,
+        label = "iconScale"
+    )
 
-    val onClick = onClick@ {
+    val onClick = onClick@{
         if (coolingDown) return@onClick
         val desired = !headEnabled
         // Don't update state optimistically - wait for ServiceBridge event

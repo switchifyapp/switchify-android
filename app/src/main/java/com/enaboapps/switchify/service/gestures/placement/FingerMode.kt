@@ -220,7 +220,7 @@ enum class FingerMode {
     /**
      * Converts string preference values back to enum values.
      * Used by PreferenceManager for persistence and retrieval.
-     * 
+     *
      * @param value String representation of finger mode (case-insensitive)
      * @return Corresponding FingerMode enum, or ONE if invalid value provided
      */
@@ -230,7 +230,11 @@ enum class FingerMode {
                 valueOf(value.uppercase())
             } catch (e: IllegalArgumentException) {
                 // Log the invalid value for debugging, but continue with default
-                android.util.Log.w("FingerMode", "Unknown finger mode value: $value, using default ONE", e)
+                android.util.Log.w(
+                    "FingerMode",
+                    "Unknown finger mode value: $value, using default ONE",
+                    e
+                )
                 // Default to ONE finger for unknown values - provides universal compatibility
                 ONE
             }
@@ -238,26 +242,26 @@ enum class FingerMode {
 
         /**
          * Returns the default finger mode for new users.
-         * 
+         *
          * ONE is chosen as the default because:
          * - Provides maximum precision for all users
          * - Universal compatibility with all apps and gesture types
          * - Familiar interaction model for most users
          * - Users can upgrade to multi-finger modes as needed for stability
-         * 
+         *
          * @return ONE finger mode as the default
          */
         fun getDefault(): FingerMode = ONE
 
         /**
          * Returns all available finger modes for UI selection.
-         * 
+         *
          * All modes use natural finger placement algorithms with:
          * - Biomechanically accurate spacing based on hand anatomy
          * - Natural hand curvature simulation
          * - Dynamic scaling for different screen sizes
          * - Multi-touch app compatibility
-         * 
+         *
          * @return Complete list of all finger modes (ONE through FIVE)
          */
         fun getAllModes(): List<FingerMode> = values().toList()

@@ -14,7 +14,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
@@ -144,7 +143,9 @@ fun PreferenceValueSelector(
                                         onValueChanged(i)
                                         showDialog = false
                                     },
-                                    modifier = Modifier.weight(1f).padding(horizontal = 2.dp),
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .padding(horizontal = 2.dp),
                                     colors = ButtonDefaults.outlinedButtonColors(
                                         containerColor = if (currentValue == i)
                                             MaterialTheme.colorScheme.primaryContainer

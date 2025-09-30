@@ -3,21 +3,15 @@ package com.enaboapps.switchify.screens.settings
 import android.Manifest
 import android.app.Application
 import androidx.camera.view.PreviewView
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -36,11 +30,11 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -52,12 +46,10 @@ import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.CameraPermissionHandler
 import com.enaboapps.switchify.components.NavigationHintCard
 import com.enaboapps.switchify.components.PreferenceTimeStepper
-import com.enaboapps.switchify.components.PreferenceValueSelector
 import com.enaboapps.switchify.components.ScrollableView
 import com.enaboapps.switchify.components.Section
 import com.enaboapps.switchify.nav.NavigationRoute
 import com.enaboapps.switchify.screens.settings.models.CameraSettingsScreenModel
-import com.enaboapps.switchify.service.face.FaceProcessingService
 import com.enaboapps.switchify.service.face.FacialGestureRegistry
 import com.enaboapps.switchify.switches.CameraSwitchFacialGesture
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
@@ -69,7 +61,8 @@ fun CameraSettingsScreen(navController: NavController) {
     val context = LocalContext.current
     val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
     val cameraPermissionState = rememberPermissionState(Manifest.permission.CAMERA)
-    val viewModel: CameraSettingsScreenModel = viewModel { CameraSettingsScreenModel(context.applicationContext as Application) }
+    val viewModel: CameraSettingsScreenModel =
+        viewModel { CameraSettingsScreenModel(context.applicationContext as Application) }
 
     BaseView(
         titleResId = R.string.screen_title_camera_settings,
@@ -80,7 +73,7 @@ fun CameraSettingsScreen(navController: NavController) {
             permissionState = cameraPermissionState,
             onPermissionGranted = {
                 CameraSettingsContent(
-                    viewModel = viewModel, 
+                    viewModel = viewModel,
                     lifecycleOwner = lifecycleOwner,
                     navController = navController
                 )
@@ -105,8 +98,7 @@ private fun CameraSettingsContent(
     val rightWinkTime by viewModel.rightWinkTime.collectAsState()
     val blinkTime by viewModel.blinkTime.collectAsState()
     val puckerTime by viewModel.puckerTime.collectAsState()
-    
-    
+
 
     var selectedTabIndex by remember { mutableIntStateOf(0) }
     val tabTitles = listOf(
@@ -135,7 +127,7 @@ private fun CameraSettingsContent(
                 },
                 modifier = Modifier.padding(vertical = 8.dp)
             )
-            
+
             TabRow(
                 selectedTabIndex = selectedTabIndex,
                 modifier = Modifier.fillMaxWidth()
@@ -236,7 +228,6 @@ private fun ExpressionFeedback(
     }
 }
 
- 
 
 @Composable
 private fun TestGesturesTab(

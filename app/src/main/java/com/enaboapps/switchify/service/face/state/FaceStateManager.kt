@@ -104,7 +104,8 @@ class FaceStateManager {
 
         // Determine eye states (considering blink state)
         val leftEyeOpen = if (isCurrentlyBlinking) false else (leftEyeClose < BLINK_ENTER_THRESHOLD)
-        val rightEyeOpen = if (isCurrentlyBlinking) false else (rightEyeClose < BLINK_ENTER_THRESHOLD)
+        val rightEyeOpen =
+            if (isCurrentlyBlinking) false else (rightEyeClose < BLINK_ENTER_THRESHOLD)
 
         return FaceState(
             leftEyeOpen = leftEyeOpen,
@@ -142,7 +143,8 @@ class FaceStateManager {
         val timeSinceLastBlink = currentTime - lastBlinkTime
 
         if (!isBlinkActive && blinkScore > BLINK_ENTER_THRESHOLD &&
-            timeSinceLastBlink > BLINK_REFRACTORY_PERIOD) {
+            timeSinceLastBlink > BLINK_REFRACTORY_PERIOD
+        ) {
             isBlinkActive = true
             lastBlinkTime = currentTime
         } else if (isBlinkActive && blinkScore < BLINK_EXIT_THRESHOLD) {
@@ -165,7 +167,11 @@ class FaceStateManager {
         return Pair(leftWink, rightWink)
     }
 
-    private fun processLeftWink(leftEyeClose: Float, rightEyeClose: Float, currentTime: Long): Boolean {
+    private fun processLeftWink(
+        leftEyeClose: Float,
+        rightEyeClose: Float,
+        currentTime: Long
+    ): Boolean {
         val leftClosed = leftEyeClose > BLINK_ENTER_THRESHOLD
         val rightOpen = rightEyeClose < BLINK_EXIT_THRESHOLD
 
@@ -183,7 +189,11 @@ class FaceStateManager {
         return false
     }
 
-    private fun processRightWink(leftEyeClose: Float, rightEyeClose: Float, currentTime: Long): Boolean {
+    private fun processRightWink(
+        leftEyeClose: Float,
+        rightEyeClose: Float,
+        currentTime: Long
+    ): Boolean {
         val rightClosed = rightEyeClose > BLINK_ENTER_THRESHOLD
         val leftOpen = leftEyeClose < BLINK_EXIT_THRESHOLD
 

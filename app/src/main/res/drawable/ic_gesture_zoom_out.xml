@@ -4,24 +4,24 @@
     android:viewportWidth="32"
     android:viewportHeight="32"
     android:tint="?attr/colorControlNormal">
-  <!-- Two fingers much further apart -->
-  <path
-      android:fillColor="@android:color/white"
-      android:pathData="M6,13A3,3 0 1,1 6,19A3,3 0 0,1 6,13Z"/>
-  <path
-      android:fillColor="@android:color/white"
-      android:pathData="M26,13A3,3 0 1,1 26,19A3,3 0 0,1 26,13Z"/>
-  <!-- Arrows showing fingers coming together -->
-  <path
-      android:strokeColor="@android:color/white"
-      android:strokeWidth="3"
-      android:strokeLineCap="round"
-      android:strokeLineJoin="round"
-      android:pathData="M9,16L14,16M14,16L12,14M14,16L12,18"/>
-  <path
-      android:strokeColor="@android:color/white"
-      android:strokeWidth="3"
-      android:strokeLineCap="round"
-      android:strokeLineJoin="round"
-      android:pathData="M23,16L18,16M18,16L20,14M18,16L20,18"/>
+    <!-- Two fingers much further apart -->
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M6,13A3,3 0 1,1 6,19A3,3 0 0,1 6,13Z" />
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M26,13A3,3 0 1,1 26,19A3,3 0 0,1 26,13Z" />
+    <!-- Arrows showing fingers coming together -->
+    <path
+        android:strokeColor="@android:color/white"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M9,16L14,16M14,16L12,14M14,16L12,18" />
+    <path
+        android:strokeColor="@android:color/white"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M23,16L18,16M18,16L20,14M18,16L20,18" />
 </vector>

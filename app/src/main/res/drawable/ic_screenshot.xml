@@ -4,23 +4,23 @@
     android:viewportWidth="32"
     android:viewportHeight="32"
     android:tint="?attr/colorControlNormal">
-  <!-- Camera body -->
-  <path
-      android:fillColor="@android:color/white"
-      android:pathData="M6,10L26,10L26,22L6,22L6,10Z"/>
-  <!-- Camera lens -->
-  <path
-      android:strokeColor="@android:color/black"
-      android:strokeWidth="2"
-      android:pathData="M16,13A3,3 0 1,1 13,16A3,3 0 0,1 16,13Z"
-      android:fillType="nonZero"/>
-  <!-- Camera flash -->
-  <path
-      android:fillColor="@android:color/white"
-      android:pathData="M22,12L24,12L24,14L22,14L22,12Z"/>
-  <!-- Screen corners to indicate capture -->
-  <path
-      android:strokeColor="@android:color/white"
-      android:strokeWidth="1.5"
-      android:pathData="M4,6L4,4L6,4M28,4L28,6L26,6M4,26L4,28L6,28M26,28L28,28L28,26"/>
+    <!-- Camera body -->
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M6,10L26,10L26,22L6,22L6,10Z" />
+    <!-- Camera lens -->
+    <path
+        android:strokeColor="@android:color/black"
+        android:strokeWidth="2"
+        android:pathData="M16,13A3,3 0 1,1 13,16A3,3 0 0,1 16,13Z"
+        android:fillType="nonZero" />
+    <!-- Camera flash -->
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M22,12L24,12L24,14L22,14L22,12Z" />
+    <!-- Screen corners to indicate capture -->
+    <path
+        android:strokeColor="@android:color/white"
+        android:strokeWidth="1.5"
+        android:pathData="M4,6L4,4L6,4M28,4L28,6L26,6M4,26L4,28L6,28M26,28L28,28L28,26" />
 </vector>

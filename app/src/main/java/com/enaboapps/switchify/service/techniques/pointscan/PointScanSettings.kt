@@ -99,7 +99,10 @@ object PointScanSettings {
      * @return The time interval in milliseconds
      */
     fun getFineCursorScanRate(): Long {
-        val speedLevel = preferenceManager?.getIntegerValue(PreferenceManager.Keys.PREFERENCE_KEY_POINT_SCAN_LINE_SPEED_LEVEL, ContinuousLineSpeedUtils.getDefaultSpeedLevel())
+        val speedLevel = preferenceManager?.getIntegerValue(
+            PreferenceManager.Keys.PREFERENCE_KEY_POINT_SCAN_LINE_SPEED_LEVEL,
+            ContinuousLineSpeedUtils.getDefaultSpeedLevel()
+        )
             ?: ContinuousLineSpeedUtils.getDefaultSpeedLevel()
         return ContinuousLineSpeedUtils.speedLevelToInterval(speedLevel)
     }
@@ -109,7 +112,10 @@ object PointScanSettings {
      * @return The speed level where 1 = slowest, 25 = fastest
      */
     fun getLineSpeedLevel(): Int {
-        return preferenceManager?.getIntegerValue(PreferenceManager.Keys.PREFERENCE_KEY_POINT_SCAN_LINE_SPEED_LEVEL, ContinuousLineSpeedUtils.getDefaultSpeedLevel())
+        return preferenceManager?.getIntegerValue(
+            PreferenceManager.Keys.PREFERENCE_KEY_POINT_SCAN_LINE_SPEED_LEVEL,
+            ContinuousLineSpeedUtils.getDefaultSpeedLevel()
+        )
             ?: ContinuousLineSpeedUtils.getDefaultSpeedLevel()
     }
 

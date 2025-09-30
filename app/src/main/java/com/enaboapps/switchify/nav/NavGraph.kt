@@ -4,7 +4,6 @@ import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import androidx.navigation.navDeepLink
 import com.enaboapps.switchify.screens.DebugScreen
 import com.enaboapps.switchify.screens.EnableAccessibilityServiceScreen
 import com.enaboapps.switchify.screens.HomeScreen

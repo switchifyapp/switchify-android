@@ -4,20 +4,20 @@
     android:viewportWidth="32"
     android:viewportHeight="32"
     android:tint="?attr/colorControlNormal">
-  <!-- Microphone body -->
-  <path
-      android:fillColor="@android:color/white"
-      android:pathData="M16,4C17.1,4 18,4.9 18,6L18,14C18,15.1 17.1,16 16,16C14.9,16 14,15.1 14,14L14,6C14,4.9 14.9,4 16,4Z"/>
-  <!-- Microphone stand -->
-  <path
-      android:fillColor="@android:color/white"
-      android:pathData="M16,18L16,22L16,24L14,24L18,24L16,24"/>
-  <!-- Sound waves -->
-  <path
-      android:fillColor="@android:color/white"
-      android:pathData="M12,10C12,8 12,8 12,10C12,12 12,12 12,10M20,10C20,8 20,8 20,10C20,12 20,12 20,10"/>
-  <!-- Outer sound waves -->
-  <path
-      android:fillColor="@android:color/white"
-      android:pathData="M10,8C10,6 10,6 10,8C10,14 10,14 10,8M22,8C22,6 22,6 22,8C22,14 22,14 22,8"/>
+    <!-- Microphone body -->
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M16,4C17.1,4 18,4.9 18,6L18,14C18,15.1 17.1,16 16,16C14.9,16 14,15.1 14,14L14,6C14,4.9 14.9,4 16,4Z" />
+    <!-- Microphone stand -->
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M16,18L16,22L16,24L14,24L18,24L16,24" />
+    <!-- Sound waves -->
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M12,10C12,8 12,8 12,10C12,12 12,12 12,10M20,10C20,8 20,8 20,10C20,12 20,12 20,10" />
+    <!-- Outer sound waves -->
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M10,8C10,6 10,6 10,8C10,14 10,14 10,8M22,8C22,6 22,6 22,8C22,14 22,14 22,8" />
 </vector>

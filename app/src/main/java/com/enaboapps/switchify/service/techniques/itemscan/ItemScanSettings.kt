@@ -13,7 +13,8 @@ object ItemScanSettings {
 
     private var preferenceManager: PreferenceManager? = null
 
-    const val ITEM_SCAN_SETTINGS_CHANGED_ACTION = "com.enaboapps.switchify.ITEM_SCAN_SETTINGS_CHANGED"
+    const val ITEM_SCAN_SETTINGS_CHANGED_ACTION =
+        "com.enaboapps.switchify.ITEM_SCAN_SETTINGS_CHANGED"
 
     fun init(context: Context) {
         preferenceManager = PreferenceManager(context)
@@ -60,8 +61,8 @@ object ItemScanSettings {
 
         // Only enable if auto scan mode and gesture lock is not enabled
         return autoStartEnabled &&
-               isAutoScanMode() &&
-               !GestureManager.instance.isGestureLockEnabled()
+                isAutoScanMode() &&
+                !GestureManager.instance.isGestureLockEnabled()
     }
 
     /**
@@ -82,7 +83,8 @@ object ItemScanSettings {
      * @return true if the pause on first item is enabled, false otherwise
      */
     fun isPauseOnFirstItemEnabled(): Boolean {
-        return preferenceManager?.getBooleanValue(PreferenceManager.Keys.PREFERENCE_KEY_PAUSE_ON_FIRST_ITEM) ?: false
+        return preferenceManager?.getBooleanValue(PreferenceManager.Keys.PREFERENCE_KEY_PAUSE_ON_FIRST_ITEM)
+            ?: false
     }
 
     /**
@@ -104,7 +106,8 @@ object ItemScanSettings {
      */
     fun getPauseOnFirstItemDelay(): Long {
         return if (isPauseOnFirstItemEnabled()) {
-            preferenceManager?.getLongValue(PreferenceManager.Keys.PREFERENCE_KEY_PAUSE_ON_FIRST_ITEM_DELAY) ?: 0L
+            preferenceManager?.getLongValue(PreferenceManager.Keys.PREFERENCE_KEY_PAUSE_ON_FIRST_ITEM_DELAY)
+                ?: 0L
         } else {
             0L
         }
@@ -128,7 +131,8 @@ object ItemScanSettings {
      * @return true if the auto select is enabled, false otherwise
      */
     fun isAutoSelectEnabled(): Boolean {
-        return preferenceManager?.getBooleanValue(PreferenceManager.Keys.PREFERENCE_KEY_AUTO_SELECT) ?: false
+        return preferenceManager?.getBooleanValue(PreferenceManager.Keys.PREFERENCE_KEY_AUTO_SELECT)
+            ?: false
     }
 
     /**
@@ -150,7 +154,8 @@ object ItemScanSettings {
      */
     fun getAutoSelectDelay(): Long {
         return if (isAutoSelectEnabled()) {
-            preferenceManager?.getLongValue(PreferenceManager.Keys.PREFERENCE_KEY_AUTO_SELECT_DELAY) ?: 0L
+            preferenceManager?.getLongValue(PreferenceManager.Keys.PREFERENCE_KEY_AUTO_SELECT_DELAY)
+                ?: 0L
         } else {
             0L
         }
@@ -174,7 +179,8 @@ object ItemScanSettings {
      * @return true if directly select keyboard keys is enabled, false otherwise
      */
     fun isDirectlySelectKeyboardKeysEnabled(): Boolean {
-        return preferenceManager?.getBooleanValue(PreferenceManager.Keys.PREFERENCE_KEY_DIRECTLY_SELECT_KEYBOARD_KEYS) ?: false
+        return preferenceManager?.getBooleanValue(PreferenceManager.Keys.PREFERENCE_KEY_DIRECTLY_SELECT_KEYBOARD_KEYS)
+            ?: false
     }
 
     /**
@@ -195,7 +201,8 @@ object ItemScanSettings {
      * @return true if row column scan is enabled, false otherwise
      */
     fun isRowColumnScanEnabled(): Boolean {
-        return preferenceManager?.getBooleanValue(PreferenceManager.Keys.PREFERENCE_KEY_ROW_COLUMN_SCAN) ?: false
+        return preferenceManager?.getBooleanValue(PreferenceManager.Keys.PREFERENCE_KEY_ROW_COLUMN_SCAN)
+            ?: false
     }
 
     /**
@@ -216,7 +223,8 @@ object ItemScanSettings {
      * @return true if group scan is enabled, false otherwise
      */
     fun isGroupScanEnabled(): Boolean {
-        return preferenceManager?.getBooleanValue(PreferenceManager.Keys.PREFERENCE_KEY_GROUP_SCAN) ?: false
+        return preferenceManager?.getBooleanValue(PreferenceManager.Keys.PREFERENCE_KEY_GROUP_SCAN)
+            ?: false
     }
 
     /**
@@ -234,7 +242,8 @@ object ItemScanSettings {
 
     // Helper method to check scan mode - could be moved to a shared utility if needed
     private fun isAutoScanMode(): Boolean {
-        val scanModeId = preferenceManager?.getStringValue(PreferenceManager.Keys.PREFERENCE_KEY_SCAN_MODE) ?: ""
+        val scanModeId =
+            preferenceManager?.getStringValue(PreferenceManager.Keys.PREFERENCE_KEY_SCAN_MODE) ?: ""
         return scanModeId == "auto"
     }
 }

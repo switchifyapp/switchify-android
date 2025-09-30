@@ -4,15 +4,15 @@
     android:viewportWidth="32"
     android:viewportHeight="32"
     android:tint="?attr/colorControlNormal">
-  <!-- Power button outer circle -->
-  <path
-      android:strokeColor="@android:color/white"
-      android:strokeWidth="2"
-      android:pathData="M16,6A10,10 0 1,1 6,16A10,10 0 0,1 16,6Z"
-      android:fillType="nonZero"/>
-  <!-- Power button line -->
-  <path
-      android:strokeColor="@android:color/white"
-      android:strokeWidth="2"
-      android:pathData="M16,8L16,16"/>
+    <!-- Power button outer circle -->
+    <path
+        android:strokeColor="@android:color/white"
+        android:strokeWidth="2"
+        android:pathData="M16,6A10,10 0 1,1 6,16A10,10 0 0,1 16,6Z"
+        android:fillType="nonZero" />
+    <!-- Power button line -->
+    <path
+        android:strokeColor="@android:color/white"
+        android:strokeWidth="2"
+        android:pathData="M16,8L16,16" />
 </vector>

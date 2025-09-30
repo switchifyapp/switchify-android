@@ -7,11 +7,11 @@ import android.graphics.BitmapFactory
 import android.graphics.ImageFormat
 import android.graphics.Rect
 import android.graphics.YuvImage
-import android.view.Surface
-import android.view.WindowManager
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import android.view.Surface
+import android.view.WindowManager
 import androidx.annotation.OptIn
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ExperimentalGetImage
@@ -21,9 +21,8 @@ import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
-import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.viewModelScope
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.service.face.FaceProcessingService
@@ -35,7 +34,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -241,7 +239,7 @@ class CameraSettingsScreenModel(application: Application) : AndroidViewModel(app
             imageProxy.close()
             return
         }
-        
+
         // Skip processing if cleaned up or already processing another frame
         if (isCleanedUp || isProcessing.getAndSet(true)) {
             imageProxy.close()

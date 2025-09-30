@@ -20,23 +20,23 @@ class QuickAppsMenuStructure(private val accessibilityService: SwitchifyAccessib
         if (!quickAppsManager.hasUsageStatsPermission()) {
             items.add(
                 MenuItem(
-                id = "permission_required",
-                labelResource = R.string.usage_stats_permission_required,
-                action = {
-                    // Open permission settings
-                    quickAppsManager.openUsageStatsSettings()
-                }
-            ))
+                    id = "permission_required",
+                    labelResource = R.string.usage_stats_permission_required,
+                    action = {
+                        // Open permission settings
+                        quickAppsManager.openUsageStatsSettings()
+                    }
+                ))
             return items
         }
 
         if (apps.isEmpty()) {
             items.add(
                 MenuItem(
-                id = "no_quick_apps",
-                labelResource = R.string.no_quick_apps_available,
-                action = { /* Do nothing */ }
-            ))
+                    id = "no_quick_apps",
+                    labelResource = R.string.no_quick_apps_available,
+                    action = { /* Do nothing */ }
+                ))
         } else {
             // Convert RecentApp objects to MenuItems
             apps.forEach { app ->

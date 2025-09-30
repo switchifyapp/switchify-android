@@ -1,7 +1,8 @@
 package com.enaboapps.switchify.auth.utils
 
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Test
-import org.junit.Assert.*
 
 class ErrorMessageMapperTest {
 
@@ -14,7 +15,7 @@ class ErrorMessageMapperTest {
             "Email does not exist",
             "EMAIL NOT FOUND" // Test case insensitivity
         )
-        
+
         testCases.forEach { error ->
             val result = ErrorMessageMapper.mapErrorToUserFriendlyMessage(error)
             assertEquals(
@@ -32,7 +33,7 @@ class ErrorMessageMapperTest {
             "Already signed up with this email",
             "USER ALREADY REGISTERED" // Test case insensitivity
         )
-        
+
         testCases.forEach { error ->
             val result = ErrorMessageMapper.mapErrorToUserFriendlyMessage(error)
             assertEquals(
@@ -55,7 +56,7 @@ class ErrorMessageMapperTest {
             "Token is invalid",
             "INCORRECT CODE" // Test case insensitivity
         )
-        
+
         testCases.forEach { error ->
             val result = ErrorMessageMapper.mapErrorToUserFriendlyMessage(error)
             assertEquals(
@@ -74,7 +75,7 @@ class ErrorMessageMapperTest {
             "Email rate limit reached",
             "RATE LIMIT" // Test case insensitivity
         )
-        
+
         testCases.forEach { error ->
             val result = ErrorMessageMapper.mapErrorToUserFriendlyMessage(error)
             assertEquals(
@@ -94,7 +95,7 @@ class ErrorMessageMapperTest {
             "No internet connection",
             "NETWORK ERROR" // Test case insensitivity
         )
-        
+
         testCases.forEach { error ->
             val result = ErrorMessageMapper.mapErrorToUserFriendlyMessage(error)
             assertEquals(
@@ -112,7 +113,7 @@ class ErrorMessageMapperTest {
             "Email format is invalid",
             "INVALID EMAIL FORMAT" // Test case insensitivity
         )
-        
+
         testCases.forEach { error ->
             val result = ErrorMessageMapper.mapErrorToUserFriendlyMessage(error)
             assertEquals(
@@ -132,7 +133,7 @@ class ErrorMessageMapperTest {
             "503 error",
             "INTERNAL SERVER ERROR" // Test case insensitivity
         )
-        
+
         testCases.forEach { error ->
             val result = ErrorMessageMapper.mapErrorToUserFriendlyMessage(error)
             assertEquals(
@@ -150,7 +151,7 @@ class ErrorMessageMapperTest {
             "Unauthorized access",
             "AUTH ERROR" // Test case insensitivity
         )
-        
+
         testCases.forEach { error ->
             val result = ErrorMessageMapper.mapErrorToUserFriendlyMessage(error)
             assertEquals(
@@ -169,7 +170,7 @@ class ErrorMessageMapperTest {
             "",
             "   " // Whitespace only
         )
-        
+
         testCases.forEach { error ->
             val result = ErrorMessageMapper.mapErrorToUserFriendlyMessage(error)
             assertEquals(
@@ -183,7 +184,7 @@ class ErrorMessageMapperTest {
     fun `mapExceptionToUserFriendlyMessage works correctly`() {
         val exception = RuntimeException("Invalid OTP code provided")
         val result = ErrorMessageMapper.mapExceptionToUserFriendlyMessage(exception, "verifyOtp")
-        
+
         assertEquals(
             "Incorrect verification code. Please check your code and try again.",
             result
@@ -194,7 +195,7 @@ class ErrorMessageMapperTest {
     fun `mapExceptionToUserFriendlyMessage handles null message`() {
         val exception = RuntimeException(null as String?)
         val result = ErrorMessageMapper.mapExceptionToUserFriendlyMessage(exception, "test")
-        
+
         assertEquals(
             "Something went wrong. Please try again or contact support if the problem continues.",
             result
@@ -205,7 +206,7 @@ class ErrorMessageMapperTest {
     fun `findMatchingPattern works correctly for testing`() {
         val error = "Email not found in database"
         val result = ErrorMessageMapper.findMatchingPattern(error)
-        
+
         assertEquals(
             "Email address not found. Please check your email and try again.",
             result
@@ -216,7 +217,7 @@ class ErrorMessageMapperTest {
     fun `findMatchingPattern returns null for unmatched errors`() {
         val error = "Some random unmatched error"
         val result = ErrorMessageMapper.findMatchingPattern(error)
-        
+
         assertNull(result)
     }
 }

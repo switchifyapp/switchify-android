@@ -5,7 +5,6 @@ import android.os.Looper
 import androidx.core.os.postDelayed
 import com.enaboapps.switchify.service.scanning.ScanningManager
 import com.enaboapps.switchify.service.techniques.AccessTechnique
-import com.enaboapps.switchify.service.core.ServiceCore
 
 class MenuHierarchy(
     private val scanningManager: ScanningManager
@@ -27,10 +26,10 @@ class MenuHierarchy(
             val closedMenu = tree.lastOrNull()
             closedMenu?.close()
             tree = tree.dropLast(1)
-            
+
             // Notify observers of menu closure
             closedMenu?.let { MenuManager.getInstance().notifyMenuClosed(it) }
-            
+
             Handler(Looper.getMainLooper()).postDelayed(100) {
                 tree.lastOrNull()?.let {
                     it.menuViewListener = this

@@ -115,5 +115,6 @@ object FacialGestureRegistry {
 
     fun allIds(): List<String> = entries.keys.toList()
 
-    fun switchAssignableIds(): List<String> = entries.values.filter { it.assignableAsSwitch }.map { it.id }
+    fun switchAssignableIds(): List<String> =
+        entries.values.filter { it.assignableAsSwitch }.map { it.id }
 }

@@ -9,15 +9,11 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -33,19 +29,19 @@ import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.setViewTreeLifecycleOwner
-import androidx.lifecycle.setViewTreeViewModelStoreOwner
-import androidx.savedstate.setViewTreeSavedStateRegistryOwner
-import com.enaboapps.switchify.service.techniques.AccessTechniqueUIBase
-import com.enaboapps.switchify.service.utils.ScreenUtils
-import androidx.lifecycle.ViewModelStore
-import androidx.lifecycle.ViewModelStoreOwner
-import androidx.savedstate.SavedStateRegistry
-import androidx.savedstate.SavedStateRegistryController
-import androidx.savedstate.SavedStateRegistryOwner
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
+import androidx.lifecycle.ViewModelStore
+import androidx.lifecycle.ViewModelStoreOwner
+import androidx.lifecycle.setViewTreeLifecycleOwner
+import androidx.lifecycle.setViewTreeViewModelStoreOwner
+import androidx.savedstate.SavedStateRegistry
+import androidx.savedstate.SavedStateRegistryController
+import androidx.savedstate.SavedStateRegistryOwner
+import androidx.savedstate.setViewTreeSavedStateRegistryOwner
+import com.enaboapps.switchify.service.techniques.AccessTechniqueUIBase
+import com.enaboapps.switchify.service.utils.ScreenUtils
 
 /**
  * Compose-based overlay that displays progress bars for head control facial expression gestures.
@@ -174,7 +170,13 @@ class HeadControlGestureOverlay(private val context: Context) : AccessTechniqueU
 
         composeView?.let { view ->
             // Let the view wrap its content
-            addView(view, 0, 0, ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+            addView(
+                view,
+                0,
+                0,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            )
         }
     }
 
@@ -195,7 +197,8 @@ class HeadControlGestureOverlay(private val context: Context) : AccessTechniqueU
                         safeMeasureAndPosition(view, screenWidth, maxWidth)
                     } else {
                         // Still not attached, use ViewTreeObserver to wait
-                        view.viewTreeObserver.addOnGlobalLayoutListener(object : android.view.ViewTreeObserver.OnGlobalLayoutListener {
+                        view.viewTreeObserver.addOnGlobalLayoutListener(object :
+                            android.view.ViewTreeObserver.OnGlobalLayoutListener {
                             override fun onGlobalLayout() {
                                 if (view.isAttachedToWindow) {
                                     view.viewTreeObserver.removeOnGlobalLayoutListener(this)
@@ -212,7 +215,13 @@ class HeadControlGestureOverlay(private val context: Context) : AccessTechniqueU
                                 val fallbackHeight = 100
                                 val x = screenWidth - fallbackWidth - margin
                                 val y = margin
-                                updateView(view as androidx.compose.ui.platform.ComposeView, x, y, fallbackWidth, fallbackHeight)
+                                updateView(
+                                    view as androidx.compose.ui.platform.ComposeView,
+                                    x,
+                                    y,
+                                    fallbackWidth,
+                                    fallbackHeight
+                                )
                             }
                         }, 100) // 100ms fallback delay
                     }
@@ -225,8 +234,14 @@ class HeadControlGestureOverlay(private val context: Context) : AccessTechniqueU
         try {
             // Safe measurement with exception handling
             view.measure(
-                android.view.View.MeasureSpec.makeMeasureSpec(maxWidth, android.view.View.MeasureSpec.AT_MOST),
-                android.view.View.MeasureSpec.makeMeasureSpec(0, android.view.View.MeasureSpec.UNSPECIFIED)
+                android.view.View.MeasureSpec.makeMeasureSpec(
+                    maxWidth,
+                    android.view.View.MeasureSpec.AT_MOST
+                ),
+                android.view.View.MeasureSpec.makeMeasureSpec(
+                    0,
+                    android.view.View.MeasureSpec.UNSPECIFIED
+                )
             )
 
             val viewWidth = if (view.measuredWidth > 0) view.measuredWidth else 350
@@ -235,27 +250,53 @@ class HeadControlGestureOverlay(private val context: Context) : AccessTechniqueU
             val x = screenWidth - viewWidth - margin
             val y = margin
 
-            updateView(view as androidx.compose.ui.platform.ComposeView, x, y, viewWidth, viewHeight)
+            updateView(
+                view as androidx.compose.ui.platform.ComposeView,
+                x,
+                y,
+                viewWidth,
+                viewHeight
+            )
         } catch (e: IllegalStateException) {
             // Handle ComposeView measurement errors
-            android.util.Log.w("HeadControlGestureOverlay", "ComposeView measurement failed, using fallback positioning", e)
+            android.util.Log.w(
+                "HeadControlGestureOverlay",
+                "ComposeView measurement failed, using fallback positioning",
+                e
+            )
 
             // Use fallback dimensions
             val fallbackWidth = 350
             val fallbackHeight = 100
             val x = screenWidth - fallbackWidth - margin
             val y = margin
-            updateView(view as androidx.compose.ui.platform.ComposeView, x, y, fallbackWidth, fallbackHeight)
+            updateView(
+                view as androidx.compose.ui.platform.ComposeView,
+                x,
+                y,
+                fallbackWidth,
+                fallbackHeight
+            )
         } catch (e: Exception) {
             // Handle any other unexpected exceptions
-            android.util.Log.e("HeadControlGestureOverlay", "Unexpected error during view positioning", e)
+            android.util.Log.e(
+                "HeadControlGestureOverlay",
+                "Unexpected error during view positioning",
+                e
+            )
 
             // Use fallback dimensions
             val fallbackWidth = 350
             val fallbackHeight = 100
             val x = screenWidth - fallbackWidth - margin
             val y = margin
-            updateView(view as androidx.compose.ui.platform.ComposeView, x, y, fallbackWidth, fallbackHeight)
+            updateView(
+                view as androidx.compose.ui.platform.ComposeView,
+                x,
+                y,
+                fallbackWidth,
+                fallbackHeight
+            )
         }
     }
 

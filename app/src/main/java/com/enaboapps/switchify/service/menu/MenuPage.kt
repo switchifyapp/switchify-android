@@ -78,12 +78,18 @@ class MenuPage(
     fun translateMenuItemsToNodes(): List<Node> {
         val menuItems = getMenuItems()
         if (com.enaboapps.switchify.BuildConfig.DEBUG) {
-            android.util.Log.d("MenuPage", "translateMenuItemsToNodes - getMenuItems() returned ${menuItems.size} items")
+            android.util.Log.d(
+                "MenuPage",
+                "translateMenuItemsToNodes - getMenuItems() returned ${menuItems.size} items"
+            )
         }
         val nodes = ArrayList<Node>(menuItems.size)
         menuItems.asSequence().mapTo(nodes) { Node.fromMenuItem(it) }
         if (com.enaboapps.switchify.BuildConfig.DEBUG) {
-            android.util.Log.d("MenuPage", "translateMenuItemsToNodes - created ${nodes.size} nodes")
+            android.util.Log.d(
+                "MenuPage",
+                "translateMenuItemsToNodes - created ${nodes.size} nodes"
+            )
         }
         return nodes
     }

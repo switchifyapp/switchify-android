@@ -4,23 +4,23 @@
     android:viewportWidth="32"
     android:viewportHeight="32"
     android:tint="?attr/colorControlNormal">
-  <!-- Clipboard base -->
-  <path
-      android:strokeColor="@android:color/white"
-      android:strokeWidth="2"
-      android:pathData="M8,6L24,6A2,2 0 0,1 26,8L26,26A2,2 0 0,1 24,28L8,28A2,2 0 0,1 6,26L6,8A2,2 0 0,1 8,6Z"
-      android:fillType="nonZero"/>
-  <!-- Clipboard clip -->
-  <path
-      android:fillColor="@android:color/white"
-      android:pathData="M12,4L20,4A1,1 0 0,1 21,5L21,9A1,1 0 0,1 20,10L12,10A1,1 0 0,1 11,9L11,5A1,1 0 0,1 12,4Z"/>
-  <!-- Content lines -->
-  <path
-      android:strokeColor="@android:color/white"
-      android:strokeWidth="1"
-      android:pathData="M10,14L22,14M10,16L18,16M10,18L20,18M10,20L17,20"/>
-  <!-- Paste arrow -->
-  <path
-      android:fillColor="@android:color/white"
-      android:pathData="M16,22L14,24L18,24L16,22Z"/>
+    <!-- Clipboard base -->
+    <path
+        android:strokeColor="@android:color/white"
+        android:strokeWidth="2"
+        android:pathData="M8,6L24,6A2,2 0 0,1 26,8L26,26A2,2 0 0,1 24,28L8,28A2,2 0 0,1 6,26L6,8A2,2 0 0,1 8,6Z"
+        android:fillType="nonZero" />
+    <!-- Clipboard clip -->
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M12,4L20,4A1,1 0 0,1 21,5L21,9A1,1 0 0,1 20,10L12,10A1,1 0 0,1 11,9L11,5A1,1 0 0,1 12,4Z" />
+    <!-- Content lines -->
+    <path
+        android:strokeColor="@android:color/white"
+        android:strokeWidth="1"
+        android:pathData="M10,14L22,14M10,16L18,16M10,18L20,18M10,20L17,20" />
+    <!-- Paste arrow -->
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M16,22L14,24L18,24L16,22Z" />
 </vector>

@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -23,10 +22,9 @@ import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -46,26 +44,23 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.enaboapps.switchify.components.CameraPermissionHandler
-import com.google.accompanist.permissions.ExperimentalPermissionsApi
-import com.google.accompanist.permissions.rememberPermissionState
-import kotlinx.coroutines.delay
-import java.util.Locale
-import kotlin.math.abs
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.components.BaseView
+import com.enaboapps.switchify.components.CameraPermissionHandler
 import com.enaboapps.switchify.components.PreferenceSwitch
 import com.enaboapps.switchify.components.PreferenceTimeStepper
 import com.enaboapps.switchify.components.PreferenceValueSelector
 import com.enaboapps.switchify.components.ScrollableView
 import com.enaboapps.switchify.components.Section
-import com.enaboapps.switchify.service.techniques.headcontrol.HeadControlSettings
-import com.enaboapps.switchify.service.core.ServiceCore
 import com.enaboapps.switchify.screens.settings.models.HeadControlTestTabModel
+import com.enaboapps.switchify.service.techniques.headcontrol.HeadControlSettings
 import com.enaboapps.switchify.switches.CameraSwitchFacialGesture
 import com.enaboapps.switchify.switches.SwitchEventStore
-import com.enaboapps.switchify.switches.SWITCH_EVENT_TYPE_CAMERA
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.rememberPermissionState
+import java.util.Locale
+import kotlin.math.abs
 
 
 @Composable
@@ -75,20 +70,37 @@ fun MovementSection(
 ) {
     // Use centralized movement speed values
     val currentMovementSpeed = settings.movementSpeed()
-    val movementSpeedIndex = HeadControlSettings.MOVEMENT_SPEED_VALUES.indexOfFirst { kotlin.math.abs(it - currentMovementSpeed) < 0.1f }.let { if (it == -1) 5 else it }
+    val movementSpeedIndex =
+        HeadControlSettings.MOVEMENT_SPEED_VALUES.indexOfFirst { kotlin.math.abs(it - currentMovementSpeed) < 0.1f }
+            .let { if (it == -1) 5 else it }
     var movementSpeed by remember { mutableIntStateOf(movementSpeedIndex) }
-    
+
     Section(titleResId = R.string.section_title_movement_speed) {
         PreferenceValueSelector(
             value = movementSpeed,
             titleResId = R.string.preference_title_head_control_movement_speed,
             summaryResId = R.string.preference_summary_head_control_movement_speed,
             values = IntArray(HeadControlSettings.MOVEMENT_SPEED_VALUES.size) { it },
-            buttonLabelFormatter = { String.format(Locale.US, "%.1f", HeadControlSettings.MOVEMENT_SPEED_VALUES[it]) },
-            displayFormatter = { String.format(Locale.US, "%.1f", HeadControlSettings.MOVEMENT_SPEED_VALUES[it]) },
+            buttonLabelFormatter = {
+                String.format(
+                    Locale.US,
+                    "%.1f",
+                    HeadControlSettings.MOVEMENT_SPEED_VALUES[it]
+                )
+            },
+            displayFormatter = {
+                String.format(
+                    Locale.US,
+                    "%.1f",
+                    HeadControlSettings.MOVEMENT_SPEED_VALUES[it]
+                )
+            },
             onValueChanged = { index ->
                 movementSpeed = index
-                prefs.setFloatValue(HeadControlSettings.KEY_MOVEMENT_SPEED, HeadControlSettings.MOVEMENT_SPEED_VALUES[index])
+                prefs.setFloatValue(
+                    HeadControlSettings.KEY_MOVEMENT_SPEED,
+                    HeadControlSettings.MOVEMENT_SPEED_VALUES[index]
+                )
             }
         )
     }
@@ -103,19 +115,19 @@ fun DirectionalDeadzoneControls(
     val currentLeftDeadzone = settings.leftDeadzone()
     val leftDeadzoneIndex = HeadControlSettings.getUserFriendlyThresholdIndex(currentLeftDeadzone)
     var leftDeadzone by remember { mutableIntStateOf(leftDeadzoneIndex) }
-    
+
     val currentRightDeadzone = settings.rightDeadzone()
     val rightDeadzoneIndex = HeadControlSettings.getUserFriendlyThresholdIndex(currentRightDeadzone)
     var rightDeadzone by remember { mutableIntStateOf(rightDeadzoneIndex) }
-    
+
     val currentUpDeadzone = settings.upDeadzone()
     val upDeadzoneIndex = HeadControlSettings.getUserFriendlyThresholdIndex(currentUpDeadzone)
     var upDeadzone by remember { mutableIntStateOf(upDeadzoneIndex) }
-    
+
     val currentDownDeadzone = settings.downDeadzone()
     val downDeadzoneIndex = HeadControlSettings.getUserFriendlyThresholdIndex(currentDownDeadzone)
     var downDeadzone by remember { mutableIntStateOf(downDeadzoneIndex) }
-    
+
     PreferenceValueSelector(
         value = leftDeadzone,
         titleResId = R.string.preference_title_head_control_left_deadzone,
@@ -125,10 +137,13 @@ fun DirectionalDeadzoneControls(
         displayFormatter = { HeadControlSettings.USER_FRIENDLY_THRESHOLD_LEVELS[it] },
         onValueChanged = { index ->
             leftDeadzone = index
-            prefs.setFloatValue(HeadControlSettings.KEY_LEFT_DEADZONE, HeadControlSettings.getThresholdValueFromIndex(index))
+            prefs.setFloatValue(
+                HeadControlSettings.KEY_LEFT_DEADZONE,
+                HeadControlSettings.getThresholdValueFromIndex(index)
+            )
         }
     )
-    
+
     PreferenceValueSelector(
         value = rightDeadzone,
         titleResId = R.string.preference_title_head_control_right_deadzone,
@@ -138,10 +153,13 @@ fun DirectionalDeadzoneControls(
         displayFormatter = { HeadControlSettings.USER_FRIENDLY_THRESHOLD_LEVELS[it] },
         onValueChanged = { index ->
             rightDeadzone = index
-            prefs.setFloatValue(HeadControlSettings.KEY_RIGHT_DEADZONE, HeadControlSettings.getThresholdValueFromIndex(index))
+            prefs.setFloatValue(
+                HeadControlSettings.KEY_RIGHT_DEADZONE,
+                HeadControlSettings.getThresholdValueFromIndex(index)
+            )
         }
     )
-    
+
     PreferenceValueSelector(
         value = upDeadzone,
         titleResId = R.string.preference_title_head_control_up_deadzone,
@@ -151,10 +169,13 @@ fun DirectionalDeadzoneControls(
         displayFormatter = { HeadControlSettings.USER_FRIENDLY_THRESHOLD_LEVELS[it] },
         onValueChanged = { index ->
             upDeadzone = index
-            prefs.setFloatValue(HeadControlSettings.KEY_UP_DEADZONE, HeadControlSettings.getThresholdValueFromIndex(index))
+            prefs.setFloatValue(
+                HeadControlSettings.KEY_UP_DEADZONE,
+                HeadControlSettings.getThresholdValueFromIndex(index)
+            )
         }
     )
-    
+
     PreferenceValueSelector(
         value = downDeadzone,
         titleResId = R.string.preference_title_head_control_down_deadzone,
@@ -164,7 +185,10 @@ fun DirectionalDeadzoneControls(
         displayFormatter = { HeadControlSettings.USER_FRIENDLY_THRESHOLD_LEVELS[it] },
         onValueChanged = { index ->
             downDeadzone = index
-            prefs.setFloatValue(HeadControlSettings.KEY_DOWN_DEADZONE, HeadControlSettings.getThresholdValueFromIndex(index))
+            prefs.setFloatValue(
+                HeadControlSettings.KEY_DOWN_DEADZONE,
+                HeadControlSettings.getThresholdValueFromIndex(index)
+            )
         }
     )
 }
@@ -177,7 +201,7 @@ fun UnifiedDeadzoneControl(
     val currentDeadzone = settings.deadzone()
     val deadzoneIndex = HeadControlSettings.getUserFriendlyThresholdIndex(currentDeadzone)
     var deadzone by remember { mutableIntStateOf(deadzoneIndex) }
-    
+
     PreferenceValueSelector(
         value = deadzone,
         titleResId = R.string.preference_title_head_control_deadzone,
@@ -187,7 +211,10 @@ fun UnifiedDeadzoneControl(
         displayFormatter = { HeadControlSettings.USER_FRIENDLY_THRESHOLD_LEVELS[it] },
         onValueChanged = { index ->
             deadzone = index
-            prefs.setFloatValue(HeadControlSettings.KEY_DEADZONE, HeadControlSettings.getThresholdValueFromIndex(index))
+            prefs.setFloatValue(
+                HeadControlSettings.KEY_DEADZONE,
+                HeadControlSettings.getThresholdValueFromIndex(index)
+            )
         }
     )
 }
@@ -221,27 +248,32 @@ fun HeadControlMovementTab(
     prefs: PreferenceManager
 ) {
     val context = LocalContext.current
-    
+
     // Separate directional thresholds state
     var useSeparateThresholds by remember { mutableStateOf(settings.useSeparateDirectionalThresholds()) }
-    
+
     ScrollableView {
         // Movement speed settings
         MovementSection(settings = settings, prefs = prefs)
-        
+
         DeadzoneSection(
-            settings = settings, 
+            settings = settings,
             prefs = prefs,
             useSeparateThresholds = useSeparateThresholds,
             onSeparateThresholdsChanged = { enabled ->
                 useSeparateThresholds = enabled
-                prefs.setBooleanValue(HeadControlSettings.KEY_SEPARATE_DIRECTIONAL_THRESHOLDS, enabled)
+                prefs.setBooleanValue(
+                    HeadControlSettings.KEY_SEPARATE_DIRECTIONAL_THRESHOLDS,
+                    enabled
+                )
             }
         )
 
         Section(titleResId = R.string.section_title_head_control_menu_navigation) {
             val currentInitial = settings.menuRepeatInitialDelay()
-            val initialIndex = HeadControlSettings.MENU_REPEAT_INITIAL_VALUES.indexOfFirst { kotlin.math.abs(it - currentInitial) < 60L }.let { if (it == -1) 2 else it }
+            val initialIndex =
+                HeadControlSettings.MENU_REPEAT_INITIAL_VALUES.indexOfFirst { kotlin.math.abs(it - currentInitial) < 60L }
+                    .let { if (it == -1) 2 else it }
             var initialDelay by remember { mutableIntStateOf(initialIndex) }
 
             PreferenceValueSelector(
@@ -253,12 +285,17 @@ fun HeadControlMovementTab(
                 displayFormatter = { "${HeadControlSettings.MENU_REPEAT_INITIAL_VALUES[it]}ms" },
                 onValueChanged = { index ->
                     initialDelay = index
-                    prefs.setLongValue(HeadControlSettings.KEY_MENU_REPEAT_INITIAL_DELAY, HeadControlSettings.MENU_REPEAT_INITIAL_VALUES[index])
+                    prefs.setLongValue(
+                        HeadControlSettings.KEY_MENU_REPEAT_INITIAL_DELAY,
+                        HeadControlSettings.MENU_REPEAT_INITIAL_VALUES[index]
+                    )
                 }
             )
 
             val currentInterval = settings.menuRepeatInterval()
-            val intervalIndex = HeadControlSettings.MENU_REPEAT_INTERVAL_VALUES.indexOfFirst { kotlin.math.abs(it - currentInterval) < 40L }.let { if (it == -1) 2 else it }
+            val intervalIndex =
+                HeadControlSettings.MENU_REPEAT_INTERVAL_VALUES.indexOfFirst { kotlin.math.abs(it - currentInterval) < 40L }
+                    .let { if (it == -1) 2 else it }
             var interval by remember { mutableIntStateOf(intervalIndex) }
 
             PreferenceValueSelector(
@@ -270,7 +307,10 @@ fun HeadControlMovementTab(
                 displayFormatter = { "${HeadControlSettings.MENU_REPEAT_INTERVAL_VALUES[it]}ms" },
                 onValueChanged = { index ->
                     interval = index
-                    prefs.setLongValue(HeadControlSettings.KEY_MENU_REPEAT_INTERVAL, HeadControlSettings.MENU_REPEAT_INTERVAL_VALUES[index])
+                    prefs.setLongValue(
+                        HeadControlSettings.KEY_MENU_REPEAT_INTERVAL,
+                        HeadControlSettings.MENU_REPEAT_INTERVAL_VALUES[index]
+                    )
                 }
             )
         }
@@ -283,18 +323,19 @@ fun HeadControlSelectionTab(
     prefs: PreferenceManager,
     context: android.content.Context
 ) {
-    val availableGestures = com.enaboapps.switchify.service.face.FacialGestureRegistry.switchAssignableIds()
-    
+    val availableGestures =
+        com.enaboapps.switchify.service.face.FacialGestureRegistry.switchAssignableIds()
+
     val currentGesture = settings.selectGesture()
     val gestureIndex = availableGestures.indexOf(currentGesture).let { if (it == -1) 0 else it }
-    
+
     var selectedGesture by remember { mutableIntStateOf(gestureIndex) }
     var headControlPriority by remember { mutableStateOf(settings.isHeadControlPriorityEnabled()) }
-    
+
     // Get current hold time directly
     val currentHoldTime = settings.getSelectGestureHoldTime()
     var conflictAssigned by remember { mutableStateOf(false) }
-    
+
     ScrollableView {
         Section(titleResId = R.string.head_control_gesture_section_title) {
             PreferenceSwitch(
@@ -303,10 +344,13 @@ fun HeadControlSelectionTab(
                 summaryResId = R.string.head_control_priority_summary,
                 onCheckedChange = { enabled ->
                     headControlPriority = enabled
-                    prefs.setBooleanValue(HeadControlSettings.KEY_GESTURE_PRIORITY_HEAD_CONTROL, enabled)
+                    prefs.setBooleanValue(
+                        HeadControlSettings.KEY_GESTURE_PRIORITY_HEAD_CONTROL,
+                        enabled
+                    )
                 }
             )
-            
+
             PreferenceValueSelector(
                 value = selectedGesture,
                 titleResId = R.string.head_control_gesture_selection_title,
@@ -319,18 +363,20 @@ fun HeadControlSelectionTab(
                     settings.setSelectGesture(availableGestures[index])
                 }
             )
-            
+
             // Menu gesture selector - only show gestures that are different from selection gesture
             val availableMenuGestures = settings.getAvailableMenuGestures()
             val currentMenuGesture = settings.menuGesture()
-            val menuGestureIndex = availableMenuGestures.indexOf(currentMenuGesture).let { if (it == -1) 0 else it }
+            val menuGestureIndex =
+                availableMenuGestures.indexOf(currentMenuGesture).let { if (it == -1) 0 else it }
             var selectedMenuGesture by remember { mutableIntStateOf(menuGestureIndex) }
-            
+
             // Update available menu gestures when selection gesture changes
             LaunchedEffect(selectedGesture) {
                 val updatedMenuGestures = settings.getAvailableMenuGestures()
                 if (updatedMenuGestures.isNotEmpty()) {
-                    val newMenuGestureIndex = updatedMenuGestures.indexOf(currentMenuGesture).let { if (it == -1) 0 else it }
+                    val newMenuGestureIndex = updatedMenuGestures.indexOf(currentMenuGesture)
+                        .let { if (it == -1) 0 else it }
                     selectedMenuGesture = newMenuGestureIndex
                     // Update preference if current menu gesture is no longer available
                     if (!updatedMenuGestures.contains(currentMenuGesture)) {
@@ -338,7 +384,7 @@ fun HeadControlSelectionTab(
                     }
                 }
             }
-            
+
             if (availableMenuGestures.isNotEmpty()) {
                 PreferenceValueSelector(
                     value = selectedMenuGesture,
@@ -353,11 +399,11 @@ fun HeadControlSelectionTab(
                     }
                 )
             }
-            
+
             // Menu gesture hold time selector
             if (availableMenuGestures.isNotEmpty()) {
                 val currentMenuHoldTime = settings.getMenuGestureHoldTime()
-                
+
                 PreferenceTimeStepper(
                     value = currentMenuHoldTime,
                     titleResId = R.string.head_control_menu_gesture_hold_time_title,
@@ -370,7 +416,7 @@ fun HeadControlSelectionTab(
                     }
                 )
             }
-            
+
             val selectedGestureId = availableGestures.getOrNull(selectedGesture) ?: currentGesture
             LaunchedEffect(selectedGestureId) {
                 val store = SwitchEventStore.getInstance()
@@ -383,37 +429,44 @@ fun HeadControlSelectionTab(
                     color = androidx.compose.material3.MaterialTheme.colorScheme.error
                 )
             }
-            
+
             // Gesture conflict validation
             val validationResult = settings.validateGestureSettings()
             if (validationResult != com.enaboapps.switchify.service.techniques.headcontrol.GestureValidationResult.VALID) {
                 val errorMessage = when (validationResult) {
-                    com.enaboapps.switchify.service.techniques.headcontrol.GestureValidationResult.DUPLICATE_GESTURES -> 
+                    com.enaboapps.switchify.service.techniques.headcontrol.GestureValidationResult.DUPLICATE_GESTURES ->
                         stringResource(R.string.head_control_duplicate_gestures_error)
-                    com.enaboapps.switchify.service.techniques.headcontrol.GestureValidationResult.INVALID_SELECT_GESTURE -> 
+
+                    com.enaboapps.switchify.service.techniques.headcontrol.GestureValidationResult.INVALID_SELECT_GESTURE ->
                         stringResource(R.string.head_control_invalid_select_gesture_error)
-                    com.enaboapps.switchify.service.techniques.headcontrol.GestureValidationResult.INVALID_MENU_GESTURE -> 
+
+                    com.enaboapps.switchify.service.techniques.headcontrol.GestureValidationResult.INVALID_MENU_GESTURE ->
                         stringResource(R.string.head_control_invalid_menu_gesture_error)
+
                     else -> ""
                 }
-                
+
                 if (errorMessage.isNotEmpty()) {
                     Text(
                         text = errorMessage,
                         color = androidx.compose.material3.MaterialTheme.colorScheme.error
                     )
                 }
-                
+
                 // Auto-resolve conflicts when detected
                 LaunchedEffect(validationResult) {
                     if (validationResult == com.enaboapps.switchify.service.techniques.headcontrol.GestureValidationResult.DUPLICATE_GESTURES) {
                         if (settings.resolveGestureConflicts()) {
-                            Toast.makeText(context, context.getString(R.string.head_control_gesture_auto_resolved), Toast.LENGTH_SHORT).show()
+                            Toast.makeText(
+                                context,
+                                context.getString(R.string.head_control_gesture_auto_resolved),
+                                Toast.LENGTH_SHORT
+                            ).show()
                         }
                     }
                 }
             }
-            
+
             PreferenceTimeStepper(
                 value = currentHoldTime,
                 titleResId = R.string.head_control_gesture_hold_time_title,
@@ -430,7 +483,11 @@ fun HeadControlSelectionTab(
 }
 
 // Helper function to calculate movement (similar to HeadControlManager logic)
-private fun calculateTestMovement(headRotationX: Float, headRotationY: Float, settings: HeadControlSettings): Pair<Float, Float> {
+private fun calculateTestMovement(
+    headRotationX: Float,
+    headRotationY: Float,
+    settings: HeadControlSettings
+): Pair<Float, Float> {
     val leftDeadzone = settings.getEffectiveLeftDeadzone()
     val rightDeadzone = settings.getEffectiveRightDeadzone()
     val upDeadzone = settings.getEffectiveUpDeadzone()
@@ -441,10 +498,12 @@ private fun calculateTestMovement(headRotationX: Float, headRotationY: Float, se
 
     // Calculate horizontal movement
     val horizontalMovement = if (headRotationY > 0 && headRotationY > rightDeadzone) {
-        val normalizedRotation = (headRotationY - rightDeadzone) / (headRotationRange - rightDeadzone)
+        val normalizedRotation =
+            (headRotationY - rightDeadzone) / (headRotationRange - rightDeadzone)
         normalizedRotation.coerceIn(0f, 1f) * movementSpeed
     } else if (headRotationY < 0 && abs(headRotationY) > leftDeadzone) {
-        val normalizedRotation = (abs(headRotationY) - leftDeadzone) / (headRotationRange - leftDeadzone)
+        val normalizedRotation =
+            (abs(headRotationY) - leftDeadzone) / (headRotationRange - leftDeadzone)
         -(normalizedRotation.coerceIn(0f, 1f) * movementSpeed)
     } else 0f
 
@@ -453,7 +512,8 @@ private fun calculateTestMovement(headRotationX: Float, headRotationY: Float, se
         val normalizedRotation = (headRotationX - downDeadzone) / (headRotationRange - downDeadzone)
         normalizedRotation.coerceIn(0f, 1f) * movementSpeed
     } else if (headRotationX < 0 && abs(headRotationX) > upDeadzone) {
-        val normalizedRotation = (abs(headRotationX) - upDeadzone) / (headRotationRange - upDeadzone)
+        val normalizedRotation =
+            (abs(headRotationX) - upDeadzone) / (headRotationRange - upDeadzone)
         -(normalizedRotation.coerceIn(0f, 1f) * movementSpeed)
     } else 0f
 
@@ -704,7 +764,7 @@ fun HeadControlSettingsScreen(navController: NavController) {
         stringResource(R.string.tab_head_control_selection),
         stringResource(R.string.tab_head_control_test)
     )
-    
+
     BaseView(
         titleResId = R.string.screen_title_head_control_settings,
         navController = navController,

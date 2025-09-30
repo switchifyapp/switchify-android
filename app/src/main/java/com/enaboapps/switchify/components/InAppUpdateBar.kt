@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -60,27 +59,43 @@ fun InAppUpdateBar(
                     val total = state.totalBytesToDownload().toFloat()
                     if (total > 0) progress = state.bytesDownloaded().toFloat() / total
                 }
+
                 InstallStatus.DOWNLOADED -> {
                     isDownloading = false
                     // Auto-install with user notification
                     Log.d("InAppUpdateBar", "Update downloaded, auto-installing in 2 seconds")
-                    Toast.makeText(context, context.getString(R.string.update_downloaded_ready_to_install), Toast.LENGTH_LONG).show()
+                    Toast.makeText(
+                        context,
+                        context.getString(R.string.update_downloaded_ready_to_install),
+                        Toast.LENGTH_LONG
+                    ).show()
 
                     // Brief delay to allow user to see notification, then auto-install
                     Handler(Looper.getMainLooper()).postDelayed({
                         Log.d("InAppUpdateBar", "Starting automatic update installation")
-                        Toast.makeText(context, context.getString(R.string.update_installing_automatically), Toast.LENGTH_SHORT).show()
+                        Toast.makeText(
+                            context,
+                            context.getString(R.string.update_installing_automatically),
+                            Toast.LENGTH_SHORT
+                        ).show()
                         appUpdateManager.completeUpdate()
                     }, 2000) // 2 second delay for user awareness
                 }
+
                 InstallStatus.FAILED -> {
                     isDownloading = false
                     onError("Update failed: ${state.installErrorCode()}")
                 }
+
                 InstallStatus.INSTALLED -> {
                     isDownloading = false
-                    Toast.makeText(context, context.getString(R.string.update_installed_successfully), Toast.LENGTH_SHORT).show()
+                    Toast.makeText(
+                        context,
+                        context.getString(R.string.update_installed_successfully),
+                        Toast.LENGTH_SHORT
+                    ).show()
                 }
+
                 else -> {}
             }
         }
@@ -100,13 +115,24 @@ fun InAppUpdateBar(
         tryResumeOrCheck(context, appUpdateManager, launcher) { onError(it) }
         appUpdateManager.appUpdateInfo.addOnSuccessListener { info ->
             if (info.installStatus() == InstallStatus.DOWNLOADED) {
-                Log.d("InAppUpdateBar", "Found already downloaded update on launch, auto-installing")
-                Toast.makeText(context, context.getString(R.string.update_downloaded_ready_to_install), Toast.LENGTH_LONG).show()
+                Log.d(
+                    "InAppUpdateBar",
+                    "Found already downloaded update on launch, auto-installing"
+                )
+                Toast.makeText(
+                    context,
+                    context.getString(R.string.update_downloaded_ready_to_install),
+                    Toast.LENGTH_LONG
+                ).show()
 
                 // Auto-install already downloaded update with brief delay
                 Handler(Looper.getMainLooper()).postDelayed({
                     Log.d("InAppUpdateBar", "Auto-installing previously downloaded update")
-                    Toast.makeText(context, context.getString(R.string.update_installing_automatically), Toast.LENGTH_SHORT).show()
+                    Toast.makeText(
+                        context,
+                        context.getString(R.string.update_installing_automatically),
+                        Toast.LENGTH_SHORT
+                    ).show()
                     appUpdateManager.completeUpdate()
                 }, 2000)
             }
@@ -125,13 +151,24 @@ fun InAppUpdateBar(
                 appUpdateManager.appUpdateInfo.addOnSuccessListener { info ->
                     if (info.installStatus() == InstallStatus.DOWNLOADED) {
                         isDownloading = false
-                        Log.d("InAppUpdateBar", "App resumed with downloaded update available, auto-installing")
-                        Toast.makeText(context, context.getString(R.string.update_pending_install_reminder), Toast.LENGTH_SHORT).show()
+                        Log.d(
+                            "InAppUpdateBar",
+                            "App resumed with downloaded update available, auto-installing"
+                        )
+                        Toast.makeText(
+                            context,
+                            context.getString(R.string.update_pending_install_reminder),
+                            Toast.LENGTH_SHORT
+                        ).show()
 
                         // Auto-install on resume with brief delay
                         Handler(Looper.getMainLooper()).postDelayed({
                             Log.d("InAppUpdateBar", "Auto-installing update after app resume")
-                            Toast.makeText(context, context.getString(R.string.update_installing_automatically), Toast.LENGTH_SHORT).show()
+                            Toast.makeText(
+                                context,
+                                context.getString(R.string.update_installing_automatically),
+                                Toast.LENGTH_SHORT
+                            ).show()
                             appUpdateManager.completeUpdate()
                         }, 2000)
                     }
@@ -182,13 +219,27 @@ private fun tryResumeOrCheck(
         appUpdateManager.appUpdateInfo
             .addOnSuccessListener { info ->
                 if (info.updateAvailability() == UpdateAvailability.DEVELOPER_TRIGGERED_UPDATE_IN_PROGRESS) {
-                    startUpdate(context, appUpdateManager, info, launcher, AppUpdateType.FLEXIBLE, onError)
+                    startUpdate(
+                        context,
+                        appUpdateManager,
+                        info,
+                        launcher,
+                        AppUpdateType.FLEXIBLE,
+                        onError
+                    )
                     return@addOnSuccessListener
                 }
 
                 if (info.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE) {
                     if (info.isUpdateTypeAllowed(AppUpdateType.FLEXIBLE)) {
-                        startUpdate(context, appUpdateManager, info, launcher, AppUpdateType.FLEXIBLE, onError)
+                        startUpdate(
+                            context,
+                            appUpdateManager,
+                            info,
+                            launcher,
+                            AppUpdateType.FLEXIBLE,
+                            onError
+                        )
                     }
                 }
             }
@@ -212,7 +263,8 @@ private fun startUpdate(
         appUpdateManager.startUpdateFlowForResult(info, launcher, options)
     } catch (e: Exception) {
         Log.e("InAppUpdateBar", "Error starting update flow", e)
-        Toast.makeText(context, "Failed to start update: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+        Toast.makeText(context, "Failed to start update: ${e.localizedMessage}", Toast.LENGTH_SHORT)
+            .show()
         onError("Failed to start update: ${e.localizedMessage}")
     }
 }

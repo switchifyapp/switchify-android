@@ -18,11 +18,11 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.key
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -44,10 +44,9 @@ import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.TextArea
 import com.enaboapps.switchify.screens.settings.switches.actions.SwitchActionPicker
 import com.enaboapps.switchify.screens.settings.switches.models.AddEditExternalSwitchScreenModel
-import com.enaboapps.switchify.switches.SwitchAction
-import com.enaboapps.switchify.switches.SupportedActionsPolicy
 import com.enaboapps.switchify.service.core.ServiceBridge
-import kotlinx.coroutines.flow.collect
+import com.enaboapps.switchify.switches.SupportedActionsPolicy
+import com.enaboapps.switchify.switches.SwitchAction
 import kotlinx.coroutines.launch
 
 @Composable
@@ -127,19 +126,19 @@ fun AddEditExternalSwitchScreen(navController: NavController, code: String? = nu
             }
         ) {
             key(refresh) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                SwitchName(
-                    name = addEditExternalSwitchScreenModel.name,
-                    onNameChange = { addEditExternalSwitchScreenModel.updateName(it) }
-                )
-                Spacer(modifier = Modifier.padding(8.dp))
-                SwitchActionSection(addEditExternalSwitchScreenModel)
-                Spacer(modifier = Modifier.padding(12.dp))
-            }
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    SwitchName(
+                        name = addEditExternalSwitchScreenModel.name,
+                        onNameChange = { addEditExternalSwitchScreenModel.updateName(it) }
+                    )
+                    Spacer(modifier = Modifier.padding(8.dp))
+                    SwitchActionSection(addEditExternalSwitchScreenModel)
+                    Spacer(modifier = Modifier.padding(12.dp))
+                }
             }
 
             if (showDeleteConfirmation.value) {

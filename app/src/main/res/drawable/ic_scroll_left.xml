@@ -4,12 +4,12 @@
     android:viewportWidth="32"
     android:viewportHeight="32"
     android:tint="?attr/colorControlNormal">
-  <!-- Leftward arrow -->
-  <path
-      android:fillColor="@android:color/white"
-      android:pathData="M6,16L12,10L12,14L16,14L16,18L12,18L12,22L6,16Z"/>
-  <!-- Vertical scroll lines on right -->
-  <path
-      android:fillColor="@android:color/white"
-      android:pathData="M20,8L20,24M22,8L22,24M24,8L24,24"/>
+    <!-- Leftward arrow -->
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M6,16L12,10L12,14L16,14L16,18L12,18L12,22L6,16Z" />
+    <!-- Vertical scroll lines on right -->
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M20,8L20,24M22,8L22,24M24,8L24,24" />
 </vector>

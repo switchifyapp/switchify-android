@@ -43,13 +43,37 @@ class PointScanBlockDrawable : Drawable() {
         val inset = cornerRadius
 
         // Top edge (left side, stopping before top-right corner)
-        canvas.drawLine(adjustedLeft + inset, adjustedTop, adjustedRight - inset, adjustedTop, strokePaint)
+        canvas.drawLine(
+            adjustedLeft + inset,
+            adjustedTop,
+            adjustedRight - inset,
+            adjustedTop,
+            strokePaint
+        )
         // Right edge (top side, stopping before bottom-right corner)
-        canvas.drawLine(adjustedRight, adjustedTop + inset, adjustedRight, adjustedBottom - inset, strokePaint)
+        canvas.drawLine(
+            adjustedRight,
+            adjustedTop + inset,
+            adjustedRight,
+            adjustedBottom - inset,
+            strokePaint
+        )
         // Bottom edge (right side, stopping before bottom-left corner)
-        canvas.drawLine(adjustedRight - inset, adjustedBottom, adjustedLeft + inset, adjustedBottom, strokePaint)
+        canvas.drawLine(
+            adjustedRight - inset,
+            adjustedBottom,
+            adjustedLeft + inset,
+            adjustedBottom,
+            strokePaint
+        )
         // Left edge (bottom side, stopping before top-left corner)
-        canvas.drawLine(adjustedLeft, adjustedBottom - inset, adjustedLeft, adjustedTop + inset, strokePaint)
+        canvas.drawLine(
+            adjustedLeft,
+            adjustedBottom - inset,
+            adjustedLeft,
+            adjustedTop + inset,
+            strokePaint
+        )
 
         // Fill the corner areas with solid color
         // Top-left corner area

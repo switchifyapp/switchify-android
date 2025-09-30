@@ -4,20 +4,20 @@
     android:viewportWidth="32"
     android:viewportHeight="32"
     android:tint="?attr/colorControlNormal">
-  <!-- Phone outline -->
-  <path
-      android:strokeColor="@android:color/white"
-      android:strokeWidth="2"
-      android:pathData="M10,4L22,4A2,2 0 0,1 24,6L24,26A2,2 0 0,1 22,28L10,28A2,2 0 0,1 8,26L8,6A2,2 0 0,1 10,4Z"
-      android:fillType="nonZero"/>
-  <!-- Lock symbol -->
-  <path
-      android:fillColor="@android:color/white"
-      android:pathData="M16,12C17.1,12 18,12.9 18,14L18,18L14,18L14,14C14,12.9 14.9,12 16,12Z"/>
-  <!-- Lock shackle -->
-  <path
-      android:strokeColor="@android:color/white"
-      android:strokeWidth="1.5"
-      android:pathData="M14,12L14,10C14,8.9 14.9,8 16,8C17.1,8 18,8.9 18,10L18,12"
-      android:fillType="nonZero"/>
+    <!-- Phone outline -->
+    <path
+        android:strokeColor="@android:color/white"
+        android:strokeWidth="2"
+        android:pathData="M10,4L22,4A2,2 0 0,1 24,6L24,26A2,2 0 0,1 22,28L10,28A2,2 0 0,1 8,26L8,6A2,2 0 0,1 10,4Z"
+        android:fillType="nonZero" />
+    <!-- Lock symbol -->
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M16,12C17.1,12 18,12.9 18,14L18,18L14,18L14,14C14,12.9 14.9,12 16,12Z" />
+    <!-- Lock shackle -->
+    <path
+        android:strokeColor="@android:color/white"
+        android:strokeWidth="1.5"
+        android:pathData="M14,12L14,10C14,8.9 14.9,8 16,8C17.1,8 18,8.9 18,10L18,12"
+        android:fillType="nonZero" />
 </vector>
