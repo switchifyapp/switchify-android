@@ -145,31 +145,24 @@ class HeadControlService private constructor(private val context: Context) {
         return try {
             if (enabled && headControlManager == null) {
                 Log.d(TAG, "Initializing head control manager")
-                // Create HeadControlManager on main thread since it contains UI components
-                val mainHandler = android.os.Handler(android.os.Looper.getMainLooper())
-                var success = false
-                val latch = java.util.concurrent.CountDownLatch(1)
 
+                // Update settings first, before creating manager
+                // This ensures the flag is set even if manager creation is slow
+                settings.setHeadControlEnabled(enabled)
+                Log.d(TAG, "Head control setting updated to enabled")
+
+                // Create HeadControlManager on main thread since it contains UI components
+                // This happens asynchronously - manager will notify camera when ready
+                val mainHandler = android.os.Handler(android.os.Looper.getMainLooper())
                 mainHandler.post {
                     try {
                         headControlManager = HeadControlManager(context)
-                        success = true
+                        Log.d(TAG, "HeadControlManager created successfully, will initialize asynchronously")
                     } catch (e: Exception) {
                         Log.e(TAG, "Failed to create HeadControlManager on main thread", e)
-                        success = false
-                    } finally {
-                        latch.countDown()
+                        // Revert setting on failure
+                        settings.setHeadControlEnabled(false)
                     }
-                }
-
-                // Wait for main thread creation to complete
-                latch.await(2, java.util.concurrent.TimeUnit.SECONDS)
-
-                if (success) {
-                    // Only update settings after successful initialization
-                    settings.setHeadControlEnabled(enabled)
-                } else {
-                    return false
                 }
             } else if (!enabled) {
                 Log.d(TAG, "Disabling head control manager")
