@@ -126,7 +126,7 @@ class HeadControlManager(private val context: Context) : MenuStateObserver {
         GesturePoint.x = currentX
         GesturePoint.y = currentY
         SelectionHandler.setSelectAction {
-            GestureManager.instance.performTap()
+            GestureManager.instance.performTap(overrideFingerMode = com.enaboapps.switchify.service.gestures.placement.FingerMode.ONE)
         }
         SelectionHandler.performSelectionAction()
     }
