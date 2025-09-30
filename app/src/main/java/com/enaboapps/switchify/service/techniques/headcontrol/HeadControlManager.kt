@@ -62,6 +62,7 @@ class HeadControlManager(private val context: Context) : MenuStateObserver {
     private var activeDirection: Direction? = null
     private var heldDirection: Direction? = null
     private var repeatJob: Job? = null
+    private var isMenuNodesReady = false
 
     private enum class Direction { LEFT, RIGHT, UP, DOWN }
     
@@ -163,7 +164,10 @@ class HeadControlManager(private val context: Context) : MenuStateObserver {
         if (Tasks.getInstance().checkOngoingTasks())
             return
         if (isInMenuMode()) {
-            headControlScanner?.performSelection()
+            // Defensive check: only allow selection if nodes are ready
+            if (isMenuNodesReady) {
+                headControlScanner?.performSelection()
+            }
             return
         }
         GesturePoint.x = currentX
@@ -187,10 +191,10 @@ class HeadControlManager(private val context: Context) : MenuStateObserver {
     }
 
     /**
-     * Check if currently in menu mode by checking if scanner is active
+     * Check if currently in menu mode by checking if scanner is active and has nodes
      */
     private fun isInMenuMode(): Boolean {
-        return headControlScanner != null
+        return headControlScanner != null && isMenuNodesReady
     }
 
     /**
@@ -211,6 +215,11 @@ class HeadControlManager(private val context: Context) : MenuStateObserver {
     }
     
     private fun handleMenuDirection(headRotationX: Float, headRotationY: Float) {
+        // Defensive check: only process direction if menu nodes are ready
+        if (!isMenuNodesReady) {
+            return
+        }
+
         val dir = evaluateDirection(headRotationX, headRotationY)
         heldDirection = dir
         if (dir == null) {
@@ -444,23 +453,31 @@ class HeadControlManager(private val context: Context) : MenuStateObserver {
     // MenuStateObserver implementation
     override fun onMenuOpened(menuView: MenuView) {
         Log.d(TAG, "Menu opened, entering menu navigation mode")
-        
+
+        // Mark nodes as not ready yet
+        isMenuNodesReady = false
+
         // Always create scanner when menu opens, even if no nodes yet
         if (headControlScanner == null) {
             headControlScanner = HeadControlItemScanner()
         }
-        
-        // Hide pointer and gesture overlay immediately when entering menu mode
-        overlay.hidePointer()
-        gestureOverlay.hideOverlay()
-        
+
+        // Keep pointer and gesture overlay visible until nodes are ready
+        // This provides visual feedback during menu initialization
+
         // Try to setup nodes if available, but don't fail if empty
         val nodes = menuView.getSelectableNodes()
         if (nodes.isNotEmpty()) {
+            // Nodes available immediately (rare case)
+            isMenuNodesReady = true
             headControlScanner?.setNodes(nodes)
             headControlScanner?.initializeSelectionNear(currentX.toFloat(), currentY.toFloat())
+            // Now hide overlays since we're in menu mode
+            overlay.hidePointer()
+            gestureOverlay.hideOverlay()
             Log.d(TAG, "Menu opened with ${nodes.size} selectable nodes")
         } else {
+            // Nodes not ready yet - keep cursor visible for user feedback
             Log.d(TAG, "Menu opened but nodes not ready yet, waiting for onMenuNodesChanged")
         }
     }
@@ -473,26 +490,34 @@ class HeadControlManager(private val context: Context) : MenuStateObserver {
     override fun onMenuNodesChanged(menuView: MenuView) {
         Log.d(TAG, "Menu nodes changed, updating scanner")
         val nodes = menuView.getSelectableNodes()
-        
+
         if (nodes.isEmpty()) {
             Log.w(TAG, "Menu nodes changed but no selectable nodes available")
+            isMenuNodesReady = false
             return
         }
-        
+
         // Ensure scanner exists (defensive programming)
         if (headControlScanner == null) {
             headControlScanner = HeadControlItemScanner()
         }
-        
+
         headControlScanner?.setNodes(nodes)
         headControlScanner?.initializeSelectionNear(currentX.toFloat(), currentY.toFloat())
-        Log.d(TAG, "Scanner updated with ${nodes.size} nodes")
+
+        // Mark nodes as ready and hide overlays
+        isMenuNodesReady = true
+        overlay.hidePointer()
+        gestureOverlay.hideOverlay()
+
+        Log.d(TAG, "Scanner updated with ${nodes.size} nodes, menu mode now active")
     }
     
     override fun onAllMenusClosed() {
         Log.d(TAG, "All menus closed, returning to cursor mode")
         headControlScanner?.clear()
         headControlScanner = null
+        isMenuNodesReady = false
         showPointerIfAllowed()
         if (!isInitializing) {
             gestureOverlay.showOverlay()
