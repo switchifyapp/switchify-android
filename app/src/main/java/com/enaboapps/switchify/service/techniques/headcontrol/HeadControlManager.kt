@@ -23,6 +23,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class HeadControlManager(private val context: Context) : MenuStateObserver {
 
@@ -77,6 +78,7 @@ class HeadControlManager(private val context: Context) : MenuStateObserver {
 
         // Reset initialization state
         isInitializing = true
+        isReady = false
 
         // Show initialization message
         ServiceMessageHUD.instance.showMessage(
@@ -88,20 +90,24 @@ class HeadControlManager(private val context: Context) : MenuStateObserver {
         initializationJob = menuScope.launch {
             try {
                 delay(INITIALIZATION_DELAY)
-                isInitializing = false
-                isReady = true
-
-                // Show ready message
-                ServiceMessageHUD.instance.showMessage(
-                    R.string.hud_head_control_ready,
-                    ServiceMessageHUD.MessageType.DISAPPEARING
-                )
-
-                // Now show pointer and gesture overlay if allowed
-                showPointerIfAllowed()
-                gestureOverlay.showOverlay()
                 
-                // Notify camera system that head control is ready
+                // UI operations must run on Main thread
+                withContext(Dispatchers.Main) {
+                    isInitializing = false
+                    isReady = true
+
+                    // Show ready message
+                    ServiceMessageHUD.instance.showMessage(
+                        R.string.hud_head_control_ready,
+                        ServiceMessageHUD.MessageType.DISAPPEARING
+                    )
+
+                    // Now show pointer and gesture overlay if allowed
+                    showPointerIfAllowed()
+                    gestureOverlay.showOverlay()
+                }
+                
+                // Notify camera system that head control is ready (can run off Main)
                 notifyHeadControlReady()
             } catch (e: Exception) {
                 if (BuildConfig.DEBUG) {
@@ -123,10 +129,18 @@ class HeadControlManager(private val context: Context) : MenuStateObserver {
     private fun notifyHeadControlReady() {
         try {
             val cameraManager = ServiceCore.getCameraManager()
-            cameraManager?.onHeadControlReady()
-            Log.d(TAG, "Notified camera system that head control is ready")
-        } catch (e: Exception) {
+            if (cameraManager != null) {
+                cameraManager.onHeadControlReady()
+                Log.d(TAG, "Notified camera system that head control is ready")
+            } else {
+                Log.w(TAG, "CameraManager not available for head control ready notification")
+            }
+        } catch (e: RuntimeException) {
+            // Catch expected runtime issues but allow programming errors to surface in debug
             Log.w(TAG, "Failed to notify camera system of head control ready state", e)
+            if (BuildConfig.DEBUG) {
+                throw e // Re-throw in debug builds for diagnosis
+            }
         }
     }
 
