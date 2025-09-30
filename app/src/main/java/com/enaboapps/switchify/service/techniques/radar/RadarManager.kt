@@ -447,7 +447,7 @@ class RadarManager(private val context: Context) : AccessTechniqueInterface {
     }
 
     private fun performTapAction() {
-        GestureManager.instance.performTap()
+        GestureManager.instance.performTap(overrideFingerMode = com.enaboapps.switchify.service.gestures.placement.FingerMode.ONE)
     }
 
     override fun resetForNextUse() {

@@ -71,7 +71,7 @@ class PointScanManager(private val context: Context) : AccessTechniqueInterface 
     private fun handleFinalSelectionPoint(x: Int, y: Int) {
         GesturePoint.x = x; GesturePoint.y = y
         SelectionHandler.setSelectAction {
-            GestureManager.instance.performTap()
+            GestureManager.instance.performTap(overrideFingerMode = com.enaboapps.switchify.service.gestures.placement.FingerMode.ONE)
         }
         SelectionHandler.performSelectionAction()
         blockManager.resetForNextUse()
