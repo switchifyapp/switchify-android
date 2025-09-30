@@ -1,6 +1,11 @@
 package com.enaboapps.switchify.service.techniques.pointscan.blocks
 
-import android.graphics.*
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.ColorFilter
+import android.graphics.Paint
+import android.graphics.Path
+import android.graphics.PixelFormat
 import android.graphics.drawable.Drawable
 
 class PointScanBlockDrawable : Drawable() {
