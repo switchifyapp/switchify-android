@@ -74,6 +74,12 @@ class HeadControlService private constructor(private val context: Context) {
     fun isEnabled(): Boolean = settings.isHeadControlEnabled()
     
     /**
+     * Check if head control is fully initialized and ready for use.
+     * @return true if head control is enabled AND fully initialized
+     */
+    fun isReady(): Boolean = isEnabled() && headControlManager?.isReady() == true
+    
+    /**
      * Get the head control manager instance
      */
     fun getHeadControlManager(): HeadControlManager? = headControlManager

@@ -14,6 +14,7 @@ import com.enaboapps.switchify.service.menu.MenuStateObserver
 import com.enaboapps.switchify.service.menu.MenuView
 import com.enaboapps.switchify.service.window.ServiceMessageHUD
 import android.util.Log
+import com.enaboapps.switchify.service.core.ServiceCore
 import com.enaboapps.switchify.service.core.Tasks
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -47,6 +48,7 @@ class HeadControlManager(private val context: Context) : MenuStateObserver {
     // Initialization state
     private var isInitializing = true
     private var initializationJob: Job? = null
+    private var isReady = false
 
     // Gesture selection state
     private var isGestureActive = false
@@ -87,6 +89,7 @@ class HeadControlManager(private val context: Context) : MenuStateObserver {
             try {
                 delay(INITIALIZATION_DELAY)
                 isInitializing = false
+                isReady = true
 
                 // Show ready message
                 ServiceMessageHUD.instance.showMessage(
@@ -97,11 +100,33 @@ class HeadControlManager(private val context: Context) : MenuStateObserver {
                 // Now show pointer and gesture overlay if allowed
                 showPointerIfAllowed()
                 gestureOverlay.showOverlay()
+                
+                // Notify camera system that head control is ready
+                notifyHeadControlReady()
             } catch (e: Exception) {
                 if (BuildConfig.DEBUG) {
                     Log.e(TAG, "Initialization interrupted", e)
                 }
             }
+        }
+    }
+
+    /**
+     * Check if HeadControl is fully initialized and ready for use.
+     * @return true if initialization is complete and head control is ready
+     */
+    fun isReady(): Boolean = isReady && !isInitializing
+    
+    /**
+     * Notify the camera system that head control initialization is complete.
+     */
+    private fun notifyHeadControlReady() {
+        try {
+            val cameraManager = ServiceCore.getCameraManager()
+            cameraManager?.onHeadControlReady()
+            Log.d(TAG, "Notified camera system that head control is ready")
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to notify camera system of head control ready state", e)
         }
     }
 
@@ -114,6 +139,10 @@ class HeadControlManager(private val context: Context) : MenuStateObserver {
         initializationJob?.cancel()
         repeatJob?.cancel()
         menuScope.cancel()
+        
+        // Reset state
+        isInitializing = true
+        isReady = false
     }
 
     fun performSelection() {

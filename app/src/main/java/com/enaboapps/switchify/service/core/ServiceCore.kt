@@ -1,5 +1,6 @@
 package com.enaboapps.switchify.service.core
 
+import com.enaboapps.switchify.service.camera.CameraManager
 import com.enaboapps.switchify.service.pauseresume.PauseManager
 import com.enaboapps.switchify.service.scanning.ScanningManager
 import com.enaboapps.switchify.service.switches.SwitchEventProvider
@@ -12,6 +13,7 @@ object ServiceCore {
     private lateinit var externalSwitchListenerRef: WeakReference<ExternalSwitchListener>
     private lateinit var switchEventProviderRef: WeakReference<SwitchEventProvider>
     private lateinit var headControlServiceRef: WeakReference<HeadControlService>
+    private lateinit var cameraManagerRef: WeakReference<CameraManager>
 
     /**
      * Initializes the service core with the given context and accessibility service.
@@ -80,6 +82,22 @@ object ServiceCore {
     fun getHeadControlService(): HeadControlService? {
         return headControlServiceRef.get()
     }
+    
+    /**
+     * Sets the camera manager instance.
+     * @param cameraManager The camera manager instance to set.
+     */
+    fun setCameraManager(cameraManager: CameraManager) {
+        cameraManagerRef = WeakReference(cameraManager)
+    }
+    
+    /**
+     * Gets the camera manager instance.
+     * @return The camera manager instance or null if not initialized.
+     */
+    fun getCameraManager(): CameraManager? {
+        return cameraManagerRef.get()
+    }
 
     /**
      * Cleans up the service core.
@@ -91,5 +109,6 @@ object ServiceCore {
         switchEventProviderRef = WeakReference(null)
         externalSwitchListenerRef = WeakReference(null)
         headControlServiceRef = WeakReference(null)
+        cameraManagerRef = WeakReference(null)
     }
 }

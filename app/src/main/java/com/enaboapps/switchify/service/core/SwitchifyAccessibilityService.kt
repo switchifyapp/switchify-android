@@ -105,6 +105,9 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
             serviceScope = serviceScope,
             onServiceConnected = { setupCameraServiceCallbacks() }
         )
+        
+        // Register camera manager with ServiceCore for HeadControl coordination
+        ServiceCore.setCameraManager(cameraManager)
         eventPipeline =
             AccessibilityEventPipeline(serviceScope) { nodeUpdateCoordinator.processAccessibilityUpdate() }
         eventPipeline.start()
