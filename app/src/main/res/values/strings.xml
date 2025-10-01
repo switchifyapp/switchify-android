@@ -128,7 +128,7 @@
     <string name="camera_permission_back">Go Back</string>
 
     <!-- HUD Messages -->
-    <string name="hud_release_to_perform">Release to perform %1$s</string>
+    <string name="hud_release_to_perform">Let go of %1$s to %2$s</string>
     <string name="hud_select_hold_and_drag">Select where to hold and drag to</string>
     <string name="hud_select_drag">Select where to drag to</string>
     <string name="hud_select_swipe">Select where to swipe to</string>

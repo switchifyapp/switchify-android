@@ -24,10 +24,12 @@ object ExternalSwitchLongPressHandler {
     /**
      * Initiates the long press action sequence.
      * @param context The context.
+     * @param switchName The name of the switch being held.
      * @param actions The list of actions to perform on long press.
      */
     fun startLongPress(
         context: Context,
+        switchName: String,
         actions: List<SwitchAction>
     ) {
         holdActions = actions
@@ -46,10 +48,10 @@ object ExternalSwitchLongPressHandler {
             holdActions?.let { actionsList ->
                 for (action in actionsList) {
                     actionToPerform = action
-                    val name = action.getActionName()
+                    val actionName = action.getActionName()
                     ServiceMessageHUD.instance.showMessage(
                         R.string.hud_release_to_perform,
-                        arrayOf(name),
+                        arrayOf(switchName, actionName),
                         ServiceMessageHUD.MessageType.DISAPPEARING,
                         ServiceMessageHUD.Time.SHORT
                     )
