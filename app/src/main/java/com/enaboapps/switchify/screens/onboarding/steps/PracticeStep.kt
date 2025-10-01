@@ -38,9 +38,13 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -60,7 +64,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalContext
 import com.enaboapps.switchify.R
+import com.enaboapps.switchify.service.utils.ServiceUtils
 import com.enaboapps.switchify.utils.Resources
 import kotlinx.coroutines.delay
 import kotlin.random.Random
@@ -77,9 +83,14 @@ data class PracticeBox(
 fun PracticeStep(
     onComplete: () -> Unit
 ) {
+    val context = LocalContext.current
+    val serviceUtils = remember { ServiceUtils() }
+    val isAccessibilityServiceEnabled = remember { serviceUtils.isAccessibilityServiceEnabled(context) }
+    
     var activatedCount by remember { mutableIntStateOf(0) }
     var showCelebration by remember { mutableStateOf(false) }
     var motivationalMessage by remember { mutableStateOf("") }
+    var showAccessibilityAlert by remember { mutableStateOf(!isAccessibilityServiceEnabled) }
 
     val boxes = remember {
         mutableStateListOf(
@@ -145,7 +156,12 @@ fun PracticeStep(
             )
 
             Text(
-                text = stringResource(R.string.onboarding_practice_subtitle),
+                text = stringResource(
+                    if (isAccessibilityServiceEnabled) 
+                        R.string.onboarding_practice_switch_instructions 
+                    else 
+                        R.string.onboarding_practice_tap_instructions
+                ),
                 style = MaterialTheme.typography.bodyLarge,
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -257,6 +273,22 @@ fun PracticeStep(
             exit = fadeOut()
         ) {
             CelebrationOverlay()
+        }
+        
+        // Accessibility service alert
+        if (showAccessibilityAlert) {
+            AccessibilityServiceAlert(
+                onEnableService = {
+                    serviceUtils.openAccessibilitySettings(context)
+                    showAccessibilityAlert = false
+                },
+                onSkipPractice = {
+                    onComplete()
+                },
+                onDismiss = {
+                    showAccessibilityAlert = false
+                }
+            )
         }
     }
 }
@@ -430,4 +462,52 @@ private fun CelebrationOverlay() {
             )
         }
     }
+}
+
+@Composable
+private fun AccessibilityServiceAlert(
+    onEnableService: () -> Unit,
+    onSkipPractice: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = stringResource(R.string.onboarding_practice_accessibility_required_title),
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold
+            )
+        },
+        text = {
+            Text(
+                text = stringResource(R.string.onboarding_practice_accessibility_required_message),
+                style = MaterialTheme.typography.bodyLarge
+            )
+        },
+        confirmButton = {
+            Button(
+                onClick = onEnableService
+            ) {
+                Text(stringResource(R.string.onboarding_practice_enable_service))
+            }
+        },
+        dismissButton = {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OutlinedButton(
+                    onClick = onSkipPractice
+                ) {
+                    Text(stringResource(R.string.onboarding_skip_practice))
+                }
+                
+                TextButton(
+                    onClick = onDismiss
+                ) {
+                    Text(stringResource(android.R.string.cancel))
+                }
+            }
+        }
+    )
 }
