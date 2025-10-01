@@ -139,7 +139,7 @@ class ExternalSwitchListener(
      * @param switchEvent The switch event to handle
      */
     private fun handleLongPressAction(switchEvent: SwitchEvent) {
-        ExternalSwitchLongPressHandler.startLongPress(context, switchEvent.holdActions)
+        ExternalSwitchLongPressHandler.startLongPress(context, switchEvent.name, switchEvent.holdActions)
         scanningManager.pauseScanning()
     }
 
