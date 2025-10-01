@@ -649,6 +649,11 @@
     <string name="onboarding_practice_complete">Congratulations!</string>
     <string name="onboarding_practice_ready">You\'re ready to use Switchify!</string>
     <string name="onboarding_skip_practice">Skip practice</string>
+    <string name="onboarding_practice_accessibility_required_title">Accessibility Service Required</string>
+    <string name="onboarding_practice_accessibility_required_message">To practice with your switches, please enable the Accessibility Service first.</string>
+    <string name="onboarding_practice_enable_service">Enable Service</string>
+    <string name="onboarding_practice_tap_instructions">Tap each box to practice</string>
+    <string name="onboarding_practice_switch_instructions">Try activating each box using your switches</string>
     
     <!-- Usage Stats Permission Screen -->
     <string name="screen_title_usage_stats_permission">Recent Apps Permission</string>
