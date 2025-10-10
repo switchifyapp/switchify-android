@@ -1,8 +1,6 @@
 package com.enaboapps.switchify.screens.settings.patterns
 
 import android.widget.Toast
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,8 +13,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -30,15 +29,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -49,7 +45,6 @@ import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.Section
 import com.enaboapps.switchify.service.gestures.patterns.model.GesturePattern
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun GesturePatternsScreen(navController: NavController) {
     val context = LocalContext.current
@@ -69,10 +64,6 @@ fun GesturePatternsScreen(navController: NavController) {
     // State for delete confirmation dialog
     var showDeleteConfirmation by remember { mutableStateOf(false) }
     var patternToDelete by remember { mutableStateOf<GesturePattern?>(null) }
-
-    // State for drag and drop
-    var draggedItem by remember { mutableStateOf<GesturePattern?>(null) }
-    var dragPosition by remember { mutableFloatStateOf(0f) }
 
     // Edit Dialog
     if (isEditDialogVisible && selectedPattern != null) {
@@ -110,7 +101,6 @@ fun GesturePatternsScreen(navController: NavController) {
         navController = navController,
         enableScroll = false
     ) {
-        val density = LocalDensity.current
 
         Text(
             text = stringResource(R.string.gesture_patterns_description),
@@ -129,6 +119,7 @@ fun GesturePatternsScreen(navController: NavController) {
             } else {
                 LazyColumn {
                     items(patterns, { it.id }) { pattern ->
+                        val currentIndex = patterns.indexOf(pattern)
                         PatternItem(
                             pattern = pattern,
                             onEdit = { viewModel.showEditDialog(pattern) },
@@ -136,36 +127,10 @@ fun GesturePatternsScreen(navController: NavController) {
                                 patternToDelete = pattern
                                 showDeleteConfirmation = true
                             },
-                            isDragging = pattern == draggedItem,
-                            onDragStart = { draggedItem = pattern },
-                            onDragEnd = { draggedItem = null },
-                            onDrag = { offset ->
-                                val currentIndex = patterns.indexOf(pattern)
-                                dragPosition += offset
-
-                                // Calculate the new index based on the drag position
-                                val itemHeight = 12.dp
-                                val itemHeightPx = with(density) { itemHeight.toPx() }
-                                val threshold = itemHeightPx / 2
-
-                                val newIndex = when {
-                                    dragPosition < -threshold -> (currentIndex - 1).coerceAtLeast(0)
-                                    dragPosition > threshold -> (currentIndex + 1).coerceAtMost(
-                                        patterns.size - 1
-                                    )
-
-                                    else -> currentIndex
-                                }
-
-                                if (currentIndex != newIndex) {
-                                    val newOrder = patterns.toMutableList().apply {
-                                        removeAt(currentIndex)
-                                        add(newIndex, pattern)
-                                    }
-                                    viewModel.reorderPatterns(newOrder)
-                                    dragPosition = 0f
-                                }
-                            }
+                            onMoveUp = { viewModel.movePatternUp(pattern) },
+                            onMoveDown = { viewModel.movePatternDown(pattern) },
+                            canMoveUp = currentIndex > 0,
+                            canMoveDown = currentIndex < patterns.size - 1
                         )
                     }
                 }
@@ -174,38 +139,21 @@ fun GesturePatternsScreen(navController: NavController) {
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun PatternItem(
     pattern: GesturePattern,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
-    isDragging: Boolean,
-    onDragStart: () -> Unit,
-    onDragEnd: () -> Unit,
-    onDrag: (Float) -> Unit
+    onMoveUp: () -> Unit,
+    onMoveDown: () -> Unit,
+    canMoveUp: Boolean,
+    canMoveDown: Boolean
 ) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp)
-            .pointerInput(Unit) {
-                detectDragGesturesAfterLongPress(
-                    onDragStart = {
-                        onDragStart()
-                    },
-                    onDragEnd = {
-                        onDragEnd()
-                    },
-                    onDrag = { change, dragAmount ->
-                        change.consume()
-                        onDrag(dragAmount.y)
-                    }
-                )
-            },
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = if (isDragging) 8.dp else 2.dp
-        )
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(
             modifier = Modifier
@@ -241,10 +189,27 @@ private fun PatternItem(
 
                 Spacer(modifier = Modifier.width(8.dp))
 
-                Icon(
-                    imageVector = Icons.Default.DragHandle,
-                    contentDescription = stringResource(R.string.drag_to_reorder)
-                )
+                // Up arrow button
+                IconButton(
+                    onClick = onMoveUp,
+                    enabled = canMoveUp
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.KeyboardArrowUp,
+                        contentDescription = stringResource(R.string.move_pattern_up)
+                    )
+                }
+
+                // Down arrow button
+                IconButton(
+                    onClick = onMoveDown,
+                    enabled = canMoveDown
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.KeyboardArrowDown,
+                        contentDescription = stringResource(R.string.move_pattern_down)
+                    )
+                }
             }
         }
     }

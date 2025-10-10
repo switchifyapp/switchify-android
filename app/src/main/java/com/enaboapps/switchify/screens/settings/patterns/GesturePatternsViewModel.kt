@@ -81,4 +81,28 @@ class GesturePatternsViewModel : ViewModel() {
             loadPatterns() // Reload patterns after reordering
         }
     }
-} 
+
+    fun movePatternUp(pattern: GesturePattern) {
+        val currentList = _patterns.value.toMutableList()
+        val currentIndex = currentList.indexOf(pattern)
+        
+        if (currentIndex > 0) {
+            // Swap with the item above
+            currentList[currentIndex] = currentList[currentIndex - 1]
+            currentList[currentIndex - 1] = pattern
+            reorderPatterns(currentList)
+        }
+    }
+
+    fun movePatternDown(pattern: GesturePattern) {
+        val currentList = _patterns.value.toMutableList()
+        val currentIndex = currentList.indexOf(pattern)
+        
+        if (currentIndex < currentList.size - 1) {
+            // Swap with the item below
+            currentList[currentIndex] = currentList[currentIndex + 1]
+            currentList[currentIndex + 1] = pattern
+            reorderPatterns(currentList)
+        }
+    }
+}
