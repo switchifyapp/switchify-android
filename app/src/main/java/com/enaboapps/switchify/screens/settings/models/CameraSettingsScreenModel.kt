@@ -41,7 +41,6 @@ class CameraSettingsScreenModel(application: Application) : AndroidViewModel(app
 
     private val preferenceManager = PreferenceManager(application)
     private val faceProcessingService = FaceProcessingService(application)
-    private val mainHandler = Handler(Looper.getMainLooper())
 
     private val _detectedExpressions = MutableStateFlow<Set<String>>(emptySet())
     val detectedExpressions: StateFlow<Set<String>> = _detectedExpressions.asStateFlow()
