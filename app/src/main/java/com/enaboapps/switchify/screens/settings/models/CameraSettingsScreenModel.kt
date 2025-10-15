@@ -78,24 +78,6 @@ class CameraSettingsScreenModel(application: Application) : AndroidViewModel(app
     private val _puckerTime = MutableStateFlow(getPuckerTime())
     val puckerTime: StateFlow<Long> = _puckerTime.asStateFlow()
 
-
-    // Real-time blendshape scores for progress bars
-    private val _smileScore = MutableStateFlow(0f)
-    val smileScore: StateFlow<Float> = _smileScore.asStateFlow()
-
-    private val _leftWinkScore = MutableStateFlow(0f)
-    val leftWinkScore: StateFlow<Float> = _leftWinkScore.asStateFlow()
-
-    private val _rightWinkScore = MutableStateFlow(0f)
-    val rightWinkScore: StateFlow<Float> = _rightWinkScore.asStateFlow()
-
-    private val _blinkScore = MutableStateFlow(0f)
-    val blinkScore: StateFlow<Float> = _blinkScore.asStateFlow()
-
-    private val _puckerScore = MutableStateFlow(0f)
-    val puckerScore: StateFlow<Float> = _puckerScore.asStateFlow()
-
-
     private var cameraProviderFuture: ListenableFuture<ProcessCameraProvider>? = null
     private var cameraProvider: ProcessCameraProvider? = null
     private var imageAnalyzer: ImageAnalysis? = null
@@ -108,7 +90,6 @@ class CameraSettingsScreenModel(application: Application) : AndroidViewModel(app
 
     private companion object {
         const val TAG = "CameraSettingsScreenModel"
-        const val MIN_FACE_SIZE = 0.2f
         const val FRAME_PROCESSING_INTERVAL_MS = 66L // ~15 FPS
     }
 
@@ -290,13 +271,6 @@ class CameraSettingsScreenModel(application: Application) : AndroidViewModel(app
 
     private fun processFaceResult(result: FaceProcessingService.FaceDetectionResult) {
         currentFaceState = result.faceState
-
-        // Update real-time blendshape scores for UI progress bars
-        _smileScore.value = result.blendshapeScores.smileScore
-        _leftWinkScore.value = result.blendshapeScores.leftEyeCloseScore
-        _rightWinkScore.value = result.blendshapeScores.rightEyeCloseScore
-        _blinkScore.value = result.blendshapeScores.blinkScore
-        _puckerScore.value = result.blendshapeScores.puckerScore
 
         val validatedGestures = mutableSetOf<String>()
 
