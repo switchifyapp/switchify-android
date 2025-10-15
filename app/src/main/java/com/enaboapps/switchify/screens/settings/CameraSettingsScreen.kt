@@ -99,6 +99,7 @@ private fun CameraSettingsContent(
     val blinkTime by viewModel.blinkTime.collectAsState()
     val puckerTime by viewModel.puckerTime.collectAsState()
 
+    var previewView by remember { androidx.compose.runtime.mutableStateOf<PreviewView?>(null) }
 
     var selectedTabIndex by remember { mutableIntStateOf(0) }
     val tabTitles = listOf(
@@ -106,8 +107,10 @@ private fun CameraSettingsContent(
         stringResource(R.string.tab_timing_settings)
     )
 
-    LaunchedEffect(lifecycleOwner) {
-        viewModel.startCamera(lifecycleOwner)
+    LaunchedEffect(lifecycleOwner, previewView) {
+        previewView?.let {
+            viewModel.startCamera(lifecycleOwner, it)
+        }
     }
 
     DisposableEffect(Unit) {
@@ -168,7 +171,7 @@ private fun CameraSettingsContent(
             elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
         ) {
             CameraPreview(
-                viewModel = viewModel,
+                onPreviewViewCreated = { previewView = it },
                 modifier = Modifier.fillMaxSize()
             )
         }
@@ -177,7 +180,7 @@ private fun CameraSettingsContent(
 
 @Composable
 private fun CameraPreview(
-    viewModel: CameraSettingsScreenModel,
+    onPreviewViewCreated: (PreviewView) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -186,13 +189,7 @@ private fun CameraPreview(
     ) {
         AndroidView(
             factory = { context ->
-                PreviewView(context).apply {
-                    viewModel.bindPreview(this)
-                }
-            },
-            update = { previewView ->
-                // Rebind preview when switching back to this tab
-                viewModel.bindPreview(previewView)
+                PreviewView(context).also { onPreviewViewCreated(it) }
             },
             modifier = Modifier
                 .fillMaxSize()

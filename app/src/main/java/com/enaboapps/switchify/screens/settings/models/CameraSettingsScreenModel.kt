@@ -100,7 +100,6 @@ class CameraSettingsScreenModel(application: Application) : AndroidViewModel(app
     private var cameraProvider: ProcessCameraProvider? = null
     private var imageAnalyzer: ImageAnalysis? = null
     private var preview: Preview? = null
-    private var previewView: PreviewView? = null
     private val isProcessing = AtomicBoolean(false)
     private var lastProcessTime = 0L
 
@@ -175,12 +174,12 @@ class CameraSettingsScreenModel(application: Application) : AndroidViewModel(app
         }
     }
 
-    fun startCamera(lifecycleOwner: LifecycleOwner) {
+    fun startCamera(lifecycleOwner: LifecycleOwner, previewView: PreviewView) {
         cameraProviderFuture = ProcessCameraProvider.getInstance(getApplication()).also { future ->
             future.addListener({
                 try {
                     cameraProvider = future.get()
-                    bindPreviewAndAnalysis(lifecycleOwner)
+                    bindPreviewAndAnalysis(lifecycleOwner, previewView)
                     Log.d(TAG, "Camera started successfully")
                 } catch (e: Exception) {
                     Log.e(TAG, "Failed to start camera", e)
@@ -189,12 +188,8 @@ class CameraSettingsScreenModel(application: Application) : AndroidViewModel(app
         }
     }
 
-    fun bindPreview(previewView: PreviewView) {
-        this.previewView = previewView
-    }
-
     @OptIn(ExperimentalGetImage::class)
-    private fun bindPreviewAndAnalysis(lifecycleOwner: LifecycleOwner) {
+    private fun bindPreviewAndAnalysis(lifecycleOwner: LifecycleOwner, previewView: PreviewView) {
         val cameraSelector = CameraSelector.Builder()
             .requireLensFacing(CameraSelector.LENS_FACING_FRONT)
             .build()
@@ -203,7 +198,7 @@ class CameraSettingsScreenModel(application: Application) : AndroidViewModel(app
         preview = Preview.Builder()
             .build()
             .apply {
-                previewView?.let { surfaceProvider = it.surfaceProvider }
+                surfaceProvider = previewView.surfaceProvider
             }
 
         // Create image analyzer
@@ -415,7 +410,6 @@ class CameraSettingsScreenModel(application: Application) : AndroidViewModel(app
             cameraProvider = null
             imageAnalyzer = null
             preview = null
-            previewView = null
             faceProcessingService.close()
 
             // Reset gesture states
