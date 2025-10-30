@@ -67,10 +67,20 @@ class SwitchifyAccessibilityWindow private constructor() : LifecycleOwner, Saved
      */
     private fun createBaseLayout() {
         getContext()?.let { context ->
-            baseLayout = RelativeLayout(context).apply {
-                setViewTreeLifecycleOwner(SwitchifyLifecycleOwner.getInstance())
-                setViewTreeSavedStateRegistryOwner(SwitchifyLifecycleOwner.getInstance())
-            }
+            // Create a minimal layout without lifecycle owners to speed up initial creation
+            // Lifecycle owners will be set when the view is actually added to the window
+            baseLayout = RelativeLayout(context)
+        }
+    }
+
+    /**
+     * Sets up lifecycle owners for the base layout.
+     * This is done after the view is added to reduce initial window creation overhead.
+     */
+    private fun setupLifecycleOwners() {
+        baseLayout?.apply {
+            setViewTreeLifecycleOwner(SwitchifyLifecycleOwner.getInstance())
+            setViewTreeSavedStateRegistryOwner(SwitchifyLifecycleOwner.getInstance())
         }
     }
 
@@ -124,8 +134,15 @@ class SwitchifyAccessibilityWindow private constructor() : LifecycleOwner, Saved
                     WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
 
                 baseLayout?.let { layout ->
+                    // Add view with minimal overhead - lifecycle owners will be set up after
                     windowManager?.addView(layout, params)
                     isVisible = true
+
+                    // Set up lifecycle owners after the view is added to reduce ANR risk
+                    // on low-end devices during ViewRootImpl initialization
+                    mainHandler.post {
+                        setupLifecycleOwners()
+                    }
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Error in show: ${e.message}", e)
