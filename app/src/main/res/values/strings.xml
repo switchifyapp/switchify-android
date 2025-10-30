@@ -56,7 +56,12 @@
     <!-- Gesture Menu Items -->
     <string name="menu_item_tap">Tap</string>
     <string name="menu_item_double_tap">Double Tap</string>
-    <string name="menu_item_tap_and_hold">Tap and Hold</string>
+    <string name="menu_item_tap_and_hold_0_5s">0.5s Tap and Hold</string>
+    <string name="menu_item_tap_and_hold_1s">1s Tap and Hold</string>
+    <string name="menu_item_tap_and_hold_2s">2s Tap and Hold</string>
+    <string name="menu_item_tap_and_hold_3s">3s Tap and Hold</string>
+    <string name="menu_item_tap_and_hold_5s">5s Tap and Hold</string>
+    <string name="menu_item_tap_and_hold_10s">10s Tap and Hold</string>
     <string name="menu_item_tap_gestures">Tap Gestures</string>
     <string name="menu_item_swipe_gestures">Swipe Gestures</string>
     <string name="menu_item_drag">Drag</string>

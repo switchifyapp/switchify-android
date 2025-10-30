@@ -112,7 +112,7 @@ object GesturePathBuilder {
      */
     fun createTapAndHoldPath(
         point: PointF,
-        duration: Long = GestureData.TAP_AND_HOLD_DURATION
+        duration: Long = GestureData.TAP_AND_HOLD_1S_DURATION
     ): GestureDescription {
         val path = Path().apply {
             moveTo(point.x, point.y)
@@ -244,7 +244,12 @@ object GesturePathBuilder {
         return when (gestureType) {
             GestureType.TAP -> GestureData.TAP_DURATION
             GestureType.DOUBLE_TAP -> GestureData.TAP_DURATION
-            GestureType.TAP_AND_HOLD -> GestureData.TAP_AND_HOLD_DURATION
+            GestureType.TAP_AND_HOLD_0_5S -> GestureData.TAP_AND_HOLD_0_5S_DURATION
+            GestureType.TAP_AND_HOLD_1S -> GestureData.TAP_AND_HOLD_1S_DURATION
+            GestureType.TAP_AND_HOLD_2S -> GestureData.TAP_AND_HOLD_2S_DURATION
+            GestureType.TAP_AND_HOLD_3S -> GestureData.TAP_AND_HOLD_3S_DURATION
+            GestureType.TAP_AND_HOLD_5S -> GestureData.TAP_AND_HOLD_5S_DURATION
+            GestureType.TAP_AND_HOLD_10S -> GestureData.TAP_AND_HOLD_10S_DURATION
             GestureType.DRAG, GestureType.HOLD_AND_DRAG -> GestureData.DRAG_DURATION
             GestureType.SCROLL_UP, GestureType.SCROLL_DOWN,
             GestureType.SCROLL_LEFT, GestureType.SCROLL_RIGHT -> GestureData.SCROLL_DURATION
@@ -299,7 +304,12 @@ object GesturePathBuilder {
         return when (gestureType) {
             GestureType.TAP -> createTapPath(point, duration)
             GestureType.DOUBLE_TAP -> createDoubleTapPath(point)
-            GestureType.TAP_AND_HOLD -> createTapAndHoldPath(point, duration)
+            GestureType.TAP_AND_HOLD_0_5S,
+            GestureType.TAP_AND_HOLD_1S,
+            GestureType.TAP_AND_HOLD_2S,
+            GestureType.TAP_AND_HOLD_3S,
+            GestureType.TAP_AND_HOLD_5S,
+            GestureType.TAP_AND_HOLD_10S -> createTapAndHoldPath(point, duration)
             else -> {
                 // For linear gestures, we need an end point - use primary point for now
                 // In practice, LinearGesturePerformer will provide the end point
@@ -322,7 +332,12 @@ object GesturePathBuilder {
         return when (gestureType) {
             GestureType.TAP -> createTwoFingerTapPath(primaryPoint, secondaryPoint, duration)
             GestureType.DOUBLE_TAP -> createTwoFingerDoubleTapPath(primaryPoint, secondaryPoint)
-            GestureType.TAP_AND_HOLD -> createTwoFingerTapAndHoldPath(
+            GestureType.TAP_AND_HOLD_0_5S,
+            GestureType.TAP_AND_HOLD_1S,
+            GestureType.TAP_AND_HOLD_2S,
+            GestureType.TAP_AND_HOLD_3S,
+            GestureType.TAP_AND_HOLD_5S,
+            GestureType.TAP_AND_HOLD_10S -> createTwoFingerTapAndHoldPath(
                 primaryPoint,
                 secondaryPoint,
                 duration
@@ -357,7 +372,12 @@ object GesturePathBuilder {
                 duration
             )
 
-            GestureType.TAP_AND_HOLD -> createMultiFingerTapAndHoldPath(
+            GestureType.TAP_AND_HOLD_0_5S,
+            GestureType.TAP_AND_HOLD_1S,
+            GestureType.TAP_AND_HOLD_2S,
+            GestureType.TAP_AND_HOLD_3S,
+            GestureType.TAP_AND_HOLD_5S,
+            GestureType.TAP_AND_HOLD_10S -> createMultiFingerTapAndHoldPath(
                 placement.fingerPoints,
                 duration
             )
@@ -591,7 +611,13 @@ object GesturePathBuilder {
         duration: Long
     ): Path {
         return when (gestureType) {
-            GestureType.TAP, GestureType.TAP_AND_HOLD -> Path().apply {
+            GestureType.TAP,
+            GestureType.TAP_AND_HOLD_0_5S,
+            GestureType.TAP_AND_HOLD_1S,
+            GestureType.TAP_AND_HOLD_2S,
+            GestureType.TAP_AND_HOLD_3S,
+            GestureType.TAP_AND_HOLD_5S,
+            GestureType.TAP_AND_HOLD_10S -> Path().apply {
                 moveTo(point.x, point.y)
             }
 
@@ -683,7 +709,12 @@ object GesturePathBuilder {
         return when (gestureData.gestureType) {
             GestureType.TAP -> createTapPath(gestureData.startPoint)
             GestureType.DOUBLE_TAP -> createDoubleTapPath(gestureData.startPoint)
-            GestureType.TAP_AND_HOLD -> createTapAndHoldPath(gestureData.startPoint)
+            GestureType.TAP_AND_HOLD_0_5S,
+            GestureType.TAP_AND_HOLD_1S,
+            GestureType.TAP_AND_HOLD_2S,
+            GestureType.TAP_AND_HOLD_3S,
+            GestureType.TAP_AND_HOLD_5S,
+            GestureType.TAP_AND_HOLD_10S -> createTapAndHoldPath(gestureData.startPoint, gestureData.duration())
             GestureType.HOLD_AND_DRAG -> createHoldAndDragPath(
                 gestureData.startPoint,
                 gestureData.endPoint ?: gestureData.startPoint

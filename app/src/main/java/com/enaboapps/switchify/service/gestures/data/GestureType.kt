@@ -44,7 +44,12 @@ enum class GestureType {
     // Point gestures - no movement, position-based
     TAP,                // Single touch activation
     DOUBLE_TAP,         // Double-tap for special actions
-    TAP_AND_HOLD,       // Long press for context menus
+    TAP_AND_HOLD_0_5S,  // 0.5 second hold
+    TAP_AND_HOLD_1S,    // 1 second hold
+    TAP_AND_HOLD_2S,    // 2 second hold
+    TAP_AND_HOLD_3S,    // 3 second hold
+    TAP_AND_HOLD_5S,    // 5 second hold
+    TAP_AND_HOLD_10S,   // 10 second hold
 
     // Directional swipes - quick navigation movements
     SWIPE_UP,           // Upward navigation gesture

@@ -790,7 +790,12 @@ class FingerPlacementAlgorithm {
     private fun getGestureTypeFingerPreference(gestureType: GestureType): Int {
         return when (gestureType) {
             GestureType.TAP, GestureType.DOUBLE_TAP -> 1  // Precision gestures prefer 1 finger
-            GestureType.TAP_AND_HOLD -> 2                  // Hold gestures benefit from stability
+            GestureType.TAP_AND_HOLD_0_5S,
+            GestureType.TAP_AND_HOLD_1S,
+            GestureType.TAP_AND_HOLD_2S,
+            GestureType.TAP_AND_HOLD_3S,
+            GestureType.TAP_AND_HOLD_5S,
+            GestureType.TAP_AND_HOLD_10S -> 2              // Hold gestures benefit from stability
             GestureType.DRAG, GestureType.HOLD_AND_DRAG -> 2  // Drag gestures benefit from stability
             else -> 1  // Default to single finger
         }
@@ -805,7 +810,12 @@ class FingerPlacementAlgorithm {
 
     private fun isStabilityGesture(gestureType: GestureType): Boolean {
         return when (gestureType) {
-            GestureType.TAP_AND_HOLD,
+            GestureType.TAP_AND_HOLD_0_5S,
+            GestureType.TAP_AND_HOLD_1S,
+            GestureType.TAP_AND_HOLD_2S,
+            GestureType.TAP_AND_HOLD_3S,
+            GestureType.TAP_AND_HOLD_5S,
+            GestureType.TAP_AND_HOLD_10S,
             GestureType.DRAG,
             GestureType.HOLD_AND_DRAG -> true
 
