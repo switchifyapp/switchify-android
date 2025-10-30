@@ -287,7 +287,7 @@ class GestureManager private constructor() {
      * @param y The y coordinate of the tap gesture. If null, the current point will be used.
      * @param overrideFingerMode Optional finger mode override for pattern playback
      */
-    fun performTapAndHold(x: Int? = null, y: Int? = null, overrideFingerMode: FingerMode? = null) {
+    fun performTapAndHold(x: Int? = null, y: Int? = null, duration: Long = GestureData.TAP_AND_HOLD_1S_DURATION, gestureType: GestureType = GestureType.TAP_AND_HOLD_1S, overrideFingerMode: FingerMode? = null) {
         try {
             accessibilityService?.let {
                 val targetPoint = if (x != null && y != null) {
@@ -299,7 +299,7 @@ class GestureManager private constructor() {
                 // Method-level algorithm: Determine optimal finger placement
                 val effectiveFingerMode = overrideFingerMode ?: getCurrentFingerMode()
                 val fingerPlacement = fingerPlacementAlgorithm.calculateFingerPlacement(
-                    gestureType = GestureType.TAP_AND_HOLD,
+                    gestureType = gestureType,
                     targetPoint = targetPoint,
                     userFingerMode = effectiveFingerMode,
                     screenBounds = getScreenBounds()
@@ -309,20 +309,17 @@ class GestureManager private constructor() {
                     "GestureManager",
                     "Tap-and-hold placement: ${fingerPlacement.getDescription()}"
                 )
-
-                // Show enhanced multi-finger visual feedback
-                val duration = GestureData.TAP_AND_HOLD_DURATION
                 gestureVisualManager.showMultiFingerVisual(fingerPlacement, duration)
 
                 // Create dynamic gesture path
                 val gestureDescription = GesturePathBuilder.createDynamicPath(
-                    gestureType = GestureType.TAP_AND_HOLD,
+                    gestureType = gestureType,
                     fingerPlacement = fingerPlacement,
                     duration = duration
                 )
 
                 val gestureData = GestureData(
-                    gestureType = GestureType.TAP_AND_HOLD,
+                    gestureType = gestureType,
                     startPoint = fingerPlacement.primaryPoint,
                     endPoint = null,
                     fingerCount = fingerPlacement.fingerCount,
@@ -330,7 +327,7 @@ class GestureManager private constructor() {
                 )
                 gestureDispatcher.dispatch(
                     gestureDescription,
-                    GestureType.TAP_AND_HOLD,
+                    gestureType,
                     gestureData
                 )
             }

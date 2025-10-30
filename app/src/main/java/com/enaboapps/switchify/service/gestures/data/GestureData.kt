@@ -13,7 +13,12 @@ data class GestureData(
     companion object {
         const val TAP_DURATION = 100L
         const val DOUBLE_TAP_INTERVAL = 250L
-        const val TAP_AND_HOLD_DURATION = 1000L
+        const val TAP_AND_HOLD_0_5S_DURATION = 500L
+        const val TAP_AND_HOLD_1S_DURATION = 1000L
+        const val TAP_AND_HOLD_2S_DURATION = 2000L
+        const val TAP_AND_HOLD_3S_DURATION = 3000L
+        const val TAP_AND_HOLD_5S_DURATION = 5000L
+        const val TAP_AND_HOLD_10S_DURATION = 10000L
         const val SWIPE_DURATION = 80L
         const val DRAG_DURATION = 1500L
         const val HOLD_BEFORE_DRAG_DURATION = 400L
@@ -24,7 +29,12 @@ data class GestureData(
     fun duration(): Long = when (gestureType) {
         GestureType.TAP -> TAP_DURATION
         GestureType.DOUBLE_TAP -> DOUBLE_TAP_INTERVAL
-        GestureType.TAP_AND_HOLD -> TAP_AND_HOLD_DURATION
+        GestureType.TAP_AND_HOLD_0_5S -> TAP_AND_HOLD_0_5S_DURATION
+        GestureType.TAP_AND_HOLD_1S -> TAP_AND_HOLD_1S_DURATION
+        GestureType.TAP_AND_HOLD_2S -> TAP_AND_HOLD_2S_DURATION
+        GestureType.TAP_AND_HOLD_3S -> TAP_AND_HOLD_3S_DURATION
+        GestureType.TAP_AND_HOLD_5S -> TAP_AND_HOLD_5S_DURATION
+        GestureType.TAP_AND_HOLD_10S -> TAP_AND_HOLD_10S_DURATION
         GestureType.SWIPE_UP,
         GestureType.SWIPE_DOWN,
         GestureType.SWIPE_LEFT,
@@ -107,10 +117,17 @@ data class GestureData(
                 )
             }
 
-            GestureType.TAP_AND_HOLD -> {
+            GestureType.TAP_AND_HOLD_0_5S,
+            GestureType.TAP_AND_HOLD_1S,
+            GestureType.TAP_AND_HOLD_2S,
+            GestureType.TAP_AND_HOLD_3S,
+            GestureType.TAP_AND_HOLD_5S,
+            GestureType.TAP_AND_HOLD_10S -> {
                 GestureManager.instance.performTapAndHold(
                     x = sanitizedGesture.startPoint.x.toInt(),
                     y = sanitizedGesture.startPoint.y.toInt(),
+                    duration = sanitizedGesture.duration(),
+                    gestureType = gestureType,
                     overrideFingerMode = overrideFingerMode
                 )
             }

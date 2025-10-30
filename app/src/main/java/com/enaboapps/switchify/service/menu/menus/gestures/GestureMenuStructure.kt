@@ -5,6 +5,7 @@ import com.enaboapps.switchify.R
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.service.gestures.GestureManager
 import com.enaboapps.switchify.service.gestures.GesturePatternRecorder
+import com.enaboapps.switchify.service.gestures.data.GestureData
 import com.enaboapps.switchify.service.gestures.data.GestureType
 import com.enaboapps.switchify.service.gestures.placement.FingerMode
 import com.enaboapps.switchify.service.menu.MenuItem
@@ -47,10 +48,40 @@ class GestureMenuStructure(private val context: Context) {
                 action = { GestureManager.instance.performDoubleTap() }
             ),
             MenuItem(
-                id = "tap_and_hold",
-                labelResource = R.string.menu_item_tap_and_hold,
-                drawableId = R.drawable.ic_gesture_tap_hold,
-                action = { GestureManager.instance.performTapAndHold() }
+                id = "tap_and_hold_0_5s",
+                labelResource = R.string.menu_item_tap_and_hold_0_5s,
+                drawableId = R.drawable.ic_gesture_tap_hold_0_5s,
+                action = { GestureManager.instance.performTapAndHold(duration = GestureData.TAP_AND_HOLD_0_5S_DURATION, gestureType = GestureType.TAP_AND_HOLD_0_5S) }
+            ),
+            MenuItem(
+                id = "tap_and_hold_1s",
+                labelResource = R.string.menu_item_tap_and_hold_1s,
+                drawableId = R.drawable.ic_gesture_tap_hold_1s,
+                action = { GestureManager.instance.performTapAndHold(duration = GestureData.TAP_AND_HOLD_1S_DURATION, gestureType = GestureType.TAP_AND_HOLD_1S) }
+            ),
+            MenuItem(
+                id = "tap_and_hold_2s",
+                labelResource = R.string.menu_item_tap_and_hold_2s,
+                drawableId = R.drawable.ic_gesture_tap_hold_2s,
+                action = { GestureManager.instance.performTapAndHold(duration = GestureData.TAP_AND_HOLD_2S_DURATION, gestureType = GestureType.TAP_AND_HOLD_2S) }
+            ),
+            MenuItem(
+                id = "tap_and_hold_3s",
+                labelResource = R.string.menu_item_tap_and_hold_3s,
+                drawableId = R.drawable.ic_gesture_tap_hold_3s,
+                action = { GestureManager.instance.performTapAndHold(duration = GestureData.TAP_AND_HOLD_3S_DURATION, gestureType = GestureType.TAP_AND_HOLD_3S) }
+            ),
+            MenuItem(
+                id = "tap_and_hold_5s",
+                labelResource = R.string.menu_item_tap_and_hold_5s,
+                drawableId = R.drawable.ic_gesture_tap_hold_5s,
+                action = { GestureManager.instance.performTapAndHold(duration = GestureData.TAP_AND_HOLD_5S_DURATION, gestureType = GestureType.TAP_AND_HOLD_5S) }
+            ),
+            MenuItem(
+                id = "tap_and_hold_10s",
+                labelResource = R.string.menu_item_tap_and_hold_10s,
+                drawableId = R.drawable.ic_gesture_tap_hold_10s,
+                action = { GestureManager.instance.performTapAndHold(duration = GestureData.TAP_AND_HOLD_10S_DURATION, gestureType = GestureType.TAP_AND_HOLD_10S) }
             ),
             toggleGestureLockMenuItem
         )
