@@ -142,7 +142,7 @@ object IAPHandler {
             onInitialized()
             return
         }
-        isRevenueCatInitialized = true
+
         try {
             val config = PurchasesConfiguration.Builder(context, BuildConfig.REVENUECAT_PUBLIC_KEY)
                 .apply {
@@ -150,8 +150,19 @@ object IAPHandler {
                 }
                 .build()
             Purchases.configure(config)
-            refreshPurchaseStatus()
-            checkPurchaseCapability()
+
+            // Verify singleton is actually accessible after configuration
+            // This prevents crashes in RevenueCat UI components on sideloaded apps
+            try {
+                Purchases.sharedInstance
+                isRevenueCatInitialized = true
+                refreshPurchaseStatus()
+                checkPurchaseCapability()
+            } catch (e: Exception) {
+                Log.e(TAG, "RevenueCat singleton not accessible after configuration: ${e.message}", e)
+                _purchaseCapability.value = PurchaseCapability.Unavailable
+                isRevenueCatInitialized = false
+            }
             onInitialized()
         } catch (e: Exception) {
             Log.e(TAG, "Error initializing RevenueCat: ${e.message}", e)
