@@ -143,15 +143,23 @@ object IAPHandler {
             return
         }
         isRevenueCatInitialized = true
-        val config = PurchasesConfiguration.Builder(context, BuildConfig.REVENUECAT_PUBLIC_KEY)
-            .apply {
-                diagnosticsEnabled(debugLogsEnabled)
-            }
-            .build()
-        Purchases.configure(config)
-        refreshPurchaseStatus()
-        checkPurchaseCapability()
-        onInitialized()
+        try {
+            val config = PurchasesConfiguration.Builder(context, BuildConfig.REVENUECAT_PUBLIC_KEY)
+                .apply {
+                    diagnosticsEnabled(debugLogsEnabled)
+                }
+                .build()
+            Purchases.configure(config)
+            refreshPurchaseStatus()
+            checkPurchaseCapability()
+            onInitialized()
+        } catch (e: Exception) {
+            Log.e(TAG, "Error initializing RevenueCat: ${e.message}", e)
+            // Mark as unavailable if initialization fails
+            _purchaseCapability.value = PurchaseCapability.Unavailable
+            isRevenueCatInitialized = false
+            onInitialized()
+        }
     }
 
     /**
@@ -164,20 +172,26 @@ object IAPHandler {
             completion?.invoke(hasPurchasedPro())
             return
         }
-        Purchases.sharedInstance.getCustomerInfo(
-            object : ReceiveCustomerInfoCallback {
-                override fun onError(error: PurchasesError) {
-                    Log.e(TAG, "Error refreshing status: ${error.message}")
-                    _purchaseState.value = PurchaseState.Error
-                    completion?.invoke(false)
-                }
+        try {
+            Purchases.sharedInstance.getCustomerInfo(
+                object : ReceiveCustomerInfoCallback {
+                    override fun onError(error: PurchasesError) {
+                        Log.e(TAG, "Error refreshing status: ${error.message}")
+                        _purchaseState.value = PurchaseState.Error
+                        completion?.invoke(false)
+                    }
 
-                override fun onReceived(customerInfo: CustomerInfo) {
-                    checkProPurchase(customerInfo)
-                    completion?.invoke(hasPurchasedPro())
+                    override fun onReceived(customerInfo: CustomerInfo) {
+                        checkProPurchase(customerInfo)
+                        completion?.invoke(hasPurchasedPro())
+                    }
                 }
-            }
-        )
+            )
+        } catch (e: Exception) {
+            Log.e(TAG, "Exception refreshing purchase status: ${e.message}", e)
+            _purchaseState.value = PurchaseState.Error
+            completion?.invoke(false)
+        }
     }
 
     /**
@@ -235,24 +249,29 @@ object IAPHandler {
             completion("Error: IAPHandler not initialized")
             return
         }
-        Purchases.sharedInstance.getCustomerInfo(
-            object : ReceiveCustomerInfoCallback {
-                override fun onError(error: PurchasesError) {
-                    completion("Error getting pro status: ${error.message}")
-                }
-
-                override fun onReceived(customerInfo: CustomerInfo) {
-                    val hasPro = customerInfo.entitlements[ENTITLEMENT]?.isActive == true
-                    val isSubscribed = customerInfo.activeSubscriptions.isNotEmpty()
-                    if (isSubscribed) {
-                        completion("You have an active subscription to Switchify")
-                    } else if (hasPro) {
-                        completion("You have purchased Switchify Pro")
-                    } else {
-                        completion("You have not purchased Switchify Pro")
+        try {
+            Purchases.sharedInstance.getCustomerInfo(
+                object : ReceiveCustomerInfoCallback {
+                    override fun onError(error: PurchasesError) {
+                        completion("Error getting pro status: ${error.message}")
                     }
-                }
-            })
+
+                    override fun onReceived(customerInfo: CustomerInfo) {
+                        val hasPro = customerInfo.entitlements[ENTITLEMENT]?.isActive == true
+                        val isSubscribed = customerInfo.activeSubscriptions.isNotEmpty()
+                        if (isSubscribed) {
+                            completion("You have an active subscription to Switchify")
+                        } else if (hasPro) {
+                            completion("You have purchased Switchify Pro")
+                        } else {
+                            completion("You have not purchased Switchify Pro")
+                        }
+                    }
+                })
+        } catch (e: Exception) {
+            Log.e(TAG, "Exception getting pro status: ${e.message}", e)
+            completion("Error: ${e.message}")
+        }
     }
 
     /**
@@ -329,44 +348,51 @@ object IAPHandler {
             return
         }
 
-        Purchases.sharedInstance.getOfferings(object : ReceiveOfferingsCallback {
-            override fun onReceived(offerings: Offerings) {
-                if (offerings.all.isEmpty()) {
-                    _purchaseCapability.value = PurchaseCapability.Unavailable
-                    Log.w(TAG, "No offerings available - purchases unavailable")
-                } else {
-                    _purchaseCapability.value = PurchaseCapability.Available
-                    Log.d(TAG, "Purchase capability: Available")
-                }
-            }
-
-            override fun onError(error: PurchasesError) {
-                val capability = when (error.code) {
-                    PurchasesErrorCode.PurchaseNotAllowedError -> {
-                        Log.w(TAG, "Billing restricted: ${error.message}")
-                        PurchaseCapability.Restricted
-                    }
-
-                    PurchasesErrorCode.ConfigurationError,
-                    PurchasesErrorCode.UnsupportedError,
-                    PurchasesErrorCode.StoreProblemError -> {
-                        Log.w(TAG, "Billing unavailable: ${error.message}")
-                        PurchaseCapability.Unavailable
-                    }
-
-                    PurchasesErrorCode.NetworkError,
-                    PurchasesErrorCode.UnknownError -> {
-                        Log.e(TAG, "Store/network error checking capability: ${error.message}")
-                        PurchaseCapability.Unknown
-                    }
-
-                    else -> {
-                        Log.e(TAG, "Error checking purchase capability: ${error.message}")
-                        PurchaseCapability.Unknown
+        try {
+            Purchases.sharedInstance.getOfferings(object : ReceiveOfferingsCallback {
+                override fun onReceived(offerings: Offerings) {
+                    if (offerings.all.isEmpty()) {
+                        _purchaseCapability.value = PurchaseCapability.Unavailable
+                        Log.w(TAG, "No offerings available - purchases unavailable")
+                    } else {
+                        _purchaseCapability.value = PurchaseCapability.Available
+                        Log.d(TAG, "Purchase capability: Available")
                     }
                 }
-                _purchaseCapability.value = capability
-            }
-        })
+
+                override fun onError(error: PurchasesError) {
+                    val capability = when (error.code) {
+                        PurchasesErrorCode.PurchaseNotAllowedError -> {
+                            Log.w(TAG, "Billing restricted: ${error.message}")
+                            PurchaseCapability.Restricted
+                        }
+
+                        PurchasesErrorCode.ConfigurationError,
+                        PurchasesErrorCode.UnsupportedError,
+                        PurchasesErrorCode.StoreProblemError -> {
+                            Log.w(TAG, "Billing unavailable: ${error.message}")
+                            PurchaseCapability.Unavailable
+                        }
+
+                        PurchasesErrorCode.NetworkError,
+                        PurchasesErrorCode.UnknownError -> {
+                            Log.e(TAG, "Store/network error checking capability: ${error.message}")
+                            PurchaseCapability.Unknown
+                        }
+
+                        else -> {
+                            Log.e(TAG, "Error checking purchase capability: ${error.message}")
+                            PurchaseCapability.Unknown
+                        }
+                    }
+                    _purchaseCapability.value = capability
+                }
+            })
+        } catch (e: Exception) {
+            // Catch ProxyBillingActivity NPE and other exceptions that can occur
+            // when the app is sideloaded or billing is not properly configured
+            Log.e(TAG, "Exception checking purchase capability: ${e.message}", e)
+            _purchaseCapability.value = PurchaseCapability.Unavailable
+        }
     }
 }
