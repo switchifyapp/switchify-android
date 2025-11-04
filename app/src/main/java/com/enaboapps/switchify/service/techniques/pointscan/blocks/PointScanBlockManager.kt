@@ -25,6 +25,14 @@ class PointScanBlockManager(
         cursorBlockGridUI.reset()
     }
 
+    override fun onScanTreeStarted() {
+        cursorBlockGridUI.showGrid()
+    }
+
+    override fun onScanTreeStopped() {
+        cursorBlockGridUI.hideGrid()
+    }
+
     fun initializeBlocks() {
         val screenWidth = ScreenUtils.getWidth(context)
         val screenHeight = ScreenUtils.getHeight(context)

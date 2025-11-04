@@ -14,6 +14,8 @@ interface ScanTreeCallback {
     fun onScanTreeCycleBreakSelected() = Unit
     fun onSingleCycleCompleted(cycleNumber: Int) = Unit
     fun onScanTreeReset() = Unit
+    fun onScanTreeStarted() = Unit
+    fun onScanTreeStopped() = Unit
 }
 
 /**
@@ -464,7 +466,10 @@ class ScanTree(
      */
     private fun setup() {
         if (scanningScheduler == null) {
-            resetForNextUse()
+            scanningScheduler?.stopScanning()
+            highlighter.unhighlightAll()
+            navigator.reset()
+            isManualScanActive = false
             scanningScheduler = ScanningScheduler(context) {
                 stepAutoScanning()
             }
@@ -514,7 +519,11 @@ class ScanTree(
     override fun startAutoScanning() {
         setup()
         if (tree.isNotEmpty()) {
-            resetForNextUse()
+            scanningScheduler?.stopScanning()
+            highlighter.unhighlightAll()
+            navigator.reset()
+            isManualScanActive = false
+            callback?.onScanTreeStarted()
             highlightCurrent() // Highlight the first item
             if (scanSettings.isAutoScanMode()) {
                 Log.d(TAG, "startScanning")
@@ -561,6 +570,7 @@ class ScanTree(
      */
     override fun resetForNextUse() {
         scanningScheduler?.stopScanning()
+        callback?.onScanTreeStopped()
         callback?.onScanTreeCycleBreakSkipped()
         highlighter.unhighlightAll()
         navigator.reset()

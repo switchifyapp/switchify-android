@@ -138,10 +138,9 @@ class PointScanBlockGridUI(private val context: Context) : AccessTechniqueUIBase
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
-            } finally {
-                screenOutline = null
             }
         }
+        screenOutline = null
     }
 
     fun reset() {
