@@ -129,7 +129,6 @@ class PointScanManager(private val context: Context) : AccessTechniqueInterface 
      */
     override fun stepScanningForward() {
         getManager().stepScanningForward()
-        if (PointScanSettings.isBlockMode() && getCurrentBlock() == null) blockManager.showBlocks()
     }
 
     /**
@@ -137,7 +136,6 @@ class PointScanManager(private val context: Context) : AccessTechniqueInterface 
      */
     override fun stepScanningBackward() {
         getManager().stepScanningBackward()
-        if (PointScanSettings.isBlockMode() && getCurrentBlock() == null) blockManager.showBlocks()
     }
 
     /**
@@ -146,7 +144,6 @@ class PointScanManager(private val context: Context) : AccessTechniqueInterface 
     override fun performSelectionAction() {
         blockManager.getScanTree().setSpeed(PointScanSettings.getCursorBlockScanRate())
         getManager().performSelectionAction()
-        if (PointScanSettings.isBlockMode() && getCurrentBlock() == null) blockManager.showBlocks()
     }
 
     /**
