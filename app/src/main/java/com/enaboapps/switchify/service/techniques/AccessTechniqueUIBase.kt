@@ -63,6 +63,29 @@ open class AccessTechniqueUIBase {
     }
 
     /**
+     * Adds a view directly without posting to handler.
+     * Should only be called when already on main thread.
+     *
+     * @param view The view to add.
+     * @param x The x coordinate of the view.
+     * @param y The y coordinate of the view.
+     * @param width The width of the view.
+     * @param height The height of the view.
+     */
+    protected fun addViewDirectly(view: ViewGroup, x: Int, y: Int, width: Int, height: Int) {
+        try {
+            show()
+            val params = createLayoutParams(x, y, width, height)
+            view.layoutParams = params
+            this.view?.addView(view)
+            childViews.add(view)
+        } catch (e: Exception) {
+            childViews.remove(view)
+            e.printStackTrace()
+        }
+    }
+
+    /**
      * Updates a view's position and size.
      *
      * @param view The view to update.

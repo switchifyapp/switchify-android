@@ -4,6 +4,8 @@ import android.content.Context
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.graphics.drawable.LayerDrawable
+import android.os.Handler
+import android.os.Looper
 import android.widget.RelativeLayout
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.service.techniques.AccessTechniqueUIBase
@@ -11,6 +13,7 @@ import com.enaboapps.switchify.service.utils.ScreenUtils
 
 class PointScanBlockGridUI(private val context: Context) : AccessTechniqueUIBase() {
     private val preferenceManager = PreferenceManager(context)
+    private val handler = Handler(Looper.getMainLooper())
     private var gridViews: List<RelativeLayout> = emptyList()
     private var screenOutline: RelativeLayout? = null
 
@@ -56,66 +59,62 @@ class PointScanBlockGridUI(private val context: Context) : AccessTechniqueUIBase
     }
 
     fun showGrid() {
-        // Prevent duplicate grids - cleanup first if already exists
-        if (gridViews.isNotEmpty() || screenOutline != null) {
-            hideGrid()
-        }
-
-        val screenWidth = ScreenUtils.getWidth(context)
-        val screenHeight = ScreenUtils.getHeight(context)
-
-        val gridSize = preferenceManager.getStringValue(
-            PreferenceManager.Keys.PREFERENCE_KEY_CURSOR_BLOCK_COUNT,
-            "4"
-        ).toInt()
-
-        val blockWidth = screenWidth / gridSize
-        val blockHeight = screenHeight / gridSize
-        val strokeWidth = 6 // Match the stroke width from drawable
-        val overlap = strokeWidth + 2 // Full stroke width plus extra to eliminate gaps
-
-        // Create modern grid blocks with layered design
-        gridViews = List(gridSize * gridSize) { index ->
-            val row = index / gridSize
-            val column = index % gridSize
-
-            // Adjust positioning to eliminate gaps
-            val left = column * blockWidth - if (column > 0) overlap else 0
-            val top = row * blockHeight - if (row > 0) overlap else 0
-            val width = blockWidth + if (column > 0) overlap else 0
-            val height = blockHeight + if (row > 0) overlap else 0
-
-            RelativeLayout(context).apply {
-                background = getModernGridDrawable()
-            }.also { view ->
-                super.addView(
-                    view,
-                    left,
-                    top,
-                    width,
-                    height
-                )
+        handler.post {
+            // Prevent duplicate grids - cleanup first if already exists
+            if (gridViews.isNotEmpty() || screenOutline != null) {
+                hideGrid()
             }
-        }
 
-        // Add modern screen outline with enhanced depth
-        screenOutline = RelativeLayout(context).apply {
-            background = createModernScreenOutlineDrawable()
-        }
-        screenOutline?.let {
-            super.addView(
-                it,
-                0,
-                0,
-                screenWidth,
-                screenHeight
-            )
+            val screenWidth = ScreenUtils.getWidth(context)
+            val screenHeight = ScreenUtils.getHeight(context)
+
+            val gridSize = preferenceManager.getStringValue(
+                PreferenceManager.Keys.PREFERENCE_KEY_CURSOR_BLOCK_COUNT,
+                "4"
+            ).toInt()
+
+            val blockWidth = screenWidth / gridSize
+            val blockHeight = screenHeight / gridSize
+            val strokeWidth = 6
+            val overlap = strokeWidth + 2
+
+            val newGridViews = mutableListOf<RelativeLayout>()
+
+            // Create and add all grid blocks atomically
+            for (index in 0 until gridSize * gridSize) {
+                val row = index / gridSize
+                val column = index % gridSize
+
+                val left = column * blockWidth - if (column > 0) overlap else 0
+                val top = row * blockHeight - if (row > 0) overlap else 0
+                val width = blockWidth + if (column > 0) overlap else 0
+                val height = blockHeight + if (row > 0) overlap else 0
+
+                val view = RelativeLayout(context).apply {
+                    background = getModernGridDrawable()
+                }
+
+                addViewDirectly(view, left, top, width, height)
+                newGridViews.add(view)
+            }
+
+            // Create and add screen outline
+            val newScreenOutline = RelativeLayout(context).apply {
+                background = createModernScreenOutlineDrawable()
+            }
+            addViewDirectly(newScreenOutline, 0, 0, screenWidth, screenHeight)
+
+            // Assign only after all views successfully added
+            gridViews = newGridViews
+            screenOutline = newScreenOutline
         }
     }
 
     fun hideGrid() {
-        removeGridViewsSafely()
-        removeScreenOutlineSafely()
+        handler.post {
+            removeGridViewsSafely()
+            removeScreenOutlineSafely()
+        }
     }
 
     private fun removeGridViewsSafely() {
@@ -146,13 +145,14 @@ class PointScanBlockGridUI(private val context: Context) : AccessTechniqueUIBase
     }
 
     fun reset() {
-        try {
-            removeGridViewsSafely()
-            removeScreenOutlineSafely()
-            super.hide()
-        } catch (e: Exception) {
-            // Force cleanup even if removal fails
-            forceCleanup()
+        handler.post {
+            try {
+                removeGridViewsSafely()
+                removeScreenOutlineSafely()
+                super.hide()
+            } catch (e: Exception) {
+                forceCleanup()
+            }
         }
     }
 
