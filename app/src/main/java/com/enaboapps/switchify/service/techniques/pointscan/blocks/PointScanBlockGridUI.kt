@@ -60,9 +60,10 @@ class PointScanBlockGridUI(private val context: Context) : AccessTechniqueUIBase
 
     fun showGrid() {
         handler.post {
-            // Prevent duplicate grids - cleanup first if already exists
+            // Prevent duplicate grids - cleanup synchronously if already exists
             if (gridViews.isNotEmpty() || screenOutline != null) {
-                hideGrid()
+                removeGridViewsSafely()
+                removeScreenOutlineSafely()
             }
 
             val screenWidth = ScreenUtils.getWidth(context)
