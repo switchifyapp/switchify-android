@@ -12,7 +12,7 @@ import android.widget.RelativeLayout
 import com.enaboapps.switchify.service.window.SwitchifyAccessibilityWindow
 import java.lang.ref.WeakReference
 
-class ZoomVisual(context: Context) {
+class PinchVisual(context: Context) {
     private val contextRef: WeakReference<Context> = WeakReference(context)
     private var currentCircle: WeakReference<RelativeLayout>? = null
     private var currentAnimation: ScaleAnimation? = null
@@ -23,7 +23,7 @@ class ZoomVisual(context: Context) {
         y: Float,
         circumference: Float,
         time: Long,
-        isZoomIn: Boolean = true
+        isPinchIn: Boolean = true
     ) {
         stop()
 
@@ -40,10 +40,10 @@ class ZoomVisual(context: Context) {
         currentCircle = WeakReference(circleLayout)
 
         val scaleAnimation = ScaleAnimation(
-            if (isZoomIn) 1f else 2f,
-            if (isZoomIn) 2f else 1f,
-            if (isZoomIn) 1f else 2f,
-            if (isZoomIn) 2f else 1f,
+            if (isPinchIn) 1f else 2f,
+            if (isPinchIn) 2f else 1f,
+            if (isPinchIn) 1f else 2f,
+            if (isPinchIn) 2f else 1f,
             Animation.RELATIVE_TO_SELF, 0.5f,
             Animation.RELATIVE_TO_SELF, 0.5f
         ).apply {

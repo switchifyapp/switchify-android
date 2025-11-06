@@ -29,7 +29,7 @@ class MenuStructureHolder(accessibilityService: SwitchifyAccessibilityService) {
 
     // Gesture Menus
     val gesturesMenuObject = gestureMenuStructure.gesturesMenuObject
-    val zoomGesturesMenuObject = gestureMenuStructure.zoomGesturesMenuObject
+    val pinchGesturesMenuObject = gestureMenuStructure.pinchGesturesMenuObject
     val swipeGesturesMenuObject = gestureMenuStructure.swipeGesturesMenuObject
     val tapGesturesMenuObject = gestureMenuStructure.tapGesturesMenuObject
     val customGestureConfirmationMenuObject =

@@ -539,28 +539,28 @@ class GestureManager private constructor() {
     }
 
     /**
-     * Performs a zoom action.
+     * Performs a pinch action.
      *
-     * Note: Zoom gestures are intentionally excluded from the multi-finger system
-     * to avoid conflicts with existing pinch-to-zoom mechanics. Zoom gestures
+     * Note: Pinch gestures are intentionally excluded from the multi-finger system
+     * to avoid conflicts with existing pinch-to-zoom mechanics. Pinch gestures
      * maintain their existing two-finger pinch implementation.
      *
-     * @param type The type of zoom action to perform.
+     * @param type The type of pinch action to perform.
      * @param startPoint The starting point of the gesture.
      */
-    fun performZoom(type: GestureType, startPoint: PointF? = null) {
+    fun performPinch(type: GestureType, startPoint: PointF? = null) {
         val point = startPoint ?: GesturePoint.getPoint()
         GestureLockManager.instance.setLockedGestureData(
             GestureData(
                 gestureType = type,
                 startPoint = point,
                 endPoint = null,
-                fingerCount = 2, // Zoom is always 2-finger pinch gesture
+                fingerCount = 2, // Pinch is always 2-finger pinch gesture
                 fingerMode = com.enaboapps.switchify.service.gestures.placement.FingerMode.TWO
             )
         )
         accessibilityService?.let {
-            ZoomGesturePerformer.performZoomAction(type, it, point)
+            PinchGesturePerformer.performPinchAction(type, it, point)
         }
     }
 

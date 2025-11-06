@@ -9,7 +9,7 @@ import com.enaboapps.switchify.service.menu.menus.gestures.GesturePatternsMenu
 import com.enaboapps.switchify.service.menu.menus.gestures.GesturesMenu
 import com.enaboapps.switchify.service.menu.menus.gestures.SwipeGesturesMenu
 import com.enaboapps.switchify.service.menu.menus.gestures.TapGesturesMenu
-import com.enaboapps.switchify.service.menu.menus.gestures.ZoomGesturesMenu
+import com.enaboapps.switchify.service.menu.menus.gestures.PinchGesturesMenu
 import com.enaboapps.switchify.service.menu.menus.main.MainMenu
 import com.enaboapps.switchify.service.menu.menus.media.MediaControlMenu
 import com.enaboapps.switchify.service.menu.menus.quickapps.QuickAppsMenu
@@ -175,11 +175,11 @@ class MenuManager {
     }
 
     /**
-     * This function opens the zoom gestures menu
+     * This function opens the pinch gestures menu
      */
-    fun openZoomGesturesMenu() {
-        val zoomGesturesMenu = ZoomGesturesMenu(accessibilityService!!)
-        openMenu(zoomGesturesMenu.build())
+    fun openPinchGesturesMenu() {
+        val pinchGesturesMenu = PinchGesturesMenu(accessibilityService!!)
+        openMenu(pinchGesturesMenu.build())
     }
 
     /**

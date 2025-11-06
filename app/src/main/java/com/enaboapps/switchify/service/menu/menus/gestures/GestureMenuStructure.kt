@@ -117,11 +117,11 @@ class GestureMenuStructure(private val context: Context) {
                 action = { GestureManager.instance.startHoldAndDragGesture() }
             ),
             MenuItem(
-                id = "zoom_gestures",
-                labelResource = R.string.menu_item_zoom_gestures,
-                drawableId = R.drawable.ic_zoom_gestures,
+                id = "pinch_gestures",
+                labelResource = R.string.menu_item_pinch_gestures,
+                drawableId = R.drawable.ic_pinch_gestures,
                 isLinkToMenu = true,
-                action = { MenuManager.getInstance().openZoomGesturesMenu() }
+                action = { MenuManager.getInstance().openPinchGesturesMenu() }
             ),
             MenuItem(
                 id = "finger_mode",
@@ -208,25 +208,25 @@ class GestureMenuStructure(private val context: Context) {
         )
     )
 
-    val zoomGesturesMenuObject = MenuStructure(
-        id = "zoom_gestures_menu",
+    val pinchGesturesMenuObject = MenuStructure(
+        id = "pinch_gestures_menu",
         items = listOfNotNull(
             MenuItem(
-                id = "zoom_in",
-                labelResource = R.string.menu_item_zoom_in,
-                drawableId = R.drawable.ic_gesture_zoom_in,
+                id = "pinch_in",
+                labelResource = R.string.menu_item_pinch_in,
+                drawableId = R.drawable.ic_gesture_pinch_in,
                 action = {
                     GestureManager.instance
-                        .performZoom(GestureType.ZOOM_IN)
+                        .performPinch(GestureType.PINCH_IN)
                 }
             ),
             MenuItem(
-                id = "zoom_out",
-                labelResource = R.string.menu_item_zoom_out,
-                drawableId = R.drawable.ic_gesture_zoom_out,
+                id = "pinch_out",
+                labelResource = R.string.menu_item_pinch_out,
+                drawableId = R.drawable.ic_gesture_pinch_out,
                 action = {
                     GestureManager.instance
-                        .performZoom(GestureType.ZOOM_OUT)
+                        .performPinch(GestureType.PINCH_OUT)
                 }
             ),
             toggleGestureLockMenuItem
