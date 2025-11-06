@@ -23,7 +23,7 @@ data class GestureData(
         const val DRAG_DURATION = 1500L
         const val HOLD_BEFORE_DRAG_DURATION = 400L
         const val SCROLL_DURATION = 800L
-        const val ZOOM_DURATION = 500L
+        const val PINCH_DURATION = 500L
     }
 
     fun duration(): Long = when (gestureType) {
@@ -44,8 +44,8 @@ data class GestureData(
         GestureType.DRAG,
         GestureType.HOLD_AND_DRAG -> DRAG_DURATION
 
-        GestureType.ZOOM_IN,
-        GestureType.ZOOM_OUT -> ZOOM_DURATION
+        GestureType.PINCH_IN,
+        GestureType.PINCH_OUT -> PINCH_DURATION
 
         GestureType.SCROLL_UP,
         GestureType.SCROLL_DOWN,
@@ -153,8 +153,8 @@ data class GestureData(
                 GestureManager.instance.performCustomGestureAction(sanitizedGesture)
             }
 
-            GestureType.ZOOM_IN, GestureType.ZOOM_OUT -> {
-                GestureManager.instance.performZoom(gestureType, startPoint)
+            GestureType.PINCH_IN, GestureType.PINCH_OUT -> {
+                GestureManager.instance.performPinch(gestureType, startPoint)
             }
         }
     }

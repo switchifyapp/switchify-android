@@ -721,9 +721,9 @@ class FingerPlacementAlgorithm {
             GestureType.SCROLL_LEFT,
             GestureType.SCROLL_RIGHT -> SCROLL_GESTURE_COMPACT
 
-            // Zoom gestures benefit from wider spacing for pinch-to-zoom recognition
-            GestureType.ZOOM_IN,
-            GestureType.ZOOM_OUT -> PINCH_GESTURE_SPREAD
+            // Pinch gestures benefit from wider spacing for pinch-to-zoom recognition
+            GestureType.PINCH_IN,
+            GestureType.PINCH_OUT -> PINCH_GESTURE_SPREAD
 
             // Other gestures use neutral spacing
             else -> 1.0f

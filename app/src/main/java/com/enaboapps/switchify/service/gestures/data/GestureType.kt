@@ -31,7 +31,7 @@ package com.enaboapps.switchify.service.gestures.data
  *    - HOLD_AND_DRAG: Hold-then-drag with enhanced feedback
  *
  * 4. Multi-Touch Gestures:
- *    - ZOOM_IN/ZOOM_OUT: Pinch-to-zoom functionality
+ *    - PINCH_IN/PINCH_OUT: Pinch-to-zoom functionality
  *
  * System Integration:
  * - GesturePathBuilder uses these types for path creation strategy selection
@@ -69,8 +69,8 @@ enum class GestureType {
     SCROLL_RIGHT,       // Scroll content rightward
 
     // Multi-touch gestures - complex gesture coordination
-    ZOOM_IN,            // Pinch-to-zoom in
-    ZOOM_OUT;           // Pinch-to-zoom out
+    PINCH_IN,            // Pinch-to-zoom in
+    PINCH_OUT;           // Pinch-to-zoom out
 
     /**
      * Checks if this gesture type is a scroll gesture.

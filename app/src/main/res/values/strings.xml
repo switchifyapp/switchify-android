@@ -66,14 +66,14 @@
     <string name="menu_item_swipe_gestures">Swipe Gestures</string>
     <string name="menu_item_drag">Drag</string>
     <string name="menu_item_hold_and_drag">Hold and Drag</string>
-    <string name="menu_item_zoom_gestures">Zoom Gestures</string>
+    <string name="menu_item_pinch_gestures">Pinch Gestures</string>
     <string name="menu_item_swipe_up">Swipe Up</string>
     <string name="menu_item_swipe_down">Swipe Down</string>
     <string name="menu_item_swipe_left">Swipe Left</string>
     <string name="menu_item_swipe_right">Swipe Right</string>
     <string name="menu_item_custom_swipe">Custom Swipe</string>
-    <string name="menu_item_zoom_in">Zoom In</string>
-    <string name="menu_item_zoom_out">Zoom Out</string>
+    <string name="menu_item_pinch_in">Pinch In</string>
+    <string name="menu_item_pinch_out">Pinch Out</string>
     <string name="menu_item_confirm">Confirm</string>
     <string name="menu_item_reselect">Reselect</string>
     <string name="menu_item_cancel">Cancel</string>

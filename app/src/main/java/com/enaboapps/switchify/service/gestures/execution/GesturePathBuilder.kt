@@ -181,20 +181,20 @@ object GesturePathBuilder {
     }
 
     /**
-     * Creates a zoom gesture with correct pinch mechanics.
+     * Creates a pinch gesture with correct pinch mechanics.
      *
-     * @param centerPoint Center point of the zoom
-     * @param isZoomIn True for zoom in (pinch), false for zoom out (spread)
-     * @param duration Duration of the zoom gesture
-     * @return GestureDescription for the zoom
+     * @param centerPoint Center point of the pinch
+     * @param isPinchIn True for pinch in (zoom in), false for pinch out (zoom out)
+     * @param duration Duration of the pinch gesture
+     * @return GestureDescription for the pinch
      */
-    fun createZoomPath(
+    fun createPinchPath(
         centerPoint: PointF,
-        isZoomIn: Boolean,
-        duration: Long = GestureData.ZOOM_DURATION
+        isPinchIn: Boolean,
+        duration: Long = GestureData.PINCH_DURATION
     ): GestureDescription {
-        val startSeparation = if (isZoomIn) 50f else 200f
-        val endSeparation = if (isZoomIn) 200f else 50f
+        val startSeparation = if (isPinchIn) 50f else 200f
+        val endSeparation = if (isPinchIn) 200f else 50f
 
         // First finger path (left side)
         val finger1Start = PointF(centerPoint.x - startSeparation / 2, centerPoint.y)
@@ -254,7 +254,7 @@ object GesturePathBuilder {
             GestureType.SCROLL_UP, GestureType.SCROLL_DOWN,
             GestureType.SCROLL_LEFT, GestureType.SCROLL_RIGHT -> GestureData.SCROLL_DURATION
 
-            GestureType.ZOOM_IN, GestureType.ZOOM_OUT -> GestureData.ZOOM_DURATION
+            GestureType.PINCH_IN, GestureType.PINCH_OUT -> GestureData.PINCH_DURATION
             else -> GestureData.SWIPE_DURATION
         }
     }
@@ -720,8 +720,8 @@ object GesturePathBuilder {
                 gestureData.endPoint ?: gestureData.startPoint
             )
 
-            GestureType.ZOOM_IN -> createZoomPath(gestureData.startPoint, true)
-            GestureType.ZOOM_OUT -> createZoomPath(gestureData.startPoint, false)
+            GestureType.PINCH_IN -> createPinchPath(gestureData.startPoint, true)
+            GestureType.PINCH_OUT -> createPinchPath(gestureData.startPoint, false)
             else -> {
                 val endPoint = gestureData.endPoint ?: gestureData.startPoint
                 val duration = getDurationForGestureType(gestureData.gestureType)
