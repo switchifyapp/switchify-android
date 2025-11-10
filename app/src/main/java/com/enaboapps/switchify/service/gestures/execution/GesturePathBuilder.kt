@@ -720,8 +720,8 @@ object GesturePathBuilder {
                 gestureData.endPoint ?: gestureData.startPoint
             )
 
-            GestureType.PINCH_IN -> createPinchPath(gestureData.startPoint, true)
-            GestureType.PINCH_OUT -> createPinchPath(gestureData.startPoint, false)
+            GestureType.PINCH_IN -> createPinchPath(gestureData.startPoint, false)
+            GestureType.PINCH_OUT -> createPinchPath(gestureData.startPoint, true)
             else -> {
                 val endPoint = gestureData.endPoint ?: gestureData.startPoint
                 val duration = getDurationForGestureType(gestureData.gestureType)
