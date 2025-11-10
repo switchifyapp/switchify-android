@@ -65,13 +65,13 @@ object PinchGesturePerformer {
             centerPoint.y.toFloat(),
             visualCircleSize,
             GestureData.PINCH_DURATION,
-            type == GestureType.PINCH_IN
+            type == GestureType.PINCH_OUT
         )
 
         // Create gesture description using unified path builder
         val gestureDescription = GesturePathBuilder.createPinchPath(
             centerPoint,
-            type == GestureType.PINCH_IN,
+            type == GestureType.PINCH_OUT,
             GestureData.PINCH_DURATION
         )
 
