@@ -31,6 +31,7 @@ class ActiveAccessTechnique(private val context: Context) : AccessTechniqueObser
     private var screenWatcher: ScreenWatcher? = null
 
     private var onScanningStartCallback: (() -> Unit)? = null
+    private var onKeyboardDismissedCallback: (() -> Unit)? = null
 
     init {
         AccessTechnique.observer = this
@@ -116,6 +117,10 @@ class ActiveAccessTechnique(private val context: Context) : AccessTechniqueObser
 
     fun setOnScanningStartCallback(callback: () -> Unit) {
         onScanningStartCallback = callback
+    }
+
+    fun setOnKeyboardDismissedCallback(callback: () -> Unit) {
+        onKeyboardDismissedCallback = callback
     }
 
     private fun getPointScanManager(): PointScanManager {
@@ -257,6 +262,8 @@ class ActiveAccessTechnique(private val context: Context) : AccessTechniqueObser
         if (isKeyboardVisible) {
             cleanupAllExceptKeyboard()
         } else {
+            // Trigger delay when switching away from keyboard, similar to other technique switches
+            onKeyboardDismissedCallback?.invoke()
             cleanupKeyboard()
         }
     }
