@@ -198,11 +198,15 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
 
 
     override fun onUnbind(intent: Intent?): Boolean {
-        cameraManager.cleanup()
+        if (::cameraManager.isInitialized) {
+            cameraManager.cleanup()
+        }
         deviceLockObserver.stopObserving()
         screenWatcherManager.unregister()
         serviceScope.coroutineContext.cancelChildren()
-        eventPipeline.stop()
+        if (::eventPipeline.isInitialized) {
+            eventPipeline.stop()
+        }
         ServiceCore.cleanup()
         GlobalActionManager.cleanup()
         AudioActionManager.cleanup()
@@ -223,7 +227,9 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
         // Unregister ScreenWatcher to prevent receiver leak
         screenWatcherManager.unregister()
         serviceScope.coroutineContext.cancelChildren()
-        eventPipeline.stop()
+        if (::eventPipeline.isInitialized) {
+            eventPipeline.stop()
+        }
 
         SwitchifyAccessibilityWindow.instance.onServiceDestroy()
         SwitchifyLifecycleOwner.getInstance().handleLifecycleEvent(Lifecycle.Event.ON_DESTROY)
