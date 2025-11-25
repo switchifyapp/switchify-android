@@ -87,8 +87,12 @@ class PointScanManager(private val context: Context) : AccessTechniqueInterface 
 
     /**
      * Starts the scanning process.
+     * Ensures grid is initialized before starting scan.
      */
     override fun startAutoScanning() {
+        if (PointScanSettings.isBlockMode() && !blockManager.isInitialized()) {
+            return
+        }
         getManager().startAutoScanning()
     }
 
