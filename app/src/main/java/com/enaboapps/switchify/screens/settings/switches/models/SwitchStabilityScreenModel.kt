@@ -27,6 +27,15 @@ class SwitchStabilityScreenModel(context: Context) : ViewModel() {
     }
     val switchHoldTime: LiveData<Long> = _switchHoldTime
 
+    private val _holdToUnpauseDuration = MutableLiveData<Long>().apply {
+        value =
+            preferenceManager.getLongValue(
+                PreferenceManager.Keys.PREFERENCE_KEY_HOLD_TO_UNPAUSE_DURATION,
+                2000L
+            )
+    }
+    val holdToUnpauseDuration: LiveData<Long> = _holdToUnpauseDuration
+
 
     fun setSwitchIgnoreRepeat(value: Boolean) {
         preferenceManager.setBooleanValue(
@@ -50,5 +59,13 @@ class SwitchStabilityScreenModel(context: Context) : ViewModel() {
             value
         )
         _switchHoldTime.postValue(value)
+    }
+
+    fun setHoldToUnpauseDuration(value: Long) {
+        preferenceManager.setLongValue(
+            PreferenceManager.Keys.PREFERENCE_KEY_HOLD_TO_UNPAUSE_DURATION,
+            value
+        )
+        _holdToUnpauseDuration.postValue(value)
     }
 }
