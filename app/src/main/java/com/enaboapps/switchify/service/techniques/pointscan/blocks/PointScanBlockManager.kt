@@ -12,6 +12,7 @@ class PointScanBlockManager(
     private val onBlockSelected: (Int) -> Unit
 ) : ScanTreeCallback {
     private var blocks: List<PointScanBlock> = emptyList()
+    private var isInitialized = false
 
     private val cursorBlockGridUI = PointScanBlockGridUI(context)
 
@@ -59,6 +60,7 @@ class PointScanBlockManager(
         nodes.forEachIndexed { index, node -> node.setOnSelect { onBlockSelected(index) } }
         scanTree.setSpeed(PointScanSettings.getCursorBlockScanRate())
         scanTree.buildTree(nodes)
+        isInitialized = true
     }
 
     fun showBlocks() {
@@ -82,5 +84,9 @@ class PointScanBlockManager(
 
     fun getBlock(index: Int): PointScanBlock? {
         return blocks.getOrNull(index)
+    }
+
+    fun isInitialized(): Boolean {
+        return isInitialized
     }
 }
