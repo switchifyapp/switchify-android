@@ -21,9 +21,6 @@ fun GestureSettingsScreen(navController: NavController) {
     val autoScrollDelay =
         remember { preferenceManager.getLongValue(PreferenceManager.Keys.PREFERENCE_KEY_AUTO_SCROLL_DELAY) }
 
-    val gestureLock =
-        remember { preferenceManager.getBooleanValue(PreferenceManager.Keys.PREFERENCE_KEY_GESTURE_LOCK) }
-
     val autoScrollState = remember { mutableStateOf(autoScroll) }
 
     BaseView(
@@ -60,21 +57,6 @@ fun GestureSettingsScreen(navController: NavController) {
                     }
                 )
             }
-        }
-        Section(
-            titleResId = R.string.section_title_locking
-        ) {
-            PreferenceSwitch(
-                titleResId = R.string.preference_title_gesture_lock,
-                summaryResId = R.string.preference_summary_gesture_lock,
-                checked = gestureLock,
-                onCheckedChange = {
-                    preferenceManager.setBooleanValue(
-                        PreferenceManager.Keys.PREFERENCE_KEY_GESTURE_LOCK,
-                        it
-                    )
-                }
-            )
         }
     }
 }
