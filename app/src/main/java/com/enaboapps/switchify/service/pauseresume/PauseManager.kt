@@ -115,6 +115,25 @@ class PauseManager private constructor() {
     }
 
     /**
+     * Checks if the switch has been held long enough to trigger unpause.
+     * Should be called when a switch is released during pause.
+     *
+     * @param pressTimestamp The timestamp when the switch was pressed
+     * @param holdDuration The configured hold duration in milliseconds
+     * @return true if unpause was triggered, false otherwise
+     */
+    fun checkHoldToUnpause(pressTimestamp: Long, holdDuration: Long): Boolean {
+        if (!isPaused) return false
+
+        val holdTime = System.currentTimeMillis() - pressTimestamp
+        if (holdTime >= holdDuration) {
+            resume()
+            return true
+        }
+        return false
+    }
+
+    /**
      * Resumes from pause mode.
      * Shows service window, displays resume message, and notifies all listeners.
      */
