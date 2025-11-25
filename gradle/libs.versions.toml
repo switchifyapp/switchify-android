@@ -24,7 +24,7 @@ room = "2.8.4"
 ksp = "2.2.20-2.0.3"
 supabase = "3.2.6"
 ktor = "3.3.2"
-sentry = "8.26.0"
+sentry = "8.27.0"
 sentry-gradle = "5.12.1"
 
 [libraries]
