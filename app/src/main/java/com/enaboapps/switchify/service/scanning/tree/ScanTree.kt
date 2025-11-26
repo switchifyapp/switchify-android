@@ -30,7 +30,7 @@ class ScanTree(
     private val context: Context,
     private var stopScanningOnSelect: Boolean = false,
     private val hasCycleBreak: Boolean = false,
-    private val callback: ScanTreeCallback? = null
+    private var callback: ScanTreeCallback? = null
 ) : AccessTechniqueInterface {
 
     companion object {
@@ -610,6 +610,9 @@ class ScanTree(
     }
 
     override fun cleanup() {
+        // Clear callback before cleanup to prevent race condition with handler-posted UI updates
+        // during quick technique switches (e.g., keyboard dismiss -> rapid scan start)
+        callback = null
         super.cleanup()
         scanningScheduler?.shutdown()
         scanningScheduler = null
