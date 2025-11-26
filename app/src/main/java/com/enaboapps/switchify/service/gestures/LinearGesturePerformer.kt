@@ -507,8 +507,25 @@ class LinearGesturePerformer(
 
                 Log.d(TAG, "Recording gesture with $fingerCount fingers (mode: $currentFingerMode)")
 
-                // Dispatch using unified dispatcher with gesture data
-                gestureDispatcher.dispatch(gestureDescription, type, gestureData)
+                // Special handling for HOLD_AND_DRAG: dispatch hold, then drag on completion
+                if (type == GestureType.HOLD_AND_DRAG) {
+                    val dragDescription = GesturePathBuilder.createMultiFingerDragAfterHoldPath(
+                        startFingerPositions,
+                        endFingerPositions
+                    )
+                    gestureDispatcher.dispatchWithActions(
+                        gestureDescription,
+                        type,
+                        gestureData,
+                        onCompleted = {
+                            // Dispatch drag gesture after hold completes
+                            gestureDispatcher.dispatch(dragDescription, type, null)
+                        }
+                    )
+                } else {
+                    // Standard dispatch for other gestures
+                    gestureDispatcher.dispatch(gestureDescription, type, gestureData)
+                }
                 Log.d(TAG, "Multi-finger gesture dispatched successfully: $type")
 
             } else {
@@ -540,8 +557,22 @@ class LinearGesturePerformer(
 
                 Log.d(TAG, "Recording gesture with 1 finger (single-finger mode)")
 
-                // Dispatch using unified dispatcher with gesture data
-                gestureDispatcher.dispatch(gestureDescription, type, gestureData)
+                // Special handling for HOLD_AND_DRAG: dispatch hold, then drag on completion
+                if (type == GestureType.HOLD_AND_DRAG) {
+                    val dragDescription = GesturePathBuilder.createDragAfterHoldPath(start, end)
+                    gestureDispatcher.dispatchWithActions(
+                        gestureDescription,
+                        type,
+                        gestureData,
+                        onCompleted = {
+                            // Dispatch drag gesture after hold completes
+                            gestureDispatcher.dispatch(dragDescription, type, null)
+                        }
+                    )
+                } else {
+                    // Standard dispatch for other gestures
+                    gestureDispatcher.dispatch(gestureDescription, type, gestureData)
+                }
                 Log.d(TAG, "Single-finger gesture dispatched successfully: $type")
             }
         } catch (e: Exception) {

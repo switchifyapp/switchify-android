@@ -159,23 +159,39 @@ object GesturePathBuilder {
         holdDuration: Long = GestureData.HOLD_BEFORE_DRAG_DURATION,
         dragDuration: Long = GestureData.DRAG_DURATION
     ): GestureDescription {
-        // Hold stroke
-        val holdPath = Path().apply { moveTo(startPoint.x, startPoint.y) }
+        // For hold-and-drag, just return the hold gesture
+        // The drag will be dispatched sequentially after hold completes
+        val holdPath = Path().apply {
+            moveTo(startPoint.x, startPoint.y)
+        }
+
         val holdStroke = GestureDescription.StrokeDescription(
             holdPath, 0, holdDuration
         )
 
-        // Drag stroke (starts slightly before hold ends for continuity)
+        return GestureDescription.Builder()
+            .addStroke(holdStroke)
+            .build()
+    }
+
+    /**
+     * Creates the drag portion of a hold-and-drag gesture.
+     */
+    fun createDragAfterHoldPath(
+        startPoint: PointF,
+        endPoint: PointF,
+        dragDuration: Long = GestureData.DRAG_DURATION
+    ): GestureDescription {
         val dragPath = Path().apply {
             moveTo(startPoint.x, startPoint.y)
             lineTo(endPoint.x, endPoint.y)
         }
+
         val dragStroke = GestureDescription.StrokeDescription(
-            dragPath, holdDuration - 5, dragDuration
+            dragPath, 0, dragDuration
         )
 
         return GestureDescription.Builder()
-            .addStroke(holdStroke)
             .addStroke(dragStroke)
             .build()
     }
@@ -677,23 +693,48 @@ object GesturePathBuilder {
     private fun createMultiFingerHoldAndDragPath(
         startPoints: List<PointF>,
         endPoints: List<PointF>,
-        totalDuration: Long
+        dragDuration: Long
+    ): GestureDescription {
+        // For hold-and-drag, just return the hold gesture
+        // The drag will be dispatched sequentially after hold completes
+        val builder = GestureDescription.Builder()
+        val holdDuration = GestureData.HOLD_BEFORE_DRAG_DURATION
+
+        startPoints.forEach { startPoint ->
+            val holdPath = Path().apply {
+                moveTo(startPoint.x, startPoint.y)
+            }
+
+            val holdStroke = GestureDescription.StrokeDescription(
+                holdPath, 0, holdDuration
+            )
+            builder.addStroke(holdStroke)
+        }
+
+        return builder.build()
+    }
+
+    /**
+     * Creates the drag portion of a multi-finger hold-and-drag gesture.
+     */
+    fun createMultiFingerDragAfterHoldPath(
+        startPoints: List<PointF>,
+        endPoints: List<PointF>,
+        dragDuration: Long = GestureData.DRAG_DURATION
     ): GestureDescription {
         val builder = GestureDescription.Builder()
-        val holdDuration = totalDuration / 3 // Hold for 1/3 of total time
-        val dragDuration = totalDuration - holdDuration // Drag for remaining time
-
         val pointPairs = startPoints.zip(endPoints)
 
         pointPairs.forEach { (startPoint, endPoint) ->
-            val path = Path().apply {
-                // Hold phase
+            val dragPath = Path().apply {
                 moveTo(startPoint.x, startPoint.y)
-                // Drag phase
                 lineTo(endPoint.x, endPoint.y)
             }
-            val stroke = GestureDescription.StrokeDescription(path, 0, totalDuration)
-            builder.addStroke(stroke)
+
+            val dragStroke = GestureDescription.StrokeDescription(
+                dragPath, 0, dragDuration
+            )
+            builder.addStroke(dragStroke)
         }
 
         return builder.build()
