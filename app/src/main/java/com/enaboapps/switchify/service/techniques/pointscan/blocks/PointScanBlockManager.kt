@@ -63,10 +63,6 @@ class PointScanBlockManager(
         isInitialized = true
     }
 
-    fun showBlocks() {
-        cursorBlockGridUI.showGrid()
-    }
-
     fun cleanup() {
         blocks = emptyList()
         scanTree.cleanup()
