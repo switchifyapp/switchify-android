@@ -60,10 +60,6 @@ class ScanningManager(
                 currentScanMethod.startAutoScanning()
             }
         }
-        activeScanMethod.setOnKeyboardDismissedCallback {
-            // Apply the same delay when switching away from keyboard as other technique switches
-            startAcceptingActionsTimeout()
-        }
     }
 
     /**
