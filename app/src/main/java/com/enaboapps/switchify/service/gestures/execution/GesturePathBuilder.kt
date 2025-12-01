@@ -145,42 +145,6 @@ object GesturePathBuilder {
     }
 
     /**
-     * Creates a hold-and-drag gesture with proper timing.
-     *
-     * @param startPoint Starting point of the gesture
-     * @param endPoint Ending point of the gesture
-     * @param holdDuration Duration of the initial hold
-     * @param dragDuration Duration of the drag movement
-     * @return GestureDescription for the hold-and-drag
-     */
-    fun createHoldAndDragPath(
-        startPoint: PointF,
-        endPoint: PointF,
-        holdDuration: Long = GestureData.HOLD_BEFORE_DRAG_DURATION,
-        dragDuration: Long = GestureData.DRAG_DURATION
-    ): GestureDescription {
-        // Hold stroke
-        val holdPath = Path().apply { moveTo(startPoint.x, startPoint.y) }
-        val holdStroke = GestureDescription.StrokeDescription(
-            holdPath, 0, holdDuration
-        )
-
-        // Drag stroke (starts slightly before hold ends for continuity)
-        val dragPath = Path().apply {
-            moveTo(startPoint.x, startPoint.y)
-            lineTo(endPoint.x, endPoint.y)
-        }
-        val dragStroke = GestureDescription.StrokeDescription(
-            dragPath, holdDuration - 5, dragDuration
-        )
-
-        return GestureDescription.Builder()
-            .addStroke(holdStroke)
-            .addStroke(dragStroke)
-            .build()
-    }
-
-    /**
      * Creates a pinch gesture with correct pinch mechanics.
      *
      * @param centerPoint Center point of the pinch
@@ -250,7 +214,7 @@ object GesturePathBuilder {
             GestureType.TAP_AND_HOLD_3S -> GestureData.TAP_AND_HOLD_3S_DURATION
             GestureType.TAP_AND_HOLD_5S -> GestureData.TAP_AND_HOLD_5S_DURATION
             GestureType.TAP_AND_HOLD_10S -> GestureData.TAP_AND_HOLD_10S_DURATION
-            GestureType.DRAG, GestureType.HOLD_AND_DRAG -> GestureData.DRAG_DURATION
+            GestureType.DRAG -> GestureData.DRAG_DURATION
             GestureType.SCROLL_UP, GestureType.SCROLL_DOWN,
             GestureType.SCROLL_LEFT, GestureType.SCROLL_RIGHT -> GestureData.SCROLL_DURATION
 
@@ -640,9 +604,8 @@ object GesturePathBuilder {
      * - Supports any number of fingers (1 to N)
      * - Maintains relative finger spacing during movement
      * - Uses gesture-appropriate timing and duration
-     * - Handles HOLD_AND_DRAG with specialized two-stroke pattern
      *
-     * @param gestureType The type of linear gesture (DRAG, SWIPE_*, SCROLL_*, HOLD_AND_DRAG, etc.)
+     * @param gestureType The type of linear gesture (DRAG, SWIPE_*, SCROLL_*, etc.)
      * @param startPoints List of start positions for all fingers
      * @param endPoints List of end positions for all fingers (must match startPoints length)
      * @return GestureDescription with coordinated multi-finger linear paths
@@ -658,45 +621,8 @@ object GesturePathBuilder {
 
         val duration = getDurationForGestureType(gestureType)
 
-        return when (gestureType) {
-            GestureType.HOLD_AND_DRAG -> {
-                // Special handling for hold-and-drag: hold at start, then drag to end
-                createMultiFingerHoldAndDragPath(startPoints, endPoints, duration)
-            }
-
-            else -> {
-                // Standard linear path for swipes, drags, scrolls
-                createMultiFingerLinearPath(startPoints, endPoints, duration)
-            }
-        }
-    }
-
-    /**
-     * Creates a multi-finger hold-and-drag path with hold phase followed by drag phase.
-     */
-    private fun createMultiFingerHoldAndDragPath(
-        startPoints: List<PointF>,
-        endPoints: List<PointF>,
-        totalDuration: Long
-    ): GestureDescription {
-        val builder = GestureDescription.Builder()
-        val holdDuration = totalDuration / 3 // Hold for 1/3 of total time
-        val dragDuration = totalDuration - holdDuration // Drag for remaining time
-
-        val pointPairs = startPoints.zip(endPoints)
-
-        pointPairs.forEach { (startPoint, endPoint) ->
-            val path = Path().apply {
-                // Hold phase
-                moveTo(startPoint.x, startPoint.y)
-                // Drag phase
-                lineTo(endPoint.x, endPoint.y)
-            }
-            val stroke = GestureDescription.StrokeDescription(path, 0, totalDuration)
-            builder.addStroke(stroke)
-        }
-
-        return builder.build()
+        // Standard linear path for swipes, drags, scrolls
+        return createMultiFingerLinearPath(startPoints, endPoints, duration)
     }
 
     /**
@@ -715,11 +641,6 @@ object GesturePathBuilder {
             GestureType.TAP_AND_HOLD_3S,
             GestureType.TAP_AND_HOLD_5S,
             GestureType.TAP_AND_HOLD_10S -> createTapAndHoldPath(gestureData.startPoint, gestureData.duration())
-            GestureType.HOLD_AND_DRAG -> createHoldAndDragPath(
-                gestureData.startPoint,
-                gestureData.endPoint ?: gestureData.startPoint
-            )
-
             GestureType.PINCH_IN -> createPinchPath(gestureData.startPoint, false)
             GestureType.PINCH_OUT -> createPinchPath(gestureData.startPoint, true)
             else -> {

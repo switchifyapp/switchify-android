@@ -45,7 +45,6 @@ import com.enaboapps.switchify.service.window.ServiceMessageHUD
  *
  * Supported Gesture Types:
  * - DRAG: Direct movement with immediate visual feedback
- * - HOLD_AND_DRAG: Hold-then-drag with enhanced visual confirmation
  * - CUSTOM_SWIPE: User-defined direction and distance
  * - SWIPE_UP/DOWN/LEFT/RIGHT: Predefined directional movements
  * - SCROLL_UP/DOWN/LEFT/RIGHT: Content scrolling with appropriate distances
@@ -366,7 +365,6 @@ class LinearGesturePerformer(
      */
     private fun showGestureMessage(type: GestureType) {
         val messageResId = when (type) {
-            GestureType.HOLD_AND_DRAG -> R.string.hud_select_hold_and_drag
             GestureType.DRAG -> R.string.hud_select_drag
             GestureType.CUSTOM_SWIPE -> R.string.hud_select_swipe
             else -> return
@@ -388,7 +386,7 @@ class LinearGesturePerformer(
         val screenWidth = ScreenUtils.getWidth(accessibilityService)
         val screenHeight = ScreenUtils.getHeight(accessibilityService)
         return when (type) {
-            GestureType.DRAG, GestureType.CUSTOM_SWIPE, GestureType.HOLD_AND_DRAG -> GesturePoint.getPoint()
+            GestureType.DRAG, GestureType.CUSTOM_SWIPE -> GesturePoint.getPoint()
             GestureType.SWIPE_UP, GestureType.SCROLL_DOWN -> PointF(
                 start.x,
                 start.y - screenHeight / 5f
@@ -425,7 +423,6 @@ class LinearGesturePerformer(
      * Path Creation Strategy:
      * - Multi-finger mode: Uses createDynamicLinearPath for coordinated multi-finger gestures
      * - Single-finger mode: Uses traditional single-finger paths for compatibility
-     * - HOLD_AND_DRAG: Special handling for hold-then-drag patterns
      * - Leverages GesturePathBuilder factory pattern for consistent behavior
      *
      * Visual Feedback Integration:
@@ -517,16 +514,8 @@ class LinearGesturePerformer(
                 showVisualFeedback(start, end, type)
 
                 // Create gesture description using unified path builder
-                val gestureDescription = when (type) {
-                    GestureType.HOLD_AND_DRAG -> {
-                        GesturePathBuilder.createHoldAndDragPath(start, end)
-                    }
-
-                    else -> {
-                        val duration = GesturePathBuilder.getDurationForGestureType(type)
-                        GesturePathBuilder.createLinearPath(start, end, duration)
-                    }
-                }
+                val duration = GesturePathBuilder.getDurationForGestureType(type)
+                val gestureDescription = GesturePathBuilder.createLinearPath(start, end, duration)
 
                 Log.d(TAG, "About to dispatch single-finger gesture: $type")
                 // Create gesture data for pattern recording and gesture lock with finger count
@@ -602,7 +591,7 @@ class LinearGesturePerformer(
      */
     private fun getDurationForGestureType(type: GestureType): Long {
         return when (type) {
-            GestureType.DRAG, GestureType.HOLD_AND_DRAG -> GestureData.DRAG_DURATION
+            GestureType.DRAG -> GestureData.DRAG_DURATION
             GestureType.SCROLL_UP, GestureType.SCROLL_DOWN, GestureType.SCROLL_LEFT, GestureType.SCROLL_RIGHT -> GestureData.SCROLL_DURATION
             else -> GestureData.SWIPE_DURATION
         }
