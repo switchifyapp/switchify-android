@@ -715,7 +715,6 @@ class FingerPlacementAlgorithm {
         val gestureAdjustment = when (gestureType) {
             // Drag and scroll gestures benefit from closer finger spacing for precision
             GestureType.DRAG,
-            GestureType.HOLD_AND_DRAG,
             GestureType.SCROLL_UP,
             GestureType.SCROLL_DOWN,
             GestureType.SCROLL_LEFT,
@@ -796,7 +795,7 @@ class FingerPlacementAlgorithm {
             GestureType.TAP_AND_HOLD_3S,
             GestureType.TAP_AND_HOLD_5S,
             GestureType.TAP_AND_HOLD_10S -> 2              // Hold gestures benefit from stability
-            GestureType.DRAG, GestureType.HOLD_AND_DRAG -> 2  // Drag gestures benefit from stability
+            GestureType.DRAG -> 2  // Drag gestures benefit from stability
             else -> 1  // Default to single finger
         }
     }
@@ -816,8 +815,7 @@ class FingerPlacementAlgorithm {
             GestureType.TAP_AND_HOLD_3S,
             GestureType.TAP_AND_HOLD_5S,
             GestureType.TAP_AND_HOLD_10S,
-            GestureType.DRAG,
-            GestureType.HOLD_AND_DRAG -> true
+            GestureType.DRAG -> true
 
             else -> false
         }

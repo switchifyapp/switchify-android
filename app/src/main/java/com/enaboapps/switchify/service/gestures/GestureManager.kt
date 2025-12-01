@@ -471,20 +471,6 @@ class GestureManager private constructor() {
     }
 
     /**
-     * Initiates a hold-and-drag gesture with initial hold phase.
-     *
-     * Hold-and-drag gestures provide better user feedback by:
-     * 1. Holding at the start position to indicate selection
-     * 2. Then dragging to the end position
-     * 3. Useful for drag-and-drop operations requiring visual confirmation
-     *
-     * State Management: Updates GestureStateManager to track active gesture
-     */
-    fun startHoldAndDragGesture() {
-        linearGesturePerformer.startGesture(GestureType.HOLD_AND_DRAG)
-    }
-
-    /**
      * Initiates a custom swipe gesture for user-defined directions and distances.
      *
      * Custom swipes enable flexible gesture input where:

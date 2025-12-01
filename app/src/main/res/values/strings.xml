@@ -65,7 +65,6 @@
     <string name="menu_item_tap_gestures">Tap Gestures</string>
     <string name="menu_item_swipe_gestures">Swipe Gestures</string>
     <string name="menu_item_drag">Drag</string>
-    <string name="menu_item_hold_and_drag">Hold and Drag</string>
     <string name="menu_item_pinch_gestures">Pinch Gestures</string>
     <string name="menu_item_swipe_up">Swipe Up</string>
     <string name="menu_item_swipe_down">Swipe Down</string>
@@ -134,7 +133,6 @@
 
     <!-- HUD Messages -->
     <string name="hud_release_to_perform">Let go of %1$s to %2$s</string>
-    <string name="hud_select_hold_and_drag">Select where to hold and drag to</string>
     <string name="hud_select_drag">Select where to drag to</string>
     <string name="hud_select_swipe">Select where to swipe to</string>
     <string name="hud_camera_access_error">Camera access is not granted. Please grant camera access in the app settings and then restart the Accessibility Service.</string>
