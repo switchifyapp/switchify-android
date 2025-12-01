@@ -84,53 +84,6 @@ class GestureTimingCoordinator {
     }
 
     /**
-     * Coordinates a hold-and-drag gesture with proper timing.
-     *
-     * @param handler Handler for timed events
-     * @param visualManager Visual feedback manager
-     * @param holdDuration Duration of the hold phase
-     * @param dragDuration Duration of the drag phase
-     * @return Sequence ID for tracking this gesture
-     */
-    fun coordinateHoldAndDrag(
-        handler: TimedGestureHandler,
-        visualManager: GestureVisualManager?,
-        holdDuration: Long = 400L,
-        dragDuration: Long = 1500L
-    ): String {
-        val sequenceId = generateSequenceId("hold_and_drag")
-
-        scope.launch {
-            try {
-                // Hold phase starts
-                handler.onGestureReady(GestureType.HOLD_AND_DRAG, sequenceId)
-                handler.onVisualUpdate(GestureType.HOLD_AND_DRAG, sequenceId, "hold_start")
-
-                // Wait for hold duration
-                delay(holdDuration - 5) // Start drag slightly before hold ends
-
-                if (isSequenceActive(sequenceId)) {
-                    handler.onVisualUpdate(GestureType.HOLD_AND_DRAG, sequenceId, "drag_start")
-
-                    // Wait for drag completion
-                    delay(dragDuration)
-
-                    if (isSequenceActive(sequenceId)) {
-                        handler.onVisualUpdate(GestureType.HOLD_AND_DRAG, sequenceId, "drag_end")
-                        handler.onSequenceComplete(sequenceId)
-                    }
-                }
-            } catch (e: Exception) {
-                handler.onSequenceCancelled(sequenceId)
-            } finally {
-                cleanupSequence(sequenceId)
-            }
-        }
-
-        return sequenceId
-    }
-
-    /**
      * Coordinates visual feedback timing for simple gestures.
      *
      * @param handler Handler for timed events

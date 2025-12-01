@@ -58,8 +58,7 @@ enum class GestureType {
     SWIPE_RIGHT,        // Right navigation gesture
     CUSTOM_SWIPE,       // User-defined swipe direction and distance
 
-    // Interactive movement gestures - two-phase execution
-    HOLD_AND_DRAG,      // Hold-then-drag with enhanced visual feedback
+    // Interactive movement gestures
     DRAG,               // Direct drag movement with immediate execution
 
     // Content scrolling - optimized for content navigation

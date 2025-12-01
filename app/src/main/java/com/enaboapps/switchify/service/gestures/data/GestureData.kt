@@ -21,7 +21,6 @@ data class GestureData(
         const val TAP_AND_HOLD_10S_DURATION = 10000L
         const val SWIPE_DURATION = 80L
         const val DRAG_DURATION = 1500L
-        const val HOLD_BEFORE_DRAG_DURATION = 400L
         const val SCROLL_DURATION = 800L
         const val PINCH_DURATION = 500L
     }
@@ -41,8 +40,7 @@ data class GestureData(
         GestureType.SWIPE_RIGHT,
         GestureType.CUSTOM_SWIPE -> SWIPE_DURATION
 
-        GestureType.DRAG,
-        GestureType.HOLD_AND_DRAG -> DRAG_DURATION
+        GestureType.DRAG -> DRAG_DURATION
 
         GestureType.PINCH_IN,
         GestureType.PINCH_OUT -> PINCH_DURATION
@@ -148,8 +146,7 @@ data class GestureData(
             }
 
             GestureType.CUSTOM_SWIPE,
-            GestureType.DRAG,
-            GestureType.HOLD_AND_DRAG -> {
+            GestureType.DRAG -> {
                 GestureManager.instance.performCustomGestureAction(sanitizedGesture)
             }
 
