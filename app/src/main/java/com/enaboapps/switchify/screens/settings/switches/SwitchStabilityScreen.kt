@@ -49,14 +49,5 @@ fun SwitchStabilityScreen(navController: NavController) {
         ) {
             switchStabilityScreenModel.setSwitchHoldTime(it)
         }
-        PreferenceTimeStepper(
-            titleResId = R.string.preference_title_hold_to_unpause_duration,
-            summaryResId = R.string.preference_summary_hold_to_unpause_duration,
-            min = 500,
-            max = 5000,
-            value = switchStabilityScreenModel.holdToUnpauseDuration.observeAsState().value ?: 2000
-        ) {
-            switchStabilityScreenModel.setHoldToUnpauseDuration(it)
-        }
     }
 }

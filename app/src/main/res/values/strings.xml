@@ -250,6 +250,7 @@
     <string name="screen_title_account">Account</string>
     <string name="screen_title_authentication">Welcome</string>
     <string name="screen_title_switch_stability">Switch Stability</string>
+    <string name="screen_title_pause_settings">Pause Settings</string>
     <string name="screen_title_switches">Switches</string>
     <string name="screen_title_external_switches">External Switches</string>
     <string name="screen_title_camera_switches">Camera Switches</string>
@@ -456,6 +457,11 @@
     <string name="settings_summary_switches">Configure your switches</string>
     <string name="settings_title_switch_stability">Switch Stability</string>
     <string name="settings_summary_switch_stability">Configure switch stability settings</string>
+
+    <!-- Settings - Behaviour Section -->
+    <string name="settings_section_behaviour">Behaviour</string>
+    <string name="settings_title_pause">Pause Settings</string>
+    <string name="settings_summary_pause">Configure pause and resume behavior</string>
 
     <!-- Settings - Gestures Section -->
     <string name="settings_section_gesture">Gestures</string>
