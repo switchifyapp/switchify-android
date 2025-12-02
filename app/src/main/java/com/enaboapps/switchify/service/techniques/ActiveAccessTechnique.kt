@@ -72,14 +72,14 @@ class ActiveAccessTechnique(private val context: Context) : AccessTechniqueObser
 
     private fun ensureNodeScannerStarted() {
         if (systemNodeScanner == null) {
-            systemNodeScanner = SystemNodeScanner()
+            systemNodeScanner = SystemNodeScanner(KeyboardManager)
             systemNodeScanner?.start(context)
         }
     }
 
     private fun ensureKeyboardScannerStarted() {
         if (keyboardScanner == null) {
-            keyboardScanner = KeyboardScanner()
+            keyboardScanner = KeyboardScanner(KeyboardManager)
             keyboardScanner?.start(context)
         }
     }
