@@ -52,6 +52,9 @@ object KeyboardManager : CycleBreakListener {
     private var isEscapedFromKeyboard = false
     private var isDirectlySelectKeyboardKeysEnabled = false
 
+    // State machine for explicit state transitions
+    private val stateMachine = KeyboardStateMachine()
+
     // Reactive state flow for UI components
     private val _keyboardState = MutableStateFlow(KeyboardState())
 
@@ -137,6 +140,10 @@ object KeyboardManager : CycleBreakListener {
         val wasEscaped = isEscapedFromKeyboard
         isKeyboardVisible = visible
 
+        // Use state machine for state transitions
+        val event = if (visible) KeyboardEvent.KeyboardShown else KeyboardEvent.KeyboardHidden
+        val newState = stateMachine.transition(event)
+
         var stateChanged = false
 
         when {
@@ -175,6 +182,13 @@ object KeyboardManager : CycleBreakListener {
      * This is called when user wants to exit keyboard scanning and access the menu.
      */
     fun escapeKeyboard() {
+        // Use state machine to validate transition
+        val newState = stateMachine.transition(KeyboardEvent.EscapeRequested)
+        if (newState == null) {
+            Log.w(TAG, "Cannot escape in current state: ${stateMachine.getCurrentState()}")
+            return
+        }
+
         if (!isKeyboardVisible) {
             Log.w(TAG, "Cannot escape - keyboard is not visible")
             return
@@ -200,6 +214,13 @@ object KeyboardManager : CycleBreakListener {
      * keyboard UI to stabilize. See constant documentation for details.
      */
     fun returnToKeyboard() {
+        // Use state machine to validate transition
+        val newState = stateMachine.transition(KeyboardEvent.ReturnRequested)
+        if (newState == null) {
+            Log.w(TAG, "Cannot return to keyboard in current state: ${stateMachine.getCurrentState()}")
+            return
+        }
+
         if (!isKeyboardVisible) {
             Log.w(TAG, "Cannot return to keyboard - keyboard is not visible")
             return
@@ -217,6 +238,8 @@ object KeyboardManager : CycleBreakListener {
 
         // Delayed update allows keyboard UI to stabilize before re-enabling bypass
         mainHandler.postDelayed({
+            // Complete the return transition
+            stateMachine.transition(KeyboardEvent.ReturnCompleted)
             updateBypassState()
         }, BYPASS_UPDATE_DELAY_MS)
     }
