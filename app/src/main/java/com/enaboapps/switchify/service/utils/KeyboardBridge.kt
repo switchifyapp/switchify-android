@@ -5,26 +5,30 @@ import android.view.accessibility.AccessibilityWindowInfo
 import com.enaboapps.switchify.service.keyboard.KeyboardManager
 import com.enaboapps.switchify.service.scanning.ScanSettings
 
-
+/**
+ * Stateless bridge for detecting keyboard visibility from accessibility windows.
+ * Does not maintain state - delegates to KeyboardManager as single source of truth.
+ */
 object KeyboardBridge {
-    var isKeyboardVisible = false
-        private set
-
-
+    /**
+     * Detects keyboard visibility from accessibility windows and notifies KeyboardManager.
+     * KeyboardManager maintains the actual state.
+     */
     fun updateKeyboardState(windows: List<AccessibilityWindowInfo>, scanSettings: ScanSettings) {
-        val keyboardWindow = windows.firstOrNull { window ->
-            window.type == AccessibilityWindowInfo.TYPE_INPUT_METHOD
-        }
-        if (keyboardWindow != null) {
-            isKeyboardVisible = true
-            KeyboardManager.onKeyboardStateChanged(true, scanSettings)
-        } else {
-            isKeyboardVisible = false
-            KeyboardManager.onKeyboardStateChanged(false, scanSettings)
-        }
+        val isVisible = detectKeyboardVisibility(windows)
+        KeyboardManager.onKeyboardStateChanged(isVisible, scanSettings)
         Log.d(
             "KeyboardBridge",
-            "isKeyboardVisible: $isKeyboardVisible window count: ${windows.size}"
+            "Keyboard detected: $isVisible, window count: ${windows.size}"
         )
+    }
+
+    /**
+     * Pure detection function - checks if keyboard window is present.
+     */
+    private fun detectKeyboardVisibility(windows: List<AccessibilityWindowInfo>): Boolean {
+        return windows.any { window ->
+            window.type == AccessibilityWindowInfo.TYPE_INPUT_METHOD
+        }
     }
 }

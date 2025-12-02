@@ -14,14 +14,21 @@ interface KeyboardStateListener {
 }
 
 /**
- * KeyboardManager manages keyboard state and behavior centrally.
- * It receives updates from KeyboardBridge and coordinates keyboard-related functionality.
+ * KeyboardManager is the single source of truth for keyboard state and behavior.
+ *
+ * It receives keyboard visibility updates from KeyboardBridge and maintains all
+ * keyboard-related state including:
+ * - Keyboard visibility (isKeyboardVisible)
+ * - Escape state (isEscapedFromKeyboard)
+ * - Direct selection settings (isDirectlySelectKeyboardKeysEnabled)
+ *
+ * No other components should track keyboard visibility state independently.
  */
 object KeyboardManager {
     private const val TAG = "KeyboardManager"
     private const val BYPASS_UPDATE_DELAY_MS = 250L
 
-    // State tracking
+    // State tracking - single source of truth
     private var isKeyboardVisible = false
     private var isEscapedFromKeyboard = false
     private var isDirectlySelectKeyboardKeysEnabled = false
