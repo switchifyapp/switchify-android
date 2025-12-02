@@ -24,7 +24,7 @@ class MenuStructureHolder(accessibilityService: SwitchifyAccessibilityService) {
     private val quickAppsMenuStructure = QuickAppsMenuStructure(accessibilityService)
 
     // Main Menu
-    val mainMenuObject = mainMenuStructure.mainMenuObject
+    fun buildMainMenuObject() = mainMenuStructure.buildMainMenuObject()
     val menuManipulatorItems = mainMenuStructure.menuManipulatorItems
 
     // Gesture Menus

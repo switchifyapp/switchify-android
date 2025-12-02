@@ -16,6 +16,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -69,39 +71,43 @@ class KeyboardEscapePrompt {
 
     @Composable
     private fun PromptView() {
-        KeyboardManager.shouldShowKeyboardEscapePrompt()
+        // Reactively observe keyboard state
+        val keyboardState by KeyboardManager.keyboardState.collectAsState()
 
-        Surface(
-            modifier = Modifier
-                .padding(Dimens.spaceM)
-                .height(250.dp)
-                .clip(RoundedCornerShape(16.dp)),
-            color = MaterialTheme.colorScheme.surface,
-            shadowElevation = 8.dp
-        ) {
-            Box(
+        // Only show prompt when appropriate
+        if (keyboardState.shouldShowEscapePrompt) {
+            Surface(
                 modifier = Modifier
-                    .padding(Dimens.spaceL),
-                contentAlignment = Alignment.Center
+                    .padding(Dimens.spaceM)
+                    .height(250.dp)
+                    .clip(RoundedCornerShape(16.dp)),
+                color = MaterialTheme.colorScheme.surface,
+                shadowElevation = 8.dp
             ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally
+                Box(
+                    modifier = Modifier
+                        .padding(Dimens.spaceL),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Keyboard,
-                        contentDescription = null,
-                        modifier = Modifier
-                            .size(48.dp)
-                            .padding(bottom = Dimens.spaceM),
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                    Text(
-                        text = stringResource(R.string.keyboard_escape_prompt_press_to_escape),
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                        fontSize = 18.sp,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.padding(Dimens.spaceXs)
-                    )
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Keyboard,
+                            contentDescription = null,
+                            modifier = Modifier
+                                .size(48.dp)
+                                .padding(bottom = Dimens.spaceM),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Text(
+                            text = stringResource(R.string.keyboard_escape_prompt_press_to_escape),
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                            fontSize = 18.sp,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.padding(Dimens.spaceXs)
+                        )
+                    }
                 }
             }
         }

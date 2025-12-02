@@ -5,6 +5,9 @@ import android.os.Looper
 import android.util.Log
 import com.enaboapps.switchify.service.scanning.ScanSettings
 import com.enaboapps.switchify.service.selection.SelectionHandler
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
 /**
  * Listener interface for keyboard state changes.
@@ -45,10 +48,37 @@ object KeyboardManager {
     private var isEscapedFromKeyboard = false
     private var isDirectlySelectKeyboardKeysEnabled = false
 
+    // Reactive state flow for UI components
+    private val _keyboardState = MutableStateFlow(KeyboardState())
+
+    /**
+     * Observable keyboard state flow for reactive UI updates.
+     *
+     * UI components can collect this flow to automatically update when
+     * keyboard state changes. This is the preferred way for Compose
+     * components to observe keyboard state.
+     *
+     * Example (Compose):
+     * ```
+     * val keyboardState by KeyboardManager.keyboardState.collectAsState()
+     * if (keyboardState.shouldShowEscapePrompt) {
+     *     // Show prompt
+     * }
+     * ```
+     *
+     * Example (Non-Compose):
+     * ```
+     * KeyboardManager.keyboardState
+     *     .onEach { state -> updateUI(state) }
+     *     .launchIn(scope)
+     * ```
+     */
+    val keyboardState: StateFlow<KeyboardState> = _keyboardState.asStateFlow()
+
     // Policy for keyboard selection decisions
     private val selectionPolicy = KeyboardSelectionPolicy()
 
-    // Listener for state changes
+    // Listener for state changes (legacy - prefer StateFlow)
     private var keyboardStateListener: KeyboardStateListener? = null
 
     // Handler for delayed operations
@@ -80,6 +110,14 @@ object KeyboardManager {
      */
     private fun notifyStateChanged() {
         keyboardStateListener?.onKeyboardStateChanged(isKeyboardVisible, isEscapedFromKeyboard)
+    }
+
+    /**
+     * Update the reactive state flow with current state.
+     * This should be called whenever keyboard state changes.
+     */
+    private fun updateState() {
+        _keyboardState.value = getCurrentState()
     }
 
     /**
@@ -123,6 +161,7 @@ object KeyboardManager {
 
         // Only notify if state actually changed
         if (stateChanged || wasEscaped != isEscapedFromKeyboard) {
+            updateState()
             notifyStateChanged()
         }
     }
@@ -145,6 +184,7 @@ object KeyboardManager {
         Log.d(TAG, "Escaping from keyboard scanning")
         isEscapedFromKeyboard = true
 
+        updateState()
         SelectionHandler.setBypassAutoSelect(false)
     }
 
@@ -168,6 +208,8 @@ object KeyboardManager {
 
         Log.d(TAG, "Returning to keyboard scanning")
         isEscapedFromKeyboard = false
+
+        updateState()
 
         // Delayed update allows keyboard UI to stabilize before re-enabling bypass
         mainHandler.postDelayed({

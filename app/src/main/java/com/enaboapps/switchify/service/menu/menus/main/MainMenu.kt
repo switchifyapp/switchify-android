@@ -10,7 +10,7 @@ class MainMenu(accessibilityService: SwitchifyAccessibilityService) :
 
     companion object {
         private fun buildMainMenuItems(accessibilityService: SwitchifyAccessibilityService): List<MenuItem> {
-            return MenuStructureHolder(accessibilityService).mainMenuObject.getMenuItems()
+            return MenuStructureHolder(accessibilityService).buildMainMenuObject().getMenuItems()
         }
     }
 }
