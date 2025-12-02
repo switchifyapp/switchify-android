@@ -23,12 +23,6 @@ fun InputSection(navController: NavController) {
             route = NavigationRoute.SwitchStability.name
         )
         NavRouteLink(
-            titleResId = R.string.settings_title_pause,
-            summaryResId = R.string.settings_summary_pause,
-            navController = navController,
-            route = NavigationRoute.PauseSettings.name
-        )
-        NavRouteLink(
             titleResId = R.string.camera_settings_title,
             summaryResId = R.string.camera_settings_summary,
             navController = navController,

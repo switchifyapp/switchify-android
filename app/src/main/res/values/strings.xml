@@ -457,6 +457,9 @@
     <string name="settings_summary_switches">Configure your switches</string>
     <string name="settings_title_switch_stability">Switch Stability</string>
     <string name="settings_summary_switch_stability">Configure switch stability settings</string>
+
+    <!-- Settings - Behaviour Section -->
+    <string name="settings_section_behaviour">Behaviour</string>
     <string name="settings_title_pause">Pause Settings</string>
     <string name="settings_summary_pause">Configure pause and resume behavior</string>
 

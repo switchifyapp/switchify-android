@@ -29,6 +29,7 @@ import com.enaboapps.switchify.screens.settings.models.MenuSettingsModel
 import com.enaboapps.switchify.screens.settings.models.SelectionSettingsModel
 import com.enaboapps.switchify.screens.settings.models.SettingsScreenModel
 import com.enaboapps.switchify.screens.settings.sections.AboutSection
+import com.enaboapps.switchify.screens.settings.sections.BehaviourSection
 import com.enaboapps.switchify.screens.settings.sections.GesturesSettingsSection
 import com.enaboapps.switchify.screens.settings.sections.InputSection
 import com.enaboapps.switchify.screens.settings.sections.MenuSection
@@ -106,6 +107,7 @@ fun GeneralSettingsTab(menuSettingsModel: MenuSettingsModel, navController: NavC
             )
         }
         InputSection(navController)
+        BehaviourSection(navController)
         GesturesSettingsSection(navController)
         MenuSection(menuSettingsModel)
     }
