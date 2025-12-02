@@ -5,6 +5,7 @@ import android.graphics.PointF
 import android.util.Log
 import android.view.accessibility.AccessibilityNodeInfo
 import android.view.accessibility.AccessibilityWindowInfo
+import com.enaboapps.switchify.service.keyboard.KeyboardNodeExtractor
 import com.enaboapps.switchify.service.utils.ScreenUtils
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -28,6 +29,9 @@ object NodeExaminer {
     private const val TAG = "NodeExaminer"
     private const val TREE_PROCESSING_TIMEOUT_MS = 5000L
     private const val MAX_NODES_THRESHOLD = 1000
+
+    /** Keyboard node extractor for handling keyboard-specific logic. */
+    private val keyboardExtractor = KeyboardNodeExtractor()
 
     /** Holds the list of all nodes. */
     private var allNodes: List<Node> = emptyList()
@@ -74,15 +78,12 @@ object NodeExaminer {
         context: Context,
         coroutineScope: CoroutineScope
     ) {
-        var rootNode: AccessibilityNodeInfo? = null
-        val inputMethodWindow = windows.firstOrNull { window ->
-            window.type == AccessibilityWindowInfo.TYPE_INPUT_METHOD
-        }
-        val isKeyboardVisible = inputMethodWindow != null
+        // Use keyboard extractor to determine if keyboard is visible and get appropriate root node
+        val isKeyboardVisible = keyboardExtractor.isKeyboardVisible(windows)
 
         // Determine which root node to use based on whether a keyboard is visible
-        rootNode = if (isKeyboardVisible) {
-            inputMethodWindow.root
+        val rootNode = if (isKeyboardVisible) {
+            keyboardExtractor.getKeyboardRootNode(windows)
         } else {
             activeWindowRootNode
         }
