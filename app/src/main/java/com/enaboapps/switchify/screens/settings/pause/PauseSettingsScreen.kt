@@ -7,7 +7,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.components.BaseView
-import com.enaboapps.switchify.components.PreferenceTimeStepper
 import com.enaboapps.switchify.components.PreferenceValueSelector
 import com.enaboapps.switchify.screens.settings.pause.models.PauseSettingsScreenModel
 
@@ -51,14 +50,34 @@ fun PauseSettingsScreen(navController: NavController) {
                 pauseSettingsScreenModel.setPauseTimeout(it)
             }
         )
-        PreferenceTimeStepper(
+        PreferenceValueSelector(
+            value = pauseSettingsScreenModel.holdToUnpauseDuration.observeAsState().value ?: 2000,
             titleResId = R.string.preference_title_hold_to_unpause_duration,
             summaryResId = R.string.preference_summary_hold_to_unpause_duration,
-            min = 500,
-            max = 5000,
-            value = pauseSettingsScreenModel.holdToUnpauseDuration.observeAsState().value ?: 2000
-        ) {
-            pauseSettingsScreenModel.setHoldToUnpauseDuration(it)
-        }
+            values = intArrayOf(500, 1000, 2000, 3000, 5000),
+            buttonLabelFormatter = { value ->
+                when (value) {
+                    500 -> "0.5s"
+                    1000 -> "1s"
+                    2000 -> "2s"
+                    3000 -> "3s"
+                    5000 -> "5s"
+                    else -> "${value / 1000.0}s"
+                }
+            },
+            displayFormatter = { value ->
+                when (value) {
+                    500 -> "0.5 seconds"
+                    1000 -> "1 second"
+                    2000 -> "2 seconds"
+                    3000 -> "3 seconds"
+                    5000 -> "5 seconds"
+                    else -> "${value / 1000.0} seconds"
+                }
+            },
+            onValueChanged = {
+                pauseSettingsScreenModel.setHoldToUnpauseDuration(it)
+            }
+        )
     }
 }

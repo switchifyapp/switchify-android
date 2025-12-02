@@ -9,14 +9,14 @@ import com.enaboapps.switchify.backend.preferences.PreferenceManager
 class PauseSettingsScreenModel(context: Context) : ViewModel() {
     private val preferenceManager = PreferenceManager(context)
 
-    private val _holdToUnpauseDuration = MutableLiveData<Long>().apply {
+    private val _holdToUnpauseDuration = MutableLiveData<Int>().apply {
         value =
             preferenceManager.getLongValue(
                 PreferenceManager.Keys.PREFERENCE_KEY_HOLD_TO_UNPAUSE_DURATION,
                 2000L
-            )
+            ).toInt()
     }
-    val holdToUnpauseDuration: LiveData<Long> = _holdToUnpauseDuration
+    val holdToUnpauseDuration: LiveData<Int> = _holdToUnpauseDuration
 
     private val _pauseTimeout = MutableLiveData<Int>().apply {
         value =
@@ -27,10 +27,10 @@ class PauseSettingsScreenModel(context: Context) : ViewModel() {
     }
     val pauseTimeout: LiveData<Int> = _pauseTimeout
 
-    fun setHoldToUnpauseDuration(value: Long) {
+    fun setHoldToUnpauseDuration(value: Int) {
         preferenceManager.setLongValue(
             PreferenceManager.Keys.PREFERENCE_KEY_HOLD_TO_UNPAUSE_DURATION,
-            value
+            value.toLong()
         )
         _holdToUnpauseDuration.postValue(value)
     }
