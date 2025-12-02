@@ -27,6 +27,17 @@ interface KeyboardStateListener {
  */
 object KeyboardManager {
     private const val TAG = "KeyboardManager"
+
+    /**
+     * Delay (in milliseconds) before updating bypass state when returning to keyboard.
+     *
+     * This delay is necessary to ensure the keyboard state has stabilized before
+     * re-enabling auto-select bypass. Without this delay, the bypass state can be
+     * updated before the keyboard UI is fully ready, causing selection issues.
+     *
+     * Added in PR #1508 to fix issue #1507.
+     * See: https://github.com/enaboapps/switchify/issues/1507
+     */
     private const val BYPASS_UPDATE_DELAY_MS = 250L
 
     // State tracking - single source of truth
@@ -140,6 +151,9 @@ object KeyboardManager {
     /**
      * Return to keyboard scanning mode.
      * This is called when user selects "Scan Keyboard" from the menu.
+     *
+     * Note: Bypass state is updated after BYPASS_UPDATE_DELAY_MS to allow
+     * keyboard UI to stabilize. See constant documentation for details.
      */
     fun returnToKeyboard() {
         if (!isKeyboardVisible) {
@@ -155,7 +169,7 @@ object KeyboardManager {
         Log.d(TAG, "Returning to keyboard scanning")
         isEscapedFromKeyboard = false
 
-        // Update bypass state after a delay to ensure keyboard state has stabilized
+        // Delayed update allows keyboard UI to stabilize before re-enabling bypass
         mainHandler.postDelayed({
             updateBypassState()
         }, BYPASS_UPDATE_DELAY_MS)
