@@ -23,6 +23,7 @@ interface KeyboardStateListener {
  * - Direct selection settings (isDirectlySelectKeyboardKeysEnabled)
  *
  * No other components should track keyboard visibility state independently.
+ * Business logic for keyboard decisions is delegated to KeyboardSelectionPolicy.
  */
 object KeyboardManager {
     private const val TAG = "KeyboardManager"
@@ -32,6 +33,9 @@ object KeyboardManager {
     private var isKeyboardVisible = false
     private var isEscapedFromKeyboard = false
     private var isDirectlySelectKeyboardKeysEnabled = false
+
+    // Policy for keyboard selection decisions
+    private val selectionPolicy = KeyboardSelectionPolicy()
 
     // Listener for state changes
     private var keyboardStateListener: KeyboardStateListener? = null
@@ -158,11 +162,22 @@ object KeyboardManager {
     }
 
     /**
+     * Gets the current keyboard state.
+     */
+    private fun getCurrentState(): KeyboardState {
+        return KeyboardState(
+            isVisible = isKeyboardVisible,
+            isEscaped = isEscapedFromKeyboard,
+            isDirectSelectEnabled = isDirectlySelectKeyboardKeysEnabled
+        )
+    }
+
+    /**
      * Update bypass state using stored settings.
+     * Delegates decision logic to KeyboardSelectionPolicy.
      */
     private fun updateBypassState() {
-        val bypass =
-            isKeyboardVisible && isDirectlySelectKeyboardKeysEnabled && !isEscapedFromKeyboard()
+        val bypass = selectionPolicy.shouldBypassAutoSelect(getCurrentState())
         SelectionHandler.setBypassAutoSelect(bypass)
     }
 
@@ -182,26 +197,26 @@ object KeyboardManager {
 
     /**
      * Check if "Scan Keyboard" menu item should be shown.
-     * Only show when keyboard is visible but user has escaped.
+     * Delegates decision to KeyboardSelectionPolicy.
      */
     fun shouldShowScanKeyboardMenuItem(): Boolean {
-        return isKeyboardVisible && isEscapedFromKeyboard
+        return selectionPolicy.shouldShowScanKeyboardMenuItem(getCurrentState())
     }
 
     /**
      * Check if keyboard escape prompt should be shown instead of menu prompt.
+     * Delegates decision to KeyboardSelectionPolicy.
      */
     fun shouldShowKeyboardEscapePrompt(): Boolean {
-        return isKeyboardVisible && !isEscapedFromKeyboard
+        return selectionPolicy.shouldShowEscapePrompt(getCurrentState())
     }
 
     /**
      * Check if cycle break should be enabled in scanning.
-     * Only enable cycle break when keyboard is visible and user hasn't escaped,
-     * as cycle break is meant to help users escape from keyboard scanning loops.
+     * Delegates decision to KeyboardSelectionPolicy.
      */
     fun shouldEnableCycleBreak(): Boolean {
-        return isKeyboardVisible && !isEscapedFromKeyboard
+        return selectionPolicy.shouldEnableCycleBreak(getCurrentState())
     }
 
     /**
