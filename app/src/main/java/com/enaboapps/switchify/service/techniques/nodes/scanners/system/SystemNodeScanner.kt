@@ -2,6 +2,7 @@ package com.enaboapps.switchify.service.techniques.nodes.scanners.system
 
 import android.content.Context
 import android.util.Log
+import com.enaboapps.switchify.service.scanning.CycleBreakListener
 import com.enaboapps.switchify.service.techniques.nodes.Node
 import com.enaboapps.switchify.service.techniques.nodes.NodeSpeaker
 import com.enaboapps.switchify.service.techniques.nodes.scanners.BaseNodeScanner
@@ -11,7 +12,9 @@ import com.enaboapps.switchify.service.techniques.nodes.scanners.BaseNodeScanner
  * It manages the scanning process using a ScanTree instance and handles updates from NodeExaminer.
  * Duplicate updates are prevented by the parent BaseNodeScanner class.
  */
-class SystemNodeScanner : BaseNodeScanner() {
+class SystemNodeScanner(
+    cycleBreakListener: CycleBreakListener? = null
+) : BaseNodeScanner(cycleBreakListener) {
     companion object {
         private const val TAG = "SystemNodeScanner"
     }

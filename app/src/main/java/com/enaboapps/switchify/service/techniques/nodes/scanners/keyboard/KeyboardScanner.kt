@@ -1,10 +1,13 @@
 package com.enaboapps.switchify.service.techniques.nodes.scanners.keyboard
 
 import android.util.Log
+import com.enaboapps.switchify.service.scanning.CycleBreakListener
 import com.enaboapps.switchify.service.techniques.nodes.Node
 import com.enaboapps.switchify.service.techniques.nodes.scanners.BaseNodeScanner
 
-class KeyboardScanner : BaseNodeScanner() {
+class KeyboardScanner(
+    cycleBreakListener: CycleBreakListener? = null
+) : BaseNodeScanner(cycleBreakListener) {
     companion object {
         private const val TAG = "KeyboardScanner"
     }

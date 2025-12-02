@@ -3,6 +3,7 @@ package com.enaboapps.switchify.service.keyboard
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import com.enaboapps.switchify.service.scanning.CycleBreakListener
 import com.enaboapps.switchify.service.scanning.ScanSettings
 import com.enaboapps.switchify.service.selection.SelectionHandler
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -27,8 +28,11 @@ interface KeyboardStateListener {
  *
  * No other components should track keyboard visibility state independently.
  * Business logic for keyboard decisions is delegated to KeyboardSelectionPolicy.
+ *
+ * Implements CycleBreakListener to handle cycle break events from scanners,
+ * providing loose coupling between scanning and keyboard management.
  */
-object KeyboardManager {
+object KeyboardManager : CycleBreakListener {
     private const val TAG = "KeyboardManager"
 
     /**
@@ -280,5 +284,24 @@ object KeyboardManager {
      */
     fun getState(): String {
         return "KeyboardManager(visible=$isKeyboardVisible, escaped=$isEscapedFromKeyboard)"
+    }
+
+    /**
+     * Handles cycle break events from scanners.
+     *
+     * This implementation of CycleBreakListener allows KeyboardManager to respond
+     * to cycle break selections without the scanner needing to know about keyboard
+     * management logic. This provides loose coupling between components.
+     *
+     * If the keyboard escape prompt should be shown (keyboard visible and not escaped),
+     * this method will escape from keyboard scanning.
+     */
+    override fun onCycleBreak() {
+        if (shouldShowKeyboardEscapePrompt()) {
+            Log.d(TAG, "Cycle break: Escaping from keyboard scanning")
+            escapeKeyboard()
+        } else {
+            Log.d(TAG, "Cycle break: Keyboard not active, no action taken")
+        }
     }
 }

@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import com.enaboapps.switchify.service.keyboard.KeyboardManager
 import com.enaboapps.switchify.service.menu.KeyboardEscapePrompt
+import com.enaboapps.switchify.service.scanning.CycleBreakListener
 import com.enaboapps.switchify.service.scanning.tree.ScanTree
 import com.enaboapps.switchify.service.scanning.tree.ScanTreeCallback
 import com.enaboapps.switchify.service.techniques.AccessTechnique
@@ -19,8 +20,13 @@ import kotlinx.coroutines.launch
 /**
  * Base class for node scanners that provides common functionality for both system and keyboard scanners.
  * Implements improved handling of rapid updates using multiple detection windows.
+ *
+ * @param cycleBreakListener Optional listener to be notified when cycle break is selected.
+ *                           This decouples the scanner from keyboard management logic.
  */
-abstract class BaseNodeScanner : ScanTreeCallback {
+abstract class BaseNodeScanner(
+    private val cycleBreakListener: CycleBreakListener? = null
+) : ScanTreeCallback {
     protected lateinit var context: Context
     private var _scanTree: ScanTree? = null
     val scanTree: ScanTree
@@ -255,22 +261,12 @@ abstract class BaseNodeScanner : ScanTreeCallback {
     override fun onScanTreeCycleBreakSelected() {
         Log.d(TAG, "Cycle break selected")
         KeyboardEscapePrompt.instance.hide()
-        handleCycleBreakSelection()
+
+        // Notify listener instead of directly handling keyboard logic
+        cycleBreakListener?.onCycleBreak()
     }
 
     override fun onSingleCycleCompleted(cycleNumber: Int) {
         Log.d(TAG, "Cycle completed: $cycleNumber")
-    }
-
-    /**
-     * Handles cycle break selection based on keyboard state.
-     * If keyboard is visible and not escaped, escape from keyboard.
-     * Otherwise, open the main menu.
-     */
-    private fun handleCycleBreakSelection() {
-        if (KeyboardManager.shouldShowKeyboardEscapePrompt()) {
-            Log.d(TAG, "Escaping from keyboard scanning")
-            KeyboardManager.escapeKeyboard()
-        }
     }
 }
