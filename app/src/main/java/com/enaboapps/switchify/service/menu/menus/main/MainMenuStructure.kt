@@ -32,7 +32,11 @@ class MainMenuStructure(private val accessibilityService: SwitchifyAccessibility
         action = { MenuManager.getInstance().openDeviceMenu() }
     )
 
-    val mainMenuObject = MenuStructure(
+    /**
+     * Builds the main menu structure dynamically based on current state.
+     * This allows menu items to reflect the latest keyboard state and other conditions.
+     */
+    fun buildMainMenuObject() = MenuStructure(
         id = "main_menu",
         items = listOfNotNull(
             // System navigation items - back and home
