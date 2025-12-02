@@ -18,14 +18,14 @@ class PauseSettingsScreenModel(context: Context) : ViewModel() {
     }
     val holdToUnpauseDuration: LiveData<Long> = _holdToUnpauseDuration
 
-    private val _pauseTimeout = MutableLiveData<Long>().apply {
+    private val _pauseTimeout = MutableLiveData<Int>().apply {
         value =
             preferenceManager.getLongValue(
                 PreferenceManager.Keys.PREFERENCE_KEY_PAUSE_TIMEOUT,
                 30000L
-            )
+            ).toInt()
     }
-    val pauseTimeout: LiveData<Long> = _pauseTimeout
+    val pauseTimeout: LiveData<Int> = _pauseTimeout
 
     fun setHoldToUnpauseDuration(value: Long) {
         preferenceManager.setLongValue(
@@ -35,10 +35,10 @@ class PauseSettingsScreenModel(context: Context) : ViewModel() {
         _holdToUnpauseDuration.postValue(value)
     }
 
-    fun setPauseTimeout(value: Long) {
+    fun setPauseTimeout(value: Int) {
         preferenceManager.setLongValue(
             PreferenceManager.Keys.PREFERENCE_KEY_PAUSE_TIMEOUT,
-            value
+            value.toLong()
         )
         _pauseTimeout.postValue(value)
     }
