@@ -140,7 +140,7 @@
     <string name="hud_camera_recovered">Camera restored - gestures active</string>
     <string name="hud_no_switches_found">No Switches Found</string>
     <string name="hud_switches_loaded">Switches Loaded</string>
-    <string name="hud_pause">Switchify is paused. You can now use your switches with other apps. To resume, don\'t press any switches for 30 seconds.</string>
+    <string name="hud_pause">Switchify is paused. You can now use your switches with other apps. To resume, don\'t press any switches for %1$s.</string>
     <string name="hud_pause_resume">Switchify has been resumed.</string>
 
     <!-- Auto Scroll Messages -->

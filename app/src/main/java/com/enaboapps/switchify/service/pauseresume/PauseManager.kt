@@ -69,8 +69,28 @@ class PauseManager private constructor() {
     fun startPause() {
         if (pauseJob != null) return
 
+        // Get the configured pause timeout
+        val pauseTimeoutMs = contextRef?.get()?.let { context ->
+            PreferenceManager(context).getLongValue(
+                PreferenceManager.Keys.PREFERENCE_KEY_PAUSE_TIMEOUT,
+                DEFAULT_PAUSE_TIMEOUT_MS
+            )
+        } ?: DEFAULT_PAUSE_TIMEOUT_MS
+
+        // Format timeout for display
+        val timeoutDisplay = when (pauseTimeoutMs) {
+            30000L -> "30 seconds"
+            60000L -> "1 minute"
+            120000L -> "2 minutes"
+            180000L -> "3 minutes"
+            240000L -> "4 minutes"
+            300000L -> "5 minutes"
+            else -> "${pauseTimeoutMs / 1000} seconds"
+        }
+
         ServiceMessageHUD.instance.showMessage(
             R.string.hud_pause,
+            arrayOf(timeoutDisplay),
             ServiceMessageHUD.MessageType.DISAPPEARING
         )
 
@@ -83,14 +103,6 @@ class PauseManager private constructor() {
                 Intent(ACTION_PAUSE_STARTED).setPackage(context.packageName)
             )
         }
-
-        // Get the configured pause timeout
-        val pauseTimeoutMs = contextRef?.get()?.let { context ->
-            PreferenceManager(context).getLongValue(
-                PreferenceManager.Keys.PREFERENCE_KEY_PAUSE_TIMEOUT,
-                DEFAULT_PAUSE_TIMEOUT_MS
-            )
-        } ?: DEFAULT_PAUSE_TIMEOUT_MS
 
         pauseJob = coroutineScope.launch {
             // Give the pause message time to show before hiding the window
