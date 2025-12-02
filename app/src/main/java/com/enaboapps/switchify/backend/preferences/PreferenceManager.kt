@@ -21,6 +21,7 @@ class PreferenceManager(context: Context) {
         const val PREFERENCE_KEY_RADAR_STARTING_POSITION = "radar_starting_position"
         const val PREFERENCE_KEY_SWITCH_HOLD_TIME = "switch_hold_time"
         const val PREFERENCE_KEY_HOLD_TO_UNPAUSE_DURATION = "hold_to_unpause_duration"
+        const val PREFERENCE_KEY_PAUSE_TIMEOUT = "pause_timeout"
         const val PREFERENCE_KEY_MOVE_REPEAT = "move_repeat"
         const val PREFERENCE_KEY_MOVE_REPEAT_DELAY = "move_repeat_delay"
         const val PREFERENCE_KEY_AUTOMATICALLY_START_SCAN_AFTER_SELECTION =
