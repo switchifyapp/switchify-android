@@ -20,6 +20,15 @@ fun PauseSettingsScreen(navController: NavController) {
         navController = navController
     ) {
         PreferenceTimeStepper(
+            titleResId = R.string.preference_title_pause_timeout,
+            summaryResId = R.string.preference_summary_pause_timeout,
+            min = 30000,
+            max = 300000,
+            value = pauseSettingsScreenModel.pauseTimeout.observeAsState().value ?: 30000
+        ) {
+            pauseSettingsScreenModel.setPauseTimeout(it)
+        }
+        PreferenceTimeStepper(
             titleResId = R.string.preference_title_hold_to_unpause_duration,
             summaryResId = R.string.preference_summary_hold_to_unpause_duration,
             min = 500,

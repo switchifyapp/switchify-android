@@ -3,6 +3,7 @@ package com.enaboapps.switchify.service.pauseresume
 import android.content.Context
 import android.content.Intent
 import com.enaboapps.switchify.R
+import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.service.window.ServiceMessageHUD
 import com.enaboapps.switchify.service.window.SwitchifyAccessibilityWindow
 import kotlinx.coroutines.CoroutineScope
@@ -21,7 +22,7 @@ import java.lang.ref.WeakReference
 class PauseManager private constructor() {
 
     companion object {
-        private const val PAUSE_DURATION_MS = 30000L // 30 seconds
+        private const val DEFAULT_PAUSE_TIMEOUT_MS = 30000L // 30 seconds
         private const val UI_DELAY_MS = 1000L // 1 second delay for UI transitions
 
         // Broadcast actions
@@ -83,6 +84,14 @@ class PauseManager private constructor() {
             )
         }
 
+        // Get the configured pause timeout
+        val pauseTimeoutMs = contextRef?.get()?.let { context ->
+            PreferenceManager(context).getLongValue(
+                PreferenceManager.Keys.PREFERENCE_KEY_PAUSE_TIMEOUT,
+                DEFAULT_PAUSE_TIMEOUT_MS
+            )
+        } ?: DEFAULT_PAUSE_TIMEOUT_MS
+
         pauseJob = coroutineScope.launch {
             // Give the pause message time to show before hiding the window
             delay(UI_DELAY_MS)
@@ -92,8 +101,8 @@ class PauseManager private constructor() {
 
             // Monitor for pause timeout
             while (isPaused) {
-                delay(PAUSE_DURATION_MS)
-                if (System.currentTimeMillis() - pauseTimestamp > PAUSE_DURATION_MS) {
+                delay(pauseTimeoutMs)
+                if (System.currentTimeMillis() - pauseTimestamp > pauseTimeoutMs) {
                     resume()
                 }
             }

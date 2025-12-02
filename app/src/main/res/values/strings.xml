@@ -549,6 +549,8 @@
     <string name="preference_summary_ignore_repeat_delay">The delay before ignoring repeated presses of the same switch</string>
     <string name="preference_title_switch_hold_time">Switch Hold Time</string>
     <string name="preference_summary_switch_hold_time">The time to hold a switch before performing an action</string>
+    <string name="preference_title_pause_timeout">Pause Timeout</string>
+    <string name="preference_summary_pause_timeout">How long before Switchify automatically resumes from pause</string>
     <string name="preference_title_hold_to_unpause_duration">Hold to Unpause Duration</string>
     <string name="preference_summary_hold_to_unpause_duration">How long to hold a switch during pause to resume Switchify</string>
 
