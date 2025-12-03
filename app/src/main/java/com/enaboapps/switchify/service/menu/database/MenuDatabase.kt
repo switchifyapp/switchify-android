@@ -11,7 +11,7 @@ import androidx.room.RoomDatabase
  */
 @Database(
     entities = [MenuItemConfiguration::class],
-    version = 2,
+    version = 1,
     exportSchema = false
 )
 abstract class MenuDatabase : RoomDatabase() {

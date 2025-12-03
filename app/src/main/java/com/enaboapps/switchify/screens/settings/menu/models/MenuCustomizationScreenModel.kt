@@ -117,6 +117,9 @@ class MenuCustomizationScreenModel(private val context: Context) : ViewModel() {
                 filterableItems
             }
 
+            // Check if the menu is still selected (guard against stale results)
+            if (_selectedMenuId.value != menuId) return@launch
+
             // Store state
             _menuItems.value = orderedItems
             _visibilityMap.value = visibilityMap
@@ -213,18 +216,24 @@ class MenuCustomizationScreenModel(private val context: Context) : ViewModel() {
             _isSaving.value = true
 
             try {
-                // Save the current order and visibility
+                // Snapshot current state to avoid races
+                val menuId = _selectedMenuId.value
+                val itemsSnapshot = _menuItems.value.toList()
+                val visibilitySnapshot = _visibilityMap.value.toMap()
+
+                // Save the snapshot
                 repository.saveMenuItemOrder(
-                    menuId = _selectedMenuId.value,
-                    items = _menuItems.value,
-                    visibilityMap = _visibilityMap.value
+                    menuId = menuId,
+                    items = itemsSnapshot,
+                    visibilityMap = visibilitySnapshot
                 )
 
-                // Update original state
-                originalItems = _menuItems.value.toList()
-                originalVisibilityMap = _visibilityMap.value.toMap()
+                // Update original state to the saved snapshot
+                originalItems = itemsSnapshot
+                originalVisibilityMap = visibilitySnapshot
 
-                _hasUnsavedChanges.value = false
+                // Recompute dirty flag against latest in-memory state
+                checkForChanges()
             } finally {
                 _isSaving.value = false
             }

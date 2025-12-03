@@ -12,14 +12,14 @@ import com.enaboapps.switchify.service.screenshot.ScreenshotManager
 
 class SystemMenuStructure(private val accessibilityService: SwitchifyAccessibilityService?) {
 
-    private val openVolumeControlMenu = MenuItemRegistry.getDefinitionsForMenu("device_menu")
+    private val openVolumeControlMenu: MenuItem? = MenuItemRegistry.getDefinitionsForMenu("device_menu")
         .find { it.id == "volume_control" }?.let { def ->
             MenuItem(
                 definition = def,
                 isLinkToMenu = true,
                 action = { MenuManager.getInstance().openVolumeControlMenu() }
             )
-        }!!
+        }
 
     /**
      * Builds the system "device" menu structure containing device-related actions (recent apps, notifications,

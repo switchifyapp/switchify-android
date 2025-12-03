@@ -99,12 +99,13 @@ class MenuConfigurationRepository(context: Context) {
             if (existing != null) {
                 dao.updateConfiguration(existing.copy(isVisible = isVisible))
             } else {
-                // If no configuration exists, create one with default position
+                // If no configuration exists, create one with position at end
+                val existingCount = dao.getConfigurationsForMenu(menuId).size
                 dao.insertConfiguration(
                     MenuItemConfiguration(
                         menuId = menuId,
                         itemId = itemId,
-                        position = 0,
+                        position = existingCount,
                         isVisible = isVisible
                     )
                 )

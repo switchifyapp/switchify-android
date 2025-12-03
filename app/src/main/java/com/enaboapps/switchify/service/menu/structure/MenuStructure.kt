@@ -4,7 +4,10 @@ import android.content.Context
 import com.enaboapps.switchify.service.menu.MenuItem
 import com.enaboapps.switchify.service.menu.database.MenuConfigurationRepository
 import com.enaboapps.switchify.service.utils.DeviceLockObserver
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 
 class MenuStructure(
     val id: String,
@@ -12,6 +15,18 @@ class MenuStructure(
     private val context: Context? = null
 ) {
     private var cachedOrderedItems: List<MenuItem>? = null
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    init {
+        // Preload customizations asynchronously to avoid blocking
+        if (context != null && DeviceLockObserver.isUserUnlocked(context)) {
+            scope.launch {
+                val repository = MenuConfigurationRepository(context)
+                val orderedItems = repository.getOrderedMenuItems(id, items)
+                cachedOrderedItems = orderedItems
+            }
+        }
+    }
 
     /**
      * Retrieve the menu items with any user customizations applied.
@@ -21,11 +36,6 @@ class MenuStructure(
      * @return A list of MenuItem in the active order — customized and filtered when available, otherwise the default items.
      */
     fun getMenuItems(): List<MenuItem> {
-        // Return cached items if available
-        if (cachedOrderedItems != null) {
-            return cachedOrderedItems!!
-        }
-
         // If no context provided, return default items
         if (context == null) {
             return items
@@ -36,15 +46,9 @@ class MenuStructure(
             return items
         }
 
-        // Load customized items from repository
-        val repository = MenuConfigurationRepository(context)
-        val orderedItems = runBlocking {
-            repository.getOrderedMenuItems(id, items)
-        }
-
-        // Cache the result
-        cachedOrderedItems = orderedItems
-        return orderedItems
+        // Return cached items if available, otherwise return default items
+        // Cache is populated asynchronously in init block
+        return cachedOrderedItems ?: items
     }
 
     /**

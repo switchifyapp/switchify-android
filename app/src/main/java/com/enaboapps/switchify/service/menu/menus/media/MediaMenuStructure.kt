@@ -8,14 +8,14 @@ import com.enaboapps.switchify.service.menu.structure.MenuItemRegistry
 import com.enaboapps.switchify.service.menu.structure.MenuStructure
 
 class MediaMenuStructure(private val accessibilityService: SwitchifyAccessibilityService?) {
-    private val openVolumeControlMenu = MenuItemRegistry.getMediaControlMenuDefinitions()
+    private val openVolumeControlMenu: MenuItem? = MenuItemRegistry.getMediaControlMenuDefinitions()
         .find { it.id == "volume_control" }?.let { def ->
             MenuItem(
                 definition = def,
                 isLinkToMenu = true,
                 action = { MenuManager.getInstance().openVolumeControlMenu() }
             )
-        }!!
+        }
 
     val mediaControlMenuObject = MenuStructure(
         id = "media_control_menu",

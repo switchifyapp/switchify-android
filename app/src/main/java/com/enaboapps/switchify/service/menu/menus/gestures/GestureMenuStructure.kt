@@ -14,20 +14,20 @@ import com.enaboapps.switchify.service.menu.structure.MenuStructure
 import com.enaboapps.switchify.service.window.ServiceMessageHUD
 
 class GestureMenuStructure(private val context: Context) {
-    val tapMenuItem = MenuItemRegistry.getDefinition("tap_gestures_menu", "tap")?.let { def ->
+    val tapMenuItem: MenuItem? = MenuItemRegistry.getDefinition("tap_gestures_menu", "tap")?.let { def ->
         MenuItem(
             definition = def,
             action = { GestureManager.instance.performTap() }
         )
-    }!!
+    }
 
-    val toggleGestureLockMenuItem = MenuItemRegistry.getDefinition("tap_gestures_menu", "toggle_gesture_lock")?.let { def ->
+    val toggleGestureLockMenuItem: MenuItem? = MenuItemRegistry.getDefinition("tap_gestures_menu", "toggle_gesture_lock")?.let { def ->
         MenuItem(
             definition = def,
             closeOnSelect = false,
             action = { GestureManager.instance.toggleGestureLock() }
         )
-    }!!
+    }
 
     val tapGesturesMenuObject = MenuStructure(
         id = "tap_gestures_menu",
