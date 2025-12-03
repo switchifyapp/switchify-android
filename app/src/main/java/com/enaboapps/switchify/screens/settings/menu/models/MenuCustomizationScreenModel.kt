@@ -119,12 +119,7 @@ class MenuCustomizationScreenModel(private val context: Context) : ViewModel() {
         val definitions = MenuItemRegistry.getDefinitionsForMenu(menuId)
         return definitions.map { def ->
             MenuItem(
-                id = def.id,
-                labelResource = def.labelResource,
-                userProvidedText = def.userProvidedText,
-                drawableId = def.drawableId,
-                isSmall = def.isSmall,
-                isMenuHierarchyManipulator = def.isMenuHierarchyManipulator,
+                definition = def,
                 action = {} // Empty action for customization UI
             )
         }
