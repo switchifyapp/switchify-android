@@ -2,7 +2,6 @@ package com.enaboapps.switchify.service.menu.menus.gestures
 
 import android.content.Context
 import com.enaboapps.switchify.R
-import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.service.gestures.GestureManager
 import com.enaboapps.switchify.service.gestures.GesturePatternRecorder
 import com.enaboapps.switchify.service.gestures.data.GestureData
@@ -10,73 +9,72 @@ import com.enaboapps.switchify.service.gestures.data.GestureType
 import com.enaboapps.switchify.service.gestures.placement.FingerMode
 import com.enaboapps.switchify.service.menu.MenuItem
 import com.enaboapps.switchify.service.menu.MenuManager
+import com.enaboapps.switchify.service.menu.structure.MenuItemRegistry
 import com.enaboapps.switchify.service.menu.structure.MenuStructure
 import com.enaboapps.switchify.service.window.ServiceMessageHUD
 
 class GestureMenuStructure(private val context: Context) {
-    val tapMenuItem = MenuItem(
-        id = "tap",
-        labelResource = R.string.menu_item_tap,
-        drawableId = R.drawable.ic_gesture_tap,
-        action = {
-            GestureManager.instance.performTap()
-        }
-    )
+    val tapMenuItem = MenuItemRegistry.getDefinition("tap_gestures_menu", "tap")?.let { def ->
+        MenuItem(
+            definition = def,
+            action = { GestureManager.instance.performTap() }
+        )
+    }!!
 
-    val toggleGestureLockMenuItem = MenuItem(
-        id = "toggle_gesture_lock",
-        labelResource = R.string.system_gesture_lock,
-        drawableId = R.drawable.ic_toggle_gesture_lock,
-        closeOnSelect = false,
-        action = { GestureManager.instance.toggleGestureLock() }
-    )
+    val toggleGestureLockMenuItem = MenuItemRegistry.getDefinition("tap_gestures_menu", "toggle_gesture_lock")?.let { def ->
+        MenuItem(
+            definition = def,
+            closeOnSelect = false,
+            action = { GestureManager.instance.toggleGestureLock() }
+        )
+    }!!
 
     val tapGesturesMenuObject = MenuStructure(
         id = "tap_gestures_menu",
-        items = listOf(
+        items = listOfNotNull(
             tapMenuItem,
-            MenuItem(
-                id = "double_tap",
-                labelResource = R.string.menu_item_double_tap,
-                drawableId = R.drawable.ic_gesture_double_tap,
-                action = { GestureManager.instance.performDoubleTap() }
-            ),
-            MenuItem(
-                id = "tap_and_hold_0_5s",
-                labelResource = R.string.menu_item_tap_and_hold_0_5s,
-                drawableId = R.drawable.ic_gesture_tap_hold_0_5s,
-                action = { GestureManager.instance.performTapAndHold(duration = GestureData.TAP_AND_HOLD_0_5S_DURATION, gestureType = GestureType.TAP_AND_HOLD_0_5S) }
-            ),
-            MenuItem(
-                id = "tap_and_hold_1s",
-                labelResource = R.string.menu_item_tap_and_hold_1s,
-                drawableId = R.drawable.ic_gesture_tap_hold_1s,
-                action = { GestureManager.instance.performTapAndHold(duration = GestureData.TAP_AND_HOLD_1S_DURATION, gestureType = GestureType.TAP_AND_HOLD_1S) }
-            ),
-            MenuItem(
-                id = "tap_and_hold_2s",
-                labelResource = R.string.menu_item_tap_and_hold_2s,
-                drawableId = R.drawable.ic_gesture_tap_hold_2s,
-                action = { GestureManager.instance.performTapAndHold(duration = GestureData.TAP_AND_HOLD_2S_DURATION, gestureType = GestureType.TAP_AND_HOLD_2S) }
-            ),
-            MenuItem(
-                id = "tap_and_hold_3s",
-                labelResource = R.string.menu_item_tap_and_hold_3s,
-                drawableId = R.drawable.ic_gesture_tap_hold_3s,
-                action = { GestureManager.instance.performTapAndHold(duration = GestureData.TAP_AND_HOLD_3S_DURATION, gestureType = GestureType.TAP_AND_HOLD_3S) }
-            ),
-            MenuItem(
-                id = "tap_and_hold_5s",
-                labelResource = R.string.menu_item_tap_and_hold_5s,
-                drawableId = R.drawable.ic_gesture_tap_hold_5s,
-                action = { GestureManager.instance.performTapAndHold(duration = GestureData.TAP_AND_HOLD_5S_DURATION, gestureType = GestureType.TAP_AND_HOLD_5S) }
-            ),
-            MenuItem(
-                id = "tap_and_hold_10s",
-                labelResource = R.string.menu_item_tap_and_hold_10s,
-                drawableId = R.drawable.ic_gesture_tap_hold_10s,
-                action = { GestureManager.instance.performTapAndHold(duration = GestureData.TAP_AND_HOLD_10S_DURATION, gestureType = GestureType.TAP_AND_HOLD_10S) }
-            ),
+            MenuItemRegistry.getDefinition("tap_gestures_menu", "double_tap")?.let { def ->
+                MenuItem(
+                    definition = def,
+                    action = { GestureManager.instance.performDoubleTap() }
+                )
+            },
+            MenuItemRegistry.getDefinition("tap_gestures_menu", "tap_and_hold_0_5s")?.let { def ->
+                MenuItem(
+                    definition = def,
+                    action = { GestureManager.instance.performTapAndHold(duration = GestureData.TAP_AND_HOLD_0_5S_DURATION, gestureType = GestureType.TAP_AND_HOLD_0_5S) }
+                )
+            },
+            MenuItemRegistry.getDefinition("tap_gestures_menu", "tap_and_hold_1s")?.let { def ->
+                MenuItem(
+                    definition = def,
+                    action = { GestureManager.instance.performTapAndHold(duration = GestureData.TAP_AND_HOLD_1S_DURATION, gestureType = GestureType.TAP_AND_HOLD_1S) }
+                )
+            },
+            MenuItemRegistry.getDefinition("tap_gestures_menu", "tap_and_hold_2s")?.let { def ->
+                MenuItem(
+                    definition = def,
+                    action = { GestureManager.instance.performTapAndHold(duration = GestureData.TAP_AND_HOLD_2S_DURATION, gestureType = GestureType.TAP_AND_HOLD_2S) }
+                )
+            },
+            MenuItemRegistry.getDefinition("tap_gestures_menu", "tap_and_hold_3s")?.let { def ->
+                MenuItem(
+                    definition = def,
+                    action = { GestureManager.instance.performTapAndHold(duration = GestureData.TAP_AND_HOLD_3S_DURATION, gestureType = GestureType.TAP_AND_HOLD_3S) }
+                )
+            },
+            MenuItemRegistry.getDefinition("tap_gestures_menu", "tap_and_hold_5s")?.let { def ->
+                MenuItem(
+                    definition = def,
+                    action = { GestureManager.instance.performTapAndHold(duration = GestureData.TAP_AND_HOLD_5S_DURATION, gestureType = GestureType.TAP_AND_HOLD_5S) }
+                )
+            },
+            MenuItemRegistry.getDefinition("tap_gestures_menu", "tap_and_hold_10s")?.let { def ->
+                MenuItem(
+                    definition = def,
+                    action = { GestureManager.instance.performTapAndHold(duration = GestureData.TAP_AND_HOLD_10S_DURATION, gestureType = GestureType.TAP_AND_HOLD_10S) }
+                )
+            },
             toggleGestureLockMenuItem
         ),
         context = context
@@ -84,41 +82,41 @@ class GestureMenuStructure(private val context: Context) {
 
     val gesturesMenuObject = MenuStructure(
         id = "gestures_menu",
-        items = listOf(
-            MenuItem(
-                id = "tap_gestures",
-                labelResource = R.string.menu_item_tap_gestures,
-                drawableId = R.drawable.ic_tap_gestures,
-                isLinkToMenu = true,
-                action = { MenuManager.getInstance().openTapMenu() }
-            ),
-            MenuItem(
-                id = "swipe_gestures",
-                labelResource = R.string.menu_item_swipe_gestures,
-                drawableId = R.drawable.ic_swipe_gestures,
-                isLinkToMenu = true,
-                action = { MenuManager.getInstance().openSwipeMenu() }
-            ),
-            MenuItem(
-                id = "drag",
-                labelResource = R.string.menu_item_drag,
-                drawableId = R.drawable.ic_gesture_drag,
-                action = { GestureManager.instance.startDragGesture() }
-            ),
-            MenuItem(
-                id = "pinch_gestures",
-                labelResource = R.string.menu_item_pinch_gestures,
-                drawableId = R.drawable.ic_pinch_gestures,
-                isLinkToMenu = true,
-                action = { MenuManager.getInstance().openPinchGesturesMenu() }
-            ),
-            MenuItem(
-                id = "finger_mode",
-                labelResource = R.string.menu_item_finger_mode,
-                drawableId = R.drawable.ic_finger_mode,
-                isLinkToMenu = true,
-                action = { MenuManager.getInstance().openFingerModeMenu() }
-            ),
+        items = listOfNotNull(
+            MenuItemRegistry.getDefinition("gestures_menu", "tap_gestures")?.let { def ->
+                MenuItem(
+                    definition = def,
+                    isLinkToMenu = true,
+                    action = { MenuManager.getInstance().openTapMenu() }
+                )
+            },
+            MenuItemRegistry.getDefinition("gestures_menu", "swipe_gestures")?.let { def ->
+                MenuItem(
+                    definition = def,
+                    isLinkToMenu = true,
+                    action = { MenuManager.getInstance().openSwipeMenu() }
+                )
+            },
+            MenuItemRegistry.getDefinition("gestures_menu", "drag")?.let { def ->
+                MenuItem(
+                    definition = def,
+                    action = { GestureManager.instance.startDragGesture() }
+                )
+            },
+            MenuItemRegistry.getDefinition("gestures_menu", "pinch_gestures")?.let { def ->
+                MenuItem(
+                    definition = def,
+                    isLinkToMenu = true,
+                    action = { MenuManager.getInstance().openPinchGesturesMenu() }
+                )
+            },
+            MenuItemRegistry.getDefinition("gestures_menu", "finger_mode")?.let { def ->
+                MenuItem(
+                    definition = def,
+                    isLinkToMenu = true,
+                    action = { MenuManager.getInstance().openFingerModeMenu() }
+                )
+            },
             toggleGestureLockMenuItem
         ),
         context = context
@@ -159,43 +157,37 @@ class GestureMenuStructure(private val context: Context) {
 
     val swipeGesturesMenuObject = MenuStructure(
         id = "swipe_gestures_menu",
-        items = listOf(
-            MenuItem(
-                id = "swipe_up",
-                labelResource = R.string.menu_item_swipe_up,
-                drawableId = R.drawable.ic_gesture_swipe_up,
-                action = { GestureManager.instance.performSwipeOrScroll(GestureType.SWIPE_UP) }
-            ),
-            MenuItem(
-                id = "swipe_down",
-                labelResource = R.string.menu_item_swipe_down,
-                drawableId = R.drawable.ic_gesture_swipe_down,
-                action = {
-                    GestureManager.instance.performSwipeOrScroll(GestureType.SWIPE_DOWN)
-                }
-            ),
-            MenuItem(
-                id = "swipe_left",
-                labelResource = R.string.menu_item_swipe_left,
-                drawableId = R.drawable.ic_gesture_swipe_left,
-                action = {
-                    GestureManager.instance.performSwipeOrScroll(GestureType.SWIPE_LEFT)
-                }
-            ),
-            MenuItem(
-                id = "swipe_right",
-                labelResource = R.string.menu_item_swipe_right,
-                drawableId = R.drawable.ic_gesture_swipe_right,
-                action = {
-                    GestureManager.instance.performSwipeOrScroll(GestureType.SWIPE_RIGHT)
-                }
-            ),
-            MenuItem(
-                id = "custom_swipe",
-                labelResource = R.string.menu_item_custom_swipe,
-                drawableId = R.drawable.ic_gesture_custom_swipe,
-                action = { GestureManager.instance.startCustomSwipe() }
-            ),
+        items = listOfNotNull(
+            MenuItemRegistry.getDefinition("swipe_gestures_menu", "swipe_up")?.let { def ->
+                MenuItem(
+                    definition = def,
+                    action = { GestureManager.instance.performSwipeOrScroll(GestureType.SWIPE_UP) }
+                )
+            },
+            MenuItemRegistry.getDefinition("swipe_gestures_menu", "swipe_down")?.let { def ->
+                MenuItem(
+                    definition = def,
+                    action = { GestureManager.instance.performSwipeOrScroll(GestureType.SWIPE_DOWN) }
+                )
+            },
+            MenuItemRegistry.getDefinition("swipe_gestures_menu", "swipe_left")?.let { def ->
+                MenuItem(
+                    definition = def,
+                    action = { GestureManager.instance.performSwipeOrScroll(GestureType.SWIPE_LEFT) }
+                )
+            },
+            MenuItemRegistry.getDefinition("swipe_gestures_menu", "swipe_right")?.let { def ->
+                MenuItem(
+                    definition = def,
+                    action = { GestureManager.instance.performSwipeOrScroll(GestureType.SWIPE_RIGHT) }
+                )
+            },
+            MenuItemRegistry.getDefinition("swipe_gestures_menu", "custom_swipe")?.let { def ->
+                MenuItem(
+                    definition = def,
+                    action = { GestureManager.instance.startCustomSwipe() }
+                )
+            },
             toggleGestureLockMenuItem
         ),
         context = context
@@ -203,25 +195,19 @@ class GestureMenuStructure(private val context: Context) {
 
     val pinchGesturesMenuObject = MenuStructure(
         id = "pinch_gestures_menu",
-        items = listOf(
-            MenuItem(
-                id = "pinch_in",
-                labelResource = R.string.menu_item_pinch_in,
-                drawableId = R.drawable.ic_gesture_pinch_in,
-                action = {
-                    GestureManager.instance
-                        .performPinch(GestureType.PINCH_IN)
-                }
-            ),
-            MenuItem(
-                id = "pinch_out",
-                labelResource = R.string.menu_item_pinch_out,
-                drawableId = R.drawable.ic_gesture_pinch_out,
-                action = {
-                    GestureManager.instance
-                        .performPinch(GestureType.PINCH_OUT)
-                }
-            ),
+        items = listOfNotNull(
+            MenuItemRegistry.getDefinition("pinch_gestures_menu", "pinch_in")?.let { def ->
+                MenuItem(
+                    definition = def,
+                    action = { GestureManager.instance.performPinch(GestureType.PINCH_IN) }
+                )
+            },
+            MenuItemRegistry.getDefinition("pinch_gestures_menu", "pinch_out")?.let { def ->
+                MenuItem(
+                    definition = def,
+                    action = { GestureManager.instance.performPinch(GestureType.PINCH_OUT) }
+                )
+            },
             toggleGestureLockMenuItem
         ),
         context = context

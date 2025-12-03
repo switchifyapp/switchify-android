@@ -32,80 +32,92 @@ object MenuItemRegistry {
 
     fun getDeviceMenuDefinitions(): List<MenuItemDefinition> {
         return listOf(
-            MenuItemDefinition("recent_apps", labelResource = R.string.system_recents),
-            MenuItemDefinition("notifications", labelResource = R.string.system_notifications),
-            MenuItemDefinition("open_assistant", labelResource = R.string.system_assistant),
-            MenuItemDefinition("quick_settings", labelResource = R.string.system_quick_settings),
-            MenuItemDefinition("lock_screen", labelResource = R.string.system_lock_screen),
-            MenuItemDefinition("power_dialog", labelResource = R.string.system_power_dialog),
-            MenuItemDefinition("take_screenshot", labelResource = R.string.system_screenshot),
-            MenuItemDefinition("volume_control", labelResource = R.string.action_volume_control)
+            MenuItemDefinition("recent_apps", labelResource = R.string.system_recents, drawableId = R.drawable.ic_recent_apps),
+            MenuItemDefinition("notifications", labelResource = R.string.system_notifications, drawableId = R.drawable.ic_notifications),
+            MenuItemDefinition("open_assistant", labelResource = R.string.system_assistant, drawableId = R.drawable.ic_assistant),
+            MenuItemDefinition("quick_settings", labelResource = R.string.system_quick_settings, drawableId = R.drawable.ic_quick_settings),
+            MenuItemDefinition("lock_screen", labelResource = R.string.system_lock_screen, drawableId = R.drawable.ic_lock_screen),
+            MenuItemDefinition("power_dialog", labelResource = R.string.system_power_dialog, drawableId = R.drawable.ic_power_dialog),
+            MenuItemDefinition("take_screenshot", labelResource = R.string.system_screenshot, drawableId = R.drawable.ic_screenshot),
+            MenuItemDefinition("volume_control", labelResource = R.string.action_volume_control, drawableId = R.drawable.ic_volume_control)
         )
     }
 
     fun getVolumeControlMenuDefinitions(): List<MenuItemDefinition> {
         return listOf(
-            MenuItemDefinition("volume_up", labelResource = R.string.menu_item_volume_up),
-            MenuItemDefinition("volume_down", labelResource = R.string.menu_item_volume_down),
-            MenuItemDefinition("full_volume", labelResource = R.string.menu_item_full_volume),
-            MenuItemDefinition("mute", labelResource = R.string.menu_item_mute),
-            MenuItemDefinition("half_volume", labelResource = R.string.menu_item_half_volume)
+            MenuItemDefinition("volume_up", labelResource = R.string.menu_item_volume_up, drawableId = R.drawable.ic_volume_up),
+            MenuItemDefinition("volume_down", labelResource = R.string.menu_item_volume_down, drawableId = R.drawable.ic_volume_down),
+            MenuItemDefinition("full_volume", labelResource = R.string.menu_item_full_volume, drawableId = R.drawable.ic_full_volume),
+            MenuItemDefinition("mute", labelResource = R.string.menu_item_mute, drawableId = R.drawable.ic_mute),
+            MenuItemDefinition("half_volume", labelResource = R.string.menu_item_half_volume, drawableId = R.drawable.ic_half_volume)
         )
     }
 
     fun getGesturesMenuDefinitions(): List<MenuItemDefinition> {
         return listOf(
-            MenuItemDefinition("tap", labelResource = R.string.menu_title_tap),
-            MenuItemDefinition("swipe", labelResource = R.string.menu_title_swipe),
-            MenuItemDefinition("pinch", labelResource = R.string.menu_title_pinch)
+            MenuItemDefinition("tap_gestures", labelResource = R.string.menu_item_tap_gestures, drawableId = R.drawable.ic_tap_gestures),
+            MenuItemDefinition("swipe_gestures", labelResource = R.string.menu_item_swipe_gestures, drawableId = R.drawable.ic_swipe_gestures),
+            MenuItemDefinition("drag", labelResource = R.string.menu_item_drag, drawableId = R.drawable.ic_gesture_drag),
+            MenuItemDefinition("pinch_gestures", labelResource = R.string.menu_item_pinch_gestures, drawableId = R.drawable.ic_pinch_gestures),
+            MenuItemDefinition("finger_mode", labelResource = R.string.menu_item_finger_mode, drawableId = R.drawable.ic_finger_mode),
+            MenuItemDefinition("toggle_gesture_lock", labelResource = R.string.system_gesture_lock, drawableId = R.drawable.ic_toggle_gesture_lock)
         )
     }
 
     fun getTapGesturesMenuDefinitions(): List<MenuItemDefinition> {
         return listOf(
-            MenuItemDefinition("tap_here", userProvidedText = "Tap Here"),
-            MenuItemDefinition("double_tap", userProvidedText = "Double Tap"),
-            MenuItemDefinition("long_press", userProvidedText = "Long Press")
+            MenuItemDefinition("tap", labelResource = R.string.menu_item_tap, drawableId = R.drawable.ic_gesture_tap),
+            MenuItemDefinition("double_tap", labelResource = R.string.menu_item_double_tap, drawableId = R.drawable.ic_gesture_double_tap),
+            MenuItemDefinition("tap_and_hold_0_5s", labelResource = R.string.menu_item_tap_and_hold_0_5s, drawableId = R.drawable.ic_gesture_tap_hold_0_5s),
+            MenuItemDefinition("tap_and_hold_1s", labelResource = R.string.menu_item_tap_and_hold_1s, drawableId = R.drawable.ic_gesture_tap_hold_1s),
+            MenuItemDefinition("tap_and_hold_2s", labelResource = R.string.menu_item_tap_and_hold_2s, drawableId = R.drawable.ic_gesture_tap_hold_2s),
+            MenuItemDefinition("tap_and_hold_3s", labelResource = R.string.menu_item_tap_and_hold_3s, drawableId = R.drawable.ic_gesture_tap_hold_3s),
+            MenuItemDefinition("tap_and_hold_5s", labelResource = R.string.menu_item_tap_and_hold_5s, drawableId = R.drawable.ic_gesture_tap_hold_5s),
+            MenuItemDefinition("tap_and_hold_10s", labelResource = R.string.menu_item_tap_and_hold_10s, drawableId = R.drawable.ic_gesture_tap_hold_10s),
+            MenuItemDefinition("toggle_gesture_lock", labelResource = R.string.system_gesture_lock, drawableId = R.drawable.ic_toggle_gesture_lock)
         )
     }
 
     fun getSwipeGesturesMenuDefinitions(): List<MenuItemDefinition> {
         return listOf(
-            MenuItemDefinition("swipe_up", labelResource = R.string.menu_item_swipe_up),
-            MenuItemDefinition("swipe_down", labelResource = R.string.menu_item_swipe_down),
-            MenuItemDefinition("swipe_left", labelResource = R.string.menu_item_swipe_left),
-            MenuItemDefinition("swipe_right", labelResource = R.string.menu_item_swipe_right)
+            MenuItemDefinition("swipe_up", labelResource = R.string.menu_item_swipe_up, drawableId = R.drawable.ic_gesture_swipe_up),
+            MenuItemDefinition("swipe_down", labelResource = R.string.menu_item_swipe_down, drawableId = R.drawable.ic_gesture_swipe_down),
+            MenuItemDefinition("swipe_left", labelResource = R.string.menu_item_swipe_left, drawableId = R.drawable.ic_gesture_swipe_left),
+            MenuItemDefinition("swipe_right", labelResource = R.string.menu_item_swipe_right, drawableId = R.drawable.ic_gesture_swipe_right),
+            MenuItemDefinition("custom_swipe", labelResource = R.string.menu_item_custom_swipe, drawableId = R.drawable.ic_gesture_custom_swipe),
+            MenuItemDefinition("toggle_gesture_lock", labelResource = R.string.system_gesture_lock, drawableId = R.drawable.ic_toggle_gesture_lock)
         )
     }
 
     fun getPinchGesturesMenuDefinitions(): List<MenuItemDefinition> {
         return listOf(
-            MenuItemDefinition("pinch_in", labelResource = R.string.menu_item_pinch_in),
-            MenuItemDefinition("pinch_out", labelResource = R.string.menu_item_pinch_out)
+            MenuItemDefinition("pinch_in", labelResource = R.string.menu_item_pinch_in, drawableId = R.drawable.ic_gesture_pinch_in),
+            MenuItemDefinition("pinch_out", labelResource = R.string.menu_item_pinch_out, drawableId = R.drawable.ic_gesture_pinch_out),
+            MenuItemDefinition("toggle_gesture_lock", labelResource = R.string.system_gesture_lock, drawableId = R.drawable.ic_toggle_gesture_lock)
         )
     }
 
     fun getScrollMenuDefinitions(): List<MenuItemDefinition> {
         return listOf(
-            MenuItemDefinition("scroll_up", labelResource = R.string.menu_item_scroll_up),
-            MenuItemDefinition("scroll_down", labelResource = R.string.menu_item_scroll_down),
-            MenuItemDefinition("scroll_left", labelResource = R.string.menu_item_scroll_left),
-            MenuItemDefinition("scroll_right", labelResource = R.string.menu_item_scroll_right)
+            MenuItemDefinition("scroll_up", labelResource = R.string.menu_item_scroll_up, drawableId = R.drawable.ic_scroll_up),
+            MenuItemDefinition("scroll_down", labelResource = R.string.menu_item_scroll_down, drawableId = R.drawable.ic_scroll_down),
+            MenuItemDefinition("scroll_left", labelResource = R.string.menu_item_scroll_left, drawableId = R.drawable.ic_scroll_left),
+            MenuItemDefinition("scroll_right", labelResource = R.string.menu_item_scroll_right, drawableId = R.drawable.ic_scroll_right)
         )
     }
 
     fun getMediaControlMenuDefinitions(): List<MenuItemDefinition> {
         return listOf(
-            MenuItemDefinition("media_play_pause", userProvidedText = "Play/Pause"),
-            MenuItemDefinition("volume_control", labelResource = R.string.action_volume_control)
+            MenuItemDefinition("play_pause", labelResource = R.string.menu_item_play_pause, drawableId = R.drawable.ic_play_pause),
+            MenuItemDefinition("volume_control", labelResource = R.string.action_volume_control, drawableId = R.drawable.ic_volume_control)
         )
     }
 
     fun getEditMenuDefinitions(): List<MenuItemDefinition> {
         return listOf(
-            MenuItemDefinition("cut", labelResource = R.string.menu_item_cut),
-            MenuItemDefinition("copy", labelResource = R.string.menu_item_copy),
-            MenuItemDefinition("paste", labelResource = R.string.menu_item_paste)
+            MenuItemDefinition("cut", labelResource = R.string.menu_item_cut, drawableId = R.drawable.ic_cut),
+            MenuItemDefinition("copy", labelResource = R.string.menu_item_copy, drawableId = R.drawable.ic_copy),
+            MenuItemDefinition("paste", labelResource = R.string.menu_item_paste, drawableId = R.drawable.ic_paste)
         )
     }
 
@@ -135,5 +147,13 @@ object MenuItemRegistry {
      */
     fun getMainMenuDefinition(id: String): MenuItemDefinition? {
         return getMainMenuDefinitions().find { it.id == id }
+    }
+
+    /**
+     * Get a specific definition by ID from any menu.
+     * This is a general helper for accessing definitions by ID.
+     */
+    fun getDefinition(menuId: String, itemId: String): MenuItemDefinition? {
+        return getDefinitionsForMenu(menuId).find { it.id == itemId }
     }
 }
