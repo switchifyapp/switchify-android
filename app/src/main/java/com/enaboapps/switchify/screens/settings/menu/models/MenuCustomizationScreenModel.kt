@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.service.menu.MenuItem
 import com.enaboapps.switchify.service.menu.database.MenuConfigurationRepository
+import com.enaboapps.switchify.service.menu.structure.MenuItemRegistry
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -63,17 +64,72 @@ class MenuCustomizationScreenModel(private val context: Context) : ViewModel() {
         viewModelScope.launch {
             val menuId = _selectedMenuId.value
 
-            // Get menu items directly from repository which will handle loading
-            // We'll use a simplified approach - just get configurations
+            // Get default items for the menu from code
+            val defaultItems = getDefaultMenuItemsForMenu(menuId)
+
+            // Filter out navigation items (small items and menu hierarchy manipulators)
+            val filterableItems = defaultItems.filter {
+                !it.isSmall && !it.isMenuHierarchyManipulator
+            }
+
+            // Load configurations from database
             val configurations = repository.getMenuConfigurations(menuId)
 
-            // For now, store empty list - in production this would load actual menu items
-            // This is a placeholder that allows the UI to compile
-            _menuItems.value = emptyList()
-            _visibilityMap.value = emptyMap()
-            originalItems = emptyList()
-            originalVisibilityMap = emptyMap()
+            // Build visibility map
+            val visibilityMap = configurations.associate {
+                it.itemId to it.isVisible
+            }.toMutableMap()
+
+            // Ensure all items have a visibility entry
+            filterableItems.forEach { item ->
+                if (!visibilityMap.containsKey(item.id)) {
+                    visibilityMap[item.id] = true
+                }
+            }
+
+            // Order items based on configurations
+            val orderedItems = if (configurations.isNotEmpty()) {
+                val configMap = configurations.associateBy { it.itemId }
+                val itemMap = filterableItems.associateBy { it.id }
+
+                // Items with configurations first, sorted by position
+                val configuredItems = configurations
+                    .filter { itemMap.containsKey(it.itemId) }
+                    .sortedBy { it.position }
+                    .mapNotNull { itemMap[it.itemId] }
+
+                // Then items without configurations
+                val unconfiguredItems = filterableItems.filter {
+                    !configMap.containsKey(it.id)
+                }
+
+                configuredItems + unconfiguredItems
+            } else {
+                filterableItems
+            }
+
+            // Store state
+            _menuItems.value = orderedItems
+            _visibilityMap.value = visibilityMap
+            originalItems = orderedItems.toList()
+            originalVisibilityMap = visibilityMap.toMap()
             _hasUnsavedChanges.value = false
+        }
+    }
+
+    private fun getDefaultMenuItemsForMenu(menuId: String): List<MenuItem> {
+        // Get definitions from the shared registry and convert to MenuItem instances
+        val definitions = MenuItemRegistry.getDefinitionsForMenu(menuId)
+        return definitions.map { def ->
+            MenuItem(
+                id = def.id,
+                labelResource = def.labelResource,
+                userProvidedText = def.userProvidedText,
+                drawableId = def.drawableId,
+                isSmall = def.isSmall,
+                isMenuHierarchyManipulator = def.isMenuHierarchyManipulator,
+                action = {} // Empty action for customization UI
+            )
         }
     }
 
