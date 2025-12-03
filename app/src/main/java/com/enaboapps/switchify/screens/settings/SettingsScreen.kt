@@ -109,7 +109,7 @@ fun GeneralSettingsTab(menuSettingsModel: MenuSettingsModel, navController: NavC
         InputSection(navController)
         BehaviourSection(navController)
         GesturesSettingsSection(navController)
-        MenuSection(menuSettingsModel)
+        MenuSection(menuSettingsModel, navController)
     }
 }
 

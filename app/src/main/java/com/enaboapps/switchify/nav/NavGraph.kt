@@ -30,6 +30,7 @@ import com.enaboapps.switchify.screens.settings.switches.SwitchStabilityScreen
 import com.enaboapps.switchify.screens.settings.switches.SwitchesScreen
 import com.enaboapps.switchify.screens.settings.techniques.AccessTechniqueSettingsScreen
 import com.enaboapps.switchify.screens.settings.pause.PauseSettingsScreen
+import com.enaboapps.switchify.screens.settings.menu.MenuCustomizationScreen
 
 @Composable
 fun NavGraph(navController: NavHostController) {
@@ -123,6 +124,9 @@ fun NavGraph(navController: NavHostController) {
         }
         composable(NavigationRoute.PauseSettings.name) {
             PauseSettingsScreen(navController)
+        }
+        composable(NavigationRoute.MenuCustomization.name) {
+            MenuCustomizationScreen(navController)
         }
     }
 }

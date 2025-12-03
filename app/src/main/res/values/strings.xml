@@ -840,4 +840,19 @@
     <string name="onboarding_head_control_feature_complement">Works alongside traditional switches</string>
     <string name="onboarding_head_control_requirements">Requires camera permission and good lighting</string>
     <string name="onboarding_head_control_learn_more">Learn more about Head Control</string>
+
+    <!-- Menu Customization Screen -->
+    <string name="screen_title_menu_customization">Menu Customization</string>
+    <string name="settings_summary_menu_customization">Customize menu item order and visibility</string>
+    <string name="menu_customization_info">Drag items to reorder them. Tap the eye icon to hide or show items.</string>
+    <string name="label_select_menu">Select Menu</string>
+    <string name="menu_title_main">Main Menu</string>
+    <string name="menu_title_media">Media Control</string>
+    <string name="menu_title_tap">Tap Gestures</string>
+    <string name="menu_title_swipe">Swipe Gestures</string>
+    <string name="menu_title_pinch">Pinch Gestures</string>
+    <string name="button_reset_to_default">Reset to Default</string>
+    <string name="content_desc_drag_handle">Drag to reorder</string>
+    <string name="content_desc_hide_item">Hide item</string>
+    <string name="content_desc_show_item">Show item</string>
 </resources>
