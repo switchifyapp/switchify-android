@@ -47,6 +47,11 @@ class QuickAppsMenuStructure(private val accessibilityService: SwitchifyAccessib
         return items
     }
 
+    /**
+     * Build a placeholder MenuStructure for the quick apps menu whose items are loaded dynamically.
+     *
+     * @return A MenuStructure with id "quick_apps_menu", an empty items list, and `context` set to the accessibility service.
+     */
     fun buildQuickAppsMenuObject(): MenuStructure {
         return MenuStructure(
             id = "quick_apps_menu",

@@ -10,6 +10,15 @@ import com.enaboapps.switchify.service.techniques.nodes.Node
 import com.enaboapps.switchify.service.techniques.nodes.NodeExaminer
 
 class EditMenuStructure(private val context: Context) {
+    /**
+     * Builds a menu structure for edit operations available at the current gesture point.
+     *
+     * Only includes menu items for which an actionable accessibility node is found and a corresponding
+     * menu definition exists (cut, copy, paste).
+     *
+     * @return A `MenuStructure` with `id` set to "edit_menu", `items` containing `MenuItem` entries for
+     * available edit actions, and `context` set to this instance's context.
+     */
     fun buildEditMenuObject(): MenuStructure {
         val currentPoint = GesturePoint.getPoint()
         val cutNode = NodeExaminer.findNodeForAction(currentPoint, Node.ActionType.CUT)

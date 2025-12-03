@@ -21,6 +21,17 @@ class SystemMenuStructure(private val accessibilityService: SwitchifyAccessibili
             )
         }!!
 
+    /**
+     * Builds the system "device" menu structure containing device-related actions (recent apps, notifications,
+     * assistant, quick settings, lock, power dialog, screenshot, and volume control when available).
+     *
+     * Missing menu item definitions from the registry are omitted; the menu's context is set to the class'
+     * accessibilityService.
+     *
+     * @return A MenuStructure with id "device_menu" whose items perform the corresponding system actions
+     * (e.g., open recents, open notifications, start voice command, open quick settings, lock screen,
+     * open power dialog, take screenshot) and may include the volume control submenu if defined.
+     */
     fun buildDeviceMenuObject(): MenuStructure {
         val definitions = MenuItemRegistry.getDeviceMenuDefinitions()
         return MenuStructure(
@@ -85,6 +96,13 @@ class SystemMenuStructure(private val accessibilityService: SwitchifyAccessibili
         )
     }
 
+    /**
+     * Builds the volume control submenu containing volume-related actions.
+     *
+     * The returned menu includes items for "volume_up", "volume_down", "full_volume", "mute", and "half_volume" when those definitions exist in the registry; missing definitions are omitted. Each item invokes the corresponding AudioActionManager operation and preserves the menu (does not close) on selection.
+     *
+     * @return A MenuStructure with id "volume_control_menu" whose context is the current accessibility service and whose items map to the available volume control definitions.
+     */
     fun buildVolumeControlMenuObject(): MenuStructure {
         val definitions = MenuItemRegistry.getVolumeControlMenuDefinitions()
         return MenuStructure(

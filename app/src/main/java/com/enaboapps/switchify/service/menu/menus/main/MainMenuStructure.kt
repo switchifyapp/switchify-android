@@ -34,8 +34,14 @@ class MainMenuStructure(private val accessibilityService: SwitchifyAccessibility
     )
 
     /**
-     * Builds the main menu structure dynamically based on current state.
-     * This allows menu items to reflect the latest keyboard state and other conditions.
+     * Constructs the main menu structure based on current runtime state.
+     *
+     * The returned menu reflects current conditions such as keyboard visibility,
+     * device lock state, access technique, camera permission, and gesture context.
+     * Items include system navigation, scanning and technique switches, gesture and
+     * media submenus, head-control toggle, quick apps, edit actions, and pause.
+     *
+     * @return A MenuStructure representing the main menu configured for the current state.
      */
     fun buildMainMenuObject() = MenuStructure(
         id = "main_menu",

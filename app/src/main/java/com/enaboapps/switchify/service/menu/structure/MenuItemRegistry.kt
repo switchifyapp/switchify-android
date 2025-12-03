@@ -9,6 +9,11 @@ import com.enaboapps.switchify.R
  */
 object MenuItemRegistry {
 
+    /**
+     * Provide the set of menu item definitions for the app's main menu.
+     *
+     * @return A list of MenuItemDefinition for each main menu entry containing its `id`, `labelResource`, and `drawableId`.
+     */
     fun getMainMenuDefinitions(): List<MenuItemDefinition> {
         return listOf(
             MenuItemDefinition("sys_back", labelResource = R.string.system_back, drawableId = R.drawable.ic_sys_back),
@@ -30,6 +35,11 @@ object MenuItemRegistry {
         )
     }
 
+    /**
+     * Provides menu item definitions for device-related actions.
+     *
+     * @return A list of MenuItemDefinition representing device menu entries: recent apps, notifications, assistant, quick settings, lock screen, power dialog, screenshot, and volume control.
+     */
     fun getDeviceMenuDefinitions(): List<MenuItemDefinition> {
         return listOf(
             MenuItemDefinition("recent_apps", labelResource = R.string.system_recents, drawableId = R.drawable.ic_recent_apps),
@@ -43,6 +53,12 @@ object MenuItemRegistry {
         )
     }
 
+    /**
+     * Provides menu item definitions for volume control options.
+     *
+     * @return A list of MenuItemDefinition for the volume actions `volume_up`, `volume_down`,
+     * `full_volume`, `mute`, and `half_volume`.
+     */
     fun getVolumeControlMenuDefinitions(): List<MenuItemDefinition> {
         return listOf(
             MenuItemDefinition("volume_up", labelResource = R.string.menu_item_volume_up, drawableId = R.drawable.ic_volume_up),
@@ -53,6 +69,11 @@ object MenuItemRegistry {
         )
     }
 
+    /**
+     * Provides menu item definitions for gesture-related actions.
+     *
+     * @return A list of MenuItemDefinition objects for gesture menus including tap gestures, swipe gestures, drag, pinch gestures, finger mode, and a gesture-lock toggle.
+     */
     fun getGesturesMenuDefinitions(): List<MenuItemDefinition> {
         return listOf(
             MenuItemDefinition("tap_gestures", labelResource = R.string.menu_item_tap_gestures, drawableId = R.drawable.ic_tap_gestures),
@@ -64,6 +85,11 @@ object MenuItemRegistry {
         )
     }
 
+    /**
+     * Tap-related gesture menu item definitions for the gestures submenu.
+     *
+     * @return A list of MenuItemDefinition for tap gestures, including tap, double tap, several tap-and-hold durations, and a gesture lock toggle.
+     */
     fun getTapGesturesMenuDefinitions(): List<MenuItemDefinition> {
         return listOf(
             MenuItemDefinition("tap", labelResource = R.string.menu_item_tap, drawableId = R.drawable.ic_gesture_tap),
@@ -78,6 +104,11 @@ object MenuItemRegistry {
         )
     }
 
+    /**
+     * Provide definitions for the swipe gestures submenu.
+     *
+     * @return A list of MenuItemDefinition entries for swipe gestures (up, down, left, right), a custom swipe action, and a gesture lock toggle; each entry contains an id, a label resource, and a drawable id.
+     */
     fun getSwipeGesturesMenuDefinitions(): List<MenuItemDefinition> {
         return listOf(
             MenuItemDefinition("swipe_up", labelResource = R.string.menu_item_swipe_up, drawableId = R.drawable.ic_gesture_swipe_up),
@@ -89,6 +120,11 @@ object MenuItemRegistry {
         )
     }
 
+    /**
+     * Provide menu item definitions for pinch gesture actions.
+     *
+     * @return A list of MenuItemDefinition for pinch-in, pinch-out, and the gesture lock toggle.
+     */
     fun getPinchGesturesMenuDefinitions(): List<MenuItemDefinition> {
         return listOf(
             MenuItemDefinition("pinch_in", labelResource = R.string.menu_item_pinch_in, drawableId = R.drawable.ic_gesture_pinch_in),
@@ -97,6 +133,12 @@ object MenuItemRegistry {
         )
     }
 
+    /**
+     * Provides menu item definitions for scroll actions.
+     *
+     * @return A list of MenuItemDefinition for scroll up, scroll down, scroll left, and scroll right,
+     * each populated with the corresponding label and drawable resource IDs.
+     */
     fun getScrollMenuDefinitions(): List<MenuItemDefinition> {
         return listOf(
             MenuItemDefinition("scroll_up", labelResource = R.string.menu_item_scroll_up, drawableId = R.drawable.ic_scroll_up),
@@ -106,6 +148,11 @@ object MenuItemRegistry {
         )
     }
 
+    /**
+     * Provide the menu item definitions for media control actions.
+     *
+     * @return A list containing menu item definitions for "play_pause" (play/pause) and "volume_control" (volume control).
+     */
     fun getMediaControlMenuDefinitions(): List<MenuItemDefinition> {
         return listOf(
             MenuItemDefinition("play_pause", labelResource = R.string.menu_item_play_pause, drawableId = R.drawable.ic_play_pause),
@@ -113,6 +160,11 @@ object MenuItemRegistry {
         )
     }
 
+    /**
+     * Provide menu item definitions for editing actions.
+     *
+     * @return A list of MenuItemDefinition for the "cut", "copy", and "paste" menu items.
+     */
     fun getEditMenuDefinitions(): List<MenuItemDefinition> {
         return listOf(
             MenuItemDefinition("cut", labelResource = R.string.menu_item_cut, drawableId = R.drawable.ic_cut),
@@ -122,8 +174,12 @@ object MenuItemRegistry {
     }
 
     /**
-     * Get definitions for a specific menu by ID.
-     * This is a convenience method for accessing definitions by menu ID string.
+     * Retrieve the menu item definitions for a given menu ID.
+     *
+     * @param menuId Identifier of the menu. Recognized values: "main_menu", "device_menu", "volume_control_menu",
+     * "gestures_menu", "tap_gestures_menu", "swipe_gestures_menu", "pinch_gestures_menu", "scroll_menu",
+     * "media_control_menu", "edit_menu".
+     * @return A list of MenuItemDefinition for the specified menu, or an empty list if the menuId is not recognized.
      */
     fun getDefinitionsForMenu(menuId: String): List<MenuItemDefinition> {
         return when (menuId) {
@@ -142,16 +198,21 @@ object MenuItemRegistry {
     }
 
     /**
-     * Get a specific definition by ID from the main menu.
-     * This is a helper for menu structures to use definitions consistently.
+     * Retrieves the definition for a main-menu item by its identifier.
+     *
+     * @param id The menu item identifier to look up.
+     * @return The matching MenuItemDefinition if found, `null` otherwise.
      */
     fun getMainMenuDefinition(id: String): MenuItemDefinition? {
         return getMainMenuDefinitions().find { it.id == id }
     }
 
     /**
-     * Get a specific definition by ID from any menu.
-     * This is a general helper for accessing definitions by ID.
+     * Retrieve a menu item definition by menu and item identifiers.
+     *
+     * @param menuId Identifier of the menu to search.
+     * @param itemId Identifier of the menu item to find within the specified menu.
+     * @return The matching MenuItemDefinition, or `null` if no matching item exists.
      */
     fun getDefinition(menuId: String, itemId: String): MenuItemDefinition? {
         return getDefinitionsForMenu(menuId).find { it.id == itemId }
