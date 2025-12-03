@@ -12,8 +12,12 @@ import com.enaboapps.switchify.service.menu.MenuManager
 import com.enaboapps.switchify.service.menu.structure.MenuItemRegistry
 import com.enaboapps.switchify.service.menu.structure.MenuStructure
 import com.enaboapps.switchify.service.window.ServiceMessageHUD
+import kotlinx.coroutines.CoroutineScope
 
-class GestureMenuStructure(private val context: Context) {
+class GestureMenuStructure(
+    private val context: Context,
+    private val coroutineScope: CoroutineScope
+) {
     val tapMenuItem: MenuItem? = MenuItemRegistry.getDefinition("tap_gestures_menu", "tap")?.let { def ->
         MenuItem(
             definition = def,
@@ -77,7 +81,8 @@ class GestureMenuStructure(private val context: Context) {
             },
             toggleGestureLockMenuItem
         ),
-        context = context
+        context = context,
+        coroutineScope = coroutineScope
     )
 
     val gesturesMenuObject = MenuStructure(
@@ -119,7 +124,8 @@ class GestureMenuStructure(private val context: Context) {
             },
             toggleGestureLockMenuItem
         ),
-        context = context
+        context = context,
+        coroutineScope = coroutineScope
     )
 
     /**
@@ -161,7 +167,8 @@ class GestureMenuStructure(private val context: Context) {
                         )
                     } else null
                 ),
-            context = context
+            context = context,
+            coroutineScope = coroutineScope
         )
     }
 
@@ -200,7 +207,8 @@ class GestureMenuStructure(private val context: Context) {
             },
             toggleGestureLockMenuItem
         ),
-        context = context
+        context = context,
+        coroutineScope = coroutineScope
     )
 
     val pinchGesturesMenuObject = MenuStructure(
@@ -220,7 +228,8 @@ class GestureMenuStructure(private val context: Context) {
             },
             toggleGestureLockMenuItem
         ),
-        context = context
+        context = context,
+        coroutineScope = coroutineScope
     )
 
     val customGestureConfirmationMenuObject = MenuStructure(
@@ -247,7 +256,8 @@ class GestureMenuStructure(private val context: Context) {
                 action = { GestureManager.instance.cancelLinearGesture() }
             )
         ),
-        context = context
+        context = context,
+        coroutineScope = coroutineScope
     )
 
     /**
@@ -331,6 +341,7 @@ class GestureMenuStructure(private val context: Context) {
                 }
             )
         ),
-        context = context
+        context = context,
+        coroutineScope = coroutineScope
     )
 } 

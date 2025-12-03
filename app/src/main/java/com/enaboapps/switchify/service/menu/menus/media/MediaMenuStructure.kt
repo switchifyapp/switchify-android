@@ -6,8 +6,12 @@ import com.enaboapps.switchify.service.menu.MenuItem
 import com.enaboapps.switchify.service.menu.MenuManager
 import com.enaboapps.switchify.service.menu.structure.MenuItemRegistry
 import com.enaboapps.switchify.service.menu.structure.MenuStructure
+import kotlinx.coroutines.CoroutineScope
 
-class MediaMenuStructure(private val accessibilityService: SwitchifyAccessibilityService?) {
+class MediaMenuStructure(
+    private val accessibilityService: SwitchifyAccessibilityService?,
+    private val coroutineScope: CoroutineScope
+) {
     private val openVolumeControlMenu: MenuItem? = MenuItemRegistry.getMediaControlMenuDefinitions()
         .find { it.id == "volume_control" }?.let { def ->
             MenuItem(
@@ -28,6 +32,7 @@ class MediaMenuStructure(private val accessibilityService: SwitchifyAccessibilit
             },
             openVolumeControlMenu
         ),
-        context = accessibilityService
+        context = accessibilityService,
+        coroutineScope = coroutineScope
     )
 } 

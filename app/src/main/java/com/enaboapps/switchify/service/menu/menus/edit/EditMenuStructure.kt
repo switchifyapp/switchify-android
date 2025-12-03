@@ -8,8 +8,12 @@ import com.enaboapps.switchify.service.menu.structure.MenuItemRegistry
 import com.enaboapps.switchify.service.menu.structure.MenuStructure
 import com.enaboapps.switchify.service.techniques.nodes.Node
 import com.enaboapps.switchify.service.techniques.nodes.NodeExaminer
+import kotlinx.coroutines.CoroutineScope
 
-class EditMenuStructure(private val context: Context) {
+class EditMenuStructure(
+    private val context: Context,
+    private val coroutineScope: CoroutineScope
+) {
     /**
      * Builds a menu structure for edit operations available at the current gesture point.
      *
@@ -59,7 +63,8 @@ class EditMenuStructure(private val context: Context) {
                     }
                 } else null
             ),
-            context = context
+            context = context,
+            coroutineScope = coroutineScope
         )
     }
 } 

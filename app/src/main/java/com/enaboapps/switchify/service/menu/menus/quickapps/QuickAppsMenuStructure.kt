@@ -5,8 +5,12 @@ import com.enaboapps.switchify.service.core.SwitchifyAccessibilityService
 import com.enaboapps.switchify.service.menu.MenuItem
 import com.enaboapps.switchify.service.menu.structure.MenuStructure
 import com.enaboapps.switchify.service.utils.QuickAppsManager
+import kotlinx.coroutines.CoroutineScope
 
-class QuickAppsMenuStructure(private val accessibilityService: SwitchifyAccessibilityService) {
+class QuickAppsMenuStructure(
+    private val accessibilityService: SwitchifyAccessibilityService,
+    private val coroutineScope: CoroutineScope
+) {
 
     private val quickAppsManager = QuickAppsManager(accessibilityService)
 
@@ -56,7 +60,8 @@ class QuickAppsMenuStructure(private val accessibilityService: SwitchifyAccessib
         return MenuStructure(
             id = "quick_apps_menu",
             items = emptyList(), // Items will be loaded dynamically
-            context = accessibilityService
+            context = accessibilityService,
+            coroutineScope = coroutineScope
         )
     }
 }

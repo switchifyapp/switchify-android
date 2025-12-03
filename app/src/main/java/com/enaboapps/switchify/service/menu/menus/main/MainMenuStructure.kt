@@ -18,9 +18,13 @@ import com.enaboapps.switchify.service.techniques.AccessTechnique
 import com.enaboapps.switchify.service.techniques.headcontrol.HeadControlSettings
 import com.enaboapps.switchify.service.techniques.nodes.NodeExaminer
 import com.enaboapps.switchify.service.utils.DeviceLockObserver
+import kotlinx.coroutines.CoroutineScope
 
-class MainMenuStructure(private val accessibilityService: SwitchifyAccessibilityService) {
-    private val gestureMenuStructure = GestureMenuStructure(accessibilityService)
+class MainMenuStructure(
+    private val accessibilityService: SwitchifyAccessibilityService,
+    private val coroutineScope: CoroutineScope
+) {
+    private val gestureMenuStructure = GestureMenuStructure(accessibilityService, coroutineScope)
     private val deviceLockObserver = DeviceLockObserver(accessibilityService)
     private val preferenceManager = PreferenceManager(accessibilityService)
     private val scanSettings = ScanSettings(accessibilityService)
@@ -179,7 +183,8 @@ class MainMenuStructure(private val accessibilityService: SwitchifyAccessibility
                 )
             }
         ),
-        context = accessibilityService
+        context = accessibilityService,
+        coroutineScope = coroutineScope
     )
 
     val menuManipulatorItems = listOfNotNull(

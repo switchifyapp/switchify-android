@@ -49,6 +49,13 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
 
     private lateinit var eventPipeline: AccessibilityEventPipeline
 
+    /**
+     * Provides access to the service's coroutine scope for lifecycle-aware asynchronous operations.
+     *
+     * @return The CoroutineScope tied to this service's lifecycle.
+     */
+    fun getServiceScope(): CoroutineScope = serviceScope
+
     // Service connection for camera foreground service is encapsulated in CameraServiceController
 
     companion object {

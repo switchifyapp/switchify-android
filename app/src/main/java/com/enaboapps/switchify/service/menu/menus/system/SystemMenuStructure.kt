@@ -9,8 +9,12 @@ import com.enaboapps.switchify.service.menu.MenuManager
 import com.enaboapps.switchify.service.menu.structure.MenuItemRegistry
 import com.enaboapps.switchify.service.menu.structure.MenuStructure
 import com.enaboapps.switchify.service.screenshot.ScreenshotManager
+import kotlinx.coroutines.CoroutineScope
 
-class SystemMenuStructure(private val accessibilityService: SwitchifyAccessibilityService?) {
+class SystemMenuStructure(
+    private val accessibilityService: SwitchifyAccessibilityService?,
+    private val coroutineScope: CoroutineScope
+) {
 
     private val openVolumeControlMenu: MenuItem? = MenuItemRegistry.getDefinitionsForMenu("device_menu")
         .find { it.id == "volume_control" }?.let { def ->
@@ -92,7 +96,8 @@ class SystemMenuStructure(private val accessibilityService: SwitchifyAccessibili
                 },
                 openVolumeControlMenu
             ),
-            context = accessibilityService
+            context = accessibilityService,
+            coroutineScope = coroutineScope
         )
     }
 
@@ -144,7 +149,8 @@ class SystemMenuStructure(private val accessibilityService: SwitchifyAccessibili
                     )
                 }
             ),
-            context = accessibilityService
+            context = accessibilityService,
+            coroutineScope = coroutineScope
         )
     }
 } 

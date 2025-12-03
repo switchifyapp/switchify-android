@@ -7,9 +7,13 @@ import com.enaboapps.switchify.service.menu.MenuItem
 import com.enaboapps.switchify.service.menu.menus.gestures.GestureMenuStructure
 import com.enaboapps.switchify.service.menu.structure.MenuItemRegistry
 import com.enaboapps.switchify.service.menu.structure.MenuStructure
+import kotlinx.coroutines.CoroutineScope
 
-class ScrollMenuStructure(accessibilityService: SwitchifyAccessibilityService) {
-    private val gestureMenuStructure = GestureMenuStructure(accessibilityService)
+class ScrollMenuStructure(
+    accessibilityService: SwitchifyAccessibilityService,
+    private val coroutineScope: CoroutineScope
+) {
+    private val gestureMenuStructure = GestureMenuStructure(accessibilityService, coroutineScope)
 
     val scrollMenuObject = MenuStructure(
         id = "scroll_menu",
@@ -40,6 +44,7 @@ class ScrollMenuStructure(accessibilityService: SwitchifyAccessibilityService) {
             },
             gestureMenuStructure.toggleGestureLockMenuItem
         ),
-        context = accessibilityService
+        context = accessibilityService,
+        coroutineScope = coroutineScope
     )
 } 

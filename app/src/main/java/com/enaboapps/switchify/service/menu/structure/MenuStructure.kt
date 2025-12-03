@@ -6,21 +6,20 @@ import com.enaboapps.switchify.service.menu.database.MenuConfigurationRepository
 import com.enaboapps.switchify.service.utils.DeviceLockObserver
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 
 class MenuStructure(
     val id: String,
     private val items: List<MenuItem>,
-    private val context: Context? = null
+    private val context: Context? = null,
+    private val coroutineScope: CoroutineScope? = null
 ) {
     private var cachedOrderedItems: List<MenuItem>? = null
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     init {
         // Preload customizations asynchronously to avoid blocking
-        if (context != null && DeviceLockObserver.isUserUnlocked(context)) {
-            scope.launch {
+        if (context != null && coroutineScope != null && DeviceLockObserver.isUserUnlocked(context)) {
+            coroutineScope.launch(Dispatchers.IO) {
                 val repository = MenuConfigurationRepository(context)
                 val orderedItems = repository.getOrderedMenuItems(id, items)
                 cachedOrderedItems = orderedItems
