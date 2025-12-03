@@ -11,15 +11,20 @@ import com.enaboapps.switchify.service.keyboard.KeyboardManager
 import com.enaboapps.switchify.service.menu.MenuItem
 import com.enaboapps.switchify.service.menu.MenuManager
 import com.enaboapps.switchify.service.menu.menus.gestures.GestureMenuStructure
+import com.enaboapps.switchify.service.menu.structure.MenuItemRegistry
 import com.enaboapps.switchify.service.menu.structure.MenuStructure
 import com.enaboapps.switchify.service.scanning.ScanSettings
 import com.enaboapps.switchify.service.techniques.AccessTechnique
 import com.enaboapps.switchify.service.techniques.headcontrol.HeadControlSettings
 import com.enaboapps.switchify.service.techniques.nodes.NodeExaminer
 import com.enaboapps.switchify.service.utils.DeviceLockObserver
+import kotlinx.coroutines.CoroutineScope
 
-class MainMenuStructure(private val accessibilityService: SwitchifyAccessibilityService) {
-    private val gestureMenuStructure = GestureMenuStructure(accessibilityService)
+class MainMenuStructure(
+    private val accessibilityService: SwitchifyAccessibilityService,
+    private val coroutineScope: CoroutineScope
+) {
+    private val gestureMenuStructure = GestureMenuStructure(accessibilityService, coroutineScope)
     private val deviceLockObserver = DeviceLockObserver(accessibilityService)
     private val preferenceManager = PreferenceManager(accessibilityService)
     private val scanSettings = ScanSettings(accessibilityService)
@@ -33,158 +38,153 @@ class MainMenuStructure(private val accessibilityService: SwitchifyAccessibility
     )
 
     /**
-     * Builds the main menu structure dynamically based on current state.
-     * This allows menu items to reflect the latest keyboard state and other conditions.
+     * Constructs the main menu structure based on current runtime state.
+     *
+     * The returned menu reflects current conditions such as keyboard visibility,
+     * device lock state, access technique, camera permission, and gesture context.
+     * Items include system navigation, scanning and technique switches, gesture and
+     * media submenus, head-control toggle, quick apps, edit actions, and pause.
+     *
+     * @return A MenuStructure representing the main menu configured for the current state.
      */
     fun buildMainMenuObject() = MenuStructure(
         id = "main_menu",
         items = listOfNotNull(
             // System navigation items - back and home
-            MenuItem(
-                id = "sys_back",
-                drawableId = R.drawable.ic_sys_back,
-                labelResource = R.string.system_back,
-                action = { GlobalActionManager.goBack() }
-            ),
-            MenuItem(
-                id = "sys_home",
-                drawableId = R.drawable.ic_sys_home,
-                labelResource = R.string.system_home,
-                action = { GlobalActionManager.goHome() }
-            ),
+            MenuItemRegistry.getMainMenuDefinition("sys_back")?.let { def ->
+                MenuItem(
+                    definition = def,
+                    action = { GlobalActionManager.goBack() }
+                )
+            },
+            MenuItemRegistry.getMainMenuDefinition("sys_home")?.let { def ->
+                MenuItem(
+                    definition = def,
+                    action = { GlobalActionManager.goHome() }
+                )
+            },
             // Show "Scan Keyboard" menu item when keyboard is visible but user has escaped
             if (KeyboardManager.shouldShowScanKeyboardMenuItem()) {
-                MenuItem(
-                    id = "scan_keyboard",
-                    labelResource = R.string.menu_item_scan_keyboard,
-                    drawableId = R.drawable.ic_scan_keyboard,
-                    action = {
-                        KeyboardManager.returnToKeyboard()
-                        MenuManager.getInstance().closeMenuHierarchy()
-                    }
-                )
+                MenuItemRegistry.getMainMenuDefinition("scan_keyboard")?.let { def ->
+                    MenuItem(
+                        definition = def,
+                        action = {
+                            KeyboardManager.returnToKeyboard()
+                            MenuManager.getInstance().closeMenuHierarchy()
+                        }
+                    )
+                }
             } else null,
             gestureMenuStructure.tapMenuItem,
-            MenuItem(
-                id = "gestures",
-                labelResource = R.string.menu_title_gestures,
-                drawableId = R.drawable.ic_gestures,
-                isLinkToMenu = true,
-                action = { MenuManager.getInstance().openGesturesMenu() }
-            ),
-            MenuItem(
-                id = "scroll",
-                labelResource = R.string.menu_title_scroll,
-                drawableId = R.drawable.ic_scroll,
-                isLinkToMenu = true,
-                action = { MenuManager.getInstance().openScrollMenu() }
-            ),
-            if (deviceLockObserver.isUserUnlocked() == true) {
+            MenuItemRegistry.getMainMenuDefinition("gestures")?.let { def ->
                 MenuItem(
-                    id = "quick_apps",
-                    labelResource = R.string.menu_title_quick_apps,
-                    drawableId = R.drawable.ic_quick_apps,
+                    definition = def,
                     isLinkToMenu = true,
-                    action = {
-                        MenuManager.getInstance().openQuickAppsMenu()
-                    }
+                    action = { MenuManager.getInstance().openGesturesMenu() }
                 )
+            },
+            MenuItemRegistry.getMainMenuDefinition("scroll")?.let { def ->
+                MenuItem(
+                    definition = def,
+                    isLinkToMenu = true,
+                    action = { MenuManager.getInstance().openScrollMenu() }
+                )
+            },
+            if (deviceLockObserver.isUserUnlocked() == true) {
+                MenuItemRegistry.getMainMenuDefinition("quick_apps")?.let { def ->
+                    MenuItem(
+                        definition = def,
+                        isLinkToMenu = true,
+                        action = { MenuManager.getInstance().openQuickAppsMenu() }
+                    )
+                }
             } else null,
             if (deviceLockObserver.isUserUnlocked() == true) {
-                MenuItem(
-                    id = "gesture_patterns",
-                    labelResource = R.string.gesture_patterns_title,
-                    drawableId = R.drawable.ic_gesture_patterns,
-                    isLinkToMenu = true,
-                    action = { MenuManager.getInstance().openGesturePatternsMenu() }
-                )
+                MenuItemRegistry.getMainMenuDefinition("gesture_patterns")?.let { def ->
+                    MenuItem(
+                        definition = def,
+                        isLinkToMenu = true,
+                        action = { MenuManager.getInstance().openGesturePatternsMenu() }
+                    )
+                }
             } else null,
             deviceItem,
-            MenuItem(
-                id = "media_control",
-                labelResource = R.string.menu_title_media_control,
-                drawableId = R.drawable.ic_media_control,
-                isLinkToMenu = true,
-                action = { MenuManager.getInstance().openMediaControlMenu() }
-            ),
-            if (NodeExaminer.canPerformEditActions(GesturePoint.getPoint())) {
+            MenuItemRegistry.getMainMenuDefinition("media_control")?.let { def ->
                 MenuItem(
-                    id = "edit",
-                    labelResource = R.string.menu_title_edit,
-                    drawableId = R.drawable.ic_edit,
+                    definition = def,
                     isLinkToMenu = true,
-                    action = { MenuManager.getInstance().openEditMenu() }
+                    action = { MenuManager.getInstance().openMediaControlMenu() }
                 )
+            },
+            if (NodeExaminer.canPerformEditActions(GesturePoint.getPoint())) {
+                MenuItemRegistry.getMainMenuDefinition("edit")?.let { def ->
+                    MenuItem(
+                        definition = def,
+                        isLinkToMenu = true,
+                        action = { MenuManager.getInstance().openEditMenu() }
+                    )
+                }
             } else null,
             if (AccessTechnique.getCurrentTechnique() != AccessTechnique.Technique.ITEM_SCAN) {
-                MenuItem(
-                    id = "switch_to_item_scan",
-                    labelResource = R.string.access_technique_item_scan,
-                    drawableId = R.drawable.ic_item_scan,
-                    action = {
-                        MenuManager.getInstance().switchToItemScan()
-                    }
-                )
+                MenuItemRegistry.getMainMenuDefinition("switch_to_item_scan")?.let { def ->
+                    MenuItem(
+                        definition = def,
+                        action = { MenuManager.getInstance().switchToItemScan() }
+                    )
+                }
             } else null,
             if (AccessTechnique.getCurrentTechnique() != AccessTechnique.Technique.RADAR &&
                 !scanSettings.isDirectionalScanMode()
             ) {
-                MenuItem(
-                    id = "switch_to_radar",
-                    labelResource = R.string.access_technique_radar,
-                    drawableId = R.drawable.ic_radar,
-                    action = {
-                        MenuManager.getInstance().switchToRadar()
-                    }
-                )
+                MenuItemRegistry.getMainMenuDefinition("switch_to_radar")?.let { def ->
+                    MenuItem(
+                        definition = def,
+                        action = { MenuManager.getInstance().switchToRadar() }
+                    )
+                }
             } else null,
             if (AccessTechnique.getCurrentTechnique() != AccessTechnique.Technique.POINT_SCAN &&
                 !scanSettings.isDirectionalScanMode()
             ) {
-                MenuItem(
-                    id = "switch_to_point_scan",
-                    labelResource = R.string.access_technique_point_scan,
-                    drawableId = R.drawable.ic_point_scan,
-                    action = {
-                        MenuManager.getInstance().switchToPointScan()
-                    }
-                )
+                MenuItemRegistry.getMainMenuDefinition("switch_to_point_scan")?.let { def ->
+                    MenuItem(
+                        definition = def,
+                        action = { MenuManager.getInstance().switchToPointScan() }
+                    )
+                }
             } else null,
             // Head control toggle - only show if camera permission is granted
             if (CameraPermissionManager.getInstance(accessibilityService).hasPermission()) {
-                MenuItem(
-                    id = "toggle_head_control",
-                    labelResource = if (HeadControlSettings(accessibilityService).isHeadControlEnabled())
-                        R.string.menu_item_disable_head_control
-                    else
-                        R.string.menu_item_enable_head_control,
-                    drawableId = R.drawable.ic_head_control_pointer,
-                    action = {
-                        val headControlService = ServiceCore.getHeadControlService()
-                        val settings = HeadControlSettings(accessibilityService)
-                        val currentlyEnabled = settings.isHeadControlEnabled()
+                MenuItemRegistry.getMainMenuDefinition("toggle_head_control")?.let { def ->
+                    MenuItem(
+                        definition = def,
+                        action = {
+                            val headControlService = ServiceCore.getHeadControlService()
+                            val settings = HeadControlSettings(accessibilityService)
+                            val currentlyEnabled = settings.isHeadControlEnabled()
 
-                        // Try to toggle head control
-                        val success = headControlService?.setEnabled(!currentlyEnabled) ?: false
-                        if (success) {
-                            // Only update settings if head control was successfully enabled/disabled
-                            settings.setHeadControlEnabled(!currentlyEnabled)
+                            // Try to toggle head control
+                            val success = headControlService?.setEnabled(!currentlyEnabled) ?: false
+                            if (success) {
+                                // Only update settings if head control was successfully enabled/disabled
+                                settings.setHeadControlEnabled(!currentlyEnabled)
+                            }
+
+                            // Close menu to show the effect
+                            MenuManager.getInstance().closeMenuHierarchy()
                         }
-
-                        // Close menu to show the effect
-                        MenuManager.getInstance().closeMenuHierarchy()
-                    }
-                )
-            } else null,
-            MenuItem(
-                id = "pause",
-                labelResource = R.string.menu_item_pause,
-                drawableId = R.drawable.ic_pause,
-                action = {
-                    ServiceCore.getPauseManager()?.startPause()
+                    )
                 }
-            )
-        )
+            } else null,
+            MenuItemRegistry.getMainMenuDefinition("pause")?.let { def ->
+                MenuItem(
+                    definition = def,
+                    action = { ServiceCore.getPauseManager()?.startPause() }
+                )
+            }
+        ),
+        context = accessibilityService,
+        coroutineScope = coroutineScope
     )
 
     val menuManipulatorItems = listOfNotNull(

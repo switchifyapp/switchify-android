@@ -1,31 +1,38 @@
 package com.enaboapps.switchify.service.menu.menus.media
 
-import com.enaboapps.switchify.R
 import com.enaboapps.switchify.service.actions.GlobalActionManager
 import com.enaboapps.switchify.service.core.SwitchifyAccessibilityService
 import com.enaboapps.switchify.service.menu.MenuItem
 import com.enaboapps.switchify.service.menu.MenuManager
+import com.enaboapps.switchify.service.menu.structure.MenuItemRegistry
 import com.enaboapps.switchify.service.menu.structure.MenuStructure
+import kotlinx.coroutines.CoroutineScope
 
-class MediaMenuStructure(private val accessibilityService: SwitchifyAccessibilityService?) {
-    private val openVolumeControlMenu = MenuItem(
-        id = "volume_control",
-        labelResource = R.string.action_volume_control,
-        drawableId = R.drawable.ic_volume_control,
-        isLinkToMenu = true,
-        action = { MenuManager.getInstance().openVolumeControlMenu() }
-    )
+class MediaMenuStructure(
+    private val accessibilityService: SwitchifyAccessibilityService?,
+    private val coroutineScope: CoroutineScope
+) {
+    private val openVolumeControlMenu: MenuItem? = MenuItemRegistry.getMediaControlMenuDefinitions()
+        .find { it.id == "volume_control" }?.let { def ->
+            MenuItem(
+                definition = def,
+                isLinkToMenu = true,
+                action = { MenuManager.getInstance().openVolumeControlMenu() }
+            )
+        }
 
     val mediaControlMenuObject = MenuStructure(
         id = "media_control_menu",
-        items = listOf(
-            MenuItem(
-                id = "play_pause",
-                labelResource = R.string.menu_item_play_pause,
-                drawableId = R.drawable.ic_play_pause,
-                action = { GlobalActionManager.toggleMediaPlayback() }
-            ),
+        items = listOfNotNull(
+            MenuItemRegistry.getMediaControlMenuDefinitions().find { it.id == "play_pause" }?.let { def ->
+                MenuItem(
+                    definition = def,
+                    action = { GlobalActionManager.toggleMediaPlayback() }
+                )
+            },
             openVolumeControlMenu
-        )
+        ),
+        context = accessibilityService,
+        coroutineScope = coroutineScope
     )
 } 

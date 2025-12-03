@@ -22,7 +22,10 @@ class QuickAppsMenu(
             quickAppsManager.getRecentApps()
         }
 
-        QuickAppsMenuStructure(accessibilityService).getMenuItems(apps)
+        QuickAppsMenuStructure(
+            accessibilityService,
+            accessibilityService.getServiceScope()
+        ).getMenuItems(apps)
     },
     showNavMenuItems = true
 )

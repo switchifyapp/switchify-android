@@ -18,7 +18,10 @@ class GesturePatternsMenu(
         private fun buildGesturePatternsMenuItems(
             accessibilityService: SwitchifyAccessibilityService
         ): List<MenuItem> {
-            return GestureMenuStructure(accessibilityService).createGesturePatternsMenuStructure()
+            return GestureMenuStructure(
+                accessibilityService,
+                accessibilityService.getServiceScope()
+            ).createGesturePatternsMenuStructure()
                 .getMenuItems()
         }
 

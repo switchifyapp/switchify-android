@@ -29,6 +29,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.service.components.AccessibilityComposeView
+import com.enaboapps.switchify.service.menu.structure.MenuItemDefinition
 import com.enaboapps.switchify.service.utils.ScreenUtils
 import com.enaboapps.switchify.utils.Resources
 
@@ -57,6 +58,29 @@ class MenuItem(
     var isMenuHierarchyManipulator: Boolean = false,
     private val action: () -> Unit
 ) {
+    /**
+     * Convenience constructor that accepts a MenuItemDefinition.
+     * This ensures menu metadata is defined once in MenuItemRegistry.
+     */
+    constructor(
+        definition: MenuItemDefinition,
+        showLabelAsDescription: Boolean = true,
+        closeOnSelect: Boolean = true,
+        isLinkToMenu: Boolean = false,
+        action: () -> Unit
+    ) : this(
+        id = definition.id,
+        labelResource = definition.labelResource,
+        userProvidedText = definition.userProvidedText,
+        drawableId = definition.drawableId,
+        showLabelAsDescription = showLabelAsDescription,
+        isSmall = definition.isSmall,
+        closeOnSelect = closeOnSelect,
+        isLinkToMenu = isLinkToMenu,
+        isMenuHierarchyManipulator = definition.isMenuHierarchyManipulator,
+        action = action
+    )
+
     private var composeView: AccessibilityComposeView? = null
 
     /**

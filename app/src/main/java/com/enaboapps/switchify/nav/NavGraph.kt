@@ -30,7 +30,16 @@ import com.enaboapps.switchify.screens.settings.switches.SwitchStabilityScreen
 import com.enaboapps.switchify.screens.settings.switches.SwitchesScreen
 import com.enaboapps.switchify.screens.settings.techniques.AccessTechniqueSettingsScreen
 import com.enaboapps.switchify.screens.settings.pause.PauseSettingsScreen
+import com.enaboapps.switchify.screens.settings.menu.MenuCustomizationScreen
 
+/**
+ * Declares the app's navigation graph and registers each route to its corresponding screen composable.
+ *
+ * The graph's start destination is Home. The EditExternalSwitch and EditCameraSwitch routes accept a
+ * "code" path argument and forward it to their respective screens when present.
+ *
+ * @param navController Controller used to host and navigate between destinations in this graph.
+ */
 @Composable
 fun NavGraph(navController: NavHostController) {
     NavHost(navController, startDestination = NavigationRoute.Home.name) {
@@ -123,6 +132,9 @@ fun NavGraph(navController: NavHostController) {
         }
         composable(NavigationRoute.PauseSettings.name) {
             PauseSettingsScreen(navController)
+        }
+        composable(NavigationRoute.MenuCustomization.name) {
+            MenuCustomizationScreen(navController)
         }
     }
 }

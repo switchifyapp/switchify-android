@@ -22,6 +22,7 @@ accompanist = "0.37.3"
 mediapipe = "0.10.29"
 room = "2.8.4"
 ksp = "2.2.20-2.0.3"
+reorderable = "3.0.0"
 supabase = "3.2.6"
 ktor = "3.3.3"
 sentry = "8.27.1"
@@ -70,6 +71,7 @@ supabase-auth = { group = "io.github.jan-tennert.supabase", name = "auth-kt" }
 supabase-realtime = { group = "io.github.jan-tennert.supabase", name = "realtime-kt" }
 ktor-client-android = { group = "io.ktor", name = "ktor-client-android", version.ref = "ktor" }
 sentry-android = { group = "io.sentry", name = "sentry-android", version.ref = "sentry" }
+reorderable = { group = "sh.calvin.reorderable", name = "reorderable", version.ref = "reorderable" }
 
 [plugins]
 compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
