@@ -1,8 +1,9 @@
 package com.enaboapps.switchify.screens.settings.menu
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
@@ -28,7 +29,9 @@ fun MenuCustomizationScreen(navController: NavController) {
 
     BaseView(
         titleResId = R.string.screen_title_menu_customization,
-        navController = navController
+        navController = navController,
+        enableScroll = false,
+        padding = 0.dp
     ) {
         MenuCustomizationContent(screenModel)
     }
@@ -41,6 +44,11 @@ fun MenuCustomizationContent(screenModel: MenuCustomizationScreenModel) {
     val availableMenus by screenModel.availableMenus.collectAsState()
     val hasUnsavedChanges by screenModel.hasUnsavedChanges.collectAsState()
     val isSaving by screenModel.isSaving.collectAsState()
+    val visibilityMap by screenModel.visibilityMap.collectAsState()
+
+    LaunchedEffect(Unit) {
+        screenModel.loadMenuItems()
+    }
 
     Column(
         modifier = Modifier
@@ -67,30 +75,29 @@ fun MenuCustomizationContent(screenModel: MenuCustomizationScreenModel) {
         Spacer(modifier = Modifier.height(16.dp))
 
         // Menu items list
-        LazyColumn(
-            modifier = Modifier.weight(1f)
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth()
         ) {
-            itemsIndexed(menuItems, key = { _, item -> item.id }) { _, item ->
-                MenuItemRow(
-                    item = item,
-                    isVisible = screenModel.isItemVisible(item.id),
-                    onVisibilityToggle = { screenModel.toggleItemVisibility(item.id) }
-                )
-            }
-
-            // Show message if no items
-            if (menuItems.isEmpty()) {
-                item {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(32.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "Select a menu to customize",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+            ) {
+                if (menuItems.isEmpty()) {
+                    Text(
+                        text = stringResource(R.string.menu_customization_no_items),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(32.dp)
+                    )
+                } else {
+                    menuItems.forEach { item ->
+                        MenuItemRow(
+                            item = item,
+                            isVisible = visibilityMap[item.id] ?: true,
+                            onVisibilityToggle = { screenModel.toggleItemVisibility(item.id) }
                         )
                     }
                 }
@@ -182,16 +189,17 @@ fun MenuItemRow(
 ) {
     val itemLabel = item.labelResource?.let { stringResource(it) } ?: item.userProvidedText ?: item.id
 
-    Card(
+    Surface(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        shape = RoundedCornerShape(8.dp)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(12.dp),
+                .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {

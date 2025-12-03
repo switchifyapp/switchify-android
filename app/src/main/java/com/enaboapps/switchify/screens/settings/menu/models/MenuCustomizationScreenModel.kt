@@ -39,6 +39,7 @@ class MenuCustomizationScreenModel(private val context: Context) : ViewModel() {
     val menuItems: StateFlow<List<MenuItem>> = _menuItems.asStateFlow()
 
     private val _visibilityMap = MutableStateFlow<Map<String, Boolean>>(emptyMap())
+    val visibilityMap: StateFlow<Map<String, Boolean>> = _visibilityMap.asStateFlow()
 
     private val _hasUnsavedChanges = MutableStateFlow(false)
     val hasUnsavedChanges: StateFlow<Boolean> = _hasUnsavedChanges.asStateFlow()
@@ -49,10 +50,6 @@ class MenuCustomizationScreenModel(private val context: Context) : ViewModel() {
     private var originalItems: List<MenuItem> = emptyList()
     private var originalVisibilityMap: Map<String, Boolean> = emptyMap()
 
-    init {
-        loadMenuItems()
-    }
-
     fun selectMenu(menuId: String) {
         if (_selectedMenuId.value != menuId && !_isSaving.value) {
             _selectedMenuId.value = menuId
@@ -60,7 +57,7 @@ class MenuCustomizationScreenModel(private val context: Context) : ViewModel() {
         }
     }
 
-    private fun loadMenuItems() {
+    fun loadMenuItems() {
         viewModelScope.launch {
             val menuId = _selectedMenuId.value
 
