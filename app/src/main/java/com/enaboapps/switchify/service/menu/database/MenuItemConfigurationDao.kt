@@ -36,13 +36,12 @@ interface MenuItemConfigurationDao {
 
     /**
      * Insert a new menu item configuration.
-     * If a configuration with the same id exists, it will be replaced.
+     * If a configuration with the same (menuId, itemId) exists, it will be replaced.
      *
      * @param configuration The configuration to insert
-     * @return The row ID of the inserted item
      */
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertConfiguration(configuration: MenuItemConfiguration): Long
+    suspend fun insertConfiguration(configuration: MenuItemConfiguration)
 
     /**
      * Insert multiple configurations at once.
