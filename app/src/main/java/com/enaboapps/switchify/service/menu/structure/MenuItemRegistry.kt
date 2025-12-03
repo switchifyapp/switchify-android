@@ -11,22 +11,22 @@ object MenuItemRegistry {
 
     fun getMainMenuDefinitions(): List<MenuItemDefinition> {
         return listOf(
-            MenuItemDefinition("sys_back", labelResource = R.string.system_back),
-            MenuItemDefinition("sys_home", labelResource = R.string.system_home),
-            MenuItemDefinition("scan_keyboard", labelResource = R.string.menu_item_scan_keyboard),
-            MenuItemDefinition("tap", labelResource = R.string.menu_title_tap),
-            MenuItemDefinition("gestures", labelResource = R.string.menu_title_gestures),
-            MenuItemDefinition("scroll", labelResource = R.string.menu_title_scroll),
-            MenuItemDefinition("quick_apps", userProvidedText = "Quick Apps"),
-            MenuItemDefinition("gesture_patterns", labelResource = R.string.gesture_patterns_title),
-            MenuItemDefinition("device", labelResource = R.string.menu_title_device),
-            MenuItemDefinition("media_control", labelResource = R.string.menu_title_media_control),
-            MenuItemDefinition("edit", labelResource = R.string.menu_title_edit),
-            MenuItemDefinition("item_scan", userProvidedText = "Item Scan"),
-            MenuItemDefinition("radar_scan", userProvidedText = "Radar Scan"),
-            MenuItemDefinition("point_scan", userProvidedText = "Point Scan"),
-            MenuItemDefinition("head_control", labelResource = R.string.menu_item_enable_head_control),
-            MenuItemDefinition("pause", labelResource = R.string.menu_item_pause)
+            MenuItemDefinition("sys_back", labelResource = R.string.system_back, drawableId = R.drawable.ic_sys_back),
+            MenuItemDefinition("sys_home", labelResource = R.string.system_home, drawableId = R.drawable.ic_sys_home),
+            MenuItemDefinition("scan_keyboard", labelResource = R.string.menu_item_scan_keyboard, drawableId = R.drawable.ic_scan_keyboard),
+            MenuItemDefinition("tap", labelResource = R.string.menu_title_tap, drawableId = R.drawable.ic_tap),
+            MenuItemDefinition("gestures", labelResource = R.string.menu_title_gestures, drawableId = R.drawable.ic_gestures),
+            MenuItemDefinition("scroll", labelResource = R.string.menu_title_scroll, drawableId = R.drawable.ic_scroll),
+            MenuItemDefinition("quick_apps", labelResource = R.string.menu_title_quick_apps, drawableId = R.drawable.ic_quick_apps),
+            MenuItemDefinition("gesture_patterns", labelResource = R.string.gesture_patterns_title, drawableId = R.drawable.ic_gesture_patterns),
+            MenuItemDefinition("device", labelResource = R.string.menu_title_device, drawableId = R.drawable.ic_device),
+            MenuItemDefinition("media_control", labelResource = R.string.menu_title_media_control, drawableId = R.drawable.ic_media_control),
+            MenuItemDefinition("edit", labelResource = R.string.menu_title_edit, drawableId = R.drawable.ic_edit),
+            MenuItemDefinition("switch_to_item_scan", labelResource = R.string.access_technique_item_scan, drawableId = R.drawable.ic_item_scan),
+            MenuItemDefinition("switch_to_radar", labelResource = R.string.access_technique_radar, drawableId = R.drawable.ic_radar),
+            MenuItemDefinition("switch_to_point_scan", labelResource = R.string.access_technique_point_scan, drawableId = R.drawable.ic_point_scan),
+            MenuItemDefinition("toggle_head_control", labelResource = R.string.menu_item_enable_head_control, drawableId = R.drawable.ic_head_control_pointer),
+            MenuItemDefinition("pause", labelResource = R.string.menu_item_pause, drawableId = R.drawable.ic_pause)
         )
     }
 
@@ -127,5 +127,13 @@ object MenuItemRegistry {
             "edit_menu" -> getEditMenuDefinitions()
             else -> emptyList()
         }
+    }
+
+    /**
+     * Get a specific definition by ID from the main menu.
+     * This is a helper for menu structures to use definitions consistently.
+     */
+    fun getMainMenuDefinition(id: String): MenuItemDefinition? {
+        return getMainMenuDefinitions().find { it.id == id }
     }
 }
