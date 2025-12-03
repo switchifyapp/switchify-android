@@ -92,6 +92,15 @@ fun SettingsScreen(navController: NavController) {
     }
 }
 
+/**
+ * Renders the General settings tab including the account action and related setting sections.
+ *
+ * The account link displays an "Account" entry and navigates to the Account route when a user is signed in;
+ * otherwise it displays a "Sign in" entry and navigates to the Authentication route.
+ *
+ * @param menuSettingsModel Provides state and actions for the menu settings section.
+ * @param navController NavController used to navigate from links within this tab.
+ */
 @Composable
 fun GeneralSettingsTab(menuSettingsModel: MenuSettingsModel, navController: NavController) {
     val authRepository = AuthRepository.instance
@@ -146,7 +155,6 @@ fun SelectionSettingsTab(selectionSettingsModel: SelectionSettingsModel) {
         SelectionSection(selectionSettingsModel)
     }
 }
-
 
 
 

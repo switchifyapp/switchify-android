@@ -35,18 +35,19 @@ interface MenuItemConfigurationDao {
     suspend fun getConfiguration(menuId: String, itemId: String): MenuItemConfiguration?
 
     /**
-     * Insert a new menu item configuration.
-     * If a configuration with the same (menuId, itemId) exists, it will be replaced.
+     * Inserts a menu item configuration.
      *
-     * @param configuration The configuration to insert
+     * If a configuration with the same `menuId` and `itemId` already exists, it is replaced.
+     *
+     * @param configuration The configuration to insert.
      */
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertConfiguration(configuration: MenuItemConfiguration)
 
     /**
-     * Insert multiple configurations at once.
+     * Inserts multiple menu item configurations into the database, replacing any existing entries with the same primary keys.
      *
-     * @param configurations List of configurations to insert
+     * @param configurations the configurations to insert; entries with matching primary keys will be replaced
      */
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertConfigurations(configurations: List<MenuItemConfiguration>)
@@ -60,10 +61,9 @@ interface MenuItemConfigurationDao {
     suspend fun updateConfiguration(configuration: MenuItemConfiguration)
 
     /**
-     * Delete all configurations for a specific menu.
-     * Useful for resetting a menu to defaults.
+     * Deletes all menu item configurations for the specified menu.
      *
-     * @param menuId The ID of the menu
+     * @param menuId The ID of the menu.
      */
     @Query("DELETE FROM menu_item_configurations WHERE menu_id = :menuId")
     suspend fun deleteConfigurationsForMenu(menuId: String)
@@ -78,18 +78,20 @@ interface MenuItemConfigurationDao {
     suspend fun deleteConfiguration(menuId: String, itemId: String)
 
     /**
-     * Delete all menu item configurations from the database.
-     * Useful for complete reset of all menus.
+     * Removes all rows from the menu_item_configurations table.
      */
     @Query("DELETE FROM menu_item_configurations")
     suspend fun deleteAllConfigurations()
 
     /**
-     * Update positions for multiple items in a menu.
-     * This is a transaction to ensure all updates happen atomically.
+     * Atomically update positions for multiple items within a menu.
      *
-     * @param menuId The ID of the menu
-     * @param itemPositions Map of item IDs to their new positions
+     * For each entry in `itemPositions`, updates the existing configuration's position if present;
+     * otherwise inserts a new configuration with the provided position and `isVisible = true`.
+     * This operation is executed within a database transaction so all changes are applied atomically.
+     *
+     * @param menuId The ID of the menu whose item positions will be updated.
+     * @param itemPositions Map from item ID to the new position for that item.
      */
     @Transaction
     suspend fun updatePositions(menuId: String, itemPositions: Map<String, Int>) {
@@ -111,10 +113,10 @@ interface MenuItemConfigurationDao {
     }
 
     /**
-     * Check if any configurations exist for a menu.
+     * Determines whether the given menu has any stored configurations.
      *
-     * @param menuId The ID of the menu
-     * @return True if configurations exist, false otherwise
+     * @param menuId The menu's identifier.
+     * @return `true` if one or more configurations exist for the menu, `false` otherwise.
      */
     @Query("SELECT COUNT(*) > 0 FROM menu_item_configurations WHERE menu_id = :menuId")
     suspend fun hasConfigurationsForMenu(menuId: String): Boolean

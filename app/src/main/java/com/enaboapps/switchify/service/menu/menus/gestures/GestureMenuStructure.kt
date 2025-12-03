@@ -122,6 +122,16 @@ class GestureMenuStructure(private val context: Context) {
         context = context
     )
 
+    /**
+     * Creates the gesture patterns menu structure used to start, save, or cancel gesture recording.
+     *
+     * The menu's items vary with `GesturePatternRecorder` state:
+     * - When recording and at least one gesture has been recorded, includes a `save_recording` item.
+     * - When not recording, includes a `start_recording` item.
+     * - When recording, includes a `cancel_recording` item.
+     *
+     * @return A `MenuStructure` with id "gesture_patterns_menu" containing the appropriate start/save/cancel recording items based on the recorder's current state.
+     */
     fun createGesturePatternsMenuStructure(): MenuStructure {
         return MenuStructure(
             id = "gesture_patterns_menu",

@@ -16,14 +16,14 @@ class MenuConfigurationRepository(context: Context) {
     private val dao = database.menuItemConfigurationDao()
 
     /**
-     * Get the ordered and filtered list of menu items for a menu.
-     * Applies user customizations (order and visibility) from the database.
-     * If no customizations exist, returns items in their original order.
-     *
-     * @param menuId The ID of the menu
-     * @param defaultItems The default list of menu items from code
-     * @return List of menu items with customizations applied
-     */
+         * Get the menu items ordered and filtered according to saved user customizations for the specified menu.
+         *
+         * Applies saved item order and visibility; items without a saved configuration are appended in their original order.
+         *
+         * @param menuId The identifier of the menu whose configurations are applied.
+         * @param defaultItems The default menu items to merge with stored configurations.
+         * @return A list of menu items reflecting saved order and visibility, with unconfigured default items appended.
+         */
     suspend fun getOrderedMenuItems(menuId: String, defaultItems: List<MenuItem>): List<MenuItem> =
         withContext(Dispatchers.IO) {
             val configurations = dao.getConfigurationsForMenu(menuId)
@@ -61,11 +61,11 @@ class MenuConfigurationRepository(context: Context) {
         }
 
     /**
-     * Save the order and visibility of menu items.
+     * Persist the order and visibility of menu items for the specified menu.
      *
-     * @param menuId The ID of the menu
-     * @param items List of menu items in their desired order
-     * @param visibilityMap Map of item IDs to visibility states (null means visible)
+     * @param menuId The identifier of the menu to update.
+     * @param items The menu items in the desired order; their list index defines stored positions.
+     * @param visibilityMap Optional map from item IDs to visibility; items absent from the map (or when the map is `null`) are stored as visible.
      */
     suspend fun saveMenuItemOrder(
         menuId: String,
@@ -84,12 +84,15 @@ class MenuConfigurationRepository(context: Context) {
     }
 
     /**
-     * Update visibility of a specific menu item.
-     *
-     * @param menuId The ID of the menu
-     * @param itemId The ID of the menu item
-     * @param isVisible Whether the item should be visible
-     */
+         * Set visibility for a specific menu item, creating a configuration with a default position if none exists.
+         *
+         * Updates the item's stored visibility when a configuration exists; otherwise inserts a new configuration
+         * with position 0 and the given visibility.
+         *
+         * @param menuId Identifier of the menu containing the item.
+         * @param itemId Identifier of the menu item to update.
+         * @param isVisible `true` to mark the item visible, `false` to mark it hidden.
+         */
     suspend fun setItemVisibility(menuId: String, itemId: String, isVisible: Boolean) =
         withContext(Dispatchers.IO) {
             val existing = dao.getConfiguration(menuId, itemId)
@@ -118,28 +121,28 @@ class MenuConfigurationRepository(context: Context) {
     }
 
     /**
-     * Reset all menus to their default configurations.
+     * Reverts all menus to their default configurations by removing all persisted menu item configurations.
      */
     suspend fun resetAllMenus() = withContext(Dispatchers.IO) {
         dao.deleteAllConfigurations()
     }
 
     /**
-     * Check if a menu has any customizations.
+     * Determines whether the specified menu has any user customizations.
      *
-     * @param menuId The ID of the menu
-     * @return True if the menu has been customized, false otherwise
+     * @param menuId The menu identifier to check.
+     * @return `true` if the menu has at least one customization, `false` otherwise.
      */
     suspend fun hasCustomizations(menuId: String): Boolean = withContext(Dispatchers.IO) {
         dao.hasConfigurationsForMenu(menuId)
     }
 
     /**
-     * Get the configuration for a specific menu item.
+     * Retrieves the stored configuration for a specific menu item.
      *
-     * @param menuId The ID of the menu
-     * @param itemId The ID of the menu item
-     * @return The configuration if it exists, null otherwise
+     * @param menuId ID of the menu containing the item.
+     * @param itemId ID of the menu item.
+     * @return The MenuItemConfiguration if present, `null` otherwise.
      */
     suspend fun getItemConfiguration(
         menuId: String,
@@ -149,11 +152,11 @@ class MenuConfigurationRepository(context: Context) {
     }
 
     /**
-     * Get all configurations for a menu.
-     *
-     * @param menuId The ID of the menu
-     * @return List of configurations ordered by position
-     */
+         * Retrieves all item configurations for the specified menu.
+         *
+         * @param menuId The ID of the menu whose configurations should be returned.
+         * @return A list of MenuItemConfiguration objects ordered by position.
+         */
     suspend fun getMenuConfigurations(menuId: String): List<MenuItemConfiguration> =
         withContext(Dispatchers.IO) {
             dao.getConfigurationsForMenu(menuId)

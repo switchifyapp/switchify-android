@@ -14,10 +14,11 @@ class MenuStructure(
     private var cachedOrderedItems: List<MenuItem>? = null
 
     /**
-     * Get menu items with user customizations applied.
-     * Returns items in custom order with hidden items filtered out.
-     * If no customizations exist or context is not provided, returns default items.
-     * If user is locked, returns default items for security.
+     * Retrieve the menu items with any user customizations applied.
+     *
+     * Returns the configured ordering with hidden items removed. If no Context was supplied or the user is locked, the original code-defined items are returned. The result is cached until invalidateCache() is called.
+     *
+     * @return A list of MenuItem in the active order — customized and filtered when available, otherwise the default items.
      */
     fun getMenuItems(): List<MenuItem> {
         // Return cached items if available
@@ -47,19 +48,25 @@ class MenuStructure(
     }
 
     /**
-     * Get the default (code-defined) menu items without customizations.
+     * Return the code-defined menu items without applying any user customizations.
+     *
+     * @return The original list of `MenuItem` objects defined in code.
      */
     fun getDefaultMenuItems(): List<MenuItem> {
         return items
     }
 
+    /**
+     * Retrieves the list of menu item ids in the current menu order, including any applied user customizations.
+     *
+     * @return A list of menu item id strings in the current order. 
+     */
     fun getMenuItemIdList(): List<String> {
         return getMenuItems().map { it.id }
     }
 
     /**
-     * Clear the cached ordered items.
-     * Call this when menu customizations are updated.
+     * Clears the cached customized menu ordering.
      */
     fun invalidateCache() {
         cachedOrderedItems = null

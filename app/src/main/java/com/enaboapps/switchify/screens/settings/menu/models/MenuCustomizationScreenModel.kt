@@ -50,6 +50,11 @@ class MenuCustomizationScreenModel(private val context: Context) : ViewModel() {
     private var originalItems: List<MenuItem> = emptyList()
     private var originalVisibilityMap: Map<String, Boolean> = emptyMap()
 
+    /**
+     * Switches the selected menu to the given ID and reloads its items unless the menu is already selected or a save is in progress.
+     *
+     * @param menuId The identifier of the menu to select.
+     */
     fun selectMenu(menuId: String) {
         if (_selectedMenuId.value != menuId && !_isSaving.value) {
             _selectedMenuId.value = menuId
@@ -57,6 +62,13 @@ class MenuCustomizationScreenModel(private val context: Context) : ViewModel() {
         }
     }
 
+    /**
+     * Loads and initializes the configurable menu items and their visibility for the currently selected menu.
+     *
+     * Fetches default definitions and persisted user configurations, computes a deterministic item order and
+     * a complete visibility map, updates the ViewModel's state (menu items, visibility snapshot and originals),
+     * and clears the unsaved-changes flag.
+     */
     fun loadMenuItems() {
         viewModelScope.launch {
             val menuId = _selectedMenuId.value
@@ -114,6 +126,12 @@ class MenuCustomizationScreenModel(private val context: Context) : ViewModel() {
         }
     }
 
+    /**
+     * Builds default MenuItem instances for the given menu by converting registry definitions into MenuItem objects with no-op actions used by the customization UI.
+     *
+     * @param menuId The identifier of the menu whose default items to retrieve.
+     * @return A list of MenuItem instances corresponding to the menu's default definitions, each with an empty action.
+     */
     private fun getDefaultMenuItemsForMenu(menuId: String): List<MenuItem> {
         // Get definitions from the shared registry and convert to MenuItem instances
         val definitions = MenuItemRegistry.getDefinitionsForMenu(menuId)
@@ -125,10 +143,23 @@ class MenuCustomizationScreenModel(private val context: Context) : ViewModel() {
         }
     }
 
+    /**
+     * Check whether a menu item identified by `itemId` is visible.
+     *
+     * @param itemId The identifier of the menu item.
+     * @return `true` if the item is visible, `false` otherwise.
+     */
     fun isItemVisible(itemId: String): Boolean {
         return _visibilityMap.value[itemId] ?: true
     }
 
+    /**
+     * Toggles the visibility state for the menu item identified by itemId.
+     *
+     * Updates the internal visibility map and triggers change detection so the unsaved-changes state is re-evaluated.
+     *
+     * @param itemId The identifier of the menu item whose visibility will be toggled.
+     */
     fun toggleItemVisibility(itemId: String) {
         val currentVisibility = _visibilityMap.value[itemId] ?: true
         _visibilityMap.value = _visibilityMap.value.toMutableMap().apply {
@@ -137,6 +168,15 @@ class MenuCustomizationScreenModel(private val context: Context) : ViewModel() {
         checkForChanges()
     }
 
+    /**
+     * Moves a menu item within the current item list from one index to another.
+     *
+     * Updates the model's menu-items state and triggers change detection for unsaved changes.
+     * If either index is out of range, the operation is a no-op.
+     *
+     * @param fromIndex Index of the item to move.
+     * @param toIndex Destination index where the item should be placed.
+     */
     fun moveItem(fromIndex: Int, toIndex: Int) {
         val currentItems = _menuItems.value.toMutableList()
         if (fromIndex in currentItems.indices && toIndex in currentItems.indices) {
@@ -147,12 +187,25 @@ class MenuCustomizationScreenModel(private val context: Context) : ViewModel() {
         }
     }
 
+    /**
+     * Updates the unsaved-changes flag based on whether the current items or visibility differ from the originals.
+     *
+     * Compares the current `_menuItems` and `_visibilityMap` with `originalItems` and `originalVisibilityMap`
+     * and sets `_hasUnsavedChanges.value` to `true` if either differs, otherwise `false`.
+     */
     private fun checkForChanges() {
         val itemsChanged = _menuItems.value != originalItems
         val visibilityChanged = _visibilityMap.value != originalVisibilityMap
         _hasUnsavedChanges.value = itemsChanged || visibilityChanged
     }
 
+    /**
+     * Persist the current menu item order and visibility to the repository and update internal change-tracking state.
+     *
+     * If there are no unsaved changes or a save is already in progress, the call returns immediately without performing work.
+     * On successful save, the snapshot of original items and visibility is updated and the unsaved-changes flag is cleared.
+     * The saving state flag is set while the save is in progress and cleared when it finishes.
+     */
     fun saveChanges() {
         if (!_hasUnsavedChanges.value || _isSaving.value) return
 
@@ -178,6 +231,12 @@ class MenuCustomizationScreenModel(private val context: Context) : ViewModel() {
         }
     }
 
+    /**
+     * Resets the selected menu's user configurations to the repository defaults and reloads its items.
+     *
+     * While performing the reset this function sets the ViewModel's saving state so concurrent saves are avoided,
+     * and restores the saving state when the operation completes.
+     */
     fun resetToDefault() {
         viewModelScope.launch {
             _isSaving.value = true

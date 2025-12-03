@@ -16,7 +16,12 @@ import androidx.room.RoomDatabase
 )
 abstract class MenuDatabase : RoomDatabase() {
 
-    abstract fun menuItemConfigurationDao(): MenuItemConfigurationDao
+    /**
+ * Provides the DAO for accessing and modifying MenuItemConfiguration entities.
+ *
+ * @return The MenuItemConfigurationDao used to query and update menu item configurations.
+ */
+abstract fun menuItemConfigurationDao(): MenuItemConfigurationDao
 
     companion object {
         private const val DATABASE_NAME = "menu_database"
@@ -25,11 +30,10 @@ abstract class MenuDatabase : RoomDatabase() {
         private var INSTANCE: MenuDatabase? = null
 
         /**
-         * Get the singleton instance of the database.
-         * Creates the database if it doesn't exist.
+         * Provides the singleton MenuDatabase instance, creating it if necessary.
          *
-         * @param context Application context
-         * @return The database instance
+         * @param context Application context used to build the database.
+         * @return The singleton MenuDatabase instance.
          */
         fun getInstance(context: Context): MenuDatabase {
             return INSTANCE ?: synchronized(this) {
@@ -46,8 +50,10 @@ abstract class MenuDatabase : RoomDatabase() {
         }
 
         /**
-         * Clear the database instance.
-         * Mainly used for testing purposes.
+         * Resets the cached singleton database instance.
+         *
+         * Sets the internal INSTANCE reference to null so a new MenuDatabase can be created on next access.
+         * Primarily intended for use in tests to ensure a fresh database state.
          */
         fun clearInstance() {
             INSTANCE = null
