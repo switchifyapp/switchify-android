@@ -14,7 +14,7 @@ object MenuItemRegistry {
             MenuItemDefinition("sys_back", labelResource = R.string.system_back, drawableId = R.drawable.ic_sys_back),
             MenuItemDefinition("sys_home", labelResource = R.string.system_home, drawableId = R.drawable.ic_sys_home),
             MenuItemDefinition("scan_keyboard", labelResource = R.string.menu_item_scan_keyboard, drawableId = R.drawable.ic_scan_keyboard),
-            MenuItemDefinition("tap", labelResource = R.string.menu_title_tap, drawableId = R.drawable.ic_gesture_tap),
+            MenuItemDefinition("tap", labelResource = R.string.menu_item_tap, drawableId = R.drawable.ic_gesture_tap),
             MenuItemDefinition("gestures", labelResource = R.string.menu_title_gestures, drawableId = R.drawable.ic_gestures),
             MenuItemDefinition("scroll", labelResource = R.string.menu_title_scroll, drawableId = R.drawable.ic_scroll),
             MenuItemDefinition("quick_apps", labelResource = R.string.menu_title_quick_apps, drawableId = R.drawable.ic_quick_apps),
