@@ -1,10 +1,11 @@
 package com.enaboapps.switchify.screens.settings.menu
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
@@ -21,6 +22,8 @@ import com.enaboapps.switchify.R
 import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.screens.settings.menu.models.MenuCustomizationScreenModel
 import com.enaboapps.switchify.service.menu.MenuItem
+import sh.calvin.reorderable.ReorderableItem
+import sh.calvin.reorderable.rememberReorderableLazyListState
 
 /**
  * Hosts the menu customization screen, wiring a screen model and rendering the content inside a BaseView.
@@ -92,31 +95,53 @@ fun MenuCustomizationContent(screenModel: MenuCustomizationScreenModel) {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Menu items list
+        // Menu items list with drag and drop
         Box(
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth()
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-            ) {
-                if (menuItems.isEmpty()) {
-                    Text(
-                        text = stringResource(R.string.menu_customization_no_items),
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(32.dp)
-                    )
-                } else {
-                    menuItems.forEach { item ->
-                        MenuItemRow(
-                            item = item,
-                            isVisible = visibilityMap[item.id] ?: true,
-                            onVisibilityToggle = { screenModel.toggleItemVisibility(item.id) }
-                        )
+            if (menuItems.isEmpty()) {
+                Text(
+                    text = stringResource(R.string.menu_customization_no_items),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(32.dp)
+                )
+            } else {
+                val lazyListState = androidx.compose.foundation.lazy.rememberLazyListState()
+                val reorderableState = rememberReorderableLazyListState(
+                    lazyListState = lazyListState,
+                    onMove = { from, to ->
+                        screenModel.moveItem(from.index, to.index)
+                    }
+                )
+
+                LazyColumn(
+                    state = lazyListState,
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    items(menuItems, key = { it.id }) { item ->
+                        ReorderableItem(reorderableState, key = item.id) { isDragging ->
+                            MenuItemRow(
+                                item = item,
+                                isVisible = visibilityMap[item.id] ?: true,
+                                onVisibilityToggle = { screenModel.toggleItemVisibility(item.id) },
+                                isDragging = isDragging,
+                                dragHandle = {
+                                    IconButton(
+                                        onClick = {},
+                                        modifier = Modifier.draggableHandle()
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.DragHandle,
+                                            contentDescription = stringResource(R.string.content_desc_drag_handle),
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
+                            )
+                        }
                     }
                 }
             }
@@ -212,19 +237,23 @@ fun MenuSelector(
 }
 
 /**
- * Displays a single menu item row with its label and a visibility toggle.
+ * Displays a single menu item row with its label, drag handle, and visibility toggle.
  *
  * The displayed label is chosen in order: the item's `labelResource` (localized), `userProvidedText`, then the item's `id`.
  *
  * @param item The MenuItem to render.
  * @param isVisible `true` if the item is currently visible; affects visual styling and the toggle icon.
  * @param onVisibilityToggle Callback invoked when the visibility toggle is pressed.
+ * @param isDragging `true` if the item is currently being dragged; affects visual styling.
+ * @param dragHandle Composable function that renders the drag handle for reordering.
  */
 @Composable
 fun MenuItemRow(
     item: MenuItem,
     isVisible: Boolean,
-    onVisibilityToggle: () -> Unit
+    onVisibilityToggle: () -> Unit,
+    isDragging: Boolean = false,
+    dragHandle: @Composable () -> Unit = {}
 ) {
     val itemLabel = item.labelResource?.let { stringResource(it) } ?: item.userProvidedText ?: item.id
 
@@ -232,8 +261,13 @@ fun MenuItemRow(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant,
-        shape = RoundedCornerShape(8.dp)
+        color = if (isDragging) {
+            MaterialTheme.colorScheme.primaryContainer
+        } else {
+            MaterialTheme.colorScheme.surfaceVariant
+        },
+        shape = RoundedCornerShape(8.dp),
+        tonalElevation = if (isDragging) 8.dp else 0.dp
     ) {
         Row(
             modifier = Modifier
@@ -242,6 +276,9 @@ fun MenuItemRow(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
+            // Drag handle
+            dragHandle()
+
             // Item label
             Text(
                 text = itemLabel,

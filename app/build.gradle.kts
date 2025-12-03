@@ -187,6 +187,7 @@ dependencies {
     implementation(libs.room.ktx)
     ksp(libs.room.compiler)
     implementation(libs.sentry.android)
+    implementation(libs.reorderable)
     // New Google Identity Services with Credential Manager
     implementation(libs.credentials)
     implementation(libs.credentials.play.services.auth)
