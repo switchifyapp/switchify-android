@@ -184,7 +184,8 @@ class MainMenuStructure(private val accessibilityService: SwitchifyAccessibility
                     ServiceCore.getPauseManager()?.startPause()
                 }
             )
-        )
+        ),
+        context = accessibilityService
     )
 
     val menuManipulatorItems = listOfNotNull(

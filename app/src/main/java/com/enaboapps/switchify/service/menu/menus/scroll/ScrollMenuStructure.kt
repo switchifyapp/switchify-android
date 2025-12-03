@@ -47,6 +47,7 @@ class ScrollMenuStructure(accessibilityService: SwitchifyAccessibilityService) {
                 }
             ),
             gestureMenuStructure.toggleGestureLockMenuItem
-        )
+        ),
+        context = accessibilityService
     )
 } 

@@ -78,7 +78,8 @@ class SystemMenuStructure(private val accessibilityService: SwitchifyAccessibili
                     }
                 ),
                 openVolumeControlMenu
-            )
+            ),
+            context = accessibilityService
         )
     }
 
@@ -121,7 +122,8 @@ class SystemMenuStructure(private val accessibilityService: SwitchifyAccessibili
                     closeOnSelect = false,
                     action = { AudioActionManager.setHalfVolume() }
                 )
-            )
+            ),
+            context = accessibilityService
         )
     }
 } 

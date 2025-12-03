@@ -50,7 +50,8 @@ class QuickAppsMenuStructure(private val accessibilityService: SwitchifyAccessib
     fun buildQuickAppsMenuObject(): MenuStructure {
         return MenuStructure(
             id = "quick_apps_menu",
-            items = emptyList() // Items will be loaded dynamically
+            items = emptyList(), // Items will be loaded dynamically
+            context = accessibilityService
         )
     }
 }

@@ -78,7 +78,8 @@ class GestureMenuStructure(private val context: Context) {
                 action = { GestureManager.instance.performTapAndHold(duration = GestureData.TAP_AND_HOLD_10S_DURATION, gestureType = GestureType.TAP_AND_HOLD_10S) }
             ),
             toggleGestureLockMenuItem
-        )
+        ),
+        context = context
     )
 
     val gesturesMenuObject = MenuStructure(
@@ -119,7 +120,8 @@ class GestureMenuStructure(private val context: Context) {
                 action = { MenuManager.getInstance().openFingerModeMenu() }
             ),
             toggleGestureLockMenuItem
-        )
+        ),
+        context = context
     )
 
     fun createGesturePatternsMenuStructure(): MenuStructure {
@@ -150,7 +152,9 @@ class GestureMenuStructure(private val context: Context) {
                             action = { GesturePatternRecorder.cancelRecording() }
                         )
                     } else null
-                ))
+                ),
+            context = context
+        )
     }
 
     val swipeGesturesMenuObject = MenuStructure(
@@ -193,7 +197,8 @@ class GestureMenuStructure(private val context: Context) {
                 action = { GestureManager.instance.startCustomSwipe() }
             ),
             toggleGestureLockMenuItem
-        )
+        ),
+        context = context
     )
 
     val pinchGesturesMenuObject = MenuStructure(
@@ -218,7 +223,8 @@ class GestureMenuStructure(private val context: Context) {
                 }
             ),
             toggleGestureLockMenuItem
-        )
+        ),
+        context = context
     )
 
     val customGestureConfirmationMenuObject = MenuStructure(
@@ -244,7 +250,8 @@ class GestureMenuStructure(private val context: Context) {
                 drawableId = R.drawable.ic_cancel,
                 action = { GestureManager.instance.cancelLinearGesture() }
             )
-        )
+        ),
+        context = context
     )
 
     /**
@@ -327,6 +334,7 @@ class GestureMenuStructure(private val context: Context) {
                     )
                 }
             )
-        )
+        ),
+        context = context
     )
 } 

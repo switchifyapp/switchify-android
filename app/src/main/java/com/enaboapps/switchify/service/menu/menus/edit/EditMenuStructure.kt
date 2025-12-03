@@ -1,5 +1,6 @@
 package com.enaboapps.switchify.service.menu.menus.edit
 
+import android.content.Context
 import android.view.accessibility.AccessibilityNodeInfo
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.service.gestures.GesturePoint
@@ -8,7 +9,7 @@ import com.enaboapps.switchify.service.menu.structure.MenuStructure
 import com.enaboapps.switchify.service.techniques.nodes.Node
 import com.enaboapps.switchify.service.techniques.nodes.NodeExaminer
 
-class EditMenuStructure {
+class EditMenuStructure(private val context: Context) {
     fun buildEditMenuObject(): MenuStructure {
         val currentPoint = GesturePoint.getPoint()
         val cutNode = NodeExaminer.findNodeForAction(currentPoint, Node.ActionType.CUT)
@@ -47,7 +48,8 @@ class EditMenuStructure {
                         }
                     )
                 } else null
-            )
+            ),
+            context = context
         )
     }
 } 

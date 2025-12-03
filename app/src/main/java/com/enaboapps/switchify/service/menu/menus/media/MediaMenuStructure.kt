@@ -26,6 +26,7 @@ class MediaMenuStructure(private val accessibilityService: SwitchifyAccessibilit
                 action = { GlobalActionManager.toggleMediaPlayback() }
             ),
             openVolumeControlMenu
-        )
+        ),
+        context = accessibilityService
     )
 } 

@@ -20,7 +20,7 @@ class MenuStructureHolder(accessibilityService: SwitchifyAccessibilityService) {
     private val systemMenuStructure = SystemMenuStructure(accessibilityService)
     private val mediaMenuStructure = MediaMenuStructure(accessibilityService)
     private val scrollMenuStructure = ScrollMenuStructure(accessibilityService)
-    private val editMenuStructure = EditMenuStructure()
+    private val editMenuStructure = EditMenuStructure(accessibilityService)
     private val quickAppsMenuStructure = QuickAppsMenuStructure(accessibilityService)
 
     // Main Menu
