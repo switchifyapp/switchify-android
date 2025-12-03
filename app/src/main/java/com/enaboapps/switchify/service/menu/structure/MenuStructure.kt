@@ -3,6 +3,7 @@ package com.enaboapps.switchify.service.menu.structure
 import android.content.Context
 import com.enaboapps.switchify.service.menu.MenuItem
 import com.enaboapps.switchify.service.menu.database.MenuConfigurationRepository
+import com.enaboapps.switchify.service.utils.DeviceLockObserver
 import kotlinx.coroutines.runBlocking
 
 class MenuStructure(
@@ -16,6 +17,7 @@ class MenuStructure(
      * Get menu items with user customizations applied.
      * Returns items in custom order with hidden items filtered out.
      * If no customizations exist or context is not provided, returns default items.
+     * If user is locked, returns default items for security.
      */
     fun getMenuItems(): List<MenuItem> {
         // Return cached items if available
@@ -25,6 +27,11 @@ class MenuStructure(
 
         // If no context provided, return default items
         if (context == null) {
+            return items
+        }
+
+        // If user is locked, return default items for security
+        if (!DeviceLockObserver.isUserUnlocked(context)) {
             return items
         }
 
