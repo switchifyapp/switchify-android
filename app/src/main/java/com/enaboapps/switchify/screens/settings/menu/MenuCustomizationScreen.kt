@@ -122,23 +122,20 @@ fun MenuCustomizationContent(screenModel: MenuCustomizationScreenModel) {
                     modifier = Modifier.fillMaxSize()
                 ) {
                     items(menuItems, key = { it.id }) { item ->
-                        ReorderableItem(reorderableState, key = item.id) { isDragging ->
+                        ReorderableItem(state = reorderableState, key = item.id) {
+                            val isDragging = it
                             MenuItemRow(
                                 item = item,
                                 isVisible = visibilityMap[item.id] ?: true,
                                 onVisibilityToggle = { screenModel.toggleItemVisibility(item.id) },
                                 isDragging = isDragging,
                                 dragHandle = {
-                                    IconButton(
-                                        onClick = {},
-                                        modifier = Modifier.draggableHandle()
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.DragHandle,
-                                            contentDescription = stringResource(R.string.content_desc_drag_handle),
-                                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                    }
+                                    Icon(
+                                        imageVector = Icons.Default.DragHandle,
+                                        contentDescription = stringResource(R.string.content_desc_drag_handle),
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.padding(8.dp)
+                                    )
                                 }
                             )
                         }
