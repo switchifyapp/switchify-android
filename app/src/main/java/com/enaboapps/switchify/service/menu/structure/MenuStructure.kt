@@ -7,6 +7,7 @@ import com.enaboapps.switchify.service.utils.DeviceLockObserver
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 
 class MenuStructure(
     val id: String,
@@ -17,7 +18,7 @@ class MenuStructure(
     private var cachedOrderedItems: List<MenuItem>? = null
 
     init {
-        // Preload customizations asynchronously to avoid blocking
+        // Preload customizations asynchronously to avoid blocking (optimization for reused instances)
         if (context != null && coroutineScope != null && DeviceLockObserver.isUserUnlocked(context)) {
             coroutineScope.launch(Dispatchers.IO) {
                 val repository = MenuConfigurationRepository(context)
@@ -45,9 +46,16 @@ class MenuStructure(
             return items
         }
 
-        // Return cached items if available, otherwise return default items
-        // Cache is populated asynchronously in init block
-        return cachedOrderedItems ?: items
+        // Return cached items if available
+        cachedOrderedItems?.let { return it }
+
+        // Cache not ready - load synchronously to ensure correct ordering
+        return runBlocking(Dispatchers.IO) {
+            val repository = MenuConfigurationRepository(context)
+            val orderedItems = repository.getOrderedMenuItems(id, items)
+            cachedOrderedItems = orderedItems
+            orderedItems
+        }
     }
 
     /**
