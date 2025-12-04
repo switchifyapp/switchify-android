@@ -114,30 +114,23 @@ class MenuCustomizationScreenModel(private val context: Context) : ViewModel() {
     fun loadMenuItems() {
         viewModelScope.launch {
             val menuId = _selectedMenuId.value
-            android.util.Log.d("MenuCustomizationModel", "loadMenuItems: Starting to load menu $menuId")
 
             // Get default items for the menu from code
             val defaultItems = getDefaultMenuItemsForMenu(menuId)
-            android.util.Log.d("MenuCustomizationModel", "loadMenuItems: Got ${defaultItems.size} default items")
 
             // Filter out navigation items (small items and menu hierarchy manipulators)
             val filterableDefaultItems = defaultItems.filter {
                 !it.isSmall && !it.isMenuHierarchyManipulator
             }
-            android.util.Log.d("MenuCustomizationModel", "loadMenuItems: After filtering, ${filterableDefaultItems.size} default items")
 
             // Load user-added items if this is the main menu
             val userAddedItems = if (menuId == MenuConstants.MenuIds.MAIN_MENU) {
                 val userConfigs = repository.getUserAddedItems(menuId)
-                android.util.Log.d("MenuCustomizationModel", "loadMenuItems: Found ${userConfigs.size} user-added items")
 
                 userConfigs.mapNotNull { config ->
                     val sourceMenuId = config.sourceMenuId ?: return@mapNotNull null
                     val definition = MenuItemRegistry.getDefinition(sourceMenuId, config.itemId)
-                    if (definition == null) {
-                        android.util.Log.w("MenuCustomizationModel", "loadMenuItems: Could not find definition for ${config.itemId} from $sourceMenuId")
-                        return@mapNotNull null
-                    }
+                        ?: return@mapNotNull null
 
                     MenuItem(
                         definition = definition,
@@ -147,15 +140,12 @@ class MenuCustomizationScreenModel(private val context: Context) : ViewModel() {
             } else {
                 emptyList()
             }
-            android.util.Log.d("MenuCustomizationModel", "loadMenuItems: Created ${userAddedItems.size} user-added MenuItem instances")
 
             // Combine default and user-added items
             val filterableItems = filterableDefaultItems + userAddedItems
-            android.util.Log.d("MenuCustomizationModel", "loadMenuItems: Total filterable items: ${filterableItems.size}")
 
             // Load configurations from database
             val configurations = repository.getMenuConfigurations(menuId)
-            android.util.Log.d("MenuCustomizationModel", "loadMenuItems: Got ${configurations.size} configurations from database")
 
             // Extract user-added item IDs for StateFlow
             val userAddedIds = configurations
@@ -199,18 +189,15 @@ class MenuCustomizationScreenModel(private val context: Context) : ViewModel() {
 
             // Check if the menu is still selected (guard against stale results)
             if (_selectedMenuId.value != menuId) {
-                android.util.Log.d("MenuCustomizationModel", "loadMenuItems: Menu changed during load, aborting")
                 return@launch
             }
 
             // Store state
-            android.util.Log.d("MenuCustomizationModel", "loadMenuItems: Setting menu items to ${orderedItems.size} items")
             _menuItems.value = orderedItems
             _visibilityMap.value = visibilityMap
             originalItems = orderedItems.toList()
             originalVisibilityMap = visibilityMap.toMap()
             _hasUnsavedChanges.value = false
-            android.util.Log.d("MenuCustomizationModel", "loadMenuItems: Completed successfully")
         }
     }
 
@@ -414,28 +401,21 @@ class MenuCustomizationScreenModel(private val context: Context) : ViewModel() {
      * Adds an item from another menu to the main menu.
      */
     fun addItemToMainMenu(sourceMenuId: String, itemId: String) {
-        android.util.Log.d("MenuCustomizationModel", "addItemToMainMenu called: sourceMenuId=$sourceMenuId, itemId=$itemId")
         viewModelScope.launch {
             try {
-                android.util.Log.d("MenuCustomizationModel", "Calling repository.addUserItemToMenu...")
                 repository.addUserItemToMenu(
                     sourceMenuId = sourceMenuId,
                     itemId = itemId,
                     targetMenuId = MenuConstants.MenuIds.MAIN_MENU
                 )
-                android.util.Log.d("MenuCustomizationModel", "Successfully added item to repository")
 
                 // Reload menu items to show the newly added item
-                android.util.Log.d("MenuCustomizationModel", "Reloading menu items...")
                 loadMenuItems()
 
                 // Reload palette items to update "already added" status
-                android.util.Log.d("MenuCustomizationModel", "Reloading palette items...")
                 loadAvailablePaletteItems()
-
-                android.util.Log.d("MenuCustomizationModel", "addItemToMainMenu completed successfully")
             } catch (e: Exception) {
-                android.util.Log.e("MenuCustomizationModel", "Error adding item to main menu", e)
+                // Silently handle error - could add proper error handling here
             }
         }
     }

@@ -34,42 +34,6 @@ class MainMenuStructure(
     private val scanSettings = ScanSettings(accessibilityService)
     private val repository = MenuConfigurationRepository(accessibilityService)
 
-    // Cache for user-added items, loaded asynchronously on initialization
-    @Volatile
-    private var userAddedItemsCache: List<MenuItem> = emptyList()
-
-    init {
-        // Load user-added items asynchronously when the structure is created
-        coroutineScope.launch {
-            try {
-                val userAddedConfigs = repository.getUserAddedItems(MenuConstants.MenuIds.MAIN_MENU)
-
-                val items = userAddedConfigs.mapNotNull { config ->
-                    val sourceMenuId = config.sourceMenuId ?: return@mapNotNull null
-                    val definition = MenuItemRegistry.getDefinition(sourceMenuId, config.itemId)
-                        ?: return@mapNotNull null
-
-                    val action = MenuActionResolver.resolveAction(
-                        sourceMenuId = sourceMenuId,
-                        itemId = config.itemId,
-                        accessibilityService = accessibilityService,
-                        coroutineScope = coroutineScope
-                    )
-
-                    MenuItem(
-                        definition = definition,
-                        action = action
-                    )
-                }
-
-                userAddedItemsCache = items
-            } catch (e: Exception) {
-                android.util.Log.e("MainMenuStructure", "Error loading user-added items", e)
-                userAddedItemsCache = emptyList()
-            }
-        }
-    }
-
     val deviceItem = MenuItem(
         id = "device",
         labelResource = R.string.menu_title_device,
@@ -235,11 +199,38 @@ class MainMenuStructure(
         )
 
     /**
-     * Returns user-added menu items from the cache.
-     * Items are loaded asynchronously during initialization.
+     * Builds menu items that were added by the user from other menus.
+     * Uses MenuActionResolver to bind the appropriate actions for each item.
+     *
+     * Note: Uses runBlocking as this is called during menu construction.
+     * The operation is fast as it only queries the local database.
      */
     private fun buildUserAddedItems(): List<MenuItem> {
-        return userAddedItemsCache
+        return try {
+            kotlinx.coroutines.runBlocking {
+                val userAddedConfigs = repository.getUserAddedItems(MenuConstants.MenuIds.MAIN_MENU)
+
+                userAddedConfigs.mapNotNull { config ->
+                    val sourceMenuId = config.sourceMenuId ?: return@mapNotNull null
+                    val definition = MenuItemRegistry.getDefinition(sourceMenuId, config.itemId)
+                        ?: return@mapNotNull null
+
+                    val action = MenuActionResolver.resolveAction(
+                        sourceMenuId = sourceMenuId,
+                        itemId = config.itemId,
+                        accessibilityService = accessibilityService,
+                        coroutineScope = coroutineScope
+                    )
+
+                    MenuItem(
+                        definition = definition,
+                        action = action
+                    )
+                }
+            }
+        } catch (e: Exception) {
+            emptyList()
+        }
     }
 
     val menuManipulatorItems = listOfNotNull(
