@@ -81,8 +81,12 @@ fun MenuCustomizationContent(screenModel: MenuCustomizationScreenModel) {
     if (paletteDialogVisible) {
         PaletteDialog(
             items = availablePaletteItems,
-            onDismiss = { screenModel.closePalette() },
+            onDismiss = {
+                android.util.Log.d("MenuCustomScreen", "Palette dialog dismissed")
+                screenModel.closePalette()
+            },
             onAddItem = { sourceMenuId, itemId ->
+                android.util.Log.d("MenuCustomScreen", "onAddItem callback: sourceMenuId=$sourceMenuId, itemId=$itemId")
                 screenModel.addItemToMainMenu(sourceMenuId, itemId)
             }
         )
@@ -255,6 +259,7 @@ fun PaletteDialog(
                         PaletteItemRow(
                             item = paletteItem,
                             onAddClick = {
+                                android.util.Log.d("MenuCustomScreen", "PaletteItemRow onAddClick: ${paletteItem.itemId}")
                                 onAddItem(paletteItem.sourceMenuId, paletteItem.itemId)
                                 onDismiss()
                             }
@@ -316,7 +321,10 @@ fun PaletteItemRow(
                 )
             } else {
                 Button(
-                    onClick = onAddClick,
+                    onClick = {
+                        android.util.Log.d("MenuCustomScreen", "Add button clicked for item: ${item.itemId}")
+                        onAddClick()
+                    },
                     modifier = Modifier.padding(start = 8.dp)
                 ) {
                     Text(stringResource(R.string.button_add))

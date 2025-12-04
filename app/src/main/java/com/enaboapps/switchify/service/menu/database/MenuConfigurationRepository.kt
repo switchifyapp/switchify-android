@@ -179,18 +179,47 @@ class MenuConfigurationRepository(context: Context) {
         itemId: String,
         targetMenuId: String
     ) = withContext(Dispatchers.IO) {
-        // Get current items count to place new item at the end
-        val existingCount = dao.getConfigurationsForMenu(targetMenuId).size
+        android.util.Log.d("MenuConfigRepository", "addUserItemToMenu: sourceMenuId=$sourceMenuId, itemId=$itemId, targetMenuId=$targetMenuId")
 
-        dao.insertConfiguration(
-            MenuItemConfiguration(
-                menuId = targetMenuId,
-                itemId = itemId,
-                position = existingCount,
-                isVisible = true,
-                sourceMenuId = sourceMenuId
-            )
+        // Get all configurations for this menu
+        val configurations = dao.getConfigurationsForMenu(targetMenuId)
+
+        // If no configurations exist, we need to create them for all default items first
+        // to maintain proper ordering when we add the user item
+        if (configurations.isEmpty()) {
+            android.util.Log.d("MenuConfigRepository", "No configurations exist, creating configs for default items first")
+            val defaultDefinitions = com.enaboapps.switchify.service.menu.structure.MenuItemRegistry
+                .getDefinitionsForMenu(targetMenuId)
+
+            val defaultConfigs = defaultDefinitions.mapIndexed { index, definition ->
+                MenuItemConfiguration(
+                    menuId = targetMenuId,
+                    itemId = definition.id,
+                    position = index,
+                    isVisible = true,
+                    sourceMenuId = null
+                )
+            }
+            dao.insertConfigurations(defaultConfigs)
+            android.util.Log.d("MenuConfigRepository", "Created ${defaultConfigs.size} default configurations")
+        }
+
+        // Now calculate position for the new user item (after defaults)
+        val updatedConfigurations = dao.getConfigurationsForMenu(targetMenuId)
+        val position = updatedConfigurations.maxOf { it.position } + 1
+        android.util.Log.d("MenuConfigRepository", "Placing user item at position $position")
+
+        val config = MenuItemConfiguration(
+            menuId = targetMenuId,
+            itemId = itemId,
+            position = position,
+            isVisible = true,
+            sourceMenuId = sourceMenuId
         )
+        android.util.Log.d("MenuConfigRepository", "Inserting configuration: $config")
+
+        dao.insertConfiguration(config)
+        android.util.Log.d("MenuConfigRepository", "Successfully inserted configuration")
     }
 
     /**
