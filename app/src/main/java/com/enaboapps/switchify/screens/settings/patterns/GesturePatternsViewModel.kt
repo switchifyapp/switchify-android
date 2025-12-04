@@ -97,11 +97,20 @@ class GesturePatternsViewModel : ViewModel() {
     fun movePatternDown(pattern: GesturePattern) {
         val currentList = _patterns.value.toMutableList()
         val currentIndex = currentList.indexOf(pattern)
-        
+
         if (currentIndex < currentList.size - 1) {
             // Swap with the item below
             currentList[currentIndex] = currentList[currentIndex + 1]
             currentList[currentIndex + 1] = pattern
+            reorderPatterns(currentList)
+        }
+    }
+
+    fun movePattern(fromIndex: Int, toIndex: Int) {
+        val currentList = _patterns.value.toMutableList()
+        if (fromIndex in currentList.indices && toIndex in currentList.indices) {
+            val item = currentList.removeAt(fromIndex)
+            currentList.add(toIndex, item)
             reorderPatterns(currentList)
         }
     }

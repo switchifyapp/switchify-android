@@ -13,9 +13,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -44,6 +43,8 @@ import com.enaboapps.switchify.R
 import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.Section
 import com.enaboapps.switchify.service.gestures.patterns.model.GesturePattern
+import sh.calvin.reorderable.ReorderableItem
+import sh.calvin.reorderable.rememberReorderableLazyListState
 
 @Composable
 fun GesturePatternsScreen(navController: NavController) {
@@ -117,21 +118,38 @@ fun GesturePatternsScreen(navController: NavController) {
                     )
                 }
             } else {
-                LazyColumn {
-                    items(patterns, { it.id }) { pattern ->
-                        val currentIndex = patterns.indexOf(pattern)
-                        PatternItem(
-                            pattern = pattern,
-                            onEdit = { viewModel.showEditDialog(pattern) },
-                            onDelete = {
-                                patternToDelete = pattern
-                                showDeleteConfirmation = true
-                            },
-                            onMoveUp = { viewModel.movePatternUp(pattern) },
-                            onMoveDown = { viewModel.movePatternDown(pattern) },
-                            canMoveUp = currentIndex > 0,
-                            canMoveDown = currentIndex < patterns.size - 1
-                        )
+                val lazyListState = androidx.compose.foundation.lazy.rememberLazyListState()
+                val reorderableState = rememberReorderableLazyListState(
+                    lazyListState = lazyListState,
+                    onMove = { from, to ->
+                        viewModel.movePattern(from.index, to.index)
+                    }
+                )
+
+                LazyColumn(
+                    state = lazyListState
+                ) {
+                    items(patterns, key = { it.id }) { pattern ->
+                        ReorderableItem(state = reorderableState, key = pattern.id) {
+                            val isDragging = it
+                            PatternItem(
+                                pattern = pattern,
+                                onEdit = { viewModel.showEditDialog(pattern) },
+                                onDelete = {
+                                    patternToDelete = pattern
+                                    showDeleteConfirmation = true
+                                },
+                                isDragging = isDragging,
+                                dragHandle = {
+                                    Icon(
+                                        imageVector = Icons.Default.DragHandle,
+                                        contentDescription = stringResource(R.string.content_desc_drag_handle),
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.padding(8.dp)
+                                    )
+                                }
+                            )
+                        }
                     }
                 }
             }
@@ -144,16 +162,16 @@ private fun PatternItem(
     pattern: GesturePattern,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
-    onMoveUp: () -> Unit,
-    onMoveDown: () -> Unit,
-    canMoveUp: Boolean,
-    canMoveDown: Boolean
+    isDragging: Boolean = false,
+    dragHandle: @Composable () -> Unit = {}
 ) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = if (isDragging) 8.dp else 2.dp
+        )
     ) {
         Row(
             modifier = Modifier
@@ -162,6 +180,9 @@ private fun PatternItem(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // Drag handle
+            dragHandle()
+
             Text(
                 text = pattern.name,
                 style = MaterialTheme.typography.titleMedium,
@@ -184,30 +205,6 @@ private fun PatternItem(
                     Icon(
                         imageVector = Icons.Default.Delete,
                         contentDescription = stringResource(R.string.delete_pattern)
-                    )
-                }
-
-                Spacer(modifier = Modifier.width(8.dp))
-
-                // Up arrow button
-                IconButton(
-                    onClick = onMoveUp,
-                    enabled = canMoveUp
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.KeyboardArrowUp,
-                        contentDescription = stringResource(R.string.move_pattern_up)
-                    )
-                }
-
-                // Down arrow button
-                IconButton(
-                    onClick = onMoveDown,
-                    enabled = canMoveDown
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.KeyboardArrowDown,
-                        contentDescription = stringResource(R.string.move_pattern_down)
                     )
                 }
             }
