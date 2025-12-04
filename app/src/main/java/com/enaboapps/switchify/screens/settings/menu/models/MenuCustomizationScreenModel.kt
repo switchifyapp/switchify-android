@@ -429,6 +429,11 @@ class MenuCustomizationScreenModel(private val context: Context) : ViewModel() {
 
             // Reload menu items
             loadMenuItems()
+
+            // Reload palette items to update availability
+            if (_paletteDialogVisible.value) {
+                loadAvailablePaletteItems()
+            }
         }
     }
 
