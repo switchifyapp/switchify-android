@@ -11,6 +11,7 @@ import androidx.room.Entity
  * @property itemId The ID of the menu item (from MenuItem.id)
  * @property position The custom position/order of the item within the menu (0-indexed)
  * @property isVisible Whether the menu item should be shown or hidden
+ * @property sourceMenuId The ID of the source menu for user-added items (null for default items)
  */
 @Entity(
     tableName = "menu_item_configurations",
@@ -27,5 +28,8 @@ data class MenuItemConfiguration(
     val position: Int,
 
     @ColumnInfo(name = "is_visible")
-    val isVisible: Boolean = true
+    val isVisible: Boolean = true,
+
+    @ColumnInfo(name = "source_menu_id")
+    val sourceMenuId: String? = null
 )

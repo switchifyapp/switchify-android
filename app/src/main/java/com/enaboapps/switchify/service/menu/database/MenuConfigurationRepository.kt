@@ -72,12 +72,16 @@ class MenuConfigurationRepository(context: Context) {
         items: List<MenuItem>,
         visibilityMap: Map<String, Boolean>? = null
     ) = withContext(Dispatchers.IO) {
+        // Get existing configurations to preserve sourceMenuId
+        val existingConfigs = dao.getConfigurationsForMenu(menuId).associateBy { it.itemId }
+
         val configurations = items.mapIndexed { index, item ->
             MenuItemConfiguration(
                 menuId = menuId,
                 itemId = item.id,
                 position = index,
-                isVisible = visibilityMap?.get(item.id) ?: true
+                isVisible = visibilityMap?.get(item.id) ?: true,
+                sourceMenuId = existingConfigs[item.id]?.sourceMenuId
             )
         }
         dao.insertConfigurations(configurations)
@@ -161,5 +165,68 @@ class MenuConfigurationRepository(context: Context) {
     suspend fun getMenuConfigurations(menuId: String): List<MenuItemConfiguration> =
         withContext(Dispatchers.IO) {
             dao.getConfigurationsForMenu(menuId)
+        }
+
+    /**
+     * Adds a user-added item to the main menu from another source menu.
+     *
+     * @param sourceMenuId The ID of the source menu where the item originates
+     * @param itemId The ID of the menu item to add
+     * @param targetMenuId The ID of the target menu (typically main_menu)
+     */
+    suspend fun addUserItemToMenu(
+        sourceMenuId: String,
+        itemId: String,
+        targetMenuId: String
+    ) = withContext(Dispatchers.IO) {
+        // Get current items count to place new item at the end
+        val existingCount = dao.getConfigurationsForMenu(targetMenuId).size
+
+        dao.insertConfiguration(
+            MenuItemConfiguration(
+                menuId = targetMenuId,
+                itemId = itemId,
+                position = existingCount,
+                isVisible = true,
+                sourceMenuId = sourceMenuId
+            )
+        )
+    }
+
+    /**
+     * Removes a user-added item from the menu.
+     * Only removes items that have a source_menu_id (user-added items).
+     *
+     * @param menuId The ID of the menu containing the item
+     * @param itemId The ID of the item to remove
+     */
+    suspend fun removeUserItem(menuId: String, itemId: String) = withContext(Dispatchers.IO) {
+        val config = dao.getConfiguration(menuId, itemId)
+        if (config?.sourceMenuId != null) {
+            dao.deleteConfiguration(menuId, itemId)
+        }
+    }
+
+    /**
+     * Retrieves all user-added items for the specified menu.
+     *
+     * @param menuId The ID of the menu
+     * @return A list of MenuItemConfiguration objects where sourceMenuId is not null
+     */
+    suspend fun getUserAddedItems(menuId: String): List<MenuItemConfiguration> =
+        withContext(Dispatchers.IO) {
+            dao.getConfigurationsForMenu(menuId).filter { it.sourceMenuId != null }
+        }
+
+    /**
+     * Checks if a menu item is user-added (has a source menu).
+     *
+     * @param menuId The ID of the menu
+     * @param itemId The ID of the item
+     * @return true if the item has a sourceMenuId, false otherwise
+     */
+    suspend fun isUserAddedItem(menuId: String, itemId: String): Boolean =
+        withContext(Dispatchers.IO) {
+            dao.getConfiguration(menuId, itemId)?.sourceMenuId != null
         }
 }

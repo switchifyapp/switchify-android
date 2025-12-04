@@ -5,6 +5,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
@@ -21,7 +23,9 @@ import androidx.navigation.NavController
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.screens.settings.menu.models.MenuCustomizationScreenModel
+import com.enaboapps.switchify.screens.settings.menu.models.PaletteItem
 import com.enaboapps.switchify.service.menu.MenuItem
+import com.enaboapps.switchify.service.menu.structure.MenuConstants
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 
@@ -66,16 +70,44 @@ fun MenuCustomizationContent(screenModel: MenuCustomizationScreenModel) {
     val hasUnsavedChanges by screenModel.hasUnsavedChanges.collectAsState()
     val isSaving by screenModel.isSaving.collectAsState()
     val visibilityMap by screenModel.visibilityMap.collectAsState()
+    val paletteDialogVisible by screenModel.paletteDialogVisible.collectAsState()
+    val availablePaletteItems by screenModel.availablePaletteItems.collectAsState()
 
     LaunchedEffect(Unit) {
         screenModel.loadMenuItems()
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-    ) {
+    // Show palette dialog if visible
+    if (paletteDialogVisible) {
+        PaletteDialog(
+            items = availablePaletteItems,
+            onDismiss = { screenModel.closePalette() },
+            onAddItem = { sourceMenuId, itemId ->
+                screenModel.addItemToMainMenu(sourceMenuId, itemId)
+            }
+        )
+    }
+
+    Scaffold(
+        floatingActionButton = {
+            if (selectedMenuId == MenuConstants.MenuIds.MAIN_MENU && !isSaving) {
+                FloatingActionButton(
+                    onClick = { screenModel.openPalette() }
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = stringResource(R.string.add_menu_item)
+                    )
+                }
+            }
+        }
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .padding(16.dp)
+        ) {
         // Menu selector dropdown
         MenuSelector(
             availableMenus = availableMenus,
@@ -124,10 +156,18 @@ fun MenuCustomizationContent(screenModel: MenuCustomizationScreenModel) {
                     items(menuItems, key = { it.id }) { item ->
                         ReorderableItem(state = reorderableState, key = item.id) {
                             val isDragging = it
+                            val isUserAdded = remember(item.id) {
+                                kotlinx.coroutines.runBlocking {
+                                    screenModel.isUserAddedItem(item.id)
+                                }
+                            }
                             MenuItemRow(
                                 item = item,
                                 isVisible = visibilityMap[item.id] ?: true,
                                 onVisibilityToggle = { screenModel.toggleItemVisibility(item.id) },
+                                onDelete = if (isUserAdded) {
+                                    { screenModel.removeUserItem(item.id) }
+                                } else null,
                                 isDragging = isDragging,
                                 dragHandle = {
                                     Icon(
@@ -172,6 +212,114 @@ fun MenuCustomizationContent(screenModel: MenuCustomizationScreenModel) {
                     )
                 } else {
                     Text(stringResource(R.string.button_save))
+                }
+            }
+        }
+        }
+    }
+}
+
+/**
+ * Palette dialog showing available menu items that can be added to the main menu.
+ */
+@Composable
+fun PaletteDialog(
+    items: List<PaletteItem>,
+    onDismiss: () -> Unit,
+    onAddItem: (sourceMenuId: String, itemId: String) -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.add_menu_items_title)) },
+        text = {
+            LazyColumn(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                // Group items by source menu
+                val groupedItems = items.groupBy { it.sourceMenuId }
+
+                groupedItems.forEach { (sourceMenuId, menuItems) ->
+                    // Menu section header
+                    item {
+                        Text(
+                            text = stringResource(menuItems.first().sourceMenuName),
+                            style = MaterialTheme.typography.titleSmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(vertical = 8.dp)
+                        )
+                    }
+
+                    // Menu items
+                    items(menuItems) { paletteItem ->
+                        PaletteItemRow(
+                            item = paletteItem,
+                            onAddClick = {
+                                onAddItem(paletteItem.sourceMenuId, paletteItem.itemId)
+                                onDismiss()
+                            }
+                        )
+                    }
+
+                    item { Spacer(modifier = Modifier.height(8.dp)) }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.button_close))
+            }
+        }
+    )
+}
+
+/**
+ * Row displaying a single palette item with an "Add" button.
+ */
+@Composable
+fun PaletteItemRow(
+    item: PaletteItem,
+    onAddClick: () -> Unit
+) {
+    val itemLabel = item.definition.labelResource?.let { stringResource(it) } ?: item.itemId
+
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        shape = RoundedCornerShape(8.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = itemLabel,
+                style = MaterialTheme.typography.bodyMedium,
+                color = if (item.isAlreadyAdded) {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                } else {
+                    MaterialTheme.colorScheme.onSurface
+                },
+                modifier = Modifier.weight(1f)
+            )
+
+            if (item.isAlreadyAdded) {
+                Text(
+                    text = stringResource(R.string.already_added),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            } else {
+                Button(
+                    onClick = onAddClick,
+                    modifier = Modifier.padding(start = 8.dp)
+                ) {
+                    Text(stringResource(R.string.button_add))
                 }
             }
         }
@@ -234,13 +382,14 @@ fun MenuSelector(
 }
 
 /**
- * Displays a single menu item row with its label, drag handle, and visibility toggle.
+ * Displays a single menu item row with its label, drag handle, and visibility toggle or delete button.
  *
  * The displayed label is chosen in order: the item's `labelResource` (localized), `userProvidedText`, then the item's `id`.
  *
  * @param item The MenuItem to render.
  * @param isVisible `true` if the item is currently visible; affects visual styling and the toggle icon.
  * @param onVisibilityToggle Callback invoked when the visibility toggle is pressed.
+ * @param onDelete Callback invoked when the delete button is pressed (for user-added items). If null, shows visibility toggle instead.
  * @param isDragging `true` if the item is currently being dragged; affects visual styling.
  * @param dragHandle Composable function that renders the drag handle for reordering.
  */
@@ -249,6 +398,7 @@ fun MenuItemRow(
     item: MenuItem,
     isVisible: Boolean,
     onVisibilityToggle: () -> Unit,
+    onDelete: (() -> Unit)? = null,
     isDragging: Boolean = false,
     dragHandle: @Composable () -> Unit = {}
 ) {
@@ -285,17 +435,27 @@ fun MenuItemRow(
                 modifier = Modifier.weight(1f)
             )
 
-            // Visibility toggle
-            IconButton(onClick = onVisibilityToggle) {
-                Icon(
-                    imageVector = if (isVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                    contentDescription = if (isVisible) {
-                        stringResource(R.string.content_desc_hide_item)
-                    } else {
-                        stringResource(R.string.content_desc_show_item)
-                    },
-                    tint = if (isVisible) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                )
+            // Delete button for user-added items, visibility toggle for default items
+            if (onDelete != null) {
+                IconButton(onClick = onDelete) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = stringResource(R.string.button_delete),
+                        tint = MaterialTheme.colorScheme.error
+                    )
+                }
+            } else {
+                IconButton(onClick = onVisibilityToggle) {
+                    Icon(
+                        imageVector = if (isVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                        contentDescription = if (isVisible) {
+                            stringResource(R.string.content_desc_hide_item)
+                        } else {
+                            stringResource(R.string.content_desc_show_item)
+                        },
+                        tint = if (isVisible) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
     }

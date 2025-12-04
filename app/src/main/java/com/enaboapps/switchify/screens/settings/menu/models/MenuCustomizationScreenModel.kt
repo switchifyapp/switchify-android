@@ -6,11 +6,24 @@ import androidx.lifecycle.viewModelScope
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.service.menu.MenuItem
 import com.enaboapps.switchify.service.menu.database.MenuConfigurationRepository
+import com.enaboapps.switchify.service.menu.structure.MenuConstants
+import com.enaboapps.switchify.service.menu.structure.MenuItemDefinition
 import com.enaboapps.switchify.service.menu.structure.MenuItemRegistry
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+
+/**
+ * Data class representing an item in the palette dialog.
+ */
+data class PaletteItem(
+    val sourceMenuId: String,
+    val sourceMenuName: Int,
+    val itemId: String,
+    val definition: MenuItemDefinition,
+    val isAlreadyAdded: Boolean
+)
 
 class MenuCustomizationScreenModel(private val context: Context) : ViewModel() {
 
@@ -47,8 +60,34 @@ class MenuCustomizationScreenModel(private val context: Context) : ViewModel() {
     private val _isSaving = MutableStateFlow(false)
     val isSaving: StateFlow<Boolean> = _isSaving.asStateFlow()
 
+    private val _paletteDialogVisible = MutableStateFlow(false)
+    val paletteDialogVisible: StateFlow<Boolean> = _paletteDialogVisible.asStateFlow()
+
+    private val _availablePaletteItems = MutableStateFlow<List<PaletteItem>>(emptyList())
+    val availablePaletteItems: StateFlow<List<PaletteItem>> = _availablePaletteItems.asStateFlow()
+
     private var originalItems: List<MenuItem> = emptyList()
     private var originalVisibilityMap: Map<String, Boolean> = emptyMap()
+
+    // Item IDs that are submenu links (not leaf action items)
+    private val submenuLinkItemIds = setOf(
+        // Main menu submenu links
+        MenuConstants.ItemIds.Main.GESTURES,
+        MenuConstants.ItemIds.Main.SCROLL,
+        MenuConstants.ItemIds.Main.QUICK_APPS,
+        MenuConstants.ItemIds.Main.GESTURE_PATTERNS,
+        MenuConstants.ItemIds.Main.DEVICE,
+        MenuConstants.ItemIds.Main.MEDIA_CONTROL,
+        MenuConstants.ItemIds.Main.EDIT,
+        // Gestures menu submenu links
+        MenuConstants.ItemIds.Gestures.TAP_GESTURES,
+        MenuConstants.ItemIds.Gestures.SWIPE_GESTURES,
+        MenuConstants.ItemIds.Gestures.PINCH_GESTURES,
+        MenuConstants.ItemIds.Gestures.FINGER_MODE,
+        // Device and Media volume control links
+        MenuConstants.ItemIds.Device.VOLUME_CONTROL,
+        MenuConstants.ItemIds.Media.VOLUME_CONTROL
+    )
 
     /**
      * Switches the selected menu to the given ID and reloads its items unless the menu is already selected or a save is in progress.
@@ -260,5 +299,106 @@ class MenuCustomizationScreenModel(private val context: Context) : ViewModel() {
                 _isSaving.value = false
             }
         }
+    }
+
+    /**
+     * Opens the palette dialog and loads available items.
+     * Only available for the main menu.
+     */
+    fun openPalette() {
+        if (_selectedMenuId.value != MenuConstants.MenuIds.MAIN_MENU) return
+
+        viewModelScope.launch {
+            loadAvailablePaletteItems()
+            _paletteDialogVisible.value = true
+        }
+    }
+
+    /**
+     * Closes the palette dialog.
+     */
+    fun closePalette() {
+        _paletteDialogVisible.value = false
+    }
+
+    /**
+     * Loads all available menu items from other menus, filtering out submenu links
+     * and marking items that are already in the main menu.
+     */
+    private suspend fun loadAvailablePaletteItems() {
+        val currentMainMenuItems = _menuItems.value.map { it.id }.toSet()
+        val paletteItems = mutableListOf<PaletteItem>()
+
+        // Define source menus and their names
+        val sourceMenus = listOf(
+            MenuConstants.MenuIds.DEVICE_MENU to R.string.menu_title_device,
+            MenuConstants.MenuIds.VOLUME_CONTROL_MENU to R.string.action_volume_control,
+            MenuConstants.MenuIds.GESTURES_MENU to R.string.menu_title_gestures,
+            MenuConstants.MenuIds.TAP_GESTURES_MENU to R.string.menu_title_tap,
+            MenuConstants.MenuIds.SWIPE_GESTURES_MENU to R.string.menu_title_swipe,
+            MenuConstants.MenuIds.PINCH_GESTURES_MENU to R.string.menu_title_pinch,
+            MenuConstants.MenuIds.SCROLL_MENU to R.string.menu_title_scroll,
+            MenuConstants.MenuIds.MEDIA_CONTROL_MENU to R.string.menu_title_media,
+            MenuConstants.MenuIds.EDIT_MENU to R.string.menu_title_edit
+        )
+
+        for ((menuId, menuNameRes) in sourceMenus) {
+            val definitions = MenuItemRegistry.getDefinitionsForMenu(menuId)
+
+            for (definition in definitions) {
+                // Skip submenu links
+                if (submenuLinkItemIds.contains(definition.id)) continue
+
+                paletteItems.add(
+                    PaletteItem(
+                        sourceMenuId = menuId,
+                        sourceMenuName = menuNameRes,
+                        itemId = definition.id,
+                        definition = definition,
+                        isAlreadyAdded = currentMainMenuItems.contains(definition.id)
+                    )
+                )
+            }
+        }
+
+        _availablePaletteItems.value = paletteItems
+    }
+
+    /**
+     * Adds an item from another menu to the main menu.
+     */
+    fun addItemToMainMenu(sourceMenuId: String, itemId: String) {
+        viewModelScope.launch {
+            repository.addUserItemToMenu(
+                sourceMenuId = sourceMenuId,
+                itemId = itemId,
+                targetMenuId = MenuConstants.MenuIds.MAIN_MENU
+            )
+
+            // Reload menu items to show the newly added item
+            loadMenuItems()
+
+            // Reload palette items to update "already added" status
+            loadAvailablePaletteItems()
+        }
+    }
+
+    /**
+     * Removes a user-added item from the main menu.
+     */
+    fun removeUserItem(itemId: String) {
+        viewModelScope.launch {
+            repository.removeUserItem(MenuConstants.MenuIds.MAIN_MENU, itemId)
+
+            // Reload menu items
+            loadMenuItems()
+        }
+    }
+
+    /**
+     * Checks if an item is user-added (has a source menu).
+     */
+    suspend fun isUserAddedItem(itemId: String): Boolean {
+        return repository.isUserAddedItem(MenuConstants.MenuIds.MAIN_MENU, itemId)
     }
 }
