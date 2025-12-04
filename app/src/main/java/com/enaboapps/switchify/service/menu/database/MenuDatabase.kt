@@ -4,6 +4,8 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 
 /**
  * Room database for menu customizations.
@@ -11,7 +13,7 @@ import androidx.room.RoomDatabase
  */
 @Database(
     entities = [MenuItemConfiguration::class],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 abstract class MenuDatabase : RoomDatabase() {
@@ -30,6 +32,18 @@ abstract fun menuItemConfigurationDao(): MenuItemConfigurationDao
         private var INSTANCE: MenuDatabase? = null
 
         /**
+         * Migration from version 1 to 2: adds the source_menu_id column.
+         * This column tracks which menu a user-added item originated from.
+         */
+        private val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL(
+                    "ALTER TABLE menu_item_configurations ADD COLUMN source_menu_id TEXT"
+                )
+            }
+        }
+
+        /**
          * Provides the singleton MenuDatabase instance, creating it if necessary.
          *
          * @param context Application context used to build the database.
@@ -42,7 +56,7 @@ abstract fun menuItemConfigurationDao(): MenuItemConfigurationDao
                     MenuDatabase::class.java,
                     DATABASE_NAME
                 )
-                    .fallbackToDestructiveMigration(dropAllTables = true)
+                    .addMigrations(MIGRATION_1_2)
                     .build()
                 INSTANCE = instance
                 instance

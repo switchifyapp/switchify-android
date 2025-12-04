@@ -501,6 +501,8 @@
     <string name="button_cancel">Cancel</string>
     <string name="button_retry">Retry</string>
     <string name="button_add_long_press_action">Add Long Press Action</string>
+    <string name="button_add">Add</string>
+    <string name="button_close">Close</string>
     <string name="button_privacy_policy">Privacy Policy</string>
     <string name="button_delete_account">Delete Account</string>
     <string name="button_sign_out">Sign Out</string>
@@ -511,6 +513,9 @@
 
 
     <!-- Dialog Titles -->
+    <string name="add_menu_items_title">Add Menu Items</string>
+    <string name="add_menu_item">Add menu item</string>
+    <string name="already_added">Already Added</string>
     <string name="dialog_title_delete_account">Delete Account</string>
     <string name="dialog_message_delete_account">Are you sure you want to delete your account? This action cannot be undone.</string>
     <string name="dialog_title_sign_out">Sign Out</string>
