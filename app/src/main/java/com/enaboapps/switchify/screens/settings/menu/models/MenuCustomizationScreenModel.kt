@@ -443,9 +443,9 @@ class MenuCustomizationScreenModel(private val context: Context) : ViewModel() {
     }
 
     /**
-     * Checks if an item is user-added (has a source menu).
+     * Checks if an item is user-added (has a source menu) in the currently selected menu.
      */
     suspend fun isUserAddedItem(itemId: String): Boolean {
-        return repository.isUserAddedItem(MenuConstants.MenuIds.MAIN_MENU, itemId)
+        return repository.isUserAddedItem(_selectedMenuId.value, itemId)
     }
 }
