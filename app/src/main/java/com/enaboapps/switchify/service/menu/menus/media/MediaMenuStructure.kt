@@ -4,6 +4,7 @@ import com.enaboapps.switchify.service.actions.GlobalActionManager
 import com.enaboapps.switchify.service.core.SwitchifyAccessibilityService
 import com.enaboapps.switchify.service.menu.MenuItem
 import com.enaboapps.switchify.service.menu.MenuManager
+import com.enaboapps.switchify.service.menu.structure.MenuConstants
 import com.enaboapps.switchify.service.menu.structure.MenuItemRegistry
 import com.enaboapps.switchify.service.menu.structure.MenuStructure
 import kotlinx.coroutines.CoroutineScope
@@ -12,8 +13,8 @@ class MediaMenuStructure(
     private val accessibilityService: SwitchifyAccessibilityService?,
     private val coroutineScope: CoroutineScope
 ) {
-    private val openVolumeControlMenu: MenuItem? = MenuItemRegistry.getMediaControlMenuDefinitions()
-        .find { it.id == "volume_control" }?.let { def ->
+    private val openVolumeControlMenu: MenuItem? =
+        MenuItemRegistry.getDefinition(MenuConstants.MenuIds.MEDIA_CONTROL_MENU, MenuConstants.ItemIds.Media.VOLUME_CONTROL)?.let { def ->
             MenuItem(
                 definition = def,
                 isLinkToMenu = true,
@@ -22,9 +23,9 @@ class MediaMenuStructure(
         }
 
     val mediaControlMenuObject = MenuStructure(
-        id = "media_control_menu",
+        id = MenuConstants.MenuIds.MEDIA_CONTROL_MENU,
         items = listOfNotNull(
-            MenuItemRegistry.getMediaControlMenuDefinitions().find { it.id == "play_pause" }?.let { def ->
+            MenuItemRegistry.getDefinition(MenuConstants.MenuIds.MEDIA_CONTROL_MENU, MenuConstants.ItemIds.Media.PLAY_PAUSE)?.let { def ->
                 MenuItem(
                     definition = def,
                     action = { GlobalActionManager.toggleMediaPlayback() }

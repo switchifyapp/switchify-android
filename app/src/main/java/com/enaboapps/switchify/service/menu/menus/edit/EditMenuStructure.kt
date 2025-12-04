@@ -4,6 +4,7 @@ import android.content.Context
 import android.view.accessibility.AccessibilityNodeInfo
 import com.enaboapps.switchify.service.gestures.GesturePoint
 import com.enaboapps.switchify.service.menu.MenuItem
+import com.enaboapps.switchify.service.menu.structure.MenuConstants
 import com.enaboapps.switchify.service.menu.structure.MenuItemRegistry
 import com.enaboapps.switchify.service.menu.structure.MenuStructure
 import com.enaboapps.switchify.service.techniques.nodes.Node
@@ -28,12 +29,11 @@ class EditMenuStructure(
         val cutNode = NodeExaminer.findNodeForAction(currentPoint, Node.ActionType.CUT)
         val copyNode = NodeExaminer.findNodeForAction(currentPoint, Node.ActionType.COPY)
         val pasteNode = NodeExaminer.findNodeForAction(currentPoint, Node.ActionType.PASTE)
-        val definitions = MenuItemRegistry.getEditMenuDefinitions()
         return MenuStructure(
-            id = "edit_menu",
+            id = MenuConstants.MenuIds.EDIT_MENU,
             items = listOfNotNull(
                 if (cutNode != null) {
-                    definitions.find { it.id == "cut" }?.let { def ->
+                    MenuItemRegistry.getDefinition(MenuConstants.MenuIds.EDIT_MENU, MenuConstants.ItemIds.Edit.CUT)?.let { def ->
                         MenuItem(
                             definition = def,
                             action = {
@@ -43,7 +43,7 @@ class EditMenuStructure(
                     }
                 } else null,
                 if (copyNode != null) {
-                    definitions.find { it.id == "copy" }?.let { def ->
+                    MenuItemRegistry.getDefinition(MenuConstants.MenuIds.EDIT_MENU, MenuConstants.ItemIds.Edit.COPY)?.let { def ->
                         MenuItem(
                             definition = def,
                             action = {
@@ -53,7 +53,7 @@ class EditMenuStructure(
                     }
                 } else null,
                 if (pasteNode != null) {
-                    definitions.find { it.id == "paste" }?.let { def ->
+                    MenuItemRegistry.getDefinition(MenuConstants.MenuIds.EDIT_MENU, MenuConstants.ItemIds.Edit.PASTE)?.let { def ->
                         MenuItem(
                             definition = def,
                             action = {
