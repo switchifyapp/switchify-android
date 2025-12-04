@@ -1,11 +1,11 @@
 [versions]
-compose-bom = "2025.11.01"
+compose-bom = "2025.12.00"
 compose-icons = "1.7.8"
 kotlin = "2.2.21"
 agp = "8.13.1"
 core-ktx = "1.17.0"
 lifecycle-runtime-ktx = "2.10.0"
-activity-compose = "1.12.0"
+activity-compose = "1.12.1"
 navigation-compose = "2.9.6"
 play-services-reviews = "2.0.2"
 credentials = "1.5.0"
@@ -26,7 +26,7 @@ reorderable = "3.0.0"
 supabase = "3.2.6"
 ktor = "3.3.3"
 sentry = "8.27.1"
-sentry-gradle = "5.12.1"
+sentry-gradle = "5.12.2"
 
 [libraries]
 compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "compose-bom" }
