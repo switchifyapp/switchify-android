@@ -66,6 +66,9 @@ class MenuCustomizationScreenModel(private val context: Context) : ViewModel() {
     private val _availablePaletteItems = MutableStateFlow<List<PaletteItem>>(emptyList())
     val availablePaletteItems: StateFlow<List<PaletteItem>> = _availablePaletteItems.asStateFlow()
 
+    private val _userAddedItemIds = MutableStateFlow<Set<String>>(emptySet())
+    val userAddedItemIds: StateFlow<Set<String>> = _userAddedItemIds.asStateFlow()
+
     private var originalItems: List<MenuItem> = emptyList()
     private var originalVisibilityMap: Map<String, Boolean> = emptyMap()
 
@@ -153,6 +156,13 @@ class MenuCustomizationScreenModel(private val context: Context) : ViewModel() {
             // Load configurations from database
             val configurations = repository.getMenuConfigurations(menuId)
             android.util.Log.d("MenuCustomizationModel", "loadMenuItems: Got ${configurations.size} configurations from database")
+
+            // Extract user-added item IDs for StateFlow
+            val userAddedIds = configurations
+                .filter { it.sourceMenuId != null }
+                .map { it.itemId }
+                .toSet()
+            _userAddedItemIds.value = userAddedIds
 
             // Build visibility map
             val visibilityMap = configurations.associate {

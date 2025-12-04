@@ -40,6 +40,7 @@ object MenuActionResolver {
                 }
 
                 MenuConstants.MenuIds.VOLUME_CONTROL_MENU -> {
+                    if (accessibilityService == null) return {}
                     val menu = SystemMenuStructure(accessibilityService, coroutineScope)
                         .buildVolumeControlMenuObject()
                     val item = menu.getMenuItems().find { it.id == itemId }
@@ -83,6 +84,7 @@ object MenuActionResolver {
                 }
 
                 MenuConstants.MenuIds.MEDIA_CONTROL_MENU -> {
+                    if (accessibilityService == null) return {}
                     val menu = MediaMenuStructure(accessibilityService, coroutineScope)
                         .mediaControlMenuObject
                     val item = menu.getMenuItems().find { it.id == itemId }

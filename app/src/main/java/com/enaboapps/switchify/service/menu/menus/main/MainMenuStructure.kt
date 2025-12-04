@@ -22,6 +22,7 @@ import com.enaboapps.switchify.service.techniques.headcontrol.HeadControlSetting
 import com.enaboapps.switchify.service.techniques.nodes.NodeExaminer
 import com.enaboapps.switchify.service.utils.DeviceLockObserver
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 
 class MainMenuStructure(
     private val accessibilityService: SwitchifyAccessibilityService,
@@ -32,6 +33,42 @@ class MainMenuStructure(
     private val preferenceManager = PreferenceManager(accessibilityService)
     private val scanSettings = ScanSettings(accessibilityService)
     private val repository = MenuConfigurationRepository(accessibilityService)
+
+    // Cache for user-added items, loaded asynchronously on initialization
+    @Volatile
+    private var userAddedItemsCache: List<MenuItem> = emptyList()
+
+    init {
+        // Load user-added items asynchronously when the structure is created
+        coroutineScope.launch {
+            try {
+                val userAddedConfigs = repository.getUserAddedItems(MenuConstants.MenuIds.MAIN_MENU)
+
+                val items = userAddedConfigs.mapNotNull { config ->
+                    val sourceMenuId = config.sourceMenuId ?: return@mapNotNull null
+                    val definition = MenuItemRegistry.getDefinition(sourceMenuId, config.itemId)
+                        ?: return@mapNotNull null
+
+                    val action = MenuActionResolver.resolveAction(
+                        sourceMenuId = sourceMenuId,
+                        itemId = config.itemId,
+                        accessibilityService = accessibilityService,
+                        coroutineScope = coroutineScope
+                    )
+
+                    MenuItem(
+                        definition = definition,
+                        action = action
+                    )
+                }
+
+                userAddedItemsCache = items
+            } catch (e: Exception) {
+                android.util.Log.e("MainMenuStructure", "Error loading user-added items", e)
+                userAddedItemsCache = emptyList()
+            }
+        }
+    }
 
     val deviceItem = MenuItem(
         id = "device",
@@ -198,36 +235,11 @@ class MainMenuStructure(
         )
 
     /**
-     * Builds menu items that were added by the user from other menus.
-     * Uses MenuActionResolver to bind the appropriate actions for each item.
+     * Returns user-added menu items from the cache.
+     * Items are loaded asynchronously during initialization.
      */
     private fun buildUserAddedItems(): List<MenuItem> {
-        return try {
-            kotlinx.coroutines.runBlocking {
-                val userAddedConfigs = repository.getUserAddedItems(MenuConstants.MenuIds.MAIN_MENU)
-
-                userAddedConfigs.mapNotNull { config ->
-                    val sourceMenuId = config.sourceMenuId ?: return@mapNotNull null
-                    val definition = MenuItemRegistry.getDefinition(sourceMenuId, config.itemId)
-                        ?: return@mapNotNull null
-
-                    val action = MenuActionResolver.resolveAction(
-                        sourceMenuId = sourceMenuId,
-                        itemId = config.itemId,
-                        accessibilityService = accessibilityService,
-                        coroutineScope = coroutineScope
-                    )
-
-                    MenuItem(
-                        definition = definition,
-                        action = action
-                    )
-                }
-            }
-        } catch (e: Exception) {
-            android.util.Log.e("MainMenuStructure", "Error loading user-added items", e)
-            emptyList()
-        }
+        return userAddedItemsCache
     }
 
     val menuManipulatorItems = listOfNotNull(

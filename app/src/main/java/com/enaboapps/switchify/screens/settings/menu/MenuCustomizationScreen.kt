@@ -72,6 +72,7 @@ fun MenuCustomizationContent(screenModel: MenuCustomizationScreenModel) {
     val visibilityMap by screenModel.visibilityMap.collectAsState()
     val paletteDialogVisible by screenModel.paletteDialogVisible.collectAsState()
     val availablePaletteItems by screenModel.availablePaletteItems.collectAsState()
+    val userAddedItemIds by screenModel.userAddedItemIds.collectAsState()
 
     LaunchedEffect(Unit) {
         screenModel.loadMenuItems()
@@ -81,12 +82,8 @@ fun MenuCustomizationContent(screenModel: MenuCustomizationScreenModel) {
     if (paletteDialogVisible) {
         PaletteDialog(
             items = availablePaletteItems,
-            onDismiss = {
-                android.util.Log.d("MenuCustomScreen", "Palette dialog dismissed")
-                screenModel.closePalette()
-            },
+            onDismiss = { screenModel.closePalette() },
             onAddItem = { sourceMenuId, itemId ->
-                android.util.Log.d("MenuCustomScreen", "onAddItem callback: sourceMenuId=$sourceMenuId, itemId=$itemId")
                 screenModel.addItemToMainMenu(sourceMenuId, itemId)
             }
         )
@@ -160,10 +157,8 @@ fun MenuCustomizationContent(screenModel: MenuCustomizationScreenModel) {
                     items(menuItems, key = { it.id }) { item ->
                         ReorderableItem(state = reorderableState, key = item.id) {
                             val isDragging = it
-                            val isUserAdded = remember(item.id) {
-                                kotlinx.coroutines.runBlocking {
-                                    screenModel.isUserAddedItem(item.id)
-                                }
+                            val isUserAdded = remember(item.id, userAddedItemIds) {
+                                item.id in userAddedItemIds
                             }
                             MenuItemRow(
                                 item = item,
@@ -259,7 +254,6 @@ fun PaletteDialog(
                         PaletteItemRow(
                             item = paletteItem,
                             onAddClick = {
-                                android.util.Log.d("MenuCustomScreen", "PaletteItemRow onAddClick: ${paletteItem.itemId}")
                                 onAddItem(paletteItem.sourceMenuId, paletteItem.itemId)
                                 onDismiss()
                             }
@@ -321,10 +315,7 @@ fun PaletteItemRow(
                 )
             } else {
                 Button(
-                    onClick = {
-                        android.util.Log.d("MenuCustomScreen", "Add button clicked for item: ${item.itemId}")
-                        onAddClick()
-                    },
+                    onClick = onAddClick,
                     modifier = Modifier.padding(start = 8.dp)
                 ) {
                     Text(stringResource(R.string.button_add))
