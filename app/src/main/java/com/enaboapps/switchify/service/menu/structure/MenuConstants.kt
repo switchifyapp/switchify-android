@@ -26,6 +26,28 @@ object MenuConstants {
      */
     object ItemIds {
         /**
+         * Main menu items
+         */
+        object Main {
+            const val SYS_BACK = "sys_back"
+            const val SYS_HOME = "sys_home"
+            const val SCAN_KEYBOARD = "scan_keyboard"
+            const val TAP = "tap"
+            const val GESTURES = "gestures"
+            const val SCROLL = "scroll"
+            const val QUICK_APPS = "quick_apps"
+            const val GESTURE_PATTERNS = "gesture_patterns"
+            const val DEVICE = "device"
+            const val MEDIA_CONTROL = "media_control"
+            const val EDIT = "edit"
+            const val SWITCH_TO_ITEM_SCAN = "switch_to_item_scan"
+            const val SWITCH_TO_RADAR = "switch_to_radar"
+            const val SWITCH_TO_POINT_SCAN = "switch_to_point_scan"
+            const val TOGGLE_HEAD_CONTROL = "toggle_head_control"
+            const val PAUSE = "pause"
+        }
+
+        /**
          * Edit menu items
          */
         object Edit {
@@ -75,6 +97,54 @@ object MenuConstants {
             const val FULL_VOLUME = "full_volume"
             const val MUTE = "mute"
             const val HALF_VOLUME = "half_volume"
+        }
+
+        /**
+         * Gesture menu items
+         */
+        object Gestures {
+            const val TAP_GESTURES = "tap_gestures"
+            const val SWIPE_GESTURES = "swipe_gestures"
+            const val DRAG = "drag"
+            const val PINCH_GESTURES = "pinch_gestures"
+            const val FINGER_MODE = "finger_mode"
+            const val TOGGLE_GESTURE_LOCK = "toggle_gesture_lock"
+        }
+
+        /**
+         * Tap gestures menu items
+         */
+        object TapGestures {
+            const val TAP = "tap"
+            const val DOUBLE_TAP = "double_tap"
+            const val TAP_AND_HOLD_0_5S = "tap_and_hold_0_5s"
+            const val TAP_AND_HOLD_1S = "tap_and_hold_1s"
+            const val TAP_AND_HOLD_2S = "tap_and_hold_2s"
+            const val TAP_AND_HOLD_3S = "tap_and_hold_3s"
+            const val TAP_AND_HOLD_5S = "tap_and_hold_5s"
+            const val TAP_AND_HOLD_10S = "tap_and_hold_10s"
+            const val TOGGLE_GESTURE_LOCK = "toggle_gesture_lock"
+        }
+
+        /**
+         * Swipe gestures menu items
+         */
+        object SwipeGestures {
+            const val SWIPE_UP = "swipe_up"
+            const val SWIPE_DOWN = "swipe_down"
+            const val SWIPE_LEFT = "swipe_left"
+            const val SWIPE_RIGHT = "swipe_right"
+            const val CUSTOM_SWIPE = "custom_swipe"
+            const val TOGGLE_GESTURE_LOCK = "toggle_gesture_lock"
+        }
+
+        /**
+         * Pinch gestures menu items
+         */
+        object PinchGestures {
+            const val PINCH_IN = "pinch_in"
+            const val PINCH_OUT = "pinch_out"
+            const val TOGGLE_GESTURE_LOCK = "toggle_gesture_lock"
         }
     }
 }
