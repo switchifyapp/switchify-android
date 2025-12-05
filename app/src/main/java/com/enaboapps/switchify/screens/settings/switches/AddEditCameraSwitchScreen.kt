@@ -28,11 +28,10 @@ import com.enaboapps.switchify.components.ActionButton
 import com.enaboapps.switchify.components.ActionButtonType
 import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.Picker
-import com.enaboapps.switchify.screens.settings.switches.actions.SwitchActionPicker
+import com.enaboapps.switchify.screens.settings.switches.actions.SwitchActionField
 import com.enaboapps.switchify.screens.settings.switches.models.AddEditCameraSwitchScreenModel
 import com.enaboapps.switchify.service.core.ServiceBridge
 import com.enaboapps.switchify.switches.CameraSwitchFacialGesture
-import com.enaboapps.switchify.switches.SupportedActionsPolicy
 import kotlinx.coroutines.launch
 
 @Composable
@@ -147,11 +146,11 @@ private fun MainContent(
         Spacer(modifier = Modifier.height(16.dp))
 
         // Action Selection
-        SwitchActionPicker(
+        SwitchActionField(
+            navController = navController,
             titleResId = R.string.section_title_action,
             switchAction = viewModel.action.value,
-            onChange = { viewModel.setAction(it) },
-            items = SupportedActionsPolicy.supportedActions(context)
+            onChange = { viewModel.setAction(it) }
         )
 
         Spacer(modifier = Modifier.height(24.dp))

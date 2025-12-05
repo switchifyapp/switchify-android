@@ -42,10 +42,9 @@ import com.enaboapps.switchify.components.ActionButton
 import com.enaboapps.switchify.components.ActionButtonType
 import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.TextArea
-import com.enaboapps.switchify.screens.settings.switches.actions.SwitchActionPicker
+import com.enaboapps.switchify.screens.settings.switches.actions.SwitchActionField
 import com.enaboapps.switchify.screens.settings.switches.models.AddEditExternalSwitchScreenModel
 import com.enaboapps.switchify.service.core.ServiceBridge
-import com.enaboapps.switchify.switches.SupportedActionsPolicy
 import com.enaboapps.switchify.switches.SwitchAction
 import kotlinx.coroutines.launch
 
@@ -136,7 +135,7 @@ fun AddEditExternalSwitchScreen(navController: NavController, code: String? = nu
                         onNameChange = { addEditExternalSwitchScreenModel.updateName(it) }
                     )
                     Spacer(modifier = Modifier.padding(8.dp))
-                    SwitchActionSection(addEditExternalSwitchScreenModel)
+                    SwitchActionSection(navController, addEditExternalSwitchScreenModel)
                     Spacer(modifier = Modifier.padding(12.dp))
                 }
             }
@@ -256,18 +255,18 @@ fun SwitchName(
 }
 
 @Composable
-fun SwitchActionSection(viewModel: AddEditExternalSwitchScreenModel) {
+fun SwitchActionSection(navController: NavController, viewModel: AddEditExternalSwitchScreenModel) {
     val allowLongPress = viewModel.allowLongPress.observeAsState()
     val longPressActions = viewModel.longPressActions.observeAsState()
     val refreshingLongPressActions = viewModel.refreshingLongPressActions.observeAsState()
     val context = LocalContext.current
-    SwitchActionPicker(
+    SwitchActionField(
+        navController = navController,
         titleResId = R.string.section_title_press_action,
         switchAction = viewModel.pressAction.value!!,
         onChange = {
             viewModel.setPressAction(it, context)
-        },
-        items = SupportedActionsPolicy.supportedActions(context)
+        }
     )
 
     Spacer(modifier = Modifier.padding(16.dp))
@@ -283,7 +282,8 @@ fun SwitchActionSection(viewModel: AddEditExternalSwitchScreenModel) {
         Spacer(modifier = Modifier.padding(8.dp))
 
         longPressActions.value?.forEachIndexed { index, action ->
-            SwitchActionPicker(
+            SwitchActionField(
+                navController = navController,
                 titleResId = R.string.section_title_long_press_action,
                 titleResIdArgs = arrayOf(index + 1),
                 switchAction = action,
@@ -292,8 +292,7 @@ fun SwitchActionSection(viewModel: AddEditExternalSwitchScreenModel) {
                 },
                 onDelete = {
                     viewModel.removeLongPressAction(index)
-                },
-                items = SupportedActionsPolicy.supportedActions(context)
+                }
             )
             Spacer(modifier = Modifier.padding(8.dp))
         }
