@@ -252,11 +252,11 @@ class MenuCustomizationScreenModel(private val context: Context) : ViewModel() {
      * Saves the current menu item order and visibility to the repository.
      */
     private fun saveCurrentState() {
-        viewModelScope.launch {
-            val menuId = _selectedMenuId.value
-            val itemsSnapshot = _menuItems.value.toList()
-            val visibilitySnapshot = _visibilityMap.value.toMap()
+        val menuId = _selectedMenuId.value
+        val itemsSnapshot = _menuItems.value.toList()
+        val visibilitySnapshot = _visibilityMap.value.toMap()
 
+        viewModelScope.launch {
             repository.saveMenuItemOrder(
                 menuId = menuId,
                 items = itemsSnapshot,
