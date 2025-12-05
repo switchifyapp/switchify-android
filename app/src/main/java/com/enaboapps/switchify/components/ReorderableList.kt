@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.dp
 import com.enaboapps.switchify.R
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
+import sh.calvin.reorderable.ReorderableCollectionItemScope
 
 /**
  * Reorder mode for the reorderable list.
@@ -156,7 +157,7 @@ private fun <T> DragReorderableList(
             ReorderableItem(state = reorderableState, key = key(item)) {
                 val isDragging = it
                 itemContent(item, isDragging) {
-                    DragHandle()
+                    DragHandle(this)
                 }
             }
         }
@@ -193,12 +194,16 @@ private fun <T> ArrowReorderableList(
  * Drag handle icon for drag mode.
  */
 @Composable
-private fun DragHandle() {
+private fun DragHandle(scope: ReorderableCollectionItemScope) {
     Icon(
         imageVector = Icons.Default.DragHandle,
         contentDescription = stringResource(R.string.content_desc_drag_handle),
         tint = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(8.dp)
+        modifier = with(scope) {
+            Modifier
+                .draggableHandle()
+                .padding(8.dp)
+        }
     )
 }
 
