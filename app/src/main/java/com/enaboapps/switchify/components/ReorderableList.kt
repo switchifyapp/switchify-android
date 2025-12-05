@@ -34,8 +34,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.enaboapps.switchify.R
 import sh.calvin.reorderable.ReorderableItem
-import sh.calvin.reorderable.rememberReorderableLazyListState
 import sh.calvin.reorderable.ReorderableCollectionItemScope
+import sh.calvin.reorderable.rememberReorderableLazyListState
 
 /**
  * Reorder mode for the reorderable list.
