@@ -865,4 +865,9 @@
     <string name="content_desc_move_down">Move down</string>
     <string name="reorder_mode_drag">Drag</string>
     <string name="reorder_mode_arrows">Arrows</string>
+
+    <!-- Switch Action Selection Screen -->
+    <string name="screen_title_select_action">Select Action</string>
+    <string name="section_title_recommended">Recommended</string>
+    <string name="content_desc_selected">Selected</string>
 </resources>
