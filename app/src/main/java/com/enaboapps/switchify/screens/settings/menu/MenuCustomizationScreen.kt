@@ -42,8 +42,6 @@ fun MenuCustomizationScreen(navController: NavController) {
     val screenModel: MenuCustomizationScreenModel = viewModel { MenuCustomizationScreenModel(context) }
 
     val selectedMenuId by screenModel.selectedMenuId.collectAsState()
-    val isSaving by screenModel.isSaving.collectAsState()
-    val hasUnsavedChanges by screenModel.hasUnsavedChanges.collectAsState()
 
     BaseView(
         titleResId = R.string.screen_title_menu_customization,
@@ -51,7 +49,7 @@ fun MenuCustomizationScreen(navController: NavController) {
         enableScroll = false,
         padding = 0.dp,
         floatingActionButton = {
-            if (selectedMenuId == MenuConstants.MenuIds.MAIN_MENU && !isSaving) {
+            if (selectedMenuId == MenuConstants.MenuIds.MAIN_MENU) {
                 FloatingActionButton(
                     onClick = { screenModel.openPalette() }
                 ) {
@@ -59,38 +57,6 @@ fun MenuCustomizationScreen(navController: NavController) {
                         imageVector = Icons.Default.Add,
                         contentDescription = stringResource(R.string.add_menu_item)
                     )
-                }
-            }
-        },
-        bottomBar = {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                OutlinedButton(
-                    onClick = { screenModel.resetToDefault() },
-                    modifier = Modifier.weight(1f),
-                    enabled = !isSaving
-                ) {
-                    Text(stringResource(R.string.button_reset_to_default))
-                }
-
-                Button(
-                    onClick = { screenModel.saveChanges() },
-                    modifier = Modifier.weight(1f),
-                    enabled = hasUnsavedChanges && !isSaving
-                ) {
-                    if (isSaving) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(20.dp),
-                            color = MaterialTheme.colorScheme.onPrimary,
-                            strokeWidth = 2.dp
-                        )
-                    } else {
-                        Text(stringResource(R.string.button_save))
-                    }
                 }
             }
         }
@@ -114,7 +80,6 @@ fun MenuCustomizationContent(screenModel: MenuCustomizationScreenModel) {
     val menuItems by screenModel.menuItems.collectAsState()
     val selectedMenuId by screenModel.selectedMenuId.collectAsState()
     val availableMenus by screenModel.availableMenus.collectAsState()
-    val isSaving by screenModel.isSaving.collectAsState()
     val visibilityMap by screenModel.visibilityMap.collectAsState()
     val paletteDialogVisible by screenModel.paletteDialogVisible.collectAsState()
     val availablePaletteItems by screenModel.availablePaletteItems.collectAsState()
@@ -145,7 +110,7 @@ fun MenuCustomizationContent(screenModel: MenuCustomizationScreenModel) {
             availableMenus = availableMenus,
             selectedMenuId = selectedMenuId,
             onMenuSelected = { screenModel.selectMenu(it) },
-            enabled = !isSaving
+            enabled = true
         )
 
         Spacer(modifier = Modifier.height(16.dp))

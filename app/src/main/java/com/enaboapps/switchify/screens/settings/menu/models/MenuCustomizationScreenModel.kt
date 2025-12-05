@@ -54,12 +54,6 @@ class MenuCustomizationScreenModel(private val context: Context) : ViewModel() {
     private val _visibilityMap = MutableStateFlow<Map<String, Boolean>>(emptyMap())
     val visibilityMap: StateFlow<Map<String, Boolean>> = _visibilityMap.asStateFlow()
 
-    private val _hasUnsavedChanges = MutableStateFlow(false)
-    val hasUnsavedChanges: StateFlow<Boolean> = _hasUnsavedChanges.asStateFlow()
-
-    private val _isSaving = MutableStateFlow(false)
-    val isSaving: StateFlow<Boolean> = _isSaving.asStateFlow()
-
     private val _paletteDialogVisible = MutableStateFlow(false)
     val paletteDialogVisible: StateFlow<Boolean> = _paletteDialogVisible.asStateFlow()
 
@@ -69,8 +63,6 @@ class MenuCustomizationScreenModel(private val context: Context) : ViewModel() {
     private val _userAddedItemIds = MutableStateFlow<Set<String>>(emptySet())
     val userAddedItemIds: StateFlow<Set<String>> = _userAddedItemIds.asStateFlow()
 
-    private var originalItems: List<MenuItem> = emptyList()
-    private var originalVisibilityMap: Map<String, Boolean> = emptyMap()
 
     // Item IDs that are submenu links (not leaf action items)
     private val submenuLinkItemIds = setOf(
@@ -93,12 +85,12 @@ class MenuCustomizationScreenModel(private val context: Context) : ViewModel() {
     )
 
     /**
-     * Switches the selected menu to the given ID and reloads its items unless the menu is already selected or a save is in progress.
+     * Switches the selected menu to the given ID and reloads its items unless the menu is already selected.
      *
      * @param menuId The identifier of the menu to select.
      */
     fun selectMenu(menuId: String) {
-        if (_selectedMenuId.value != menuId && !_isSaving.value) {
+        if (_selectedMenuId.value != menuId) {
             _selectedMenuId.value = menuId
             loadMenuItems()
         }
@@ -195,9 +187,6 @@ class MenuCustomizationScreenModel(private val context: Context) : ViewModel() {
             // Store state
             _menuItems.value = orderedItems
             _visibilityMap.value = visibilityMap
-            originalItems = orderedItems.toList()
-            originalVisibilityMap = visibilityMap.toMap()
-            _hasUnsavedChanges.value = false
         }
     }
 
@@ -229,9 +218,7 @@ class MenuCustomizationScreenModel(private val context: Context) : ViewModel() {
     }
 
     /**
-     * Toggles the visibility state for the menu item identified by itemId.
-     *
-     * Updates the internal visibility map and triggers change detection so the unsaved-changes state is re-evaluated.
+     * Toggles the visibility state for the menu item identified by itemId and saves immediately.
      *
      * @param itemId The identifier of the menu item whose visibility will be toggled.
      */
@@ -240,13 +227,12 @@ class MenuCustomizationScreenModel(private val context: Context) : ViewModel() {
         _visibilityMap.value = _visibilityMap.value.toMutableMap().apply {
             put(itemId, !currentVisibility)
         }
-        checkForChanges()
+        saveCurrentState()
     }
 
     /**
-     * Moves a menu item within the current item list from one index to another.
+     * Moves a menu item within the current item list from one index to another and saves immediately.
      *
-     * Updates the model's menu-items state and triggers change detection for unsaved changes.
      * If either index is out of range, the operation is a no-op.
      *
      * @param fromIndex Index of the item to move.
@@ -258,79 +244,24 @@ class MenuCustomizationScreenModel(private val context: Context) : ViewModel() {
             val item = currentItems.removeAt(fromIndex)
             currentItems.add(toIndex, item)
             _menuItems.value = currentItems
-            checkForChanges()
+            saveCurrentState()
         }
     }
 
     /**
-     * Updates the unsaved-changes flag based on whether the current items or visibility differ from the originals.
-     *
-     * Compares the current `_menuItems` and `_visibilityMap` with `originalItems` and `originalVisibilityMap`
-     * and sets `_hasUnsavedChanges.value` to `true` if either differs, otherwise `false`.
+     * Saves the current menu item order and visibility to the repository.
      */
-    private fun checkForChanges() {
-        val itemsChanged = _menuItems.value != originalItems
-        val visibilityChanged = _visibilityMap.value != originalVisibilityMap
-        _hasUnsavedChanges.value = itemsChanged || visibilityChanged
-    }
-
-    /**
-     * Persist the current menu item order and visibility to the repository and update internal change-tracking state.
-     *
-     * If there are no unsaved changes or a save is already in progress, the call returns immediately without performing work.
-     * On successful save, the snapshot of original items and visibility is updated and the unsaved-changes flag is cleared.
-     * The saving state flag is set while the save is in progress and cleared when it finishes.
-     */
-    fun saveChanges() {
-        if (!_hasUnsavedChanges.value || _isSaving.value) return
-
+    private fun saveCurrentState() {
         viewModelScope.launch {
-            _isSaving.value = true
+            val menuId = _selectedMenuId.value
+            val itemsSnapshot = _menuItems.value.toList()
+            val visibilitySnapshot = _visibilityMap.value.toMap()
 
-            try {
-                // Snapshot current state to avoid races
-                val menuId = _selectedMenuId.value
-                val itemsSnapshot = _menuItems.value.toList()
-                val visibilitySnapshot = _visibilityMap.value.toMap()
-
-                // Save the snapshot
-                repository.saveMenuItemOrder(
-                    menuId = menuId,
-                    items = itemsSnapshot,
-                    visibilityMap = visibilitySnapshot
-                )
-
-                // Update original state to the saved snapshot
-                originalItems = itemsSnapshot
-                originalVisibilityMap = visibilitySnapshot
-
-                // Recompute dirty flag against latest in-memory state
-                checkForChanges()
-            } finally {
-                _isSaving.value = false
-            }
-        }
-    }
-
-    /**
-     * Resets the selected menu's user configurations to the repository defaults and reloads its items.
-     *
-     * While performing the reset this function sets the ViewModel's saving state so concurrent saves are avoided,
-     * and restores the saving state when the operation completes.
-     */
-    fun resetToDefault() {
-        viewModelScope.launch {
-            _isSaving.value = true
-
-            try {
-                // Delete configurations for this menu
-                repository.resetMenuToDefault(_selectedMenuId.value)
-
-                // Reload items
-                loadMenuItems()
-            } finally {
-                _isSaving.value = false
-            }
+            repository.saveMenuItemOrder(
+                menuId = menuId,
+                items = itemsSnapshot,
+                visibilityMap = visibilitySnapshot
+            )
         }
     }
 
