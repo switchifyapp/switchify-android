@@ -262,7 +262,6 @@ fun SwitchActionSection(navController: NavController, viewModel: AddEditExternal
     val context = LocalContext.current
     SwitchActionField(
         navController = navController,
-        fieldId = "press_action",
         titleResId = R.string.section_title_press_action,
         switchAction = viewModel.pressAction.value!!,
         onChange = {
@@ -285,7 +284,6 @@ fun SwitchActionSection(navController: NavController, viewModel: AddEditExternal
         longPressActions.value?.forEachIndexed { index, action ->
             SwitchActionField(
                 navController = navController,
-                fieldId = "long_press_action_$index",
                 titleResId = R.string.section_title_long_press_action,
                 titleResIdArgs = arrayOf(index + 1),
                 switchAction = action,

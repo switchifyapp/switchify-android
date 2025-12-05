@@ -31,6 +31,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.enaboapps.switchify.R
@@ -88,7 +90,8 @@ fun SwitchActionSelectionScreen(
 
     BaseView(
         titleResId = R.string.screen_title_select_action,
-        navController = navController
+        navController = navController,
+        enableScroll = false
     ) {
         LazyColumn(
             modifier = Modifier
@@ -129,6 +132,7 @@ private fun ActionItem(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp)
+            .semantics { selected = isSelected }
             .clickable(onClick = onClick),
         color = if (isSelected) {
             MaterialTheme.colorScheme.primaryContainer

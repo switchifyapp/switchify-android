@@ -36,7 +36,6 @@ import com.enaboapps.switchify.theme.Dimens
  * [SwitchActionSelectionScreen] when clicked to select a different action.
  *
  * @param navController Navigation controller for navigating and receiving results.
- * @param fieldId Unique identifier for this field to distinguish results when multiple fields exist.
  * @param titleResId Resource ID for the field title.
  * @param titleResIdArgs Optional format arguments for the title resource.
  * @param switchAction The currently selected action.
@@ -46,7 +45,6 @@ import com.enaboapps.switchify.theme.Dimens
 @Composable
 fun SwitchActionField(
     navController: NavController,
-    fieldId: String,
     titleResId: Int,
     titleResIdArgs: Array<Any>? = null,
     switchAction: SwitchAction,
@@ -62,36 +60,24 @@ fun SwitchActionField(
     // Track if this field initiated the navigation
     var waitingForResult by remember { mutableStateOf(false) }
 
-    // Listen for navigation result only when this field is waiting
-    LaunchedEffect(waitingForResult) {
-        if (waitingForResult) {
-            val result = navController.currentBackStackEntry
+    // Helper to consume result from SavedStateHandle
+    fun consumeResultIfAvailable() {
+        if (!waitingForResult) return
+        val result = navController.currentBackStackEntry
+            ?.savedStateHandle
+            ?.get<Int>(SELECTED_ACTION_ID_KEY)
+        if (result != null) {
+            onChange(SwitchAction(result))
+            navController.currentBackStackEntry
                 ?.savedStateHandle
-                ?.get<Int>(SELECTED_ACTION_ID_KEY)
-            if (result != null) {
-                onChange(SwitchAction(result))
-                navController.currentBackStackEntry
-                    ?.savedStateHandle
-                    ?.remove<Int>(SELECTED_ACTION_ID_KEY)
-                waitingForResult = false
-            }
+                ?.remove<Int>(SELECTED_ACTION_ID_KEY)
+            waitingForResult = false
         }
     }
 
-    // Also check result when composition happens (after navigation back)
+    // Check result when back stack entry changes (after navigation back)
     LaunchedEffect(navController.currentBackStackEntry) {
-        if (waitingForResult) {
-            val result = navController.currentBackStackEntry
-                ?.savedStateHandle
-                ?.get<Int>(SELECTED_ACTION_ID_KEY)
-            if (result != null) {
-                onChange(SwitchAction(result))
-                navController.currentBackStackEntry
-                    ?.savedStateHandle
-                    ?.remove<Int>(SELECTED_ACTION_ID_KEY)
-                waitingForResult = false
-            }
-        }
+        consumeResultIfAvailable()
     }
 
     Card(

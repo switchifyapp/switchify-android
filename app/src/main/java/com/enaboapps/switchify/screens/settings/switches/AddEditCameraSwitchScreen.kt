@@ -148,7 +148,6 @@ private fun MainContent(
         // Action Selection
         SwitchActionField(
             navController = navController,
-            fieldId = "camera_switch_action",
             titleResId = R.string.section_title_action,
             switchAction = viewModel.action.value,
             onChange = { viewModel.setAction(it) }
