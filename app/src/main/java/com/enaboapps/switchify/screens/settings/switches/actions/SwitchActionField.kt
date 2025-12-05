@@ -18,7 +18,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -57,27 +57,20 @@ fun SwitchActionField(
         stringResource(titleResId)
     }
 
-    // Track if this field initiated the navigation
-    var waitingForResult by remember { mutableStateOf(false) }
+    // Track if this field initiated the navigation - use rememberSaveable to persist across recompositions
+    var waitingForResult by rememberSaveable { mutableStateOf(false) }
 
-    // Helper to consume result from SavedStateHandle
-    fun consumeResultIfAvailable() {
-        if (!waitingForResult) return
-        val result = navController.currentBackStackEntry
-            ?.savedStateHandle
-            ?.get<Int>(SELECTED_ACTION_ID_KEY)
-        if (result != null) {
-            onChange(SwitchAction(result))
-            navController.currentBackStackEntry
-                ?.savedStateHandle
-                ?.remove<Int>(SELECTED_ACTION_ID_KEY)
+    // Observe the SavedStateHandle result using LaunchedEffect with the result as key
+    val savedStateHandle = navController.currentBackStackEntry?.savedStateHandle
+    val resultActionId = savedStateHandle?.get<Int>(SELECTED_ACTION_ID_KEY)
+
+    // When we have a result and we're waiting for it, consume it
+    LaunchedEffect(resultActionId, waitingForResult) {
+        if (waitingForResult && resultActionId != null) {
+            onChange(SwitchAction(resultActionId))
+            savedStateHandle?.remove<Int>(SELECTED_ACTION_ID_KEY)
             waitingForResult = false
         }
-    }
-
-    // Check result when back stack entry changes (after navigation back)
-    LaunchedEffect(navController.currentBackStackEntry) {
-        consumeResultIfAvailable()
     }
 
     Card(
