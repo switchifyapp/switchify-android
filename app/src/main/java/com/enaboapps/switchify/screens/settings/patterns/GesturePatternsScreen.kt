@@ -9,11 +9,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -41,10 +38,10 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.components.BaseView
+import com.enaboapps.switchify.components.ReorderMode
+import com.enaboapps.switchify.components.ReorderableList
 import com.enaboapps.switchify.components.Section
 import com.enaboapps.switchify.service.gestures.patterns.model.GesturePattern
-import sh.calvin.reorderable.ReorderableItem
-import sh.calvin.reorderable.rememberReorderableLazyListState
 
 @Composable
 fun GesturePatternsScreen(navController: NavController) {
@@ -118,39 +115,22 @@ fun GesturePatternsScreen(navController: NavController) {
                     )
                 }
             } else {
-                val lazyListState = androidx.compose.foundation.lazy.rememberLazyListState()
-                val reorderableState = rememberReorderableLazyListState(
-                    lazyListState = lazyListState,
-                    onMove = { from, to ->
-                        viewModel.movePattern(from.index, to.index)
-                    }
-                )
-
-                LazyColumn(
-                    state = lazyListState
-                ) {
-                    items(patterns, key = { it.id }) { pattern ->
-                        ReorderableItem(state = reorderableState, key = pattern.id) {
-                            val isDragging = it
-                            PatternItem(
-                                pattern = pattern,
-                                onEdit = { viewModel.showEditDialog(pattern) },
-                                onDelete = {
-                                    patternToDelete = pattern
-                                    showDeleteConfirmation = true
-                                },
-                                isDragging = isDragging,
-                                dragHandle = {
-                                    Icon(
-                                        imageVector = Icons.Default.DragHandle,
-                                        contentDescription = stringResource(R.string.content_desc_drag_handle),
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.padding(8.dp)
-                                    )
-                                }
-                            )
-                        }
-                    }
+                ReorderableList(
+                    items = patterns,
+                    onMove = { from, to -> viewModel.movePattern(from, to) },
+                    key = { it.id },
+                    defaultMode = ReorderMode.DRAG
+                ) { pattern, isDragging, reorderControls ->
+                    PatternItem(
+                        pattern = pattern,
+                        onEdit = { viewModel.showEditDialog(pattern) },
+                        onDelete = {
+                            patternToDelete = pattern
+                            showDeleteConfirmation = true
+                        },
+                        isDragging = isDragging,
+                        reorderControls = reorderControls
+                    )
                 }
             }
         }
@@ -163,7 +143,7 @@ private fun PatternItem(
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     isDragging: Boolean = false,
-    dragHandle: @Composable () -> Unit = {}
+    reorderControls: @Composable () -> Unit = {}
 ) {
     Card(
         modifier = Modifier
@@ -180,8 +160,8 @@ private fun PatternItem(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Drag handle
-            dragHandle()
+            // Reorder controls (drag handle or arrow buttons)
+            reorderControls()
 
             Text(
                 text = pattern.name,

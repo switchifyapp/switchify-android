@@ -7,7 +7,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
@@ -22,12 +21,12 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.components.BaseView
+import com.enaboapps.switchify.components.ReorderMode
+import com.enaboapps.switchify.components.ReorderableList
 import com.enaboapps.switchify.screens.settings.menu.models.MenuCustomizationScreenModel
 import com.enaboapps.switchify.screens.settings.menu.models.PaletteItem
 import com.enaboapps.switchify.service.menu.MenuItem
 import com.enaboapps.switchify.service.menu.structure.MenuConstants
-import sh.calvin.reorderable.ReorderableItem
-import sh.calvin.reorderable.rememberReorderableLazyListState
 
 /**
  * Hosts the menu customization screen, wiring a screen model and rendering the content inside a BaseView.
@@ -128,7 +127,7 @@ fun MenuCustomizationContent(screenModel: MenuCustomizationScreenModel) {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Menu items list with drag and drop
+        // Menu items list with drag and drop or arrow buttons
         Box(
             modifier = Modifier
                 .weight(1f)
@@ -142,43 +141,26 @@ fun MenuCustomizationContent(screenModel: MenuCustomizationScreenModel) {
                     modifier = Modifier.padding(32.dp)
                 )
             } else {
-                val lazyListState = androidx.compose.foundation.lazy.rememberLazyListState()
-                val reorderableState = rememberReorderableLazyListState(
-                    lazyListState = lazyListState,
-                    onMove = { from, to ->
-                        screenModel.moveItem(from.index, to.index)
-                    }
-                )
-
-                LazyColumn(
-                    state = lazyListState,
+                ReorderableList(
+                    items = menuItems,
+                    onMove = { from, to -> screenModel.moveItem(from, to) },
+                    key = { it.id },
+                    defaultMode = ReorderMode.DRAG,
                     modifier = Modifier.fillMaxSize()
-                ) {
-                    items(menuItems, key = { it.id }) { item ->
-                        ReorderableItem(state = reorderableState, key = item.id) {
-                            val isDragging = it
-                            val isUserAdded = remember(item.id, userAddedItemIds) {
-                                item.id in userAddedItemIds
-                            }
-                            MenuItemRow(
-                                item = item,
-                                isVisible = visibilityMap[item.id] ?: true,
-                                onVisibilityToggle = { screenModel.toggleItemVisibility(item.id) },
-                                onDelete = if (isUserAdded) {
-                                    { screenModel.removeUserItem(item.id) }
-                                } else null,
-                                isDragging = isDragging,
-                                dragHandle = {
-                                    Icon(
-                                        imageVector = Icons.Default.DragHandle,
-                                        contentDescription = stringResource(R.string.content_desc_drag_handle),
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.padding(8.dp)
-                                    )
-                                }
-                            )
-                        }
+                ) { item, isDragging, reorderControls ->
+                    val isUserAdded = remember(item.id, userAddedItemIds) {
+                        item.id in userAddedItemIds
                     }
+                    MenuItemRow(
+                        item = item,
+                        isVisible = visibilityMap[item.id] ?: true,
+                        onVisibilityToggle = { screenModel.toggleItemVisibility(item.id) },
+                        onDelete = if (isUserAdded) {
+                            { screenModel.removeUserItem(item.id) }
+                        } else null,
+                        isDragging = isDragging,
+                        reorderControls = reorderControls
+                    )
                 }
             }
         }
@@ -381,7 +363,7 @@ fun MenuSelector(
 }
 
 /**
- * Displays a single menu item row with its label, drag handle, and visibility toggle or delete button.
+ * Displays a single menu item row with its label, reorder controls, and visibility toggle or delete button.
  *
  * The displayed label is chosen in order: the item's `labelResource` (localized), `userProvidedText`, then the item's `id`.
  *
@@ -390,7 +372,7 @@ fun MenuSelector(
  * @param onVisibilityToggle Callback invoked when the visibility toggle is pressed.
  * @param onDelete Callback invoked when the delete button is pressed (for user-added items). If null, shows visibility toggle instead.
  * @param isDragging `true` if the item is currently being dragged; affects visual styling.
- * @param dragHandle Composable function that renders the drag handle for reordering.
+ * @param reorderControls Composable function that renders the reorder controls (drag handle or arrow buttons).
  */
 @Composable
 fun MenuItemRow(
@@ -399,7 +381,7 @@ fun MenuItemRow(
     onVisibilityToggle: () -> Unit,
     onDelete: (() -> Unit)? = null,
     isDragging: Boolean = false,
-    dragHandle: @Composable () -> Unit = {}
+    reorderControls: @Composable () -> Unit = {}
 ) {
     val itemLabel = item.labelResource?.let { stringResource(it) } ?: item.userProvidedText ?: item.id
 
@@ -422,8 +404,8 @@ fun MenuItemRow(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            // Drag handle
-            dragHandle()
+            // Reorder controls (drag handle or arrow buttons)
+            reorderControls()
 
             // Item label
             Text(

@@ -849,7 +849,7 @@
     <!-- Menu Customization Screen -->
     <string name="screen_title_menu_customization">Menu Customization</string>
     <string name="settings_summary_menu_customization">Customize menu item order and visibility</string>
-    <string name="menu_customization_info">Drag items to reorder them. Tap the eye icon to hide or show items.</string>
+    <string name="menu_customization_info">Reorder items using drag or arrows. Tap the eye icon to hide or show items.</string>
     <string name="menu_customization_no_items">No items to display</string>
     <string name="label_select_menu">Select Menu</string>
     <string name="menu_title_main">Main Menu</string>
@@ -861,4 +861,8 @@
     <string name="content_desc_drag_handle">Drag to reorder</string>
     <string name="content_desc_hide_item">Hide item</string>
     <string name="content_desc_show_item">Show item</string>
+    <string name="content_desc_move_up">Move up</string>
+    <string name="content_desc_move_down">Move down</string>
+    <string name="reorder_mode_drag">Drag</string>
+    <string name="reorder_mode_arrows">Arrows</string>
 </resources>
