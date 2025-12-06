@@ -258,6 +258,7 @@
     <string name="camera_switches_summary">Manage camera-based switches</string>
     <string name="screen_title_add_switch">Add New Switch</string>
     <string name="screen_title_edit_switch">Edit Switch</string>
+    <string name="screen_title_long_press_actions">Long Press Actions</string>
     <string name="screen_title_pro_yours">Switchify Pro Is Yours</string>
 
     <!-- Gesture Patterns Screen -->
@@ -501,6 +502,8 @@
     <string name="button_cancel">Cancel</string>
     <string name="button_retry">Retry</string>
     <string name="button_add_long_press_action">Add Long Press Action</string>
+    <string name="button_configure_long_press_actions">Configure Long Press Actions</string>
+    <string name="button_edit_long_press_actions">Edit Long Press Actions</string>
     <string name="button_add">Add</string>
     <string name="button_close">Close</string>
     <string name="button_privacy_policy">Privacy Policy</string>
@@ -546,6 +549,9 @@
     <!-- Add/Edit External Switch Screen -->
     <string name="label_switch_name">Switch Name</string>
     <string name="error_switch_name_required">Switch name is required</string>
+    <string name="long_press_actions_empty">No long press actions configured. Add an action to get started.</string>
+    <string name="long_press_actions_save_first">Save the switch first to configure long press actions.</string>
+    <string name="long_press_actions_count">%1$d action(s) configured</string>
 
     <!-- Switch Stability Screen -->
     <string name="preference_title_ignore_repeat">Ignore Repeat</string>

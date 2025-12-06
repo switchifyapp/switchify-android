@@ -32,6 +32,7 @@ import com.enaboapps.switchify.screens.settings.techniques.AccessTechniqueSettin
 import com.enaboapps.switchify.screens.settings.pause.PauseSettingsScreen
 import com.enaboapps.switchify.screens.settings.menu.MenuCustomizationScreen
 import com.enaboapps.switchify.screens.settings.switches.actions.SwitchActionSelectionScreen
+import com.enaboapps.switchify.screens.settings.switches.LongPressActionsScreen
 
 /**
  * Declares the app's navigation graph and registers each route to its corresponding screen composable.
@@ -140,6 +141,11 @@ fun NavGraph(navController: NavHostController) {
         composable("${NavigationRoute.SwitchActionSelection.name}/{currentActionId}") {
             it.arguments?.getString("currentActionId")?.toIntOrNull()?.let { actionId ->
                 SwitchActionSelectionScreen(navController, actionId)
+            }
+        }
+        composable("${NavigationRoute.LongPressActions.name}/{code}") {
+            it.arguments?.getString("code")?.let { code ->
+                LongPressActionsScreen(navController, code)
             }
         }
     }

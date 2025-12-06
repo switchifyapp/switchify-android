@@ -62,7 +62,7 @@ fun BaseView(
             } else {
                 Column(
                     modifier = Modifier
-                        .fillMaxSize()
+                        .weight(1f)
                         .padding(padding),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
