@@ -115,7 +115,7 @@ fun LongPressActionsScreen(navController: NavController, code: String) {
                         },
                         reorderControls = reorderControls
                     )
-                    Spacer(modifier = Modifier.padding(8.dp))
+                    Spacer(modifier = Modifier.padding(4.dp))
                 }
             }
 
