@@ -144,6 +144,20 @@ class AddEditExternalSwitchScreenModel : ViewModel() {
         }, 300)
     }
 
+    /**
+     * Reloads long press actions from the store.
+     * Call this when returning from the LongPressActionsScreen to sync state.
+     */
+    fun reloadLongPressActionsFromStore(context: Context) {
+        if (code != null) {
+            val event = store.find(code ?: "")
+            val allowed = SupportedActionsPolicy.supportedActionIds(context)
+            longPressActions.value = (event?.holdActions ?: emptyList()).map { a ->
+                if (allowed.contains(a.id)) a else SwitchAction(SwitchAction.ACTION_SELECT)
+            }
+        }
+    }
+
     fun updateLongPressAction(oldAction: SwitchAction, newAction: SwitchAction) {
         val currentActions = longPressActions.value?.toMutableList() ?: mutableListOf()
         val index = currentActions.indexOf(oldAction)

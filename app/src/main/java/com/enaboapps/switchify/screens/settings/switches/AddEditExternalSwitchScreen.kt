@@ -41,13 +41,11 @@ import com.enaboapps.switchify.R
 import com.enaboapps.switchify.components.ActionButton
 import com.enaboapps.switchify.components.ActionButtonType
 import com.enaboapps.switchify.components.BaseView
-import com.enaboapps.switchify.components.ReorderMode
-import com.enaboapps.switchify.components.ReorderableList
 import com.enaboapps.switchify.components.TextArea
+import com.enaboapps.switchify.nav.NavigationRoute
 import com.enaboapps.switchify.screens.settings.switches.actions.SwitchActionField
 import com.enaboapps.switchify.screens.settings.switches.models.AddEditExternalSwitchScreenModel
 import com.enaboapps.switchify.service.core.ServiceBridge
-import com.enaboapps.switchify.switches.SwitchAction
 import kotlinx.coroutines.launch
 
 @Composable
@@ -76,10 +74,15 @@ fun AddEditExternalSwitchScreen(navController: NavController, code: String? = nu
         LaunchedEffect(Unit) {
             ServiceBridge.serviceEvents.collect { event ->
                 if (event is ServiceBridge.ServiceEvent.ConfigurationUpdated) {
+                    // Reload long press actions when configuration changes (e.g., from LongPressActionsScreen)
+                    if (code != null) {
+                        addEditExternalSwitchScreenModel.reloadLongPressActionsFromStore(context)
+                    }
                     refresh++
                 }
             }
         }
+
         BaseView(
             titleResId = screenTitle,
             navController = navController,
@@ -137,7 +140,7 @@ fun AddEditExternalSwitchScreen(navController: NavController, code: String? = nu
                         onNameChange = { addEditExternalSwitchScreenModel.updateName(it) }
                     )
                     Spacer(modifier = Modifier.padding(8.dp))
-                    SwitchActionSection(navController, addEditExternalSwitchScreenModel)
+                    SwitchActionSection(navController, addEditExternalSwitchScreenModel, code)
                     Spacer(modifier = Modifier.padding(12.dp))
                 }
             }
@@ -257,11 +260,16 @@ fun SwitchName(
 }
 
 @Composable
-fun SwitchActionSection(navController: NavController, viewModel: AddEditExternalSwitchScreenModel) {
+fun SwitchActionSection(
+    navController: NavController,
+    viewModel: AddEditExternalSwitchScreenModel,
+    switchCode: String?
+) {
     val allowLongPress = viewModel.allowLongPress.observeAsState()
     val longPressActions = viewModel.longPressActions.observeAsState()
     val refreshingLongPressActions = viewModel.refreshingLongPressActions.observeAsState()
     val context = LocalContext.current
+
     SwitchActionField(
         navController = navController,
         titleResId = R.string.section_title_press_action,
@@ -273,7 +281,7 @@ fun SwitchActionSection(navController: NavController, viewModel: AddEditExternal
 
     Spacer(modifier = Modifier.padding(16.dp))
 
-    if (allowLongPress.value!! && !refreshingLongPressActions.value!!) {
+    if (allowLongPress.value == true && refreshingLongPressActions.value != true) {
         Text(
             text = stringResource(R.string.switch_listener_each_switch_can_have_multiple_actions_for_long_press),
             style = MaterialTheme.typography.bodyMedium,
@@ -284,39 +292,56 @@ fun SwitchActionSection(navController: NavController, viewModel: AddEditExternal
         Spacer(modifier = Modifier.padding(8.dp))
 
         val actions = longPressActions.value ?: emptyList()
-        if (actions.isNotEmpty()) {
-            ReorderableList(
-                items = actions,
-                onMove = { from, to -> viewModel.moveLongPressAction(from, to) },
-                key = { action -> "${actions.indexOf(action)}-${action.id}" },
-                defaultMode = ReorderMode.DRAG
-            ) { action, _, reorderControls ->
-                val index = actions.indexOf(action)
-                SwitchActionField(
-                    navController = navController,
-                    titleResId = R.string.section_title_long_press_action,
-                    titleResIdArgs = arrayOf(index + 1),
-                    switchAction = action,
-                    onChange = { newAction ->
-                        viewModel.updateLongPressAction(action, newAction)
-                    },
-                    onDelete = {
-                        viewModel.removeLongPressAction(index)
-                    },
-                    reorderControls = reorderControls
-                )
-            }
-        }
+        val actionCount = actions.size
 
-        Spacer(modifier = Modifier.padding(8.dp))
-
-        ActionButton(
-            textResId = R.string.button_add_long_press_action,
+        // Show summary and navigation button for long press actions
+        LongPressActionsSummary(
+            actionCount = actionCount,
             onClick = {
-                viewModel.addLongPressAction(SwitchAction(SwitchAction.ACTION_SELECT))
+                if (switchCode != null) {
+                    navController.navigate("${NavigationRoute.LongPressActions.name}/$switchCode")
+                }
             },
-            modifier = Modifier.fillMaxWidth(),
-            applyPadding = false
+            enabled = switchCode != null
+        )
+
+        if (switchCode == null && actionCount == 0) {
+            Spacer(modifier = Modifier.padding(8.dp))
+            Text(
+                text = stringResource(R.string.long_press_actions_save_first),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 20.dp)
+            )
+        }
+    }
+}
+
+@Composable
+private fun LongPressActionsSummary(
+    actionCount: Int,
+    onClick: () -> Unit,
+    enabled: Boolean
+) {
+    ActionButton(
+        textResId = if (actionCount == 0) {
+            R.string.button_configure_long_press_actions
+        } else {
+            R.string.button_edit_long_press_actions
+        },
+        onClick = onClick,
+        enabled = enabled,
+        modifier = Modifier.fillMaxWidth(),
+        applyPadding = false
+    )
+
+    if (actionCount > 0) {
+        Spacer(modifier = Modifier.padding(4.dp))
+        Text(
+            text = stringResource(R.string.long_press_actions_count, actionCount),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(horizontal = 20.dp)
         )
     }
 }

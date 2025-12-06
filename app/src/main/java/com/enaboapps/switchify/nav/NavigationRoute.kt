@@ -32,4 +32,5 @@ sealed class NavigationRoute(val name: String) {
     data object PauseSettings : NavigationRoute("PauseSettings")
     data object MenuCustomization : NavigationRoute("MenuCustomization")
     data object SwitchActionSelection : NavigationRoute("SwitchActionSelection")
+    data object LongPressActions : NavigationRoute("LongPressActions")
 }
