@@ -214,7 +214,7 @@
 
     <!-- Pause Action -->
     <string name="action_pause">Pause Switchify</string>
-    <string name="action_pause_desc">Pause Switchify for 30 seconds to use switches with other apps</string>
+    <string name="action_pause_desc">Pause Switchify temporarily to use switches with other apps</string>
 
     <!-- Miscellaneous -->
     <string name="unknown">Unknown</string>
