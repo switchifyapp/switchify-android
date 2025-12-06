@@ -27,6 +27,7 @@ import com.enaboapps.switchify.nav.NavigationRoute
 import com.enaboapps.switchify.screens.onboarding.steps.AccessibilityExplanationStep
 import com.enaboapps.switchify.screens.onboarding.steps.HeadControlExplanationStep
 import com.enaboapps.switchify.screens.onboarding.steps.PracticeStep
+import com.enaboapps.switchify.screens.onboarding.steps.ProBenefitsStep
 import com.enaboapps.switchify.screens.onboarding.steps.ScanModeExplanationStep
 import com.enaboapps.switchify.screens.onboarding.steps.SwitchSetupStep
 import com.enaboapps.switchify.screens.onboarding.steps.UserTypeStep
@@ -153,6 +154,13 @@ fun OnboardingScreen(navController: NavController) {
                         },
                         onContinue = { viewModel.nextStep() },
                         onRefreshStatus = { viewModel.checkAccessibilityService() }
+                    )
+
+                    OnboardingStep.PRO_BENEFITS -> ProBenefitsStep(
+                        onLearnMore = {
+                            navController.navigate(NavigationRoute.Paywall.name)
+                        },
+                        onContinue = { viewModel.nextStep() }
                     )
 
                     OnboardingStep.PRACTICE -> PracticeStep(

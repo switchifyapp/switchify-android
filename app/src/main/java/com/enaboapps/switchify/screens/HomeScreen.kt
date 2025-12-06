@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.enaboapps.switchify.BuildConfig
 import com.enaboapps.switchify.R
+import com.enaboapps.switchify.backend.engagement.ProReminderManager
 import com.enaboapps.switchify.backend.iap.IAPHandler
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.backend.review.ReviewPrompter
@@ -43,6 +44,7 @@ import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.CollapsibleActionList
 import com.enaboapps.switchify.components.HeadControlToggleCard
 import com.enaboapps.switchify.components.InAppUpdateBar
+import com.enaboapps.switchify.components.ProReminderBanner
 import com.enaboapps.switchify.components.ScrollableView
 import com.enaboapps.switchify.components.StatusBannerComponent
 import com.enaboapps.switchify.nav.NavigationRoute
@@ -69,6 +71,8 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
     val hasUsageStatsPermission =
         remember { mutableStateOf(quickAppsManager.hasUsageStatsPermission()) }
     var isActionListExpanded by remember { mutableStateOf(false) }
+    val proReminderManager = remember { ProReminderManager(context) }
+    var showProReminder by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         if (!isSetupComplete) {
@@ -77,6 +81,11 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
         IAPHandler.initIfNeeded(context) {
             IAPHandler.refreshPurchaseStatus { proPurchased ->
                 isPro.value = proPurchased
+                // Check pro reminder after IAP status is known
+                if (!proPurchased) {
+                    proReminderManager.recordAppOpen()
+                    showProReminder = proReminderManager.shouldShowReminder()
+                }
             }
         }
 
@@ -121,6 +130,23 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
                     SwitchConfigInvalidBanner(
                         onClick = {
                             navController.navigate(NavigationRoute.Switches.name)
+                        }
+                    )
+                }
+
+                // Pro Reminder Banner (for non-Pro users after usage threshold)
+                if (showProReminder) {
+                    ProReminderBanner(
+                        onLearnMore = {
+                            navController.navigate(NavigationRoute.Paywall.name)
+                        },
+                        onDismiss = {
+                            proReminderManager.onDismiss()
+                            showProReminder = false
+                        },
+                        onRemindLater = {
+                            proReminderManager.onRemindLater()
+                            showProReminder = false
                         }
                     )
                 }

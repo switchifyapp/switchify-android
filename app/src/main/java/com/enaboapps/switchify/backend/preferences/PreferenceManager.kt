@@ -52,6 +52,13 @@ class PreferenceManager(context: Context) {
         const val PREFERENCE_KEY_REVIEW_LAST_SHOWN = "review_last_shown"
         const val PREFERENCE_KEY_DEBUG_TRIAL_DISABLED = "debug_trial_disabled"
 
+        // Pro reminder engagement preferences
+        const val PREFERENCE_KEY_PRO_REMINDER_USAGE_DAYS = "pro_reminder_usage_days"
+        const val PREFERENCE_KEY_PRO_REMINDER_LAST_USAGE_DATE = "pro_reminder_last_usage_date"
+        const val PREFERENCE_KEY_PRO_REMINDER_DISMISS_COUNT = "pro_reminder_dismiss_count"
+        const val PREFERENCE_KEY_PRO_REMINDER_LAST_DISMISS_TIME = "pro_reminder_last_dismiss_time"
+        const val PREFERENCE_KEY_PRO_REMINDER_COOLDOWN_DAYS = "pro_reminder_cooldown_days"
+
         // Camera threshold preferences - time steppers for each gesture
         const val PREFERENCE_KEY_CAMERA_SMILE_TIME = "camera_smile_time"
         const val PREFERENCE_KEY_CAMERA_LEFT_WINK_TIME = "camera_left_wink_time"
