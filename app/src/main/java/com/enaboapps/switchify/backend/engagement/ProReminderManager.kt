@@ -3,9 +3,8 @@ package com.enaboapps.switchify.backend.engagement
 import android.content.Context
 import com.enaboapps.switchify.backend.iap.IAPHandler
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import java.util.concurrent.TimeUnit
 
 /**
@@ -24,7 +23,7 @@ class ProReminderManager(context: Context) {
         private const val MAX_REMINDERS = 3 // Maximum number of reminders to show
         private const val DEFAULT_COOLDOWN_DAYS = 7 // Default cooldown after dismiss
         private const val REMIND_LATER_COOLDOWN_DAYS = 3 // Shorter cooldown for "remind later"
-        private val DATE_FORMAT = SimpleDateFormat("yyyy-MM-dd", Locale.US)
+        private val DATE_FORMAT: DateTimeFormatter = DateTimeFormatter.ISO_LOCAL_DATE
     }
 
     /**
@@ -32,7 +31,7 @@ class ProReminderManager(context: Context) {
      * Call this from HomeScreen on each visit.
      */
     fun recordAppOpen() {
-        val today = DATE_FORMAT.format(Date())
+        val today = LocalDate.now().format(DATE_FORMAT)
         val lastDate = preferenceManager.getStringValue(
             PreferenceManager.PREFERENCE_KEY_PRO_REMINDER_LAST_USAGE_DATE,
             ""
