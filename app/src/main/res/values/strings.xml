@@ -676,7 +676,23 @@
     <string name="onboarding_practice_enable_service">Enable Service</string>
     <string name="onboarding_practice_tap_instructions">Tap each box to practice</string>
     <string name="onboarding_practice_switch_instructions">Try activating each box using your switches</string>
-    
+
+    <!-- Onboarding Pro Benefits Step -->
+    <string name="onboarding_pro_title">Unlock Full Access</string>
+    <string name="onboarding_pro_subtitle">Get the most out of Switchify with Pro</string>
+    <string name="onboarding_pro_benefit_unlimited">Unlimited service access</string>
+    <string name="onboarding_pro_benefit_no_trial">No trial time limits</string>
+    <string name="onboarding_pro_benefit_support">Support continued development</string>
+    <string name="onboarding_pro_learn_more">Learn More</string>
+    <string name="onboarding_pro_maybe_later">Maybe Later</string>
+
+    <!-- Pro Reminder Banner -->
+    <string name="pro_reminder_title">Enjoying Switchify?</string>
+    <string name="pro_reminder_message">Unlock unlimited access with Pro - no trial limits, full features.</string>
+    <string name="pro_reminder_dismiss">Dismiss</string>
+    <string name="pro_reminder_later">Later</string>
+    <string name="pro_reminder_learn_more">Learn More</string>
+
     <!-- Usage Stats Permission Screen -->
     <string name="screen_title_usage_stats_permission">Recent Apps Permission</string>
     <string name="usage_stats_permission_granted">Permission Granted ✅</string>
