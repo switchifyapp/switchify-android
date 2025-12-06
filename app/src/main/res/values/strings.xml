@@ -544,14 +544,17 @@
     <string name="switch_listener_is_switch_not_working">Is your switch not working? If you are using a USB switch, please make sure that you have it plugged in and that it is turned on. If you are using a Bluetooth switch, please make sure that it is paired with your device.</string>
     <string name="section_title_press_action">Press Action</string>
     <string name="section_title_long_press_action">Long Press Action %1$s</string>
-    <string name="switch_listener_each_switch_can_have_multiple_actions_for_long_press">Each switch can have multiple actions for long press. You can add or remove actions below. The actions will be executed in the order they are listed based on the duration of the long press.</string>
+    <string name="switch_listener_each_switch_can_have_multiple_actions_for_long_press">Actions execute in sequence based on hold duration</string>
 
     <!-- Add/Edit External Switch Screen -->
     <string name="label_switch_name">Switch Name</string>
     <string name="error_switch_name_required">Switch name is required</string>
     <string name="long_press_actions_empty">No long press actions configured. Add an action to get started.</string>
     <string name="long_press_actions_save_first">Save the switch first to configure long press actions.</string>
-    <string name="long_press_actions_count">%1$d action(s) configured</string>
+    <string name="section_title_long_press_actions">Long Press Actions</string>
+    <string name="long_press_actions_none">No actions configured</string>
+    <string name="long_press_actions_count_one">1 action configured</string>
+    <string name="long_press_actions_count_other">%1$d actions configured</string>
 
     <!-- Switch Stability Screen -->
     <string name="preference_title_ignore_repeat">Ignore Repeat</string>

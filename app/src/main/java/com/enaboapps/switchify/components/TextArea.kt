@@ -84,9 +84,9 @@ fun TextArea(
             readOnly = readOnly,
             visualTransformation = if (isSecure && !passwordVisible) PasswordVisualTransformation() else VisualTransformation.None,
             placeholder = placeholder?.let { { Text(it) } },
-            supportingText = supportingTextResId?.let {
-                { Text(stringResource(it)) }
-            },
+            supportingText = if (isError && supportingTextResId != null) {
+                { Text(stringResource(supportingTextResId)) }
+            } else null,
             trailingIcon = {
                 if (isSecure) {
                     IconButton(onClick = { passwordVisible = !passwordVisible }) {

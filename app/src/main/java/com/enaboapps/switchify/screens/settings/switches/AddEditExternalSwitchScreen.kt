@@ -3,15 +3,22 @@ package com.enaboapps.switchify.screens.settings.switches
 import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Card
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -35,8 +42,10 @@ import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.enaboapps.switchify.theme.Dimens
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.components.ActionButton
 import com.enaboapps.switchify.components.ActionButtonType
@@ -279,23 +288,13 @@ fun SwitchActionSection(
         }
     )
 
-    Spacer(modifier = Modifier.padding(16.dp))
+    Spacer(modifier = Modifier.height(16.dp))
 
     if (allowLongPress.value == true && refreshingLongPressActions.value != true) {
-        Text(
-            text = stringResource(R.string.switch_listener_each_switch_can_have_multiple_actions_for_long_press),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(horizontal = 20.dp)
-        )
-
-        Spacer(modifier = Modifier.padding(8.dp))
-
         val actions = longPressActions.value ?: emptyList()
         val actionCount = actions.size
 
-        // Show summary and navigation button for long press actions
-        LongPressActionsSummary(
+        LongPressActionsCard(
             actionCount = actionCount,
             onClick = {
                 if (switchCode != null) {
@@ -305,8 +304,8 @@ fun SwitchActionSection(
             enabled = switchCode != null
         )
 
-        if (switchCode == null && actionCount == 0) {
-            Spacer(modifier = Modifier.padding(8.dp))
+        if (switchCode == null) {
+            Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = stringResource(R.string.long_press_actions_save_first),
                 style = MaterialTheme.typography.bodySmall,
@@ -318,30 +317,54 @@ fun SwitchActionSection(
 }
 
 @Composable
-private fun LongPressActionsSummary(
+private fun LongPressActionsCard(
     actionCount: Int,
     onClick: () -> Unit,
     enabled: Boolean
 ) {
-    ActionButton(
-        textResId = if (actionCount == 0) {
-            R.string.button_configure_long_press_actions
-        } else {
-            R.string.button_edit_long_press_actions
-        },
-        onClick = onClick,
-        enabled = enabled,
-        modifier = Modifier.fillMaxWidth(),
-        applyPadding = false
-    )
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp)
+            .then(
+                if (enabled) Modifier.clickable(onClick = onClick) else Modifier
+            )
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(20.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+            ) {
+                Text(
+                    text = stringResource(R.string.section_title_long_press_actions).uppercase(),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Medium
+                )
+                Spacer(modifier = Modifier.height(Dimens.spaceXs))
+                Text(
+                    text = when (actionCount) {
+                        0 -> stringResource(R.string.long_press_actions_none)
+                        1 -> stringResource(R.string.long_press_actions_count_one)
+                        else -> stringResource(R.string.long_press_actions_count_other, actionCount)
+                    },
+                    style = MaterialTheme.typography.bodySmall
+                )
+                Spacer(modifier = Modifier.height(Dimens.spaceXs))
+                Text(
+                    text = stringResource(R.string.switch_listener_each_switch_can_have_multiple_actions_for_long_press),
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
 
-    if (actionCount > 0) {
-        Spacer(modifier = Modifier.padding(4.dp))
-        Text(
-            text = stringResource(R.string.long_press_actions_count, actionCount),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(horizontal = 20.dp)
-        )
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = null,
+                modifier = Modifier.padding(start = Dimens.spaceM)
+            )
+        }
     }
 }
