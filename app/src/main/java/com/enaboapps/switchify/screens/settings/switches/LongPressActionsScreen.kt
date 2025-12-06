@@ -93,10 +93,10 @@ fun LongPressActionsScreen(navController: NavController, code: String) {
                     mutableList.add(to, item)
                     saveAndRefresh(mutableList)
                 },
-                key = { action -> "${actions.indexOf(action)}-${action.id}" },
+                key = { action -> "${actions.indexOfFirst { it === action }}-${action.id}" },
                 defaultMode = ReorderMode.DRAG
             ) { action, _, reorderControls ->
-                val index = actions.indexOf(action)
+                val index = actions.indexOfFirst { it === action }
                 Column {
                     SwitchActionField(
                         navController = navController,
