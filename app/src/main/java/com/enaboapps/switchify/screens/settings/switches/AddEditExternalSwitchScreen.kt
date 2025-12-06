@@ -41,6 +41,8 @@ import com.enaboapps.switchify.R
 import com.enaboapps.switchify.components.ActionButton
 import com.enaboapps.switchify.components.ActionButtonType
 import com.enaboapps.switchify.components.BaseView
+import com.enaboapps.switchify.components.ReorderMode
+import com.enaboapps.switchify.components.ReorderableList
 import com.enaboapps.switchify.components.TextArea
 import com.enaboapps.switchify.screens.settings.switches.actions.SwitchActionField
 import com.enaboapps.switchify.screens.settings.switches.models.AddEditExternalSwitchScreenModel
@@ -281,21 +283,33 @@ fun SwitchActionSection(navController: NavController, viewModel: AddEditExternal
 
         Spacer(modifier = Modifier.padding(8.dp))
 
-        longPressActions.value?.forEachIndexed { index, action ->
-            SwitchActionField(
-                navController = navController,
-                titleResId = R.string.section_title_long_press_action,
-                titleResIdArgs = arrayOf(index + 1),
-                switchAction = action,
-                onChange = { newAction ->
-                    viewModel.updateLongPressAction(action, newAction)
-                },
-                onDelete = {
-                    viewModel.removeLongPressAction(index)
-                }
-            )
-            Spacer(modifier = Modifier.padding(8.dp))
+        val actions = longPressActions.value ?: emptyList()
+        if (actions.isNotEmpty()) {
+            ReorderableList(
+                items = actions,
+                onMove = { from, to -> viewModel.moveLongPressAction(from, to) },
+                key = { action -> "${actions.indexOf(action)}-${action.id}" },
+                defaultMode = ReorderMode.DRAG
+            ) { action, _, reorderControls ->
+                val index = actions.indexOf(action)
+                SwitchActionField(
+                    navController = navController,
+                    titleResId = R.string.section_title_long_press_action,
+                    titleResIdArgs = arrayOf(index + 1),
+                    switchAction = action,
+                    onChange = { newAction ->
+                        viewModel.updateLongPressAction(action, newAction)
+                    },
+                    onDelete = {
+                        viewModel.removeLongPressAction(index)
+                    },
+                    reorderControls = reorderControls
+                )
+            }
         }
+
+        Spacer(modifier = Modifier.padding(8.dp))
+
         ActionButton(
             textResId = R.string.button_add_long_press_action,
             onClick = {

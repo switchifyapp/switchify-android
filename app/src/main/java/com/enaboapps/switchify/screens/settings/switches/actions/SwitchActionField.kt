@@ -41,6 +41,7 @@ import com.enaboapps.switchify.theme.Dimens
  * @param switchAction The currently selected action.
  * @param onChange Callback invoked when a new action is selected.
  * @param onDelete Optional callback for delete button (for long press actions).
+ * @param reorderControls Optional composable for reorder controls (drag handle or arrows).
  */
 @Composable
 fun SwitchActionField(
@@ -49,7 +50,8 @@ fun SwitchActionField(
     titleResIdArgs: Array<Any>? = null,
     switchAction: SwitchAction,
     onChange: (SwitchAction) -> Unit,
-    onDelete: (() -> Unit)? = null
+    onDelete: (() -> Unit)? = null,
+    reorderControls: (@Composable () -> Unit)? = null
 ) {
     val title = if (titleResIdArgs != null) {
         stringResource(titleResId, *titleResIdArgs)
@@ -88,6 +90,11 @@ fun SwitchActionField(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.padding(20.dp)
         ) {
+            // Reorder controls (if provided)
+            if (reorderControls != null) {
+                reorderControls()
+            }
+
             Column(
                 modifier = Modifier
                     .weight(1f)

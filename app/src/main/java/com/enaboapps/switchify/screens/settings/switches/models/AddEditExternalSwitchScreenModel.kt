@@ -127,6 +127,16 @@ class AddEditExternalSwitchScreenModel : ViewModel() {
         refreshLongPressActions()
     }
 
+    fun moveLongPressAction(fromIndex: Int, toIndex: Int) {
+        val currentActions = longPressActions.value?.toMutableList() ?: return
+        if (fromIndex in currentActions.indices && toIndex in currentActions.indices) {
+            val action = currentActions.removeAt(fromIndex)
+            currentActions.add(toIndex, action)
+            longPressActions.value = currentActions
+            validateIfInitialized()
+        }
+    }
+
     fun refreshLongPressActions() {
         refreshingLongPressActions.value = true
         Handler(Looper.getMainLooper()).postDelayed({
