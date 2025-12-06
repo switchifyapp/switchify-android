@@ -5,6 +5,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -20,7 +24,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.height
 import androidx.navigation.NavController
 import com.enaboapps.switchify.R
-import com.enaboapps.switchify.components.ActionButton
 import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.ReorderMode
 import com.enaboapps.switchify.components.ReorderableList
@@ -60,7 +63,19 @@ fun LongPressActionsScreen(navController: NavController, code: String) {
     BaseView(
         titleResId = R.string.screen_title_long_press_actions,
         navController = navController,
-        enableScroll = false
+        enableScroll = false,
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = {
+                    saveAndRefresh(actions + SwitchAction(SwitchAction.ACTION_SELECT))
+                }
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = stringResource(R.string.button_add_long_press_action)
+                )
+            }
+        }
     ) {
         if (actions.isEmpty()) {
             // Empty state
@@ -70,20 +85,11 @@ fun LongPressActionsScreen(navController: NavController, code: String) {
                     .padding(32.dp),
                 contentAlignment = Alignment.Center
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = stringResource(R.string.long_press_actions_empty),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.padding(16.dp))
-                    ActionButton(
-                        textResId = R.string.button_add_long_press_action,
-                        onClick = {
-                            saveAndRefresh(actions + SwitchAction(SwitchAction.ACTION_SELECT))
-                        }
-                    )
-                }
+                Text(
+                    text = stringResource(R.string.long_press_actions_empty),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         } else {
             ReorderableList(
@@ -119,18 +125,6 @@ fun LongPressActionsScreen(navController: NavController, code: String) {
                     Spacer(modifier = Modifier.height(4.dp))
                 }
             }
-
-            // Add button at the bottom
-            ActionButton(
-                textResId = R.string.button_add_long_press_action,
-                onClick = {
-                    saveAndRefresh(actions + SwitchAction(SwitchAction.ACTION_SELECT))
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                applyPadding = false
-            )
         }
     }
 }
