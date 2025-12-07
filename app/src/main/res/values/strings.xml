@@ -148,6 +148,7 @@
     <string name="hud_auto_scroll_stopped">Auto-Scroll Stopped</string>
 
     <!-- Service Trial Messages -->
+    <string name="trial_info_banner">Trial: 1-hour session limit</string>
     <string name="trial_started_message">1-hour service trial started. All features available!</string>
     <string name="debug_trial_started_message">30-second DEBUG trial started. All features available!</string>
     <string name="trial_warning_message">10 minutes remaining in service trial. Restart service for fresh trial.</string>
