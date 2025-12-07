@@ -14,6 +14,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.enaboapps.switchify.BuildConfig
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.backend.iap.IAPHandler
 import com.enaboapps.switchify.backend.iap.IAPHandler.PurchaseCapability
@@ -125,7 +126,54 @@ fun AppPaywallScreen(navController: NavController) {
         }
 
         else -> {
-            PaywallDialog(options)
+            // In debug builds, show a mock paywall since RevenueCat may not be configured
+            if (BuildConfig.DEBUG) {
+                DebugPaywallScreen(navController)
+            } else {
+                PaywallDialog(options)
+            }
         }
+    }
+}
+
+/**
+ * Mock paywall screen for debug builds.
+ * Shows placeholder UI since RevenueCat requires proper configuration to display the real paywall.
+ */
+@Composable
+private fun DebugPaywallScreen(navController: NavController) {
+    BaseView(
+        titleResId = R.string.screen_title_upgrade_pro,
+        navController = navController,
+        enableScroll = false,
+        padding = 25.dp
+    ) {
+        Text(
+            text = "Debug Mode - Paywall Preview",
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.padding(horizontal = 20.dp)
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(
+            text = "This is a mock paywall for debug builds. The real RevenueCat paywall will be shown in release builds.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.padding(horizontal = 20.dp)
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(
+            text = "Switchify Pro includes:\n• All premium features\n• Priority support\n• No ads",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(horizontal = 20.dp)
+        )
+        Spacer(modifier = Modifier.height(24.dp))
+        ActionButton(
+            textResId = R.string.button_done,
+            onClick = {
+                navController.popBackStack()
+            }
+        )
     }
 }

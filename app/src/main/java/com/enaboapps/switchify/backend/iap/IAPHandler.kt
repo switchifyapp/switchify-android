@@ -4,7 +4,6 @@ import android.content.Context
 import android.util.Log
 import com.enaboapps.switchify.BuildConfig
 import com.enaboapps.switchify.R
-import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.service.utils.DeviceLockObserver
 import com.enaboapps.switchify.service.utils.ServiceUtils
 import com.enaboapps.switchify.service.window.ServiceMessageHUD
@@ -18,6 +17,7 @@ import com.revenuecat.purchases.PurchasesError
 import com.revenuecat.purchases.PurchasesErrorCode
 import com.revenuecat.purchases.interfaces.ReceiveCustomerInfoCallback
 import com.revenuecat.purchases.interfaces.ReceiveOfferingsCallback
+import com.revenuecat.purchases.interfaces.UpdatedCustomerInfoListener
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
@@ -29,8 +29,11 @@ import kotlinx.coroutines.flow.StateFlow
 object IAPHandler {
     private const val TAG = "IAPHandler"
     const val ENTITLEMENT = "pro"
-    private lateinit var preferenceManager: PreferenceManager
     private var isRevenueCatInitialized = false
+
+    // StateFlow for CustomerInfo - the single source of truth for subscription status
+    private val _customerInfo = MutableStateFlow<CustomerInfo?>(null)
+    val customerInfo: StateFlow<CustomerInfo?> = _customerInfo
 
     // StateFlow to observe purchase state changes
     private val _purchaseState = MutableStateFlow<PurchaseState>(PurchaseState.Initial)
@@ -40,6 +43,12 @@ object IAPHandler {
     private val _purchaseCapability =
         MutableStateFlow<PurchaseCapability>(PurchaseCapability.Unknown)
     val purchaseCapability: StateFlow<PurchaseCapability> = _purchaseCapability
+
+    // Listener for real-time CustomerInfo updates
+    private val customerInfoListener = UpdatedCustomerInfoListener { info ->
+        Log.d(TAG, "CustomerInfo updated via listener")
+        updateCustomerInfo(info)
+    }
 
     /**
      * Represents different states of the purchase process
@@ -77,6 +86,35 @@ object IAPHandler {
     }
 
     /**
+     * Updates CustomerInfo and derives pro status from it.
+     * This is the single point where CustomerInfo changes are processed.
+     */
+    private fun updateCustomerInfo(info: CustomerInfo) {
+        _customerInfo.value = info
+        val hasPro = info.entitlements[ENTITLEMENT]?.isActive == true
+        val isSubscribed = info.activeSubscriptions.isNotEmpty()
+
+        if (isSubscribed) {
+            Logger.log(LogEvent.ProCheckedViaSubscription)
+        } else if (hasPro) {
+            Logger.log(LogEvent.ProCheckedViaPurchase)
+        }
+
+        _purchaseState.value = if (hasPro) PurchaseState.Success else PurchaseState.Initial
+        Log.d(TAG, "Pro status updated: $hasPro")
+    }
+
+    /**
+     * Checks if the user has pro entitlement based on current CustomerInfo.
+     * Uses RevenueCat's cached CustomerInfo as the source of truth.
+     *
+     * @return True if user has active pro entitlement, false otherwise
+     */
+    fun isPro(): Boolean {
+        return _customerInfo.value?.entitlements?.get(ENTITLEMENT)?.isActive == true
+    }
+
+    /**
      * Initializes the IAP handler.
      * This method should be called when the app starts.
      *
@@ -96,7 +134,6 @@ object IAPHandler {
             onInitialized()
             return
         }
-        preferenceManager = PreferenceManager(context)
         if (connectToRevenueCat) {
             connect(context, debugLogsEnabled) {
                 onInitialized()
@@ -154,7 +191,9 @@ object IAPHandler {
             // Verify singleton is actually accessible after configuration
             // This prevents crashes in RevenueCat UI components on sideloaded apps
             try {
-                Purchases.sharedInstance
+                val purchases = Purchases.sharedInstance
+                // Attach listener for real-time CustomerInfo updates
+                purchases.updatedCustomerInfoListener = customerInfoListener
                 isRevenueCatInitialized = true
                 refreshPurchaseStatus()
                 checkPurchaseCapability()
@@ -174,13 +213,14 @@ object IAPHandler {
     }
 
     /**
-     * Refreshes the current purchase status
+     * Refreshes the current purchase status from RevenueCat.
+     * Safe to call frequently - RevenueCat handles caching (5 minute validity).
      *
      * @param completion The completion block to be called when the status is refreshed
      */
     fun refreshPurchaseStatus(completion: ((Boolean) -> Unit)? = null) {
-        if (!isConnectedToRevenueCat() || BuildConfig.DEBUG) {
-            completion?.invoke(hasPurchasedPro())
+        if (!isConnectedToRevenueCat()) {
+            completion?.invoke(false)
             return
         }
         try {
@@ -189,19 +229,19 @@ object IAPHandler {
                     override fun onError(error: PurchasesError) {
                         Log.e(TAG, "Error refreshing status: ${error.message}")
                         _purchaseState.value = PurchaseState.Error
-                        completion?.invoke(false)
+                        completion?.invoke(isPro())
                     }
 
                     override fun onReceived(customerInfo: CustomerInfo) {
-                        checkProPurchase(customerInfo)
-                        completion?.invoke(hasPurchasedPro())
+                        updateCustomerInfo(customerInfo)
+                        completion?.invoke(isPro())
                     }
                 }
             )
         } catch (e: Exception) {
             Log.e(TAG, "Exception refreshing purchase status: ${e.message}", e)
             _purchaseState.value = PurchaseState.Error
-            completion?.invoke(false)
+            completion?.invoke(isPro())
         }
     }
 
@@ -220,7 +260,7 @@ object IAPHandler {
             return true
         }
 
-        if (hasPurchasedPro()) {
+        if (isPro()) {
             block()
             return true
         } else {
@@ -231,23 +271,6 @@ object IAPHandler {
             ServiceUtils().openProUpgrade(context)
         }
         return false
-    }
-
-    /**
-     * Checks if the user has purchased the pro version
-     *
-     * @param customerInfo Customer info from RevenueCat
-     */
-    private fun checkProPurchase(customerInfo: CustomerInfo) {
-        val hasPro = customerInfo.entitlements[ENTITLEMENT]?.isActive == true
-        val isSubscribed = customerInfo.activeSubscriptions.isNotEmpty()
-        if (isSubscribed) {
-            Logger.log(LogEvent.ProCheckedViaSubscription)
-        } else if (hasPro) {
-            Logger.log(LogEvent.ProCheckedViaPurchase)
-        }
-        setProStatus(hasPro)
-        _purchaseState.value = if (hasPro) PurchaseState.Success else PurchaseState.Initial
     }
 
     /**
@@ -283,30 +306,6 @@ object IAPHandler {
             Log.e(TAG, "Exception getting pro status: ${e.message}", e)
             completion("Error: ${e.message}")
         }
-    }
-
-    /**
-     * Checks if the user has purchased the pro version
-     *
-     * @return True if the user has purchased pro, false otherwise
-     */
-    fun hasPurchasedPro(): Boolean {
-        if (!isConnectedToRevenueCat()) {
-            return false
-        }
-        return preferenceManager.getBooleanValue(PreferenceManager.PREFERENCE_KEY_PRO)
-    }
-
-    /**
-     * Sets the pro status in local storage
-     *
-     * @param status The status to set
-     */
-    fun setProStatus(status: Boolean) {
-        if (!isConnectedToRevenueCat()) {
-            return
-        }
-        preferenceManager.setBooleanValue(PreferenceManager.PREFERENCE_KEY_PRO, status)
     }
 
     /**
@@ -351,11 +350,6 @@ object IAPHandler {
     fun checkPurchaseCapability() {
         if (!isRevenueCatInitialized) {
             _purchaseCapability.value = PurchaseCapability.Unavailable
-            return
-        }
-
-        if (BuildConfig.DEBUG) {
-            _purchaseCapability.value = PurchaseCapability.Available
             return
         }
 

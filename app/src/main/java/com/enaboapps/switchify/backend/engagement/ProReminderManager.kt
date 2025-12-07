@@ -60,7 +60,7 @@ class ProReminderManager(context: Context) {
      */
     fun shouldShowReminder(): Boolean {
         // Never show for Pro users
-        if (IAPHandler.hasPurchasedPro()) return false
+        if (IAPHandler.isPro()) return false
 
         // Check if max reminders reached
         val dismissCount = preferenceManager.getIntegerValue(

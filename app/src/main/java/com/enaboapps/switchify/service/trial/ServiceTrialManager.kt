@@ -84,7 +84,7 @@ class ServiceTrialManager(
         }
 
         // Check if user has pro - if so, no trial needed
-        if (IAPHandler.hasPurchasedPro()) {
+        if (IAPHandler.isPro()) {
             Log.d(TAG, "User has pro - no trial restrictions")
             ServiceMessageHUD.instance.showMessage(
                 R.string.pro_unlimited_access_message,
@@ -179,7 +179,7 @@ class ServiceTrialManager(
             return false
         }
         // Pro users don't have trial restrictions
-        if (IAPHandler.hasPurchasedPro()) {
+        if (IAPHandler.isPro()) {
             return false
         }
         return isTrialActive && getRemainingTime() > 0
