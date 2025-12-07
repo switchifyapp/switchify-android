@@ -25,10 +25,9 @@ import androidx.compose.material.icons.rounded.ExpandLess
 import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -101,48 +100,45 @@ fun CollapsibleActionList(
     }
 
     Column(
-        modifier = modifier.padding(horizontal = 16.dp)
+        modifier = modifier
     ) {
-        // Header Card
-        ElevatedCard(
+        // Header Surface (full-width, no rounded corners)
+        Surface(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable { onToggleExpanded() }
                 .animateContentSize(
                     animationSpec = tween(300)
                 ),
-            elevation = CardDefaults.elevatedCardElevation(defaultElevation = 6.dp)
+            color = MaterialTheme.colorScheme.surfaceVariant,
+            tonalElevation = 2.dp
         ) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(20.dp),
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = stringResource(R.string.home_actions_title),
-                        style = MaterialTheme.typography.headlineSmall,
+                        style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
                         text = stringResource(R.string.home_actions_subtitle),
-                        style = MaterialTheme.typography.bodyMedium,
+                        style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(top = 4.dp)
+                        modifier = Modifier.padding(top = 2.dp)
                     )
                 }
-                IconButton(
-                    onClick = onToggleExpanded
-                ) {
-                    Icon(
-                        imageVector = if (isExpanded) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
-                        contentDescription = if (isExpanded) "Collapse" else "Expand",
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                }
+                Icon(
+                    imageVector = if (isExpanded) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
+                    contentDescription = if (isExpanded) "Collapse" else "Expand",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
 
