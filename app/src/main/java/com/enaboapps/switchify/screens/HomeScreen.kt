@@ -91,10 +91,8 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
         if (!isSetupComplete) {
             navController.navigate(NavigationRoute.Onboarding.name)
         }
-        // Initialize RevenueCat and refresh status
-        IAPHandler.initIfNeeded(context) {
-            IAPHandler.refreshPurchaseStatus()
-        }
+        // Initialize RevenueCat (status refreshed automatically by connect())
+        IAPHandler.initIfNeeded(context)
 
         // Initialize switch store and wait for completion before validation
         switchEventStore.initializeAsync(context)

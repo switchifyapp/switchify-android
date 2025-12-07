@@ -273,7 +273,6 @@ object IAPHandler {
         return false
     }
 
-    
     /**
      * Gets the information in string format about the current status of the pro purchase
      *
