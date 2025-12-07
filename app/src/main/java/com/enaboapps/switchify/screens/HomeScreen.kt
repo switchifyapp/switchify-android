@@ -24,6 +24,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -63,7 +64,8 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
     val context = LocalContext.current
     val isAccessibilityServiceEnabled = serviceUtils.isAccessibilityServiceEnabled(context)
     val isSetupComplete = PreferenceManager(context).isSetupComplete()
-    val isPro = remember { mutableStateOf(true) }
+    // Default to false (show upgrade banner) until confirmed pro via RevenueCat
+    var isPro by remember { mutableStateOf(false) }
     val switchEventStore = remember { SwitchEventStore.getInstance() }
     val switchConfigValidator = remember { SwitchConfigValidator(context) }
     var isSwitchConfigValid by remember { mutableStateOf(true) }
@@ -74,19 +76,24 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
     val proReminderManager = remember { ProReminderManager(context) }
     var showProReminder by remember { mutableStateOf(false) }
 
+    // Observe CustomerInfo for real-time pro status updates
+    val customerInfo by IAPHandler.customerInfo.collectAsState()
+    LaunchedEffect(customerInfo) {
+        val proPurchased = customerInfo?.entitlements?.get(IAPHandler.ENTITLEMENT)?.isActive == true
+        isPro = proPurchased
+        if (!proPurchased && customerInfo != null) {
+            proReminderManager.recordAppOpen()
+            showProReminder = proReminderManager.shouldShowReminder()
+        }
+    }
+
     LaunchedEffect(Unit) {
         if (!isSetupComplete) {
             navController.navigate(NavigationRoute.Onboarding.name)
         }
+        // Initialize RevenueCat and refresh status
         IAPHandler.initIfNeeded(context) {
-            IAPHandler.refreshPurchaseStatus { proPurchased ->
-                isPro.value = proPurchased
-                // Check pro reminder after IAP status is known
-                if (!proPurchased) {
-                    proReminderManager.recordAppOpen()
-                    showProReminder = proReminderManager.shouldShowReminder()
-                }
-            }
+            IAPHandler.refreshPurchaseStatus()
         }
 
         // Initialize switch store and wait for completion before validation
@@ -105,7 +112,7 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
         headerContent = {
             StatusBannerComponent(
                 isAccessibilityServiceEnabled = isAccessibilityServiceEnabled,
-                isPro = isPro.value,
+                isPro = isPro,
                 onAccessibilityClick = {
                     navController.navigate(NavigationRoute.EnableAccessibilityService.name)
                 },
