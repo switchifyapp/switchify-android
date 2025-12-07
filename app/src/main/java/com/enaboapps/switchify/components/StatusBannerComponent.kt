@@ -22,6 +22,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.enaboapps.switchify.R
 
@@ -32,7 +33,8 @@ fun StatusBannerComponent(
     onAccessibilityClick: () -> Unit,
     onProUpgradeClick: () -> Unit
 ) {
-    Row(
+    Column {
+        Row(
         modifier = Modifier
             .fillMaxWidth()
             .height(IntrinsicSize.Max),
@@ -137,6 +139,28 @@ fun StatusBannerComponent(
                         modifier = Modifier.size(24.dp)
                     )
                 }
+            }
+        }
+        }
+
+        // Trial info banner for non-Pro users
+        if (!isPro) {
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onProUpgradeClick() },
+                color = MaterialTheme.colorScheme.tertiaryContainer,
+                tonalElevation = 2.dp
+            ) {
+                Text(
+                    text = stringResource(R.string.trial_info_banner),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onTertiaryContainer,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    textAlign = TextAlign.Center
+                )
             }
         }
     }
