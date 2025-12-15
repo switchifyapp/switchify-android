@@ -16,6 +16,7 @@ import androidx.savedstate.SavedStateRegistry
 import androidx.savedstate.SavedStateRegistryController
 import androidx.savedstate.SavedStateRegistryOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
+import com.enaboapps.switchify.BuildConfig
 import com.enaboapps.switchify.service.techniques.AccessTechniqueUIBase
 import com.enaboapps.switchify.service.utils.ScreenUtils
 
@@ -120,19 +121,7 @@ class ServiceTrialOverlay(
 
         // Critical state is last 5 minutes (or 5 seconds in debug mode)
         val remainingMs = trialManager.getRemainingTime()
-        val criticalThreshold = if (android.os.Build.VERSION.SDK_INT >= 0) {
-            // Use BuildConfig to check debug mode
-            try {
-                val buildConfigClass = Class.forName("com.enaboapps.switchify.BuildConfig")
-                val debugField = buildConfigClass.getField("DEBUG")
-                val isDebug = debugField.getBoolean(null)
-                if (isDebug) 5000L else 300000L // 5s debug, 5min release
-            } catch (e: Exception) {
-                300000L // Default to 5 minutes if we can't determine
-            }
-        } else {
-            300000L
-        }
+        val criticalThreshold = if (BuildConfig.DEBUG) 5000L else 300000L // 5s debug, 5min release
         isCriticalState = remainingMs in 1..criticalThreshold
 
         // Update the compose view content if it exists
