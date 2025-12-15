@@ -186,6 +186,18 @@ class ServiceTrialManager(
     }
 
     /**
+     * Checks if trial is in warning period (< 10 minutes remaining).
+     * Used by trial overlay to change visual state.
+     * @return true if < 10 minutes remaining (or < 10 seconds in debug mode)
+     */
+    fun isInWarningPeriod(): Boolean {
+        if (!isTrialActive()) return false
+        val remaining = getRemainingTime()
+        val warningThreshold = if (BuildConfig.DEBUG) 10000L else 600000L // 10s debug, 10min release
+        return remaining in 1..warningThreshold
+    }
+
+    /**
      * Schedules the warning before trial expiry.
      */
     private fun scheduleWarning() {

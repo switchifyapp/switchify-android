@@ -158,7 +158,11 @@
     <string name="trial_blocked_device_locked_message">Device locked. New trial start blocked for security.</string>
     <string name="debug_disable_trials_title">Disable Trials</string>
     <string name="debug_disable_trials_summary">Completely disable trial system for unlimited access (debug only)</string>
-    
+
+    <!-- Trial Overlay -->
+    <string name="trial_overlay_label">Trial:</string>
+    <string name="trial_overlay_remaining">remaining</string>
+
     <!-- Legacy Pro Message (for backward compatibility) -->
     <string name="pro_feature_message">All features are now available in trial mode.</string>
 
