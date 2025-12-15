@@ -43,6 +43,7 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
     private lateinit var techniqueEnforcer: TechniqueEnforcer
     private lateinit var deviceLockObserver: DeviceLockObserver
     private lateinit var trialManager: ServiceTrialManager
+    private lateinit var trialOverlay: com.enaboapps.switchify.service.trial.ServiceTrialOverlay
     private lateinit var startupOrchestrator: StartupOrchestrator
     private lateinit var nodeUpdateCoordinator: NodeUpdateCoordinator
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
@@ -86,6 +87,9 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
             deviceLockCheck = { deviceLockObserver.isUserUnlocked() }
         )
 
+        // Initialize trial overlay to show countdown for non-Pro users
+        trialOverlay = com.enaboapps.switchify.service.trial.ServiceTrialOverlay(this, trialManager)
+
         AccessTechnique.init(this.applicationContext)
 
         GlobalActionManager.init(this)
@@ -119,6 +123,16 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
         eventPipeline.start()
 
         setupServiceBridge()
+
+        // Observe Pro status changes to hide overlay when user upgrades
+        serviceScope.launch {
+            IAPHandler.customerInfo.collect { customerInfo ->
+                if (IAPHandler.isPro() && ::trialOverlay.isInitialized) {
+                    trialOverlay.hideOverlay()
+                    trialOverlay.stopUpdates()
+                }
+            }
+        }
 
         techniqueEnforcer.enforceCompatibility()
 
@@ -192,6 +206,12 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
         // Start the 1-hour trial for this service session
         trialManager.startTrial()
 
+        // Show trial overlay for non-Pro users
+        if (trialManager.isTrialActive() && !IAPHandler.isPro()) {
+            trialOverlay.showOverlay()
+            trialOverlay.startUpdates()
+        }
+
         Logger.log(LogEvent.ServiceConnected)
 
         SwitchifyLifecycleOwner.getInstance().handleLifecycleEvent(Lifecycle.Event.ON_START)
@@ -226,6 +246,12 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
     }
 
     override fun onDestroy() {
+        // Hide and stop trial overlay updates
+        if (::trialOverlay.isInitialized) {
+            trialOverlay.hideOverlay()
+            trialOverlay.stopUpdates()
+        }
+
         // Stop the trial when service is destroyed
         if (::trialManager.isInitialized) {
             trialManager.stopTrial()
