@@ -87,9 +87,16 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
         }
     }
 
-    LaunchedEffect(Unit) {
-        if (!isSetupComplete) {
-            navController.navigate(NavigationRoute.Onboarding.name)
+    // Track if we've already navigated to onboarding to prevent race conditions
+    var hasNavigatedToOnboarding by remember { mutableStateOf(false) }
+
+    LaunchedEffect(isSetupComplete) {
+        if (!isSetupComplete && !hasNavigatedToOnboarding) {
+            hasNavigatedToOnboarding = true
+            // Use launchSingleTop to prevent duplicate navigation entries
+            navController.navigate(NavigationRoute.Onboarding.name) {
+                launchSingleTop = true
+            }
         }
         // Initialize RevenueCat (status refreshed automatically by connect())
         IAPHandler.initIfNeeded(context)
