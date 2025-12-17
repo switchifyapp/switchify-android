@@ -74,7 +74,16 @@ fun OnboardingScreen(navController: NavController) {
                 textResId = R.string.onboarding_skip_practice,
                 onClick = {
                     viewModel.completeOnboarding()
-                    navController.popBackStack()
+                    // Safely pop back stack - returns false if navigation fails
+                    if (!navController.popBackStack()) {
+                        // If popBackStack fails, navigate to Home explicitly
+                        navController.navigate(NavigationRoute.Home.name) {
+                            popUpTo(navController.graph.startDestinationId) {
+                                inclusive = false
+                            }
+                            launchSingleTop = true
+                        }
+                    }
                 }
             )
         )
@@ -166,7 +175,16 @@ fun OnboardingScreen(navController: NavController) {
                     OnboardingStep.PRACTICE -> PracticeStep(
                         onComplete = {
                             viewModel.completeOnboarding()
-                            navController.popBackStack()
+                            // Safely pop back stack - returns false if navigation fails
+                            if (!navController.popBackStack()) {
+                                // If popBackStack fails, navigate to Home explicitly
+                                navController.navigate(NavigationRoute.Home.name) {
+                                    popUpTo(navController.graph.startDestinationId) {
+                                        inclusive = false
+                                    }
+                                    launchSingleTop = true
+                                }
+                            }
                         }
                     )
                 }
