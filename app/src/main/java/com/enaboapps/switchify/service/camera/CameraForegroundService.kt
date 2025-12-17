@@ -1,11 +1,13 @@
 package com.enaboapps.switchify.service.camera
 
+import android.Manifest
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.hardware.camera2.CameraManager
 import android.os.Binder
@@ -24,6 +26,7 @@ import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.Observer
 import com.enaboapps.switchify.R
@@ -131,6 +134,15 @@ class CameraForegroundService : Service(), CameraLifecycle {
     override fun onCreate() {
         super.onCreate()
         Log.d(TAG, "Service created")
+
+        // Check for CAMERA permission before starting foreground service
+        // Required for Android API 34+ when using foregroundServiceType="camera"
+        if (!hasCameraPermission()) {
+            Log.e(TAG, "CAMERA permission not granted - cannot start camera foreground service")
+            stopSelf()
+            return
+        }
+
         createNotificationChannel()
         startForeground(NOTIFICATION_ID, createNotification())
 
@@ -666,6 +678,17 @@ class CameraForegroundService : Service(), CameraLifecycle {
         // Configure face processing service (front camera by default)
         faceProcessingService?.setCameraOrientation(rotation, frontCamera = true)
         Log.d(TAG, "Camera orientation configured for coordinate normalization")
+    }
+
+    /**
+     * Check if the CAMERA permission is granted.
+     * Required for Android API 34+ when using foregroundServiceType="camera".
+     */
+    private fun hasCameraPermission(): Boolean {
+        return ContextCompat.checkSelfPermission(
+            this,
+            Manifest.permission.CAMERA
+        ) == PackageManager.PERMISSION_GRANTED
     }
 
     /**
