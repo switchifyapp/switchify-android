@@ -93,24 +93,14 @@ fun AboutSection(navController: NavController? = null) {
                 }
             }
         )
-        Spacer(modifier = Modifier.height(16.dp))
-        ActionButton(
-            textResId = R.string.action_feedback,
-            onClick = {
-                navController?.navigate(NavigationRoute.UserFeedback.name)
-                    ?: run {
-                        try {
-                            val url = "https://switchify.featurebase.app/"
-                            context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri()))
-                        } catch (e: ActivityNotFoundException) {
-                            Toast.makeText(
-                                context,
-                                context.getString(R.string.error_no_app_to_open_link),
-                                Toast.LENGTH_LONG
-                            ).show()
-                        }
-                    }
-            }
-        )
+        navController?.let {
+            Spacer(modifier = Modifier.height(16.dp))
+            ActionButton(
+                textResId = R.string.action_feedback,
+                onClick = {
+                    it.navigate(NavigationRoute.UserFeedback.name)
+                }
+            )
+        }
     }
 }
