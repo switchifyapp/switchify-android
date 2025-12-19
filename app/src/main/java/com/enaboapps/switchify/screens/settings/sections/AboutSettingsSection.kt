@@ -1,6 +1,8 @@
 package com.enaboapps.switchify.screens.settings.sections
 
+import android.content.ActivityNotFoundException
 import android.content.Intent
+import android.widget.Toast
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -65,14 +67,30 @@ fun AboutSection(navController: NavController? = null) {
         ActionButton(
             textResId = R.string.button_website,
             onClick = {
-                context.startActivity(Intent(Intent.ACTION_VIEW, websiteUrl.toUri()))
+                try {
+                    context.startActivity(Intent(Intent.ACTION_VIEW, websiteUrl.toUri()))
+                } catch (e: ActivityNotFoundException) {
+                    Toast.makeText(
+                        context,
+                        context.getString(R.string.error_no_app_to_open_link),
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
             }
         )
         Spacer(modifier = Modifier.height(16.dp))
         ActionButton(
             textResId = R.string.button_privacy_policy,
             onClick = {
-                context.startActivity(Intent(Intent.ACTION_VIEW, privacyPolicyUrl.toUri()))
+                try {
+                    context.startActivity(Intent(Intent.ACTION_VIEW, privacyPolicyUrl.toUri()))
+                } catch (e: ActivityNotFoundException) {
+                    Toast.makeText(
+                        context,
+                        context.getString(R.string.error_no_app_to_open_link),
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
             }
         )
         Spacer(modifier = Modifier.height(16.dp))
@@ -81,8 +99,16 @@ fun AboutSection(navController: NavController? = null) {
             onClick = {
                 navController?.navigate(NavigationRoute.UserFeedback.name)
                     ?: run {
-                        val url = "https://switchify.featurebase.app/"
-                        context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri()))
+                        try {
+                            val url = "https://switchify.featurebase.app/"
+                            context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri()))
+                        } catch (e: ActivityNotFoundException) {
+                            Toast.makeText(
+                                context,
+                                context.getString(R.string.error_no_app_to_open_link),
+                                Toast.LENGTH_LONG
+                            ).show()
+                        }
                     }
             }
         )
