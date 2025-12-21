@@ -2,6 +2,7 @@ package com.enaboapps.switchify.service.menu.menus.quickapps
 
 import com.enaboapps.switchify.service.core.SwitchifyAccessibilityService
 import com.enaboapps.switchify.service.menu.menus.BaseMenu
+import com.enaboapps.switchify.service.menu.structure.MenuConstants
 import com.enaboapps.switchify.service.utils.QuickAppsManager
 
 /**
@@ -12,6 +13,7 @@ class QuickAppsMenu(
 ) : BaseMenu(
     accessibilityService = accessibilityService,
     items = emptyList(),
+    menuId = MenuConstants.MenuIds.QUICK_APPS_MENU,
     dynamicLoad = {
         val quickAppsManager = QuickAppsManager(accessibilityService)
 

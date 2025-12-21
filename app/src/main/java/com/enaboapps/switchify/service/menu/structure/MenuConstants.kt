@@ -16,7 +16,10 @@ object MenuConstants {
         const val TAP_GESTURES_MENU = "tap_gestures_menu"
         const val SWIPE_GESTURES_MENU = "swipe_gestures_menu"
         const val PINCH_GESTURES_MENU = "pinch_gestures_menu"
+        const val FINGER_MODE_MENU = "finger_mode_menu"
+        const val GESTURE_PATTERNS_MENU = "gesture_patterns_menu"
         const val SCROLL_MENU = "scroll_menu"
+        const val QUICK_APPS_MENU = "quick_apps_menu"
         const val MEDIA_CONTROL_MENU = "media_control_menu"
         const val EDIT_MENU = "edit_menu"
     }

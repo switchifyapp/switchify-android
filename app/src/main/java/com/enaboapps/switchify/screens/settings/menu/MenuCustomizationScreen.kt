@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
@@ -51,15 +52,13 @@ fun MenuCustomizationScreen(navController: NavController) {
         enableScroll = false,
         padding = 0.dp,
         floatingActionButton = {
-            if (selectedMenuId == MenuConstants.MenuIds.MAIN_MENU) {
-                FloatingActionButton(
-                    onClick = { screenModel.openPalette() }
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = stringResource(R.string.add_menu_item)
-                    )
-                }
+            FloatingActionButton(
+                onClick = { screenModel.openPalette() }
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = stringResource(R.string.add_menu_item)
+                )
             }
         }
     ) {
@@ -93,11 +92,19 @@ fun MenuCustomizationContent(screenModel: MenuCustomizationScreenModel) {
 
     // Show palette dialog if visible
     if (paletteDialogVisible) {
+        val selectedFilter by screenModel.selectedPaletteFilter.collectAsState()
+
         PaletteDialog(
             items = availablePaletteItems,
+            selectedFilter = selectedFilter,
+            availableMenus = availableMenus,
+            currentMenuId = selectedMenuId,
             onDismiss = { screenModel.closePalette() },
             onAddItem = { sourceMenuId, itemId ->
-                screenModel.addItemToMainMenu(sourceMenuId, itemId)
+                screenModel.addItemToMenu(sourceMenuId, itemId)
+            },
+            onFilterChange = { menuId ->
+                screenModel.setPaletteFilter(menuId)
             }
         )
     }
@@ -167,48 +174,81 @@ fun MenuCustomizationContent(screenModel: MenuCustomizationScreenModel) {
 }
 
 /**
- * Palette dialog showing available menu items that can be added to the main menu.
+ * Palette dialog showing available menu items that can be added to the currently selected menu.
  */
 @Composable
 fun PaletteDialog(
     items: List<PaletteItem>,
+    selectedFilter: String?,
+    availableMenus: List<Pair<String, Int>>,
+    currentMenuId: String,
     onDismiss: () -> Unit,
-    onAddItem: (sourceMenuId: String, itemId: String) -> Unit
+    onAddItem: (sourceMenuId: String, itemId: String) -> Unit,
+    onFilterChange: (String?) -> Unit
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.add_menu_items_title)) },
+        title = {
+            Column {
+                Text(stringResource(R.string.add_menu_items_title))
+                Spacer(modifier = Modifier.height(8.dp))
+                PaletteFilterDropdown(
+                    availableMenus = availableMenus,
+                    currentMenuId = currentMenuId,
+                    selectedFilter = selectedFilter,
+                    onFilterChange = onFilterChange
+                )
+            }
+        },
         text = {
+            // Filter items based on selected filter
+            val filteredItems = if (selectedFilter != null) {
+                items.filter { it.sourceMenuId == selectedFilter }
+            } else {
+                items
+            }
+
             LazyColumn(
                 modifier = Modifier.fillMaxWidth()
             ) {
-                // Group items by source menu
-                val groupedItems = items.groupBy { it.sourceMenuId }
-
-                groupedItems.forEach { (sourceMenuId, menuItems) ->
-                    // Menu section header
+                if (filteredItems.isEmpty()) {
                     item {
                         Text(
-                            text = stringResource(menuItems.first().sourceMenuName),
-                            style = MaterialTheme.typography.titleSmall,
-                            color = MaterialTheme.colorScheme.primary,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(vertical = 8.dp)
+                            text = stringResource(R.string.no_items_available),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(16.dp)
                         )
                     }
+                } else {
+                    // Group items by source menu
+                    val groupedItems = filteredItems.groupBy { it.sourceMenuId }
 
-                    // Menu items
-                    items(menuItems) { paletteItem ->
-                        PaletteItemRow(
-                            item = paletteItem,
-                            onAddClick = {
-                                onAddItem(paletteItem.sourceMenuId, paletteItem.itemId)
-                                onDismiss()
-                            }
-                        )
+                    groupedItems.forEach { (sourceMenuId, menuItems) ->
+                        // Menu section header
+                        item {
+                            Text(
+                                text = stringResource(menuItems.first().sourceMenuName),
+                                style = MaterialTheme.typography.titleSmall,
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(vertical = 8.dp)
+                            )
+                        }
+
+                        // Menu items
+                        items(menuItems) { paletteItem ->
+                            PaletteItemRow(
+                                item = paletteItem,
+                                onAddClick = {
+                                    onAddItem(paletteItem.sourceMenuId, paletteItem.itemId)
+                                    onDismiss()
+                                }
+                            )
+                        }
+
+                        item { Spacer(modifier = Modifier.height(8.dp)) }
                     }
-
-                    item { Spacer(modifier = Modifier.height(8.dp)) }
                 }
             }
         },
@@ -218,6 +258,81 @@ fun PaletteDialog(
             }
         }
     )
+}
+
+/**
+ * Filter dropdown for the palette dialog.
+ * Shows "All" option plus all menus except the current one.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun PaletteFilterDropdown(
+    availableMenus: List<Pair<String, Int>>,
+    currentMenuId: String,
+    selectedFilter: String?,
+    onFilterChange: (String?) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    // Filter out the current menu from the list
+    val filterableMenus = availableMenus.filter { it.first != currentMenuId }
+
+    // Build display value
+    val displayValue = if (selectedFilter == null) {
+        stringResource(R.string.filter_all_menus)
+    } else {
+        filterableMenus.find { it.first == selectedFilter }?.second?.let {
+            stringResource(it)
+        } ?: stringResource(R.string.filter_all_menus)
+    }
+
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = it }
+    ) {
+        OutlinedTextField(
+            value = displayValue,
+            onValueChange = {},
+            readOnly = true,
+            label = { Text(stringResource(R.string.filter_by_menu)) },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            modifier = Modifier
+                .fillMaxWidth()
+                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, true),
+            singleLine = true
+        )
+
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            // "All" option
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.filter_all_menus)) },
+                onClick = {
+                    onFilterChange(null)
+                    expanded = false
+                },
+                leadingIcon = if (selectedFilter == null) {
+                    { Icon(Icons.Default.Check, contentDescription = null) }
+                } else null
+            )
+
+            // Individual menu options
+            filterableMenus.forEach { (menuId, nameResId) ->
+                DropdownMenuItem(
+                    text = { Text(stringResource(nameResId)) },
+                    onClick = {
+                        onFilterChange(menuId)
+                        expanded = false
+                    },
+                    leadingIcon = if (selectedFilter == menuId) {
+                        { Icon(Icons.Default.Check, contentDescription = null) }
+                    } else null
+                )
+            }
+        }
+    }
 }
 
 /**

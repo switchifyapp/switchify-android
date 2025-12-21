@@ -11,7 +11,7 @@ import com.enaboapps.switchify.service.menu.structure.MenuStructure
 import kotlinx.coroutines.CoroutineScope
 
 class ScrollMenuStructure(
-    accessibilityService: SwitchifyAccessibilityService,
+    private val accessibilityService: SwitchifyAccessibilityService,
     private val coroutineScope: CoroutineScope
 ) {
     private val gestureMenuStructure = GestureMenuStructure(accessibilityService, coroutineScope)

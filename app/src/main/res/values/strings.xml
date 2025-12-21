@@ -901,4 +901,9 @@
     <string name="screen_title_select_action">Select Action</string>
     <string name="section_title_recommended">Recommended</string>
     <string name="content_desc_selected">Selected</string>
+
+    <!-- Menu customization filter strings -->
+    <string name="filter_by_menu">Filter by menu</string>
+    <string name="filter_all_menus">All menus</string>
+    <string name="no_items_available">No items available to add</string>
 </resources>

@@ -12,7 +12,6 @@ import com.enaboapps.switchify.service.menu.MenuItem
 import com.enaboapps.switchify.service.menu.MenuManager
 import com.enaboapps.switchify.service.menu.database.MenuConfigurationRepository
 import com.enaboapps.switchify.service.menu.menus.gestures.GestureMenuStructure
-import com.enaboapps.switchify.service.menu.structure.MenuActionResolver
 import com.enaboapps.switchify.service.menu.structure.MenuConstants
 import com.enaboapps.switchify.service.menu.structure.MenuItemRegistry
 import com.enaboapps.switchify.service.menu.structure.MenuStructure
@@ -48,14 +47,13 @@ class MainMenuStructure(
      * The returned menu reflects current conditions such as keyboard visibility,
      * device lock state, access technique, camera permission, and gesture context.
      * Items include system navigation, scanning and technique switches, gesture and
-     * media submenus, head-control toggle, quick apps, edit actions, pause, and
-     * any user-added items from other menus.
+     * media submenus, head-control toggle, quick apps, edit actions, and pause.
      *
      * @return A MenuStructure representing the main menu configured for the current state.
      */
     fun buildMainMenuObject() = MenuStructure(
         id = MenuConstants.MenuIds.MAIN_MENU,
-        items = buildDefaultItems() + buildUserAddedItems(),
+        items = buildDefaultItems(),
         context = accessibilityService,
         coroutineScope = coroutineScope
     )
@@ -197,41 +195,6 @@ class MainMenuStructure(
                 )
             }
         )
-
-    /**
-     * Builds menu items that were added by the user from other menus.
-     * Uses MenuActionResolver to bind the appropriate actions for each item.
-     *
-     * Note: Uses runBlocking as this is called during menu construction.
-     * The operation is fast as it only queries the local database.
-     */
-    private fun buildUserAddedItems(): List<MenuItem> {
-        return try {
-            kotlinx.coroutines.runBlocking {
-                val userAddedConfigs = repository.getUserAddedItems(MenuConstants.MenuIds.MAIN_MENU)
-
-                userAddedConfigs.mapNotNull { config ->
-                    val sourceMenuId = config.sourceMenuId ?: return@mapNotNull null
-                    val definition = MenuItemRegistry.getDefinition(sourceMenuId, config.itemId)
-                        ?: return@mapNotNull null
-
-                    val action = MenuActionResolver.resolveAction(
-                        sourceMenuId = sourceMenuId,
-                        itemId = config.itemId,
-                        accessibilityService = accessibilityService,
-                        coroutineScope = coroutineScope
-                    )
-
-                    MenuItem(
-                        definition = definition,
-                        action = action
-                    )
-                }
-            }
-        } catch (e: Exception) {
-            emptyList()
-        }
-    }
 
     val menuManipulatorItems = listOfNotNull(
         MenuItem(

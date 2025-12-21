@@ -63,6 +63,9 @@ class MenuCustomizationScreenModel(application: Application) : ViewModel() {
     private val _userAddedItemIds = MutableStateFlow<Set<String>>(emptySet())
     val userAddedItemIds: StateFlow<Set<String>> = _userAddedItemIds.asStateFlow()
 
+    private val _selectedPaletteFilter = MutableStateFlow<String?>(null)
+    val selectedPaletteFilter: StateFlow<String?> = _selectedPaletteFilter.asStateFlow()
+
 
     // Item IDs that are submenu links (not leaf action items)
     private val submenuLinkItemIds = setOf(
@@ -115,22 +118,18 @@ class MenuCustomizationScreenModel(application: Application) : ViewModel() {
                 !it.isSmall && !it.isMenuHierarchyManipulator
             }
 
-            // Load user-added items if this is the main menu
-            val userAddedItems = if (menuId == MenuConstants.MenuIds.MAIN_MENU) {
-                val userConfigs = repository.getUserAddedItems(menuId)
+            // Load user-added items for this menu
+            val userConfigs = repository.getUserAddedItems(menuId)
 
-                userConfigs.mapNotNull { config ->
-                    val sourceMenuId = config.sourceMenuId ?: return@mapNotNull null
-                    val definition = MenuItemRegistry.getDefinition(sourceMenuId, config.itemId)
-                        ?: return@mapNotNull null
+            val userAddedItems = userConfigs.mapNotNull { config ->
+                val sourceMenuId = config.sourceMenuId ?: return@mapNotNull null
+                val definition = MenuItemRegistry.getDefinition(sourceMenuId, config.itemId)
+                    ?: return@mapNotNull null
 
-                    MenuItem(
-                        definition = definition,
-                        action = {} // Empty action for customization UI
-                    )
-                }
-            } else {
-                emptyList()
+                MenuItem(
+                    definition = definition,
+                    action = {} // Empty action for customization UI
+                )
             }
 
             // Combine default and user-added items
@@ -266,13 +265,11 @@ class MenuCustomizationScreenModel(application: Application) : ViewModel() {
     }
 
     /**
-     * Opens the palette dialog and loads available items.
-     * Only available for the main menu.
+     * Opens the palette dialog and loads available items from other menus.
      */
     fun openPalette() {
-        if (_selectedMenuId.value != MenuConstants.MenuIds.MAIN_MENU) return
-
         viewModelScope.launch {
+            _selectedPaletteFilter.value = null  // Reset filter to "All"
             loadAvailablePaletteItems()
             _paletteDialogVisible.value = true
         }
@@ -286,25 +283,25 @@ class MenuCustomizationScreenModel(application: Application) : ViewModel() {
     }
 
     /**
+     * Updates the filter for the palette dialog.
+     *
+     * @param menuId The menu ID to filter by, or null for "All"
+     */
+    fun setPaletteFilter(menuId: String?) {
+        _selectedPaletteFilter.value = menuId
+    }
+
+    /**
      * Loads all available menu items from other menus, filtering out submenu links
-     * and marking items that are already in the main menu.
+     * and marking items that are already in the currently selected menu.
      */
     private suspend fun loadAvailablePaletteItems() {
-        val currentMainMenuItems = _menuItems.value.map { it.id }.toSet()
+        val currentMenuId = _selectedMenuId.value
+        val currentMenuItems = _menuItems.value.map { it.id }.toSet()
         val paletteItems = mutableListOf<PaletteItem>()
 
-        // Define source menus and their names
-        val sourceMenus = listOf(
-            MenuConstants.MenuIds.DEVICE_MENU to R.string.menu_title_device,
-            MenuConstants.MenuIds.VOLUME_CONTROL_MENU to R.string.action_volume_control,
-            MenuConstants.MenuIds.GESTURES_MENU to R.string.menu_title_gestures,
-            MenuConstants.MenuIds.TAP_GESTURES_MENU to R.string.menu_title_tap,
-            MenuConstants.MenuIds.SWIPE_GESTURES_MENU to R.string.menu_title_swipe,
-            MenuConstants.MenuIds.PINCH_GESTURES_MENU to R.string.menu_title_pinch,
-            MenuConstants.MenuIds.SCROLL_MENU to R.string.menu_title_scroll,
-            MenuConstants.MenuIds.MEDIA_CONTROL_MENU to R.string.menu_title_media,
-            MenuConstants.MenuIds.EDIT_MENU to R.string.menu_title_edit
-        )
+        // Filter out the currently selected menu (can't add items from itself)
+        val sourceMenus = availableMenus.value.filter { it.first != currentMenuId }
 
         for ((menuId, menuNameRes) in sourceMenus) {
             val definitions = MenuItemRegistry.getDefinitionsForMenu(menuId)
@@ -313,13 +310,16 @@ class MenuCustomizationScreenModel(application: Application) : ViewModel() {
                 // Skip submenu links
                 if (submenuLinkItemIds.contains(definition.id)) continue
 
+                // Skip items that are small or hierarchy manipulators
+                if (definition.isSmall || definition.isMenuHierarchyManipulator) continue
+
                 paletteItems.add(
                     PaletteItem(
                         sourceMenuId = menuId,
                         sourceMenuName = menuNameRes,
                         itemId = definition.id,
                         definition = definition,
-                        isAlreadyAdded = currentMainMenuItems.contains(definition.id)
+                        isAlreadyAdded = currentMenuItems.contains(definition.id)
                     )
                 )
             }
@@ -329,15 +329,20 @@ class MenuCustomizationScreenModel(application: Application) : ViewModel() {
     }
 
     /**
-     * Adds an item from another menu to the main menu.
+     * Adds an item from another menu to the currently selected menu.
+     *
+     * @param sourceMenuId The ID of the source menu where the item originates
+     * @param itemId The ID of the menu item to add
      */
-    fun addItemToMainMenu(sourceMenuId: String, itemId: String) {
+    fun addItemToMenu(sourceMenuId: String, itemId: String) {
         viewModelScope.launch {
             try {
+                val targetMenuId = _selectedMenuId.value
+
                 repository.addUserItemToMenu(
                     sourceMenuId = sourceMenuId,
                     itemId = itemId,
-                    targetMenuId = MenuConstants.MenuIds.MAIN_MENU
+                    targetMenuId = targetMenuId
                 )
 
                 // Reload menu items to show the newly added item
@@ -352,11 +357,12 @@ class MenuCustomizationScreenModel(application: Application) : ViewModel() {
     }
 
     /**
-     * Removes a user-added item from the main menu.
+     * Removes a user-added item from the currently selected menu.
      */
     fun removeUserItem(itemId: String) {
         viewModelScope.launch {
-            repository.removeUserItem(MenuConstants.MenuIds.MAIN_MENU, itemId)
+            val menuId = _selectedMenuId.value
+            repository.removeUserItem(menuId, itemId)
 
             // Reload menu items
             loadMenuItems()

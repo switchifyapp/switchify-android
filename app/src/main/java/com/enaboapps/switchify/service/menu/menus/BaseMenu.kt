@@ -6,11 +6,13 @@ import com.enaboapps.switchify.service.menu.MenuItem
 import com.enaboapps.switchify.service.menu.MenuManager
 import com.enaboapps.switchify.service.menu.MenuView
 import com.enaboapps.switchify.service.menu.structure.MenuStructureHolder
+import com.enaboapps.switchify.service.menu.structure.MenuUserItemsHelper
 
 /**
  * This class represents a base menu
  * @property accessibilityService The accessibility service
  * @property items The menu items
+ * @property menuId The menu ID for loading user-added items (if applicable)
  * @property dynamicLoad The suspend function that loads dynamic menu items
  * @property showSystemNavItems Whether to show system navigation items
  * @property showNavMenuItems Whether to show navigation menu items
@@ -18,15 +20,24 @@ import com.enaboapps.switchify.service.menu.structure.MenuStructureHolder
 open class BaseMenu(
     private val accessibilityService: SwitchifyAccessibilityService,
     private val items: List<MenuItem>,
+    private val menuId: String? = null,
     private val dynamicLoad: (suspend () -> List<MenuItem>)? = null,
     private val showNavMenuItems: Boolean = true
 ) {
     /**
      * Get the menu items with automatic previous menu button when applicable
+     * and user-added items if a menuId is provided
      * @return The menu items with previous menu button prepended if not at first menu
      */
     fun getMenuItems(): List<MenuItem> {
         val isAtFirstMenu = MenuManager.getInstance().menuHierarchy?.isAtFirstMenu() ?: true
+
+        // Load user-added items if menuId is provided
+        val userAddedItems = menuId?.let {
+            MenuUserItemsHelper.loadUserAddedItems(it, accessibilityService, accessibilityService.getServiceScope())
+        } ?: emptyList()
+
+        val allItems = items + userAddedItems
 
         return if (!isAtFirstMenu && showNavMenuItems) {
             val previousMenuItem = MenuItem(
@@ -36,9 +47,9 @@ open class BaseMenu(
                 isLinkToMenu = true,
                 action = { MenuManager.getInstance().menuHierarchy?.popMenu() }
             )
-            listOf(previousMenuItem) + items
+            listOf(previousMenuItem) + allItems
         } else {
-            items
+            allItems
         }
     }
 
