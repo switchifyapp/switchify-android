@@ -51,6 +51,11 @@ fun InAppUpdateBar(
     var isDownloading by remember { mutableStateOf(false) }
     var progress by remember { mutableFloatStateOf(0f) }
 
+    val updateDownloadedMessage = stringResource(R.string.update_downloaded_ready_to_install)
+    val updateInstallingMessage = stringResource(R.string.update_installing_automatically)
+    val updateInstalledMessage = stringResource(R.string.update_installed_successfully)
+    val updatePendingMessage = stringResource(R.string.update_pending_install_reminder)
+
     val listener = remember {
         InstallStateUpdatedListener { state ->
             when (state.installStatus()) {
@@ -66,7 +71,7 @@ fun InAppUpdateBar(
                     Log.d("InAppUpdateBar", "Update downloaded, auto-installing in 2 seconds")
                     Toast.makeText(
                         context,
-                        context.getString(R.string.update_downloaded_ready_to_install),
+                        updateDownloadedMessage,
                         Toast.LENGTH_LONG
                     ).show()
 
@@ -75,7 +80,7 @@ fun InAppUpdateBar(
                         Log.d("InAppUpdateBar", "Starting automatic update installation")
                         Toast.makeText(
                             context,
-                            context.getString(R.string.update_installing_automatically),
+                            updateInstallingMessage,
                             Toast.LENGTH_SHORT
                         ).show()
                         appUpdateManager.completeUpdate()
@@ -91,7 +96,7 @@ fun InAppUpdateBar(
                     isDownloading = false
                     Toast.makeText(
                         context,
-                        context.getString(R.string.update_installed_successfully),
+                        updateInstalledMessage,
                         Toast.LENGTH_SHORT
                     ).show()
                 }
@@ -121,7 +126,7 @@ fun InAppUpdateBar(
                 )
                 Toast.makeText(
                     context,
-                    context.getString(R.string.update_downloaded_ready_to_install),
+                    updateDownloadedMessage,
                     Toast.LENGTH_LONG
                 ).show()
 
@@ -130,7 +135,7 @@ fun InAppUpdateBar(
                     Log.d("InAppUpdateBar", "Auto-installing previously downloaded update")
                     Toast.makeText(
                         context,
-                        context.getString(R.string.update_installing_automatically),
+                        updateInstallingMessage,
                         Toast.LENGTH_SHORT
                     ).show()
                     appUpdateManager.completeUpdate()
@@ -157,7 +162,7 @@ fun InAppUpdateBar(
                         )
                         Toast.makeText(
                             context,
-                            context.getString(R.string.update_pending_install_reminder),
+                            updatePendingMessage,
                             Toast.LENGTH_SHORT
                         ).show()
 
@@ -166,7 +171,7 @@ fun InAppUpdateBar(
                             Log.d("InAppUpdateBar", "Auto-installing update after app resume")
                             Toast.makeText(
                                 context,
-                                context.getString(R.string.update_installing_automatically),
+                                updateInstallingMessage,
                                 Toast.LENGTH_SHORT
                             ).show()
                             appUpdateManager.completeUpdate()

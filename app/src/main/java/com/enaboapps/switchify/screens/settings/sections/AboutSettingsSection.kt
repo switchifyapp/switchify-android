@@ -64,6 +64,7 @@ fun AboutSection(navController: NavController? = null) {
             )
         }
         Spacer(modifier = Modifier.height(24.dp))
+        val errorMessage = stringResource(R.string.error_no_app_to_open_link)
         ActionButton(
             textResId = R.string.button_website,
             onClick = {
@@ -72,7 +73,7 @@ fun AboutSection(navController: NavController? = null) {
                 } catch (e: ActivityNotFoundException) {
                     Toast.makeText(
                         context,
-                        context.getString(R.string.error_no_app_to_open_link),
+                        errorMessage,
                         Toast.LENGTH_LONG
                     ).show()
                 }
@@ -87,7 +88,7 @@ fun AboutSection(navController: NavController? = null) {
                 } catch (e: ActivityNotFoundException) {
                     Toast.makeText(
                         context,
-                        context.getString(R.string.error_no_app_to_open_link),
+                        errorMessage,
                         Toast.LENGTH_LONG
                     ).show()
                 }
