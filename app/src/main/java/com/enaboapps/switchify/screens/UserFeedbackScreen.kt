@@ -52,6 +52,8 @@ fun UserFeedbackScreen(navController: NavController) {
     val context = LocalContext.current
     val focusManager = LocalFocusManager.current
 
+    val feedbackErrorEmpty = stringResource(R.string.feedback_error_empty)
+
     // Auto-fill email if user is signed in
     LaunchedEffect(Unit) {
         val authRepository = AuthRepository.instance
@@ -182,7 +184,7 @@ fun UserFeedbackScreen(navController: NavController) {
                     textResId = R.string.feedback_submit,
                     onClick = {
                         if (feedbackText.trim().isBlank()) {
-                            errorMessage = context.getString(R.string.feedback_error_empty)
+                            errorMessage = feedbackErrorEmpty
                             return@ActionButton
                         }
 

@@ -63,6 +63,8 @@ fun GesturePatternsScreen(navController: NavController) {
     var showDeleteConfirmation by remember { mutableStateOf(false) }
     var patternToDelete by remember { mutableStateOf<GesturePattern?>(null) }
 
+    val patternDeletedMessage = stringResource(R.string.pattern_deleted_message)
+
     // Edit Dialog
     if (isEditDialogVisible && selectedPattern != null) {
         EditPatternNameDialog(
@@ -81,7 +83,7 @@ fun GesturePatternsScreen(navController: NavController) {
                 viewModel.deletePattern(patternToDelete!!)
                 Toast.makeText(
                     context,
-                    context.getString(R.string.pattern_deleted_message),
+                    patternDeletedMessage,
                     Toast.LENGTH_SHORT
                 ).show()
                 showDeleteConfirmation = false

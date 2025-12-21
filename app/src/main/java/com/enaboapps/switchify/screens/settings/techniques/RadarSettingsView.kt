@@ -2,6 +2,7 @@ package com.enaboapps.switchify.screens.settings.techniques
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.components.PreferenceSwitch
 import com.enaboapps.switchify.components.PreferenceValueSelector
@@ -15,6 +16,9 @@ fun RadarSettingsView() {
 
     // Initialize RadarSettings
     RadarSettings.init(context)
+
+    val radarPositionTop = stringResource(R.string.radar_position_top)
+    val radarPositionBottom = stringResource(R.string.radar_position_bottom)
 
     Section(titleResId = R.string.section_title_radar_speed) {
         RadarSpeedStepper()
@@ -41,15 +45,15 @@ fun RadarSettingsView() {
             values = intArrayOf(0, 1),
             buttonLabelFormatter = { index ->
                 when (index) {
-                    0 -> context.getString(R.string.radar_position_top)
-                    1 -> context.getString(R.string.radar_position_bottom)
+                    0 -> radarPositionTop
+                    1 -> radarPositionBottom
                     else -> ""
                 }
             },
             displayFormatter = { index ->
                 when (index) {
-                    0 -> context.getString(R.string.radar_position_top)
-                    1 -> context.getString(R.string.radar_position_bottom)
+                    0 -> radarPositionTop
+                    1 -> radarPositionBottom
                     else -> ""
                 }
             },
