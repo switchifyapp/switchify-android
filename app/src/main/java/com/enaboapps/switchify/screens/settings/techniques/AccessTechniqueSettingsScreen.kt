@@ -1,7 +1,7 @@
 package com.enaboapps.switchify.screens.settings.techniques
 
+import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -31,7 +31,7 @@ fun AccessTechniqueSettingsScreen(navController: NavController) {
             R.string.settings_tab_item_scan
         )
 
-        TabRow(selectedTabIndex = selectedTabIndex) {
+        PrimaryTabRow(selectedTabIndex = selectedTabIndex) {
             tabs.forEachIndexed { index, tabResId ->
                 Tab(
                     selected = selectedTabIndex == index,

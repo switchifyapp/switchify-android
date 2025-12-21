@@ -2,8 +2,8 @@ package com.enaboapps.switchify.screens.settings
 
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -68,7 +68,7 @@ fun SettingsScreen(navController: NavController) {
         padding = 0.dp,
         enableScroll = false
     ) {
-        TabRow(selectedTabIndex = selectedTabIndex) {
+        PrimaryTabRow(selectedTabIndex = selectedTabIndex) {
             listOf(
                 R.string.settings_tab_general,
                 R.string.settings_tab_scanning,
