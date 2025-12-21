@@ -1,6 +1,7 @@
 package com.enaboapps.switchify.service.camera
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -24,6 +25,8 @@ class CameraPermissionManager(private val context: Context) {
         private const val TAG = "CameraPermissionManager"
         private const val PERMISSION_CHECK_INTERVAL = 5000L // Check every 5 seconds
 
+        // Safe: Uses applicationContext to avoid memory leaks
+        @SuppressLint("StaticFieldLeak")
         @Volatile
         private var INSTANCE: CameraPermissionManager? = null
 

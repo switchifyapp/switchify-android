@@ -1,5 +1,6 @@
 package com.enaboapps.switchify.service.techniques.headcontrol
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.util.Log
 import com.enaboapps.switchify.BuildConfig
@@ -18,6 +19,8 @@ class HeadControlService private constructor(private val context: Context) {
     companion object {
         private const val TAG = "HeadControlService"
 
+        // Safe: Uses applicationContext to avoid memory leaks
+        @SuppressLint("StaticFieldLeak")
         @Volatile
         private var INSTANCE: HeadControlService? = null
 

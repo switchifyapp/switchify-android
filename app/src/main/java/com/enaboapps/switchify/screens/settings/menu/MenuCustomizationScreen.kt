@@ -39,7 +39,9 @@ import com.enaboapps.switchify.service.menu.structure.MenuConstants
 @Composable
 fun MenuCustomizationScreen(navController: NavController) {
     val context = LocalContext.current
-    val screenModel: MenuCustomizationScreenModel = viewModel { MenuCustomizationScreenModel(context) }
+    val screenModel: MenuCustomizationScreenModel = viewModel {
+        MenuCustomizationScreenModel(context.applicationContext as android.app.Application)
+    }
 
     val selectedMenuId by screenModel.selectedMenuId.collectAsState()
 

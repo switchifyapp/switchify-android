@@ -1,6 +1,6 @@
 package com.enaboapps.switchify.screens.settings.menu.models
 
-import android.content.Context
+import android.app.Application
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.enaboapps.switchify.R
@@ -25,9 +25,9 @@ data class PaletteItem(
     val isAlreadyAdded: Boolean
 )
 
-class MenuCustomizationScreenModel(private val context: Context) : ViewModel() {
+class MenuCustomizationScreenModel(application: Application) : ViewModel() {
 
-    private val repository = MenuConfigurationRepository(context)
+    private val repository = MenuConfigurationRepository(application)
 
     // Available menus with their display names
     val availableMenus = MutableStateFlow(
