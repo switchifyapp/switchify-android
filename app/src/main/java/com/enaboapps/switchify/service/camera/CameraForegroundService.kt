@@ -345,13 +345,17 @@ class CameraForegroundService : Service(), CameraLifecycle {
      * Set up image analysis pipeline
      */
     private fun setupImageAnalysis() {
+        val resolutionSelector = androidx.camera.core.resolutionselector.ResolutionSelector.Builder()
+            .setResolutionFilter { supportedSizes, _ ->
+                supportedSizes.filter { size ->
+                    size.width <= IMAGE_ANALYSIS_TARGET_RESOLUTION_WIDTH &&
+                    size.height <= IMAGE_ANALYSIS_TARGET_RESOLUTION_HEIGHT
+                }
+            }
+            .build()
+
         imageAnalysis = ImageAnalysis.Builder()
-            .setTargetResolution(
-                android.util.Size(
-                    IMAGE_ANALYSIS_TARGET_RESOLUTION_WIDTH,
-                    IMAGE_ANALYSIS_TARGET_RESOLUTION_HEIGHT
-                )
-            )
+            .setResolutionSelector(resolutionSelector)
             .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
             .setImageQueueDepth(1)
             .build()

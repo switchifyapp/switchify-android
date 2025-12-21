@@ -61,8 +61,8 @@ object PinchGesturePerformer {
 
         // Show visual feedback
         pinchVisual?.start(
-            centerPoint.x.toFloat(),
-            centerPoint.y.toFloat(),
+            centerPoint.x,
+            centerPoint.y,
             visualCircleSize,
             GestureData.PINCH_DURATION,
             type == GestureType.PINCH_OUT

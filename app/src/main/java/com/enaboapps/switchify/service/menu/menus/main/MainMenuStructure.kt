@@ -193,7 +193,7 @@ class MainMenuStructure(
             MenuItemRegistry.getMainMenuDefinition("pause")?.let { def ->
                 MenuItem(
                     definition = def,
-                    action = { ServiceCore.getPauseManager()?.startPause() }
+                    action = { ServiceCore.getPauseManager().startPause() }
                 )
             }
         )

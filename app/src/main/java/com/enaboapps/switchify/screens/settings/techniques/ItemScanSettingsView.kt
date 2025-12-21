@@ -106,7 +106,7 @@ fun ItemScanSettingsView() {
                     item
                 )
             },
-            itemToString = { it.toString() },
+            itemToString = { it },
             itemDescription = { Resources.getString(R.string.preference_summary_scan_cycles) }
         )
     }

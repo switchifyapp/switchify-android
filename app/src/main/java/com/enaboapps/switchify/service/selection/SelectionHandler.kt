@@ -95,7 +95,7 @@ object SelectionHandler {
         }
 
         GestureStateManager.setMethodTypeForStartScanning(
-            AccessTechnique.getCurrentTechnique().toString()
+            AccessTechnique.getCurrentTechnique()
         )
 
         // If bypass auto-select is enabled, perform the selection action and return
@@ -150,9 +150,7 @@ object SelectionHandler {
         CoroutineScope(Dispatchers.Main).launch {
             delay(300)
             if (scanSettings.getAutomaticallyStartScanAfterSelection()) {
-                if (GestureStateManager.getMethodTypeForStartScanning() == AccessTechnique.getCurrentTechnique()
-                        .toString()
-                ) {
+                if (GestureStateManager.getMethodTypeForStartScanning() == AccessTechnique.getCurrentTechnique()) {
                     startScanningAction?.invoke()
                 }
             }

@@ -99,7 +99,7 @@ private fun BlockSettingsView() {
                 currentBlockCount = item.toInt()
                 PointScanSettings.setCursorBlockCount(item.toInt(), context)
             },
-            itemToString = { it.toString() },
+            itemToString = { it },
             itemDescription = { value ->
                 Resources.getString(
                     R.string.preference_summary_grid_size_dynamic,

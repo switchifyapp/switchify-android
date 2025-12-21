@@ -150,5 +150,6 @@ class PointScanBlockDrawable : Drawable() {
         invalidateSelf()
     }
 
+    @Deprecated("Deprecated in Java")
     override fun getOpacity(): Int = PixelFormat.TRANSLUCENT
 }
