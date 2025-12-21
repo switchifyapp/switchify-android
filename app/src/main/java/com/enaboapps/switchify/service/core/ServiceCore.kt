@@ -48,7 +48,7 @@ object ServiceCore {
      * @return The scanning manager instance or null if not initialized.
      */
     fun getScanningManager(): ScanningManager? {
-        return scanningManagerRef.get()
+        return if (::scanningManagerRef.isInitialized) scanningManagerRef.get() else null
     }
 
     /**
@@ -56,7 +56,7 @@ object ServiceCore {
      * @return The external switch listener instance or null if not initialized.
      */
     fun getExternalSwitchListener(): ExternalSwitchListener? {
-        return externalSwitchListenerRef.get()
+        return if (::externalSwitchListenerRef.isInitialized) externalSwitchListenerRef.get() else null
     }
 
     /**
@@ -64,7 +64,7 @@ object ServiceCore {
      * @return The switch event provider instance or null if not initialized.
      */
     fun getSwitchEventProvider(): SwitchEventProvider? {
-        return switchEventProviderRef.get()
+        return if (::switchEventProviderRef.isInitialized) switchEventProviderRef.get() else null
     }
 
     /**
@@ -80,7 +80,7 @@ object ServiceCore {
      * @return The head control service instance or null if not initialized.
      */
     fun getHeadControlService(): HeadControlService? {
-        return headControlServiceRef.get()
+        return if (::headControlServiceRef.isInitialized) headControlServiceRef.get() else null
     }
 
     /**
@@ -96,19 +96,29 @@ object ServiceCore {
      * @return The camera manager instance or null if not initialized.
      */
     fun getCameraManager(): CameraManager? {
-        return cameraManagerRef.get()
+        return if (::cameraManagerRef.isInitialized) cameraManagerRef.get() else null
     }
 
     /**
      * Cleans up the service core.
      */
     fun cleanup() {
-        scanningManagerRef.get()?.shutdown()
-        headControlServiceRef.get()?.cleanup()
-        scanningManagerRef = WeakReference(null)
-        switchEventProviderRef = WeakReference(null)
-        externalSwitchListenerRef = WeakReference(null)
-        headControlServiceRef = WeakReference(null)
-        cameraManagerRef = WeakReference(null)
+        if (::scanningManagerRef.isInitialized) {
+            scanningManagerRef.get()?.shutdown()
+            scanningManagerRef = WeakReference(null)
+        }
+        if (::headControlServiceRef.isInitialized) {
+            headControlServiceRef.get()?.cleanup()
+            headControlServiceRef = WeakReference(null)
+        }
+        if (::switchEventProviderRef.isInitialized) {
+            switchEventProviderRef = WeakReference(null)
+        }
+        if (::externalSwitchListenerRef.isInitialized) {
+            externalSwitchListenerRef = WeakReference(null)
+        }
+        if (::cameraManagerRef.isInitialized) {
+            cameraManagerRef = WeakReference(null)
+        }
     }
 }
