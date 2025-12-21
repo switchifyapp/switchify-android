@@ -193,7 +193,7 @@ object NodeExaminer {
         val sortedNodes = nodes.sortedBy { node ->
             try {
                 val bounds = node.getBounds()
-                if (bounds?.isEmpty == false) bounds.width() * bounds.height() else Int.MAX_VALUE
+                if (bounds.isEmpty == false) bounds.width() * bounds.height() else Int.MAX_VALUE
             } catch (e: Exception) {
                 Int.MAX_VALUE
             }
@@ -210,7 +210,7 @@ object NodeExaminer {
                 continue
             }
 
-            if (boundsA?.isEmpty != false) continue
+            if (boundsA.isEmpty != false) continue
 
             // Only check against larger nodes (those that come after in sorted order)
             for (j in (i + 1) until sortedNodes.size) {
@@ -221,7 +221,7 @@ object NodeExaminer {
                     continue
                 }
 
-                if (boundsB?.isEmpty != false) continue
+                if (boundsB.isEmpty != false) continue
 
                 // If nodeB contains nodeA, mark nodeB for removal (keep the smaller nodeA)
                 if (boundsB.contains(boundsA) && boundsB != boundsA) {

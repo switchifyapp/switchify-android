@@ -70,7 +70,7 @@ fun SwitchActionField(
     LaunchedEffect(resultActionId, waitingForResult) {
         if (waitingForResult && resultActionId != null) {
             onChange(SwitchAction(resultActionId))
-            savedStateHandle?.remove<Int>(SELECTED_ACTION_ID_KEY)
+            savedStateHandle.remove<Int>(SELECTED_ACTION_ID_KEY)
             waitingForResult = false
         }
     }

@@ -628,10 +628,8 @@ class LinearGesturePerformer(
      * @return Screen bounds rectangle, or default bounds if service unavailable
      */
     private fun getScreenBounds(): Rect {
-        return accessibilityService?.let { service ->
-            val displayMetrics = service.resources.displayMetrics
-            Rect(0, 0, displayMetrics.widthPixels, displayMetrics.heightPixels)
-        } ?: Rect(0, 0, 1080, 1920) // Default bounds as fallback
+        val displayMetrics = accessibilityService.resources.displayMetrics
+        return Rect(0, 0, displayMetrics.widthPixels, displayMetrics.heightPixels)
     }
 
     /**
