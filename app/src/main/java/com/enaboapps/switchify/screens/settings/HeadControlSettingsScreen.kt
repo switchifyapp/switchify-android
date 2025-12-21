@@ -547,16 +547,31 @@ private fun HeadControlTestContent(
         HeadControlTestTabModel(context.applicationContext as android.app.Application)
     }
 
-    val configuration = LocalConfiguration.current
     val density = LocalDensity.current
 
-    // Screen dimensions
-    val screenWidthDp = configuration.screenWidthDp.dp
-    val screenHeightDp = configuration.screenHeightDp.dp
+    // Get actual window metrics for accurate dimensions
+    val windowMetrics = remember {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+            val windowManager = context.getSystemService(android.view.WindowManager::class.java)
+            windowManager.currentWindowMetrics
+        } else {
+            null
+        }
+    }
 
-    // Convert to pixels for calculations
-    val screenWidthPx = with(density) { screenWidthDp.toPx() }
-    val screenHeightPx = with(density) { screenHeightDp.toPx() }
+    // Screen dimensions - use WindowMetrics for API 30+, fallback to display metrics
+    val screenWidthPx = remember {
+        windowMetrics?.bounds?.width()?.toFloat() ?: run {
+            @Suppress("DEPRECATION")
+            context.resources.displayMetrics.widthPixels.toFloat()
+        }
+    }
+    val screenHeightPx = remember {
+        windowMetrics?.bounds?.height()?.toFloat() ?: run {
+            @Suppress("DEPRECATION")
+            context.resources.displayMetrics.heightPixels.toFloat()
+        }
+    }
 
     // Ball state
     var ballX by remember { mutableFloatStateOf(screenWidthPx / 2f) }
