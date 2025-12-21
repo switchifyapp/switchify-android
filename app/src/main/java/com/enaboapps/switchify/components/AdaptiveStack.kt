@@ -1,6 +1,7 @@
 package com.enaboapps.switchify.components
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
@@ -41,29 +42,36 @@ fun AdaptiveStack(
     verticalAlignment: Alignment.Vertical = Alignment.CenterVertically,
     content: @Composable AdaptiveStackScope.() -> Unit
 ) {
-    val configuration = LocalConfiguration.current
-    val isTablet = configuration.screenWidthDp >= 600 && configuration.smallestScreenWidthDp >= 600
-    val isPhone = !isTablet
+    BoxWithConstraints(modifier = modifier) {
+        val configuration = LocalConfiguration.current
 
-    if (isPhone) {
-        // Vertical layout for phones
-        Column(
-            modifier = modifier,
-            horizontalAlignment = horizontalAlignment,
-            verticalArrangement = Arrangement.spacedBy(spacing)
-        ) {
-            val scope = AdaptiveStackScope(true, this, null)
-            scope.content()
-        }
-    } else {
-        // Horizontal layout for tablets
-        Row(
-            modifier = modifier,
-            verticalAlignment = verticalAlignment,
-            horizontalArrangement = Arrangement.spacedBy(spacing)
-        ) {
-            val scope = AdaptiveStackScope(false, null, this)
-            scope.content()
+        // Use actual available width from BoxWithConstraints instead of Configuration
+        val availableWidthDp = maxWidth
+        val smallestScreenWidthDp = configuration.smallestScreenWidthDp.dp
+
+        val isTablet = availableWidthDp >= 600.dp && smallestScreenWidthDp >= 600.dp
+        val isPhone = !isTablet
+
+        if (isPhone) {
+            // Vertical layout for phones
+            Column(
+                modifier = Modifier,
+                horizontalAlignment = horizontalAlignment,
+                verticalArrangement = Arrangement.spacedBy(spacing)
+            ) {
+                val scope = AdaptiveStackScope(true, this, null)
+                scope.content()
+            }
+        } else {
+            // Horizontal layout for tablets
+            Row(
+                modifier = Modifier,
+                verticalAlignment = verticalAlignment,
+                horizontalArrangement = Arrangement.spacedBy(spacing)
+            ) {
+                val scope = AdaptiveStackScope(false, null, this)
+                scope.content()
+            }
         }
     }
 }
