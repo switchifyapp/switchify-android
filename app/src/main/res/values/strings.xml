@@ -906,4 +906,5 @@
     <string name="filter_by_menu">Filter by menu</string>
     <string name="filter_all_menus">All menus</string>
     <string name="no_items_available">No items available to add</string>
+    <string name="selected">Selected</string>
 </resources>

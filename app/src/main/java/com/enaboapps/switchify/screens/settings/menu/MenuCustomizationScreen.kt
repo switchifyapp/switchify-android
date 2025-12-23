@@ -314,7 +314,7 @@ fun PaletteFilterDropdown(
                     expanded = false
                 },
                 leadingIcon = if (selectedFilter == null) {
-                    { Icon(Icons.Default.Check, contentDescription = null) }
+                    { Icon(Icons.Default.Check, contentDescription = stringResource(R.string.selected)) }
                 } else null
             )
 
@@ -327,7 +327,7 @@ fun PaletteFilterDropdown(
                         expanded = false
                     },
                     leadingIcon = if (selectedFilter == menuId) {
-                        { Icon(Icons.Default.Check, contentDescription = null) }
+                        { Icon(Icons.Default.Check, contentDescription = stringResource(R.string.selected)) }
                     } else null
                 )
             }
