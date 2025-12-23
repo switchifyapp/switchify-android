@@ -1,6 +1,7 @@
 package com.enaboapps.switchify.screens.settings.menu.models
 
 import android.app.Application
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.enaboapps.switchify.R
@@ -9,6 +10,7 @@ import com.enaboapps.switchify.service.menu.database.MenuConfigurationRepository
 import com.enaboapps.switchify.service.menu.structure.MenuConstants
 import com.enaboapps.switchify.service.menu.structure.MenuItemDefinition
 import com.enaboapps.switchify.service.menu.structure.MenuItemRegistry
+import com.enaboapps.switchify.service.menu.structure.MenuUserItemsHelper
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -28,6 +30,10 @@ data class PaletteItem(
 class MenuCustomizationScreenModel(application: Application) : ViewModel() {
 
     private val repository = MenuConfigurationRepository(application)
+
+    companion object {
+        private const val TAG = "MenuCustomizationModel"
+    }
 
     // Available menus with their display names
     val availableMenus = MutableStateFlow(
@@ -89,12 +95,14 @@ class MenuCustomizationScreenModel(application: Application) : ViewModel() {
 
     /**
      * Switches the selected menu to the given ID and reloads its items unless the menu is already selected.
+     * Also resets the palette filter to prevent showing stale filter state.
      *
      * @param menuId The identifier of the menu to select.
      */
     fun selectMenu(menuId: String) {
         if (_selectedMenuId.value != menuId) {
             _selectedMenuId.value = menuId
+            _selectedPaletteFilter.value = null  // Reset filter when switching menus
             loadMenuItems()
         }
     }
@@ -336,14 +344,18 @@ class MenuCustomizationScreenModel(application: Application) : ViewModel() {
      */
     fun addItemToMenu(sourceMenuId: String, itemId: String) {
         viewModelScope.launch {
-            try {
-                val targetMenuId = _selectedMenuId.value
+            val targetMenuId = _selectedMenuId.value
 
+            try {
                 repository.addUserItemToMenu(
                     sourceMenuId = sourceMenuId,
                     itemId = itemId,
                     targetMenuId = targetMenuId
                 )
+
+                // Clear cache for the target menu so changes appear immediately
+                MenuUserItemsHelper.clearCache(targetMenuId)
+                Log.d(TAG, "Added item $itemId from $sourceMenuId to $targetMenuId")
 
                 // Reload menu items to show the newly added item
                 loadMenuItems()
@@ -351,7 +363,7 @@ class MenuCustomizationScreenModel(application: Application) : ViewModel() {
                 // Reload palette items to update "already added" status
                 loadAvailablePaletteItems()
             } catch (e: Exception) {
-                // Silently handle error - could add proper error handling here
+                Log.e(TAG, "Failed to add item $itemId to menu $targetMenuId", e)
             }
         }
     }
@@ -363,6 +375,10 @@ class MenuCustomizationScreenModel(application: Application) : ViewModel() {
         viewModelScope.launch {
             val menuId = _selectedMenuId.value
             repository.removeUserItem(menuId, itemId)
+
+            // Clear cache for the menu so changes appear immediately
+            MenuUserItemsHelper.clearCache(menuId)
+            Log.d(TAG, "Removed item $itemId from menu $menuId")
 
             // Reload menu items
             loadMenuItems()
