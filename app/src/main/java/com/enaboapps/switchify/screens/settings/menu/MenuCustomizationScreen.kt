@@ -254,7 +254,7 @@ fun PaletteDialog(
 
                     groupedItems.forEach { (sourceMenuId, menuItems) ->
                         // Menu section header
-                        item {
+                        item(key = "header_$sourceMenuId") {
                             Text(
                                 text = stringResource(menuItems.first().sourceMenuName),
                                 style = MaterialTheme.typography.titleSmall,
@@ -265,7 +265,10 @@ fun PaletteDialog(
                         }
 
                         // Menu items
-                        items(menuItems) { paletteItem ->
+                        items(
+                            items = menuItems,
+                            key = { paletteItem -> "${paletteItem.sourceMenuId}_${paletteItem.itemId}" }
+                        ) { paletteItem ->
                             PaletteItemRow(
                                 item = paletteItem,
                                 onAddClick = {
@@ -275,7 +278,7 @@ fun PaletteDialog(
                             )
                         }
 
-                        item { Spacer(modifier = Modifier.height(8.dp)) }
+                        item(key = "spacer_$sourceMenuId") { Spacer(modifier = Modifier.height(8.dp)) }
                     }
                 }
             }

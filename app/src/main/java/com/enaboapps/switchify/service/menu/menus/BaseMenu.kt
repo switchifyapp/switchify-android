@@ -24,6 +24,8 @@ open class BaseMenu(
     private val dynamicLoad: (suspend () -> List<MenuItem>)? = null,
     private val showNavMenuItems: Boolean = true
 ) {
+    // Lazy-initialized repository to avoid repeated instantiation
+    private val configRepository by lazy { MenuConfigurationRepository(accessibilityService) }
     /**
      * Get the menu items with automatic previous menu button when applicable.
      * Loads user-added items and merges them with static items in the correct order
@@ -73,8 +75,7 @@ open class BaseMenu(
         menuId: String,
         items: List<MenuItem>
     ): List<MenuItem> {
-        val repository = MenuConfigurationRepository(accessibilityService)
-        val configurations = repository.getMenuConfigurations(menuId)
+        val configurations = configRepository.getMenuConfigurations(menuId)
 
         return if (configurations.isNotEmpty()) {
             val configMap = configurations.associateBy { it.itemId }
