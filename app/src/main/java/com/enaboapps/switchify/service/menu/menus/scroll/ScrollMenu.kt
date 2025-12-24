@@ -14,7 +14,7 @@ class ScrollMenu(accessibilityService: SwitchifyAccessibilityService) :
     ) {
     companion object {
         private fun buildScrollMenuItems(accessibilityService: SwitchifyAccessibilityService): List<MenuItem> {
-            return MenuStructureHolder(accessibilityService).scrollMenuObject.getMenuItems()
+            return MenuStructureHolder(accessibilityService).scrollMenuObject.getDefaultMenuItems()
         }
     }
 }

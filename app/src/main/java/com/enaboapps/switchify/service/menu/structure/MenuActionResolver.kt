@@ -23,7 +23,7 @@ object MenuActionResolver {
      * @param coroutineScope The coroutine scope for async operations
      * @return The action lambda for the item, or a no-op lambda if not found
      */
-    fun resolveAction(
+    suspend fun resolveAction(
         sourceMenuId: String,
         itemId: String,
         accessibilityService: SwitchifyAccessibilityService?,

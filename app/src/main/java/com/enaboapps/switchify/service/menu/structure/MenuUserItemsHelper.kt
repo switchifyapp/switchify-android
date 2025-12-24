@@ -44,13 +44,11 @@ object MenuUserItemsHelper {
      *
      * @param menuId The ID of the menu to load user-added items for
      * @param accessibilityService The accessibility service instance
-     * @param coroutineScope The coroutine scope for async operations
      * @return List of MenuItem objects representing user-added items
      */
-    fun loadUserAddedItems(
+    suspend fun loadUserAddedItems(
         menuId: String,
-        accessibilityService: SwitchifyAccessibilityService,
-        coroutineScope: CoroutineScope
+        accessibilityService: SwitchifyAccessibilityService
     ): List<MenuItem> {
         // Return cached items if available
         cache[menuId]?.let {
@@ -60,35 +58,34 @@ object MenuUserItemsHelper {
 
         return try {
             val repository = MenuConfigurationRepository(accessibilityService)
+            val coroutineScope = accessibilityService.getServiceScope()
 
-            val items = kotlinx.coroutines.runBlocking {
-                // Add timeout to prevent indefinite blocking
-                withTimeout(LOAD_TIMEOUT_MS) {
-                    val userAddedConfigs = repository.getUserAddedItems(menuId)
+            // Add timeout to prevent indefinite blocking
+            val items = withTimeout(LOAD_TIMEOUT_MS) {
+                val userAddedConfigs = repository.getUserAddedItems(menuId)
 
-                    Log.d(TAG, "Loading ${userAddedConfigs.size} user-added items for menu: $menuId")
+                Log.d(TAG, "Loading ${userAddedConfigs.size} user-added items for menu: $menuId")
 
-                    userAddedConfigs.mapNotNull { config ->
-                        val sourceMenuId = config.sourceMenuId ?: return@mapNotNull null
-                        val definition = MenuItemRegistry.getDefinition(sourceMenuId, config.itemId)
+                userAddedConfigs.mapNotNull { config ->
+                    val sourceMenuId = config.sourceMenuId ?: return@mapNotNull null
+                    val definition = MenuItemRegistry.getDefinition(sourceMenuId, config.itemId)
 
-                        if (definition == null) {
-                            Log.w(TAG, "No definition found for item: ${config.itemId} from menu: $sourceMenuId")
-                            return@mapNotNull null
-                        }
-
-                        val action = MenuActionResolver.resolveAction(
-                            sourceMenuId = sourceMenuId,
-                            itemId = config.itemId,
-                            accessibilityService = accessibilityService,
-                            coroutineScope = coroutineScope
-                        )
-
-                        MenuItem(
-                            definition = definition,
-                            action = action
-                        )
+                    if (definition == null) {
+                        Log.w(TAG, "No definition found for item: ${config.itemId} from menu: $sourceMenuId")
+                        return@mapNotNull null
                     }
+
+                    val action = MenuActionResolver.resolveAction(
+                        sourceMenuId = sourceMenuId,
+                        itemId = config.itemId,
+                        accessibilityService = accessibilityService,
+                        coroutineScope = coroutineScope
+                    )
+
+                    MenuItem(
+                        definition = definition,
+                        action = action
+                    )
                 }
             }
 

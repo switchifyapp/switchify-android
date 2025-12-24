@@ -16,7 +16,7 @@ class DeviceMenu(
 
     companion object {
         private fun buildDeviceItems(accessibilityService: SwitchifyAccessibilityService): List<MenuItem> {
-            return MenuStructureHolder(accessibilityService).buildDeviceMenuObject().getMenuItems()
+            return MenuStructureHolder(accessibilityService).buildDeviceMenuObject().getDefaultMenuItems()
         }
     }
 }

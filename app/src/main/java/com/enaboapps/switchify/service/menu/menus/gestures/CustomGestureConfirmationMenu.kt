@@ -20,7 +20,7 @@ class CustomGestureConfirmationMenu(accessibilityService: SwitchifyAccessibility
 
     companion object {
         private fun buildCustomGestureConfirmationMenuItems(accessibilityService: SwitchifyAccessibilityService): List<MenuItem> {
-            return MenuStructureHolder(accessibilityService).customGestureConfirmationMenuObject.getMenuItems()
+            return MenuStructureHolder(accessibilityService).customGestureConfirmationMenuObject.getDefaultMenuItems()
         }
     }
 }

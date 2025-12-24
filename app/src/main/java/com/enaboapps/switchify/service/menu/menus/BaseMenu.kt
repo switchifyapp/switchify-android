@@ -29,12 +29,12 @@ open class BaseMenu(
      * and user-added items if a menuId is provided
      * @return The menu items with previous menu button prepended if not at first menu
      */
-    fun getMenuItems(): List<MenuItem> {
+    suspend fun getMenuItems(): List<MenuItem> {
         val isAtFirstMenu = MenuManager.getInstance().menuHierarchy?.isAtFirstMenu() ?: true
 
         // Load user-added items if menuId is provided
         val userAddedItems = menuId?.let {
-            MenuUserItemsHelper.loadUserAddedItems(it, accessibilityService, accessibilityService.getServiceScope())
+            MenuUserItemsHelper.loadUserAddedItems(it, accessibilityService)
         } ?: emptyList()
 
         val allItems = items + userAddedItems

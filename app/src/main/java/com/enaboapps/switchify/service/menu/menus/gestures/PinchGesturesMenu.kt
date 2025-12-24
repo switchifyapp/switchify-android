@@ -14,7 +14,7 @@ class PinchGesturesMenu(accessibilityService: SwitchifyAccessibilityService) :
     ) {
     companion object {
         private fun buildPinchGesturesMenuItems(accessibilityService: SwitchifyAccessibilityService): List<MenuItem> {
-            return MenuStructureHolder(accessibilityService).pinchGesturesMenuObject.getMenuItems()
+            return MenuStructureHolder(accessibilityService).pinchGesturesMenuObject.getDefaultMenuItems()
         }
     }
 }

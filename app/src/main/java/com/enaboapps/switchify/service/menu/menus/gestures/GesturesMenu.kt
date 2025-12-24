@@ -15,7 +15,7 @@ class GesturesMenu(accessibilityService: SwitchifyAccessibilityService) :
 
     companion object {
         private fun buildGesturesMenuItems(accessibilityService: SwitchifyAccessibilityService): List<MenuItem> {
-            return MenuStructureHolder(accessibilityService).gesturesMenuObject.getMenuItems()
+            return MenuStructureHolder(accessibilityService).gesturesMenuObject.getDefaultMenuItems()
         }
     }
 }

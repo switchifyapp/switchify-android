@@ -14,7 +14,7 @@ class EditMenu(accessibilityService: SwitchifyAccessibilityService) :
     ) {
     companion object {
         private fun buildEditMenuItems(accessibilityService: SwitchifyAccessibilityService): List<MenuItem> {
-            return MenuStructureHolder(accessibilityService).buildEditMenuObject().getMenuItems()
+            return MenuStructureHolder(accessibilityService).buildEditMenuObject().getDefaultMenuItems()
         }
     }
 }

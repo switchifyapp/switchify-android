@@ -15,7 +15,7 @@ class TapGesturesMenu(accessibilityService: SwitchifyAccessibilityService) :
 
     companion object {
         private fun buildTapGesturesMenuItems(accessibilityService: SwitchifyAccessibilityService): List<MenuItem> {
-            return MenuStructureHolder(accessibilityService).tapGesturesMenuObject.getMenuItems()
+            return MenuStructureHolder(accessibilityService).tapGesturesMenuObject.getDefaultMenuItems()
         }
     }
 }

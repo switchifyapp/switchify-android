@@ -15,7 +15,7 @@ class MediaControlMenu(accessibilityService: SwitchifyAccessibilityService) :
 
     companion object {
         private fun buildMediaControlMenuItems(accessibilityService: SwitchifyAccessibilityService): List<MenuItem> {
-            return MenuStructureHolder(accessibilityService).mediaControlMenuObject.getMenuItems()
+            return MenuStructureHolder(accessibilityService).mediaControlMenuObject.getDefaultMenuItems()
         }
     }
 }

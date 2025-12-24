@@ -25,7 +25,7 @@ class FingerModeMenu(accessibilityService: SwitchifyAccessibilityService) :
 
     companion object {
         private fun buildFingerModeMenuItems(accessibilityService: SwitchifyAccessibilityService): List<MenuItem> {
-            return MenuStructureHolder(accessibilityService).fingerModeMenuObject.getMenuItems()
+            return MenuStructureHolder(accessibilityService).fingerModeMenuObject.getDefaultMenuItems()
         }
     }
 }

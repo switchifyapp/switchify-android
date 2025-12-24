@@ -35,7 +35,7 @@ class MenuStructure(
      *
      * @return A list of MenuItem in the active order — customized and filtered when available, otherwise the default items.
      */
-    fun getMenuItems(): List<MenuItem> {
+    suspend fun getMenuItems(): List<MenuItem> {
         // If no context provided, return default items
         if (context == null) {
             return items
@@ -49,8 +49,8 @@ class MenuStructure(
         // Return cached items if available
         cachedOrderedItems?.let { return it }
 
-        // Cache not ready - load synchronously to ensure correct ordering
-        return runBlocking(Dispatchers.IO) {
+        // Cache not ready - load asynchronously with IO dispatcher
+        return kotlinx.coroutines.withContext(Dispatchers.IO) {
             val repository = MenuConfigurationRepository(context)
             val orderedItems = repository.getOrderedMenuItems(id, items)
             cachedOrderedItems = orderedItems
@@ -70,9 +70,9 @@ class MenuStructure(
     /**
      * Retrieves the list of menu item ids in the current menu order, including any applied user customizations.
      *
-     * @return A list of menu item id strings in the current order. 
+     * @return A list of menu item id strings in the current order.
      */
-    fun getMenuItemIdList(): List<String> {
+    suspend fun getMenuItemIdList(): List<String> {
         return getMenuItems().map { it.id }
     }
 

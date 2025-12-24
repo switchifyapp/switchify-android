@@ -24,7 +24,7 @@ class GesturePatternsMenu(
                 accessibilityService,
                 accessibilityService.getServiceScope()
             ).createGesturePatternsMenuStructure()
-                .getMenuItems()
+                .getDefaultMenuItems()
         }
 
         suspend fun getGesturePatterns(accessibilityService: SwitchifyAccessibilityService): List<MenuItem> {
