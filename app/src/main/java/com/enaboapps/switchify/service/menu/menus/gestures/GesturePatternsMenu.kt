@@ -11,6 +11,7 @@ class GesturePatternsMenu(
     BaseMenu(
         accessibilityService,
         buildGesturePatternsMenuItems(accessibilityService),
+        null,  // No menuId - this is a dynamic menu
         { getGesturePatterns(accessibilityService) }
     ) {
 
