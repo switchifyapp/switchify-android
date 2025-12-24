@@ -883,6 +883,8 @@
     <string name="menu_customization_info">Reorder items using drag or arrows. Tap the eye icon to hide or show items.</string>
     <string name="menu_customization_no_items">No items to display</string>
     <string name="label_select_menu">Select Menu</string>
+    <string name="filter_by_menu">Filter by menu</string>
+    <string name="filter_all_menus">All menus</string>
     <string name="menu_title_main">Main Menu</string>
     <string name="menu_title_media">Media Control</string>
     <string name="menu_title_tap">Tap Gestures</string>

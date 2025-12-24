@@ -51,15 +51,13 @@ fun MenuCustomizationScreen(navController: NavController) {
         enableScroll = false,
         padding = 0.dp,
         floatingActionButton = {
-            if (selectedMenuId == MenuConstants.MenuIds.MAIN_MENU) {
-                FloatingActionButton(
-                    onClick = { screenModel.openPalette() }
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = stringResource(R.string.add_menu_item)
-                    )
-                }
+            FloatingActionButton(
+                onClick = { screenModel.openPalette() }
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = stringResource(R.string.add_menu_item)
+                )
             }
         }
     ) {
@@ -86,6 +84,7 @@ fun MenuCustomizationContent(screenModel: MenuCustomizationScreenModel) {
     val paletteDialogVisible by screenModel.paletteDialogVisible.collectAsState()
     val availablePaletteItems by screenModel.availablePaletteItems.collectAsState()
     val userAddedItemIds by screenModel.userAddedItemIds.collectAsState()
+    val paletteFilter by screenModel.paletteFilter.collectAsState()
 
     LaunchedEffect(Unit) {
         screenModel.loadMenuItems()
@@ -95,9 +94,12 @@ fun MenuCustomizationContent(screenModel: MenuCustomizationScreenModel) {
     if (paletteDialogVisible) {
         PaletteDialog(
             items = availablePaletteItems,
+            availableMenus = availableMenus,
+            selectedFilter = paletteFilter,
+            onFilterChange = { screenModel.setPaletteFilter(it) },
             onDismiss = { screenModel.closePalette() },
             onAddItem = { sourceMenuId, itemId ->
-                screenModel.addItemToMainMenu(sourceMenuId, itemId)
+                screenModel.addItemToMenu(sourceMenuId, itemId)
             }
         )
     }
@@ -167,48 +169,117 @@ fun MenuCustomizationContent(screenModel: MenuCustomizationScreenModel) {
 }
 
 /**
- * Palette dialog showing available menu items that can be added to the main menu.
+ * Palette dialog showing available menu items that can be added to the current menu.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PaletteDialog(
     items: List<PaletteItem>,
+    availableMenus: List<Pair<String, Int>>,
+    selectedFilter: String?,
+    onFilterChange: (String?) -> Unit,
     onDismiss: () -> Unit,
     onAddItem: (sourceMenuId: String, itemId: String) -> Unit
 ) {
+    // Filter items based on selected filter
+    val filteredItems = if (selectedFilter == null) {
+        items
+    } else {
+        items.filter { it.sourceMenuId == selectedFilter }
+    }
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.add_menu_items_title)) },
         text = {
-            LazyColumn(
+            Column(
                 modifier = Modifier.fillMaxWidth()
             ) {
-                // Group items by source menu
-                val groupedItems = items.groupBy { it.sourceMenuId }
+                // Filter dropdown
+                var expanded by remember { mutableStateOf(false) }
 
-                groupedItems.forEach { (sourceMenuId, menuItems) ->
-                    // Menu section header
-                    item {
-                        Text(
-                            text = stringResource(menuItems.first().sourceMenuName),
-                            style = MaterialTheme.typography.titleSmall,
-                            color = MaterialTheme.colorScheme.primary,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(vertical = 8.dp)
-                        )
-                    }
+                ExposedDropdownMenuBox(
+                    expanded = expanded,
+                    onExpandedChange = { expanded = it }
+                ) {
+                    OutlinedTextField(
+                        value = if (selectedFilter == null) {
+                            stringResource(R.string.filter_all_menus)
+                        } else {
+                            availableMenus.find { it.first == selectedFilter }?.second?.let { stringResource(it) } ?: ""
+                        },
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text(stringResource(R.string.filter_by_menu)) },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .menuAnchor(type = androidx.compose.material3.ExposedDropdownMenuAnchorType.PrimaryNotEditable)
+                    )
 
-                    // Menu items
-                    items(menuItems) { paletteItem ->
-                        PaletteItemRow(
-                            item = paletteItem,
-                            onAddClick = {
-                                onAddItem(paletteItem.sourceMenuId, paletteItem.itemId)
-                                onDismiss()
+                    ExposedDropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = { expanded = false }
+                    ) {
+                        // "All menus" option
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.filter_all_menus)) },
+                            onClick = {
+                                onFilterChange(null)
+                                expanded = false
                             }
                         )
-                    }
 
-                    item { Spacer(modifier = Modifier.height(8.dp)) }
+                        // Individual menu options
+                        availableMenus.forEach { (menuId, nameResId) ->
+                            DropdownMenuItem(
+                                text = { Text(stringResource(nameResId)) },
+                                onClick = {
+                                    onFilterChange(menuId)
+                                    expanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Items list
+                LazyColumn(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    // Group items by source menu
+                    val groupedItems = filteredItems.groupBy { it.sourceMenuId }
+
+                    groupedItems.forEach { (sourceMenuId, menuItems) ->
+                        // Menu section header
+                        item(key = "header_$sourceMenuId") {
+                            Text(
+                                text = stringResource(menuItems.first().sourceMenuName),
+                                style = MaterialTheme.typography.titleSmall,
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(vertical = 8.dp)
+                            )
+                        }
+
+                        // Menu items
+                        items(
+                            items = menuItems,
+                            key = { paletteItem -> "${paletteItem.sourceMenuId}_${paletteItem.itemId}" }
+                        ) { paletteItem ->
+                            PaletteItemRow(
+                                item = paletteItem,
+                                onAddClick = {
+                                    onAddItem(paletteItem.sourceMenuId, paletteItem.itemId)
+                                    onDismiss()
+                                }
+                            )
+                        }
+
+                        item(key = "spacer_$sourceMenuId") { Spacer(modifier = Modifier.height(8.dp)) }
+                    }
                 }
             }
         },
