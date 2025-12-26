@@ -8,6 +8,7 @@ import com.enaboapps.switchify.service.menu.MenuView
 import com.enaboapps.switchify.service.menu.database.MenuConfigurationRepository
 import com.enaboapps.switchify.service.menu.structure.MenuStructureHolder
 import com.enaboapps.switchify.service.menu.structure.MenuUserItemsHelper
+import com.enaboapps.switchify.service.utils.DeviceLockObserver
 
 /**
  * This class represents a base menu
@@ -36,10 +37,12 @@ open class BaseMenu(
     suspend fun getMenuItems(): List<MenuItem> {
         val isAtFirstMenu = MenuManager.getInstance().menuHierarchy?.isAtFirstMenu() ?: true
 
-        // Load user-added items if menuId is provided
-        val userAddedItems = menuId?.let {
-            MenuUserItemsHelper.loadUserAddedItems(it, accessibilityService)
-        } ?: emptyList()
+        // Load user-added items if menuId is provided and device is unlocked
+        val userAddedItems = if (menuId != null && DeviceLockObserver.isUserUnlocked(accessibilityService)) {
+            MenuUserItemsHelper.loadUserAddedItems(menuId, accessibilityService)
+        } else {
+            emptyList()
+        }
 
         // Merge static items with user-added items
         val allItems = items + userAddedItems
@@ -75,6 +78,11 @@ open class BaseMenu(
         menuId: String,
         items: List<MenuItem>
     ): List<MenuItem> {
+        // Skip loading configurations if device is locked
+        if (!DeviceLockObserver.isUserUnlocked(accessibilityService)) {
+            return items
+        }
+
         val configurations = configRepository.getMenuConfigurations(menuId)
 
         return if (configurations.isNotEmpty()) {
