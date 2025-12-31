@@ -51,6 +51,10 @@ class StatsCollector private constructor() {
      * Non-blocking - queues the event for batched write.
      */
     fun recordSwitchPress(switchType: String, switchCode: String) {
+        if (repository == null) {
+            Log.w(TAG, "StatsCollector not initialized, cannot record switch press")
+            return
+        }
         queueEvent(PendingEvent.SwitchPress(switchType, switchCode, System.currentTimeMillis()))
     }
 
@@ -59,6 +63,10 @@ class StatsCollector private constructor() {
      * Non-blocking - queues the event for batched write.
      */
     fun recordMenuOpen(menuId: String, fromMenuId: String? = null) {
+        if (repository == null) {
+            Log.w(TAG, "StatsCollector not initialized, cannot record menu open")
+            return
+        }
         queueEvent(PendingEvent.MenuOpen(menuId, fromMenuId, System.currentTimeMillis()))
     }
 
@@ -104,8 +112,11 @@ class StatsCollector private constructor() {
         if (events.isNotEmpty()) {
             try {
                 val statsEntities = events.map { it.toStatsEntity() }
+                if (repository == null) {
+                    Log.e(TAG, "Repository is null, cannot flush ${events.size} events")
+                    return
+                }
                 repository?.batchInsertEvents(statsEntities)
-                Log.d(TAG, "Flushed ${events.size} events to database")
             } catch (e: Exception) {
                 Log.e(TAG, "Error flushing events", e)
             }

@@ -65,6 +65,10 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
 
     override fun onCreate() {
         super.onCreate()
+
+        // Initialize StatsCollector early to ensure it's ready before switches are pressed
+        com.enaboapps.switchify.service.stats.StatsCollector.getInstance().initialize(this)
+
         deviceLockObserver = DeviceLockObserver(this)
         screenWatcherManager = ScreenWatcherManager(this)
         startupOrchestrator = StartupOrchestrator(this, serviceScope)

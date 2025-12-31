@@ -199,7 +199,7 @@ class StatsRepository(context: Context) {
 
         // Create aggregated stats
         val aggregatedStats = grouped.map { (key, eventList) ->
-            val statKey = key.replace("switch_press_switch_", "switch_")
+            val statKey = key.replace("switch_press_", "switch_")
                               .replace("menu_open_", "menu_")
             AggregatedStatsEntity(
                 id = "${statKey}_${date}",
