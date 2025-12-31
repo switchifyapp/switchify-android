@@ -3,6 +3,7 @@ package com.enaboapps.switchify.service.stats
 import android.content.Context
 import android.util.Log
 import com.enaboapps.switchify.service.stats.database.StatsEntity
+import com.enaboapps.switchify.service.utils.DeviceLockObserver
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -20,6 +21,7 @@ class StatsCollector private constructor() {
     private val eventQueue = ConcurrentLinkedQueue<PendingEvent>()
     private val batchJob = AtomicReference<Job?>(null)
     private var repository: StatsRepository? = null
+    private var context: Context? = null
     private val coroutineScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     companion object {
@@ -40,10 +42,36 @@ class StatsCollector private constructor() {
     /**
      * Initializes the collector with a context.
      * Must be called before recording events.
+     * Only initializes if device is unlocked to prevent crashes.
      */
     fun initialize(context: Context) {
+        this.context = context.applicationContext
+
+        // Do NOT initialize repository when device is locked - database access will crash
+        if (!DeviceLockObserver.isUserUnlocked(context)) {
+            Log.w(TAG, "Device is locked, deferring StatsCollector initialization")
+            return
+        }
+
         repository = StatsRepository(context)
         Log.d(TAG, "StatsCollector initialized")
+    }
+
+    /**
+     * Attempts to initialize if not already initialized.
+     * Call this when device unlocks.
+     */
+    fun ensureInitialized() {
+        if (repository != null) return
+
+        val ctx = context ?: return
+        if (!DeviceLockObserver.isUserUnlocked(ctx)) {
+            Log.d(TAG, "Cannot initialize, device still locked")
+            return
+        }
+
+        repository = StatsRepository(ctx)
+        Log.d(TAG, "StatsCollector initialized after device unlock")
     }
 
     /**
@@ -102,8 +130,25 @@ class StatsCollector private constructor() {
 
     /**
      * Flushes all queued events to the database.
+     * Only flushes if device is unlocked to prevent crashes.
      */
     private suspend fun flushEvents() {
+        // Check if device is unlocked before attempting database operations
+        val ctx = context
+        if (ctx == null) {
+            Log.w(TAG, "Context is null, cannot flush events")
+            return
+        }
+
+        if (!DeviceLockObserver.isUserUnlocked(ctx)) {
+            Log.d(TAG, "Device is locked, postponing flush (${eventQueue.size} events queued)")
+            // Don't reschedule - events will be flushed when device unlocks
+            return
+        }
+
+        // Try to initialize if not already done
+        ensureInitialized()
+
         val events = mutableListOf<PendingEvent>()
         while (eventQueue.isNotEmpty()) {
             eventQueue.poll()?.let { events.add(it) }
@@ -114,11 +159,15 @@ class StatsCollector private constructor() {
                 val statsEntities = events.map { it.toStatsEntity() }
                 if (repository == null) {
                     Log.e(TAG, "Repository is null, cannot flush ${events.size} events")
+                    // Put events back in queue since we couldn't flush
+                    events.forEach { eventQueue.offer(it) }
                     return
                 }
                 repository?.batchInsertEvents(statsEntities)
             } catch (e: Exception) {
                 Log.e(TAG, "Error flushing events", e)
+                // Put events back in queue on error
+                events.forEach { eventQueue.offer(it) }
             }
         }
     }

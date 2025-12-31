@@ -9,6 +9,7 @@ import com.enaboapps.switchify.service.stats.models.DailyActivity
 import com.enaboapps.switchify.service.stats.models.MenuInteractionStats
 import com.enaboapps.switchify.service.stats.models.SwitchPressStats
 import com.enaboapps.switchify.service.stats.models.TimeRange
+import com.enaboapps.switchify.service.utils.DeviceLockObserver
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -23,6 +24,7 @@ import java.time.temporal.ChronoUnit
  * Provides API for recording events and querying statistics.
  */
 class StatsRepository(context: Context) {
+    private val appContext = context.applicationContext
     private val database = StatsDatabase.getInstance(context)
     private val dao = database.statsDao()
     private val coroutineScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
@@ -64,6 +66,12 @@ class StatsRepository(context: Context) {
      * Used by StatsCollector for efficient batched writes.
      */
     suspend fun batchInsertEvents(events: List<StatsEntity>) {
+        // Prevent database operations when device is locked
+        if (!DeviceLockObserver.isUserUnlocked(appContext)) {
+            android.util.Log.w("StatsRepository", "Device is locked, skipping batch insert of ${events.size} events")
+            return
+        }
+
         if (events.isNotEmpty()) {
             dao.insertEvents(events)
         }
@@ -189,6 +197,12 @@ class StatsRepository(context: Context) {
      * Aggregates events for a specific day into aggregated stats.
      */
     suspend fun aggregateDay(date: LocalDate) {
+        // Prevent database operations when device is locked
+        if (!DeviceLockObserver.isUserUnlocked(appContext)) {
+            android.util.Log.w("StatsRepository", "Device is locked, skipping aggregation for $date")
+            return
+        }
+
         val startOfDay = date.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
         val endOfDay = date.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli() - 1
 

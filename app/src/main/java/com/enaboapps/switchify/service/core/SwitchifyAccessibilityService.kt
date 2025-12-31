@@ -15,9 +15,12 @@ import com.enaboapps.switchify.service.camera.CameraManager
 import com.enaboapps.switchify.service.gestures.GestureManager
 import com.enaboapps.switchify.service.scanning.ScanSettings
 import com.enaboapps.switchify.service.selection.SelectionHandler
+import com.enaboapps.switchify.service.stats.StatsAggregationScheduler
+import com.enaboapps.switchify.service.stats.StatsCollector
 import com.enaboapps.switchify.service.switches.SwitchEventProvider
 import com.enaboapps.switchify.service.techniques.AccessTechnique
 import com.enaboapps.switchify.service.trial.ServiceTrialManager
+import com.enaboapps.switchify.service.trial.ServiceTrialOverlay
 import com.enaboapps.switchify.service.utils.DeviceLockObserver
 import com.enaboapps.switchify.service.window.SwitchifyAccessibilityWindow
 import com.enaboapps.switchify.utils.LogEvent
@@ -43,7 +46,7 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
     private lateinit var techniqueEnforcer: TechniqueEnforcer
     private lateinit var deviceLockObserver: DeviceLockObserver
     private lateinit var trialManager: ServiceTrialManager
-    private lateinit var trialOverlay: com.enaboapps.switchify.service.trial.ServiceTrialOverlay
+    private lateinit var trialOverlay: ServiceTrialOverlay
     private lateinit var startupOrchestrator: StartupOrchestrator
     private lateinit var nodeUpdateCoordinator: NodeUpdateCoordinator
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
@@ -67,7 +70,7 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
         super.onCreate()
 
         // Initialize StatsCollector early to ensure it's ready before switches are pressed
-        com.enaboapps.switchify.service.stats.StatsCollector.getInstance().initialize(this)
+        StatsCollector.getInstance().initialize(this)
 
         deviceLockObserver = DeviceLockObserver(this)
         screenWatcherManager = ScreenWatcherManager(this)
@@ -92,7 +95,7 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
         )
 
         // Initialize trial overlay to show countdown for non-Pro users
-        trialOverlay = com.enaboapps.switchify.service.trial.ServiceTrialOverlay(this, trialManager)
+        trialOverlay = ServiceTrialOverlay(this, trialManager)
 
         AccessTechnique.init(this.applicationContext)
 
@@ -165,6 +168,14 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
             IAPHandler.connect(context = this)
             // Evaluate camera state now that switches are loaded
             cameraManager.evaluateAndUpdateCameraState()
+            // Initialize StatsCollector now that device is unlocked and flush any queued events
+            val statsCollector = StatsCollector.getInstance()
+            statsCollector.ensureInitialized()
+            serviceScope.launch {
+                statsCollector.forceFlush()
+            }
+            // Schedule stats aggregation work (if it wasn't scheduled at app startup due to lock)
+            StatsAggregationScheduler.scheduleDailyAggregation(this)
         }
     }
 
