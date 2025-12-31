@@ -52,7 +52,8 @@ fun StatsScreen(navController: NavController) {
 
     BaseView(
         titleResId = R.string.screen_title_stats,
-        navController = navController
+        navController = navController,
+        enableScroll = false
     ) {
         ScrollableView {
             // Time range selector
