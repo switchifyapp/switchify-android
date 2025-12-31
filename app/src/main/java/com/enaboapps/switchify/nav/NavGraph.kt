@@ -33,6 +33,7 @@ import com.enaboapps.switchify.screens.settings.pause.PauseSettingsScreen
 import com.enaboapps.switchify.screens.settings.menu.MenuCustomizationScreen
 import com.enaboapps.switchify.screens.settings.switches.actions.SwitchActionSelectionScreen
 import com.enaboapps.switchify.screens.settings.switches.LongPressActionsScreen
+import com.enaboapps.switchify.screens.stats.StatsScreen
 
 /**
  * Declares the app's navigation graph and registers each route to its corresponding screen composable.
@@ -125,6 +126,9 @@ fun NavGraph(navController: NavHostController) {
         }
         composable(NavigationRoute.UserFeedback.name) {
             UserFeedbackScreen(navController)
+        }
+        composable(NavigationRoute.Stats.name) {
+            StatsScreen(navController)
         }
         composable(NavigationRoute.CameraSettings.name) {
             CameraSettingsScreen(navController)

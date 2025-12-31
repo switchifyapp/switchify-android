@@ -115,6 +115,14 @@ fun GeneralSettingsTab(menuSettingsModel: MenuSettingsModel, navController: NavC
                 route = if (isSignedIn) NavigationRoute.Account.name else NavigationRoute.Authentication.name
             )
         }
+        Section(titleResId = R.string.settings_section_usage) {
+            NavRouteLink(
+                titleResId = R.string.settings_title_stats,
+                summaryResId = R.string.settings_summary_stats,
+                navController = navController,
+                route = NavigationRoute.Stats.name
+            )
+        }
         InputSection(navController)
         BehaviourSection(navController)
         GesturesSettingsSection(navController)
