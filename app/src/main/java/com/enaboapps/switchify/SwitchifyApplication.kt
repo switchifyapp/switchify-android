@@ -2,6 +2,7 @@ package com.enaboapps.switchify
 
 import android.app.Application
 import android.util.Log
+import com.enaboapps.switchify.service.stats.StatsCollector
 import com.enaboapps.switchify.utils.Resources
 
 class SwitchifyApplication : Application() {
@@ -14,6 +15,9 @@ class SwitchifyApplication : Application() {
         super.onCreate()
 
         Resources.init(this)
+
+        // Initialize stats collector
+        StatsCollector.getInstance().initialize(this)
 
         Log.i(TAG, "SwitchifyApplication initialized")
     }

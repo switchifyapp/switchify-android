@@ -21,7 +21,7 @@ import com.enaboapps.switchify.service.utils.DeviceLockObserver
 open class BaseMenu(
     private val accessibilityService: SwitchifyAccessibilityService,
     private val items: List<MenuItem>,
-    private val menuId: String? = null,
+    val menuId: String? = null,
     private val dynamicLoad: (suspend () -> List<MenuItem>)? = null,
     private val showNavMenuItems: Boolean = true
 ) {

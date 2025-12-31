@@ -15,6 +15,7 @@ import com.enaboapps.switchify.service.core.ServiceCore
 import com.enaboapps.switchify.service.face.FaceProcessingService
 import com.enaboapps.switchify.service.pauseresume.PauseManager
 import com.enaboapps.switchify.service.scanning.ScanningManager
+import com.enaboapps.switchify.service.stats.StatsCollector
 import com.enaboapps.switchify.service.switches.SwitchEventProvider
 import com.enaboapps.switchify.service.techniques.headcontrol.HeadControlSettings
 import com.enaboapps.switchify.service.utils.GestureConflictDetector
@@ -414,6 +415,9 @@ class CameraSwitchManager(
     }
 
     private fun triggerSwitchAction(gesture: CameraSwitchFacialGesture) {
+        // Record stats for camera gesture
+        StatsCollector.getInstance().recordSwitchPress("camera", gesture.id)
+
         val switchEvent = findSwitchEventForGesture(gesture)
         if (switchEvent != null) {
             coroutineScope.launch(Dispatchers.Main) {

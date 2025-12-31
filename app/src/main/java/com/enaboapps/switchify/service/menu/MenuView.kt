@@ -39,6 +39,10 @@ class MenuView(
     val context: Context,
     private val menu: BaseMenu
 ) {
+    /** Getter for menu ID (used for stats tracking) */
+    val menuId: String?
+        get() = menu.menuId
+
     /** Listener for menu view events */
     var menuViewListener: MenuViewListener? = null
 
