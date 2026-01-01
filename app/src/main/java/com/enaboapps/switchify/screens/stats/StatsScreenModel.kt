@@ -1,8 +1,8 @@
 package com.enaboapps.switchify.screens.stats
 
-import android.content.Context
+import android.app.Application
 import android.util.Log
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.enaboapps.switchify.service.stats.StatsRepository
 import com.enaboapps.switchify.service.stats.models.DailyActivity
@@ -18,8 +18,8 @@ import kotlinx.coroutines.launch
  * ViewModel for the Stats screen.
  * Manages loading and displaying statistics data.
  */
-class StatsScreenModel(context: Context) : ViewModel() {
-    private val statsRepository = StatsRepository(context)
+class StatsScreenModel(application: Application) : AndroidViewModel(application) {
+    private val statsRepository = StatsRepository(application)
 
     private val _uiState = MutableStateFlow(StatsUiState())
     val uiState: StateFlow<StatsUiState> = _uiState.asStateFlow()

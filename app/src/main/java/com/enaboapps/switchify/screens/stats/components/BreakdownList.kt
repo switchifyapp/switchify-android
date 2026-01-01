@@ -14,7 +14,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.enaboapps.switchify.R
 
 /**
  * Displays a breakdown list of items with counts.
@@ -42,7 +44,7 @@ fun BreakdownList(
 
             if (items.isEmpty()) {
                 Text(
-                    text = "No data available",
+                    text = stringResource(R.string.stats_no_data_available),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(vertical = 8.dp)

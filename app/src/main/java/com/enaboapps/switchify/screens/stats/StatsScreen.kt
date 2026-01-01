@@ -40,7 +40,14 @@ import com.enaboapps.switchify.service.stats.models.TimeRange
 @Composable
 fun StatsScreen(navController: NavController) {
     val context = LocalContext.current
-    val viewModel: StatsScreenModel = viewModel { StatsScreenModel(context) }
+    val viewModel: StatsScreenModel = viewModel(
+        factory = object : androidx.lifecycle.ViewModelProvider.Factory {
+            @Suppress("UNCHECKED_CAST")
+            override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
+                return StatsScreenModel(context.applicationContext as android.app.Application) as T
+            }
+        }
+    )
     val uiState by viewModel.uiState.collectAsState()
 
     var selectedTimeRange by remember { mutableStateOf(TimeRange.WEEK) }

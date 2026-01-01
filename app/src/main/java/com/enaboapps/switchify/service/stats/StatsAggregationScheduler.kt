@@ -11,7 +11,7 @@ import java.util.concurrent.TimeUnit
 
 /**
  * Scheduler for stats aggregation background work.
- * Schedules daily aggregation to run when device is idle.
+ * Schedules daily aggregation to run when battery is not low.
  */
 object StatsAggregationScheduler {
     private const val TAG = "StatsAggregationScheduler"

@@ -11,6 +11,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.util.concurrent.ConcurrentLinkedQueue
+import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
 
 /**
@@ -19,6 +20,7 @@ import java.util.concurrent.atomic.AtomicReference
  */
 class StatsCollector private constructor() {
     private val eventQueue = ConcurrentLinkedQueue<PendingEvent>()
+    private val queueSize = AtomicInteger(0)
     private val batchJob = AtomicReference<Job?>(null)
     private var repository: StatsRepository? = null
     private var context: Context? = null
@@ -103,12 +105,18 @@ class StatsCollector private constructor() {
      */
     private fun queueEvent(event: PendingEvent) {
         // Prevent unbounded growth
-        if (eventQueue.size >= MAX_QUEUE_SIZE) {
-            eventQueue.poll()  // Drop oldest
-            Log.w(TAG, "Event queue full, dropping oldest event")
+        while (queueSize.get() >= MAX_QUEUE_SIZE) {
+            if (eventQueue.poll() != null) {
+                queueSize.decrementAndGet()
+                Log.w(TAG, "Event queue full, dropping oldest event")
+            } else {
+                break
+            }
         }
 
-        eventQueue.offer(event)
+        if (eventQueue.offer(event)) {
+            queueSize.incrementAndGet()
+        }
         scheduleBatchWrite()
     }
 
@@ -141,7 +149,7 @@ class StatsCollector private constructor() {
         }
 
         if (!DeviceLockObserver.isUserUnlocked(ctx)) {
-            Log.d(TAG, "Device is locked, postponing flush (${eventQueue.size} events queued)")
+            Log.d(TAG, "Device is locked, postponing flush (${queueSize.get()} events queued)")
             // Don't reschedule - events will be flushed when device unlocks
             return
         }
@@ -151,7 +159,10 @@ class StatsCollector private constructor() {
 
         val events = mutableListOf<PendingEvent>()
         while (eventQueue.isNotEmpty()) {
-            eventQueue.poll()?.let { events.add(it) }
+            eventQueue.poll()?.let {
+                events.add(it)
+                queueSize.decrementAndGet()
+            }
         }
 
         if (events.isNotEmpty()) {
@@ -160,14 +171,22 @@ class StatsCollector private constructor() {
                 if (repository == null) {
                     Log.e(TAG, "Repository is null, cannot flush ${events.size} events")
                     // Put events back in queue since we couldn't flush
-                    events.forEach { eventQueue.offer(it) }
+                    events.forEach {
+                        if (eventQueue.offer(it)) {
+                            queueSize.incrementAndGet()
+                        }
+                    }
                     return
                 }
                 repository?.batchInsertEvents(statsEntities)
             } catch (e: Exception) {
                 Log.e(TAG, "Error flushing events", e)
                 // Put events back in queue on error
-                events.forEach { eventQueue.offer(it) }
+                events.forEach {
+                    if (eventQueue.offer(it)) {
+                        queueSize.incrementAndGet()
+                    }
+                }
             }
         }
     }
