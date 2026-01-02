@@ -31,19 +31,21 @@ abstract class StatsDatabase : RoomDatabase() {
 
         /**
          * Provides the singleton StatsDatabase instance, creating it if necessary.
+         * Uses double-checked locking pattern for thread-safe lazy initialization.
          *
          * @param context Application context used to build the database.
          * @return The singleton StatsDatabase instance.
          */
         fun getInstance(context: Context): StatsDatabase {
+            // First check (without locking)
             return INSTANCE ?: synchronized(this) {
-                val instance = Room.databaseBuilder(
+                // Second check (with locking) - prevents race condition where multiple
+                // threads pass the first check before any acquires the lock
+                INSTANCE ?: Room.databaseBuilder(
                     context.applicationContext,
                     StatsDatabase::class.java,
                     DATABASE_NAME
-                ).build()
-                INSTANCE = instance
-                instance
+                ).build().also { INSTANCE = it }
             }
         }
 
