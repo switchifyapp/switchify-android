@@ -25,4 +25,13 @@ class SwitchifyApplication : Application() {
 
         Log.i(TAG, "SwitchifyApplication initialized")
     }
+
+    override fun onTerminate() {
+        super.onTerminate()
+
+        // Close StatsCollector to release resources and cancel coroutines
+        StatsCollector.getInstance().close()
+
+        Log.i(TAG, "SwitchifyApplication terminated")
+    }
 }

@@ -8,23 +8,27 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.util.concurrent.ConcurrentLinkedQueue
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
 
 /**
  * Singleton collector for stats events.
  * Batches events in memory and writes them to database periodically for performance.
+ * Implements AutoCloseable to properly clean up resources.
  */
-class StatsCollector private constructor() {
+class StatsCollector private constructor() : AutoCloseable {
     private val eventQueue = ConcurrentLinkedQueue<PendingEvent>()
     private val queueSize = AtomicInteger(0)
     private val batchJob = AtomicReference<Job?>(null)
     private var repository: StatsRepository? = null
     private var context: Context? = null
     private val coroutineScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    private val isClosed = AtomicBoolean(false)
 
     companion object {
         private const val TAG = "StatsCollector"
@@ -83,6 +87,10 @@ class StatsCollector private constructor() {
      */
     fun recordSwitchPress(switchType: String, switchCode: String) {
         Log.i(TAG, "recordSwitchPress called: type=$switchType, code=$switchCode, repo=${repository != null}")
+        if (isClosed.get()) {
+            Log.w(TAG, "StatsCollector is closed, cannot record switch press")
+            return
+        }
         if (repository == null) {
             Log.w(TAG, "StatsCollector not initialized, cannot record switch press")
             return
@@ -96,6 +104,10 @@ class StatsCollector private constructor() {
      * Non-blocking - queues the event for batched write.
      */
     fun recordMenuOpen(menuId: String, fromMenuId: String? = null) {
+        if (isClosed.get()) {
+            Log.w(TAG, "StatsCollector is closed, cannot record menu open")
+            return
+        }
         if (repository == null) {
             Log.w(TAG, "StatsCollector not initialized, cannot record menu open")
             return
@@ -145,6 +157,12 @@ class StatsCollector private constructor() {
      */
     private suspend fun flushEvents() {
         Log.i(TAG, "flushEvents() called, queue size: ${queueSize.get()}")
+
+        // Don't flush if collector is closed
+        if (isClosed.get()) {
+            Log.w(TAG, "StatsCollector is closed, skipping flush")
+            return
+        }
 
         // Check if device is unlocked before attempting database operations
         val ctx = context
@@ -206,6 +224,33 @@ class StatsCollector private constructor() {
     suspend fun forceFlush() {
         batchJob.getAndSet(null)?.cancel()
         flushEvents()
+    }
+
+    /**
+     * Closes the collector and releases all resources.
+     * Cancels the coroutine scope and any pending batch jobs.
+     * Guards against double-close.
+     */
+    override fun close() {
+        // Guard against double-close
+        if (!isClosed.compareAndSet(false, true)) {
+            Log.w(TAG, "StatsCollector already closed, ignoring duplicate close()")
+            return
+        }
+
+        Log.i(TAG, "Closing StatsCollector and releasing resources")
+
+        // Cancel any pending batch job
+        batchJob.getAndSet(null)?.cancel()
+
+        // Cancel the coroutine scope and all running coroutines
+        coroutineScope.cancel()
+
+        // Clear references
+        repository = null
+        context = null
+
+        Log.i(TAG, "StatsCollector closed successfully")
     }
 
     /**
