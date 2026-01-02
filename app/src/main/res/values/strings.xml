@@ -254,6 +254,7 @@
     <string name="screen_title_scan_colors">Scan Colors</string>
     <string name="screen_title_account">Account</string>
     <string name="screen_title_authentication">Welcome</string>
+    <string name="screen_title_stats">Usage Statistics</string>
     <string name="screen_title_switch_stability">Switch Stability</string>
     <string name="screen_title_pause_settings">Pause Settings</string>
     <string name="screen_title_switches">Switches</string>
@@ -456,6 +457,11 @@
     <string name="settings_summary_account">Manage your account and sign out</string>
     <string name="settings_title_sign_in">Sign In</string>
     <string name="settings_summary_sign_in">Sign in to sync your preferences</string>
+
+    <!-- Settings - Usage Section -->
+    <string name="settings_section_usage">Usage</string>
+    <string name="settings_title_stats">Usage Statistics</string>
+    <string name="settings_summary_stats">View your usage statistics and trends</string>
 
     <!-- Settings - Input Section -->
     <string name="settings_section_input">Input</string>
@@ -890,6 +896,9 @@
     <string name="menu_title_tap">Tap Gestures</string>
     <string name="menu_title_swipe">Swipe Gestures</string>
     <string name="menu_title_pinch">Pinch Gestures</string>
+    <string name="menu_title_volume_control">Volume Control</string>
+    <string name="menu_title_custom_gesture">Custom Gesture</string>
+    <string name="menu_title_finger_mode">Finger Mode</string>
     <string name="button_reset_to_default">Reset to Default</string>
     <string name="content_desc_drag_handle">Drag to reorder</string>
     <string name="content_desc_hide_item">Hide item</string>
@@ -903,4 +912,48 @@
     <string name="screen_title_select_action">Select Action</string>
     <string name="section_title_recommended">Recommended</string>
     <string name="content_desc_selected">Selected</string>
+
+    <!-- Stats Screen -->
+    <string name="stats_loading">Loading statistics…</string>
+    <string name="stats_error">Error loading stats: %1$s</string>
+    <string name="stats_error_generic">Unable to load stats. Please try again.</string>
+    <string name="stats_no_data_available">No data available</string>
+
+    <!-- Time Range -->
+    <string name="stats_time_today">Today</string>
+    <string name="stats_time_week">Week</string>
+    <string name="stats_time_month">Month</string>
+    <string name="stats_time_all">All Time</string>
+
+    <!-- Stats Sections -->
+    <string name="stats_section_switch_presses">Switch Presses</string>
+    <string name="stats_section_menu_interactions">Menu Interactions</string>
+    <string name="stats_section_activity">Activity Over Time</string>
+
+    <!-- Stats Labels -->
+    <string name="stats_total_presses">Total Presses</string>
+    <string name="stats_external_switches">External Switches</string>
+    <string name="stats_camera_gestures">Camera Gestures</string>
+    <string name="stats_total_menu_opens">Total Menu Opens</string>
+    <string name="stats_external_breakdown">External Switch Breakdown</string>
+    <string name="stats_camera_breakdown">Camera Gesture Breakdown</string>
+    <string name="stats_top_menus">Top Menus</string>
+    <string name="stats_activity_over_time">Activity Over Time</string>
+
+    <!-- Stats privacy controls -->
+    <string name="stats_clear_data">Clear All Stats</string>
+    <string name="stats_clear_data_confirm">Are you sure you want to clear all statistics? This cannot be undone.</string>
+    <string name="stats_clear_data_success">All statistics cleared</string>
+    <string name="stats_clear_data_error">Failed to clear statistics</string>
+
+    <!-- Gesture Names -->
+    <string name="gesture_smile">Smile</string>
+    <string name="gesture_left_wink">Left Wink</string>
+    <string name="gesture_right_wink">Right Wink</string>
+    <string name="gesture_blink">Blink</string>
+    <string name="gesture_pucker">Pucker</string>
+    <string name="gesture_head_left">Head Left</string>
+    <string name="gesture_head_right">Head Right</string>
+    <string name="gesture_head_up">Head Up</string>
+    <string name="gesture_head_down">Head Down</string>
 </resources>

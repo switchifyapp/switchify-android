@@ -6,6 +6,7 @@ import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.service.core.ServiceCore
 import com.enaboapps.switchify.service.scanning.ScanningManager
 import com.enaboapps.switchify.service.selection.SelectionHandler
+import com.enaboapps.switchify.service.stats.StatsCollector
 import com.enaboapps.switchify.service.switches.SwitchEventProvider
 import com.enaboapps.switchify.switches.SwitchEvent
 
@@ -51,6 +52,9 @@ class ExternalSwitchListener(
     fun onSwitchPressed(keyCode: Int): Boolean {
         val switchEvent = findSwitchEvent(keyCode) ?: return false
         switchEvent.log()
+
+        // Record stats for switch press
+        StatsCollector.getInstance().recordSwitchPress("external", keyCode.toString())
 
         val scanningManager = ServiceCore.getScanningManager()
         if (scanningManager != null) {

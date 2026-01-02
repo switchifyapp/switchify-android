@@ -4,6 +4,7 @@ import android.os.Handler
 import android.os.Looper
 import androidx.core.os.postDelayed
 import com.enaboapps.switchify.service.scanning.ScanningManager
+import com.enaboapps.switchify.service.stats.StatsCollector
 import com.enaboapps.switchify.service.techniques.AccessTechnique
 
 class MenuHierarchy(
@@ -44,6 +45,12 @@ class MenuHierarchy(
         getTopMenu()?.close()
 
         addMenu(menu)
+
+        // Record stats for menu open
+        menu.menuId?.let { menuId ->
+            StatsCollector.getInstance().recordMenuOpen(menuId)
+        }
+
         menu.menuViewListener = this
         Handler(Looper.getMainLooper()).postDelayed(100) {
             menu.open(scanningManager)
