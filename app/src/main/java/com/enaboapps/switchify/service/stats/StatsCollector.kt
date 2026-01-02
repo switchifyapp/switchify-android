@@ -125,15 +125,15 @@ class StatsCollector private constructor() {
      * Uses debouncing to avoid excessive database writes.
      */
     private fun scheduleBatchWrite() {
-        // Cancel previous batch job
-        batchJob.get()?.cancel()
-
         // Schedule new batch write
-        val job = coroutineScope.launch {
+        val newJob = coroutineScope.launch {
             delay(BATCH_DELAY_MS)
             flushEvents()
         }
-        batchJob.set(job)
+
+        // Atomically replace the old job and cancel it
+        val oldJob = batchJob.getAndSet(newJob)
+        oldJob?.cancel()
     }
 
     /**
@@ -196,7 +196,7 @@ class StatsCollector private constructor() {
      * Useful for testing or when app is closing.
      */
     suspend fun forceFlush() {
-        batchJob.get()?.cancel()
+        batchJob.getAndSet(null)?.cancel()
         flushEvents()
     }
 
