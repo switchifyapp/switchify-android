@@ -19,6 +19,7 @@ package com.enaboapps.switchify.utils
  * - Settings: AccessibilitySettingsOpened
  * - IAP: ProCheckedViaSubscription, ProCheckedViaPurchase
  * - Review: ReviewRequested, ReviewLaunched, ReviewCompleted
+ * - Stats: StatsScreenOpened, StatsTimeRangeChanged, Milestone*
  */
 sealed class LogEvent(val eventName: String) {
 
@@ -57,4 +58,10 @@ sealed class LogEvent(val eventName: String) {
     object ReviewRequested : LogEvent("review_requested")
     object ReviewLaunched : LogEvent("review_launched")
     object ReviewCompleted : LogEvent("review_completed")
+
+    // Stats Events
+    object StatsScreenOpened : LogEvent("stats_screen_opened")
+    object StatsTimeRangeChanged : LogEvent("stats_time_range_changed")
+    object Milestone100SwitchPresses : LogEvent("milestone_100_switch_presses")
+    object Milestone1000SwitchPresses : LogEvent("milestone_1000_switch_presses")
 }

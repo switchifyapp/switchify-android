@@ -1,6 +1,7 @@
 package com.enaboapps.switchify.service.stats
 
 import android.content.Context
+import android.content.SharedPreferences
 import com.enaboapps.switchify.service.stats.database.AggregatedStatsEntity
 import com.enaboapps.switchify.service.stats.database.StatKeyCount
 import com.enaboapps.switchify.service.stats.database.StatsDatabase
@@ -10,6 +11,8 @@ import com.enaboapps.switchify.service.stats.models.MenuInteractionStats
 import com.enaboapps.switchify.service.stats.models.SwitchPressStats
 import com.enaboapps.switchify.service.stats.models.TimeRange
 import com.enaboapps.switchify.service.utils.DeviceLockObserver
+import com.enaboapps.switchify.utils.LogEvent
+import com.enaboapps.switchify.utils.Logger
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -26,6 +29,12 @@ class StatsRepository(context: Context) {
     private val appContext = context.applicationContext
     private val database = StatsDatabase.getInstance(context)
     private val dao = database.statsDao()
+    private val preferences: SharedPreferences = appContext.getSharedPreferences("stats_prefs", Context.MODE_PRIVATE)
+
+    companion object {
+        private const val MILESTONE_100_REACHED = "stats_milestone_100_reached"
+        private const val MILESTONE_1000_REACHED = "stats_milestone_1000_reached"
+    }
 
     // ==================== Recording Methods (Internal - used by StatsCollector) ====================
 
@@ -288,6 +297,37 @@ class StatsRepository(context: Context) {
         // Aggregate today (for real-time stats)
         val today = LocalDate.now()
         aggregateDay(today)
+
+        // Check for milestones after aggregation
+        checkMilestones()
+    }
+
+    /**
+     * Checks for milestone achievements and logs them.
+     * Milestones are only logged once.
+     */
+    private suspend fun checkMilestones() {
+        try {
+            // Get total switch presses across all time
+            val stats = getSwitchPressStats(TimeRange.ALL_TIME)
+            val totalPresses = stats.totalPresses
+
+            // Check for 100 presses milestone
+            if (totalPresses >= 100 && !preferences.getBoolean(MILESTONE_100_REACHED, false)) {
+                Logger.log(LogEvent.Milestone100SwitchPresses)
+                preferences.edit().putBoolean(MILESTONE_100_REACHED, true).apply()
+                android.util.Log.i("StatsRepository", "Milestone reached: 100 switch presses")
+            }
+
+            // Check for 1000 presses milestone
+            if (totalPresses >= 1000 && !preferences.getBoolean(MILESTONE_1000_REACHED, false)) {
+                Logger.log(LogEvent.Milestone1000SwitchPresses)
+                preferences.edit().putBoolean(MILESTONE_1000_REACHED, true).apply()
+                android.util.Log.i("StatsRepository", "Milestone reached: 1000 switch presses")
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("StatsRepository", "Error checking milestones", e)
+        }
     }
 
     // ==================== Data Maintenance Methods ====================
@@ -318,6 +358,31 @@ class StatsRepository(context: Context) {
      */
     suspend fun getAggregatedStatsCount(): Int {
         return dao.getAggregatedStatsCount()
+    }
+
+    /**
+     * Clears all statistics data (both events and aggregated stats).
+     * Also resets milestone tracking.
+     */
+    suspend fun clearAllStats() {
+        try {
+            // Clear all events
+            dao.deleteEventsOlderThan(System.currentTimeMillis() + 1)
+
+            // Clear all aggregated stats by deleting all records
+            database.clearAllTables()
+
+            // Reset milestone tracking
+            preferences.edit()
+                .putBoolean(MILESTONE_100_REACHED, false)
+                .putBoolean(MILESTONE_1000_REACHED, false)
+                .apply()
+
+            android.util.Log.i("StatsRepository", "All stats data cleared successfully")
+        } catch (e: Exception) {
+            android.util.Log.e("StatsRepository", "Error clearing stats data", e)
+            throw e
+        }
     }
 
     // ==================== Helper Methods ====================

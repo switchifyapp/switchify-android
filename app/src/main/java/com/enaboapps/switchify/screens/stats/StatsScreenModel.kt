@@ -148,6 +148,23 @@ class StatsScreenModel(application: Application) : AndroidViewModel(application)
             else -> gestureId.replace("_", " ").replaceFirstChar { it.uppercase() }
         }
     }
+
+    /**
+     * Clears all statistics data.
+     */
+    fun clearAllStats(onSuccess: () -> Unit, onError: (String) -> Unit) {
+        viewModelScope.launch {
+            try {
+                withContext(Dispatchers.IO) {
+                    statsRepository.clearAllStats()
+                }
+                onSuccess()
+            } catch (e: Exception) {
+                Log.e(TAG, "Error clearing stats", e)
+                onError(getApplication<Application>().getString(R.string.stats_clear_data_error))
+            }
+        }
+    }
 }
 
 /**

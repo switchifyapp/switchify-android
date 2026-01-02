@@ -940,6 +940,12 @@
     <string name="stats_top_menus">Top Menus</string>
     <string name="stats_activity_over_time">Activity Over Time</string>
 
+    <!-- Stats privacy controls -->
+    <string name="stats_clear_data">Clear All Stats</string>
+    <string name="stats_clear_data_confirm">Are you sure you want to clear all statistics? This cannot be undone.</string>
+    <string name="stats_clear_data_success">All statistics cleared</string>
+    <string name="stats_clear_data_error">Failed to clear statistics</string>
+
     <!-- Gesture Names -->
     <string name="gesture_smile">Smile</string>
     <string name="gesture_left_wink">Left Wink</string>

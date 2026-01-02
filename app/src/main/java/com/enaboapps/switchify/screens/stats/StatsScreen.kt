@@ -1,5 +1,6 @@
 package com.enaboapps.switchify.screens.stats
 
+import android.widget.Toast
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -7,10 +8,14 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -33,6 +38,8 @@ import com.enaboapps.switchify.screens.stats.components.ActivityChart
 import com.enaboapps.switchify.screens.stats.components.BreakdownList
 import com.enaboapps.switchify.screens.stats.components.StatCard
 import com.enaboapps.switchify.service.stats.models.TimeRange
+import com.enaboapps.switchify.utils.LogEvent
+import com.enaboapps.switchify.utils.Logger
 
 /**
  * Stats screen displaying usage statistics.
@@ -51,6 +58,12 @@ fun StatsScreen(navController: NavController) {
     val uiState by viewModel.uiState.collectAsState()
 
     var selectedTimeRange by remember { mutableStateOf(TimeRange.WEEK) }
+    var showClearDialog by remember { mutableStateOf(false) }
+
+    // Log when stats screen is opened
+    LaunchedEffect(Unit) {
+        Logger.log(LogEvent.StatsScreenOpened)
+    }
 
     // Load stats when time range changes or when screen appears (via navigation)
     LaunchedEffect(selectedTimeRange, navController.currentBackStackEntry) {
@@ -74,7 +87,10 @@ fun StatsScreen(navController: NavController) {
             // Time range selector
             TimeRangeSelector(
                 selectedRange = selectedTimeRange,
-                onRangeSelected = { selectedTimeRange = it }
+                onRangeSelected = { range ->
+                    selectedTimeRange = range
+                    Logger.log(LogEvent.StatsTimeRangeChanged)
+                }
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -189,8 +205,61 @@ fun StatsScreen(navController: NavController) {
                         )
                     }
                 }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // Clear data button
+                OutlinedButton(
+                    onClick = { showClearDialog = true },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(stringResource(R.string.stats_clear_data))
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
             }
         }
+    }
+
+    // Clear data confirmation dialog
+    if (showClearDialog) {
+        AlertDialog(
+            onDismissRequest = { showClearDialog = false },
+            title = { Text(stringResource(R.string.stats_clear_data)) },
+            text = { Text(stringResource(R.string.stats_clear_data_confirm)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showClearDialog = false
+                        viewModel.clearAllStats(
+                            onSuccess = {
+                                Toast.makeText(
+                                    context,
+                                    context.getString(R.string.stats_clear_data_success),
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                                // Reload stats to show empty state
+                                viewModel.loadStats(selectedTimeRange)
+                            },
+                            onError = { error ->
+                                Toast.makeText(
+                                    context,
+                                    error,
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                        )
+                    }
+                ) {
+                    Text(stringResource(android.R.string.ok))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showClearDialog = false }) {
+                    Text(stringResource(android.R.string.cancel))
+                }
+            }
+        )
     }
 }
 
