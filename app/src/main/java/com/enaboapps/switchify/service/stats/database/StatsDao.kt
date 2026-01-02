@@ -80,6 +80,9 @@ interface StatsDao {
     @Query("DELETE FROM aggregated_stats WHERE time_bucket < :cutoffBucket")
     suspend fun deleteAggregatedStatsOlderThan(cutoffBucket: String): Int
 
+    @Query("DELETE FROM aggregated_stats")
+    suspend fun deleteAllAggregatedStats(): Int
+
     @Query("SELECT COUNT(*) FROM aggregated_stats")
     suspend fun getAggregatedStatsCount(): Int
 }

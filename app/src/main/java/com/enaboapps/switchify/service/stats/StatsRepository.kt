@@ -365,12 +365,18 @@ class StatsRepository(context: Context) {
      * Also resets milestone tracking.
      */
     suspend fun clearAllStats() {
-        try {
-            // Clear all events
-            dao.deleteEventsOlderThan(System.currentTimeMillis() + 1)
+        // Prevent database operations when device is locked
+        if (!DeviceLockObserver.isUserUnlocked(appContext)) {
+            android.util.Log.w("StatsRepository", "Device is locked, skipping clear stats")
+            throw IllegalStateException("Cannot clear stats while device is locked")
+        }
 
-            // Clear all aggregated stats by deleting all records
-            database.clearAllTables()
+        try {
+            // Clear all individual events
+            val eventsDeleted = dao.deleteEventsOlderThan(System.currentTimeMillis() + 1)
+
+            // Clear all aggregated stats
+            val aggregatedDeleted = dao.deleteAllAggregatedStats()
 
             // Reset milestone tracking
             preferences.edit()
@@ -378,7 +384,10 @@ class StatsRepository(context: Context) {
                 .putBoolean(MILESTONE_1000_REACHED, false)
                 .apply()
 
-            android.util.Log.i("StatsRepository", "All stats data cleared successfully")
+            android.util.Log.i(
+                "StatsRepository",
+                "All stats data cleared successfully: $eventsDeleted events, $aggregatedDeleted aggregated stats"
+            )
         } catch (e: Exception) {
             android.util.Log.e("StatsRepository", "Error clearing stats data", e)
             throw e

@@ -17,17 +17,26 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.enaboapps.switchify.R
@@ -56,9 +65,12 @@ fun StatsScreen(navController: NavController) {
         }
     )
     val uiState by viewModel.uiState.collectAsState()
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val coroutineScope = rememberCoroutineScope()
 
     var selectedTimeRange by remember { mutableStateOf(TimeRange.WEEK) }
     var showClearDialog by remember { mutableStateOf(false) }
+    var autoRefreshJob by remember { mutableStateOf<Job?>(null) }
 
     // Log when stats screen is opened
     LaunchedEffect(Unit) {
@@ -70,11 +82,38 @@ fun StatsScreen(navController: NavController) {
         viewModel.loadStats(selectedTimeRange)
     }
 
-    // Auto-refresh stats every 6 seconds while on this screen to show real-time updates
-    LaunchedEffect(selectedTimeRange) {
-        while (true) {
-            kotlinx.coroutines.delay(6000) // Wait 6 seconds (just after the 5-second flush)
-            viewModel.loadStats(selectedTimeRange)
+    // Lifecycle-aware auto-refresh that stops when screen is not visible
+    DisposableEffect(lifecycleOwner, selectedTimeRange) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_RESUME -> {
+                    // Start auto-refresh when screen becomes visible
+                    autoRefreshJob?.cancel()
+                    autoRefreshJob = coroutineScope.launch {
+                        while (isActive) {
+                            delay(6000) // Wait 6 seconds (just after the 5-second flush)
+                            if (isActive) {
+                                viewModel.loadStats(selectedTimeRange)
+                            }
+                        }
+                    }
+                }
+                Lifecycle.Event.ON_PAUSE -> {
+                    // Stop auto-refresh when screen is no longer visible
+                    autoRefreshJob?.cancel()
+                    autoRefreshJob = null
+                }
+                else -> {}
+            }
+        }
+
+        lifecycleOwner.lifecycle.addObserver(observer)
+
+        onDispose {
+            // Clean up observer and cancel refresh job when composable leaves composition
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            autoRefreshJob?.cancel()
+            autoRefreshJob = null
         }
     }
 
