@@ -935,4 +935,15 @@
     <string name="stats_camera_breakdown">Camera Gesture Breakdown</string>
     <string name="stats_top_menus">Top Menus</string>
     <string name="stats_activity_over_time">Activity Over Time</string>
+
+    <!-- Gesture Names -->
+    <string name="gesture_smile">Smile</string>
+    <string name="gesture_left_wink">Left Wink</string>
+    <string name="gesture_right_wink">Right Wink</string>
+    <string name="gesture_blink">Blink</string>
+    <string name="gesture_pucker">Pucker</string>
+    <string name="gesture_head_left">Head Left</string>
+    <string name="gesture_head_right">Head Right</string>
+    <string name="gesture_head_up">Head Up</string>
+    <string name="gesture_head_down">Head Down</string>
 </resources>

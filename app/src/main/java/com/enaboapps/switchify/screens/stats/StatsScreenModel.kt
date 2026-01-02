@@ -4,6 +4,7 @@ import android.app.Application
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.enaboapps.switchify.R
 import com.enaboapps.switchify.service.stats.StatsRepository
 import com.enaboapps.switchify.service.stats.models.DailyActivity
 import com.enaboapps.switchify.service.stats.models.MenuInteractionStats
@@ -94,19 +95,20 @@ class StatsScreenModel(application: Application) : AndroidViewModel(application)
     }
 
     /**
-     * Formats gesture IDs into human-readable names.
+     * Formats gesture IDs into human-readable names using string resources.
      */
     private fun formatGestureName(gestureId: String): String {
+        val context = getApplication<Application>()
         return when (gestureId) {
-            "smile" -> "Smile"
-            "left_wink" -> "Left Wink"
-            "right_wink" -> "Right Wink"
-            "blink" -> "Blink"
-            "pucker" -> "Pucker"
-            "head_turn_left" -> "Head Left"
-            "head_turn_right" -> "Head Right"
-            "head_turn_up" -> "Head Up"
-            "head_turn_down" -> "Head Down"
+            "smile" -> context.getString(R.string.gesture_smile)
+            "left_wink" -> context.getString(R.string.gesture_left_wink)
+            "right_wink" -> context.getString(R.string.gesture_right_wink)
+            "blink" -> context.getString(R.string.gesture_blink)
+            "pucker" -> context.getString(R.string.gesture_pucker)
+            "head_turn_left" -> context.getString(R.string.gesture_head_left)
+            "head_turn_right" -> context.getString(R.string.gesture_head_right)
+            "head_turn_up" -> context.getString(R.string.gesture_head_up)
+            "head_turn_down" -> context.getString(R.string.gesture_head_down)
             else -> gestureId.replace("_", " ").replaceFirstChar { it.uppercase() }
         }
     }
