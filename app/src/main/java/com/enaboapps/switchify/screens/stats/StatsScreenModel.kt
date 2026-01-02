@@ -10,10 +10,12 @@ import com.enaboapps.switchify.service.stats.models.DailyActivity
 import com.enaboapps.switchify.service.stats.models.MenuInteractionStats
 import com.enaboapps.switchify.service.stats.models.SwitchPressStats
 import com.enaboapps.switchify.service.stats.models.TimeRange
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * ViewModel for the Stats screen.
@@ -31,15 +33,20 @@ class StatsScreenModel(application: Application) : AndroidViewModel(application)
 
     /**
      * Loads stats for the given time range.
+     * Database queries run on IO dispatcher to avoid blocking the main thread.
      */
     fun loadStats(timeRange: TimeRange) {
         _uiState.value = _uiState.value.copy(isLoading = true, error = null)
 
         viewModelScope.launch {
             try {
-                val switchStats = statsRepository.getSwitchPressStats(timeRange)
-                val menuStats = statsRepository.getMenuInteractionStats(timeRange)
-                val activityData = statsRepository.getActivityData(timeRange)
+                val (switchStats, menuStats, activityData) = withContext(Dispatchers.IO) {
+                    Triple(
+                        statsRepository.getSwitchPressStats(timeRange),
+                        statsRepository.getMenuInteractionStats(timeRange),
+                        statsRepository.getActivityData(timeRange)
+                    )
+                }
 
                 _uiState.value = StatsUiState(
                     switchStats = switchStats,
