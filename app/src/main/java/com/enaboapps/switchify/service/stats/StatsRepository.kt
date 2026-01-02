@@ -100,12 +100,32 @@ class StatsRepository(context: Context) {
             endBucket
         )
 
-        // Build breakdown maps
+        // Build breakdown maps from aggregated data
         val externalMap = externalStats.associate {
             it.stat_key.removePrefix("switch_external_") to it.total
-        }
+        }.toMutableMap()
         val cameraMap = cameraStats.associate {
             it.stat_key.removePrefix("switch_camera_") to it.total
+        }.toMutableMap()
+
+        // Also include today's unaggregated events for real-time updates
+        val today = LocalDate.now()
+        val todayStart = today.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+        val todayEnd = today.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+
+        val todayEvents = dao.getEventsByType("switch_press", todayStart, todayEnd)
+        todayEvents.forEach { event ->
+            val subtype = event.eventSubtype ?: return@forEach
+            when {
+                subtype.startsWith("external_") -> {
+                    val key = subtype.removePrefix("external_")
+                    externalMap[key] = (externalMap[key] ?: 0) + 1
+                }
+                subtype.startsWith("camera_") -> {
+                    val key = subtype.removePrefix("camera_")
+                    cameraMap[key] = (cameraMap[key] ?: 0) + 1
+                }
+            }
         }
 
         // Get daily totals
@@ -136,9 +156,20 @@ class StatsRepository(context: Context) {
             endBucket
         )
 
-        // Build menu counts map
+        // Build menu counts map from aggregated data
         val menuCounts = menuStats.associate {
             it.stat_key.removePrefix("menu_") to it.total
+        }.toMutableMap()
+
+        // Also include today's unaggregated events for real-time updates
+        val today = LocalDate.now()
+        val todayStart = today.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+        val todayEnd = today.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+
+        val todayEvents = dao.getEventsByType("menu_open", todayStart, todayEnd)
+        todayEvents.forEach { event ->
+            val menuId = event.eventSubtype ?: return@forEach
+            menuCounts[menuId] = (menuCounts[menuId] ?: 0) + 1
         }
 
         // Get daily totals

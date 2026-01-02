@@ -47,6 +47,7 @@ class StatsCollector private constructor() {
      * Only initializes if device is unlocked to prevent crashes.
      */
     fun initialize(context: Context) {
+        Log.i(TAG, "StatsCollector.initialize() called")
         this.context = context.applicationContext
 
         // Do NOT initialize repository when device is locked - database access will crash
@@ -56,7 +57,7 @@ class StatsCollector private constructor() {
         }
 
         repository = StatsRepository(context)
-        Log.d(TAG, "StatsCollector initialized")
+        Log.i(TAG, "StatsCollector initialized successfully with repository")
     }
 
     /**
@@ -81,11 +82,13 @@ class StatsCollector private constructor() {
      * Non-blocking - queues the event for batched write.
      */
     fun recordSwitchPress(switchType: String, switchCode: String) {
+        Log.i(TAG, "recordSwitchPress called: type=$switchType, code=$switchCode, repo=${repository != null}")
         if (repository == null) {
             Log.w(TAG, "StatsCollector not initialized, cannot record switch press")
             return
         }
         queueEvent(PendingEvent.SwitchPress(switchType, switchCode, System.currentTimeMillis()))
+        Log.i(TAG, "Switch press queued, queue size: ${queueSize.get()}")
     }
 
     /**
@@ -141,6 +144,8 @@ class StatsCollector private constructor() {
      * Only flushes if device is unlocked to prevent crashes.
      */
     private suspend fun flushEvents() {
+        Log.i(TAG, "flushEvents() called, queue size: ${queueSize.get()}")
+
         // Check if device is unlocked before attempting database operations
         val ctx = context
         if (ctx == null) {
@@ -165,6 +170,8 @@ class StatsCollector private constructor() {
             }
         }
 
+        Log.i(TAG, "Flushing ${events.size} events to database")
+
         if (events.isNotEmpty()) {
             try {
                 val statsEntities = events.map { it.toStatsEntity() }
@@ -179,6 +186,7 @@ class StatsCollector private constructor() {
                     return
                 }
                 repository?.batchInsertEvents(statsEntities)
+                Log.i(TAG, "Successfully flushed ${events.size} events")
             } catch (e: Exception) {
                 Log.e(TAG, "Error flushing events", e)
                 // Put events back in queue on error
