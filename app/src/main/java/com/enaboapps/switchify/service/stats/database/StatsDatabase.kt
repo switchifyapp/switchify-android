@@ -48,13 +48,25 @@ abstract class StatsDatabase : RoomDatabase() {
         }
 
         /**
-         * Resets the cached singleton database instance.
+         * Closes and clears the cached singleton database instance.
          *
-         * Sets the internal INSTANCE reference to null so a new StatsDatabase can be created on next access.
+         * Properly closes the database connection before nulling the reference to prevent leaks.
          * Primarily intended for use in tests to ensure a fresh database state.
          */
         fun clearInstance() {
-            INSTANCE = null
+            synchronized(this) {
+                INSTANCE?.let { db ->
+                    try {
+                        if (db.isOpen) {
+                            db.close()
+                            android.util.Log.d("StatsDatabase", "Database closed successfully")
+                        }
+                    } catch (e: Exception) {
+                        android.util.Log.e("StatsDatabase", "Error closing database", e)
+                    }
+                }
+                INSTANCE = null
+            }
         }
     }
 }
