@@ -22,7 +22,7 @@ import java.util.concurrent.atomic.AtomicReference
  * Implements AutoCloseable to properly clean up resources.
  */
 class StatsCollector private constructor() : AutoCloseable {
-    private val eventQueue = ConcurrentLinkedQueue<PendingEvent>()
+    private val eventQueue = ConcurrentLinkedQueue<QueuedEvent>()
     private val queueSize = AtomicInteger(0)
     private val batchJob = AtomicReference<Job?>(null)
     private var repository: StatsRepository? = null
@@ -34,6 +34,7 @@ class StatsCollector private constructor() : AutoCloseable {
         private const val TAG = "StatsCollector"
         private const val BATCH_DELAY_MS = 5000L  // 5 second batching
         private const val MAX_QUEUE_SIZE = 1000
+        private const val MAX_RETRY_COUNT = 3  // Drop events after 3 failed attempts
 
         @Volatile
         private var instance: StatsCollector? = null
@@ -129,7 +130,7 @@ class StatsCollector private constructor() : AutoCloseable {
             }
         }
 
-        if (eventQueue.offer(event)) {
+        if (eventQueue.offer(QueuedEvent(event, retryCount = 0))) {
             queueSize.incrementAndGet()
         }
         scheduleBatchWrite()
@@ -180,40 +181,64 @@ class StatsCollector private constructor() : AutoCloseable {
         // Try to initialize if not already done
         ensureInitialized()
 
-        val events = mutableListOf<PendingEvent>()
+        val queuedEvents = mutableListOf<QueuedEvent>()
         while (eventQueue.isNotEmpty()) {
             eventQueue.poll()?.let {
-                events.add(it)
+                queuedEvents.add(it)
                 queueSize.decrementAndGet()
             }
         }
 
-        Log.i(TAG, "Flushing ${events.size} events to database")
+        Log.i(TAG, "Flushing ${queuedEvents.size} events to database")
 
-        if (events.isNotEmpty()) {
+        if (queuedEvents.isNotEmpty()) {
             try {
-                val statsEntities = events.map { it.toStatsEntity() }
+                val statsEntities = queuedEvents.map { it.event.toStatsEntity() }
                 if (repository == null) {
-                    Log.e(TAG, "Repository is null, cannot flush ${events.size} events")
-                    // Put events back in queue since we couldn't flush
-                    events.forEach {
-                        if (eventQueue.offer(it)) {
-                            queueSize.incrementAndGet()
-                        }
-                    }
+                    Log.e(TAG, "Repository is null, cannot flush ${queuedEvents.size} events")
+                    // Re-queue events with incremented retry count
+                    requeueEventsWithRetry(queuedEvents)
                     return
                 }
                 repository?.batchInsertEvents(statsEntities)
-                Log.i(TAG, "Successfully flushed ${events.size} events")
+                Log.i(TAG, "Successfully flushed ${queuedEvents.size} events")
             } catch (e: Exception) {
                 Log.e(TAG, "Error flushing events", e)
-                // Put events back in queue on error
-                events.forEach {
-                    if (eventQueue.offer(it)) {
-                        queueSize.incrementAndGet()
-                    }
+                // Re-queue events with incremented retry count, drop if max retries exceeded
+                requeueEventsWithRetry(queuedEvents)
+            }
+        }
+    }
+
+    /**
+     * Re-queues events after a failed flush attempt.
+     * Increments retry count and drops events that exceed MAX_RETRY_COUNT.
+     */
+    private fun requeueEventsWithRetry(events: List<QueuedEvent>) {
+        var droppedCount = 0
+        var requeuedCount = 0
+
+        events.forEach { queuedEvent ->
+            val newRetryCount = queuedEvent.retryCount + 1
+            if (newRetryCount > MAX_RETRY_COUNT) {
+                droppedCount++
+                Log.w(TAG, "Dropping event after $MAX_RETRY_COUNT failed attempts: ${queuedEvent.event}")
+            } else {
+                if (eventQueue.offer(QueuedEvent(queuedEvent.event, newRetryCount))) {
+                    queueSize.incrementAndGet()
+                    requeuedCount++
+                } else {
+                    droppedCount++
+                    Log.w(TAG, "Failed to re-queue event, queue full")
                 }
             }
+        }
+
+        if (droppedCount > 0) {
+            Log.w(TAG, "Dropped $droppedCount events (max retries exceeded or queue full)")
+        }
+        if (requeuedCount > 0) {
+            Log.i(TAG, "Re-queued $requeuedCount events for retry")
         }
     }
 
@@ -282,4 +307,13 @@ class StatsCollector private constructor() : AutoCloseable {
             )
         }
     }
+
+    /**
+     * Wrapper for queued events that tracks retry attempts.
+     * Prevents infinite retry loops on persistent failures.
+     */
+    private data class QueuedEvent(
+        val event: PendingEvent,
+        val retryCount: Int
+    )
 }
