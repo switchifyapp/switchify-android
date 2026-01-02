@@ -55,17 +55,23 @@ class StatsRepository(context: Context) {
         val startBucket = startDate.toString()
         val endBucket = endDate.toString()
 
-        // Get all switch press aggregated stats
+        // Exclude today from aggregated stats to avoid double-counting
+        // (today's events might have been aggregated already)
+        val today = LocalDate.now()
+        val yesterday = today.minusDays(1)
+        val aggregatedEndBucket = if (endDate.isAfter(yesterday)) yesterday.toString() else endBucket
+
+        // Get aggregated stats up to yesterday only
         val externalStats = dao.getAggregatedCountsByPrefix(
             "switch_external_",
             startBucket,
-            endBucket
+            aggregatedEndBucket
         )
 
         val cameraStats = dao.getAggregatedCountsByPrefix(
             "switch_camera_",
             startBucket,
-            endBucket
+            aggregatedEndBucket
         )
 
         // Build breakdown maps from aggregated data
@@ -76,8 +82,7 @@ class StatsRepository(context: Context) {
             it.stat_key.removePrefix("switch_camera_") to it.total
         }.toMutableMap()
 
-        // Also include today's unaggregated events for real-time updates
-        val today = LocalDate.now()
+        // Add today's raw unaggregated events for real-time updates
         val todayStart = today.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
         val todayEnd = today.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
 
@@ -96,8 +101,15 @@ class StatsRepository(context: Context) {
             }
         }
 
-        // Get daily totals
-        val pressesPerDay = getDailyTotals("switch_", startBucket, endBucket)
+        // Get daily totals (excluding today from aggregated stats)
+        val pressesPerDay = getDailyTotals("switch_", startBucket, aggregatedEndBucket).toMutableMap()
+
+        // Add today's total to pressesPerDay
+        val todayTotal = todayEvents.size
+        if (todayTotal > 0) {
+            val todayDateStr = today.toString()
+            pressesPerDay[todayDateStr] = (pressesPerDay[todayDateStr] ?: 0) + todayTotal
+        }
 
         val totalPresses = (externalMap.values.sum() + cameraMap.values.sum())
 
@@ -115,13 +127,18 @@ class StatsRepository(context: Context) {
     suspend fun getMenuInteractionStats(timeRange: TimeRange): MenuInteractionStats {
         val (startDate, endDate) = getDateRange(timeRange)
         val startBucket = startDate.toString()
-        val endBucket = endDate.toString()
 
-        // Get all menu open aggregated stats
+        // Exclude today from aggregated stats to avoid double-counting
+        // (today's events might have been aggregated already)
+        val today = LocalDate.now()
+        val yesterday = today.minusDays(1)
+        val aggregatedEndBucket = if (endDate.isAfter(yesterday)) yesterday.toString() else endDate.toString()
+
+        // Get aggregated menu stats up to yesterday only
         val menuStats = dao.getAggregatedCountsByPrefix(
             "menu_",
             startBucket,
-            endBucket
+            aggregatedEndBucket
         )
 
         // Build menu counts map from aggregated data
@@ -129,8 +146,7 @@ class StatsRepository(context: Context) {
             it.stat_key.removePrefix("menu_") to it.total
         }.toMutableMap()
 
-        // Also include today's unaggregated events for real-time updates
-        val today = LocalDate.now()
+        // Add today's raw unaggregated events for real-time updates
         val todayStart = today.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
         val todayEnd = today.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
 
@@ -140,8 +156,15 @@ class StatsRepository(context: Context) {
             menuCounts[menuId] = (menuCounts[menuId] ?: 0) + 1
         }
 
-        // Get daily totals
-        val opensPerDay = getDailyTotals("menu_", startBucket, endBucket)
+        // Get daily totals (excluding today from aggregated stats)
+        val opensPerDay = getDailyTotals("menu_", startBucket, aggregatedEndBucket).toMutableMap()
+
+        // Add today's total to opensPerDay
+        val todayTotal = todayEvents.size
+        if (todayTotal > 0) {
+            val todayDateStr = today.toString()
+            opensPerDay[todayDateStr] = (opensPerDay[todayDateStr] ?: 0) + todayTotal
+        }
 
         val totalOpens = menuCounts.values.sum()
 
@@ -160,7 +183,12 @@ class StatsRepository(context: Context) {
         val startBucket = startDate.toString()
         val endBucket = endDate.toString()
 
-        val allStats = dao.getAllAggregatedStatsInRange(startBucket, endBucket)
+        // Exclude today from aggregated stats to avoid double-counting
+        val today = LocalDate.now()
+        val yesterday = today.minusDays(1)
+        val aggregatedEndBucket = if (endDate.isAfter(yesterday)) yesterday.toString() else endBucket
+
+        val allStats = dao.getAllAggregatedStatsInRange(startBucket, aggregatedEndBucket)
 
         // Group by date
         val dateMap = mutableMapOf<String, Pair<Int, Int>>()  // date -> (switches, menus)
@@ -175,6 +203,27 @@ class StatsRepository(context: Context) {
                     dateMap[stat.timeBucket] = currentPair.first to (currentPair.second + stat.count)
                 }
             }
+        }
+
+        // Add today's raw unaggregated events for real-time updates
+        val todayStart = today.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+        val todayEnd = today.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+
+        val todayEvents = dao.getEventsInRange(todayStart, todayEnd)
+        val todayDateStr = today.toString()
+        var todaySwitches = 0
+        var todayMenus = 0
+
+        todayEvents.forEach { event ->
+            when (event.eventType) {
+                "switch_press" -> todaySwitches++
+                "menu_open" -> todayMenus++
+            }
+        }
+
+        if (todaySwitches > 0 || todayMenus > 0) {
+            val currentPair = dateMap.getOrDefault(todayDateStr, 0 to 0)
+            dateMap[todayDateStr] = (currentPair.first + todaySwitches) to (currentPair.second + todayMenus)
         }
 
         // Fill in missing dates with zeros
