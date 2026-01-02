@@ -284,13 +284,14 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
         SwitchifyLifecycleOwner.cleanup()
 
         // Flush any pending stats before service is destroyed
-        serviceScope.launch {
-            try {
+        // Use runBlocking to ensure flush completes before service destruction
+        try {
+            kotlinx.coroutines.runBlocking {
                 StatsCollector.getInstance().forceFlush()
-                Log.d(TAG, "Stats flushed successfully on service destroy")
-            } catch (e: Exception) {
-                Log.e(TAG, "Error flushing stats on service destroy", e)
             }
+            Log.d(TAG, "Stats flushed successfully on service destroy")
+        } catch (e: Exception) {
+            Log.e(TAG, "Error flushing stats on service destroy", e)
         }
 
         Logger.log(LogEvent.ServiceDestroyed)

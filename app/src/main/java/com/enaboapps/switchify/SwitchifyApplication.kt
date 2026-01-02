@@ -58,8 +58,15 @@ class SwitchifyApplication : Application() {
             }
 
             override fun onDestroy(owner: LifecycleOwner) {
-                // Process is being destroyed - close StatsCollector
-                Log.d(TAG, "Process lifecycle onDestroy, closing StatsCollector")
+                // Process is being destroyed - flush then close StatsCollector
+                Log.d(TAG, "Process lifecycle onDestroy, flushing and closing StatsCollector")
+                try {
+                    kotlinx.coroutines.runBlocking {
+                        StatsCollector.getInstance().forceFlush()
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error flushing stats before close", e)
+                }
                 StatsCollector.getInstance().close()
             }
         })
