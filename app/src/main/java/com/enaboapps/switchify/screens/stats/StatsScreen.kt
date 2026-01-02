@@ -52,9 +52,17 @@ fun StatsScreen(navController: NavController) {
 
     var selectedTimeRange by remember { mutableStateOf(TimeRange.WEEK) }
 
-    // Load stats when time range changes
-    LaunchedEffect(selectedTimeRange) {
+    // Load stats when time range changes or when screen appears (via navigation)
+    LaunchedEffect(selectedTimeRange, navController.currentBackStackEntry) {
         viewModel.loadStats(selectedTimeRange)
+    }
+
+    // Auto-refresh stats every 6 seconds while on this screen to show real-time updates
+    LaunchedEffect(selectedTimeRange) {
+        while (true) {
+            kotlinx.coroutines.delay(6000) // Wait 6 seconds (just after the 5-second flush)
+            viewModel.loadStats(selectedTimeRange)
+        }
     }
 
     BaseView(
