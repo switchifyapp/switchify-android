@@ -5,6 +5,7 @@ import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.enaboapps.switchify.R
+import com.enaboapps.switchify.service.menu.structure.MenuConstants
 import com.enaboapps.switchify.service.stats.StatsRepository
 import com.enaboapps.switchify.service.stats.models.DailyActivity
 import com.enaboapps.switchify.service.stats.models.MenuInteractionStats
@@ -74,15 +75,37 @@ class StatsScreenModel(application: Application) : AndroidViewModel(application)
     }
 
     /**
-     * Gets the top N most-used menus.
+     * Gets the top N most-used menus with human-readable names.
      */
     fun getTopMenus(n: Int = 5): List<Pair<String, Int>> {
         return _uiState.value.menuStats?.menuOpenCounts
             ?.entries
             ?.sortedByDescending { it.value }
             ?.take(n)
-            ?.map { it.key to it.value }
+            ?.map { formatMenuName(it.key) to it.value }
             ?: emptyList()
+    }
+
+    /**
+     * Formats menu IDs into human-readable names using string resources.
+     */
+    private fun formatMenuName(menuId: String): String {
+        val context = getApplication<Application>()
+        return when (menuId) {
+            MenuConstants.MenuIds.MAIN_MENU -> context.getString(R.string.menu_title_main)
+            MenuConstants.MenuIds.DEVICE_MENU -> context.getString(R.string.menu_title_device)
+            MenuConstants.MenuIds.VOLUME_CONTROL_MENU -> context.getString(R.string.menu_title_volume_control)
+            MenuConstants.MenuIds.GESTURES_MENU -> context.getString(R.string.menu_title_gestures)
+            MenuConstants.MenuIds.TAP_GESTURES_MENU -> context.getString(R.string.menu_title_tap)
+            MenuConstants.MenuIds.SWIPE_GESTURES_MENU -> context.getString(R.string.menu_title_swipe)
+            MenuConstants.MenuIds.PINCH_GESTURES_MENU -> context.getString(R.string.menu_title_pinch)
+            MenuConstants.MenuIds.SCROLL_MENU -> context.getString(R.string.menu_title_scroll)
+            MenuConstants.MenuIds.MEDIA_CONTROL_MENU -> context.getString(R.string.menu_title_media_control)
+            MenuConstants.MenuIds.EDIT_MENU -> context.getString(R.string.menu_title_edit)
+            else -> menuId.replace("_", " ").split(" ").joinToString(" ") { word ->
+                word.replaceFirstChar { it.uppercase() }
+            }
+        }
     }
 
     /**

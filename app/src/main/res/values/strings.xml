@@ -896,6 +896,9 @@
     <string name="menu_title_tap">Tap Gestures</string>
     <string name="menu_title_swipe">Swipe Gestures</string>
     <string name="menu_title_pinch">Pinch Gestures</string>
+    <string name="menu_title_volume_control">Volume Control</string>
+    <string name="menu_title_custom_gesture">Custom Gesture</string>
+    <string name="menu_title_finger_mode">Finger Mode</string>
     <string name="button_reset_to_default">Reset to Default</string>
     <string name="content_desc_drag_handle">Drag to reorder</string>
     <string name="content_desc_hide_item">Hide item</string>
