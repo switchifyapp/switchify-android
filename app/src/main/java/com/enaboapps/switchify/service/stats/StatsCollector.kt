@@ -103,7 +103,7 @@ class StatsCollector private constructor() : AutoCloseable {
      * Records a menu open event.
      * Non-blocking - queues the event for batched write.
      */
-    fun recordMenuOpen(menuId: String, fromMenuId: String? = null) {
+    fun recordMenuOpen(menuId: String) {
         if (isClosed.get()) {
             Log.w(TAG, "StatsCollector is closed, cannot record menu open")
             return
@@ -112,7 +112,7 @@ class StatsCollector private constructor() : AutoCloseable {
             Log.w(TAG, "StatsCollector not initialized, cannot record menu open")
             return
         }
-        queueEvent(PendingEvent.MenuOpen(menuId, fromMenuId, System.currentTimeMillis()))
+        queueEvent(PendingEvent.MenuOpen(menuId, System.currentTimeMillis()))
     }
 
     /**
@@ -273,7 +273,6 @@ class StatsCollector private constructor() : AutoCloseable {
 
         data class MenuOpen(
             val menuId: String,
-            val fromMenuId: String?,
             val timestamp: Long
         ) : PendingEvent() {
             override fun toStatsEntity() = StatsEntity(

@@ -48,7 +48,7 @@ class MenuHierarchy(
 
         // Record stats for menu open
         menu.menuId?.let { menuId ->
-            StatsCollector.getInstance().recordMenuOpen(menuId, getTopMenu()?.menuId)
+            StatsCollector.getInstance().recordMenuOpen(menuId)
         }
 
         menu.menuViewListener = this

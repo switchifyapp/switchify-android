@@ -50,7 +50,7 @@ class StatsRepository(context: Context) {
      * Records a menu open event.
      * Non-blocking - launches coroutine for database write.
      */
-    fun recordMenuOpen(menuId: String, fromMenuId: String? = null) {
+    fun recordMenuOpen(menuId: String) {
         val event = StatsEntity(
             eventType = "menu_open",
             eventSubtype = menuId,
