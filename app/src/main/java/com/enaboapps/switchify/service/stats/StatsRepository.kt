@@ -10,10 +10,6 @@ import com.enaboapps.switchify.service.stats.models.MenuInteractionStats
 import com.enaboapps.switchify.service.stats.models.SwitchPressStats
 import com.enaboapps.switchify.service.stats.models.TimeRange
 import com.enaboapps.switchify.service.utils.DeviceLockObserver
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -21,45 +17,17 @@ import java.time.temporal.ChronoUnit
 
 /**
  * Repository for managing stats data.
- * Provides API for recording events and querying statistics.
+ * Provides API for querying statistics.
+ *
+ * NOTE: Use StatsCollector for recording events, not this repository directly.
+ * StatsCollector provides batched writes for better performance.
  */
 class StatsRepository(context: Context) {
     private val appContext = context.applicationContext
     private val database = StatsDatabase.getInstance(context)
     private val dao = database.statsDao()
-    private val coroutineScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
-    // ==================== Recording Methods (Non-blocking) ====================
-
-    /**
-     * Records a switch press event.
-     * Non-blocking - launches coroutine for database write.
-     */
-    fun recordSwitchPress(switchType: String, switchCode: String) {
-        val event = StatsEntity(
-            eventType = "switch_press",
-            eventSubtype = "${switchType}_$switchCode",
-            timestamp = System.currentTimeMillis()
-        )
-        coroutineScope.launch {
-            dao.insertEvent(event)
-        }
-    }
-
-    /**
-     * Records a menu open event.
-     * Non-blocking - launches coroutine for database write.
-     */
-    fun recordMenuOpen(menuId: String) {
-        val event = StatsEntity(
-            eventType = "menu_open",
-            eventSubtype = menuId,
-            timestamp = System.currentTimeMillis()
-        )
-        coroutineScope.launch {
-            dao.insertEvent(event)
-        }
-    }
+    // ==================== Recording Methods (Internal - used by StatsCollector) ====================
 
     /**
      * Batch insert multiple events.
