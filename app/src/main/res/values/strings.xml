@@ -913,6 +913,7 @@
     <!-- Stats Screen -->
     <string name="stats_loading">Loading statistics…</string>
     <string name="stats_error">Error loading stats: %1$s</string>
+    <string name="stats_error_generic">Unable to load stats. Please try again.</string>
     <string name="stats_no_data_available">No data available</string>
 
     <!-- Time Range -->

@@ -11,6 +11,7 @@ import com.enaboapps.switchify.service.stats.models.MenuInteractionStats
 import com.enaboapps.switchify.service.stats.models.SwitchPressStats
 import com.enaboapps.switchify.service.stats.models.TimeRange
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -33,7 +34,7 @@ class StatsScreenModel(application: Application) : AndroidViewModel(application)
 
     /**
      * Loads stats for the given time range.
-     * Database queries run on IO dispatcher to avoid blocking the main thread.
+     * Database queries run in parallel on IO dispatcher to avoid blocking the main thread.
      */
     fun loadStats(timeRange: TimeRange) {
         _uiState.value = _uiState.value.copy(isLoading = true, error = null)
@@ -41,10 +42,15 @@ class StatsScreenModel(application: Application) : AndroidViewModel(application)
         viewModelScope.launch {
             try {
                 val (switchStats, menuStats, activityData) = withContext(Dispatchers.IO) {
+                    // Run all three repository calls in parallel for better performance
+                    val switchStatsDeferred = async { statsRepository.getSwitchPressStats(timeRange) }
+                    val menuStatsDeferred = async { statsRepository.getMenuInteractionStats(timeRange) }
+                    val activityDataDeferred = async { statsRepository.getActivityData(timeRange) }
+
                     Triple(
-                        statsRepository.getSwitchPressStats(timeRange),
-                        statsRepository.getMenuInteractionStats(timeRange),
-                        statsRepository.getActivityData(timeRange)
+                        switchStatsDeferred.await(),
+                        menuStatsDeferred.await(),
+                        activityDataDeferred.await()
                     )
                 }
 
@@ -61,7 +67,7 @@ class StatsScreenModel(application: Application) : AndroidViewModel(application)
                 Log.e(TAG, "Error loading stats", e)
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    error = e.message
+                    error = getApplication<Application>().getString(R.string.stats_error_generic)
                 )
             }
         }
