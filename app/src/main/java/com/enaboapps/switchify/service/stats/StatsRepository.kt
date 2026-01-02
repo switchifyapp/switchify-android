@@ -287,16 +287,16 @@ class StatsRepository(context: Context) {
     }
 
     /**
-     * Triggers aggregation for all unaggregated days.
+     * Triggers aggregation for completed days.
+     * Only aggregates yesterday and older - never today since it's still accumulating events.
      */
     suspend fun triggerAggregation() {
         // Aggregate yesterday (if not done yet)
         val yesterday = LocalDate.now().minusDays(1)
         aggregateDay(yesterday)
 
-        // Aggregate today (for real-time stats)
-        val today = LocalDate.now()
-        aggregateDay(today)
+        // Don't aggregate today - it's still accumulating events
+        // Query methods will read today's raw events directly for real-time stats
 
         // Check for milestones after aggregation
         checkMilestones()
