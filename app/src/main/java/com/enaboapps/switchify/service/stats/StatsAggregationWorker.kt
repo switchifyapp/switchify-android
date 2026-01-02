@@ -33,6 +33,9 @@ class StatsAggregationWorker(
             // Clean up old events (90 days retention)
             repository.cleanupOldEvents(retentionDays = 90)
 
+            // Flush any pending stats before completing
+            StatsCollector.getInstance().forceFlush()
+
             val eventCount = repository.getEventCount()
             val aggregatedCount = repository.getAggregatedStatsCount()
 
@@ -41,6 +44,12 @@ class StatsAggregationWorker(
             Result.success()
         } catch (e: Exception) {
             Log.e(TAG, "Error during stats aggregation", e)
+            // Flush stats even on failure to prevent data loss
+            try {
+                StatsCollector.getInstance().forceFlush()
+            } catch (flushError: Exception) {
+                Log.e(TAG, "Error flushing stats after aggregation failure", flushError)
+            }
             Result.retry()
         }
     }

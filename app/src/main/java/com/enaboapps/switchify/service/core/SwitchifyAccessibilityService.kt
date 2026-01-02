@@ -282,6 +282,17 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
         SwitchifyAccessibilityWindow.instance.onServiceDestroy()
         SwitchifyLifecycleOwner.getInstance().handleLifecycleEvent(Lifecycle.Event.ON_DESTROY)
         SwitchifyLifecycleOwner.cleanup()
+
+        // Flush any pending stats before service is destroyed
+        serviceScope.launch {
+            try {
+                StatsCollector.getInstance().forceFlush()
+                Log.d(TAG, "Stats flushed successfully on service destroy")
+            } catch (e: Exception) {
+                Log.e(TAG, "Error flushing stats on service destroy", e)
+            }
+        }
+
         Logger.log(LogEvent.ServiceDestroyed)
         super.onDestroy()
     }
