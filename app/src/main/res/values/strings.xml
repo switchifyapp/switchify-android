@@ -924,6 +924,7 @@
     <string name="stats_time_week">Week</string>
     <string name="stats_time_month">Month</string>
     <string name="stats_time_all">All Time</string>
+    <string name="stats_time_range_label">Time Range</string>
 
     <!-- Stats Sections -->
     <string name="stats_section_switch_presses">Switch Presses</string>
