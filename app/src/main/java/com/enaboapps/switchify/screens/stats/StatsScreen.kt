@@ -8,35 +8,19 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.isActive
-import kotlinx.coroutines.launch
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.enaboapps.switchify.R
@@ -65,12 +49,9 @@ fun StatsScreen(navController: NavController) {
         }
     )
     val uiState by viewModel.uiState.collectAsState()
-    val lifecycleOwner = LocalLifecycleOwner.current
-    val coroutineScope = rememberCoroutineScope()
 
     var selectedTimeRange by remember { mutableStateOf(TimeRange.WEEK) }
     var showClearDialog by remember { mutableStateOf(false) }
-    var autoRefreshJob by remember { mutableStateOf<Job?>(null) }
 
     // Log when stats screen is opened
     LaunchedEffect(Unit) {
@@ -80,41 +61,6 @@ fun StatsScreen(navController: NavController) {
     // Load stats when time range changes or when screen appears (via navigation)
     LaunchedEffect(selectedTimeRange, navController.currentBackStackEntry) {
         viewModel.loadStats(selectedTimeRange)
-    }
-
-    // Lifecycle-aware auto-refresh that stops when screen is not visible
-    DisposableEffect(lifecycleOwner, selectedTimeRange) {
-        val observer = LifecycleEventObserver { _, event ->
-            when (event) {
-                Lifecycle.Event.ON_RESUME -> {
-                    // Start auto-refresh when screen becomes visible
-                    autoRefreshJob?.cancel()
-                    autoRefreshJob = coroutineScope.launch {
-                        while (isActive) {
-                            delay(6000) // Wait 6 seconds (just after the 5-second flush)
-                            if (isActive) {
-                                viewModel.loadStats(selectedTimeRange)
-                            }
-                        }
-                    }
-                }
-                Lifecycle.Event.ON_PAUSE -> {
-                    // Stop auto-refresh when screen is no longer visible
-                    autoRefreshJob?.cancel()
-                    autoRefreshJob = null
-                }
-                else -> {}
-            }
-        }
-
-        lifecycleOwner.lifecycle.addObserver(observer)
-
-        onDispose {
-            // Clean up observer and cancel refresh job when composable leaves composition
-            lifecycleOwner.lifecycle.removeObserver(observer)
-            autoRefreshJob?.cancel()
-            autoRefreshJob = null
-        }
     }
 
     BaseView(
@@ -302,31 +248,57 @@ fun StatsScreen(navController: NavController) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TimeRangeSelector(
     selectedRange: TimeRange,
     onRangeSelected: (TimeRange) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = androidx.compose.foundation.layout.Arrangement.SpaceEvenly
+    var expanded by remember { mutableStateOf(false) }
+
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = it },
+        modifier = modifier.fillMaxWidth()
     ) {
-        TimeRange.entries.forEach { range ->
-            FilterChip(
-                selected = selectedRange == range,
-                onClick = { onRangeSelected(range) },
-                label = {
-                    Text(
-                        text = when (range) {
+        OutlinedTextField(
+            value = when (selectedRange) {
+                TimeRange.TODAY -> stringResource(R.string.stats_time_today)
+                TimeRange.WEEK -> stringResource(R.string.stats_time_week)
+                TimeRange.MONTH -> stringResource(R.string.stats_time_month)
+                TimeRange.ALL_TIME -> stringResource(R.string.stats_time_all)
+            },
+            onValueChange = {},
+            readOnly = true,
+            label = { Text(stringResource(R.string.stats_time_range_label)) },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            modifier = Modifier
+                .fillMaxWidth()
+                .menuAnchor(type = ExposedDropdownMenuAnchorType.PrimaryNotEditable)
+        )
+
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            TimeRange.entries.forEach { range ->
+                DropdownMenuItem(
+                    text = {
+                        Text(when (range) {
                             TimeRange.TODAY -> stringResource(R.string.stats_time_today)
                             TimeRange.WEEK -> stringResource(R.string.stats_time_week)
                             TimeRange.MONTH -> stringResource(R.string.stats_time_month)
                             TimeRange.ALL_TIME -> stringResource(R.string.stats_time_all)
-                        }
-                    )
-                }
-            )
+                        })
+                    },
+                    onClick = {
+                        onRangeSelected(range)
+                        expanded = false
+                    },
+                    contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
+                )
+            }
         }
     }
 }
