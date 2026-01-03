@@ -71,17 +71,25 @@ class StatsRepository(context: Context) {
         val aggregatedEndBucket = if (endDate.isAfter(yesterday)) yesterday.toString() else endBucket
 
         // Get aggregated stats up to yesterday only
-        val externalStats = dao.getAggregatedCountsByPrefix(
-            "switch_external_",
-            startBucket,
-            aggregatedEndBucket
-        )
+        val externalStats = if (startBucket <= aggregatedEndBucket) {
+            dao.getAggregatedCountsByPrefix(
+                "switch_external_",
+                startBucket,
+                aggregatedEndBucket
+            )
+        } else {
+            emptyList()
+        }
 
-        val cameraStats = dao.getAggregatedCountsByPrefix(
-            "switch_camera_",
-            startBucket,
-            aggregatedEndBucket
-        )
+        val cameraStats = if (startBucket <= aggregatedEndBucket) {
+            dao.getAggregatedCountsByPrefix(
+                "switch_camera_",
+                startBucket,
+                aggregatedEndBucket
+            )
+        } else {
+            emptyList()
+        }
 
         // Build breakdown maps from aggregated data
         val externalMap = externalStats.associate {
@@ -144,11 +152,15 @@ class StatsRepository(context: Context) {
         val aggregatedEndBucket = if (endDate.isAfter(yesterday)) yesterday.toString() else endDate.toString()
 
         // Get aggregated menu stats up to yesterday only
-        val menuStats = dao.getAggregatedCountsByPrefix(
-            "menu_",
-            startBucket,
-            aggregatedEndBucket
-        )
+        val menuStats = if (startBucket <= aggregatedEndBucket) {
+            dao.getAggregatedCountsByPrefix(
+                "menu_",
+                startBucket,
+                aggregatedEndBucket
+            )
+        } else {
+            emptyList()
+        }
 
         // Build menu counts map from aggregated data
         val menuCounts = menuStats.associate {
@@ -197,7 +209,11 @@ class StatsRepository(context: Context) {
         val yesterday = today.minusDays(1)
         val aggregatedEndBucket = if (endDate.isAfter(yesterday)) yesterday.toString() else endBucket
 
-        val allStats = dao.getAllAggregatedStatsInRange(startBucket, aggregatedEndBucket)
+        val allStats = if (startBucket <= aggregatedEndBucket) {
+            dao.getAllAggregatedStatsInRange(startBucket, aggregatedEndBucket)
+        } else {
+            emptyList()
+        }
 
         // Group by date
         val dateMap = mutableMapOf<String, Pair<Int, Int>>()  // date -> (switches, menus)
@@ -408,7 +424,11 @@ class StatsRepository(context: Context) {
     }
 
     private suspend fun getDailyTotals(prefix: String, startBucket: String, endBucket: String): Map<String, Int> {
-        val allStats = dao.getAllAggregatedStatsInRange(startBucket, endBucket)
+        val allStats = if (startBucket <= endBucket) {
+            dao.getAllAggregatedStatsInRange(startBucket, endBucket)
+        } else {
+            emptyList()
+        }
 
         return allStats
             .filter { it.statKey.startsWith(prefix) }
