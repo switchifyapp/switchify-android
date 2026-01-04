@@ -289,22 +289,36 @@ class StatsCollector private constructor() : AutoCloseable {
             val code: String,
             val timestamp: Long
         ) : PendingEvent() {
-            override fun toStatsEntity() = StatsEntity(
-                eventType = "switch_press",
-                eventSubtype = "${type}_${code}",
-                timestamp = timestamp
-            )
+            override fun toStatsEntity(): StatsEntity {
+                val eventDate = java.time.Instant.ofEpochMilli(timestamp)
+                    .atZone(java.time.ZoneId.systemDefault())
+                    .toLocalDate()
+                    .toString()
+                return StatsEntity(
+                    eventType = "switch_press",
+                    eventSubtype = "${type}_${code}",
+                    timestamp = timestamp,
+                    eventDate = eventDate
+                )
+            }
         }
 
         data class MenuOpen(
             val menuId: String,
             val timestamp: Long
         ) : PendingEvent() {
-            override fun toStatsEntity() = StatsEntity(
-                eventType = "menu_open",
-                eventSubtype = menuId,
-                timestamp = timestamp
-            )
+            override fun toStatsEntity(): StatsEntity {
+                val eventDate = java.time.Instant.ofEpochMilli(timestamp)
+                    .atZone(java.time.ZoneId.systemDefault())
+                    .toLocalDate()
+                    .toString()
+                return StatsEntity(
+                    eventType = "menu_open",
+                    eventSubtype = menuId,
+                    timestamp = timestamp,
+                    eventDate = eventDate
+                )
+            }
         }
     }
 

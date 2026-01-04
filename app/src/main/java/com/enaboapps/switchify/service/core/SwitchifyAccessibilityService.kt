@@ -15,7 +15,6 @@ import com.enaboapps.switchify.service.camera.CameraManager
 import com.enaboapps.switchify.service.gestures.GestureManager
 import com.enaboapps.switchify.service.scanning.ScanSettings
 import com.enaboapps.switchify.service.selection.SelectionHandler
-import com.enaboapps.switchify.service.stats.StatsAggregationScheduler
 import com.enaboapps.switchify.service.stats.StatsCollector
 import com.enaboapps.switchify.service.switches.SwitchEventProvider
 import com.enaboapps.switchify.service.techniques.AccessTechnique
@@ -174,8 +173,6 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
             serviceScope.launch {
                 statsCollector.forceFlush()
             }
-            // Schedule stats aggregation work (if it wasn't scheduled at app startup due to lock)
-            StatsAggregationScheduler.scheduleDailyAggregation(this)
         }
     }
 

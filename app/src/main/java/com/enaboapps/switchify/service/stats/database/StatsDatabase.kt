@@ -4,14 +4,16 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 
 /**
  * Room database for usage statistics.
- * Stores both individual events and pre-aggregated stats.
+ * Stores individual events with indexed date column for efficient querying.
  */
 @Database(
-    entities = [StatsEntity::class, AggregatedStatsEntity::class],
-    version = 1,
+    entities = [StatsEntity::class],
+    version = 2,
     exportSchema = false
 )
 abstract class StatsDatabase : RoomDatabase() {
@@ -45,7 +47,9 @@ abstract class StatsDatabase : RoomDatabase() {
                     context.applicationContext,
                     StatsDatabase::class.java,
                     DATABASE_NAME
-                ).build().also { INSTANCE = it }
+                )
+                .fallbackToDestructiveMigration()
+                .build().also { INSTANCE = it }
             }
         }
 

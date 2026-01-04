@@ -5,7 +5,6 @@ import android.util.Log
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
-import com.enaboapps.switchify.service.stats.StatsAggregationScheduler
 import com.enaboapps.switchify.service.stats.StatsCollector
 import com.enaboapps.switchify.utils.Resources
 import kotlinx.coroutines.CoroutineScope
@@ -28,9 +27,6 @@ class SwitchifyApplication : Application() {
 
         // Initialize stats collector
         StatsCollector.getInstance().initialize(this)
-
-        // Schedule daily stats aggregation
-        StatsAggregationScheduler.scheduleDailyAggregation(this)
 
         // Set up process lifecycle observer for proper stats cleanup
         setupProcessLifecycleObserver()
