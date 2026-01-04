@@ -7,13 +7,13 @@ import androidx.room.PrimaryKey
 
 /**
  * Entity representing an individual stats event.
- * Stores detailed event data with timestamp for later aggregation.
+ * Stores detailed event data with timestamp and date for efficient querying.
  */
 @Entity(
     tableName = "stats_events",
     indices = [
-        Index(value = ["event_type", "timestamp"]),
-        Index(value = ["timestamp"])
+        Index(value = ["event_date"]),
+        Index(value = ["event_type", "event_date"])
     ]
 )
 data class StatsEntity(
@@ -28,5 +28,8 @@ data class StatsEntity(
                                  // For menus: "main_menu", "device_menu", etc.
 
     @ColumnInfo(name = "timestamp")
-    val timestamp: Long  // Unix timestamp in milliseconds
+    val timestamp: Long,  // Unix timestamp in milliseconds
+
+    @ColumnInfo(name = "event_date")
+    val eventDate: String  // Date string in "YYYY-MM-DD" format for fast range queries
 )

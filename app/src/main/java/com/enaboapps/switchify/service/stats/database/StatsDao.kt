@@ -2,16 +2,15 @@ package com.enaboapps.switchify.service.stats.database
 
 import androidx.room.Dao
 import androidx.room.Insert
-import androidx.room.OnConflictStrategy
 import androidx.room.Query
 
 /**
  * Data Access Object for stats database operations.
- * Provides queries for both individual events and aggregated stats.
+ * Provides queries for individual events with efficient date-based filtering.
  */
 @Dao
 interface StatsDao {
-    // ==================== Individual Event Operations ====================
+    // ==================== Event Write Operations ====================
 
     @Insert
     suspend fun insertEvent(event: StatsEntity)
@@ -19,78 +18,54 @@ interface StatsDao {
     @Insert
     suspend fun insertEvents(events: List<StatsEntity>)
 
-    @Query("SELECT * FROM stats_events WHERE timestamp >= :startTime AND timestamp <= :endTime ORDER BY timestamp DESC")
-    suspend fun getEventsInRange(startTime: Long, endTime: Long): List<StatsEntity>
-
-    @Query("SELECT * FROM stats_events WHERE event_type = :eventType AND timestamp >= :startTime AND timestamp <= :endTime")
-    suspend fun getEventsByType(
-        eventType: String,
-        startTime: Long,
-        endTime: Long
-    ): List<StatsEntity>
-
-    @Query("DELETE FROM stats_events WHERE timestamp < :cutoffTime")
-    suspend fun deleteEventsOlderThan(cutoffTime: Long): Int
+    // ==================== Event Query Operations ====================
 
     @Query("SELECT COUNT(*) FROM stats_events")
     suspend fun getEventCount(): Int
 
-    // ==================== Aggregated Stats Operations ====================
+    @Query("SELECT COUNT(*) FROM stats_events WHERE event_type = :eventType AND event_date >= :startDate AND event_date <= :endDate")
+    suspend fun countEventsByType(eventType: String, startDate: String, endDate: String): Int
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertAggregatedStat(stat: AggregatedStatsEntity)
+    @Query("""
+        SELECT event_subtype, COUNT(*) as count
+        FROM stats_events
+        WHERE event_type = :eventType AND event_date >= :startDate AND event_date <= :endDate
+        GROUP BY event_subtype
+    """)
+    suspend fun getEventCountsBySubtype(
+        eventType: String,
+        startDate: String,
+        endDate: String
+    ): List<SubtypeCount>
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertAggregatedStats(stats: List<AggregatedStatsEntity>)
+    @Query("""
+        SELECT event_date, event_type, COUNT(*) as count
+        FROM stats_events
+        WHERE event_date >= :startDate AND event_date <= :endDate
+        GROUP BY event_date, event_type
+        ORDER BY event_date ASC
+    """)
+    suspend fun getDailyCounts(startDate: String, endDate: String): List<DailyCount>
 
-    @Query("SELECT * FROM aggregated_stats WHERE stat_key = :statKey AND time_bucket >= :startBucket AND time_bucket <= :endBucket")
-    suspend fun getAggregatedStats(
-        statKey: String,
-        startBucket: String,
-        endBucket: String
-    ): List<AggregatedStatsEntity>
+    // ==================== Event Delete Operations ====================
 
-    @Query("SELECT * FROM aggregated_stats WHERE time_bucket >= :startBucket AND time_bucket <= :endBucket ORDER BY time_bucket ASC")
-    suspend fun getAllAggregatedStatsInRange(
-        startBucket: String,
-        endBucket: String
-    ): List<AggregatedStatsEntity>
-
-    @Query("SELECT SUM(count) FROM aggregated_stats WHERE stat_key = :statKey AND time_bucket >= :startBucket AND time_bucket <= :endBucket")
-    suspend fun getTotalCount(
-        statKey: String,
-        startBucket: String,
-        endBucket: String
-    ): Int?
-
-    @Query("SELECT SUM(count) FROM aggregated_stats WHERE stat_key LIKE :statKeyPrefix || '%' AND time_bucket >= :startBucket AND time_bucket <= :endBucket")
-    suspend fun getTotalCountByPrefix(
-        statKeyPrefix: String,
-        startBucket: String,
-        endBucket: String
-    ): Int?
-
-    @Query("SELECT stat_key, SUM(count) as total FROM aggregated_stats WHERE stat_key LIKE :statKeyPrefix || '%' AND time_bucket >= :startBucket AND time_bucket <= :endBucket GROUP BY stat_key ORDER BY total DESC")
-    suspend fun getAggregatedCountsByPrefix(
-        statKeyPrefix: String,
-        startBucket: String,
-        endBucket: String
-    ): List<StatKeyCount>
-
-    @Query("DELETE FROM aggregated_stats WHERE time_bucket < :cutoffBucket")
-    suspend fun deleteAggregatedStatsOlderThan(cutoffBucket: String): Int
-
-    @Query("DELETE FROM aggregated_stats")
-    suspend fun deleteAllAggregatedStats(): Int
-
-    @Query("SELECT COUNT(*) FROM aggregated_stats")
-    suspend fun getAggregatedStatsCount(): Int
+    @Query("DELETE FROM stats_events")
+    suspend fun deleteAllEvents(): Int
 }
 
 /**
- * Helper data class for aggregated counts by stat key.
+ * Data class for subtype count query results.
  */
-data class StatKeyCount(
-    val stat_key: String,
-    val total: Int
+data class SubtypeCount(
+    @androidx.room.ColumnInfo(name = "event_subtype") val eventSubtype: String?,
+    @androidx.room.ColumnInfo(name = "count") val count: Int
+)
+
+/**
+ * Data class for daily count query results.
+ */
+data class DailyCount(
+    @androidx.room.ColumnInfo(name = "event_date") val eventDate: String,
+    @androidx.room.ColumnInfo(name = "event_type") val eventType: String,
+    @androidx.room.ColumnInfo(name = "count") val count: Int
 )
