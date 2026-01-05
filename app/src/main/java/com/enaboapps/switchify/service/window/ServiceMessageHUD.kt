@@ -5,31 +5,58 @@ import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentHeight
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Error
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.enaboapps.switchify.service.components.AccessibilityComposeView
 import com.enaboapps.switchify.utils.Resources
+import kotlinx.coroutines.launch
+import kotlin.math.abs
+import kotlin.math.roundToInt
 
 /**
  * ServiceMessageHUD is responsible for displaying overlay messages at the bottom of the screen
@@ -63,6 +90,52 @@ import com.enaboapps.switchify.utils.Resources
  *    }
  *    ```
  */
+
+/**
+ * Defines the visual severity/type of a message with associated colors and icons.
+ */
+sealed class MessageSeverity(
+    val containerColor: @Composable () -> Color,
+    val onContainerColor: @Composable () -> Color,
+    val icon: ImageVector
+) {
+    data object Info : MessageSeverity(
+        containerColor = { MaterialTheme.colorScheme.surfaceVariant },
+        onContainerColor = { MaterialTheme.colorScheme.onSurfaceVariant },
+        icon = Icons.Filled.Info
+    )
+
+    data object Success : MessageSeverity(
+        containerColor = {
+            if (isSystemInDarkTheme()) Color(0xFF1B5E20) // Dark green
+            else Color(0xFFC8E6C9) // Light green
+        },
+        onContainerColor = {
+            if (isSystemInDarkTheme()) Color(0xFFA5D6A7) // Light text
+            else Color(0xFF1B5E20) // Dark text
+        },
+        icon = Icons.Filled.CheckCircle
+    )
+
+    data object Warning : MessageSeverity(
+        containerColor = {
+            if (isSystemInDarkTheme()) Color(0xFFE65100) // Dark orange
+            else Color(0xFFFFE0B2) // Light orange
+        },
+        onContainerColor = {
+            if (isSystemInDarkTheme()) Color(0xFFFFCC80) // Light text
+            else Color(0xFFE65100) // Dark text
+        },
+        icon = Icons.Filled.Warning
+    )
+
+    data object Error : MessageSeverity(
+        containerColor = { MaterialTheme.colorScheme.errorContainer },
+        onContainerColor = { MaterialTheme.colorScheme.onErrorContainer },
+        icon = Icons.Filled.Error
+    )
+}
+
 class ServiceMessageHUD private constructor() {
     companion object {
         /**
@@ -78,6 +151,7 @@ class ServiceMessageHUD private constructor() {
 
     // State holders for Compose
     private var currentMessageString = mutableStateOf<String?>(null)
+    private var currentMessageSeverity = mutableStateOf<MessageSeverity>(MessageSeverity.Info)
     private var isMessageVisible = mutableStateOf(false)
 
     /**
@@ -133,9 +207,15 @@ class ServiceMessageHUD private constructor() {
         if (messageComposeView == null) {
             Log.d(TAG, "Creating MessageComposeView")
             messageComposeView = AccessibilityComposeView(ctxForView) {
+                val message = currentMessageString.value
+                val visible = isMessageVisible.value
+                val severity = currentMessageSeverity.value
+
                 ServiceMessageUi(
-                    message = currentMessageString.value,
-                    isVisible = isMessageVisible.value
+                    message = message,
+                    isVisible = visible,
+                    severity = severity,
+                    onDismiss = { hideMessage() }
                 )
             }
         }
@@ -143,53 +223,181 @@ class ServiceMessageHUD private constructor() {
 
     /**
      * The main Composable UI for the message overlay.
-     * This implements a card-based design with animations for appearance and disappearance.
+     * This implements a modern card-based design with spring animations, icons, and swipe gestures.
      *
      * @param message The text message to display
      * @param isVisible Whether the message should be visible
+     * @param severity The visual severity/type of the message
+     * @param onDismiss Callback when message is dismissed
      */
     @Composable
-    private fun ServiceMessageUi(message: String?, isVisible: Boolean) {
-        val savedMessage = rememberSaveable { message.toString() }
-        val savedIsVisible = rememberSaveable { isVisible }
-
+    private fun ServiceMessageUi(
+        message: String?,
+        isVisible: Boolean,
+        severity: MessageSeverity,
+        onDismiss: () -> Unit
+    ) {
         Box(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.BottomCenter
         ) {
             AnimatedVisibility(
-                visible = savedIsVisible,
+                visible = isVisible,
                 enter = slideInVertically(
-                    initialOffsetY = { fullHeight -> fullHeight },
-                    animationSpec = tween(durationMillis = 300)
-                ) + fadeIn(animationSpec = tween(durationMillis = 300)),
+                    initialOffsetY = { it },
+                    animationSpec = spring(
+                        dampingRatio = 0.7f,  // More bouncy
+                        stiffness = 300f       // Slower for visibility
+                    )
+                ) + fadeIn(
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioNoBouncy,
+                        stiffness = 400f
+                    )
+                ),
                 exit = slideOutVertically(
-                    targetOffsetY = { fullHeight -> fullHeight },
-                    animationSpec = tween(durationMillis = 300)
-                ) + fadeOut(animationSpec = tween(durationMillis = 300))
+                    targetOffsetY = { it },
+                    animationSpec = spring(
+                        dampingRatio = 1.0f,
+                        stiffness = 600f      // Quick exit
+                    )
+                ) + fadeOut(
+                    animationSpec = spring(
+                        dampingRatio = 1.0f,
+                        stiffness = 600f
+                    )
+                )
             ) {
-                Card(
+                SwipeableMessageCard(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .wrapContentHeight()
                         .padding(16.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)
-                    ),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                    message = message ?: "",
+                    onDismiss = onDismiss
                 ) {
-                    Text(
-                        text = savedMessage,
-                        modifier = Modifier
-                            .padding(horizontal = 20.dp, vertical = 16.dp)
-                            .fillMaxWidth(),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontSize = 16.sp,
-                        textAlign = TextAlign.Center,
-                        lineHeight = 24.sp
+                    MessageCard(
+                        message = message ?: "",
+                        severity = severity
                     )
                 }
+            }
+        }
+    }
+
+    /**
+     * A swipeable wrapper for the message card that handles horizontal swipe gestures.
+     *
+     * @param modifier Modifier for the container
+     * @param onDismiss Callback when the card is swiped away
+     * @param content The content to display (typically MessageCard)
+     */
+    @Composable
+    private fun SwipeableMessageCard(
+        modifier: Modifier = Modifier,
+        message: String,
+        onDismiss: () -> Unit,
+        content: @Composable () -> Unit
+    ) {
+        val offsetX = remember { Animatable(0f) }
+        val scope = rememberCoroutineScope()
+
+        LaunchedEffect(message) {
+            offsetX.snapTo(0f)
+        }
+
+        Box(
+            modifier = modifier
+                .offset { IntOffset(offsetX.value.roundToInt(), 0) }
+                .pointerInput(Unit) {
+                    detectHorizontalDragGestures(
+                        onDragEnd = {
+                            val threshold = size.width * 0.4f
+                            if (abs(offsetX.value) > threshold) {
+                                // Dismiss - animate out fully
+                                scope.launch {
+                                    offsetX.animateTo(
+                                        targetValue = if (offsetX.value > 0) size.width.toFloat() else -size.width.toFloat(),
+                                        animationSpec = spring(
+                                            dampingRatio = Spring.DampingRatioNoBouncy,
+                                            stiffness = Spring.StiffnessMediumLow
+                                        )
+                                    )
+                                    onDismiss()
+                                }
+                            } else {
+                                // Snap back
+                                scope.launch {
+                                    offsetX.animateTo(
+                                        targetValue = 0f,
+                                        animationSpec = spring(
+                                            dampingRatio = Spring.DampingRatioMediumBouncy,
+                                            stiffness = Spring.StiffnessMedium
+                                        )
+                                    )
+                                }
+                            }
+                        },
+                        onHorizontalDrag = { change, dragAmount ->
+                            change.consume()
+                            scope.launch {
+                                offsetX.snapTo(offsetX.value + dragAmount)
+                            }
+                        }
+                    )
+                }
+        ) {
+            content()
+        }
+    }
+
+    /**
+     * The visual message card with icon and text.
+     *
+     * @param message The text to display
+     * @param severity The visual severity/type determining colors and icon
+     */
+    @Composable
+    private fun MessageCard(
+        message: String,
+        severity: MessageSeverity
+    ) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .widthIn(max = 600.dp),
+            shape = MaterialTheme.shapes.extraSmall,
+            colors = CardDefaults.cardColors(
+                containerColor = severity.containerColor().copy(alpha = 0.95f),
+                contentColor = severity.onContainerColor()
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Start
+            ) {
+                Icon(
+                    imageVector = severity.icon,
+                    contentDescription = null,
+                    modifier = Modifier.size(24.dp),
+                    tint = severity.onContainerColor()
+                )
+
+                Spacer(modifier = Modifier.width(12.dp))
+
+                Text(
+                    text = message,
+                    modifier = Modifier.weight(1f),
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Medium,
+                    lineHeight = 26.sp,
+                    maxLines = 5,
+                    overflow = TextOverflow.Ellipsis,
+                    color = severity.onContainerColor()
+                )
             }
         }
     }
@@ -202,12 +410,14 @@ class ServiceMessageHUD private constructor() {
      * @param args Optional arguments for formatted strings
      * @param messageType The type of message (DISAPPEARING or PERMANENT)
      * @param time The duration to show the message (for DISAPPEARING messages)
+     * @param severity The visual severity/type of the message
      */
     private fun showMessageInternal(
         messageResId: Int,
         args: Array<out Any>?,
         messageType: MessageType,
-        time: Time
+        time: Time,
+        severity: MessageSeverity
     ) {
         applicationCtx ?: run {
             Log.e(TAG, "ApplicationContext is null, cannot show message. Call setup() first.")
@@ -226,21 +436,15 @@ class ServiceMessageHUD private constructor() {
             // Cancel any pending hide operations
             handler.removeCallbacksAndMessages(null)
 
-            // Update message and visibility
-            currentMessageString.value = messageText
-            isMessageVisible.value = true
-
-            // Ensure view exists and is added to window
+            // Ensure view exists and is added to window first
             ensureMessageComposeViewIsCreated()
             messageComposeView?.let { view ->
                 try {
-                    // Remove existing view if it's already in the window
-                    if (view.parent != null) {
-                        SwitchifyAccessibilityWindow.instance.removeView(view)
+                    // Add view to window if not already there
+                    if (view.parent == null) {
+                        SwitchifyAccessibilityWindow.instance.addViewToBottom(view)
+                        Log.d(TAG, "Message ComposeView added to window.")
                     }
-                    // Add the view back with new content
-                    SwitchifyAccessibilityWindow.instance.addViewToBottom(view)
-                    Log.d(TAG, "Message ComposeView added to window.")
                 } catch (e: Exception) {
                     Log.e(TAG, "Failed to add ComposeView to window", e)
                     e.printStackTrace()
@@ -248,6 +452,11 @@ class ServiceMessageHUD private constructor() {
                     return@post
                 }
             }
+
+            // Update message, severity, and visibility (triggers animation)
+            currentMessageString.value = messageText
+            currentMessageSeverity.value = severity
+            isMessageVisible.value = true
 
             if (messageType == MessageType.DISAPPEARING) {
                 handler.postDelayed({ hideMessage() }, time.milliseconds)
@@ -261,13 +470,15 @@ class ServiceMessageHUD private constructor() {
      * @param messageResId The resource ID of the message to display
      * @param messageType The type of message (DISAPPEARING or PERMANENT)
      * @param time The duration to show the message (for DISAPPEARING messages)
+     * @param severity The visual severity/type of the message (default: Info)
      */
     fun showMessage(
         messageResId: Int,
         messageType: MessageType,
-        time: Time = Time.MEDIUM
+        time: Time = Time.MEDIUM,
+        severity: MessageSeverity = MessageSeverity.Info
     ) {
-        showMessageInternal(messageResId, null, messageType, time)
+        showMessageInternal(messageResId, null, messageType, time, severity)
     }
 
     /**
@@ -277,14 +488,16 @@ class ServiceMessageHUD private constructor() {
      * @param messageArgs The arguments to format into the message string
      * @param messageType The type of message (DISAPPEARING or PERMANENT)
      * @param time The duration to show the message (for DISAPPEARING messages)
+     * @param severity The visual severity/type of the message (default: Info)
      */
     fun showMessage(
         messageResId: Int,
         messageArgs: Array<out Any>,
         messageType: MessageType,
-        time: Time = Time.MEDIUM
+        time: Time = Time.MEDIUM,
+        severity: MessageSeverity = MessageSeverity.Info
     ) {
-        showMessageInternal(messageResId, messageArgs, messageType, time)
+        showMessageInternal(messageResId, messageArgs, messageType, time, severity)
     }
 
     /**
@@ -292,31 +505,15 @@ class ServiceMessageHUD private constructor() {
      */
     private fun hideMessage() {
         if (!isMessageVisible.value && currentMessageString.value == null) {
-            messageComposeView?.let { if (it.parent != null) removeViewFromWindow() }
             return
         }
         isMessageVisible.value = false
-        val animationDuration = 350L
+        // Don't remove view - keep it in window for next message
         handler.postDelayed({
             if (!isMessageVisible.value) {
-                removeViewFromWindow()
                 currentMessageString.value = null
             }
-        }, animationDuration)
-    }
-
-    /**
-     * Removes the message view from the window manager.
-     */
-    private fun removeViewFromWindow() {
-        messageComposeView?.let { view ->
-            try {
-                SwitchifyAccessibilityWindow.instance.removeView(view)
-                Log.d(TAG, "ComposeView removed from window successfully.")
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to remove ComposeView from window", e)
-            }
-        }
+        }, 800L) // Increased delay for spring animation to complete
     }
 
     /**
@@ -330,6 +527,7 @@ class ServiceMessageHUD private constructor() {
                 SwitchifyAccessibilityWindow.instance.removeView(view)
                 messageComposeView = null
                 currentMessageString.value = null
+                currentMessageSeverity.value = MessageSeverity.Info
                 isMessageVisible.value = false
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to dispose ServiceMessageHUD", e)
