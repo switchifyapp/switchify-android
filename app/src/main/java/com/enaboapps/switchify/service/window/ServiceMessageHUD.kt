@@ -273,6 +273,7 @@ class ServiceMessageHUD private constructor() {
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(16.dp),
+                    message = message ?: "",
                     onDismiss = onDismiss
                 ) {
                     MessageCard(
@@ -294,13 +295,14 @@ class ServiceMessageHUD private constructor() {
     @Composable
     private fun SwipeableMessageCard(
         modifier: Modifier = Modifier,
+        message: String,
         onDismiss: () -> Unit,
         content: @Composable () -> Unit
     ) {
         val offsetX = remember { Animatable(0f) }
         val scope = rememberCoroutineScope()
 
-        LaunchedEffect(Unit) {
+        LaunchedEffect(message) {
             offsetX.snapTo(0f)
         }
 
@@ -393,6 +395,7 @@ class ServiceMessageHUD private constructor() {
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Medium,
                     lineHeight = 26.sp,
+                    maxLines = 5,
                     overflow = TextOverflow.Ellipsis,
                     color = severity.onContainerColor()
                 )
@@ -515,20 +518,6 @@ class ServiceMessageHUD private constructor() {
     }
 
     /**
-     * Removes the message view from the window manager.
-     */
-    private fun removeViewFromWindow() {
-        messageComposeView?.let { view ->
-            try {
-                SwitchifyAccessibilityWindow.instance.removeView(view)
-                Log.d(TAG, "ComposeView removed from window successfully.")
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to remove ComposeView from window", e)
-            }
-        }
-    }
-
-    /**
      * Cleans up the ServiceMessageHUD, removing any views and resetting state.
      */
     fun dispose() {
@@ -539,6 +528,7 @@ class ServiceMessageHUD private constructor() {
                 SwitchifyAccessibilityWindow.instance.removeView(view)
                 messageComposeView = null
                 currentMessageString.value = null
+                currentMessageSeverity.value = MessageSeverity.Info
                 isMessageVisible.value = false
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to dispose ServiceMessageHUD", e)
