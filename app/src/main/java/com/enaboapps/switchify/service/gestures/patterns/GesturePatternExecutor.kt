@@ -105,7 +105,7 @@ class GesturePatternExecutor(
                 val gesture = gesturePattern.gestures[stepIndex]
                 gesture.executeGesture()
 
-                // Show progress message
+                // Show progress message or finish if this was the last step
                 val remaining = gesturePattern.gestures.size - stepIndex - 1
                 if (remaining > 0) {
                     ServiceMessageHUD.instance.showMessage(
@@ -113,6 +113,9 @@ class GesturePatternExecutor(
                         arrayOf(stepIndex + 1, gesturePattern.gestures.size, remaining),
                         ServiceMessageHUD.MessageType.PERMANENT
                     )
+                } else {
+                    // Last step completed, finish the pattern
+                    finishPattern()
                 }
             } catch (e: Exception) {
                 // Log the error
