@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -19,12 +20,15 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.PrimaryTabRow
+import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -37,9 +41,12 @@ import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.enaboapps.switchify.R
+import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.components.BaseView
+import com.enaboapps.switchify.components.PreferenceSwitch
 import com.enaboapps.switchify.components.ReorderMode
 import com.enaboapps.switchify.components.ReorderableList
+import com.enaboapps.switchify.components.ScrollableView
 import com.enaboapps.switchify.components.Section
 import com.enaboapps.switchify.service.gestures.patterns.model.GesturePattern
 
@@ -48,10 +55,47 @@ fun GesturePatternsScreen(navController: NavController) {
     val context = LocalContext.current
     val viewModel: GesturePatternsViewModel = viewModel()
 
+    var selectedTabIndex by remember { mutableIntStateOf(0) }
+    val tabTitles = listOf(
+        stringResource(R.string.tab_gesture_patterns_list),
+        stringResource(R.string.tab_gesture_patterns_settings)
+    )
+
     // Initialize the ViewModel
     LaunchedEffect(Unit) {
         viewModel.initialize(context)
     }
+
+    BaseView(
+        titleResId = R.string.screen_title_gesture_patterns,
+        navController = navController,
+        enableScroll = false  // Tabs manage scrolling
+    ) {
+        Column {
+            PrimaryTabRow(
+                selectedTabIndex = selectedTabIndex,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                tabTitles.forEachIndexed { index, title ->
+                    Tab(
+                        text = { Text(title) },
+                        selected = selectedTabIndex == index,
+                        onClick = { selectedTabIndex = index }
+                    )
+                }
+            }
+
+            when (selectedTabIndex) {
+                0 -> PatternListTab(viewModel = viewModel)
+                1 -> PatternSettingsTab()
+            }
+        }
+    }
+}
+
+@Composable
+private fun PatternListTab(viewModel: GesturePatternsViewModel) {
+    val context = LocalContext.current
 
     // Collect state from ViewModel
     val patterns by viewModel.patterns.collectAsState()
@@ -96,12 +140,7 @@ fun GesturePatternsScreen(navController: NavController) {
         )
     }
 
-    BaseView(
-        titleResId = R.string.screen_title_gesture_patterns,
-        navController = navController,
-        enableScroll = false
-    ) {
-
+    Column(modifier = Modifier.fillMaxSize()) {
         Text(
             text = stringResource(R.string.gesture_patterns_description),
             style = MaterialTheme.typography.headlineSmall,
@@ -135,6 +174,50 @@ fun GesturePatternsScreen(navController: NavController) {
                     )
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun PatternSettingsTab() {
+    val context = LocalContext.current
+    val preferenceManager = PreferenceManager(context)
+
+    val manualProgression = remember {
+        preferenceManager.getBooleanValue(
+            PreferenceManager.Keys.PREFERENCE_KEY_GESTURE_PATTERN_MANUAL_PROGRESSION
+        )
+    }
+    val stopPatternOnSwitch = remember {
+        preferenceManager.getBooleanValue(
+            PreferenceManager.Keys.PREFERENCE_KEY_STOP_PATTERN_ON_SWITCH
+        )
+    }
+
+    ScrollableView {
+        Section(titleResId = R.string.section_title_gesture_pattern_settings) {
+            PreferenceSwitch(
+                titleResId = R.string.preference_title_manual_pattern_progression,
+                summaryResId = R.string.preference_summary_manual_pattern_progression,
+                checked = manualProgression,
+                onCheckedChange = {
+                    preferenceManager.setBooleanValue(
+                        PreferenceManager.Keys.PREFERENCE_KEY_GESTURE_PATTERN_MANUAL_PROGRESSION,
+                        it
+                    )
+                }
+            )
+            PreferenceSwitch(
+                titleResId = R.string.preference_title_stop_pattern_on_switch,
+                summaryResId = R.string.preference_summary_stop_pattern_on_switch,
+                checked = stopPatternOnSwitch,
+                onCheckedChange = {
+                    preferenceManager.setBooleanValue(
+                        PreferenceManager.Keys.PREFERENCE_KEY_STOP_PATTERN_ON_SWITCH,
+                        it
+                    )
+                }
+            )
         }
     }
 }

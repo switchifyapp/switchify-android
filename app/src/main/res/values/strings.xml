@@ -294,12 +294,16 @@
     <string name="move_pattern_down">Move pattern down</string>
     <string name="move_up">Move up</string>
     <string name="move_down">Move down</string>
+    <string name="tab_gesture_patterns_list">Patterns</string>
+    <string name="tab_gesture_patterns_settings">Settings</string>
 
     <!-- Screen Summaries -->
     <string name="screen_summary_settings">Configure switches and scanning</string>
     <string name="screen_summary_upgrade_pro">Tap for superpowers! 💪</string>
     <string name="screen_summary_debug">Developer options</string>
     <string name="screen_summary_quick_apps_permission">Configure quick apps access</string>
+    <string name="gesture_patterns_section_summary">Manage gesture patterns and settings</string>
+    <string name="settings_summary_scrolling_settings">Configure auto-scroll behavior</string>
 
     <!-- Dialog Titles -->
     <string name="dialog_message_update">A new version has been downloaded. Would you like to install it now?</string>
@@ -591,12 +595,14 @@
 
     <!-- Gesture Settings Screen -->
     <string name="screen_title_gesture_settings">Gesture Settings</string>
+    <string name="screen_title_scrolling_settings">Scrolling Settings</string>
     <string name="section_title_scrolling">Scrolling</string>
     <string name="preference_title_auto_scroll">Auto Scroll</string>
     <string name="preference_summary_auto_scroll">When enabled, scrolling gestures will be repeatedly performed until a switch is pressed</string>
     <string name="preference_title_auto_scroll_delay">Auto Scroll Delay</string>
     <string name="preference_summary_auto_scroll_delay">The delay to wait between scrolling</string>
     <string name="section_title_gesture_patterns">Gesture Patterns</string>
+    <string name="section_title_gesture_pattern_settings">Pattern Settings</string>
     <string name="preference_title_manual_pattern_progression">Manual Pattern Progression</string>
     <string name="preference_summary_manual_pattern_progression">Advance through gesture pattern steps by pressing a switch instead of automatic timing</string>
     <string name="preference_title_stop_pattern_on_switch">Stop Pattern on Switch Press</string>
