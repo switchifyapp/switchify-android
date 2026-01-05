@@ -9,7 +9,7 @@ sealed class NavigationRoute(val name: String) {
     data object Account : NavigationRoute("Account")
     data object Settings : NavigationRoute("Settings")
     data object SwitchStability : NavigationRoute("SwitchStability")
-    data object GestureSettings : NavigationRoute("GestureSettings")
+    data object ScrollingSettings : NavigationRoute("ScrollingSettings")
     data object ScanSpeeds : NavigationRoute("ScanSpeeds")
     data object ManualScanSettings : NavigationRoute("ManualScanSettings")
     data object ScanColor : NavigationRoute("ScanColor")

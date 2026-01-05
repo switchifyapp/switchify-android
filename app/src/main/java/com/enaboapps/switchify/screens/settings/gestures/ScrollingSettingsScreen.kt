@@ -13,22 +13,18 @@ import com.enaboapps.switchify.components.PreferenceTimeStepper
 import com.enaboapps.switchify.components.Section
 
 @Composable
-fun GestureSettingsScreen(navController: NavController) {
+fun ScrollingSettingsScreen(navController: NavController) {
     val context = LocalContext.current
     val preferenceManager = PreferenceManager(context)
     val autoScroll =
         remember { preferenceManager.getBooleanValue(PreferenceManager.Keys.PREFERENCE_KEY_AUTO_SCROLL) }
     val autoScrollDelay =
         remember { preferenceManager.getLongValue(PreferenceManager.Keys.PREFERENCE_KEY_AUTO_SCROLL_DELAY) }
-    val stopPatternOnSwitch =
-        remember { preferenceManager.getBooleanValue(PreferenceManager.Keys.PREFERENCE_KEY_STOP_PATTERN_ON_SWITCH) }
-    val manualProgression =
-        remember { preferenceManager.getBooleanValue(PreferenceManager.Keys.PREFERENCE_KEY_GESTURE_PATTERN_MANUAL_PROGRESSION) }
 
     val autoScrollState = remember { mutableStateOf(autoScroll) }
 
     BaseView(
-        titleResId = R.string.screen_title_gesture_settings,
+        titleResId = R.string.screen_title_scrolling_settings,
         navController = navController
     ) {
         Section(
@@ -61,33 +57,6 @@ fun GestureSettingsScreen(navController: NavController) {
                     }
                 )
             }
-        }
-
-        Section(
-            titleResId = R.string.section_title_gesture_patterns
-        ) {
-            PreferenceSwitch(
-                titleResId = R.string.preference_title_manual_pattern_progression,
-                summaryResId = R.string.preference_summary_manual_pattern_progression,
-                checked = manualProgression,
-                onCheckedChange = {
-                    preferenceManager.setBooleanValue(
-                        PreferenceManager.Keys.PREFERENCE_KEY_GESTURE_PATTERN_MANUAL_PROGRESSION,
-                        it
-                    )
-                }
-            )
-            PreferenceSwitch(
-                titleResId = R.string.preference_title_stop_pattern_on_switch,
-                summaryResId = R.string.preference_summary_stop_pattern_on_switch,
-                checked = stopPatternOnSwitch,
-                onCheckedChange = {
-                    preferenceManager.setBooleanValue(
-                        PreferenceManager.Keys.PREFERENCE_KEY_STOP_PATTERN_ON_SWITCH,
-                        it
-                    )
-                }
-            )
         }
     }
 }

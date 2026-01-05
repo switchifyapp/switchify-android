@@ -16,7 +16,7 @@ import com.enaboapps.switchify.screens.permissions.UsageStatsPermissionScreen
 import com.enaboapps.switchify.screens.settings.CameraSettingsScreen
 import com.enaboapps.switchify.screens.settings.HeadControlSettingsScreen
 import com.enaboapps.switchify.screens.settings.SettingsScreen
-import com.enaboapps.switchify.screens.settings.gestures.GestureSettingsScreen
+import com.enaboapps.switchify.screens.settings.gestures.ScrollingSettingsScreen
 import com.enaboapps.switchify.screens.settings.patterns.GesturePatternsScreen
 import com.enaboapps.switchify.screens.settings.scanning.AutoScanSettingsScreen
 import com.enaboapps.switchify.screens.settings.scanning.ManualScanSettingsScreen
@@ -78,8 +78,8 @@ fun NavGraph(navController: NavHostController) {
         composable(NavigationRoute.ScanColor.name) {
             ScanColorSelectionScreen(navController)
         }
-        composable(NavigationRoute.GestureSettings.name) {
-            GestureSettingsScreen(navController)
+        composable(NavigationRoute.ScrollingSettings.name) {
+            ScrollingSettingsScreen(navController)
         }
         composable(NavigationRoute.Switches.name) {
             SwitchesScreen(navController)
