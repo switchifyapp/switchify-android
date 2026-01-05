@@ -7,10 +7,12 @@ import androidx.lifecycle.viewModelScope
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.service.menu.structure.MenuConstants
 import com.enaboapps.switchify.service.stats.StatsRepository
+import com.enaboapps.switchify.service.stats.models.BreakdownItem
 import com.enaboapps.switchify.service.stats.models.DailyActivity
 import com.enaboapps.switchify.service.stats.models.MenuInteractionStats
 import com.enaboapps.switchify.service.stats.models.SwitchPressStats
 import com.enaboapps.switchify.service.stats.models.TimeRange
+import com.enaboapps.switchify.utils.StatsFormatter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -75,15 +77,24 @@ class StatsScreenModel(application: Application) : AndroidViewModel(application)
     }
 
     /**
-     * Gets the top N most-used menus with human-readable names.
+     * Gets the top N most-used menus with human-readable names and formatted counts.
      */
-    fun getTopMenus(n: Int = 5): List<Pair<String, Int>> {
-        return _uiState.value.menuStats?.menuOpenCounts
-            ?.entries
-            ?.sortedByDescending { it.value }
-            ?.take(n)
-            ?.map { formatMenuName(it.key) to it.value }
-            ?: emptyList()
+    fun getTopMenus(n: Int = 5): List<BreakdownItem> {
+        val menuCounts = _uiState.value.menuStats?.menuOpenCounts ?: return emptyList()
+        val total = menuCounts.values.sum()
+
+        return menuCounts
+            .entries
+            .sortedByDescending { it.value }
+            .take(n)
+            .map { (menuId, count) ->
+                BreakdownItem(
+                    label = formatMenuName(menuId),
+                    count = count,
+                    formattedCount = StatsFormatter.formatNumber(count),
+                    percentage = if (total > 0) StatsFormatter.formatPercentage(count, total) else null
+                )
+            }
     }
 
     /**
@@ -109,25 +120,43 @@ class StatsScreenModel(application: Application) : AndroidViewModel(application)
     }
 
     /**
-     * Gets breakdown of external switches.
+     * Gets breakdown of external switches with formatted counts and percentages.
      */
-    fun getExternalSwitchBreakdown(): List<Pair<String, Int>> {
-        return _uiState.value.switchStats?.externalSwitchPresses
-            ?.entries
-            ?.sortedByDescending { it.value }
-            ?.map { "Key ${it.key}" to it.value }
-            ?: emptyList()
+    fun getExternalSwitchBreakdown(): List<BreakdownItem> {
+        val externalPresses = _uiState.value.switchStats?.externalSwitchPresses ?: return emptyList()
+        val total = externalPresses.values.sum()
+
+        return externalPresses
+            .entries
+            .sortedByDescending { it.value }
+            .map { (keyCode, count) ->
+                BreakdownItem(
+                    label = "Key $keyCode",
+                    count = count,
+                    formattedCount = StatsFormatter.formatNumber(count),
+                    percentage = if (total > 0) StatsFormatter.formatPercentage(count, total) else null
+                )
+            }
     }
 
     /**
-     * Gets breakdown of camera gestures.
+     * Gets breakdown of camera gestures with formatted counts and percentages.
      */
-    fun getCameraGestureBreakdown(): List<Pair<String, Int>> {
-        return _uiState.value.switchStats?.cameraSwitchPresses
-            ?.entries
-            ?.sortedByDescending { it.value }
-            ?.map { formatGestureName(it.key) to it.value }
-            ?: emptyList()
+    fun getCameraGestureBreakdown(): List<BreakdownItem> {
+        val cameraPresses = _uiState.value.switchStats?.cameraSwitchPresses ?: return emptyList()
+        val total = cameraPresses.values.sum()
+
+        return cameraPresses
+            .entries
+            .sortedByDescending { it.value }
+            .map { (gestureId, count) ->
+                BreakdownItem(
+                    label = formatGestureName(gestureId),
+                    count = count,
+                    formattedCount = StatsFormatter.formatNumber(count),
+                    percentage = if (total > 0) StatsFormatter.formatPercentage(count, total) else null
+                )
+            }
     }
 
     /**
