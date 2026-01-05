@@ -13,7 +13,7 @@ import kotlinx.coroutines.withContext
  *
  * @property context The application context.
  */
-class GesturePatternStore(context: Context) {
+class GesturePatternStore(private val context: Context) {
     private val dao = GesturePatternDatabase.getDatabase(context).gesturePatternDao()
 
     companion object {
@@ -121,7 +121,9 @@ class GesturePatternStore(context: Context) {
      */
     suspend fun getPatterns(): List<GesturePattern> {
         return try {
-            dao.getAllPatterns().first().map { it.toGesturePattern() }
+            dao.getAllPatterns().first().map {
+                it.toGesturePattern().apply { this.context = this@GesturePatternStore.context }
+            }
         } catch (e: Exception) {
             Log.e(TAG, "Error getting patterns: ${e.message}")
             emptyList()
@@ -136,7 +138,9 @@ class GesturePatternStore(context: Context) {
      */
     suspend fun getPattern(id: String): GesturePattern? {
         return try {
-            dao.getPatternById(id)?.toGesturePattern()
+            dao.getPatternById(id)?.toGesturePattern()?.apply {
+                this.context = this@GesturePatternStore.context
+            }
         } catch (e: Exception) {
             Log.e(TAG, "Error getting pattern: ${e.message}")
             null

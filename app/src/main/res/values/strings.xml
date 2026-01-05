@@ -149,6 +149,9 @@
 
     <!-- Gesture Pattern Messages -->
     <string name="hud_gesture_pattern_stopped">Gesture Pattern Stopped</string>
+    <string name="hud_gesture_pattern_manual_mode_started">Manual Pattern Started - Press switch to advance</string>
+    <string name="hud_gesture_pattern_step_completed">Step %1$d of %2$d completed - %3$d remaining</string>
+    <string name="hud_gesture_pattern_completed">Gesture Pattern Completed</string>
 
     <!-- Service Trial Messages -->
     <string name="trial_info_banner">Trial: 1-hour session limit</string>
@@ -593,6 +596,8 @@
     <string name="preference_title_auto_scroll_delay">Auto Scroll Delay</string>
     <string name="preference_summary_auto_scroll_delay">The delay to wait between scrolling</string>
     <string name="section_title_gesture_patterns">Gesture Patterns</string>
+    <string name="preference_title_manual_pattern_progression">Manual Pattern Progression</string>
+    <string name="preference_summary_manual_pattern_progression">Advance through gesture pattern steps by pressing a switch instead of automatic timing</string>
     <string name="preference_title_stop_pattern_on_switch">Stop Pattern on Switch Press</string>
     <string name="preference_summary_stop_pattern_on_switch">When enabled, pressing any switch will stop the currently executing gesture pattern</string>
     <string name="section_title_locking">Locking</string>

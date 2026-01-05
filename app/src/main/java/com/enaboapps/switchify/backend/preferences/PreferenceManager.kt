@@ -41,6 +41,7 @@ class PreferenceManager(context: Context) {
         const val PREFERENCE_KEY_AUTO_SCROLL = "auto_scroll"
         const val PREFERENCE_KEY_AUTO_SCROLL_DELAY = "auto_scroll_delay"
         const val PREFERENCE_KEY_STOP_PATTERN_ON_SWITCH = "stop_pattern_on_switch"
+        const val PREFERENCE_KEY_GESTURE_PATTERN_MANUAL_PROGRESSION = "gesture_pattern_manual_progression"
         const val PREFERENCE_KEY_GESTURE_LOCK = "gesture_lock"
         const val PREFERENCE_KEY_SCAN_COLOR_SET = "scan_color_set"
         const val PREFERENCE_KEY_SCAN_HIGHLIGHT_TYPE = "scan_highlight_type"
