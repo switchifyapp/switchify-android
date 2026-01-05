@@ -11,10 +11,11 @@ import kotlinx.coroutines.withContext
 /**
  * Class responsible for managing gesture patterns, including saving to and loading from a file.
  *
- * @property context The application context.
+ * @property context The application context (automatically converted from any context).
  */
-class GesturePatternStore(private val context: Context) {
-    private val dao = GesturePatternDatabase.getDatabase(context).gesturePatternDao()
+class GesturePatternStore(context: Context) {
+    private val context: Context = context.applicationContext
+    private val dao = GesturePatternDatabase.getDatabase(this.context).gesturePatternDao()
 
     companion object {
         private const val TAG = "GesturePatternStore"

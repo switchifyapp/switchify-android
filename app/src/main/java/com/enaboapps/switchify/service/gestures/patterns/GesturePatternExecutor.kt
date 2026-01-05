@@ -1,6 +1,7 @@
 package com.enaboapps.switchify.service.gestures.patterns
 
 import android.content.Context
+import android.util.Log
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.service.gestures.GestureLockManager
@@ -19,6 +20,10 @@ class GesturePatternExecutor(
     private val gesturePattern: GesturePattern,
     private val context: Context
 ) {
+    companion object {
+        private const val TAG = "GesturePatternExecutor"
+    }
+
     // Own a cancellable scope with SupervisorJob to prevent child failures from affecting parent
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private var executionJob: Job? = null
@@ -89,22 +94,36 @@ class GesturePatternExecutor(
             return
         }
 
+        executeStepAtIndex(nextIndex)
+    }
+
+    private fun executeStepAtIndex(stepIndex: Int) {
+        if (isCleanedUp) return
+
         scope.launch {
             try {
-                val gesture = gesturePattern.gestures[nextIndex]
+                val gesture = gesturePattern.gestures[stepIndex]
                 gesture.executeGesture()
 
                 // Show progress message
-                val remaining = gesturePattern.gestures.size - nextIndex - 1
+                val remaining = gesturePattern.gestures.size - stepIndex - 1
                 if (remaining > 0) {
                     ServiceMessageHUD.instance.showMessage(
                         R.string.hud_gesture_pattern_step_completed,
-                        arrayOf(nextIndex + 1, gesturePattern.gestures.size, remaining),
+                        arrayOf(stepIndex + 1, gesturePattern.gestures.size, remaining),
                         ServiceMessageHUD.MessageType.PERMANENT
                     )
                 }
             } catch (e: Exception) {
-                // Handle execution errors gracefully
+                // Log the error
+                Log.e(TAG, "Error executing gesture pattern step", e)
+
+                // Show user-facing error message
+                ServiceMessageHUD.instance.showMessage(
+                    R.string.hud_gesture_pattern_error,
+                    ServiceMessageHUD.MessageType.DISAPPEARING
+                )
+
                 cleanup()
             }
         }
@@ -114,13 +133,17 @@ class GesturePatternExecutor(
         if (!isManualMode) return false
         if (isCleanedUp) return false
 
-        val nextIndex = currentStepIndex.get() + 1
+        // Atomically increment and get the new index
+        val nextIndex = currentStepIndex.incrementAndGet()
+
+        // Check bounds after increment
         if (nextIndex >= gesturePattern.gestures.size) {
             finishPattern()
             return true
         }
 
-        executeNextStep()
+        // Execute at the already-incremented index
+        executeStepAtIndex(nextIndex)
         return true
     }
 

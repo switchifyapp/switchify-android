@@ -152,6 +152,7 @@
     <string name="hud_gesture_pattern_manual_mode_started">Manual Pattern Started - Press switch to advance</string>
     <string name="hud_gesture_pattern_step_completed">Step %1$d of %2$d completed - %3$d remaining</string>
     <string name="hud_gesture_pattern_completed">Gesture Pattern Completed</string>
+    <string name="hud_gesture_pattern_error">Gesture Pattern Error</string>
 
     <!-- Service Trial Messages -->
     <string name="trial_info_banner">Trial: 1-hour session limit</string>
