@@ -37,3 +37,25 @@ data class DailyActivity(
     val switchPresses: Int,
     val menuOpens: Int
 )
+
+/**
+ * Breakdown item with formatted display values.
+ * Used for displaying statistics with locale-aware formatting and percentages.
+ */
+data class BreakdownItem(
+    val label: String,
+    val count: Int,
+    val formattedCount: String,
+    val percentage: String? = null
+) {
+    /**
+     * Returns the display value with optional percentage.
+     * Examples: "1,234" or "1,234 (45%)"
+     */
+    val displayValue: String
+        get() = if (percentage != null) {
+            "$formattedCount ($percentage)"
+        } else {
+            formattedCount
+        }
+}

@@ -33,6 +33,7 @@ import com.enaboapps.switchify.screens.stats.components.StatCard
 import com.enaboapps.switchify.service.stats.models.TimeRange
 import com.enaboapps.switchify.utils.LogEvent
 import com.enaboapps.switchify.utils.Logger
+import com.enaboapps.switchify.utils.StatsFormatter
 
 /**
  * Stats screen displaying usage statistics.
@@ -113,7 +114,7 @@ fun StatsScreen(navController: NavController) {
                     if (switchStats != null) {
                         StatCard(
                             label = stringResource(R.string.stats_total_presses),
-                            value = switchStats.totalPresses.toString()
+                            value = StatsFormatter.formatNumber(switchStats.totalPresses)
                         )
 
                         Spacer(modifier = Modifier.height(8.dp))
@@ -123,13 +124,13 @@ fun StatsScreen(navController: NavController) {
                         ) {
                             StatCard(
                                 label = stringResource(R.string.stats_external_switches),
-                                value = switchStats.externalSwitchPresses.values.sum().toString(),
+                                value = StatsFormatter.formatNumber(switchStats.externalSwitchPresses.values.sum()),
                                 modifier = Modifier.weight(1f)
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             StatCard(
                                 label = stringResource(R.string.stats_camera_gestures),
-                                value = switchStats.cameraSwitchPresses.values.sum().toString(),
+                                value = StatsFormatter.formatNumber(switchStats.cameraSwitchPresses.values.sum()),
                                 modifier = Modifier.weight(1f)
                             )
                         }
@@ -163,7 +164,7 @@ fun StatsScreen(navController: NavController) {
                     if (menuStats != null) {
                         StatCard(
                             label = stringResource(R.string.stats_total_menu_opens),
-                            value = menuStats.totalMenuOpens.toString()
+                            value = StatsFormatter.formatNumber(menuStats.totalMenuOpens)
                         )
 
                         Spacer(modifier = Modifier.height(8.dp))

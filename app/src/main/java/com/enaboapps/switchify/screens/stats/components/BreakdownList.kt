@@ -17,14 +17,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.enaboapps.switchify.R
+import com.enaboapps.switchify.service.stats.models.BreakdownItem as BreakdownItemModel
 
 /**
- * Displays a breakdown list of items with counts.
+ * Displays a breakdown list of items with formatted counts and percentages.
  */
 @Composable
 fun BreakdownList(
     title: String,
-    items: List<Pair<String, Int>>,
+    items: List<BreakdownItemModel>,
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -53,8 +54,8 @@ fun BreakdownList(
                 Column(
                     modifier = Modifier.padding(top = 8.dp)
                 ) {
-                    items.forEach { (name, count) ->
-                        BreakdownItem(name = name, count = count)
+                    items.forEach { item ->
+                        BreakdownItem(item = item)
                     }
                 }
             }
@@ -64,8 +65,7 @@ fun BreakdownList(
 
 @Composable
 private fun BreakdownItem(
-    name: String,
-    count: Int
+    item: BreakdownItemModel
 ) {
     Row(
         modifier = Modifier
@@ -75,13 +75,14 @@ private fun BreakdownItem(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
-            text = name,
+            text = item.label,
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.weight(1f)
         )
         Spacer(modifier = Modifier.width(8.dp))
         Text(
-            text = count.toString(),
+            text = item.displayValue,
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.primary
         )
