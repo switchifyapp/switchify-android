@@ -67,4 +67,19 @@ object GesturePatternManager {
             return anyStopped
         }
     }
+
+    fun advanceToNextStep(): Boolean {
+        synchronized(lock) {
+            if (activeExecutors.isEmpty()) return false
+
+            // Advance all active executors (don't short-circuit with any)
+            var anyAdvanced = false
+            activeExecutors.values.forEach { executor ->
+                if (executor.advanceToNextStep()) {
+                    anyAdvanced = true
+                }
+            }
+            return anyAdvanced
+        }
+    }
 }
