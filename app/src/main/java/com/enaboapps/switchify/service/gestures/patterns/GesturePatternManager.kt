@@ -57,9 +57,14 @@ object GesturePatternManager {
         synchronized(lock) {
             if (activeExecutors.isEmpty()) return false
 
-            // Stop all active executors
-            val stopped = activeExecutors.values.any { it.stop() }
-            return stopped
+            // Stop all active executors (don't short-circuit with any)
+            var anyStopped = false
+            activeExecutors.values.forEach { executor ->
+                if (executor.stop()) {
+                    anyStopped = true
+                }
+            }
+            return anyStopped
         }
     }
 }
