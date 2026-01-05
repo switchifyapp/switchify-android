@@ -20,6 +20,8 @@ fun GestureSettingsScreen(navController: NavController) {
         remember { preferenceManager.getBooleanValue(PreferenceManager.Keys.PREFERENCE_KEY_AUTO_SCROLL) }
     val autoScrollDelay =
         remember { preferenceManager.getLongValue(PreferenceManager.Keys.PREFERENCE_KEY_AUTO_SCROLL_DELAY) }
+    val stopPatternOnSwitch =
+        remember { preferenceManager.getBooleanValue(PreferenceManager.Keys.PREFERENCE_KEY_STOP_PATTERN_ON_SWITCH) }
 
     val autoScrollState = remember { mutableStateOf(autoScroll) }
 
@@ -57,6 +59,22 @@ fun GestureSettingsScreen(navController: NavController) {
                     }
                 )
             }
+        }
+
+        Section(
+            titleResId = R.string.section_title_gesture_patterns
+        ) {
+            PreferenceSwitch(
+                titleResId = R.string.preference_title_stop_pattern_on_switch,
+                summaryResId = R.string.preference_summary_stop_pattern_on_switch,
+                checked = stopPatternOnSwitch,
+                onCheckedChange = {
+                    preferenceManager.setBooleanValue(
+                        PreferenceManager.Keys.PREFERENCE_KEY_STOP_PATTERN_ON_SWITCH,
+                        it
+                    )
+                }
+            )
         }
     }
 }

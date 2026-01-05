@@ -34,7 +34,10 @@ class Tasks private constructor() {
         // Stop auto-scrolling if active
         if (AutoScrollManager.getInstance().stopAutoScroll()) return true
 
-        // Check if gesture pattern is currently executing
+        // Stop gesture pattern if enabled, otherwise just check if one is active
+        if (GesturePatternManager.stopCurrentPattern()) return true
+
+        // If stop setting is disabled, still consume the switch event while pattern is running
         if (GesturePatternManager.isGesturePatternActive()) return true
 
         return false

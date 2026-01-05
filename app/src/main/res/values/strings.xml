@@ -147,6 +147,9 @@
     <string name="hud_auto_scroll_started">Auto-Scroll Started</string>
     <string name="hud_auto_scroll_stopped">Auto-Scroll Stopped</string>
 
+    <!-- Gesture Pattern Messages -->
+    <string name="hud_gesture_pattern_stopped">Gesture Pattern Stopped</string>
+
     <!-- Service Trial Messages -->
     <string name="trial_info_banner">Trial: 1-hour session limit</string>
     <string name="trial_started_message">1-hour service trial started. All features available!</string>
@@ -589,6 +592,9 @@
     <string name="preference_summary_auto_scroll">When enabled, scrolling gestures will be repeatedly performed until a switch is pressed</string>
     <string name="preference_title_auto_scroll_delay">Auto Scroll Delay</string>
     <string name="preference_summary_auto_scroll_delay">The delay to wait between scrolling</string>
+    <string name="section_title_gesture_patterns">Gesture Patterns</string>
+    <string name="preference_title_stop_pattern_on_switch">Stop Pattern on Switch Press</string>
+    <string name="preference_summary_stop_pattern_on_switch">When enabled, pressing any switch will stop the currently executing gesture pattern</string>
     <string name="section_title_locking">Locking</string>
     <string name="preference_title_gesture_lock">Gesture Lock</string>
     <string name="preference_summary_gesture_lock">When enabled, gestures can be temporarily assigned to a switch</string>

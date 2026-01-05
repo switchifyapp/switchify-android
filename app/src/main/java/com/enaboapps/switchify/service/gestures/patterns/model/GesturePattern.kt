@@ -2,6 +2,7 @@ package com.enaboapps.switchify.service.gestures.patterns.model
 
 import com.enaboapps.switchify.service.gestures.data.GestureData
 import com.enaboapps.switchify.service.gestures.patterns.GesturePatternExecutor
+import com.enaboapps.switchify.service.gestures.patterns.GesturePatternManager
 import java.util.UUID
 
 data class GesturePattern(
@@ -11,6 +12,7 @@ data class GesturePattern(
 ) {
     fun execute() {
         val executor = GesturePatternExecutor(this)
+        GesturePatternManager.setCurrentExecutor(executor)
         executor.execute()
     }
 }
