@@ -10,6 +10,7 @@ import com.enaboapps.switchify.service.gestures.data.GestureType
 import com.enaboapps.switchify.service.gestures.execution.GestureDispatcher
 import com.enaboapps.switchify.service.gestures.execution.GesturePathBuilder
 import com.enaboapps.switchify.service.gestures.execution.GestureTimingCoordinator
+import com.enaboapps.switchify.service.gestures.patterns.GesturePatternManager
 import com.enaboapps.switchify.service.gestures.placement.FingerMode
 import com.enaboapps.switchify.service.gestures.placement.FingerModePreferences
 import com.enaboapps.switchify.service.gestures.placement.FingerPlacementAlgorithm
@@ -78,6 +79,7 @@ class GestureManager private constructor() {
     fun setup(accessibilityService: SwitchifyAccessibilityService) {
         this.accessibilityService = accessibilityService
         AutoScrollManager.getInstance().init(accessibilityService)
+        GesturePatternManager.init(accessibilityService)
         preferenceManager = PreferenceManager(accessibilityService)
 
         // Initialize unified execution pipeline components
