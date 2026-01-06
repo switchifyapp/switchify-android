@@ -2,8 +2,6 @@ package com.enaboapps.switchify.components
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -23,7 +21,6 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.enaboapps.switchify.R
-import com.enaboapps.switchify.theme.Dimens
 
 @Composable
 private fun ButtonToggle(
@@ -118,15 +115,12 @@ fun PreferenceSwitch(
         summaryResId = summaryResId,
         explanationResId = explanationResId
     ) {
-        Row {
-            Spacer(modifier = Modifier.width(Dimens.spaceXs))
-            ButtonToggle(
-                checked = isChecked,
-                onCheckedChange = {
-                    isChecked = it
-                    onCheckedChange(it)
-                }
-            )
-        }
+        ButtonToggle(
+            checked = isChecked,
+            onCheckedChange = {
+                isChecked = it
+                onCheckedChange(it)
+            }
+        )
     }
 }
