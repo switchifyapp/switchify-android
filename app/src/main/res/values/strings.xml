@@ -923,6 +923,7 @@
     <string name="content_desc_show_item">Show item</string>
     <string name="content_desc_move_up">Move up</string>
     <string name="content_desc_move_down">Move down</string>
+    <string name="select_value">Select value</string>
     <string name="reorder_mode_drag">Drag</string>
     <string name="reorder_mode_arrows">Arrows</string>
 

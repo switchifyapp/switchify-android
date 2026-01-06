@@ -35,6 +35,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.enaboapps.switchify.R
 import com.enaboapps.switchify.theme.Dimens
 
 @Composable
@@ -121,7 +122,7 @@ fun PreferenceValueSelector(
 
                             Icon(
                                 imageVector = Icons.Default.KeyboardArrowDown,
-                                contentDescription = "Select value",
+                                contentDescription = stringResource(R.string.select_value),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
