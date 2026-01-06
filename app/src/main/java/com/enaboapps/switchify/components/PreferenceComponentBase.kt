@@ -1,11 +1,14 @@
 package com.enaboapps.switchify.components
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Help
 import androidx.compose.material3.AlertDialog
@@ -24,7 +27,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.theme.Dimens
 
@@ -38,65 +43,112 @@ fun PreferenceComponentBase(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp)
+            .padding(horizontal = Dimens.spaceL)
             .padding(bottom = Dimens.spaceXs)
     ) {
-        Row(
+        BoxWithConstraints(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(Dimens.spaceM),
-            verticalAlignment = Alignment.CenterVertically
+                .padding(Dimens.spaceM)
         ) {
-            Column(
-                modifier = Modifier.weight(1f)
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        text = stringResource(titleResId).uppercase(),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Medium,
-                        modifier = Modifier.weight(1f)
+            val isNarrow = maxWidth < 400.dp
+
+            if (isNarrow) {
+                // Narrow screen: Stack vertically
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    TitleAndSummaryContent(
+                        titleResId = titleResId,
+                        summaryResId = summaryResId,
+                        explanationResId = explanationResId
                     )
-
-                    if (explanationResId != null) {
-                        var showExplanationDialog by remember { mutableStateOf(false) }
-
-                        IconButton(onClick = { showExplanationDialog = true }) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.Help,
-                                contentDescription = stringResource(R.string.help),
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                        }
-
-                        if (showExplanationDialog) {
-                            AlertDialog(
-                                onDismissRequest = { showExplanationDialog = false },
-                                title = { Text(stringResource(titleResId)) },
-                                text = { Text(stringResource(explanationResId)) },
-                                confirmButton = {
-                                    TextButton(onClick = { showExplanationDialog = false }) {
-                                        Text(stringResource(R.string.ok))
-                                    }
-                                }
-                            )
-                        }
+                    Spacer(modifier = Modifier.height(Dimens.spaceM))
+                    Box(
+                        modifier = Modifier.fillMaxWidth(),
+                        contentAlignment = Alignment.CenterEnd
+                    ) {
+                        content()
                     }
                 }
-
-                Spacer(modifier = Modifier.height(4.dp))
-
-                Text(
-                    text = stringResource(summaryResId),
-                    style = MaterialTheme.typography.bodySmall
-                )
+            } else {
+                // Wide screen: Horizontal layout
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    TitleAndSummaryContent(
+                        titleResId = titleResId,
+                        summaryResId = summaryResId,
+                        explanationResId = explanationResId,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Spacer(modifier = Modifier.width(Dimens.spaceM))
+                    content()
+                }
             }
-
-            Spacer(modifier = Modifier.height(8.dp))
-            content()
         }
+    }
+}
+
+@Composable
+private fun TitleAndSummaryContent(
+    titleResId: Int,
+    summaryResId: Int,
+    explanationResId: Int?,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(
+                text = stringResource(titleResId).uppercase(),
+                style = MaterialTheme.typography.titleMedium.copy(
+                    lineHeight = 24.sp
+                ),
+                fontWeight = FontWeight.Medium,
+                modifier = Modifier.weight(1f),
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                softWrap = true
+            )
+
+            if (explanationResId != null) {
+                var showExplanationDialog by remember { mutableStateOf(false) }
+
+                IconButton(onClick = { showExplanationDialog = true }) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.Help,
+                        contentDescription = stringResource(R.string.help),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+
+                if (showExplanationDialog) {
+                    AlertDialog(
+                        onDismissRequest = { showExplanationDialog = false },
+                        title = { Text(stringResource(titleResId)) },
+                        text = { Text(stringResource(explanationResId)) },
+                        confirmButton = {
+                            TextButton(onClick = { showExplanationDialog = false }) {
+                                Text(stringResource(R.string.ok))
+                            }
+                        }
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(Dimens.spaceXs))
+
+        Text(
+            text = stringResource(summaryResId),
+            style = MaterialTheme.typography.bodySmall.copy(
+                lineHeight = 24.sp
+            ),
+            maxLines = 3,
+            overflow = TextOverflow.Ellipsis,
+            softWrap = true
+        )
     }
 }

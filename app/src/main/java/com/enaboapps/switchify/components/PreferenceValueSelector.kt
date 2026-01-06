@@ -2,6 +2,8 @@ package com.enaboapps.switchify.components
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -30,6 +32,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.enaboapps.switchify.theme.Dimens
@@ -56,59 +59,128 @@ fun PreferenceValueSelector(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp)
+            .padding(horizontal = Dimens.spaceL)
             .padding(bottom = Dimens.spaceXs)
+            .clickable { showDialog = true }
     ) {
-        Column(
+        BoxWithConstraints(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(Dimens.spaceM)
         ) {
-            // Main content row with click handler
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { showDialog = true }
-                    .padding(vertical = 4.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text(
-                        text = stringResource(titleResId).uppercase(),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Medium
-                    )
+            val isNarrow = maxWidth < 400.dp
 
-                    Spacer(modifier = Modifier.height(4.dp))
+            if (isNarrow) {
+                // Narrow screen: Stack vertically
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        Text(
+                            text = stringResource(titleResId).uppercase(),
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                lineHeight = 24.sp
+                            ),
+                            fontWeight = FontWeight.Medium,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                            softWrap = true
+                        )
 
-                    Text(
-                        text = stringResource(summaryResId),
-                        style = MaterialTheme.typography.bodySmall
-                    )
+                        Spacer(modifier = Modifier.height(Dimens.spaceXs))
+
+                        Text(
+                            text = stringResource(summaryResId),
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                lineHeight = 24.sp
+                            ),
+                            maxLines = 3,
+                            overflow = TextOverflow.Ellipsis,
+                            softWrap = true
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(Dimens.spaceM))
+
+                    // Current value display with dropdown indicator
+                    Box(
+                        modifier = Modifier.fillMaxWidth(),
+                        contentAlignment = Alignment.CenterEnd
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = displayFormatter(currentValue),
+                                style = MaterialTheme.typography.bodyMedium.copy(
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Medium
+                                ),
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+
+                            Spacer(modifier = Modifier.width(4.dp))
+
+                            Icon(
+                                imageVector = Icons.Default.KeyboardArrowDown,
+                                contentDescription = "Select value",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
                 }
-
-                // Current value display with dropdown indicator
+            } else {
+                // Wide screen: Horizontal layout
                 Row(
+                    modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = displayFormatter(currentValue),
-                        style = MaterialTheme.typography.bodyMedium.copy(
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Medium
-                        ),
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = stringResource(titleResId).uppercase(),
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                lineHeight = 24.sp
+                            ),
+                            fontWeight = FontWeight.Medium,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                            softWrap = true
+                        )
 
-                    Spacer(modifier = Modifier.width(4.dp))
+                        Spacer(modifier = Modifier.height(Dimens.spaceXs))
 
-                    Icon(
-                        imageVector = Icons.Default.KeyboardArrowDown,
-                        contentDescription = "Select value",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                        Text(
+                            text = stringResource(summaryResId),
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                lineHeight = 24.sp
+                            ),
+                            maxLines = 3,
+                            overflow = TextOverflow.Ellipsis,
+                            softWrap = true
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(Dimens.spaceM))
+
+                    // Current value display with dropdown indicator
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = displayFormatter(currentValue),
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Medium
+                            ),
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+
+                        Spacer(modifier = Modifier.width(4.dp))
+
+                        Icon(
+                            imageVector = Icons.Default.KeyboardArrowDown,
+                            contentDescription = "Select value",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
             }
         }
