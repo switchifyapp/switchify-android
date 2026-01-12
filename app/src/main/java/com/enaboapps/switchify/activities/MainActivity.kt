@@ -53,9 +53,6 @@ class MainActivity : ComponentActivity() {
         preferenceManager = PreferenceManager(this)
         preferenceManager.enableSync()
 
-        // Initialize Logger
-        Logger.init(this)
-
         // Initialize IAP
         IAPHandler.initialize(this)
 

@@ -25,8 +25,8 @@ sdk.dir=/path/to/your/Android/Sdk
 # RevenueCat public API key (obtain from project owner)
 revenuecat.publicKey=<ask_for_key>
 
-# Amplitude API key (obtain from project owner)
-amplitude.apiKey=<ask_for_key>
+# Timberlogs API key (obtain from project owner)
+timberlogs.apiKey=<ask_for_key>
 
 # Supabase configuration (obtain from project owner)
 supabase.url=<ask_for_url>
