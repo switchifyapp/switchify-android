@@ -57,16 +57,16 @@ android {
         )
 
         if (localProperties.getProperty(
-                "amplitude.apiKey",
+                "timberlogs.apiKey",
                 ""
             ).isEmpty()
         ) {
-            throw GradleException("Amplitude API key is not set in local.properties")
+            throw GradleException("Timberlogs API key is not set in local.properties")
         }
         buildConfigField(
             "String",
-            "AMPLITUDE_API_KEY",
-            "\"${localProperties.getProperty("amplitude.apiKey", "")}\""
+            "TIMBERLOGS_API_KEY",
+            "\"${localProperties.getProperty("timberlogs.apiKey", "")}\""
         )
 
         if (localProperties.getProperty(
@@ -176,7 +176,6 @@ dependencies {
     implementation(libs.play.services.reviews.ktx)
     implementation(libs.revenuecat)
     implementation(libs.revenuecat.ui)
-    implementation(libs.amplitude.analytics)
     implementation(libs.androidx.camera.camera2)
     implementation(libs.androidx.camera.core)
     implementation(libs.androidx.camera.lifecycle)

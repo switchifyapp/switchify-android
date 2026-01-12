@@ -79,8 +79,6 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
     private fun setup() {
         SwitchifyLifecycleOwner.getInstance().handleLifecycleEvent(Lifecycle.Event.ON_CREATE)
 
-        Logger.init(this)
-
         IAPHandler.initialize(context = this, connectToRevenueCat = false)
 
         // Initialize trial manager with service shutdown callback and lock detection
