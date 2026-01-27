@@ -4,23 +4,19 @@
     android:viewportWidth="32"
     android:viewportHeight="32"
     android:tint="?attr/colorControlNormal">
-    <!-- Grid of app squares -->
     <path
         android:fillColor="@android:color/white"
-        android:pathData="M6,6L12,6L12,12L6,12L6,6Z" />
+        android:pathData="M4,6L12,6L12,14L4,14L4,6Z" />
     <path
         android:fillColor="@android:color/white"
-        android:pathData="M14,6L20,6L20,12L14,12L14,6Z" />
+        android:pathData="M20,6L28,6L28,14L20,14L20,6Z" />
     <path
         android:fillColor="@android:color/white"
-        android:pathData="M22,6L28,6L28,12L22,12L22,6Z" />
+        android:pathData="M4,18L12,18L12,26L4,26L4,18Z" />
     <path
         android:fillColor="@android:color/white"
-        android:pathData="M6,14L12,14L12,20L6,20L6,14Z" />
+        android:pathData="M20,18L28,18L28,26L20,26L20,18Z" />
     <path
         android:fillColor="@android:color/white"
-        android:pathData="M14,14L20,14L20,20L14,20L14,14Z" />
-    <path
-        android:fillColor="@android:color/white"
-        android:pathData="M22,14L28,14L28,20L22,20L22,14Z" />
+        android:pathData="M16,8L12,18L17,18L15,26L20,14L15,14L16,8Z" />
 </vector>
