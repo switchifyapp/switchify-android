@@ -173,11 +173,6 @@ class GestureDispatcher(
         )
 
         try {
-            Logger.log(
-                LogEvent.GestureDispatchStarted,
-                data = baseData + mapOf("result" to "started")
-            )
-
             // Handle gesture pattern recording and gesture lock
             gestureData?.let { data ->
                 GestureLockManager.instance.setLockedGestureData(data)
@@ -192,10 +187,6 @@ class GestureDispatcher(
                 object : AccessibilityService.GestureResultCallback() {
                     override fun onCompleted(gestureDescription: GestureDescription?) {
                         super.onCompleted(gestureDescription)
-                        Logger.log(
-                            LogEvent.GestureDispatchCompleted,
-                            data = baseData + mapOf("result" to "success")
-                        )
                         try {
                             handler.onGestureCompleted(gestureType)
                         } catch (e: Exception) {
@@ -217,13 +208,6 @@ class GestureDispatcher(
 
                     override fun onCancelled(gestureDescription: GestureDescription?) {
                         super.onCancelled(gestureDescription)
-                        Logger.log(
-                            LogEvent.GestureDispatchCancelled,
-                            data = baseData + mapOf(
-                                "result" to "cancelled",
-                                "reason" to "gesture_cancelled"
-                            )
-                        )
                         try {
                             handler.onGestureCancelled(gestureType)
                         } catch (e: Exception) {

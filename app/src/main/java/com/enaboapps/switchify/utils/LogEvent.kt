@@ -43,11 +43,7 @@ sealed class LogEvent(
     object StatsTimeRangeChanged : LogEvent("stats_time_range_changed", dataset = "stats", tags = listOf("ui"))
     object Milestone100SwitchPresses : LogEvent("milestone_100_switch_presses", dataset = "stats", tags = listOf("milestone"))
     object Milestone1000SwitchPresses : LogEvent("milestone_1000_switch_presses", dataset = "stats", tags = listOf("milestone"))
-    object StatsFlushStarted : LogEvent("stats_flush_started", dataset = "stats", tags = listOf("flush"))
-    object StatsFlushSkipped : LogEvent("stats_flush_skipped", level = "warn", dataset = "stats", tags = listOf("flush"))
-    object StatsFlushSucceeded : LogEvent("stats_flush_succeeded", dataset = "stats", tags = listOf("flush"))
     object StatsFlushFailed : LogEvent("stats_flush_failed", level = "error", dataset = "stats", tags = listOf("flush", "failure"))
-    object StatsEventDropped : LogEvent("stats_event_dropped", level = "warn", dataset = "stats", tags = listOf("queue", "drop"))
 
     object ServiceCommandHandled : LogEvent("service_command_handled", dataset = "service", tags = listOf("command"))
     object ServiceCommandFailed : LogEvent("service_command_failed", level = "error", dataset = "service", tags = listOf("command", "failure"))
@@ -69,8 +65,6 @@ sealed class LogEvent(
     object SwitchReloadTriggered : LogEvent("switch_reload_triggered", dataset = "input", tags = listOf("switches", "config"))
     object CameraSwitchAvailabilityChanged : LogEvent("camera_switch_availability_changed", dataset = "input", tags = listOf("switches", "camera"))
 
-    object HeadControlEnableAttempt : LogEvent("head_control_enable_attempt", dataset = "camera", tags = listOf("head_control", "lifecycle"))
-    object HeadControlEnableSucceeded : LogEvent("head_control_enable_succeeded", dataset = "camera", tags = listOf("head_control", "lifecycle"))
     object HeadControlEnableFailed : LogEvent("head_control_enable_failed", level = "error", dataset = "camera", tags = listOf("head_control", "failure"))
     object HeadControlInitFailed : LogEvent("head_control_init_failed", level = "error", dataset = "camera", tags = listOf("head_control", "failure"))
     object HeadControlCleanupFailed : LogEvent("head_control_cleanup_failed", level = "error", dataset = "camera", tags = listOf("head_control", "failure"))
@@ -101,19 +95,12 @@ sealed class LogEvent(
     object IapLifecycle : LogEvent("iap_lifecycle", dataset = "iap", tags = listOf("lifecycle"))
     object PurchaseCapabilityChecked : LogEvent("purchase_capability_checked", dataset = "iap", tags = listOf("capability"))
 
-    object CameraBackpressureDetected : LogEvent("camera_backpressure_detected", level = "warn", dataset = "camera", tags = listOf("performance", "backpressure"))
-    object CameraFrameProcessingSlow : LogEvent("camera_frame_processing_slow", level = "warn", dataset = "camera", tags = listOf("performance"))
-    object CameraFrameProcessingFailed : LogEvent("camera_frame_processing_failed", level = "error", dataset = "camera", tags = listOf("performance", "failure"))
 
     object AppSetupStageFailed : LogEvent("app_setup_stage_failed", level = "error", dataset = "app", tags = listOf("setup", "failure"))
 
     object MenuDynamicItemsLoadFailed : LogEvent("menu_dynamic_items_load_failed", level = "error", dataset = "ui", tags = listOf("menu", "failure"))
     object MenuStackChanged : LogEvent("menu_stack_changed", dataset = "ui", tags = listOf("menu", "stack"))
 
-    object SelectionAttempted : LogEvent("selection_attempted", dataset = "input", tags = listOf("selection"))
-    object SelectionPerformed : LogEvent("selection_performed", dataset = "input", tags = listOf("selection"))
-    object SelectionBlocked : LogEvent("selection_blocked", level = "warn", dataset = "input", tags = listOf("selection", "blocked"))
-    object SelectionFallbackUsed : LogEvent("selection_fallback_used", dataset = "input", tags = listOf("selection", "fallback"))
 
     object ScanModeChanged : LogEvent("scan_mode_changed", dataset = "service", tags = listOf("scan", "mode"))
     object ScanCycleFailed : LogEvent("scan_cycle_failed", level = "error", dataset = "service", tags = listOf("scan", "failure"))

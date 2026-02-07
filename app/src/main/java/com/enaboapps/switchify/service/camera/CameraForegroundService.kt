@@ -230,13 +230,6 @@ class CameraForegroundService : Service(), CameraLifecycle {
         return try {
             _lifecycleState.value = CameraLifecycle.State.INITIALIZING
             Log.d(TAG, "Initializing camera service")
-            Logger.log(
-                LogEvent.CameraStartAttempt,
-                data = mapOf(
-                    "result" to "started",
-                    "reason" to "initialize"
-                )
-            )
 
             if (isInitialized) {
                 _lifecycleState.value = CameraLifecycle.State.READY
@@ -279,14 +272,6 @@ class CameraForegroundService : Service(), CameraLifecycle {
      * Start camera capture and processing
      */
     fun startCamera(lifecycleOwner: LifecycleOwner): Boolean {
-        Logger.log(
-            LogEvent.CameraStartAttempt,
-            data = mapOf(
-                "result" to "started",
-                "reason" to "start_camera"
-            )
-        )
-
         if (!isInitialized) {
             Log.e(TAG, "Service not initialized")
             Logger.log(
@@ -591,19 +576,7 @@ class CameraForegroundService : Service(), CameraLifecycle {
                     TAG,
                     "Backpressure detected - dropped $droppedFrameCount frames, processed $processedFrameCount frames"
                 )
-                if (currentTime - lastBackpressureTelemetryTime > 5000L) {
-                    Logger.log(
-                        LogEvent.CameraBackpressureDetected,
-                        data = mapOf(
-                            "result" to "degraded",
-                            "reason" to "processing_mutex_busy",
-                            "dropped_frames" to droppedFrameCount,
-                            "processed_frames" to processedFrameCount,
-                            "interval_ms" to 5000
-                        )
-                    )
-                    lastBackpressureTelemetryTime = currentTime
-                }
+                lastBackpressureTelemetryTime = currentTime
                 lastFrameTime = currentTime
                 droppedFrameCount = 0
                 processedFrameCount = 0
@@ -678,16 +651,6 @@ class CameraForegroundService : Service(), CameraLifecycle {
                     Log.e(TAG, "Error processing frame", e)
                     frameProcessingErrorCount++
                     if (currentTime - lastFrameErrorTelemetryTime > 5000L) {
-                        Logger.log(
-                            LogEvent.CameraFrameProcessingFailed,
-                            data = mapOf(
-                                "result" to "failure",
-                                "reason" to "frame_processing_exception",
-                                "error_count" to frameProcessingErrorCount,
-                                "interval_ms" to 5000
-                            ),
-                            throwable = e
-                        )
                         lastFrameErrorTelemetryTime = currentTime
                         frameProcessingErrorCount = 0
                     }
@@ -761,16 +724,6 @@ class CameraForegroundService : Service(), CameraLifecycle {
                 Log.w(
                     TAG,
                     "Processing time averaging ${averageProcessingTime}ms exceeds target ${MAX_PROCESSING_TIME_MS}ms"
-                )
-                Logger.log(
-                    LogEvent.CameraFrameProcessingSlow,
-                    data = mapOf(
-                        "result" to "degraded",
-                        "reason" to "average_processing_time_exceeded",
-                        "average_processing_ms" to averageProcessingTime,
-                        "target_processing_ms" to MAX_PROCESSING_TIME_MS,
-                        "processed_frames" to processedFramesForAverage
-                    )
                 )
             }
         }
