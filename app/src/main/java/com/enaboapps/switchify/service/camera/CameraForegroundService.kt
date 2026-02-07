@@ -90,6 +90,9 @@ class CameraForegroundService : Service(), CameraLifecycle {
     private var lastFrameTime = 0L
     private var droppedFrameCount = 0L
     private var processedFrameCount = 0L
+    private var lastBackpressureTelemetryTime = 0L
+    private var frameProcessingErrorCount = 0L
+    private var lastFrameErrorTelemetryTime = 0L
 
     // Performance optimization
     private var lastProcessingStartTime = 0L
@@ -588,6 +591,19 @@ class CameraForegroundService : Service(), CameraLifecycle {
                     TAG,
                     "Backpressure detected - dropped $droppedFrameCount frames, processed $processedFrameCount frames"
                 )
+                if (currentTime - lastBackpressureTelemetryTime > 5000L) {
+                    Logger.log(
+                        LogEvent.CameraBackpressureDetected,
+                        data = mapOf(
+                            "result" to "degraded",
+                            "reason" to "processing_mutex_busy",
+                            "dropped_frames" to droppedFrameCount,
+                            "processed_frames" to processedFrameCount,
+                            "interval_ms" to 5000
+                        )
+                    )
+                    lastBackpressureTelemetryTime = currentTime
+                }
                 lastFrameTime = currentTime
                 droppedFrameCount = 0
                 processedFrameCount = 0
@@ -660,6 +676,21 @@ class CameraForegroundService : Service(), CameraLifecycle {
 
                 } catch (e: Exception) {
                     Log.e(TAG, "Error processing frame", e)
+                    frameProcessingErrorCount++
+                    if (currentTime - lastFrameErrorTelemetryTime > 5000L) {
+                        Logger.log(
+                            LogEvent.CameraFrameProcessingFailed,
+                            data = mapOf(
+                                "result" to "failure",
+                                "reason" to "frame_processing_exception",
+                                "error_count" to frameProcessingErrorCount,
+                                "interval_ms" to 5000
+                            ),
+                            throwable = e
+                        )
+                        lastFrameErrorTelemetryTime = currentTime
+                        frameProcessingErrorCount = 0
+                    }
                 } finally {
                     imageProxy.close()
                 }
@@ -730,6 +761,16 @@ class CameraForegroundService : Service(), CameraLifecycle {
                 Log.w(
                     TAG,
                     "Processing time averaging ${averageProcessingTime}ms exceeds target ${MAX_PROCESSING_TIME_MS}ms"
+                )
+                Logger.log(
+                    LogEvent.CameraFrameProcessingSlow,
+                    data = mapOf(
+                        "result" to "degraded",
+                        "reason" to "average_processing_time_exceeded",
+                        "average_processing_ms" to averageProcessingTime,
+                        "target_processing_ms" to MAX_PROCESSING_TIME_MS,
+                        "processed_frames" to processedFramesForAverage
+                    )
                 )
             }
         }

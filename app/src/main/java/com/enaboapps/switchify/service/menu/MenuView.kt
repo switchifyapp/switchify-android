@@ -11,6 +11,8 @@ import com.enaboapps.switchify.service.menu.menus.BaseMenu
 import com.enaboapps.switchify.service.scanning.ScanNodeInterface
 import com.enaboapps.switchify.service.scanning.ScanningManager
 import com.enaboapps.switchify.service.scanning.tree.ScanTree
+import com.enaboapps.switchify.utils.LogEvent
+import com.enaboapps.switchify.utils.Logger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -97,7 +99,16 @@ class MenuView(
                 }
             } catch (e: Exception) {
                 // If dynamic loading fails, fall back to static items
-                e.printStackTrace()
+                Logger.log(
+                    LogEvent.MenuDynamicItemsLoadFailed,
+                    data = mapOf(
+                        "result" to "failure",
+                        "reason" to "dynamic_items_exception",
+                        "menu_id" to menuId,
+                        "static_items_count" to staticItems.size
+                    ),
+                    throwable = e
+                )
                 if (staticItems.isNotEmpty()) {
                     createMenuPages(staticItems)
                 }

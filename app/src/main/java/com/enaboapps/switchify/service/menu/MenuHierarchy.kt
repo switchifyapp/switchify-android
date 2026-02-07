@@ -6,6 +6,8 @@ import androidx.core.os.postDelayed
 import com.enaboapps.switchify.service.scanning.ScanningManager
 import com.enaboapps.switchify.service.stats.StatsCollector
 import com.enaboapps.switchify.service.techniques.AccessTechnique
+import com.enaboapps.switchify.utils.LogEvent
+import com.enaboapps.switchify.utils.Logger
 
 class MenuHierarchy(
     private val scanningManager: ScanningManager
@@ -18,15 +20,30 @@ class MenuHierarchy(
         tree += menu
     }
 
+    private fun logStackChange(action: String, depthBefore: Int, depthAfter: Int, menuId: String? = null) {
+        Logger.log(
+            LogEvent.MenuStackChanged,
+            data = mapOf(
+                "result" to "success",
+                "action" to action,
+                "depth_before" to depthBefore,
+                "depth_after" to depthAfter,
+                "menu_id" to menuId
+            )
+        )
+    }
+
     private fun canPopMenu(): Boolean {
         return tree.size > 1
     }
 
     fun popMenu() {
         if (canPopMenu()) {
+            val depthBefore = tree.size
             val closedMenu = tree.lastOrNull()
             closedMenu?.close()
             tree = tree.dropLast(1)
+            logStackChange("pop", depthBefore, tree.size, closedMenu?.menuId)
 
             // Notify observers of menu closure
             closedMenu?.let { MenuManager.getInstance().notifyMenuClosed(it) }
@@ -42,9 +59,11 @@ class MenuHierarchy(
     }
 
     fun openMenu(menu: MenuView) {
+        val depthBefore = tree.size
         getTopMenu()?.close()
 
         addMenu(menu)
+        logStackChange("open", depthBefore, tree.size, menu.menuId)
 
         // Record stats for menu open
         menu.menuId?.let { menuId ->
@@ -61,9 +80,11 @@ class MenuHierarchy(
     }
 
     fun removeAllMenus() {
+        val depthBefore = tree.size
         // close the top menu
         getTopMenu()?.close()
         tree = mutableListOf()
+        logStackChange("clear", depthBefore, tree.size)
 
         // remove the menu view
         MenuViewHandler.instance.kill()
