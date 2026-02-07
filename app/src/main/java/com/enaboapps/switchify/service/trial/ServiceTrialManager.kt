@@ -76,6 +76,13 @@ class ServiceTrialManager(
         // Check if trials are disabled for debugging (only in debug builds)
         if (BuildConfig.DEBUG && isTrialDisabled()) {
             Log.d(TAG, "Trials disabled for debugging - unlimited access")
+            Logger.log(
+                LogEvent.TrialBlocked,
+                data = mapOf(
+                    "result" to "skipped",
+                    "reason" to "debug_trial_disabled"
+                )
+            )
             ServiceMessageHUD.instance.showMessage(
                 R.string.debug_trial_disabled_message,
                 ServiceMessageHUD.MessageType.DISAPPEARING
@@ -86,6 +93,13 @@ class ServiceTrialManager(
         // Check if user has pro - if so, no trial needed
         if (IAPHandler.isPro()) {
             Log.d(TAG, "User has pro - no trial restrictions")
+            Logger.log(
+                LogEvent.TrialBlocked,
+                data = mapOf(
+                    "result" to "skipped",
+                    "reason" to "pro_user"
+                )
+            )
             ServiceMessageHUD.instance.showMessage(
                 R.string.pro_unlimited_access_message,
                 ServiceMessageHUD.MessageType.DISAPPEARING
@@ -96,6 +110,13 @@ class ServiceTrialManager(
         // Check if device is locked - prevent NEW trial activation for security
         if (!deviceLockCheck()) {
             Log.d(TAG, "Device is locked - preventing NEW trial activation")
+            Logger.log(
+                LogEvent.TrialBlocked,
+                data = mapOf(
+                    "result" to "blocked",
+                    "reason" to "device_locked"
+                )
+            )
             ServiceMessageHUD.instance.showMessage(
                 R.string.trial_blocked_device_locked_message,
                 ServiceMessageHUD.MessageType.PERMANENT
@@ -105,6 +126,13 @@ class ServiceTrialManager(
 
         if (isTrialActive) {
             Log.w(TAG, "Trial already active")
+            Logger.log(
+                LogEvent.TrialBlocked,
+                data = mapOf(
+                    "result" to "skipped",
+                    "reason" to "already_active"
+                )
+            )
             return
         }
 
@@ -115,7 +143,14 @@ class ServiceTrialManager(
 
         val durationText = if (BuildConfig.DEBUG) "30-second debug" else "1-hour"
         Log.d(TAG, "Starting $durationText service trial for non-pro user")
-        Logger.log(LogEvent.ServiceConnected) // Reuse existing event
+        Logger.log(
+            LogEvent.TrialStarted,
+            data = mapOf(
+                "result" to "success",
+                "reason" to "eligible_non_pro_user",
+                "duration_ms" to if (BuildConfig.DEBUG) DEBUG_TRIAL_DURATION_MS else TRIAL_DURATION_MS
+            )
+        )
 
         scheduleWarning()
         scheduleExpiry()
@@ -136,6 +171,12 @@ class ServiceTrialManager(
         isTrialActive = false
         cancelTimers()
         Log.d(TAG, "Trial stopped")
+        Logger.log(
+            LogEvent.TrialStopped,
+            data = mapOf(
+                "result" to "success"
+            )
+        )
     }
 
     /**
@@ -211,6 +252,14 @@ class ServiceTrialManager(
                 )
                 val timeText = if (BuildConfig.DEBUG) "10 seconds" else "10 minutes"
                 Log.d(TAG, "Trial warning shown - $timeText remaining")
+                Logger.log(
+                    LogEvent.TrialWarningShown,
+                    data = mapOf(
+                        "result" to "success",
+                        "reason" to "time_threshold_reached",
+                        "remaining_label" to timeText
+                    )
+                )
             }
         }, warningTime)
     }
@@ -224,6 +273,14 @@ class ServiceTrialManager(
         expiryHandler?.postDelayed({
             if (isTrialActive) {
                 Log.d(TAG, "Trial expired - shutting down service")
+                Logger.log(
+                    LogEvent.TrialExpired,
+                    data = mapOf(
+                        "result" to "success",
+                        "reason" to "duration_elapsed",
+                        "duration_ms" to duration
+                    )
+                )
                 ServiceMessageHUD.instance.showMessage(
                     R.string.trial_expired_message,
                     ServiceMessageHUD.MessageType.PERMANENT

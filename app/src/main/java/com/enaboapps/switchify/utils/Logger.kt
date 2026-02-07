@@ -9,12 +9,10 @@ import kotlinx.coroutines.launch
 import java.net.HttpURLConnection
 import java.net.URL
 
-/**
- * Logger class for logging events to Timberlogs.
- */
 object Logger {
     private const val TAG = "SwitchifyLogger"
     private const val TIMBERLOGS_URL = "https://timberlogs-ingest.enaboapps.workers.dev/v1/logs"
+    private const val SOURCE = "switchify-android"
 
     private val scope = CoroutineScope(Dispatchers.IO)
     private val gson = Gson()
@@ -23,19 +21,31 @@ object Logger {
         val level: String,
         val message: String,
         val source: String,
-        val environment: String
+        val environment: String,
+        val dataset: String? = null,
+        val version: String? = null,
+        val data: Map<String, Any>? = null,
+        val errorName: String? = null,
+        val errorStack: String? = null,
+        val tags: List<String>? = null,
+        val flowId: String? = null,
+        val stepIndex: Int? = null,
+        val timestamp: Long = System.currentTimeMillis()
     )
 
     private data class LogPayload(
         val logs: List<LogEntry>
     )
 
-    /**
-     * Logs a predefined event from LogEvent sealed class.
-     *
-     * @param event The predefined event from LogEvent sealed class.
-     */
-    fun log(event: LogEvent) {
+    fun log(
+        event: LogEvent,
+        data: Map<String, Any?> = emptyMap(),
+        throwable: Throwable? = null,
+        flowId: String? = null,
+        stepIndex: Int? = null
+    ) {
+        val sanitizedData = data.filterValues { it != null }.mapValues { it.value as Any }
+
         if (BuildConfig.DEBUG) {
             Log.d(TAG, "Event logged: ${event.eventName}")
         }
@@ -43,10 +53,18 @@ object Logger {
         scope.launch {
             try {
                 val entry = LogEntry(
-                    level = "info",
+                    level = event.level,
                     message = event.eventName,
-                    source = "switchify-android",
-                    environment = if (BuildConfig.DEBUG) "development" else "production"
+                    source = SOURCE,
+                    environment = if (BuildConfig.DEBUG) "development" else "production",
+                    dataset = event.dataset,
+                    version = BuildConfig.VERSION_NAME,
+                    data = sanitizedData.ifEmpty { null },
+                    errorName = throwable?.javaClass?.simpleName,
+                    errorStack = throwable?.stackTraceToString(),
+                    tags = event.tags.ifEmpty { null },
+                    flowId = flowId,
+                    stepIndex = stepIndex
                 )
                 val payload = LogPayload(logs = listOf(entry))
 
