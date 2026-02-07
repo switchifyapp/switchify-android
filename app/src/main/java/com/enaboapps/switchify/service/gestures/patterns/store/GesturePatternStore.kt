@@ -4,6 +4,8 @@ import android.content.Context
 import android.util.Log
 import com.enaboapps.switchify.service.gestures.data.GestureData
 import com.enaboapps.switchify.service.gestures.patterns.model.GesturePattern
+import com.enaboapps.switchify.utils.LogEvent
+import com.enaboapps.switchify.utils.Logger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
@@ -48,6 +50,14 @@ class GesturePatternStore(context: Context) {
             newPattern.id
         } catch (e: Exception) {
             Log.e(TAG, "Error adding pattern: ${e.message}")
+            Logger.log(
+                LogEvent.PatternStoreWriteFailed,
+                data = mapOf(
+                    "result" to "failure",
+                    "reason" to "add_pattern_failed"
+                ),
+                throwable = e
+            )
             ""
         }
     }
@@ -65,6 +75,15 @@ class GesturePatternStore(context: Context) {
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error removing pattern: ${e.message}")
+            Logger.log(
+                LogEvent.PatternStoreWriteFailed,
+                data = mapOf(
+                    "result" to "failure",
+                    "reason" to "remove_pattern_failed",
+                    "pattern_id" to id
+                ),
+                throwable = e
+            )
         }
     }
 
@@ -87,6 +106,15 @@ class GesturePatternStore(context: Context) {
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error updating pattern: ${e.message}")
+            Logger.log(
+                LogEvent.PatternStoreWriteFailed,
+                data = mapOf(
+                    "result" to "failure",
+                    "reason" to "update_pattern_failed",
+                    "pattern_id" to id
+                ),
+                throwable = e
+            )
         }
     }
 
@@ -112,6 +140,15 @@ class GesturePatternStore(context: Context) {
             Log.d(TAG, "Updated pattern name for ID: $id to: $name")
         } catch (e: Exception) {
             Log.e(TAG, "Error updating pattern name: ${e.message}")
+            Logger.log(
+                LogEvent.PatternStoreWriteFailed,
+                data = mapOf(
+                    "result" to "failure",
+                    "reason" to "update_pattern_name_failed",
+                    "pattern_id" to id
+                ),
+                throwable = e
+            )
         }
     }
 
@@ -127,6 +164,14 @@ class GesturePatternStore(context: Context) {
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error getting patterns: ${e.message}")
+            Logger.log(
+                LogEvent.PatternStoreReadFailed,
+                data = mapOf(
+                    "result" to "failure",
+                    "reason" to "get_patterns_failed"
+                ),
+                throwable = e
+            )
             emptyList()
         }
     }
@@ -144,6 +189,15 @@ class GesturePatternStore(context: Context) {
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error getting pattern: ${e.message}")
+            Logger.log(
+                LogEvent.PatternStoreReadFailed,
+                data = mapOf(
+                    "result" to "failure",
+                    "reason" to "get_pattern_failed",
+                    "pattern_id" to id
+                ),
+                throwable = e
+            )
             null
         }
     }
@@ -155,6 +209,15 @@ class GesturePatternStore(context: Context) {
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error updating pattern order: ${e.message}")
+            Logger.log(
+                LogEvent.PatternStoreWriteFailed,
+                data = mapOf(
+                    "result" to "failure",
+                    "reason" to "update_pattern_order_failed",
+                    "pattern_id" to patternId
+                ),
+                throwable = e
+            )
         }
     }
 
@@ -167,6 +230,15 @@ class GesturePatternStore(context: Context) {
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error reordering patterns: ${e.message}")
+            Logger.log(
+                LogEvent.PatternStoreWriteFailed,
+                data = mapOf(
+                    "result" to "failure",
+                    "reason" to "reorder_patterns_failed",
+                    "count" to patternIds.size
+                ),
+                throwable = e
+            )
         }
     }
 }

@@ -63,4 +63,35 @@ sealed class LogEvent(
     object CameraStop : LogEvent("camera_stop", dataset = "camera", tags = listOf("lifecycle"))
     object CameraPermissionMissing : LogEvent("camera_permission_missing", level = "error", dataset = "camera", tags = listOf("permission", "failure"))
     object CameraBindFailed : LogEvent("camera_bind_failed", level = "error", dataset = "camera", tags = listOf("bind", "failure"))
+
+    object SwitchConfigLoaded : LogEvent("switch_config_loaded", dataset = "input", tags = listOf("switches", "config"))
+    object SwitchConfigEmpty : LogEvent("switch_config_empty", level = "warn", dataset = "input", tags = listOf("switches", "config"))
+    object SwitchReloadTriggered : LogEvent("switch_reload_triggered", dataset = "input", tags = listOf("switches", "config"))
+    object CameraSwitchAvailabilityChanged : LogEvent("camera_switch_availability_changed", dataset = "input", tags = listOf("switches", "camera"))
+
+    object HeadControlEnableAttempt : LogEvent("head_control_enable_attempt", dataset = "camera", tags = listOf("head_control", "lifecycle"))
+    object HeadControlEnableSucceeded : LogEvent("head_control_enable_succeeded", dataset = "camera", tags = listOf("head_control", "lifecycle"))
+    object HeadControlEnableFailed : LogEvent("head_control_enable_failed", level = "error", dataset = "camera", tags = listOf("head_control", "failure"))
+    object HeadControlInitFailed : LogEvent("head_control_init_failed", level = "error", dataset = "camera", tags = listOf("head_control", "failure"))
+    object HeadControlCleanupFailed : LogEvent("head_control_cleanup_failed", level = "error", dataset = "camera", tags = listOf("head_control", "failure"))
+
+    object GesturePatternExecutionStarted : LogEvent("gesture_pattern_execution_started", dataset = "input", tags = listOf("gesture", "pattern"))
+    object GesturePatternExecutionCompleted : LogEvent("gesture_pattern_execution_completed", dataset = "input", tags = listOf("gesture", "pattern"))
+    object GesturePatternExecutionFailed : LogEvent("gesture_pattern_execution_failed", level = "error", dataset = "input", tags = listOf("gesture", "pattern", "failure"))
+    object PatternStoreReadFailed : LogEvent("pattern_store_read_failed", level = "error", dataset = "input", tags = listOf("gesture", "pattern", "storage"))
+    object PatternStoreWriteFailed : LogEvent("pattern_store_write_failed", level = "error", dataset = "input", tags = listOf("gesture", "pattern", "storage"))
+
+    object MenuOpened : LogEvent("menu_opened", dataset = "ui", tags = listOf("menu"))
+    object MenuClosed : LogEvent("menu_closed", dataset = "ui", tags = listOf("menu"))
+    object MenuActionResolveFailed : LogEvent("menu_action_resolve_failed", level = "error", dataset = "ui", tags = listOf("menu", "failure"))
+    object MenuObserverNotifyFailed : LogEvent("menu_observer_notify_failed", level = "error", dataset = "ui", tags = listOf("menu", "observer", "failure"))
+
+    object SwitchStoreReadFailed : LogEvent("switch_store_read_failed", level = "error", dataset = "input", tags = listOf("switches", "storage"))
+    object SwitchStoreWriteFailed : LogEvent("switch_store_write_failed", level = "error", dataset = "input", tags = listOf("switches", "storage"))
+    object SwitchConflictDetected : LogEvent("switch_conflict_detected", level = "warn", dataset = "input", tags = listOf("switches", "conflict"))
+    object SwitchSaveFailed : LogEvent("switch_save_failed", level = "error", dataset = "input", tags = listOf("switches", "failure"))
+
+    object NodeTreeProcessingTimeout : LogEvent("node_tree_processing_timeout", level = "warn", dataset = "service", tags = listOf("nodes", "performance"))
+    object NodeTreeTooLarge : LogEvent("node_tree_too_large", level = "warn", dataset = "service", tags = listOf("nodes", "performance"))
+    object NodeExaminerFailed : LogEvent("node_examiner_failed", level = "error", dataset = "service", tags = listOf("nodes", "failure"))
 }

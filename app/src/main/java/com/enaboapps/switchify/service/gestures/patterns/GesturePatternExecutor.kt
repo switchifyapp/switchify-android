@@ -7,6 +7,8 @@ import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.service.gestures.GestureLockManager
 import com.enaboapps.switchify.service.gestures.patterns.model.GesturePattern
 import com.enaboapps.switchify.service.window.ServiceMessageHUD
+import com.enaboapps.switchify.utils.LogEvent
+import com.enaboapps.switchify.utils.Logger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -49,6 +51,15 @@ class GesturePatternExecutor(
         GesturePatternManager.registerExecutor(this)
         isManualMode = isManualProgressionEnabled()
         currentStepIndex.set(-1)
+        Logger.log(
+            LogEvent.GesturePatternExecutionStarted,
+            data = mapOf(
+                "result" to "started",
+                "pattern_id" to gesturePattern.id,
+                "steps" to gesturePattern.gestures.size,
+                "mode" to if (isManualMode) "manual" else "automatic"
+            )
+        )
 
         if (isManualMode) {
             executeManualMode()
@@ -120,6 +131,16 @@ class GesturePatternExecutor(
             } catch (e: Exception) {
                 // Log the error
                 Log.e(TAG, "Error executing gesture pattern step", e)
+                Logger.log(
+                    LogEvent.GesturePatternExecutionFailed,
+                    data = mapOf(
+                        "result" to "failure",
+                        "reason" to "step_execution_exception",
+                        "pattern_id" to gesturePattern.id,
+                        "step_index" to stepIndex
+                    ),
+                    throwable = e
+                )
 
                 // Show user-facing error message
                 ServiceMessageHUD.instance.showMessage(
@@ -151,6 +172,15 @@ class GesturePatternExecutor(
     }
 
     private fun finishPattern() {
+        Logger.log(
+            LogEvent.GesturePatternExecutionCompleted,
+            data = mapOf(
+                "result" to "success",
+                "pattern_id" to gesturePattern.id,
+                "steps" to gesturePattern.gestures.size,
+                "mode" to if (isManualMode) "manual" else "automatic"
+            )
+        )
         ServiceMessageHUD.instance.showMessage(
             R.string.hud_gesture_pattern_completed,
             ServiceMessageHUD.MessageType.DISAPPEARING

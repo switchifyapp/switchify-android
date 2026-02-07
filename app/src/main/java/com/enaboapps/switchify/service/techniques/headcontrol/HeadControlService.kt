@@ -9,6 +9,8 @@ import com.enaboapps.switchify.service.camera.CameraPermissionManager
 import com.enaboapps.switchify.service.core.ServiceBridge
 import com.enaboapps.switchify.service.utils.DeviceLockObserver
 import com.enaboapps.switchify.service.window.ServiceMessageHUD
+import com.enaboapps.switchify.utils.LogEvent
+import com.enaboapps.switchify.utils.Logger
 
 /**
  * Global service for head control functionality
@@ -134,11 +136,27 @@ class HeadControlService private constructor(private val context: Context) {
             TAG,
             "setEnabled called with: $enabled, current manager exists: ${headControlManager != null}"
         )
+        Logger.log(
+            LogEvent.HeadControlEnableAttempt,
+            data = mapOf(
+                "result" to "started",
+                "enabled" to enabled,
+                "manager_exists" to (headControlManager != null)
+            )
+        )
 
         if (enabled) {
             // Check camera permission first
             if (!CameraPermissionManager.getInstance(context).hasPermission()) {
                 Log.w(TAG, "Cannot enable head control - camera permission not granted")
+                Logger.log(
+                    LogEvent.HeadControlEnableFailed,
+                    data = mapOf(
+                        "result" to "failure",
+                        "enabled" to enabled,
+                        "reason" to "camera_permission_not_granted"
+                    )
+                )
                 showCameraPermissionRequiredNotification()
                 return false
             }
@@ -146,6 +164,14 @@ class HeadControlService private constructor(private val context: Context) {
             // Check device unlock status
             if (!DeviceLockObserver.isUserUnlocked(context)) {
                 Log.w(TAG, "Cannot enable head control - device is locked")
+                Logger.log(
+                    LogEvent.HeadControlEnableFailed,
+                    data = mapOf(
+                        "result" to "failure",
+                        "enabled" to enabled,
+                        "reason" to "device_locked"
+                    )
+                )
                 enableAfterUnlock = true
                 showDeviceLockedNotification()
                 return false
@@ -172,19 +198,28 @@ class HeadControlService private constructor(private val context: Context) {
                 // Create HeadControlManager on main thread since it contains UI components
                 // This happens asynchronously - manager will notify camera when ready
                 val mainHandler = android.os.Handler(android.os.Looper.getMainLooper())
-                mainHandler.post {
-                    try {
-                        headControlManager = HeadControlManager(context)
+                    mainHandler.post {
+                        try {
+                            headControlManager = HeadControlManager(context)
                         Log.d(
                             TAG,
                             "HeadControlManager created successfully, will initialize asynchronously"
                         )
-                    } catch (e: Exception) {
-                        Log.e(TAG, "Failed to create HeadControlManager on main thread", e)
-                        // Revert setting on failure
-                        settings.setHeadControlEnabled(false)
+                        } catch (e: Exception) {
+                            Log.e(TAG, "Failed to create HeadControlManager on main thread", e)
+                            Logger.log(
+                                LogEvent.HeadControlInitFailed,
+                                data = mapOf(
+                                    "result" to "failure",
+                                    "enabled" to enabled,
+                                    "reason" to "manager_create_main_thread_exception"
+                                ),
+                                throwable = e
+                            )
+                            // Revert setting on failure
+                            settings.setHeadControlEnabled(false)
+                        }
                     }
-                }
             } else if (!enabled) {
                 Log.d(TAG, "Disabling head control manager")
                 // Cleanup on main thread since it involves UI components
@@ -197,6 +232,15 @@ class HeadControlService private constructor(private val context: Context) {
                         headControlManager = null
                     } catch (e: Exception) {
                         Log.e(TAG, "Failed to cleanup HeadControlManager on main thread", e)
+                        Logger.log(
+                            LogEvent.HeadControlCleanupFailed,
+                            data = mapOf(
+                                "result" to "failure",
+                                "enabled" to enabled,
+                                "reason" to "manager_cleanup_main_thread_exception"
+                            ),
+                            throwable = e
+                        )
                     } finally {
                         latch.countDown()
                     }
@@ -214,12 +258,29 @@ class HeadControlService private constructor(private val context: Context) {
                 // Notify UI of state change
                 ServiceBridge.emitEvent(ServiceBridge.ServiceEvent.ConfigurationUpdated)
             }
+            Logger.log(
+                LogEvent.HeadControlEnableSucceeded,
+                data = mapOf(
+                    "result" to "success",
+                    "enabled" to enabled,
+                    "manager_exists" to (headControlManager != null)
+                )
+            )
             true
         } catch (securityException: SecurityException) {
             Log.e(
                 TAG,
                 "Security exception when setting head control enabled=$enabled - disabling",
                 securityException
+            )
+            Logger.log(
+                LogEvent.HeadControlEnableFailed,
+                data = mapOf(
+                    "result" to "failure",
+                    "enabled" to enabled,
+                    "reason" to "security_exception"
+                ),
+                throwable = securityException
             )
             // Only disable for security/permission issues
             settings.setHeadControlEnabled(false)
@@ -230,6 +291,15 @@ class HeadControlService private constructor(private val context: Context) {
             false
         } catch (t: Throwable) {
             Log.e(TAG, "Failed to setEnabled($enabled) - leaving setting unchanged", t)
+            Logger.log(
+                LogEvent.HeadControlEnableFailed,
+                data = mapOf(
+                    "result" to "failure",
+                    "enabled" to enabled,
+                    "reason" to "unexpected_exception"
+                ),
+                throwable = t
+            )
             // For other exceptions, don't change the setting but clean up manager if needed
             if (enabled && headControlManager == null) {
                 // Failed to create manager, but don't disable the setting
@@ -333,7 +403,19 @@ class HeadControlService private constructor(private val context: Context) {
         cameraPermissionManager.stopMonitoring()
         deviceLockObserver?.stopObserving()
         deviceLockObserver = null
-        headControlManager?.cleanup()
+        try {
+            headControlManager?.cleanup()
+        } catch (e: Exception) {
+            Logger.log(
+                LogEvent.HeadControlCleanupFailed,
+                data = mapOf(
+                    "result" to "failure",
+                    "enabled" to settings.isHeadControlEnabled(),
+                    "reason" to "service_cleanup_exception"
+                ),
+                throwable = e
+            )
+        }
         headControlManager = null
         enableAfterUnlock = false
         Log.d(TAG, "Head control service cleaned up")

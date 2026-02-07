@@ -7,6 +7,8 @@ import android.view.accessibility.AccessibilityNodeInfo
 import android.view.accessibility.AccessibilityWindowInfo
 import com.enaboapps.switchify.service.keyboard.KeyboardNodeExtractor
 import com.enaboapps.switchify.service.utils.ScreenUtils
+import com.enaboapps.switchify.utils.LogEvent
+import com.enaboapps.switchify.utils.Logger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -100,11 +102,28 @@ object NodeExaminer {
                             TAG,
                             "Accessibility tree processing timed out after ${TREE_PROCESSING_TIMEOUT_MS}ms"
                         )
+                        Logger.log(
+                            LogEvent.NodeTreeProcessingTimeout,
+                            data = mapOf(
+                                "result" to "timeout",
+                                "timeout_ms" to TREE_PROCESSING_TIMEOUT_MS,
+                                "keyboard_visible" to isKeyboardVisible
+                            )
+                        )
                     }
                 }
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error examining accessibility tree", e)
+            Logger.log(
+                LogEvent.NodeExaminerFailed,
+                data = mapOf(
+                    "result" to "failure",
+                    "reason" to "examine_accessibility_tree_exception",
+                    "keyboard_visible" to isKeyboardVisible
+                ),
+                throwable = e
+            )
         }
     }
 
@@ -119,6 +138,15 @@ object NodeExaminer {
         // Early termination for oversized trees
         if (newNodeInfos.size > MAX_NODES_THRESHOLD) {
             Log.w(TAG, "Tree too large (${newNodeInfos.size} nodes), skipping detailed processing")
+            Logger.log(
+                LogEvent.NodeTreeTooLarge,
+                data = mapOf(
+                    "result" to "skipped",
+                    "node_count" to newNodeInfos.size,
+                    "max_threshold" to MAX_NODES_THRESHOLD,
+                    "keyboard_visible" to isKeyboardVisible
+                )
+            )
             return
         }
 
@@ -309,6 +337,14 @@ object NodeExaminer {
             return baseNode
         } catch (e: Exception) {
             Log.e(TAG, "Error examining node content", e)
+            Logger.log(
+                LogEvent.NodeExaminerFailed,
+                data = mapOf(
+                    "result" to "failure",
+                    "reason" to "examine_node_content_exception"
+                ),
+                throwable = e
+            )
             return Node.fromAccessibilityNodeInfo(node)
         }
     }

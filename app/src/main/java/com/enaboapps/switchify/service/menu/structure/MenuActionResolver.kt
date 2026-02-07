@@ -6,6 +6,8 @@ import com.enaboapps.switchify.service.menu.menus.gestures.GestureMenuStructure
 import com.enaboapps.switchify.service.menu.menus.media.MediaMenuStructure
 import com.enaboapps.switchify.service.menu.menus.scroll.ScrollMenuStructure
 import com.enaboapps.switchify.service.menu.menus.system.SystemMenuStructure
+import com.enaboapps.switchify.utils.LogEvent
+import com.enaboapps.switchify.utils.Logger
 import kotlinx.coroutines.CoroutineScope
 
 /**
@@ -107,6 +109,16 @@ object MenuActionResolver {
         } catch (e: Exception) {
             // If action resolution fails, return no-op
             android.util.Log.e("MenuActionResolver", "Failed to resolve action for $itemId from $sourceMenuId: ${e.message}")
+            Logger.log(
+                LogEvent.MenuActionResolveFailed,
+                data = mapOf(
+                    "result" to "failure",
+                    "reason" to "exception",
+                    "item_id" to itemId,
+                    "source_menu_id" to sourceMenuId
+                ),
+                throwable = e
+            )
             return {}
         }
     }
