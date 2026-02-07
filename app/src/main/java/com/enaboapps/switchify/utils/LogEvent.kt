@@ -109,4 +109,13 @@ sealed class LogEvent(
 
     object MenuDynamicItemsLoadFailed : LogEvent("menu_dynamic_items_load_failed", level = "error", dataset = "ui", tags = listOf("menu", "failure"))
     object MenuStackChanged : LogEvent("menu_stack_changed", dataset = "ui", tags = listOf("menu", "stack"))
+
+    object SelectionAttempted : LogEvent("selection_attempted", dataset = "input", tags = listOf("selection"))
+    object SelectionPerformed : LogEvent("selection_performed", dataset = "input", tags = listOf("selection"))
+    object SelectionBlocked : LogEvent("selection_blocked", level = "warn", dataset = "input", tags = listOf("selection", "blocked"))
+    object SelectionFallbackUsed : LogEvent("selection_fallback_used", dataset = "input", tags = listOf("selection", "fallback"))
+
+    object ScanModeChanged : LogEvent("scan_mode_changed", dataset = "service", tags = listOf("scan", "mode"))
+    object ScanCycleFailed : LogEvent("scan_cycle_failed", level = "error", dataset = "service", tags = listOf("scan", "failure"))
+    object ScanTargetMissing : LogEvent("scan_target_missing", level = "warn", dataset = "service", tags = listOf("scan", "target"))
 }
