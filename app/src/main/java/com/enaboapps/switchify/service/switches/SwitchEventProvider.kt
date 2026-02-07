@@ -13,6 +13,8 @@ import com.enaboapps.switchify.switches.SWITCH_EVENT_TYPE_EXTERNAL
 import com.enaboapps.switchify.switches.SwitchEvent
 import com.enaboapps.switchify.switches.SwitchEventLocalStorage
 import com.enaboapps.switchify.switches.SwitchEventStore
+import com.enaboapps.switchify.utils.LogEvent
+import com.enaboapps.switchify.utils.Logger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -37,7 +39,7 @@ class SwitchEventProvider(private val context: Context) {
     private val receiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             if (intent?.action == SwitchEventStore.EVENTS_UPDATED) {
-                reload()
+                reload("broadcast_events_updated")
                 Log.d(TAG, "Switch events updated")
             }
         }
@@ -65,7 +67,17 @@ class SwitchEventProvider(private val context: Context) {
                 switchEvents.addAll(loadedEvents)
             }
             checkCameraSwitchAvailability()
+            val cameraSwitchCount = switchEvents.count { it.type == SWITCH_EVENT_TYPE_CAMERA }
             Log.d(TAG, "Loaded ${switchEvents.size} switches")
+            Logger.log(
+                if (switchEvents.isEmpty()) LogEvent.SwitchConfigEmpty else LogEvent.SwitchConfigLoaded,
+                data = mapOf(
+                    "result" to if (switchEvents.isEmpty()) "empty" else "success",
+                    "total_switches" to switchEvents.size,
+                    "camera_switches" to cameraSwitchCount,
+                    "external_switches" to (switchEvents.size - cameraSwitchCount)
+                )
+            )
             switchEvents.forEach { event ->
                 event.log()
             }
@@ -115,10 +127,21 @@ class SwitchEventProvider(private val context: Context) {
     }
 
     private fun checkCameraSwitchAvailability() {
+        val previous = hasCameraSwitch
         hasCameraSwitch = switchEvents.any {
             it.type == SWITCH_EVENT_TYPE_CAMERA
         }
         Log.d(TAG, "Camera switch availability changed: $hasCameraSwitch")
+        if (previous != hasCameraSwitch) {
+            Logger.log(
+                LogEvent.CameraSwitchAvailabilityChanged,
+                data = mapOf(
+                    "result" to "success",
+                    "available" to hasCameraSwitch,
+                    "previous_available" to previous
+                )
+            )
+        }
         notifyCameraSwitchListeners()
     }
 
@@ -128,7 +151,14 @@ class SwitchEventProvider(private val context: Context) {
         }
     }
 
-    fun reload() {
+    fun reload(source: String = "unknown") {
+        Logger.log(
+            LogEvent.SwitchReloadTriggered,
+            data = mapOf(
+                "result" to "started",
+                "source" to source
+            )
+        )
         coroutineScope.launch {
             loadInitialEvents()
         }

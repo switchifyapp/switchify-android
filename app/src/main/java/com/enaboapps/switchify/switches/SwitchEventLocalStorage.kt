@@ -3,6 +3,8 @@ package com.enaboapps.switchify.switches
 import android.content.Context
 import android.util.Log
 import com.enaboapps.switchify.backend.data.FileManager
+import com.enaboapps.switchify.utils.LogEvent
+import com.enaboapps.switchify.utils.Logger
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.sync.Mutex
@@ -38,11 +40,27 @@ class SwitchEventLocalStorage {
                     }
                     .onFailure { error ->
                         Log.e(tag, "Error reading from file", error)
+                        Logger.log(
+                            LogEvent.SwitchStoreReadFailed,
+                            data = mapOf(
+                                "result" to "failure",
+                                "reason" to "read_json_failed"
+                            ),
+                            throwable = error
+                        )
                         deleteFile(context)
                     }
                 emptySet()
             } catch (e: Exception) {
                 Log.e(tag, "Error reading from file", e)
+                Logger.log(
+                    LogEvent.SwitchStoreReadFailed,
+                    data = mapOf(
+                        "result" to "failure",
+                        "reason" to "exception"
+                    ),
+                    throwable = e
+                )
                 deleteFile(context)
                 emptySet()
             }
@@ -70,11 +88,29 @@ class SwitchEventLocalStorage {
                     }
                     .onFailure { error ->
                         Log.e(tag, "Error saving to file", error)
+                        Logger.log(
+                            LogEvent.SwitchStoreWriteFailed,
+                            data = mapOf(
+                                "result" to "failure",
+                                "reason" to "write_json_failed",
+                                "count" to switchEvents.size
+                            ),
+                            throwable = error
+                        )
                         false
                     }
                     .isSuccess
             } catch (e: Exception) {
                 Log.e(tag, "Error saving to file", e)
+                Logger.log(
+                    LogEvent.SwitchStoreWriteFailed,
+                    data = mapOf(
+                        "result" to "failure",
+                        "reason" to "exception",
+                        "count" to switchEvents.size
+                    ),
+                    throwable = e
+                )
                 false
             }
         }

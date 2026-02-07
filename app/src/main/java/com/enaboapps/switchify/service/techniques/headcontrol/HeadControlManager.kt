@@ -14,6 +14,8 @@ import com.enaboapps.switchify.service.menu.MenuView
 import com.enaboapps.switchify.service.selection.SelectionHandler
 import com.enaboapps.switchify.service.utils.ScreenUtils
 import com.enaboapps.switchify.service.window.ServiceMessageHUD
+import com.enaboapps.switchify.utils.LogEvent
+import com.enaboapps.switchify.utils.Logger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -113,6 +115,14 @@ class HeadControlManager(private val context: Context) : MenuStateObserver {
                 if (BuildConfig.DEBUG) {
                     Log.e(TAG, "Initialization interrupted", e)
                 }
+                Logger.log(
+                    LogEvent.HeadControlInitFailed,
+                    data = mapOf(
+                        "result" to "failure",
+                        "reason" to "initialization_interrupted"
+                    ),
+                    throwable = e
+                )
             }
         }
     }
@@ -138,6 +148,14 @@ class HeadControlManager(private val context: Context) : MenuStateObserver {
         } catch (e: RuntimeException) {
             // Catch expected runtime issues but allow programming errors to surface in debug
             Log.w(TAG, "Failed to notify camera system of head control ready state", e)
+            Logger.log(
+                LogEvent.HeadControlInitFailed,
+                data = mapOf(
+                    "result" to "failure",
+                    "reason" to "notify_camera_ready_failed"
+                ),
+                throwable = e
+            )
             if (BuildConfig.DEBUG) {
                 throw e // Re-throw in debug builds for diagnosis
             }

@@ -17,6 +17,8 @@ import com.enaboapps.switchify.service.menu.menus.scroll.ScrollMenu
 import com.enaboapps.switchify.service.menu.menus.system.DeviceMenu
 import com.enaboapps.switchify.service.menu.menus.system.VolumeControlMenu
 import com.enaboapps.switchify.service.scanning.ScanningManager
+import com.enaboapps.switchify.utils.LogEvent
+import com.enaboapps.switchify.utils.Logger
 
 /**
  * This class manages the menu
@@ -269,12 +271,29 @@ class MenuManager {
      * Notify observers that a menu was opened
      */
     internal fun notifyMenuOpened(menuView: MenuView) {
+        Logger.log(
+            LogEvent.MenuOpened,
+            data = mapOf(
+                "result" to "success",
+                "menu_id" to menuView.menuId
+            )
+        )
         menuStateObservers.forEach { observer ->
             try {
                 observer.onMenuOpened(menuView)
             } catch (e: Exception) {
                 // Log error but don't let one observer break others
                 android.util.Log.e("MenuManager", "Error notifying observer of menu opened", e)
+                Logger.log(
+                    LogEvent.MenuObserverNotifyFailed,
+                    data = mapOf(
+                        "result" to "failure",
+                        "reason" to "on_menu_opened_exception",
+                        "menu_id" to menuView.menuId,
+                        "observer" to observer::class.java.simpleName
+                    ),
+                    throwable = e
+                )
             }
         }
     }
@@ -283,11 +302,28 @@ class MenuManager {
      * Notify observers that a menu was closed
      */
     internal fun notifyMenuClosed(menuView: MenuView) {
+        Logger.log(
+            LogEvent.MenuClosed,
+            data = mapOf(
+                "result" to "success",
+                "menu_id" to menuView.menuId
+            )
+        )
         menuStateObservers.forEach { observer ->
             try {
                 observer.onMenuClosed(menuView)
             } catch (e: Exception) {
                 android.util.Log.e("MenuManager", "Error notifying observer of menu closed", e)
+                Logger.log(
+                    LogEvent.MenuObserverNotifyFailed,
+                    data = mapOf(
+                        "result" to "failure",
+                        "reason" to "on_menu_closed_exception",
+                        "menu_id" to menuView.menuId,
+                        "observer" to observer::class.java.simpleName
+                    ),
+                    throwable = e
+                )
             }
         }
     }
@@ -305,6 +341,16 @@ class MenuManager {
                     "Error notifying observer of menu nodes changed",
                     e
                 )
+                Logger.log(
+                    LogEvent.MenuObserverNotifyFailed,
+                    data = mapOf(
+                        "result" to "failure",
+                        "reason" to "on_menu_nodes_changed_exception",
+                        "menu_id" to menuView.menuId,
+                        "observer" to observer::class.java.simpleName
+                    ),
+                    throwable = e
+                )
             }
         }
     }
@@ -318,6 +364,15 @@ class MenuManager {
                 observer.onAllMenusClosed()
             } catch (e: Exception) {
                 android.util.Log.e("MenuManager", "Error notifying observer of all menus closed", e)
+                Logger.log(
+                    LogEvent.MenuObserverNotifyFailed,
+                    data = mapOf(
+                        "result" to "failure",
+                        "reason" to "on_all_menus_closed_exception",
+                        "observer" to observer::class.java.simpleName
+                    ),
+                    throwable = e
+                )
             }
         }
     }

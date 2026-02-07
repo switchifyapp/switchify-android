@@ -94,9 +94,29 @@ class SwitchEventStore private constructor() {
     suspend fun checkGestureConflictReadOnly(context: Context, gestureId: String): Boolean {
         return try {
             val events = localStorage.loadFromFile(context)
-            events.any { it.type == SWITCH_EVENT_TYPE_CAMERA && it.code == gestureId }
+            val hasConflict = events.any { it.type == SWITCH_EVENT_TYPE_CAMERA && it.code == gestureId }
+            if (hasConflict) {
+                Logger.log(
+                    LogEvent.SwitchConflictDetected,
+                    data = mapOf(
+                        "result" to "detected",
+                        "gesture_id" to gestureId,
+                        "source" to "read_only_check"
+                    )
+                )
+            }
+            hasConflict
         } catch (e: Exception) {
             Log.e(tag, "Error checking gesture conflict read-only", e)
+            Logger.log(
+                LogEvent.SwitchSaveFailed,
+                data = mapOf(
+                    "result" to "failure",
+                    "reason" to "check_conflict_exception",
+                    "gesture_id" to gestureId
+                ),
+                throwable = e
+            )
             false
         }
     }
@@ -121,11 +141,29 @@ class SwitchEventStore private constructor() {
                     Logger.log(LogEvent.SwitchAdded)
                 } else {
                     Log.e(tag, "Failed to save switch event to file")
+                    Logger.log(
+                        LogEvent.SwitchSaveFailed,
+                        data = mapOf(
+                            "result" to "failure",
+                            "reason" to "add_save_failed",
+                            "switch_type" to switchEvent.type,
+                            "switch_code" to switchEvent.code
+                        )
+                    )
                     switchEvents.remove(switchEvent)
                     completion(false)
                 }
             } else {
                 Log.e(tag, "Failed to add switch event to set")
+                Logger.log(
+                    LogEvent.SwitchSaveFailed,
+                    data = mapOf(
+                        "result" to "failure",
+                        "reason" to "add_to_set_failed",
+                        "switch_type" to switchEvent.type,
+                        "switch_code" to switchEvent.code
+                    )
+                )
                 completion(false)
             }
         }
@@ -144,9 +182,27 @@ class SwitchEventStore private constructor() {
                     broadcastReloadEvent(context)
                     Logger.log(LogEvent.SwitchUpdated)
                 } else {
+                    Logger.log(
+                        LogEvent.SwitchSaveFailed,
+                        data = mapOf(
+                            "result" to "failure",
+                            "reason" to "update_save_failed",
+                            "switch_type" to switchEvent.type,
+                            "switch_code" to switchEvent.code
+                        )
+                    )
                     completion(false)
                 }
             } else {
+                Logger.log(
+                    LogEvent.SwitchSaveFailed,
+                    data = mapOf(
+                        "result" to "failure",
+                        "reason" to "update_not_found_or_add_failed",
+                        "switch_type" to switchEvent.type,
+                        "switch_code" to switchEvent.code
+                    )
+                )
                 completion(false)
             }
         }
@@ -162,10 +218,28 @@ class SwitchEventStore private constructor() {
                     broadcastReloadEvent(context)
                     handler(true)
                 } else {
+                    Logger.log(
+                        LogEvent.SwitchSaveFailed,
+                        data = mapOf(
+                            "result" to "failure",
+                            "reason" to "remove_save_failed",
+                            "switch_type" to switchEvent.type,
+                            "switch_code" to switchEvent.code
+                        )
+                    )
                     switchEvents.add(switchEvent)
                     handler(false)
                 }
             } else {
+                Logger.log(
+                    LogEvent.SwitchSaveFailed,
+                    data = mapOf(
+                        "result" to "failure",
+                        "reason" to "remove_not_found",
+                        "switch_type" to switchEvent.type,
+                        "switch_code" to switchEvent.code
+                    )
+                )
                 handler(false)
             }
         }
