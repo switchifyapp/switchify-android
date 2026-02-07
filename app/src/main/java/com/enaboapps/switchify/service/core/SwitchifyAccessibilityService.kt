@@ -339,6 +339,11 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
      * Handles commands received from the app UI via ServiceBridge.
      */
     private fun handleServiceCommand(command: ServiceBridge.ServiceCommand) {
+        val commandName = command::class.java.simpleName
+        var result = "success"
+        var reason: String? = null
+        var commandKey: String? = null
+
         try {
             when (command) {
                 ServiceBridge.ServiceCommand.EnforceTechniqueCompatibility -> {
@@ -367,6 +372,9 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
                         // Settings are handled by HeadControlService.setEnabled() - no duplicate needed
                         cameraManager.evaluateAndUpdateCameraState()
                         ServiceBridge.emitEvent(ServiceBridge.ServiceEvent.ConfigurationUpdated)
+                    } else {
+                        result = "skipped"
+                        reason = "head_control_not_ready"
                     }
                 }
 
@@ -394,6 +402,7 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
                 }
 
                 is ServiceBridge.ServiceCommand.UpdateConfiguration -> {
+                    commandKey = command.key
                     // Handle specific configuration updates
                     when (command.key) {
                         PreferenceManager.Keys.PREFERENCE_KEY_SCAN_MODE -> {
@@ -427,7 +436,27 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
                     }
                 }
             }
+
+            Logger.log(
+                LogEvent.ServiceCommandHandled,
+                data = mapOf(
+                    "result" to result,
+                    "reason" to reason,
+                    "command" to commandName,
+                    "key" to commandKey
+                )
+            )
         } catch (e: Exception) {
+            Logger.log(
+                LogEvent.ServiceCommandFailed,
+                data = mapOf(
+                    "result" to "failure",
+                    "reason" to "exception",
+                    "command" to commandName,
+                    "key" to commandKey
+                ),
+                throwable = e
+            )
             logd("Error handling service command: ${e.message}")
             ServiceBridge.emitEvent(
                 ServiceBridge.ServiceEvent.ServiceError("Command handling failed: ${e.message}")

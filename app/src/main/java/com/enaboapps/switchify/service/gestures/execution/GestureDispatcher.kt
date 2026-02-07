@@ -8,6 +8,8 @@ import com.enaboapps.switchify.service.gestures.GesturePatternRecorder
 import com.enaboapps.switchify.service.gestures.GestureStateManager
 import com.enaboapps.switchify.service.gestures.data.GestureData
 import com.enaboapps.switchify.service.gestures.data.GestureType
+import com.enaboapps.switchify.utils.LogEvent
+import com.enaboapps.switchify.utils.Logger
 
 /**
  * Central nervous system for all gesture execution in the Switchify accessibility service.
@@ -164,8 +166,18 @@ class GestureDispatcher(
         resultHandler: GestureResultHandler? = null
     ) {
         val handler = resultHandler ?: DefaultResultHandler(gestureType)
+        val baseData = mapOf(
+            "gesture_type" to gestureType.name.lowercase(),
+            "finger_count" to gestureData?.fingerCount,
+            "has_gesture_data" to (gestureData != null)
+        )
 
         try {
+            Logger.log(
+                LogEvent.GestureDispatchStarted,
+                data = baseData + mapOf("result" to "started")
+            )
+
             // Handle gesture pattern recording and gesture lock
             gestureData?.let { data ->
                 GestureLockManager.instance.setLockedGestureData(data)
@@ -180,9 +192,21 @@ class GestureDispatcher(
                 object : AccessibilityService.GestureResultCallback() {
                     override fun onCompleted(gestureDescription: GestureDescription?) {
                         super.onCompleted(gestureDescription)
+                        Logger.log(
+                            LogEvent.GestureDispatchCompleted,
+                            data = baseData + mapOf("result" to "success")
+                        )
                         try {
                             handler.onGestureCompleted(gestureType)
                         } catch (e: Exception) {
+                            Logger.log(
+                                LogEvent.GestureDispatchFailed,
+                                data = baseData + mapOf(
+                                    "result" to "failure",
+                                    "reason" to "completion_handler_exception"
+                                ),
+                                throwable = e
+                            )
                             android.util.Log.e(
                                 "GestureDispatcher",
                                 "Error in completion handler",
@@ -193,9 +217,24 @@ class GestureDispatcher(
 
                     override fun onCancelled(gestureDescription: GestureDescription?) {
                         super.onCancelled(gestureDescription)
+                        Logger.log(
+                            LogEvent.GestureDispatchCancelled,
+                            data = baseData + mapOf(
+                                "result" to "cancelled",
+                                "reason" to "gesture_cancelled"
+                            )
+                        )
                         try {
                             handler.onGestureCancelled(gestureType)
                         } catch (e: Exception) {
+                            Logger.log(
+                                LogEvent.GestureDispatchFailed,
+                                data = baseData + mapOf(
+                                    "result" to "failure",
+                                    "reason" to "cancellation_handler_exception"
+                                ),
+                                throwable = e
+                            )
                             android.util.Log.e(
                                 "GestureDispatcher",
                                 "Error in cancellation handler",
@@ -207,6 +246,14 @@ class GestureDispatcher(
                 null
             )
         } catch (e: Exception) {
+            Logger.log(
+                LogEvent.GestureDispatchFailed,
+                data = baseData + mapOf(
+                    "result" to "failure",
+                    "reason" to "dispatch_exception"
+                ),
+                throwable = e
+            )
             handler.onGestureError(gestureType, e)
         }
     }

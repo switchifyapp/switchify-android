@@ -32,6 +32,8 @@ import androidx.lifecycle.Observer
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.service.face.FaceProcessingService
 import com.enaboapps.switchify.service.window.ServiceMessageHUD
+import com.enaboapps.switchify.utils.LogEvent
+import com.enaboapps.switchify.utils.Logger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -139,6 +141,13 @@ class CameraForegroundService : Service(), CameraLifecycle {
         // Required for Android API 34+ when using foregroundServiceType="camera"
         if (!hasCameraPermission()) {
             Log.e(TAG, "CAMERA permission not granted - cannot start camera foreground service")
+            Logger.log(
+                LogEvent.CameraPermissionMissing,
+                data = mapOf(
+                    "result" to "failure",
+                    "reason" to "camera_permission_not_granted"
+                )
+            )
             stopSelf()
             return
         }
@@ -218,6 +227,13 @@ class CameraForegroundService : Service(), CameraLifecycle {
         return try {
             _lifecycleState.value = CameraLifecycle.State.INITIALIZING
             Log.d(TAG, "Initializing camera service")
+            Logger.log(
+                LogEvent.CameraStartAttempt,
+                data = mapOf(
+                    "result" to "started",
+                    "reason" to "initialize"
+                )
+            )
 
             if (isInitialized) {
                 _lifecycleState.value = CameraLifecycle.State.READY
@@ -243,6 +259,14 @@ class CameraForegroundService : Service(), CameraLifecycle {
 
         } catch (e: Exception) {
             Log.e(TAG, "Failed to initialize camera service", e)
+            Logger.log(
+                LogEvent.CameraStartFailed,
+                data = mapOf(
+                    "result" to "failure",
+                    "reason" to "initialize_exception"
+                ),
+                throwable = e
+            )
             _lifecycleState.value = CameraLifecycle.State.ERROR
             false
         }
@@ -252,8 +276,23 @@ class CameraForegroundService : Service(), CameraLifecycle {
      * Start camera capture and processing
      */
     fun startCamera(lifecycleOwner: LifecycleOwner): Boolean {
+        Logger.log(
+            LogEvent.CameraStartAttempt,
+            data = mapOf(
+                "result" to "started",
+                "reason" to "start_camera"
+            )
+        )
+
         if (!isInitialized) {
             Log.e(TAG, "Service not initialized")
+            Logger.log(
+                LogEvent.CameraStartFailed,
+                data = mapOf(
+                    "result" to "failure",
+                    "reason" to "service_not_initialized"
+                )
+            )
             return false
         }
 
@@ -273,6 +312,14 @@ class CameraForegroundService : Service(), CameraLifecycle {
                         startWatchdog()
                     } catch (e: Exception) {
                         Log.e(TAG, "Failed to start camera in listener", e)
+                        Logger.log(
+                            LogEvent.CameraStartFailed,
+                            data = mapOf(
+                                "result" to "failure",
+                                "reason" to "start_listener_exception"
+                            ),
+                            throwable = e
+                        )
                     }
                 }
             }, { serviceScope.launch(Dispatchers.Main) { it.run() } })
@@ -280,6 +327,14 @@ class CameraForegroundService : Service(), CameraLifecycle {
             true
         } catch (e: Exception) {
             Log.e(TAG, "Failed to start camera", e)
+            Logger.log(
+                LogEvent.CameraStartFailed,
+                data = mapOf(
+                    "result" to "failure",
+                    "reason" to "start_exception"
+                ),
+                throwable = e
+            )
             false
         }
     }
@@ -308,6 +363,13 @@ class CameraForegroundService : Service(), CameraLifecycle {
                     watchdogJob = null
 
                     Log.i(TAG, "Camera stopped")
+                    Logger.log(
+                        LogEvent.CameraStop,
+                        data = mapOf(
+                            "result" to "success",
+                            "reason" to "explicit_stop"
+                        )
+                    )
                 }
             }
         } catch (e: Exception) {
@@ -393,6 +455,14 @@ class CameraForegroundService : Service(), CameraLifecycle {
 
         } catch (e: Exception) {
             Log.e(TAG, "Failed to bind camera use cases", e)
+            Logger.log(
+                LogEvent.CameraBindFailed,
+                data = mapOf(
+                    "result" to "failure",
+                    "reason" to "bind_use_cases_exception"
+                ),
+                throwable = e
+            )
             handleRecoverableIssue()
         }
     }
