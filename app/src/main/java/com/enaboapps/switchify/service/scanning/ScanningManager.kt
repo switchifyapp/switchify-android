@@ -17,6 +17,8 @@ import com.enaboapps.switchify.service.techniques.nodes.Node
 import com.enaboapps.switchify.service.techniques.nodes.scanners.NodeScannerUI
 import com.enaboapps.switchify.service.window.SwitchifyAccessibilityWindow
 import com.enaboapps.switchify.switches.SwitchAction
+import com.enaboapps.switchify.utils.LogEvent
+import com.enaboapps.switchify.utils.Logger
 
 /**
  * ScanningManager is responsible for managing the scanning process in the application.
@@ -30,9 +32,11 @@ class ScanningManager(
     companion object {
         private const val TAG = "ScanningManager"
         private const val SCAN_METHOD_CHANGE_TIMEOUT_MS = 1000L
+        private const val TARGET_MISSING_LOG_INTERVAL_MS = 30000L
     }
 
     private var isAcceptingActions = true
+    private var lastTargetMissingLogMs = 0L
 
     // Active scan method manager
     private val activeScanMethod = ActiveAccessTechnique(accessibilityService)
@@ -123,10 +127,21 @@ class ScanningManager(
      * @param type The AccessTechnique.Technique to set. Must be a valid type.
      */
     private fun setType(type: String) {
+        val previousType = AccessTechnique.getCurrentTechnique()
         startAcceptingActionsTimeout()
         AccessTechnique.setCurrentTechnique(type)
         NodeScannerUI.instance.hideAll()
         activeScanMethod.resetNodeScanner()
+        if (previousType != type) {
+            Logger.log(
+                LogEvent.ScanModeChanged,
+                data = mapOf(
+                    "result" to "success",
+                    "from" to previousType,
+                    "to" to type
+                )
+            )
+        }
     }
 
     /**
@@ -144,7 +159,25 @@ class ScanningManager(
      */
     fun select() {
         if (!isAcceptingActions) return
-        currentScanMethod.performSelectionAction()
+        try {
+            currentScanMethod.performSelectionAction()
+        } catch (e: Exception) {
+            val now = System.currentTimeMillis()
+            if (now - lastTargetMissingLogMs >= TARGET_MISSING_LOG_INTERVAL_MS) {
+                Logger.log(
+                    LogEvent.ScanTargetMissing,
+                    data = mapOf(
+                        "result" to "missing",
+                        "reason" to "selection_target_unavailable",
+                        "technique" to AccessTechnique.getCurrentTechnique(),
+                        "sample_interval_ms" to TARGET_MISSING_LOG_INTERVAL_MS
+                    ),
+                    throwable = e
+                )
+                lastTargetMissingLogMs = now
+            }
+            throw e
+        }
     }
 
     fun checkOngoingTasks(): Boolean {
@@ -159,30 +192,44 @@ class ScanningManager(
 
         if (GestureManager.instance.performGestureLockAction()) return
 
-        when (action.id) {
-            SwitchAction.ACTION_SELECT -> select()
-            SwitchAction.ACTION_STOP_SCANNING -> currentScanMethod.stopScanningAndReset()
-            SwitchAction.ACTION_CHANGE_SCANNING_DIRECTION -> currentScanMethod.swapScanDirection()
-            SwitchAction.ACTION_MOVE_TO_NEXT_ITEM -> currentScanMethod.stepScanningForward()
-            SwitchAction.ACTION_MOVE_TO_PREVIOUS_ITEM -> currentScanMethod.stepScanningBackward()
-            SwitchAction.ACTION_TOGGLE_GESTURE_LOCK -> GestureManager.instance
-                .toggleGestureLock()
+        try {
+            when (action.id) {
+                SwitchAction.ACTION_SELECT -> select()
+                SwitchAction.ACTION_STOP_SCANNING -> currentScanMethod.stopScanningAndReset()
+                SwitchAction.ACTION_CHANGE_SCANNING_DIRECTION -> currentScanMethod.swapScanDirection()
+                SwitchAction.ACTION_MOVE_TO_NEXT_ITEM -> currentScanMethod.stepScanningForward()
+                SwitchAction.ACTION_MOVE_TO_PREVIOUS_ITEM -> currentScanMethod.stepScanningBackward()
+                SwitchAction.ACTION_TOGGLE_GESTURE_LOCK -> GestureManager.instance
+                    .toggleGestureLock()
 
-            SwitchAction.ACTION_SYS_HOME -> GlobalActionManager.goHome()
-            SwitchAction.ACTION_SYS_BACK -> GlobalActionManager.goBack()
-            SwitchAction.ACTION_SYS_RECENTS -> GlobalActionManager.openRecents()
-            SwitchAction.ACTION_SYS_QUICK_SETTINGS -> GlobalActionManager.openQuickSettings()
-            SwitchAction.ACTION_SYS_NOTIFICATIONS -> GlobalActionManager.openNotifications()
-            SwitchAction.ACTION_SYS_LOCK_SCREEN -> GlobalActionManager.lockScreen()
-            SwitchAction.ACTION_SYS_HEADSET_HOOK -> GlobalActionManager.toggleMediaPlayback()
-            SwitchAction.ACTION_PAUSE -> {
-                Log.d(TAG, "ACTION_PAUSE triggered")
-                val pauseManager = ServiceCore.getPauseManager()
-                Log.d(TAG, "Starting pause via PauseManager")
-                pauseManager.startPause()
+                SwitchAction.ACTION_SYS_HOME -> GlobalActionManager.goHome()
+                SwitchAction.ACTION_SYS_BACK -> GlobalActionManager.goBack()
+                SwitchAction.ACTION_SYS_RECENTS -> GlobalActionManager.openRecents()
+                SwitchAction.ACTION_SYS_QUICK_SETTINGS -> GlobalActionManager.openQuickSettings()
+                SwitchAction.ACTION_SYS_NOTIFICATIONS -> GlobalActionManager.openNotifications()
+                SwitchAction.ACTION_SYS_LOCK_SCREEN -> GlobalActionManager.lockScreen()
+                SwitchAction.ACTION_SYS_HEADSET_HOOK -> GlobalActionManager.toggleMediaPlayback()
+                SwitchAction.ACTION_PAUSE -> {
+                    Log.d(TAG, "ACTION_PAUSE triggered")
+                    val pauseManager = ServiceCore.getPauseManager()
+                    Log.d(TAG, "Starting pause via PauseManager")
+                    pauseManager.startPause()
+                }
+
+                else -> {} // Do nothing for ACTION_NONE
             }
-
-            else -> {} // Do nothing for ACTION_NONE
+        } catch (e: Exception) {
+            Logger.log(
+                LogEvent.ScanCycleFailed,
+                data = mapOf(
+                    "result" to "failure",
+                    "reason" to "perform_action_exception",
+                    "action_id" to action.id,
+                    "technique" to AccessTechnique.getCurrentTechnique()
+                ),
+                throwable = e
+            )
+            throw e
         }
     }
 

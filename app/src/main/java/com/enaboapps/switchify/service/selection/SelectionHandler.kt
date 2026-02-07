@@ -9,6 +9,8 @@ import com.enaboapps.switchify.service.gestures.visuals.GestureVisualManager
 import com.enaboapps.switchify.service.menu.MenuManager
 import com.enaboapps.switchify.service.scanning.ScanSettings
 import com.enaboapps.switchify.service.techniques.AccessTechnique
+import com.enaboapps.switchify.utils.LogEvent
+import com.enaboapps.switchify.utils.Logger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -36,6 +38,14 @@ object SelectionHandler {
     private fun ensureInitializedOrWarn(action: String): Boolean {
         return if (!::scanSettings.isInitialized) {
             Log.w(TAG, "SelectionHandler not initialized, skipping $action")
+            Logger.log(
+                LogEvent.SelectionBlocked,
+                data = mapOf(
+                    "result" to "blocked",
+                    "reason" to "not_initialized",
+                    "action" to action
+                )
+            )
             false
         } else {
             true
@@ -88,9 +98,25 @@ object SelectionHandler {
     fun performSelectionAction() {
         if (!ensureInitializedOrWarn("selection action")) return
 
+        Logger.log(
+            LogEvent.SelectionAttempted,
+            data = mapOf(
+                "result" to "attempted",
+                "technique" to AccessTechnique.getCurrentTechnique()
+            )
+        )
+
         // Check if a linear gesture is in progress
         if (GestureManager.instance.isPerformingLinearGesture()) {
             MenuManager.getInstance().openCustomGestureConfirmationMenu()
+            Logger.log(
+                LogEvent.SelectionFallbackUsed,
+                data = mapOf(
+                    "result" to "fallback",
+                    "reason" to "linear_gesture_in_progress",
+                    "fallback_type" to "custom_gesture_confirmation_menu"
+                )
+            )
             return
         }
 
@@ -100,7 +126,25 @@ object SelectionHandler {
 
         // If bypass auto-select is enabled, perform the selection action and return
         if (GestureStateManager.shouldBypassAutoSelect()) {
+            if (selectAction == null) {
+                Logger.log(
+                    LogEvent.SelectionBlocked,
+                    data = mapOf(
+                        "result" to "blocked",
+                        "reason" to "select_action_missing",
+                        "mode" to "bypass_auto_select"
+                    )
+                )
+                return
+            }
             selectAction?.invoke()
+            Logger.log(
+                LogEvent.SelectionPerformed,
+                data = mapOf(
+                    "result" to "success",
+                    "mode" to "bypass_auto_select"
+                )
+            )
             performStartScanningAction()
             return
         }
@@ -110,6 +154,14 @@ object SelectionHandler {
             MenuManager.getInstance().openMainMenu()
             GestureStateManager.cancelAutoSelect()
             gestureVisualManager?.hideCircle()
+            Logger.log(
+                LogEvent.SelectionFallbackUsed,
+                data = mapOf(
+                    "result" to "fallback",
+                    "reason" to "auto_select_in_progress",
+                    "fallback_type" to "main_menu"
+                )
+            )
             return
         }
 
@@ -133,11 +185,36 @@ object SelectionHandler {
                 // Start auto-select with unified state manager
                 GestureStateManager.startAutoSelect(delayTime) {
                     selectAction?.invoke()
+                    Logger.log(
+                        LogEvent.SelectionPerformed,
+                        data = mapOf(
+                            "result" to "success",
+                            "mode" to "auto_select",
+                            "delay_ms" to delayTime
+                        )
+                    )
                     performStartScanningAction()
                 }
+            } else {
+                Logger.log(
+                    LogEvent.SelectionBlocked,
+                    data = mapOf(
+                        "result" to "blocked",
+                        "reason" to "select_action_missing",
+                        "mode" to "auto_select"
+                    )
+                )
             }
         } else { // If auto-select is disabled, open the main menu
             MenuManager.getInstance().openMainMenu()
+            Logger.log(
+                LogEvent.SelectionFallbackUsed,
+                data = mapOf(
+                    "result" to "fallback",
+                    "reason" to "auto_select_disabled",
+                    "fallback_type" to "main_menu"
+                )
+            )
         }
     }
 
