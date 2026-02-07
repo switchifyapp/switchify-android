@@ -41,9 +41,16 @@ class StatsRepository(context: Context) {
      * Used by StatsCollector for efficient batched writes.
      */
     suspend fun batchInsertEvents(events: List<StatsEntity>) {
-        // Prevent database operations when device is locked
         if (!DeviceLockObserver.isUserUnlocked(appContext)) {
             android.util.Log.w("StatsRepository", "Device is locked, skipping batch insert of ${events.size} events")
+            Logger.log(
+                LogEvent.StatsFlushSkipped,
+                data = mapOf(
+                    "result" to "skipped",
+                    "reason" to "device_locked_batch_insert",
+                    "queued_count" to events.size
+                )
+            )
             return
         }
 
@@ -185,6 +192,14 @@ class StatsRepository(context: Context) {
             }
         } catch (e: Exception) {
             android.util.Log.e("StatsRepository", "Error checking milestones", e)
+            Logger.log(
+                LogEvent.StatsFlushFailed,
+                data = mapOf(
+                    "result" to "failure",
+                    "reason" to "milestone_check_failed"
+                ),
+                throwable = e
+            )
         }
     }
 
@@ -202,9 +217,15 @@ class StatsRepository(context: Context) {
      * Also resets milestone tracking.
      */
     suspend fun clearAllStats() {
-        // Prevent database operations when device is locked
         if (!DeviceLockObserver.isUserUnlocked(appContext)) {
             android.util.Log.w("StatsRepository", "Device is locked, skipping clear stats")
+            Logger.log(
+                LogEvent.StatsFlushSkipped,
+                data = mapOf(
+                    "result" to "skipped",
+                    "reason" to "device_locked_clear_stats"
+                )
+            )
             throw IllegalStateException("Cannot clear stats while device is locked")
         }
 
@@ -224,6 +245,14 @@ class StatsRepository(context: Context) {
             )
         } catch (e: Exception) {
             android.util.Log.e("StatsRepository", "Error clearing stats data", e)
+            Logger.log(
+                LogEvent.StatsFlushFailed,
+                data = mapOf(
+                    "result" to "failure",
+                    "reason" to "clear_stats_failed"
+                ),
+                throwable = e
+            )
             throw e
         }
     }

@@ -1,67 +1,51 @@
 package com.enaboapps.switchify.utils
 
-/**
- * Predefined logging events for consistent analytics tracking.
- * All events are organized by feature area for easy discovery and maintenance.
- *
- * Usage:
- * ```
- * Logger.log(LogEvent.AppLaunched)
- * Logger.log(LogEvent.ServiceConnected)
- * ```
- *
- * Available Events:
- * - App Lifecycle: AppLaunched
- * - Service: ServiceConnected, ServiceInterrupted, ServiceUnbound, ServiceDestroyed
- * - Onboarding: OnboardingUserType*, OnboardingCompleted
- * - Switches: SwitchAdded, SwitchUpdated, SwitchRemoved
- * - Access Technique: RadarTrialExpired
- * - Settings: AccessibilitySettingsOpened
- * - IAP: ProCheckedViaSubscription, ProCheckedViaPurchase
- * - Review: ReviewRequested, ReviewLaunched, ReviewCompleted
- * - Stats: StatsScreenOpened, StatsTimeRangeChanged, Milestone*
- */
-sealed class LogEvent(val eventName: String) {
+sealed class LogEvent(
+    val eventName: String,
+    val level: String = "info",
+    val dataset: String = "app",
+    val tags: List<String> = emptyList()
+) {
+    object AppLaunched : LogEvent("app_launched", dataset = "app", tags = listOf("lifecycle"))
 
-    // App Lifecycle Events
-    object AppLaunched : LogEvent("app_launched")
+    object ServiceConnected : LogEvent("service_connected", dataset = "service", tags = listOf("lifecycle"))
+    object ServiceInterrupted : LogEvent("service_interrupted", level = "warn", dataset = "service", tags = listOf("lifecycle"))
+    object ServiceUnbound : LogEvent("service_unbound", dataset = "service", tags = listOf("lifecycle"))
+    object ServiceDestroyed : LogEvent("service_destroyed", dataset = "service", tags = listOf("lifecycle"))
 
-    // Service Events
-    object ServiceConnected : LogEvent("service_connected")
-    object ServiceInterrupted : LogEvent("service_interrupted")
-    object ServiceUnbound : LogEvent("service_unbound")
-    object ServiceDestroyed : LogEvent("service_destroyed")
+    object TrialStarted : LogEvent("trial_started", dataset = "service", tags = listOf("trial"))
+    object TrialWarningShown : LogEvent("trial_warning_shown", level = "warn", dataset = "service", tags = listOf("trial"))
+    object TrialExpired : LogEvent("trial_expired", level = "warn", dataset = "service", tags = listOf("trial"))
+    object TrialStopped : LogEvent("trial_stopped", dataset = "service", tags = listOf("trial"))
+    object TrialBlocked : LogEvent("trial_blocked", level = "warn", dataset = "service", tags = listOf("trial"))
 
-    // Onboarding Events
-    object OnboardingUserTypeEndUser : LogEvent("onboarding_user_type_end_user")
-    object OnboardingUserTypeSpecialist : LogEvent("onboarding_user_type_specialist")
-    object OnboardingUserTypeCarerFamily : LogEvent("onboarding_user_type_carer_family")
-    object OnboardingUserTypeOther : LogEvent("onboarding_user_type_other")
-    object OnboardingCompleted : LogEvent("onboarding_completed")
+    object OnboardingUserTypeEndUser : LogEvent("onboarding_user_type_end_user", dataset = "onboarding")
+    object OnboardingUserTypeSpecialist : LogEvent("onboarding_user_type_specialist", dataset = "onboarding")
+    object OnboardingUserTypeCarerFamily : LogEvent("onboarding_user_type_carer_family", dataset = "onboarding")
+    object OnboardingUserTypeOther : LogEvent("onboarding_user_type_other", dataset = "onboarding")
+    object OnboardingCompleted : LogEvent("onboarding_completed", dataset = "onboarding")
 
-    // Switch Events
-    object SwitchAdded : LogEvent("switch_added")
-    object SwitchUpdated : LogEvent("switch_updated")
-    object SwitchRemoved : LogEvent("switch_removed")
+    object SwitchAdded : LogEvent("switch_added", dataset = "input", tags = listOf("switches"))
+    object SwitchUpdated : LogEvent("switch_updated", dataset = "input", tags = listOf("switches"))
+    object SwitchRemoved : LogEvent("switch_removed", dataset = "input", tags = listOf("switches"))
 
-    // Access Technique Events
-    object RadarTrialExpired : LogEvent("radar_trial_expired")
+    object RadarTrialExpired : LogEvent("radar_trial_expired", dataset = "service")
 
-    // Settings Events
-    object AccessibilitySettingsOpened : LogEvent("accessibility_settings_opened")
+    object AccessibilitySettingsOpened : LogEvent("accessibility_settings_opened", dataset = "ui", tags = listOf("settings"))
 
-    // IAP Events
-    object ProCheckedViaSubscription : LogEvent("pro_checked_via_subscription")
-    object ProCheckedViaPurchase : LogEvent("pro_checked_via_purchase")
+    object ProCheckResult : LogEvent("pro_check_result", dataset = "iap", tags = listOf("entitlement"))
 
-    // In-app Review Events
-    object ReviewRequested : LogEvent("review_requested")
-    object ReviewLaunched : LogEvent("review_launched")
-    object ReviewCompleted : LogEvent("review_completed")
+    object ReviewRequested : LogEvent("review_requested", dataset = "ui", tags = listOf("review"))
+    object ReviewLaunched : LogEvent("review_launched", dataset = "ui", tags = listOf("review"))
+    object ReviewCompleted : LogEvent("review_completed", dataset = "ui", tags = listOf("review"))
 
-    // Stats Events
-    object StatsScreenOpened : LogEvent("stats_screen_opened")
-    object StatsTimeRangeChanged : LogEvent("stats_time_range_changed")
-    object Milestone100SwitchPresses : LogEvent("milestone_100_switch_presses")
-    object Milestone1000SwitchPresses : LogEvent("milestone_1000_switch_presses")
+    object StatsScreenOpened : LogEvent("stats_screen_opened", dataset = "stats", tags = listOf("ui"))
+    object StatsTimeRangeChanged : LogEvent("stats_time_range_changed", dataset = "stats", tags = listOf("ui"))
+    object Milestone100SwitchPresses : LogEvent("milestone_100_switch_presses", dataset = "stats", tags = listOf("milestone"))
+    object Milestone1000SwitchPresses : LogEvent("milestone_1000_switch_presses", dataset = "stats", tags = listOf("milestone"))
+    object StatsFlushStarted : LogEvent("stats_flush_started", dataset = "stats", tags = listOf("flush"))
+    object StatsFlushSkipped : LogEvent("stats_flush_skipped", level = "warn", dataset = "stats", tags = listOf("flush"))
+    object StatsFlushSucceeded : LogEvent("stats_flush_succeeded", dataset = "stats", tags = listOf("flush"))
+    object StatsFlushFailed : LogEvent("stats_flush_failed", level = "error", dataset = "stats", tags = listOf("flush", "failure"))
+    object StatsEventDropped : LogEvent("stats_event_dropped", level = "warn", dataset = "stats", tags = listOf("queue", "drop"))
 }

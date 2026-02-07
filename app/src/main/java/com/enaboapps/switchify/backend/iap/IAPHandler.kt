@@ -94,11 +94,18 @@ object IAPHandler {
         val hasPro = info.entitlements[ENTITLEMENT]?.isActive == true
         val isSubscribed = info.activeSubscriptions.isNotEmpty()
 
-        if (isSubscribed) {
-            Logger.log(LogEvent.ProCheckedViaSubscription)
-        } else if (hasPro) {
-            Logger.log(LogEvent.ProCheckedViaPurchase)
-        }
+        Logger.log(
+            LogEvent.ProCheckResult,
+            data = mapOf(
+                "result" to "success",
+                "has_pro" to hasPro,
+                "source" to when {
+                    isSubscribed -> "subscription"
+                    hasPro -> "purchase"
+                    else -> "none"
+                }
+            )
+        )
 
         _purchaseState.value = if (hasPro) PurchaseState.Success else PurchaseState.Initial
         Log.d(TAG, "Pro status updated: $hasPro")
@@ -223,11 +230,25 @@ object IAPHandler {
             completion?.invoke(false)
             return
         }
+        Logger.log(
+            LogEvent.ProCheckResult,
+            data = mapOf(
+                "result" to "started"
+            )
+        )
         try {
             Purchases.sharedInstance.getCustomerInfo(
                 object : ReceiveCustomerInfoCallback {
                     override fun onError(error: PurchasesError) {
                         Log.e(TAG, "Error refreshing status: ${error.message}")
+                        Logger.log(
+                            LogEvent.ProCheckResult,
+                            data = mapOf(
+                                "result" to "failure",
+                                "reason" to "revenuecat_error",
+                                "error_code" to error.code.name
+                            )
+                        )
                         _purchaseState.value = PurchaseState.Error
                         completion?.invoke(isPro())
                     }
@@ -240,6 +261,14 @@ object IAPHandler {
             )
         } catch (e: Exception) {
             Log.e(TAG, "Exception refreshing purchase status: ${e.message}", e)
+            Logger.log(
+                LogEvent.ProCheckResult,
+                data = mapOf(
+                    "result" to "failure",
+                    "reason" to "exception"
+                ),
+                throwable = e
+            )
             _purchaseState.value = PurchaseState.Error
             completion?.invoke(isPro())
         }
