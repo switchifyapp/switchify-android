@@ -2,6 +2,7 @@ package com.enaboapps.switchify.utils
 
 import android.util.Log
 import com.enaboapps.switchify.BuildConfig
+import com.enaboapps.switchify.auth.repository.AuthRepository
 import com.google.gson.Gson
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -30,6 +31,7 @@ object Logger {
         val tags: List<String>? = null,
         val flowId: String? = null,
         val stepIndex: Int? = null,
+        val userId: String? = null,
         val timestamp: Long = System.currentTimeMillis()
     )
 
@@ -64,7 +66,8 @@ object Logger {
                     errorStack = throwable?.stackTraceToString(),
                     tags = event.tags.ifEmpty { null },
                     flowId = flowId,
-                    stepIndex = stepIndex
+                    stepIndex = stepIndex,
+                    userId = AuthRepository.instance.getCurrentUser()?.email
                 )
                 val payload = LogPayload(logs = listOf(entry))
 
