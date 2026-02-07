@@ -16,6 +16,8 @@ import com.enaboapps.switchify.service.gestures.placement.FingerModePreferences
 import com.enaboapps.switchify.service.gestures.placement.FingerPlacementAlgorithm
 import com.enaboapps.switchify.service.gestures.visuals.GestureVisualManager
 import com.enaboapps.switchify.service.techniques.nodes.NodeExaminer
+import com.enaboapps.switchify.utils.LogEvent
+import com.enaboapps.switchify.utils.Logger
 
 /**
  * Central facade for the entire gesture system, orchestrating all gesture operations.
@@ -207,6 +209,15 @@ class GestureManager private constructor() {
                 gestureDispatcher.dispatch(gestureDescription, GestureType.TAP, gestureData)
             }
         } catch (e: Exception) {
+            Logger.log(
+                LogEvent.GestureDispatchFailed,
+                data = mapOf(
+                    "result" to "failure",
+                    "reason" to "perform_tap_exception",
+                    "gesture_type" to GestureType.TAP.name.lowercase()
+                ),
+                throwable = e
+            )
             Log.e("GestureManager", "Error performing tap", e)
         }
     }
@@ -273,6 +284,15 @@ class GestureManager private constructor() {
                 gestureDispatcher.dispatch(gestureDescription, GestureType.DOUBLE_TAP, gestureData)
             }
         } catch (e: Exception) {
+            Logger.log(
+                LogEvent.GestureDispatchFailed,
+                data = mapOf(
+                    "result" to "failure",
+                    "reason" to "perform_double_tap_exception",
+                    "gesture_type" to GestureType.DOUBLE_TAP.name.lowercase()
+                ),
+                throwable = e
+            )
             Log.e("GestureManager", "Error performing double tap", e)
         }
     }
@@ -334,6 +354,15 @@ class GestureManager private constructor() {
                 )
             }
         } catch (e: Exception) {
+            Logger.log(
+                LogEvent.GestureDispatchFailed,
+                data = mapOf(
+                    "result" to "failure",
+                    "reason" to "perform_tap_and_hold_exception",
+                    "gesture_type" to gestureType.name.lowercase()
+                ),
+                throwable = e
+            )
             Log.e("GestureManager", "Error performing tap and hold", e)
         }
     }

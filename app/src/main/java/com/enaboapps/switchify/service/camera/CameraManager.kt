@@ -8,6 +8,8 @@ import com.enaboapps.switchify.service.core.ServiceCore
 import com.enaboapps.switchify.service.switches.camera.CameraSwitchManager
 import com.enaboapps.switchify.service.techniques.AccessTechnique
 import com.enaboapps.switchify.service.utils.DeviceLockObserver
+import com.enaboapps.switchify.utils.LogEvent
+import com.enaboapps.switchify.utils.Logger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -66,7 +68,27 @@ class CameraManager(
             "evaluateAndUpdateCameraState - technique: $currentTechnique, shouldHaveCamera: $shouldHaveCamera, hasSwitch: $hasCameraSwitch, headEnabled: $headControlEnabled, headReady: $headControlReady"
         )
 
+        Logger.log(
+            LogEvent.CameraStateEvaluated,
+            data = mapOf(
+                "result" to "evaluated",
+                "technique" to currentTechnique,
+                "should_have_camera" to shouldHaveCamera,
+                "has_camera_switch" to hasCameraSwitch,
+                "head_control_enabled" to headControlEnabled,
+                "head_control_ready" to headControlReady,
+                "camera_active" to isCameraActive()
+            )
+        )
+
         if (shouldHaveCamera && !isCameraActive()) {
+            Logger.log(
+                LogEvent.CameraStartAttempt,
+                data = mapOf(
+                    "result" to "started",
+                    "reason" to "camera_required"
+                )
+            )
             startCamera()
         } else if (!shouldHaveCamera && isCameraActive()) {
             stopCamera()
@@ -107,6 +129,13 @@ class CameraManager(
     private fun startCamera() {
         if (!deviceLockObserver.isUserUnlocked()) {
             Log.d(TAG, "Device locked, cannot start camera")
+            Logger.log(
+                LogEvent.CameraStartFailed,
+                data = mapOf(
+                    "result" to "blocked",
+                    "reason" to "device_locked"
+                )
+            )
             return
         }
 
@@ -120,6 +149,13 @@ class CameraManager(
      */
     private fun stopCamera() {
         Log.d(TAG, "Stopping camera components")
+        Logger.log(
+            LogEvent.CameraStop,
+            data = mapOf(
+                "result" to "success",
+                "reason" to "camera_not_required"
+            )
+        )
         cleanupCameraSwitchManager()
         unbindCameraService()
     }

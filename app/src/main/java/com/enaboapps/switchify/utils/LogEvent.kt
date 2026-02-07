@@ -48,4 +48,19 @@ sealed class LogEvent(
     object StatsFlushSucceeded : LogEvent("stats_flush_succeeded", dataset = "stats", tags = listOf("flush"))
     object StatsFlushFailed : LogEvent("stats_flush_failed", level = "error", dataset = "stats", tags = listOf("flush", "failure"))
     object StatsEventDropped : LogEvent("stats_event_dropped", level = "warn", dataset = "stats", tags = listOf("queue", "drop"))
+
+    object ServiceCommandHandled : LogEvent("service_command_handled", dataset = "service", tags = listOf("command"))
+    object ServiceCommandFailed : LogEvent("service_command_failed", level = "error", dataset = "service", tags = listOf("command", "failure"))
+
+    object GestureDispatchStarted : LogEvent("gesture_dispatch_started", dataset = "input", tags = listOf("gesture", "dispatch"))
+    object GestureDispatchCompleted : LogEvent("gesture_dispatch_completed", dataset = "input", tags = listOf("gesture", "dispatch"))
+    object GestureDispatchCancelled : LogEvent("gesture_dispatch_cancelled", level = "warn", dataset = "input", tags = listOf("gesture", "dispatch"))
+    object GestureDispatchFailed : LogEvent("gesture_dispatch_failed", level = "error", dataset = "input", tags = listOf("gesture", "dispatch", "failure"))
+
+    object CameraStateEvaluated : LogEvent("camera_state_evaluated", dataset = "camera", tags = listOf("lifecycle"))
+    object CameraStartAttempt : LogEvent("camera_start_attempt", dataset = "camera", tags = listOf("lifecycle"))
+    object CameraStartFailed : LogEvent("camera_start_failed", level = "error", dataset = "camera", tags = listOf("lifecycle", "failure"))
+    object CameraStop : LogEvent("camera_stop", dataset = "camera", tags = listOf("lifecycle"))
+    object CameraPermissionMissing : LogEvent("camera_permission_missing", level = "error", dataset = "camera", tags = listOf("permission", "failure"))
+    object CameraBindFailed : LogEvent("camera_bind_failed", level = "error", dataset = "camera", tags = listOf("bind", "failure"))
 }
