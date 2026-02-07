@@ -80,6 +80,14 @@ object IAPHandler {
                 TAG,
                 "IAPHandler must be connected to RevenueCat before use. Call connect() first."
             )
+            Logger.log(
+                LogEvent.IapLifecycle,
+                data = mapOf(
+                    "result" to "failure",
+                    "reason" to "not_initialized",
+                    "stage" to "precondition_check"
+                )
+            )
             return false
         }
         return true
@@ -136,8 +144,24 @@ object IAPHandler {
         debugLogsEnabled: Boolean = BuildConfig.DEBUG,
         onInitialized: () -> Unit = {}
     ) {
+        Logger.log(
+            LogEvent.IapLifecycle,
+            data = mapOf(
+                "result" to "started",
+                "stage" to "initialize",
+                "connect_to_revenuecat" to connectToRevenueCat
+            )
+        )
         if (isRevenueCatInitialized) {
             Log.e(TAG, "IAPHandler is already initialized")
+            Logger.log(
+                LogEvent.IapLifecycle,
+                data = mapOf(
+                    "result" to "skipped",
+                    "reason" to "already_initialized",
+                    "stage" to "initialize"
+                )
+            )
             onInitialized()
             return
         }
@@ -150,6 +174,14 @@ object IAPHandler {
         }
 
         Log.d(TAG, "Initialized IAP handler")
+        Logger.log(
+            LogEvent.IapLifecycle,
+            data = mapOf(
+                "result" to "success",
+                "stage" to "initialize",
+                "connected" to isRevenueCatInitialized
+            )
+        )
     }
 
     /**
@@ -181,8 +213,24 @@ object IAPHandler {
         debugLogsEnabled: Boolean = BuildConfig.DEBUG,
         onInitialized: () -> Unit = {}
     ) {
+        Logger.log(
+            LogEvent.IapLifecycle,
+            data = mapOf(
+                "result" to "started",
+                "stage" to "connect",
+                "debug_logs_enabled" to debugLogsEnabled
+            )
+        )
         if (isRevenueCatInitialized) {
             Log.e(TAG, "RevenueCat is already initialized")
+            Logger.log(
+                LogEvent.IapLifecycle,
+                data = mapOf(
+                    "result" to "skipped",
+                    "reason" to "already_initialized",
+                    "stage" to "connect"
+                )
+            )
             onInitialized()
             return
         }
@@ -204,10 +252,26 @@ object IAPHandler {
                 isRevenueCatInitialized = true
                 refreshPurchaseStatus()
                 checkPurchaseCapability()
+                Logger.log(
+                    LogEvent.IapLifecycle,
+                    data = mapOf(
+                        "result" to "success",
+                        "stage" to "connect"
+                    )
+                )
             } catch (e: Exception) {
                 Log.e(TAG, "RevenueCat singleton not accessible after configuration: ${e.message}", e)
                 _purchaseCapability.value = PurchaseCapability.Unavailable
                 isRevenueCatInitialized = false
+                Logger.log(
+                    LogEvent.IapLifecycle,
+                    data = mapOf(
+                        "result" to "failure",
+                        "reason" to "shared_instance_unavailable",
+                        "stage" to "connect"
+                    ),
+                    throwable = e
+                )
             }
             onInitialized()
         } catch (e: Exception) {
@@ -215,6 +279,15 @@ object IAPHandler {
             // Mark as unavailable if initialization fails
             _purchaseCapability.value = PurchaseCapability.Unavailable
             isRevenueCatInitialized = false
+            Logger.log(
+                LogEvent.IapLifecycle,
+                data = mapOf(
+                    "result" to "failure",
+                    "reason" to "configure_exception",
+                    "stage" to "connect"
+                ),
+                throwable = e
+            )
             onInitialized()
         }
     }
@@ -379,6 +452,13 @@ object IAPHandler {
     fun checkPurchaseCapability() {
         if (!isRevenueCatInitialized) {
             _purchaseCapability.value = PurchaseCapability.Unavailable
+            Logger.log(
+                LogEvent.PurchaseCapabilityChecked,
+                data = mapOf(
+                    "result" to "unavailable",
+                    "reason" to "not_initialized"
+                )
+            )
             return
         }
 
@@ -388,9 +468,24 @@ object IAPHandler {
                     if (offerings.all.isEmpty()) {
                         _purchaseCapability.value = PurchaseCapability.Unavailable
                         Log.w(TAG, "No offerings available - purchases unavailable")
+                        Logger.log(
+                            LogEvent.PurchaseCapabilityChecked,
+                            data = mapOf(
+                                "result" to "unavailable",
+                                "reason" to "no_offerings"
+                            )
+                        )
                     } else {
                         _purchaseCapability.value = PurchaseCapability.Available
                         Log.d(TAG, "Purchase capability: Available")
+                        Logger.log(
+                            LogEvent.PurchaseCapabilityChecked,
+                            data = mapOf(
+                                "result" to "available",
+                                "reason" to "offerings_available",
+                                "offering_count" to offerings.all.size
+                            )
+                        )
                     }
                 }
 
@@ -420,6 +515,19 @@ object IAPHandler {
                         }
                     }
                     _purchaseCapability.value = capability
+                    Logger.log(
+                        LogEvent.PurchaseCapabilityChecked,
+                        data = mapOf(
+                            "result" to when (capability) {
+                                is PurchaseCapability.Available -> "available"
+                                is PurchaseCapability.Unavailable -> "unavailable"
+                                is PurchaseCapability.Restricted -> "restricted"
+                                is PurchaseCapability.Unknown -> "unknown"
+                            },
+                            "reason" to "offerings_error",
+                            "error_code" to error.code.name
+                        )
+                    )
                 }
             })
         } catch (e: Exception) {
@@ -427,6 +535,14 @@ object IAPHandler {
             // when the app is sideloaded or billing is not properly configured
             Log.e(TAG, "Exception checking purchase capability: ${e.message}", e)
             _purchaseCapability.value = PurchaseCapability.Unavailable
+            Logger.log(
+                LogEvent.PurchaseCapabilityChecked,
+                data = mapOf(
+                    "result" to "unavailable",
+                    "reason" to "exception"
+                ),
+                throwable = e
+            )
         }
     }
 }

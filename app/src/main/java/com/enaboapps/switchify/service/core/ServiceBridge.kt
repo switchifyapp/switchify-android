@@ -1,6 +1,8 @@
 package com.enaboapps.switchify.service.core
 
 import android.util.Log
+import com.enaboapps.switchify.utils.LogEvent
+import com.enaboapps.switchify.utils.Logger
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -47,6 +49,15 @@ object ServiceBridge {
         val ok = _serviceCommands.tryEmit(command)
         if (!ok) {
             Log.w(TAG, "Dropped command: ${command::class.simpleName}")
+            Logger.log(
+                LogEvent.ServiceBridgeCommandDropped,
+                data = mapOf(
+                    "result" to "dropped",
+                    "reason" to "shared_flow_buffer_full",
+                    "command" to (command::class.simpleName ?: "unknown"),
+                    "extra_buffer_capacity" to 10
+                )
+            )
         }
     }
 
@@ -58,6 +69,15 @@ object ServiceBridge {
         val ok = _serviceEvents.tryEmit(event)
         if (!ok) {
             Log.w(TAG, "Dropped event: ${event::class.simpleName}")
+            Logger.log(
+                LogEvent.ServiceBridgeEventDropped,
+                data = mapOf(
+                    "result" to "dropped",
+                    "reason" to "shared_flow_buffer_full",
+                    "event" to (event::class.simpleName ?: "unknown"),
+                    "extra_buffer_capacity" to 10
+                )
+            )
         }
     }
 

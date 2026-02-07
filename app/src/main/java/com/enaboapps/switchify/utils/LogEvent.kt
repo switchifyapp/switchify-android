@@ -94,4 +94,19 @@ sealed class LogEvent(
     object NodeTreeProcessingTimeout : LogEvent("node_tree_processing_timeout", level = "warn", dataset = "service", tags = listOf("nodes", "performance"))
     object NodeTreeTooLarge : LogEvent("node_tree_too_large", level = "warn", dataset = "service", tags = listOf("nodes", "performance"))
     object NodeExaminerFailed : LogEvent("node_examiner_failed", level = "error", dataset = "service", tags = listOf("nodes", "failure"))
+
+    object ServiceBridgeCommandDropped : LogEvent("service_bridge_command_dropped", level = "warn", dataset = "service", tags = listOf("bridge", "drop"))
+    object ServiceBridgeEventDropped : LogEvent("service_bridge_event_dropped", level = "warn", dataset = "service", tags = listOf("bridge", "drop"))
+
+    object IapLifecycle : LogEvent("iap_lifecycle", dataset = "iap", tags = listOf("lifecycle"))
+    object PurchaseCapabilityChecked : LogEvent("purchase_capability_checked", dataset = "iap", tags = listOf("capability"))
+
+    object CameraBackpressureDetected : LogEvent("camera_backpressure_detected", level = "warn", dataset = "camera", tags = listOf("performance", "backpressure"))
+    object CameraFrameProcessingSlow : LogEvent("camera_frame_processing_slow", level = "warn", dataset = "camera", tags = listOf("performance"))
+    object CameraFrameProcessingFailed : LogEvent("camera_frame_processing_failed", level = "error", dataset = "camera", tags = listOf("performance", "failure"))
+
+    object AppSetupStageFailed : LogEvent("app_setup_stage_failed", level = "error", dataset = "app", tags = listOf("setup", "failure"))
+
+    object MenuDynamicItemsLoadFailed : LogEvent("menu_dynamic_items_load_failed", level = "error", dataset = "ui", tags = listOf("menu", "failure"))
+    object MenuStackChanged : LogEvent("menu_stack_changed", dataset = "ui", tags = listOf("menu", "stack"))
 }

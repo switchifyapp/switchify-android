@@ -57,8 +57,21 @@ class MainActivity : ComponentActivity() {
         IAPHandler.initialize(this)
 
         // Listen for CustomerInfo updates to keep entitlement state fresh
-        Purchases.sharedInstance.updatedCustomerInfoListener = UpdatedCustomerInfoListener {
-            IAPHandler.refreshPurchaseStatus()
+        try {
+            Purchases.sharedInstance.updatedCustomerInfoListener = UpdatedCustomerInfoListener {
+                IAPHandler.refreshPurchaseStatus()
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("MainActivity", "Failed to attach Purchases listener", e)
+            Logger.log(
+                LogEvent.AppSetupStageFailed,
+                data = mapOf(
+                    "result" to "failure",
+                    "stage" to "purchases_listener_attach",
+                    "reason" to "exception"
+                ),
+                throwable = e
+            )
         }
 
         Handler(Looper.getMainLooper()).postDelayed({
@@ -77,6 +90,15 @@ class MainActivity : ComponentActivity() {
             android.util.Log.i("MainActivity", "Supabase client initialized successfully")
         } catch (e: Exception) {
             android.util.Log.e("MainActivity", "Failed to initialize Supabase client", e)
+            Logger.log(
+                LogEvent.AppSetupStageFailed,
+                data = mapOf(
+                    "result" to "failure",
+                    "stage" to "supabase_initialize",
+                    "reason" to "exception"
+                ),
+                throwable = e
+            )
         }
     }
 
@@ -85,8 +107,32 @@ class MainActivity : ComponentActivity() {
      */
     private fun migrateFromRegularStorage() {
         scope.launch {
-            fileManager.migrateFromRegularStorage(this@MainActivity)
+            try {
+                fileManager.migrateFromRegularStorage(this@MainActivity)
+            } catch (e: Exception) {
+                Logger.log(
+                    LogEvent.AppSetupStageFailed,
+                    data = mapOf(
+                        "result" to "failure",
+                        "stage" to "file_migration",
+                        "reason" to "exception"
+                    ),
+                    throwable = e
+                )
+            }
         }
-        preferenceManager.migrateToProtectedStorage()
+        try {
+            preferenceManager.migrateToProtectedStorage()
+        } catch (e: Exception) {
+            Logger.log(
+                LogEvent.AppSetupStageFailed,
+                data = mapOf(
+                    "result" to "failure",
+                    "stage" to "preferences_migration",
+                    "reason" to "exception"
+                ),
+                throwable = e
+            )
+        }
     }
 }
