@@ -125,14 +125,6 @@ class StatsCollector private constructor() : AutoCloseable {
             if (eventQueue.poll() != null) {
                 queueSize.decrementAndGet()
                 Log.w(TAG, "Event queue full, dropping oldest event")
-                Logger.log(
-                    LogEvent.StatsEventDropped,
-                    data = mapOf(
-                        "result" to "dropped",
-                        "reason" to "queue_full",
-                        "queue_size" to queueSize.get()
-                    )
-                )
             } else {
                 break
             }
@@ -167,41 +159,17 @@ class StatsCollector private constructor() : AutoCloseable {
     private suspend fun flushEvents() {
         if (isClosed.get()) {
             Log.w(TAG, "StatsCollector is closed, skipping flush")
-            Logger.log(
-                LogEvent.StatsFlushSkipped,
-                data = mapOf(
-                    "result" to "skipped",
-                    "reason" to "collector_closed",
-                    "queued_count" to queueSize.get()
-                )
-            )
             return
         }
 
         val ctx = context
         if (ctx == null) {
             Log.w(TAG, "Context is null, cannot flush events")
-            Logger.log(
-                LogEvent.StatsFlushSkipped,
-                data = mapOf(
-                    "result" to "skipped",
-                    "reason" to "context_null",
-                    "queued_count" to queueSize.get()
-                )
-            )
             return
         }
 
         if (!DeviceLockObserver.isUserUnlocked(ctx)) {
             Log.d(TAG, "Device is locked, postponing flush (${queueSize.get()} events queued)")
-            Logger.log(
-                LogEvent.StatsFlushSkipped,
-                data = mapOf(
-                    "result" to "skipped",
-                    "reason" to "device_locked",
-                    "queued_count" to queueSize.get()
-                )
-            )
             return
         }
 
@@ -216,13 +184,6 @@ class StatsCollector private constructor() : AutoCloseable {
         }
 
         if (queuedEvents.isNotEmpty()) {
-            Logger.log(
-                LogEvent.StatsFlushStarted,
-                data = mapOf(
-                    "result" to "started",
-                    "queued_count" to queuedEvents.size
-                )
-            )
             try {
                 val statsEntities = queuedEvents.map { it.event.toStatsEntity() }
                 if (repository == null) {
@@ -239,13 +200,6 @@ class StatsCollector private constructor() : AutoCloseable {
                     return
                 }
                 repository?.batchInsertEvents(statsEntities)
-                Logger.log(
-                    LogEvent.StatsFlushSucceeded,
-                    data = mapOf(
-                        "result" to "success",
-                        "flushed_count" to queuedEvents.size
-                    )
-                )
             } catch (e: Exception) {
                 Log.e(TAG, "Error flushing events", e)
                 Logger.log(
@@ -275,14 +229,6 @@ class StatsCollector private constructor() : AutoCloseable {
             if (newRetryCount > MAX_RETRY_COUNT) {
                 droppedCount++
                 Log.w(TAG, "Dropping event after $MAX_RETRY_COUNT failed attempts: ${queuedEvent.event}")
-                Logger.log(
-                    LogEvent.StatsEventDropped,
-                    data = mapOf(
-                        "result" to "dropped",
-                        "reason" to "max_retry_exceeded",
-                        "retry_count" to newRetryCount
-                    )
-                )
             } else {
                 if (eventQueue.offer(QueuedEvent(queuedEvent.event, newRetryCount))) {
                     queueSize.incrementAndGet()
@@ -290,14 +236,6 @@ class StatsCollector private constructor() : AutoCloseable {
                 } else {
                     droppedCount++
                     Log.w(TAG, "Failed to re-queue event, queue full")
-                    Logger.log(
-                        LogEvent.StatsEventDropped,
-                        data = mapOf(
-                            "result" to "dropped",
-                            "reason" to "requeue_queue_full",
-                            "retry_count" to newRetryCount
-                        )
-                    )
                 }
             }
         }

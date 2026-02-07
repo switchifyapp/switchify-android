@@ -43,14 +43,6 @@ class StatsRepository(context: Context) {
     suspend fun batchInsertEvents(events: List<StatsEntity>) {
         if (!DeviceLockObserver.isUserUnlocked(appContext)) {
             android.util.Log.w("StatsRepository", "Device is locked, skipping batch insert of ${events.size} events")
-            Logger.log(
-                LogEvent.StatsFlushSkipped,
-                data = mapOf(
-                    "result" to "skipped",
-                    "reason" to "device_locked_batch_insert",
-                    "queued_count" to events.size
-                )
-            )
             return
         }
 
@@ -219,13 +211,6 @@ class StatsRepository(context: Context) {
     suspend fun clearAllStats() {
         if (!DeviceLockObserver.isUserUnlocked(appContext)) {
             android.util.Log.w("StatsRepository", "Device is locked, skipping clear stats")
-            Logger.log(
-                LogEvent.StatsFlushSkipped,
-                data = mapOf(
-                    "result" to "skipped",
-                    "reason" to "device_locked_clear_stats"
-                )
-            )
             throw IllegalStateException("Cannot clear stats while device is locked")
         }
 

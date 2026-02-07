@@ -136,14 +136,6 @@ class HeadControlService private constructor(private val context: Context) {
             TAG,
             "setEnabled called with: $enabled, current manager exists: ${headControlManager != null}"
         )
-        Logger.log(
-            LogEvent.HeadControlEnableAttempt,
-            data = mapOf(
-                "result" to "started",
-                "enabled" to enabled,
-                "manager_exists" to (headControlManager != null)
-            )
-        )
 
         if (enabled) {
             // Check camera permission first
@@ -258,14 +250,6 @@ class HeadControlService private constructor(private val context: Context) {
                 // Notify UI of state change
                 ServiceBridge.emitEvent(ServiceBridge.ServiceEvent.ConfigurationUpdated)
             }
-            Logger.log(
-                LogEvent.HeadControlEnableSucceeded,
-                data = mapOf(
-                    "result" to "success",
-                    "enabled" to enabled,
-                    "manager_exists" to (headControlManager != null)
-                )
-            )
             true
         } catch (securityException: SecurityException) {
             Log.e(
