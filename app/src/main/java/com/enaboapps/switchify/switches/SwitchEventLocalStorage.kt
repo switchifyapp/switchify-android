@@ -39,16 +39,20 @@ class SwitchEventLocalStorage {
                         return@withLock events
                     }
                     .onFailure { error ->
-                        Log.e(tag, "Error reading from file", error)
-                        Logger.log(
-                            LogEvent.SwitchStoreReadFailed,
-                            data = mapOf(
-                                "result" to "failure",
-                                "reason" to "read_json_failed"
-                            ),
-                            throwable = error
-                        )
-                        deleteFile(context)
+                        if (error is java.io.IOException && error.message?.contains("does not exist") == true) {
+                            Log.d(tag, "Switch events file does not exist yet (first run)")
+                        } else {
+                            Log.e(tag, "Error reading from file", error)
+                            Logger.log(
+                                LogEvent.SwitchStoreReadFailed,
+                                data = mapOf(
+                                    "result" to "failure",
+                                    "reason" to "read_json_failed"
+                                ),
+                                throwable = error
+                            )
+                            deleteFile(context)
+                        }
                     }
                 emptySet()
             } catch (e: Exception) {

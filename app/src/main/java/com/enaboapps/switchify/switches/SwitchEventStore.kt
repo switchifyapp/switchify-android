@@ -25,6 +25,7 @@ import java.util.Collections
 class SwitchEventStore private constructor() {
     // Core data storage - using thread-safe set
     private val switchEvents = Collections.synchronizedSet(mutableSetOf<SwitchEvent>())
+    @Volatile
     private var isInitialized = false
 
     private val tag = "SwitchEventStore"
@@ -44,18 +45,23 @@ class SwitchEventStore private constructor() {
         }
     }
 
+    @Volatile
+    private var isInitializing = false
+
     @Synchronized
     fun initialize(context: Context) {
-        if (isInitialized) {
+        if (isInitialized || isInitializing) {
             return
         }
+        isInitializing = true
 
         coroutineScope.launch {
             val loadedEvents = localStorage.loadFromFile(context)
             switchEvents.clear()
             switchEvents.addAll(loadedEvents)
+            isInitialized = true
+            isInitializing = false
         }
-        isInitialized = true
     }
 
     /**
