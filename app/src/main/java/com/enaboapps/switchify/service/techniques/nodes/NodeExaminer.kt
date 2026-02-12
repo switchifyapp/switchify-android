@@ -31,6 +31,12 @@ object NodeExaminer {
     private const val TAG = "NodeExaminer"
     private const val TREE_PROCESSING_TIMEOUT_MS = 5000L
     private const val MAX_NODES_THRESHOLD = 1000
+    private const val CIRCUIT_BREAKER_THRESHOLD = 5
+    private const val CIRCUIT_BREAKER_COOLDOWN_MS = 10_000L
+
+    /** Circuit breaker state */
+    private var consecutiveFailures = 0
+    private var cooldownUntil = 0L
 
     /** Keyboard node extractor for handling keyboard-specific logic. */
     private val keyboardExtractor = KeyboardNodeExtractor()
@@ -80,6 +86,11 @@ object NodeExaminer {
         context: Context,
         coroutineScope: CoroutineScope
     ) {
+        // Circuit breaker: skip processing if in cooldown
+        if (System.currentTimeMillis() < cooldownUntil) {
+            return
+        }
+
         // Use keyboard extractor to determine if keyboard is visible and get appropriate root node
         val isKeyboardVisible = keyboardExtractor.isKeyboardVisible(windows)
 
@@ -110,20 +121,46 @@ object NodeExaminer {
                                 "keyboard_visible" to isKeyboardVisible
                             )
                         )
+                        recordFailure(rootNode.packageName?.toString())
+                    } else {
+                        consecutiveFailures = 0
                     }
                 }
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Error examining accessibility tree", e)
+            val packageName = rootNode?.packageName?.toString()
+            Log.e(TAG, "Error examining accessibility tree (app=$packageName)", e)
             Logger.log(
                 LogEvent.NodeExaminerFailed,
                 data = mapOf(
                     "result" to "failure",
                     "reason" to "examine_accessibility_tree_exception",
-                    "keyboard_visible" to isKeyboardVisible
+                    "keyboard_visible" to isKeyboardVisible,
+                    "app_package" to (packageName ?: "unknown")
                 ),
                 throwable = e
             )
+            recordFailure(packageName)
+        }
+    }
+
+    private fun recordFailure(packageName: String?) {
+        consecutiveFailures++
+        if (consecutiveFailures >= CIRCUIT_BREAKER_THRESHOLD) {
+            cooldownUntil = System.currentTimeMillis() + CIRCUIT_BREAKER_COOLDOWN_MS
+            Log.w(
+                TAG,
+                "Circuit breaker tripped after $consecutiveFailures consecutive failures (app=$packageName), cooling down for ${CIRCUIT_BREAKER_COOLDOWN_MS}ms"
+            )
+            Logger.log(
+                LogEvent.NodeExaminerCircuitBreakerTripped,
+                data = mapOf(
+                    "consecutive_failures" to consecutiveFailures,
+                    "cooldown_ms" to CIRCUIT_BREAKER_COOLDOWN_MS,
+                    "app_package" to (packageName ?: "unknown")
+                )
+            )
+            consecutiveFailures = 0
         }
     }
 

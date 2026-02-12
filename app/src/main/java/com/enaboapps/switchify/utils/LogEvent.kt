@@ -88,6 +88,7 @@ sealed class LogEvent(
     object NodeTreeProcessingTimeout : LogEvent("node_tree_processing_timeout", level = "warn", dataset = "service", tags = listOf("nodes", "performance"))
     object NodeTreeTooLarge : LogEvent("node_tree_too_large", level = "warn", dataset = "service", tags = listOf("nodes", "performance"))
     object NodeExaminerFailed : LogEvent("node_examiner_failed", level = "error", dataset = "service", tags = listOf("nodes", "failure"))
+    object NodeExaminerCircuitBreakerTripped : LogEvent("node_examiner_circuit_breaker_tripped", level = "warn", dataset = "service", tags = listOf("nodes", "circuit_breaker"))
 
     object ServiceBridgeCommandDropped : LogEvent("service_bridge_command_dropped", level = "warn", dataset = "service", tags = listOf("bridge", "drop"))
     object ServiceBridgeEventDropped : LogEvent("service_bridge_event_dropped", level = "warn", dataset = "service", tags = listOf("bridge", "drop"))
