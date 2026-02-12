@@ -19,7 +19,6 @@ import com.enaboapps.switchify.switches.SwitchAction.Companion.ACTION_MOVE_TO_NE
 import com.enaboapps.switchify.switches.SwitchAction.Companion.ACTION_MOVE_TO_PREVIOUS_ITEM
 import com.enaboapps.switchify.switches.SwitchEvent
 import com.enaboapps.switchify.switches.SwitchEventStore
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 class AddEditExternalSwitchScreenModel : ViewModel() {
@@ -231,16 +230,8 @@ class AddEditExternalSwitchScreenModel : ViewModel() {
     fun delete(context: Context, completion: (Boolean) -> Unit) {
         val event = store.find(code ?: "")
         event?.let {
-            viewModelScope.launch {
-                store.remove(it, context) { success ->
-                    viewModelScope.launch(Dispatchers.Main) {
-                        if (success) {
-                            completion(true)
-                        } else {
-                            completion(false)
-                        }
-                    }
-                }
+            store.remove(it, context) { success ->
+                completion(success)
             }
         }
     }

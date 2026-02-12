@@ -9,6 +9,9 @@ import com.enaboapps.switchify.switches.SwitchEvent
 import com.enaboapps.switchify.switches.SwitchEventStore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 
 class CameraSwitchesScreenModel : ViewModel() {
@@ -28,28 +31,25 @@ class CameraSwitchesScreenModel : ViewModel() {
     }
 
     private fun observeCameraSwitches(context: Context) {
-        viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true)
+        // Initial load
+        val initialCameraSwitches = store.getSwitchEvents()
+            .filter { it.type == SWITCH_EVENT_TYPE_CAMERA }
+        _uiState.value = _uiState.value.copy(
+            cameraSwitches = initialCameraSwitches,
+            isLoading = false
+        )
 
-            // Initial load
-            val initialCameraSwitches = store.getSwitchEvents()
-                .filter { it.type == SWITCH_EVENT_TYPE_CAMERA }
-            _uiState.value = _uiState.value.copy(
-                cameraSwitches = initialCameraSwitches,
-                isLoading = false
-            )
-
-            // Listen for updates via ServiceBridge instead of LocalBroadcastManager
-            ServiceBridge.serviceEvents.collect { event ->
-                if (event is ServiceBridge.ServiceEvent.SwitchEventsUpdated) {
-                    val cameraSwitches = store.getSwitchEvents()
-                        .filter { it.type == SWITCH_EVENT_TYPE_CAMERA }
-                    _uiState.value = _uiState.value.copy(
-                        cameraSwitches = cameraSwitches
-                    )
-                }
+        // Listen for updates via ServiceBridge
+        ServiceBridge.serviceEvents
+            .filterIsInstance<ServiceBridge.ServiceEvent.SwitchEventsUpdated>()
+            .onEach {
+                val cameraSwitches = store.getSwitchEvents()
+                    .filter { it.type == SWITCH_EVENT_TYPE_CAMERA }
+                _uiState.value = _uiState.value.copy(
+                    cameraSwitches = cameraSwitches
+                )
             }
-        }
+            .launchIn(viewModelScope)
     }
 
 }

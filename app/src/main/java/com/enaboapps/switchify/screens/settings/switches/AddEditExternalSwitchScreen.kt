@@ -55,6 +55,7 @@ import com.enaboapps.switchify.nav.NavigationRoute
 import com.enaboapps.switchify.screens.settings.switches.actions.SwitchActionField
 import com.enaboapps.switchify.screens.settings.switches.models.AddEditExternalSwitchScreenModel
 import com.enaboapps.switchify.service.core.ServiceBridge
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 
 @Composable
@@ -81,14 +82,18 @@ fun AddEditExternalSwitchScreen(navController: NavController, code: String? = nu
     } else {
         var refresh by remember { mutableStateOf(0) }
         LaunchedEffect(Unit) {
-            ServiceBridge.serviceEvents.collect { event ->
-                if (event is ServiceBridge.ServiceEvent.ConfigurationUpdated) {
-                    // Reload long press actions when configuration changes (e.g., from LongPressActionsScreen)
-                    if (code != null) {
-                        addEditExternalSwitchScreenModel.reloadLongPressActionsFromStore(context)
+            try {
+                ServiceBridge.serviceEvents.collect { event ->
+                    if (event is ServiceBridge.ServiceEvent.ConfigurationUpdated) {
+                        // Reload long press actions when configuration changes (e.g., from LongPressActionsScreen)
+                        if (code != null) {
+                            addEditExternalSwitchScreenModel.reloadLongPressActionsFromStore(context)
+                        }
+                        refresh++
                     }
-                    refresh++
                 }
+            } catch (_: CancellationException) {
+                // Expected when leaving composition
             }
         }
 

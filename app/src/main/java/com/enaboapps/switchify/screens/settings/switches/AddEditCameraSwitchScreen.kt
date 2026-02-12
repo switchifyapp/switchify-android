@@ -32,6 +32,7 @@ import com.enaboapps.switchify.screens.settings.switches.actions.SwitchActionFie
 import com.enaboapps.switchify.screens.settings.switches.models.AddEditCameraSwitchScreenModel
 import com.enaboapps.switchify.service.core.ServiceBridge
 import com.enaboapps.switchify.switches.CameraSwitchFacialGesture
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 
 @Composable
@@ -87,8 +88,12 @@ fun AddEditCameraSwitchScreen(navController: NavController, code: String? = null
     ) {
         var refresh by remember { mutableIntStateOf(0) }
         LaunchedEffect(Unit) {
-            ServiceBridge.serviceEvents.collect { event ->
-                if (event is ServiceBridge.ServiceEvent.ConfigurationUpdated) refresh++
+            try {
+                ServiceBridge.serviceEvents.collect { event ->
+                    if (event is ServiceBridge.ServiceEvent.ConfigurationUpdated) refresh++
+                }
+            } catch (_: CancellationException) {
+                // Expected when leaving composition
             }
         }
         key(refresh) {
