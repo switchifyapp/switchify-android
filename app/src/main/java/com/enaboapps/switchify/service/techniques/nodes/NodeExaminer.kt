@@ -29,8 +29,9 @@ import kotlin.math.sqrt
  */
 object NodeExaminer {
     private const val TAG = "NodeExaminer"
-    private const val TREE_PROCESSING_TIMEOUT_MS = 5000L
+    private const val TREE_PROCESSING_TIMEOUT_MS = 10_000L
     private const val MAX_NODES_THRESHOLD = 1000
+    private const val MAX_CHILD_DEPTH = 3
     private const val CIRCUIT_BREAKER_THRESHOLD = 5
     private const val CIRCUIT_BREAKER_COOLDOWN_MS = 10_000L
 
@@ -104,26 +105,33 @@ object NodeExaminer {
         try {
             rootNode?.let { rootNode ->
                 coroutineScope.launch(Dispatchers.Default) {
+                    val startTime = System.currentTimeMillis()
                     val result = withTimeoutOrNull(TREE_PROCESSING_TIMEOUT_MS) {
                         processAccessibilityTree(rootNode, context, isKeyboardVisible)
                     }
+                    val elapsed = System.currentTimeMillis() - startTime
 
                     if (result == null) {
                         Log.w(
                             TAG,
-                            "Accessibility tree processing timed out after ${TREE_PROCESSING_TIMEOUT_MS}ms"
+                            "Accessibility tree processing timed out after ${elapsed}ms (limit: ${TREE_PROCESSING_TIMEOUT_MS}ms)"
                         )
                         Logger.log(
                             LogEvent.NodeTreeProcessingTimeout,
                             data = mapOf(
                                 "result" to "timeout",
                                 "timeout_ms" to TREE_PROCESSING_TIMEOUT_MS,
-                                "keyboard_visible" to isKeyboardVisible
+                                "elapsed_ms" to elapsed,
+                                "keyboard_visible" to isKeyboardVisible,
+                                "app_package" to (rootNode.packageName?.toString() ?: "unknown")
                             )
                         )
                         recordFailure(rootNode.packageName?.toString())
                     } else {
                         consecutiveFailures = 0
+                        if (elapsed > TREE_PROCESSING_TIMEOUT_MS / 2) {
+                            Log.d(TAG, "Tree processing took ${elapsed}ms (>50% of timeout)")
+                        }
                     }
                 }
             }
@@ -187,12 +195,12 @@ object NodeExaminer {
             return
         }
 
-        // Enhanced node examination for all nodes
+        // Lightweight mapping for all nodes (no deep content examination)
         allNodes = newNodeInfos.map { nodeInfo ->
-            examineNodeContent(nodeInfo)
+            Node.fromAccessibilityNodeInfo(nodeInfo)
         }
 
-        // Enhanced node examination for actionable nodes
+        // Deep content examination only for actionable nodes
         // Include nodes that are clickable, long-clickable, focusable, or have ACTION_CLICK
         val newActionableNodes = newNodeInfos
             .filter { nodeInfo ->
@@ -393,8 +401,13 @@ object NodeExaminer {
      * @param node The AccessibilityNodeInfo whose children to examine.
      * @return A string containing combined content from child nodes.
      */
-    private suspend fun buildContentFromChildren(node: AccessibilityNodeInfo): String =
+    private suspend fun buildContentFromChildren(
+        node: AccessibilityNodeInfo,
+        depth: Int = 0
+    ): String =
         withContext(Dispatchers.Default) {
+            if (depth >= MAX_CHILD_DEPTH) return@withContext ""
+
             val contentParts = mutableListOf<String>()
 
             for (i in 0 until node.childCount) {
@@ -413,9 +426,9 @@ object NodeExaminer {
                         }
                     }
 
-                    // If child also has no content, go deeper
+                    // If child also has no content, go deeper (with depth limit)
                     if (contentParts.isEmpty()) {
-                        val childContent = buildContentFromChildren(childNode)
+                        val childContent = buildContentFromChildren(childNode, depth + 1)
                         if (childContent.isNotEmpty()) {
                             contentParts.add(childContent)
                         }
@@ -443,6 +456,10 @@ object NodeExaminer {
                 val node = q.poll()
                 node?.let { accessibilityNodeInfo ->
                     nodes.add(accessibilityNodeInfo)
+                    // Early exit if tree is too large
+                    if (nodes.size > MAX_NODES_THRESHOLD) {
+                        return@withContext nodes
+                    }
                     for (i in 0 until node.childCount) {
                         node.getChild(i)?.let { q.add(it) }
                     }
