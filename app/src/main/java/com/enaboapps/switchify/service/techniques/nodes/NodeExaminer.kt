@@ -38,6 +38,7 @@ object NodeExaminer {
     /** Circuit breaker state */
     private var consecutiveFailures = 0
     private var cooldownUntil = 0L
+    private var treeTooLargeLogged = false
 
     /** Keyboard node extractor for handling keyboard-specific logic. */
     private val keyboardExtractor = KeyboardNodeExtractor()
@@ -129,6 +130,7 @@ object NodeExaminer {
                         recordFailure(rootNode.packageName?.toString())
                     } else {
                         consecutiveFailures = 0
+                        treeTooLargeLogged = false
                         if (elapsed > TREE_PROCESSING_TIMEOUT_MS / 2) {
                             Log.d(TAG, "Tree processing took ${elapsed}ms (>50% of timeout)")
                         }
@@ -182,16 +184,21 @@ object NodeExaminer {
 
         // Early termination for oversized trees
         if (newNodeInfos.size > MAX_NODES_THRESHOLD) {
-            Log.w(TAG, "Tree too large (${newNodeInfos.size} nodes), skipping detailed processing")
-            Logger.log(
-                LogEvent.NodeTreeTooLarge,
-                data = mapOf(
-                    "result" to "skipped",
-                    "node_count" to newNodeInfos.size,
-                    "max_threshold" to MAX_NODES_THRESHOLD,
-                    "keyboard_visible" to isKeyboardVisible
+            if (!treeTooLargeLogged) {
+                Log.w(TAG, "Tree too large (${newNodeInfos.size} nodes), skipping detailed processing")
+                Logger.log(
+                    LogEvent.NodeTreeTooLarge,
+                    data = mapOf(
+                        "result" to "skipped",
+                        "node_count" to newNodeInfos.size,
+                        "max_threshold" to MAX_NODES_THRESHOLD,
+                        "keyboard_visible" to isKeyboardVisible,
+                        "app_package" to (rootNode.packageName?.toString() ?: "unknown")
+                    )
                 )
-            )
+                treeTooLargeLogged = true
+            }
+            recordFailure(rootNode.packageName?.toString())
             return
         }
 
