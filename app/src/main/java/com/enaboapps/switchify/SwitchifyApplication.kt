@@ -6,6 +6,7 @@ import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
 import com.enaboapps.switchify.service.stats.StatsCollector
+import com.enaboapps.switchify.utils.CrashReporter
 import com.enaboapps.switchify.utils.Resources
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -24,6 +25,9 @@ class SwitchifyApplication : Application() {
         super.onCreate()
 
         Resources.init(this)
+
+        CrashReporter.uploadPendingCrashIfPresent(this)
+        CrashReporter.install(this)
 
         // Initialize stats collector
         StatsCollector.getInstance().initialize(this)

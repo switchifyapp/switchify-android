@@ -106,4 +106,12 @@ sealed class LogEvent(
     object ScanModeChanged : LogEvent("scan_mode_changed", dataset = "service", tags = listOf("scan", "mode"))
     object ScanCycleFailed : LogEvent("scan_cycle_failed", level = "error", dataset = "service", tags = listOf("scan", "failure"))
     object ScanTargetMissing : LogEvent("scan_target_missing", level = "warn", dataset = "service", tags = listOf("scan", "target"))
+
+    object GoogleSignInSupabaseError : LogEvent("google_sign_in_supabase_error", level = "error", dataset = "auth", tags = listOf("google_sign_in", "failure"))
+    object GoogleSignInClientError : LogEvent("google_sign_in_client_error", level = "error", dataset = "auth", tags = listOf("google_sign_in", "failure"))
+
+    object UserFeedbackSubmitted : LogEvent("user_feedback_submitted", dataset = "feedback", tags = listOf("feedback"))
+    object UserFeedbackSubmissionError : LogEvent("user_feedback_submission_error", level = "error", dataset = "feedback", tags = listOf("feedback", "failure"))
+
+    object UnhandledCrash : LogEvent("unhandled_crash", level = "error", dataset = "app", tags = listOf("crash", "uncaught_exception"))
 }

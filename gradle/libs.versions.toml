@@ -24,8 +24,6 @@ ksp = "2.3.4"
 reorderable = "3.0.0"
 supabase = "3.4.1"
 ktor = "3.4.1"
-sentry = "8.35.0"
-sentry-gradle = "6.1.0"
 
 [libraries]
 compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "compose-bom" }
@@ -68,7 +66,6 @@ supabase-postgrest = { group = "io.github.jan-tennert.supabase", name = "postgre
 supabase-auth = { group = "io.github.jan-tennert.supabase", name = "auth-kt" }
 supabase-realtime = { group = "io.github.jan-tennert.supabase", name = "realtime-kt" }
 ktor-client-android = { group = "io.ktor", name = "ktor-client-android", version.ref = "ktor" }
-sentry-android = { group = "io.sentry", name = "sentry-android", version.ref = "sentry" }
 reorderable = { group = "sh.calvin.reorderable", name = "reorderable", version.ref = "reorderable" }
 
 [plugins]
@@ -77,4 +74,3 @@ android-application = { id = "com.android.application", version.ref = "agp" }
 android-library = { id = "com.android.library", version.ref = "agp" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
-sentry-android = { id = "io.sentry.android.gradle", version.ref = "sentry-gradle" }

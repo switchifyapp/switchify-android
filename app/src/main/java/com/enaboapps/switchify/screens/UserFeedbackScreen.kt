@@ -36,8 +36,8 @@ import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.Picker
 import com.enaboapps.switchify.components.ScrollableView
 import com.enaboapps.switchify.components.Section
-import io.sentry.Sentry
-import io.sentry.UserFeedback
+import com.enaboapps.switchify.utils.LogEvent
+import com.enaboapps.switchify.utils.Logger
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -223,36 +223,23 @@ private fun submitFeedback(
     onError: (String) -> Unit
 ) {
     try {
-        val sentryId = Sentry.captureMessage("User Feedback: ${feedbackType.name}") { scope ->
-            scope.setTag("feedback_type", feedbackType.name.lowercase())
-            scope.setTag("has_contact_email", contactEmail.isNotBlank().toString())
-            scope.setExtra("feedback_text", feedbackText)
-            if (contactEmail.isNotBlank()) {
-                scope.setExtra("contact_email", contactEmail)
+        Logger.log(
+            event = LogEvent.UserFeedbackSubmitted,
+            data = buildMap {
+                put("feedback_type", feedbackType.name.lowercase())
+                put("has_contact_email", contactEmail.isNotBlank())
+                put("feedback_text", feedbackText)
+                if (contactEmail.isNotBlank()) put("contact_email", contactEmail)
+                put("is_bug_report", feedbackType == FeedbackType.BUG_REPORT)
             }
-            scope.level = when (feedbackType) {
-                FeedbackType.BUG_REPORT -> io.sentry.SentryLevel.ERROR
-                FeedbackType.FEATURE_REQUEST -> io.sentry.SentryLevel.INFO
-                FeedbackType.SUGGESTION -> io.sentry.SentryLevel.INFO
-                FeedbackType.OTHER -> io.sentry.SentryLevel.INFO
-            }
-        }
-
-        val userFeedback = UserFeedback(sentryId).apply {
-            this.comments = feedbackText
-            if (contactEmail.isNotBlank()) {
-                this.email = contactEmail
-            }
-
-        }
-
-        Sentry.captureUserFeedback(userFeedback)
+        )
         onSuccess()
     } catch (e: Exception) {
-        Sentry.captureException(e) { scope ->
-            scope.setTag("component", "UserFeedbackScreen")
-            scope.setTag("error_type", "FeedbackSubmissionError")
-        }
+        Logger.log(
+            event = LogEvent.UserFeedbackSubmissionError,
+            data = mapOf("component" to "UserFeedbackScreen"),
+            throwable = e
+        )
         onError(context.getString(R.string.feedback_error_submit_failed))
     }
 }

@@ -6,7 +6,6 @@ plugins {
     alias(libs.plugins.ksp)
     alias(libs.plugins.kotlin.serialization)
 
-    alias(libs.plugins.sentry.android)
 }
 
 composeCompiler {
@@ -178,7 +177,6 @@ dependencies {
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)
     ksp(libs.room.compiler)
-    implementation(libs.sentry.android)
     implementation(libs.reorderable)
     // New Google Identity Services with Credential Manager
     implementation(libs.credentials)
@@ -198,12 +196,3 @@ java {
     }
 }
 
-
-sentry {
-    org.set("switchify")
-    projectName.set("android")
-
-    val isCI = System.getenv("CI") != null
-    includeSourceContext.set(isCI)
-    autoUploadProguardMapping.set(isCI)
-}
