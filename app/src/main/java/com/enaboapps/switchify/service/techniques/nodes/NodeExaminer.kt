@@ -16,7 +16,6 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
-import kotlin.math.sqrt
 
 /**
  * NodeExaminer is responsible for examining accessibility nodes within an application's UI.
@@ -498,24 +497,24 @@ object NodeExaminer {
      * @return The closest node's center point. Returns the original point if no close node is found.
      */
     fun getClosestNodeToPoint(point: PointF): PointF {
-        val maxDistance = 200f
-        return actionableNodes
-            .map { PointF(it.getMidX().toFloat(), it.getMidY().toFloat()) }
-            .minByOrNull { distanceBetweenPoints(point, it) }
-            ?.takeIf { distanceBetweenPoints(point, it) < maxDistance }
-            ?: point
-    }
+        val maxDistanceSquared = 200f * 200f
+        var bestNode: Node? = null
+        var bestDistSq = Float.MAX_VALUE
 
-    /**
-     * Calculates the Euclidean distance between two points.
-     *
-     * @param point1 The first point.
-     * @param point2 The second point.
-     * @return The distance between point1 and point2.
-     */
-    private fun distanceBetweenPoints(point1: PointF, point2: PointF): Float {
-        val xDiff = point1.x - point2.x
-        val yDiff = point1.y - point2.y
-        return sqrt((xDiff * xDiff + yDiff * yDiff))
+        for (node in actionableNodes) {
+            val dx = node.getMidX().toFloat() - point.x
+            val dy = node.getMidY().toFloat() - point.y
+            val distSq = dx * dx + dy * dy
+            if (distSq < bestDistSq) {
+                bestDistSq = distSq
+                bestNode = node
+            }
+        }
+
+        return if (bestNode != null && bestDistSq < maxDistanceSquared) {
+            PointF(bestNode.getMidX().toFloat(), bestNode.getMidY().toFloat())
+        } else {
+            point
+        }
     }
 }
