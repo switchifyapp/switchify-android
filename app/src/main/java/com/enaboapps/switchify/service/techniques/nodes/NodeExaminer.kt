@@ -267,12 +267,9 @@ object NodeExaminer {
 
         // Sort nodes by area (smaller first) to optimize containment checks
         val sortedNodes = nodes.sortedBy { node ->
-            try {
-                val bounds = node.getBounds()
-                if (bounds.isEmpty == false) bounds.width() * bounds.height() else Int.MAX_VALUE
-            } catch (e: Exception) {
-                Int.MAX_VALUE
-            }
+            val w = node.getWidth()
+            val h = node.getHeight()
+            if (w > 0 && h > 0) w * h else Int.MAX_VALUE
         }
 
         // Only check nodes that could potentially contain others
@@ -280,27 +277,15 @@ object NodeExaminer {
             if (nodesToDiscard.contains(sortedNodes[i])) continue
 
             val nodeA = sortedNodes[i]
-            val boundsA = try {
-                nodeA.getBounds()
-            } catch (e: Exception) {
-                continue
-            }
-
-            if (boundsA.isEmpty != false) continue
+            if (nodeA.getWidth() <= 0 || nodeA.getHeight() <= 0) continue
 
             // Only check against larger nodes (those that come after in sorted order)
             for (j in (i + 1) until sortedNodes.size) {
                 val nodeB = sortedNodes[j]
-                val boundsB = try {
-                    nodeB.getBounds()
-                } catch (e: Exception) {
-                    continue
-                }
-
-                if (boundsB.isEmpty != false) continue
+                if (nodeB.getWidth() <= 0 || nodeB.getHeight() <= 0) continue
 
                 // If nodeB contains nodeA, mark nodeB for removal (keep the smaller nodeA)
-                if (boundsB.contains(boundsA) && boundsB != boundsA) {
+                if (nodeContains(nodeB, nodeA) && !sameBounds(nodeA, nodeB)) {
                     nodesToDiscard.add(nodeB)
                 }
             }
@@ -322,26 +307,32 @@ object NodeExaminer {
                 val nodeA = nodes[i]
                 val nodeB = nodes[j]
 
-                val boundsA = try {
-                    nodeA.getBounds()
-                } catch (e: Exception) {
-                    null
-                }
-                val boundsB = try {
-                    nodeB.getBounds()
-                } catch (e: Exception) {
-                    null
-                }
+                if (nodeA.getWidth() <= 0 || nodeA.getHeight() <= 0) continue
+                if (nodeB.getWidth() <= 0 || nodeB.getHeight() <= 0) continue
 
-                if (boundsA?.isEmpty != false || boundsB?.isEmpty != false) continue
-
-                if (boundsA.contains(boundsB) && boundsA != boundsB) {
+                if (nodeContains(nodeA, nodeB) && !sameBounds(nodeA, nodeB)) {
                     nodesToDiscard.add(nodeA)
                 }
             }
         }
 
         return nodes.filterNot { nodesToDiscard.contains(it) }
+    }
+
+    /** Returns true if [outer] fully contains [inner] using raw int bounds. */
+    private fun nodeContains(outer: Node, inner: Node): Boolean {
+        return outer.getLeft() <= inner.getLeft() &&
+                outer.getTop() <= inner.getTop() &&
+                outer.getLeft() + outer.getWidth() >= inner.getLeft() + inner.getWidth() &&
+                outer.getTop() + outer.getHeight() >= inner.getTop() + inner.getHeight()
+    }
+
+    /** Returns true if [a] and [b] have identical bounds. */
+    private fun sameBounds(a: Node, b: Node): Boolean {
+        return a.getLeft() == b.getLeft() &&
+                a.getTop() == b.getTop() &&
+                a.getWidth() == b.getWidth() &&
+                a.getHeight() == b.getHeight()
     }
 
     /**
