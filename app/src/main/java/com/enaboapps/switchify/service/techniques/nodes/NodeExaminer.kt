@@ -373,7 +373,7 @@ object NodeExaminer {
      * @param node The AccessibilityNodeInfo to examine.
      * @return A Node object with populated content description where possible.
      */
-    private suspend fun examineNodeContent(node: AccessibilityNodeInfo): Node {
+    private fun examineNodeContent(node: AccessibilityNodeInfo): Node {
         try {
             val baseNode = Node.fromAccessibilityNodeInfo(node)
 
@@ -408,43 +408,42 @@ object NodeExaminer {
      * @param node The AccessibilityNodeInfo whose children to examine.
      * @return A string containing combined content from child nodes.
      */
-    private suspend fun buildContentFromChildren(
+    private fun buildContentFromChildren(
         node: AccessibilityNodeInfo,
         depth: Int = 0
-    ): String =
-        withContext(Dispatchers.Default) {
-            if (depth >= MAX_CHILD_DEPTH) return@withContext ""
+    ): String {
+        if (depth >= MAX_CHILD_DEPTH) return ""
 
-            val contentParts = mutableListOf<String>()
+        val contentParts = mutableListOf<String>()
 
-            for (i in 0 until node.childCount) {
-                node.getChild(i)?.let { childNode ->
-                    // Check child's content description
-                    childNode.contentDescription?.toString()?.let {
-                        if (it.isNotBlank()) {
-                            contentParts.add(it)
-                        }
+        for (i in 0 until node.childCount) {
+            node.getChild(i)?.let { childNode ->
+                // Check child's content description
+                childNode.contentDescription?.toString()?.let {
+                    if (it.isNotBlank()) {
+                        contentParts.add(it)
                     }
+                }
 
-                    // Check child's text
-                    childNode.text?.toString()?.let {
-                        if (it.isNotBlank()) {
-                            contentParts.add(it)
-                        }
+                // Check child's text
+                childNode.text?.toString()?.let {
+                    if (it.isNotBlank()) {
+                        contentParts.add(it)
                     }
+                }
 
-                    // If child also has no content, go deeper (with depth limit)
-                    if (contentParts.isEmpty()) {
-                        val childContent = buildContentFromChildren(childNode, depth + 1)
-                        if (childContent.isNotEmpty()) {
-                            contentParts.add(childContent)
-                        }
+                // If child also has no content, go deeper (with depth limit)
+                if (contentParts.isEmpty()) {
+                    val childContent = buildContentFromChildren(childNode, depth + 1)
+                    if (childContent.isNotEmpty()) {
+                        contentParts.add(childContent)
                     }
                 }
             }
-
-            contentParts.joinToString(" ")
         }
+
+        return contentParts.joinToString(" ")
+    }
 
     /**
      * Flattens the given tree of AccessibilityNodeInfo objects into a list.
