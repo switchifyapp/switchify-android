@@ -10,7 +10,8 @@ import com.enaboapps.switchify.auth.google.GoogleSignInResult
 import com.enaboapps.switchify.auth.repository.AuthRepository
 import com.enaboapps.switchify.auth.utils.ErrorMessageMapper
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
-import io.sentry.Sentry
+import com.enaboapps.switchify.utils.LogEvent
+import com.enaboapps.switchify.utils.Logger
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -195,18 +196,17 @@ class AuthViewModel : ViewModel() {
                             _uiState.value = AuthUiState.Success
                         },
                         onFailure = { exception ->
-                            // Log Google Sign-In Supabase authentication errors to Sentry
-                            Sentry.captureException(exception) { scope ->
-                                scope.setTag("component", "AuthViewModel")
-                                scope.setTag("error_type", "GoogleSignInSupabaseError")
-                                scope.setExtra("authFlow", "unified")
-                                scope.setExtra("idTokenLength", result.idToken.length.toString())
-                                scope.setExtra("hasEmail", (result.email != null).toString())
-                                scope.setExtra(
-                                    "hasDisplayName",
-                                    (result.displayName != null).toString()
-                                )
-                            }
+                            Logger.log(
+                                event = LogEvent.GoogleSignInSupabaseError,
+                                data = mapOf(
+                                    "component" to "AuthViewModel",
+                                    "authFlow" to "unified",
+                                    "idTokenLength" to result.idToken.length,
+                                    "hasEmail" to (result.email != null),
+                                    "hasDisplayName" to (result.displayName != null)
+                                ),
+                                throwable = exception
+                            )
                             _errorMessage.value =
                                 ErrorMessageMapper.mapExceptionToUserFriendlyMessage(
                                     exception,
@@ -219,13 +219,14 @@ class AuthViewModel : ViewModel() {
             }
 
             is GoogleSignInResult.Error -> {
-                // Log Google Sign-In client errors to Sentry
-                Sentry.captureMessage("Google Sign-In client error: ${result.message}") { scope ->
-                    scope.setTag("component", "AuthViewModel")
-                    scope.setTag("error_type", "GoogleSignInClientError")
-                    scope.setExtra("authFlow", "unified")
-                    scope.setExtra("errorMessage", result.message)
-                }
+                Logger.log(
+                    event = LogEvent.GoogleSignInClientError,
+                    data = mapOf(
+                        "component" to "AuthViewModel",
+                        "authFlow" to "unified",
+                        "errorMessage" to result.message
+                    )
+                )
                 _errorMessage.value = "Google Sign-In failed: ${result.message}"
                 _uiState.value = AuthUiState.EmailInput
             }

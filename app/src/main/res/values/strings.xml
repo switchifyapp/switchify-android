@@ -516,6 +516,8 @@
 
     <!-- Debug Screen -->
     <string name="debug_section_service_trial">Service Trial</string>
+    <string name="debug_section_crash_reporting">Crash Reporting</string>
+    <string name="debug_force_crash">Force Crash</string>
 
     <!-- Button Labels -->
     <string name="button_website">Website</string>

@@ -1,5 +1,6 @@
 package com.enaboapps.switchify.screens
 
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -15,6 +16,8 @@ import androidx.navigation.NavController
 import com.enaboapps.switchify.BuildConfig
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
+import com.enaboapps.switchify.components.ActionButton
+import com.enaboapps.switchify.components.ActionButtonType
 import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.PreferenceSwitch
 import com.enaboapps.switchify.components.Section
@@ -37,6 +40,24 @@ fun DebugScreen(navController: NavController) {
         titleResId = R.string.screen_title_debug,
         navController = navController
     ) {
+        Section(titleResId = R.string.debug_section_crash_reporting) {
+            Text(
+                text = "Force a crash to verify that CrashReporter captures it and uploads the report on next launch.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+            )
+            ActionButton(
+                textResId = R.string.debug_force_crash,
+                type = ActionButtonType.DESTRUCTIVE,
+                onClick = { throw RuntimeException("Force crash triggered from Debug screen") },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                applyPadding = false
+            )
+        }
+
         Section(titleResId = R.string.debug_section_service_trial) {
             Text(
                 text = "Service Trial Information",
