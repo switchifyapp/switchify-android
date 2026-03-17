@@ -19,6 +19,7 @@ object CrashReporter {
     )
 
     fun install(context: Context) {
+        val appContext = context.applicationContext
         val previous = Thread.getDefaultUncaughtExceptionHandler()
         Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
             try {
@@ -29,7 +30,7 @@ object CrashReporter {
                     threadName = thread.name,
                     timestamp = System.currentTimeMillis()
                 )
-                val file = File(context.filesDir, CRASH_FILE)
+                val file = File(appContext.filesDir, CRASH_FILE)
                 file.writeText(gson.toJson(record))
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to write crash record", e)
@@ -43,7 +44,8 @@ object CrashReporter {
         if (!file.exists()) return
         try {
             val record = gson.fromJson(file.readText(), CrashRecord::class.java)
-            val syntheticThrowable = RuntimeException("${record.exceptionClass}: ${record.message ?: "(no message)"}")
+            // Pass throwable=null — the real stack trace is in data["stackTrace"].
+            // userId may be null here since auth hasn't initialised yet on this launch; that's expected.
             Logger.log(
                 event = LogEvent.UnhandledCrash,
                 data = mapOf(
@@ -53,7 +55,7 @@ object CrashReporter {
                     "stackTrace" to record.stackTrace,
                     "crashTimestamp" to record.timestamp
                 ),
-                throwable = syntheticThrowable
+                throwable = null
             )
         } catch (e: Exception) {
             Log.e(TAG, "Failed to upload pending crash", e)

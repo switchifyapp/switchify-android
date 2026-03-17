@@ -193,14 +193,9 @@ fun UserFeedbackScreen(navController: NavController) {
                             feedbackText = feedbackText.trim(),
                             contactEmail = contactEmail.trim(),
                             feedbackType = feedbackType,
-                            context = context,
                             onSuccess = {
                                 isSubmitting = false
                                 showSuccessMessage = true
-                            },
-                            onError = { error ->
-                                isSubmitting = false
-                                errorMessage = error
                             }
                         )
                     },
@@ -218,30 +213,19 @@ private fun submitFeedback(
     feedbackText: String,
     contactEmail: String,
     feedbackType: FeedbackType,
-    context: android.content.Context,
-    onSuccess: () -> Unit,
-    onError: (String) -> Unit
+    onSuccess: () -> Unit
 ) {
-    try {
-        Logger.log(
-            event = LogEvent.UserFeedbackSubmitted,
-            data = buildMap {
-                put("feedback_type", feedbackType.name.lowercase())
-                put("has_contact_email", contactEmail.isNotBlank())
-                put("feedback_text", feedbackText)
-                if (contactEmail.isNotBlank()) put("contact_email", contactEmail)
-                put("is_bug_report", feedbackType == FeedbackType.BUG_REPORT)
-            }
-        )
-        onSuccess()
-    } catch (e: Exception) {
-        Logger.log(
-            event = LogEvent.UserFeedbackSubmissionError,
-            data = mapOf("component" to "UserFeedbackScreen"),
-            throwable = e
-        )
-        onError(context.getString(R.string.feedback_error_submit_failed))
-    }
+    Logger.log(
+        event = LogEvent.UserFeedbackSubmitted,
+        data = buildMap {
+            put("feedback_type", feedbackType.name.lowercase())
+            put("has_contact_email", contactEmail.isNotBlank())
+            put("feedback_text", feedbackText)
+            if (contactEmail.isNotBlank()) put("contact_email", contactEmail)
+            put("is_bug_report", feedbackType == FeedbackType.BUG_REPORT)
+        }
+    )
+    onSuccess()
 }
 
 private fun getFeedbackTypeTitle(type: FeedbackType, context: android.content.Context): String {
