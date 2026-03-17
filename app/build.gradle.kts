@@ -3,7 +3,6 @@ import java.util.Properties
 plugins {
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.ksp)
     alias(libs.plugins.kotlin.serialization)
 
@@ -11,12 +10,6 @@ plugins {
 }
 
 composeCompiler {
-}
-
-kotlin {
-    compilerOptions {
-        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_1_8)
-    }
 }
 
 android {
@@ -210,7 +203,7 @@ sentry {
     org.set("switchify")
     projectName.set("android")
 
-    // this will upload your source code to Sentry to show it as part of the stack traces
-    // disable if you don't want to expose your sources
-    includeSourceContext.set(true)
+    val isCI = System.getenv("CI") != null
+    includeSourceContext.set(isCI)
+    autoUploadProguardMapping.set(isCI)
 }

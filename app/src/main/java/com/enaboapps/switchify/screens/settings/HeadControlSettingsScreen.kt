@@ -560,12 +560,15 @@ private fun HeadControlTestContent(
     }
 
     // Screen dimensions - use WindowMetrics for API 30+, fallback to display metrics
+    // windowMetrics is only non-null when SDK >= R, so .bounds is safe to call here
+    @Suppress("NewApi")
     val screenWidthPx = remember {
         windowMetrics?.bounds?.width()?.toFloat() ?: run {
             @Suppress("DEPRECATION")
             context.resources.displayMetrics.widthPixels.toFloat()
         }
     }
+    @Suppress("NewApi")
     val screenHeightPx = remember {
         windowMetrics?.bounds?.height()?.toFloat() ?: run {
             @Suppress("DEPRECATION")

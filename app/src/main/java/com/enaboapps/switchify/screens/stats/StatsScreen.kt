@@ -208,6 +208,7 @@ fun StatsScreen(navController: NavController) {
     }
 
     // Clear data confirmation dialog
+    val clearDataSuccessMessage = stringResource(R.string.stats_clear_data_success)
     if (showClearDialog) {
         AlertDialog(
             onDismissRequest = { showClearDialog = false },
@@ -221,7 +222,7 @@ fun StatsScreen(navController: NavController) {
                             onSuccess = {
                                 Toast.makeText(
                                     context,
-                                    context.getString(R.string.stats_clear_data_success),
+                                    clearDataSuccessMessage,
                                     Toast.LENGTH_SHORT
                                 ).show()
                                 // Reload stats to show empty state

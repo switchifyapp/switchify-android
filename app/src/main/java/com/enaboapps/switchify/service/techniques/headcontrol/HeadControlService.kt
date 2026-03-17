@@ -190,7 +190,7 @@ class HeadControlService private constructor(private val context: Context) {
                 // Create HeadControlManager on main thread since it contains UI components
                 // This happens asynchronously - manager will notify camera when ready
                 val mainHandler = android.os.Handler(android.os.Looper.getMainLooper())
-                    mainHandler.post {
+                mainHandler.post {
                         try {
                             headControlManager = HeadControlManager(context)
                         Log.d(

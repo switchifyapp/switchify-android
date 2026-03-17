@@ -2,7 +2,7 @@
 compose-bom = "2026.02.01"
 compose-icons = "1.7.8"
 kotlin = "2.3.10"
-agp = "8.13.2"
+agp = "9.1.0"
 core-ktx = "1.17.0"
 lifecycle-runtime-ktx = "2.10.0"
 activity-compose = "1.12.4"
@@ -75,7 +75,6 @@ reorderable = { group = "sh.calvin.reorderable", name = "reorderable", version.r
 compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 android-application = { id = "com.android.application", version.ref = "agp" }
 android-library = { id = "com.android.library", version.ref = "agp" }
-kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 sentry-android = { id = "io.sentry.android.gradle", version.ref = "sentry-gradle" }
