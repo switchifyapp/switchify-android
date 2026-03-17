@@ -15,10 +15,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
-import java.util.LinkedList
-import java.util.Queue
 import kotlin.math.sqrt
 
 /**
@@ -452,27 +449,24 @@ object NodeExaminer {
      * @param rootNode The root node of the tree to start flattening from.
      * @return A list of all AccessibilityNodeInfo objects in the tree.
      */
-    private suspend fun flattenTree(rootNode: AccessibilityNodeInfo): List<AccessibilityNodeInfo> =
-        withContext(Dispatchers.Default) {
-            val nodes: MutableList<AccessibilityNodeInfo> = ArrayList()
-            val q: Queue<AccessibilityNodeInfo> = LinkedList()
-            q.add(rootNode)
+    private fun flattenTree(rootNode: AccessibilityNodeInfo): List<AccessibilityNodeInfo> {
+        val nodes = ArrayList<AccessibilityNodeInfo>(64)
+        val queue = ArrayDeque<AccessibilityNodeInfo>(64)
+        queue.add(rootNode)
 
-            while (q.isNotEmpty()) {
-                val node = q.poll()
-                node?.let { accessibilityNodeInfo ->
-                    nodes.add(accessibilityNodeInfo)
-                    // Early exit if tree is too large
-                    if (nodes.size > MAX_NODES_THRESHOLD) {
-                        return@withContext nodes
-                    }
-                    for (i in 0 until node.childCount) {
-                        node.getChild(i)?.let { q.add(it) }
-                    }
-                }
+        while (queue.isNotEmpty()) {
+            val node = queue.removeFirst()
+            nodes.add(node)
+            // Early exit if tree is too large
+            if (nodes.size > MAX_NODES_THRESHOLD) {
+                return nodes
             }
-            nodes
+            for (i in 0 until node.childCount) {
+                node.getChild(i)?.let { queue.add(it) }
+            }
         }
+        return nodes
+    }
 
     /**
      * Finds the node that can perform the given action at the given point.
