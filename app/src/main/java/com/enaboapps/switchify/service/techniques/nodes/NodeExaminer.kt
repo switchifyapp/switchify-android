@@ -9,12 +9,9 @@ import com.enaboapps.switchify.service.keyboard.KeyboardNodeExtractor
 import com.enaboapps.switchify.service.utils.ScreenUtils
 import com.enaboapps.switchify.utils.LogEvent
 import com.enaboapps.switchify.utils.Logger
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 
 /**
@@ -78,11 +75,10 @@ object NodeExaminer {
      * @param context The current context, used to get screen dimensions for filtering nodes.
      * @param coroutineScope The CoroutineScope in which to perform the node examination.
      */
-    fun examineAccessibilityTree(
+    suspend fun examineAccessibilityTree(
         activeWindowRootNode: AccessibilityNodeInfo?,
         windows: List<AccessibilityWindowInfo>,
-        context: Context,
-        coroutineScope: CoroutineScope
+        context: Context
     ) {
         // Circuit breaker: skip processing if in cooldown
         if (System.currentTimeMillis() < cooldownUntil) {
@@ -101,35 +97,33 @@ object NodeExaminer {
 
         try {
             rootNode?.let { rootNode ->
-                coroutineScope.launch(Dispatchers.Default) {
-                    val startTime = System.currentTimeMillis()
-                    val result = withTimeoutOrNull(TREE_PROCESSING_TIMEOUT_MS) {
-                        processAccessibilityTree(rootNode, context, isKeyboardVisible)
-                    }
-                    val elapsed = System.currentTimeMillis() - startTime
+                val startTime = System.currentTimeMillis()
+                val result = withTimeoutOrNull(TREE_PROCESSING_TIMEOUT_MS) {
+                    processAccessibilityTree(rootNode, context, isKeyboardVisible)
+                }
+                val elapsed = System.currentTimeMillis() - startTime
 
-                    if (result == null) {
-                        Log.w(
-                            TAG,
-                            "Accessibility tree processing timed out after ${elapsed}ms (limit: ${TREE_PROCESSING_TIMEOUT_MS}ms)"
+                if (result == null) {
+                    Log.w(
+                        TAG,
+                        "Accessibility tree processing timed out after ${elapsed}ms (limit: ${TREE_PROCESSING_TIMEOUT_MS}ms)"
+                    )
+                    Logger.log(
+                        LogEvent.NodeTreeProcessingTimeout,
+                        data = mapOf(
+                            "result" to "timeout",
+                            "timeout_ms" to TREE_PROCESSING_TIMEOUT_MS,
+                            "elapsed_ms" to elapsed,
+                            "keyboard_visible" to isKeyboardVisible,
+                            "app_package" to (rootNode.packageName?.toString() ?: "unknown")
                         )
-                        Logger.log(
-                            LogEvent.NodeTreeProcessingTimeout,
-                            data = mapOf(
-                                "result" to "timeout",
-                                "timeout_ms" to TREE_PROCESSING_TIMEOUT_MS,
-                                "elapsed_ms" to elapsed,
-                                "keyboard_visible" to isKeyboardVisible,
-                                "app_package" to (rootNode.packageName?.toString() ?: "unknown")
-                            )
-                        )
-                        recordFailure(rootNode.packageName?.toString())
-                    } else {
-                        consecutiveFailures = 0
-                        treeTooLargeLogged = false
-                        if (elapsed > TREE_PROCESSING_TIMEOUT_MS / 2) {
-                            Log.d(TAG, "Tree processing took ${elapsed}ms (>50% of timeout)")
-                        }
+                    )
+                    recordFailure(rootNode.packageName?.toString())
+                } else {
+                    consecutiveFailures = 0
+                    treeTooLargeLogged = false
+                    if (elapsed > TREE_PROCESSING_TIMEOUT_MS / 2) {
+                        Log.d(TAG, "Tree processing took ${elapsed}ms (>50% of timeout)")
                     }
                 }
             }
