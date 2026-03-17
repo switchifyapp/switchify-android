@@ -111,7 +111,7 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
 
         scanSettings = ScanSettings(this)
         techniqueEnforcer = TechniqueEnforcer(scanSettings)
-        nodeUpdateCoordinator = NodeUpdateCoordinator(this, serviceScope, scanSettings)
+        nodeUpdateCoordinator = NodeUpdateCoordinator(this, scanSettings)
         cameraManager = CameraManager(
             context = this,
             lifecycleOwner = this,
