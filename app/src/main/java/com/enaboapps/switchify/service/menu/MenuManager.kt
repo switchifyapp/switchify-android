@@ -12,7 +12,7 @@ import com.enaboapps.switchify.service.menu.menus.gestures.TapGesturesMenu
 import com.enaboapps.switchify.service.menu.menus.gestures.PinchGesturesMenu
 import com.enaboapps.switchify.service.menu.menus.main.MainMenu
 import com.enaboapps.switchify.service.menu.menus.media.MediaControlMenu
-import com.enaboapps.switchify.service.menu.menus.quickapps.QuickAppsMenu
+import com.enaboapps.switchify.service.menu.menus.favouriteapps.FavouriteAppsMenu
 import com.enaboapps.switchify.service.menu.menus.scroll.ScrollMenu
 import com.enaboapps.switchify.service.menu.menus.system.DeviceMenu
 import com.enaboapps.switchify.service.menu.menus.system.VolumeControlMenu
@@ -202,11 +202,11 @@ class MenuManager {
 
 
     /**
-     * This function opens the quick apps menu with dynamic loading
+     * This function opens the favourite apps menu with dynamic loading
      */
-    fun openQuickAppsMenu() {
-        val quickAppsMenu = QuickAppsMenu(accessibilityService!!)
-        openMenu(quickAppsMenu.build())
+    fun openFavouriteAppsMenu() {
+        val favouriteAppsMenu = FavouriteAppsMenu(accessibilityService!!)
+        openMenu(favouriteAppsMenu.build())
     }
 
     /**

@@ -61,6 +61,9 @@ class PreferenceManager(context: Context) {
         const val PREFERENCE_KEY_PRO_REMINDER_LAST_DISMISS_TIME = "pro_reminder_last_dismiss_time"
         const val PREFERENCE_KEY_PRO_REMINDER_COOLDOWN_DAYS = "pro_reminder_cooldown_days"
 
+        // Favourite apps
+        const val PREFERENCE_KEY_FAVOURITE_APPS = "favourite_apps"
+
         // Camera threshold preferences - time steppers for each gesture
         const val PREFERENCE_KEY_CAMERA_SMILE_TIME = "camera_smile_time"
         const val PREFERENCE_KEY_CAMERA_LEFT_WINK_TIME = "camera_left_wink_time"

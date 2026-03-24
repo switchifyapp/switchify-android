@@ -2,7 +2,6 @@ package com.enaboapps.switchify.service.core
 
 import android.accessibilityservice.AccessibilityService
 import com.enaboapps.switchify.service.techniques.nodes.NodeExaminer
-import com.enaboapps.switchify.service.utils.QuickAppsManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -13,17 +12,12 @@ class StartupOrchestrator(
 ) {
     private companion object {
         private const val STARTUP_EXAM_DELAY_MS = 100L
-        private const val QUICK_APPS_PRELOAD_DELAY_MS = 50L
     }
 
     suspend fun executeStartupTasks(processAccessibilityEvent: suspend () -> Unit) {
         // Initial accessibility tree examination
         processAccessibilityEvent()
         delay(STARTUP_EXAM_DELAY_MS)
-
-        // Preload quick apps for faster menu access
-        QuickAppsManager(service).preloadApps { /* Cache warmed up */ }
-        delay(QUICK_APPS_PRELOAD_DELAY_MS)
 
         // Update the SystemNodeScanner and KeyboardScanner with the current layout info
         ServiceCore.getScanningManager()?.let { scanningManager ->

@@ -18,7 +18,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Apps
 import androidx.compose.material.icons.rounded.BugReport
 import androidx.compose.material.icons.rounded.CameraAlt
 import androidx.compose.material.icons.rounded.ExpandLess
@@ -58,23 +57,14 @@ fun CollapsibleActionList(
     isExpanded: Boolean,
     onToggleExpanded: () -> Unit,
     navController: NavController,
-    hasUsageStatsPermission: Boolean,
     showDebug: Boolean,
     modifier: Modifier = Modifier
 ) {
     val cameraPermissionState = rememberPermissionState(Manifest.permission.CAMERA)
     val hasCameraPermission = cameraPermissionState.status.isGranted
 
-    val actionItems = remember(hasUsageStatsPermission, showDebug, hasCameraPermission) {
+    val actionItems = remember(showDebug, hasCameraPermission) {
         listOfNotNull(
-            if (!hasUsageStatsPermission) {
-                ActionItem(
-                    titleResId = R.string.menu_title_quick_apps,
-                    summaryResId = R.string.screen_summary_quick_apps_permission,
-                    icon = Icons.Rounded.Apps,
-                    route = NavigationRoute.UsageStatsPermission.name
-                )
-            } else null,
             if (!hasCameraPermission) {
                 ActionItem(
                     titleResId = R.string.home_camera_permission_title,

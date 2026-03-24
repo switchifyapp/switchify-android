@@ -105,11 +105,11 @@ class MainMenuStructure(
                 )
             },
             if (deviceLockObserver.isUserUnlocked() == true) {
-                MenuItemRegistry.getMainMenuDefinition("quick_apps")?.let { def ->
+                MenuItemRegistry.getMainMenuDefinition("favourite_apps")?.let { def ->
                     MenuItem(
                         definition = def,
                         isLinkToMenu = true,
-                        action = { MenuManager.getInstance().openQuickAppsMenu() }
+                        action = { MenuManager.getInstance().openFavouriteAppsMenu() }
                     )
                 }
             } else null,

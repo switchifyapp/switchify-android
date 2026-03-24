@@ -34,19 +34,23 @@ import androidx.navigation.NavController
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.components.ActionButton
 import com.enaboapps.switchify.components.BaseView
-import com.enaboapps.switchify.service.utils.QuickAppsManager
+import android.app.AppOpsManager
+import android.content.Intent
+import android.os.Process
+import android.provider.Settings
 import kotlinx.coroutines.delay
 
 @Composable
 fun UsageStatsPermissionScreen(navController: NavController) {
     val context = LocalContext.current
-    val quickAppsManager = remember { QuickAppsManager(context) }
-    var hasPermission by remember { mutableStateOf(quickAppsManager.hasUsageStatsPermission()) }
+    var hasPermission by remember {
+        mutableStateOf(hasUsageStatsPermission(context))
+    }
 
     // Check permission periodically when screen is active
     LaunchedEffect(Unit) {
         while (true) {
-            hasPermission = quickAppsManager.hasUsageStatsPermission()
+            hasPermission = hasUsageStatsPermission(context)
             delay(1000) // Check every second
         }
     }
@@ -202,7 +206,9 @@ fun UsageStatsPermissionScreen(navController: NavController) {
                 ActionButton(
                     textResId = R.string.button_grant_usage_stats_permission,
                     onClick = {
-                        quickAppsManager.openUsageStatsSettings()
+                        val intent = Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)
+                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        context.startActivity(intent)
                     }
                 )
 
@@ -250,4 +256,14 @@ private fun BenefitItem(icon: String, text: String) {
             modifier = Modifier.weight(1f)
         )
     }
+}
+
+private fun hasUsageStatsPermission(context: android.content.Context): Boolean {
+    val appOps = context.getSystemService(android.content.Context.APP_OPS_SERVICE) as AppOpsManager
+    val mode = appOps.checkOpNoThrow(
+        AppOpsManager.OPSTR_GET_USAGE_STATS,
+        Process.myUid(),
+        context.packageName
+    )
+    return mode == AppOpsManager.MODE_ALLOWED
 }
