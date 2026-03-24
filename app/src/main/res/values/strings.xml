@@ -205,8 +205,14 @@
     <string name="system_back_desc">Go back</string>
     <string name="system_recents">Recent Apps</string>
     <string name="system_recents_desc">Open the recent apps</string>
-    <string name="menu_title_quick_apps">Quick Apps</string>
-    <string name="no_quick_apps_available">No recent apps available</string>
+    <string name="menu_title_favourite_apps">Favourite Apps</string>
+    <string name="no_favourite_apps">No favourite apps. Add some in Settings.</string>
+    <string name="favourite_apps_title">Favourite Apps</string>
+    <string name="favourite_apps_summary">Choose apps for quick access from the menu</string>
+    <string name="favourite_apps_add">Add App</string>
+    <string name="favourite_apps_search_hint">Search apps</string>
+    <string name="favourite_apps_empty">No favourite apps added yet. Tap + to add apps.</string>
+    <string name="favourite_apps_picker_title">Select Apps</string>
     <string name="system_quick_settings">Quick Settings</string>
     <string name="system_quick_settings_desc">Open the quick settings</string>
     <string name="system_notifications">Notifications</string>
@@ -301,7 +307,7 @@
     <string name="screen_summary_settings">Configure switches and scanning</string>
     <string name="screen_summary_upgrade_pro">Tap for superpowers! 💪</string>
     <string name="screen_summary_debug">Developer options</string>
-    <string name="screen_summary_quick_apps_permission">Configure quick apps access</string>
+
     <string name="gesture_patterns_section_summary">Manage gesture patterns and settings</string>
     <string name="settings_summary_scrolling_settings">Configure auto-scroll behavior</string>
 
@@ -732,21 +738,6 @@
     <string name="pro_reminder_dismiss">Dismiss</string>
     <string name="pro_reminder_later">Later</string>
     <string name="pro_reminder_learn_more">Learn More</string>
-
-    <!-- Usage Stats Permission Screen -->
-    <string name="screen_title_usage_stats_permission">Recent Apps Permission</string>
-    <string name="usage_stats_permission_granted">Permission Granted ✅</string>
-    <string name="usage_stats_permission_required">Permission Required 🔴</string>
-    <string name="usage_stats_permission_title">Why Recent Apps Needs Permission</string>
-    <string name="usage_stats_permission_explanation">To show you a list of your recently used apps, Switchify needs access to your app usage data. This special permission allows us to see which apps you\'ve used recently, making it easier for you to switch between them.</string>
-    <string name="usage_stats_permission_benefits_title">What this enables:</string>
-    <string name="usage_stats_benefit_1">Quick access to your most-used apps</string>
-    <string name="usage_stats_benefit_2">Seamless app switching without leaving Switchify</string>
-    <string name="usage_stats_benefit_3">Personalized app list based on your usage</string>
-    <string name="usage_stats_privacy_note">Privacy: We only access app usage data locally on your device. This information is never collected, stored, or transmitted anywhere.</string>
-    <string name="button_grant_usage_stats_permission">Grant Permission</string>
-    <string name="usage_stats_settings_instructions">You\'ll be taken to Android settings. Find and tap on Switchify, then enable "Permit usage access".</string>
-    
 
     <!-- Screenshot HUD Messages -->
     <string name="screenshot_saved_to_gallery">Screenshot saved to gallery</string>

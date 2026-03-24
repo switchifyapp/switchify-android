@@ -48,7 +48,7 @@ class MainMenuStructure(
      * The returned menu reflects current conditions such as keyboard visibility,
      * device lock state, access technique, camera permission, and gesture context.
      * Items include system navigation, scanning and technique switches, gesture and
-     * media submenus, head-control toggle, quick apps, edit actions, pause, and
+     * media submenus, head-control toggle, favourite apps, edit actions, pause, and
      * any user-added items from other menus.
      *
      * @return A MenuStructure representing the main menu configured for the current state.
@@ -105,11 +105,11 @@ class MainMenuStructure(
                 )
             },
             if (deviceLockObserver.isUserUnlocked() == true) {
-                MenuItemRegistry.getMainMenuDefinition("quick_apps")?.let { def ->
+                MenuItemRegistry.getMainMenuDefinition("favourite_apps")?.let { def ->
                     MenuItem(
                         definition = def,
                         isLinkToMenu = true,
-                        action = { MenuManager.getInstance().openQuickAppsMenu() }
+                        action = { MenuManager.getInstance().openFavouriteAppsMenu() }
                     )
                 }
             } else null,

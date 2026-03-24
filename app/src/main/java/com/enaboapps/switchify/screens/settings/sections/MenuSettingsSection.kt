@@ -26,6 +26,12 @@ import com.enaboapps.switchify.screens.settings.models.MenuSettingsModel
 fun MenuSection(screenModel: MenuSettingsModel, navController: NavController) {
     Section(titleResId = R.string.settings_section_menu) {
         NavRouteLink(
+            titleResId = R.string.favourite_apps_title,
+            summaryResId = R.string.favourite_apps_summary,
+            navController = navController,
+            route = NavigationRoute.FavouriteApps.name
+        )
+        NavRouteLink(
             titleResId = R.string.screen_title_menu_customization,
             summaryResId = R.string.settings_summary_menu_customization,
             navController = navController,

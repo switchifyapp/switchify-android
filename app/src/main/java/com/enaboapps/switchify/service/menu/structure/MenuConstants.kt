@@ -35,7 +35,7 @@ object MenuConstants {
             const val TAP = "tap"
             const val GESTURES = "gestures"
             const val SCROLL = "scroll"
-            const val QUICK_APPS = "quick_apps"
+            const val FAVOURITE_APPS = "favourite_apps"
             const val GESTURE_PATTERNS = "gesture_patterns"
             const val DEVICE = "device"
             const val MEDIA_CONTROL = "media_control"

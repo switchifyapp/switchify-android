@@ -50,7 +50,6 @@ import com.enaboapps.switchify.components.ScrollableView
 import com.enaboapps.switchify.components.StatusBannerComponent
 import com.enaboapps.switchify.nav.NavigationRoute
 import com.enaboapps.switchify.service.camera.CameraPermissionManager
-import com.enaboapps.switchify.service.utils.QuickAppsManager
 import com.enaboapps.switchify.service.utils.ServiceUtils
 import com.enaboapps.switchify.switches.SwitchConfigInvalidBanner
 import com.enaboapps.switchify.switches.SwitchConfigValidator
@@ -69,9 +68,6 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
     val switchEventStore = remember { SwitchEventStore.getInstance() }
     val switchConfigValidator = remember { SwitchConfigValidator(context) }
     var isSwitchConfigValid by remember { mutableStateOf(true) }
-    val quickAppsManager = remember { QuickAppsManager(context) }
-    val hasUsageStatsPermission =
-        remember { mutableStateOf(quickAppsManager.hasUsageStatsPermission()) }
     var isActionListExpanded by remember { mutableStateOf(false) }
     val proReminderManager = remember { ProReminderManager(context) }
     var showProReminder by remember { mutableStateOf(false) }
@@ -168,7 +164,6 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
                     isExpanded = isActionListExpanded,
                     onToggleExpanded = { isActionListExpanded = !isActionListExpanded },
                     navController = navController,
-                    hasUsageStatsPermission = hasUsageStatsPermission.value,
                     showDebug = BuildConfig.DEBUG,
                     modifier = Modifier.fillMaxWidth()
                 )

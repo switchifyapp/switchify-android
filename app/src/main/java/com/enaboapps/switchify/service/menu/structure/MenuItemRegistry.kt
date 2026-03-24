@@ -22,7 +22,7 @@ object MenuItemRegistry {
             MenuItemDefinition(MenuConstants.ItemIds.Main.TAP, labelResource = R.string.menu_item_tap, drawableId = R.drawable.ic_gesture_tap),
             MenuItemDefinition(MenuConstants.ItemIds.Main.GESTURES, labelResource = R.string.menu_title_gestures, drawableId = R.drawable.ic_gestures),
             MenuItemDefinition(MenuConstants.ItemIds.Main.SCROLL, labelResource = R.string.menu_title_scroll, drawableId = R.drawable.ic_scroll),
-            MenuItemDefinition(MenuConstants.ItemIds.Main.QUICK_APPS, labelResource = R.string.menu_title_quick_apps, drawableId = R.drawable.ic_quick_apps),
+            MenuItemDefinition(MenuConstants.ItemIds.Main.FAVOURITE_APPS, labelResource = R.string.menu_title_favourite_apps, drawableId = R.drawable.ic_favourite_apps),
             MenuItemDefinition(MenuConstants.ItemIds.Main.GESTURE_PATTERNS, labelResource = R.string.gesture_patterns_title, drawableId = R.drawable.ic_gesture_patterns),
             MenuItemDefinition(MenuConstants.ItemIds.Main.DEVICE, labelResource = R.string.menu_title_device, drawableId = R.drawable.ic_device),
             MenuItemDefinition(MenuConstants.ItemIds.Main.MEDIA_CONTROL, labelResource = R.string.menu_title_media_control, drawableId = R.drawable.ic_media_control),

@@ -12,7 +12,7 @@ import com.enaboapps.switchify.screens.account.AccountScreen
 import com.enaboapps.switchify.screens.account.AuthScreen
 import com.enaboapps.switchify.screens.onboarding.OnboardingScreen
 import com.enaboapps.switchify.screens.paywall.AppPaywallScreen
-import com.enaboapps.switchify.screens.permissions.UsageStatsPermissionScreen
+
 import com.enaboapps.switchify.screens.settings.CameraSettingsScreen
 import com.enaboapps.switchify.screens.settings.HeadControlSettingsScreen
 import com.enaboapps.switchify.screens.settings.SettingsScreen
@@ -30,6 +30,7 @@ import com.enaboapps.switchify.screens.settings.switches.SwitchStabilityScreen
 import com.enaboapps.switchify.screens.settings.switches.SwitchesScreen
 import com.enaboapps.switchify.screens.settings.techniques.AccessTechniqueSettingsScreen
 import com.enaboapps.switchify.screens.settings.pause.PauseSettingsScreen
+import com.enaboapps.switchify.screens.settings.favouriteapps.FavouriteAppsScreen
 import com.enaboapps.switchify.screens.settings.menu.MenuCustomizationScreen
 import com.enaboapps.switchify.screens.settings.switches.actions.SwitchActionSelectionScreen
 import com.enaboapps.switchify.screens.settings.switches.LongPressActionsScreen
@@ -121,9 +122,7 @@ fun NavGraph(navController: NavHostController) {
         composable(NavigationRoute.GesturePatterns.name) {
             GesturePatternsScreen(navController)
         }
-        composable(NavigationRoute.UsageStatsPermission.name) {
-            UsageStatsPermissionScreen(navController)
-        }
+
         composable(NavigationRoute.UserFeedback.name) {
             UserFeedbackScreen(navController)
         }
@@ -141,6 +140,9 @@ fun NavGraph(navController: NavHostController) {
         }
         composable(NavigationRoute.MenuCustomization.name) {
             MenuCustomizationScreen(navController)
+        }
+        composable(NavigationRoute.FavouriteApps.name) {
+            FavouriteAppsScreen(navController)
         }
         composable("${NavigationRoute.SwitchActionSelection.name}/{currentActionId}") {
             it.arguments?.getString("currentActionId")?.toIntOrNull()?.let { actionId ->

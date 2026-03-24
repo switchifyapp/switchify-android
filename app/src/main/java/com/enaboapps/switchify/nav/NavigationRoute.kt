@@ -25,7 +25,7 @@ sealed class NavigationRoute(val name: String) {
     data object EditCameraSwitch : NavigationRoute("EditCameraSwitch")
     data object Debug : NavigationRoute("Debug")
     data object GesturePatterns : NavigationRoute("GesturePatterns")
-    data object UsageStatsPermission : NavigationRoute("UsageStatsPermission")
+
     data object UserFeedback : NavigationRoute("UserFeedback")
     data object Stats : NavigationRoute("Stats")
     data object CameraSettings : NavigationRoute("CameraSettings")
@@ -34,4 +34,5 @@ sealed class NavigationRoute(val name: String) {
     data object MenuCustomization : NavigationRoute("MenuCustomization")
     data object SwitchActionSelection : NavigationRoute("SwitchActionSelection")
     data object LongPressActions : NavigationRoute("LongPressActions")
+    data object FavouriteApps : NavigationRoute("FavouriteApps")
 }
