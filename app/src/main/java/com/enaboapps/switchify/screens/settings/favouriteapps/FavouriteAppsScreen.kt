@@ -131,21 +131,13 @@ private fun FavouriteAppItem(
             verticalAlignment = Alignment.CenterVertically
         ) {
             reorderControls()
-            Column(
+            Text(
+                text = app.appName,
+                style = MaterialTheme.typography.bodyLarge,
                 modifier = Modifier
                     .weight(1f)
                     .padding(horizontal = 8.dp)
-            ) {
-                Text(
-                    text = app.appName,
-                    style = MaterialTheme.typography.bodyLarge
-                )
-                Text(
-                    text = app.packageName,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
+            )
             IconButton(onClick = onRemove) {
                 Icon(
                     imageVector = Icons.Default.Delete,
@@ -281,17 +273,11 @@ private fun AppPickerItem(
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = app.appName,
-                style = MaterialTheme.typography.bodyLarge
-            )
-            Text(
-                text = app.packageName,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
+        Text(
+            text = app.appName,
+            style = MaterialTheme.typography.bodyLarge,
+            modifier = Modifier.weight(1f)
+        )
         Icon(
             imageVector = Icons.Default.Add,
             contentDescription = stringResource(R.string.favourite_apps_add),
