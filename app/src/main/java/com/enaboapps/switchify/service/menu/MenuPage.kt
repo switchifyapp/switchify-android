@@ -2,13 +2,23 @@ package com.enaboapps.switchify.service.menu
 
 import android.content.Context
 import android.content.res.Configuration
-import android.graphics.Color
-import android.graphics.drawable.GradientDrawable
 import android.view.Gravity
 import android.view.View
+import android.view.ViewGroup
 import android.widget.LinearLayout
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.graphics.toColorInt
 import com.enaboapps.switchify.R
+import com.enaboapps.switchify.service.components.AccessibilityComposeView
 import com.enaboapps.switchify.service.techniques.nodes.Node
 import com.enaboapps.switchify.service.utils.ScreenUtils
 
@@ -31,26 +41,8 @@ class MenuPage(
     private val maxPageIndex: Int,
     val onMenuPageChanged: (pageIndex: Int) -> Unit
 ) {
-    private var baseLayout: LinearLayout = LinearLayout(context)
     private var prevPageMenuItem: MenuItem? = null
     private var nextPageMenuItem: MenuItem? = null
-
-    init {
-        baseLayout.orientation = LinearLayout.VERTICAL
-        baseLayout.layoutParams = LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.WRAP_CONTENT,
-            LinearLayout.LayoutParams.WRAP_CONTENT
-        )
-        val isNightMode = context.resources.configuration.uiMode and
-                Configuration.UI_MODE_NIGHT_MASK ==
-                Configuration.UI_MODE_NIGHT_YES
-
-        baseLayout.background = GradientDrawable().apply {
-            setColor(if (isNightMode) Color.BLACK else Color.WHITE)
-            cornerRadius = 48f
-        }
-        baseLayout.setPadding(50, 50, 50, 50)
-    }
 
     /**
      * Get the menu items of the page
@@ -98,30 +90,35 @@ class MenuPage(
      * Get the layout of the menu
      * @return The layout of the menu
      */
-    fun getMenuLayout(): LinearLayout {
-        baseLayout.removeAllViews()
+    fun getMenuLayout(isTransparent: Boolean): ViewGroup {
+        val contentLayout = createContentLayout()
+        prevPageMenuItem = null
+        nextPageMenuItem = null
 
         rowsOfMenuItems.forEach { rowItems ->
             val rowLayout = createRowLayout()
             rowItems.forEach { menuItem ->
                 menuItem.inflate(rowLayout)
             }
-            baseLayout.addView(rowLayout)
+            contentLayout.addView(rowLayout)
         }
 
         if (showNavMenuItems) {
-            inflateNavItems()
+            inflateNavItems(contentLayout)
         }
 
-        return baseLayout
+        return AccessibilityComposeView(context) {
+            MenuPageBackground(isTransparent) {
+                AndroidView(factory = { contentLayout })
+            }
+        }
     }
 
     /**
      * This function inflates the navigation items of the page
      */
-    private fun inflateNavItems() {
-        // Add divider before navigation items
-        addDivider()
+    private fun inflateNavItems(contentLayout: LinearLayout) {
+        addDivider(contentLayout)
 
         val rowLayout = createRowLayout()
         val navButtonView = createNavButtonView()
@@ -155,7 +152,17 @@ class MenuPage(
             nextPageMenuItem?.inflate(rowLayout)
         }
         navButtonView.addView(rowLayout)
-        baseLayout.addView(navButtonView)
+        contentLayout.addView(navButtonView)
+    }
+
+    private fun createContentLayout(): LinearLayout {
+        return LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+        }
     }
 
     /**
@@ -192,12 +199,11 @@ class MenuPage(
     /**
      * Add a divider line to separate navigation items from menu items
      */
-    private fun addDivider() {
+    private fun addDivider(contentLayout: LinearLayout) {
         val isNightMode = context.resources.configuration.uiMode and
                 Configuration.UI_MODE_NIGHT_MASK ==
                 Configuration.UI_MODE_NIGHT_YES
 
-        // Create a container for the divider that won't affect parent width
         val dividerContainer = LinearLayout(context).apply {
             orientation = LinearLayout.HORIZONTAL
             layoutParams = LinearLayout.LayoutParams(
@@ -221,7 +227,7 @@ class MenuPage(
         }
 
         dividerContainer.addView(divider)
-        baseLayout.addView(dividerContainer)
+        contentLayout.addView(dividerContainer)
     }
 
     /**
@@ -238,5 +244,33 @@ class MenuPage(
     private fun nextPage() {
         val pageIndex = if (pageIndex == maxPageIndex) 0 else pageIndex + 1
         onMenuPageChanged(pageIndex)
+    }
+}
+
+@Composable
+private fun MenuPageBackground(
+    isTransparent: Boolean,
+    content: @Composable () -> Unit
+) {
+    Surface(
+        shape = RoundedCornerShape(28.dp),
+        color = MaterialTheme.colorScheme.surface.copy(
+            alpha = if (isTransparent) 0.82f else 0.98f
+        ),
+        tonalElevation = 6.dp,
+        shadowElevation = 12.dp,
+        border = BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
+        )
+    ) {
+        Box(
+            modifier = Modifier.padding(
+                horizontal = 20.dp,
+                vertical = 18.dp
+            )
+        ) {
+            content()
+        }
     }
 }
