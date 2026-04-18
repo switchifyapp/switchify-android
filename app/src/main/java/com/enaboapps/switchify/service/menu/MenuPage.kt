@@ -258,7 +258,6 @@ private fun MenuPageBackground(
             alpha = if (isTransparent) 0.82f else 0.98f
         ),
         tonalElevation = 6.dp,
-        shadowElevation = 12.dp,
         border = BorderStroke(
             1.dp,
             MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
