@@ -5,6 +5,7 @@ import android.util.AttributeSet
 import android.widget.RelativeLayout
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.ViewCompositionStrategy
 import com.enaboapps.switchify.activities.ui.theme.SwitchifyTheme
 
 /**
@@ -20,6 +21,7 @@ class AccessibilityComposeView @JvmOverloads constructor(
 
     private val composeView: ComposeView by lazy {
         ComposeView(context).apply {
+            setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindow)
             layoutParams = LayoutParams(
                 LayoutParams.WRAP_CONTENT,
                 LayoutParams.WRAP_CONTENT
@@ -71,4 +73,4 @@ class AccessibilityComposeView @JvmOverloads constructor(
         params.height = height
         layoutParams = params
     }
-} 
+}

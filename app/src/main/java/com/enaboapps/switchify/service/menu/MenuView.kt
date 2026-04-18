@@ -215,7 +215,10 @@ class MenuView(
 
         val pageExists = currentPage < menuPages.size
         if (pageExists) {
-            val pageLayout = menuPages[currentPage].getMenuLayout()
+            val isTransparent = preferenceManager.getBooleanValue(
+                PreferenceManager.PREFERENCE_KEY_MENU_TRANSPARENCY
+            )
+            val pageLayout = menuPages[currentPage].getMenuLayout(isTransparent)
             baseLayout.addView(
                 pageLayout,
                 ViewGroup.LayoutParams(
@@ -263,9 +266,6 @@ class MenuView(
     private fun createLinearLayout() {
         baseLayout = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
-            if (preferenceManager.getBooleanValue(PreferenceManager.PREFERENCE_KEY_MENU_TRANSPARENCY)) {
-                alpha = 0.8f
-            }
             layoutParams = ViewGroup.LayoutParams(
                 WRAP_CONTENT,
                 WRAP_CONTENT
