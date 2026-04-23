@@ -30,6 +30,7 @@ import com.enaboapps.switchify.screens.onboarding.steps.PracticeStep
 import com.enaboapps.switchify.screens.onboarding.steps.ProBenefitsStep
 import com.enaboapps.switchify.screens.onboarding.steps.ScanModeExplanationStep
 import com.enaboapps.switchify.screens.onboarding.steps.SwitchSetupStep
+import com.enaboapps.switchify.screens.onboarding.steps.TelemetryConsentStep
 import com.enaboapps.switchify.screens.onboarding.steps.UserTypeStep
 import com.enaboapps.switchify.screens.onboarding.steps.WelcomeStep
 import com.enaboapps.switchify.service.utils.ServiceUtils
@@ -127,6 +128,13 @@ fun OnboardingScreen(navController: NavController) {
                             } else {
                                 navController.navigate(NavigationRoute.Authentication.name)
                             }
+                        }
+                    )
+
+                    OnboardingStep.TELEMETRY_CONSENT -> TelemetryConsentStep(
+                        onChoice = { accepted ->
+                            viewModel.setTelemetryConsent(accepted)
+                            viewModel.nextStep()
                         }
                     )
 

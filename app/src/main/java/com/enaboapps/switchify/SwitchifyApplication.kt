@@ -7,6 +7,7 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
 import com.enaboapps.switchify.service.stats.StatsCollector
 import com.enaboapps.switchify.utils.CrashReporter
+import com.enaboapps.switchify.utils.Logger
 import com.enaboapps.switchify.utils.Resources
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -25,6 +26,11 @@ class SwitchifyApplication : Application() {
         super.onCreate()
 
         Resources.init(this)
+
+        // Wire Logger to PreferenceManager before any Logger.log(..) call so the
+        // telemetry opt-in gate is active (including for the pending-crash upload
+        // kicked off immediately below).
+        Logger.init(this)
 
         CrashReporter.uploadPendingCrashIfPresent(this)
         CrashReporter.install(this)

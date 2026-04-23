@@ -1,8 +1,10 @@
 package com.enaboapps.switchify.utils
 
+import android.content.Context
 import android.util.Log
 import com.enaboapps.switchify.BuildConfig
 import com.enaboapps.switchify.auth.repository.AuthRepository
+import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.google.gson.Gson
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -17,6 +19,21 @@ object Logger {
 
     private val scope = CoroutineScope(Dispatchers.IO)
     private val gson = Gson()
+
+    /**
+     * Holds the PreferenceManager used to read the telemetry opt-in flag. Set by
+     * [init] from SwitchifyApplication.onCreate(). Until init is called, log() is a
+     * no-op — safer than assuming telemetry is allowed.
+     */
+    private var preferenceManager: PreferenceManager? = null
+
+    /**
+     * Wires up the telemetry opt-in gate. Must be called before any Logger.log(..)
+     * invocation (in practice: first thing in SwitchifyApplication.onCreate()).
+     */
+    fun init(context: Context) {
+        preferenceManager = PreferenceManager(context.applicationContext)
+    }
 
     private data class LogEntry(
         val level: String,
@@ -46,6 +63,18 @@ object Logger {
         flowId: String? = null,
         stepIndex: Int? = null
     ) {
+        // Single telemetry opt-in gate. Covers analytics events and the crash-upload
+        // path in CrashReporter.uploadPendingCrashIfPresent, which routes through
+        // Logger.log. Short-circuits on the caller's thread so we don't spin up a
+        // coroutine for a suppressed event.
+        val prefs = preferenceManager
+        if (prefs == null || !prefs.isTelemetryEnabled()) {
+            if (BuildConfig.DEBUG) {
+                Log.d(TAG, "Suppressed (telemetry off): ${event.eventName}")
+            }
+            return
+        }
+
         val sanitizedData = data.filterValues { it != null }.mapValues { it.value as Any }
 
         if (BuildConfig.DEBUG) {

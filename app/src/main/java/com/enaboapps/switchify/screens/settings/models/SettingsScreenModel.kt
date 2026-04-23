@@ -49,6 +49,11 @@ class SettingsScreenModel(context: Context) : ViewModel() {
     }
     val menuRowsPerPage: LiveData<Int> = _menuRowsPerPage
 
+    private val _telemetryEnabled = MutableLiveData<Boolean>().apply {
+        value = preferenceManager.isTelemetryEnabled()
+    }
+    val telemetryEnabled: LiveData<Boolean> = _telemetryEnabled
+
     fun setAutoSelect(autoSelect: Boolean) {
         viewModelScope.launch {
             preferenceManager.setBooleanValue(
@@ -107,6 +112,13 @@ class SettingsScreenModel(context: Context) : ViewModel() {
                 value
             )
             _menuRowsPerPage.postValue(value)
+        }
+    }
+
+    fun setTelemetryEnabled(value: Boolean) {
+        viewModelScope.launch {
+            preferenceManager.setTelemetryEnabled(value)
+            _telemetryEnabled.postValue(value)
         }
     }
 }
