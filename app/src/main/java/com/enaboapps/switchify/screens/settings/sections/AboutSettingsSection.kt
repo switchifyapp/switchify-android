@@ -3,30 +3,39 @@ package com.enaboapps.switchify.screens.settings.sections
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.widget.Toast
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import androidx.navigation.NavController
 import com.enaboapps.switchify.R
-import com.enaboapps.switchify.components.ActionButton
+import com.enaboapps.switchify.components.InfoCard
 import com.enaboapps.switchify.components.PreferenceSwitch
 import com.enaboapps.switchify.components.ScrollableView
 import com.enaboapps.switchify.components.Section
+import com.enaboapps.switchify.components.UICard
 import com.enaboapps.switchify.nav.NavigationRoute
 import com.enaboapps.switchify.screens.settings.models.SettingsScreenModel
+import com.enaboapps.switchify.theme.Dimens
 
 @Composable
 fun AboutSection(
@@ -39,83 +48,72 @@ fun AboutSection(
 
     val websiteUrl = "https://switchifyapp.com"
     val privacyPolicyUrl = "https://www.switchifyapp.com/privacy"
+    val errorMessage = stringResource(R.string.error_no_app_to_open_link)
+
+    val openUrl: (String) -> Unit = { url ->
+        try {
+            context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri()))
+        } catch (e: ActivityNotFoundException) {
+            Toast.makeText(context, errorMessage, Toast.LENGTH_LONG).show()
+        }
+    }
 
     ScrollableView {
-        Box(
-            modifier = Modifier.fillMaxWidth(),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = stringResource(R.string.app_name),
-                style = MaterialTheme.typography.displayLarge,
-                textAlign = TextAlign.Center
-            )
-        }
-        Spacer(modifier = Modifier.height(8.dp))
-        Box(
-            modifier = Modifier.fillMaxWidth(),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = "Version $version",
-                style = MaterialTheme.typography.bodyMedium
-            )
-        }
-        Spacer(modifier = Modifier.height(24.dp))
-        Box(
-            modifier = Modifier.fillMaxWidth(),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = stringResource(R.string.app_description),
-                style = MaterialTheme.typography.bodyLarge,
-                textAlign = TextAlign.Center
-            )
-        }
-        Spacer(modifier = Modifier.height(24.dp))
-        val errorMessage = stringResource(R.string.error_no_app_to_open_link)
-        ActionButton(
-            textResId = R.string.button_website,
-            onClick = {
-                try {
-                    context.startActivity(Intent(Intent.ACTION_VIEW, websiteUrl.toUri()))
-                } catch (e: ActivityNotFoundException) {
-                    Toast.makeText(
-                        context,
-                        errorMessage,
-                        Toast.LENGTH_LONG
-                    ).show()
-                }
-            }
+        Image(
+            painter = painterResource(R.mipmap.ic_launcher_foreground),
+            contentDescription = null,
+            modifier = Modifier
+                .size(96.dp)
+                .clip(RoundedCornerShape(24.dp))
         )
-        Spacer(modifier = Modifier.height(16.dp))
-        ActionButton(
-            textResId = R.string.button_privacy_policy,
-            onClick = {
-                try {
-                    context.startActivity(Intent(Intent.ACTION_VIEW, privacyPolicyUrl.toUri()))
-                } catch (e: ActivityNotFoundException) {
-                    Toast.makeText(
-                        context,
-                        errorMessage,
-                        Toast.LENGTH_LONG
-                    ).show()
-                }
-            }
+        Spacer(modifier = Modifier.height(Dimens.spaceS))
+        Text(
+            text = stringResource(R.string.app_name),
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold
         )
-        navController?.let {
-            Spacer(modifier = Modifier.height(16.dp))
-            ActionButton(
-                textResId = R.string.action_feedback,
-                onClick = {
-                    it.navigate(NavigationRoute.UserFeedback.name)
-                }
+        Spacer(modifier = Modifier.height(Dimens.spaceXs))
+        Surface(
+            color = MaterialTheme.colorScheme.surfaceVariant,
+            shape = RoundedCornerShape(50)
+        ) {
+            Text(
+                text = "v$version",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = Dimens.spaceS, vertical = 4.dp)
             )
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(Dimens.spaceL))
 
-        // Privacy / telemetry controls. Gates every Logger.log(..) call.
+        InfoCard(
+            titleResId = R.string.about_card_title,
+            descriptionResId = R.string.app_description
+        )
+
+        Section(titleResId = R.string.settings_section_about_links) {
+            UICard(
+                titleResId = R.string.button_website,
+                rightIcon = Icons.AutoMirrored.Filled.OpenInNew,
+                onClick = { openUrl(websiteUrl) }
+            )
+            Spacer(modifier = Modifier.height(Dimens.spaceS))
+            UICard(
+                titleResId = R.string.button_privacy_policy,
+                rightIcon = Icons.AutoMirrored.Filled.OpenInNew,
+                onClick = { openUrl(privacyPolicyUrl) }
+            )
+            navController?.let {
+                Spacer(modifier = Modifier.height(Dimens.spaceS))
+                UICard(
+                    titleResId = R.string.action_feedback,
+                    rightIcon = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                    onClick = { it.navigate(NavigationRoute.UserFeedback.name) }
+                )
+            }
+        }
+
         Section(titleResId = R.string.settings_section_privacy) {
             PreferenceSwitch(
                 titleResId = R.string.settings_title_telemetry,

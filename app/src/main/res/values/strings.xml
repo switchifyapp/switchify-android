@@ -972,6 +972,10 @@
     <string name="settings_summary_telemetry">Send usage events and crash reports to help improve Switchify.</string>
     <string name="settings_explanation_telemetry">When enabled, Switchify sends usage events (which features you use) and crash reports to our team so we can fix bugs and improve the app. If you\'re signed in, these reports are linked to your account email. Switchify never sends the content of your screen. You can turn this off at any time.</string>
 
+    <!-- About screen (Settings → About) -->
+    <string name="about_card_title">About Switchify</string>
+    <string name="settings_section_about_links">Links</string>
+
     <!-- Gesture Names -->
     <string name="gesture_smile">Smile</string>
     <string name="gesture_left_wink">Left Wink</string>
