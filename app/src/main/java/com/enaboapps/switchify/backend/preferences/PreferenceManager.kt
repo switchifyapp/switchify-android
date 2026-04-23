@@ -48,6 +48,7 @@ class PreferenceManager(context: Context) {
         const val PREFERENCE_KEY_MENU_TRANSPARENCY = "menu_transparency"
         const val PREFERENCE_KEY_MENU_ROWS_PER_PAGE = "menu_rows_per_page"
         const val PREFERENCE_KEY_SETTINGS_TAB = "settings_tab"
+        const val PREFERENCE_KEY_TELEMETRY_ENABLED = "telemetry_enabled"
         const val PREFERENCE_KEY_ONBOARDING_CURRENT_STEP = "onboarding_current_step"
         const val PREFERENCE_KEY_ONBOARDING_USER_TYPE = "onboarding_user_type"
         const val PREFERENCE_KEY_ONBOARDING_IS_NEW_USER = "onboarding_is_new_user"
@@ -87,7 +88,8 @@ class PreferenceManager(context: Context) {
             PREFERENCE_KEY_PRO,
             PREFERENCE_KEY_ACCESS_TECHNIQUE,
             PREFERENCE_KEY_SETUP_COMPLETE,
-            PREFERENCE_KEY_REVIEW_LAST_SHOWN
+            PREFERENCE_KEY_REVIEW_LAST_SHOWN,
+            PREFERENCE_KEY_TELEMETRY_ENABLED
         )
     }
 
@@ -146,6 +148,23 @@ class PreferenceManager(context: Context) {
 
     fun isSetupComplete(): Boolean {
         return getBooleanValue(PREFERENCE_KEY_SETUP_COMPLETE)
+    }
+
+    /**
+     * Sets whether the user has opted in to sending telemetry (analytics events and
+     * crash reports) to the Timberlogs ingest worker. Device-local; not synced.
+     */
+    fun setTelemetryEnabled(enabled: Boolean) {
+        setBooleanValue(PREFERENCE_KEY_TELEMETRY_ENABLED, enabled)
+    }
+
+    /**
+     * Returns whether telemetry is enabled. Defaults to false (opt-in): both brand-new
+     * installs and existing installs upgrading over this change start with telemetry off
+     * until the user explicitly enables it.
+     */
+    fun isTelemetryEnabled(): Boolean {
+        return getBooleanValue(PREFERENCE_KEY_TELEMETRY_ENABLED, false)
     }
 
     fun setIntegerValue(key: String, value: Int) {

@@ -959,6 +959,19 @@
     <string name="stats_clear_data_success">All statistics cleared</string>
     <string name="stats_clear_data_error">Failed to clear statistics</string>
 
+    <!-- Telemetry consent (onboarding step + settings toggle) -->
+    <string name="onboarding_telemetry_title">Help improve Switchify</string>
+    <string name="onboarding_telemetry_subtitle">Share diagnostic data</string>
+    <string name="onboarding_telemetry_body">With your permission, Switchify can send usage events and crash reports to help us spot problems and improve the app. If you\'re signed in, these reports are linked to your account email. You can change this at any time in Settings.</string>
+    <string name="onboarding_telemetry_privacy_note">Switchify never sends the content of your screen.</string>
+    <string name="onboarding_telemetry_accept">Share diagnostic data</string>
+    <string name="onboarding_telemetry_decline">No thanks</string>
+
+    <string name="settings_section_privacy">Privacy</string>
+    <string name="settings_title_telemetry">Share diagnostic data</string>
+    <string name="settings_summary_telemetry">Send usage events and crash reports to help improve Switchify.</string>
+    <string name="settings_explanation_telemetry">When enabled, Switchify sends usage events (which features you use) and crash reports to our team so we can fix bugs and improve the app. If you\'re signed in, these reports are linked to your account email. Switchify never sends the content of your screen. You can turn this off at any time.</string>
+
     <!-- Gesture Names -->
     <string name="gesture_smile">Smile</string>
     <string name="gesture_left_wink">Left Wink</string>

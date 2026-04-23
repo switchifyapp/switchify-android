@@ -24,6 +24,7 @@ data class OnboardingUiState(
 
 enum class OnboardingStep {
     WELCOME,
+    TELEMETRY_CONSENT,
     USER_TYPE,
     SCAN_MODE_EXPLANATION,
     HEAD_CONTROL_EXPLANATION,
@@ -51,6 +52,7 @@ class OnboardingViewModel(context: Context) : ViewModel() {
 
     private val stepOrder = listOf(
         OnboardingStep.WELCOME,
+        OnboardingStep.TELEMETRY_CONSENT,
         OnboardingStep.USER_TYPE,
         OnboardingStep.SCAN_MODE_EXPLANATION,
         OnboardingStep.HEAD_CONTROL_EXPLANATION,
@@ -107,6 +109,15 @@ class OnboardingViewModel(context: Context) : ViewModel() {
             PreferenceManager.PREFERENCE_KEY_ONBOARDING_IS_NEW_USER,
             isNew
         )
+    }
+
+    /**
+     * Records the user's telemetry opt-in choice. Takes effect immediately — the next
+     * Logger.log(..) call will respect the new value. If the user declined, subsequent
+     * onboarding events (OnboardingUserType*, OnboardingCompleted) will be suppressed.
+     */
+    fun setTelemetryConsent(enabled: Boolean) {
+        preferenceManager.setTelemetryEnabled(enabled)
     }
 
     fun setUserType(userType: UserType) {

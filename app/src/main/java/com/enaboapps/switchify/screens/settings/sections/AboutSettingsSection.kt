@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -20,13 +22,20 @@ import androidx.core.net.toUri
 import androidx.navigation.NavController
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.components.ActionButton
+import com.enaboapps.switchify.components.PreferenceSwitch
 import com.enaboapps.switchify.components.ScrollableView
+import com.enaboapps.switchify.components.Section
 import com.enaboapps.switchify.nav.NavigationRoute
+import com.enaboapps.switchify.screens.settings.models.SettingsScreenModel
 
 @Composable
-fun AboutSection(navController: NavController? = null) {
+fun AboutSection(
+    settingsScreenModel: SettingsScreenModel,
+    navController: NavController? = null
+) {
     val context = LocalContext.current
     val version = context.packageManager.getPackageInfo(context.packageName, 0).versionName
+    val telemetryEnabled by settingsScreenModel.telemetryEnabled.observeAsState(false)
 
     val websiteUrl = "https://switchifyapp.com"
     val privacyPolicyUrl = "https://www.switchifyapp.com/privacy"
@@ -101,6 +110,19 @@ fun AboutSection(navController: NavController? = null) {
                 onClick = {
                     it.navigate(NavigationRoute.UserFeedback.name)
                 }
+            )
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Privacy / telemetry controls. Gates every Logger.log(..) call.
+        Section(titleResId = R.string.settings_section_privacy) {
+            PreferenceSwitch(
+                titleResId = R.string.settings_title_telemetry,
+                summaryResId = R.string.settings_summary_telemetry,
+                explanationResId = R.string.settings_explanation_telemetry,
+                checked = telemetryEnabled,
+                onCheckedChange = { settingsScreenModel.setTelemetryEnabled(it) }
             )
         }
     }
