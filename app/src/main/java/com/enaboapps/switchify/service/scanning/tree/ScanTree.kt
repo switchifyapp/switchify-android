@@ -49,9 +49,6 @@ class ScanTree(
     /** The builder responsible for constructing the scanning tree. */
     private val builder = ScanTreeBuilder(context, scanSettings)
 
-    /** The builder responsible for constructing radial (polar-angle) scanning trees. */
-    private val radialBuilder = RadialScanTreeBuilder()
-
     /** The navigator responsible for traversing the scanning tree. */
     private lateinit var navigator: ScanTreeNavigator
 
@@ -99,28 +96,6 @@ class ScanTree(
         clearTree()
         tree.addAll(builder.buildTree(nodes, itemThreshold))
         initializeComponents() // Reinitialize components with the new tree
-    }
-
-    /**
-     * Builds a radial scanning tree that sweeps clockwise around a ring.
-     *
-     * @param nodes All ring + centre + trailing nodes.
-     * @param centerX Screen-px X coordinate of the ring centre (anchors the polar sort).
-     * @param centerY Screen-px Y coordinate of the ring centre.
-     * @param centerNode The node sitting at the ring centre (placed at the end of the tree).
-     * @param trailingNodes Nodes rendered outside the ring (e.g. prev/next page buttons),
-     *                      scanned after the centre in their supplied order.
-     */
-    fun buildRadialTree(
-        nodes: List<ScanNodeInterface>,
-        centerX: Int,
-        centerY: Int,
-        centerNode: ScanNodeInterface?,
-        trailingNodes: List<ScanNodeInterface> = emptyList()
-    ) {
-        clearTree()
-        tree.addAll(radialBuilder.buildTree(nodes, centerX, centerY, centerNode, trailingNodes))
-        initializeComponents()
     }
 
     /**

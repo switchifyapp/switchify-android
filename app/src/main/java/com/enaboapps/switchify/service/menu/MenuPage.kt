@@ -52,10 +52,10 @@ class MenuPage(
         get() = maxPageIndex > 0
 
     /**
-     * Get every menu item that lives on this page, in the order they'd be scanned
-     * if the default (non-radial) scanner picked them up. The centre item comes
-     * last so scan cycles exit naturally onto the close button after one
-     * revolution; prev/next follow at the very end when pagination is active.
+     * Get every menu item that lives on this page. Order here feeds the default
+     * spatial scanner: ring content items first, then the centre, then prev/next
+     * if pagination is active. The spatial scanner groups/sorts these by (x, y)
+     * itself, so the list order is only a fallback for non-spatial consumers.
      */
     fun getMenuItems(): List<MenuItem> {
         val items = mutableListOf<MenuItem>()
@@ -66,23 +66,7 @@ class MenuPage(
         return items
     }
 
-    /** The nodes corresponding to the ring content items (no centre, no nav). */
-    fun getContentNodes(): List<Node> = contentItems.map { Node.fromMenuItem(it) }
-
-    /** The node for the centre item, or null when no centre is rendered. */
-    fun getCenterNode(): Node? = centerItem?.let { Node.fromMenuItem(it) }
-
-    /** Nodes for pagination prev/next, in scan order. Empty when pagination is off. */
-    fun getTrailingNodes(): List<Node> = listOfNotNull(
-        prevPageMenuItem?.let { Node.fromMenuItem(it) },
-        nextPageMenuItem?.let { Node.fromMenuItem(it) }
-    )
-
-    /**
-     * Translate every menu item on the page to a Node. Order here is only used
-     * as a fallback by the default scanner; the radial scanner sorts ring nodes
-     * by polar angle itself.
-     */
+    /** Translate every menu item on the page to a Node for the scan tree. */
     fun translateMenuItemsToNodes(): List<Node> = getMenuItems().map { Node.fromMenuItem(it) }
 
     /**

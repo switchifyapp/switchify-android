@@ -199,35 +199,13 @@ class MenuView(
         }
 
         // Use coroutine for delayed tree building after layout completion. The delay
-        // is required so that each MenuItem's composeView has been laid out on
-        // screen — getMidX/getMidY rely on post-layout coordinates for the polar
-        // sort origin.
+        // gives each MenuItem's composeView time to report real on-screen
+        // coordinates via getLocationOnScreen() before the spatial scan tree is
+        // built from them.
         CoroutineScope(Dispatchers.Main).launch {
             delay(500)
             if (pageExists) {
-                val page = menuPages[currentPage]
-                val contentNodes = page.getContentNodes()
-                val centerNode = page.getCenterNode()
-                val trailingNodes = page.getTrailingNodes()
-                val allNodes = contentNodes + listOfNotNull(centerNode) + trailingNodes
-
-                val (cx, cy) = when {
-                    centerNode != null -> centerNode.getMidX() to centerNode.getMidY()
-                    contentNodes.isNotEmpty() -> {
-                        val avgX = contentNodes.sumOf { it.getMidX() } / contentNodes.size
-                        val avgY = contentNodes.sumOf { it.getMidY() } / contentNodes.size
-                        avgX to avgY
-                    }
-                    else -> 0 to 0
-                }
-
-                scanTree.buildRadialTree(
-                    nodes = allNodes,
-                    centerX = cx,
-                    centerY = cy,
-                    centerNode = centerNode,
-                    trailingNodes = trailingNodes
-                )
+                scanTree.buildTree(menuPages[currentPage].translateMenuItemsToNodes(), 0)
 
                 // Notify observers that menu nodes changed
                 MenuManager.getInstance().notifyMenuNodesChanged(this@MenuView)
