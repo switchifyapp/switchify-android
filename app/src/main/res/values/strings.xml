@@ -897,7 +897,7 @@
     <!-- Menu Customization Screen -->
     <string name="screen_title_menu_customization">Menu Customization</string>
     <string name="settings_summary_menu_customization">Customize menu item order and visibility</string>
-    <string name="menu_customization_info">Items are placed clockwise around the menu, starting from the top, in the order below. Every 8 visible items start a new ring. Tap the eye icon to hide or show items.</string>
+    <string name="menu_customization_info">Items are placed clockwise around the menu, starting from the top, in the order below. Extra items spill onto additional rings — the ring markers show where each one starts. Tap the eye icon to hide or show items.</string>
     <string name="menu_customization_no_items">No items to display</string>
     <string name="menu_customization_ring_header">Ring %1$d</string>
     <string name="label_select_menu">Select Menu</string>

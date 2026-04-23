@@ -6,13 +6,6 @@ package com.enaboapps.switchify.service.menu.structure
  */
 object MenuConstants {
     /**
-     * Maximum number of content items rendered on a single radial ring. Items beyond
-     * this are paginated onto another ring. Keep in sync with the pagination logic in
-     * [com.enaboapps.switchify.service.menu.MenuView].
-     */
-    const val RADIAL_ITEMS_PER_PAGE = 4
-
-    /**
      * Menu identifiers
      */
     object MenuIds {

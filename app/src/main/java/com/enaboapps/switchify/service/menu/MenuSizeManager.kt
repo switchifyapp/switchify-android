@@ -59,15 +59,23 @@ object MenuSizeManager {
 
     /**
      * Determines the appropriate size variant for ring-positioned (radial) items
-     * based on device characteristics
-     * @param context The context to determine device characteristics
-     * @return The appropriate MenuSizeVariant for radial items
+     * across four tiers of screen width:
+     *   < 360 dp  — compact phone
+     *   360–599   — standard phone
+     *   600–839   — tablet
+     *   ≥ 840     — large tablet / unfolded foldable
+     *
+     * Each tier has its own item dimensions and preferred items-per-ring count,
+     * read by [com.enaboapps.switchify.service.menu.MenuView.createMenuPages]
+     * and the customization screen.
      */
     fun getRadialItemSizeVariant(context: Context): MenuSizeVariant {
-        return if (isPhoneDevice(context)) {
-            MenuSizeVariant.PHONE_RADIAL
-        } else {
-            MenuSizeVariant.TABLET_RADIAL
+        val swdp = context.resources.configuration.smallestScreenWidthDp
+        return when {
+            swdp < 360 -> MenuSizeVariant.PHONE_COMPACT_RADIAL
+            swdp < 600 -> MenuSizeVariant.PHONE_RADIAL
+            swdp < 840 -> MenuSizeVariant.TABLET_RADIAL
+            else -> MenuSizeVariant.TABLET_LARGE_RADIAL
         }
     }
 

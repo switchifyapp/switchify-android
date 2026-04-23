@@ -26,7 +26,7 @@ import com.enaboapps.switchify.components.ReorderableList
 import com.enaboapps.switchify.screens.settings.menu.models.MenuCustomizationScreenModel
 import com.enaboapps.switchify.screens.settings.menu.models.PaletteItem
 import com.enaboapps.switchify.service.menu.MenuItem
-import com.enaboapps.switchify.service.menu.structure.MenuConstants
+import com.enaboapps.switchify.service.menu.MenuSizeManager
 
 /**
  * Hosts the menu customization screen, wiring a screen model and rendering the content inside a BaseView.
@@ -77,6 +77,7 @@ fun MenuCustomizationScreen(navController: NavController) {
  */
 @Composable
 fun MenuCustomizationContent(screenModel: MenuCustomizationScreenModel) {
+    val context = LocalContext.current
     val menuItems by screenModel.menuItems.collectAsState()
     val selectedMenuId by screenModel.selectedMenuId.collectAsState()
     val availableMenus by screenModel.availableMenus.collectAsState()
@@ -143,11 +144,13 @@ fun MenuCustomizationContent(screenModel: MenuCustomizationScreenModel) {
                 )
             } else {
                 // Compute the visible-item index of each row so we can mark ring
-                // boundaries: the service menu lays out 8 visible items per ring
-                // clockwise from the top, then paginates. Hidden items are
-                // skipped when numbering rings — a user who hides a few items
-                // sees the headers shift to match what actually renders.
-                val ringSize = MenuConstants.RADIAL_ITEMS_PER_PAGE
+                // boundaries: the service menu lays out ringSize items per ring
+                // clockwise from the top, then paginates. ringSize comes from
+                // the radial sizing profile (4 on phones, 6 on tablets, 8 on
+                // large tablets). Hidden items are skipped when numbering
+                // rings — a user who hides a few items sees the headers shift
+                // to match what actually renders.
+                val ringSize = MenuSizeManager.getRadialItemSize(context).itemsPerRing
                 val visibleIndexById = remember(menuItems, visibilityMap) {
                     var idx = 0
                     buildMap {

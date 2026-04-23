@@ -8,7 +8,6 @@ import android.widget.LinearLayout
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.service.gestures.GesturePoint
 import com.enaboapps.switchify.service.menu.menus.BaseMenu
-import com.enaboapps.switchify.service.menu.structure.MenuConstants
 import com.enaboapps.switchify.service.scanning.ScanNodeInterface
 import com.enaboapps.switchify.service.scanning.ScanningManager
 import com.enaboapps.switchify.service.scanning.tree.ScanTree
@@ -129,7 +128,7 @@ class MenuView(
      * @param menuItems List of MenuItem objects to be displayed in the menu.
      */
     private fun createMenuPages(menuItems: List<MenuItem>) {
-        val perPage = MenuConstants.RADIAL_ITEMS_PER_PAGE
+        val perPage = MenuSizeManager.getRadialItemSize(context).itemsPerRing
         numOfPages = ((menuItems.size + perPage - 1) / perPage).coerceAtLeast(1)
         for (i in 0 until numOfPages) {
             val start = i * perPage
