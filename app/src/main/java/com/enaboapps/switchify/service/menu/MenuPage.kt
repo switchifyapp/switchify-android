@@ -16,6 +16,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.service.components.AccessibilityComposeView
+import com.enaboapps.switchify.service.menu.structure.MenuConstants
 import com.enaboapps.switchify.service.techniques.nodes.Node
 import com.enaboapps.switchify.service.utils.ScreenUtils
 
@@ -25,15 +26,6 @@ import com.enaboapps.switchify.service.utils.ScreenUtils
  * Content items lay out on a ring with an empty centre. A horizontal nav row
  * sits below the ring containing (in order) prev-page, close, next-page — the
  * close button always shows; prev/next only appear when pagination is active.
- *
- * @property context Accessibility-service context used for view inflation.
- * @property contentItems The ring items for this page (≤ [MenuConstants.RADIAL_ITEMS_PER_PAGE]).
- * @property closeItem The close-menu item for the bottom nav row. Null hides
- *                     the close button for this page (rare — usually set).
- * @property pageIndex This page's index within the parent menu.
- * @property maxPageIndex The last page's index — used to decide whether to
- *                        render a "next" arrow.
- * @property onMenuPageChanged Callback invoked when prev/next is selected.
  */
 class MenuPage(
     val context: Context,
@@ -46,12 +38,11 @@ class MenuPage(
     private var prevPageMenuItem: MenuItem? = null
     private var nextPageMenuItem: MenuItem? = null
 
-    /** True when this page has sibling pages — prev/next arrows are rendered. */
     private val hasPagination: Boolean
         get() = maxPageIndex > 0
 
     /**
-     * Get every menu item that lives on this page. Order here feeds the default
+     * Get every menu item that lives on this page. Order feeds the default
      * spatial scanner: ring content items first, then the nav-row items
      * (prev/close/next). The spatial scanner groups/sorts these by (x, y)
      * itself, so the list order is only a fallback for non-spatial consumers.
@@ -65,40 +56,35 @@ class MenuPage(
         return items
     }
 
-    /** Translate every menu item on the page to a Node for the scan tree. */
     fun translateMenuItemsToNodes(): List<Node> = getMenuItems().map { Node.fromMenuItem(it) }
 
-    /**
-     * Build the composed view that [MenuView] attaches as this page's layout.
-     * The container is a vertical LinearLayout: radial ring on top, nav row
-     * below. Both sit inside [MenuPageBackground].
-     */
     fun getMenuLayout(isTransparent: Boolean): ViewGroup {
         prevPageMenuItem = null
         nextPageMenuItem = null
 
+        val screenWidthPx = ScreenUtils.getWidth(context)
+        val edgeInsetPx = ScreenUtils.dpToPx(context, 40)
+        val chordGapPx = ScreenUtils.dpToPx(context, 12)
+        val navTopMarginPx = ScreenUtils.dpToPx(context, 16)
+        val radialItemSize = MenuSizeManager.getRadialItemSize(context)
+        val smallItemSize = MenuSizeManager.getSmallItemSize(context)
+
         val container = createContainerLayout()
 
-        val ring = RadialMenuLayout(context).apply {
+        val ring = RadialMenuLayout(
+            context = context,
+            minChordGapPx = chordGapPx,
+            maxWidthPx = (screenWidthPx - edgeInsetPx).coerceAtLeast(0)
+        ).apply {
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
             ).also { it.gravity = Gravity.CENTER_HORIZONTAL }
-            maxWidthPx = (ScreenUtils.getWidth(context) - ScreenUtils.dpToPx(context, 40))
-                .coerceAtLeast(0)
-            minChordGapPx = ScreenUtils.dpToPx(context, 12)
         }
-
-        val radialItemSize = MenuSizeManager.getRadialItemSize(context)
         contentItems.forEach { it.inflate(ring, radialItemSize) }
-        // No centre child — the ring centre is intentionally empty; close
-        // lives in the nav row below.
-
         container.addView(ring)
 
-        // Nav row always renders because it hosts the close button. Prev/next
-        // arrows join close only when pagination is active.
-        val navRow = buildNavRow()
+        val navRow = buildNavRow(smallItemSize, navTopMarginPx)
         if (navRow.childCount > 0) {
             container.addView(navRow)
         }
@@ -110,7 +96,6 @@ class MenuPage(
         }
     }
 
-    /** Create the vertical container that holds the ring and the nav row. */
     private fun createContainerLayout(): LinearLayout {
         return LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
@@ -122,12 +107,11 @@ class MenuPage(
     }
 
     /**
-     * Build the bottom nav row: [prev] [close] [next] in that order. Prev/next
-     * are elided when they aren't applicable (first/last page, or single page).
-     * Returns an empty LinearLayout if nothing belongs here — caller should
-     * skip adding it in that case.
+     * Bottom nav row: [prev] [close] [next]. Prev/next are elided when they
+     * don't apply (first/last page, single page). Returns an empty LinearLayout
+     * if nothing belongs here — caller skips adding it in that case.
      */
-    private fun buildNavRow(): LinearLayout {
+    private fun buildNavRow(smallItemSize: MenuItemSize, topMarginPx: Int): LinearLayout {
         val navRow = LinearLayout(context).apply {
             orientation = LinearLayout.HORIZONTAL
             layoutParams = LinearLayout.LayoutParams(
@@ -135,42 +119,48 @@ class MenuPage(
                 LinearLayout.LayoutParams.WRAP_CONTENT
             ).also {
                 it.gravity = Gravity.CENTER_HORIZONTAL
-                it.topMargin = ScreenUtils.dpToPx(context, 16)
+                it.topMargin = topMarginPx
             }
         }
 
-        val smallSize = MenuSizeManager.getSmallItemSize(context)
-
         if (hasPagination && pageIndex > 0) {
-            prevPageMenuItem = MenuItem(
-                id = "prevPage",
+            prevPageMenuItem = pageNavItem(
+                id = MenuConstants.ItemIds.Navigation.PREV_PAGE,
                 drawableId = R.drawable.ic_previous_menu_page,
                 labelResource = R.string.menu_item_previous_page,
-                showLabelAsDescription = false,
-                isSmall = true,
-                closeOnSelect = false,
-                isMenuHierarchyManipulator = true,
                 action = { previousPage() }
-            ).also { it.inflate(navRow, smallSize) }
+            ).also { it.inflate(navRow, smallItemSize) }
         }
 
-        closeItem?.inflate(navRow, smallSize)
+        closeItem?.inflate(navRow, smallItemSize)
 
         if (hasPagination && pageIndex < maxPageIndex) {
-            nextPageMenuItem = MenuItem(
-                id = "nextPage",
+            nextPageMenuItem = pageNavItem(
+                id = MenuConstants.ItemIds.Navigation.NEXT_PAGE,
                 drawableId = R.drawable.ic_next_menu_page,
                 labelResource = R.string.menu_item_next_page,
-                showLabelAsDescription = false,
-                isSmall = true,
-                closeOnSelect = false,
-                isMenuHierarchyManipulator = true,
                 action = { nextPage() }
-            ).also { it.inflate(navRow, smallSize) }
+            ).also { it.inflate(navRow, smallItemSize) }
         }
 
         return navRow
     }
+
+    private fun pageNavItem(
+        id: String,
+        drawableId: Int,
+        labelResource: Int,
+        action: () -> Unit
+    ): MenuItem = MenuItem(
+        id = id,
+        drawableId = drawableId,
+        labelResource = labelResource,
+        showLabelAsDescription = false,
+        isSmall = true,
+        closeOnSelect = false,
+        isMenuHierarchyManipulator = true,
+        action = action
+    )
 
     private fun previousPage() {
         val newIndex = if (pageIndex == 0) maxPageIndex else pageIndex - 1

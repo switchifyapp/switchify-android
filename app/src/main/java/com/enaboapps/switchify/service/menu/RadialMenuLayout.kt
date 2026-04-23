@@ -10,14 +10,12 @@ import kotlin.math.min
 import kotlin.math.sin
 
 /**
- * Positions its child views on a single ring around an optional centre child.
+ * Positions its child views on a single ring.
  *
- * Ring children lay out at angles θᵢ = -π/2 + 2π·i/n so the first child sits at
- * 12 o'clock and subsequent children step clockwise. The first child added via
- * [addView] when [centerIndex] points at it is treated as the centre anchor.
- * Children are measured with fixed width/height supplied through layout params
- * (in pixels); this ViewGroup reports a square bounding box sized so the ring
- * just fits inside with the centre child overlaid at the midpoint.
+ * Children lay out at angles θᵢ = -π/2 + 2π·i/n so the first child sits at
+ * 12 o'clock and subsequent children step clockwise. Children are measured
+ * with fixed width/height from their layout params; this ViewGroup reports a
+ * square bounding box sized so the ring just fits inside.
  *
  * Rings shrink to fit narrow parents: if the natural radius would push the
  * bounding box beyond [maxWidthPx], the radius is clamped so adjacent items
@@ -29,20 +27,21 @@ import kotlin.math.sin
 class RadialMenuLayout @JvmOverloads constructor(
     context: Context,
     /** Minimum gap (px) between adjacent ring items along the chord between their centres. */
-    var minChordGapPx: Int = 0,
+    private val minChordGapPx: Int = 0,
     /** Max allowable bounding-box width in px; if 0 no clamp is applied. */
-    var maxWidthPx: Int = 0
+    private val maxWidthPx: Int = 0
 ) : ViewGroup(context) {
 
-    /** Index of the child that should sit in the centre (or -1 for no centre). */
-    var centerIndex: Int = -1
+    // Reusable scratch space so we don't allocate a list per measure/layout pass.
+    private val ringChildren = ArrayList<View>()
+
+    // Radius in px decided during onMeasure, consumed in onLayout.
+    private var measuredRadius: Int = 0
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
-        // Measure every child at its requested (explicit) width/height.
+        ringChildren.clear()
         var maxItemW = 0
         var maxItemH = 0
-        val ringChildren = mutableListOf<View>()
-        var centerChild: View? = null
         for (i in 0 until childCount) {
             val child = getChildAt(i)
             if (child.visibility == GONE) continue
@@ -52,7 +51,7 @@ class RadialMenuLayout @JvmOverloads constructor(
             child.measure(widthSpec, heightSpec)
             maxItemW = max(maxItemW, child.measuredWidth)
             maxItemH = max(maxItemH, child.measuredHeight)
-            if (i == centerIndex) centerChild = child else ringChildren.add(child)
+            ringChildren.add(child)
         }
 
         val n = ringChildren.size
@@ -62,8 +61,7 @@ class RadialMenuLayout @JvmOverloads constructor(
         //   r ≥ (itemExtent + gap) / (2·sin(π/n)).
         // Special-case n ≤ 1 (no ring) and n = 2 (items diametrically opposed).
         var radius = when {
-            n == 0 -> 0
-            n == 1 -> 0
+            n <= 1 -> 0
             n == 2 -> ceil((ringItemExtent + minChordGapPx) / 2.0).toInt()
             else -> {
                 val minChord = (ringItemExtent + minChordGapPx).toDouble()
@@ -71,8 +69,6 @@ class RadialMenuLayout @JvmOverloads constructor(
             }
         }
 
-        // Clamp so the ring fits inside maxWidthPx (if supplied) or the parent's
-        // width spec when measured EXACTLY/AT_MOST.
         val parentWidthMode = MeasureSpec.getMode(widthMeasureSpec)
         val parentWidthSize = MeasureSpec.getSize(widthMeasureSpec)
         val widthCap = when {
@@ -87,58 +83,30 @@ class RadialMenuLayout @JvmOverloads constructor(
             if (maxRadius > 0) radius = min(radius, maxRadius)
         }
 
-        val boundingSize = if (n == 0) {
-            // Just the centre (if present) — size to that child.
-            max(centerChild?.measuredWidth ?: 0, centerChild?.measuredHeight ?: 0)
-        } else {
-            2 * radius + ringItemExtent
-        }
-
+        val boundingSize = if (n == 0) 0 else 2 * radius + ringItemExtent
         setMeasuredDimension(
             resolveSize(boundingSize, widthMeasureSpec),
             resolveSize(boundingSize, heightMeasureSpec)
         )
 
-        // Stash for onLayout
         measuredRadius = radius
-        measuredRingItemExtent = ringItemExtent
     }
 
-    private var measuredRadius: Int = 0
-    private var measuredRingItemExtent: Int = 0
-
     override fun onLayout(changed: Boolean, l: Int, t: Int, r: Int, b: Int) {
-        val boundingW = r - l
-        val boundingH = b - t
-        val centerX = boundingW / 2
-        val centerY = boundingH / 2
+        val centerX = (r - l) / 2
+        val centerY = (b - t) / 2
         val radius = measuredRadius
-
-        val ringChildren = mutableListOf<Pair<Int, View>>()
-        var centerChild: View? = null
-        for (i in 0 until childCount) {
-            val child = getChildAt(i)
-            if (child.visibility == GONE) continue
-            if (i == centerIndex) centerChild = child else ringChildren.add(i to child)
-        }
-
         val n = ringChildren.size
-        if (n > 0) {
-            for ((orderIndex, pair) in ringChildren.withIndex()) {
-                val (_, child) = pair
-                val theta = -Math.PI / 2.0 + 2.0 * Math.PI * orderIndex / n
-                val cx = centerX + (radius * cos(theta)).toInt()
-                val cy = centerY + (radius * sin(theta)).toInt()
-                val left = cx - child.measuredWidth / 2
-                val top = cy - child.measuredHeight / 2
-                child.layout(left, top, left + child.measuredWidth, top + child.measuredHeight)
-            }
-        }
+        if (n == 0) return
 
-        centerChild?.let {
-            val left = centerX - it.measuredWidth / 2
-            val top = centerY - it.measuredHeight / 2
-            it.layout(left, top, left + it.measuredWidth, top + it.measuredHeight)
+        for (i in 0 until n) {
+            val child = ringChildren[i]
+            val theta = -Math.PI / 2.0 + 2.0 * Math.PI * i / n
+            val cx = centerX + (radius * cos(theta)).toInt()
+            val cy = centerY + (radius * sin(theta)).toInt()
+            val left = cx - child.measuredWidth / 2
+            val top = cy - child.measuredHeight / 2
+            child.layout(left, top, left + child.measuredWidth, top + child.measuredHeight)
         }
     }
 

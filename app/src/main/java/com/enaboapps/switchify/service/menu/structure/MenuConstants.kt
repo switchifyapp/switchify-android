@@ -33,6 +33,16 @@ object MenuConstants {
      */
     object ItemIds {
         /**
+         * Menu-wide navigation / manipulator items (close, prev/next page, etc.)
+         * rendered outside the per-menu content (e.g. in the radial page's nav row).
+         */
+        object Navigation {
+            const val CLOSE_MENU = "close_menu"
+            const val PREV_PAGE = "prevPage"
+            const val NEXT_PAGE = "nextPage"
+        }
+
+        /**
          * Main menu items
          */
         object Main {

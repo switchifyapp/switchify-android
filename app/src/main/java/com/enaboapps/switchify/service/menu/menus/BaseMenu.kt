@@ -6,6 +6,7 @@ import com.enaboapps.switchify.service.menu.MenuItem
 import com.enaboapps.switchify.service.menu.MenuManager
 import com.enaboapps.switchify.service.menu.MenuView
 import com.enaboapps.switchify.service.menu.database.MenuConfigurationRepository
+import com.enaboapps.switchify.service.menu.structure.MenuConstants
 import com.enaboapps.switchify.service.menu.structure.MenuStructureHolder
 import com.enaboapps.switchify.service.menu.structure.MenuUserItemsHelper
 import com.enaboapps.switchify.service.utils.DeviceLockObserver
@@ -143,8 +144,9 @@ open class BaseMenu(
      * @return The close menu item, or null to hide the close button entirely.
      */
     open fun buildCloseItem(): MenuItem? {
-        return buildNavMenuItems().firstOrNull { it.id == "close_menu" }
-            ?: buildNavMenuItems().firstOrNull()
+        val navItems = buildNavMenuItems()
+        return navItems.firstOrNull { it.id == MenuConstants.ItemIds.Navigation.CLOSE_MENU }
+            ?: navItems.firstOrNull()
     }
 
     /**

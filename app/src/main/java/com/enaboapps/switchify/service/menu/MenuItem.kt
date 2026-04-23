@@ -82,27 +82,7 @@ class MenuItem(
     private var composeView: AccessibilityComposeView? = null
 
     /**
-     * Inflate the menu item into the given parent ViewGroup.
-     *
-     * The concrete item size is resolved from [MenuSizeManager] based on the item's
-     * flags: hierarchy manipulators / small items use [MenuSizeManager.getSmallItemSize],
-     * everything else uses [MenuSizeManager.getRadialItemSize] (ring content cells).
-     * Callers wanting a different size pass it via [inflate] with explicit dimensions.
-     *
-     * @param parent The parent ViewGroup to attach the composed view to.
-     */
-    fun inflate(parent: ViewGroup) {
-        val context = parent.context
-        val menuSize = if (isMenuHierarchyManipulator || isSmall) {
-            MenuSizeManager.getSmallItemSize(context)
-        } else {
-            MenuSizeManager.getRadialItemSize(context)
-        }
-        inflate(parent, menuSize)
-    }
-
-    /**
-     * Inflate the menu item into [parent] using an explicit [menuSize].
+     * Inflate the menu item into [parent] using [menuSize] for its dimensions.
      */
     fun inflate(parent: ViewGroup, menuSize: MenuItemSize) {
         val context = parent.context
@@ -326,13 +306,15 @@ private fun RegularMenuItem(
     }
 }
 
+private val WHITESPACE_REGEX = Regex("\\s+")
+
 /**
  * Produce a short in-circle stand-in for items that have no icon. Takes the first
  * letter of up to the first two whitespace-separated words so "Gmail" → "G" and
  * "Slack HQ" → "SH".
  */
 private fun circleInitials(source: String): String {
-    val tokens = source.trim().split(Regex("\\s+"))
+    val tokens = source.trim().split(WHITESPACE_REGEX)
     return when {
         tokens.isEmpty() || tokens[0].isEmpty() -> ""
         tokens.size == 1 -> tokens[0].first().uppercaseChar().toString()

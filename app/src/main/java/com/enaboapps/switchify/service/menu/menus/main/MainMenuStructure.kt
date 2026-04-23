@@ -200,7 +200,7 @@ class MainMenuStructure(
 
     val menuManipulatorItems = listOfNotNull(
         MenuItem(
-            id = "close_menu",
+            id = MenuConstants.ItemIds.Navigation.CLOSE_MENU,
             drawableId = R.drawable.ic_close_menu,
             labelResource = R.string.menu_item_close_menu,
             showLabelAsDescription = false,
