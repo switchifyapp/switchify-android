@@ -142,6 +142,27 @@ fun MenuCustomizationContent(screenModel: MenuCustomizationScreenModel) {
                     modifier = Modifier.padding(32.dp)
                 )
             } else {
+                // Compute the visible-item index of each row so we can mark ring
+                // boundaries: the service menu lays out 8 visible items per ring
+                // clockwise from the top, then paginates. Hidden items are
+                // skipped when numbering rings — a user who hides a few items
+                // sees the headers shift to match what actually renders.
+                val ringSize = MenuConstants.RADIAL_ITEMS_PER_PAGE
+                val visibleIndexById = remember(menuItems, visibilityMap) {
+                    var idx = 0
+                    buildMap {
+                        menuItems.forEach { item ->
+                            val visible = visibilityMap[item.id] ?: true
+                            if (visible) {
+                                put(item.id, idx)
+                                idx++
+                            }
+                        }
+                    }
+                }
+                val totalVisible = visibleIndexById.size
+                val showRingHeaders = totalVisible > ringSize
+
                 ReorderableList(
                     items = menuItems,
                     onMove = { from, to -> screenModel.moveItem(from, to) },
@@ -152,16 +173,39 @@ fun MenuCustomizationContent(screenModel: MenuCustomizationScreenModel) {
                     val isUserAdded = remember(item.id, userAddedItemIds) {
                         item.id in userAddedItemIds
                     }
-                    MenuItemRow(
-                        item = item,
-                        isVisible = visibilityMap[item.id] ?: true,
-                        onVisibilityToggle = { screenModel.toggleItemVisibility(item.id) },
-                        onDelete = if (isUserAdded) {
-                            { screenModel.removeUserItem(item.id) }
-                        } else null,
-                        isDragging = isDragging,
-                        reorderControls = reorderControls
-                    )
+                    val visibleIndex = visibleIndexById[item.id]
+                    val startsNewRing = showRingHeaders &&
+                        visibleIndex != null && visibleIndex % ringSize == 0
+                    val ringNumber = (visibleIndex ?: 0) / ringSize + 1
+
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        if (startsNewRing) {
+                            Text(
+                                text = stringResource(
+                                    R.string.menu_customization_ring_header,
+                                    ringNumber
+                                ),
+                                style = MaterialTheme.typography.titleSmall,
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.Medium,
+                                modifier = Modifier.padding(
+                                    top = 16.dp,
+                                    bottom = 4.dp,
+                                    start = 4.dp
+                                )
+                            )
+                        }
+                        MenuItemRow(
+                            item = item,
+                            isVisible = visibilityMap[item.id] ?: true,
+                            onVisibilityToggle = { screenModel.toggleItemVisibility(item.id) },
+                            onDelete = if (isUserAdded) {
+                                { screenModel.removeUserItem(item.id) }
+                            } else null,
+                            isDragging = isDragging,
+                            reorderControls = reorderControls
+                        )
+                    }
                 }
             }
         }

@@ -7,16 +7,15 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -263,63 +262,81 @@ private fun RegularMenuItem(
     isLinkToMenu: Boolean,
     onClick: () -> Unit
 ) {
-    Surface(
+    // Ring item: icon (or short text stand-in for label-only items) inside a
+    // coloured circle, full label stacked underneath. Every item gets the same
+    // circle background for visual consistency across the ring.
+    Column(
         modifier = Modifier
             .fillMaxSize()
+            .clickable(onClick = onClick)
             .padding(menuSize.padding),
-        shape = RoundedCornerShape(menuSize.cornerRadius),
-        color = MaterialTheme.colorScheme.surfaceVariant,
-        shadowElevation = 4.dp
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(
+            menuSize.elementSpacing,
+            Alignment.CenterVertically
+        )
     ) {
         Box(
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier
+                .size(menuSize.containerCircleSize)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.primaryContainer),
+            contentAlignment = Alignment.Center
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clickable(onClick = onClick),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(
-                    menuSize.elementSpacing,
-                    Alignment.CenterVertically
+            if (drawableId != 0) {
+                Icon(
+                    painter = painterResource(id = drawableId),
+                    contentDescription = labelResource?.let { Resources.getString(it) },
+                    modifier = Modifier.size(menuSize.iconSize),
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer
                 )
-            ) {
-                if (drawableId != 0) {
-                    Icon(
-                        painter = painterResource(id = drawableId),
-                        contentDescription = labelResource?.let { Resources.getString(it) },
-                        modifier = Modifier.size(menuSize.iconSize),
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                }
-
-                if (text != null) {
-                    Text(
-                        text = text,
-                        color = MaterialTheme.colorScheme.onBackground,
-                        fontSize = if (drawableId != 0) menuSize.primaryTextSize else menuSize.primaryTextSize,
-                        textAlign = TextAlign.Center,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.padding(horizontal = 8.dp)
-                    )
-                }
-
+            } else if (text != null) {
+                Text(
+                    text = circleInitials(text),
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    fontSize = menuSize.primaryTextSize,
+                    textAlign = TextAlign.Center,
+                    maxLines = 1
+                )
             }
-
-            // Add link indicator for menu link items
             if (isLinkToMenu) {
-                val indicatorOffset = menuSize.cornerRadius + 2.dp
                 Icon(
                     painter = painterResource(id = R.drawable.ic_menu_link),
                     contentDescription = "Opens submenu",
                     modifier = Modifier
-                        .size(18.dp)
+                        .size(14.dp)
                         .align(Alignment.TopEnd)
-                        .offset(x = -indicatorOffset, y = indicatorOffset),
-                    tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
+                        .offset(x = 2.dp, y = (-2).dp),
+                    tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.85f)
                 )
             }
         }
+
+        if (text != null) {
+            Text(
+                text = text,
+                color = MaterialTheme.colorScheme.onSurface,
+                fontSize = menuSize.primaryTextSize,
+                textAlign = TextAlign.Center,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+    }
+}
+
+/**
+ * Produce a short in-circle stand-in for items that have no icon. Takes the first
+ * letter of up to the first two whitespace-separated words so "Gmail" → "G" and
+ * "Slack HQ" → "SH".
+ */
+private fun circleInitials(source: String): String {
+    val tokens = source.trim().split(Regex("\\s+"))
+    return when {
+        tokens.isEmpty() || tokens[0].isEmpty() -> ""
+        tokens.size == 1 -> tokens[0].first().uppercaseChar().toString()
+        else -> (tokens[0].first().uppercaseChar().toString() +
+            tokens[1].first().uppercaseChar().toString())
     }
 }

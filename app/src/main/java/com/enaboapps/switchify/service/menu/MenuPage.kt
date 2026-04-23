@@ -87,6 +87,7 @@ class MenuPage(
             ).also { it.gravity = Gravity.CENTER_HORIZONTAL }
             maxWidthPx = (ScreenUtils.getWidth(context) - ScreenUtils.dpToPx(context, 40))
                 .coerceAtLeast(0)
+            minChordGapPx = ScreenUtils.dpToPx(context, 12)
         }
 
         // Add ring children first, then the centre, so the centre index is known

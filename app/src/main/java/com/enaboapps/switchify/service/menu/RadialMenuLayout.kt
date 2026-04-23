@@ -3,6 +3,7 @@ package com.enaboapps.switchify.service.menu
 import android.content.Context
 import android.view.View
 import android.view.ViewGroup
+import kotlin.math.ceil
 import kotlin.math.cos
 import kotlin.math.max
 import kotlin.math.min
@@ -27,8 +28,8 @@ import kotlin.math.sin
  */
 class RadialMenuLayout @JvmOverloads constructor(
     context: Context,
-    /** The target minimum angular gap between ring items in radians (e.g. π/4 = 45°). */
-    private val desiredMinAngularGap: Double = Math.PI / 4.0,
+    /** Minimum gap (px) between adjacent ring items along the chord between their centres. */
+    var minChordGapPx: Int = 0,
     /** Max allowable bounding-box width in px; if 0 no clamp is applied. */
     var maxWidthPx: Int = 0
 ) : ViewGroup(context) {
@@ -56,9 +57,18 @@ class RadialMenuLayout @JvmOverloads constructor(
 
         val n = ringChildren.size
         val ringItemExtent = max(maxItemW, maxItemH)
-        var radius = if (n == 0) 0 else {
-            val radiusMultiplier = max(1.0, n.toDouble() / (2.0 * Math.PI / desiredMinAngularGap))
-            (ringItemExtent * 0.9 * radiusMultiplier).toInt()
+        // Chord between adjacent item centres on a ring of n items is 2·r·sin(π/n).
+        // Demand chord ≥ itemExtent + gap so items don't overlap. Solve for r:
+        //   r ≥ (itemExtent + gap) / (2·sin(π/n)).
+        // Special-case n ≤ 1 (no ring) and n = 2 (items diametrically opposed).
+        var radius = when {
+            n == 0 -> 0
+            n == 1 -> 0
+            n == 2 -> ceil((ringItemExtent + minChordGapPx) / 2.0).toInt()
+            else -> {
+                val minChord = (ringItemExtent + minChordGapPx).toDouble()
+                ceil(minChord / (2.0 * sin(Math.PI / n))).toInt()
+            }
         }
 
         // Clamp so the ring fits inside maxWidthPx (if supplied) or the parent's

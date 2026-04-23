@@ -28,7 +28,12 @@ data class MenuItemSize(
     val cornerRadius: Dp,
     val elementSpacing: Dp,
     val navigationIconSize: Dp,
-    val navigationCircleSize: Dp
+    val navigationCircleSize: Dp,
+    /**
+     * Diameter of the circular container behind the icon on radial ring items.
+     * Ignored for grid-style profiles (defaults to 0).
+     */
+    val containerCircleSize: Dp = 0.dp
 )
 
 /**
@@ -81,19 +86,22 @@ object MenuSizes {
     )
 
     /**
-     * Phone Radial - Tighter profile for ring-positioned items
+     * Phone Radial - Circular-tile profile: icon inside a 48 dp coloured circle
+     * with the label stacked underneath. Overall cell is 72 × 86 dp so the ring
+     * can pack 8 items into a ~330 dp bounding box on a phone.
      */
     val PHONE_RADIAL = MenuItemSize(
-        width = 120.dp,
-        height = 100.dp,
-        iconSize = 32.dp,
+        width = 72.dp,
+        height = 86.dp,
+        iconSize = 24.dp,
         primaryTextSize = 10.sp,
         secondaryTextSize = 8.sp,
-        padding = 6.dp,
-        cornerRadius = 16.dp,
-        elementSpacing = 4.dp,
+        padding = 2.dp,
+        cornerRadius = 14.dp,
+        elementSpacing = 6.dp,
         navigationIconSize = 20.dp,
-        navigationCircleSize = 40.dp
+        navigationCircleSize = 40.dp,
+        containerCircleSize = 48.dp
     )
 
     /**
@@ -129,19 +137,22 @@ object MenuSizes {
     )
 
     /**
-     * Tablet Radial - Tighter profile for ring-positioned items on tablets
+     * Tablet Radial - Circular-tile profile: icon inside a 64 dp coloured circle
+     * with the label stacked underneath. Overall cell is 96 × 108 dp; an 8-item
+     * ring lands around a ~430 dp bounding box on tablets.
      */
     val TABLET_RADIAL = MenuItemSize(
-        width = 140.dp,
-        height = 110.dp,
-        iconSize = 44.dp,
-        primaryTextSize = 14.sp,
-        secondaryTextSize = 12.sp,
-        padding = 4.dp,
-        cornerRadius = 20.dp,
-        elementSpacing = 0.dp,
+        width = 96.dp,
+        height = 108.dp,
+        iconSize = 32.dp,
+        primaryTextSize = 12.sp,
+        secondaryTextSize = 10.sp,
+        padding = 2.dp,
+        cornerRadius = 18.dp,
+        elementSpacing = 6.dp,
         navigationIconSize = 24.dp,
-        navigationCircleSize = 48.dp
+        navigationCircleSize = 48.dp,
+        containerCircleSize = 64.dp
     )
 
     /**
