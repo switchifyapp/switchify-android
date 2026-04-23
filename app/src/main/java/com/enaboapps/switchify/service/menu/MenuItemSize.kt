@@ -28,7 +28,18 @@ data class MenuItemSize(
     val cornerRadius: Dp,
     val elementSpacing: Dp,
     val navigationIconSize: Dp,
-    val navigationCircleSize: Dp
+    val navigationCircleSize: Dp,
+    /**
+     * Diameter of the circular container behind the icon on radial ring items.
+     * Ignored for grid-style profiles (defaults to 0).
+     */
+    val containerCircleSize: Dp = 0.dp,
+    /**
+     * Max number of ring items before a radial page paginates. Only consulted
+     * for radial profiles; non-radial profiles leave the default and it is
+     * never read.
+     */
+    val itemsPerRing: Int = 4
 )
 
 /**
@@ -37,8 +48,12 @@ data class MenuItemSize(
 enum class MenuSizeVariant {
     PHONE_SMALL,
     PHONE_REGULAR,
+    PHONE_COMPACT_RADIAL,
+    PHONE_RADIAL,
     TABLET_SMALL,
-    TABLET_REGULAR
+    TABLET_REGULAR,
+    TABLET_RADIAL,
+    TABLET_LARGE_RADIAL
 }
 
 /**
@@ -79,6 +94,46 @@ object MenuSizes {
     )
 
     /**
+     * Phone Compact Radial - Tightest profile for narrow phones (smallestScreenWidthDp < 360 dp).
+     * Icon inside a 40 dp circle, 62 × 76 dp cell — keeps a 4-item ring under
+     * ~200 dp so it fits a 320 dp screen without clamping-induced overlap.
+     */
+    val PHONE_COMPACT_RADIAL = MenuItemSize(
+        width = 62.dp,
+        height = 76.dp,
+        iconSize = 20.dp,
+        primaryTextSize = 9.sp,
+        secondaryTextSize = 8.sp,
+        padding = 2.dp,
+        cornerRadius = 12.dp,
+        elementSpacing = 4.dp,
+        navigationIconSize = 18.dp,
+        navigationCircleSize = 36.dp,
+        containerCircleSize = 40.dp,
+        itemsPerRing = 4
+    )
+
+    /**
+     * Phone Radial - Circular-tile profile for regular phones (360 ≤ swdp < 600).
+     * Icon inside a 48 dp coloured circle, 72 × 86 dp cell. 4-item ring fits in
+     * ~226 dp on a phone.
+     */
+    val PHONE_RADIAL = MenuItemSize(
+        width = 72.dp,
+        height = 86.dp,
+        iconSize = 24.dp,
+        primaryTextSize = 10.sp,
+        secondaryTextSize = 8.sp,
+        padding = 2.dp,
+        cornerRadius = 14.dp,
+        elementSpacing = 6.dp,
+        navigationIconSize = 20.dp,
+        navigationCircleSize = 40.dp,
+        containerCircleSize = 48.dp,
+        itemsPerRing = 4
+    )
+
+    /**
      * Tablet Small - Current small size (navigation items)
      */
     val TABLET_SMALL = MenuItemSize(
@@ -111,14 +166,58 @@ object MenuSizes {
     )
 
     /**
+     * Tablet Radial - Circular-tile profile for tablets (600 ≤ swdp < 840).
+     * Icon inside a 64 dp circle, 96 × 108 dp cell. 6-item ring fits in
+     * ~348 dp — takes advantage of the bigger canvas for less pagination.
+     */
+    val TABLET_RADIAL = MenuItemSize(
+        width = 96.dp,
+        height = 108.dp,
+        iconSize = 32.dp,
+        primaryTextSize = 12.sp,
+        secondaryTextSize = 10.sp,
+        padding = 2.dp,
+        cornerRadius = 18.dp,
+        elementSpacing = 6.dp,
+        navigationIconSize = 24.dp,
+        navigationCircleSize = 48.dp,
+        containerCircleSize = 64.dp,
+        itemsPerRing = 6
+    )
+
+    /**
+     * Tablet Large Radial - Most spacious profile for large tablets / foldables
+     * (smallestScreenWidthDp ≥ 840 dp). Icon inside a 76 dp circle, 112 × 128 dp
+     * cell. 8-item ring sits in ~500 dp — uses the screen without feeling lost.
+     */
+    val TABLET_LARGE_RADIAL = MenuItemSize(
+        width = 112.dp,
+        height = 128.dp,
+        iconSize = 40.dp,
+        primaryTextSize = 13.sp,
+        secondaryTextSize = 11.sp,
+        padding = 3.dp,
+        cornerRadius = 20.dp,
+        elementSpacing = 8.dp,
+        navigationIconSize = 28.dp,
+        navigationCircleSize = 56.dp,
+        containerCircleSize = 76.dp,
+        itemsPerRing = 8
+    )
+
+    /**
      * Get the appropriate size variant based on the given MenuSizeVariant
      */
     fun getSizeForVariant(variant: MenuSizeVariant): MenuItemSize {
         return when (variant) {
             MenuSizeVariant.PHONE_SMALL -> PHONE_SMALL
             MenuSizeVariant.PHONE_REGULAR -> PHONE_REGULAR
+            MenuSizeVariant.PHONE_COMPACT_RADIAL -> PHONE_COMPACT_RADIAL
+            MenuSizeVariant.PHONE_RADIAL -> PHONE_RADIAL
             MenuSizeVariant.TABLET_SMALL -> TABLET_SMALL
             MenuSizeVariant.TABLET_REGULAR -> TABLET_REGULAR
+            MenuSizeVariant.TABLET_RADIAL -> TABLET_RADIAL
+            MenuSizeVariant.TABLET_LARGE_RADIAL -> TABLET_LARGE_RADIAL
         }
     }
 }

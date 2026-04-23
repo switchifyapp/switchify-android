@@ -26,7 +26,7 @@ import com.enaboapps.switchify.components.ReorderableList
 import com.enaboapps.switchify.screens.settings.menu.models.MenuCustomizationScreenModel
 import com.enaboapps.switchify.screens.settings.menu.models.PaletteItem
 import com.enaboapps.switchify.service.menu.MenuItem
-import com.enaboapps.switchify.service.menu.structure.MenuConstants
+import com.enaboapps.switchify.service.menu.MenuSizeManager
 
 /**
  * Hosts the menu customization screen, wiring a screen model and rendering the content inside a BaseView.
@@ -77,6 +77,7 @@ fun MenuCustomizationScreen(navController: NavController) {
  */
 @Composable
 fun MenuCustomizationContent(screenModel: MenuCustomizationScreenModel) {
+    val context = LocalContext.current
     val menuItems by screenModel.menuItems.collectAsState()
     val selectedMenuId by screenModel.selectedMenuId.collectAsState()
     val availableMenus by screenModel.availableMenus.collectAsState()
@@ -142,6 +143,29 @@ fun MenuCustomizationContent(screenModel: MenuCustomizationScreenModel) {
                     modifier = Modifier.padding(32.dp)
                 )
             } else {
+                // Compute the visible-item index of each row so we can mark ring
+                // boundaries: the service menu lays out ringSize items per ring
+                // clockwise from the top, then paginates. ringSize comes from
+                // the radial sizing profile (4 on phones, 6 on tablets, 8 on
+                // large tablets). Hidden items are skipped when numbering
+                // rings — a user who hides a few items sees the headers shift
+                // to match what actually renders.
+                val ringSize = MenuSizeManager.getRadialItemSize(context).itemsPerRing
+                val visibleIndexById = remember(menuItems, visibilityMap) {
+                    var idx = 0
+                    buildMap {
+                        menuItems.forEach { item ->
+                            val visible = visibilityMap[item.id] ?: true
+                            if (visible) {
+                                put(item.id, idx)
+                                idx++
+                            }
+                        }
+                    }
+                }
+                val totalVisible = visibleIndexById.size
+                val showRingHeaders = totalVisible > ringSize
+
                 ReorderableList(
                     items = menuItems,
                     onMove = { from, to -> screenModel.moveItem(from, to) },
@@ -152,16 +176,39 @@ fun MenuCustomizationContent(screenModel: MenuCustomizationScreenModel) {
                     val isUserAdded = remember(item.id, userAddedItemIds) {
                         item.id in userAddedItemIds
                     }
-                    MenuItemRow(
-                        item = item,
-                        isVisible = visibilityMap[item.id] ?: true,
-                        onVisibilityToggle = { screenModel.toggleItemVisibility(item.id) },
-                        onDelete = if (isUserAdded) {
-                            { screenModel.removeUserItem(item.id) }
-                        } else null,
-                        isDragging = isDragging,
-                        reorderControls = reorderControls
-                    )
+                    val visibleIndex = visibleIndexById[item.id]
+                    val startsNewRing = showRingHeaders &&
+                        visibleIndex != null && visibleIndex % ringSize == 0
+                    val ringNumber = (visibleIndex ?: 0) / ringSize + 1
+
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        if (startsNewRing) {
+                            Text(
+                                text = stringResource(
+                                    R.string.menu_customization_ring_header,
+                                    ringNumber
+                                ),
+                                style = MaterialTheme.typography.titleSmall,
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.Medium,
+                                modifier = Modifier.padding(
+                                    top = 16.dp,
+                                    bottom = 4.dp,
+                                    start = 4.dp
+                                )
+                            )
+                        }
+                        MenuItemRow(
+                            item = item,
+                            isVisible = visibilityMap[item.id] ?: true,
+                            onVisibilityToggle = { screenModel.toggleItemVisibility(item.id) },
+                            onDelete = if (isUserAdded) {
+                                { screenModel.removeUserItem(item.id) }
+                            } else null,
+                            isDragging = isDragging,
+                            reorderControls = reorderControls
+                        )
+                    }
                 }
             }
         }

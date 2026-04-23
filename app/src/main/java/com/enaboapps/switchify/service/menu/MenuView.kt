@@ -120,77 +120,33 @@ class MenuView(
     }
 
     /**
-     * Creates menu pages from the provided list of menu items.
+     * Creates radial menu pages from the provided flat list of menu items. Items
+     * are paginated in groups of [RADIAL_ITEMS_PER_PAGE]; each page lays out its
+     * chunk on a single ring around [BaseMenu.buildCenterItem] (the close
+     * manipulator by default).
      *
      * @param menuItems List of MenuItem objects to be displayed in the menu.
      */
     private fun createMenuPages(menuItems: List<MenuItem>) {
-        // Get rows per page from preferences, default to 2
-        val numOfRowsPerPage = preferenceManager.getIntegerValue(
-            PreferenceManager.PREFERENCE_KEY_MENU_ROWS_PER_PAGE,
-            2
-        )
-
-        // Calculate items per row based on screen width
-        val itemsPerRow = calculateItemsPerRow()
-
-        // Calculate total items per page based on rows and items per row
-        val numOfItemsPerPage = numOfRowsPerPage * itemsPerRow
-
-        numOfPages = (menuItems.size + numOfItemsPerPage - 1) / numOfItemsPerPage
+        val perPage = MenuSizeManager.getRadialItemSize(context).itemsPerRing
+        numOfPages = ((menuItems.size + perPage - 1) / perPage).coerceAtLeast(1)
         for (i in 0 until numOfPages) {
-            val start = i * numOfItemsPerPage
-            val end = ((i + 1) * numOfItemsPerPage).coerceAtMost(menuItems.size)
-
+            val start = i * perPage
+            val end = ((i + 1) * perPage).coerceAtMost(menuItems.size)
             val pageItems = menuItems.subList(start, end)
-            val navRowItems = menu.buildNavMenuItems()
-
-            val rows = mutableListOf<List<MenuItem>>()
-            pageItems.chunked(itemsPerRow).forEach { rowItems ->
-                rows.add(rowItems)
-            }
+            val closeItem = if (menu.shouldShowNavMenuItems()) menu.buildCloseItem() else null
 
             menuPages.add(
                 MenuPage(
-                    context,
-                    rows,
-                    menu.shouldShowNavMenuItems(),
-                    navRowItems,
-                    i,
-                    numOfPages - 1,
-                    ::onMenuPageChanged
+                    context = context,
+                    contentItems = pageItems,
+                    closeItem = closeItem,
+                    pageIndex = i,
+                    maxPageIndex = numOfPages - 1,
+                    onMenuPageChanged = ::onMenuPageChanged
                 )
             )
         }
-    }
-
-    /**
-     * Calculates the optimal number of items per row based on available screen width.
-     * Uses screen width minus 200dp for margins/padding.
-     *
-     * @return The number of items that can fit per row (minimum 2, maximum 5)
-     */
-    private fun calculateItemsPerRow(): Int {
-        val screenWidthPx = context.resources.displayMetrics.widthPixels
-        val density = context.resources.displayMetrics.density
-        val screenWidthDp = screenWidthPx / density
-
-        // Reserve 200dp for margins and padding
-        val availableWidthDp = screenWidthDp - 200
-
-        // Get menu item width based on device type
-        val menuItemSize = MenuSizeManager.getRegularItemSize(context)
-        val itemWidthDp = menuItemSize.width.value
-
-        // Add spacing between items (12dp)
-        val itemSpacing = 12f
-        val totalItemWidth = itemWidthDp + itemSpacing
-
-        // Calculate how many items can fit
-        val itemsPerRow = (availableWidthDp / totalItemWidth).toInt()
-
-        // Ensure minimum 2 items per row, maximum 5 items per row
-        return itemsPerRow.coerceIn(2, 5)
     }
 
     /**
@@ -237,7 +193,10 @@ class MenuView(
             })
         }
 
-        // Use coroutine for delayed tree building after layout completion
+        // Use coroutine for delayed tree building after layout completion. The delay
+        // gives each MenuItem's composeView time to report real on-screen
+        // coordinates via getLocationOnScreen() before the spatial scan tree is
+        // built from them.
         CoroutineScope(Dispatchers.Main).launch {
             delay(500)
             if (pageExists) {
