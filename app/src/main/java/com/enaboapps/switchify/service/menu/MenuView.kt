@@ -135,13 +135,13 @@ class MenuView(
             val start = i * perPage
             val end = ((i + 1) * perPage).coerceAtMost(menuItems.size)
             val pageItems = menuItems.subList(start, end)
-            val centerItem = if (menu.shouldShowNavMenuItems()) menu.buildCenterItem() else null
+            val closeItem = if (menu.shouldShowNavMenuItems()) menu.buildCloseItem() else null
 
             menuPages.add(
                 MenuPage(
                     context = context,
                     contentItems = pageItems,
-                    centerItem = centerItem,
+                    closeItem = closeItem,
                     pageIndex = i,
                     maxPageIndex = numOfPages - 1,
                     onMenuPageChanged = ::onMenuPageChanged

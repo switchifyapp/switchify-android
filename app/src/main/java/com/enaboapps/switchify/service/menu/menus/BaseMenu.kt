@@ -135,13 +135,14 @@ open class BaseMenu(
     }
 
     /**
-     * Build the item that sits in the centre of the radial ring. Defaults to the
-     * close-menu manipulator from [buildNavMenuItems] — subclasses may override
-     * to install a different anchor.
+     * Build the close-menu item rendered in the radial page's bottom nav row
+     * (alongside prev/next page arrows when pagination is active). Defaults to
+     * the close manipulator from [buildNavMenuItems]; subclasses may override
+     * to install a different exit action.
      *
-     * @return The centre menu item, or null to leave the centre empty.
+     * @return The close menu item, or null to hide the close button entirely.
      */
-    open fun buildCenterItem(): MenuItem? {
+    open fun buildCloseItem(): MenuItem? {
         return buildNavMenuItems().firstOrNull { it.id == "close_menu" }
             ?: buildNavMenuItems().firstOrNull()
     }
