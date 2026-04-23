@@ -5,13 +5,14 @@ import android.content.Intent
 import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
+import androidx.compose.material.icons.rounded.Feedback
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -28,11 +29,11 @@ import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import androidx.navigation.NavController
 import com.enaboapps.switchify.R
+import com.enaboapps.switchify.components.ActionButton
 import com.enaboapps.switchify.components.InfoCard
 import com.enaboapps.switchify.components.PreferenceSwitch
 import com.enaboapps.switchify.components.ScrollableView
 import com.enaboapps.switchify.components.Section
-import com.enaboapps.switchify.components.UICard
 import com.enaboapps.switchify.nav.NavigationRoute
 import com.enaboapps.switchify.screens.settings.models.SettingsScreenModel
 import com.enaboapps.switchify.theme.Dimens
@@ -93,23 +94,35 @@ fun AboutSection(
         )
 
         Section(titleResId = R.string.settings_section_about_links) {
-            UICard(
-                titleResId = R.string.button_website,
-                rightIcon = Icons.AutoMirrored.Filled.OpenInNew,
-                onClick = { openUrl(websiteUrl) }
+            ActionButton(
+                textResId = R.string.button_website,
+                leadingIcon = Icons.AutoMirrored.Filled.OpenInNew,
+                onClick = { openUrl(websiteUrl) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = Dimens.spaceM),
+                applyPadding = false
             )
             Spacer(modifier = Modifier.height(Dimens.spaceS))
-            UICard(
-                titleResId = R.string.button_privacy_policy,
-                rightIcon = Icons.AutoMirrored.Filled.OpenInNew,
-                onClick = { openUrl(privacyPolicyUrl) }
+            ActionButton(
+                textResId = R.string.button_privacy_policy,
+                leadingIcon = Icons.AutoMirrored.Filled.OpenInNew,
+                onClick = { openUrl(privacyPolicyUrl) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = Dimens.spaceM),
+                applyPadding = false
             )
             navController?.let {
                 Spacer(modifier = Modifier.height(Dimens.spaceS))
-                UICard(
-                    titleResId = R.string.action_feedback,
-                    rightIcon = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                    onClick = { it.navigate(NavigationRoute.UserFeedback.name) }
+                ActionButton(
+                    textResId = R.string.action_feedback,
+                    leadingIcon = Icons.Rounded.Feedback,
+                    onClick = { it.navigate(NavigationRoute.UserFeedback.name) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = Dimens.spaceM),
+                    applyPadding = false
                 )
             }
         }
