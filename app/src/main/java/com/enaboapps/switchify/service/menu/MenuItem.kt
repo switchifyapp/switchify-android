@@ -1,6 +1,6 @@
 package com.enaboapps.switchify.service.menu
 
-import android.widget.LinearLayout
+import android.view.ViewGroup
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -22,7 +22,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -84,11 +83,31 @@ class MenuItem(
     private var composeView: AccessibilityComposeView? = null
 
     /**
-     * Inflate the menu item
-     * @param linearLayout The linear layout to inflate the menu item into
+     * Inflate the menu item into the given parent ViewGroup.
+     *
+     * The concrete item size is resolved from [MenuSizeManager] based on the item's
+     * flags: hierarchy manipulators / small items use [MenuSizeManager.getSmallItemSize],
+     * everything else uses [MenuSizeManager.getRadialItemSize] (ring content cells).
+     * Callers wanting a different size pass it via [inflate] with explicit dimensions.
+     *
+     * @param parent The parent ViewGroup to attach the composed view to.
      */
-    fun inflate(linearLayout: LinearLayout) {
-        composeView = AccessibilityComposeView(linearLayout.context) {
+    fun inflate(parent: ViewGroup) {
+        val context = parent.context
+        val menuSize = if (isMenuHierarchyManipulator || isSmall) {
+            MenuSizeManager.getSmallItemSize(context)
+        } else {
+            MenuSizeManager.getRadialItemSize(context)
+        }
+        inflate(parent, menuSize)
+    }
+
+    /**
+     * Inflate the menu item into [parent] using an explicit [menuSize].
+     */
+    fun inflate(parent: ViewGroup, menuSize: MenuItemSize) {
+        val context = parent.context
+        composeView = AccessibilityComposeView(context) {
             MenuItemContent(
                 labelResource = labelResource,
                 userProvidedText = userProvidedText,
@@ -97,24 +116,17 @@ class MenuItem(
                 isMenuHierarchyManipulator = isMenuHierarchyManipulator,
                 isSmall = isSmall,
                 isLinkToMenu = isLinkToMenu,
+                menuSize = menuSize,
                 onClick = { select() }
             )
         }
 
         composeView?.let { view ->
-            // Set fixed width/height based on item type using MenuSizeManager
-            val context = linearLayout.context
-            val menuSize = if (isMenuHierarchyManipulator || isSmall) {
-                MenuSizeManager.getSmallItemSize(context)
-            } else {
-                MenuSizeManager.getRegularItemSize(context)
-            }
-
             val widthPx = ScreenUtils.dpToPx(context, menuSize.width.value.toInt())
             val heightPx = ScreenUtils.dpToPx(context, menuSize.height.value.toInt())
 
-            view.layoutParams = LinearLayout.LayoutParams(widthPx, heightPx)
-            linearLayout.addView(view)
+            view.layoutParams = ViewGroup.LayoutParams(widthPx, heightPx)
+            parent.addView(view)
         }
     }
 
@@ -176,17 +188,10 @@ private fun MenuItemContent(
     isMenuHierarchyManipulator: Boolean,
     isSmall: Boolean,
     isLinkToMenu: Boolean,
+    menuSize: MenuItemSize,
     onClick: () -> Unit
 ) {
-    val context = LocalContext.current
     val text = if (labelResource != null) Resources.getString(labelResource) else userProvidedText
-
-    // Get appropriate size based on device type and item type
-    val menuSize = if (isMenuHierarchyManipulator || isSmall) {
-        MenuSizeManager.getSmallItemSize(context)
-    } else {
-        MenuSizeManager.getRegularItemSize(context)
-    }
 
     Box(
         modifier = Modifier

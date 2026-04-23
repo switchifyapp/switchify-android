@@ -120,77 +120,38 @@ class MenuView(
     }
 
     /**
-     * Creates menu pages from the provided list of menu items.
+     * Creates radial menu pages from the provided flat list of menu items. Items
+     * are paginated in groups of [RADIAL_ITEMS_PER_PAGE]; each page lays out its
+     * chunk on a single ring around [BaseMenu.buildCenterItem] (the close
+     * manipulator by default).
      *
      * @param menuItems List of MenuItem objects to be displayed in the menu.
      */
     private fun createMenuPages(menuItems: List<MenuItem>) {
-        // Get rows per page from preferences, default to 2
-        val numOfRowsPerPage = preferenceManager.getIntegerValue(
-            PreferenceManager.PREFERENCE_KEY_MENU_ROWS_PER_PAGE,
-            2
-        )
-
-        // Calculate items per row based on screen width
-        val itemsPerRow = calculateItemsPerRow()
-
-        // Calculate total items per page based on rows and items per row
-        val numOfItemsPerPage = numOfRowsPerPage * itemsPerRow
-
-        numOfPages = (menuItems.size + numOfItemsPerPage - 1) / numOfItemsPerPage
+        numOfPages = ((menuItems.size + RADIAL_ITEMS_PER_PAGE - 1) / RADIAL_ITEMS_PER_PAGE)
+            .coerceAtLeast(1)
         for (i in 0 until numOfPages) {
-            val start = i * numOfItemsPerPage
-            val end = ((i + 1) * numOfItemsPerPage).coerceAtMost(menuItems.size)
-
+            val start = i * RADIAL_ITEMS_PER_PAGE
+            val end = ((i + 1) * RADIAL_ITEMS_PER_PAGE).coerceAtMost(menuItems.size)
             val pageItems = menuItems.subList(start, end)
-            val navRowItems = menu.buildNavMenuItems()
-
-            val rows = mutableListOf<List<MenuItem>>()
-            pageItems.chunked(itemsPerRow).forEach { rowItems ->
-                rows.add(rowItems)
-            }
+            val centerItem = if (menu.shouldShowNavMenuItems()) menu.buildCenterItem() else null
 
             menuPages.add(
                 MenuPage(
-                    context,
-                    rows,
-                    menu.shouldShowNavMenuItems(),
-                    navRowItems,
-                    i,
-                    numOfPages - 1,
-                    ::onMenuPageChanged
+                    context = context,
+                    contentItems = pageItems,
+                    centerItem = centerItem,
+                    pageIndex = i,
+                    maxPageIndex = numOfPages - 1,
+                    onMenuPageChanged = ::onMenuPageChanged
                 )
             )
         }
     }
 
-    /**
-     * Calculates the optimal number of items per row based on available screen width.
-     * Uses screen width minus 200dp for margins/padding.
-     *
-     * @return The number of items that can fit per row (minimum 2, maximum 5)
-     */
-    private fun calculateItemsPerRow(): Int {
-        val screenWidthPx = context.resources.displayMetrics.widthPixels
-        val density = context.resources.displayMetrics.density
-        val screenWidthDp = screenWidthPx / density
-
-        // Reserve 200dp for margins and padding
-        val availableWidthDp = screenWidthDp - 200
-
-        // Get menu item width based on device type
-        val menuItemSize = MenuSizeManager.getRegularItemSize(context)
-        val itemWidthDp = menuItemSize.width.value
-
-        // Add spacing between items (12dp)
-        val itemSpacing = 12f
-        val totalItemWidth = itemWidthDp + itemSpacing
-
-        // Calculate how many items can fit
-        val itemsPerRow = (availableWidthDp / totalItemWidth).toInt()
-
-        // Ensure minimum 2 items per row, maximum 5 items per row
-        return itemsPerRow.coerceIn(2, 5)
+    companion object {
+        /** Maximum content items rendered on a single radial ring. */
+        private const val RADIAL_ITEMS_PER_PAGE = 8
     }
 
     /**
@@ -237,11 +198,36 @@ class MenuView(
             })
         }
 
-        // Use coroutine for delayed tree building after layout completion
+        // Use coroutine for delayed tree building after layout completion. The delay
+        // is required so that each MenuItem's composeView has been laid out on
+        // screen — getMidX/getMidY rely on post-layout coordinates for the polar
+        // sort origin.
         CoroutineScope(Dispatchers.Main).launch {
             delay(500)
             if (pageExists) {
-                scanTree.buildTree(menuPages[currentPage].translateMenuItemsToNodes(), 0)
+                val page = menuPages[currentPage]
+                val contentNodes = page.getContentNodes()
+                val centerNode = page.getCenterNode()
+                val trailingNodes = page.getTrailingNodes()
+                val allNodes = contentNodes + listOfNotNull(centerNode) + trailingNodes
+
+                val (cx, cy) = when {
+                    centerNode != null -> centerNode.getMidX() to centerNode.getMidY()
+                    contentNodes.isNotEmpty() -> {
+                        val avgX = contentNodes.sumOf { it.getMidX() } / contentNodes.size
+                        val avgY = contentNodes.sumOf { it.getMidY() } / contentNodes.size
+                        avgX to avgY
+                    }
+                    else -> 0 to 0
+                }
+
+                scanTree.buildRadialTree(
+                    nodes = allNodes,
+                    centerX = cx,
+                    centerY = cy,
+                    centerNode = centerNode,
+                    trailingNodes = trailingNodes
+                )
 
                 // Notify observers that menu nodes changed
                 MenuManager.getInstance().notifyMenuNodesChanged(this@MenuView)

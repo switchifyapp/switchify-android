@@ -135,6 +135,18 @@ open class BaseMenu(
     }
 
     /**
+     * Build the item that sits in the centre of the radial ring. Defaults to the
+     * close-menu manipulator from [buildNavMenuItems] — subclasses may override
+     * to install a different anchor.
+     *
+     * @return The centre menu item, or null to leave the centre empty.
+     */
+    open fun buildCenterItem(): MenuItem? {
+        return buildNavMenuItems().firstOrNull { it.id == "close_menu" }
+            ?: buildNavMenuItems().firstOrNull()
+    }
+
+    /**
      * Build the menu view
      * @return The menu view
      */

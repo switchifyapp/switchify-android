@@ -37,8 +37,10 @@ data class MenuItemSize(
 enum class MenuSizeVariant {
     PHONE_SMALL,
     PHONE_REGULAR,
+    PHONE_RADIAL,
     TABLET_SMALL,
-    TABLET_REGULAR
+    TABLET_REGULAR,
+    TABLET_RADIAL
 }
 
 /**
@@ -69,6 +71,22 @@ object MenuSizes {
         width = 150.dp,
         height = 130.dp,
         iconSize = 36.dp,
+        primaryTextSize = 10.sp,
+        secondaryTextSize = 8.sp,
+        padding = 6.dp,
+        cornerRadius = 16.dp,
+        elementSpacing = 4.dp,
+        navigationIconSize = 20.dp,
+        navigationCircleSize = 40.dp
+    )
+
+    /**
+     * Phone Radial - Tighter profile for ring-positioned items
+     */
+    val PHONE_RADIAL = MenuItemSize(
+        width = 120.dp,
+        height = 100.dp,
+        iconSize = 32.dp,
         primaryTextSize = 10.sp,
         secondaryTextSize = 8.sp,
         padding = 6.dp,
@@ -111,14 +129,32 @@ object MenuSizes {
     )
 
     /**
+     * Tablet Radial - Tighter profile for ring-positioned items on tablets
+     */
+    val TABLET_RADIAL = MenuItemSize(
+        width = 140.dp,
+        height = 110.dp,
+        iconSize = 44.dp,
+        primaryTextSize = 14.sp,
+        secondaryTextSize = 12.sp,
+        padding = 4.dp,
+        cornerRadius = 20.dp,
+        elementSpacing = 0.dp,
+        navigationIconSize = 24.dp,
+        navigationCircleSize = 48.dp
+    )
+
+    /**
      * Get the appropriate size variant based on the given MenuSizeVariant
      */
     fun getSizeForVariant(variant: MenuSizeVariant): MenuItemSize {
         return when (variant) {
             MenuSizeVariant.PHONE_SMALL -> PHONE_SMALL
             MenuSizeVariant.PHONE_REGULAR -> PHONE_REGULAR
+            MenuSizeVariant.PHONE_RADIAL -> PHONE_RADIAL
             MenuSizeVariant.TABLET_SMALL -> TABLET_SMALL
             MenuSizeVariant.TABLET_REGULAR -> TABLET_REGULAR
+            MenuSizeVariant.TABLET_RADIAL -> TABLET_RADIAL
         }
     }
 }

@@ -58,6 +58,30 @@ object MenuSizeManager {
     }
 
     /**
+     * Determines the appropriate size variant for ring-positioned (radial) items
+     * based on device characteristics
+     * @param context The context to determine device characteristics
+     * @return The appropriate MenuSizeVariant for radial items
+     */
+    fun getRadialItemSizeVariant(context: Context): MenuSizeVariant {
+        return if (isPhoneDevice(context)) {
+            MenuSizeVariant.PHONE_RADIAL
+        } else {
+            MenuSizeVariant.TABLET_RADIAL
+        }
+    }
+
+    /**
+     * Gets the MenuItemSize for ring-positioned (radial) items
+     * @param context The context to determine device characteristics
+     * @return The appropriate MenuItemSize for radial items
+     */
+    fun getRadialItemSize(context: Context): MenuItemSize {
+        val variant = getRadialItemSizeVariant(context)
+        return MenuSizes.getSizeForVariant(variant)
+    }
+
+    /**
      * Determines if the current device is a phone based on screen characteristics
      * Uses smallestScreenWidthDp to determine device type
      * @param context The context to check device characteristics
