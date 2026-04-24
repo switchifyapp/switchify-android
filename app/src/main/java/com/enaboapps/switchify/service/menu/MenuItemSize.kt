@@ -39,7 +39,19 @@ data class MenuItemSize(
      * for radial profiles; non-radial profiles leave the default and it is
      * never read.
      */
-    val itemsPerRing: Int = 4
+    val itemsPerRing: Int = 4,
+    /**
+     * Font size for the ring-centre label that shows the currently highlighted
+     * item's full text. Only consulted by radial profiles; non-radial profiles
+     * ignore it.
+     */
+    val centerLabelTextSize: TextUnit = 14.sp,
+    /**
+     * Hard cap on the ring-centre label's width so it wraps inside the ring's
+     * inner clear area rather than colliding with ring items. Radial profiles
+     * only.
+     */
+    val centerLabelMaxWidth: Dp = 120.dp
 )
 
 /**
@@ -110,7 +122,9 @@ object MenuSizes {
         navigationIconSize = 18.dp,
         navigationCircleSize = 36.dp,
         containerCircleSize = 40.dp,
-        itemsPerRing = 4
+        itemsPerRing = 4,
+        centerLabelTextSize = 12.sp,
+        centerLabelMaxWidth = 80.dp
     )
 
     /**
@@ -130,7 +144,9 @@ object MenuSizes {
         navigationIconSize = 20.dp,
         navigationCircleSize = 40.dp,
         containerCircleSize = 48.dp,
-        itemsPerRing = 4
+        itemsPerRing = 4,
+        centerLabelTextSize = 14.sp,
+        centerLabelMaxWidth = 96.dp
     )
 
     /**
@@ -182,7 +198,9 @@ object MenuSizes {
         navigationIconSize = 24.dp,
         navigationCircleSize = 48.dp,
         containerCircleSize = 64.dp,
-        itemsPerRing = 6
+        itemsPerRing = 6,
+        centerLabelTextSize = 16.sp,
+        centerLabelMaxWidth = 140.dp
     )
 
     /**
@@ -202,7 +220,9 @@ object MenuSizes {
         navigationIconSize = 28.dp,
         navigationCircleSize = 56.dp,
         containerCircleSize = 76.dp,
-        itemsPerRing = 8
+        itemsPerRing = 8,
+        centerLabelTextSize = 18.sp,
+        centerLabelMaxWidth = 180.dp
     )
 
     /**

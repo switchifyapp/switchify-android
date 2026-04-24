@@ -6,12 +6,20 @@ import android.view.ViewGroup
 import android.widget.LinearLayout
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.enaboapps.switchify.R
@@ -19,6 +27,8 @@ import com.enaboapps.switchify.service.components.AccessibilityComposeView
 import com.enaboapps.switchify.service.menu.structure.MenuConstants
 import com.enaboapps.switchify.service.techniques.nodes.Node
 import com.enaboapps.switchify.service.utils.ScreenUtils
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 
 /**
  * Renders a single radial "page" of the service menu.
@@ -38,6 +48,15 @@ class MenuPage(
     private var prevPageMenuItem: MenuItem? = null
     private var nextPageMenuItem: MenuItem? = null
 
+    /**
+     * Holds the full text of whichever ring item is currently highlighted by
+     * the scanner, or null when nothing ring-side is highlighted. The
+     * [CenterLabelOverlay] observes this and renders the label inside the
+     * ring's empty centre — it's the replacement for the below-circle label
+     * that used to truncate long names.
+     */
+    private val centerLabel = MutableStateFlow<String?>(null)
+
     private val hasPagination: Boolean
         get() = maxPageIndex > 0
 
@@ -56,7 +75,19 @@ class MenuPage(
         return items
     }
 
-    fun translateMenuItemsToNodes(): List<Node> = getMenuItems().map { Node.fromMenuItem(it) }
+    fun translateMenuItemsToNodes(): List<Node> = getMenuItems().map { menuItem ->
+        val node = Node.fromMenuItem(menuItem)
+        // Only ring content items drive the centre label; nav-row items
+        // (prev / close / next) already have obvious meaning from their icons
+        // and sit outside the ring.
+        if (menuItem in contentItems) {
+            node.onHighlight = { highlightedNode ->
+                centerLabel.value = highlightedNode.getContentDescription()
+            }
+            node.onUnhighlight = { centerLabel.value = null }
+        }
+        node
+    }
 
     fun getMenuLayout(isTransparent: Boolean): ViewGroup {
         prevPageMenuItem = null
@@ -65,44 +96,28 @@ class MenuPage(
         val screenWidthPx = ScreenUtils.getWidth(context)
         val edgeInsetPx = ScreenUtils.dpToPx(context, 40)
         val chordGapPx = ScreenUtils.dpToPx(context, 12)
-        val navTopMarginPx = ScreenUtils.dpToPx(context, 16)
         val radialItemSize = MenuSizeManager.getRadialItemSize(context)
         val smallItemSize = MenuSizeManager.getSmallItemSize(context)
-
-        val container = createContainerLayout()
 
         val ring = RadialMenuLayout(
             context = context,
             minChordGapPx = chordGapPx,
             maxWidthPx = (screenWidthPx - edgeInsetPx).coerceAtLeast(0)
-        ).apply {
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            ).also { it.gravity = Gravity.CENTER_HORIZONTAL }
-        }
+        )
         contentItems.forEach { it.inflate(ring, radialItemSize) }
-        container.addView(ring)
 
-        val navRow = buildNavRow(smallItemSize, navTopMarginPx)
-        if (navRow.childCount > 0) {
-            container.addView(navRow)
-        }
+        val navRow = buildNavRow(smallItemSize)
+        val showNavRow = navRow.childCount > 0
 
         return AccessibilityComposeView(context) {
             MenuPageBackground(isTransparent) {
-                AndroidView(factory = { container })
+                MenuPageBody(
+                    ring = ring,
+                    navRow = if (showNavRow) navRow else null,
+                    centerLabel = centerLabel,
+                    menuSize = radialItemSize
+                )
             }
-        }
-    }
-
-    private fun createContainerLayout(): LinearLayout {
-        return LinearLayout(context).apply {
-            orientation = LinearLayout.VERTICAL
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            )
         }
     }
 
@@ -111,16 +126,13 @@ class MenuPage(
      * don't apply (first/last page, single page). Returns an empty LinearLayout
      * if nothing belongs here — caller skips adding it in that case.
      */
-    private fun buildNavRow(smallItemSize: MenuItemSize, topMarginPx: Int): LinearLayout {
+    private fun buildNavRow(smallItemSize: MenuItemSize): LinearLayout {
         val navRow = LinearLayout(context).apply {
             orientation = LinearLayout.HORIZONTAL
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
-            ).also {
-                it.gravity = Gravity.CENTER_HORIZONTAL
-                it.topMargin = topMarginPx
-            }
+            ).also { it.gravity = Gravity.CENTER_HORIZONTAL }
         }
 
         if (hasPagination && pageIndex > 0) {
@@ -196,6 +208,67 @@ private fun MenuPageBackground(
             )
         ) {
             content()
+        }
+    }
+}
+
+/**
+ * Vertical stack of the radial ring (with a centred-label overlay) and the
+ * optional nav row beneath it. Both the ring and the nav row are already-built
+ * Android views; this composable only handles their placement and the overlay.
+ */
+@Composable
+private fun MenuPageBody(
+    ring: RadialMenuLayout,
+    navRow: LinearLayout?,
+    centerLabel: StateFlow<String?>,
+    menuSize: MenuItemSize
+) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Box(contentAlignment = Alignment.Center) {
+            AndroidView(factory = { ring })
+            CenterLabelOverlay(labelFlow = centerLabel, menuSize = menuSize)
+        }
+        if (navRow != null) {
+            AndroidView(
+                factory = { navRow },
+                modifier = Modifier.padding(top = 16.dp)
+            )
+        }
+    }
+}
+
+/**
+ * Renders the currently highlighted ring item's full label in the centre of
+ * the ring. The ring's inner area is empty by design (items sit on the
+ * perimeter), so the label can use that space without colliding with items.
+ *
+ * The Box fills the parent, which is sized by the ring itself, so
+ * [Alignment.Center] places the text at the ring's geometric centre.
+ * [MenuItemSize.centerLabelMaxWidth] keeps the text inside the inner clear
+ * diameter — wrapping across lines rather than bleeding into ring items.
+ */
+@Composable
+private fun CenterLabelOverlay(
+    labelFlow: StateFlow<String?>,
+    menuSize: MenuItemSize
+) {
+    val label by labelFlow.collectAsState()
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        val text = label
+        if (text != null) {
+            Text(
+                text = text,
+                color = MaterialTheme.colorScheme.onSurface,
+                fontSize = menuSize.centerLabelTextSize,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .widthIn(max = menuSize.centerLabelMaxWidth)
+                    .padding(8.dp)
+            )
         }
     }
 }
