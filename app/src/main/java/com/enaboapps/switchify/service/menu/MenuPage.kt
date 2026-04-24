@@ -7,7 +7,6 @@ import android.widget.LinearLayout
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -216,6 +215,12 @@ private fun MenuPageBackground(
  * Vertical stack of the radial ring (with a centred-label overlay) and the
  * optional nav row beneath it. Both the ring and the nav row are already-built
  * Android views; this composable only handles their placement and the overlay.
+ *
+ * The ring is the size-determining child of the overlay Box. The overlay uses
+ * [BoxScope.matchParentSize] so it sits on top of the ring at the ring's size
+ * without contributing to the Box's measurement — important because letting
+ * the overlay use `fillMaxSize` would make the whole menu expand to the
+ * window width.
  */
 @Composable
 private fun MenuPageBody(
@@ -227,7 +232,11 @@ private fun MenuPageBody(
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Box(contentAlignment = Alignment.Center) {
             AndroidView(factory = { ring })
-            CenterLabelOverlay(labelFlow = centerLabel, menuSize = menuSize)
+            CenterLabelOverlay(
+                labelFlow = centerLabel,
+                menuSize = menuSize,
+                modifier = Modifier.matchParentSize()
+            )
         }
         if (navRow != null) {
             AndroidView(
@@ -240,22 +249,21 @@ private fun MenuPageBody(
 
 /**
  * Renders the currently highlighted ring item's full label in the centre of
- * the ring. The ring's inner area is empty by design (items sit on the
- * perimeter), so the label can use that space without colliding with items.
- *
- * The Box fills the parent, which is sized by the ring itself, so
- * [Alignment.Center] places the text at the ring's geometric centre.
+ * the ring. The caller supplies a [modifier] that sizes this overlay to match
+ * the ring (via [BoxScope.matchParentSize]); [Alignment.Center] then places
+ * the text at the ring's geometric centre.
  * [MenuItemSize.centerLabelMaxWidth] keeps the text inside the inner clear
  * diameter — wrapping across lines rather than bleeding into ring items.
  */
 @Composable
 private fun CenterLabelOverlay(
     labelFlow: StateFlow<String?>,
-    menuSize: MenuItemSize
+    menuSize: MenuItemSize,
+    modifier: Modifier = Modifier
 ) {
     val label by labelFlow.collectAsState()
     Box(
-        modifier = Modifier.fillMaxSize(),
+        modifier = modifier,
         contentAlignment = Alignment.Center
     ) {
         val text = label
