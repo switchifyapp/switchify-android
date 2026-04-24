@@ -62,17 +62,37 @@ class ScanTreeItem(
     }
 
     /**
-     * This function unhighlights the item or specific node
+     * This function unhighlights the item or specific node.
+     * Single-node rows (and 1-node groups) unhighlight via the node's own
+     * [ScanNodeInterface.unhighlight] so the matching post-highlight callbacks
+     * fire — mirror of the single-node shortcut in [highlightEntireItem] /
+     * [highlightGroup]. Without this, consumers that react to node highlight
+     * state (e.g. the radial menu's centre-label overlay) never see the
+     * un-highlight and their state stays stale.
      * @param groupIndex The index of the group to unhighlight, or null to unhighlight the entire item
      * @param nodeIndex The index of the node within the group to unhighlight, or null to unhighlight the entire group
      */
     fun unhighlight(groupIndex: Int? = null, nodeIndex: Int? = null) {
         when {
-            groupIndex == null && nodeIndex == null -> NodeScannerUI.instance.hideAll()
+            groupIndex == null && nodeIndex == null -> {
+                if (isSingleNode()) {
+                    children[0].unhighlight()
+                } else {
+                    NodeScannerUI.instance.hideAll()
+                }
+            }
+
             groupIndex != null && nodeIndex != null -> groups.getOrNull(groupIndex)
                 ?.getOrNull(nodeIndex)?.unhighlight()
 
-            groupIndex != null && nodeIndex == null -> NodeScannerUI.instance.hideAll()
+            groupIndex != null && nodeIndex == null -> {
+                val group = groups.getOrNull(groupIndex)
+                if (group?.size == 1) {
+                    group[0].unhighlight()
+                } else {
+                    NodeScannerUI.instance.hideAll()
+                }
+            }
 
             else -> throw IllegalArgumentException("Invalid unhighlight parameters")
         }
