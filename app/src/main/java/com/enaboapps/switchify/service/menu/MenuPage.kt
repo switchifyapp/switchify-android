@@ -20,6 +20,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.enaboapps.switchify.R
@@ -240,14 +241,17 @@ private fun MenuPageBody(
 }
 
 /**
- * Renders the currently highlighted ring item's full label as a header above
- * the ring. When [labelFlow] emits `null` (menu just opened, or the scanner is
- * between items) the header shows a muted placeholder — keeping the header's
- * height stable so the ring below doesn't jump.
+ * Renders the currently highlighted item's label as a header above the ring.
+ * When [labelFlow] emits `null` (menu just opened, or the scanner is between
+ * items) the header shows a muted placeholder — keeping the header's height
+ * stable so the ring below doesn't jump.
  *
- * [MenuItemSize.headerLabelMaxWidth] caps the text at roughly the ring's
- * natural width so a long label wraps to additional lines rather than
- * stretching the containing Surface past the ring.
+ * The text is locked to a single line (`maxLines = 1`) with trailing ellipsis
+ * so the header's vertical footprint never grows between items with
+ * different-length labels — previously a long label would wrap onto a second
+ * line and visibly resize the surrounding menu Surface as the scanner moved.
+ * [MenuItemSize.headerLabelMaxWidth] caps the horizontal extent so very long
+ * labels truncate with `…` rather than stretching the Surface past the ring.
  */
 @Composable
 private fun HighlightHeader(
@@ -265,6 +269,8 @@ private fun HighlightHeader(
         ),
         fontSize = menuSize.headerLabelTextSize,
         textAlign = TextAlign.Center,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
         modifier = modifier
             .widthIn(max = menuSize.headerLabelMaxWidth)
             .padding(horizontal = 8.dp),

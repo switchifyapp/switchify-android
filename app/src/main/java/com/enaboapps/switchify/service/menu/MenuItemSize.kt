@@ -48,10 +48,11 @@ data class MenuItemSize(
      */
     val headerLabelTextSize: TextUnit = 14.sp,
     /**
-     * Hard cap on the highlight header's width so it wraps to multiple lines
-     * instead of forcing the surrounding Surface wider than the ring below it.
-     * Sized to roughly match the ring's natural bounding-box width per profile.
-     * Radial profiles only.
+     * Hard cap on the highlight header's width. The header is rendered on a
+     * single line with trailing ellipsis, so this value also sets the point
+     * at which long labels truncate with `…` rather than stretching the
+     * surrounding Surface past the ring. Sized to roughly match the ring's
+     * natural bounding-box width per profile. Radial profiles only.
      */
     val headerLabelMaxWidth: Dp = 240.dp
 )
@@ -125,7 +126,7 @@ object MenuSizes {
         navigationCircleSize = 36.dp,
         containerCircleSize = 40.dp,
         itemsPerRing = 4,
-        headerLabelTextSize = 12.sp,
+        headerLabelTextSize = 10.sp,
         headerLabelMaxWidth = 160.dp
     )
 
@@ -147,7 +148,7 @@ object MenuSizes {
         navigationCircleSize = 40.dp,
         containerCircleSize = 48.dp,
         itemsPerRing = 4,
-        headerLabelTextSize = 14.sp,
+        headerLabelTextSize = 12.sp,
         headerLabelMaxWidth = 190.dp
     )
 
@@ -201,7 +202,7 @@ object MenuSizes {
         navigationCircleSize = 48.dp,
         containerCircleSize = 64.dp,
         itemsPerRing = 6,
-        headerLabelTextSize = 16.sp,
+        headerLabelTextSize = 14.sp,
         headerLabelMaxWidth = 300.dp
     )
 
@@ -223,7 +224,7 @@ object MenuSizes {
         navigationCircleSize = 56.dp,
         containerCircleSize = 76.dp,
         itemsPerRing = 8,
-        headerLabelTextSize = 18.sp,
+        headerLabelTextSize = 16.sp,
         headerLabelMaxWidth = 420.dp
     )
 
