@@ -49,11 +49,12 @@ class MenuPage(
     private var nextPageMenuItem: MenuItem? = null
 
     /**
-     * Holds the full text of whichever ring item is currently highlighted by
-     * the scanner, or null when nothing ring-side is highlighted. The
-     * [HighlightHeader] observes this and renders the label as a header above
-     * the ring — falling back to a muted placeholder when the value is null so
-     * the header's vertical footprint stays stable as the user scans.
+     * Holds the full text of whichever menu node is currently highlighted by
+     * the scanner (ring content item or nav-row item), or null when nothing on
+     * this page is highlighted. The [HighlightHeader] observes this and
+     * renders the label as a header above the ring — falling back to a muted
+     * placeholder when the value is null so the header's vertical footprint
+     * stays stable as the user scans.
      */
     private val highlightedLabel = MutableStateFlow<String?>(null)
 
@@ -76,17 +77,12 @@ class MenuPage(
     }
 
     fun translateMenuItemsToNodes(): List<Node> = getMenuItems().map { menuItem ->
-        val node = Node.fromMenuItem(menuItem)
-        // Only ring content items drive the header label; nav-row items
-        // (prev / close / next) already have obvious meaning from their icons
-        // and sit outside the ring.
-        if (menuItem in contentItems) {
+        Node.fromMenuItem(menuItem).also { node ->
             node.onHighlight = { highlightedNode ->
                 highlightedLabel.value = highlightedNode.getContentDescription()
             }
             node.onUnhighlight = { highlightedLabel.value = null }
         }
-        node
     }
 
     fun getMenuLayout(isTransparent: Boolean): ViewGroup {
