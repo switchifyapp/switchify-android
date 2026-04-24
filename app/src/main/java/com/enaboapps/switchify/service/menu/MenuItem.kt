@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
@@ -23,7 +22,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.service.components.AccessibilityComposeView
@@ -291,18 +289,11 @@ private fun RegularMenuItem(
                 )
             }
         }
-
-        if (text != null) {
-            Text(
-                text = text,
-                color = MaterialTheme.colorScheme.onSurface,
-                fontSize = menuSize.primaryTextSize,
-                textAlign = TextAlign.Center,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
+        // The full label is no longer rendered under the circle — it would
+        // truncate for long user-provided names (e.g. "Microsoft Outlook").
+        // Instead the currently highlighted ring item's label is shown in the
+        // ring centre by [MenuPage.CenterLabelOverlay], which has room to wrap
+        // and is exactly where the scanning user's eye is focused.
     }
 }
 

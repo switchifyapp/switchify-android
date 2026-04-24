@@ -31,6 +31,19 @@ class Node(
 
     private var contentDescription: String = ""
 
+    /**
+     * Optional hook fired after this node is highlighted during scanning.
+     * Stays null for scan nodes that don't need to notify anyone; the menu
+     * system uses it to surface the currently-focused ring item's full label.
+     */
+    var onHighlight: ((Node) -> Unit)? = null
+
+    /**
+     * Companion hook to [onHighlight]; fires after unhighlight. Typically used
+     * to clear whatever state [onHighlight] set.
+     */
+    var onUnhighlight: (() -> Unit)? = null
+
 
     companion object {
         private val mainHandler = Handler(Looper.getMainLooper())
@@ -171,11 +184,13 @@ class Node(
     override fun highlight() {
         NodeScannerUI.Companion.instance.showItemBounds(x, y, width, height)
         highlighted = true
+        onHighlight?.invoke(this)
     }
 
     override fun unhighlight() {
         NodeScannerUI.Companion.instance.hideItemBounds()
         highlighted = false
+        onUnhighlight?.invoke()
     }
 
     override fun select() {
