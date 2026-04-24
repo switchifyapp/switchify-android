@@ -2,7 +2,7 @@
 compose-bom = "2026.04.01"
 compose-icons = "1.7.8"
 kotlin = "2.3.10"
-agp = "9.1.1"
+agp = "9.2.0"
 core-ktx = "1.18.0"
 lifecycle-runtime-ktx = "2.10.0"
 activity-compose = "1.13.0"
