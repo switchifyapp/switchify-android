@@ -18,6 +18,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -50,11 +51,11 @@ class MenuPage(
     /**
      * Holds the full text of whichever ring item is currently highlighted by
      * the scanner, or null when nothing ring-side is highlighted. The
-     * [CenterLabelOverlay] observes this and renders the label inside the
-     * ring's empty centre — it's the replacement for the below-circle label
-     * that used to truncate long names.
+     * [HighlightHeader] observes this and renders the label as a header above
+     * the ring — falling back to a muted placeholder when the value is null so
+     * the header's vertical footprint stays stable as the user scans.
      */
-    private val centerLabel = MutableStateFlow<String?>(null)
+    private val highlightedLabel = MutableStateFlow<String?>(null)
 
     private val hasPagination: Boolean
         get() = maxPageIndex > 0
@@ -76,14 +77,14 @@ class MenuPage(
 
     fun translateMenuItemsToNodes(): List<Node> = getMenuItems().map { menuItem ->
         val node = Node.fromMenuItem(menuItem)
-        // Only ring content items drive the centre label; nav-row items
+        // Only ring content items drive the header label; nav-row items
         // (prev / close / next) already have obvious meaning from their icons
         // and sit outside the ring.
         if (menuItem in contentItems) {
             node.onHighlight = { highlightedNode ->
-                centerLabel.value = highlightedNode.getContentDescription()
+                highlightedLabel.value = highlightedNode.getContentDescription()
             }
-            node.onUnhighlight = { centerLabel.value = null }
+            node.onUnhighlight = { highlightedLabel.value = null }
         }
         node
     }
@@ -113,7 +114,7 @@ class MenuPage(
                 MenuPageBody(
                     ring = ring,
                     navRow = if (showNavRow) navRow else null,
-                    centerLabel = centerLabel,
+                    highlightedLabel = highlightedLabel,
                     menuSize = radialItemSize
                 )
             }
@@ -212,32 +213,27 @@ private fun MenuPageBackground(
 }
 
 /**
- * Vertical stack of the radial ring (with a centred-label overlay) and the
- * optional nav row beneath it. Both the ring and the nav row are already-built
- * Android views; this composable only handles their placement and the overlay.
- *
- * The ring is the size-determining child of the overlay Box. The overlay uses
- * [BoxScope.matchParentSize] so it sits on top of the ring at the ring's size
- * without contributing to the Box's measurement — important because letting
- * the overlay use `fillMaxSize` would make the whole menu expand to the
- * window width.
+ * Vertical stack of the highlight header, the radial ring, and the optional
+ * nav row. The ring and nav row are already-built Android views; this
+ * composable only handles their placement. The header sits above the ring so
+ * long labels never intrude on ring items — previously the label was rendered
+ * inside the ring's empty centre, which on phones left too little horizontal
+ * clearance between the 3 o'clock and 9 o'clock items for multi-line wraps.
  */
 @Composable
 private fun MenuPageBody(
     ring: RadialMenuLayout,
     navRow: LinearLayout?,
-    centerLabel: StateFlow<String?>,
+    highlightedLabel: StateFlow<String?>,
     menuSize: MenuItemSize
 ) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Box(contentAlignment = Alignment.Center) {
-            AndroidView(factory = { ring })
-            CenterLabelOverlay(
-                labelFlow = centerLabel,
-                menuSize = menuSize,
-                modifier = Modifier.matchParentSize()
-            )
-        }
+        HighlightHeader(
+            labelFlow = highlightedLabel,
+            menuSize = menuSize,
+            modifier = Modifier.padding(bottom = 12.dp)
+        )
+        AndroidView(factory = { ring })
         if (navRow != null) {
             AndroidView(
                 factory = { navRow },
@@ -248,35 +244,33 @@ private fun MenuPageBody(
 }
 
 /**
- * Renders the currently highlighted ring item's full label in the centre of
- * the ring. The caller supplies a [modifier] that sizes this overlay to match
- * the ring (via [BoxScope.matchParentSize]); [Alignment.Center] then places
- * the text at the ring's geometric centre.
- * [MenuItemSize.centerLabelMaxWidth] keeps the text inside the inner clear
- * diameter — wrapping across lines rather than bleeding into ring items.
+ * Renders the currently highlighted ring item's full label as a header above
+ * the ring. When [labelFlow] emits `null` (menu just opened, or the scanner is
+ * between items) the header shows a muted placeholder — keeping the header's
+ * height stable so the ring below doesn't jump.
+ *
+ * [MenuItemSize.headerLabelMaxWidth] caps the text at roughly the ring's
+ * natural width so a long label wraps to additional lines rather than
+ * stretching the containing Surface past the ring.
  */
 @Composable
-private fun CenterLabelOverlay(
+private fun HighlightHeader(
     labelFlow: StateFlow<String?>,
     menuSize: MenuItemSize,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val label by labelFlow.collectAsState()
-    Box(
-        modifier = modifier,
-        contentAlignment = Alignment.Center
-    ) {
-        val text = label
-        if (text != null) {
-            Text(
-                text = text,
-                color = MaterialTheme.colorScheme.onSurface,
-                fontSize = menuSize.centerLabelTextSize,
-                textAlign = TextAlign.Center,
-                modifier = Modifier
-                    .widthIn(max = menuSize.centerLabelMaxWidth)
-                    .padding(8.dp)
-            )
-        }
-    }
+    val isPlaceholder = label == null
+    val text = label ?: stringResource(R.string.menu_no_highlighted_item)
+    Text(
+        text = text,
+        color = MaterialTheme.colorScheme.onSurface.copy(
+            alpha = if (isPlaceholder) 0.5f else 1.0f
+        ),
+        fontSize = menuSize.headerLabelTextSize,
+        textAlign = TextAlign.Center,
+        modifier = modifier
+            .widthIn(max = menuSize.headerLabelMaxWidth)
+            .padding(horizontal = 8.dp),
+    )
 }

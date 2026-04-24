@@ -41,17 +41,19 @@ data class MenuItemSize(
      */
     val itemsPerRing: Int = 4,
     /**
-     * Font size for the ring-centre label that shows the currently highlighted
-     * item's full text. Only consulted by radial profiles; non-radial profiles
-     * ignore it.
+     * Font size for the header above the ring that shows the currently
+     * highlighted item's full text (or a muted placeholder when nothing is
+     * highlighted). Read by `MenuPage.HighlightHeader`. Only consulted by
+     * radial profiles; non-radial profiles ignore it.
      */
-    val centerLabelTextSize: TextUnit = 14.sp,
+    val headerLabelTextSize: TextUnit = 14.sp,
     /**
-     * Hard cap on the ring-centre label's width so it wraps inside the ring's
-     * inner clear area rather than colliding with ring items. Radial profiles
-     * only.
+     * Hard cap on the highlight header's width so it wraps to multiple lines
+     * instead of forcing the surrounding Surface wider than the ring below it.
+     * Sized to roughly match the ring's natural bounding-box width per profile.
+     * Radial profiles only.
      */
-    val centerLabelMaxWidth: Dp = 120.dp
+    val headerLabelMaxWidth: Dp = 240.dp
 )
 
 /**
@@ -123,8 +125,8 @@ object MenuSizes {
         navigationCircleSize = 36.dp,
         containerCircleSize = 40.dp,
         itemsPerRing = 4,
-        centerLabelTextSize = 12.sp,
-        centerLabelMaxWidth = 80.dp
+        headerLabelTextSize = 12.sp,
+        headerLabelMaxWidth = 160.dp
     )
 
     /**
@@ -145,8 +147,8 @@ object MenuSizes {
         navigationCircleSize = 40.dp,
         containerCircleSize = 48.dp,
         itemsPerRing = 4,
-        centerLabelTextSize = 14.sp,
-        centerLabelMaxWidth = 96.dp
+        headerLabelTextSize = 14.sp,
+        headerLabelMaxWidth = 190.dp
     )
 
     /**
@@ -199,8 +201,8 @@ object MenuSizes {
         navigationCircleSize = 48.dp,
         containerCircleSize = 64.dp,
         itemsPerRing = 6,
-        centerLabelTextSize = 16.sp,
-        centerLabelMaxWidth = 140.dp
+        headerLabelTextSize = 16.sp,
+        headerLabelMaxWidth = 300.dp
     )
 
     /**
@@ -221,8 +223,8 @@ object MenuSizes {
         navigationCircleSize = 56.dp,
         containerCircleSize = 76.dp,
         itemsPerRing = 8,
-        centerLabelTextSize = 18.sp,
-        centerLabelMaxWidth = 180.dp
+        headerLabelTextSize = 18.sp,
+        headerLabelMaxWidth = 420.dp
     )
 
     /**
