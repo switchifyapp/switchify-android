@@ -30,6 +30,7 @@ import com.enaboapps.switchify.service.techniques.nodes.Node
 import com.enaboapps.switchify.service.utils.ScreenUtils
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlin.math.ceil
 
 /**
  * Renders a single radial "page" of the service menu.
@@ -91,15 +92,44 @@ class MenuPage(
         nextPageMenuItem = null
 
         val screenWidthPx = ScreenUtils.getWidth(context)
+        val screenHeightPx = ScreenUtils.getHeight(context)
         val edgeInsetPx = ScreenUtils.dpToPx(context, 40)
         val chordGapPx = ScreenUtils.dpToPx(context, 12)
         val radialItemSize = MenuSizeManager.getRadialItemSize(context)
         val smallItemSize = MenuSizeManager.getSmallItemSize(context)
 
+        // Reserve vertical space for everything that stacks above and below
+        // the ring (background padding, highlight header + its bottom gap,
+        // optional nav row + its top gap, and a safety margin) so the ring
+        // can be clamped to fit. Without this, Extra Large in landscape on
+        // small phones could push the menu off the bottom edge. Numbers
+        // mirror the Compose layout in MenuPageBackground / MenuPageBody:
+        // 18 dp vertical padding on each side of the Surface = 36 dp total,
+        // 12 dp Column gap below the header, 16 dp Column gap above the
+        // nav row.
+        val willShowNavRow = closeItem != null || hasPagination
+        val backgroundVerticalPadPx = ScreenUtils.dpToPx(context, 36)
+        val headerToRingGapPx = ScreenUtils.dpToPx(context, 12)
+        val ringToNavGapPx = ScreenUtils.dpToPx(context, 16)
+        val safetyMarginPx = ScreenUtils.dpToPx(context, 24)
+        val headerHeightPx = ScreenUtils.dpToPx(
+            context,
+            ceil(radialItemSize.headerLabelTextSize.value * 1.4f).toInt()
+        )
+        val navRowHeightPx = if (willShowNavRow) {
+            ScreenUtils.dpToPx(context, smallItemSize.height.value.toInt()) +
+                ringToNavGapPx
+        } else 0
+        val verticalOverheadPx = backgroundVerticalPadPx + headerHeightPx +
+            headerToRingGapPx + navRowHeightPx + safetyMarginPx
+        val maxHeightForRingPx = (screenHeightPx - verticalOverheadPx)
+            .coerceAtLeast(0)
+
         val ring = RadialMenuLayout(
             context = context,
             minChordGapPx = chordGapPx,
-            maxWidthPx = (screenWidthPx - edgeInsetPx).coerceAtLeast(0)
+            maxWidthPx = (screenWidthPx - edgeInsetPx).coerceAtLeast(0),
+            maxHeightPx = maxHeightForRingPx
         )
         contentItems.forEach { it.inflate(ring, radialItemSize) }
 

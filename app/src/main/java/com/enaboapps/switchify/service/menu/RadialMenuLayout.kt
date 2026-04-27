@@ -29,7 +29,9 @@ class RadialMenuLayout @JvmOverloads constructor(
     /** Minimum gap (px) between adjacent ring items along the chord between their centres. */
     private val minChordGapPx: Int = 0,
     /** Max allowable bounding-box width in px; if 0 no clamp is applied. */
-    private val maxWidthPx: Int = 0
+    private val maxWidthPx: Int = 0,
+    /** Max allowable bounding-box height in px; if 0 no clamp is applied. */
+    private val maxHeightPx: Int = 0
 ) : ViewGroup(context) {
 
     // Reusable scratch space so we don't allocate a list per measure/layout pass.
@@ -80,6 +82,25 @@ class RadialMenuLayout @JvmOverloads constructor(
         }
         if (widthCap > 0 && n > 0) {
             val maxRadius = (widthCap - ringItemExtent) / 2
+            if (maxRadius > 0) radius = min(radius, maxRadius)
+        }
+
+        // Same clamp on the vertical axis. The ring's bounding box is square
+        // (2·radius + itemExtent on both axes), so this only kicks in when the
+        // height budget is tighter than the width budget — typically landscape
+        // orientation at the largest user-selected Menu Size, where there is
+        // plenty of horizontal room but the screen is short.
+        val parentHeightMode = MeasureSpec.getMode(heightMeasureSpec)
+        val parentHeightSize = MeasureSpec.getSize(heightMeasureSpec)
+        val heightCap = when {
+            maxHeightPx > 0 && parentHeightMode != MeasureSpec.UNSPECIFIED ->
+                min(maxHeightPx, parentHeightSize)
+            maxHeightPx > 0 -> maxHeightPx
+            parentHeightMode != MeasureSpec.UNSPECIFIED -> parentHeightSize
+            else -> 0
+        }
+        if (heightCap > 0 && n > 0) {
+            val maxRadius = (heightCap - ringItemExtent) / 2
             if (maxRadius > 0) radius = min(radius, maxRadius)
         }
 
