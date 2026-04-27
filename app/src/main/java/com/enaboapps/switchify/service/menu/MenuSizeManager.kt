@@ -2,12 +2,23 @@ package com.enaboapps.switchify.service.menu
 
 import android.content.Context
 import android.content.res.Configuration
+import com.enaboapps.switchify.backend.preferences.PreferenceManager
 
 /**
  * Manager class responsible for determining the appropriate menu item sizes
  * based on device characteristics and user preferences
  */
 object MenuSizeManager {
+
+    /**
+     * Reads the user's menu-size scale (percent) from preferences. Defaults to
+     * 100 (no scaling) so existing users see no change.
+     */
+    private fun currentScale(context: Context): Int =
+        PreferenceManager(context).getIntegerValue(
+            PreferenceManager.PREFERENCE_KEY_MENU_SIZE_SCALE,
+            100
+        )
 
     /**
      * Determines the appropriate size variant for navigation (small) items
@@ -44,7 +55,7 @@ object MenuSizeManager {
      */
     fun getSmallItemSize(context: Context): MenuItemSize {
         val variant = getSmallItemSizeVariant(context)
-        return MenuSizes.getSizeForVariant(variant)
+        return MenuSizes.getSizeForVariant(variant).scaledBy(currentScale(context))
     }
 
     /**
@@ -54,7 +65,7 @@ object MenuSizeManager {
      */
     fun getRegularItemSize(context: Context): MenuItemSize {
         val variant = getRegularItemSizeVariant(context)
-        return MenuSizes.getSizeForVariant(variant)
+        return MenuSizes.getSizeForVariant(variant).scaledBy(currentScale(context))
     }
 
     /**
@@ -86,7 +97,7 @@ object MenuSizeManager {
      */
     fun getRadialItemSize(context: Context): MenuItemSize {
         val variant = getRadialItemSizeVariant(context)
-        return MenuSizes.getSizeForVariant(variant)
+        return MenuSizes.getSizeForVariant(variant).scaledBy(currentScale(context))
     }
 
     /**
