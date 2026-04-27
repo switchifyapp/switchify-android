@@ -25,6 +25,14 @@ class MenuSettingsModel(context: Context) : ViewModel() {
     }
     val menuRowsPerPage: LiveData<Int> = _menuRowsPerPage
 
+    private val _menuSizeScale = MutableLiveData<Int>().apply {
+        value = preferenceManager.getIntegerValue(
+            PreferenceManager.Keys.PREFERENCE_KEY_MENU_SIZE_SCALE,
+            100
+        )
+    }
+    val menuSizeScale: LiveData<Int> = _menuSizeScale
+
     fun setMenuTransparency(value: Boolean) {
         viewModelScope.launch {
             preferenceManager.setBooleanValue(
@@ -42,6 +50,16 @@ class MenuSettingsModel(context: Context) : ViewModel() {
                 value
             )
             _menuRowsPerPage.postValue(value)
+        }
+    }
+
+    fun setMenuSizeScale(value: Int) {
+        viewModelScope.launch {
+            preferenceManager.setIntegerValue(
+                PreferenceManager.Keys.PREFERENCE_KEY_MENU_SIZE_SCALE,
+                value
+            )
+            _menuSizeScale.postValue(value)
         }
     }
 }

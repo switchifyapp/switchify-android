@@ -506,6 +506,11 @@
     <string name="settings_summary_menu_transparency">Enable transparency for the menu so that you can see content behind it</string>
     <string name="settings_title_menu_rows_per_page">Rows Per Page</string>
     <string name="settings_summary_menu_rows_per_page">Number of rows to display on each menu page</string>
+    <string name="settings_title_menu_size">Menu Size</string>
+    <string name="settings_summary_menu_size">Make service menu items easier to see. Larger sizes may use more screen space.</string>
+    <string name="menu_size_standard">Standard</string>
+    <string name="menu_size_large">Large</string>
+    <string name="menu_size_extra_large">Extra Large</string>
 
     <!-- Settings - Selection Section -->
     <string name="settings_section_selection">Selection</string>

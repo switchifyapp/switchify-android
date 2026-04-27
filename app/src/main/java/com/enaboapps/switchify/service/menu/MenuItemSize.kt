@@ -55,7 +55,32 @@ data class MenuItemSize(
      * natural bounding-box width per profile. Radial profiles only.
      */
     val headerLabelMaxWidth: Dp = 240.dp
-)
+) {
+    /**
+     * Returns a copy of this profile with every Dp/Sp dimension multiplied by
+     * [percent] / 100. `itemsPerRing` is preserved — it is a count, not a size.
+     * A [percent] of 100 returns this instance unchanged for cheap defaulting.
+     */
+    fun scaledBy(percent: Int): MenuItemSize {
+        if (percent == 100) return this
+        val f = percent / 100f
+        return copy(
+            width = width * f,
+            height = height * f,
+            iconSize = iconSize * f,
+            primaryTextSize = primaryTextSize * f,
+            secondaryTextSize = secondaryTextSize * f,
+            padding = padding * f,
+            cornerRadius = cornerRadius * f,
+            elementSpacing = elementSpacing * f,
+            navigationIconSize = navigationIconSize * f,
+            navigationCircleSize = navigationCircleSize * f,
+            containerCircleSize = containerCircleSize * f,
+            headerLabelTextSize = headerLabelTextSize * f,
+            headerLabelMaxWidth = headerLabelMaxWidth * f
+        )
+    }
+}
 
 /**
  * Enum class defining the different size variants available for menu items

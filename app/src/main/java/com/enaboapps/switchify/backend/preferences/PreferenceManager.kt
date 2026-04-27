@@ -47,6 +47,7 @@ class PreferenceManager(context: Context) {
         const val PREFERENCE_KEY_SCAN_HIGHLIGHT_TYPE = "scan_highlight_type"
         const val PREFERENCE_KEY_MENU_TRANSPARENCY = "menu_transparency"
         const val PREFERENCE_KEY_MENU_ROWS_PER_PAGE = "menu_rows_per_page"
+        const val PREFERENCE_KEY_MENU_SIZE_SCALE = "menu_size_scale"
         const val PREFERENCE_KEY_SETTINGS_TAB = "settings_tab"
         const val PREFERENCE_KEY_TELEMETRY_ENABLED = "telemetry_enabled"
         const val PREFERENCE_KEY_ONBOARDING_CURRENT_STEP = "onboarding_current_step"

@@ -1,10 +1,12 @@
 package com.enaboapps.switchify.screens.settings.sections
 
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavController
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.components.NavRouteLink
 import com.enaboapps.switchify.components.PreferenceSwitch
+import com.enaboapps.switchify.components.PreferenceValueSelector
 import com.enaboapps.switchify.components.Section
 import com.enaboapps.switchify.nav.NavigationRoute
 import com.enaboapps.switchify.screens.settings.models.MenuSettingsModel
@@ -33,6 +35,31 @@ fun MenuSection(screenModel: MenuSettingsModel, navController: NavController) {
             navController = navController,
             route = NavigationRoute.MenuCustomization.name
         )
+
+        // Resolve localized labels in the composable scope so the
+        // non-composable formatter lambdas below can capture them.
+        val standardLabel = stringResource(R.string.menu_size_standard)
+        val largeLabel = stringResource(R.string.menu_size_large)
+        val extraLargeLabel = stringResource(R.string.menu_size_extra_large)
+        val sizeLabel: (Int) -> String = { percent ->
+            when (percent) {
+                100 -> standardLabel
+                125 -> largeLabel
+                150 -> extraLargeLabel
+                else -> "$percent%"
+            }
+        }
+
+        PreferenceValueSelector(
+            value = screenModel.menuSizeScale.value ?: 100,
+            titleResId = R.string.settings_title_menu_size,
+            summaryResId = R.string.settings_summary_menu_size,
+            values = intArrayOf(100, 125, 150),
+            buttonLabelFormatter = sizeLabel,
+            displayFormatter = sizeLabel,
+            onValueChanged = { screenModel.setMenuSizeScale(it) }
+        )
+
         PreferenceSwitch(
             titleResId = R.string.settings_title_menu_transparency,
             summaryResId = R.string.settings_summary_menu_transparency,
