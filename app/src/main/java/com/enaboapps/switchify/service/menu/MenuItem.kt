@@ -20,9 +20,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.service.components.AccessibilityComposeView
 import com.enaboapps.switchify.service.menu.structure.MenuItemDefinition
@@ -269,10 +271,23 @@ private fun RegularMenuItem(
                     tint = MaterialTheme.colorScheme.onPrimaryContainer
                 )
             } else if (text != null) {
+                // Cap the in-circle letter so the user's system font scale
+                // (Settings → Display → Font size) does not push it past the
+                // circle's edge when combined with Menu Size > 100 %. The
+                // letter is rendered at `primaryTextSize.value × fontScale`
+                // dp-equivalent on screen; clamp the Sp value so that stays
+                // within ~45 % of the circle's diameter.
+                val fontScale = LocalConfiguration.current.fontScale.coerceAtLeast(0.5f)
+                val maxLetterSp = menuSize.containerCircleSize.value * 0.45f / fontScale
+                val effectiveFontSize = if (menuSize.primaryTextSize.value > maxLetterSp) {
+                    maxLetterSp.sp
+                } else {
+                    menuSize.primaryTextSize
+                }
                 Text(
                     text = circleInitials(text),
                     color = MaterialTheme.colorScheme.onPrimaryContainer,
-                    fontSize = menuSize.primaryTextSize,
+                    fontSize = effectiveFontSize,
                     textAlign = TextAlign.Center,
                     maxLines = 1
                 )
