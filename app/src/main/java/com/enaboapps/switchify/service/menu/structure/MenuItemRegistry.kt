@@ -88,19 +88,30 @@ object MenuItemRegistry {
     /**
      * Tap-related gesture menu item definitions for the gestures submenu.
      *
-     * @return A list of MenuItemDefinition for tap gestures, including tap, double tap, several tap-and-hold durations, and a gesture lock toggle.
+     * @return A list of MenuItemDefinition for tap gestures, including tap, double tap, a link to the tap-and-hold submenu, and a gesture lock toggle.
      */
     fun getTapGesturesMenuDefinitions(): List<MenuItemDefinition> {
         return listOf(
             MenuItemDefinition(MenuConstants.ItemIds.TapGestures.TAP, labelResource = R.string.menu_item_tap, drawableId = R.drawable.ic_gesture_tap),
             MenuItemDefinition(MenuConstants.ItemIds.TapGestures.DOUBLE_TAP, labelResource = R.string.menu_item_double_tap, drawableId = R.drawable.ic_gesture_double_tap),
-            MenuItemDefinition(MenuConstants.ItemIds.TapGestures.TAP_AND_HOLD_0_5S, labelResource = R.string.menu_item_tap_and_hold_0_5s, drawableId = R.drawable.ic_gesture_tap_hold_0_5s),
-            MenuItemDefinition(MenuConstants.ItemIds.TapGestures.TAP_AND_HOLD_1S, labelResource = R.string.menu_item_tap_and_hold_1s, drawableId = R.drawable.ic_gesture_tap_hold_1s),
-            MenuItemDefinition(MenuConstants.ItemIds.TapGestures.TAP_AND_HOLD_2S, labelResource = R.string.menu_item_tap_and_hold_2s, drawableId = R.drawable.ic_gesture_tap_hold_2s),
-            MenuItemDefinition(MenuConstants.ItemIds.TapGestures.TAP_AND_HOLD_3S, labelResource = R.string.menu_item_tap_and_hold_3s, drawableId = R.drawable.ic_gesture_tap_hold_3s),
-            MenuItemDefinition(MenuConstants.ItemIds.TapGestures.TAP_AND_HOLD_5S, labelResource = R.string.menu_item_tap_and_hold_5s, drawableId = R.drawable.ic_gesture_tap_hold_5s),
-            MenuItemDefinition(MenuConstants.ItemIds.TapGestures.TAP_AND_HOLD_10S, labelResource = R.string.menu_item_tap_and_hold_10s, drawableId = R.drawable.ic_gesture_tap_hold_10s),
+            MenuItemDefinition(MenuConstants.ItemIds.TapGestures.TAP_AND_HOLD, labelResource = R.string.menu_item_tap_and_hold, drawableId = R.drawable.ic_gesture_tap_hold_1s),
             MenuItemDefinition(MenuConstants.ItemIds.TapGestures.TOGGLE_GESTURE_LOCK, labelResource = R.string.system_gesture_lock, drawableId = R.drawable.ic_toggle_gesture_lock)
+        )
+    }
+
+    /**
+     * Tap-and-hold gesture menu item definitions for the tap-and-hold submenu.
+     *
+     * @return A list of MenuItemDefinition for the six tap-and-hold durations (0.5s, 1s, 2s, 3s, 5s, 10s).
+     */
+    fun getTapAndHoldGesturesMenuDefinitions(): List<MenuItemDefinition> {
+        return listOf(
+            MenuItemDefinition(MenuConstants.ItemIds.TapAndHold.TAP_AND_HOLD_0_5S, labelResource = R.string.menu_item_tap_and_hold_0_5s, drawableId = R.drawable.ic_gesture_tap_hold_0_5s),
+            MenuItemDefinition(MenuConstants.ItemIds.TapAndHold.TAP_AND_HOLD_1S, labelResource = R.string.menu_item_tap_and_hold_1s, drawableId = R.drawable.ic_gesture_tap_hold_1s),
+            MenuItemDefinition(MenuConstants.ItemIds.TapAndHold.TAP_AND_HOLD_2S, labelResource = R.string.menu_item_tap_and_hold_2s, drawableId = R.drawable.ic_gesture_tap_hold_2s),
+            MenuItemDefinition(MenuConstants.ItemIds.TapAndHold.TAP_AND_HOLD_3S, labelResource = R.string.menu_item_tap_and_hold_3s, drawableId = R.drawable.ic_gesture_tap_hold_3s),
+            MenuItemDefinition(MenuConstants.ItemIds.TapAndHold.TAP_AND_HOLD_5S, labelResource = R.string.menu_item_tap_and_hold_5s, drawableId = R.drawable.ic_gesture_tap_hold_5s),
+            MenuItemDefinition(MenuConstants.ItemIds.TapAndHold.TAP_AND_HOLD_10S, labelResource = R.string.menu_item_tap_and_hold_10s, drawableId = R.drawable.ic_gesture_tap_hold_10s)
         )
     }
 
@@ -177,8 +188,8 @@ object MenuItemRegistry {
      * Retrieve the menu item definitions for a given menu ID.
      *
      * @param menuId Identifier of the menu. Recognized values: "main_menu", "device_menu", "volume_control_menu",
-     * "gestures_menu", "tap_gestures_menu", "swipe_gestures_menu", "pinch_gestures_menu", "scroll_menu",
-     * "media_control_menu", "edit_menu".
+     * "gestures_menu", "tap_gestures_menu", "tap_and_hold_menu", "swipe_gestures_menu", "pinch_gestures_menu",
+     * "scroll_menu", "media_control_menu", "edit_menu".
      * @return A list of MenuItemDefinition for the specified menu, or an empty list if the menuId is not recognized.
      */
     fun getDefinitionsForMenu(menuId: String): List<MenuItemDefinition> {
@@ -188,6 +199,7 @@ object MenuItemRegistry {
             MenuConstants.MenuIds.VOLUME_CONTROL_MENU -> getVolumeControlMenuDefinitions()
             MenuConstants.MenuIds.GESTURES_MENU -> getGesturesMenuDefinitions()
             MenuConstants.MenuIds.TAP_GESTURES_MENU -> getTapGesturesMenuDefinitions()
+            MenuConstants.MenuIds.TAP_AND_HOLD_MENU -> getTapAndHoldGesturesMenuDefinitions()
             MenuConstants.MenuIds.SWIPE_GESTURES_MENU -> getSwipeGesturesMenuDefinitions()
             MenuConstants.MenuIds.PINCH_GESTURES_MENU -> getPinchGesturesMenuDefinitions()
             MenuConstants.MenuIds.SCROLL_MENU -> getScrollMenuDefinitions()

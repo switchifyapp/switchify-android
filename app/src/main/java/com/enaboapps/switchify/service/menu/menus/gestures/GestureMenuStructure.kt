@@ -43,43 +43,58 @@ class GestureMenuStructure(
                     action = { GestureManager.instance.performDoubleTap() }
                 )
             },
-            MenuItemRegistry.getDefinition("tap_gestures_menu", "tap_and_hold_0_5s")?.let { def ->
+            MenuItemRegistry.getDefinition("tap_gestures_menu", "tap_and_hold")?.let { def ->
+                MenuItem(
+                    definition = def,
+                    isLinkToMenu = true,
+                    action = { MenuManager.getInstance().openTapAndHoldMenu() }
+                )
+            },
+            toggleGestureLockMenuItem
+        ),
+        context = context,
+        coroutineScope = coroutineScope
+    )
+
+    val tapAndHoldGesturesMenuObject = MenuStructure(
+        id = "tap_and_hold_menu",
+        items = listOfNotNull(
+            MenuItemRegistry.getDefinition("tap_and_hold_menu", "tap_and_hold_0_5s")?.let { def ->
                 MenuItem(
                     definition = def,
                     action = { GestureManager.instance.performTapAndHold(duration = GestureData.TAP_AND_HOLD_0_5S_DURATION, gestureType = GestureType.TAP_AND_HOLD_0_5S) }
                 )
             },
-            MenuItemRegistry.getDefinition("tap_gestures_menu", "tap_and_hold_1s")?.let { def ->
+            MenuItemRegistry.getDefinition("tap_and_hold_menu", "tap_and_hold_1s")?.let { def ->
                 MenuItem(
                     definition = def,
                     action = { GestureManager.instance.performTapAndHold(duration = GestureData.TAP_AND_HOLD_1S_DURATION, gestureType = GestureType.TAP_AND_HOLD_1S) }
                 )
             },
-            MenuItemRegistry.getDefinition("tap_gestures_menu", "tap_and_hold_2s")?.let { def ->
+            MenuItemRegistry.getDefinition("tap_and_hold_menu", "tap_and_hold_2s")?.let { def ->
                 MenuItem(
                     definition = def,
                     action = { GestureManager.instance.performTapAndHold(duration = GestureData.TAP_AND_HOLD_2S_DURATION, gestureType = GestureType.TAP_AND_HOLD_2S) }
                 )
             },
-            MenuItemRegistry.getDefinition("tap_gestures_menu", "tap_and_hold_3s")?.let { def ->
+            MenuItemRegistry.getDefinition("tap_and_hold_menu", "tap_and_hold_3s")?.let { def ->
                 MenuItem(
                     definition = def,
                     action = { GestureManager.instance.performTapAndHold(duration = GestureData.TAP_AND_HOLD_3S_DURATION, gestureType = GestureType.TAP_AND_HOLD_3S) }
                 )
             },
-            MenuItemRegistry.getDefinition("tap_gestures_menu", "tap_and_hold_5s")?.let { def ->
+            MenuItemRegistry.getDefinition("tap_and_hold_menu", "tap_and_hold_5s")?.let { def ->
                 MenuItem(
                     definition = def,
                     action = { GestureManager.instance.performTapAndHold(duration = GestureData.TAP_AND_HOLD_5S_DURATION, gestureType = GestureType.TAP_AND_HOLD_5S) }
                 )
             },
-            MenuItemRegistry.getDefinition("tap_gestures_menu", "tap_and_hold_10s")?.let { def ->
+            MenuItemRegistry.getDefinition("tap_and_hold_menu", "tap_and_hold_10s")?.let { def ->
                 MenuItem(
                     definition = def,
                     action = { GestureManager.instance.performTapAndHold(duration = GestureData.TAP_AND_HOLD_10S_DURATION, gestureType = GestureType.TAP_AND_HOLD_10S) }
                 )
-            },
-            toggleGestureLockMenuItem
+            }
         ),
         context = context,
         coroutineScope = coroutineScope
