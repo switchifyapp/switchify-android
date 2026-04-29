@@ -187,9 +187,16 @@ class GestureManager private constructor() {
 
                 Log.d("GestureManager", "Tap placement: ${fingerPlacement.getDescription()}")
 
-                // Show enhanced multi-finger visual feedback
+                // Show feedback. Single-finger taps use the new ripple
+                // affordance; multi-finger keeps the existing colored
+                // finger-circles + connection line.
                 val duration = GestureData.TAP_DURATION
-                gestureVisualManager.showMultiFingerVisual(fingerPlacement, duration)
+                if (fingerPlacement.fingerCount == 1) {
+                    val p = fingerPlacement.primaryPoint
+                    gestureVisualManager.showTapRipple(p.x.toInt(), p.y.toInt())
+                } else {
+                    gestureVisualManager.showMultiFingerVisual(fingerPlacement, duration)
+                }
 
                 // Create dynamic gesture path based on algorithm results
                 val gestureDescription = GesturePathBuilder.createDynamicPath(
@@ -252,11 +259,22 @@ class GestureManager private constructor() {
                 // Coordinate timing and visual feedback
                 val handler = timingCoordinator.createDefaultHandler(
                     onReady = { _, _ ->
-                        // Show first tap visual with multi-finger support
-                        gestureVisualManager.showMultiFingerVisual(
-                            fingerPlacement,
-                            GestureData.TAP_DURATION
-                        )
+                        // Single-finger double-taps render two staggered
+                        // ripples so the second tap is visibly its own event;
+                        // multi-finger keeps the existing visual.
+                        if (fingerPlacement.fingerCount == 1) {
+                            val p = fingerPlacement.primaryPoint
+                            gestureVisualManager.showDoubleTapRipple(
+                                p.x.toInt(),
+                                p.y.toInt(),
+                                GestureData.DOUBLE_TAP_INTERVAL
+                            )
+                        } else {
+                            gestureVisualManager.showMultiFingerVisual(
+                                fingerPlacement,
+                                GestureData.TAP_DURATION
+                            )
+                        }
                     }
                 )
 
@@ -331,7 +349,18 @@ class GestureManager private constructor() {
                     "GestureManager",
                     "Tap-and-hold placement: ${fingerPlacement.getDescription()}"
                 )
-                gestureVisualManager.showMultiFingerVisual(fingerPlacement, duration)
+                // Single-finger holds get the progress-ring-with-duration
+                // visual; multi-finger keeps the existing colored circles.
+                if (fingerPlacement.fingerCount == 1) {
+                    val p = fingerPlacement.primaryPoint
+                    gestureVisualManager.showTapAndHoldRing(
+                        p.x.toInt(),
+                        p.y.toInt(),
+                        duration
+                    )
+                } else {
+                    gestureVisualManager.showMultiFingerVisual(fingerPlacement, duration)
+                }
 
                 // Create dynamic gesture path
                 val gestureDescription = GesturePathBuilder.createDynamicPath(

@@ -14,6 +14,7 @@ import android.view.animation.ScaleAnimation
 import android.widget.ImageView
 import android.widget.RelativeLayout
 import com.enaboapps.switchify.service.gestures.GestureStateManager
+import com.enaboapps.switchify.service.gestures.data.GestureData
 import com.enaboapps.switchify.service.gestures.placement.FingerPlacement
 import com.enaboapps.switchify.service.gestures.placement.TwoFingerPlacement
 import com.enaboapps.switchify.service.window.SwitchifyAccessibilityWindow
@@ -54,6 +55,13 @@ class GestureVisualManager(context: Context) : GestureStateManager.GestureStateL
 
     // Multi-finger arrow animation tracking
     private val activeMultiFingerArrows = mutableListOf<AnimatedGestureArrow>()
+
+    // Tap-family visuals (ripples for tap/double-tap, ring for tap-and-hold).
+    // These are kept here so [clearCurrentVisual] / [clearAllVisuals] can
+    // cancel them in lockstep with the existing single-finger circle.
+    private val activeRipples = mutableListOf<TapRippleVisual>()
+    private var currentTapAndHoldRing: TapAndHoldRingVisual? = null
+    private var pendingDoubleTapRunnable: Runnable? = null
 
     companion object {
         // Standardized circle size - compromise between existing 40px and 60px
@@ -141,6 +149,65 @@ class GestureVisualManager(context: Context) : GestureStateManager.GestureStateL
         // Auto-remove after animation
         removeHandler = Handler(Looper.getMainLooper()).apply {
             postDelayed({ clearCurrentVisual() }, duration)
+        }
+    }
+
+    /**
+     * Shows an expanding ripple at the specified coordinates — the visual
+     * affordance for a single-finger tap. The ripple auto-removes when its
+     * animation completes.
+     */
+    fun showTapRipple(x: Int, y: Int) {
+        clearCurrentVisual()
+
+        val context = contextRef.get() ?: return
+        val ripple = TapRippleVisual(context)
+        activeRipples.add(ripple)
+
+        onMainThread {
+            ripple.show(x, y)
+        }
+    }
+
+    /**
+     * Shows two ripples staggered by [intervalMs] for a single-finger
+     * double-tap. Each ripple is independent so cleanup cancels both.
+     *
+     * The actual gesture timing is still driven by the timing coordinator;
+     * this method just provides the visual feedback that mirrors it.
+     */
+    fun showDoubleTapRipple(
+        x: Int,
+        y: Int,
+        intervalMs: Long = GestureData.DOUBLE_TAP_INTERVAL
+    ) {
+        showTapRipple(x, y)
+
+        val context = contextRef.get() ?: return
+        val secondRipple = TapRippleVisual(context)
+        activeRipples.add(secondRipple)
+
+        val runnable = Runnable {
+            secondRipple.show(x, y)
+        }
+        pendingDoubleTapRunnable = runnable
+        mainHandler.postDelayed(runnable, intervalMs)
+    }
+
+    /**
+     * Shows the tap-and-hold ring visual centred on ([x], [y]). The ring
+     * fills clockwise over [durationMs] and the duration value is rendered
+     * as text inside the ring's dot.
+     */
+    fun showTapAndHoldRing(x: Int, y: Int, durationMs: Long) {
+        clearCurrentVisual()
+
+        val context = contextRef.get() ?: return
+        val ring = TapAndHoldRingVisual(context)
+        currentTapAndHoldRing = ring
+
+        onMainThread {
+            ring.show(x, y, durationMs)
         }
     }
 
@@ -570,6 +637,18 @@ class GestureVisualManager(context: Context) : GestureStateManager.GestureStateL
         currentCircle = null
         currentAnimation = null
         removeHandler = null
+
+        // Cancel any in-flight tap-family visuals (ripples + tap-and-hold ring).
+        pendingDoubleTapRunnable?.let { mainHandler.removeCallbacks(it) }
+        pendingDoubleTapRunnable = null
+        activeRipples.forEach { ripple ->
+            onMainThread { ripple.cancel() }
+        }
+        activeRipples.clear()
+        currentTapAndHoldRing?.let { ring ->
+            onMainThread { ring.cancel() }
+        }
+        currentTapAndHoldRing = null
     }
 
     /**
