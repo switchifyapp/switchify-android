@@ -23,6 +23,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.enaboapps.switchify.R
@@ -37,6 +38,9 @@ import com.enaboapps.switchify.utils.Resources
  * @property labelResource The resource id of the label text (used for both display and accessibility)
  * @property userProvidedText The text of the menu item if it is user-provided
  * @property drawableId The drawable resource id of the menu item
+ * @property circleText Optional short text rendered inside the menu circle in
+ *   place of an icon. When set, this overrides both the icon and the
+ *   automatic initials fallback. The full label still drives accessibility.
  * @property showLabelAsDescription Whether to show the label as description text below the icon
  * @property isSmall Whether the menu item is small
  * @property closeOnSelect Whether the menu should close when the item is selected
@@ -49,6 +53,7 @@ class MenuItem(
     val labelResource: Int? = null,
     val userProvidedText: String? = null,
     private val drawableId: Int = 0,
+    private val circleText: String? = null,
     val showLabelAsDescription: Boolean = true,
     val isSmall: Boolean = false,
     val closeOnSelect: Boolean = true,
@@ -71,6 +76,7 @@ class MenuItem(
         labelResource = definition.labelResource,
         userProvidedText = definition.userProvidedText,
         drawableId = definition.drawableId,
+        circleText = definition.circleText,
         showLabelAsDescription = showLabelAsDescription,
         isSmall = definition.isSmall,
         closeOnSelect = closeOnSelect,
@@ -91,6 +97,7 @@ class MenuItem(
                 labelResource = labelResource,
                 userProvidedText = userProvidedText,
                 drawableId = drawableId,
+                circleText = circleText,
                 showLabelAsDescription = showLabelAsDescription,
                 isMenuHierarchyManipulator = isMenuHierarchyManipulator,
                 isSmall = isSmall,
@@ -163,6 +170,7 @@ private fun MenuItemContent(
     labelResource: Int?,
     userProvidedText: String?,
     drawableId: Int,
+    circleText: String?,
     showLabelAsDescription: Boolean,
     isMenuHierarchyManipulator: Boolean,
     isSmall: Boolean,
@@ -188,6 +196,7 @@ private fun MenuItemContent(
             RegularMenuItem(
                 text = text,
                 drawableId = drawableId,
+                circleText = circleText,
                 labelResource = labelResource,
                 showLabelAsDescription = showLabelAsDescription,
                 menuSize = menuSize,
@@ -236,6 +245,7 @@ private fun NavigationMenuItem(
 private fun RegularMenuItem(
     text: String?,
     drawableId: Int,
+    circleText: String?,
     labelResource: Int?,
     showLabelAsDescription: Boolean,
     menuSize: MenuItemSize,
@@ -263,7 +273,27 @@ private fun RegularMenuItem(
                 .background(MaterialTheme.colorScheme.primaryContainer),
             contentAlignment = Alignment.Center
         ) {
-            if (drawableId != 0) {
+            // `circleText` overrides the icon: callers set it on items whose
+            // value is best read as text inside the circle (e.g. the
+            // tap-and-hold durations "0.5s", "1s", "2s"…). We size it
+            // proportionally to its length so it fits the circle on every
+            // size profile.
+            if (circleText != null) {
+                val fontScale = LocalConfiguration.current.fontScale.coerceAtLeast(0.5f)
+                val effectiveFontSize = computeCircleTextFontSize(
+                    text = circleText,
+                    circleSizeDp = menuSize.containerCircleSize.value,
+                    fontScale = fontScale,
+                    fallback = menuSize.primaryTextSize
+                )
+                Text(
+                    text = circleText,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    fontSize = effectiveFontSize,
+                    textAlign = TextAlign.Center,
+                    maxLines = 1
+                )
+            } else if (drawableId != 0) {
                 Icon(
                     painter = painterResource(id = drawableId),
                     contentDescription = labelResource?.let { Resources.getString(it) },
@@ -310,6 +340,30 @@ private fun RegularMenuItem(
         // ring centre by [MenuPage.CenterLabelOverlay], which has room to wrap
         // and is exactly where the scanning user's eye is focused.
     }
+}
+
+/**
+ * Pick a font size that lets [text] fit inside a circle of [circleSizeDp]
+ * without overflowing, regardless of the user's system font scale or the
+ * Menu Size setting.
+ *
+ * The character cap is ~45 % of the circle diameter for 1-char strings (matches
+ * the legacy initials path) and shrinks proportionally for longer strings so
+ * 3-4 character durations like "0.5s" and "10s" still fit. We never grow the
+ * font past [fallback] (the profile's primaryTextSize); we only clamp it down.
+ */
+private fun computeCircleTextFontSize(
+    text: String,
+    circleSizeDp: Float,
+    fontScale: Float,
+    fallback: TextUnit
+): TextUnit {
+    val length = text.length.coerceAtLeast(1)
+    // 0.45 fits one capital letter; for longer strings, allocate ~85 % of the
+    // diameter across the characters and divide.
+    val ratio = if (length <= 1) 0.45f else (0.85f / length).coerceAtMost(0.45f)
+    val maxSp = circleSizeDp * ratio / fontScale
+    return if (fallback.value > maxSp) maxSp.sp else fallback
 }
 
 private val WHITESPACE_REGEX = Regex("\\s+")
