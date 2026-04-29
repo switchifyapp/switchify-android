@@ -9,6 +9,8 @@ import android.view.animation.AnimationSet
 import android.view.animation.ScaleAnimation
 import android.widget.ImageView
 import android.widget.RelativeLayout
+import androidx.core.content.ContextCompat
+import com.enaboapps.switchify.R
 import com.enaboapps.switchify.service.window.SwitchifyAccessibilityWindow
 
 /**
@@ -98,9 +100,11 @@ class TapRippleVisual(private val context: Context) {
 
     private fun buildRippleDrawable(): GradientDrawable = GradientDrawable().apply {
         shape = GradientDrawable.OVAL
-        // Transparent fill, white outline — reads as a "ripple ring" once it scales.
+        // Transparent fill, primary-coloured outline — reads as a brand-tinted
+        // "ripple ring" once it scales. The colour resource resolves to the
+        // light/dark variant automatically.
         setColor(0x00000000)
-        setStroke(STROKE_PX, 0xFFFFFFFF.toInt())
+        setStroke(STROKE_PX, ContextCompat.getColor(context, R.color.gesture_visual_primary))
         setSize(INITIAL_SIZE_PX, INITIAL_SIZE_PX)
     }
 

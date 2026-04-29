@@ -1,10 +1,12 @@
 package com.enaboapps.switchify.service.gestures.visuals
 
 import android.content.Context
+import android.graphics.PorterDuff
 import android.view.animation.Animation
 import android.view.animation.TranslateAnimation
 import android.widget.ImageView
 import android.widget.RelativeLayout
+import androidx.core.content.ContextCompat
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.service.utils.ScreenUtils
 import com.enaboapps.switchify.service.window.SwitchifyAccessibilityWindow
@@ -31,7 +33,13 @@ class AnimatedGestureArrow(private val context: Context) {
         // Create arrow ImageView
         val arrow = ImageView(context).apply {
             setImageResource(R.drawable.gesture_arrow)
-            // No color filter needed - using modern white design from drawable
+            // Tint the arrow with the brand primary colour. The drawable
+            // ships in white; the SRC_IN filter recolours every opaque
+            // pixel without affecting the existing alpha shape.
+            setColorFilter(
+                ContextCompat.getColor(context, R.color.gesture_visual_primary),
+                PorterDuff.Mode.SRC_IN
+            )
             // Set the size of the arrow (adjust as needed)
             layoutParams = RelativeLayout.LayoutParams(size, size).apply {
                 // Position the arrow at the start coordinates within the full-screen container

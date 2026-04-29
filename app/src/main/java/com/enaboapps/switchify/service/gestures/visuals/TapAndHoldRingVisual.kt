@@ -11,6 +11,8 @@ import android.graphics.RectF
 import android.graphics.Typeface
 import android.view.View
 import android.widget.RelativeLayout
+import androidx.core.content.ContextCompat
+import com.enaboapps.switchify.R
 import com.enaboapps.switchify.service.window.SwitchifyAccessibilityWindow
 
 /**
@@ -37,7 +39,9 @@ class TapAndHoldRingVisual(private val context: Context) {
     fun show(x: Int, y: Int, durationMs: Long) {
         cancel()
 
-        val ringView = RingView(context, durationLabel(durationMs)).apply {
+        val primary = ContextCompat.getColor(context, R.color.gesture_visual_primary)
+        val onPrimary = ContextCompat.getColor(context, R.color.gesture_visual_on_primary)
+        val ringView = RingView(context, durationLabel(durationMs), primary, onPrimary).apply {
             layoutParams = RelativeLayout.LayoutParams(CONTAINER_SIZE_PX, CONTAINER_SIZE_PX)
             isClickable = false
             isFocusable = false
@@ -103,8 +107,18 @@ class TapAndHoldRingVisual(private val context: Context) {
      * Custom view drawing: shadow ring + dot + progress arc + duration text.
      * [sweepAngle] is updated by the animator and `invalidate()` triggers the
      * redraw.
+     *
+     * Colours follow Direction B — filled primary: the inner dot is the
+     * brand primary colour, the duration label is the on-primary contrast
+     * colour, and the ring track / progress arc are tints of the same
+     * primary so the whole visual reads as a single brand-coloured object.
      */
-    private class RingView(context: Context, private val label: String) : View(context) {
+    private class RingView(
+        context: Context,
+        private val label: String,
+        primaryColor: Int,
+        onPrimaryColor: Int
+    ) : View(context) {
         var sweepAngle: Float = 0f
 
         private val shadowRingPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -116,13 +130,15 @@ class TapAndHoldRingVisual(private val context: Context) {
         private val ringTrackPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             style = Paint.Style.STROKE
             strokeWidth = RING_STROKE_PX.toFloat()
-            color = Color.argb(80, 255, 255, 255)
+            // Faint primary track so the user sees the ring outline before
+            // the progress arc reaches that point.
+            color = withAlpha(primaryColor, 80)
         }
 
         private val ringProgressPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             style = Paint.Style.STROKE
             strokeWidth = RING_STROKE_PX.toFloat()
-            color = Color.WHITE
+            color = primaryColor
             strokeCap = Paint.Cap.ROUND
         }
 
@@ -131,15 +147,18 @@ class TapAndHoldRingVisual(private val context: Context) {
         }
 
         private val dotPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.WHITE
+            color = primaryColor
         }
 
         private val labelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.BLACK
+            color = onPrimaryColor
             textAlign = Paint.Align.CENTER
             textSize = LABEL_TEXT_SIZE_PX.toFloat()
             typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
         }
+
+        private fun withAlpha(color: Int, alpha: Int): Int =
+            (color and 0x00FFFFFF) or (alpha shl 24)
 
         private val arcRect = RectF()
 
