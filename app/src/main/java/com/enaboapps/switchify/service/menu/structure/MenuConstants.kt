@@ -14,6 +14,7 @@ object MenuConstants {
         const val VOLUME_CONTROL_MENU = "volume_control_menu"
         const val GESTURES_MENU = "gestures_menu"
         const val TAP_GESTURES_MENU = "tap_gestures_menu"
+        const val TAP_AND_HOLD_MENU = "tap_and_hold_menu"
         const val SWIPE_GESTURES_MENU = "swipe_gestures_menu"
         const val PINCH_GESTURES_MENU = "pinch_gestures_menu"
         const val SCROLL_MENU = "scroll_menu"
@@ -127,13 +128,20 @@ object MenuConstants {
         object TapGestures {
             const val TAP = "tap"
             const val DOUBLE_TAP = "double_tap"
+            const val TAP_AND_HOLD = "tap_and_hold"
+            const val TOGGLE_GESTURE_LOCK = "toggle_gesture_lock"
+        }
+
+        /**
+         * Tap and hold submenu items
+         */
+        object TapAndHold {
             const val TAP_AND_HOLD_0_5S = "tap_and_hold_0_5s"
             const val TAP_AND_HOLD_1S = "tap_and_hold_1s"
             const val TAP_AND_HOLD_2S = "tap_and_hold_2s"
             const val TAP_AND_HOLD_3S = "tap_and_hold_3s"
             const val TAP_AND_HOLD_5S = "tap_and_hold_5s"
             const val TAP_AND_HOLD_10S = "tap_and_hold_10s"
-            const val TOGGLE_GESTURE_LOCK = "toggle_gesture_lock"
         }
 
         /**

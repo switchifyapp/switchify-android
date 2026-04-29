@@ -8,6 +8,7 @@ import com.enaboapps.switchify.service.menu.menus.gestures.FingerModeMenu
 import com.enaboapps.switchify.service.menu.menus.gestures.GesturePatternsMenu
 import com.enaboapps.switchify.service.menu.menus.gestures.GesturesMenu
 import com.enaboapps.switchify.service.menu.menus.gestures.SwipeGesturesMenu
+import com.enaboapps.switchify.service.menu.menus.gestures.TapAndHoldGesturesMenu
 import com.enaboapps.switchify.service.menu.menus.gestures.TapGesturesMenu
 import com.enaboapps.switchify.service.menu.menus.gestures.PinchGesturesMenu
 import com.enaboapps.switchify.service.menu.menus.main.MainMenu
@@ -166,6 +167,14 @@ class MenuManager {
     fun openTapMenu() {
         val tapGesturesMenu = TapGesturesMenu(accessibilityService!!)
         openMenu(tapGesturesMenu.build())
+    }
+
+    /**
+     * This function opens the tap and hold gestures menu
+     */
+    fun openTapAndHoldMenu() {
+        val tapAndHoldGesturesMenu = TapAndHoldGesturesMenu(accessibilityService!!)
+        openMenu(tapAndHoldGesturesMenu.build())
     }
 
     /**

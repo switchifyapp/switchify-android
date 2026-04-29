@@ -66,6 +66,7 @@
     <string name="menu_item_tap_and_hold_5s">5s Tap and Hold</string>
     <string name="menu_item_tap_and_hold_10s">10s Tap and Hold</string>
     <string name="menu_item_tap_gestures">Tap Gestures</string>
+    <string name="menu_item_tap_and_hold">Tap and Hold</string>
     <string name="menu_item_swipe_gestures">Swipe Gestures</string>
     <string name="menu_item_drag">Drag</string>
     <string name="menu_item_pinch_gestures">Pinch Gestures</string>
@@ -914,6 +915,7 @@
     <string name="menu_title_main">Main Menu</string>
     <string name="menu_title_media">Media Control</string>
     <string name="menu_title_tap">Tap Gestures</string>
+    <string name="menu_title_tap_and_hold">Tap and Hold</string>
     <string name="menu_title_swipe">Swipe Gestures</string>
     <string name="menu_title_pinch">Pinch Gestures</string>
     <string name="menu_title_volume_control">Volume Control</string>

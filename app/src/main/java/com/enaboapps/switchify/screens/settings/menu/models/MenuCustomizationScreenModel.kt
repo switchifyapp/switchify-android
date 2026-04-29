@@ -38,6 +38,7 @@ class MenuCustomizationScreenModel(application: Application) : ViewModel() {
             "volume_control_menu" to R.string.action_volume_control,
             "gestures_menu" to R.string.menu_title_gestures,
             "tap_gestures_menu" to R.string.menu_title_tap,
+            "tap_and_hold_menu" to R.string.menu_title_tap_and_hold,
             "swipe_gestures_menu" to R.string.menu_title_swipe,
             "pinch_gestures_menu" to R.string.menu_title_pinch,
             "scroll_menu" to R.string.menu_title_scroll,
@@ -83,6 +84,8 @@ class MenuCustomizationScreenModel(application: Application) : ViewModel() {
         MenuConstants.ItemIds.Gestures.SWIPE_GESTURES,
         MenuConstants.ItemIds.Gestures.PINCH_GESTURES,
         MenuConstants.ItemIds.Gestures.FINGER_MODE,
+        // Tap gestures menu submenu link
+        MenuConstants.ItemIds.TapGestures.TAP_AND_HOLD,
         // Device and Media volume control links
         MenuConstants.ItemIds.Device.VOLUME_CONTROL,
         MenuConstants.ItemIds.Media.VOLUME_CONTROL
