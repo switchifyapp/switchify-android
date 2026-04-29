@@ -1,8 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="red_500">#F44336</color>
-    
+
     <!-- Finger icon colors for light theme -->
     <color name="icon_finger_dot">#FFFFFFFF</color>
     <color name="icon_finger_label">#FF000000</color>
+
+    <!--
+        Gesture visual brand colours used by the non-Compose Views in
+        service/gestures/visuals/. Mirror Theme.kt's primary / onPrimary so
+        the on-screen gesture feedback shares the app's brand. Keep these
+        in sync with LightColorScheme/DarkColorScheme in Theme.kt.
+    -->
+    <color name="gesture_visual_primary">#FFD32F2F</color>
+    <color name="gesture_visual_on_primary">#FFFFFFFF</color>
 </resources>

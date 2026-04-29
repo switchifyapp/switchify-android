@@ -9,6 +9,8 @@ import android.view.animation.Animation
 import android.view.animation.ScaleAnimation
 import android.widget.ImageView
 import android.widget.RelativeLayout
+import androidx.core.content.ContextCompat
+import com.enaboapps.switchify.R
 import com.enaboapps.switchify.service.window.SwitchifyAccessibilityWindow
 import java.lang.ref.WeakReference
 
@@ -63,6 +65,7 @@ class PinchVisual(context: Context) {
 
     private fun createView(circumference: Float): RelativeLayout {
         val context = contextRef.get() ?: throw IllegalStateException("Context is null")
+        val primary = ContextCompat.getColor(context, R.color.gesture_visual_primary)
 
         // Create shadow circle for depth
         val shadowDrawable = GradientDrawable().apply {
@@ -71,11 +74,11 @@ class PinchVisual(context: Context) {
             setStroke(12, 0x30000000) // Semi-transparent black shadow
         }
 
-        // Create main white circle
+        // Create main primary-coloured outline circle
         val mainDrawable = GradientDrawable().apply {
             shape = GradientDrawable.OVAL
             setColor(Color.TRANSPARENT)
-            setStroke(10, 0xFFFFFFFF.toInt()) // Pure white stroke
+            setStroke(10, primary)
         }
 
         // Shadow circle (slightly offset)

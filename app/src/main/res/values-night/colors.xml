@@ -3,4 +3,11 @@
     <!-- Finger icon colors for dark theme -->
     <color name="icon_finger_dot">#FF1E1E1E</color>
     <color name="icon_finger_label">#FFFFFFFF</color>
+
+    <!--
+        Gesture visual brand colours — dark variant. Mirrors
+        DarkColorScheme.primary / onPrimary in Theme.kt.
+    -->
+    <color name="gesture_visual_primary">#FFFFB4AB</color>
+    <color name="gesture_visual_on_primary">#FF690005</color>
 </resources>

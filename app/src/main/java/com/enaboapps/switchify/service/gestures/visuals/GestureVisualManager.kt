@@ -13,6 +13,8 @@ import android.view.animation.Animation
 import android.view.animation.ScaleAnimation
 import android.widget.ImageView
 import android.widget.RelativeLayout
+import androidx.core.content.ContextCompat
+import com.enaboapps.switchify.R
 import com.enaboapps.switchify.service.gestures.GestureStateManager
 import com.enaboapps.switchify.service.gestures.data.GestureData
 import com.enaboapps.switchify.service.gestures.placement.FingerPlacement
@@ -522,7 +524,12 @@ class GestureVisualManager(context: Context) : GestureStateManager.GestureStateL
     ) : View(context) {
 
         private val linePaint = Paint().apply {
-            color = Color.WHITE
+            // Brand primary tint for the connection line that joins the two
+            // finger circles in a two-finger gesture. The per-finger stroke
+            // colours stay distinct (they convey finger identity); the
+            // connector picks up the brand tint so the assembly reads as a
+            // single coloured object.
+            color = ContextCompat.getColor(context, R.color.gesture_visual_primary)
             strokeWidth = 4f
             alpha = 180 // Semi-transparent
             isAntiAlias = true
@@ -573,9 +580,13 @@ class GestureVisualManager(context: Context) : GestureStateManager.GestureStateL
     }
 
     /**
-     * Creates a standardized circle layout with modern white styling.
+     * Creates a standardized circle layout filled with the brand primary
+     * colour. Used by [showStaticCircle] / [showCountdownCircle] for
+     * gesture-start indicators (e.g. before a swipe).
      */
     private fun createCircleLayout(context: Context, size: Int): RelativeLayout {
+        val primary = ContextCompat.getColor(context, R.color.gesture_visual_primary)
+
         // Create shadow circle (slightly offset and darker)
         val shadowDrawable = GradientDrawable().apply {
             shape = GradientDrawable.OVAL
@@ -583,10 +594,10 @@ class GestureVisualManager(context: Context) : GestureStateManager.GestureStateL
             setSize(size, size)
         }
 
-        // Create main white circle
+        // Create main primary-coloured circle
         val mainDrawable = GradientDrawable().apply {
             shape = GradientDrawable.OVAL
-            setColor(0xFFFFFFFF.toInt()) // Pure white
+            setColor(primary)
             setStroke(1, 0x20000000) // Subtle dark stroke for definition
             setSize(size, size)
         }
