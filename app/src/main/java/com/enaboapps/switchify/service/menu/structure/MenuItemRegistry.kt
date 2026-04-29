@@ -102,16 +102,20 @@ object MenuItemRegistry {
     /**
      * Tap-and-hold gesture menu item definitions for the tap-and-hold submenu.
      *
+     * The duration items render as text inside the menu circle ("0.5s", "1s",
+     * "2s"…) instead of icons; the duration value reads more clearly as text
+     * than as an arbitrary glyph.
+     *
      * @return A list of MenuItemDefinition for the six tap-and-hold durations (0.5s, 1s, 2s, 3s, 5s, 10s).
      */
     fun getTapAndHoldGesturesMenuDefinitions(): List<MenuItemDefinition> {
         return listOf(
-            MenuItemDefinition(MenuConstants.ItemIds.TapAndHold.TAP_AND_HOLD_0_5S, labelResource = R.string.menu_item_tap_and_hold_0_5s, drawableId = R.drawable.ic_gesture_tap_hold_0_5s),
-            MenuItemDefinition(MenuConstants.ItemIds.TapAndHold.TAP_AND_HOLD_1S, labelResource = R.string.menu_item_tap_and_hold_1s, drawableId = R.drawable.ic_gesture_tap_hold_1s),
-            MenuItemDefinition(MenuConstants.ItemIds.TapAndHold.TAP_AND_HOLD_2S, labelResource = R.string.menu_item_tap_and_hold_2s, drawableId = R.drawable.ic_gesture_tap_hold_2s),
-            MenuItemDefinition(MenuConstants.ItemIds.TapAndHold.TAP_AND_HOLD_3S, labelResource = R.string.menu_item_tap_and_hold_3s, drawableId = R.drawable.ic_gesture_tap_hold_3s),
-            MenuItemDefinition(MenuConstants.ItemIds.TapAndHold.TAP_AND_HOLD_5S, labelResource = R.string.menu_item_tap_and_hold_5s, drawableId = R.drawable.ic_gesture_tap_hold_5s),
-            MenuItemDefinition(MenuConstants.ItemIds.TapAndHold.TAP_AND_HOLD_10S, labelResource = R.string.menu_item_tap_and_hold_10s, drawableId = R.drawable.ic_gesture_tap_hold_10s)
+            MenuItemDefinition(MenuConstants.ItemIds.TapAndHold.TAP_AND_HOLD_0_5S, labelResource = R.string.menu_item_tap_and_hold_0_5s, circleText = "0.5s"),
+            MenuItemDefinition(MenuConstants.ItemIds.TapAndHold.TAP_AND_HOLD_1S, labelResource = R.string.menu_item_tap_and_hold_1s, circleText = "1s"),
+            MenuItemDefinition(MenuConstants.ItemIds.TapAndHold.TAP_AND_HOLD_2S, labelResource = R.string.menu_item_tap_and_hold_2s, circleText = "2s"),
+            MenuItemDefinition(MenuConstants.ItemIds.TapAndHold.TAP_AND_HOLD_3S, labelResource = R.string.menu_item_tap_and_hold_3s, circleText = "3s"),
+            MenuItemDefinition(MenuConstants.ItemIds.TapAndHold.TAP_AND_HOLD_5S, labelResource = R.string.menu_item_tap_and_hold_5s, circleText = "5s"),
+            MenuItemDefinition(MenuConstants.ItemIds.TapAndHold.TAP_AND_HOLD_10S, labelResource = R.string.menu_item_tap_and_hold_10s, circleText = "10s")
         )
     }
 

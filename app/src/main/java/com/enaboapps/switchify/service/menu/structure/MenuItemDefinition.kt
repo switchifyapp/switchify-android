@@ -9,6 +9,10 @@ package com.enaboapps.switchify.service.menu.structure
  * @property labelResource String resource ID for the label
  * @property userProvidedText User-provided text (alternative to labelResource)
  * @property drawableId Drawable resource ID for the icon
+ * @property circleText Optional short text rendered inside the menu circle in
+ *   place of an icon. When set, this overrides both [drawableId] and the
+ *   automatic initials fallback. The full [labelResource] is still used for
+ *   accessibility and the highlight header.
  * @property isSmall Whether this is a small navigation item
  * @property isMenuHierarchyManipulator Whether this manipulates the menu hierarchy
  */
@@ -17,6 +21,7 @@ data class MenuItemDefinition(
     val labelResource: Int? = null,
     val userProvidedText: String? = null,
     val drawableId: Int = 0,
+    val circleText: String? = null,
     val isSmall: Boolean = false,
     val isMenuHierarchyManipulator: Boolean = false
 )
