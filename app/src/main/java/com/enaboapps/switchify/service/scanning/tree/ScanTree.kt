@@ -29,7 +29,7 @@ interface ScanTreeCallback {
 class ScanTree(
     private val context: Context,
     private var stopScanningOnSelect: Boolean = false,
-    private val hasCycleBreak: Boolean = false,
+    private val hasCycleBreak: () -> Boolean = { false },
     private var callback: ScanTreeCallback? = null
 ) : AccessTechniqueInterface {
 

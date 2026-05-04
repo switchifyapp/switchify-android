@@ -182,13 +182,6 @@ object KeyboardManager : CycleBreakListener {
      * This is called when user wants to exit keyboard scanning and access the menu.
      */
     fun escapeKeyboard() {
-        // Use state machine to validate transition
-        val newState = stateMachine.transition(KeyboardEvent.EscapeRequested)
-        if (newState == null) {
-            Log.w(TAG, "Cannot escape in current state: ${stateMachine.getCurrentState()}")
-            return
-        }
-
         if (!isKeyboardVisible) {
             Log.w(TAG, "Cannot escape - keyboard is not visible")
             return
@@ -196,6 +189,13 @@ object KeyboardManager : CycleBreakListener {
 
         if (isEscapedFromKeyboard) {
             Log.d(TAG, "Already escaped from keyboard")
+            return
+        }
+
+        // Use state machine to validate transition
+        val newState = stateMachine.transition(KeyboardEvent.EscapeRequested)
+        if (newState == null) {
+            Log.w(TAG, "Cannot escape in current state: ${stateMachine.getCurrentState()}")
             return
         }
 
@@ -214,13 +214,6 @@ object KeyboardManager : CycleBreakListener {
      * keyboard UI to stabilize. See constant documentation for details.
      */
     fun returnToKeyboard() {
-        // Use state machine to validate transition
-        val newState = stateMachine.transition(KeyboardEvent.ReturnRequested)
-        if (newState == null) {
-            Log.w(TAG, "Cannot return to keyboard in current state: ${stateMachine.getCurrentState()}")
-            return
-        }
-
         if (!isKeyboardVisible) {
             Log.w(TAG, "Cannot return to keyboard - keyboard is not visible")
             return
@@ -231,6 +224,13 @@ object KeyboardManager : CycleBreakListener {
             return
         }
 
+        // Use state machine to validate transition
+        val newState = stateMachine.transition(KeyboardEvent.ReturnRequested)
+        if (newState == null) {
+            Log.w(TAG, "Cannot return to keyboard in current state: ${stateMachine.getCurrentState()}")
+            return
+        }
+
         Log.d(TAG, "Returning to keyboard scanning")
         isEscapedFromKeyboard = false
 
@@ -238,6 +238,11 @@ object KeyboardManager : CycleBreakListener {
 
         // Delayed update allows keyboard UI to stabilize before re-enabling bypass
         mainHandler.postDelayed({
+            if (!isKeyboardVisible || isEscapedFromKeyboard) {
+                updateBypassState()
+                return@postDelayed
+            }
+
             // Complete the return transition
             stateMachine.transition(KeyboardEvent.ReturnCompleted)
             updateBypassState()
