@@ -37,7 +37,7 @@ abstract class BaseNodeScanner(
             val created = ScanTree(
                 context = context,
                 stopScanningOnSelect = true,
-                hasCycleBreak = KeyboardManager.shouldEnableCycleBreak(),
+                hasCycleBreak = { KeyboardManager.shouldEnableCycleBreak() },
                 callback = this
             )
             _scanTree = created

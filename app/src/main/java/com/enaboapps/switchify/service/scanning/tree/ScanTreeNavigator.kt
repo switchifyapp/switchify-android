@@ -16,7 +16,7 @@ import com.enaboapps.switchify.service.scanning.ScanSettings
 class ScanTreeNavigator(
     private val tree: List<ScanTreeItem>,
     private val scanSettings: ScanSettings,
-    private val hasCycleBreak: Boolean = false
+    private val hasCycleBreak: () -> Boolean = { false }
 ) {
     /** Represents the different types of escape states in the scanning tree */
     sealed class EscapeState {
@@ -356,7 +356,7 @@ class ScanTreeNavigator(
     private fun handleCycleCompletion() {
         if (isInCycleBreak) {
             isInCycleBreak = false
-        } else if (hasCycleBreak) {
+        } else if (hasCycleBreak()) {
             isInCycleBreak = true
         }
         justCompletedCycle = true
