@@ -3,10 +3,10 @@ package com.enaboapps.switchify.service.keyboard
 import android.graphics.Rect
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import android.util.Log
 import com.enaboapps.switchify.service.scanning.CycleBreakListener
 import com.enaboapps.switchify.service.scanning.ScanSettings
-import com.enaboapps.switchify.service.selection.SelectionHandler
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -53,6 +53,11 @@ object KeyboardManager : CycleBreakListener {
     private var isEscapedFromKeyboard = false
     private var isDirectlySelectKeyboardKeysEnabled = false
     private var keyboardBounds: Rect? = null
+
+    // uptimeMillis at which auto-select bypass becomes available again. Used to
+    // hold off bypass for BYPASS_UPDATE_DELAY_MS after returnToKeyboard so the
+    // keyboard UI can stabilise before direct selection re-engages.
+    private var bypassUnlockAt: Long = 0L
 
     // State machine for explicit state transitions
     private val stateMachine = KeyboardStateMachine()
@@ -172,7 +177,6 @@ object KeyboardManager : CycleBreakListener {
         }
 
         isDirectlySelectKeyboardKeysEnabled = scanSettings.isDirectlySelectKeyboardKeysEnabled()
-        updateBypassState()
 
         // Only notify if state actually changed
         if (stateChanged || wasEscaped != isEscapedFromKeyboard || previousBounds != keyboardBounds) {
@@ -207,15 +211,15 @@ object KeyboardManager : CycleBreakListener {
         isEscapedFromKeyboard = true
 
         updateState()
-        SelectionHandler.setBypassAutoSelect(false)
     }
 
     /**
      * Return to keyboard scanning mode.
      * This is called when user selects "Scan Keyboard" from the menu.
      *
-     * Note: Bypass state is updated after BYPASS_UPDATE_DELAY_MS to allow
-     * keyboard UI to stabilize. See constant documentation for details.
+     * Note: Auto-select bypass is gated until BYPASS_UPDATE_DELAY_MS after
+     * this call so the keyboard UI can stabilise before direct selection
+     * re-engages. See constant documentation for details.
      */
     fun returnToKeyboard() {
         if (!isKeyboardVisible) {
@@ -237,19 +241,17 @@ object KeyboardManager : CycleBreakListener {
 
         Log.d(TAG, "Returning to keyboard scanning")
         isEscapedFromKeyboard = false
+        bypassUnlockAt = SystemClock.uptimeMillis() + BYPASS_UPDATE_DELAY_MS
 
         updateState()
 
-        // Delayed update allows keyboard UI to stabilize before re-enabling bypass
+        // Delay completes the state machine return transition once the keyboard
+        // UI has stabilised. Bypass timing is handled by bypassUnlockAt above.
         mainHandler.postDelayed({
             if (!isKeyboardVisible || isEscapedFromKeyboard) {
-                updateBypassState()
                 return@postDelayed
             }
-
-            // Complete the return transition
             stateMachine.transition(KeyboardEvent.ReturnCompleted)
-            updateBypassState()
         }, BYPASS_UPDATE_DELAY_MS)
     }
 
@@ -266,12 +268,14 @@ object KeyboardManager : CycleBreakListener {
     }
 
     /**
-     * Update bypass state using stored settings.
-     * Delegates decision logic to KeyboardSelectionPolicy.
+     * Whether auto-select should be bypassed for direct keyboard key selection.
+     * Pulled at the moment of selection — see [KeyboardSelectionPolicy.shouldBypassAutoSelect]
+     * for the policy. After [returnToKeyboard], bypass is gated for
+     * [BYPASS_UPDATE_DELAY_MS] so the keyboard UI can stabilise.
      */
-    private fun updateBypassState() {
-        val bypass = selectionPolicy.shouldBypassAutoSelect(getCurrentState())
-        SelectionHandler.setBypassAutoSelect(bypass)
+    fun shouldBypassAutoSelect(): Boolean {
+        if (!selectionPolicy.shouldBypassAutoSelect(getCurrentState())) return false
+        return SystemClock.uptimeMillis() >= bypassUnlockAt
     }
 
     /**

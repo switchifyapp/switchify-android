@@ -6,6 +6,7 @@ import com.enaboapps.switchify.service.gestures.GestureManager
 import com.enaboapps.switchify.service.gestures.GesturePoint
 import com.enaboapps.switchify.service.gestures.GestureStateManager
 import com.enaboapps.switchify.service.gestures.visuals.GestureVisualManager
+import com.enaboapps.switchify.service.keyboard.KeyboardManager
 import com.enaboapps.switchify.service.menu.MenuManager
 import com.enaboapps.switchify.service.scanning.ScanSettings
 import com.enaboapps.switchify.service.techniques.AccessTechnique
@@ -76,15 +77,6 @@ object SelectionHandler {
     }
 
     /**
-     * Sets the bypass auto-select flag.
-     *
-     * @param bypass True to bypass auto-select
-     */
-    fun setBypassAutoSelect(bypass: Boolean) {
-        GestureStateManager.setBypassAutoSelect(bypass)
-    }
-
-    /**
      * Performs the selection action based on the current settings and state.
      */
     fun performSelectionAction() {
@@ -101,7 +93,7 @@ object SelectionHandler {
         )
 
         // If bypass auto-select is enabled, perform the selection action and return
-        if (GestureStateManager.shouldBypassAutoSelect()) {
+        if (KeyboardManager.shouldBypassAutoSelect()) {
             if (selectAction == null) return
             selectAction?.invoke()
             performStartScanningAction()
@@ -187,7 +179,6 @@ object SelectionHandler {
             )
             // Only reset auto-select and selection-specific state, preserve gesture execution state
             GestureStateManager.cancelAutoSelect()
-            GestureStateManager.setBypassAutoSelect(false)
             GestureStateManager.setMethodTypeForStartScanning(null)
             GestureStateManager.setActiveVisualFeedback(false)
         }
