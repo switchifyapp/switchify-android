@@ -5,6 +5,7 @@ import android.os.Handler
 import android.os.Looper
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -24,10 +25,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.service.components.AccessibilityComposeView
 import com.enaboapps.switchify.service.keyboard.KeyboardManager
+import com.enaboapps.switchify.service.utils.HighlightAnimations
 import com.enaboapps.switchify.service.window.SwitchifyAccessibilityWindow
 import com.enaboapps.switchify.theme.Dimens
 
@@ -52,7 +53,21 @@ class KeyboardEscapePrompt {
 
         mainHandler.post {
             createPromptView(context)
-            promptView?.let { SwitchifyAccessibilityWindow.instance.addViewToCenter(it) }
+            promptView?.let { view ->
+                val bounds = KeyboardManager.keyboardState.value.keyboardBounds
+                if (bounds != null && bounds.width() > 0 && bounds.height() > 0) {
+                    SwitchifyAccessibilityWindow.instance.addView(
+                        view,
+                        bounds.left,
+                        bounds.top,
+                        bounds.width(),
+                        bounds.height()
+                    )
+                } else {
+                    SwitchifyAccessibilityWindow.instance.addViewToCenter(view)
+                }
+                HighlightAnimations.fadeIn(view)
+            }
             isShowing = true
         }
     }
@@ -76,37 +91,42 @@ class KeyboardEscapePrompt {
 
         // Only show prompt when appropriate
         if (keyboardState.shouldShowEscapePrompt) {
-            Surface(
-                modifier = Modifier
-                    .padding(Dimens.spaceM)
-                    .height(250.dp)
-                    .clip(RoundedCornerShape(16.dp)),
-                color = MaterialTheme.colorScheme.surface,
-                shadowElevation = 8.dp
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
             ) {
-                Box(
+                Surface(
                     modifier = Modifier
-                        .padding(Dimens.spaceL),
-                    contentAlignment = Alignment.Center
+                        .padding(Dimens.spaceM)
+                        .height(250.dp)
+                        .clip(RoundedCornerShape(16.dp)),
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    shadowElevation = 8.dp
                 ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally
+                    Box(
+                        modifier = Modifier
+                            .padding(Dimens.spaceL),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Keyboard,
-                            contentDescription = null,
-                            modifier = Modifier
-                                .size(48.dp)
-                                .padding(bottom = Dimens.spaceM),
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                        Text(
-                            text = stringResource(R.string.keyboard_escape_prompt_press_to_escape),
-                            color = MaterialTheme.colorScheme.onPrimaryContainer,
-                            fontSize = 18.sp,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.padding(Dimens.spaceXs)
-                        )
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Keyboard,
+                                contentDescription = null,
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .padding(bottom = Dimens.spaceM),
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                            Text(
+                                text = stringResource(R.string.keyboard_escape_prompt_press_to_escape),
+                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                style = MaterialTheme.typography.titleLarge,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.padding(Dimens.spaceXs)
+                            )
+                        }
                     }
                 }
             }
@@ -118,4 +138,4 @@ class KeyboardEscapePrompt {
             PromptView()
         }
     }
-} 
+}

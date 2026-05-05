@@ -1,5 +1,6 @@
 package com.enaboapps.switchify.service.keyboard
 
+import android.graphics.Rect
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
@@ -51,6 +52,7 @@ object KeyboardManager : CycleBreakListener {
     private var isKeyboardVisible = false
     private var isEscapedFromKeyboard = false
     private var isDirectlySelectKeyboardKeysEnabled = false
+    private var keyboardBounds: Rect? = null
 
     // State machine for explicit state transitions
     private val stateMachine = KeyboardStateMachine()
@@ -130,7 +132,7 @@ object KeyboardManager : CycleBreakListener {
     /**
      * Called when keyboard state changes from KeyboardBridge.
      */
-    fun onKeyboardStateChanged(visible: Boolean, scanSettings: ScanSettings) {
+    fun onKeyboardStateChanged(visible: Boolean, bounds: Rect?, scanSettings: ScanSettings) {
         Log.d(
             TAG,
             "Keyboard state changed: visible=$visible, wasVisible=$isKeyboardVisible, isEscaped=$isEscapedFromKeyboard"
@@ -138,7 +140,9 @@ object KeyboardManager : CycleBreakListener {
 
         val wasVisible = isKeyboardVisible
         val wasEscaped = isEscapedFromKeyboard
+        val previousBounds = keyboardBounds
         isKeyboardVisible = visible
+        keyboardBounds = bounds
 
         // Use state machine for state transitions
         val event = if (visible) KeyboardEvent.KeyboardShown else KeyboardEvent.KeyboardHidden
@@ -171,7 +175,7 @@ object KeyboardManager : CycleBreakListener {
         updateBypassState()
 
         // Only notify if state actually changed
-        if (stateChanged || wasEscaped != isEscapedFromKeyboard) {
+        if (stateChanged || wasEscaped != isEscapedFromKeyboard || previousBounds != keyboardBounds) {
             updateState()
             notifyStateChanged()
         }
@@ -256,7 +260,8 @@ object KeyboardManager : CycleBreakListener {
         return KeyboardState(
             isVisible = isKeyboardVisible,
             isEscaped = isEscapedFromKeyboard,
-            isDirectSelectEnabled = isDirectlySelectKeyboardKeysEnabled
+            isDirectSelectEnabled = isDirectlySelectKeyboardKeysEnabled,
+            keyboardBounds = keyboardBounds
         )
     }
 
