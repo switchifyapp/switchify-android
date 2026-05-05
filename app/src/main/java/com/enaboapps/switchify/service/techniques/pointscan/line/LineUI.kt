@@ -10,6 +10,7 @@ import com.enaboapps.switchify.service.scanning.ScanColorManager
 import com.enaboapps.switchify.service.techniques.AccessTechniqueUIBase
 import com.enaboapps.switchify.service.techniques.pointscan.blocks.PointScanBlock
 import com.enaboapps.switchify.service.techniques.shared.ScanMethodUIConstants
+import com.enaboapps.switchify.service.utils.HighlightAnimations
 import com.enaboapps.switchify.service.utils.ScreenUtils
 
 /**
@@ -56,6 +57,7 @@ class LineUI(private val context: Context) : AccessTechniqueUIBase() {
                         bounds.width(),
                         bounds.height()
                     )
+                    HighlightAnimations.fadeIn(it)
                 }
             } else {
                 updateBlockOutline()
@@ -113,6 +115,7 @@ class LineUI(private val context: Context) : AccessTechniqueUIBase() {
                     ScanMethodUIConstants.LINE_THICKNESS,
                     height
                 )
+                HighlightAnimations.fadeIn(it)
             }
         } else {
             updateXScanLine(x)
@@ -142,6 +145,7 @@ class LineUI(private val context: Context) : AccessTechniqueUIBase() {
                     width,
                     ScanMethodUIConstants.LINE_THICKNESS
                 )
+                HighlightAnimations.fadeIn(it)
             }
         } else {
             updateYScanLine(y)

@@ -53,6 +53,16 @@ class ScreenUtils {
         }
 
         /**
+         * Converts dp to pixels (float precision, for radii etc.).
+         *
+         * @param context The context of the caller.
+         * @param dp The value in dp to convert.
+         */
+        fun dpToPxFloat(context: Context, dp: Float): Float {
+            return dp * context.resources.displayMetrics.density
+        }
+
+        /**
          * Retrieves the current window metrics (API 30+).
          *
          * @param context The context of the caller.
