@@ -41,8 +41,8 @@ object ScanVisualConstants {
 
     // ---- Alphas (0-255) ----
 
-    /** Tint alpha for fill-mode highlight (~5%). */
-    const val FILL_ALPHA = 12
+    /** Tint alpha for fill-mode highlight (~45%). */
+    const val FILL_ALPHA = 115
 
     /** Alpha for the contrast halo (~55%). */
     const val HALO_ALPHA = 140
