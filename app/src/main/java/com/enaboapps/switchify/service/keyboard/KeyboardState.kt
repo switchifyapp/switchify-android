@@ -1,5 +1,7 @@
 package com.enaboapps.switchify.service.keyboard
 
+import android.graphics.Rect
+
 /**
  * Represents the current state of keyboard scanning.
  *
@@ -9,11 +11,14 @@ package com.enaboapps.switchify.service.keyboard
  * @property isVisible Whether the keyboard is currently visible
  * @property isEscaped Whether the user has escaped from keyboard scanning
  * @property isDirectSelectEnabled Whether direct selection of keyboard keys is enabled in settings
+ * @property keyboardBounds Bounds of the IME window in screen coordinates, or null if unknown.
+ *           Treated as a snapshot — callers must not mutate.
  */
 data class KeyboardState(
     val isVisible: Boolean = false,
     val isEscaped: Boolean = false,
-    val isDirectSelectEnabled: Boolean = false
+    val isDirectSelectEnabled: Boolean = false,
+    val keyboardBounds: Rect? = null
 ) {
     /**
      * Whether the keyboard escape prompt should be shown.
