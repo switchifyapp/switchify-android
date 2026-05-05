@@ -5,23 +5,31 @@ import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.graphics.drawable.LayerDrawable
 import androidx.core.graphics.toColorInt
+import com.enaboapps.switchify.service.utils.ScreenUtils
 
 class ScanHighlightDrawable(
     context: Context,
-    private val highlightStyle: ScanHighlightStyle,
-    color: String
-) : LayerDrawable(createLayers(context, highlightStyle, color.toColorInt())) {
+    isFill: Boolean,
+    color: String,
+    withHalo: Boolean = true
+) : LayerDrawable(createLayers(context, isFill, color.toColorInt(), withHalo)) {
 
-    private val haloOffsetPx =
-        (HALO_OFFSET_DP * context.resources.displayMetrics.density).toInt()
+    private val haloOffsetPx = ScreenUtils.dpToPx(context, HALO_OFFSET_DP)
+    private val drewHalo: Boolean = !isFill && withHalo
 
     init {
-        if (highlightStyle.isFill()) {
-            setLayerInset(0, 0, 0, 0, 0)
-            setLayerInset(1, 0, 0, 0, 0)
-        } else {
-            setLayerInset(0, -haloOffsetPx, -haloOffsetPx, -haloOffsetPx, -haloOffsetPx)
-            setLayerInset(1, 0, 0, 0, 0)
+        when {
+            isFill -> {
+                setLayerInset(0, 0, 0, 0, 0)
+                setLayerInset(1, 0, 0, 0, 0)
+            }
+            drewHalo -> {
+                setLayerInset(0, -haloOffsetPx, -haloOffsetPx, -haloOffsetPx, -haloOffsetPx)
+                setLayerInset(1, 0, 0, 0, 0)
+            }
+            else -> {
+                setLayerInset(0, 0, 0, 0, 0)
+            }
         }
     }
 
@@ -30,15 +38,9 @@ class ScanHighlightDrawable(
         private const val FILL_STROKE_WIDTH_DP = 2
         private const val CORNER_RADIUS_DP = 8f
         private const val HALO_WIDTH_DP = 1
-        private const val HALO_OFFSET_DP = 2f
+        private const val HALO_OFFSET_DP = 2
         private const val FILL_ALPHA = 31
         private const val HALO_ALPHA = 140
-
-        private fun dp(context: Context, value: Float): Float =
-            value * context.resources.displayMetrics.density
-
-        private fun dpInt(context: Context, value: Int): Int =
-            (value * context.resources.displayMetrics.density).toInt()
 
         // Pick a halo tone that contrasts with the main color so the highlight
         // remains visible when it overlaps a same-colored background.
@@ -56,13 +58,27 @@ class ScanHighlightDrawable(
 
         private fun createLayers(
             context: Context,
-            highlightStyle: ScanHighlightStyle,
-            colorAsInt: Int
+            isFill: Boolean,
+            colorAsInt: Int,
+            withHalo: Boolean
         ): Array<GradientDrawable> {
-            return if (highlightStyle.isFill()) {
-                createFillLayers(context, colorAsInt)
-            } else {
-                createBorderLayers(context, colorAsInt)
+            return when {
+                isFill -> createFillLayers(context, colorAsInt)
+                withHalo -> createBorderLayers(context, colorAsInt)
+                else -> arrayOf(strokeLayer(context, colorAsInt, STROKE_WIDTH_DP))
+            }
+        }
+
+        private fun strokeLayer(
+            context: Context,
+            colorAsInt: Int,
+            strokeDp: Int
+        ): GradientDrawable {
+            val cornerRadius = ScreenUtils.dpToPxFloat(context, CORNER_RADIUS_DP)
+            return GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                this.cornerRadius = cornerRadius
+                setStroke(ScreenUtils.dpToPx(context, strokeDp), colorAsInt)
             }
         }
 
@@ -70,20 +86,16 @@ class ScanHighlightDrawable(
             context: Context,
             colorAsInt: Int
         ): Array<GradientDrawable> {
-            val cornerRadius = dp(context, CORNER_RADIUS_DP)
-            val haloRadius = cornerRadius + dp(context, HALO_OFFSET_DP)
+            val cornerRadius = ScreenUtils.dpToPxFloat(context, CORNER_RADIUS_DP)
+            val haloRadius = cornerRadius + ScreenUtils.dpToPxFloat(context, HALO_OFFSET_DP.toFloat())
 
             val halo = GradientDrawable().apply {
                 shape = GradientDrawable.RECTANGLE
                 this.cornerRadius = haloRadius
-                setStroke(dpInt(context, HALO_WIDTH_DP), haloColor(colorAsInt))
+                setStroke(ScreenUtils.dpToPx(context, HALO_WIDTH_DP), haloColor(colorAsInt))
             }
 
-            val mainStroke = GradientDrawable().apply {
-                shape = GradientDrawable.RECTANGLE
-                this.cornerRadius = cornerRadius
-                setStroke(dpInt(context, STROKE_WIDTH_DP), colorAsInt)
-            }
+            val mainStroke = strokeLayer(context, colorAsInt, STROKE_WIDTH_DP)
 
             return arrayOf(halo, mainStroke)
         }
@@ -92,7 +104,7 @@ class ScanHighlightDrawable(
             context: Context,
             colorAsInt: Int
         ): Array<GradientDrawable> {
-            val cornerRadius = dp(context, CORNER_RADIUS_DP)
+            val cornerRadius = ScreenUtils.dpToPxFloat(context, CORNER_RADIUS_DP)
             val tint = Color.argb(
                 FILL_ALPHA,
                 Color.red(colorAsInt),
@@ -106,11 +118,7 @@ class ScanHighlightDrawable(
                 setColor(tint)
             }
 
-            val mainStroke = GradientDrawable().apply {
-                shape = GradientDrawable.RECTANGLE
-                this.cornerRadius = cornerRadius
-                setStroke(dpInt(context, FILL_STROKE_WIDTH_DP), colorAsInt)
-            }
+            val mainStroke = strokeLayer(context, colorAsInt, FILL_STROKE_WIDTH_DP)
 
             return arrayOf(fill, mainStroke)
         }
