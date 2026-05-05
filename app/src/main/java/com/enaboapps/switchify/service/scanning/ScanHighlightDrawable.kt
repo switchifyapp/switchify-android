@@ -13,7 +13,8 @@ class ScanHighlightDrawable(
     color: String
 ) : LayerDrawable(createLayers(context, isFill, color.toColorInt())) {
 
-    private val haloOffsetPx = ScreenUtils.dpToPx(context, HALO_OFFSET_DP)
+    private val haloOffsetPx =
+        ScreenUtils.dpToPx(context, ScanVisualConstants.HALO_OFFSET_DP)
 
     init {
         if (isFill) {
@@ -26,14 +27,6 @@ class ScanHighlightDrawable(
     }
 
     companion object {
-        private const val STROKE_WIDTH_DP = 3
-        private const val FILL_STROKE_WIDTH_DP = 2
-        private const val CORNER_RADIUS_DP = 8f
-        private const val HALO_WIDTH_DP = 1
-        private const val HALO_OFFSET_DP = 2
-        private const val FILL_ALPHA = 31
-        private const val HALO_ALPHA = 140
-
         // Pick a halo tone that contrasts with the main color so the highlight
         // remains visible when it overlaps a same-colored background.
         private fun haloColor(mainColor: Int): Int {
@@ -42,9 +35,9 @@ class ScanHighlightDrawable(
             val b = Color.blue(mainColor)
             val luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255.0
             return if (luminance > 0.5) {
-                Color.argb(HALO_ALPHA, 0, 0, 0)
+                Color.argb(ScanVisualConstants.HALO_ALPHA, 0, 0, 0)
             } else {
-                Color.argb(HALO_ALPHA, 255, 255, 255)
+                Color.argb(ScanVisualConstants.HALO_ALPHA, 255, 255, 255)
             }
         }
 
@@ -65,7 +58,8 @@ class ScanHighlightDrawable(
             colorAsInt: Int,
             strokeDp: Int
         ): GradientDrawable {
-            val cornerRadius = ScreenUtils.dpToPxFloat(context, CORNER_RADIUS_DP)
+            val cornerRadius =
+                ScreenUtils.dpToPxFloat(context, ScanVisualConstants.CORNER_RADIUS_DP)
             return GradientDrawable().apply {
                 shape = GradientDrawable.RECTANGLE
                 this.cornerRadius = cornerRadius
@@ -77,16 +71,21 @@ class ScanHighlightDrawable(
             context: Context,
             colorAsInt: Int
         ): Array<GradientDrawable> {
-            val cornerRadius = ScreenUtils.dpToPxFloat(context, CORNER_RADIUS_DP)
-            val haloRadius = cornerRadius + ScreenUtils.dpToPxFloat(context, HALO_OFFSET_DP.toFloat())
+            val cornerRadius =
+                ScreenUtils.dpToPxFloat(context, ScanVisualConstants.CORNER_RADIUS_DP)
+            val haloRadius = cornerRadius +
+                ScreenUtils.dpToPxFloat(context, ScanVisualConstants.HALO_OFFSET_DP.toFloat())
 
             val halo = GradientDrawable().apply {
                 shape = GradientDrawable.RECTANGLE
                 this.cornerRadius = haloRadius
-                setStroke(ScreenUtils.dpToPx(context, HALO_WIDTH_DP), haloColor(colorAsInt))
+                setStroke(
+                    ScreenUtils.dpToPx(context, ScanVisualConstants.HALO_STROKE_DP),
+                    haloColor(colorAsInt)
+                )
             }
 
-            val mainStroke = strokeLayer(context, colorAsInt, STROKE_WIDTH_DP)
+            val mainStroke = strokeLayer(context, colorAsInt, ScanVisualConstants.ACTIVE_STROKE_DP)
 
             return arrayOf(halo, mainStroke)
         }
@@ -95,9 +94,10 @@ class ScanHighlightDrawable(
             context: Context,
             colorAsInt: Int
         ): Array<GradientDrawable> {
-            val cornerRadius = ScreenUtils.dpToPxFloat(context, CORNER_RADIUS_DP)
+            val cornerRadius =
+                ScreenUtils.dpToPxFloat(context, ScanVisualConstants.CORNER_RADIUS_DP)
             val tint = Color.argb(
-                FILL_ALPHA,
+                ScanVisualConstants.FILL_ALPHA,
                 Color.red(colorAsInt),
                 Color.green(colorAsInt),
                 Color.blue(colorAsInt)
@@ -109,7 +109,7 @@ class ScanHighlightDrawable(
                 setColor(tint)
             }
 
-            val mainStroke = strokeLayer(context, colorAsInt, FILL_STROKE_WIDTH_DP)
+            val mainStroke = strokeLayer(context, colorAsInt, ScanVisualConstants.FILL_STROKE_DP)
 
             return arrayOf(fill, mainStroke)
         }
