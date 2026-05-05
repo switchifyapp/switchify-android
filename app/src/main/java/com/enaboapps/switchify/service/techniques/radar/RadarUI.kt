@@ -9,8 +9,8 @@ import android.widget.FrameLayout
 import android.widget.RelativeLayout
 import androidx.core.graphics.toColorInt
 import com.enaboapps.switchify.service.scanning.ScanColorManager
+import com.enaboapps.switchify.service.scanning.ScanVisualConstants
 import com.enaboapps.switchify.service.techniques.AccessTechniqueUIBase
-import com.enaboapps.switchify.service.techniques.shared.ScanMethodUIConstants
 import com.enaboapps.switchify.service.utils.ScreenUtils
 import kotlin.math.cos
 import kotlin.math.sin
@@ -23,7 +23,6 @@ class RadarUI(private val context: Context) : AccessTechniqueUIBase() {
 
     companion object {
         const val RADAR_CIRCLE_SIZE = 50
-        private const val RADAR_ALPHA = 0.7f
     }
 
     private val screenWidth: Int
@@ -64,7 +63,7 @@ class RadarUI(private val context: Context) : AccessTechniqueUIBase() {
         val drawable = GradientDrawable().apply {
             shape = GradientDrawable.OVAL
             setColor(ScanColorManager.getScanColorSetFromPreferences(context).secondaryColor.toColorInt())
-            alpha = (RADAR_ALPHA * 255).toInt()
+            alpha = (ScanVisualConstants.RADAR_ALPHA * 255).toInt()
         }
         radarCircle = RelativeLayout(context).apply {
             background = drawable
@@ -155,14 +154,15 @@ class RadarUI(private val context: Context) : AccessTechniqueUIBase() {
 
     private inner class RadarLineView(context: Context) : View(context) {
         private val paint = Paint().apply {
-            strokeWidth = ScanMethodUIConstants.LINE_THICKNESS.toFloat()
+            strokeWidth =
+                ScreenUtils.dpToPx(context, ScanVisualConstants.CURSOR_LINE_DP).toFloat()
             style = Paint.Style.STROKE
         }
         private var currentAngle = 0f
 
         fun setColor(color: Int) {
             paint.color = color
-            paint.alpha = (RADAR_ALPHA * 255).toInt()
+            paint.alpha = (ScanVisualConstants.RADAR_ALPHA * 255).toInt()
         }
 
         fun updateAngle(angle: Float) {

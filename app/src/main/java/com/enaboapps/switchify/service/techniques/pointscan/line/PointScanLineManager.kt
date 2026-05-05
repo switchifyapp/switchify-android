@@ -5,11 +5,11 @@ import android.graphics.PointF
 import android.graphics.Rect
 import com.enaboapps.switchify.service.scanning.ScanDirection
 import com.enaboapps.switchify.service.scanning.ScanSettings
+import com.enaboapps.switchify.service.scanning.ScanVisualConstants
 import com.enaboapps.switchify.service.scanning.ScanningScheduler
 import com.enaboapps.switchify.service.techniques.AccessTechniqueInterface
 import com.enaboapps.switchify.service.techniques.pointscan.PointScanSettings
 import com.enaboapps.switchify.service.techniques.pointscan.blocks.PointScanBlock
-import com.enaboapps.switchify.service.techniques.shared.ScanMethodUIConstants
 import com.enaboapps.switchify.service.utils.ScreenUtils
 
 class PointScanLineManager(
@@ -32,7 +32,7 @@ class PointScanLineManager(
     }
 
     private fun stepScanning() {
-        val lineThickness = ScanMethodUIConstants.LINE_THICKNESS
+        val lineThickness = ScreenUtils.dpToPx(context, ScanVisualConstants.CURSOR_LINE_DP)
         val bounds = currentBlock?.let { block ->
             Rect(
                 block.left + lineThickness,

@@ -7,9 +7,9 @@ import android.graphics.drawable.GradientDrawable
 import android.widget.RelativeLayout
 import androidx.core.graphics.toColorInt
 import com.enaboapps.switchify.service.scanning.ScanColorManager
+import com.enaboapps.switchify.service.scanning.ScanVisualConstants
 import com.enaboapps.switchify.service.techniques.AccessTechniqueUIBase
 import com.enaboapps.switchify.service.techniques.pointscan.blocks.PointScanBlock
-import com.enaboapps.switchify.service.techniques.shared.ScanMethodUIConstants
 import com.enaboapps.switchify.service.utils.HighlightAnimations
 import com.enaboapps.switchify.service.utils.ScreenUtils
 
@@ -25,6 +25,9 @@ class LineUI(private val context: Context) : AccessTechniqueUIBase() {
     private var blockOutline: RelativeLayout? = null
     private var currentBlock: PointScanBlock? = null
 
+    private val cursorLinePx =
+        ScreenUtils.dpToPx(context, ScanVisualConstants.CURSOR_LINE_DP)
+
     private fun getScreenBounds(): Rect {
         return Rect(0, 0, ScreenUtils.getWidth(context), ScreenUtils.getHeight(context))
     }
@@ -39,12 +42,11 @@ class LineUI(private val context: Context) : AccessTechniqueUIBase() {
         val bounds = getBounds()
         if (currentBlock != null) {
             if (blockOutline == null) {
-                val strokeThickness = ScanMethodUIConstants.LINE_THICKNESS
                 blockOutline = RelativeLayout(context).apply {
                     background = GradientDrawable().apply {
                         setColor(Color.TRANSPARENT)
                         setStroke(
-                            strokeThickness,
+                            cursorLinePx,
                             ScanColorManager.getScanColorSetFromPreferences(context).primaryColor.toColorInt()
                         )
                     }
@@ -112,7 +114,7 @@ class LineUI(private val context: Context) : AccessTechniqueUIBase() {
                     it,
                     x,
                     yPosition,
-                    ScanMethodUIConstants.LINE_THICKNESS,
+                    cursorLinePx,
                     height
                 )
                 HighlightAnimations.fadeIn(it)
@@ -143,7 +145,7 @@ class LineUI(private val context: Context) : AccessTechniqueUIBase() {
                     xPosition,
                     y,
                     width,
-                    ScanMethodUIConstants.LINE_THICKNESS
+                    cursorLinePx
                 )
                 HighlightAnimations.fadeIn(it)
             }
@@ -201,7 +203,7 @@ class LineUI(private val context: Context) : AccessTechniqueUIBase() {
      */
     private fun updateXScanLine(x: Int) {
         val bounds = getBounds()
-        val width = ScanMethodUIConstants.LINE_THICKNESS
+        val width = cursorLinePx
         val height = bounds.height()
         xScanLine?.let {
             super.updateView(it, x, bounds.top, width, height)
@@ -216,7 +218,7 @@ class LineUI(private val context: Context) : AccessTechniqueUIBase() {
     private fun updateYScanLine(y: Int) {
         val bounds = getBounds()
         val width = bounds.width()
-        val height = ScanMethodUIConstants.LINE_THICKNESS
+        val height = cursorLinePx
         yScanLine?.let {
             super.updateView(it, bounds.left, y, width, height)
         }
@@ -260,7 +262,7 @@ class LineUI(private val context: Context) : AccessTechniqueUIBase() {
                 line,
                 line.x.toInt(),
                 bounds.top,
-                ScanMethodUIConstants.LINE_THICKNESS,
+                cursorLinePx,
                 bounds.height()
             )
         }
@@ -271,7 +273,7 @@ class LineUI(private val context: Context) : AccessTechniqueUIBase() {
                 bounds.left,
                 line.y.toInt(),
                 bounds.width(),
-                ScanMethodUIConstants.LINE_THICKNESS
+                cursorLinePx
             )
         }
         showBlockOutline()

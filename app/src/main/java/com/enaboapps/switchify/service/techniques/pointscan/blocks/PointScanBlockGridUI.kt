@@ -1,12 +1,12 @@
 package com.enaboapps.switchify.service.techniques.pointscan.blocks
 
 import android.content.Context
-import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.os.Handler
 import android.os.Looper
 import android.widget.RelativeLayout
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
+import com.enaboapps.switchify.service.scanning.ScanVisualConstants
 import com.enaboapps.switchify.service.techniques.AccessTechniqueUIBase
 import com.enaboapps.switchify.service.utils.HighlightAnimations
 import com.enaboapps.switchify.service.utils.ScreenUtils
@@ -17,22 +17,14 @@ class PointScanBlockGridUI(private val context: Context) : AccessTechniqueUIBase
     private var gridViews: List<RelativeLayout> = emptyList()
     private var screenOutline: RelativeLayout? = null
 
-    companion object {
-        private const val GRID_STROKE_DP = 2
-        private const val GRID_CORNER_RADIUS_DP = 8f
-        private const val OVERLAP_PADDING_DP = 2
-
-        // Structural tone for grid divisions and screen outline. Hardcoded so
-        // it is always distinguishable from the user's selected scan colours
-        // (which drive the active block highlight and cursor crosshair).
-        private val GRID_COLOR = Color.argb(160, 0, 0, 0)
-    }
-
     private fun structuralOutline(): GradientDrawable {
         return GradientDrawable().apply {
             shape = GradientDrawable.RECTANGLE
-            cornerRadius = ScreenUtils.dpToPxFloat(context, GRID_CORNER_RADIUS_DP)
-            setStroke(ScreenUtils.dpToPx(context, GRID_STROKE_DP), GRID_COLOR)
+            cornerRadius = ScreenUtils.dpToPxFloat(context, ScanVisualConstants.CORNER_RADIUS_DP)
+            setStroke(
+                ScreenUtils.dpToPx(context, ScanVisualConstants.STRUCTURAL_STROKE_DP),
+                ScanVisualConstants.STRUCTURAL_COLOR
+            )
         }
     }
 
@@ -53,8 +45,9 @@ class PointScanBlockGridUI(private val context: Context) : AccessTechniqueUIBase
 
             val blockWidth = screenWidth / gridSize
             val blockHeight = screenHeight / gridSize
-            val strokePx = ScreenUtils.dpToPx(context, GRID_STROKE_DP)
-            val overlap = strokePx + ScreenUtils.dpToPx(context, OVERLAP_PADDING_DP)
+            val strokePx = ScreenUtils.dpToPx(context, ScanVisualConstants.STRUCTURAL_STROKE_DP)
+            val overlap =
+                strokePx + ScreenUtils.dpToPx(context, ScanVisualConstants.GRID_OVERLAP_PADDING_DP)
 
             val newGridViews = mutableListOf<RelativeLayout>()
 
