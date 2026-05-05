@@ -1,12 +1,12 @@
 package com.enaboapps.switchify.service.techniques.pointscan.blocks
 
 import android.content.Context
+import android.graphics.Color
+import android.graphics.drawable.GradientDrawable
 import android.os.Handler
 import android.os.Looper
 import android.widget.RelativeLayout
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
-import com.enaboapps.switchify.service.scanning.ScanColorManager
-import com.enaboapps.switchify.service.scanning.ScanHighlightDrawable
 import com.enaboapps.switchify.service.techniques.AccessTechniqueUIBase
 import com.enaboapps.switchify.service.utils.HighlightAnimations
 import com.enaboapps.switchify.service.utils.ScreenUtils
@@ -18,13 +18,22 @@ class PointScanBlockGridUI(private val context: Context) : AccessTechniqueUIBase
     private var screenOutline: RelativeLayout? = null
 
     companion object {
-        private const val GRID_STROKE_DP = 3
+        private const val GRID_STROKE_DP = 2
+        private const val GRID_CORNER_RADIUS_DP = 8f
         private const val OVERLAP_PADDING_DP = 2
+
+        // Structural tone for grid divisions and screen outline. Hardcoded so
+        // it is always distinguishable from the user's selected scan colours
+        // (which drive the active block highlight and cursor crosshair).
+        private val GRID_COLOR = Color.argb(160, 0, 0, 0)
     }
 
-    private fun blockOutline(): ScanHighlightDrawable {
-        val color = ScanColorManager.getScanColorSetFromPreferences(context).primaryColor
-        return ScanHighlightDrawable(context, isFill = false, color = color, withHalo = false)
+    private fun structuralOutline(): GradientDrawable {
+        return GradientDrawable().apply {
+            shape = GradientDrawable.RECTANGLE
+            cornerRadius = ScreenUtils.dpToPxFloat(context, GRID_CORNER_RADIUS_DP)
+            setStroke(ScreenUtils.dpToPx(context, GRID_STROKE_DP), GRID_COLOR)
+        }
     }
 
     fun showGrid() {
@@ -59,7 +68,7 @@ class PointScanBlockGridUI(private val context: Context) : AccessTechniqueUIBase
                 val height = blockHeight + if (row > 0) overlap else 0
 
                 val view = RelativeLayout(context).apply {
-                    background = blockOutline()
+                    background = structuralOutline()
                 }
 
                 addViewDirectly(view, left, top, width, height)
@@ -68,7 +77,7 @@ class PointScanBlockGridUI(private val context: Context) : AccessTechniqueUIBase
             }
 
             val newScreenOutline = RelativeLayout(context).apply {
-                background = blockOutline()
+                background = structuralOutline()
             }
             addViewDirectly(newScreenOutline, 0, 0, screenWidth, screenHeight)
             HighlightAnimations.fadeIn(newScreenOutline)
