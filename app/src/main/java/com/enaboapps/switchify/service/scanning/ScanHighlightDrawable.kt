@@ -10,26 +10,18 @@ import com.enaboapps.switchify.service.utils.ScreenUtils
 class ScanHighlightDrawable(
     context: Context,
     isFill: Boolean,
-    color: String,
-    withHalo: Boolean = true
-) : LayerDrawable(createLayers(context, isFill, color.toColorInt(), withHalo)) {
+    color: String
+) : LayerDrawable(createLayers(context, isFill, color.toColorInt())) {
 
     private val haloOffsetPx = ScreenUtils.dpToPx(context, HALO_OFFSET_DP)
-    private val drewHalo: Boolean = !isFill && withHalo
 
     init {
-        when {
-            isFill -> {
-                setLayerInset(0, 0, 0, 0, 0)
-                setLayerInset(1, 0, 0, 0, 0)
-            }
-            drewHalo -> {
-                setLayerInset(0, -haloOffsetPx, -haloOffsetPx, -haloOffsetPx, -haloOffsetPx)
-                setLayerInset(1, 0, 0, 0, 0)
-            }
-            else -> {
-                setLayerInset(0, 0, 0, 0, 0)
-            }
+        if (isFill) {
+            setLayerInset(0, 0, 0, 0, 0)
+            setLayerInset(1, 0, 0, 0, 0)
+        } else {
+            setLayerInset(0, -haloOffsetPx, -haloOffsetPx, -haloOffsetPx, -haloOffsetPx)
+            setLayerInset(1, 0, 0, 0, 0)
         }
     }
 
@@ -59,13 +51,12 @@ class ScanHighlightDrawable(
         private fun createLayers(
             context: Context,
             isFill: Boolean,
-            colorAsInt: Int,
-            withHalo: Boolean
+            colorAsInt: Int
         ): Array<GradientDrawable> {
-            return when {
-                isFill -> createFillLayers(context, colorAsInt)
-                withHalo -> createBorderLayers(context, colorAsInt)
-                else -> arrayOf(strokeLayer(context, colorAsInt, STROKE_WIDTH_DP))
+            return if (isFill) {
+                createFillLayers(context, colorAsInt)
+            } else {
+                createBorderLayers(context, colorAsInt)
             }
         }
 
