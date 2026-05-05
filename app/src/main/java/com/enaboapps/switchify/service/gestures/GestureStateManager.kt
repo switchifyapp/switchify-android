@@ -39,7 +39,6 @@ object GestureStateManager {
 
     // Auto-select state
     private val autoSelectInProgress = AtomicBoolean(false)
-    private val bypassAutoSelect = AtomicBoolean(false)
     private var autoSelectJob: Job? = null
 
     // Selection context state
@@ -298,18 +297,6 @@ object GestureStateManager {
      */
     fun isAutoSelectInProgress(): Boolean = autoSelectInProgress.get()
 
-    /**
-     * Sets the bypass auto-select flag.
-     */
-    fun setBypassAutoSelect(bypass: Boolean) {
-        bypassAutoSelect.set(bypass)
-    }
-
-    /**
-     * Checks if auto-select should be bypassed.
-     */
-    fun shouldBypassAutoSelect(): Boolean = bypassAutoSelect.get()
-
     // === Selection Context State Management ===
 
     /**
@@ -355,7 +342,6 @@ object GestureStateManager {
         currentGestureType.set(null)
         gestureStartPoint.set(null)
         autoSelectInProgress.set(false)
-        bypassAutoSelect.set(false)
         methodTypeInvokedForStartScanning.set(null)
         activeVisualFeedback.set(false)
 
@@ -375,7 +361,6 @@ object GestureStateManager {
             "isPerformingGesture" to isPerformingGesture.get(),
             "currentGestureType" to (currentGestureType.get()?.name ?: "none"),
             "isAutoSelectInProgress" to autoSelectInProgress.get(),
-            "bypassAutoSelect" to bypassAutoSelect.get(),
             "activeVisualFeedback" to activeVisualFeedback.get(),
             "lastGestureTime" to lastGestureTime.get(),
             "listenerCount" to stateListeners.size
