@@ -2,6 +2,7 @@ package com.enaboapps.switchify.service.techniques.nodes.scanners
 
 import android.os.Handler
 import android.os.Looper
+import android.view.animation.PathInterpolator
 import android.widget.RelativeLayout
 import com.enaboapps.switchify.service.scanning.ScanColorManager
 import com.enaboapps.switchify.service.scanning.ScanHighlightDrawable
@@ -12,6 +13,10 @@ import com.enaboapps.switchify.service.window.SwitchifyAccessibilityWindow
 class NodeScannerUI {
     companion object {
         val instance: NodeScannerUI by lazy { NodeScannerUI() }
+
+        private const val SHOW_DURATION_MS = 120L
+        private const val HIDE_DURATION_MS = 80L
+        private const val INITIAL_SCALE = 0.96f
     }
 
     private val window = SwitchifyAccessibilityWindow.instance
@@ -24,6 +29,9 @@ class NodeScannerUI {
     private var rowBoundsLayout: RelativeLayout? = null
 
     private val handler = Handler(Looper.getMainLooper())
+
+    // Material 3 standard easing curve (fast out, slow in).
+    private val showInterpolator = PathInterpolator(0.4f, 0.0f, 0.2f, 1.0f)
 
     private fun prepare() {
         if (baseLayout == null) {
@@ -58,18 +66,19 @@ class NodeScannerUI {
                 )
                 params.leftMargin = x
                 params.topMargin = y
-                itemBoundsLayout = RelativeLayout(it).apply {
+                val layout = RelativeLayout(it).apply {
                     layoutParams = params
                 }
                 style?.let { style ->
-                    itemBoundsLayout?.background = ScanHighlightDrawable(
+                    layout.background = ScanHighlightDrawable(
+                        it,
                         style,
                         ScanColorManager.getScanColorSetFromPreferences(it).secondaryColor
                     )
                 }
-                itemBoundsLayout?.let { layout ->
-                    baseLayout?.addView(layout)
-                }
+                itemBoundsLayout = layout
+                animateIn(layout)
+                baseLayout?.addView(layout)
             }
         }
     }
@@ -84,46 +93,71 @@ class NodeScannerUI {
                 )
                 params.leftMargin = x
                 params.topMargin = y
-                rowBoundsLayout = RelativeLayout(it).apply {
+                val layout = RelativeLayout(it).apply {
                     layoutParams = params
                 }
                 style?.let { style ->
-                    rowBoundsLayout?.background = ScanHighlightDrawable(
+                    layout.background = ScanHighlightDrawable(
+                        it,
                         style,
                         ScanColorManager.getScanColorSetFromPreferences(it).primaryColor
                     )
                 }
-                rowBoundsLayout?.let { layout ->
-                    baseLayout?.addView(layout)
-                }
+                rowBoundsLayout = layout
+                animateIn(layout)
+                baseLayout?.addView(layout)
             }
         }
     }
 
+    private fun animateIn(layout: RelativeLayout) {
+        layout.alpha = 0f
+        layout.scaleX = INITIAL_SCALE
+        layout.scaleY = INITIAL_SCALE
+        layout.animate()
+            .alpha(1f)
+            .scaleX(1f)
+            .scaleY(1f)
+            .setDuration(SHOW_DURATION_MS)
+            .setInterpolator(showInterpolator)
+            .start()
+    }
+
     fun hideItemBounds() {
         handler.post {
-            itemBoundsLayout?.let {
-                baseLayout?.removeView(it)
-                itemBoundsLayout = null
-            }
+            val view = itemBoundsLayout ?: return@post
+            itemBoundsLayout = null
+            view.animate()
+                .alpha(0f)
+                .setDuration(HIDE_DURATION_MS)
+                .withEndAction { baseLayout?.removeView(view) }
+                .start()
         }
     }
 
     fun hideRowBounds() {
         handler.post {
-            rowBoundsLayout?.let {
-                baseLayout?.removeView(it)
-                rowBoundsLayout = null
-            }
+            val view = rowBoundsLayout ?: return@post
+            rowBoundsLayout = null
+            view.animate()
+                .alpha(0f)
+                .setDuration(HIDE_DURATION_MS)
+                .withEndAction { baseLayout?.removeView(view) }
+                .start()
         }
     }
 
     fun hideAll() {
-        hideItemBounds()
-        hideRowBounds()
-        baseLayout?.let {
-            window.removeView(it)
+        handler.post {
+            itemBoundsLayout = null
+            rowBoundsLayout = null
+            val base = baseLayout ?: return@post
             baseLayout = null
+            base.animate()
+                .alpha(0f)
+                .setDuration(HIDE_DURATION_MS)
+                .withEndAction { window.removeView(base) }
+                .start()
         }
     }
 }

@@ -243,24 +243,18 @@
     <string name="demo">Demo</string>
 
     <!-- Scan Color Sets -->
-    <string name="scan_color_set_blue_red">Blue and Red</string>
-    <string name="scan_color_set_green_yellow">Green and Yellow</string>
-    <string name="scan_color_set_purple_orange">Purple and Orange</string>
-    <string name="scan_color_set_black_white">Black and White</string>
-    <string name="scan_color_set_red_blue">Red and Blue</string>
-    <string name="scan_color_set_yellow_green">Yellow and Green</string>
-    <string name="scan_color_set_orange_purple">Orange and Purple</string>
-    <string name="scan_color_set_white_black">White and Black</string>
+    <string name="scan_color_set_default">Default</string>
+    <string name="scan_color_set_high_contrast">High Contrast</string>
+    <string name="scan_color_set_deuteranopia">Deuteranopia-safe</string>
+    <string name="scan_color_set_tritanopia">Tritanopia-safe</string>
+    <string name="scan_color_set_monochrome">Monochrome</string>
 
     <!-- Scan Color Set Descriptions -->
-    <string name="scan_color_set_blue_red_desc">Primary: Blue, Secondary: Red</string>
-    <string name="scan_color_set_green_yellow_desc">Primary: Green, Secondary: Yellow</string>
-    <string name="scan_color_set_purple_orange_desc">Primary: Purple, Secondary: Orange</string>
-    <string name="scan_color_set_black_white_desc">Primary: Black, Secondary: White</string>
-    <string name="scan_color_set_red_blue_desc">Primary: Red, Secondary: Blue</string>
-    <string name="scan_color_set_yellow_green_desc">Primary: Yellow, Secondary: Green</string>
-    <string name="scan_color_set_orange_purple_desc">Primary: Orange, Secondary: Purple</string>
-    <string name="scan_color_set_white_black_desc">Primary: White, Secondary: Black</string>
+    <string name="scan_color_set_default_desc">Balanced blue and amber pairing</string>
+    <string name="scan_color_set_high_contrast_desc">Pure black and white for low-vision users</string>
+    <string name="scan_color_set_deuteranopia_desc">Blue and yellow tones distinguishable to red-green colorblind users</string>
+    <string name="scan_color_set_tritanopia_desc">Red and teal tones distinguishable to blue-yellow colorblind users</string>
+    <string name="scan_color_set_monochrome_desc">Subdued grayscale pairing</string>
 
     <!-- Screen Titles -->
     <string name="screen_title_switchify">Switchify</string>

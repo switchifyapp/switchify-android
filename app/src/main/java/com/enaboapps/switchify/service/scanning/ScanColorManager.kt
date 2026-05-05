@@ -28,56 +28,39 @@ class ScanColorManager {
 
     companion object {
         /**
-         * The scan color sets
+         * The scan color sets. Hex values are designer-tuned (Tailwind palette),
+         * not raw web primaries.
          */
         val SCAN_COLOR_SETS = listOf(
             ScanColorSet(
-                R.string.scan_color_set_blue_red,
-                R.string.scan_color_set_blue_red_desc,
-                "#0000FF",
-                "#FF0000"
+                R.string.scan_color_set_default,
+                R.string.scan_color_set_default_desc,
+                "#2563EB",
+                "#F59E0B"
             ),
             ScanColorSet(
-                R.string.scan_color_set_green_yellow,
-                R.string.scan_color_set_green_yellow_desc,
-                "#00FF00",
-                "#FFFF00"
-            ),
-            ScanColorSet(
-                R.string.scan_color_set_purple_orange,
-                R.string.scan_color_set_purple_orange_desc,
-                "#800080",
-                "#FFA500"
-            ),
-            ScanColorSet(
-                R.string.scan_color_set_black_white,
-                R.string.scan_color_set_black_white_desc,
+                R.string.scan_color_set_high_contrast,
+                R.string.scan_color_set_high_contrast_desc,
                 "#000000",
                 "#FFFFFF"
             ),
             ScanColorSet(
-                R.string.scan_color_set_red_blue,
-                R.string.scan_color_set_red_blue_desc,
-                "#FF0000",
-                "#0000FF"
+                R.string.scan_color_set_deuteranopia,
+                R.string.scan_color_set_deuteranopia_desc,
+                "#1E40AF",
+                "#FCD34D"
             ),
             ScanColorSet(
-                R.string.scan_color_set_yellow_green,
-                R.string.scan_color_set_yellow_green_desc,
-                "#FFFF00",
-                "#00FF00"
+                R.string.scan_color_set_tritanopia,
+                R.string.scan_color_set_tritanopia_desc,
+                "#DC2626",
+                "#0E7490"
             ),
             ScanColorSet(
-                R.string.scan_color_set_orange_purple,
-                R.string.scan_color_set_orange_purple_desc,
-                "#FFA500",
-                "#800080"
-            ),
-            ScanColorSet(
-                R.string.scan_color_set_white_black,
-                R.string.scan_color_set_white_black_desc,
-                "#FFFFFF",
-                "#000000"
+                R.string.scan_color_set_monochrome,
+                R.string.scan_color_set_monochrome_desc,
+                "#1F2937",
+                "#6B7280"
             )
         )
 

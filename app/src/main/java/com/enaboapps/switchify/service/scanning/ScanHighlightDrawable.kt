@@ -1,131 +1,118 @@
 package com.enaboapps.switchify.service.scanning
 
+import android.content.Context
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.graphics.drawable.LayerDrawable
 import androidx.core.graphics.toColorInt
 
 class ScanHighlightDrawable(
-    highlightStyle: ScanHighlightStyle,
+    context: Context,
+    private val highlightStyle: ScanHighlightStyle,
     color: String
-) : LayerDrawable(createLayers(highlightStyle, color.toColorInt())) {
+) : LayerDrawable(createLayers(context, highlightStyle, color.toColorInt())) {
+
+    private val haloOffsetPx =
+        (HALO_OFFSET_DP * context.resources.displayMetrics.density).toInt()
+
+    init {
+        if (highlightStyle.isFill()) {
+            setLayerInset(0, 0, 0, 0, 0)
+            setLayerInset(1, 0, 0, 0, 0)
+        } else {
+            setLayerInset(0, -haloOffsetPx, -haloOffsetPx, -haloOffsetPx, -haloOffsetPx)
+            setLayerInset(1, 0, 0, 0, 0)
+        }
+    }
+
     companion object {
-        const val FILL_ALPHA = 102
-        const val CORNER_RADIUS = 16f
-        const val MAIN_STROKE_WIDTH = 12
-        const val OUTER_GLOW_WIDTH = 8
-        const val INNER_HIGHLIGHT_WIDTH = 4
-        const val OUTER_GLOW_OFFSET = 6
-        const val INNER_HIGHLIGHT_INSET = 6
+        private const val STROKE_WIDTH_DP = 3
+        private const val FILL_STROKE_WIDTH_DP = 2
+        private const val CORNER_RADIUS_DP = 8f
+        private const val HALO_WIDTH_DP = 1
+        private const val HALO_OFFSET_DP = 2f
+        private const val FILL_ALPHA = 31
+        private const val HALO_ALPHA = 140
+
+        private fun dp(context: Context, value: Float): Float =
+            value * context.resources.displayMetrics.density
+
+        private fun dpInt(context: Context, value: Int): Int =
+            (value * context.resources.displayMetrics.density).toInt()
+
+        // Pick a halo tone that contrasts with the main color so the highlight
+        // remains visible when it overlaps a same-colored background.
+        private fun haloColor(mainColor: Int): Int {
+            val r = Color.red(mainColor)
+            val g = Color.green(mainColor)
+            val b = Color.blue(mainColor)
+            val luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255.0
+            return if (luminance > 0.5) {
+                Color.argb(HALO_ALPHA, 0, 0, 0)
+            } else {
+                Color.argb(HALO_ALPHA, 255, 255, 255)
+            }
+        }
 
         private fun createLayers(
+            context: Context,
             highlightStyle: ScanHighlightStyle,
             colorAsInt: Int
         ): Array<GradientDrawable> {
             return if (highlightStyle.isFill()) {
-                createEnhancedFillLayers(colorAsInt)
+                createFillLayers(context, colorAsInt)
             } else {
-                createEnhancedBorderLayers(colorAsInt)
+                createBorderLayers(context, colorAsInt)
             }
         }
 
-        private fun createEnhancedFillLayers(colorAsInt: Int): Array<GradientDrawable> {
-            // Layer 1: Outer glow for depth
-            val outerGlow = GradientDrawable().apply {
+        private fun createBorderLayers(
+            context: Context,
+            colorAsInt: Int
+        ): Array<GradientDrawable> {
+            val cornerRadius = dp(context, CORNER_RADIUS_DP)
+            val haloRadius = cornerRadius + dp(context, HALO_OFFSET_DP)
+
+            val halo = GradientDrawable().apply {
                 shape = GradientDrawable.RECTANGLE
-                cornerRadius = CORNER_RADIUS + OUTER_GLOW_OFFSET
-                setColor(Color.argb(80, 0, 0, 0)) // More visible shadow
+                this.cornerRadius = haloRadius
+                setStroke(dpInt(context, HALO_WIDTH_DP), haloColor(colorAsInt))
             }
 
-            // Layer 2: Main fill with subtle gradient
-            val mainFill = GradientDrawable().apply {
+            val mainStroke = GradientDrawable().apply {
                 shape = GradientDrawable.RECTANGLE
-                cornerRadius = CORNER_RADIUS
-                val lightColor = Color.argb(
-                    FILL_ALPHA,
-                    Color.red(colorAsInt),
-                    Color.green(colorAsInt),
-                    Color.blue(colorAsInt)
-                )
-                val darkColor = Color.argb(
-                    FILL_ALPHA - 20,
-                    Color.red(colorAsInt),
-                    Color.green(colorAsInt),
-                    Color.blue(colorAsInt)
-                )
-                colors = intArrayOf(lightColor, darkColor)
-                gradientType = GradientDrawable.LINEAR_GRADIENT
-                orientation = GradientDrawable.Orientation.TOP_BOTTOM
+                this.cornerRadius = cornerRadius
+                setStroke(dpInt(context, STROKE_WIDTH_DP), colorAsInt)
             }
 
-            // Layer 3: Inner highlight for premium look
-            val innerHighlight = GradientDrawable().apply {
-                shape = GradientDrawable.RECTANGLE
-                cornerRadius = CORNER_RADIUS - INNER_HIGHLIGHT_INSET
-                setStroke(INNER_HIGHLIGHT_WIDTH, Color.argb(120, 255, 255, 255))
-            }
-
-            return arrayOf(outerGlow, mainFill, innerHighlight)
+            return arrayOf(halo, mainStroke)
         }
 
-        private fun createEnhancedBorderLayers(colorAsInt: Int): Array<GradientDrawable> {
-            // Layer 1: Outer glow with color tint
-            val outerGlow = GradientDrawable().apply {
+        private fun createFillLayers(
+            context: Context,
+            colorAsInt: Int
+        ): Array<GradientDrawable> {
+            val cornerRadius = dp(context, CORNER_RADIUS_DP)
+            val tint = Color.argb(
+                FILL_ALPHA,
+                Color.red(colorAsInt),
+                Color.green(colorAsInt),
+                Color.blue(colorAsInt)
+            )
+
+            val fill = GradientDrawable().apply {
                 shape = GradientDrawable.RECTANGLE
-                cornerRadius = CORNER_RADIUS + OUTER_GLOW_OFFSET
-                setStroke(
-                    OUTER_GLOW_WIDTH,
-                    Color.argb(
-                        80,
-                        Color.red(colorAsInt),
-                        Color.green(colorAsInt),
-                        Color.blue(colorAsInt)
-                    )
-                )
+                this.cornerRadius = cornerRadius
+                setColor(tint)
             }
 
-            // Layer 2: Main border (preserved original behavior)
-            val mainBorder = GradientDrawable().apply {
+            val mainStroke = GradientDrawable().apply {
                 shape = GradientDrawable.RECTANGLE
-                cornerRadius = CORNER_RADIUS
-                setStroke(MAIN_STROKE_WIDTH, colorAsInt)
+                this.cornerRadius = cornerRadius
+                setStroke(dpInt(context, FILL_STROKE_WIDTH_DP), colorAsInt)
             }
 
-            // Layer 3: Inner highlight with brighter accent
-            val innerHighlight = GradientDrawable().apply {
-                shape = GradientDrawable.RECTANGLE
-                cornerRadius = CORNER_RADIUS - INNER_HIGHLIGHT_INSET
-                setStroke(
-                    INNER_HIGHLIGHT_WIDTH,
-                    Color.argb(
-                        160,
-                        Math.min(255, (Color.red(colorAsInt) * 1.4f).toInt()),
-                        Math.min(255, (Color.green(colorAsInt) * 1.4f).toInt()),
-                        Math.min(255, (Color.blue(colorAsInt) * 1.4f).toInt())
-                    )
-                )
-            }
-
-            return arrayOf(outerGlow, mainBorder, innerHighlight)
+            return arrayOf(fill, mainStroke)
         }
-    }
-
-    init {
-        // Position layers for sophisticated depth effect with more pronounced spacing
-        setLayerInset(
-            0,
-            -OUTER_GLOW_OFFSET,
-            -OUTER_GLOW_OFFSET,
-            -OUTER_GLOW_OFFSET,
-            -OUTER_GLOW_OFFSET
-        )
-        setLayerInset(1, 0, 0, 0, 0)
-        setLayerInset(
-            2,
-            INNER_HIGHLIGHT_INSET,
-            INNER_HIGHLIGHT_INSET,
-            INNER_HIGHLIGHT_INSET,
-            INNER_HIGHLIGHT_INSET
-        )
     }
 }
