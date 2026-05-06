@@ -19,10 +19,9 @@ import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.Cable
 import androidx.compose.material.icons.filled.Camera
 import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -53,11 +52,11 @@ fun SwitchListItem(
     // Interaction
     onClick: () -> Unit
 ) {
-    Card(
+    Panel(
         modifier = Modifier
             .fillMaxWidth()
             .padding(bottom = Dimens.spaceXs),
-        colors = CardDefaults.cardColors(),
+        shape = MaterialTheme.shapes.medium,
         onClick = { if (isEnabled) onClick() }
     ) {
         Column(
@@ -187,7 +186,7 @@ fun SwitchListItem(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(Dimens.spaceXs))
-                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                                .background(MaterialTheme.colorScheme.surfaceColorAtElevation(2.dp))
                                 .padding(horizontal = Dimens.spaceS, vertical = Dimens.spaceXs),
                             horizontalArrangement = Arrangement.Center
                         ) {
@@ -218,7 +217,7 @@ private fun ActionCard(
             alpha = if (isEnabled) 1f else 0.4f
         )
     } else {
-        MaterialTheme.colorScheme.surfaceVariant.copy(
+        MaterialTheme.colorScheme.surfaceColorAtElevation(2.dp).copy(
             alpha = if (isEnabled) 1f else 0.4f
         )
     }

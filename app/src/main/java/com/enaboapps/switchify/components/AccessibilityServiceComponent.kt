@@ -34,8 +34,7 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.TouchApp
 import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -109,11 +108,9 @@ fun AccessibilityServiceComponent(
 
         if (!isEnabled) {
             // What it does section
-            Card(
+            Panel(
                 modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-                )
+                containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
             ) {
                 Column(
                     modifier = Modifier.padding(20.dp)
@@ -148,10 +145,7 @@ fun AccessibilityServiceComponent(
             Spacer(modifier = Modifier.height(Dimens.spaceL))
 
             // Privacy section
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                border = CardDefaults.outlinedCardBorder()
-            ) {
+            OutlinedCard(modifier = Modifier.fillMaxWidth()) {
                 Row(
                     modifier = Modifier.padding(Dimens.spaceM),
                     verticalAlignment = Alignment.Top
@@ -180,11 +174,9 @@ fun AccessibilityServiceComponent(
             }
         } else {
             // Success state
-            Card(
+            Panel(
                 modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer
-                )
+                containerColor = MaterialTheme.colorScheme.primaryContainer
             ) {
                 Row(
                     modifier = Modifier.padding(20.dp),

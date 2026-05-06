@@ -352,7 +352,7 @@ fun PaletteItemRow(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant,
+        color = MaterialTheme.colorScheme.surfaceColorAtElevation(2.dp),
         shape = RoundedCornerShape(8.dp)
     ) {
         Row(
@@ -476,7 +476,7 @@ fun MenuItemRow(
         color = if (isDragging) {
             MaterialTheme.colorScheme.primaryContainer
         } else {
-            MaterialTheme.colorScheme.surfaceVariant
+            MaterialTheme.colorScheme.surfaceColorAtElevation(2.dp)
         },
         shape = RoundedCornerShape(8.dp),
         tonalElevation = if (isDragging) 8.dp else 0.dp

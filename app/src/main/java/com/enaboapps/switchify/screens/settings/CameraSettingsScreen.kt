@@ -13,12 +13,10 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Tab
+import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -45,6 +43,7 @@ import com.enaboapps.switchify.R
 import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.CameraPermissionHandler
 import com.enaboapps.switchify.components.NavigationHintCard
+import com.enaboapps.switchify.components.Panel
 import com.enaboapps.switchify.components.PreferenceTimeStepper
 import com.enaboapps.switchify.components.ScrollableView
 import com.enaboapps.switchify.components.Section
@@ -163,12 +162,11 @@ private fun CameraSettingsContent(
         }
 
         // Small persistent camera preview in bottom right
-        Card(
+        Panel(
             modifier = Modifier
                 .size(120.dp)
                 .align(Alignment.BottomEnd)
-                .padding(16.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                .padding(16.dp)
         ) {
             CameraPreview(
                 onPreviewViewCreated = { previewView = it },
@@ -183,10 +181,7 @@ private fun CameraPreview(
     onPreviewViewCreated: (PreviewView) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Card(
-        modifier = modifier,
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-    ) {
+    Panel(modifier = modifier) {
         AndroidView(
             factory = { context ->
                 PreviewView(context).also { onPreviewViewCreated(it) }
@@ -203,11 +198,9 @@ private fun ExpressionFeedback(
     isFaceDetected: Boolean
 ) {
     if (!isFaceDetected) {
-        Card(
+        Panel(
             modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.errorContainer
-            )
+            containerColor = MaterialTheme.colorScheme.errorContainer
         ) {
             Column(
                 modifier = Modifier.padding(16.dp),
@@ -274,13 +267,12 @@ private fun GestureQuickCheckGrid(
                     val active = detectedExpressions.contains(id)
                     val name = CameraSwitchFacialGesture(id).getName()
 
-                    ElevatedCard(
+                    Panel(
                         modifier = Modifier
                             .weight(1f)
                             .heightIn(min = 64.dp),
-                        colors = CardDefaults.elevatedCardColors(
-                            containerColor = if (active) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant
-                        )
+                        shape = MaterialTheme.shapes.medium,
+                        containerColor = if (active) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp)
                     ) {
                         Box(
                             modifier = Modifier

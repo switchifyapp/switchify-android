@@ -1,13 +1,7 @@
 package com.enaboapps.switchify.components
 
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavController
-import com.enaboapps.switchify.theme.Dimens
 
 @Composable
 fun NavRouteLink(
@@ -17,13 +11,10 @@ fun NavRouteLink(
     navController: NavController,
     route: String
 ) {
-    val title = titleResId?.let { stringResource(it) } ?: runtimeTitle ?: ""
-    UICard(
-        modifier = Modifier.padding(bottom = Dimens.spaceXs),
-        runtimeTitle = title,
-        descriptionResId = summaryResId,
-        rightIcon = Icons.AutoMirrored.Filled.ArrowForward,
-        onClick = {
-            navController.navigate(route)
-        })
+    PanelListRow(
+        titleResId = titleResId,
+        runtimeTitle = runtimeTitle,
+        summaryResId = summaryResId,
+        onClick = { navController.navigate(route) }
+    )
 }

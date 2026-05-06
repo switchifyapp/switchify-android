@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Tab
@@ -48,6 +47,7 @@ import com.enaboapps.switchify.R
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.CameraPermissionHandler
+import com.enaboapps.switchify.components.Panel
 import com.enaboapps.switchify.components.PreferenceSwitch
 import com.enaboapps.switchify.components.PreferenceTimeStepper
 import com.enaboapps.switchify.components.PreferenceValueSelector
@@ -641,7 +641,7 @@ private fun HeadControlTestContent(
             Spacer(modifier = Modifier.height(16.dp))
 
             // Camera preview with overlay
-            Card(
+            Panel(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(300.dp)
@@ -743,9 +743,7 @@ private fun HeadControlTestContent(
             Spacer(modifier = Modifier.height(16.dp))
 
             // Current settings display
-            Card(
-                modifier = Modifier.fillMaxWidth()
-            ) {
+            Panel(modifier = Modifier.fillMaxWidth()) {
                 Column(
                     modifier = Modifier.padding(16.dp)
                 ) {

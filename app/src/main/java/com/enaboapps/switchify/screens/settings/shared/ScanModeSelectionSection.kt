@@ -7,8 +7,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -21,6 +19,7 @@ import com.enaboapps.switchify.R
 import com.enaboapps.switchify.components.AutoScanDemo
 import com.enaboapps.switchify.components.ManualScanDemo
 import com.enaboapps.switchify.components.NavRouteLink
+import com.enaboapps.switchify.components.Panel
 import com.enaboapps.switchify.components.Picker
 import com.enaboapps.switchify.components.Section
 import com.enaboapps.switchify.nav.NavigationRoute
@@ -57,10 +56,7 @@ fun ScanModeSelectionSection(
             enter = fadeIn(),
             exit = fadeOut()
         ) {
-            Card(
-                modifier = Modifier.padding(top = 24.dp, start = 32.dp, end = 32.dp),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-            ) {
+            Panel(modifier = Modifier.padding(top = 24.dp, start = 32.dp, end = 32.dp)) {
                 Column(modifier = Modifier.padding(horizontal = 32.dp, vertical = 24.dp)) {
                     val userScanDelay = 1000L
                     AutoScanDemo(
@@ -76,10 +72,7 @@ fun ScanModeSelectionSection(
             enter = fadeIn(),
             exit = fadeOut()
         ) {
-            Card(
-                modifier = Modifier.padding(top = 24.dp, start = 32.dp, end = 32.dp),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-            ) {
+            Panel(modifier = Modifier.padding(top = 24.dp, start = 32.dp, end = 32.dp)) {
                 Column(modifier = Modifier.padding(horizontal = 32.dp, vertical = 24.dp)) {
                     ManualScanDemo(
                         color = MaterialTheme.colorScheme.secondary

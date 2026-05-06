@@ -1,15 +1,20 @@
 package com.enaboapps.switchify.components
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Feedback
+import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import com.enaboapps.switchify.activities.ui.theme.SwitchifyTheme
 import com.enaboapps.switchify.theme.Dimens
 
 @Composable
@@ -20,15 +25,55 @@ fun Section(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = Dimens.spaceM)
+            .padding(bottom = Dimens.spaceL)
     ) {
         Text(
             text = stringResource(titleResId).uppercase(),
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(horizontal = Dimens.spaceM)
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(
+                horizontal = Dimens.spaceM,
+                vertical = Dimens.spaceXs
+            )
         )
-        Spacer(modifier = Modifier.height(Dimens.spaceXs))
-        content()
+        Panel(modifier = Modifier.fillMaxWidth()) {
+            Column(verticalArrangement = Arrangement.spacedBy(0.dp)) {
+                content()
+            }
+        }
+    }
+}
+
+@Preview(showBackground = true, name = "Section — eyebrow + panel of rows")
+@Composable
+private fun SectionPreview() {
+    SwitchifyTheme {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = "GENERAL",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(
+                    horizontal = Dimens.spaceM,
+                    vertical = Dimens.spaceXs
+                )
+            )
+            Panel(modifier = Modifier.fillMaxWidth()) {
+                Column(verticalArrangement = Arrangement.spacedBy(0.dp)) {
+                    PanelListRow(
+                        onClick = {},
+                        runtimeTitle = "Settings",
+                        runtimeSummary = "Configure switches and scanning",
+                        leadingIcon = Icons.Rounded.Settings
+                    )
+                    PanelListRow(
+                        onClick = {},
+                        runtimeTitle = "Send feedback",
+                        runtimeSummary = "Share your thoughts",
+                        leadingIcon = Icons.Rounded.Feedback
+                    )
+                }
+            }
+        }
     }
 }

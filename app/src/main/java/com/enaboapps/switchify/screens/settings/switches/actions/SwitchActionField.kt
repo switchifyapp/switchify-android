@@ -1,6 +1,5 @@
 package com.enaboapps.switchify.screens.settings.switches.actions
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -9,7 +8,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -27,6 +25,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.enaboapps.switchify.R
+import com.enaboapps.switchify.components.Panel
 import com.enaboapps.switchify.nav.NavigationRoute
 import com.enaboapps.switchify.switches.SwitchAction
 import com.enaboapps.switchify.theme.Dimens
@@ -75,16 +74,17 @@ fun SwitchActionField(
         }
     }
 
-    Card(
+    Panel(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp)
-            .clickable {
-                waitingForResult = true
-                navController.navigate(
-                    "${NavigationRoute.SwitchActionSelection.name}/${switchAction.id}"
-                )
-            }
+            .padding(horizontal = 20.dp),
+        shape = MaterialTheme.shapes.medium,
+        onClick = {
+            waitingForResult = true
+            navController.navigate(
+                "${NavigationRoute.SwitchActionSelection.name}/${switchAction.id}"
+            )
+        }
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,

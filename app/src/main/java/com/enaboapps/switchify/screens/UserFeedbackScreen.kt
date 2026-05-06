@@ -7,8 +7,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -33,6 +31,7 @@ import com.enaboapps.switchify.R
 import com.enaboapps.switchify.auth.repository.AuthRepository
 import com.enaboapps.switchify.components.ActionButton
 import com.enaboapps.switchify.components.BaseView
+import com.enaboapps.switchify.components.Panel
 import com.enaboapps.switchify.components.Picker
 import com.enaboapps.switchify.components.ScrollableView
 import com.enaboapps.switchify.components.Section
@@ -73,13 +72,11 @@ fun UserFeedbackScreen(navController: NavController) {
     ) {
         ScrollableView {
             if (showSuccessMessage) {
-                Card(
+                Panel(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(16.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer
-                    )
+                    containerColor = MaterialTheme.colorScheme.primaryContainer
                 ) {
                     Column(
                         modifier = Modifier.padding(16.dp),
@@ -163,13 +160,11 @@ fun UserFeedbackScreen(navController: NavController) {
                 }
 
                 if (errorMessage != null) {
-                    Card(
+                    Panel(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(16.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.errorContainer
-                        )
+                        containerColor = MaterialTheme.colorScheme.errorContainer
                     ) {
                         Text(
                             text = errorMessage!!,

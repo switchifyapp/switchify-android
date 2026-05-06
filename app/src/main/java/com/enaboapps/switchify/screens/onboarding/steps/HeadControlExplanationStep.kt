@@ -15,8 +15,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -34,6 +32,7 @@ import androidx.navigation.NavController
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.components.ActionButton
 import com.enaboapps.switchify.components.NavRouteLink
+import com.enaboapps.switchify.components.Panel
 import com.enaboapps.switchify.nav.NavigationRoute
 import com.enaboapps.switchify.service.camera.CameraPermissionManager
 import com.enaboapps.switchify.service.utils.ServiceUtils
@@ -85,13 +84,7 @@ fun HeadControlExplanationStep(
         )
 
         // Features Card
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-            ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-        ) {
+        Panel(modifier = Modifier.fillMaxWidth()) {
             Column(
                 modifier = Modifier.padding(Dimens.spaceM),
                 verticalArrangement = Arrangement.spacedBy(Dimens.spaceS)
@@ -118,11 +111,9 @@ fun HeadControlExplanationStep(
         Spacer(modifier = Modifier.height(Dimens.spaceL))
 
         // Requirements Card
-        Card(
+        Panel(
             modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.primaryContainer
-            )
+            containerColor = MaterialTheme.colorScheme.primaryContainer
         ) {
             Row(
                 modifier = Modifier.padding(Dimens.spaceM),
