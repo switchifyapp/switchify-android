@@ -1,7 +1,5 @@
 package com.enaboapps.switchify.components
 
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 
@@ -12,11 +10,10 @@ fun NavigationHintCard(
     onNavigate: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    UICard(
-        modifier = modifier,
+    PanelListRow(
         titleResId = titleResId,
-        descriptionResId = descriptionResId,
-        rightIcon = Icons.AutoMirrored.Rounded.ArrowForward,
-        onClick = onNavigate
+        summaryResId = descriptionResId,
+        onClick = onNavigate,
+        modifier = modifier
     )
 }

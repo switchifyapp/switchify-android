@@ -11,8 +11,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Star
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -25,6 +23,7 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.enaboapps.switchify.R
+import com.enaboapps.switchify.components.Panel
 import com.enaboapps.switchify.theme.Dimens
 
 @Composable
@@ -37,11 +36,10 @@ fun ProUpgradeCard(
     shape: Shape = MaterialTheme.shapes.medium
 ) {
     val scheme = MaterialTheme.colorScheme
-    Card(
+    Panel(
         modifier = modifier.fillMaxWidth(),
         shape = shape,
-        colors = CardDefaults.cardColors(containerColor = scheme.secondaryContainer),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+        containerColor = scheme.secondaryContainer
     ) {
         Column(modifier = Modifier.padding(Dimens.spaceM)) {
             Row(
