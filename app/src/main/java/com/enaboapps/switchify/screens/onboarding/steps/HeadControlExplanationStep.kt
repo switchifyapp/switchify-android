@@ -19,7 +19,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -35,6 +34,7 @@ import androidx.navigation.NavController
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.components.ActionButton
 import com.enaboapps.switchify.components.NavRouteLink
+import com.enaboapps.switchify.components.Panel
 import com.enaboapps.switchify.nav.NavigationRoute
 import com.enaboapps.switchify.service.camera.CameraPermissionManager
 import com.enaboapps.switchify.service.utils.ServiceUtils
@@ -86,14 +86,7 @@ fun HeadControlExplanationStep(
         )
 
         // Features Card
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = MaterialTheme.shapes.large,
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp)
-            ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-        ) {
+        Panel(modifier = Modifier.fillMaxWidth()) {
             Column(
                 modifier = Modifier.padding(Dimens.spaceM),
                 verticalArrangement = Arrangement.spacedBy(Dimens.spaceS)

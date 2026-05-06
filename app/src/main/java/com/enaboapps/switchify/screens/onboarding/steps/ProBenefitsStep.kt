@@ -12,11 +12,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Star
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -28,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.components.ActionButton
 import com.enaboapps.switchify.components.ActionButtonType
+import com.enaboapps.switchify.components.Panel
 import com.enaboapps.switchify.theme.Dimens
 
 /**
@@ -76,15 +74,10 @@ fun ProBenefitsStep(
         )
 
         // Benefits card
-        Card(
+        Panel(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = Dimens.spaceM),
-            shape = MaterialTheme.shapes.large,
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp)
-            ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+                .padding(horizontal = Dimens.spaceM)
         ) {
             Column(
                 modifier = Modifier.padding(Dimens.spaceM)

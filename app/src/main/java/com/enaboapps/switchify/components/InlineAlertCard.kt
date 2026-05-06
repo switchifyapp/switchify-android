@@ -1,6 +1,5 @@
 package com.enaboapps.switchify.components
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -9,8 +8,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -51,13 +48,11 @@ fun InlineAlertCard(
     shape: Shape = MaterialTheme.shapes.small
 ) {
     val colors = colorsFor(severity)
-    Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
+    Panel(
+        modifier = modifier.fillMaxWidth(),
         shape = shape,
-        colors = CardDefaults.cardColors(containerColor = colors.container),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+        containerColor = colors.container,
+        onClick = onClick
     ) {
         Row(
             modifier = Modifier
