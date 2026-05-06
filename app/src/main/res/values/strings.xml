@@ -795,6 +795,17 @@
     <string name="home_actions_subtitle">Tap to expand and access all features</string>
     <string name="home_camera_permission_title">Enable Camera</string>
     <string name="home_camera_permission_summary">Grant camera access for head control features</string>
+
+    <!-- Home Hero -->
+    <string name="home_hero_eyebrow">ACCESSIBILITY SERVICE</string>
+    <string name="home_hero_running_title">Switchify is on</string>
+    <string name="home_hero_disabled_title">Switchify is off</string>
+    <string name="home_hero_running_summary">%1$s · %2$d switches</string>
+    <string name="home_hero_running_summary_no_switches">%1$s</string>
+    <string name="home_hero_disabled_summary">Tap to enable in system settings</string>
+    <string name="home_hero_config_attention_summary">Configuration needs attention</string>
+    <string name="home_hero_action_open_settings">Open settings</string>
+    <string name="home_pro_trial_pill">Trial: 1-hour session limit</string>
     
     <!-- Camera Settings Navigation -->
     <string name="camera_settings_navigation_hint_title">Head Control Movement Settings</string>
