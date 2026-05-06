@@ -1,11 +1,9 @@
 package com.enaboapps.switchify.components
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -24,8 +22,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.enaboapps.switchify.theme.Dimens
 import com.enaboapps.switchify.utils.StringUtils
 
 @Composable
@@ -36,33 +32,16 @@ fun PreferenceTimeStepper(
     explanationResId: Int? = null,
     min: Long,
     max: Long,
-    step: Long = 100, // Default step is 100
+    step: Long = 100,
     onValueChanged: (Long) -> Unit
 ) {
-    var time by remember { mutableLongStateOf(value) }
+    var time by remember(value) { mutableLongStateOf(value) }
 
     PreferenceComponentBase(
         titleResId = titleResId,
         summaryResId = summaryResId,
-        explanationResId = explanationResId
-    ) {
-        Column(
-            modifier = Modifier.wrapContentWidth(Alignment.End),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            // Value display with improved typography
-            Text(
-                text = StringUtils.getSecondsString(time),
-                style = MaterialTheme.typography.bodySmall.copy(
-                    fontSize = 9.sp,
-                    fontWeight = FontWeight.Normal
-                ),
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-
-            Spacer(modifier = Modifier.height(Dimens.spaceS))
-
-            // Icon buttons for increment/decrement
+        explanationResId = explanationResId,
+        trailing = {
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
@@ -81,14 +60,22 @@ fun PreferenceTimeStepper(
                         disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
                         disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
                     ),
-                    modifier = Modifier.size(48.dp)
+                    modifier = Modifier.size(40.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.Remove,
                         contentDescription = "Decrease",
-                        modifier = Modifier.size(24.dp)
+                        modifier = Modifier.size(20.dp)
                     )
                 }
+
+                Text(
+                    text = StringUtils.getSecondsString(time),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.widthIn(min = 56.dp).wrapContentWidth(Alignment.CenterHorizontally)
+                )
 
                 IconButton(
                     onClick = {
@@ -104,15 +91,15 @@ fun PreferenceTimeStepper(
                         disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
                         disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
                     ),
-                    modifier = Modifier.size(48.dp)
+                    modifier = Modifier.size(40.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.Add,
                         contentDescription = "Increase",
-                        modifier = Modifier.size(24.dp)
+                        modifier = Modifier.size(20.dp)
                     )
                 }
             }
         }
-    }
+    )
 }

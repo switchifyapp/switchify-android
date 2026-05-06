@@ -1,4 +1,4 @@
-package com.enaboapps.switchify.components.home
+package com.enaboapps.switchify.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -26,53 +27,69 @@ import androidx.compose.ui.unit.dp
 import com.enaboapps.switchify.theme.Dimens
 
 @Composable
-fun HomeListRow(
-    titleResId: Int,
-    summaryResId: Int,
-    leadingIcon: ImageVector,
+fun PanelListRow(
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    titleResId: Int? = null,
+    runtimeTitle: String? = null,
+    summaryResId: Int? = null,
+    runtimeSummary: String? = null,
+    leadingIcon: ImageVector? = null,
+    trailing: @Composable () -> Unit = { DefaultChevron() }
 ) {
+    val title = titleResId?.let { stringResource(it) } ?: runtimeTitle ?: ""
+    val summary = runtimeSummary ?: summaryResId?.let { stringResource(it) }
     val scheme = MaterialTheme.colorScheme
+
     Row(
         modifier = modifier
             .fillMaxWidth()
+            .heightIn(min = 56.dp)
             .background(scheme.surfaceColorAtElevation(1.dp))
             .clickable(onClick = onClick)
             .padding(Dimens.spaceM),
         horizontalArrangement = Arrangement.spacedBy(Dimens.spaceM),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Box(
-            modifier = Modifier
-                .size(40.dp)
-                .clip(CircleShape)
-                .background(scheme.primary.copy(alpha = 0.12f)),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = leadingIcon,
-                contentDescription = null,
-                tint = scheme.primary,
-                modifier = Modifier.size(22.dp)
-            )
+        if (leadingIcon != null) {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(scheme.primary.copy(alpha = 0.12f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = leadingIcon,
+                    contentDescription = null,
+                    tint = scheme.primary,
+                    modifier = Modifier.size(22.dp)
+                )
+            }
         }
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = stringResource(titleResId),
+                text = title,
                 style = MaterialTheme.typography.titleMedium
             )
-            Text(
-                text = stringResource(summaryResId),
-                style = MaterialTheme.typography.bodySmall,
-                color = scheme.onSurfaceVariant
-            )
+            if (!summary.isNullOrBlank()) {
+                Text(
+                    text = summary,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = scheme.onSurfaceVariant
+                )
+            }
         }
-        Icon(
-            imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
-            contentDescription = null,
-            tint = scheme.onSurfaceVariant.copy(alpha = 0.7f),
-            modifier = Modifier.size(20.dp)
-        )
+        trailing()
     }
+}
+
+@Composable
+fun DefaultChevron() {
+    Icon(
+        imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
+        contentDescription = null,
+        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+        modifier = Modifier.size(20.dp)
+    )
 }

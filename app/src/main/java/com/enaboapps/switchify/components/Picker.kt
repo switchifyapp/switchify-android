@@ -1,25 +1,26 @@
 package com.enaboapps.switchify.components
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -40,7 +41,6 @@ fun <T> Picker(
     selectedItem: T?,
     items: List<T>,
     onItemSelected: (T) -> Unit,
-    onDelete: (() -> Unit)? = null,
     itemToString: (T) -> String,
     itemDescription: (T) -> String
 ) {
@@ -52,15 +52,38 @@ fun <T> Picker(
         stringResource(titleResId)
     }
 
-    PickerItem(
-        title = title,
-        description = if (selectedItem != null) itemToString(selectedItem) else "",
-        extraDescription = if (selectedItem != null) itemDescription(selectedItem) else "",
-        onDelete = onDelete,
-        onClick = {
-            expanded = true
+    val selectedLabel = if (selectedItem != null) itemToString(selectedItem) else ""
+    val scheme = MaterialTheme.colorScheme
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 56.dp)
+            .background(scheme.surfaceColorAtElevation(1.dp))
+            .clickable { expanded = true }
+            .padding(Dimens.spaceM),
+        horizontalArrangement = Arrangement.spacedBy(Dimens.spaceM),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium
+            )
+            if (selectedLabel.isNotBlank()) {
+                Text(
+                    text = selectedLabel,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = scheme.onSurfaceVariant
+                )
+            }
         }
-    )
+        Icon(
+            imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
+            contentDescription = null,
+            tint = scheme.onSurfaceVariant.copy(alpha = 0.7f)
+        )
+    }
 
     if (expanded) {
         AlertDialog(
@@ -98,7 +121,7 @@ fun <T> Picker(
                                 )
                                 val description = itemDescription(item)
                                 if (description.isNotBlank()) {
-                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Spacer(modifier = Modifier.padding(top = 4.dp))
                                     Text(
                                         text = description,
                                         style = MaterialTheme.typography.bodySmall,
@@ -116,68 +139,5 @@ fun <T> Picker(
                 }
             }
         )
-    }
-}
-
-@Composable
-private fun PickerItem(
-    title: String,
-    description: String,
-    extraDescription: String,
-    onDelete: (() -> Unit)?,
-    onClick: () -> Unit
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 20.dp)
-            .clickable(onClick = {
-                onClick()
-            })
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(20.dp)
-        ) {
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-            ) {
-                Text(
-                    text = title.uppercase(),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Medium
-                )
-                if (description.isNotBlank()) {
-                    Spacer(modifier = Modifier.height(Dimens.spaceXs))
-                    Text(
-                        text = description,
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                }
-                if (extraDescription.isNotBlank()) {
-                    Spacer(modifier = Modifier.height(Dimens.spaceXs))
-                    Text(
-                        text = extraDescription,
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                }
-            }
-
-            if (onDelete != null) {
-                TextButton(
-                    onClick = onDelete
-                ) {
-                    Text(text = stringResource(R.string.button_delete))
-                }
-            }
-
-            Icon(
-                imageVector = Icons.Default.KeyboardArrowDown,
-                contentDescription = null,
-                modifier = Modifier.padding(start = Dimens.spaceM)
-            )
-        }
     }
 }

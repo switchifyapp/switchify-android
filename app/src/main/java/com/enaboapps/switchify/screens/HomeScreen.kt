@@ -46,7 +46,7 @@ import com.enaboapps.switchify.components.InAppUpdateBar
 import com.enaboapps.switchify.components.InlineAlertCard
 import com.enaboapps.switchify.components.ScrollableView
 import com.enaboapps.switchify.components.home.HomeHeroCard
-import com.enaboapps.switchify.components.home.HomeListRow
+import com.enaboapps.switchify.components.PanelListRow
 import com.enaboapps.switchify.components.home.HomeToggleRow
 import com.enaboapps.switchify.components.home.ProUpgradeCard
 import com.enaboapps.switchify.nav.NavigationRoute
@@ -185,7 +185,7 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
                             )
                         }
 
-                        HomeListRow(
+                        PanelListRow(
                             titleResId = R.string.home_feedback_title,
                             summaryResId = R.string.home_feedback_summary,
                             leadingIcon = Icons.Rounded.Feedback,
@@ -197,7 +197,7 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
                             enter = fadeIn(tween(220)) + expandVertically(tween(220)),
                             exit = fadeOut(tween(220)) + shrinkVertically(tween(220))
                         ) {
-                            HomeListRow(
+                            PanelListRow(
                                 titleResId = R.string.home_camera_permission_title,
                                 summaryResId = R.string.home_camera_permission_summary,
                                 leadingIcon = Icons.Rounded.CameraAlt,
@@ -206,7 +206,7 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
                         }
 
                         if (BuildConfig.DEBUG) {
-                            HomeListRow(
+                            PanelListRow(
                                 titleResId = R.string.screen_title_debug,
                                 summaryResId = R.string.screen_summary_debug,
                                 leadingIcon = Icons.Rounded.BugReport,
