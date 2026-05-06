@@ -18,6 +18,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.PrimaryTabRow
+import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -168,7 +169,11 @@ private fun CameraSettingsContent(
                 .size(120.dp)
                 .align(Alignment.BottomEnd)
                 .padding(16.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+            shape = MaterialTheme.shapes.large,
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp)
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
         ) {
             CameraPreview(
                 onPreviewViewCreated = { previewView = it },
@@ -185,7 +190,11 @@ private fun CameraPreview(
 ) {
     Card(
         modifier = modifier,
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        shape = MaterialTheme.shapes.large,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp)
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         AndroidView(
             factory = { context ->
@@ -279,8 +288,9 @@ private fun GestureQuickCheckGrid(
                             .weight(1f)
                             .heightIn(min = 64.dp),
                         colors = CardDefaults.elevatedCardColors(
-                            containerColor = if (active) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant
-                        )
+                            containerColor = if (active) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp)
+                        ),
+                        elevation = CardDefaults.elevatedCardElevation(defaultElevation = 0.dp)
                     ) {
                         Box(
                             modifier = Modifier

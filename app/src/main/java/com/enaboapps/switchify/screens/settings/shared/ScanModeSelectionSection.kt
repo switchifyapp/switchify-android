@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
@@ -59,7 +60,11 @@ fun ScanModeSelectionSection(
         ) {
             Card(
                 modifier = Modifier.padding(top = 24.dp, start = 32.dp, end = 32.dp),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                shape = MaterialTheme.shapes.large,
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp)
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
             ) {
                 Column(modifier = Modifier.padding(horizontal = 32.dp, vertical = 24.dp)) {
                     val userScanDelay = 1000L
@@ -78,7 +83,11 @@ fun ScanModeSelectionSection(
         ) {
             Card(
                 modifier = Modifier.padding(top = 24.dp, start = 32.dp, end = 32.dp),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                shape = MaterialTheme.shapes.large,
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp)
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
             ) {
                 Column(modifier = Modifier.padding(horizontal = 32.dp, vertical = 24.dp)) {
                     ManualScanDemo(
