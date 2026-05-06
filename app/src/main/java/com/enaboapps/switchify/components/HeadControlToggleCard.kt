@@ -1,20 +1,20 @@
 package com.enaboapps.switchify.components
 
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -24,18 +24,19 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.service.camera.CameraPermissionManager
 import com.enaboapps.switchify.service.core.ServiceBridge
 import com.enaboapps.switchify.service.techniques.headcontrol.HeadControlSettings
 import com.enaboapps.switchify.service.utils.ServiceUtils
+import com.enaboapps.switchify.theme.Dimens
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -57,11 +58,9 @@ fun HeadControlToggleCard(
     var coolingDown by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
-    // Listen to ServiceBridge events for actual state changes
     LaunchedEffect(Unit) {
         ServiceBridge.serviceEvents.collect { event ->
             if (event is ServiceBridge.ServiceEvent.ConfigurationUpdated) {
-                // Query actual state from settings instead of optimistic update
                 headEnabled = settings.isHeadControlEnabled()
             }
         }
@@ -75,7 +74,6 @@ fun HeadControlToggleCard(
     val onClick = onClick@{
         if (coolingDown) return@onClick
         val desired = !headEnabled
-        // Don't update state optimistically - wait for ServiceBridge event
         ServiceBridge.sendCommand(ServiceBridge.ServiceCommand.SetHeadControlEnabled(desired))
         coolingDown = true
         scope.launch {
@@ -84,54 +82,51 @@ fun HeadControlToggleCard(
         }
     }
 
-    Card(
+    val scheme = MaterialTheme.colorScheme
+
+    Row(
         modifier = modifier
             .fillMaxWidth()
-            .aspectRatio(1f)
-            .clickable(enabled = !coolingDown, onClick = { onClick.let { it() } }),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            .background(scheme.surfaceColorAtElevation(1.dp))
+            .clickable(enabled = !coolingDown, onClick = { onClick.let { it() } })
+            .padding(Dimens.spaceM),
+        horizontalArrangement = Arrangement.spacedBy(Dimens.spaceM),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Column(
+        Box(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+                .size(40.dp)
+                .clip(CircleShape)
+                .background(scheme.primary.copy(alpha = 0.12f)),
+            contentAlignment = Alignment.Center
         ) {
-            Box(
+            Icon(
+                painter = painterResource(id = R.drawable.ic_head_control_pointer),
+                contentDescription = null,
+                tint = scheme.primary,
                 modifier = Modifier
-                    .size(48.dp)
-                    .padding(bottom = 8.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    painter = painterResource(id = R.drawable.ic_head_control_pointer),
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .graphicsLayer(scaleX = iconScale, scaleY = iconScale)
-                )
-            }
+                    .size(22.dp)
+                    .graphicsLayer(scaleX = iconScale, scaleY = iconScale)
+            )
+        }
+        Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = stringResource(R.string.home_head_control_title),
-                style = MaterialTheme.typography.titleMedium,
-                textAlign = TextAlign.Center,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                style = MaterialTheme.typography.titleMedium
             )
             Text(
                 text = stringResource(
                     if (headEnabled) R.string.home_head_control_on_summary else R.string.home_head_control_off_summary
                 ),
                 style = MaterialTheme.typography.bodySmall,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.padding(top = 4.dp),
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis
+                color = scheme.onSurfaceVariant
             )
         }
+        Text(
+            text = if (headEnabled) "ON" else "OFF",
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.SemiBold,
+            color = if (headEnabled) scheme.primary else scheme.onSurfaceVariant.copy(alpha = 0.6f)
+        )
     }
 }
-
-
