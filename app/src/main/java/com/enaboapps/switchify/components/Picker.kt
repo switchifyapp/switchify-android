@@ -108,7 +108,7 @@ fun <T> Picker(
                                     onItemSelected(item)
                                     expanded = false
                                 },
-                            shape = RoundedCornerShape(Dimens.spaceXs)
+                            shape = RoundedCornerShape(8.dp)
                         ) {
                             Column(
                                 modifier = Modifier

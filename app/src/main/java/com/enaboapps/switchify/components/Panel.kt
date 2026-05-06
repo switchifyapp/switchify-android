@@ -12,6 +12,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.enaboapps.switchify.activities.ui.theme.SwitchifyTheme
@@ -24,7 +25,11 @@ fun Panel(
     onClick: (() -> Unit)? = null,
     content: @Composable () -> Unit
 ) {
-    val rootModifier = if (onClick != null) modifier.clickable(onClick = onClick) else modifier
+    val rootModifier = if (onClick != null) {
+        modifier.clickable(role = Role.Button, onClick = onClick)
+    } else {
+        modifier
+    }
     Card(
         modifier = rootModifier,
         shape = shape,
