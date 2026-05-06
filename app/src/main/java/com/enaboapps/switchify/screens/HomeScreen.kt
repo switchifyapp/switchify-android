@@ -12,16 +12,11 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.BugReport
 import androidx.compose.material.icons.rounded.CameraAlt
 import androidx.compose.material.icons.rounded.Feedback
 import androidx.compose.material.icons.rounded.Warning
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -44,6 +39,7 @@ import com.enaboapps.switchify.components.AlertSeverity
 import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.InAppUpdateBar
 import com.enaboapps.switchify.components.InlineAlertCard
+import com.enaboapps.switchify.components.Panel
 import com.enaboapps.switchify.components.ScrollableView
 import com.enaboapps.switchify.components.home.HomeHeroCard
 import com.enaboapps.switchify.components.PanelListRow
@@ -126,14 +122,7 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
                 visible = isReady,
                 enter = fadeIn(animationSpec = tween(300, delayMillis = 50))
             ) {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(48.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp)
-                    ),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-                ) {
+                Panel(modifier = Modifier.fillMaxWidth()) {
                     Column(verticalArrangement = Arrangement.spacedBy(0.dp)) {
                         HomeHeroCard(
                             isAccessibilityServiceEnabled = isAccessibilityServiceEnabled,

@@ -731,7 +731,6 @@
 
     <!-- Pro Reminder Banner -->
     <string name="pro_reminder_title">Enjoying Switchify?</string>
-    <string name="pro_reminder_message">Unlock unlimited access with Pro - no trial limits, full features.</string>
     <string name="pro_reminder_dismiss">Dismiss</string>
     <string name="pro_reminder_later">Later</string>
     <string name="pro_reminder_learn_more">Learn More</string>
