@@ -5,7 +5,6 @@ import android.content.Intent
 import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -13,9 +12,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.rounded.Feedback
+import androidx.compose.material.icons.rounded.Language
+import androidx.compose.material.icons.rounded.PrivacyTip
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
@@ -29,8 +32,8 @@ import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import androidx.navigation.NavController
 import com.enaboapps.switchify.R
-import com.enaboapps.switchify.components.ActionButton
 import com.enaboapps.switchify.components.InfoCard
+import com.enaboapps.switchify.components.PanelListRow
 import com.enaboapps.switchify.components.PreferenceSwitch
 import com.enaboapps.switchify.components.ScrollableView
 import com.enaboapps.switchify.components.Section
@@ -75,7 +78,7 @@ fun AboutSection(
         )
         Spacer(modifier = Modifier.height(Dimens.spaceXs))
         Surface(
-            color = MaterialTheme.colorScheme.surfaceVariant,
+            color = MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp),
             shape = RoundedCornerShape(50)
         ) {
             Text(
@@ -93,36 +96,26 @@ fun AboutSection(
             descriptionResId = R.string.app_description
         )
 
+        Spacer(modifier = Modifier.height(Dimens.spaceL))
+
         Section(titleResId = R.string.settings_section_about_links) {
-            ActionButton(
-                textResId = R.string.button_website,
-                leadingIcon = Icons.AutoMirrored.Filled.OpenInNew,
+            PanelListRow(
+                titleResId = R.string.button_website,
+                leadingIcon = Icons.Rounded.Language,
                 onClick = { openUrl(websiteUrl) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = Dimens.spaceM),
-                applyPadding = false
+                trailing = { ExternalLinkIcon() }
             )
-            Spacer(modifier = Modifier.height(Dimens.spaceS))
-            ActionButton(
-                textResId = R.string.button_privacy_policy,
-                leadingIcon = Icons.AutoMirrored.Filled.OpenInNew,
+            PanelListRow(
+                titleResId = R.string.button_privacy_policy,
+                leadingIcon = Icons.Rounded.PrivacyTip,
                 onClick = { openUrl(privacyPolicyUrl) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = Dimens.spaceM),
-                applyPadding = false
+                trailing = { ExternalLinkIcon() }
             )
             navController?.let {
-                Spacer(modifier = Modifier.height(Dimens.spaceS))
-                ActionButton(
-                    textResId = R.string.action_feedback,
+                PanelListRow(
+                    titleResId = R.string.action_feedback,
                     leadingIcon = Icons.Rounded.Feedback,
-                    onClick = { it.navigate(NavigationRoute.UserFeedback.name) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = Dimens.spaceM),
-                    applyPadding = false
+                    onClick = { it.navigate(NavigationRoute.UserFeedback.name) }
                 )
             }
         }
@@ -137,4 +130,14 @@ fun AboutSection(
             )
         }
     }
+}
+
+@Composable
+private fun ExternalLinkIcon() {
+    Icon(
+        imageVector = Icons.AutoMirrored.Filled.OpenInNew,
+        contentDescription = null,
+        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+        modifier = Modifier.size(20.dp)
+    )
 }
