@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
+import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -23,7 +24,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.enaboapps.switchify.activities.ui.theme.SwitchifyTheme
 import com.enaboapps.switchify.theme.Dimens
 
 @Composable
@@ -92,4 +95,32 @@ fun DefaultChevron() {
         tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
         modifier = Modifier.size(20.dp)
     )
+}
+
+@Preview(showBackground = true, name = "PanelListRow — title + summary + chevron")
+@Composable
+private fun PanelListRowPreview() {
+    SwitchifyTheme {
+        Panel(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+            PanelListRow(
+                onClick = {},
+                runtimeTitle = "Settings",
+                runtimeSummary = "Configure switches and scanning",
+                leadingIcon = Icons.Rounded.Settings
+            )
+        }
+    }
+}
+
+@Preview(showBackground = true, name = "PanelListRow — no icon, no summary")
+@Composable
+private fun PanelListRowMinimalPreview() {
+    SwitchifyTheme {
+        Panel(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+            PanelListRow(
+                onClick = {},
+                runtimeTitle = "Privacy policy"
+            )
+        }
+    }
 }
