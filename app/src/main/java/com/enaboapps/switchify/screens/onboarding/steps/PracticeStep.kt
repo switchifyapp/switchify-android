@@ -66,6 +66,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalContext
 import com.enaboapps.switchify.R
+import com.enaboapps.switchify.components.Panel
 import com.enaboapps.switchify.service.utils.ServiceUtils
 import com.enaboapps.switchify.utils.Resources
 import kotlinx.coroutines.delay
@@ -247,13 +248,11 @@ fun PracticeStep(
                 enter = fadeIn() + slideInVertically(),
                 exit = fadeOut()
             ) {
-                Card(
+                Panel(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(vertical = 16.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer
-                    )
+                    containerColor = MaterialTheme.colorScheme.primaryContainer
                 ) {
                     Text(
                         text = motivationalMessage,

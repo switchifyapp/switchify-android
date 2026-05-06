@@ -16,6 +16,7 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -43,6 +44,7 @@ import androidx.navigation.NavController
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.components.BaseView
+import com.enaboapps.switchify.components.Panel
 import com.enaboapps.switchify.components.PreferenceSwitch
 import com.enaboapps.switchify.components.ReorderMode
 import com.enaboapps.switchify.components.ReorderableList
@@ -230,13 +232,16 @@ private fun PatternItem(
     isDragging: Boolean = false,
     reorderControls: @Composable () -> Unit = {}
 ) {
-    Card(
+    Panel(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = if (isDragging) 8.dp else 2.dp
-        )
+        shape = MaterialTheme.shapes.medium,
+        containerColor = if (isDragging) {
+            MaterialTheme.colorScheme.surfaceColorAtElevation(3.dp)
+        } else {
+            MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp)
+        }
     ) {
         Row(
             modifier = Modifier

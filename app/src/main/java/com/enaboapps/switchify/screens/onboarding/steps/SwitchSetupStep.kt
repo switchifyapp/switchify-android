@@ -20,8 +20,6 @@ import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Keyboard
 import androidx.compose.material.icons.filled.TouchApp
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -158,11 +156,9 @@ fun SwitchSetupStep(
             enter = fadeIn(),
             exit = fadeOut()
         ) {
-            Card(
+            Panel(
                 modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer
-                )
+                containerColor = MaterialTheme.colorScheme.primaryContainer
             ) {
                 Row(
                     modifier = Modifier.padding(16.dp),

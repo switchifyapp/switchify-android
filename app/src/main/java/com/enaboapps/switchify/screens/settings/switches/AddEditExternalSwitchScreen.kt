@@ -3,7 +3,6 @@ package com.enaboapps.switchify.screens.settings.switches
 import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -17,7 +16,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -50,6 +48,7 @@ import com.enaboapps.switchify.R
 import com.enaboapps.switchify.components.ActionButton
 import com.enaboapps.switchify.components.ActionButtonType
 import com.enaboapps.switchify.components.BaseView
+import com.enaboapps.switchify.components.Panel
 import com.enaboapps.switchify.components.TextArea
 import com.enaboapps.switchify.nav.NavigationRoute
 import com.enaboapps.switchify.screens.settings.switches.actions.SwitchActionField
@@ -327,13 +326,12 @@ private fun LongPressActionsCard(
     onClick: () -> Unit,
     enabled: Boolean
 ) {
-    Card(
+    Panel(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp)
-            .then(
-                if (enabled) Modifier.clickable(onClick = onClick) else Modifier
-            )
+            .padding(horizontal = 20.dp),
+        shape = MaterialTheme.shapes.medium,
+        onClick = if (enabled) onClick else null
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
