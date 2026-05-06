@@ -10,11 +10,6 @@
 
     <string name="accessibility_service_description">Switchify makes it easy to control your device with adaptive switches. It scans the screen, letting you tap, swipe, and navigate effortlessly.</string>
 
-    <string name="accessibility_service_enabled">You\'re all set! 🎉</string>
-    <string name="accessibility_service_disabled">Tap here to get started! 🚀</string>
-    <string name="accessibility_service_banner_title_enabled">Service Active ✅</string>
-    <string name="accessibility_service_banner_title_disabled">Enable Service 🔴</string>
-
     <!-- Gesture Lock Messages -->
     <string name="gesture_lock_enabled">Gesture lock ON - Select a gesture</string>
     <string name="gesture_lock_disabled">Gesture lock OFF</string>
@@ -159,7 +154,6 @@
     <string name="hud_gesture_pattern_error">Gesture Pattern Error</string>
 
     <!-- Service Trial Messages -->
-    <string name="trial_info_banner">Trial: 1-hour session limit</string>
     <string name="trial_started_message">1-hour service trial started. All features available!</string>
     <string name="debug_trial_started_message">30-second DEBUG trial started. All features available!</string>
     <string name="trial_warning_message">10 minutes remaining in service trial. Restart service for fresh trial.</string>
@@ -791,8 +785,6 @@
     <string name="home_feedback_summary">Share your thoughts and help us improve</string>
     
     <!-- Home Screen Actions -->
-    <string name="home_actions_title">Quick Actions</string>
-    <string name="home_actions_subtitle">Tap to expand and access all features</string>
     <string name="home_camera_permission_title">Enable Camera</string>
     <string name="home_camera_permission_summary">Grant camera access for head control features</string>
 
