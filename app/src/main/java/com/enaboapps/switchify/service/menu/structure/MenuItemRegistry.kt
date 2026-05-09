@@ -166,11 +166,13 @@ object MenuItemRegistry {
     /**
      * Provide the menu item definitions for media control actions.
      *
-     * @return A list containing menu item definitions for "play_pause" (play/pause) and "volume_control" (volume control).
+     * @return A list containing menu item definitions for play/pause, previous/next track, and volume control.
      */
     fun getMediaControlMenuDefinitions(): List<MenuItemDefinition> {
         return listOf(
             MenuItemDefinition(MenuConstants.ItemIds.Media.PLAY_PAUSE, labelResource = R.string.menu_item_play_pause, drawableId = R.drawable.ic_play_pause),
+            MenuItemDefinition(MenuConstants.ItemIds.Media.PREVIOUS_TRACK, labelResource = R.string.menu_item_previous_track, drawableId = R.drawable.ic_previous_track),
+            MenuItemDefinition(MenuConstants.ItemIds.Media.NEXT_TRACK, labelResource = R.string.menu_item_next_track, drawableId = R.drawable.ic_next_track),
             MenuItemDefinition(MenuConstants.ItemIds.Media.VOLUME_CONTROL, labelResource = R.string.action_volume_control, drawableId = R.drawable.ic_volume_control)
         )
     }

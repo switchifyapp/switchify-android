@@ -92,6 +92,8 @@
 
     <!-- Media Menu Items -->
     <string name="menu_item_play_pause">Play/Pause</string>
+    <string name="menu_item_previous_track">Previous Track</string>
+    <string name="menu_item_next_track">Next Track</string>
 
     <!-- Volume Control Menu Items -->
     <string name="menu_item_volume_up">Volume Up</string>
