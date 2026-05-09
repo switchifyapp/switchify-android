@@ -4,8 +4,24 @@
     android:viewportWidth="32"
     android:viewportHeight="32"
     android:tint="?attr/colorControlNormal">
-    <!-- Point scan crosshair/arrow -->
+    <!-- Top-left corner bracket -->
     <path
         android:fillColor="@android:color/white"
-        android:pathData="M8,4L8,24L12,20L16,28L20,26L16,18L24,18L8,4Z" />
+        android:pathData="M4,4L10,4L10,6L6,6L6,10L4,10L4,4Z" />
+    <!-- Top-right corner bracket -->
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M22,4L28,4L28,10L26,10L26,6L22,6L22,4Z" />
+    <!-- Bottom-left corner bracket -->
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M4,22L6,22L6,26L10,26L10,28L4,28L4,22Z" />
+    <!-- Bottom-right corner bracket -->
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M22,28L22,26L26,26L26,22L28,22L28,28L22,28Z" />
+    <!-- Center selection point (filled circle, r=3) -->
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M16,13C17.66,13 19,14.34 19,16C19,17.66 17.66,19 16,19C14.34,19 13,17.66 13,16C13,14.34 14.34,13 16,13Z" />
 </vector>
