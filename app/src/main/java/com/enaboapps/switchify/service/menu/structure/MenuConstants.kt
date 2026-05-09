@@ -72,6 +72,8 @@ object MenuConstants {
          */
         object Media {
             const val PLAY_PAUSE = "play_pause"
+            const val PREVIOUS_TRACK = "previous_track"
+            const val NEXT_TRACK = "next_track"
             const val VOLUME_CONTROL = "volume_control"
         }
 

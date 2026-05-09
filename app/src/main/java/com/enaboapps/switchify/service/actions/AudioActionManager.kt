@@ -3,6 +3,7 @@ package com.enaboapps.switchify.service.actions
 import android.content.Context
 import android.media.AudioManager
 import android.util.Log
+import android.view.KeyEvent
 import com.enaboapps.switchify.service.core.SwitchifyAccessibilityService
 
 /**
@@ -103,6 +104,40 @@ object AudioActionManager {
             )
             true
         } ?: false
+    }
+
+    /**
+     * Skip to the next media track. Dispatches both KEY_DOWN and KEY_UP
+     * because some apps respond only to one or the other.
+     *
+     * @return true if successful, false otherwise
+     */
+    fun nextTrack(): Boolean {
+        return audioManager?.let {
+            it.dispatchMediaKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_MEDIA_NEXT))
+            it.dispatchMediaKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_MEDIA_NEXT))
+            true
+        } ?: run {
+            Log.e(TAG, "Failed to skip to next track: AudioManager is null")
+            false
+        }
+    }
+
+    /**
+     * Skip to the previous media track. Dispatches both KEY_DOWN and KEY_UP
+     * because some apps respond only to one or the other.
+     *
+     * @return true if successful, false otherwise
+     */
+    fun previousTrack(): Boolean {
+        return audioManager?.let {
+            it.dispatchMediaKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_MEDIA_PREVIOUS))
+            it.dispatchMediaKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_MEDIA_PREVIOUS))
+            true
+        } ?: run {
+            Log.e(TAG, "Failed to skip to previous track: AudioManager is null")
+            false
+        }
     }
 
     /**

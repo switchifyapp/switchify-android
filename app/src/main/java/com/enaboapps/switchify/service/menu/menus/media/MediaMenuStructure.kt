@@ -1,5 +1,6 @@
 package com.enaboapps.switchify.service.menu.menus.media
 
+import com.enaboapps.switchify.service.actions.AudioActionManager
 import com.enaboapps.switchify.service.actions.GlobalActionManager
 import com.enaboapps.switchify.service.core.SwitchifyAccessibilityService
 import com.enaboapps.switchify.service.menu.MenuItem
@@ -29,6 +30,18 @@ class MediaMenuStructure(
                 MenuItem(
                     definition = def,
                     action = { GlobalActionManager.toggleMediaPlayback() }
+                )
+            },
+            MenuItemRegistry.getDefinition(MenuConstants.MenuIds.MEDIA_CONTROL_MENU, MenuConstants.ItemIds.Media.PREVIOUS_TRACK)?.let { def ->
+                MenuItem(
+                    definition = def,
+                    action = { AudioActionManager.previousTrack() }
+                )
+            },
+            MenuItemRegistry.getDefinition(MenuConstants.MenuIds.MEDIA_CONTROL_MENU, MenuConstants.ItemIds.Media.NEXT_TRACK)?.let { def ->
+                MenuItem(
+                    definition = def,
+                    action = { AudioActionManager.nextTrack() }
                 )
             },
             openVolumeControlMenu
