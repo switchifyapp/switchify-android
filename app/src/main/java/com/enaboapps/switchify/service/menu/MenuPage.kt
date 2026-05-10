@@ -7,6 +7,8 @@ import android.widget.LinearLayout
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -60,6 +62,14 @@ class MenuPage(
      */
     private val highlightedLabel = MutableStateFlow<String?>(null)
 
+    /**
+     * Holds the one-line description of whichever menu node is currently
+     * highlighted, or null between highlights. The [HighlightHeader] renders
+     * this below the name as secondary text so the scanning user gets a
+     * plain-language confirmation of the highlighted action.
+     */
+    private val highlightedDescription = MutableStateFlow<String?>(null)
+
     private val hasPagination: Boolean
         get() = maxPageIndex > 0
 
@@ -82,8 +92,13 @@ class MenuPage(
         Node.fromMenuItem(menuItem).also { node ->
             node.onHighlight = { highlightedNode ->
                 highlightedLabel.value = highlightedNode.getContentDescription()
+                highlightedDescription.value = highlightedNode.getDescription()
+                    .takeIf { it.isNotEmpty() }
             }
-            node.onUnhighlight = { highlightedLabel.value = null }
+            node.onUnhighlight = {
+                highlightedLabel.value = null
+                highlightedDescription.value = null
+            }
         }
     }
 
@@ -112,9 +127,17 @@ class MenuPage(
         val headerToRingGapPx = ScreenUtils.dpToPx(context, 12)
         val ringToNavGapPx = ScreenUtils.dpToPx(context, 16)
         val safetyMarginPx = ScreenUtils.dpToPx(context, 24)
+        // Header now stacks the name (one line, headerLabelTextSize) on top of
+        // the description (one line, secondaryTextSize). The 1.4f multiplier
+        // models line-height for each, plus a 4 dp inter-line gap mirroring
+        // the spacer in [HighlightHeader].
         val headerHeightPx = ScreenUtils.dpToPx(
             context,
-            ceil(radialItemSize.headerLabelTextSize.value * 1.4f).toInt()
+            ceil(
+                radialItemSize.headerLabelTextSize.value * 1.4f +
+                    radialItemSize.secondaryTextSize.value * 1.4f +
+                    4f
+            ).toInt()
         )
         val navRowHeightPx = if (willShowNavRow) {
             ScreenUtils.dpToPx(context, smallItemSize.height.value.toInt()) +
@@ -142,6 +165,7 @@ class MenuPage(
                     ring = ring,
                     navRow = if (showNavRow) navRow else null,
                     highlightedLabel = highlightedLabel,
+                    highlightedDescription = highlightedDescription,
                     menuSize = radialItemSize
                 )
             }
@@ -167,6 +191,7 @@ class MenuPage(
                 id = MenuConstants.ItemIds.Navigation.PREV_PAGE,
                 drawableId = R.drawable.ic_previous_menu_page,
                 labelResource = R.string.menu_item_previous_page,
+                descriptionResource = R.string.menu_item_previous_page_description,
                 action = { previousPage() }
             ).also { it.inflate(navRow, smallItemSize) }
         }
@@ -178,6 +203,7 @@ class MenuPage(
                 id = MenuConstants.ItemIds.Navigation.NEXT_PAGE,
                 drawableId = R.drawable.ic_next_menu_page,
                 labelResource = R.string.menu_item_next_page,
+                descriptionResource = R.string.menu_item_next_page_description,
                 action = { nextPage() }
             ).also { it.inflate(navRow, smallItemSize) }
         }
@@ -189,11 +215,13 @@ class MenuPage(
         id: String,
         drawableId: Int,
         labelResource: Int,
+        descriptionResource: Int,
         action: () -> Unit
     ): MenuItem = MenuItem(
         id = id,
         drawableId = drawableId,
         labelResource = labelResource,
+        descriptionResource = descriptionResource,
         showLabelAsDescription = false,
         isSmall = true,
         closeOnSelect = false,
@@ -252,11 +280,13 @@ private fun MenuPageBody(
     ring: RadialMenuLayout,
     navRow: LinearLayout?,
     highlightedLabel: StateFlow<String?>,
+    highlightedDescription: StateFlow<String?>,
     menuSize: MenuItemSize
 ) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         HighlightHeader(
             labelFlow = highlightedLabel,
+            descriptionFlow = highlightedDescription,
             menuSize = menuSize,
             modifier = Modifier.padding(bottom = 12.dp)
         )
@@ -271,38 +301,62 @@ private fun MenuPageBody(
 }
 
 /**
- * Renders the currently highlighted item's label as a header above the ring.
- * When [labelFlow] emits `null` (menu just opened, or the scanner is between
- * items) the header shows a muted placeholder — keeping the header's height
- * stable so the ring below doesn't jump.
+ * Renders the currently highlighted item's label and description as a two-line
+ * header above the ring. The name sits on top, the description sits below it
+ * as muted secondary text. When [labelFlow] emits `null` (menu just opened, or
+ * the scanner is between items) the name shows a muted placeholder and the
+ * description renders blank — keeping the header's height stable so the ring
+ * below doesn't jump as the scanner moves.
  *
- * The text is locked to a single line (`maxLines = 1`) with trailing ellipsis
- * so the header's vertical footprint never grows between items with
- * different-length labels — previously a long label would wrap onto a second
- * line and visibly resize the surrounding menu Surface as the scanner moved.
- * [MenuItemSize.headerLabelMaxWidth] caps the horizontal extent so very long
- * labels truncate with `…` rather than stretching the Surface past the ring.
+ * Both texts are width-clamped to [MenuItemSize.headerLabelMaxWidth]. The name
+ * is locked to a single line; the description is locked to a single line with
+ * trailing ellipsis so very long descriptions truncate rather than stretching
+ * the Surface or growing the header's vertical footprint.
  */
 @Composable
 private fun HighlightHeader(
     labelFlow: StateFlow<String?>,
+    descriptionFlow: StateFlow<String?>,
     menuSize: MenuItemSize,
     modifier: Modifier = Modifier,
 ) {
     val label by labelFlow.collectAsState()
+    val description by descriptionFlow.collectAsState()
     val isPlaceholder = label == null
     val text = label ?: stringResource(R.string.menu_no_highlighted_item)
-    Text(
-        text = text,
-        color = MaterialTheme.colorScheme.onSurface.copy(
-            alpha = if (isPlaceholder) 0.5f else 1.0f
-        ),
-        fontSize = menuSize.headerLabelTextSize,
-        textAlign = TextAlign.Center,
-        maxLines = 1,
-        overflow = TextOverflow.Ellipsis,
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
         modifier = modifier
             .widthIn(max = menuSize.headerLabelMaxWidth)
             .padding(horizontal = 8.dp),
-    )
+    ) {
+        Text(
+            text = text,
+            color = MaterialTheme.colorScheme.onSurface.copy(
+                alpha = if (isPlaceholder) 0.5f else 1.0f
+            ),
+            fontSize = menuSize.headerLabelTextSize,
+            textAlign = TextAlign.Center,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        // Render an empty (but reserved-height) line when no description is
+        // available so the surrounding Surface never resizes between scan
+        // ticks. We supply a non-empty placeholder string so Compose still
+        // reserves a line box; the transparent color hides it.
+        val descriptionText = description ?: " "
+        Text(
+            text = descriptionText,
+            color = if (description == null) {
+                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0f)
+            } else {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            },
+            fontSize = menuSize.secondaryTextSize,
+            textAlign = TextAlign.Center,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
 }

@@ -16,22 +16,22 @@ object MenuItemRegistry {
      */
     fun getMainMenuDefinitions(): List<MenuItemDefinition> {
         return listOf(
-            MenuItemDefinition(MenuConstants.ItemIds.Main.SYS_BACK, labelResource = R.string.system_back, drawableId = R.drawable.ic_sys_back),
-            MenuItemDefinition(MenuConstants.ItemIds.Main.SYS_HOME, labelResource = R.string.system_home, drawableId = R.drawable.ic_sys_home),
-            MenuItemDefinition(MenuConstants.ItemIds.Main.SCAN_KEYBOARD, labelResource = R.string.menu_item_scan_keyboard, drawableId = R.drawable.ic_scan_keyboard),
-            MenuItemDefinition(MenuConstants.ItemIds.Main.TAP, labelResource = R.string.menu_item_tap, drawableId = R.drawable.ic_gesture_tap),
-            MenuItemDefinition(MenuConstants.ItemIds.Main.GESTURES, labelResource = R.string.menu_title_gestures, drawableId = R.drawable.ic_gestures),
-            MenuItemDefinition(MenuConstants.ItemIds.Main.SCROLL, labelResource = R.string.menu_title_scroll, drawableId = R.drawable.ic_scroll),
-            MenuItemDefinition(MenuConstants.ItemIds.Main.FAVOURITE_APPS, labelResource = R.string.menu_title_favourite_apps, drawableId = R.drawable.ic_favourite_apps),
-            MenuItemDefinition(MenuConstants.ItemIds.Main.GESTURE_PATTERNS, labelResource = R.string.gesture_patterns_title, drawableId = R.drawable.ic_gesture_patterns),
-            MenuItemDefinition(MenuConstants.ItemIds.Main.DEVICE, labelResource = R.string.menu_title_device, drawableId = R.drawable.ic_device),
-            MenuItemDefinition(MenuConstants.ItemIds.Main.MEDIA_CONTROL, labelResource = R.string.menu_title_media_control, drawableId = R.drawable.ic_media_control),
-            MenuItemDefinition(MenuConstants.ItemIds.Main.EDIT, labelResource = R.string.menu_title_edit, drawableId = R.drawable.ic_edit),
-            MenuItemDefinition(MenuConstants.ItemIds.Main.SWITCH_TO_ITEM_SCAN, labelResource = R.string.access_technique_item_scan, drawableId = R.drawable.ic_item_scan),
-            MenuItemDefinition(MenuConstants.ItemIds.Main.SWITCH_TO_RADAR, labelResource = R.string.access_technique_radar, drawableId = R.drawable.ic_radar),
-            MenuItemDefinition(MenuConstants.ItemIds.Main.SWITCH_TO_POINT_SCAN, labelResource = R.string.access_technique_point_scan, drawableId = R.drawable.ic_point_scan),
-            MenuItemDefinition(MenuConstants.ItemIds.Main.TOGGLE_HEAD_CONTROL, labelResource = R.string.menu_item_enable_head_control, drawableId = R.drawable.ic_head_control_pointer),
-            MenuItemDefinition(MenuConstants.ItemIds.Main.PAUSE, labelResource = R.string.menu_item_pause, drawableId = R.drawable.ic_pause)
+            MenuItemDefinition(MenuConstants.ItemIds.Main.SYS_BACK, labelResource = R.string.system_back, descriptionResource = R.string.menu_item_sys_back_description, drawableId = R.drawable.ic_sys_back),
+            MenuItemDefinition(MenuConstants.ItemIds.Main.SYS_HOME, labelResource = R.string.system_home, descriptionResource = R.string.menu_item_sys_home_description, drawableId = R.drawable.ic_sys_home),
+            MenuItemDefinition(MenuConstants.ItemIds.Main.SCAN_KEYBOARD, labelResource = R.string.menu_item_scan_keyboard, descriptionResource = R.string.menu_item_scan_keyboard_description, drawableId = R.drawable.ic_scan_keyboard),
+            MenuItemDefinition(MenuConstants.ItemIds.Main.TAP, labelResource = R.string.menu_item_tap, descriptionResource = R.string.menu_item_tap_description, drawableId = R.drawable.ic_gesture_tap),
+            MenuItemDefinition(MenuConstants.ItemIds.Main.GESTURES, labelResource = R.string.menu_title_gestures, descriptionResource = R.string.menu_item_gestures_description, drawableId = R.drawable.ic_gestures),
+            MenuItemDefinition(MenuConstants.ItemIds.Main.SCROLL, labelResource = R.string.menu_title_scroll, descriptionResource = R.string.menu_item_scroll_description, drawableId = R.drawable.ic_scroll),
+            MenuItemDefinition(MenuConstants.ItemIds.Main.FAVOURITE_APPS, labelResource = R.string.menu_title_favourite_apps, descriptionResource = R.string.menu_item_favourite_apps_description, drawableId = R.drawable.ic_favourite_apps),
+            MenuItemDefinition(MenuConstants.ItemIds.Main.GESTURE_PATTERNS, labelResource = R.string.gesture_patterns_title, descriptionResource = R.string.menu_item_gesture_patterns_description, drawableId = R.drawable.ic_gesture_patterns),
+            MenuItemDefinition(MenuConstants.ItemIds.Main.DEVICE, labelResource = R.string.menu_title_device, descriptionResource = R.string.menu_item_device_description, drawableId = R.drawable.ic_device),
+            MenuItemDefinition(MenuConstants.ItemIds.Main.MEDIA_CONTROL, labelResource = R.string.menu_title_media_control, descriptionResource = R.string.menu_item_media_control_description, drawableId = R.drawable.ic_media_control),
+            MenuItemDefinition(MenuConstants.ItemIds.Main.EDIT, labelResource = R.string.menu_title_edit, descriptionResource = R.string.menu_item_edit_description, drawableId = R.drawable.ic_edit),
+            MenuItemDefinition(MenuConstants.ItemIds.Main.SWITCH_TO_ITEM_SCAN, labelResource = R.string.access_technique_item_scan, descriptionResource = R.string.menu_item_switch_to_item_scan_description, drawableId = R.drawable.ic_item_scan),
+            MenuItemDefinition(MenuConstants.ItemIds.Main.SWITCH_TO_RADAR, labelResource = R.string.access_technique_radar, descriptionResource = R.string.menu_item_switch_to_radar_description, drawableId = R.drawable.ic_radar),
+            MenuItemDefinition(MenuConstants.ItemIds.Main.SWITCH_TO_POINT_SCAN, labelResource = R.string.access_technique_point_scan, descriptionResource = R.string.menu_item_switch_to_point_scan_description, drawableId = R.drawable.ic_point_scan),
+            MenuItemDefinition(MenuConstants.ItemIds.Main.TOGGLE_HEAD_CONTROL, labelResource = R.string.menu_item_enable_head_control, descriptionResource = R.string.menu_item_toggle_head_control_description, drawableId = R.drawable.ic_head_control_pointer),
+            MenuItemDefinition(MenuConstants.ItemIds.Main.PAUSE, labelResource = R.string.menu_item_pause, descriptionResource = R.string.menu_item_pause_description, drawableId = R.drawable.ic_pause)
         )
     }
 
@@ -42,14 +42,14 @@ object MenuItemRegistry {
      */
     fun getDeviceMenuDefinitions(): List<MenuItemDefinition> {
         return listOf(
-            MenuItemDefinition(MenuConstants.ItemIds.Device.RECENT_APPS, labelResource = R.string.system_recents, drawableId = R.drawable.ic_recent_apps),
-            MenuItemDefinition(MenuConstants.ItemIds.Device.NOTIFICATIONS, labelResource = R.string.system_notifications, drawableId = R.drawable.ic_notifications),
-            MenuItemDefinition(MenuConstants.ItemIds.Device.OPEN_ASSISTANT, labelResource = R.string.system_assistant, drawableId = R.drawable.ic_assistant),
-            MenuItemDefinition(MenuConstants.ItemIds.Device.QUICK_SETTINGS, labelResource = R.string.system_quick_settings, drawableId = R.drawable.ic_quick_settings),
-            MenuItemDefinition(MenuConstants.ItemIds.Device.LOCK_SCREEN, labelResource = R.string.system_lock_screen, drawableId = R.drawable.ic_lock_screen),
-            MenuItemDefinition(MenuConstants.ItemIds.Device.POWER_DIALOG, labelResource = R.string.system_power_dialog, drawableId = R.drawable.ic_power_dialog),
-            MenuItemDefinition(MenuConstants.ItemIds.Device.TAKE_SCREENSHOT, labelResource = R.string.system_screenshot, drawableId = R.drawable.ic_screenshot),
-            MenuItemDefinition(MenuConstants.ItemIds.Device.VOLUME_CONTROL, labelResource = R.string.action_volume_control, drawableId = R.drawable.ic_volume_control)
+            MenuItemDefinition(MenuConstants.ItemIds.Device.RECENT_APPS, labelResource = R.string.system_recents, descriptionResource = R.string.menu_item_recent_apps_description, drawableId = R.drawable.ic_recent_apps),
+            MenuItemDefinition(MenuConstants.ItemIds.Device.NOTIFICATIONS, labelResource = R.string.system_notifications, descriptionResource = R.string.menu_item_notifications_description, drawableId = R.drawable.ic_notifications),
+            MenuItemDefinition(MenuConstants.ItemIds.Device.OPEN_ASSISTANT, labelResource = R.string.system_assistant, descriptionResource = R.string.menu_item_open_assistant_description, drawableId = R.drawable.ic_assistant),
+            MenuItemDefinition(MenuConstants.ItemIds.Device.QUICK_SETTINGS, labelResource = R.string.system_quick_settings, descriptionResource = R.string.menu_item_quick_settings_description, drawableId = R.drawable.ic_quick_settings),
+            MenuItemDefinition(MenuConstants.ItemIds.Device.LOCK_SCREEN, labelResource = R.string.system_lock_screen, descriptionResource = R.string.menu_item_lock_screen_description, drawableId = R.drawable.ic_lock_screen),
+            MenuItemDefinition(MenuConstants.ItemIds.Device.POWER_DIALOG, labelResource = R.string.system_power_dialog, descriptionResource = R.string.menu_item_power_dialog_description, drawableId = R.drawable.ic_power_dialog),
+            MenuItemDefinition(MenuConstants.ItemIds.Device.TAKE_SCREENSHOT, labelResource = R.string.system_screenshot, descriptionResource = R.string.menu_item_take_screenshot_description, drawableId = R.drawable.ic_screenshot),
+            MenuItemDefinition(MenuConstants.ItemIds.Device.VOLUME_CONTROL, labelResource = R.string.action_volume_control, descriptionResource = R.string.menu_item_volume_control_description, drawableId = R.drawable.ic_volume_control)
         )
     }
 
@@ -61,11 +61,11 @@ object MenuItemRegistry {
      */
     fun getVolumeControlMenuDefinitions(): List<MenuItemDefinition> {
         return listOf(
-            MenuItemDefinition(MenuConstants.ItemIds.Volume.VOLUME_UP, labelResource = R.string.menu_item_volume_up, drawableId = R.drawable.ic_volume_up),
-            MenuItemDefinition(MenuConstants.ItemIds.Volume.VOLUME_DOWN, labelResource = R.string.menu_item_volume_down, drawableId = R.drawable.ic_volume_down),
-            MenuItemDefinition(MenuConstants.ItemIds.Volume.FULL_VOLUME, labelResource = R.string.menu_item_full_volume, drawableId = R.drawable.ic_full_volume),
-            MenuItemDefinition(MenuConstants.ItemIds.Volume.MUTE, labelResource = R.string.menu_item_mute, drawableId = R.drawable.ic_mute),
-            MenuItemDefinition(MenuConstants.ItemIds.Volume.HALF_VOLUME, labelResource = R.string.menu_item_half_volume, drawableId = R.drawable.ic_half_volume)
+            MenuItemDefinition(MenuConstants.ItemIds.Volume.VOLUME_UP, labelResource = R.string.menu_item_volume_up, descriptionResource = R.string.menu_item_volume_up_description, drawableId = R.drawable.ic_volume_up),
+            MenuItemDefinition(MenuConstants.ItemIds.Volume.VOLUME_DOWN, labelResource = R.string.menu_item_volume_down, descriptionResource = R.string.menu_item_volume_down_description, drawableId = R.drawable.ic_volume_down),
+            MenuItemDefinition(MenuConstants.ItemIds.Volume.FULL_VOLUME, labelResource = R.string.menu_item_full_volume, descriptionResource = R.string.menu_item_full_volume_description, drawableId = R.drawable.ic_full_volume),
+            MenuItemDefinition(MenuConstants.ItemIds.Volume.MUTE, labelResource = R.string.menu_item_mute, descriptionResource = R.string.menu_item_mute_description, drawableId = R.drawable.ic_mute),
+            MenuItemDefinition(MenuConstants.ItemIds.Volume.HALF_VOLUME, labelResource = R.string.menu_item_half_volume, descriptionResource = R.string.menu_item_half_volume_description, drawableId = R.drawable.ic_half_volume)
         )
     }
 
@@ -76,12 +76,12 @@ object MenuItemRegistry {
      */
     fun getGesturesMenuDefinitions(): List<MenuItemDefinition> {
         return listOf(
-            MenuItemDefinition(MenuConstants.ItemIds.Gestures.TAP_GESTURES, labelResource = R.string.menu_item_tap_gestures, drawableId = R.drawable.ic_tap_gestures),
-            MenuItemDefinition(MenuConstants.ItemIds.Gestures.SWIPE_GESTURES, labelResource = R.string.menu_item_swipe_gestures, drawableId = R.drawable.ic_swipe_gestures),
-            MenuItemDefinition(MenuConstants.ItemIds.Gestures.DRAG, labelResource = R.string.menu_item_drag, drawableId = R.drawable.ic_gesture_drag),
-            MenuItemDefinition(MenuConstants.ItemIds.Gestures.PINCH_GESTURES, labelResource = R.string.menu_item_pinch_gestures, drawableId = R.drawable.ic_pinch_gestures),
-            MenuItemDefinition(MenuConstants.ItemIds.Gestures.FINGER_MODE, labelResource = R.string.menu_item_finger_mode, drawableId = R.drawable.ic_finger_mode),
-            MenuItemDefinition(MenuConstants.ItemIds.Gestures.TOGGLE_GESTURE_LOCK, labelResource = R.string.system_gesture_lock, drawableId = R.drawable.ic_toggle_gesture_lock)
+            MenuItemDefinition(MenuConstants.ItemIds.Gestures.TAP_GESTURES, labelResource = R.string.menu_item_tap_gestures, descriptionResource = R.string.menu_item_tap_gestures_description, drawableId = R.drawable.ic_tap_gestures),
+            MenuItemDefinition(MenuConstants.ItemIds.Gestures.SWIPE_GESTURES, labelResource = R.string.menu_item_swipe_gestures, descriptionResource = R.string.menu_item_swipe_gestures_description, drawableId = R.drawable.ic_swipe_gestures),
+            MenuItemDefinition(MenuConstants.ItemIds.Gestures.DRAG, labelResource = R.string.menu_item_drag, descriptionResource = R.string.menu_item_drag_description, drawableId = R.drawable.ic_gesture_drag),
+            MenuItemDefinition(MenuConstants.ItemIds.Gestures.PINCH_GESTURES, labelResource = R.string.menu_item_pinch_gestures, descriptionResource = R.string.menu_item_pinch_gestures_description, drawableId = R.drawable.ic_pinch_gestures),
+            MenuItemDefinition(MenuConstants.ItemIds.Gestures.FINGER_MODE, labelResource = R.string.menu_item_finger_mode, descriptionResource = R.string.menu_item_finger_mode_description, drawableId = R.drawable.ic_finger_mode),
+            MenuItemDefinition(MenuConstants.ItemIds.Gestures.TOGGLE_GESTURE_LOCK, labelResource = R.string.system_gesture_lock, descriptionResource = R.string.menu_item_toggle_gesture_lock_description, drawableId = R.drawable.ic_toggle_gesture_lock)
         )
     }
 
@@ -92,10 +92,10 @@ object MenuItemRegistry {
      */
     fun getTapGesturesMenuDefinitions(): List<MenuItemDefinition> {
         return listOf(
-            MenuItemDefinition(MenuConstants.ItemIds.TapGestures.TAP, labelResource = R.string.menu_item_tap, drawableId = R.drawable.ic_gesture_tap),
-            MenuItemDefinition(MenuConstants.ItemIds.TapGestures.DOUBLE_TAP, labelResource = R.string.menu_item_double_tap, drawableId = R.drawable.ic_gesture_double_tap),
-            MenuItemDefinition(MenuConstants.ItemIds.TapGestures.TAP_AND_HOLD, labelResource = R.string.menu_item_tap_and_hold, drawableId = R.drawable.ic_gesture_tap_hold_1s),
-            MenuItemDefinition(MenuConstants.ItemIds.TapGestures.TOGGLE_GESTURE_LOCK, labelResource = R.string.system_gesture_lock, drawableId = R.drawable.ic_toggle_gesture_lock)
+            MenuItemDefinition(MenuConstants.ItemIds.TapGestures.TAP, labelResource = R.string.menu_item_tap, descriptionResource = R.string.menu_item_tap_description, drawableId = R.drawable.ic_gesture_tap),
+            MenuItemDefinition(MenuConstants.ItemIds.TapGestures.DOUBLE_TAP, labelResource = R.string.menu_item_double_tap, descriptionResource = R.string.menu_item_double_tap_description, drawableId = R.drawable.ic_gesture_double_tap),
+            MenuItemDefinition(MenuConstants.ItemIds.TapGestures.TAP_AND_HOLD, labelResource = R.string.menu_item_tap_and_hold, descriptionResource = R.string.menu_item_tap_and_hold_description, drawableId = R.drawable.ic_gesture_tap_hold_1s),
+            MenuItemDefinition(MenuConstants.ItemIds.TapGestures.TOGGLE_GESTURE_LOCK, labelResource = R.string.system_gesture_lock, descriptionResource = R.string.menu_item_toggle_gesture_lock_description, drawableId = R.drawable.ic_toggle_gesture_lock)
         )
     }
 
@@ -110,12 +110,12 @@ object MenuItemRegistry {
      */
     fun getTapAndHoldGesturesMenuDefinitions(): List<MenuItemDefinition> {
         return listOf(
-            MenuItemDefinition(MenuConstants.ItemIds.TapAndHold.TAP_AND_HOLD_0_5S, labelResource = R.string.menu_item_tap_and_hold_0_5s, circleText = "0.5s"),
-            MenuItemDefinition(MenuConstants.ItemIds.TapAndHold.TAP_AND_HOLD_1S, labelResource = R.string.menu_item_tap_and_hold_1s, circleText = "1s"),
-            MenuItemDefinition(MenuConstants.ItemIds.TapAndHold.TAP_AND_HOLD_2S, labelResource = R.string.menu_item_tap_and_hold_2s, circleText = "2s"),
-            MenuItemDefinition(MenuConstants.ItemIds.TapAndHold.TAP_AND_HOLD_3S, labelResource = R.string.menu_item_tap_and_hold_3s, circleText = "3s"),
-            MenuItemDefinition(MenuConstants.ItemIds.TapAndHold.TAP_AND_HOLD_5S, labelResource = R.string.menu_item_tap_and_hold_5s, circleText = "5s"),
-            MenuItemDefinition(MenuConstants.ItemIds.TapAndHold.TAP_AND_HOLD_10S, labelResource = R.string.menu_item_tap_and_hold_10s, circleText = "10s")
+            MenuItemDefinition(MenuConstants.ItemIds.TapAndHold.TAP_AND_HOLD_0_5S, labelResource = R.string.menu_item_tap_and_hold_0_5s, descriptionResource = R.string.menu_item_tap_and_hold_0_5s_description, circleText = "0.5s"),
+            MenuItemDefinition(MenuConstants.ItemIds.TapAndHold.TAP_AND_HOLD_1S, labelResource = R.string.menu_item_tap_and_hold_1s, descriptionResource = R.string.menu_item_tap_and_hold_1s_description, circleText = "1s"),
+            MenuItemDefinition(MenuConstants.ItemIds.TapAndHold.TAP_AND_HOLD_2S, labelResource = R.string.menu_item_tap_and_hold_2s, descriptionResource = R.string.menu_item_tap_and_hold_2s_description, circleText = "2s"),
+            MenuItemDefinition(MenuConstants.ItemIds.TapAndHold.TAP_AND_HOLD_3S, labelResource = R.string.menu_item_tap_and_hold_3s, descriptionResource = R.string.menu_item_tap_and_hold_3s_description, circleText = "3s"),
+            MenuItemDefinition(MenuConstants.ItemIds.TapAndHold.TAP_AND_HOLD_5S, labelResource = R.string.menu_item_tap_and_hold_5s, descriptionResource = R.string.menu_item_tap_and_hold_5s_description, circleText = "5s"),
+            MenuItemDefinition(MenuConstants.ItemIds.TapAndHold.TAP_AND_HOLD_10S, labelResource = R.string.menu_item_tap_and_hold_10s, descriptionResource = R.string.menu_item_tap_and_hold_10s_description, circleText = "10s")
         )
     }
 
@@ -126,12 +126,12 @@ object MenuItemRegistry {
      */
     fun getSwipeGesturesMenuDefinitions(): List<MenuItemDefinition> {
         return listOf(
-            MenuItemDefinition(MenuConstants.ItemIds.SwipeGestures.SWIPE_UP, labelResource = R.string.menu_item_swipe_up, drawableId = R.drawable.ic_gesture_swipe_up),
-            MenuItemDefinition(MenuConstants.ItemIds.SwipeGestures.SWIPE_DOWN, labelResource = R.string.menu_item_swipe_down, drawableId = R.drawable.ic_gesture_swipe_down),
-            MenuItemDefinition(MenuConstants.ItemIds.SwipeGestures.SWIPE_LEFT, labelResource = R.string.menu_item_swipe_left, drawableId = R.drawable.ic_gesture_swipe_left),
-            MenuItemDefinition(MenuConstants.ItemIds.SwipeGestures.SWIPE_RIGHT, labelResource = R.string.menu_item_swipe_right, drawableId = R.drawable.ic_gesture_swipe_right),
-            MenuItemDefinition(MenuConstants.ItemIds.SwipeGestures.CUSTOM_SWIPE, labelResource = R.string.menu_item_custom_swipe, drawableId = R.drawable.ic_gesture_custom_swipe),
-            MenuItemDefinition(MenuConstants.ItemIds.SwipeGestures.TOGGLE_GESTURE_LOCK, labelResource = R.string.system_gesture_lock, drawableId = R.drawable.ic_toggle_gesture_lock)
+            MenuItemDefinition(MenuConstants.ItemIds.SwipeGestures.SWIPE_UP, labelResource = R.string.menu_item_swipe_up, descriptionResource = R.string.menu_item_swipe_up_description, drawableId = R.drawable.ic_gesture_swipe_up),
+            MenuItemDefinition(MenuConstants.ItemIds.SwipeGestures.SWIPE_DOWN, labelResource = R.string.menu_item_swipe_down, descriptionResource = R.string.menu_item_swipe_down_description, drawableId = R.drawable.ic_gesture_swipe_down),
+            MenuItemDefinition(MenuConstants.ItemIds.SwipeGestures.SWIPE_LEFT, labelResource = R.string.menu_item_swipe_left, descriptionResource = R.string.menu_item_swipe_left_description, drawableId = R.drawable.ic_gesture_swipe_left),
+            MenuItemDefinition(MenuConstants.ItemIds.SwipeGestures.SWIPE_RIGHT, labelResource = R.string.menu_item_swipe_right, descriptionResource = R.string.menu_item_swipe_right_description, drawableId = R.drawable.ic_gesture_swipe_right),
+            MenuItemDefinition(MenuConstants.ItemIds.SwipeGestures.CUSTOM_SWIPE, labelResource = R.string.menu_item_custom_swipe, descriptionResource = R.string.menu_item_custom_swipe_description, drawableId = R.drawable.ic_gesture_custom_swipe),
+            MenuItemDefinition(MenuConstants.ItemIds.SwipeGestures.TOGGLE_GESTURE_LOCK, labelResource = R.string.system_gesture_lock, descriptionResource = R.string.menu_item_toggle_gesture_lock_description, drawableId = R.drawable.ic_toggle_gesture_lock)
         )
     }
 
@@ -142,9 +142,9 @@ object MenuItemRegistry {
      */
     fun getPinchGesturesMenuDefinitions(): List<MenuItemDefinition> {
         return listOf(
-            MenuItemDefinition(MenuConstants.ItemIds.PinchGestures.PINCH_IN, labelResource = R.string.menu_item_pinch_in, drawableId = R.drawable.ic_gesture_pinch_in),
-            MenuItemDefinition(MenuConstants.ItemIds.PinchGestures.PINCH_OUT, labelResource = R.string.menu_item_pinch_out, drawableId = R.drawable.ic_gesture_pinch_out),
-            MenuItemDefinition(MenuConstants.ItemIds.PinchGestures.TOGGLE_GESTURE_LOCK, labelResource = R.string.system_gesture_lock, drawableId = R.drawable.ic_toggle_gesture_lock)
+            MenuItemDefinition(MenuConstants.ItemIds.PinchGestures.PINCH_IN, labelResource = R.string.menu_item_pinch_in, descriptionResource = R.string.menu_item_pinch_in_description, drawableId = R.drawable.ic_gesture_pinch_in),
+            MenuItemDefinition(MenuConstants.ItemIds.PinchGestures.PINCH_OUT, labelResource = R.string.menu_item_pinch_out, descriptionResource = R.string.menu_item_pinch_out_description, drawableId = R.drawable.ic_gesture_pinch_out),
+            MenuItemDefinition(MenuConstants.ItemIds.PinchGestures.TOGGLE_GESTURE_LOCK, labelResource = R.string.system_gesture_lock, descriptionResource = R.string.menu_item_toggle_gesture_lock_description, drawableId = R.drawable.ic_toggle_gesture_lock)
         )
     }
 
@@ -156,10 +156,10 @@ object MenuItemRegistry {
      */
     fun getScrollMenuDefinitions(): List<MenuItemDefinition> {
         return listOf(
-            MenuItemDefinition(MenuConstants.ItemIds.Scroll.SCROLL_UP, labelResource = R.string.menu_item_scroll_up, drawableId = R.drawable.ic_scroll_up),
-            MenuItemDefinition(MenuConstants.ItemIds.Scroll.SCROLL_DOWN, labelResource = R.string.menu_item_scroll_down, drawableId = R.drawable.ic_scroll_down),
-            MenuItemDefinition(MenuConstants.ItemIds.Scroll.SCROLL_LEFT, labelResource = R.string.menu_item_scroll_left, drawableId = R.drawable.ic_scroll_left),
-            MenuItemDefinition(MenuConstants.ItemIds.Scroll.SCROLL_RIGHT, labelResource = R.string.menu_item_scroll_right, drawableId = R.drawable.ic_scroll_right)
+            MenuItemDefinition(MenuConstants.ItemIds.Scroll.SCROLL_UP, labelResource = R.string.menu_item_scroll_up, descriptionResource = R.string.menu_item_scroll_up_description, drawableId = R.drawable.ic_scroll_up),
+            MenuItemDefinition(MenuConstants.ItemIds.Scroll.SCROLL_DOWN, labelResource = R.string.menu_item_scroll_down, descriptionResource = R.string.menu_item_scroll_down_description, drawableId = R.drawable.ic_scroll_down),
+            MenuItemDefinition(MenuConstants.ItemIds.Scroll.SCROLL_LEFT, labelResource = R.string.menu_item_scroll_left, descriptionResource = R.string.menu_item_scroll_left_description, drawableId = R.drawable.ic_scroll_left),
+            MenuItemDefinition(MenuConstants.ItemIds.Scroll.SCROLL_RIGHT, labelResource = R.string.menu_item_scroll_right, descriptionResource = R.string.menu_item_scroll_right_description, drawableId = R.drawable.ic_scroll_right)
         )
     }
 
@@ -170,10 +170,10 @@ object MenuItemRegistry {
      */
     fun getMediaControlMenuDefinitions(): List<MenuItemDefinition> {
         return listOf(
-            MenuItemDefinition(MenuConstants.ItemIds.Media.PLAY_PAUSE, labelResource = R.string.menu_item_play_pause, drawableId = R.drawable.ic_play_pause),
-            MenuItemDefinition(MenuConstants.ItemIds.Media.PREVIOUS_TRACK, labelResource = R.string.menu_item_previous_track, drawableId = R.drawable.ic_previous_track),
-            MenuItemDefinition(MenuConstants.ItemIds.Media.NEXT_TRACK, labelResource = R.string.menu_item_next_track, drawableId = R.drawable.ic_next_track),
-            MenuItemDefinition(MenuConstants.ItemIds.Media.VOLUME_CONTROL, labelResource = R.string.action_volume_control, drawableId = R.drawable.ic_volume_control)
+            MenuItemDefinition(MenuConstants.ItemIds.Media.PLAY_PAUSE, labelResource = R.string.menu_item_play_pause, descriptionResource = R.string.menu_item_play_pause_description, drawableId = R.drawable.ic_play_pause),
+            MenuItemDefinition(MenuConstants.ItemIds.Media.PREVIOUS_TRACK, labelResource = R.string.menu_item_previous_track, descriptionResource = R.string.menu_item_previous_track_description, drawableId = R.drawable.ic_previous_track),
+            MenuItemDefinition(MenuConstants.ItemIds.Media.NEXT_TRACK, labelResource = R.string.menu_item_next_track, descriptionResource = R.string.menu_item_next_track_description, drawableId = R.drawable.ic_next_track),
+            MenuItemDefinition(MenuConstants.ItemIds.Media.VOLUME_CONTROL, labelResource = R.string.action_volume_control, descriptionResource = R.string.menu_item_volume_control_description, drawableId = R.drawable.ic_volume_control)
         )
     }
 
@@ -184,9 +184,9 @@ object MenuItemRegistry {
      */
     fun getEditMenuDefinitions(): List<MenuItemDefinition> {
         return listOf(
-            MenuItemDefinition(MenuConstants.ItemIds.Edit.CUT, labelResource = R.string.menu_item_cut, drawableId = R.drawable.ic_cut),
-            MenuItemDefinition(MenuConstants.ItemIds.Edit.COPY, labelResource = R.string.menu_item_copy, drawableId = R.drawable.ic_copy),
-            MenuItemDefinition(MenuConstants.ItemIds.Edit.PASTE, labelResource = R.string.menu_item_paste, drawableId = R.drawable.ic_paste)
+            MenuItemDefinition(MenuConstants.ItemIds.Edit.CUT, labelResource = R.string.menu_item_cut, descriptionResource = R.string.menu_item_cut_description, drawableId = R.drawable.ic_cut),
+            MenuItemDefinition(MenuConstants.ItemIds.Edit.COPY, labelResource = R.string.menu_item_copy, descriptionResource = R.string.menu_item_copy_description, drawableId = R.drawable.ic_copy),
+            MenuItemDefinition(MenuConstants.ItemIds.Edit.PASTE, labelResource = R.string.menu_item_paste, descriptionResource = R.string.menu_item_paste_description, drawableId = R.drawable.ic_paste)
         )
     }
 

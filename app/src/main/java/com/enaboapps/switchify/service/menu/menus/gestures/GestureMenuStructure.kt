@@ -162,6 +162,7 @@ class GestureMenuStructure(
                         MenuItem(
                             id = "save_recording",
                             labelResource = R.string.save_recording,
+                            descriptionResource = R.string.menu_item_save_recording_description,
                             drawableId = R.drawable.ic_save_recording,
                             action = { GesturePatternRecorder.saveRecording(context) }
                         )
@@ -169,6 +170,7 @@ class GestureMenuStructure(
                         MenuItem(
                             id = "start_recording",
                             labelResource = R.string.start_recording,
+                            descriptionResource = R.string.menu_item_start_recording_description,
                             drawableId = R.drawable.ic_start_recording,
                             action = { GesturePatternRecorder.startRecording(context) }
                         )
@@ -177,6 +179,7 @@ class GestureMenuStructure(
                         MenuItem(
                             id = "cancel_recording",
                             labelResource = R.string.cancel_recording,
+                            descriptionResource = R.string.menu_item_cancel_recording_description,
                             drawableId = R.drawable.ic_cancel_recording,
                             action = { GesturePatternRecorder.cancelRecording() }
                         )
@@ -253,12 +256,14 @@ class GestureMenuStructure(
             MenuItem(
                 id = "confirm",
                 labelResource = R.string.menu_item_confirm,
+                descriptionResource = R.string.menu_item_confirm_description,
                 drawableId = R.drawable.ic_confirm,
                 action = { GestureManager.instance.endLinearGesture() }
             ),
             MenuItem(
                 id = "reselect",
                 labelResource = R.string.menu_item_reselect,
+                descriptionResource = R.string.menu_item_reselect_description,
                 drawableId = R.drawable.ic_reselect,
                 action = {
                     // Do nothing for reselect action
@@ -267,6 +272,7 @@ class GestureMenuStructure(
             MenuItem(
                 id = "cancel",
                 labelResource = R.string.menu_item_cancel,
+                descriptionResource = R.string.menu_item_cancel_description,
                 drawableId = R.drawable.ic_cancel,
                 action = { GestureManager.instance.cancelLinearGesture() }
             )
@@ -288,6 +294,7 @@ class GestureMenuStructure(
             MenuItem(
                 id = "one_finger_mode",
                 labelResource = R.string.menu_item_one_finger,
+                descriptionResource = R.string.finger_mode_description_one,
                 drawableId = R.drawable.ic_one_finger,
                 closeOnSelect = false, // Keep menu open to show feedback
                 action = {
@@ -302,6 +309,7 @@ class GestureMenuStructure(
             MenuItem(
                 id = "two_finger_mode",
                 labelResource = R.string.menu_item_two_fingers,
+                descriptionResource = R.string.finger_mode_description_two,
                 drawableId = R.drawable.ic_two_finger,
                 closeOnSelect = false, // Keep menu open to show feedback
                 action = {
@@ -316,6 +324,7 @@ class GestureMenuStructure(
             MenuItem(
                 id = "three_finger_mode",
                 labelResource = R.string.menu_item_three_fingers,
+                descriptionResource = R.string.finger_mode_description_three,
                 drawableId = R.drawable.ic_three_finger,
                 closeOnSelect = false, // Keep menu open to show feedback
                 action = {
@@ -330,6 +339,7 @@ class GestureMenuStructure(
             MenuItem(
                 id = "four_finger_mode",
                 labelResource = R.string.menu_item_four_fingers,
+                descriptionResource = R.string.finger_mode_description_four,
                 drawableId = R.drawable.ic_four_finger,
                 closeOnSelect = false, // Keep menu open to show feedback
                 action = {
@@ -344,6 +354,7 @@ class GestureMenuStructure(
             MenuItem(
                 id = "five_finger_mode",
                 labelResource = R.string.menu_item_five_fingers,
+                descriptionResource = R.string.finger_mode_description_five,
                 drawableId = R.drawable.ic_five_finger,
                 closeOnSelect = false, // Keep menu open to show feedback
                 action = {

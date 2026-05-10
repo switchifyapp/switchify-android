@@ -3,6 +3,7 @@ package com.enaboapps.switchify.service.utils
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import com.enaboapps.switchify.R
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.service.menu.MenuItem
 import kotlinx.coroutines.Dispatchers
@@ -84,6 +85,7 @@ class FavouriteAppsManager(private val context: Context) {
         return MenuItem(
             id = "favourite_app_${app.packageName}",
             userProvidedText = app.appName,
+            descriptionResource = R.string.menu_item_open_favourite_app_description,
             action = { launchApp(app.packageName) }
         )
     }

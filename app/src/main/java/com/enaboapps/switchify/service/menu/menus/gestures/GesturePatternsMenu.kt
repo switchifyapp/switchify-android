@@ -1,5 +1,6 @@
 package com.enaboapps.switchify.service.menu.menus.gestures
 
+import com.enaboapps.switchify.R
 import com.enaboapps.switchify.service.core.SwitchifyAccessibilityService
 import com.enaboapps.switchify.service.gestures.patterns.store.GesturePatternStore
 import com.enaboapps.switchify.service.menu.MenuItem
@@ -32,6 +33,7 @@ class GesturePatternsMenu(
                 MenuItem(
                     id = pattern.id,
                     userProvidedText = pattern.name,
+                    descriptionResource = R.string.menu_item_run_gesture_pattern_description,
                     action = {
                         pattern.execute()
                     }
