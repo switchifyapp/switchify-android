@@ -2,8 +2,6 @@
     <string name="app_name">Switchify</string>
     
     <!-- Common UI -->
-    <string name="on">ON</string>
-    <string name="off">OFF</string>
     <string name="or">OR</string>
 
     <string name="app_description">Switchify enables you to use your device with adaptive switches. It scans your screen, allowing you to select a point to tap. You can also swipe, and do everything else you need to navigate your device. It also includes an item scan feature that allows you to navigate through items on your screen.</string>
@@ -34,7 +32,6 @@
     
     <!-- Head Control Menu Items -->
     <string name="menu_item_enable_head_control">Enable Head Control</string>
-    <string name="menu_item_disable_head_control">Disable Head Control</string>
 
     <!-- Scroll Menu Items -->
     <string name="menu_item_scroll_up">Scroll Up</string>
@@ -289,33 +286,22 @@
     <string name="cancel">Cancel</string>
     <string name="save">Save</string>
     <string name="pattern_deleted_message">Pattern deleted</string>
-    <string name="drag_to_reorder">Drag to reorder</string>
-    <string name="move_pattern_up">Move pattern up</string>
-    <string name="move_pattern_down">Move pattern down</string>
-    <string name="move_up">Move up</string>
-    <string name="move_down">Move down</string>
     <string name="tab_gesture_patterns_list">Patterns</string>
     <string name="tab_gesture_patterns_settings">Settings</string>
 
     <!-- Screen Summaries -->
     <string name="screen_summary_settings">Configure switches and scanning</string>
-    <string name="screen_summary_upgrade_pro">Tap for superpowers! 💪</string>
     <string name="screen_summary_debug">Developer options</string>
 
     <string name="gesture_patterns_section_summary">Manage gesture patterns and settings</string>
     <string name="settings_summary_scrolling_settings">Configure auto-scroll behavior</string>
 
     <!-- Dialog Titles -->
-    <string name="dialog_message_update">A new version has been downloaded. Would you like to install it now?</string>
     <string name="dialog_title_downloading_update">Downloading Update</string>
-    <string name="dialog_button_restart">Restart</string>
-    <string name="dialog_button_later">Later</string>
 
     <!-- Update Messages -->
-    <string name="update_ready_to_install">Update Ready to Install</string>
     <string name="update_downloaded_ready_to_install">Update downloaded and ready to install!</string>
     <string name="update_installing_automatically">Installing update automatically...</string>
-    <string name="update_reminder_later">Update reminder: A new version is ready to install when you\'re ready.</string>
     <string name="update_pending_install_reminder">Update pending: Tap to install the latest version.</string>
     <string name="update_installed_successfully">Update installed successfully!</string>
 
@@ -332,9 +318,7 @@
     <string name="preference_summary_block_point_scan_speed">Speed when scanning grid blocks</string>
     <string name="preference_title_single_point_scan_speed">Point Scan Speed</string>
     <string name="preference_summary_single_point_scan_speed">Adjust the speed at which scanning moves</string>
-    <string name="feature_explanation_precision_point_scan_speed">This is how fast scanning moves when you are selecting a point. In Block Mode, this is the speed when you are moving within a block.</string>
     <string name="feature_explanation_block_point_scan_speed">This is how fast scanning moves when you are selecting a block. Once you select a block, the precision point scan speed will be used.</string>
-    <string name="feature_explanation_single_point_scan_speed">This is how fast scanning moves when you are selecting a point.</string>
     <string name="section_title_block_settings">Block Settings</string>
     <string name="preference_title_block_count">Grid size</string>
     <string name="preference_summary_grid_size_dynamic">Creates a %1$s×%1$s grid</string>
@@ -432,19 +416,13 @@
     <string name="head_control_settings_title">Head Control Settings</string>
     <string name="head_control_settings_summary">Configure head movement sensitivity and response</string>
     <string name="section_title_expression_testing">Expression Testing</string>
-    <string name="expression_detected">%1$s detected!</string>
-    <string name="no_expression_detected">No expression detected</string>
     <string name="no_face_detected">No face detected</string>
-    <string name="section_title_detected_expressions">Detected Expressions</string>
-    <string name="section_title_expression_levels">Expression Levels</string>
-    <string name="section_title_sensitivity_settings">Sensitivity Settings</string>
     <string name="section_title_movement_speed">Movement Speed</string>
     <string name="section_title_deadzone_settings">Deadzone Settings</string>
     
     <!-- Camera Settings Tab Titles -->
     <string name="tab_test_gestures">Test Gestures</string>
     <string name="tab_timing_settings">Timing Settings</string>
-    <string name="tab_sensitivity">Sensitivity</string>
     <string name="tab_head_control_movement">Movement</string>
     <string name="tab_head_control_selection">Selection</string>
     <string name="tab_head_control_test">Test</string>
@@ -488,15 +466,11 @@
 
     <!-- Settings - Gestures Section -->
     <string name="settings_section_gesture">Gestures</string>
-    <string name="settings_title_gesture_settings">Gesture Settings</string>
-    <string name="settings_summary_gesture_settings">Configure gesture settings</string>
 
     <!-- Settings - Menu Section -->
     <string name="settings_section_menu">Menu</string>
     <string name="settings_title_menu_transparency">Menu Transparency</string>
     <string name="settings_summary_menu_transparency">Enable transparency for the menu so that you can see content behind it</string>
-    <string name="settings_title_menu_rows_per_page">Rows Per Page</string>
-    <string name="settings_summary_menu_rows_per_page">Number of rows to display on each menu page</string>
     <string name="settings_title_menu_size">Menu Size</string>
     <string name="settings_summary_menu_size">Make service menu items easier to see. Larger sizes may use more screen space.</string>
     <string name="menu_size_standard">Standard</string>
@@ -531,8 +505,6 @@
     <string name="button_cancel">Cancel</string>
     <string name="button_retry">Retry</string>
     <string name="button_add_long_press_action">Add Long Press Action</string>
-    <string name="button_configure_long_press_actions">Configure Long Press Actions</string>
-    <string name="button_edit_long_press_actions">Edit Long Press Actions</string>
     <string name="button_add">Add</string>
     <string name="button_close">Close</string>
     <string name="button_privacy_policy">Privacy Policy</string>
@@ -601,22 +573,17 @@
     <string name="section_title_switches">Switches</string>
 
     <!-- Gesture Settings Screen -->
-    <string name="screen_title_gesture_settings">Gesture Settings</string>
     <string name="screen_title_scrolling_settings">Scrolling Settings</string>
     <string name="section_title_scrolling">Scrolling</string>
     <string name="preference_title_auto_scroll">Auto Scroll</string>
     <string name="preference_summary_auto_scroll">When enabled, scrolling gestures will be repeatedly performed until a switch is pressed</string>
     <string name="preference_title_auto_scroll_delay">Auto Scroll Delay</string>
     <string name="preference_summary_auto_scroll_delay">The delay to wait between scrolling</string>
-    <string name="section_title_gesture_patterns">Gesture Patterns</string>
     <string name="section_title_gesture_pattern_settings">Pattern Settings</string>
     <string name="preference_title_manual_pattern_progression">Manual Pattern Progression</string>
     <string name="preference_summary_manual_pattern_progression">Advance through gesture pattern steps by pressing a switch instead of automatic timing</string>
     <string name="preference_title_stop_pattern_on_switch">Stop Pattern on Switch Press</string>
     <string name="preference_summary_stop_pattern_on_switch">When enabled, pressing any switch will stop the currently executing gesture pattern</string>
-    <string name="section_title_locking">Locking</string>
-    <string name="preference_title_gesture_lock">Gesture Lock</string>
-    <string name="preference_summary_gesture_lock">When enabled, gestures can be temporarily assigned to a switch</string>
 
     <!-- Access Technique Settings Screen -->
     <string name="screen_title_access_technique_settings">Access Technique Settings</string>
@@ -704,7 +671,6 @@
 
     <!-- Practice Step -->
     <string name="onboarding_practice_title">Let\'s Practice!</string>
-    <string name="onboarding_practice_subtitle">Try activating each box using Switchify</string>
     <string name="onboarding_practice_box_1">Love</string>
     <string name="onboarding_practice_box_2">Star</string>
     <string name="onboarding_practice_box_3">Party</string>
@@ -778,7 +744,6 @@
     
     <!-- Error Messages -->
     <string name="feedback_error_empty">Please provide feedback details</string>
-    <string name="feedback_error_submit_failed">Failed to submit feedback. Please try again.</string>
     <string name="error_no_app_to_open_link">No app available to open this link</string>
     
     <!-- Home Screen Feedback Card -->
@@ -917,15 +882,11 @@
     <string name="menu_title_swipe">Swipe Gestures</string>
     <string name="menu_title_pinch">Pinch Gestures</string>
     <string name="menu_title_volume_control">Volume Control</string>
-    <string name="menu_title_custom_gesture">Custom Gesture</string>
-    <string name="menu_title_finger_mode">Finger Mode</string>
-    <string name="button_reset_to_default">Reset to Default</string>
     <string name="content_desc_drag_handle">Drag to reorder</string>
     <string name="content_desc_hide_item">Hide item</string>
     <string name="content_desc_show_item">Show item</string>
     <string name="content_desc_move_up">Move up</string>
     <string name="content_desc_move_down">Move down</string>
-    <string name="select_value">Select value</string>
     <string name="reorder_mode_drag">Drag</string>
     <string name="reorder_mode_arrows">Arrows</string>
 
