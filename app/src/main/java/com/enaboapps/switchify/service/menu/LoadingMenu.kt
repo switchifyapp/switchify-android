@@ -1,5 +1,6 @@
 package com.enaboapps.switchify.service.menu
 
+import com.enaboapps.switchify.R
 import com.enaboapps.switchify.service.core.SwitchifyAccessibilityService
 import com.enaboapps.switchify.service.menu.menus.BaseMenu
 
@@ -20,6 +21,7 @@ class LoadingMenu(
         val loadingItem = MenuItem(
             id = "loading",
             labelResource = loadingTextResource,
+            descriptionResource = R.string.menu_item_loading_description,
             closeOnSelect = false
         ) {
             // No action for loading state

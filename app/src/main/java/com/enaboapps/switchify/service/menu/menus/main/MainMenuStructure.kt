@@ -37,6 +37,7 @@ class MainMenuStructure(
     val deviceItem = MenuItem(
         id = "device",
         labelResource = R.string.menu_title_device,
+        descriptionResource = R.string.menu_item_device_description,
         drawableId = R.drawable.ic_device,
         isLinkToMenu = true,
         action = { MenuManager.getInstance().openDeviceMenu() }
@@ -203,6 +204,7 @@ class MainMenuStructure(
             id = MenuConstants.ItemIds.Navigation.CLOSE_MENU,
             drawableId = R.drawable.ic_close_menu,
             labelResource = R.string.menu_item_close_menu,
+            descriptionResource = R.string.menu_item_close_menu_description,
             showLabelAsDescription = false,
             isSmall = true,
             isMenuHierarchyManipulator = true,

@@ -37,6 +37,12 @@ import com.enaboapps.switchify.utils.Resources
  * @property id The id of the menu item
  * @property labelResource The resource id of the label text (used for both display and accessibility)
  * @property userProvidedText The text of the menu item if it is user-provided
+ * @property descriptionResource Resource id of the one-line description shown
+ *   below the name in the highlight header during scanning. Every item must
+ *   surface a description so scanning users get plain-language confirmation of
+ *   the action; either this or [userProvidedDescription] must be supplied.
+ * @property userProvidedDescription Runtime description for items whose copy
+ *   is not in resources (e.g., per-app entries in the favourite apps menu).
  * @property drawableId The drawable resource id of the menu item
  * @property circleText Optional short text rendered inside the menu circle in
  *   place of an icon. When set, this overrides both the icon and the
@@ -52,6 +58,8 @@ class MenuItem(
     val id: String,
     val labelResource: Int? = null,
     val userProvidedText: String? = null,
+    val descriptionResource: Int?,
+    val userProvidedDescription: String? = null,
     private val drawableId: Int = 0,
     private val circleText: String? = null,
     val showLabelAsDescription: Boolean = true,
@@ -75,6 +83,8 @@ class MenuItem(
         id = definition.id,
         labelResource = definition.labelResource,
         userProvidedText = definition.userProvidedText,
+        descriptionResource = definition.descriptionResource,
+        userProvidedDescription = definition.userProvidedDescription,
         drawableId = definition.drawableId,
         circleText = definition.circleText,
         showLabelAsDescription = showLabelAsDescription,

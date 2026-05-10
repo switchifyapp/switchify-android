@@ -58,6 +58,7 @@ open class BaseMenu(
                 id = "previous_menu_first",
                 drawableId = R.drawable.ic_previous_menu,
                 labelResource = R.string.menu_item_previous_menu,
+                descriptionResource = R.string.menu_item_previous_menu_description,
                 isLinkToMenu = true,
                 action = { MenuManager.getInstance().menuHierarchy?.popMenu() }
             )

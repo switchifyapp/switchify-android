@@ -25,6 +25,7 @@ class FavouriteAppsMenuStructure(
                 MenuItem(
                     id = "no_favourite_apps",
                     labelResource = R.string.no_favourite_apps,
+                    descriptionResource = R.string.menu_item_no_favourite_apps_description,
                     action = { /* Do nothing */ }
                 )
             )

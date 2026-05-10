@@ -31,6 +31,8 @@ class Node(
 
     private var contentDescription: String = ""
 
+    private var description: String = ""
+
     /**
      * Optional hook fired after this node is highlighted during scanning.
      * Stays null for scan nodes that don't need to notify anyone; the menu
@@ -88,6 +90,11 @@ class Node(
             }
             if (text != null) {
                 node.contentDescription = text
+            }
+            val descText = menuItem.descriptionResource?.let { Resources.getString(it) }
+                ?: menuItem.userProvidedDescription
+            if (descText != null) {
+                node.description = descText
             }
             return node
         }
@@ -179,6 +186,10 @@ class Node(
 
     fun setContentDescription(contentDescription: String) {
         this.contentDescription = contentDescription
+    }
+
+    fun getDescription(): String {
+        return description
     }
 
     override fun highlight() {
