@@ -138,10 +138,12 @@ class TapRippleVisual(private val context: Context) {
         private const val FADE_START_MS = 200L
         private const val FADE_DURATION_MS = 80L
 
-        // 44 px matches the inner dot of TapAndHoldRingVisual
-        // (DOT_RADIUS_PX = 22, so 44 px diameter), so a plain tap and a
-        // tap-and-hold share an anchor at the same scale.
-        private const val DOT_SIZE_PX = 44
+        // A plain tap stands alone (no ring around it), so it can sit a bit
+        // larger than the 44 px inner dot of TapAndHoldRingVisual without
+        // looking out of family — both are still solid filled circles in
+        // the same primary colour, just a tap-and-hold's anchor is sized
+        // smaller so the ring around it has room to breathe.
+        private const val DOT_SIZE_PX = 56
 
         private const val POP_START_SCALE = 0.7f
         private const val POP_OVERSHOOT_TENSION = 1.5f
