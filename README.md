@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/logo.webp" alt="Switchify logo" width="160" />
+</p>
+
 # Switchify
 
 An Android accessibility service that enables device control through adaptive switches, providing cursor-based and item scanning navigation for users with physical disabilities.
@@ -60,6 +64,16 @@ Enable repo-provided hook to enforce the format:
 git config core.hooksPath .githooks
 chmod +x .githooks/commit-msg
 ```
+
+## License
+
+Switchify is licensed under the [GNU Affero General Public License v3.0](LICENSE) (AGPL-3.0).
+
+In short: you are free to use, modify, and distribute Switchify, but any modifications or derivative works (including those made available over a network) must also be released under the AGPL-3.0 and include their full source code.
+
+Commercial licenses that exempt licensees from the AGPL copyleft obligations are available on request — contact <owen@switchifyapp.com> for details.
+
+Copyright (C) 2024-2026 Owen McGirr. All rights reserved.
 
 ## Links
 
