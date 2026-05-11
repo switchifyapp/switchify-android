@@ -1,0 +1,83 @@
+name: Play Release
+
+# Fires whenever a GitHub Release is published from the AGENTS.md release flow
+# (`gh release create vX.Y.Z --generate-notes`). Both regular releases and
+# prereleases (`--prerelease`) trigger the build; the `internal` upload runs
+# for either, and the `production` upload only runs for non-prereleases — so
+# a `-rc.X` / `-beta.X` tag can ride through to internal testers without
+# leaking to the production audience.
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  publish-play:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out released tag
+        uses: actions/checkout@v4
+        with:
+          # Checkout the exact tag the release was published from so
+          # `gitVersionCode = rev-list --count HEAD` matches what was tagged.
+          ref: ${{ github.event.release.tag_name }}
+          fetch-depth: 0
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Decode upload keystore
+        run: |
+          echo "${{ secrets.UPLOAD_KEYSTORE_BASE64 }}" \
+            | base64 --decode > "$RUNNER_TEMP/upload.jks"
+
+      - name: Build signed release AAB
+        env:
+          UPLOAD_KEYSTORE_PATH:     ${{ runner.temp }}/upload.jks
+          UPLOAD_KEYSTORE_PASSWORD: ${{ secrets.UPLOAD_KEYSTORE_PASSWORD }}
+          UPLOAD_KEY_ALIAS:         ${{ secrets.UPLOAD_KEY_ALIAS }}
+          UPLOAD_KEY_PASSWORD:      ${{ secrets.UPLOAD_KEY_PASSWORD }}
+          REVENUECAT_PUBLIC_KEY:    ${{ secrets.REVENUECAT_PUBLIC_KEY }}
+          TIMBERLOGS_API_KEY:       ${{ secrets.TIMBERLOGS_API_KEY }}
+          SUPABASE_URL:             ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY:        ${{ secrets.SUPABASE_ANON_KEY }}
+          GOOGLE_WEB_CLIENT_ID:     ${{ secrets.GOOGLE_WEB_CLIENT_ID }}
+        run: ./gradlew bundleRelease --no-daemon
+
+      # Always upload to the internal track — both regular releases and
+      # prereleases (`-rc.X`, `-beta.X`, etc.) end up here so internal
+      # testers see every build.
+      - name: Upload to Play Store (internal track)
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: com.enaboapps.switchify
+          releaseFiles: app/build/outputs/bundle/release/app-release.aab
+          track: internal
+          status: completed
+          releaseName: ${{ github.event.release.tag_name }}
+
+      # Production push runs only for non-prereleases.
+      - name: Upload to Play Store (production track)
+        if: ${{ !github.event.release.prerelease }}
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: com.enaboapps.switchify
+          releaseFiles: app/build/outputs/bundle/release/app-release.aab
+          track: production
+          status: completed
+          releaseName: ${{ github.event.release.tag_name }}
+
+      - name: Clean up keystore
+        if: always()
+        run: rm -f "$RUNNER_TEMP/upload.jks"

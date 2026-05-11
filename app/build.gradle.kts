@@ -27,78 +27,66 @@ android {
             useSupportLibrary = true
         }
 
+        // Dual-channel config: env vars (used by CI from GitHub secrets) take
+        // precedence, then local.properties (developer's local secrets). If
+        // neither is present the build fails with the missing key name so
+        // it's obvious what to set. local.properties is optional now; CI
+        // builds don't generate one.
         val localProperties = Properties()
         val localPropertiesFile = rootProject.file("local.properties")
         if (localPropertiesFile.exists()) {
             localProperties.load(localPropertiesFile.inputStream())
-        } else {
-            throw GradleException("local.properties file not found")
         }
+        fun configValue(envVar: String, propKey: String): String =
+            System.getenv(envVar)?.takeIf { it.isNotEmpty() }
+                ?: localProperties.getProperty(propKey, "").takeIf { it.isNotEmpty() }
+                ?: throw GradleException(
+                    "Missing config: set $envVar env var or '$propKey' in local.properties"
+                )
 
-        if (localProperties.getProperty(
-                "revenuecat.publicKey",
-                ""
-            ).isEmpty()
-        ) {
-            throw GradleException("RevenueCat public key is not set in local.properties")
-        }
         buildConfigField(
             "String",
             "REVENUECAT_PUBLIC_KEY",
-            "\"${localProperties.getProperty("revenuecat.publicKey", "")}\""
+            "\"${configValue("REVENUECAT_PUBLIC_KEY", "revenuecat.publicKey")}\""
         )
-
-        if (localProperties.getProperty(
-                "timberlogs.apiKey",
-                ""
-            ).isEmpty()
-        ) {
-            throw GradleException("Timberlogs API key is not set in local.properties")
-        }
         buildConfigField(
             "String",
             "TIMBERLOGS_API_KEY",
-            "\"${localProperties.getProperty("timberlogs.apiKey", "")}\""
+            "\"${configValue("TIMBERLOGS_API_KEY", "timberlogs.apiKey")}\""
         )
-
-        if (localProperties.getProperty(
-                "supabase.projectUrl",
-                ""
-            ).isEmpty()
-        ) {
-            throw GradleException("Supabase project URL is not set in local.properties")
-        }
         buildConfigField(
             "String",
             "SUPABASE_URL",
-            "\"${localProperties.getProperty("supabase.projectUrl", "")}\""
+            "\"${configValue("SUPABASE_URL", "supabase.projectUrl")}\""
         )
-
-        if (localProperties.getProperty(
-                "supabase.publishableKey",
-                ""
-            ).isEmpty()
-        ) {
-            throw GradleException("Supabase publishable key is not set in local.properties")
-        }
         buildConfigField(
             "String",
             "SUPABASE_ANON_KEY",
-            "\"${localProperties.getProperty("supabase.publishableKey", "")}\""
+            "\"${configValue("SUPABASE_ANON_KEY", "supabase.publishableKey")}\""
         )
-
-        if (localProperties.getProperty(
-                "google.webClientId",
-                ""
-            ).isEmpty()
-        ) {
-            throw GradleException("Google Web Client ID is not set in local.properties")
-        }
         buildConfigField(
             "String",
             "GOOGLE_WEB_CLIENT_ID",
-            "\"${localProperties.getProperty("google.webClientId", "")}\""
+            "\"${configValue("GOOGLE_WEB_CLIENT_ID", "google.webClientId")}\""
         )
+    }
+
+    // CI-only release signing: activates when UPLOAD_KEYSTORE_PATH points at
+    // a real file (the release workflow decodes the base64 secret into
+    // RUNNER_TEMP before invoking Gradle). Android Studio's "Generate Signed
+    // Bundle" flow continues to work locally — without the env var the
+    // signing config is silently absent and the release build type is left
+    // unsigned for Studio to handle.
+    signingConfigs {
+        create("release") {
+            val ksPath = System.getenv("UPLOAD_KEYSTORE_PATH")
+            if (!ksPath.isNullOrBlank() && file(ksPath).exists()) {
+                storeFile = file(ksPath)
+                storePassword = System.getenv("UPLOAD_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("UPLOAD_KEY_ALIAS")
+                keyPassword = System.getenv("UPLOAD_KEY_PASSWORD")
+            }
+        }
     }
 
     buildTypes {
@@ -113,6 +101,9 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            signingConfigs.findByName("release")
+                ?.takeIf { it.storeFile?.exists() == true }
+                ?.let { signingConfig = it }
         }
     }
     compileOptions {
