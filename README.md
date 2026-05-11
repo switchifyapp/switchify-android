@@ -47,6 +47,8 @@ supabase.anonKey=<ask_for_key>
 5. Commit and push your changes
 6. Create a pull request
 
+All contributors are required to sign the [Contributor License Agreement](CLA.md) before their pull request can be merged. A bot will prompt you to sign on your first PR.
+
 ### Commit messages
 
 Use Conventional Commits for concise messages:
@@ -60,6 +62,16 @@ Enable repo-provided hook to enforce the format:
 git config core.hooksPath .githooks
 chmod +x .githooks/commit-msg
 ```
+
+## License
+
+Switchify is licensed under the [GNU Affero General Public License v3.0](LICENSE) (AGPL-3.0).
+
+In short: you are free to use, modify, and distribute Switchify, but any modifications or derivative works (including those made available over a network) must also be released under the AGPL-3.0 and include their full source code.
+
+Commercial licenses that exempt licensees from the AGPL copyleft obligations are available on request — contact <owen@switchifyapp.com> for details.
+
+Copyright (C) 2024-2026 Owen McGirr. All rights reserved.
 
 ## Links
 
