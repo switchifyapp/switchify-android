@@ -6,6 +6,7 @@ import android.view.View
 import android.view.animation.AlphaAnimation
 import android.view.animation.Animation
 import android.view.animation.AnimationSet
+import android.view.animation.OvershootInterpolator
 import android.view.animation.ScaleAnimation
 import android.widget.ImageView
 import android.widget.RelativeLayout
@@ -14,28 +15,39 @@ import com.enaboapps.switchify.R
 import com.enaboapps.switchify.service.window.SwitchifyAccessibilityWindow
 
 /**
- * One-shot expanding ripple at a screen point. The "tap fired here" affordance
- * for single-finger tap and double-tap gestures.
+ * One-shot filled dot that pops in, holds, and fades — the "tap landed here"
+ * anchor for single-finger tap and double-tap gestures.
  *
- * The visual is an outline circle that scales 1× → 2× while alpha fades 1 → 0
- * over [DEFAULT_DURATION_MS]. Two ripples in quick succession (via
- * [GestureVisualManager.showDoubleTapRipple]) are how a double tap is read as
- * two distinct events instead of an indistinguishable flash.
+ * Matches the inner dot of [TapAndHoldRingVisual] in diameter and colour so a
+ * plain tap and a tap-and-hold read as the same family — a tap-and-hold is
+ * just a tap with a ring overlay around it.
+ *
+ * The 280 ms animation has three perceptible phases:
+ *  - 0–60 ms: pop in (scale 0.7× → 1.0× with a small overshoot).
+ *  - 60–200 ms: hold at full size, full alpha. This is the perceptual window
+ *    the eye needs to lock on; with the previous 150 ms fading-ripple the dot
+ *    was gone before users with reduced visual acuity could register it.
+ *  - 200–280 ms: alpha 1.0 → 0. The dot dissolves in place — no extra scaling,
+ *    so the anchor stays put as it disappears.
+ *
+ * Two dots in quick succession (via [GestureVisualManager.showDoubleTapRipple],
+ * staggered 250 ms apart) are how a double tap is read as two distinct events
+ * rather than one emphatic flash.
  */
 class TapRippleVisual(private val context: Context) {
     private var container: RelativeLayout? = null
     private var currentAnimation: Animation? = null
 
     /**
-     * Show the ripple centred on ([x], [y]) and auto-remove when the animation
-     * completes. Cancels any in-flight ripple from this instance first.
+     * Show the dot centred on ([x], [y]) and auto-remove when the animation
+     * completes. Cancels any in-flight dot from this instance first.
      */
     fun show(x: Int, y: Int, durationMs: Long = DEFAULT_DURATION_MS) {
         cancel()
 
-        val ripple = ImageView(context).apply {
-            setImageDrawable(buildRippleDrawable())
-            layoutParams = RelativeLayout.LayoutParams(INITIAL_SIZE_PX, INITIAL_SIZE_PX)
+        val dot = ImageView(context).apply {
+            setImageDrawable(buildDotDrawable())
+            layoutParams = RelativeLayout.LayoutParams(DOT_SIZE_PX, DOT_SIZE_PX)
             isClickable = false
             isFocusable = false
             importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
@@ -49,28 +61,39 @@ class TapRippleVisual(private val context: Context) {
             isClickable = false
             isFocusable = false
             importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
-            addView(ripple)
+            addView(dot)
         }
 
         SwitchifyAccessibilityWindow.instance.addView(
             wrapper,
-            x - INITIAL_SIZE_PX / 2,
-            y - INITIAL_SIZE_PX / 2,
-            INITIAL_SIZE_PX,
-            INITIAL_SIZE_PX
+            x - DOT_SIZE_PX / 2,
+            y - DOT_SIZE_PX / 2,
+            DOT_SIZE_PX,
+            DOT_SIZE_PX
         )
         container = wrapper
 
-        val animation = AnimationSet(true).apply {
+        // shareInterpolator = false so each child animation keeps its own
+        // interpolator and startOffset. The pop-in uses an OvershootInterpolator
+        // for a tiny "land" pop; the fade-out runs linearly after a hold.
+        val animation = AnimationSet(false).apply {
             addAnimation(
                 ScaleAnimation(
-                    1f, MAX_SCALE,
-                    1f, MAX_SCALE,
+                    POP_START_SCALE, 1f,
+                    POP_START_SCALE, 1f,
                     Animation.RELATIVE_TO_SELF, 0.5f,
                     Animation.RELATIVE_TO_SELF, 0.5f
-                )
+                ).apply {
+                    duration = POP_IN_MS
+                    interpolator = OvershootInterpolator(POP_OVERSHOOT_TENSION)
+                }
             )
-            addAnimation(AlphaAnimation(1f, 0f))
+            addAnimation(
+                AlphaAnimation(1f, 0f).apply {
+                    startOffset = FADE_START_MS
+                    this.duration = FADE_DURATION_MS
+                }
+            )
             this.duration = durationMs
             fillAfter = false
             setAnimationListener(object : Animation.AnimationListener {
@@ -83,10 +106,10 @@ class TapRippleVisual(private val context: Context) {
         }
 
         currentAnimation = animation
-        ripple.startAnimation(animation)
+        dot.startAnimation(animation)
     }
 
-    /** Cancel any in-flight ripple from this instance and remove its view. */
+    /** Cancel any in-flight dot from this instance and remove its view. */
     fun cancel() {
         currentAnimation?.cancel()
         removeView()
@@ -98,24 +121,29 @@ class TapRippleVisual(private val context: Context) {
         currentAnimation = null
     }
 
-    private fun buildRippleDrawable(): GradientDrawable = GradientDrawable().apply {
+    private fun buildDotDrawable(): GradientDrawable = GradientDrawable().apply {
         shape = GradientDrawable.OVAL
-        // Transparent fill, primary-coloured outline — reads as a brand-tinted
-        // "ripple ring" once it scales. The colour resource resolves to the
-        // light/dark variant automatically.
-        setColor(0x00000000)
-        setStroke(STROKE_PX, ContextCompat.getColor(context, R.color.gesture_visual_primary))
-        setSize(INITIAL_SIZE_PX, INITIAL_SIZE_PX)
+        // Solid fill in the brand primary — the colour resource resolves to
+        // the light/dark variant automatically.
+        setColor(ContextCompat.getColor(context, R.color.gesture_visual_primary))
+        setSize(DOT_SIZE_PX, DOT_SIZE_PX)
     }
 
     companion object {
-        private const val DEFAULT_DURATION_MS = 150L
+        // 280 ms total: 60 ms pop in, 140 ms hold, 80 ms fade. Long enough for
+        // users with slower visual processing to lock on; short enough that
+        // tapping doesn't feel laggy.
+        private const val DEFAULT_DURATION_MS = 280L
+        private const val POP_IN_MS = 60L
+        private const val FADE_START_MS = 200L
+        private const val FADE_DURATION_MS = 80L
 
-        // 32 px starting diameter so the 2× target lands ~64 px — comparable
-        // visual weight to the existing 48 px STANDARD_CIRCLE_SIZE in
-        // GestureVisualManager.
-        private const val INITIAL_SIZE_PX = 32
-        private const val MAX_SCALE = 2f
-        private const val STROKE_PX = 3
+        // 44 px matches the inner dot of TapAndHoldRingVisual
+        // (DOT_RADIUS_PX = 22, so 44 px diameter), so a plain tap and a
+        // tap-and-hold share an anchor at the same scale.
+        private const val DOT_SIZE_PX = 44
+
+        private const val POP_START_SCALE = 0.7f
+        private const val POP_OVERSHOOT_TENSION = 1.5f
     }
 }
