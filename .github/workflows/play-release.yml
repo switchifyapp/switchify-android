@@ -1,10 +1,11 @@
 name: Play Release
 
 # Fires whenever a GitHub Release is published from the AGENTS.md release flow
-# (`gh release create vX.Y.Z --generate-notes`). Pre-releases — tagged with
-# any of the standard suffixes like `-rc.1`, `-beta.1`, `-alpha.1` and marked
-# `--prerelease` on the GitHub UI/CLI — are skipped by the job-level guard so
-# only real production releases reach Play.
+# (`gh release create vX.Y.Z --generate-notes`). Both regular releases and
+# prereleases (`--prerelease`) trigger the build; the `internal` upload runs
+# for either, and the `production` upload only runs for non-prereleases — so
+# a `-rc.X` / `-beta.X` tag can ride through to internal testers without
+# leaking to the production audience.
 on:
   release:
     types: [published]
@@ -14,7 +15,6 @@ permissions:
 
 jobs:
   publish-play:
-    if: ${{ !github.event.release.prerelease }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -53,6 +53,10 @@ jobs:
           GOOGLE_WEB_CLIENT_ID:     ${{ secrets.GOOGLE_WEB_CLIENT_ID }}
         run: ./gradlew bundleRelease --no-daemon
 
+      # Always upload to the internal track — both regular releases and
+      # prereleases (`-rc.X`, `-beta.X`, etc.) end up here so internal testers
+      # see every build. Reads release notes from
+      # app/src/main/play/release-notes/<locale>/internal.txt.
       - name: Upload to Play Store (internal track)
         uses: r0adkll/upload-google-play@v1
         with:
@@ -61,9 +65,21 @@ jobs:
           releaseFiles: app/build/outputs/bundle/release/app-release.aab
           track: internal
           status: completed
-          # Curated release notes per locale (≤ 500 chars). Edit this file
-          # before publishing the GitHub Release. Skipped if the directory
-          # is empty.
+          whatsNewDirectory: app/src/main/play/release-notes
+          releaseName: ${{ github.event.release.tag_name }}
+
+      # Production push runs only for non-prereleases. Reads release notes
+      # from app/src/main/play/release-notes/<locale>/production.txt — keep
+      # it user-facing copy, distinct from internal.txt if you'd like to.
+      - name: Upload to Play Store (production track)
+        if: ${{ !github.event.release.prerelease }}
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: com.enaboapps.switchify
+          releaseFiles: app/build/outputs/bundle/release/app-release.aab
+          track: production
+          status: completed
           whatsNewDirectory: app/src/main/play/release-notes
           releaseName: ${{ github.event.release.tag_name }}
 

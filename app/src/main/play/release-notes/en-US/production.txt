@@ -1,0 +1,1 @@
+Bug fixes and improvements. Edit this file before publishing each non-prerelease GitHub Release to set the user-facing notes shown on the Play Store listing (max 500 chars).
