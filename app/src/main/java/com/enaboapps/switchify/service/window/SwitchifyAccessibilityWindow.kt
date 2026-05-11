@@ -57,6 +57,7 @@ class SwitchifyAccessibilityWindow private constructor() : LifecycleOwner, Saved
             createBaseLayout()
             registerScreenWatcher()
             ServiceMessageHUD.instance.setup(context.applicationContext)
+            MenuHighlightHud.instance.setup(context.applicationContext)
         } catch (e: Exception) {
             Log.e(TAG, "Error in setup: ${e.message}", e)
         }
@@ -92,10 +93,12 @@ class SwitchifyAccessibilityWindow private constructor() : LifecycleOwner, Saved
             val context = getContext() ?: return
             val wake = {
                 ServiceMessageHUD.instance.setup(context.applicationContext)
+                MenuHighlightHud.instance.setup(context.applicationContext)
                 show()
             }
             val sleep = {
                 ServiceMessageHUD.instance.dispose()
+                MenuHighlightHud.instance.dispose()
                 hide()
             }
             screenWatcher = ScreenWatcher(onScreenWake = wake, onScreenSleep = sleep)
@@ -198,6 +201,7 @@ class SwitchifyAccessibilityWindow private constructor() : LifecycleOwner, Saved
      */
     fun onServiceDestroy() {
         ServiceMessageHUD.instance.dispose()
+        MenuHighlightHud.instance.dispose()
         cleanup()
         isVisible = false // Ensure the flag is set to false for the next time the window is created
         val ctx = getContext() ?: return
@@ -269,6 +273,28 @@ class SwitchifyAccessibilityWindow private constructor() : LifecycleOwner, Saved
                 baseLayout?.addView(view, params)
             } catch (e: Exception) {
                 Log.e(TAG, "Error in addViewToBottom: ${e.message}", e)
+            }
+        }
+    }
+
+    /**
+     * Adds a view to the top of the window, centered horizontally.
+     * @param view The view to add.
+     * @param margins The margins to add to the view.
+     */
+    fun addViewToTop(view: ViewGroup, margins: Int = 0) {
+        mainHandler.post {
+            try {
+                val params = RelativeLayout.LayoutParams(
+                    RelativeLayout.LayoutParams.WRAP_CONTENT,
+                    RelativeLayout.LayoutParams.WRAP_CONTENT
+                )
+                params.addRule(RelativeLayout.CENTER_HORIZONTAL)
+                params.addRule(RelativeLayout.ALIGN_PARENT_TOP)
+                params.setMargins(margins, margins, margins, margins)
+                baseLayout?.addView(view, params)
+            } catch (e: Exception) {
+                Log.e(TAG, "Error in addViewToTop: ${e.message}", e)
             }
         }
     }

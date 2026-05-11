@@ -11,6 +11,7 @@ import com.enaboapps.switchify.service.menu.menus.BaseMenu
 import com.enaboapps.switchify.service.scanning.ScanNodeInterface
 import com.enaboapps.switchify.service.scanning.ScanningManager
 import com.enaboapps.switchify.service.scanning.tree.ScanTree
+import com.enaboapps.switchify.service.window.MenuHighlightHud
 import com.enaboapps.switchify.utils.LogEvent
 import com.enaboapps.switchify.utils.Logger
 import kotlinx.coroutines.CoroutineScope
@@ -324,6 +325,7 @@ class MenuView(
     fun close() {
         baseLayout.removeAllViews()
         MenuViewHandler.instance.kill()
+        MenuHighlightHud.instance.hide()
         scanTree.cleanup()
         menuViewListener?.onMenuViewClosed()
         maxWidth = 0

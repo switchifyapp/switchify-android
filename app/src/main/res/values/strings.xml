@@ -45,9 +45,6 @@
     <string name="menu_item_close_menu">Close menu</string>
     <string name="menu_item_previous_menu">Previous menu</string>
 
-    <!-- Radial Menu Header -->
-    <string name="menu_no_highlighted_item">No selected item</string>
-
     <!-- Gesture Menu Items -->
     <string name="menu_item_tap">Tap</string>
     <string name="menu_item_double_tap">Double Tap</string>
