@@ -11,6 +11,7 @@ import com.enaboapps.switchify.service.menu.menus.BaseMenu
 import com.enaboapps.switchify.service.scanning.ScanNodeInterface
 import com.enaboapps.switchify.service.scanning.ScanningManager
 import com.enaboapps.switchify.service.scanning.tree.ScanTree
+import com.enaboapps.switchify.service.window.MenuHighlightHud
 import com.enaboapps.switchify.utils.LogEvent
 import com.enaboapps.switchify.utils.Logger
 import kotlinx.coroutines.CoroutineScope
@@ -243,6 +244,10 @@ class MenuView(
             val screenWidth = context.resources.displayMetrics.widthPixels
             val screenHeight = context.resources.displayMetrics.heightPixels
 
+            // The MenuHighlightHud occupies the top of the screen; keep the
+            // menu surface below its footprint so the two never overlap.
+            val topReserved = MenuHighlightHud.reservedTopPx(context)
+
             val offset = 50
             val gesturePoint = GesturePoint.getPoint()
             val x = if (gesturePoint.x + maxWidth + offset > screenWidth) {
@@ -256,10 +261,11 @@ class MenuView(
                 gesturePoint.y + offset
             }
 
-            // If y is negative, move it to the top of the screen
-            if (y < 0) {
-                y = 0f
-            } else if (y + maxHeight > screenHeight) { // If y is greater than the screen height, move it to the bottom of the screen
+            // Clamp to the HUD-reserved top zone instead of 0, then to the
+            // bottom of the screen.
+            if (y < topReserved) {
+                y = topReserved.toFloat()
+            } else if (y + maxHeight > screenHeight) {
                 y = (screenHeight - maxHeight).toFloat()
             }
 
@@ -324,6 +330,7 @@ class MenuView(
     fun close() {
         baseLayout.removeAllViews()
         MenuViewHandler.instance.kill()
+        MenuHighlightHud.instance.hide()
         scanTree.cleanup()
         menuViewListener?.onMenuViewClosed()
         maxWidth = 0
