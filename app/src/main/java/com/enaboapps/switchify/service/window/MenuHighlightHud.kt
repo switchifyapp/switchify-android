@@ -63,12 +63,14 @@ class MenuHighlightHud private constructor() {
         /**
          * Worst-case vertical footprint of the HUD's card and surrounding
          * padding, in dp: 16 dp card outer padding (top) + 10 dp card inner
-         * top padding + ~28 dp title line + 4 dp spacer + ~20 dp description
-         * line + 10 dp card inner bottom padding + 16 dp safety gap below
-         * the card. The status bar and display cutout are tracked separately
-         * via [getSafeTopInsetPx] and added in [reservedTopPx].
+         * top padding + ~28 dp title line + 4 dp spacer + ~60 dp description
+         * (up to 3 wrapped lines at ~20 dp each — see the description Text's
+         * maxLines in [MenuHighlightHudUi]) + 10 dp card inner bottom
+         * padding + 16 dp safety gap below the card. The status bar and
+         * display cutout are tracked separately via [getSafeTopInsetPx]
+         * and added in [reservedTopPx].
          */
-        private const val RESERVED_TOP_DP = 104
+        private const val RESERVED_TOP_DP = 144
 
         /**
          * Screens shorter than this (phones in landscape, ~360–420 dp tall)
@@ -287,7 +289,13 @@ class MenuHighlightHud private constructor() {
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     textAlign = TextAlign.Center,
-                                    maxLines = 1,
+                                    // Allow long descriptions to wrap rather
+                                    // than ellipsize. Cap at 3 lines so the
+                                    // HUD's worst-case height stays bounded
+                                    // (see RESERVED_TOP_DP) and a malformed
+                                    // long string can't push the menu surface
+                                    // off-screen.
+                                    maxLines = 3,
                                     overflow = TextOverflow.Ellipsis
                                 )
                             }
