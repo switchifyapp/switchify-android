@@ -71,13 +71,31 @@ class MenuHighlightHud private constructor() {
         private const val RESERVED_TOP_DP = 104
 
         /**
+         * Screens shorter than this (phones in landscape, ~360–420 dp tall)
+         * can't afford to reserve the HUD's ~130 dp footprint without
+         * clamping the radial ring so tight items overlap. Below the
+         * threshold [reservedTopPx] returns 0: the HUD floats over the top
+         * of the menu surface, hiding the top one or two ring items
+         * visually, but those items remain scannable and the HUD still
+         * surfaces their name + description. Tablets in any orientation and
+         * phones in portrait sit well above the threshold and reserve
+         * normally.
+         */
+        private const val SHORT_SCREEN_THRESHOLD_DP = 480
+
+        /**
          * Vertical space the menu surface must keep clear at the top of the
          * screen so the HUD never overlaps it. Combines the HUD card's
          * worst-case footprint (scaled by the system font scale) with the
          * device's status bar + display cutout inset, so devices with tall
-         * notches reserve enough room.
+         * notches reserve enough room. On short screens (see
+         * [SHORT_SCREEN_THRESHOLD_DP]) returns 0 so the menu can claim the
+         * full available height — the HUD then floats over the top of the
+         * menu instead of pushing it down.
          */
         fun reservedTopPx(context: Context): Int {
+            val screenHeightDp = context.resources.configuration.screenHeightDp
+            if (screenHeightDp < SHORT_SCREEN_THRESHOLD_DP) return 0
             val fontScale =
                 context.resources.configuration.fontScale.coerceAtLeast(1f)
             val cardReservePx =
