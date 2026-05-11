@@ -61,8 +61,6 @@ If you're contributing on behalf of an employer, confirm you have permission fir
 
 ## Code of Conduct
 
-Be respectful and constructive. Discrimination, harassment, or demeaning behavior — toward anyone, in any context related to this project — won't be tolerated.
-
 Switchify is built for users with disabilities. Treat that user community with the dignity it deserves, especially when discussing design decisions, accessibility trade-offs, or use cases. Lived experience matters; listen to it.
 
-This project follows the spirit of the [Contributor Covenant v2.1](https://www.contributor-covenant.org/version/2/1/code_of_conduct/). Report violations to <owen@switchifyapp.com>.
+This project adopts the [Contributor Covenant v2.1](CODE_OF_CONDUCT.md). Report violations to <owen@switchifyapp.com>.
