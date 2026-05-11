@@ -54,9 +54,8 @@ jobs:
         run: ./gradlew bundleRelease --no-daemon
 
       # Always upload to the internal track — both regular releases and
-      # prereleases (`-rc.X`, `-beta.X`, etc.) end up here so internal testers
-      # see every build. Reads release notes from
-      # app/src/main/play/release-notes/<locale>/internal.txt.
+      # prereleases (`-rc.X`, `-beta.X`, etc.) end up here so internal
+      # testers see every build.
       - name: Upload to Play Store (internal track)
         uses: r0adkll/upload-google-play@v1
         with:
@@ -65,12 +64,9 @@ jobs:
           releaseFiles: app/build/outputs/bundle/release/app-release.aab
           track: internal
           status: completed
-          whatsNewDirectory: app/src/main/play/release-notes
           releaseName: ${{ github.event.release.tag_name }}
 
-      # Production push runs only for non-prereleases. Reads release notes
-      # from app/src/main/play/release-notes/<locale>/production.txt — keep
-      # it user-facing copy, distinct from internal.txt if you'd like to.
+      # Production push runs only for non-prereleases.
       - name: Upload to Play Store (production track)
         if: ${{ !github.event.release.prerelease }}
         uses: r0adkll/upload-google-play@v1
@@ -80,7 +76,6 @@ jobs:
           releaseFiles: app/build/outputs/bundle/release/app-release.aab
           track: production
           status: completed
-          whatsNewDirectory: app/src/main/play/release-notes
           releaseName: ${{ github.event.release.tag_name }}
 
       - name: Clean up keystore

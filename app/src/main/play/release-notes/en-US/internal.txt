@@ -1,1 +1,0 @@
-Internal test build. Edit this file before publishing each GitHub release to set the per-release notes (max 500 chars). See app/src/main/play/release-notes/README.md.
