@@ -47,8 +47,6 @@ supabase.anonKey=<ask_for_key>
 5. Commit and push your changes
 6. Create a pull request
 
-All contributors are required to sign the [Contributor License Agreement](CLA.md) before their pull request can be merged. A bot will prompt you to sign on your first PR.
-
 ### Commit messages
 
 Use Conventional Commits for concise messages:
