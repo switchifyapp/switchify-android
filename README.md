@@ -33,9 +33,14 @@ revenuecat.publicKey=<ask_for_key>
 timberlogs.apiKey=<ask_for_key>
 
 # Supabase configuration (obtain from project owner)
-supabase.url=<ask_for_url>
-supabase.anonKey=<ask_for_key>
+supabase.projectUrl=<ask_for_url>
+supabase.publishableKey=<ask_for_key>
+
+# Google Sign-In web client ID (obtain from project owner)
+google.webClientId=<ask_for_id>
 ```
+
+All five keys are required — the build fails with a `Missing config` error if any are absent. CI builds read the same values from `REVENUECAT_PUBLIC_KEY`, `TIMBERLOGS_API_KEY`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `GOOGLE_WEB_CLIENT_ID` environment variables.
 
 ### 3. Build and run
 ```bash
