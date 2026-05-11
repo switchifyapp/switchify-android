@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/logo.webp" alt="Switchify logo" width="160" />
+</p>
+
 # Switchify
 
 An Android accessibility service that enables device control through adaptive switches, providing cursor-based and item scanning navigation for users with physical disabilities.
