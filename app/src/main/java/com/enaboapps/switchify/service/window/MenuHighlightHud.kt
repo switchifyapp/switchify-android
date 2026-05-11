@@ -1,6 +1,7 @@
 package com.enaboapps.switchify.service.window
 
 import android.content.Context
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
@@ -12,10 +13,15 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
@@ -55,26 +61,64 @@ class MenuHighlightHud private constructor() {
         private const val CONTENT_CROSSFADE_MS = 150
 
         /**
-         * Worst-case vertical footprint reserved at the top of the screen for
-         * the HUD, in dp: 16 dp outer top margin + 10 dp card top padding +
-         * ~28 dp title line + 4 dp spacer + ~20 dp description line +
-         * 10 dp card bottom padding + 16 dp safety gap above the menu surface.
-         * Callers should scale this by the system font scale (see
-         * [reservedTopPx]) so larger font sizes still don't overlap the menu.
+         * Worst-case vertical footprint of the HUD's card and surrounding
+         * padding, in dp: 16 dp card outer padding (top) + 10 dp card inner
+         * top padding + ~28 dp title line + 4 dp spacer + ~20 dp description
+         * line + 10 dp card inner bottom padding + 16 dp safety gap below
+         * the card. The status bar and display cutout are tracked separately
+         * via [getSafeTopInsetPx] and added in [reservedTopPx].
          */
         private const val RESERVED_TOP_DP = 104
 
         /**
          * Vertical space the menu surface must keep clear at the top of the
-         * screen so the HUD never overlaps it. Returned in screen pixels and
-         * scaled by the user's font scale (>=1.0f) so the worst-case HUD
-         * footprint at Largest font still fits.
+         * screen so the HUD never overlaps it. Combines the HUD card's
+         * worst-case footprint (scaled by the system font scale) with the
+         * device's status bar + display cutout inset, so devices with tall
+         * notches reserve enough room.
          */
         fun reservedTopPx(context: Context): Int {
             val fontScale =
                 context.resources.configuration.fontScale.coerceAtLeast(1f)
-            return (RESERVED_TOP_DP * context.resources.displayMetrics.density *
-                fontScale).toInt()
+            val cardReservePx =
+                RESERVED_TOP_DP * context.resources.displayMetrics.density *
+                    fontScale
+            return cardReservePx.toInt() + getSafeTopInsetPx(context)
+        }
+
+        /**
+         * Top edge inset of the current display in px: the larger of the
+         * status bar inset and any display cutout (notch / hole-punch). Used
+         * to push the HUD card below system decor in [reservedTopPx]; the
+         * Compose [WindowInsets.safeDrawing] modifier inside the HUD itself
+         * applies the same offset visually.
+         */
+        private fun getSafeTopInsetPx(context: Context): Int {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                val wm = context.getSystemService(Context.WINDOW_SERVICE)
+                    as? android.view.WindowManager ?: return 0
+                return try {
+                    val insets = wm.currentWindowMetrics.windowInsets
+                    val statusBars = insets.getInsets(
+                        android.view.WindowInsets.Type.statusBars()
+                    )
+                    val cutout = insets.getInsets(
+                        android.view.WindowInsets.Type.displayCutout()
+                    )
+                    maxOf(statusBars.top, cutout.top)
+                } catch (e: Exception) {
+                    0
+                }
+            }
+            // API 29 fallback: use the system status_bar_height dimen. This
+            // misses any extra cutout overhang on the rare API 29 notched
+            // device, but the worst case is a tiny ~8 dp shortfall.
+            val resId = context.resources.getIdentifier(
+                "status_bar_height", "dimen", "android"
+            )
+            return if (resId > 0) {
+                context.resources.getDimensionPixelSize(resId)
+            } else 0
         }
     }
 
@@ -153,7 +197,11 @@ class MenuHighlightHud private constructor() {
         val view = composeView ?: return
         if (view.parent == null) {
             try {
-                SwitchifyAccessibilityWindow.instance.addViewToTop(view, margins = 16)
+                // No outer window-level margin — WindowInsets.safeDrawing
+                // inside the Composable pushes the card below the status bar
+                // and any notch, and the Card already has its own 16 dp outer
+                // padding for the horizontal gap.
+                SwitchifyAccessibilityWindow.instance.addViewToTop(view)
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to attach HUD view", e)
             }
@@ -168,7 +216,11 @@ class MenuHighlightHud private constructor() {
     ) {
         val shouldShow = isVisible && !name.isNullOrBlank()
         Box(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .windowInsetsPadding(
+                    WindowInsets.safeDrawing.only(WindowInsetsSides.Top)
+                ),
             contentAlignment = Alignment.TopCenter
         ) {
             AnimatedVisibility(
