@@ -94,17 +94,20 @@ class MenuPage(
         // safety margin) so the ring can be clamped to fit. Numbers mirror
         // the Compose layout in MenuPageBackground / MenuPageBody: 18 dp
         // vertical padding on each side of the Surface = 36 dp total, and a
-        // 16 dp Column gap above the nav row.
+        // 16 dp Column gap above the nav row. The MenuHighlightHud's
+        // top-of-screen footprint is also reserved so the menu surface — which
+        // MenuView clamps below the HUD — still has room for its ring.
         val willShowNavRow = closeItem != null || hasPagination
         val backgroundVerticalPadPx = ScreenUtils.dpToPx(context, 36)
         val ringToNavGapPx = ScreenUtils.dpToPx(context, 16)
         val safetyMarginPx = ScreenUtils.dpToPx(context, 24)
+        val hudReservedPx = MenuHighlightHud.reservedTopPx(context)
         val navRowHeightPx = if (willShowNavRow) {
             ScreenUtils.dpToPx(context, smallItemSize.height.value.toInt()) +
                 ringToNavGapPx
         } else 0
         val verticalOverheadPx = backgroundVerticalPadPx + navRowHeightPx +
-            safetyMarginPx
+            safetyMarginPx + hudReservedPx
         val maxHeightForRingPx = (screenHeightPx - verticalOverheadPx)
             .coerceAtLeast(0)
 

@@ -53,6 +53,29 @@ class MenuHighlightHud private constructor() {
         val instance: MenuHighlightHud by lazy { MenuHighlightHud() }
         private const val TAG = "MenuHighlightHud"
         private const val CONTENT_CROSSFADE_MS = 150
+
+        /**
+         * Worst-case vertical footprint reserved at the top of the screen for
+         * the HUD, in dp: 16 dp outer top margin + 10 dp card top padding +
+         * ~28 dp title line + 4 dp spacer + ~20 dp description line +
+         * 10 dp card bottom padding + 16 dp safety gap above the menu surface.
+         * Callers should scale this by the system font scale (see
+         * [reservedTopPx]) so larger font sizes still don't overlap the menu.
+         */
+        private const val RESERVED_TOP_DP = 104
+
+        /**
+         * Vertical space the menu surface must keep clear at the top of the
+         * screen so the HUD never overlaps it. Returned in screen pixels and
+         * scaled by the user's font scale (>=1.0f) so the worst-case HUD
+         * footprint at Largest font still fits.
+         */
+        fun reservedTopPx(context: Context): Int {
+            val fontScale =
+                context.resources.configuration.fontScale.coerceAtLeast(1f)
+            return (RESERVED_TOP_DP * context.resources.displayMetrics.density *
+                fontScale).toInt()
+        }
     }
 
     private var applicationCtx: Context? = null
