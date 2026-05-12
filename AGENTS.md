@@ -162,8 +162,8 @@ Complete release process:
 1. Bump version in `app/build.gradle.kts` (versionName field)
 2. Commit and push the version bump
 3. Close current milestone in GitHub
-4. Create GitHub release with auto-generated release notes
-5. Tag automatically created during release process
+4. Create GitHub release with auto-generated release notes (tag auto-created)
+5. Watch the Play Release workflow run with `gh run watch` and do not close the terminal until it reports success — a failure here means the signed AAB never reached Google Play, so the GitHub release exists but no update rolls out to users. Investigate and rerun before walking away.
 
 ### Version Bumps
 - Update version in build.gradle.kts
