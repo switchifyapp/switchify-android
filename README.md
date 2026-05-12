@@ -15,7 +15,7 @@ An Android accessibility service that enables device control through adaptive sw
 
 ### 1. Clone the repository
 ```bash
-git clone https://github.com/enaboapps/Switchify.git
+git clone https://github.com/switchifyapp/Switchify.git
 cd Switchify
 ```
 
@@ -78,11 +78,12 @@ In short: you are free to use, modify, and distribute Switchify, but any modific
 
 Commercial licenses that exempt licensees from the AGPL copyleft obligations are available on request — contact <owen@switchifyapp.com> for details.
 
-Copyright (C) 2024-2026 Owen McGirr. All rights reserved.
+Copyright (C) 2024-2026 Owen McGirr. Released under the AGPL-3.0.
 
 ## Links
 
 - [Google Play Store](https://play.google.com/store/apps/details?id=com.enaboapps.switchify)
+- [switchifyapp.com](https://switchifyapp.com)
 
 ## Architecture: ServiceBridge
 
