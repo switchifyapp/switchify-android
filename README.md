@@ -84,13 +84,3 @@ Copyright (C) 2024-2026 Owen McGirr. Released under the AGPL-3.0.
 
 - [Google Play Store](https://play.google.com/store/apps/details?id=com.enaboapps.switchify)
 - [switchifyapp.com](https://switchifyapp.com)
-
-## Architecture: ServiceBridge
-
-ServiceBridge provides a unified app↔service communication layer inside the main process.
-
-- Scope: In‑process only. The accessibility service runs in the app process; commands/events flow via Kotlin Flows.
-- Commands: `serviceCommands` has no replay (transient). UI triggers configuration and control commands through ViewModels.
-- Events: `serviceEvents` uses a replay of 1 so late subscribers see the latest state; used by ViewModels to keep UI in sync.
-- Rationale: Centralizes enforcement and settings handling in the service, avoids duplicating logic in UI.
-- Future IPC: If the service moves out‑of‑process, prefer a bound service/Binder (or Messenger). If broadcasts are considered, protect with a signature‑level permission and strict input validation.
