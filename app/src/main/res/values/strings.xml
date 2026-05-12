@@ -28,7 +28,7 @@
     <string name="menu_title_media_control">Media Control</string>
     <string name="menu_title_edit">Edit</string>
     <string name="menu_title_device">Device</string>
-    <string name="menu_item_pause">Pause</string>
+    <string name="menu_item_pause">Pause Switchify</string>
     
     <!-- Head Control Menu Items -->
     <string name="menu_item_enable_head_control">Enable Head Control</string>
