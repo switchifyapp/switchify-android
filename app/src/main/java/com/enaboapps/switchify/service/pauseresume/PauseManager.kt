@@ -4,8 +4,8 @@ import android.content.Context
 import android.content.Intent
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
+import com.enaboapps.switchify.service.core.ServiceCore
 import com.enaboapps.switchify.service.window.ServiceMessageHUD
-import com.enaboapps.switchify.service.window.SwitchifyAccessibilityWindow
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -23,7 +23,6 @@ class PauseManager private constructor() {
 
     companion object {
         private const val DEFAULT_PAUSE_TIMEOUT_MS = 30000L // 30 seconds
-        private const val UI_DELAY_MS = 1000L // 1 second delay for UI transitions
 
         // Broadcast actions
         const val ACTION_PAUSE_STARTED = "com.enaboapps.switchify.PAUSE_STARTED"
@@ -64,7 +63,7 @@ class PauseManager private constructor() {
 
     /**
      * Starts the pause mode if not already paused.
-     * Shows pause message, hides service window, and notifies all listeners.
+     * Shows pause message, clears scanning UI and any open menu, and notifies all listeners.
      */
     fun startPause() {
         if (pauseJob != null) return
@@ -104,14 +103,9 @@ class PauseManager private constructor() {
             )
         }
 
+        ServiceCore.getScanningManager()?.reset()
+
         pauseJob = coroutineScope.launch {
-            // Give the pause message time to show before hiding the window
-            delay(UI_DELAY_MS)
-
-            // Hide the service window when pausing
-            SwitchifyAccessibilityWindow.instance.hide()
-
-            // Monitor for pause timeout
             while (isPaused) {
                 delay(pauseTimeoutMs)
                 if (System.currentTimeMillis() - pauseTimestamp > pauseTimeoutMs) {
@@ -156,31 +150,23 @@ class PauseManager private constructor() {
 
     /**
      * Resumes from pause mode.
-     * Shows service window, displays resume message, and notifies all listeners.
+     * Displays resume message and notifies all listeners.
      */
     fun resume() {
         isPaused = false
         pauseJob?.cancel()
         pauseJob = null
 
-        coroutineScope.launch {
-            // Show the service window when resuming
-            SwitchifyAccessibilityWindow.instance.show()
+        ServiceMessageHUD.instance.showMessage(
+            R.string.hud_pause_resume,
+            ServiceMessageHUD.MessageType.DISAPPEARING
+        )
 
-            // Give the window time to show before displaying the message
-            delay(UI_DELAY_MS)
-
-            ServiceMessageHUD.instance.showMessage(
-                R.string.hud_pause_resume,
-                ServiceMessageHUD.MessageType.DISAPPEARING
+        // Send broadcast that pause has ended
+        contextRef?.get()?.let { context ->
+            context.sendBroadcast(
+                Intent(ACTION_PAUSE_ENDED).setPackage(context.packageName)
             )
-
-            // Send broadcast that pause has ended
-            contextRef?.get()?.let { context ->
-                context.sendBroadcast(
-                    Intent(ACTION_PAUSE_ENDED).setPackage(context.packageName)
-                )
-            }
         }
     }
 
