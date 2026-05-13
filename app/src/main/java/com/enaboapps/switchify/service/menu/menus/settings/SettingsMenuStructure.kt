@@ -1,5 +1,6 @@
 package com.enaboapps.switchify.service.menu.menus.settings
 
+import com.enaboapps.switchify.R
 import com.enaboapps.switchify.service.camera.CameraPermissionManager
 import com.enaboapps.switchify.service.core.ServiceCore
 import com.enaboapps.switchify.service.core.SwitchifyAccessibilityService
@@ -8,6 +9,7 @@ import com.enaboapps.switchify.service.menu.MenuManager
 import com.enaboapps.switchify.service.menu.structure.MenuConstants
 import com.enaboapps.switchify.service.menu.structure.MenuItemRegistry
 import com.enaboapps.switchify.service.menu.structure.MenuStructure
+import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.service.scanning.ScanSettings
 import com.enaboapps.switchify.service.techniques.AccessTechnique
 import com.enaboapps.switchify.service.techniques.headcontrol.HeadControlSettings
@@ -87,7 +89,31 @@ class SettingsMenuStructure(
                         }
                     )
                 }
-            } else null
+            } else null,
+            MenuItemRegistry.getDefinition(
+                MenuConstants.MenuIds.SETTINGS_MENU,
+                MenuConstants.ItemIds.Settings.TOGGLE_GROUP_SCAN
+            )?.let { def ->
+                val currentlyEnabled = scanSettings.isGroupScanEnabled()
+                val stateLabel = accessibilityService.getString(
+                    if (currentlyEnabled) R.string.menu_item_turn_group_scan_off
+                    else R.string.menu_item_turn_group_scan_on
+                )
+                MenuItem(
+                    id = def.id,
+                    userProvidedText = stateLabel,
+                    descriptionResource = def.descriptionResource,
+                    drawableId = def.drawableId,
+                    action = {
+                        val prefManager = PreferenceManager(accessibilityService)
+                        prefManager.setBooleanValue(
+                            PreferenceManager.PREFERENCE_KEY_GROUP_SCAN,
+                            !currentlyEnabled
+                        )
+                        MenuManager.getInstance().closeMenuHierarchy()
+                    }
+                )
+            }
         ),
         context = accessibilityService,
         coroutineScope = coroutineScope
