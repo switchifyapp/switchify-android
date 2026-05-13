@@ -8,6 +8,7 @@ import android.widget.LinearLayout
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.service.gestures.GesturePoint
 import com.enaboapps.switchify.service.menu.menus.BaseMenu
+import com.enaboapps.switchify.service.menu.structure.MenuConstants
 import com.enaboapps.switchify.service.scanning.ScanNodeInterface
 import com.enaboapps.switchify.service.scanning.ScanningManager
 import com.enaboapps.switchify.service.scanning.tree.ScanTree
@@ -131,6 +132,7 @@ class MenuView(
     private fun createMenuPages(menuItems: List<MenuItem>) {
         val perPage = MenuSizeManager.getRadialItemSize(context).itemsPerRing
         numOfPages = ((menuItems.size + perPage - 1) / perPage).coerceAtLeast(1)
+        val titleResId = MenuConstants.getTitleResource(menu.menuId)
         for (i in 0 until numOfPages) {
             val start = i * perPage
             val end = ((i + 1) * perPage).coerceAtMost(menuItems.size)
@@ -142,6 +144,7 @@ class MenuView(
                     context = context,
                     contentItems = pageItems,
                     closeItem = closeItem,
+                    titleResId = titleResId,
                     pageIndex = i,
                     maxPageIndex = numOfPages - 1,
                     onMenuPageChanged = ::onMenuPageChanged

@@ -1,5 +1,7 @@
 package com.enaboapps.switchify.service.menu.structure
 
+import com.enaboapps.switchify.R
+
 /**
  * Constants for menu and menu item identifiers.
  * Provides type-safe access to menu structure identifiers without using raw strings.
@@ -20,6 +22,21 @@ object MenuConstants {
         const val SCROLL_MENU = "scroll_menu"
         const val MEDIA_CONTROL_MENU = "media_control_menu"
         const val EDIT_MENU = "edit_menu"
+    }
+
+    fun getTitleResource(menuId: String?): Int? = when (menuId) {
+        MenuIds.MAIN_MENU -> R.string.menu_title_main
+        MenuIds.DEVICE_MENU -> R.string.menu_title_device
+        MenuIds.VOLUME_CONTROL_MENU -> R.string.menu_title_volume_control
+        MenuIds.GESTURES_MENU -> R.string.menu_title_gestures
+        MenuIds.TAP_GESTURES_MENU -> R.string.menu_title_tap
+        MenuIds.TAP_AND_HOLD_MENU -> R.string.menu_title_tap_and_hold
+        MenuIds.SWIPE_GESTURES_MENU -> R.string.menu_title_swipe
+        MenuIds.PINCH_GESTURES_MENU -> R.string.menu_title_pinch
+        MenuIds.SCROLL_MENU -> R.string.menu_title_scroll
+        MenuIds.MEDIA_CONTROL_MENU -> R.string.menu_title_media_control
+        MenuIds.EDIT_MENU -> R.string.menu_title_edit
+        else -> null
     }
 
     /**
