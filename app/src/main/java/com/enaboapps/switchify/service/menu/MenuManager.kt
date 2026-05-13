@@ -15,6 +15,7 @@ import com.enaboapps.switchify.service.menu.menus.main.MainMenu
 import com.enaboapps.switchify.service.menu.menus.media.MediaControlMenu
 import com.enaboapps.switchify.service.menu.menus.favouriteapps.FavouriteAppsMenu
 import com.enaboapps.switchify.service.menu.menus.scroll.ScrollMenu
+import com.enaboapps.switchify.service.menu.menus.settings.SettingsMenu
 import com.enaboapps.switchify.service.menu.menus.system.DeviceMenu
 import com.enaboapps.switchify.service.menu.menus.system.VolumeControlMenu
 import com.enaboapps.switchify.service.scanning.ScanningManager
@@ -119,6 +120,14 @@ class MenuManager {
     fun openEditMenu() {
         val editMenu = EditMenu(accessibilityService!!)
         openMenu(editMenu.build())
+    }
+
+    /**
+     * This function opens the settings menu
+     */
+    fun openSettingsMenu() {
+        val settingsMenu = SettingsMenu(accessibilityService!!)
+        openMenu(settingsMenu.build())
     }
 
     /**
