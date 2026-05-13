@@ -22,6 +22,7 @@ object MenuConstants {
         const val SCROLL_MENU = "scroll_menu"
         const val MEDIA_CONTROL_MENU = "media_control_menu"
         const val EDIT_MENU = "edit_menu"
+        const val SETTINGS_MENU = "settings_menu"
     }
 
     fun getTitleResource(menuId: String?): Int? = when (menuId) {
@@ -36,6 +37,7 @@ object MenuConstants {
         MenuIds.SCROLL_MENU -> R.string.menu_title_scroll
         MenuIds.MEDIA_CONTROL_MENU -> R.string.menu_title_media_control
         MenuIds.EDIT_MENU -> R.string.menu_title_edit
+        MenuIds.SETTINGS_MENU -> R.string.menu_title_settings
         else -> null
     }
 
@@ -66,13 +68,20 @@ object MenuConstants {
             const val FAVOURITE_APPS = "favourite_apps"
             const val GESTURE_PATTERNS = "gesture_patterns"
             const val DEVICE = "device"
+            const val SETTINGS = "settings"
             const val MEDIA_CONTROL = "media_control"
             const val EDIT = "edit"
+            const val PAUSE = "pause"
+        }
+
+        /**
+         * Settings menu items
+         */
+        object Settings {
             const val SWITCH_TO_ITEM_SCAN = "switch_to_item_scan"
             const val SWITCH_TO_RADAR = "switch_to_radar"
             const val SWITCH_TO_POINT_SCAN = "switch_to_point_scan"
             const val TOGGLE_HEAD_CONTROL = "toggle_head_control"
-            const val PAUSE = "pause"
         }
 
         /**

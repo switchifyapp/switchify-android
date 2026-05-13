@@ -3,7 +3,6 @@ package com.enaboapps.switchify.service.menu.menus.main
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.service.actions.GlobalActionManager
-import com.enaboapps.switchify.service.camera.CameraPermissionManager
 import com.enaboapps.switchify.service.core.ServiceCore
 import com.enaboapps.switchify.service.core.SwitchifyAccessibilityService
 import com.enaboapps.switchify.service.gestures.GesturePoint
@@ -16,9 +15,6 @@ import com.enaboapps.switchify.service.menu.structure.MenuActionResolver
 import com.enaboapps.switchify.service.menu.structure.MenuConstants
 import com.enaboapps.switchify.service.menu.structure.MenuItemRegistry
 import com.enaboapps.switchify.service.menu.structure.MenuStructure
-import com.enaboapps.switchify.service.scanning.ScanSettings
-import com.enaboapps.switchify.service.techniques.AccessTechnique
-import com.enaboapps.switchify.service.techniques.headcontrol.HeadControlSettings
 import com.enaboapps.switchify.service.techniques.nodes.NodeExaminer
 import com.enaboapps.switchify.service.utils.DeviceLockObserver
 import kotlinx.coroutines.CoroutineScope
@@ -31,7 +27,6 @@ class MainMenuStructure(
     private val gestureMenuStructure = GestureMenuStructure(accessibilityService, coroutineScope)
     private val deviceLockObserver = DeviceLockObserver(accessibilityService)
     private val preferenceManager = PreferenceManager(accessibilityService)
-    private val scanSettings = ScanSettings(accessibilityService)
     private val repository = MenuConfigurationRepository(accessibilityService)
 
     val deviceItem = MenuItem(
@@ -124,6 +119,13 @@ class MainMenuStructure(
                 }
             } else null,
             deviceItem,
+            MenuItemRegistry.getMainMenuDefinition("settings")?.let { def ->
+                MenuItem(
+                    definition = def,
+                    isLinkToMenu = true,
+                    action = { MenuManager.getInstance().openSettingsMenu() }
+                )
+            },
             MenuItemRegistry.getMainMenuDefinition("media_control")?.let { def ->
                 MenuItem(
                     definition = def,
@@ -137,57 +139,6 @@ class MainMenuStructure(
                         definition = def,
                         isLinkToMenu = true,
                         action = { MenuManager.getInstance().openEditMenu() }
-                    )
-                }
-            } else null,
-            if (AccessTechnique.getCurrentTechnique() != AccessTechnique.Technique.ITEM_SCAN) {
-                MenuItemRegistry.getMainMenuDefinition("switch_to_item_scan")?.let { def ->
-                    MenuItem(
-                        definition = def,
-                        action = { MenuManager.getInstance().switchToItemScan() }
-                    )
-                }
-            } else null,
-            if (AccessTechnique.getCurrentTechnique() != AccessTechnique.Technique.RADAR &&
-                !scanSettings.isDirectionalScanMode()
-            ) {
-                MenuItemRegistry.getMainMenuDefinition("switch_to_radar")?.let { def ->
-                    MenuItem(
-                        definition = def,
-                        action = { MenuManager.getInstance().switchToRadar() }
-                    )
-                }
-            } else null,
-            if (AccessTechnique.getCurrentTechnique() != AccessTechnique.Technique.POINT_SCAN &&
-                !scanSettings.isDirectionalScanMode()
-            ) {
-                MenuItemRegistry.getMainMenuDefinition("switch_to_point_scan")?.let { def ->
-                    MenuItem(
-                        definition = def,
-                        action = { MenuManager.getInstance().switchToPointScan() }
-                    )
-                }
-            } else null,
-            // Head control toggle - only show if camera permission is granted
-            if (CameraPermissionManager.getInstance(accessibilityService).hasPermission()) {
-                MenuItemRegistry.getMainMenuDefinition("toggle_head_control")?.let { def ->
-                    MenuItem(
-                        definition = def,
-                        action = {
-                            val headControlService = ServiceCore.getHeadControlService()
-                            val settings = HeadControlSettings(accessibilityService)
-                            val currentlyEnabled = settings.isHeadControlEnabled()
-
-                            // Try to toggle head control
-                            val success = headControlService?.setEnabled(!currentlyEnabled) ?: false
-                            if (success) {
-                                // Only update settings if head control was successfully enabled/disabled
-                                settings.setHeadControlEnabled(!currentlyEnabled)
-                            }
-
-                            // Close menu to show the effect
-                            MenuManager.getInstance().closeMenuHierarchy()
-                        }
                     )
                 }
             } else null,

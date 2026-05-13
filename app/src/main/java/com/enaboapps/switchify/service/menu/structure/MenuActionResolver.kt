@@ -5,6 +5,7 @@ import com.enaboapps.switchify.service.menu.menus.edit.EditMenuStructure
 import com.enaboapps.switchify.service.menu.menus.gestures.GestureMenuStructure
 import com.enaboapps.switchify.service.menu.menus.media.MediaMenuStructure
 import com.enaboapps.switchify.service.menu.menus.scroll.ScrollMenuStructure
+import com.enaboapps.switchify.service.menu.menus.settings.SettingsMenuStructure
 import com.enaboapps.switchify.service.menu.menus.system.SystemMenuStructure
 import com.enaboapps.switchify.utils.LogEvent
 import com.enaboapps.switchify.utils.Logger
@@ -97,6 +98,14 @@ object MenuActionResolver {
                     if (accessibilityService == null) return {}
                     val menu = EditMenuStructure(accessibilityService, coroutineScope)
                         .buildEditMenuObject()
+                    val item = menu.getMenuItems().find { it.id == itemId }
+                    item?.let { { it.select() } } ?: {}
+                }
+
+                MenuConstants.MenuIds.SETTINGS_MENU -> {
+                    if (accessibilityService == null) return {}
+                    val menu = SettingsMenuStructure(accessibilityService, coroutineScope)
+                        .buildSettingsMenuObject()
                     val item = menu.getMenuItems().find { it.id == itemId }
                     item?.let { { it.select() } } ?: {}
                 }

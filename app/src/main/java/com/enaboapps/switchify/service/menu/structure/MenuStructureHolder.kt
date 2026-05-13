@@ -7,6 +7,7 @@ import com.enaboapps.switchify.service.menu.menus.main.MainMenuStructure
 import com.enaboapps.switchify.service.menu.menus.media.MediaMenuStructure
 import com.enaboapps.switchify.service.menu.menus.favouriteapps.FavouriteAppsMenuStructure
 import com.enaboapps.switchify.service.menu.menus.scroll.ScrollMenuStructure
+import com.enaboapps.switchify.service.menu.menus.settings.SettingsMenuStructure
 import com.enaboapps.switchify.service.menu.menus.system.SystemMenuStructure
 
 /**
@@ -24,6 +25,7 @@ class MenuStructureHolder(accessibilityService: SwitchifyAccessibilityService) {
     private val scrollMenuStructure = ScrollMenuStructure(accessibilityService, serviceScope)
     private val editMenuStructure = EditMenuStructure(accessibilityService, serviceScope)
     private val favouriteAppsMenuStructure = FavouriteAppsMenuStructure(accessibilityService, serviceScope)
+    private val settingsMenuStructure = SettingsMenuStructure(accessibilityService, serviceScope)
 
     // Main Menu
     fun buildMainMenuObject() = mainMenuStructure.buildMainMenuObject()
@@ -54,4 +56,7 @@ class MenuStructureHolder(accessibilityService: SwitchifyAccessibilityService) {
 
     // Favourite Apps Menu
     fun buildFavouriteAppsMenuObject() = favouriteAppsMenuStructure.buildFavouriteAppsMenuObject()
+
+    // Settings Menu
+    fun buildSettingsMenuObject() = settingsMenuStructure.buildSettingsMenuObject()
 }

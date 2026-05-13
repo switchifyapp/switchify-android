@@ -25,13 +25,24 @@ object MenuItemRegistry {
             MenuItemDefinition(MenuConstants.ItemIds.Main.FAVOURITE_APPS, labelResource = R.string.menu_title_favourite_apps, descriptionResource = R.string.menu_item_favourite_apps_description, drawableId = R.drawable.ic_favourite_apps),
             MenuItemDefinition(MenuConstants.ItemIds.Main.GESTURE_PATTERNS, labelResource = R.string.gesture_patterns_title, descriptionResource = R.string.menu_item_gesture_patterns_description, drawableId = R.drawable.ic_gesture_patterns),
             MenuItemDefinition(MenuConstants.ItemIds.Main.DEVICE, labelResource = R.string.menu_title_device, descriptionResource = R.string.menu_item_device_description, drawableId = R.drawable.ic_device),
+            MenuItemDefinition(MenuConstants.ItemIds.Main.SETTINGS, labelResource = R.string.menu_item_settings, descriptionResource = R.string.menu_item_settings_description, drawableId = R.drawable.ic_settings),
             MenuItemDefinition(MenuConstants.ItemIds.Main.MEDIA_CONTROL, labelResource = R.string.menu_title_media_control, descriptionResource = R.string.menu_item_media_control_description, drawableId = R.drawable.ic_media_control),
             MenuItemDefinition(MenuConstants.ItemIds.Main.EDIT, labelResource = R.string.menu_title_edit, descriptionResource = R.string.menu_item_edit_description, drawableId = R.drawable.ic_edit),
-            MenuItemDefinition(MenuConstants.ItemIds.Main.SWITCH_TO_ITEM_SCAN, labelResource = R.string.access_technique_item_scan, descriptionResource = R.string.menu_item_switch_to_item_scan_description, drawableId = R.drawable.ic_item_scan),
-            MenuItemDefinition(MenuConstants.ItemIds.Main.SWITCH_TO_RADAR, labelResource = R.string.access_technique_radar, descriptionResource = R.string.menu_item_switch_to_radar_description, drawableId = R.drawable.ic_radar),
-            MenuItemDefinition(MenuConstants.ItemIds.Main.SWITCH_TO_POINT_SCAN, labelResource = R.string.access_technique_point_scan, descriptionResource = R.string.menu_item_switch_to_point_scan_description, drawableId = R.drawable.ic_point_scan),
-            MenuItemDefinition(MenuConstants.ItemIds.Main.TOGGLE_HEAD_CONTROL, labelResource = R.string.menu_item_enable_head_control, descriptionResource = R.string.menu_item_toggle_head_control_description, drawableId = R.drawable.ic_head_control_pointer),
             MenuItemDefinition(MenuConstants.ItemIds.Main.PAUSE, labelResource = R.string.menu_item_pause, descriptionResource = R.string.menu_item_pause_description, drawableId = R.drawable.ic_pause)
+        )
+    }
+
+    /**
+     * Provides menu item definitions for the Settings submenu.
+     *
+     * @return A list of MenuItemDefinition for the technique switches and head-control toggle.
+     */
+    fun getSettingsMenuDefinitions(): List<MenuItemDefinition> {
+        return listOf(
+            MenuItemDefinition(MenuConstants.ItemIds.Settings.SWITCH_TO_ITEM_SCAN, labelResource = R.string.access_technique_item_scan, descriptionResource = R.string.menu_item_switch_to_item_scan_description, drawableId = R.drawable.ic_item_scan),
+            MenuItemDefinition(MenuConstants.ItemIds.Settings.SWITCH_TO_RADAR, labelResource = R.string.access_technique_radar, descriptionResource = R.string.menu_item_switch_to_radar_description, drawableId = R.drawable.ic_radar),
+            MenuItemDefinition(MenuConstants.ItemIds.Settings.SWITCH_TO_POINT_SCAN, labelResource = R.string.access_technique_point_scan, descriptionResource = R.string.menu_item_switch_to_point_scan_description, drawableId = R.drawable.ic_point_scan),
+            MenuItemDefinition(MenuConstants.ItemIds.Settings.TOGGLE_HEAD_CONTROL, labelResource = R.string.menu_item_enable_head_control, descriptionResource = R.string.menu_item_toggle_head_control_description, drawableId = R.drawable.ic_head_control_pointer)
         )
     }
 
@@ -195,7 +206,7 @@ object MenuItemRegistry {
      *
      * @param menuId Identifier of the menu. Recognized values: "main_menu", "device_menu", "volume_control_menu",
      * "gestures_menu", "tap_gestures_menu", "tap_and_hold_menu", "swipe_gestures_menu", "pinch_gestures_menu",
-     * "scroll_menu", "media_control_menu", "edit_menu".
+     * "scroll_menu", "media_control_menu", "edit_menu", "settings_menu".
      * @return A list of MenuItemDefinition for the specified menu, or an empty list if the menuId is not recognized.
      */
     fun getDefinitionsForMenu(menuId: String): List<MenuItemDefinition> {
@@ -211,6 +222,7 @@ object MenuItemRegistry {
             MenuConstants.MenuIds.SCROLL_MENU -> getScrollMenuDefinitions()
             MenuConstants.MenuIds.MEDIA_CONTROL_MENU -> getMediaControlMenuDefinitions()
             MenuConstants.MenuIds.EDIT_MENU -> getEditMenuDefinitions()
+            MenuConstants.MenuIds.SETTINGS_MENU -> getSettingsMenuDefinitions()
             else -> emptyList()
         }
     }
