@@ -82,6 +82,7 @@ object MenuConstants {
             const val SWITCH_TO_RADAR = "switch_to_radar"
             const val SWITCH_TO_POINT_SCAN = "switch_to_point_scan"
             const val TOGGLE_HEAD_CONTROL = "toggle_head_control"
+            const val TOGGLE_GROUP_SCAN = "toggle_group_scan"
         }
 
         /**

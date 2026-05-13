@@ -42,7 +42,8 @@ object MenuItemRegistry {
             MenuItemDefinition(MenuConstants.ItemIds.Settings.SWITCH_TO_ITEM_SCAN, labelResource = R.string.access_technique_item_scan, descriptionResource = R.string.menu_item_switch_to_item_scan_description, drawableId = R.drawable.ic_item_scan),
             MenuItemDefinition(MenuConstants.ItemIds.Settings.SWITCH_TO_RADAR, labelResource = R.string.access_technique_radar, descriptionResource = R.string.menu_item_switch_to_radar_description, drawableId = R.drawable.ic_radar),
             MenuItemDefinition(MenuConstants.ItemIds.Settings.SWITCH_TO_POINT_SCAN, labelResource = R.string.access_technique_point_scan, descriptionResource = R.string.menu_item_switch_to_point_scan_description, drawableId = R.drawable.ic_point_scan),
-            MenuItemDefinition(MenuConstants.ItemIds.Settings.TOGGLE_HEAD_CONTROL, labelResource = R.string.menu_item_enable_head_control, descriptionResource = R.string.menu_item_toggle_head_control_description, drawableId = R.drawable.ic_head_control_pointer)
+            MenuItemDefinition(MenuConstants.ItemIds.Settings.TOGGLE_HEAD_CONTROL, labelResource = R.string.menu_item_enable_head_control, descriptionResource = R.string.menu_item_toggle_head_control_description, drawableId = R.drawable.ic_head_control_pointer),
+            MenuItemDefinition(MenuConstants.ItemIds.Settings.TOGGLE_GROUP_SCAN, labelResource = R.string.menu_item_group_scan, descriptionResource = R.string.menu_item_group_scan_description, drawableId = R.drawable.ic_toggle_group_scan)
         )
     }
 
