@@ -67,6 +67,7 @@ class MenuItem(
     val closeOnSelect: Boolean = true,
     var isLinkToMenu: Boolean = false,
     var isMenuHierarchyManipulator: Boolean = false,
+    val isBackButton: Boolean = false,
     private val action: () -> Unit
 ) {
     /**
@@ -112,6 +113,7 @@ class MenuItem(
                 isMenuHierarchyManipulator = isMenuHierarchyManipulator,
                 isSmall = isSmall,
                 isLinkToMenu = isLinkToMenu,
+                isBackButton = isBackButton,
                 menuSize = menuSize,
                 onClick = { select() }
             )
@@ -185,6 +187,7 @@ private fun MenuItemContent(
     isMenuHierarchyManipulator: Boolean,
     isSmall: Boolean,
     isLinkToMenu: Boolean,
+    isBackButton: Boolean,
     menuSize: MenuItemSize,
     onClick: () -> Unit
 ) {
@@ -211,6 +214,7 @@ private fun MenuItemContent(
                 showLabelAsDescription = showLabelAsDescription,
                 menuSize = menuSize,
                 isLinkToMenu = isLinkToMenu,
+                isBackButton = isBackButton,
                 onClick = onClick
             )
         }
@@ -260,11 +264,18 @@ private fun RegularMenuItem(
     showLabelAsDescription: Boolean,
     menuSize: MenuItemSize,
     isLinkToMenu: Boolean,
+    isBackButton: Boolean,
     onClick: () -> Unit
 ) {
     // Ring item: icon (or short text stand-in for label-only items) inside a
     // coloured circle, full label stacked underneath. Every item gets the same
-    // circle background for visual consistency across the ring.
+    // circle background for visual consistency across the ring — except the
+    // back button, which uses the secondary container so users can pick it
+    // out at a glance.
+    val circleColor = if (isBackButton) MaterialTheme.colorScheme.secondaryContainer
+                      else MaterialTheme.colorScheme.primaryContainer
+    val iconTint = if (isBackButton) MaterialTheme.colorScheme.onSecondaryContainer
+                   else MaterialTheme.colorScheme.onPrimaryContainer
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -280,7 +291,7 @@ private fun RegularMenuItem(
             modifier = Modifier
                 .size(menuSize.containerCircleSize)
                 .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.primaryContainer),
+                .background(circleColor),
             contentAlignment = Alignment.Center
         ) {
             // `circleText` overrides the icon: callers set it on items whose
@@ -298,7 +309,7 @@ private fun RegularMenuItem(
                 )
                 Text(
                     text = circleText,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    color = iconTint,
                     fontSize = effectiveFontSize,
                     textAlign = TextAlign.Center,
                     maxLines = 1
@@ -308,7 +319,7 @@ private fun RegularMenuItem(
                     painter = painterResource(id = drawableId),
                     contentDescription = labelResource?.let { Resources.getString(it) },
                     modifier = Modifier.size(menuSize.iconSize),
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer
+                    tint = iconTint
                 )
             } else if (text != null) {
                 // Cap the in-circle letter so the user's system font scale
@@ -326,7 +337,7 @@ private fun RegularMenuItem(
                 }
                 Text(
                     text = circleInitials(text),
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    color = iconTint,
                     fontSize = effectiveFontSize,
                     textAlign = TextAlign.Center,
                     maxLines = 1
