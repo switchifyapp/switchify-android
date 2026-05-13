@@ -28,10 +28,15 @@ class SettingsMenuStructure(
      * technique (and, for radar/point scan, not in directional scan mode). The
      * head-control toggle appears only when camera permission has been granted.
      */
-    fun buildSettingsMenuObject(): MenuStructure = MenuStructure(
+    fun buildSettingsMenuObject(): MenuStructure {
+        // While the menu is open the current technique is MENU, so resolve the
+        // user's underlying technique from preferences to gate which switches
+        // to show.
+        val storedTechnique = AccessTechnique.getStoredTechnique()
+        return MenuStructure(
         id = MenuConstants.MenuIds.SETTINGS_MENU,
         items = listOfNotNull(
-            if (AccessTechnique.getCurrentTechnique() != AccessTechnique.Technique.ITEM_SCAN) {
+            if (storedTechnique != AccessTechnique.Technique.ITEM_SCAN) {
                 MenuItemRegistry.getDefinition(
                     MenuConstants.MenuIds.SETTINGS_MENU,
                     MenuConstants.ItemIds.Settings.SWITCH_TO_ITEM_SCAN
@@ -42,7 +47,7 @@ class SettingsMenuStructure(
                     )
                 }
             } else null,
-            if (AccessTechnique.getCurrentTechnique() != AccessTechnique.Technique.RADAR &&
+            if (storedTechnique != AccessTechnique.Technique.RADAR &&
                 !scanSettings.isDirectionalScanMode()
             ) {
                 MenuItemRegistry.getDefinition(
@@ -55,7 +60,7 @@ class SettingsMenuStructure(
                     )
                 }
             } else null,
-            if (AccessTechnique.getCurrentTechnique() != AccessTechnique.Technique.POINT_SCAN &&
+            if (storedTechnique != AccessTechnique.Technique.POINT_SCAN &&
                 !scanSettings.isDirectionalScanMode()
             ) {
                 MenuItemRegistry.getDefinition(
@@ -117,5 +122,6 @@ class SettingsMenuStructure(
         ),
         context = accessibilityService,
         coroutineScope = coroutineScope
-    )
+        )
+    }
 }
