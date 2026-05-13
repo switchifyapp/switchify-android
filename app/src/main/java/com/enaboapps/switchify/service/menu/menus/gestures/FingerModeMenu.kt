@@ -3,6 +3,7 @@ package com.enaboapps.switchify.service.menu.menus.gestures
 import com.enaboapps.switchify.service.core.SwitchifyAccessibilityService
 import com.enaboapps.switchify.service.menu.MenuItem
 import com.enaboapps.switchify.service.menu.menus.BaseMenu
+import com.enaboapps.switchify.service.menu.structure.MenuConstants
 import com.enaboapps.switchify.service.menu.structure.MenuStructureHolder
 
 /**
@@ -16,7 +17,11 @@ import com.enaboapps.switchify.service.menu.structure.MenuStructureHolder
  * immediate feedback when finger modes are changed.
  */
 class FingerModeMenu(accessibilityService: SwitchifyAccessibilityService) :
-    BaseMenu(accessibilityService, buildFingerModeMenuItems(accessibilityService)) {
+    BaseMenu(
+        accessibilityService,
+        buildFingerModeMenuItems(accessibilityService),
+        MenuConstants.MenuIds.FINGER_MODE_MENU
+    ) {
 
     companion object {
         private fun buildFingerModeMenuItems(accessibilityService: SwitchifyAccessibilityService): List<MenuItem> {

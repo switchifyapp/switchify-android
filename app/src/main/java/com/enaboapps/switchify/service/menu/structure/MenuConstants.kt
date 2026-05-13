@@ -23,6 +23,9 @@ object MenuConstants {
         const val MEDIA_CONTROL_MENU = "media_control_menu"
         const val EDIT_MENU = "edit_menu"
         const val SETTINGS_MENU = "settings_menu"
+        const val FAVOURITE_APPS_MENU = "favourite_apps_menu"
+        const val GESTURE_PATTERNS_MENU = "gesture_patterns_menu"
+        const val FINGER_MODE_MENU = "finger_mode_menu"
     }
 
     fun getTitleResource(menuId: String?): Int? = when (menuId) {
@@ -38,6 +41,9 @@ object MenuConstants {
         MenuIds.MEDIA_CONTROL_MENU -> R.string.menu_title_media_control
         MenuIds.EDIT_MENU -> R.string.menu_title_edit
         MenuIds.SETTINGS_MENU -> R.string.menu_title_settings
+        MenuIds.FAVOURITE_APPS_MENU -> R.string.menu_title_favourite_apps
+        MenuIds.GESTURE_PATTERNS_MENU -> R.string.gesture_patterns_title
+        MenuIds.FINGER_MODE_MENU -> R.string.menu_item_finger_mode
         else -> null
     }
 

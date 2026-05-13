@@ -5,6 +5,7 @@ import com.enaboapps.switchify.service.core.SwitchifyAccessibilityService
 import com.enaboapps.switchify.service.gestures.patterns.store.GesturePatternStore
 import com.enaboapps.switchify.service.menu.MenuItem
 import com.enaboapps.switchify.service.menu.menus.BaseMenu
+import com.enaboapps.switchify.service.menu.structure.MenuConstants
 
 class GesturePatternsMenu(
     accessibilityService: SwitchifyAccessibilityService
@@ -12,7 +13,7 @@ class GesturePatternsMenu(
     BaseMenu(
         accessibilityService,
         buildGesturePatternsMenuItems(accessibilityService),
-        null,  // No menuId - this is a dynamic menu
+        MenuConstants.MenuIds.GESTURE_PATTERNS_MENU,
         { getGesturePatterns(accessibilityService) }
     ) {
 
