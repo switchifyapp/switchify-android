@@ -11,9 +11,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.enaboapps.switchify.R
@@ -39,6 +43,7 @@ class MenuPage(
     val context: Context,
     private val contentItems: List<MenuItem>,
     private val closeItem: MenuItem?,
+    private val titleResId: Int? = null,
     private val pageIndex: Int,
     private val maxPageIndex: Int,
     val onMenuPageChanged: (pageIndex: Int) -> Unit
@@ -98,16 +103,18 @@ class MenuPage(
         // top-of-screen footprint is also reserved so the menu surface — which
         // MenuView clamps below the HUD — still has room for its ring.
         val willShowNavRow = closeItem != null || hasPagination
+        val hasTitle = titleResId != null
         val backgroundVerticalPadPx = ScreenUtils.dpToPx(context, 36)
         val ringToNavGapPx = ScreenUtils.dpToPx(context, 16)
         val safetyMarginPx = ScreenUtils.dpToPx(context, 24)
         val hudReservedPx = MenuHighlightHud.reservedTopPx(context)
+        val titleRowPx = if (hasTitle) ScreenUtils.dpToPx(context, 36) else 0
         val navRowHeightPx = if (willShowNavRow) {
             ScreenUtils.dpToPx(context, smallItemSize.height.value.toInt()) +
                 ringToNavGapPx
         } else 0
         val verticalOverheadPx = backgroundVerticalPadPx + navRowHeightPx +
-            safetyMarginPx + hudReservedPx
+            safetyMarginPx + hudReservedPx + titleRowPx
         val maxHeightForRingPx = (screenHeightPx - verticalOverheadPx)
             .coerceAtLeast(0)
 
@@ -121,10 +128,12 @@ class MenuPage(
 
         val navRow = buildNavRow(smallItemSize)
         val showNavRow = navRow.childCount > 0
+        val titleText = titleResId?.let { context.getString(it) }
 
         return AccessibilityComposeView(context) {
             MenuPageBackground(isTransparent) {
                 MenuPageBody(
+                    title = titleText,
                     ring = ring,
                     navRow = if (showNavRow) navRow else null
                 )
@@ -228,17 +237,31 @@ private fun MenuPageBackground(
 }
 
 /**
- * Vertical stack of the radial ring and the optional nav row. The highlighted
- * item's name and description are rendered separately by [MenuHighlightHud]
- * at the top of the screen, so the menu surface itself only owns the ring
- * and its nav row.
+ * Vertical stack of the optional title, the radial ring, and the optional
+ * nav row. The highlighted item's name and description are rendered
+ * separately by [MenuHighlightHud] at the top of the screen; the title here
+ * is the static menu identity (e.g. "Main Menu", "Tap and Hold") so the user
+ * always knows which menu they're in.
  */
 @Composable
 private fun MenuPageBody(
+    title: String?,
     ring: RadialMenuLayout,
     navRow: LinearLayout?
 ) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        if (title != null) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface,
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(bottom = 12.dp)
+            )
+        }
         AndroidView(factory = { ring })
         if (navRow != null) {
             AndroidView(
