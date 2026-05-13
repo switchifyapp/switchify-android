@@ -60,6 +60,7 @@ open class BaseMenu(
                 labelResource = R.string.menu_item_previous_menu,
                 descriptionResource = R.string.menu_item_previous_menu_description,
                 isLinkToMenu = true,
+                isBackButton = true,
                 action = { MenuManager.getInstance().menuHierarchy?.popMenu() }
             )
             listOf(previousMenuItem) + orderedItems
