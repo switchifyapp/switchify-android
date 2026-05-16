@@ -5,6 +5,7 @@ import android.graphics.PointF
 import android.util.Log
 import android.view.accessibility.AccessibilityNodeInfo
 import android.view.accessibility.AccessibilityWindowInfo
+import com.enaboapps.switchify.service.keyboard.KeyboardManager
 import com.enaboapps.switchify.service.keyboard.KeyboardNodeExtractor
 import com.enaboapps.switchify.service.utils.ScreenUtils
 import com.enaboapps.switchify.utils.LogEvent
@@ -85,10 +86,12 @@ object NodeExaminer {
             return
         }
 
-        // Use keyboard extractor to determine if keyboard is visible and get appropriate root node
-        val isKeyboardVisible = keyboardExtractor.isKeyboardVisible(windows)
+        // Read visibility from KeyboardManager so this stays consistent with
+        // ActiveAccessTechnique's scanner routing. NodeUpdateCoordinator pushes
+        // KeyboardBridge state before calling examineAccessibilityTree, so the
+        // StateFlow value reflects this event's windows.
+        val isKeyboardVisible = KeyboardManager.keyboardState.value.isVisible
 
-        // Determine which root node to use based on whether a keyboard is visible
         val rootNode = if (isKeyboardVisible) {
             keyboardExtractor.getKeyboardRootNode(windows)
         } else {

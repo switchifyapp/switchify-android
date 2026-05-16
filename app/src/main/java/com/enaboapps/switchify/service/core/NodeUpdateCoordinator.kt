@@ -10,11 +10,13 @@ class NodeUpdateCoordinator(
 ) {
 
     suspend fun processAccessibilityUpdate() {
+        // KeyboardBridge first so KeyboardManager.keyboardState is current
+        // before NodeExaminer reads it to pick the keyboard vs. active-window root.
+        KeyboardBridge.updateKeyboardState(service.windows, scanSettings)
         NodeExaminer.examineAccessibilityTree(
             service.rootInActiveWindow,
             service.windows,
             service
         )
-        KeyboardBridge.updateKeyboardState(service.windows, scanSettings)
     }
 }

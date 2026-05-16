@@ -11,22 +11,14 @@ import android.view.accessibility.AccessibilityWindowInfo
  * scanning functionality independently from general node examination.
  *
  * Responsibilities:
- * - Detect keyboard window presence
  * - Extract keyboard root node
  * - Provide keyboard window information
  * - (Future) Filter keyboard-specific nodes with custom logic
+ *
+ * Keyboard visibility itself is owned by KeyboardManager — read it from
+ * `KeyboardManager.keyboardState.value.isVisible`.
  */
 class KeyboardNodeExtractor {
-
-    /**
-     * Detects if keyboard is currently visible by checking for input method window.
-     *
-     * @param windows List of accessibility windows to check
-     * @return true if keyboard window is present, false otherwise
-     */
-    fun isKeyboardVisible(windows: List<AccessibilityWindowInfo>): Boolean {
-        return windows.any { it.type == AccessibilityWindowInfo.TYPE_INPUT_METHOD }
-    }
 
     /**
      * Gets the keyboard window if visible.
