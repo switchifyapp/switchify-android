@@ -1,6 +1,7 @@
 package com.enaboapps.switchify.service.keyboard
 
 import com.enaboapps.switchify.service.techniques.AccessTechnique
+import com.enaboapps.switchify.service.techniques.nodes.KeyboardNodesState
 
 /**
  * Encapsulates routing and lifetime decisions for the keyboard node scanner.
@@ -35,5 +36,22 @@ class KeyboardNodesPolicy {
      */
     fun shouldKeepKeyboardScannerAlive(state: KeyboardState): Boolean {
         return state.isVisible
+    }
+
+    /**
+     * Whether a [KeyboardNodesState] batch should be dropped instead of
+     * forwarded to the keyboard scanner.
+     *
+     * Drops when:
+     * - The keyboard is hidden — nodes are not relevant.
+     * - The batch carries no bounds — it is the default uninitialized state
+     *   from before NodeExaminer has produced its first emission.
+     * - The captured bounds differ from the current IME bounds — the batch
+     *   was extracted from a previous keyboard layout.
+     */
+    fun shouldDropAsStale(nodes: KeyboardNodesState, state: KeyboardState): Boolean {
+        return !state.isVisible ||
+                nodes.keyboardBounds == null ||
+                nodes.isStaleAgainst(state.keyboardBounds)
     }
 }

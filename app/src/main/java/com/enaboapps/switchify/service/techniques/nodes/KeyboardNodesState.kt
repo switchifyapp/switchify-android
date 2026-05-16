@@ -16,4 +16,18 @@ import android.graphics.Rect
 data class KeyboardNodesState(
     val nodes: List<Node> = emptyList(),
     val keyboardBounds: Rect? = null
-)
+) {
+    /**
+     * True when this batch's captured bounds differ from [currentBounds],
+     * meaning the nodes belong to a previous keyboard layout.
+     *
+     * Returns false when either side is null — callers needing to reject
+     * uninitialized batches (no bounds captured yet) should check that
+     * separately or go through `KeyboardNodesPolicy.shouldDropAsStale`.
+     */
+    fun isStaleAgainst(currentBounds: Rect?): Boolean {
+        return keyboardBounds != null &&
+                currentBounds != null &&
+                keyboardBounds != currentBounds
+    }
+}
