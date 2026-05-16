@@ -3,6 +3,7 @@ package com.enaboapps.switchify.service.techniques
 import android.content.Context
 import com.enaboapps.switchify.service.core.ServiceBridge
 import com.enaboapps.switchify.service.keyboard.KeyboardManager
+import com.enaboapps.switchify.service.keyboard.KeyboardNodesPolicy
 import com.enaboapps.switchify.service.keyboard.KeyboardStateListener
 import com.enaboapps.switchify.service.menu.MenuManager
 import com.enaboapps.switchify.service.selection.SelectionHandler
@@ -25,6 +26,8 @@ class ActiveAccessTechnique(private val context: Context) : AccessTechniqueObser
     private var systemNodeScanner: SystemNodeScanner? = null
     private var keyboardScanner: KeyboardScanner? = null
 
+    private val keyboardNodesPolicy = KeyboardNodesPolicy()
+
     // Track the technique that was active before switching to MENU
     private var underlyingTechnique: String? = null
 
@@ -44,7 +47,10 @@ class ActiveAccessTechnique(private val context: Context) : AccessTechniqueObser
 
     val currentAccessTechnique: AccessTechniqueInterface
         get() = when {
-            KeyboardManager.isKeyboardVisible() && !KeyboardManager.isEscapedFromKeyboard() && AccessTechnique.getCurrentTechnique() != AccessTechnique.Technique.MENU -> {
+            keyboardNodesPolicy.shouldRouteToKeyboardScanner(
+                KeyboardManager.keyboardState.value,
+                AccessTechnique.getCurrentTechnique()
+            ) -> {
                 ensureKeyboardScannerStarted()
                 getKeyboardScanner().scanTree
             }
@@ -254,7 +260,7 @@ class ActiveAccessTechnique(private val context: Context) : AccessTechniqueObser
         isKeyboardVisible: Boolean,
         isEscapedFromKeyboard: Boolean
     ) {
-        if (isKeyboardVisible) {
+        if (keyboardNodesPolicy.shouldKeepKeyboardScannerAlive(KeyboardManager.keyboardState.value)) {
             cleanupAllExceptKeyboard()
         } else {
             cleanupKeyboard()
