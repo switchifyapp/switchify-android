@@ -12,7 +12,10 @@ import com.enaboapps.switchify.utils.LogEvent
 import com.enaboapps.switchify.utils.Logger
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withTimeoutOrNull
 
 /**
@@ -47,9 +50,13 @@ object NodeExaminer {
     private val actionableNodesFlow =
         MutableSharedFlow<List<Node>>(replay = 1, extraBufferCapacity = 1)
 
-    /** SharedFlow for emitting updates to the list of keyboard nodes. */
-    private val keyboardNodesFlow =
-        MutableSharedFlow<List<Node>>(replay = 1, extraBufferCapacity = 1)
+    /**
+     * StateFlow holding the latest keyboard nodes and the IME bounds they were
+     * captured against. Conflated by equality, so identical re-emissions are
+     * no-ops. Late subscribers always see the current value via `.value`.
+     */
+    private val _keyboardNodesState = MutableStateFlow(KeyboardNodesState())
+    val keyboardNodesState: StateFlow<KeyboardNodesState> = _keyboardNodesState.asStateFlow()
 
     /**
      * Provides a Flow to observe changes in the list of actionable nodes.
@@ -57,13 +64,6 @@ object NodeExaminer {
      * @return A Flow emitting lists of Node objects whenever there's an update.
      */
     fun getActionableNodesFlow(): Flow<List<Node>> = actionableNodesFlow.asSharedFlow()
-
-    /**
-     * Provides a Flow to observe changes in the list of keyboard nodes.
-     *
-     * @return A Flow emitting lists of Node objects whenever there's an update.
-     */
-    fun getKeyboardNodesFlow(): Flow<List<Node>> = keyboardNodesFlow.asSharedFlow()
 
     /**
      * Initiates the process of finding and updating the list of nodes.
@@ -333,12 +333,17 @@ object NodeExaminer {
     }
 
     /**
-     * Updates the keyboard nodes and emits them to the keyboardNodesFlow.
+     * Updates the keyboard nodes state. Bounds are pulled from KeyboardManager,
+     * which NodeUpdateCoordinator refreshes via KeyboardBridge before this
+     * function runs, so the snapshot reflects the current IME.
      *
      * @param nodes The list of nodes to update the keyboard nodes with.
      */
-    private suspend fun updateKeyboardNodes(nodes: List<Node>) {
-        keyboardNodesFlow.emit(nodes)
+    private fun updateKeyboardNodes(nodes: List<Node>) {
+        _keyboardNodesState.value = KeyboardNodesState(
+            nodes = nodes,
+            keyboardBounds = KeyboardManager.keyboardState.value.keyboardBounds
+        )
     }
 
     /**

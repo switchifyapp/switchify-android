@@ -27,8 +27,8 @@ class StartupOrchestrator(
                 }
             }
             serviceScope.launch {
-                NodeExaminer.getKeyboardNodesFlow().collect { nodes ->
-                    scanningManager.updateKeyboardNodes(nodes)
+                NodeExaminer.keyboardNodesState.collect { state ->
+                    scanningManager.updateKeyboardNodes(state.nodes)
                 }
             }
         }
