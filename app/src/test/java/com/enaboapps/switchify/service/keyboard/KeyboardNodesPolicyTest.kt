@@ -1,6 +1,7 @@
 package com.enaboapps.switchify.service.keyboard
 
 import com.enaboapps.switchify.service.techniques.AccessTechnique
+import com.enaboapps.switchify.service.techniques.nodes.KeyboardNodesState
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -74,4 +75,29 @@ class KeyboardNodesPolicyTest {
             )
         )
     }
+
+    @Test
+    fun dropsBatchWhenKeyboardHidden() {
+        // Hidden keyboard with stale (or any) captured nodes — drop regardless.
+        val state = KeyboardState(isVisible = false)
+        val nodes = KeyboardNodesState() // uses default null bounds
+
+        assertTrue(policy.shouldDropAsStale(nodes, state))
+    }
+
+    @Test
+    fun dropsUninitializedBatchWithNoCapturedBounds() {
+        // Visible keyboard but NodeExaminer has not yet produced a batch —
+        // the default KeyboardNodesState (bounds == null) must not leak
+        // through as an empty node update.
+        val state = KeyboardState(isVisible = true)
+        val nodes = KeyboardNodesState() // default: no nodes, no bounds
+
+        assertTrue(policy.shouldDropAsStale(nodes, state))
+    }
+
+    // Note: the bounds-mismatch and bounds-match cases of shouldDropAsStale
+    // depend on android.graphics.Rect, which throws "Stub!" in pure-JVM unit
+    // tests. Those paths are exercised on device by swapping IMEs while
+    // item-scanning (see the PR test plan).
 }
