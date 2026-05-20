@@ -21,6 +21,7 @@ import com.enaboapps.switchify.service.techniques.AccessTechnique
 import com.enaboapps.switchify.service.trial.ServiceTrialManager
 import com.enaboapps.switchify.service.trial.ServiceTrialOverlay
 import com.enaboapps.switchify.service.utils.DeviceLockObserver
+import com.enaboapps.switchify.service.window.ReplyDrafterHUD
 import com.enaboapps.switchify.service.window.SwitchifyAccessibilityWindow
 import com.enaboapps.switchify.utils.LogEvent
 import com.enaboapps.switchify.utils.Logger
@@ -98,6 +99,7 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
 
         GlobalActionManager.init(this)
         AudioActionManager.init(this)
+        ReplyDrafterHUD.instance.setup(this)
 
         ServiceCore.init(this)
 
@@ -247,6 +249,7 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
         ServiceCore.cleanup()
         GlobalActionManager.cleanup()
         AudioActionManager.cleanup()
+        ReplyDrafterHUD.instance.dispose()
 
         SwitchifyLifecycleOwner.getInstance().handleLifecycleEvent(Lifecycle.Event.ON_STOP)
 

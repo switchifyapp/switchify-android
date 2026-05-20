@@ -225,6 +225,13 @@
     <string name="system_power_dialog">Power Dialog</string>
     <string name="system_assistant">Open Assistant</string>
     <string name="system_screenshot">Take Screenshot</string>
+    <string name="reply_drafter">Reply Drafter</string>
+    <string name="menu_item_reply_drafter_description">Draft quick replies using AI</string>
+    <string name="reply_drafter_starting">Starting Reply Drafter...</string>
+    <string name="reply_drafter_processing">Processing screenshot with AI...</string>
+    <string name="reply_drafter_success">Replies generated!</string>
+    <string name="reply_drafter_screenshot_failed">Failed to capture screenshot</string>
+    <string name="reply_drafter_llm_failed">AI failed to generate replies</string>
 
     <!-- Media Actions -->
     <string name="action_volume_control">Volume Control</string>

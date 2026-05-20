@@ -18,7 +18,7 @@ app-update = "2.1.0"
 revenuecat = "10.5.0"
 camerax = "1.6.1"
 accompanist = "0.37.3"
-mediapipe = "0.10.29"
+mediapipe = "0.10.35"
 room = "2.8.4"
 ksp = "2.3.4"
 reorderable = "3.1.0"
@@ -58,6 +58,7 @@ androidx-camera-lifecycle = { group = "androidx.camera", name = "camera-lifecycl
 androidx-camera-view = { group = "androidx.camera", name = "camera-view", version.ref = "camerax" }
 accompanist-permissions = { group = "com.google.accompanist", name = "accompanist-permissions", version.ref = "accompanist" }
 mediapipe-tasks-vision = { group = "com.google.mediapipe", name = "tasks-vision", version.ref = "mediapipe" }
+mediapipe-tasks-genai = { group = "com.google.mediapipe", name = "tasks-genai", version.ref = "mediapipe" }
 room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
 room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
 room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
