@@ -2,13 +2,14 @@ package com.enaboapps.switchify.screens.settings.aimodel
 
 import android.content.Context
 import androidx.lifecycle.LiveData
-import androidx.lifecycle.MediatorLiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
-import androidx.work.WorkInfo
+import androidx.lifecycle.viewModelScope
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
-import com.enaboapps.switchify.service.llm.model.ModelDownloadManager
+import com.enaboapps.switchify.service.llm.model.ModelDownloader
 import com.enaboapps.switchify.service.llm.model.ModelManager
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 
 sealed interface ModelDownloadUiState {
     data object NotDownloaded : ModelDownloadUiState
@@ -20,17 +21,13 @@ sealed interface ModelDownloadUiState {
 class ModelDownloadViewModel(context: Context) : ViewModel() {
     private val appContext = context.applicationContext
     private val modelManager = ModelManager(appContext)
+    private val downloader = ModelDownloader(appContext)
     private val preferenceManager = PreferenceManager(appContext)
 
-    private val workInfos = ModelDownloadManager.getWorkInfoLiveData(appContext)
-    private val refreshTrigger = MutableLiveData(Unit)
+    private val _uiState = MutableLiveData(idleState())
+    val uiState: LiveData<ModelDownloadUiState> = _uiState
 
-    val uiState: LiveData<ModelDownloadUiState> =
-        MediatorLiveData<ModelDownloadUiState>().apply {
-            val update = { value = deriveState(workInfos.value.orEmpty()) }
-            addSource(workInfos) { update() }
-            addSource(refreshTrigger) { update() }
-        }
+    private var downloadJob: Job? = null
 
     fun hasEnoughFreeSpace(): Boolean = modelManager.hasEnoughFreeSpace()
 
@@ -40,31 +37,29 @@ class ModelDownloadViewModel(context: Context) : ViewModel() {
 
     fun startDownload() {
         if (!isTermsAccepted()) return
-        ModelDownloadManager.enqueue(appContext)
+        if (downloadJob?.isActive == true) return
+        downloadJob = viewModelScope.launch {
+            _uiState.value = ModelDownloadUiState.Downloading(0L, 0L)
+            val success = downloader.download { downloaded, total ->
+                _uiState.postValue(ModelDownloadUiState.Downloading(downloaded, total))
+            }
+            _uiState.value =
+                if (success) ModelDownloadUiState.Ready else ModelDownloadUiState.Failed
+        }
     }
 
     fun cancelDownload() {
-        ModelDownloadManager.cancel(appContext)
+        downloadJob?.cancel()
+        downloadJob = null
+        _uiState.value = idleState()
     }
 
     fun deleteModel() {
         modelManager.deleteModel()
-        refreshTrigger.value = Unit
+        _uiState.value = idleState()
     }
 
-    private fun deriveState(infos: List<WorkInfo>): ModelDownloadUiState {
-        if (modelManager.isModelReady()) return ModelDownloadUiState.Ready
-        val latest = infos.lastOrNull()
-        return when (latest?.state) {
-            WorkInfo.State.ENQUEUED,
-            WorkInfo.State.RUNNING,
-            WorkInfo.State.BLOCKED -> ModelDownloadUiState.Downloading(
-                latest.progress.getLong(ModelDownloadManager.KEY_PROGRESS_BYTES, 0L),
-                latest.progress.getLong(ModelDownloadManager.KEY_PROGRESS_TOTAL, 0L)
-            )
-
-            WorkInfo.State.FAILED -> ModelDownloadUiState.Failed
-            else -> ModelDownloadUiState.NotDownloaded
-        }
-    }
+    private fun idleState(): ModelDownloadUiState =
+        if (modelManager.isModelReady()) ModelDownloadUiState.Ready
+        else ModelDownloadUiState.NotDownloaded
 }
