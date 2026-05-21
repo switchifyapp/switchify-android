@@ -46,7 +46,8 @@ class MenuPage(
     private val titleResId: Int? = null,
     private val pageIndex: Int,
     private val maxPageIndex: Int,
-    val onMenuPageChanged: (pageIndex: Int) -> Unit
+    val onMenuPageChanged: (pageIndex: Int) -> Unit,
+    private val layoutType: MenuLayoutType = MenuLayoutType.RADIAL
 ) {
     private var prevPageMenuItem: MenuItem? = null
     private var nextPageMenuItem: MenuItem? = null
@@ -86,6 +87,8 @@ class MenuPage(
     fun getMenuLayout(isTransparent: Boolean): ViewGroup {
         prevPageMenuItem = null
         nextPageMenuItem = null
+
+        if (layoutType == MenuLayoutType.LINEAR) return buildLinearLayout(isTransparent)
 
         val screenWidthPx = ScreenUtils.getWidth(context)
         val screenHeightPx = ScreenUtils.getHeight(context)
@@ -134,7 +137,38 @@ class MenuPage(
             MenuPageBackground(isTransparent) {
                 MenuPageBody(
                     title = titleText,
-                    ring = ring,
+                    content = ring,
+                    navRow = if (showNavRow) navRow else null
+                )
+            }
+        }
+    }
+
+    /**
+     * Linear list variant of [getMenuLayout]: content items stack vertically as
+     * full-width text rows, with the same bottom nav row.
+     */
+    private fun buildLinearLayout(isTransparent: Boolean): ViewGroup {
+        val smallItemSize = MenuSizeManager.getSmallItemSize(context)
+        val screenWidthPx = ScreenUtils.getWidth(context)
+        val edgeInsetPx = ScreenUtils.dpToPx(context, 40)
+        val maxWidthPx = minOf(
+            screenWidthPx - edgeInsetPx,
+            ScreenUtils.dpToPx(context, 560)
+        ).coerceAtLeast(0)
+
+        val list = LinearMenuLayout(context, maxWidthPx)
+        contentItems.forEach { it.inflateAsRow(list) }
+
+        val navRow = buildNavRow(smallItemSize)
+        val showNavRow = navRow.childCount > 0
+        val titleText = titleResId?.let { context.getString(it) }
+
+        return AccessibilityComposeView(context) {
+            MenuPageBackground(isTransparent) {
+                MenuPageBody(
+                    title = titleText,
+                    content = list,
                     navRow = if (showNavRow) navRow else null
                 )
             }
@@ -237,16 +271,16 @@ private fun MenuPageBackground(
 }
 
 /**
- * Vertical stack of the optional title, the radial ring, and the optional
- * nav row. The highlighted item's name and description are rendered
- * separately by [MenuHighlightHud] at the top of the screen; the title here
- * is the static menu identity (e.g. "Main Menu", "Tap and Hold") so the user
- * always knows which menu they're in.
+ * Vertical stack of the optional title, the menu content (radial ring or
+ * linear list), and the optional nav row. The highlighted item's name and
+ * description are rendered separately by [MenuHighlightHud] at the top of the
+ * screen; the title here is the static menu identity (e.g. "Main Menu", "Tap
+ * and Hold") so the user always knows which menu they're in.
  */
 @Composable
 private fun MenuPageBody(
     title: String?,
-    ring: RadialMenuLayout,
+    content: ViewGroup,
     navRow: LinearLayout?
 ) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -262,7 +296,7 @@ private fun MenuPageBody(
                 modifier = Modifier.padding(bottom = 12.dp)
             )
         }
-        AndroidView(factory = { ring })
+        AndroidView(factory = { content })
         if (navRow != null) {
             AndroidView(
                 factory = { navRow },

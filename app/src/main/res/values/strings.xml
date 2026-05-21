@@ -1071,4 +1071,14 @@
     <string name="reply_drafter_not_configured">Model download is not available yet.</string>
     <string name="reply_drafter_download_channel">Reply Drafter model download</string>
     <string name="reply_drafter_download_notification">Downloading the Reply Drafter model</string>
+    <string name="menu_item_reply_suggestion_description">Insert this reply into the text field</string>
+    <string name="screen_title_gemma_terms">Gemma Terms</string>
+    <string name="gemma_terms_intro_title">Gemma Terms of Use</string>
+    <string name="gemma_terms_intro">Reply Drafter uses Google\'s Gemma AI model, which runs entirely on your device. To download the model you must agree to Google\'s Gemma Terms of Use and Prohibited Use Policy.</string>
+    <string name="gemma_terms_view_terms">View Gemma Terms of Use</string>
+    <string name="gemma_terms_view_policy">View Gemma Prohibited Use Policy</string>
+    <string name="gemma_terms_accept">I agree to the Gemma terms</string>
+    <string name="gemma_terms_review">Review Gemma terms</string>
+    <string name="gemma_terms_link">Gemma terms</string>
+    <string name="gemma_built_with">Built with Gemma</string>
 </resources>

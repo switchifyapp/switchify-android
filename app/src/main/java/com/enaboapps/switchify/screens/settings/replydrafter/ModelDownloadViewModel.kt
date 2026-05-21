@@ -6,6 +6,7 @@ import androidx.lifecycle.MediatorLiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.work.WorkInfo
+import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.service.llm.model.ModelDownloadManager
 import com.enaboapps.switchify.service.llm.model.ModelManager
 import com.enaboapps.switchify.service.llm.model.ReplyDrafterModelConfig
@@ -20,6 +21,7 @@ sealed interface ModelDownloadUiState {
 class ModelDownloadViewModel(context: Context) : ViewModel() {
     private val appContext = context.applicationContext
     private val modelManager = ModelManager(appContext)
+    private val preferenceManager = PreferenceManager(appContext)
 
     val downloadConfigured: Boolean = ReplyDrafterModelConfig.isDownloadConfigured()
 
@@ -35,7 +37,12 @@ class ModelDownloadViewModel(context: Context) : ViewModel() {
 
     fun hasEnoughFreeSpace(): Boolean = modelManager.hasEnoughFreeSpace()
 
+    fun isTermsAccepted(): Boolean = preferenceManager.getBooleanValue(
+        PreferenceManager.PREFERENCE_KEY_REPLY_DRAFTER_GEMMA_TERMS_ACCEPTED
+    )
+
     fun startDownload() {
+        if (!isTermsAccepted()) return
         ModelDownloadManager.enqueue(appContext)
     }
 

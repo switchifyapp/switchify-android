@@ -60,13 +60,25 @@ fun ReplyDrafterSettingsScreen(navController: NavController) {
                 )
             }
 
-            else -> ModelStateContent(uiState, viewModel)
+            else -> ModelStateContent(uiState, viewModel, navController)
         }
+
+        Spacer(modifier = Modifier.height(Dimens.spaceL))
+        Text(
+            text = stringResource(R.string.gemma_built_with),
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.padding(horizontal = Dimens.spaceM)
+        )
+        ActionButton(
+            textResId = R.string.gemma_terms_link,
+            onClick = { navController.navigate(NavigationRoute.GemmaTerms.name) },
+            type = ActionButtonType.SECONDARY
+        )
     }
 }
 
 @Composable
-private fun ModelStateContent(state: ModelDownloadUiState, viewModel: ModelDownloadViewModel) {
+private fun ModelStateContent(state: ModelDownloadUiState, viewModel: ModelDownloadViewModel, navController: NavController) {
     var showDeleteDialog by remember { mutableStateOf(false) }
 
     when (state) {
@@ -128,6 +140,11 @@ private fun ModelStateContent(state: ModelDownloadUiState, viewModel: ModelDownl
 
             !viewModel.hasEnoughFreeSpace() ->
                 StatusText(R.string.reply_drafter_not_enough_space)
+
+            !viewModel.isTermsAccepted() -> ActionButton(
+                textResId = R.string.gemma_terms_review,
+                onClick = { navController.navigate(NavigationRoute.GemmaTerms.name) }
+            )
 
             else -> ActionButton(
                 textResId = R.string.reply_drafter_download_button,

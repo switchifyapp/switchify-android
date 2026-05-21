@@ -7,9 +7,9 @@ import android.util.Log
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.service.core.SwitchifyAccessibilityService
 import com.enaboapps.switchify.service.llm.model.ModelManager
+import com.enaboapps.switchify.service.menu.MenuManager
 import com.enaboapps.switchify.service.screenshot.ScreenshotManager
 import com.enaboapps.switchify.service.window.MessageSeverity
-import com.enaboapps.switchify.service.window.ReplyDrafterHUD
 import com.enaboapps.switchify.service.window.ServiceMessageHUD
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -106,7 +106,9 @@ object ReplyDrafterManager {
                         ServiceMessageHUD.Time.SHORT,
                         MessageSeverity.Success
                     )
-                    ReplyDrafterHUD.instance.showSuggestions(suggestions)
+                    service.getServiceScope().launch(Dispatchers.Main) {
+                        MenuManager.getInstance().openReplyDrafterMenu(suggestions)
+                    }
                 }
             },
             onError = { error ->

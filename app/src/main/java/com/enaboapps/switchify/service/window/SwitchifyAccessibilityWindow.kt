@@ -203,7 +203,6 @@ class SwitchifyAccessibilityWindow private constructor() : LifecycleOwner, Saved
     fun onServiceDestroy() {
         ServiceMessageHUD.instance.dispose()
         MenuHighlightHud.instance.dispose()
-        ReplyDrafterHUD.instance.dispose()
         LlmManager.close()
         cleanup()
         isVisible = false // Ensure the flag is set to false for the next time the window is created
