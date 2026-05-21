@@ -1,4 +1,4 @@
-package com.enaboapps.switchify.screens.settings.replydrafter
+package com.enaboapps.switchify.screens.settings.aimodel
 
 import android.content.Context
 import androidx.lifecycle.LiveData
@@ -35,7 +35,7 @@ class ModelDownloadViewModel(context: Context) : ViewModel() {
     fun hasEnoughFreeSpace(): Boolean = modelManager.hasEnoughFreeSpace()
 
     fun isTermsAccepted(): Boolean = preferenceManager.getBooleanValue(
-        PreferenceManager.PREFERENCE_KEY_REPLY_DRAFTER_GEMMA_TERMS_ACCEPTED
+        PreferenceManager.PREFERENCE_KEY_GEMMA_TERMS_ACCEPTED
     )
 
     fun startDownload() {

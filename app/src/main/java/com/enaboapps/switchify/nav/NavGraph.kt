@@ -16,8 +16,8 @@ import com.enaboapps.switchify.screens.paywall.AppPaywallScreen
 import com.enaboapps.switchify.screens.settings.CameraSettingsScreen
 import com.enaboapps.switchify.screens.settings.HeadControlSettingsScreen
 import com.enaboapps.switchify.screens.settings.SettingsScreen
-import com.enaboapps.switchify.screens.settings.replydrafter.GemmaTermsScreen
-import com.enaboapps.switchify.screens.settings.replydrafter.ReplyDrafterSettingsScreen
+import com.enaboapps.switchify.screens.settings.aimodel.AiModelScreen
+import com.enaboapps.switchify.screens.settings.aimodel.GemmaTermsScreen
 import com.enaboapps.switchify.screens.settings.gestures.ScrollingSettingsScreen
 import com.enaboapps.switchify.screens.settings.patterns.GesturePatternsScreen
 import com.enaboapps.switchify.screens.settings.scanning.AutoScanSettingsScreen
@@ -146,8 +146,8 @@ fun NavGraph(navController: NavHostController) {
         composable(NavigationRoute.FavouriteApps.name) {
             FavouriteAppsScreen(navController)
         }
-        composable(NavigationRoute.ReplyDrafterSettings.name) {
-            ReplyDrafterSettingsScreen(navController)
+        composable(NavigationRoute.AiModel.name) {
+            AiModelScreen(navController)
         }
         composable(NavigationRoute.GemmaTerms.name) {
             GemmaTermsScreen(navController)

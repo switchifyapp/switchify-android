@@ -124,18 +124,18 @@ fun GeneralSettingsTab(menuSettingsModel: MenuSettingsModel, navController: NavC
                 route = NavigationRoute.Stats.name
             )
         }
+        Section(titleResId = R.string.settings_section_ai_model) {
+            NavRouteLink(
+                titleResId = R.string.settings_title_ai_model,
+                summaryResId = R.string.settings_summary_ai_model,
+                navController = navController,
+                route = NavigationRoute.AiModel.name
+            )
+        }
         InputSection(navController)
         BehaviourSection(navController)
         GesturesSettingsSection(navController)
         MenuSection(menuSettingsModel, navController)
-        Section(titleResId = R.string.settings_section_reply_drafter) {
-            NavRouteLink(
-                titleResId = R.string.settings_title_reply_drafter,
-                summaryResId = R.string.settings_summary_reply_drafter,
-                navController = navController,
-                route = NavigationRoute.ReplyDrafterSettings.name
-            )
-        }
     }
 }
 

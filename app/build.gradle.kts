@@ -71,8 +71,8 @@ android {
         )
         buildConfigField(
             "String",
-            "REPLY_DRAFTER_MODEL_URL",
-            "\"${configValue("REPLY_DRAFTER_MODEL_URL", "replyDrafter.modelUrl")}\""
+            "AI_MODEL_URL",
+            "\"${configValue("AI_MODEL_URL", "aiModel.url")}\""
         )
     }
 

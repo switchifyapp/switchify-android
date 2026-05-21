@@ -1,4 +1,4 @@
-package com.enaboapps.switchify.screens.settings.replydrafter
+package com.enaboapps.switchify.screens.settings.aimodel
 
 import android.os.Build
 import androidx.compose.foundation.layout.Spacer
@@ -33,29 +33,29 @@ import com.enaboapps.switchify.theme.Dimens
 private const val BYTES_PER_MB = 1024L * 1024L
 
 @Composable
-fun ReplyDrafterSettingsScreen(navController: NavController) {
+fun AiModelScreen(navController: NavController) {
     val context = LocalContext.current
     val viewModel: ModelDownloadViewModel = viewModel { ModelDownloadViewModel(context) }
     val uiState by viewModel.uiState.observeAsState(ModelDownloadUiState.NotDownloaded)
 
     BaseView(
-        titleResId = R.string.screen_title_reply_drafter,
+        titleResId = R.string.screen_title_ai_model,
         navController = navController
     ) {
         InfoCard(
-            titleResId = R.string.settings_title_reply_drafter,
-            descriptionResId = R.string.reply_drafter_model_description
+            titleResId = R.string.settings_title_ai_model,
+            descriptionResId = R.string.ai_model_description
         )
         Spacer(modifier = Modifier.height(Dimens.spaceL))
 
         when {
             Build.VERSION.SDK_INT < Build.VERSION_CODES.R ->
-                StatusText(R.string.reply_drafter_unsupported_os)
+                StatusText(R.string.ai_model_unsupported_os)
 
             !IAPHandler.isPro() -> {
-                StatusText(R.string.reply_drafter_pro_required)
+                StatusText(R.string.ai_model_pro_required)
                 ActionButton(
-                    textResId = R.string.reply_drafter_get_pro,
+                    textResId = R.string.ai_model_get_pro,
                     onClick = { navController.navigate(NavigationRoute.Paywall.name) }
                 )
             }
@@ -83,16 +83,16 @@ private fun ModelStateContent(state: ModelDownloadUiState, viewModel: ModelDownl
 
     when (state) {
         is ModelDownloadUiState.Ready -> {
-            StatusText(R.string.reply_drafter_ready)
+            StatusText(R.string.ai_model_ready)
             ActionButton(
-                textResId = R.string.reply_drafter_delete_model,
+                textResId = R.string.ai_model_delete_model,
                 onClick = { showDeleteDialog = true },
                 type = ActionButtonType.DESTRUCTIVE
             )
         }
 
         is ModelDownloadUiState.Downloading -> {
-            StatusText(R.string.reply_drafter_downloading)
+            StatusText(R.string.ai_model_downloading)
             Spacer(modifier = Modifier.height(Dimens.spaceS))
             if (state.totalBytes > 0L) {
                 LinearProgressIndicator(
@@ -106,7 +106,7 @@ private fun ModelStateContent(state: ModelDownloadUiState, viewModel: ModelDownl
                 Spacer(modifier = Modifier.height(Dimens.spaceXs))
                 Text(
                     text = stringResource(
-                        R.string.reply_drafter_download_progress,
+                        R.string.ai_model_download_progress,
                         state.bytesDownloaded / BYTES_PER_MB,
                         state.totalBytes / BYTES_PER_MB
                     ),
@@ -120,23 +120,23 @@ private fun ModelStateContent(state: ModelDownloadUiState, viewModel: ModelDownl
                 )
             }
             ActionButton(
-                textResId = R.string.reply_drafter_cancel,
+                textResId = R.string.ai_model_cancel,
                 onClick = { viewModel.cancelDownload() },
                 type = ActionButtonType.SECONDARY
             )
         }
 
         is ModelDownloadUiState.Failed -> {
-            StatusText(R.string.reply_drafter_download_failed)
+            StatusText(R.string.ai_model_download_failed)
             ActionButton(
-                textResId = R.string.reply_drafter_retry,
+                textResId = R.string.ai_model_retry,
                 onClick = { viewModel.startDownload() }
             )
         }
 
         is ModelDownloadUiState.NotDownloaded -> when {
             !viewModel.hasEnoughFreeSpace() ->
-                StatusText(R.string.reply_drafter_not_enough_space)
+                StatusText(R.string.ai_model_not_enough_space)
 
             !viewModel.isTermsAccepted() -> ActionButton(
                 textResId = R.string.gemma_terms_review,
@@ -144,7 +144,7 @@ private fun ModelStateContent(state: ModelDownloadUiState, viewModel: ModelDownl
             )
 
             else -> ActionButton(
-                textResId = R.string.reply_drafter_download_button,
+                textResId = R.string.ai_model_download_button,
                 onClick = { viewModel.startDownload() }
             )
         }
@@ -153,19 +153,19 @@ private fun ModelStateContent(state: ModelDownloadUiState, viewModel: ModelDownl
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            title = { Text(stringResource(R.string.reply_drafter_delete_model)) },
-            text = { Text(stringResource(R.string.reply_drafter_delete_confirm)) },
+            title = { Text(stringResource(R.string.ai_model_delete_model)) },
+            text = { Text(stringResource(R.string.ai_model_delete_confirm)) },
             confirmButton = {
                 TextButton(onClick = {
                     showDeleteDialog = false
                     viewModel.deleteModel()
                 }) {
-                    Text(stringResource(R.string.reply_drafter_delete))
+                    Text(stringResource(R.string.ai_model_delete))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteDialog = false }) {
-                    Text(stringResource(R.string.reply_drafter_cancel))
+                    Text(stringResource(R.string.ai_model_cancel))
                 }
             }
         )

@@ -1,4 +1,4 @@
-package com.enaboapps.switchify.screens.settings.replydrafter
+package com.enaboapps.switchify.screens.settings.aimodel
 
 import android.content.Context
 import android.content.Intent
@@ -16,7 +16,7 @@ import com.enaboapps.switchify.components.ActionButton
 import com.enaboapps.switchify.components.ActionButtonType
 import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.InfoCard
-import com.enaboapps.switchify.service.llm.model.ReplyDrafterModelConfig
+import com.enaboapps.switchify.service.llm.model.AiModelConfig
 import com.enaboapps.switchify.theme.Dimens
 
 @Composable
@@ -25,7 +25,7 @@ fun GemmaTermsScreen(navController: NavController) {
     val preferenceManager = remember { PreferenceManager(context) }
     val alreadyAccepted = remember {
         preferenceManager.getBooleanValue(
-            PreferenceManager.PREFERENCE_KEY_REPLY_DRAFTER_GEMMA_TERMS_ACCEPTED
+            PreferenceManager.PREFERENCE_KEY_GEMMA_TERMS_ACCEPTED
         )
     }
 
@@ -40,12 +40,12 @@ fun GemmaTermsScreen(navController: NavController) {
         Spacer(modifier = Modifier.height(Dimens.spaceM))
         ActionButton(
             textResId = R.string.gemma_terms_view_terms,
-            onClick = { openUrl(context, ReplyDrafterModelConfig.GEMMA_TERMS_URL) },
+            onClick = { openUrl(context, AiModelConfig.GEMMA_TERMS_URL) },
             type = ActionButtonType.SECONDARY
         )
         ActionButton(
             textResId = R.string.gemma_terms_view_policy,
-            onClick = { openUrl(context, ReplyDrafterModelConfig.GEMMA_USE_POLICY_URL) },
+            onClick = { openUrl(context, AiModelConfig.GEMMA_USE_POLICY_URL) },
             type = ActionButtonType.SECONDARY
         )
         if (!alreadyAccepted) {
@@ -54,7 +54,7 @@ fun GemmaTermsScreen(navController: NavController) {
                 textResId = R.string.gemma_terms_accept,
                 onClick = {
                     preferenceManager.setBooleanValue(
-                        PreferenceManager.PREFERENCE_KEY_REPLY_DRAFTER_GEMMA_TERMS_ACCEPTED,
+                        PreferenceManager.PREFERENCE_KEY_GEMMA_TERMS_ACCEPTED,
                         true
                     )
                     navController.popBackStack()
