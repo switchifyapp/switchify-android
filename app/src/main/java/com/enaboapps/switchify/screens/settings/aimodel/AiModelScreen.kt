@@ -119,6 +119,12 @@ private fun ModelStateContent(state: ModelDownloadUiState, viewModel: ModelDownl
                         .padding(horizontal = Dimens.spaceM)
                 )
             }
+            Spacer(modifier = Modifier.height(Dimens.spaceS))
+            Text(
+                text = stringResource(R.string.ai_model_keep_screen_open),
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(horizontal = Dimens.spaceM)
+            )
             ActionButton(
                 textResId = R.string.ai_model_cancel,
                 onClick = { viewModel.cancelDownload() },

@@ -171,7 +171,6 @@ dependencies {
     implementation(libs.accompanist.permissions)
     implementation(libs.mediapipe.tasks.vision)
     implementation(libs.mediapipe.tasks.genai)
-    implementation(libs.androidx.work.runtime)
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)
     ksp(libs.room.compiler)

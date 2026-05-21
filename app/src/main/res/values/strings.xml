@@ -1069,8 +1069,7 @@
     <string name="ai_model_download_failed">Download failed. Check your connection and try again.</string>
     <string name="ai_model_pro_required">On-device AI is a Pro feature.</string>
     <string name="ai_model_get_pro">Get Pro</string>
-    <string name="ai_model_download_channel">AI model download</string>
-    <string name="ai_model_download_notification">Downloading the AI model</string>
+    <string name="ai_model_keep_screen_open">Keep this screen open until the download finishes. It pauses if you leave.</string>
     <string name="menu_item_reply_suggestion_description">Insert this reply into the text field</string>
     <string name="screen_title_gemma_terms">Gemma Terms</string>
     <string name="gemma_terms_intro_title">Gemma Terms of Use</string>
