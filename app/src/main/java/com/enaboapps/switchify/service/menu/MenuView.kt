@@ -30,6 +30,9 @@ interface MenuViewListener {
     fun onMenuViewClosed()
 }
 
+/** Suggestion-style linear menus paginate at this many rows per page. */
+private const val LINEAR_ITEMS_PER_PAGE = 6
+
 /**
  * MenuView class responsible for managing and displaying the menu interface.
  * This class handles the creation, display, and navigation of menu pages,
@@ -130,7 +133,11 @@ class MenuView(
      * @param menuItems List of MenuItem objects to be displayed in the menu.
      */
     private fun createMenuPages(menuItems: List<MenuItem>) {
-        val perPage = MenuSizeManager.getRadialItemSize(context).itemsPerRing
+        val perPage = if (menu.getLayoutType() == MenuLayoutType.LINEAR) {
+            LINEAR_ITEMS_PER_PAGE
+        } else {
+            MenuSizeManager.getRadialItemSize(context).itemsPerRing
+        }
         numOfPages = ((menuItems.size + perPage - 1) / perPage).coerceAtLeast(1)
         val titleResId = MenuConstants.getTitleResource(menu.menuId)
         for (i in 0 until numOfPages) {
@@ -147,7 +154,8 @@ class MenuView(
                     titleResId = titleResId,
                     pageIndex = i,
                     maxPageIndex = numOfPages - 1,
-                    onMenuPageChanged = ::onMenuPageChanged
+                    onMenuPageChanged = ::onMenuPageChanged,
+                    layoutType = menu.getLayoutType()
                 )
             )
         }

@@ -69,6 +69,11 @@ android {
             "GOOGLE_WEB_CLIENT_ID",
             "\"${configValue("GOOGLE_WEB_CLIENT_ID", "google.webClientId")}\""
         )
+        buildConfigField(
+            "String",
+            "REPLY_DRAFTER_MODEL_URL",
+            "\"${configValue("REPLY_DRAFTER_MODEL_URL", "replyDrafter.modelUrl")}\""
+        )
     }
 
     // CI-only release signing: activates when UPLOAD_KEYSTORE_PATH points at
@@ -165,6 +170,8 @@ dependencies {
     implementation(libs.androidx.camera.view)
     implementation(libs.accompanist.permissions)
     implementation(libs.mediapipe.tasks.vision)
+    implementation(libs.mediapipe.tasks.genai)
+    implementation(libs.androidx.work.runtime)
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)
     ksp(libs.room.compiler)

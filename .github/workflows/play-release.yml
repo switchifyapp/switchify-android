@@ -51,6 +51,7 @@ jobs:
           SUPABASE_URL:             ${{ secrets.SUPABASE_URL }}
           SUPABASE_ANON_KEY:        ${{ secrets.SUPABASE_ANON_KEY }}
           GOOGLE_WEB_CLIENT_ID:     ${{ secrets.GOOGLE_WEB_CLIENT_ID }}
+          REPLY_DRAFTER_MODEL_URL:  ${{ secrets.REPLY_DRAFTER_MODEL_URL }}
         run: ./gradlew bundleRelease --no-daemon
 
       # Single upload that targets one or more Play tracks. Prereleases

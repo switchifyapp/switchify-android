@@ -1,20 +1,24 @@
 package com.enaboapps.switchify.service.menu
 
 import android.view.ViewGroup
+import android.widget.LinearLayout
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -23,6 +27,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -124,6 +129,32 @@ class MenuItem(
             val heightPx = ScreenUtils.dpToPx(context, menuSize.height.value.toInt())
 
             view.layoutParams = ViewGroup.LayoutParams(widthPx, heightPx)
+            parent.addView(view)
+        }
+    }
+
+    /**
+     * Inflate the menu item as a full-width text row for a linear menu. The row
+     * shows the resolved label text; selection runs the same [select].
+     */
+    fun inflateAsRow(parent: ViewGroup) {
+        val context = parent.context
+        val rowText = if (labelResource != null) {
+            Resources.getString(labelResource)
+        } else {
+            userProvidedText
+        }
+        composeView = AccessibilityComposeView(context) {
+            LinearMenuItemRow(text = rowText, onClick = { select() })
+        }
+        composeView?.let { view ->
+            view.layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).also {
+                val gap = ScreenUtils.dpToPx(context, 4)
+                it.setMargins(0, gap, 0, gap)
+            }
             parent.addView(view)
         }
     }
@@ -360,6 +391,26 @@ private fun RegularMenuItem(
         // Instead the currently highlighted ring item's label is shown in the
         // ring centre by [MenuPage.CenterLabelOverlay], which has room to wrap
         // and is exactly where the scanning user's eye is focused.
+    }
+}
+
+@Composable
+private fun LinearMenuItemRow(text: String?, onClick: () -> Unit) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.primaryContainer,
+        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+    ) {
+        Text(
+            text = text ?: "",
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+            style = MaterialTheme.typography.bodyLarge,
+            maxLines = 3,
+            overflow = TextOverflow.Ellipsis
+        )
     }
 }
 

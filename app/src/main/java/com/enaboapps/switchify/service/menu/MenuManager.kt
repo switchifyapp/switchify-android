@@ -14,6 +14,7 @@ import com.enaboapps.switchify.service.menu.menus.gestures.PinchGesturesMenu
 import com.enaboapps.switchify.service.menu.menus.main.MainMenu
 import com.enaboapps.switchify.service.menu.menus.media.MediaControlMenu
 import com.enaboapps.switchify.service.menu.menus.favouriteapps.FavouriteAppsMenu
+import com.enaboapps.switchify.service.menu.menus.replydrafter.ReplyDrafterMenu
 import com.enaboapps.switchify.service.menu.menus.scroll.ScrollMenu
 import com.enaboapps.switchify.service.menu.menus.settings.SettingsMenu
 import com.enaboapps.switchify.service.menu.menus.system.DeviceMenu
@@ -225,6 +226,14 @@ class MenuManager {
     fun openFavouriteAppsMenu() {
         val favouriteAppsMenu = FavouriteAppsMenu(accessibilityService!!)
         openMenu(favouriteAppsMenu.build())
+    }
+
+    /**
+     * This function opens the Reply Drafter suggestions menu
+     */
+    fun openReplyDrafterMenu(suggestions: List<String>) {
+        val replyDrafterMenu = ReplyDrafterMenu(accessibilityService!!, suggestions)
+        openMenu(replyDrafterMenu.build())
     }
 
     /**
