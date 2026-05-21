@@ -12,7 +12,7 @@ object ReplyDrafterModelConfig {
     // The hosted artifact's exact byte size. Enables download progress, the
     // free-space precheck, and the integrity check. Checks that depend on it
     // are skipped while it is 0.
-    const val EXPECTED_SIZE_BYTES = 0L
+    const val EXPECTED_SIZE_BYTES = 3136226711L
 
     // Optional lowercase-hex SHA-256 of the hosted artifact. Integrity check is
     // skipped while it is blank.

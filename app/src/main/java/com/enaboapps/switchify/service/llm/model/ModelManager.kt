@@ -21,10 +21,6 @@ class ModelManager(context: Context) {
     }
 
     fun isModelReady(): Boolean {
-        val downloaded = preferenceManager.getBooleanValue(
-            PreferenceManager.PREFERENCE_KEY_REPLY_DRAFTER_MODEL_DOWNLOADED
-        )
-        if (!downloaded) return false
         val file = getModelFile()
         if (!file.exists() || file.length() == 0L) return false
         val expected = ReplyDrafterModelConfig.EXPECTED_SIZE_BYTES
