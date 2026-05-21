@@ -54,7 +54,6 @@ class ModelDownloadWorker(
             if (targetFile.exists()) targetFile.delete()
             if (!partFile.renameTo(targetFile)) return@withContext Result.failure()
 
-            modelManager.markModelReady()
             Result.success()
         } catch (e: CancellationException) {
             throw e

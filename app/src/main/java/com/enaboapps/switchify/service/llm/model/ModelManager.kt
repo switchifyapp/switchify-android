@@ -1,13 +1,11 @@
 package com.enaboapps.switchify.service.llm.model
 
 import android.content.Context
-import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import java.io.File
 
 class ModelManager(context: Context) {
 
     private val appContext = context.applicationContext
-    private val preferenceManager = PreferenceManager(appContext)
 
     fun getModelDir(): File = File(appContext.filesDir, ReplyDrafterModelConfig.MODEL_SUBDIR)
 
@@ -29,32 +27,9 @@ class ModelManager(context: Context) {
 
     fun getModelFileIfReady(): File? = getModelFile().takeIf { isModelReady() }
 
-    fun markModelReady() {
-        preferenceManager.setStringValue(
-            PreferenceManager.PREFERENCE_KEY_REPLY_DRAFTER_MODEL_PATH,
-            getModelFile().absolutePath
-        )
-        preferenceManager.setBooleanValue(
-            PreferenceManager.PREFERENCE_KEY_REPLY_DRAFTER_MODEL_DOWNLOADED,
-            true
-        )
-    }
-
-    fun clearModelState() {
-        preferenceManager.setBooleanValue(
-            PreferenceManager.PREFERENCE_KEY_REPLY_DRAFTER_MODEL_DOWNLOADED,
-            false
-        )
-        preferenceManager.setStringValue(
-            PreferenceManager.PREFERENCE_KEY_REPLY_DRAFTER_MODEL_PATH,
-            ""
-        )
-    }
-
     fun deleteModel() {
         getModelFile().delete()
         getPartFile().delete()
-        clearModelState()
     }
 
     fun hasEnoughFreeSpace(): Boolean {
