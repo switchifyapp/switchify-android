@@ -53,8 +53,11 @@ object ReplyDrafterManager {
             saveToGallery = false,
             callback = object : ScreenshotManager.ScreenshotCallback {
                 override fun onScreenshotTaken(bitmap: Bitmap, timestamp: Long) {
+                    // Copy off the hardware bitmap before its HardwareBuffer is
+                    // released, and into ARGB_8888 as MediaPipe's addImage requires.
+                    val image = bitmap.copy(Bitmap.Config.ARGB_8888, false) ?: bitmap
                     service.getServiceScope().launch(Dispatchers.Default) {
-                        processScreenshot(service, bitmap, modelFile.absolutePath)
+                        processScreenshot(service, image, modelFile.absolutePath)
                     }
                 }
 
