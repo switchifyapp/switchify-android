@@ -21,6 +21,8 @@
         tools:ignore="ProtectedPermissions" /> <!-- Required for recent apps -->
     <uses-permission android:name="com.google.android.gms.permission.AD_ID" /> <!-- Required for advertising identifier access -->
     <uses-permission android:name="android.permission.WAKE_LOCK" /> <!-- Required for camera service wake lock -->
+    <uses-permission android:name="android.permission.INTERNET" /> <!-- Required for downloading the Reply Drafter model -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" /> <!-- Required for the model download foreground worker -->
 
     <application
         android:name=".SwitchifyApplication"

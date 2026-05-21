@@ -1,12 +1,14 @@
 package com.enaboapps.switchify.service.menu.menus.main
 
 import com.enaboapps.switchify.R
+import com.enaboapps.switchify.backend.iap.IAPHandler
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.service.actions.GlobalActionManager
 import com.enaboapps.switchify.service.core.ServiceCore
 import com.enaboapps.switchify.service.core.SwitchifyAccessibilityService
 import com.enaboapps.switchify.service.gestures.GesturePoint
 import com.enaboapps.switchify.service.keyboard.KeyboardManager
+import com.enaboapps.switchify.service.llm.ReplyDrafterManager
 import com.enaboapps.switchify.service.menu.MenuItem
 import com.enaboapps.switchify.service.menu.MenuManager
 import com.enaboapps.switchify.service.menu.database.MenuConfigurationRepository
@@ -142,6 +144,16 @@ class MainMenuStructure(
                     )
                 }
             } else null,
+            MenuItemRegistry.getMainMenuDefinition("reply_drafter")?.let { def ->
+                MenuItem(
+                    definition = def,
+                    action = {
+                        IAPHandler.runIfProPurchased(accessibilityService) {
+                            ReplyDrafterManager.startDrafting(accessibilityService)
+                        }
+                    }
+                )
+            },
             MenuItemRegistry.getMainMenuDefinition("pause")?.let { def ->
                 MenuItem(
                     definition = def,

@@ -80,6 +80,10 @@ class PreferenceManager(context: Context) {
         const val PREFERENCE_KEY_CAMERA_HEAD_TURN_DOWN_SENSITIVITY =
             "camera_head_turn_down_sensitivity"
 
+        // Reply Drafter (on-device LLM) model state
+        const val PREFERENCE_KEY_REPLY_DRAFTER_MODEL_DOWNLOADED = "reply_drafter_model_downloaded"
+        const val PREFERENCE_KEY_REPLY_DRAFTER_MODEL_PATH = "reply_drafter_model_path"
+
         private const val PREFERENCE_FILE_NAME = "switchify_preferences"
 
         /**
@@ -90,7 +94,9 @@ class PreferenceManager(context: Context) {
             PREFERENCE_KEY_ACCESS_TECHNIQUE,
             PREFERENCE_KEY_SETUP_COMPLETE,
             PREFERENCE_KEY_REVIEW_LAST_SHOWN,
-            PREFERENCE_KEY_TELEMETRY_ENABLED
+            PREFERENCE_KEY_TELEMETRY_ENABLED,
+            PREFERENCE_KEY_REPLY_DRAFTER_MODEL_DOWNLOADED,
+            PREFERENCE_KEY_REPLY_DRAFTER_MODEL_PATH
         )
     }
 

@@ -35,4 +35,5 @@ sealed class NavigationRoute(val name: String) {
     data object SwitchActionSelection : NavigationRoute("SwitchActionSelection")
     data object LongPressActions : NavigationRoute("LongPressActions")
     data object FavouriteApps : NavigationRoute("FavouriteApps")
+    data object ReplyDrafterSettings : NavigationRoute("ReplyDrafterSettings")
 }
