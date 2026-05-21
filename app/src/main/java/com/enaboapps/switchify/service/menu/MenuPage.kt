@@ -151,13 +151,30 @@ class MenuPage(
     private fun buildLinearLayout(isTransparent: Boolean): ViewGroup {
         val smallItemSize = MenuSizeManager.getSmallItemSize(context)
         val screenWidthPx = ScreenUtils.getWidth(context)
+        val screenHeightPx = ScreenUtils.getHeight(context)
         val edgeInsetPx = ScreenUtils.dpToPx(context, 40)
         val maxWidthPx = minOf(
             screenWidthPx - edgeInsetPx,
             ScreenUtils.dpToPx(context, 560)
         ).coerceAtLeast(0)
 
-        val list = LinearMenuLayout(context, maxWidthPx)
+        // Clamp the list height to the space left after the same overhead the
+        // radial path reserves (background padding, nav row + its gap, the
+        // highlight HUD, the title, a safety margin) so the nav row's close
+        // button stays on screen.
+        val willShowNavRow = closeItem != null || hasPagination
+        val backgroundVerticalPadPx = ScreenUtils.dpToPx(context, 36)
+        val listToNavGapPx = ScreenUtils.dpToPx(context, 16)
+        val safetyMarginPx = ScreenUtils.dpToPx(context, 24)
+        val hudReservedPx = MenuHighlightHud.reservedTopPx(context)
+        val titleRowPx = if (titleResId != null) ScreenUtils.dpToPx(context, 36) else 0
+        val navRowHeightPx = if (willShowNavRow) {
+            ScreenUtils.dpToPx(context, smallItemSize.height.value.toInt()) + listToNavGapPx
+        } else 0
+        val maxHeightPx = (screenHeightPx - backgroundVerticalPadPx - navRowHeightPx -
+            safetyMarginPx - hudReservedPx - titleRowPx).coerceAtLeast(0)
+
+        val list = LinearMenuLayout(context, maxWidthPx, maxHeightPx)
         contentItems.forEach { it.inflateAsRow(list) }
 
         val navRow = buildNavRow(smallItemSize)
