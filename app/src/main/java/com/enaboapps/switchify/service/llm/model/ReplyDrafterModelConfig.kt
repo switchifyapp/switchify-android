@@ -1,10 +1,14 @@
 package com.enaboapps.switchify.service.llm.model
 
+import com.enaboapps.switchify.BuildConfig
+
 object ReplyDrafterModelConfig {
-    // The hosted .task model URL. Gemma models require license acceptance, so
-    // this must point at a file the maintainer self-hosts. The in-app download
-    // is disabled until this is set.
-    const val MODEL_URL = "https://tbicuaixtiyyfzhgpklr.supabase.co/storage/v1/object/public/ai-models/gemma-3n-E2B-it-int4.task"
+    // The hosted .task model URL, injected at build time from the
+    // REPLY_DRAFTER_MODEL_URL environment variable (or replyDrafter.modelUrl
+    // in local.properties); the build fails if neither is set. Gemma models
+    // require license acceptance, so this must point at a file the maintainer
+    // self-hosts.
+    val MODEL_URL: String = BuildConfig.REPLY_DRAFTER_MODEL_URL
 
     const val MODEL_FILE_NAME = "gemma-3n-E2B-it-int4.task"
     const val MODEL_SUBDIR = "llm"
@@ -21,6 +25,4 @@ object ReplyDrafterModelConfig {
     // Google's official Gemma legal documents, shown on the terms screen.
     const val GEMMA_TERMS_URL = "https://ai.google.dev/gemma/terms"
     const val GEMMA_USE_POLICY_URL = "https://ai.google.dev/gemma/prohibited_use_policy"
-
-    fun isDownloadConfigured(): Boolean = MODEL_URL.isNotBlank()
 }

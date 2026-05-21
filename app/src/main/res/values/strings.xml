@@ -1068,7 +1068,6 @@
     <string name="reply_drafter_download_failed">Download failed. Check your connection and try again.</string>
     <string name="reply_drafter_pro_required">Reply Drafter is a Pro feature.</string>
     <string name="reply_drafter_get_pro">Get Pro</string>
-    <string name="reply_drafter_not_configured">Model download is not available yet.</string>
     <string name="reply_drafter_download_channel">Reply Drafter model download</string>
     <string name="reply_drafter_download_notification">Downloading the Reply Drafter model</string>
     <string name="menu_item_reply_suggestion_description">Insert this reply into the text field</string>

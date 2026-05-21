@@ -135,9 +135,6 @@ private fun ModelStateContent(state: ModelDownloadUiState, viewModel: ModelDownl
         }
 
         is ModelDownloadUiState.NotDownloaded -> when {
-            !viewModel.downloadConfigured ->
-                StatusText(R.string.reply_drafter_not_configured)
-
             !viewModel.hasEnoughFreeSpace() ->
                 StatusText(R.string.reply_drafter_not_enough_space)
 

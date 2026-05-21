@@ -27,7 +27,6 @@ class ModelDownloadWorker(
 ) : CoroutineWorker(context, params) {
 
     override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
-        if (!ReplyDrafterModelConfig.isDownloadConfigured()) return@withContext Result.failure()
         if (runAttemptCount >= MAX_ATTEMPTS) return@withContext Result.failure()
 
         val modelManager = ModelManager(applicationContext)

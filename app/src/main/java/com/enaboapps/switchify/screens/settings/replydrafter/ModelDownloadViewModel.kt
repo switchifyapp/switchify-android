@@ -9,7 +9,6 @@ import androidx.work.WorkInfo
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.service.llm.model.ModelDownloadManager
 import com.enaboapps.switchify.service.llm.model.ModelManager
-import com.enaboapps.switchify.service.llm.model.ReplyDrafterModelConfig
 
 sealed interface ModelDownloadUiState {
     data object NotDownloaded : ModelDownloadUiState
@@ -22,8 +21,6 @@ class ModelDownloadViewModel(context: Context) : ViewModel() {
     private val appContext = context.applicationContext
     private val modelManager = ModelManager(appContext)
     private val preferenceManager = PreferenceManager(appContext)
-
-    val downloadConfigured: Boolean = ReplyDrafterModelConfig.isDownloadConfigured()
 
     private val workInfos = ModelDownloadManager.getWorkInfoLiveData(appContext)
     private val refreshTrigger = MutableLiveData(Unit)
