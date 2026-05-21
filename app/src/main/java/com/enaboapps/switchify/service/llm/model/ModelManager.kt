@@ -7,12 +7,12 @@ class ModelManager(context: Context) {
 
     private val appContext = context.applicationContext
 
-    fun getModelDir(): File = File(appContext.filesDir, ReplyDrafterModelConfig.MODEL_SUBDIR)
+    fun getModelDir(): File = File(appContext.filesDir, AiModelConfig.MODEL_SUBDIR)
 
-    fun getModelFile(): File = File(getModelDir(), ReplyDrafterModelConfig.MODEL_FILE_NAME)
+    fun getModelFile(): File = File(getModelDir(), AiModelConfig.MODEL_FILE_NAME)
 
     fun getPartFile(): File =
-        File(getModelDir(), ReplyDrafterModelConfig.MODEL_FILE_NAME + ".part")
+        File(getModelDir(), AiModelConfig.MODEL_FILE_NAME + ".part")
 
     fun ensureModelDir() {
         getModelDir().mkdirs()
@@ -21,7 +21,7 @@ class ModelManager(context: Context) {
     fun isModelReady(): Boolean {
         val file = getModelFile()
         if (!file.exists() || file.length() == 0L) return false
-        val expected = ReplyDrafterModelConfig.EXPECTED_SIZE_BYTES
+        val expected = AiModelConfig.EXPECTED_SIZE_BYTES
         return expected <= 0L || file.length() == expected
     }
 
@@ -33,7 +33,7 @@ class ModelManager(context: Context) {
     }
 
     fun hasEnoughFreeSpace(): Boolean {
-        val required = ReplyDrafterModelConfig.EXPECTED_SIZE_BYTES
+        val required = AiModelConfig.EXPECTED_SIZE_BYTES
         if (required <= 0L) return true
         return appContext.filesDir.usableSpace > required + FREE_SPACE_HEADROOM_BYTES
     }

@@ -2,13 +2,12 @@ package com.enaboapps.switchify.service.llm.model
 
 import com.enaboapps.switchify.BuildConfig
 
-object ReplyDrafterModelConfig {
-    // The hosted .task model URL, injected at build time from the
-    // REPLY_DRAFTER_MODEL_URL environment variable (or replyDrafter.modelUrl
-    // in local.properties); the build fails if neither is set. Gemma models
-    // require license acceptance, so this must point at a file the maintainer
-    // self-hosts.
-    val MODEL_URL: String = BuildConfig.REPLY_DRAFTER_MODEL_URL
+object AiModelConfig {
+    // The hosted .task model URL, injected at build time from the AI_MODEL_URL
+    // environment variable (or aiModel.url in local.properties); the build
+    // fails if neither is set. Gemma models require license acceptance, so this
+    // must point at a file the maintainer self-hosts.
+    val MODEL_URL: String = BuildConfig.AI_MODEL_URL
 
     const val MODEL_FILE_NAME = "gemma-3n-E2B-it-int4.task"
     const val MODEL_SUBDIR = "llm"

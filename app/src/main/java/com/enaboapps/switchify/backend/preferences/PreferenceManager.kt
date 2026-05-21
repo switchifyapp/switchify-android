@@ -80,8 +80,8 @@ class PreferenceManager(context: Context) {
         const val PREFERENCE_KEY_CAMERA_HEAD_TURN_DOWN_SENSITIVITY =
             "camera_head_turn_down_sensitivity"
 
-        // Reply Drafter (on-device LLM) Gemma terms acceptance
-        const val PREFERENCE_KEY_REPLY_DRAFTER_GEMMA_TERMS_ACCEPTED =
+        // Gemma terms acceptance for the on-device AI model
+        const val PREFERENCE_KEY_GEMMA_TERMS_ACCEPTED =
             "reply_drafter_gemma_terms_accepted"
 
         private const val PREFERENCE_FILE_NAME = "switchify_preferences"
@@ -95,7 +95,7 @@ class PreferenceManager(context: Context) {
             PREFERENCE_KEY_SETUP_COMPLETE,
             PREFERENCE_KEY_REVIEW_LAST_SHOWN,
             PREFERENCE_KEY_TELEMETRY_ENABLED,
-            PREFERENCE_KEY_REPLY_DRAFTER_GEMMA_TERMS_ACCEPTED
+            PREFERENCE_KEY_GEMMA_TERMS_ACCEPTED
         )
     }
 

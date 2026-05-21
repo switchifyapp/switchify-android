@@ -41,7 +41,7 @@ class ModelDownloadWorker(
             setForeground(buildForegroundInfo(0L, 0L))
             downloadToPartFile(partFile)
 
-            val expectedSize = ReplyDrafterModelConfig.EXPECTED_SIZE_BYTES
+            val expectedSize = AiModelConfig.EXPECTED_SIZE_BYTES
             if (expectedSize > 0L && partFile.length() != expectedSize) {
                 partFile.delete()
                 return@withContext Result.retry()
@@ -64,7 +64,7 @@ class ModelDownloadWorker(
 
     private suspend fun downloadToPartFile(partFile: File) {
         val existing = if (partFile.exists()) partFile.length() else 0L
-        val connection = (URI(ReplyDrafterModelConfig.MODEL_URL).toURL()
+        val connection = (URI(AiModelConfig.MODEL_URL).toURL()
             .openConnection() as HttpURLConnection).apply {
             connectTimeout = TIMEOUT_MS
             readTimeout = TIMEOUT_MS
@@ -81,7 +81,7 @@ class ModelDownloadWorker(
             val totalBytes = if (remaining > 0L) {
                 startAt + remaining
             } else {
-                ReplyDrafterModelConfig.EXPECTED_SIZE_BYTES
+                AiModelConfig.EXPECTED_SIZE_BYTES
             }
 
             RandomAccessFile(partFile, "rw").use { raf ->
@@ -119,7 +119,7 @@ class ModelDownloadWorker(
     }
 
     private fun verifyChecksum(file: File): Boolean {
-        val expected = ReplyDrafterModelConfig.EXPECTED_SHA256
+        val expected = AiModelConfig.EXPECTED_SHA256
         if (expected.isBlank()) return true
         val digest = MessageDigest.getInstance("SHA-256")
         file.inputStream().use { input ->
@@ -137,7 +137,7 @@ class ModelDownloadWorker(
     private fun ensureNotificationChannel() {
         NotificationManagerCompat.from(applicationContext).createNotificationChannel(
             NotificationChannelCompat.Builder(CHANNEL_ID, NotificationManagerCompat.IMPORTANCE_LOW)
-                .setName(applicationContext.getString(R.string.reply_drafter_download_channel))
+                .setName(applicationContext.getString(R.string.ai_model_download_channel))
                 .build()
         )
     }
@@ -145,7 +145,7 @@ class ModelDownloadWorker(
     private fun buildForegroundInfo(downloaded: Long, total: Long): ForegroundInfo {
         val percent = if (total > 0L) ((downloaded * 100L) / total).toInt() else 0
         val notification = NotificationCompat.Builder(applicationContext, CHANNEL_ID)
-            .setContentTitle(applicationContext.getString(R.string.reply_drafter_download_notification))
+            .setContentTitle(applicationContext.getString(R.string.ai_model_download_notification))
             .setSmallIcon(android.R.drawable.stat_sys_download)
             .setOngoing(true)
             .setProgress(100, percent, total <= 0L)
