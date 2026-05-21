@@ -24,16 +24,20 @@ object LlmManager {
 
     private val listMarker = Regex("^(\\d+[.)]|[-*•])\\s*")
 
+    private val lock = Any()
     private var llmInference: LlmInference? = null
     private var loadedModelPath: String? = null
+    private var generating = false
+    private var closeRequested = false
 
+    // Caller must hold [lock].
     private fun initialize(context: Context, modelPath: String): Boolean {
         if (llmInference != null && loadedModelPath == modelPath) return true
         if (!File(modelPath).exists()) {
             Log.e(TAG, "Model file not found at $modelPath")
             return false
         }
-        close()
+        releaseInference()
         return try {
             val options = LlmInference.LlmInferenceOptions.builder()
                 .setModelPath(modelPath)
@@ -45,7 +49,7 @@ object LlmManager {
             true
         } catch (e: Exception) {
             Log.e(TAG, "Failed to initialize LLM", e)
-            close()
+            releaseInference()
             false
         }
     }
@@ -57,13 +61,17 @@ object LlmManager {
         onResult: (List<String>) -> Unit,
         onError: (String) -> Unit
     ) {
-        if (!initialize(context, modelPath)) {
-            onError("Could not load the language model")
-            return
-        }
-        val inference = llmInference ?: run {
-            onError("Could not load the language model")
-            return
+        val inference: LlmInference
+        synchronized(lock) {
+            if (!initialize(context, modelPath)) {
+                onError("Could not load the language model")
+                return
+            }
+            inference = llmInference ?: run {
+                onError("Could not load the language model")
+                return
+            }
+            generating = true
         }
 
         var session: LlmInferenceSession? = null
@@ -88,6 +96,13 @@ object LlmManager {
             } catch (e: Exception) {
                 Log.e(TAG, "Error closing session", e)
             }
+            synchronized(lock) {
+                generating = false
+                if (closeRequested) {
+                    closeRequested = false
+                    releaseInference()
+                }
+            }
         }
     }
 
@@ -109,6 +124,17 @@ object LlmManager {
     }
 
     fun close() {
+        synchronized(lock) {
+            if (generating) {
+                closeRequested = true
+            } else {
+                releaseInference()
+            }
+        }
+    }
+
+    /** Frees the native model. The caller must hold [lock]. */
+    private fun releaseInference() {
         try {
             llmInference?.close()
         } catch (e: Exception) {
