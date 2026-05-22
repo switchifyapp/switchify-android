@@ -6,7 +6,8 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
-import com.enaboapps.switchify.service.llm.AiCoreManager
+import com.enaboapps.switchify.service.llm.AiAvailability
+import com.enaboapps.switchify.service.llm.AiCoreBackend
 import com.enaboapps.switchify.service.llm.model.ModelDownloader
 import com.enaboapps.switchify.service.llm.model.ModelManager
 import kotlinx.coroutines.Job
@@ -35,14 +36,14 @@ class ModelDownloadViewModel(context: Context) : ViewModel() {
 
     init {
         viewModelScope.launch {
-            when (AiCoreManager.availability()) {
-                AiCoreManager.Availability.AVAILABLE ->
+            when (AiCoreBackend.availability(appContext)) {
+                AiAvailability.READY ->
                     _uiState.value = ModelDownloadUiState.BuiltInReady
 
-                AiCoreManager.Availability.DOWNLOADABLE ->
+                AiAvailability.NEEDS_SETUP ->
                     _uiState.value = ModelDownloadUiState.BuiltInSetup
 
-                AiCoreManager.Availability.UNAVAILABLE -> {}
+                AiAvailability.UNAVAILABLE -> {}
             }
         }
     }
@@ -57,7 +58,7 @@ class ModelDownloadViewModel(context: Context) : ViewModel() {
         if (downloadJob?.isActive == true) return
         downloadJob = viewModelScope.launch {
             _uiState.value = ModelDownloadUiState.BuiltInPreparing
-            val ready = AiCoreManager.prepare()
+            val ready = AiCoreBackend.prepare()
             _uiState.value =
                 if (ready) ModelDownloadUiState.BuiltInReady
                 else ModelDownloadUiState.BuiltInSetup

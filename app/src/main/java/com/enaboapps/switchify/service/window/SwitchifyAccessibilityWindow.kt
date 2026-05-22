@@ -15,7 +15,7 @@ import androidx.savedstate.SavedStateRegistry
 import androidx.savedstate.SavedStateRegistryOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import com.enaboapps.switchify.service.core.SwitchifyLifecycleOwner
-import com.enaboapps.switchify.service.llm.LlmManager
+import com.enaboapps.switchify.service.llm.MediaPipeBackend
 import com.enaboapps.switchify.service.utils.ScreenWatcher
 
 /**
@@ -203,7 +203,7 @@ class SwitchifyAccessibilityWindow private constructor() : LifecycleOwner, Saved
     fun onServiceDestroy() {
         ServiceMessageHUD.instance.dispose()
         MenuHighlightHud.instance.dispose()
-        LlmManager.close()
+        MediaPipeBackend.close()
         cleanup()
         isVisible = false // Ensure the flag is set to false for the next time the window is created
         val ctx = getContext() ?: return

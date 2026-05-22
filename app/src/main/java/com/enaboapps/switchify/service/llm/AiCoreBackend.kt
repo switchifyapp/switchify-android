@@ -1,5 +1,6 @@
 package com.enaboapps.switchify.service.llm
 
+import android.content.Context
 import android.graphics.Bitmap
 import android.util.Log
 import com.google.mlkit.genai.common.DownloadStatus
@@ -9,41 +10,48 @@ import com.google.mlkit.genai.prompt.ImagePart
 import com.google.mlkit.genai.prompt.TextPart
 import com.google.mlkit.genai.prompt.generateContentRequest
 
-object AiCoreManager {
-    private const val TAG = "AiCoreManager"
+/** [AiBackend] backed by AICore / Gemini Nano via the ML Kit GenAI Prompt API. */
+object AiCoreBackend : AiBackend {
+    private const val TAG = "AiCoreBackend"
     private const val TOP_K = 40
     private const val TEMPERATURE = 0.7f
 
-    enum class Availability { AVAILABLE, DOWNLOADABLE, UNAVAILABLE }
-
     private val client by lazy { Generation.getClient() }
 
-    suspend fun availability(): Availability =
+    override suspend fun availability(context: Context): AiAvailability =
         try {
             when (client.checkStatus()) {
-                FeatureStatus.AVAILABLE -> Availability.AVAILABLE
-                FeatureStatus.DOWNLOADABLE, FeatureStatus.DOWNLOADING -> Availability.DOWNLOADABLE
-                else -> Availability.UNAVAILABLE
+                FeatureStatus.AVAILABLE -> AiAvailability.READY
+                FeatureStatus.DOWNLOADABLE, FeatureStatus.DOWNLOADING ->
+                    AiAvailability.NEEDS_SETUP
+
+                else -> AiAvailability.UNAVAILABLE
             }
         } catch (e: Exception) {
             Log.e(TAG, "AICore status check failed", e)
-            Availability.UNAVAILABLE
+            AiAvailability.UNAVAILABLE
         }
 
-    suspend fun generateReplySuggestions(bitmap: Bitmap): List<String> {
-        val response = client.generateContent(
-            generateContentRequest(
-                ImagePart(ReplyDrafterPrompt.downscale(bitmap)),
-                TextPart(ReplyDrafterPrompt.PROMPT)
-            ) {
+    override suspend fun generate(context: Context, prompt: String, image: Bitmap?): String {
+        val request = if (image != null) {
+            generateContentRequest(ImagePart(image), TextPart(prompt)) {
                 temperature = TEMPERATURE
                 topK = TOP_K
             }
-        )
-        val text = response.candidates.firstOrNull()?.text.orEmpty()
-        return ReplyDrafterPrompt.parseSuggestions(text)
+        } else {
+            generateContentRequest(TextPart(prompt)) {
+                temperature = TEMPERATURE
+                topK = TOP_K
+            }
+        }
+        val response = client.generateContent(request)
+        return response.candidates.firstOrNull()?.text.orEmpty()
     }
 
+    /**
+     * Trigger AICore's own (small, OS-managed) model download, returning true
+     * once the feature is ready. AICore-specific — not part of [AiBackend].
+     */
     suspend fun prepare(): Boolean =
         try {
             var completed = false
@@ -52,6 +60,7 @@ object AiCoreManager {
                     is DownloadStatus.DownloadCompleted -> completed = true
                     is DownloadStatus.DownloadFailed ->
                         Log.e(TAG, "AICore model download failed")
+
                     else -> {}
                 }
             }
