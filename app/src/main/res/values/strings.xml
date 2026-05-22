@@ -1057,6 +1057,7 @@
     <string name="settings_title_ai_model">On-device AI model</string>
     <string name="settings_summary_ai_model">Download the model that powers Switchify\'s AI features</string>
     <string name="ai_model_description">Switchify\'s AI features run on a model that works entirely on your device, with nothing sent to the cloud. It is a one-time download of roughly 3 GB.</string>
+    <string name="ai_model_builtin_description">Switchify\'s AI features run on a model that works entirely on your device, with nothing sent to the cloud. Your device has this model built in, so there is no large download.</string>
     <string name="ai_model_download_button">Download model</string>
     <string name="ai_model_downloading">Downloading the model</string>
     <string name="ai_model_download_progress">%1$d MB of %2$d MB</string>
@@ -1070,6 +1071,10 @@
     <string name="ai_model_pro_required">On-device AI is a Pro feature.</string>
     <string name="ai_model_get_pro">Get Pro</string>
     <string name="ai_model_keep_screen_open">Keep this screen open until the download finishes. It pauses if you leave.</string>
+    <string name="ai_model_builtin_ready">Your device has built-in AI. No download needed.</string>
+    <string name="ai_model_builtin_setup">Your device supports built-in AI. Set it up to power Switchify\'s AI features with no large download.</string>
+    <string name="ai_model_builtin_setup_button">Set up built-in AI</string>
+    <string name="ai_model_builtin_preparing">Setting up built-in AI...</string>
     <string name="menu_item_reply_suggestion_description">Insert this reply into the text field</string>
     <string name="screen_title_gemma_terms">Gemma Terms</string>
     <string name="gemma_terms_intro_title">Gemma Terms of Use</string>

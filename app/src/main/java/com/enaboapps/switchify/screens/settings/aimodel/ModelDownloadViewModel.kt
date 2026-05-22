@@ -6,6 +6,7 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
+import com.enaboapps.switchify.service.llm.AiCoreManager
 import com.enaboapps.switchify.service.llm.model.ModelDownloader
 import com.enaboapps.switchify.service.llm.model.ModelManager
 import kotlinx.coroutines.Job
@@ -16,6 +17,9 @@ sealed interface ModelDownloadUiState {
     data object Ready : ModelDownloadUiState
     data class Downloading(val bytesDownloaded: Long, val totalBytes: Long) : ModelDownloadUiState
     data object Failed : ModelDownloadUiState
+    data object BuiltInReady : ModelDownloadUiState
+    data object BuiltInSetup : ModelDownloadUiState
+    data object BuiltInPreparing : ModelDownloadUiState
 }
 
 class ModelDownloadViewModel(context: Context) : ViewModel() {
@@ -29,11 +33,36 @@ class ModelDownloadViewModel(context: Context) : ViewModel() {
 
     private var downloadJob: Job? = null
 
+    init {
+        viewModelScope.launch {
+            when (AiCoreManager.availability()) {
+                AiCoreManager.Availability.AVAILABLE ->
+                    _uiState.value = ModelDownloadUiState.BuiltInReady
+
+                AiCoreManager.Availability.DOWNLOADABLE ->
+                    _uiState.value = ModelDownloadUiState.BuiltInSetup
+
+                AiCoreManager.Availability.UNAVAILABLE -> {}
+            }
+        }
+    }
+
     fun hasEnoughFreeSpace(): Boolean = modelManager.hasEnoughFreeSpace()
 
     fun isTermsAccepted(): Boolean = preferenceManager.getBooleanValue(
         PreferenceManager.PREFERENCE_KEY_GEMMA_TERMS_ACCEPTED
     )
+
+    fun prepareBuiltIn() {
+        if (downloadJob?.isActive == true) return
+        downloadJob = viewModelScope.launch {
+            _uiState.value = ModelDownloadUiState.BuiltInPreparing
+            val ready = AiCoreManager.prepare()
+            _uiState.value =
+                if (ready) ModelDownloadUiState.BuiltInReady
+                else ModelDownloadUiState.BuiltInSetup
+        }
+    }
 
     fun startDownload() {
         if (!isTermsAccepted()) return
