@@ -21,13 +21,15 @@ object LlmManager {
         You are helping someone reply in a conversation. The image is a screenshot of
         that conversation. Think through these steps, then write only the reply options.
 
-        1. Read the conversation — its topic, tone, and how serious or casual it is.
+        1. Find the other person's most recent message — this is what the user is
+           replying to, and it matters most. Read the earlier messages only as
+           background for the topic, tone, and relationship.
         2. The messages on the right (often a different colour) are the user's own; the
            messages on the left are from the other person. You are drafting what the
-           user sends next, replying to the other person's most recent message.
-        3. Write 3 to 5 replies the user might realistically want to send — each in the
-           user's own voice, in the same language as the conversation, and ready to
-           send as-is.
+           user sends next.
+        3. Write 3 to 5 replies that each directly respond to that most recent
+           message — in the user's own voice, in the same language as the conversation,
+           and ready to send as-is.
         4. Make the replies genuinely different from each other in stance — for example
            one that accepts or agrees, one that is neutral or asks a question, and one
            that disagrees.
