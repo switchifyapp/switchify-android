@@ -1057,6 +1057,7 @@
     <string name="settings_title_ai_model">On-device AI model</string>
     <string name="settings_summary_ai_model">Download the model that powers Switchify\'s AI features</string>
     <string name="ai_model_description">Switchify\'s AI features run on a model that works entirely on your device, with nothing sent to the cloud. It is a one-time download of roughly 3 GB.</string>
+    <string name="ai_model_builtin_description">Switchify\'s AI features run on a model that works entirely on your device, with nothing sent to the cloud. Your device has this model built in, so there is no large download.</string>
     <string name="ai_model_download_button">Download model</string>
     <string name="ai_model_downloading">Downloading the model</string>
     <string name="ai_model_download_progress">%1$d MB of %2$d MB</string>

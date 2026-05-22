@@ -37,6 +37,9 @@ fun AiModelScreen(navController: NavController) {
     val context = LocalContext.current
     val viewModel: ModelDownloadViewModel = viewModel { ModelDownloadViewModel(context) }
     val uiState by viewModel.uiState.observeAsState(ModelDownloadUiState.NotDownloaded)
+    val isBuiltInAi = uiState is ModelDownloadUiState.BuiltInReady ||
+        uiState is ModelDownloadUiState.BuiltInSetup ||
+        uiState is ModelDownloadUiState.BuiltInPreparing
 
     BaseView(
         titleResId = R.string.screen_title_ai_model,
@@ -44,7 +47,11 @@ fun AiModelScreen(navController: NavController) {
     ) {
         InfoCard(
             titleResId = R.string.settings_title_ai_model,
-            descriptionResId = R.string.ai_model_description
+            descriptionResId = if (isBuiltInAi) {
+                R.string.ai_model_builtin_description
+            } else {
+                R.string.ai_model_description
+            }
         )
         Spacer(modifier = Modifier.height(Dimens.spaceL))
 
@@ -63,9 +70,6 @@ fun AiModelScreen(navController: NavController) {
             else -> ModelStateContent(uiState, viewModel, navController)
         }
 
-        val isBuiltInAi = uiState is ModelDownloadUiState.BuiltInReady ||
-            uiState is ModelDownloadUiState.BuiltInSetup ||
-            uiState is ModelDownloadUiState.BuiltInPreparing
         if (!isBuiltInAi) {
             Spacer(modifier = Modifier.height(Dimens.spaceL))
             Text(
