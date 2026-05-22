@@ -2,7 +2,8 @@ package com.enaboapps.switchify.service.llm
 
 import android.content.Context
 import android.graphics.Bitmap
-import android.util.Log
+import com.enaboapps.switchify.utils.LogEvent
+import com.enaboapps.switchify.utils.Logger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -13,7 +14,6 @@ import kotlinx.coroutines.withContext
  * repeat it — a new AI feature is just an [AiTask] plus a call to [run].
  */
 object OnDeviceAi {
-    private const val TAG = "OnDeviceAi"
     private const val MAX_IMAGE_DIMENSION = 1024
 
     // Ordered by preference; the first backend that is READY runs the task.
@@ -47,7 +47,14 @@ object OnDeviceAi {
             val raw = backend.generate(context, task.prompt, scaled)
             AiResult.Success(task.parse(raw))
         } catch (e: Exception) {
-            Log.e(TAG, "On-device AI task failed", e)
+            Logger.log(
+                LogEvent.OnDeviceAiFailed,
+                data = mapOf(
+                    "backend" to backend::class.simpleName,
+                    "task" to task::class.simpleName
+                ),
+                throwable = e
+            )
             AiResult.Failure(AiFailure.INFERENCE_ERROR)
         }
     }
