@@ -1,15 +1,16 @@
 package com.enaboapps.switchify.service.llm
 
-import android.graphics.Bitmap
-
-object ReplyDrafterPrompt {
+/**
+ * The Reply Drafter [AiTask]: the prompt that asks an on-device model for
+ * conversation replies, and the parser that extracts them from the output.
+ */
+object ReplyDrafterTask : AiTask<List<String>> {
     private const val MAX_SUGGESTIONS = 5
-    private const val MAX_IMAGE_DIMENSION = 1024
 
     private const val REPLIES_OPEN = "<replies>"
     private const val REPLIES_CLOSE = "</replies>"
 
-    val PROMPT = """
+    override val prompt: String = """
         You are helping someone reply in a conversation. The image is a screenshot of
         that conversation. Think through these steps, then write only the reply options.
 
@@ -56,9 +57,9 @@ object ReplyDrafterPrompt {
      * reply tags is kept; everything outside is discarded. Falls back to the
      * whole output when the tags are absent, so the screen is never left empty.
      */
-    fun parseSuggestions(text: String): List<String> {
-        val region = text
-            .substringAfterLast(REPLIES_OPEN, text)
+    override fun parse(raw: String): List<String> {
+        val region = raw
+            .substringAfterLast(REPLIES_OPEN, raw)
             .substringBefore(REPLIES_CLOSE)
         return region.lines()
             .map { line ->
@@ -71,14 +72,5 @@ object ReplyDrafterPrompt {
             .filter { it.isNotEmpty() }
             .distinct()
             .take(MAX_SUGGESTIONS)
-    }
-
-    fun downscale(bitmap: Bitmap): Bitmap {
-        val longestEdge = maxOf(bitmap.width, bitmap.height)
-        if (longestEdge <= MAX_IMAGE_DIMENSION) return bitmap
-        val scale = MAX_IMAGE_DIMENSION.toFloat() / longestEdge
-        val width = (bitmap.width * scale).toInt().coerceAtLeast(1)
-        val height = (bitmap.height * scale).toInt().coerceAtLeast(1)
-        return Bitmap.createScaledBitmap(bitmap, width, height, true)
     }
 }

@@ -4,19 +4,17 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.graphics.Bitmap
-import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.enaboapps.switchify.R
-import com.enaboapps.switchify.service.llm.AiCoreManager
-import com.enaboapps.switchify.service.llm.LlmManager
+import com.enaboapps.switchify.service.llm.AiFailure
+import com.enaboapps.switchify.service.llm.AiResult
+import com.enaboapps.switchify.service.llm.OnDeviceAi
 import com.enaboapps.switchify.service.llm.ReplyDrafterScreenshotHolder
-import com.enaboapps.switchify.service.llm.model.ModelManager
-import kotlinx.coroutines.Dispatchers
+import com.enaboapps.switchify.service.llm.ReplyDrafterTask
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 sealed interface ReplyDrafterUiState {
     data object Loading : ReplyDrafterUiState
@@ -53,58 +51,40 @@ class ReplyDrafterViewModel(context: Context) : ViewModel() {
         }
         _uiState.value = ReplyDrafterUiState.Loading
         viewModelScope.launch {
-            _uiState.value = withContext(Dispatchers.Default) { runInference(image) }
+            _uiState.value = toUiState(OnDeviceAi.run(appContext, ReplyDrafterTask, image))
         }
     }
 
-    // AICore (Gemini Nano) when the device supports it, otherwise MediaPipe with
-    // the downloaded Gemma model.
-    private suspend fun runInference(image: Bitmap): ReplyDrafterUiState {
-        return try {
-            val suggestions =
-                if (AiCoreManager.availability() == AiCoreManager.Availability.AVAILABLE) {
-                    AiCoreManager.generateReplySuggestions(image)
+    private fun toUiState(result: AiResult<List<String>>): ReplyDrafterUiState =
+        when (result) {
+            is AiResult.Success ->
+                if (result.value.isEmpty()) {
+                    ReplyDrafterUiState.Failed(
+                        R.string.reply_drafter_no_suggestions,
+                        canRetry = true
+                    )
                 } else {
-                    val modelPath = ModelManager(appContext).getModelFileIfReady()?.absolutePath
-                        ?: return ReplyDrafterUiState.Failed(
-                            R.string.reply_drafter_model_not_ready,
-                            canRetry = false
-                        )
-                    generateWithMediaPipe(image, modelPath)
+                    ReplyDrafterUiState.Suggestions(result.value)
                 }
-            if (suggestions.isEmpty()) {
-                ReplyDrafterUiState.Failed(R.string.reply_drafter_no_suggestions, canRetry = true)
-            } else {
-                ReplyDrafterUiState.Suggestions(suggestions)
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Reply drafting failed", e)
-            ReplyDrafterUiState.Failed(R.string.reply_drafter_llm_failed, canRetry = true)
-        }
-    }
 
-    // LlmManager.generateReplySuggestions is callback-based but synchronous, so
-    // one of the callbacks has fired by the time it returns.
-    private fun generateWithMediaPipe(image: Bitmap, modelPath: String): List<String> {
-        var result: List<String>? = null
-        var error: String? = null
-        LlmManager.generateReplySuggestions(
-            context = appContext,
-            bitmap = image,
-            modelPath = modelPath,
-            onResult = { result = it },
-            onError = { error = it }
-        )
-        return result ?: throw IllegalStateException(error ?: "Reply drafting failed")
-    }
+            is AiResult.Failure -> when (result.reason) {
+                AiFailure.NOT_READY ->
+                    ReplyDrafterUiState.Failed(
+                        R.string.reply_drafter_model_not_ready,
+                        canRetry = false
+                    )
+
+                AiFailure.INFERENCE_ERROR ->
+                    ReplyDrafterUiState.Failed(
+                        R.string.reply_drafter_llm_failed,
+                        canRetry = true
+                    )
+            }
+        }
 
     fun copyToClipboard(reply: String) {
         val clipboard =
             appContext.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
         clipboard?.setPrimaryClip(ClipData.newPlainText("reply", reply))
-    }
-
-    companion object {
-        private const val TAG = "ReplyDrafterViewModel"
     }
 }
