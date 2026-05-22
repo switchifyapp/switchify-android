@@ -16,6 +16,13 @@ class ModelManager(context: Context) {
 
     fun ensureModelDir() {
         getModelDir().mkdirs()
+        deleteLegacyModelFiles()
+    }
+
+    private fun deleteLegacyModelFiles() {
+        for (name in LEGACY_MODEL_FILE_NAMES) {
+            File(getModelDir(), name).delete()
+        }
     }
 
     fun isModelReady(): Boolean {
@@ -40,5 +47,9 @@ class ModelManager(context: Context) {
 
     companion object {
         private const val FREE_SPACE_HEADROOM_BYTES = 250L * 1024 * 1024
+        private val LEGACY_MODEL_FILE_NAMES = listOf(
+            "gemma-3n-E2B-it-int4.task",
+            "gemma-3n-E2B-it-int4.task.part"
+        )
     }
 }

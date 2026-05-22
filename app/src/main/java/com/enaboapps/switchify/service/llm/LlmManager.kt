@@ -3,17 +3,20 @@ package com.enaboapps.switchify.service.llm
 import android.content.Context
 import android.graphics.Bitmap
 import android.util.Log
-import com.google.mediapipe.framework.image.BitmapImageBuilder
-import com.google.mediapipe.tasks.genai.llminference.GraphOptions
-import com.google.mediapipe.tasks.genai.llminference.LlmInference
-import com.google.mediapipe.tasks.genai.llminference.LlmInferenceSession
+import com.google.ai.edge.litertlm.Backend
+import com.google.ai.edge.litertlm.Content
+import com.google.ai.edge.litertlm.Contents
+import com.google.ai.edge.litertlm.ConversationConfig
+import com.google.ai.edge.litertlm.Engine
+import com.google.ai.edge.litertlm.EngineConfig
+import com.google.ai.edge.litertlm.SamplerConfig
 import java.io.File
 
 object LlmManager {
     private const val TAG = "LlmManager"
-    private const val MAX_TOKENS = 1024
     private const val TOP_K = 40
-    private const val TEMPERATURE = 0.7f
+    private const val TOP_P = 0.95
+    private const val TEMPERATURE = 0.7
     private const val MAX_IMAGE_DIMENSION = 1024
     private const val MAX_SUGGESTIONS = 5
 
@@ -52,33 +55,42 @@ object LlmManager {
     private val listMarker = Regex("^(\\d+[.)]|[-*•])\\s*")
 
     private val lock = Any()
-    private var llmInference: LlmInference? = null
+    private var engine: Engine? = null
     private var loadedModelPath: String? = null
     private var generating = false
     private var closeRequested = false
 
     // Caller must hold [lock].
-    private fun initialize(context: Context, modelPath: String): Boolean {
-        if (llmInference != null && loadedModelPath == modelPath) return true
+    private fun initialize(modelPath: String): Boolean {
+        if (engine != null && loadedModelPath == modelPath) return true
         if (!File(modelPath).exists()) {
             Log.e(TAG, "Model file not found at $modelPath")
             return false
         }
-        releaseInference()
+        releaseEngine()
         return try {
-            val options = LlmInference.LlmInferenceOptions.builder()
-                .setModelPath(modelPath)
-                .setMaxTokens(MAX_TOKENS)
-                .setMaxNumImages(1)
-                .build()
-            llmInference = LlmInference.createFromOptions(context, options)
+            engine = createEngine(modelPath)
             loadedModelPath = modelPath
             true
         } catch (e: Exception) {
             Log.e(TAG, "Failed to initialize LLM", e)
-            releaseInference()
+            releaseEngine()
             false
         }
+    }
+
+    private fun createEngine(modelPath: String): Engine =
+        try {
+            buildEngine(modelPath, Backend.GPU())
+        } catch (e: Exception) {
+            Log.w(TAG, "GPU backend unavailable, falling back to CPU", e)
+            buildEngine(modelPath, Backend.CPU())
+        }
+
+    private fun buildEngine(modelPath: String, backend: Backend): Engine {
+        val created = Engine(EngineConfig(modelPath = modelPath, backend = backend))
+        created.initialize()
+        return created
     }
 
     fun generateReplySuggestions(
@@ -88,46 +100,50 @@ object LlmManager {
         onResult: (List<String>) -> Unit,
         onError: (String) -> Unit
     ) {
-        val inference: LlmInference
+        val activeEngine: Engine
         synchronized(lock) {
-            if (!initialize(context, modelPath)) {
+            if (!initialize(modelPath)) {
                 onError("Could not load the language model")
                 return
             }
-            inference = llmInference ?: run {
+            activeEngine = engine ?: run {
                 onError("Could not load the language model")
                 return
             }
             generating = true
         }
 
-        var session: LlmInferenceSession? = null
+        var screenshot: File? = null
         try {
-            val sessionOptions = LlmInferenceSession.LlmInferenceSessionOptions.builder()
-                .setTopK(TOP_K)
-                .setTemperature(TEMPERATURE)
-                .setGraphOptions(
-                    GraphOptions.builder().setEnableVisionModality(true).build()
+            val file = writeScreenshot(context, downscale(bitmap))
+            screenshot = file
+            val response = activeEngine.createConversation(
+                ConversationConfig(
+                    samplerConfig = SamplerConfig(
+                        topK = TOP_K,
+                        topP = TOP_P,
+                        temperature = TEMPERATURE
+                    )
                 )
-                .build()
-            session = LlmInferenceSession.createFromOptions(inference, sessionOptions)
-            session.addQueryChunk(PROMPT)
-            session.addImage(BitmapImageBuilder(downscale(bitmap)).build())
-            onResult(parseSuggestions(session.generateResponse()))
+            ).use { conversation ->
+                conversation.sendMessage(
+                    Contents.of(
+                        Content.ImageFile(file.absolutePath),
+                        Content.Text(PROMPT)
+                    )
+                )
+            }
+            onResult(parseSuggestions(response.toString()))
         } catch (e: Exception) {
             Log.e(TAG, "Error generating reply suggestions", e)
             onError("Could not generate replies")
         } finally {
-            try {
-                session?.close()
-            } catch (e: Exception) {
-                Log.e(TAG, "Error closing session", e)
-            }
+            screenshot?.delete()
             synchronized(lock) {
                 generating = false
                 if (closeRequested) {
                     closeRequested = false
-                    releaseInference()
+                    releaseEngine()
                 }
             }
         }
@@ -139,6 +155,14 @@ object LlmManager {
             .filter { it.isNotEmpty() }
             .distinct()
             .take(MAX_SUGGESTIONS)
+    }
+
+    private fun writeScreenshot(context: Context, bitmap: Bitmap): File {
+        val file = File.createTempFile("reply_drafter", ".png", context.cacheDir)
+        file.outputStream().use { out ->
+            bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
+        }
+        return file
     }
 
     private fun downscale(bitmap: Bitmap): Bitmap {
@@ -155,19 +179,19 @@ object LlmManager {
             if (generating) {
                 closeRequested = true
             } else {
-                releaseInference()
+                releaseEngine()
             }
         }
     }
 
-    /** Frees the native model. The caller must hold [lock]. */
-    private fun releaseInference() {
+    /** Frees the native engine. The caller must hold [lock]. */
+    private fun releaseEngine() {
         try {
-            llmInference?.close()
+            engine?.close()
         } catch (e: Exception) {
             Log.e(TAG, "Error closing LLM", e)
         }
-        llmInference = null
+        engine = null
         loadedModelPath = null
     }
 }
