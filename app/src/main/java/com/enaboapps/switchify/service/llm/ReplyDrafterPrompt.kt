@@ -6,6 +6,9 @@ object ReplyDrafterPrompt {
     private const val MAX_SUGGESTIONS = 5
     private const val MAX_IMAGE_DIMENSION = 1024
 
+    private const val REPLIES_OPEN = "<replies>"
+    private const val REPLIES_CLOSE = "</replies>"
+
     val PROMPT = """
         You are helping someone reply in a conversation. The image is a screenshot of
         that conversation. Think through these steps, then write only the reply options.
@@ -34,15 +37,37 @@ object ReplyDrafterPrompt {
         8. Keep most replies short. Include a longer reply only when a brief message
            would not be enough.
 
-        Output only the replies, one per line. Keep each reply on a single line, even a
-        longer one. Do not add numbering, labels, preamble, or any other text.
+        Format the answer as exactly this, and nothing else:
+        $REPLIES_OPEN
+        first reply
+        second reply
+        third reply
+        $REPLIES_CLOSE
+        Put each reply on its own line — a single line even for a longer reply.
+        Write nothing outside the tags: no numbering, labels, preamble, or other
+        text.
     """.trimIndent()
 
     private val listMarker = Regex("^(\\d+[.)]|[-*•])\\s*")
 
+    /**
+     * Extract the reply lines from the model output. Small models leak preamble
+     * and trailing commentary despite the prompt, so only the text between the
+     * reply tags is kept; everything outside is discarded. Falls back to the
+     * whole output when the tags are absent, so the screen is never left empty.
+     */
     fun parseSuggestions(text: String): List<String> {
-        return text.lines()
-            .map { it.trim().replace(listMarker, "").trim() }
+        val region = text
+            .substringAfterLast(REPLIES_OPEN, text)
+            .substringBefore(REPLIES_CLOSE)
+        return region.lines()
+            .map { line ->
+                line.trim()
+                    .replace(listMarker, "")
+                    .trim()
+                    .removeSurrounding("\"")
+                    .trim()
+            }
             .filter { it.isNotEmpty() }
             .distinct()
             .take(MAX_SUGGESTIONS)
