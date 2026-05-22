@@ -45,4 +45,32 @@ class ReplyDrafterPromptTest {
     fun `parseSuggestions returns empty list for blank input`() {
         assertEquals(emptyList<String>(), ReplyDrafterPrompt.parseSuggestions("\n   \n"))
     }
+
+    @Test
+    fun `parseSuggestions keeps only the text between the reply tags`() {
+        val result = ReplyDrafterPrompt.parseSuggestions(
+            "Sure, here are some replies:\n<replies>\nYes\nNo\nMaybe\n</replies>\nHope that helps!"
+        )
+        assertEquals(listOf("Yes", "No", "Maybe"), result)
+    }
+
+    @Test
+    fun `parseSuggestions falls back to the whole output when tags are absent`() {
+        val result = ReplyDrafterPrompt.parseSuggestions("Yes\nNo\nMaybe")
+        assertEquals(listOf("Yes", "No", "Maybe"), result)
+    }
+
+    @Test
+    fun `parseSuggestions handles a missing closing tag`() {
+        val result = ReplyDrafterPrompt.parseSuggestions("<replies>\nYes\nNo")
+        assertEquals(listOf("Yes", "No"), result)
+    }
+
+    @Test
+    fun `parseSuggestions strips wrapping quotes`() {
+        val result = ReplyDrafterPrompt.parseSuggestions(
+            "<replies>\n\"Sounds good\"\n\"See you then\"\n</replies>"
+        )
+        assertEquals(listOf("Sounds good", "See you then"), result)
+    }
 }
