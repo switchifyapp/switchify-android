@@ -31,7 +31,16 @@ class ReplyDrafterViewModel(context: Context) : ViewModel() {
     private val _uiState = MutableLiveData<ReplyDrafterUiState>(ReplyDrafterUiState.Loading)
     val uiState: LiveData<ReplyDrafterUiState> = _uiState
 
-    init {
+    private var hasStarted = false
+
+    /**
+     * Start drafting once, when the activity first reaches the foreground.
+     * AICore (Gemini Nano) only runs inference while the app is the top
+     * foreground app, so this must not run from the view model's init.
+     */
+    fun start() {
+        if (hasStarted) return
+        hasStarted = true
         draft()
     }
 
