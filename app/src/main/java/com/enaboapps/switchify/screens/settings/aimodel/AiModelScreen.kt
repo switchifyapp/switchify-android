@@ -63,17 +63,22 @@ fun AiModelScreen(navController: NavController) {
             else -> ModelStateContent(uiState, viewModel, navController)
         }
 
-        Spacer(modifier = Modifier.height(Dimens.spaceL))
-        Text(
-            text = stringResource(R.string.gemma_built_with),
-            style = MaterialTheme.typography.bodySmall,
-            modifier = Modifier.padding(horizontal = Dimens.spaceM)
-        )
-        ActionButton(
-            textResId = R.string.gemma_terms_link,
-            onClick = { navController.navigate(NavigationRoute.GemmaTerms.name) },
-            type = ActionButtonType.SECONDARY
-        )
+        val isBuiltInAi = uiState is ModelDownloadUiState.BuiltInReady ||
+            uiState is ModelDownloadUiState.BuiltInSetup ||
+            uiState is ModelDownloadUiState.BuiltInPreparing
+        if (!isBuiltInAi) {
+            Spacer(modifier = Modifier.height(Dimens.spaceL))
+            Text(
+                text = stringResource(R.string.gemma_built_with),
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(horizontal = Dimens.spaceM)
+            )
+            ActionButton(
+                textResId = R.string.gemma_terms_link,
+                onClick = { navController.navigate(NavigationRoute.GemmaTerms.name) },
+                type = ActionButtonType.SECONDARY
+            )
+        }
     }
 }
 
@@ -152,6 +157,27 @@ private fun ModelStateContent(state: ModelDownloadUiState, viewModel: ModelDownl
             else -> ActionButton(
                 textResId = R.string.ai_model_download_button,
                 onClick = { viewModel.startDownload() }
+            )
+        }
+
+        is ModelDownloadUiState.BuiltInReady ->
+            StatusText(R.string.ai_model_builtin_ready)
+
+        is ModelDownloadUiState.BuiltInSetup -> {
+            StatusText(R.string.ai_model_builtin_setup)
+            ActionButton(
+                textResId = R.string.ai_model_builtin_setup_button,
+                onClick = { viewModel.prepareBuiltIn() }
+            )
+        }
+
+        is ModelDownloadUiState.BuiltInPreparing -> {
+            StatusText(R.string.ai_model_builtin_preparing)
+            Spacer(modifier = Modifier.height(Dimens.spaceS))
+            LinearProgressIndicator(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = Dimens.spaceM)
             )
         }
     }
