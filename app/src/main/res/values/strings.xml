@@ -1042,14 +1042,16 @@
     <string name="menu_item_reply_drafter_description">Capture the screen and suggest replies</string>
     <string name="reply_drafter_starting">Capturing the screen for Reply Drafter...</string>
     <string name="reply_drafter_processing">Drafting replies...</string>
-    <string name="reply_drafter_success">Replies ready</string>
     <string name="reply_drafter_screenshot_failed">Could not capture the screen</string>
     <string name="reply_drafter_llm_failed">Could not draft replies</string>
     <string name="reply_drafter_model_not_ready">Download the AI model first in Settings</string>
-    <string name="reply_drafter_no_text_field">No text field is focused</string>
     <string name="reply_drafter_unsupported_os">Reply Drafter needs Android 11 or newer</string>
     <string name="reply_drafter_suggestions_title">Suggested replies</string>
     <string name="reply_drafter_no_suggestions">No suggestions found</string>
+    <string name="reply_drafter_pick_hint">Tap a reply to copy it to the clipboard</string>
+    <string name="reply_drafter_copied">Copied to clipboard</string>
+    <string name="reply_drafter_retry">Retry</string>
+    <string name="reply_drafter_close">Close</string>
     <string name="ai_model_cancel">Cancel</string>
     <string name="ai_model_unsupported_os">On-device AI needs Android 11 or newer</string>
     <string name="screen_title_ai_model">On-device AI model</string>
@@ -1075,7 +1077,6 @@
     <string name="ai_model_builtin_setup">Your device supports built-in AI. Set it up to power Switchify\'s AI features with no large download.</string>
     <string name="ai_model_builtin_setup_button">Set up built-in AI</string>
     <string name="ai_model_builtin_preparing">Setting up built-in AI...</string>
-    <string name="menu_item_reply_suggestion_description">Insert this reply into the text field</string>
     <string name="screen_title_gemma_terms">Gemma Terms</string>
     <string name="gemma_terms_intro_title">Gemma Terms of Use</string>
     <string name="gemma_terms_intro">Switchify\'s AI features use Google\'s Gemma model, which runs entirely on your device. To download it you must agree to Google\'s Gemma Terms of Use and Prohibited Use Policy.</string>
