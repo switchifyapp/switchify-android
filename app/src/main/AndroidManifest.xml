@@ -44,6 +44,13 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name=".screens.replydrafter.ReplyDrafterActivity"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:taskAffinity=""
+            android:theme="@style/Theme.Switchify" />
+
         <service
             android:name=".service.core.SwitchifyAccessibilityService"
             android:directBootAware="true"
