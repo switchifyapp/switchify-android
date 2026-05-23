@@ -8,8 +8,6 @@ import com.enaboapps.switchify.service.core.ServiceCore
 import com.enaboapps.switchify.service.core.SwitchifyAccessibilityService
 import com.enaboapps.switchify.service.gestures.GesturePoint
 import com.enaboapps.switchify.service.keyboard.KeyboardManager
-import com.enaboapps.switchify.service.llm.ReplyDrafterManager
-import com.enaboapps.switchify.service.llm.ScreenHighlightsManager
 import com.enaboapps.switchify.service.menu.MenuItem
 import com.enaboapps.switchify.service.menu.MenuManager
 import com.enaboapps.switchify.service.menu.database.MenuConfigurationRepository
@@ -145,24 +143,11 @@ class MainMenuStructure(
                     )
                 }
             } else null,
-            MenuItemRegistry.getMainMenuDefinition("reply_drafter")?.let { def ->
+            MenuItemRegistry.getMainMenuDefinition("ai")?.let { def ->
                 MenuItem(
                     definition = def,
-                    action = {
-                        IAPHandler.runIfProPurchased(accessibilityService) {
-                            ReplyDrafterManager.startDrafting(accessibilityService)
-                        }
-                    }
-                )
-            },
-            MenuItemRegistry.getMainMenuDefinition("screen_highlights")?.let { def ->
-                MenuItem(
-                    definition = def,
-                    action = {
-                        IAPHandler.runIfProPurchased(accessibilityService) {
-                            ScreenHighlightsManager.startExtracting(accessibilityService)
-                        }
-                    }
+                    isLinkToMenu = true,
+                    action = { MenuManager.getInstance().openAiMenu() }
                 )
             },
             MenuItemRegistry.getMainMenuDefinition("pause")?.let { def ->

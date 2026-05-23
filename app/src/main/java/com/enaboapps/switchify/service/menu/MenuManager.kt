@@ -2,6 +2,7 @@ package com.enaboapps.switchify.service.menu
 
 import com.enaboapps.switchify.service.core.SwitchifyAccessibilityService
 import com.enaboapps.switchify.service.gestures.visuals.GestureVisualManager
+import com.enaboapps.switchify.service.menu.menus.ai.AiMenu
 import com.enaboapps.switchify.service.menu.menus.edit.EditMenu
 import com.enaboapps.switchify.service.menu.menus.gestures.CustomGestureConfirmationMenu
 import com.enaboapps.switchify.service.menu.menus.gestures.FingerModeMenu
@@ -112,6 +113,14 @@ class MenuManager {
     fun openDeviceMenu() {
         val deviceMenu = DeviceMenu(accessibilityService!!)
         openMenu(deviceMenu.build())
+    }
+
+    /**
+     * This function opens the AI menu
+     */
+    fun openAiMenu() {
+        val aiMenu = AiMenu(accessibilityService!!)
+        openMenu(aiMenu.build())
     }
 
     /**

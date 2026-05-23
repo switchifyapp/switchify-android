@@ -1037,6 +1037,10 @@
     <string name="menu_item_next_page_description">Show the next page of menu items</string>
     <string name="menu_item_loading_description">Please wait while items load</string>
 
+    <!-- AI submenu -->
+    <string name="menu_title_ai">AI</string>
+    <string name="menu_item_ai_description">Draft replies and pull out highlights from the screen</string>
+
     <!-- Reply Drafter -->
     <string name="menu_item_reply_drafter">Reply Drafter</string>
     <string name="menu_item_reply_drafter_description">Capture the screen and suggest replies</string>
