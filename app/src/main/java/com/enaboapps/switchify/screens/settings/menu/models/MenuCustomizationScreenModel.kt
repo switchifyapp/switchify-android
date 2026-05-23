@@ -68,6 +68,9 @@ class MenuCustomizationScreenModel(application: Application) : ViewModel() {
     private val _paletteFilter = MutableStateFlow<String?>(null)
     val paletteFilter: StateFlow<String?> = _paletteFilter.asStateFlow()
 
+    private val _selectedItemId = MutableStateFlow<String?>(null)
+    val selectedItemId: StateFlow<String?> = _selectedItemId.asStateFlow()
+
 
     // Item IDs that are submenu links (not leaf action items)
     private val submenuLinkItemIds = setOf(
@@ -249,6 +252,53 @@ class MenuCustomizationScreenModel(application: Application) : ViewModel() {
             _menuItems.value = currentItems
             saveCurrentState()
         }
+    }
+
+    /**
+     * Pick the item up for the two-step "select then insert" reorder flow.
+     * Tapping the same id again clears the selection.
+     */
+    fun selectForMove(itemId: String) {
+        _selectedItemId.value = if (_selectedItemId.value == itemId) null else itemId
+    }
+
+    /**
+     * Insert the currently selected item immediately before [targetItemId] and
+     * clear the selection. Adjusts the destination index by one when moving
+     * downward, since [moveItem] does not compensate for the removal.
+     * No-op if nothing is selected, the target is unknown, or it equals the
+     * selection.
+     */
+    fun insertSelectedBefore(targetItemId: String) {
+        val selectedId = _selectedItemId.value ?: return
+        if (selectedId == targetItemId) return
+        val items = _menuItems.value
+        val fromIndex = items.indexOfFirst { it.id == selectedId }
+        val targetIndex = items.indexOfFirst { it.id == targetItemId }
+        if (fromIndex < 0 || targetIndex < 0) return
+        val toIndex = if (fromIndex < targetIndex) targetIndex - 1 else targetIndex
+        moveItem(fromIndex, toIndex)
+        _selectedItemId.value = null
+    }
+
+    /**
+     * Insert the currently selected item at the end of the list and clear the
+     * selection. No-op if nothing is selected.
+     */
+    fun insertSelectedAtEnd() {
+        val selectedId = _selectedItemId.value ?: return
+        val items = _menuItems.value
+        val fromIndex = items.indexOfFirst { it.id == selectedId }
+        if (fromIndex < 0) return
+        moveItem(fromIndex, items.size - 1)
+        _selectedItemId.value = null
+    }
+
+    /**
+     * Cancel the active selection without moving anything.
+     */
+    fun cancelSelection() {
+        _selectedItemId.value = null
     }
 
     /**
