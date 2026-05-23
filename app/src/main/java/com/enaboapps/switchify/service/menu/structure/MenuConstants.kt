@@ -8,6 +8,25 @@ import com.enaboapps.switchify.R
  */
 object MenuConstants {
     /**
+     * Menus the user can customize from the Menu Customization screen, in the
+     * order shown to them. Single source of truth for both the picker screen
+     * and the palette dialog's filter dropdown.
+     */
+    val customizableMenus: List<Pair<String, Int>> = listOf(
+        "main_menu" to R.string.menu_title_main,
+        "device_menu" to R.string.menu_title_device,
+        "volume_control_menu" to R.string.action_volume_control,
+        "gestures_menu" to R.string.menu_title_gestures,
+        "tap_gestures_menu" to R.string.menu_title_tap,
+        "tap_and_hold_menu" to R.string.menu_title_tap_and_hold,
+        "swipe_gestures_menu" to R.string.menu_title_swipe,
+        "pinch_gestures_menu" to R.string.menu_title_pinch,
+        "scroll_menu" to R.string.menu_title_scroll,
+        "media_control_menu" to R.string.menu_title_media,
+        "edit_menu" to R.string.menu_title_edit
+    )
+
+    /**
      * Menu identifiers
      */
     object MenuIds {

@@ -26,28 +26,14 @@ data class PaletteItem(
     val isAlreadyAdded: Boolean
 )
 
-class MenuCustomizationScreenModel(application: Application) : ViewModel() {
+class MenuCustomizationScreenModel(
+    application: Application,
+    initialMenuId: String
+) : ViewModel() {
 
     private val repository = MenuConfigurationRepository(application)
 
-    // Available menus with their display names
-    val availableMenus = MutableStateFlow(
-        listOf(
-            "main_menu" to R.string.menu_title_main,
-            "device_menu" to R.string.menu_title_device,
-            "volume_control_menu" to R.string.action_volume_control,
-            "gestures_menu" to R.string.menu_title_gestures,
-            "tap_gestures_menu" to R.string.menu_title_tap,
-            "tap_and_hold_menu" to R.string.menu_title_tap_and_hold,
-            "swipe_gestures_menu" to R.string.menu_title_swipe,
-            "pinch_gestures_menu" to R.string.menu_title_pinch,
-            "scroll_menu" to R.string.menu_title_scroll,
-            "media_control_menu" to R.string.menu_title_media,
-            "edit_menu" to R.string.menu_title_edit
-        )
-    )
-
-    private val _selectedMenuId = MutableStateFlow("main_menu")
+    private val _selectedMenuId = MutableStateFlow(initialMenuId)
     val selectedMenuId: StateFlow<String> = _selectedMenuId.asStateFlow()
 
     private val _menuItems = MutableStateFlow<List<MenuItem>>(emptyList())
@@ -93,18 +79,6 @@ class MenuCustomizationScreenModel(application: Application) : ViewModel() {
         MenuConstants.ItemIds.Device.VOLUME_CONTROL,
         MenuConstants.ItemIds.Media.VOLUME_CONTROL
     )
-
-    /**
-     * Switches the selected menu to the given ID and reloads its items unless the menu is already selected.
-     *
-     * @param menuId The identifier of the menu to select.
-     */
-    fun selectMenu(menuId: String) {
-        if (_selectedMenuId.value != menuId) {
-            _selectedMenuId.value = menuId
-            loadMenuItems()
-        }
-    }
 
     /**
      * Loads and initializes the configurable menu items and their visibility for the currently selected menu.
@@ -356,7 +330,7 @@ class MenuCustomizationScreenModel(application: Application) : ViewModel() {
         val paletteItems = mutableListOf<PaletteItem>()
 
         // Get all available menus and filter out the current menu
-        val sourceMenus = availableMenus.value.filter { it.first != currentMenuId }
+        val sourceMenus = MenuConstants.customizableMenus.filter { it.first != currentMenuId }
 
         for ((menuId, menuNameRes) in sourceMenus) {
             val definitions = MenuItemRegistry.getDefinitionsForMenu(menuId)
