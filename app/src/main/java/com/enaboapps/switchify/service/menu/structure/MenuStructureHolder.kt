@@ -1,6 +1,7 @@
 package com.enaboapps.switchify.service.menu.structure
 
 import com.enaboapps.switchify.service.core.SwitchifyAccessibilityService
+import com.enaboapps.switchify.service.menu.menus.ai.AiMenuStructure
 import com.enaboapps.switchify.service.menu.menus.edit.EditMenuStructure
 import com.enaboapps.switchify.service.menu.menus.gestures.GestureMenuStructure
 import com.enaboapps.switchify.service.menu.menus.main.MainMenuStructure
@@ -26,10 +27,14 @@ class MenuStructureHolder(accessibilityService: SwitchifyAccessibilityService) {
     private val editMenuStructure = EditMenuStructure(accessibilityService, serviceScope)
     private val favouriteAppsMenuStructure = FavouriteAppsMenuStructure(accessibilityService, serviceScope)
     private val settingsMenuStructure = SettingsMenuStructure(accessibilityService, serviceScope)
+    private val aiMenuStructure = AiMenuStructure(accessibilityService, serviceScope)
 
     // Main Menu
     fun buildMainMenuObject() = mainMenuStructure.buildMainMenuObject()
     val menuManipulatorItems = mainMenuStructure.menuManipulatorItems
+
+    // AI Menu
+    fun buildAiMenuObject() = aiMenuStructure.buildAiMenuObject()
 
     // Gesture Menus
     val gesturesMenuObject = gestureMenuStructure.gesturesMenuObject

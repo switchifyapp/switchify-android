@@ -28,8 +28,7 @@ object MenuItemRegistry {
             MenuItemDefinition(MenuConstants.ItemIds.Main.SETTINGS, labelResource = R.string.menu_item_settings, descriptionResource = R.string.menu_item_settings_description, drawableId = R.drawable.ic_settings),
             MenuItemDefinition(MenuConstants.ItemIds.Main.MEDIA_CONTROL, labelResource = R.string.menu_title_media_control, descriptionResource = R.string.menu_item_media_control_description, drawableId = R.drawable.ic_media_control),
             MenuItemDefinition(MenuConstants.ItemIds.Main.EDIT, labelResource = R.string.menu_title_edit, descriptionResource = R.string.menu_item_edit_description, drawableId = R.drawable.ic_edit),
-            MenuItemDefinition(MenuConstants.ItemIds.Main.REPLY_DRAFTER, labelResource = R.string.menu_item_reply_drafter, descriptionResource = R.string.menu_item_reply_drafter_description, drawableId = R.drawable.ic_reply_drafter),
-            MenuItemDefinition(MenuConstants.ItemIds.Main.SCREEN_HIGHLIGHTS, labelResource = R.string.menu_item_screen_highlights, descriptionResource = R.string.menu_item_screen_highlights_description, drawableId = R.drawable.ic_screen_highlights),
+            MenuItemDefinition(MenuConstants.ItemIds.Main.AI, labelResource = R.string.menu_title_ai, descriptionResource = R.string.menu_item_ai_description, drawableId = R.drawable.ic_ai),
             MenuItemDefinition(MenuConstants.ItemIds.Main.PAUSE, labelResource = R.string.menu_item_pause, descriptionResource = R.string.menu_item_pause_description, drawableId = R.drawable.ic_pause)
         )
     }
@@ -205,9 +204,21 @@ object MenuItemRegistry {
     }
 
     /**
+     * Provides menu item definitions for the AI submenu.
+     *
+     * @return A list of MenuItemDefinition for Reply Drafter and Screen Highlights.
+     */
+    fun getAiMenuDefinitions(): List<MenuItemDefinition> {
+        return listOf(
+            MenuItemDefinition(MenuConstants.ItemIds.Ai.REPLY_DRAFTER, labelResource = R.string.menu_item_reply_drafter, descriptionResource = R.string.menu_item_reply_drafter_description, drawableId = R.drawable.ic_reply_drafter),
+            MenuItemDefinition(MenuConstants.ItemIds.Ai.SCREEN_HIGHLIGHTS, labelResource = R.string.menu_item_screen_highlights, descriptionResource = R.string.menu_item_screen_highlights_description, drawableId = R.drawable.ic_screen_highlights)
+        )
+    }
+
+    /**
      * Retrieve the menu item definitions for a given menu ID.
      *
-     * @param menuId Identifier of the menu. Recognized values: "main_menu", "device_menu", "volume_control_menu",
+     * @param menuId Identifier of the menu. Recognized values: "main_menu", "ai_menu", "device_menu", "volume_control_menu",
      * "gestures_menu", "tap_gestures_menu", "tap_and_hold_menu", "swipe_gestures_menu", "pinch_gestures_menu",
      * "scroll_menu", "media_control_menu", "edit_menu", "settings_menu".
      * @return A list of MenuItemDefinition for the specified menu, or an empty list if the menuId is not recognized.
@@ -215,6 +226,7 @@ object MenuItemRegistry {
     fun getDefinitionsForMenu(menuId: String): List<MenuItemDefinition> {
         return when (menuId) {
             MenuConstants.MenuIds.MAIN_MENU -> getMainMenuDefinitions()
+            MenuConstants.MenuIds.AI_MENU -> getAiMenuDefinitions()
             MenuConstants.MenuIds.DEVICE_MENU -> getDeviceMenuDefinitions()
             MenuConstants.MenuIds.VOLUME_CONTROL_MENU -> getVolumeControlMenuDefinitions()
             MenuConstants.MenuIds.GESTURES_MENU -> getGesturesMenuDefinitions()
