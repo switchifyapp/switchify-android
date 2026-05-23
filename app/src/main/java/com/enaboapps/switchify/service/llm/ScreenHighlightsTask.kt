@@ -30,27 +30,42 @@ object ScreenHighlightsTask : AiTask<List<ExtractedItem>> {
     private const val ITEMS_CLOSE = "</items>"
 
     override val prompt: String = """
-        You are extracting actionable information from the screenshot. Think about
-        what someone using a switch-access input device would want to copy or open
-        without navigating into the underlying app, then write only the list.
+        You are extracting key information from the screenshot. The user is going
+        to tap an item to copy it — so each entry must be a single atomic value,
+        not a sentence that contains the value.
 
-        1. Look across the whole screen — visible text, fields, buttons, anywhere
-           a useful value might appear.
-        2. Pull out each piece of useful information you see and label it with one
-           of these types, in uppercase:
-           - URL: web links and addresses
-           - PHONE: phone numbers, in the form shown on screen
-           - EMAIL: email addresses
-           - DATE: dates and times
-           - ADDRESS: street or postal addresses
-           - OTHER: anything else worth copying — order numbers, tracking codes,
-             one-time passcodes, reference numbers
-        3. Use the value exactly as it appears on screen. Do not reformat, expand,
-           or summarise it.
-        4. Skip generic UI text, button labels, headings, and anything that would
-           not be useful to copy.
-        5. List each item only once. If a value appears twice on the screen,
-           include it once.
+        1. Scan the whole screen for individual values worth copying. Each one
+           becomes its own entry, even when several appear close together.
+
+        2. Label each value with one of these types, in uppercase. Each example
+           shows the on-screen text and the exact line you would write:
+           - URL — web links and addresses
+             "see https://example.com/page for details" -> URL: https://example.com/page
+           - PHONE — phone numbers, in the form shown on screen
+             "Call 555-123-4567 anytime" -> PHONE: 555-123-4567
+           - EMAIL — email addresses
+             "Contact us at support@example.com" -> EMAIL: support@example.com
+           - DATE — dates and times
+             "Your delivery is on Tue, 12 Mar at 3pm" -> DATE: Tue, 12 Mar at 3pm
+           - ADDRESS — street or postal addresses
+             "Pick up at 1 Infinite Loop, Cupertino" -> ADDRESS: 1 Infinite Loop, Cupertino
+           - OTHER — atomic identifiers worth copying: order numbers, tracking
+             codes, one-time passcodes, reference numbers
+             "Tracking number: ABC-9876" -> OTHER: ABC-9876
+
+        3. Each line is one atomic value — never a sentence, label, or prose
+           that contains the value. Strip surrounding text and punctuation.
+           "Tracking: ABC123" becomes OTHER: ABC123, not OTHER: Tracking: ABC123.
+
+        4. Use the value exactly as it appears on screen. Do not reformat,
+           expand, or summarise it.
+
+        5. List each value only once. If a value appears twice on the screen,
+           include it once. Multiple distinct URLs on one screen are multiple
+           URL: lines — pick all of them, not just the first.
+
+        6. Skip generic UI text, button labels, headings, and any prose that
+           contains no atomic value to copy.
 
         Format the answer as exactly this, and nothing else:
         $ITEMS_OPEN
