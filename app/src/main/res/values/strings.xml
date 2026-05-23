@@ -893,6 +893,13 @@
     <string name="content_desc_move_down">Move down</string>
     <string name="reorder_mode_drag">Drag</string>
     <string name="reorder_mode_arrows">Arrows</string>
+    <string name="reorder_mode_select">Select</string>
+    <string name="menu_customization_select_move_action">Move %1$s</string>
+    <string name="menu_customization_select_cancel_action">Cancel moving %1$s</string>
+    <string name="menu_customization_select_insert_above_action">Insert %1$s above %2$s</string>
+    <string name="menu_customization_select_insert_at_end_action">Insert %1$s at the end</string>
+    <string name="menu_customization_select_hint">Tap a row to insert %1$s above it, or use \"Insert at the end\".</string>
+    <string name="menu_customization_select_cancel_button">Cancel move</string>
 
     <!-- Switch Action Selection Screen -->
     <string name="screen_title_select_action">Select Action</string>

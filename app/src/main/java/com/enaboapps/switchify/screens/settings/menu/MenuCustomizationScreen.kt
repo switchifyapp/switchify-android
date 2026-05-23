@@ -1,5 +1,6 @@
 package com.enaboapps.switchify.screens.settings.menu
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -23,6 +24,7 @@ import com.enaboapps.switchify.R
 import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.ReorderMode
 import com.enaboapps.switchify.components.ReorderableList
+import com.enaboapps.switchify.components.SelectModeState
 import com.enaboapps.switchify.screens.settings.menu.models.MenuCustomizationScreenModel
 import com.enaboapps.switchify.screens.settings.menu.models.PaletteItem
 import com.enaboapps.switchify.service.menu.MenuItem
@@ -86,6 +88,18 @@ fun MenuCustomizationContent(screenModel: MenuCustomizationScreenModel) {
     val availablePaletteItems by screenModel.availablePaletteItems.collectAsState()
     val userAddedItemIds by screenModel.userAddedItemIds.collectAsState()
     val paletteFilter by screenModel.paletteFilter.collectAsState()
+    val selectedItemId by screenModel.selectedItemId.collectAsState()
+
+    // Resolves a MenuItem to its display label using the same fallback chain as
+    // MenuItemRow. Captured here so the SelectModeState callbacks can pass labels
+    // into accessibility content descriptions from non-Composable scope.
+    val itemLabelOf: (MenuItem) -> String = remember(context) {
+        { item ->
+            item.labelResource?.let { context.getString(it) }
+                ?: item.userProvidedText
+                ?: item.id
+        }
+    }
 
     LaunchedEffect(Unit) {
         screenModel.loadMenuItems()
@@ -127,6 +141,17 @@ fun MenuCustomizationContent(screenModel: MenuCustomizationScreenModel) {
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
+        // Banner shown while a Select-mode selection is active. Placed above the
+        // list so it stays visible while the user scrolls to pick a destination.
+        val selectedItem = menuItems.firstOrNull { it.id == selectedItemId }
+        if (selectedItem != null) {
+            Spacer(modifier = Modifier.height(16.dp))
+            SelectModeBanner(
+                selectedLabel = itemLabelOf(selectedItem),
+                onCancel = { screenModel.cancelSelection() }
+            )
+        }
+
         Spacer(modifier = Modifier.height(16.dp))
 
         // Menu items list with drag and drop or arrow buttons
@@ -166,11 +191,24 @@ fun MenuCustomizationContent(screenModel: MenuCustomizationScreenModel) {
                 val totalVisible = visibleIndexById.size
                 val showRingHeaders = totalVisible > ringSize
 
+                val selectModeState = remember(menuItems, selectedItemId, itemLabelOf) {
+                    SelectModeState<MenuItem>(
+                        selectedKey = selectedItemId,
+                        getLabel = itemLabelOf,
+                        onPickUp = { screenModel.selectForMove(it.id) },
+                        onCancel = { screenModel.cancelSelection() },
+                        onInsertBefore = { screenModel.insertSelectedBefore(it.id) },
+                        onInsertAtEnd = { screenModel.insertSelectedAtEnd() }
+                    )
+                }
+                val isSelectionActive = selectedItemId != null
+
                 ReorderableList(
                     items = menuItems,
                     onMove = { from, to -> screenModel.moveItem(from, to) },
                     key = { it.id },
                     defaultMode = ReorderMode.DRAG,
+                    selectModeState = selectModeState,
                     modifier = Modifier.fillMaxSize()
                 ) { item, isDragging, reorderControls ->
                     val isUserAdded = remember(item.id, userAddedItemIds) {
@@ -180,6 +218,11 @@ fun MenuCustomizationContent(screenModel: MenuCustomizationScreenModel) {
                     val startsNewRing = showRingHeaders &&
                         visibleIndex != null && visibleIndex % ringSize == 0
                     val ringNumber = (visibleIndex ?: 0) / ringSize + 1
+                    val isThisRowSelected = isSelectionActive && item.id == selectedItemId
+                    val isOtherRowSelected = isSelectionActive && !isThisRowSelected
+                    val onRowClick: (() -> Unit)? = if (isOtherRowSelected) {
+                        { screenModel.insertSelectedBefore(item.id) }
+                    } else null
 
                     Column(modifier = Modifier.fillMaxWidth()) {
                         if (startsNewRing) {
@@ -206,6 +249,9 @@ fun MenuCustomizationContent(screenModel: MenuCustomizationScreenModel) {
                                 { screenModel.removeUserItem(item.id) }
                             } else null,
                             isDragging = isDragging,
+                            isHighlighted = isThisRowSelected,
+                            showTrailingActions = !isSelectionActive,
+                            onRowClick = onRowClick,
                             reorderControls = reorderControls
                         )
                     }
@@ -465,18 +511,28 @@ fun MenuItemRow(
     onVisibilityToggle: () -> Unit,
     onDelete: (() -> Unit)? = null,
     isDragging: Boolean = false,
+    isHighlighted: Boolean = false,
+    showTrailingActions: Boolean = true,
+    onRowClick: (() -> Unit)? = null,
     reorderControls: @Composable () -> Unit = {}
 ) {
     val itemLabel = item.labelResource?.let { stringResource(it) } ?: item.userProvidedText ?: item.id
 
+    val baseModifier = Modifier
+        .fillMaxWidth()
+        .padding(vertical = 4.dp)
+    val rowModifier = if (onRowClick != null) {
+        baseModifier.clickable(onClick = onRowClick)
+    } else {
+        baseModifier
+    }
+
     Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
-        color = if (isDragging) {
-            MaterialTheme.colorScheme.primaryContainer
-        } else {
-            MaterialTheme.colorScheme.surfaceColorAtElevation(2.dp)
+        modifier = rowModifier,
+        color = when {
+            isDragging -> MaterialTheme.colorScheme.primaryContainer
+            isHighlighted -> MaterialTheme.colorScheme.secondaryContainer
+            else -> MaterialTheme.colorScheme.surfaceColorAtElevation(2.dp)
         },
         shape = RoundedCornerShape(8.dp),
         tonalElevation = if (isDragging) 8.dp else 0.dp
@@ -488,7 +544,7 @@ fun MenuItemRow(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            // Reorder controls (drag handle or arrow buttons)
+            // Reorder controls (drag handle, arrow buttons, or select control)
             reorderControls()
 
             // Item label
@@ -500,27 +556,63 @@ fun MenuItemRow(
                 modifier = Modifier.weight(1f)
             )
 
-            // Delete button for user-added items, visibility toggle for default items
-            if (onDelete != null) {
-                IconButton(onClick = onDelete) {
-                    Icon(
-                        imageVector = Icons.Default.Close,
-                        contentDescription = stringResource(R.string.button_delete),
-                        tint = MaterialTheme.colorScheme.error
-                    )
+            if (showTrailingActions) {
+                // Delete button for user-added items, visibility toggle for default items
+                if (onDelete != null) {
+                    IconButton(onClick = onDelete) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = stringResource(R.string.button_delete),
+                            tint = MaterialTheme.colorScheme.error
+                        )
+                    }
+                } else {
+                    IconButton(onClick = onVisibilityToggle) {
+                        Icon(
+                            imageVector = if (isVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                            contentDescription = if (isVisible) {
+                                stringResource(R.string.content_desc_hide_item)
+                            } else {
+                                stringResource(R.string.content_desc_show_item)
+                            },
+                            tint = if (isVisible) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
-            } else {
-                IconButton(onClick = onVisibilityToggle) {
-                    Icon(
-                        imageVector = if (isVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                        contentDescription = if (isVisible) {
-                            stringResource(R.string.content_desc_hide_item)
-                        } else {
-                            stringResource(R.string.content_desc_show_item)
-                        },
-                        tint = if (isVisible) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SelectModeBanner(
+    selectedLabel: String,
+    onCancel: () -> Unit
+) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 12.dp),
+        color = MaterialTheme.colorScheme.secondaryContainer,
+        shape = RoundedCornerShape(8.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = stringResource(
+                    R.string.menu_customization_select_hint,
+                    selectedLabel
+                ),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                modifier = Modifier.weight(1f)
+            )
+            TextButton(onClick = onCancel) {
+                Text(stringResource(R.string.menu_customization_select_cancel_button))
             }
         }
     }
