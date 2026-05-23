@@ -78,6 +78,7 @@ object MenuConstants {
             const val MEDIA_CONTROL = "media_control"
             const val EDIT = "edit"
             const val REPLY_DRAFTER = "reply_drafter"
+            const val SCREEN_HIGHLIGHTS = "screen_highlights"
             const val PAUSE = "pause"
         }
 
