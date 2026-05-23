@@ -8,13 +8,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -26,7 +26,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.components.ActionButton
-import com.enaboapps.switchify.components.ActionButtonType
+import com.enaboapps.switchify.components.NavBar
 import com.enaboapps.switchify.service.llm.ExtractedItem
 import com.enaboapps.switchify.service.llm.HighlightType
 import com.enaboapps.switchify.theme.Dimens
@@ -38,27 +38,25 @@ fun ScreenHighlightsScreen(
     onRetry: () -> Unit,
     onClose: () -> Unit
 ) {
-    Surface(
-        modifier = Modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.background
-    ) {
-        Column(
+    Scaffold(
+        topBar = {
+            NavBar(
+                title = stringResource(R.string.screen_highlights_title),
+                showBackButton = true,
+                onBackPressed = onClose
+            )
+        }
+    ) { paddingValues ->
+        Surface(
             modifier = Modifier
                 .fillMaxSize()
-                .systemBarsPadding()
-                .padding(Dimens.spaceL)
+                .padding(paddingValues),
+            color = MaterialTheme.colorScheme.background
         ) {
-            Text(
-                text = stringResource(R.string.screen_highlights_title),
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.SemiBold
-            )
-            Spacer(modifier = Modifier.height(Dimens.spaceL))
-
             Box(
                 modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
+                    .fillMaxSize()
+                    .padding(Dimens.spaceL)
             ) {
                 when (state) {
                     is ScreenHighlightsUiState.Loading -> LoadingContent()
@@ -73,15 +71,6 @@ fun ScreenHighlightsScreen(
                         FailedContent(state, onRetry)
                 }
             }
-
-            Spacer(modifier = Modifier.height(Dimens.spaceM))
-            ActionButton(
-                textResId = R.string.screen_highlights_close,
-                onClick = onClose,
-                modifier = Modifier.fillMaxWidth(),
-                type = ActionButtonType.SECONDARY,
-                applyPadding = false
-            )
         }
     }
 }
