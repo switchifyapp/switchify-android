@@ -41,12 +41,12 @@ data class NavBarAction(
 @Composable
 fun NavBar(
     title: String,
-    navController: NavController,
+    navController: NavController? = null,
     actions: List<NavBarAction> = emptyList(),
     showBackButton: Boolean? = null,
     onBackPressed: (() -> Unit)? = null
 ) {
-    val canGoBack = showBackButton ?: (navController.previousBackStackEntry != null)
+    val canGoBack = showBackButton ?: (navController?.previousBackStackEntry != null)
     val primaryColor = MaterialTheme.colorScheme.primary
     val gradientColors = listOf(
         primaryColor,
@@ -77,7 +77,7 @@ fun NavBar(
             ) {
                 if (canGoBack) {
                     IconButton(onClick = {
-                        onBackPressed?.invoke() ?: navController.popBackStack()
+                        onBackPressed?.invoke() ?: navController?.popBackStack()
                     }) {
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowBack,
