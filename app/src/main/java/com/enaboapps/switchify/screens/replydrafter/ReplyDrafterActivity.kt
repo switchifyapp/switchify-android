@@ -28,10 +28,12 @@ class ReplyDrafterActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             val state by viewModel.uiState.observeAsState(ReplyDrafterUiState.Loading)
+            val guidance by viewModel.guidance.observeAsState("")
 
             SwitchifyTheme {
                 ReplyDrafterScreen(
                     state = state,
+                    guidance = guidance,
                     onSelect = { reply ->
                         viewModel.copyToClipboard(reply)
                         Toast.makeText(
@@ -41,6 +43,8 @@ class ReplyDrafterActivity : ComponentActivity() {
                         ).show()
                         finish()
                     },
+                    onGuidanceChange = viewModel::setGuidance,
+                    onRegenerate = { viewModel.regenerate() },
                     onRetry = { viewModel.draft() },
                     onClose = { finish() }
                 )

@@ -29,7 +29,11 @@ class ReplyDrafterViewModel(context: Context) : ViewModel() {
     private val _uiState = MutableLiveData<ReplyDrafterUiState>(ReplyDrafterUiState.Loading)
     val uiState: LiveData<ReplyDrafterUiState> = _uiState
 
+    private val _guidance = MutableLiveData("")
+    val guidance: LiveData<String> = _guidance
+
     private var hasStarted = false
+    private var lastReplies: List<String> = emptyList()
 
     /**
      * Start drafting once, when the activity first reaches the foreground.
@@ -42,7 +46,35 @@ class ReplyDrafterViewModel(context: Context) : ViewModel() {
         draft()
     }
 
-    fun draft() {
+    /**
+     * Update the guidance string bound to the text field. Clamps to 200
+     * characters (~50 tokens) so the prompt stays bounded.
+     */
+    fun setGuidance(text: String) {
+        _guidance.value = text.take(MAX_GUIDANCE_CHARS)
+    }
+
+    /**
+     * First-time draft or fresh retry — always discards the previous set and
+     * the guidance field. Used for the initial start() and for Failed-state
+     * Retry, where there is nothing useful to refine against.
+     */
+    fun draft() = runInference(ReplyDrafterTask())
+
+    /**
+     * Refinement — pass the last successful set plus the current guidance to
+     * the model. The previous replies frame the user's note as "make these
+     * different in this way" instead of leaving the model to guess what the
+     * note refers to.
+     */
+    fun regenerate() = runInference(
+        ReplyDrafterTask(
+            previousReplies = lastReplies,
+            refinement = _guidance.value.orEmpty()
+        )
+    )
+
+    private fun runInference(task: ReplyDrafterTask) {
         val image = bitmap
         if (image == null) {
             _uiState.value =
@@ -51,7 +83,11 @@ class ReplyDrafterViewModel(context: Context) : ViewModel() {
         }
         _uiState.value = ReplyDrafterUiState.Loading
         viewModelScope.launch {
-            _uiState.value = toUiState(OnDeviceAi.run(appContext, ReplyDrafterTask, image))
+            val result = OnDeviceAi.run(appContext, task, image)
+            _uiState.value = toUiState(result)
+            if (result is AiResult.Success && result.value.isNotEmpty()) {
+                lastReplies = result.value
+            }
         }
     }
 
@@ -86,5 +122,9 @@ class ReplyDrafterViewModel(context: Context) : ViewModel() {
         val clipboard =
             appContext.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
         clipboard?.setPrimaryClip(ClipData.newPlainText("reply", reply))
+    }
+
+    companion object {
+        private const val MAX_GUIDANCE_CHARS = 200
     }
 }

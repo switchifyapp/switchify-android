@@ -1063,6 +1063,8 @@
     <string name="reply_drafter_copied">Copied to clipboard</string>
     <string name="reply_drafter_retry">Retry</string>
     <string name="reply_drafter_close">Close</string>
+    <string name="reply_drafter_guidance_placeholder">Guide the replies (optional) — e.g. \"be more formal\"</string>
+    <string name="reply_drafter_regenerate_action">Regenerate suggestions</string>
 
     <!-- Screen Highlights -->
     <string name="menu_item_screen_highlights">Screen Highlights</string>

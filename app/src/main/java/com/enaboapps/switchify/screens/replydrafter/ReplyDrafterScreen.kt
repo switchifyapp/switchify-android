@@ -3,6 +3,7 @@ package com.enaboapps.switchify.screens.replydrafter
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -10,9 +11,14 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -29,7 +35,10 @@ import com.enaboapps.switchify.theme.Dimens
 @Composable
 fun ReplyDrafterScreen(
     state: ReplyDrafterUiState,
+    guidance: String,
     onSelect: (String) -> Unit,
+    onGuidanceChange: (String) -> Unit,
+    onRegenerate: () -> Unit,
     onRetry: () -> Unit,
     onClose: () -> Unit
 ) {
@@ -48,19 +57,34 @@ fun ReplyDrafterScreen(
                 .padding(paddingValues),
             color = MaterialTheme.colorScheme.background
         ) {
-            Box(
+            Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(Dimens.spaceL)
             ) {
-                when (state) {
-                    is ReplyDrafterUiState.Loading -> LoadingContent()
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                ) {
+                    when (state) {
+                        is ReplyDrafterUiState.Loading -> LoadingContent()
 
-                    is ReplyDrafterUiState.Suggestions ->
-                        SuggestionsContent(state.replies, onSelect)
+                        is ReplyDrafterUiState.Suggestions ->
+                            SuggestionsContent(state.replies, onSelect)
 
-                    is ReplyDrafterUiState.Failed ->
-                        FailedContent(state, onRetry)
+                        is ReplyDrafterUiState.Failed ->
+                            FailedContent(state, onRetry)
+                    }
+                }
+
+                if (state !is ReplyDrafterUiState.Loading) {
+                    Spacer(modifier = Modifier.height(Dimens.spaceM))
+                    GuidanceInputRow(
+                        guidance = guidance,
+                        onGuidanceChange = onGuidanceChange,
+                        onRegenerate = onRegenerate
+                    )
                 }
             }
         }
@@ -133,6 +157,36 @@ private fun FailedContent(state: ReplyDrafterUiState.Failed, onRetry: () -> Unit
             ActionButton(
                 textResId = R.string.reply_drafter_retry,
                 onClick = onRetry
+            )
+        }
+    }
+}
+
+@Composable
+private fun GuidanceInputRow(
+    guidance: String,
+    onGuidanceChange: (String) -> Unit,
+    onRegenerate: () -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(Dimens.spaceS)
+    ) {
+        OutlinedTextField(
+            value = guidance,
+            onValueChange = onGuidanceChange,
+            modifier = Modifier.weight(1f),
+            placeholder = {
+                Text(stringResource(R.string.reply_drafter_guidance_placeholder))
+            },
+            maxLines = 2
+        )
+        IconButton(onClick = onRegenerate) {
+            Icon(
+                imageVector = Icons.Default.Refresh,
+                contentDescription = stringResource(R.string.reply_drafter_regenerate_action),
+                tint = MaterialTheme.colorScheme.primary
             )
         }
     }
