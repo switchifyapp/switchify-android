@@ -1052,6 +1052,29 @@
     <string name="reply_drafter_copied">Copied to clipboard</string>
     <string name="reply_drafter_retry">Retry</string>
     <string name="reply_drafter_close">Close</string>
+
+    <!-- Screen Highlights -->
+    <string name="menu_item_screen_highlights">Screen Highlights</string>
+    <string name="menu_item_screen_highlights_description">Capture the screen and pull out things you can copy</string>
+    <string name="screen_highlights_starting">Capturing the screen for highlights…</string>
+    <string name="screen_highlights_processing">Finding highlights…</string>
+    <string name="screen_highlights_screenshot_failed">Could not capture the screen</string>
+    <string name="screen_highlights_llm_failed">Could not find highlights</string>
+    <string name="screen_highlights_model_not_ready">Download the AI model first in Settings</string>
+    <string name="screen_highlights_unsupported_os">Screen Highlights needs Android 11 or newer</string>
+    <string name="screen_highlights_title">Screen highlights</string>
+    <string name="screen_highlights_none_found">No highlights found on this screen</string>
+    <string name="screen_highlights_pick_hint">Tap a highlight to copy it to the clipboard</string>
+    <string name="screen_highlights_copied">Copied to clipboard</string>
+    <string name="screen_highlights_retry">Retry</string>
+    <string name="screen_highlights_close">Close</string>
+    <string name="screen_highlights_type_url">Link</string>
+    <string name="screen_highlights_type_phone">Phone</string>
+    <string name="screen_highlights_type_email">Email</string>
+    <string name="screen_highlights_type_date">Date</string>
+    <string name="screen_highlights_type_address">Address</string>
+    <string name="screen_highlights_type_other">Other</string>
+
     <string name="ai_model_cancel">Cancel</string>
     <string name="ai_model_unsupported_os">On-device AI needs Android 11 or newer</string>
     <string name="screen_title_ai_model">On-device AI model</string>
