@@ -29,26 +29,31 @@ import com.enaboapps.switchify.screens.settings.menu.models.MenuCustomizationScr
 import com.enaboapps.switchify.screens.settings.menu.models.PaletteItem
 import com.enaboapps.switchify.service.menu.MenuItem
 import com.enaboapps.switchify.service.menu.MenuSizeManager
+import com.enaboapps.switchify.service.menu.structure.MenuConstants
 
 /**
- * Hosts the menu customization screen, wiring a screen model and rendering the content inside a BaseView.
- *
- * Creates and provides a MenuCustomizationScreenModel to MenuCustomizationContent and configures the
- * surrounding BaseView (title, navigation, scroll and padding).
+ * Hosts the editor for a single menu's customization. Reached from
+ * [MenuCustomizationPickerScreen] via the `MenuCustomizationEdit/{menuId}`
+ * route; the menu is fixed for the lifetime of this screen.
  *
  * @param navController Navigation controller used to handle navigation from this screen.
+ * @param menuId Identifier of the menu being customized (eg `"main_menu"`).
  */
 @Composable
-fun MenuCustomizationScreen(navController: NavController) {
+fun MenuCustomizationScreen(navController: NavController, menuId: String) {
     val context = LocalContext.current
-    val screenModel: MenuCustomizationScreenModel = viewModel {
-        MenuCustomizationScreenModel(context.applicationContext as android.app.Application)
+    val screenModel: MenuCustomizationScreenModel = viewModel(key = menuId) {
+        MenuCustomizationScreenModel(
+            context.applicationContext as android.app.Application,
+            initialMenuId = menuId
+        )
     }
 
-    val selectedMenuId by screenModel.selectedMenuId.collectAsState()
+    val titleResId = MenuConstants.customizableMenus.firstOrNull { it.first == menuId }?.second
+        ?: R.string.screen_title_menu_customization
 
     BaseView(
-        titleResId = R.string.screen_title_menu_customization,
+        titleResId = titleResId,
         navController = navController,
         enableScroll = false,
         padding = 0.dp,
@@ -63,26 +68,23 @@ fun MenuCustomizationScreen(navController: NavController) {
             }
         }
     ) {
-        MenuCustomizationContent(screenModel)
+        MenuCustomizationContent(screenModel, menuId)
     }
 }
 
 /**
- * Displays the menu customization UI bound to the given screen model.
+ * Displays the menu customization UI bound to the given screen model and menu id.
  *
  * Observes the model's state flows, triggers an initial load of menu items on composition,
- * and renders a menu selector, informational text, and a scrollable list of menu items with
- * per-item visibility toggles.
+ * and renders the reorder list with per-item visibility toggles and the Add Items palette.
  *
- * @param screenModel The screen model supplying state (menu items, selected menu, visibility map,
- *                    saving/unsaved flags) and actions (load, select, toggle visibility, reset, save).
+ * @param screenModel The screen model supplying state and actions for [menuId].
+ * @param menuId The menu being customized — used to compute the palette filter list.
  */
 @Composable
-fun MenuCustomizationContent(screenModel: MenuCustomizationScreenModel) {
+fun MenuCustomizationContent(screenModel: MenuCustomizationScreenModel, menuId: String) {
     val context = LocalContext.current
     val menuItems by screenModel.menuItems.collectAsState()
-    val selectedMenuId by screenModel.selectedMenuId.collectAsState()
-    val availableMenus by screenModel.availableMenus.collectAsState()
     val visibilityMap by screenModel.visibilityMap.collectAsState()
     val paletteDialogVisible by screenModel.paletteDialogVisible.collectAsState()
     val availablePaletteItems by screenModel.availablePaletteItems.collectAsState()
@@ -109,7 +111,7 @@ fun MenuCustomizationContent(screenModel: MenuCustomizationScreenModel) {
     if (paletteDialogVisible) {
         PaletteDialog(
             items = availablePaletteItems,
-            availableMenus = availableMenus,
+            availableMenus = MenuConstants.customizableMenus.filter { it.first != menuId },
             selectedFilter = paletteFilter,
             onFilterChange = { screenModel.setPaletteFilter(it) },
             onDismiss = { screenModel.closePalette() },
@@ -124,35 +126,16 @@ fun MenuCustomizationContent(screenModel: MenuCustomizationScreenModel) {
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        // Menu selector dropdown
-        MenuSelector(
-            availableMenus = availableMenus,
-            selectedMenuId = selectedMenuId,
-            onMenuSelected = { screenModel.selectMenu(it) },
-            enabled = true
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Info text
-        Text(
-            text = stringResource(R.string.menu_customization_info),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-
         // Banner shown while a Select-mode selection is active. Placed above the
         // list so it stays visible while the user scrolls to pick a destination.
         val selectedItem = menuItems.firstOrNull { it.id == selectedItemId }
         if (selectedItem != null) {
-            Spacer(modifier = Modifier.height(16.dp))
             SelectModeBanner(
                 selectedLabel = itemLabelOf(selectedItem),
                 onCancel = { screenModel.cancelSelection() }
             )
+            Spacer(modifier = Modifier.height(16.dp))
         }
-
-        Spacer(modifier = Modifier.height(16.dp))
 
         // Menu items list with drag and drop or arrow buttons
         Box(
@@ -432,61 +415,6 @@ fun PaletteItemRow(
                 ) {
                     Text(stringResource(R.string.button_add))
                 }
-            }
-        }
-    }
-}
-
-/**
- * Renders a dropdown selector to choose which menu (by id) is active for customization.
- *
- * Displays the localized name of the currently selected menu and presents all entries from
- * `availableMenus` in an exposed dropdown; selection invokes `onMenuSelected`.
- *
- * @param availableMenus List of pairs where the first element is the menu id and the second is a
- * resource id for the menu's display name.
- * @param selectedMenuId The id of the currently selected menu; its name will be shown in the field.
- * @param onMenuSelected Callback invoked with the selected menu id when the user picks an item.
- * @param enabled If false, the field and dropdown cannot be opened or changed.
- */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun MenuSelector(
-    availableMenus: List<Pair<String, Int>>,
-    selectedMenuId: String,
-    onMenuSelected: (String) -> Unit,
-    enabled: Boolean
-) {
-    var expanded by remember { mutableStateOf(false) }
-
-    ExposedDropdownMenuBox(
-        expanded = expanded,
-        onExpandedChange = { if (enabled) expanded = it }
-    ) {
-        OutlinedTextField(
-            value = availableMenus.find { it.first == selectedMenuId }?.second?.let { stringResource(it) } ?: "",
-            onValueChange = {},
-            readOnly = true,
-            label = { Text(stringResource(R.string.label_select_menu)) },
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            modifier = Modifier
-                .fillMaxWidth()
-                .menuAnchor(type = androidx.compose.material3.ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled = enabled),
-            enabled = enabled
-        )
-
-        ExposedDropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false }
-        ) {
-            availableMenus.forEach { (menuId, nameResId) ->
-                DropdownMenuItem(
-                    text = { Text(stringResource(nameResId)) },
-                    onClick = {
-                        onMenuSelected(menuId)
-                        expanded = false
-                    }
-                )
             }
         }
     }

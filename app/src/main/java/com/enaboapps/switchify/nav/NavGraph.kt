@@ -33,6 +33,7 @@ import com.enaboapps.switchify.screens.settings.switches.SwitchesScreen
 import com.enaboapps.switchify.screens.settings.techniques.AccessTechniqueSettingsScreen
 import com.enaboapps.switchify.screens.settings.pause.PauseSettingsScreen
 import com.enaboapps.switchify.screens.settings.favouriteapps.FavouriteAppsScreen
+import com.enaboapps.switchify.screens.settings.menu.MenuCustomizationPickerScreen
 import com.enaboapps.switchify.screens.settings.menu.MenuCustomizationScreen
 import com.enaboapps.switchify.screens.settings.switches.actions.SwitchActionSelectionScreen
 import com.enaboapps.switchify.screens.settings.switches.LongPressActionsScreen
@@ -141,7 +142,12 @@ fun NavGraph(navController: NavHostController) {
             PauseSettingsScreen(navController)
         }
         composable(NavigationRoute.MenuCustomization.name) {
-            MenuCustomizationScreen(navController)
+            MenuCustomizationPickerScreen(navController)
+        }
+        composable("${NavigationRoute.MenuCustomizationEdit.name}/{menuId}") {
+            it.arguments?.getString("menuId")?.let { menuId ->
+                MenuCustomizationScreen(navController, menuId)
+            }
         }
         composable(NavigationRoute.FavouriteApps.name) {
             FavouriteAppsScreen(navController)
