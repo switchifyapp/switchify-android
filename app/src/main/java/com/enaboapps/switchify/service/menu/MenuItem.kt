@@ -17,6 +17,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -359,6 +361,12 @@ private fun RegularMenuItemList(
     // each item reads as a tappable tile. Outer vertical padding creates a
     // visible gap between adjacent row backgrounds; the clip ensures the
     // ripple respects the rounded shape.
+    //
+    // Link-to-submenu items get a trailing chevron at the row's right edge
+    // instead of the circle's corner badge — chevron is the conventional
+    // list affordance and is aligned with the label rather than competing
+    // with the colored circle. The corner badge stays for ring mode where
+    // there's nowhere else to put it.
     Row(
         modifier = Modifier
             .fillMaxSize()
@@ -376,7 +384,7 @@ private fun RegularMenuItemList(
             labelResource = labelResource,
             menuSize = menuSize,
             isBackButton = isBackButton,
-            isLinkToMenu = isLinkToMenu
+            isLinkToMenu = false
         )
         Spacer(modifier = Modifier.width(12.dp))
         Text(
@@ -384,8 +392,21 @@ private fun RegularMenuItemList(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             fontSize = menuSize.headerLabelTextSize,
             maxLines = 2,
-            overflow = TextOverflow.Ellipsis
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f)
         )
+        // The back-button item carries `isLinkToMenu = true` too (it links
+        // to the previous menu), but a forward-pointing chevron next to its
+        // back-arrow icon would point the wrong way. The secondaryContainer
+        // circle and back-arrow icon already communicate the action.
+        if (isLinkToMenu && !isBackButton) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
+                contentDescription = null,
+                modifier = Modifier.size(24.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+            )
+        }
     }
 }
 
