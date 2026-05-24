@@ -130,9 +130,32 @@ class MenuView(
      * @param menuItems List of MenuItem objects to be displayed in the menu.
      */
     private fun createMenuPages(menuItems: List<MenuItem>) {
-        val perPage = MenuSizeManager.getRadialItemSize(context).itemsPerRing
-        numOfPages = ((menuItems.size + perPage - 1) / perPage).coerceAtLeast(1)
+        val itemSize = MenuSizeManager.getRadialItemSize(context)
+        val smallItemSize = MenuSizeManager.getSmallItemSize(context)
+        val layoutMode = MenuLayoutMode.fromPref(
+            preferenceManager.getIntegerValue(
+                PreferenceManager.PREFERENCE_KEY_MENU_LAYOUT_MODE,
+                0
+            )
+        )
         val titleResId = MenuConstants.getTitleResource(menu.menuId)
+        // The same chrome shows on every page of a menu by design, so the
+        // pagination budget is identical across pages. We don't yet know
+        // whether pagination will actually kick in here (chicken/egg), so we
+        // assume the nav row will be present — that's a slight over-budget
+        // which only makes pagination a hair more conservative.
+        val perPage = if (layoutMode == MenuLayoutMode.LIST) {
+            MenuSurfaceBudget.listRowsPerPage(
+                context = context,
+                itemSize = itemSize,
+                smallItemSize = smallItemSize,
+                hasTitle = titleResId != null,
+                willShowNavRow = true
+            )
+        } else {
+            itemSize.itemsPerRing
+        }
+        numOfPages = ((menuItems.size + perPage - 1) / perPage).coerceAtLeast(1)
         for (i in 0 until numOfPages) {
             val start = i * perPage
             val end = ((i + 1) * perPage).coerceAtMost(menuItems.size)

@@ -41,6 +41,11 @@ data class MenuItemSize(
      */
     val itemsPerRing: Int = 4,
     /**
+     * Max number of list items before a list page paginates. Mirrors
+     * [itemsPerRing] for the vertical list layout mode.
+     */
+    val itemsPerList: Int = 6,
+    /**
      * Font size for the header above the ring that shows the currently
      * highlighted item's full text (or a muted placeholder when nothing is
      * highlighted). Read by `MenuPage.HighlightHeader`. Only consulted by
@@ -57,9 +62,19 @@ data class MenuItemSize(
     val headerLabelMaxWidth: Dp = 240.dp
 ) {
     /**
+     * Row height (in dp, unscaled value) for list-mode items. Sized to fit the
+     * profile's circle plus 24 dp of vertical breathing room — accounts for
+     * the 4 dp outer gap between adjacent row backgrounds (8 dp total) and
+     * still leaves 8 dp around the circle inside its rounded background.
+     */
+    val listRowHeightDp: Int
+        get() = (containerCircleSize.value + 24f).toInt()
+
+    /**
      * Returns a copy of this profile with every Dp/Sp dimension multiplied by
-     * [percent] / 100. `itemsPerRing` is preserved — it is a count, not a size.
-     * A [percent] of 100 returns this instance unchanged for cheap defaulting.
+     * [percent] / 100. `itemsPerRing` and `itemsPerList` are preserved — they
+     * are counts, not sizes. A [percent] of 100 returns this instance unchanged
+     * for cheap defaulting.
      */
     fun scaledBy(percent: Int): MenuItemSize {
         if (percent == 100) return this
@@ -151,6 +166,7 @@ object MenuSizes {
         navigationCircleSize = 36.dp,
         containerCircleSize = 40.dp,
         itemsPerRing = 4,
+        itemsPerList = 5,
         headerLabelTextSize = 10.sp,
         headerLabelMaxWidth = 160.dp
     )
@@ -173,6 +189,7 @@ object MenuSizes {
         navigationCircleSize = 40.dp,
         containerCircleSize = 48.dp,
         itemsPerRing = 4,
+        itemsPerList = 6,
         headerLabelTextSize = 12.sp,
         headerLabelMaxWidth = 190.dp
     )
@@ -227,6 +244,7 @@ object MenuSizes {
         navigationCircleSize = 48.dp,
         containerCircleSize = 64.dp,
         itemsPerRing = 6,
+        itemsPerList = 8,
         headerLabelTextSize = 14.sp,
         headerLabelMaxWidth = 300.dp
     )
@@ -249,6 +267,7 @@ object MenuSizes {
         navigationCircleSize = 56.dp,
         containerCircleSize = 76.dp,
         itemsPerRing = 8,
+        itemsPerList = 10,
         headerLabelTextSize = 16.sp,
         headerLabelMaxWidth = 420.dp
     )

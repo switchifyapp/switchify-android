@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.enaboapps.switchify.R
+import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.ReorderMode
 import com.enaboapps.switchify.components.ReorderableList
@@ -28,7 +29,9 @@ import com.enaboapps.switchify.components.SelectModeState
 import com.enaboapps.switchify.screens.settings.menu.models.MenuCustomizationScreenModel
 import com.enaboapps.switchify.screens.settings.menu.models.PaletteItem
 import com.enaboapps.switchify.service.menu.MenuItem
+import com.enaboapps.switchify.service.menu.MenuLayoutMode
 import com.enaboapps.switchify.service.menu.MenuSizeManager
+import com.enaboapps.switchify.service.menu.MenuSurfaceBudget
 import com.enaboapps.switchify.service.menu.structure.MenuConstants
 
 /**
@@ -151,14 +154,34 @@ fun MenuCustomizationContent(screenModel: MenuCustomizationScreenModel, menuId: 
                     modifier = Modifier.padding(32.dp)
                 )
             } else {
-                // Compute the visible-item index of each row so we can mark ring
-                // boundaries: the service menu lays out ringSize items per ring
-                // clockwise from the top, then paginates. ringSize comes from
-                // the radial sizing profile (4 on phones, 6 on tablets, 8 on
-                // large tablets). Hidden items are skipped when numbering
-                // rings — a user who hides a few items sees the headers shift
-                // to match what actually renders.
-                val ringSize = MenuSizeManager.getRadialItemSize(context).itemsPerRing
+                // Compute the visible-item index of each row so we can mark
+                // page boundaries — the service menu paginates after a fixed
+                // number of items, and the headers below show where each new
+                // page starts. The per-page count tracks the active layout
+                // mode: ring mode uses itemsPerRing from the sizing profile
+                // (4 on phones, 6 on tablets, 8 on large tablets); list mode
+                // uses the same height-aware budget the runtime uses so the
+                // headers match what the user will actually see. Hidden items
+                // are skipped when numbering pages.
+                val itemSize = MenuSizeManager.getRadialItemSize(context)
+                val smallItemSize = MenuSizeManager.getSmallItemSize(context)
+                val layoutMode = MenuLayoutMode.fromPref(
+                    PreferenceManager(context).getIntegerValue(
+                        PreferenceManager.PREFERENCE_KEY_MENU_LAYOUT_MODE,
+                        0
+                    )
+                )
+                val pageSize = if (layoutMode == MenuLayoutMode.LIST) {
+                    MenuSurfaceBudget.listRowsPerPage(
+                        context = context,
+                        itemSize = itemSize,
+                        smallItemSize = smallItemSize,
+                        hasTitle = MenuConstants.getTitleResource(menuId) != null,
+                        willShowNavRow = true
+                    )
+                } else {
+                    itemSize.itemsPerRing
+                }
                 val visibleIndexById = remember(menuItems, visibilityMap) {
                     var idx = 0
                     buildMap {
@@ -172,7 +195,7 @@ fun MenuCustomizationContent(screenModel: MenuCustomizationScreenModel, menuId: 
                     }
                 }
                 val totalVisible = visibleIndexById.size
-                val showRingHeaders = totalVisible > ringSize
+                val showPageHeaders = totalVisible > pageSize
 
                 val selectModeState = remember(menuItems, selectedItemId, itemLabelOf) {
                     SelectModeState<MenuItem>(
@@ -198,9 +221,9 @@ fun MenuCustomizationContent(screenModel: MenuCustomizationScreenModel, menuId: 
                         item.id in userAddedItemIds
                     }
                     val visibleIndex = visibleIndexById[item.id]
-                    val startsNewRing = showRingHeaders &&
-                        visibleIndex != null && visibleIndex % ringSize == 0
-                    val ringNumber = (visibleIndex ?: 0) / ringSize + 1
+                    val startsNewPage = showPageHeaders &&
+                        visibleIndex != null && visibleIndex % pageSize == 0
+                    val pageNumber = (visibleIndex ?: 0) / pageSize + 1
                     val isThisRowSelected = isSelectionActive && item.id == selectedItemId
                     val isOtherRowSelected = isSelectionActive && !isThisRowSelected
                     val onRowClick: (() -> Unit)? = if (isOtherRowSelected) {
@@ -208,11 +231,11 @@ fun MenuCustomizationContent(screenModel: MenuCustomizationScreenModel, menuId: 
                     } else null
 
                     Column(modifier = Modifier.fillMaxWidth()) {
-                        if (startsNewRing) {
+                        if (startsNewPage) {
                             Text(
                                 text = stringResource(
-                                    R.string.menu_customization_ring_header,
-                                    ringNumber
+                                    R.string.menu_customization_page_header,
+                                    pageNumber
                                 ),
                                 style = MaterialTheme.typography.titleSmall,
                                 color = MaterialTheme.colorScheme.primary,
