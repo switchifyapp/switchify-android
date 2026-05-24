@@ -21,6 +21,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.enaboapps.switchify.R
+import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.service.components.AccessibilityComposeView
 import com.enaboapps.switchify.service.menu.structure.MenuConstants
 import com.enaboapps.switchify.service.techniques.nodes.Node
@@ -87,44 +88,57 @@ class MenuPage(
         prevPageMenuItem = null
         nextPageMenuItem = null
 
-        val screenWidthPx = ScreenUtils.getWidth(context)
-        val screenHeightPx = ScreenUtils.getHeight(context)
-        val edgeInsetPx = ScreenUtils.dpToPx(context, 40)
         val chordGapPx = ScreenUtils.dpToPx(context, 12)
         val radialItemSize = MenuSizeManager.getRadialItemSize(context)
         val smallItemSize = MenuSizeManager.getSmallItemSize(context)
 
-        // Reserve vertical space for everything that stacks above and below
-        // the ring (background padding, optional nav row + its top gap, and a
-        // safety margin) so the ring can be clamped to fit. Numbers mirror
-        // the Compose layout in MenuPageBackground / MenuPageBody: 18 dp
-        // vertical padding on each side of the Surface = 36 dp total, and a
-        // 16 dp Column gap above the nav row. The MenuHighlightHud's
-        // top-of-screen footprint is also reserved so the menu surface — which
-        // MenuView clamps below the HUD — still has room for its ring.
+        val layoutMode = MenuLayoutMode.fromPref(
+            PreferenceManager(context).getIntegerValue(
+                PreferenceManager.PREFERENCE_KEY_MENU_LAYOUT_MODE,
+                0
+            )
+        )
+
+        // Both layouts size themselves to fit inside the same surface budget
+        // (see MenuSurfaceBudget). Ring shrinks its radius if it would
+        // overflow; list is sized to the content width and paginated by
+        // MenuView so it can't overflow vertically either.
         val willShowNavRow = closeItem != null || hasPagination
         val hasTitle = titleResId != null
-        val backgroundVerticalPadPx = ScreenUtils.dpToPx(context, 36)
-        val ringToNavGapPx = ScreenUtils.dpToPx(context, 16)
-        val safetyMarginPx = ScreenUtils.dpToPx(context, 24)
-        val hudReservedPx = MenuHighlightHud.reservedTopPx(context)
-        val titleRowPx = if (hasTitle) ScreenUtils.dpToPx(context, 36) else 0
-        val navRowHeightPx = if (willShowNavRow) {
-            ScreenUtils.dpToPx(context, smallItemSize.height.value.toInt()) +
-                ringToNavGapPx
-        } else 0
-        val verticalOverheadPx = backgroundVerticalPadPx + navRowHeightPx +
-            safetyMarginPx + hudReservedPx + titleRowPx
-        val maxHeightForRingPx = (screenHeightPx - verticalOverheadPx)
-            .coerceAtLeast(0)
-
-        val ring = RadialMenuLayout(
+        val contentMaxWidthPx = MenuSurfaceBudget.contentMaxWidthPx(context)
+        val contentBodyMaxHeightPx = MenuSurfaceBudget.contentBodyMaxHeightPx(
             context = context,
-            minChordGapPx = chordGapPx,
-            maxWidthPx = (screenWidthPx - edgeInsetPx).coerceAtLeast(0),
-            maxHeightPx = maxHeightForRingPx
+            smallItemSize = smallItemSize,
+            hasTitle = hasTitle,
+            willShowNavRow = willShowNavRow
         )
-        contentItems.forEach { it.inflate(ring, radialItemSize) }
+
+        val content: ViewGroup = when (layoutMode) {
+            MenuLayoutMode.RING -> {
+                val ring = RadialMenuLayout(
+                    context = context,
+                    minChordGapPx = chordGapPx,
+                    maxWidthPx = contentMaxWidthPx,
+                    maxHeightPx = contentBodyMaxHeightPx
+                )
+                contentItems.forEach { it.inflate(ring, radialItemSize) }
+                ring
+            }
+
+            MenuLayoutMode.LIST -> {
+                val list = LinearLayout(context).apply {
+                    orientation = LinearLayout.VERTICAL
+                    layoutParams = ViewGroup.LayoutParams(
+                        contentMaxWidthPx,
+                        ViewGroup.LayoutParams.WRAP_CONTENT
+                    )
+                }
+                contentItems.forEach {
+                    it.inflate(list, radialItemSize, MenuLayoutMode.LIST)
+                }
+                list
+            }
+        }
 
         val navRow = buildNavRow(smallItemSize)
         val showNavRow = navRow.childCount > 0
@@ -134,7 +148,7 @@ class MenuPage(
             MenuPageBackground(isTransparent) {
                 MenuPageBody(
                     title = titleText,
-                    content = ring,
+                    content = content,
                     navRow = if (showNavRow) navRow else null
                 )
             }

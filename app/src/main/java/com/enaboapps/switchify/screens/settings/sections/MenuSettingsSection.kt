@@ -50,6 +50,26 @@ fun MenuSection(screenModel: MenuSettingsModel, navController: NavController) {
             }
         }
 
+        val ringLabel = stringResource(R.string.menu_layout_ring)
+        val listLabel = stringResource(R.string.menu_layout_list)
+        val layoutLabel: (Int) -> String = { mode ->
+            when (mode) {
+                0 -> ringLabel
+                1 -> listLabel
+                else -> "$mode"
+            }
+        }
+
+        PreferenceValueSelector(
+            value = screenModel.menuLayoutMode.value ?: 0,
+            titleResId = R.string.settings_title_menu_layout,
+            summaryResId = R.string.settings_summary_menu_layout,
+            values = intArrayOf(0, 1),
+            buttonLabelFormatter = layoutLabel,
+            displayFormatter = layoutLabel,
+            onValueChanged = { screenModel.setMenuLayoutMode(it) }
+        )
+
         PreferenceValueSelector(
             value = screenModel.menuSizeScale.value ?: 100,
             titleResId = R.string.settings_title_menu_size,

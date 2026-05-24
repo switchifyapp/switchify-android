@@ -1,11 +1,14 @@
 package com.enaboapps.switchify.service.menu
 
 import android.view.ViewGroup
+import android.widget.LinearLayout
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
@@ -13,6 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -23,6 +27,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -100,8 +105,21 @@ class MenuItem(
 
     /**
      * Inflate the menu item into [parent] using [menuSize] for its dimensions.
+     *
+     * [displayMode] controls the per-item layout:
+     *  - [MenuLayoutMode.RING] (default): the item is a fixed-size cell whose
+     *    width/height come from the size profile and whose inner Composable is
+     *    the circular-tile [RegularMenuItem].
+     *  - [MenuLayoutMode.LIST]: the item is a full-width row whose height is
+     *    the circle diameter plus breathing room; the inner Composable is the
+     *    horizontal [RegularMenuItemList] (circle on the left, label on the
+     *    right).
      */
-    fun inflate(parent: ViewGroup, menuSize: MenuItemSize) {
+    fun inflate(
+        parent: ViewGroup,
+        menuSize: MenuItemSize,
+        displayMode: MenuLayoutMode = MenuLayoutMode.RING
+    ) {
         val context = parent.context
         composeView = AccessibilityComposeView(context) {
             MenuItemContent(
@@ -115,15 +133,28 @@ class MenuItem(
                 isLinkToMenu = isLinkToMenu,
                 isBackButton = isBackButton,
                 menuSize = menuSize,
+                displayMode = displayMode,
                 onClick = { select() }
             )
         }
 
         composeView?.let { view ->
-            val widthPx = ScreenUtils.dpToPx(context, menuSize.width.value.toInt())
-            val heightPx = ScreenUtils.dpToPx(context, menuSize.height.value.toInt())
-
-            view.layoutParams = ViewGroup.LayoutParams(widthPx, heightPx)
+            // Nav-row items always behave like ring items even when the
+            // surrounding menu is in list mode — the nav row never goes
+            // "list." Treating them as RING here keeps their fixed cell size.
+            val effectiveMode =
+                if (isMenuHierarchyManipulator) MenuLayoutMode.RING else displayMode
+            view.layoutParams = if (effectiveMode == MenuLayoutMode.LIST) {
+                val rowHeightPx = ScreenUtils.dpToPx(context, menuSize.listRowHeightDp)
+                LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    rowHeightPx
+                )
+            } else {
+                val widthPx = ScreenUtils.dpToPx(context, menuSize.width.value.toInt())
+                val heightPx = ScreenUtils.dpToPx(context, menuSize.height.value.toInt())
+                ViewGroup.LayoutParams(widthPx, heightPx)
+            }
             parent.addView(view)
         }
     }
@@ -189,24 +220,42 @@ private fun MenuItemContent(
     isLinkToMenu: Boolean,
     isBackButton: Boolean,
     menuSize: MenuItemSize,
+    displayMode: MenuLayoutMode,
     onClick: () -> Unit
 ) {
     val text = if (labelResource != null) Resources.getString(labelResource) else userProvidedText
 
-    Box(
-        modifier = Modifier
+    // List rows fill the row width set by the parent LinearLayout; ring cells
+    // stick to the fixed profile dimensions.
+    val outerModifier = if (displayMode == MenuLayoutMode.LIST && !isMenuHierarchyManipulator) {
+        Modifier.fillMaxSize()
+    } else {
+        Modifier
             .width(menuSize.width)
             .height(menuSize.height)
-    ) {
-        if (isMenuHierarchyManipulator) {
-            NavigationMenuItem(
+    }
+
+    Box(modifier = outerModifier) {
+        when {
+            isMenuHierarchyManipulator -> NavigationMenuItem(
                 drawableId = drawableId,
                 labelResource = labelResource,
                 menuSize = menuSize,
                 onClick = onClick
             )
-        } else {
-            RegularMenuItem(
+
+            displayMode == MenuLayoutMode.LIST -> RegularMenuItemList(
+                text = text,
+                drawableId = drawableId,
+                circleText = circleText,
+                labelResource = labelResource,
+                menuSize = menuSize,
+                isLinkToMenu = isLinkToMenu,
+                isBackButton = isBackButton,
+                onClick = onClick
+            )
+
+            else -> RegularMenuItem(
                 text = text,
                 drawableId = drawableId,
                 circleText = circleText,
@@ -268,14 +317,9 @@ private fun RegularMenuItem(
     onClick: () -> Unit
 ) {
     // Ring item: icon (or short text stand-in for label-only items) inside a
-    // coloured circle, full label stacked underneath. Every item gets the same
-    // circle background for visual consistency across the ring — except the
-    // back button, which uses the secondary container so users can pick it
-    // out at a glance.
-    val circleColor = if (isBackButton) MaterialTheme.colorScheme.secondaryContainer
-                      else MaterialTheme.colorScheme.primaryContainer
-    val iconTint = if (isBackButton) MaterialTheme.colorScheme.onSecondaryContainer
-                   else MaterialTheme.colorScheme.onPrimaryContainer
+    // coloured circle. The full label is surfaced separately by
+    // [com.enaboapps.switchify.service.window.MenuHighlightHud] when the item
+    // is highlighted, so we don't render it under the circle here.
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -287,81 +331,151 @@ private fun RegularMenuItem(
             Alignment.CenterVertically
         )
     ) {
-        Box(
-            modifier = Modifier
-                .size(menuSize.containerCircleSize)
-                .clip(CircleShape)
-                .background(circleColor),
-            contentAlignment = Alignment.Center
-        ) {
-            // `circleText` overrides the icon: callers set it on items whose
-            // value is best read as text inside the circle (e.g. the
-            // tap-and-hold durations "0.5s", "1s", "2s"…). We size it
-            // proportionally to its length so it fits the circle on every
-            // size profile.
-            if (circleText != null) {
-                val fontScale = LocalConfiguration.current.fontScale.coerceAtLeast(0.5f)
-                val effectiveFontSize = computeCircleTextFontSize(
-                    text = circleText,
-                    circleSizeDp = menuSize.containerCircleSize.value,
-                    fontScale = fontScale,
-                    fallback = menuSize.primaryTextSize
-                )
-                Text(
-                    text = circleText,
-                    color = iconTint,
-                    fontSize = effectiveFontSize,
-                    textAlign = TextAlign.Center,
-                    maxLines = 1
-                )
-            } else if (drawableId != 0) {
-                Icon(
-                    painter = painterResource(id = drawableId),
-                    contentDescription = labelResource?.let { Resources.getString(it) },
-                    modifier = Modifier.size(menuSize.iconSize),
-                    tint = iconTint
-                )
-            } else if (text != null) {
-                // Cap the in-circle letter so the user's system font scale
-                // (Settings → Display → Font size) does not push it past the
-                // circle's edge when combined with Menu Size > 100 %. The
-                // letter is rendered at `primaryTextSize.value × fontScale`
-                // dp-equivalent on screen; clamp the Sp value so that stays
-                // within ~45 % of the circle's diameter.
-                val fontScale = LocalConfiguration.current.fontScale.coerceAtLeast(0.5f)
-                val maxLetterSp = menuSize.containerCircleSize.value * 0.45f / fontScale
-                val effectiveFontSize = if (menuSize.primaryTextSize.value > maxLetterSp) {
-                    maxLetterSp.sp
-                } else {
-                    menuSize.primaryTextSize
-                }
-                Text(
-                    text = circleInitials(text),
-                    color = iconTint,
-                    fontSize = effectiveFontSize,
-                    textAlign = TextAlign.Center,
-                    maxLines = 1
-                )
-            }
-            if (isLinkToMenu) {
-                Icon(
-                    painter = painterResource(id = R.drawable.ic_menu_link),
-                    contentDescription = "Opens submenu",
-                    modifier = Modifier
-                        .size(14.dp)
-                        .align(Alignment.TopEnd)
-                        .offset(x = 2.dp, y = (-2).dp),
-                    tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.85f)
-                )
-            }
-        }
-        // The full label is no longer rendered under the circle — it would
-        // truncate for long user-provided names (e.g. "Microsoft Outlook").
-        // Instead the currently highlighted ring item's label is shown in the
-        // ring centre by [MenuPage.CenterLabelOverlay], which has room to wrap
-        // and is exactly where the scanning user's eye is focused.
+        MenuItemCircle(
+            text = text,
+            drawableId = drawableId,
+            circleText = circleText,
+            labelResource = labelResource,
+            menuSize = menuSize,
+            isBackButton = isBackButton,
+            isLinkToMenu = isLinkToMenu
+        )
     }
 }
+
+@Composable
+private fun RegularMenuItemList(
+    text: String?,
+    drawableId: Int,
+    circleText: String?,
+    labelResource: Int?,
+    menuSize: MenuItemSize,
+    isLinkToMenu: Boolean,
+    isBackButton: Boolean,
+    onClick: () -> Unit
+) {
+    // List item: same coloured circle as the ring on the left, full label
+    // text on the right, all sitting on a rounded container background so
+    // each item reads as a tappable tile. Outer vertical padding creates a
+    // visible gap between adjacent row backgrounds; the clip ensures the
+    // ripple respects the rounded shape.
+    Row(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(vertical = 4.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        MenuItemCircle(
+            text = text,
+            drawableId = drawableId,
+            circleText = circleText,
+            labelResource = labelResource,
+            menuSize = menuSize,
+            isBackButton = isBackButton,
+            isLinkToMenu = isLinkToMenu
+        )
+        Spacer(modifier = Modifier.width(12.dp))
+        Text(
+            text = text.orEmpty(),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontSize = menuSize.headerLabelTextSize,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis
+        )
+    }
+}
+
+@Composable
+private fun MenuItemCircle(
+    text: String?,
+    drawableId: Int,
+    circleText: String?,
+    labelResource: Int?,
+    menuSize: MenuItemSize,
+    isBackButton: Boolean,
+    isLinkToMenu: Boolean
+) {
+    // Shared circular tile used by both [RegularMenuItem] (ring mode) and
+    // [RegularMenuItemList] (list mode) so the two layouts stay visually
+    // identical at the item level. The back button gets the secondary
+    // container so it stands out from the rest of the menu.
+    val circleColor = if (isBackButton) MaterialTheme.colorScheme.secondaryContainer
+                      else MaterialTheme.colorScheme.primaryContainer
+    val iconTint = if (isBackButton) MaterialTheme.colorScheme.onSecondaryContainer
+                   else MaterialTheme.colorScheme.onPrimaryContainer
+    Box(
+        modifier = Modifier
+            .size(menuSize.containerCircleSize)
+            .clip(CircleShape)
+            .background(circleColor),
+        contentAlignment = Alignment.Center
+    ) {
+        // `circleText` overrides the icon: callers set it on items whose
+        // value is best read as text inside the circle (e.g. the
+        // tap-and-hold durations "0.5s", "1s", "2s"…). We size it
+        // proportionally to its length so it fits the circle on every
+        // size profile.
+        if (circleText != null) {
+            val fontScale = LocalConfiguration.current.fontScale.coerceAtLeast(0.5f)
+            val effectiveFontSize = computeCircleTextFontSize(
+                text = circleText,
+                circleSizeDp = menuSize.containerCircleSize.value,
+                fontScale = fontScale,
+                fallback = menuSize.primaryTextSize
+            )
+            Text(
+                text = circleText,
+                color = iconTint,
+                fontSize = effectiveFontSize,
+                textAlign = TextAlign.Center,
+                maxLines = 1
+            )
+        } else if (drawableId != 0) {
+            Icon(
+                painter = painterResource(id = drawableId),
+                contentDescription = labelResource?.let { Resources.getString(it) },
+                modifier = Modifier.size(menuSize.iconSize),
+                tint = iconTint
+            )
+        } else if (text != null) {
+            // Cap the in-circle letter so the user's system font scale
+            // (Settings → Display → Font size) does not push it past the
+            // circle's edge when combined with Menu Size > 100 %. Clamp the
+            // Sp value so the glyph stays within ~45 % of the circle's
+            // diameter.
+            val fontScale = LocalConfiguration.current.fontScale.coerceAtLeast(0.5f)
+            val maxLetterSp = menuSize.containerCircleSize.value * 0.45f / fontScale
+            val effectiveFontSize = if (menuSize.primaryTextSize.value > maxLetterSp) {
+                maxLetterSp.sp
+            } else {
+                menuSize.primaryTextSize
+            }
+            Text(
+                text = circleInitials(text),
+                color = iconTint,
+                fontSize = effectiveFontSize,
+                textAlign = TextAlign.Center,
+                maxLines = 1
+            )
+        }
+        if (isLinkToMenu) {
+            Icon(
+                painter = painterResource(id = R.drawable.ic_menu_link),
+                contentDescription = "Opens submenu",
+                modifier = Modifier
+                    .size(14.dp)
+                    .align(Alignment.TopEnd)
+                    .offset(x = 2.dp, y = (-2).dp),
+                tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.85f)
+            )
+        }
+    }
+}
+
 
 /**
  * Pick a font size that lets [text] fit inside a circle of [circleSizeDp]
