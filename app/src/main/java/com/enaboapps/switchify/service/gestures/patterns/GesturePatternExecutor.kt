@@ -6,6 +6,7 @@ import com.enaboapps.switchify.R
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.service.gestures.GestureLockManager
 import com.enaboapps.switchify.service.gestures.patterns.model.GesturePattern
+import com.enaboapps.switchify.service.window.MessageSeverity
 import com.enaboapps.switchify.service.window.ServiceMessageHUD
 import com.enaboapps.switchify.utils.LogEvent
 import com.enaboapps.switchify.utils.Logger
@@ -85,7 +86,8 @@ class GesturePatternExecutor(
         // Show initial message
         ServiceMessageHUD.instance.showMessage(
             R.string.hud_gesture_pattern_manual_mode_started,
-            ServiceMessageHUD.MessageType.DISAPPEARING
+            ServiceMessageHUD.MessageType.DISAPPEARING,
+            severity = MessageSeverity.Info
         )
 
         // Execute first step immediately
@@ -122,7 +124,8 @@ class GesturePatternExecutor(
                     ServiceMessageHUD.instance.showMessage(
                         R.string.hud_gesture_pattern_step_completed,
                         arrayOf(stepIndex + 1, gesturePattern.gestures.size, remaining),
-                        ServiceMessageHUD.MessageType.PERMANENT
+                        ServiceMessageHUD.MessageType.PERMANENT,
+                        severity = MessageSeverity.Success
                     )
                 } else {
                     // Last step completed, finish the pattern
@@ -145,7 +148,8 @@ class GesturePatternExecutor(
                 // Show user-facing error message
                 ServiceMessageHUD.instance.showMessage(
                     R.string.hud_gesture_pattern_error,
-                    ServiceMessageHUD.MessageType.DISAPPEARING
+                    ServiceMessageHUD.MessageType.DISAPPEARING,
+                    severity = MessageSeverity.Error
                 )
 
                 cleanup()
@@ -183,7 +187,8 @@ class GesturePatternExecutor(
         )
         ServiceMessageHUD.instance.showMessage(
             R.string.hud_gesture_pattern_completed,
-            ServiceMessageHUD.MessageType.DISAPPEARING
+            ServiceMessageHUD.MessageType.DISAPPEARING,
+            severity = MessageSeverity.Success
         )
         cleanup()
     }
@@ -195,7 +200,8 @@ class GesturePatternExecutor(
             executionJob?.cancel()
             ServiceMessageHUD.instance.showMessage(
                 R.string.hud_gesture_pattern_stopped,
-                ServiceMessageHUD.MessageType.DISAPPEARING
+                ServiceMessageHUD.MessageType.DISAPPEARING,
+                severity = MessageSeverity.Warning
             )
             cleanup()
             return true
@@ -205,7 +211,8 @@ class GesturePatternExecutor(
         if (isManualMode && currentStepIndex.get() >= 0 && currentStepIndex.get() < gesturePattern.gestures.size) {
             ServiceMessageHUD.instance.showMessage(
                 R.string.hud_gesture_pattern_stopped,
-                ServiceMessageHUD.MessageType.DISAPPEARING
+                ServiceMessageHUD.MessageType.DISAPPEARING,
+                severity = MessageSeverity.Warning
             )
             cleanup()
             return true

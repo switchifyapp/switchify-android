@@ -27,7 +27,7 @@ object ScreenHighlightsManager {
                 R.string.screen_highlights_unsupported_os,
                 ServiceMessageHUD.MessageType.DISAPPEARING,
                 ServiceMessageHUD.Time.MEDIUM,
-                MessageSeverity.Error
+                severity = MessageSeverity.Error
             )
             return
         }
@@ -35,7 +35,8 @@ object ScreenHighlightsManager {
         ServiceMessageHUD.instance.showMessage(
             R.string.screen_highlights_starting,
             ServiceMessageHUD.MessageType.DISAPPEARING,
-            ServiceMessageHUD.Time.SHORT
+            ServiceMessageHUD.Time.SHORT,
+            severity = MessageSeverity.Info
         )
 
         ScreenshotManager.takeScreenshotWithDelay(
@@ -64,7 +65,7 @@ object ScreenHighlightsManager {
                         R.string.screen_highlights_screenshot_failed,
                         ServiceMessageHUD.MessageType.DISAPPEARING,
                         ServiceMessageHUD.Time.MEDIUM,
-                        MessageSeverity.Error
+                        severity = MessageSeverity.Error
                     )
                 }
             }

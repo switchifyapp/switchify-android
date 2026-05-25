@@ -13,6 +13,7 @@ import com.enaboapps.switchify.service.menu.MenuStateObserver
 import com.enaboapps.switchify.service.menu.MenuView
 import com.enaboapps.switchify.service.selection.SelectionHandler
 import com.enaboapps.switchify.service.utils.ScreenUtils
+import com.enaboapps.switchify.service.window.MessageSeverity
 import com.enaboapps.switchify.service.window.ServiceMessageHUD
 import com.enaboapps.switchify.utils.LogEvent
 import com.enaboapps.switchify.utils.Logger
@@ -85,7 +86,8 @@ class HeadControlManager(private val context: Context) : MenuStateObserver {
         // Show initialization message
         ServiceMessageHUD.instance.showMessage(
             R.string.hud_head_control_initializing,
-            ServiceMessageHUD.MessageType.DISAPPEARING
+            ServiceMessageHUD.MessageType.DISAPPEARING,
+            severity = MessageSeverity.Info
         )
 
         // Start initialization delay
@@ -101,7 +103,8 @@ class HeadControlManager(private val context: Context) : MenuStateObserver {
                     // Show ready message
                     ServiceMessageHUD.instance.showMessage(
                         R.string.hud_head_control_ready,
-                        ServiceMessageHUD.MessageType.DISAPPEARING
+                        ServiceMessageHUD.MessageType.DISAPPEARING,
+                        severity = MessageSeverity.Success
                     )
 
                     // Now show pointer and gesture overlay if allowed

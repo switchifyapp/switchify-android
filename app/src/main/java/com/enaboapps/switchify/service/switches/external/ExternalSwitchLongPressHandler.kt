@@ -5,6 +5,7 @@ import com.enaboapps.switchify.R
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.service.gestures.GestureManager
 import com.enaboapps.switchify.service.scanning.ScanningManager
+import com.enaboapps.switchify.service.window.MessageSeverity
 import com.enaboapps.switchify.service.window.ServiceMessageHUD
 import com.enaboapps.switchify.switches.SwitchAction
 import kotlinx.coroutines.CoroutineScope
@@ -53,7 +54,8 @@ object ExternalSwitchLongPressHandler {
                         R.string.hud_release_to_perform,
                         arrayOf(switchName, actionName),
                         ServiceMessageHUD.MessageType.DISAPPEARING,
-                        ServiceMessageHUD.Time.SHORT
+                        ServiceMessageHUD.Time.SHORT,
+                        severity = MessageSeverity.Info
                     )
                     delay(holdTime) // Use the switch hold time as delay between actions
                 }

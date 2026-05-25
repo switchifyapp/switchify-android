@@ -4,6 +4,7 @@ import android.content.Context
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.service.gestures.data.GestureData
+import com.enaboapps.switchify.service.window.MessageSeverity
 import com.enaboapps.switchify.service.window.ServiceMessageHUD
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -68,7 +69,8 @@ class AutoScrollManager private constructor() {
         if (GestureLockManager.instance.isLocked()) return false
         ServiceMessageHUD.instance.showMessage(
             R.string.hud_auto_scroll_started,
-            ServiceMessageHUD.MessageType.DISAPPEARING
+            ServiceMessageHUD.MessageType.DISAPPEARING,
+            severity = MessageSeverity.Success
         )
         isAutoScrolling = true
         scrollJob = scope.launch {
@@ -93,7 +95,8 @@ class AutoScrollManager private constructor() {
             isAutoScrolling = false
             ServiceMessageHUD.instance.showMessage(
                 R.string.hud_auto_scroll_stopped,
-                ServiceMessageHUD.MessageType.DISAPPEARING
+                ServiceMessageHUD.MessageType.DISAPPEARING,
+                severity = MessageSeverity.Info
             )
             return true
         }

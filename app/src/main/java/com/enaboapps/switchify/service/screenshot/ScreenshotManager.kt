@@ -14,6 +14,7 @@ import android.view.Display
 import androidx.annotation.RequiresApi
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.service.core.SwitchifyAccessibilityService
+import com.enaboapps.switchify.service.window.MessageSeverity
 import com.enaboapps.switchify.service.window.ServiceMessageHUD
 import java.io.IOException
 
@@ -231,7 +232,8 @@ object ScreenshotManager {
                     ServiceMessageHUD.instance.showMessage(
                         R.string.screenshot_saved_to_gallery,
                         ServiceMessageHUD.MessageType.DISAPPEARING,
-                        ServiceMessageHUD.Time.SHORT
+                        ServiceMessageHUD.Time.SHORT,
+                        severity = MessageSeverity.Success
                     )
                 }
 
@@ -240,7 +242,8 @@ object ScreenshotManager {
                     ServiceMessageHUD.instance.showMessage(
                         R.string.screenshot_failed_to_save,
                         ServiceMessageHUD.MessageType.DISAPPEARING,
-                        ServiceMessageHUD.Time.SHORT
+                        ServiceMessageHUD.Time.SHORT,
+                        severity = MessageSeverity.Error
                     )
                 }
             }
