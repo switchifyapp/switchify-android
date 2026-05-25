@@ -49,6 +49,7 @@ class PreferenceManager(context: Context) {
         const val PREFERENCE_KEY_MENU_SIZE_SCALE = "menu_size_scale"
         const val PREFERENCE_KEY_SETTINGS_TAB = "settings_tab"
         const val PREFERENCE_KEY_TELEMETRY_ENABLED = "telemetry_enabled"
+        const val PREFERENCE_KEY_DEVICE_ID = "device_id"
         const val PREFERENCE_KEY_ONBOARDING_CURRENT_STEP = "onboarding_current_step"
         const val PREFERENCE_KEY_ONBOARDING_USER_TYPE = "onboarding_user_type"
         const val PREFERENCE_KEY_ONBOARDING_IS_NEW_USER = "onboarding_is_new_user"
@@ -94,6 +95,7 @@ class PreferenceManager(context: Context) {
             PREFERENCE_KEY_SETUP_COMPLETE,
             PREFERENCE_KEY_REVIEW_LAST_SHOWN,
             PREFERENCE_KEY_TELEMETRY_ENABLED,
+            PREFERENCE_KEY_DEVICE_ID,
             PREFERENCE_KEY_GEMMA_TERMS_ACCEPTED
         )
     }
