@@ -21,7 +21,6 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.enaboapps.switchify.R
-import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.ReorderMode
 import com.enaboapps.switchify.components.ReorderableList
@@ -29,7 +28,6 @@ import com.enaboapps.switchify.components.SelectModeState
 import com.enaboapps.switchify.screens.settings.menu.models.MenuCustomizationScreenModel
 import com.enaboapps.switchify.screens.settings.menu.models.PaletteItem
 import com.enaboapps.switchify.service.menu.MenuItem
-import com.enaboapps.switchify.service.menu.MenuLayoutMode
 import com.enaboapps.switchify.service.menu.MenuSizeManager
 import com.enaboapps.switchify.service.menu.MenuSurfaceBudget
 import com.enaboapps.switchify.service.menu.structure.MenuConstants
@@ -157,31 +155,19 @@ fun MenuCustomizationContent(screenModel: MenuCustomizationScreenModel, menuId: 
                 // Compute the visible-item index of each row so we can mark
                 // page boundaries — the service menu paginates after a fixed
                 // number of items, and the headers below show where each new
-                // page starts. The per-page count tracks the active layout
-                // mode: ring mode uses itemsPerRing from the sizing profile
-                // (4 on phones, 6 on tablets, 8 on large tablets); list mode
-                // uses the same height-aware budget the runtime uses so the
-                // headers match what the user will actually see. Hidden items
-                // are skipped when numbering pages.
-                val itemSize = MenuSizeManager.getRadialItemSize(context)
+                // page starts. The per-page count uses the same height-aware
+                // budget the runtime uses so the headers match what the user
+                // will actually see. Hidden items are skipped when numbering
+                // pages.
+                val itemSize = MenuSizeManager.getItemSize(context)
                 val smallItemSize = MenuSizeManager.getSmallItemSize(context)
-                val layoutMode = MenuLayoutMode.fromPref(
-                    PreferenceManager(context).getIntegerValue(
-                        PreferenceManager.PREFERENCE_KEY_MENU_LAYOUT_MODE,
-                        0
-                    )
+                val pageSize = MenuSurfaceBudget.rowsPerPage(
+                    context = context,
+                    itemSize = itemSize,
+                    smallItemSize = smallItemSize,
+                    hasTitle = MenuConstants.getTitleResource(menuId) != null,
+                    willShowNavRow = true
                 )
-                val pageSize = if (layoutMode == MenuLayoutMode.LIST) {
-                    MenuSurfaceBudget.listRowsPerPage(
-                        context = context,
-                        itemSize = itemSize,
-                        smallItemSize = smallItemSize,
-                        hasTitle = MenuConstants.getTitleResource(menuId) != null,
-                        willShowNavRow = true
-                    )
-                } else {
-                    itemSize.itemsPerRing
-                }
                 val visibleIndexById = remember(menuItems, visibilityMap) {
                     var idx = 0
                     buildMap {

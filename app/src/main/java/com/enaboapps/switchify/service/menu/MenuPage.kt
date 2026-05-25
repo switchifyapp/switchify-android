@@ -21,19 +21,18 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.enaboapps.switchify.R
-import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.service.components.AccessibilityComposeView
 import com.enaboapps.switchify.service.menu.structure.MenuConstants
 import com.enaboapps.switchify.service.techniques.nodes.Node
-import com.enaboapps.switchify.service.utils.ScreenUtils
 import com.enaboapps.switchify.service.window.MenuHighlightHud
 
 /**
- * Renders a single radial "page" of the service menu.
+ * Renders a single page of the service menu.
  *
- * Content items lay out on a ring with an empty centre. A horizontal nav row
- * sits below the ring containing (in order) prev-page, close, next-page — the
- * close button always shows; prev/next only appear when pagination is active.
+ * Content items lay out top-to-bottom as a vertical list. A horizontal nav
+ * row sits below the list containing (in order) prev-page, close, next-page —
+ * the close button always shows; prev/next only appear when pagination is
+ * active.
  *
  * The highlighted item's name and description are surfaced by
  * [MenuHighlightHud] — a separate top-of-screen overlay — rather than inside
@@ -57,7 +56,7 @@ class MenuPage(
 
     /**
      * Get every menu item that lives on this page. Order feeds the default
-     * spatial scanner: ring content items first, then the nav-row items
+     * spatial scanner: content items first, then the nav-row items
      * (prev/close/next). The spatial scanner groups/sorts these by (x, y)
      * itself, so the list order is only a fallback for non-spatial consumers.
      */
@@ -88,56 +87,21 @@ class MenuPage(
         prevPageMenuItem = null
         nextPageMenuItem = null
 
-        val chordGapPx = ScreenUtils.dpToPx(context, 12)
-        val radialItemSize = MenuSizeManager.getRadialItemSize(context)
+        val itemSize = MenuSizeManager.getItemSize(context)
         val smallItemSize = MenuSizeManager.getSmallItemSize(context)
 
-        val layoutMode = MenuLayoutMode.fromPref(
-            PreferenceManager(context).getIntegerValue(
-                PreferenceManager.PREFERENCE_KEY_MENU_LAYOUT_MODE,
-                0
-            )
-        )
-
-        // Both layouts size themselves to fit inside the same surface budget
-        // (see MenuSurfaceBudget). Ring shrinks its radius if it would
-        // overflow; list is sized to the content width and paginated by
-        // MenuView so it can't overflow vertically either.
-        val willShowNavRow = closeItem != null || hasPagination
-        val hasTitle = titleResId != null
+        // List is sized to the content width and paginated by MenuView so it
+        // can't overflow vertically. Both width and pagination derive from
+        // MenuSurfaceBudget — the single source of truth for what fits.
         val contentMaxWidthPx = MenuSurfaceBudget.contentMaxWidthPx(context)
-        val contentBodyMaxHeightPx = MenuSurfaceBudget.contentBodyMaxHeightPx(
-            context = context,
-            smallItemSize = smallItemSize,
-            hasTitle = hasTitle,
-            willShowNavRow = willShowNavRow
-        )
 
-        val content: ViewGroup = when (layoutMode) {
-            MenuLayoutMode.RING -> {
-                val ring = RadialMenuLayout(
-                    context = context,
-                    minChordGapPx = chordGapPx,
-                    maxWidthPx = contentMaxWidthPx,
-                    maxHeightPx = contentBodyMaxHeightPx
-                )
-                contentItems.forEach { it.inflate(ring, radialItemSize) }
-                ring
-            }
-
-            MenuLayoutMode.LIST -> {
-                val list = LinearLayout(context).apply {
-                    orientation = LinearLayout.VERTICAL
-                    layoutParams = ViewGroup.LayoutParams(
-                        contentMaxWidthPx,
-                        ViewGroup.LayoutParams.WRAP_CONTENT
-                    )
-                }
-                contentItems.forEach {
-                    it.inflate(list, radialItemSize, MenuLayoutMode.LIST)
-                }
-                list
-            }
+        val content: ViewGroup = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutParams = ViewGroup.LayoutParams(
+                contentMaxWidthPx,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            )
+            contentItems.forEach { it.inflate(this, itemSize) }
         }
 
         val navRow = buildNavRow(smallItemSize)
@@ -251,11 +215,11 @@ private fun MenuPageBackground(
 }
 
 /**
- * Vertical stack of the optional title, the menu content (radial ring or
- * linear list), and the optional nav row. The highlighted item's name and
- * description are rendered separately by [MenuHighlightHud] at the top of the
- * screen; the title here is the static menu identity (e.g. "Main Menu", "Tap
- * and Hold") so the user always knows which menu they're in.
+ * Vertical stack of the optional title, the menu list, and the optional nav
+ * row. The highlighted item's name and description are rendered separately
+ * by [MenuHighlightHud] at the top of the screen; the title here is the
+ * static menu identity (e.g. "Main Menu", "Tap and Hold") so the user always
+ * knows which menu they're in.
  */
 @Composable
 private fun MenuPageBody(

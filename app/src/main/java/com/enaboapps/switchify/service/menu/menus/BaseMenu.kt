@@ -137,7 +137,7 @@ open class BaseMenu(
     }
 
     /**
-     * Build the close-menu item rendered in the radial page's bottom nav row
+     * Build the close-menu item rendered in the menu page's bottom nav row
      * (alongside prev/next page arrows when pagination is active). Defaults to
      * the close manipulator from [buildNavMenuItems]; subclasses may override
      * to install a different exit action.
