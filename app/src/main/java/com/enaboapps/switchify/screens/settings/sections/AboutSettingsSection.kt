@@ -38,12 +38,12 @@ import com.enaboapps.switchify.components.PreferenceSwitch
 import com.enaboapps.switchify.components.ScrollableView
 import com.enaboapps.switchify.components.Section
 import com.enaboapps.switchify.nav.NavigationRoute
-import com.enaboapps.switchify.screens.settings.models.SettingsScreenModel
+import com.enaboapps.switchify.screens.settings.models.AboutSettingsModel
 import com.enaboapps.switchify.theme.Dimens
 
 @Composable
 fun AboutSection(
-    settingsScreenModel: SettingsScreenModel,
+    settingsScreenModel: AboutSettingsModel,
     navController: NavController? = null
 ) {
     val context = LocalContext.current

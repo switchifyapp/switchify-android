@@ -27,7 +27,7 @@ import com.enaboapps.switchify.components.Section
 import com.enaboapps.switchify.nav.NavigationRoute
 import com.enaboapps.switchify.screens.settings.models.MenuSettingsModel
 import com.enaboapps.switchify.screens.settings.models.SelectionSettingsModel
-import com.enaboapps.switchify.screens.settings.models.SettingsScreenModel
+import com.enaboapps.switchify.screens.settings.models.AboutSettingsModel
 import com.enaboapps.switchify.screens.settings.sections.AboutSection
 import com.enaboapps.switchify.screens.settings.sections.BehaviourSection
 import com.enaboapps.switchify.screens.settings.sections.GesturesSettingsSection
@@ -40,8 +40,8 @@ import com.enaboapps.switchify.screens.settings.techniques.AccessTechniqueSelect
 @Composable
 fun SettingsScreen(navController: NavController) {
     val context = LocalContext.current
-    val settingsScreenModel: SettingsScreenModel =
-        viewModel { SettingsScreenModel(context) }
+    val aboutSettingsModel: AboutSettingsModel =
+        viewModel { AboutSettingsModel(context) }
     val selectionSettingsModel: SelectionSettingsModel =
         viewModel { SelectionSettingsModel(context) }
     val menuSettingsModel: MenuSettingsModel = viewModel { MenuSettingsModel(context) }
@@ -88,7 +88,7 @@ fun SettingsScreen(navController: NavController) {
             0 -> GeneralSettingsTab(menuSettingsModel, navController)
             1 -> ScanningSettingsTab(navController)
             2 -> SelectionSettingsTab(selectionSettingsModel)
-            3 -> AboutSection(settingsScreenModel, navController)
+            3 -> AboutSection(aboutSettingsModel, navController)
         }
     }
 }
