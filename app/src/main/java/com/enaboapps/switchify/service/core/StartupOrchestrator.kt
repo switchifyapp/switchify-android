@@ -7,6 +7,7 @@ import com.enaboapps.switchify.service.techniques.nodes.NodeExaminer
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
@@ -17,6 +18,16 @@ class StartupOrchestrator(
 ) {
     private companion object {
         private const val STARTUP_EXAM_DELAY_MS = 100L
+
+        // The first AccessibilityEvent for an appearing IME often fires while
+        // the keyboard is still animating up: keys aren't fully laid out,
+        // bounds are stale, and the scan tree gets built from an incomplete
+        // snapshot. Schedule one extra examination this long after the
+        // keyboard appears so we get a guaranteed post-settle snapshot even
+        // if Android doesn't emit another event. Mirrors
+        // [com.enaboapps.switchify.service.keyboard.KeyboardManager.BYPASS_UPDATE_DELAY_MS]
+        // — same root cause (PR #1508), same value.
+        private const val KEYBOARD_SETTLE_DELAY_MS = 250L
     }
 
     private val keyboardNodesPolicy = KeyboardNodesPolicy()
@@ -47,6 +58,25 @@ class StartupOrchestrator(
                     }
                     .map { (_, nodes) -> nodes.nodes }
                     .collect { scanningManager.updateKeyboardNodes(it) }
+            }
+            serviceScope.launch {
+                // Re-examine the accessibility tree shortly after the keyboard
+                // first appears. Android's initial IME AccessibilityEvent
+                // often fires mid-animation when the key layout isn't settled
+                // yet, leaving the scan tree built from a stale snapshot. By
+                // running a second examination after the IME has stabilised
+                // we guarantee a correct post-settle snapshot — the standard
+                // KeyboardNodesPolicy.shouldDropAsStale filter handles edge
+                // cases (keyboard dismissed during the window, bounds changed
+                // mid-flight).
+                KeyboardManager.keyboardState
+                    .map { it.isVisible }
+                    .distinctUntilChanged()
+                    .filter { it }
+                    .collect {
+                        delay(KEYBOARD_SETTLE_DELAY_MS)
+                        processAccessibilityEvent()
+                    }
             }
         }
     }
