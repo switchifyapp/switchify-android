@@ -94,9 +94,8 @@ class MenuCustomizationScreenModel(
             // Get default items for the menu from code
             val defaultItems = getDefaultMenuItemsForMenu(menuId)
 
-            // Filter out navigation items (small items and menu hierarchy manipulators)
             val filterableDefaultItems = defaultItems.filter {
-                !it.isSmall && !it.isMenuHierarchyManipulator
+                !it.isMenuHierarchyManipulator
             }
 
             // Load user-added items

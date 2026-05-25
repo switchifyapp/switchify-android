@@ -169,8 +169,6 @@ class MenuPage(
         drawableId = drawableId,
         labelResource = labelResource,
         descriptionResource = descriptionResource,
-        showLabelAsDescription = false,
-        isSmall = true,
         closeOnSelect = false,
         isMenuHierarchyManipulator = true,
         action = action

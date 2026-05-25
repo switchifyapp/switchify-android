@@ -51,8 +51,6 @@ import com.enaboapps.switchify.utils.Resources
  * @property circleText Optional short text rendered inside the menu circle in
  *   place of an icon. When set, this overrides both the icon and the
  *   automatic initials fallback. The full label still drives accessibility.
- * @property showLabelAsDescription Whether to show the label as description text below the icon
- * @property isSmall Whether the menu item is small
  * @property closeOnSelect Whether the menu should close when the item is selected
  * @property isLinkToMenu Whether the item is a link to another menu
  * @property isMenuHierarchyManipulator Whether the item manipulates the menu hierarchy
@@ -66,8 +64,6 @@ class MenuItem(
     val userProvidedDescription: String? = null,
     private val drawableId: Int = 0,
     private val circleText: String? = null,
-    val showLabelAsDescription: Boolean = true,
-    val isSmall: Boolean = false,
     val closeOnSelect: Boolean = true,
     var isLinkToMenu: Boolean = false,
     var isMenuHierarchyManipulator: Boolean = false,
@@ -80,7 +76,6 @@ class MenuItem(
      */
     constructor(
         definition: MenuItemDefinition,
-        showLabelAsDescription: Boolean = true,
         closeOnSelect: Boolean = true,
         isLinkToMenu: Boolean = false,
         action: () -> Unit
@@ -92,8 +87,6 @@ class MenuItem(
         userProvidedDescription = definition.userProvidedDescription,
         drawableId = definition.drawableId,
         circleText = definition.circleText,
-        showLabelAsDescription = showLabelAsDescription,
-        isSmall = definition.isSmall,
         closeOnSelect = closeOnSelect,
         isLinkToMenu = isLinkToMenu,
         isMenuHierarchyManipulator = definition.isMenuHierarchyManipulator,
@@ -117,9 +110,7 @@ class MenuItem(
                 userProvidedText = userProvidedText,
                 drawableId = drawableId,
                 circleText = circleText,
-                showLabelAsDescription = showLabelAsDescription,
                 isMenuHierarchyManipulator = isMenuHierarchyManipulator,
-                isSmall = isSmall,
                 isLinkToMenu = isLinkToMenu,
                 isBackButton = isBackButton,
                 menuSize = menuSize,
@@ -198,9 +189,7 @@ private fun MenuItemContent(
     userProvidedText: String?,
     drawableId: Int,
     circleText: String?,
-    showLabelAsDescription: Boolean,
     isMenuHierarchyManipulator: Boolean,
-    isSmall: Boolean,
     isLinkToMenu: Boolean,
     isBackButton: Boolean,
     menuSize: MenuItemSize,
