@@ -122,39 +122,29 @@ class MenuView(
     }
 
     /**
-     * Creates radial menu pages from the provided flat list of menu items. Items
-     * are paginated in groups of [RADIAL_ITEMS_PER_PAGE]; each page lays out its
-     * chunk on a single ring around [BaseMenu.buildCenterItem] (the close
-     * manipulator by default).
+     * Creates menu pages from the provided flat list of menu items. Items are
+     * paginated to the row-count [MenuSurfaceBudget.rowsPerPage] reports as
+     * fitting on one page; each page also gets the menu's close manipulator
+     * in its nav row when the menu opts into it.
      *
      * @param menuItems List of MenuItem objects to be displayed in the menu.
      */
     private fun createMenuPages(menuItems: List<MenuItem>) {
-        val itemSize = MenuSizeManager.getRadialItemSize(context)
+        val itemSize = MenuSizeManager.getItemSize(context)
         val smallItemSize = MenuSizeManager.getSmallItemSize(context)
-        val layoutMode = MenuLayoutMode.fromPref(
-            preferenceManager.getIntegerValue(
-                PreferenceManager.PREFERENCE_KEY_MENU_LAYOUT_MODE,
-                0
-            )
-        )
         val titleResId = MenuConstants.getTitleResource(menu.menuId)
         // The same chrome shows on every page of a menu by design, so the
         // pagination budget is identical across pages. We don't yet know
         // whether pagination will actually kick in here (chicken/egg), so we
         // assume the nav row will be present — that's a slight over-budget
         // which only makes pagination a hair more conservative.
-        val perPage = if (layoutMode == MenuLayoutMode.LIST) {
-            MenuSurfaceBudget.listRowsPerPage(
-                context = context,
-                itemSize = itemSize,
-                smallItemSize = smallItemSize,
-                hasTitle = titleResId != null,
-                willShowNavRow = true
-            )
-        } else {
-            itemSize.itemsPerRing
-        }
+        val perPage = MenuSurfaceBudget.rowsPerPage(
+            context = context,
+            itemSize = itemSize,
+            smallItemSize = smallItemSize,
+            hasTitle = titleResId != null,
+            willShowNavRow = true
+        )
         numOfPages = ((menuItems.size + perPage - 1) / perPage).coerceAtLeast(1)
         for (i in 0 until numOfPages) {
             val start = i * perPage

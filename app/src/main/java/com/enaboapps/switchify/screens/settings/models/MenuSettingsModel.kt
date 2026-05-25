@@ -33,14 +33,6 @@ class MenuSettingsModel(context: Context) : ViewModel() {
     }
     val menuSizeScale: LiveData<Int> = _menuSizeScale
 
-    private val _menuLayoutMode = MutableLiveData<Int>().apply {
-        value = preferenceManager.getIntegerValue(
-            PreferenceManager.Keys.PREFERENCE_KEY_MENU_LAYOUT_MODE,
-            0
-        )
-    }
-    val menuLayoutMode: LiveData<Int> = _menuLayoutMode
-
     fun setMenuTransparency(value: Boolean) {
         viewModelScope.launch {
             preferenceManager.setBooleanValue(
@@ -68,16 +60,6 @@ class MenuSettingsModel(context: Context) : ViewModel() {
                 value
             )
             _menuSizeScale.postValue(value)
-        }
-    }
-
-    fun setMenuLayoutMode(value: Int) {
-        viewModelScope.launch {
-            preferenceManager.setIntegerValue(
-                PreferenceManager.Keys.PREFERENCE_KEY_MENU_LAYOUT_MODE,
-                value
-            )
-            _menuLayoutMode.postValue(value)
         }
     }
 }

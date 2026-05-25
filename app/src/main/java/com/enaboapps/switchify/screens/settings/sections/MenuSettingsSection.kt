@@ -12,10 +12,8 @@ import com.enaboapps.switchify.nav.NavigationRoute
 import com.enaboapps.switchify.screens.settings.models.MenuSettingsModel
 
 /**
- * Displays the "Menu" settings section containing a link to menu customization and the
- * menu-transparency toggle. The rows-per-page selector was removed when the service menu
- * switched from a grid to a single radial ring (see [com.enaboapps.switchify.service.menu.MenuView]) —
- * the underlying preference key is still defined for backward compatibility but unread.
+ * Displays the "Menu" settings section: a link to menu customization, the favourite-apps
+ * link, the Menu Size selector, and the Menu Transparency toggle.
  *
  * @param screenModel Provides current menu settings state and actions to update those settings.
  * @param navController NavController used to navigate to the menu customization screen.
@@ -49,26 +47,6 @@ fun MenuSection(screenModel: MenuSettingsModel, navController: NavController) {
                 else -> "$percent%"
             }
         }
-
-        val ringLabel = stringResource(R.string.menu_layout_ring)
-        val listLabel = stringResource(R.string.menu_layout_list)
-        val layoutLabel: (Int) -> String = { mode ->
-            when (mode) {
-                0 -> ringLabel
-                1 -> listLabel
-                else -> "$mode"
-            }
-        }
-
-        PreferenceValueSelector(
-            value = screenModel.menuLayoutMode.value ?: 0,
-            titleResId = R.string.settings_title_menu_layout,
-            summaryResId = R.string.settings_summary_menu_layout,
-            values = intArrayOf(0, 1),
-            buttonLabelFormatter = layoutLabel,
-            displayFormatter = layoutLabel,
-            onValueChanged = { screenModel.setMenuLayoutMode(it) }
-        )
 
         PreferenceValueSelector(
             value = screenModel.menuSizeScale.value ?: 100,

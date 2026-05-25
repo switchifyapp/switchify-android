@@ -7,15 +7,14 @@ import com.enaboapps.switchify.service.window.MenuHighlightHud
 /**
  * Single source of truth for the bounding box the service menu can occupy and
  * the budgets that derive from it. Both [MenuView] (when deciding how many
- * items fit per page) and [MenuPage] (when laying out the ring or list body)
- * consult these functions so the two never disagree.
+ * items fit per page) and [MenuPage] (when laying out the list body) consult
+ * these functions so the two never disagree.
  *
  * The model is "fixed bounding box from screen": the surface (background +
  * content + nav row) is sized to fit inside
  *   (screen width − horizontal margin) × (screen height − HUD − bottom margin)
- * and every layout that goes inside it (radial ring, vertical list) adapts to
- * that envelope. Pagination on top of that is just "how many items fit before
- * we need a second page."
+ * and the list adapts to that envelope. Pagination on top of that is just
+ * "how many rows fit before we need a second page."
  */
 object MenuSurfaceBudget {
 
@@ -52,8 +51,8 @@ object MenuSurfaceBudget {
 
     /**
      * Max width for the *content area* inside the surface (after subtracting
-     * the surface's own horizontal padding). This is the width a
-     * [RadialMenuLayout] or list LinearLayout should fit into.
+     * the surface's own horizontal padding). This is the width the list
+     * LinearLayout should fit into.
      */
     fun contentMaxWidthPx(context: Context): Int {
         val padPx = ScreenUtils.dpToPx(context, SURFACE_HORIZONTAL_PADDING_DP)
@@ -61,11 +60,11 @@ object MenuSurfaceBudget {
     }
 
     /**
-     * Max height for the *content body* (ring or list) inside the surface,
-     * after subtracting surface vertical padding, the optional title row, and
-     * the optional nav row + its gap above. Pass conservative `true` values
-     * if you don't yet know whether they'll appear — the worst case is that
-     * the layout uses slightly less than it could have.
+     * Max height for the *content body* (the list) inside the surface, after
+     * subtracting surface vertical padding, the optional title row, and the
+     * optional nav row + its gap above. Pass conservative `true` values if
+     * you don't yet know whether they'll appear — the worst case is that the
+     * layout uses slightly less than it could have.
      */
     fun contentBodyMaxHeightPx(
         context: Context,
@@ -84,22 +83,22 @@ object MenuSurfaceBudget {
     }
 
     /**
-     * Height (px) of a single list-mode row for the given item profile.
+     * Height (px) of a single list row for the given item profile.
      */
-    fun listRowHeightPx(context: Context, itemSize: MenuItemSize): Int =
-        ScreenUtils.dpToPx(context, itemSize.listRowHeightDp)
+    fun rowHeightPx(context: Context, itemSize: MenuItemSize): Int =
+        ScreenUtils.dpToPx(context, itemSize.rowHeightDp)
 
     /**
-     * Number of list-mode rows that fit on one page given the current screen
-     * and item profile, capped at [MenuItemSize.itemsPerList]. Always at
-     * least 1 so a single tall item still renders.
+     * Number of list rows that fit on one page given the current screen and
+     * item profile, capped at [MenuItemSize.itemsPerPage]. Always at least 1
+     * so a single tall item still renders.
      *
      * The pagination caller doesn't yet know if a given menu will have a
      * title or nav row, so callers pass conservative `true` values here. The
      * budget is the same across every page of a menu by design — every page
      * shows or hides the same chrome.
      */
-    fun listRowsPerPage(
+    fun rowsPerPage(
         context: Context,
         itemSize: MenuItemSize,
         smallItemSize: MenuItemSize,
@@ -112,12 +111,12 @@ object MenuSurfaceBudget {
             hasTitle = hasTitle,
             willShowNavRow = willShowNavRow
         )
-        val rowHeightPx = listRowHeightPx(context, itemSize)
+        val rowHeightPx = rowHeightPx(context, itemSize)
         val rowsThatFit = if (rowHeightPx > 0) {
             (bodyHeightPx / rowHeightPx).coerceAtLeast(1)
         } else {
             1
         }
-        return minOf(itemSize.itemsPerList, rowsThatFit)
+        return minOf(itemSize.itemsPerPage, rowsThatFit)
     }
 }

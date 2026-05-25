@@ -74,7 +74,7 @@ object MenuConstants {
     object ItemIds {
         /**
          * Menu-wide navigation / manipulator items (close, prev/next page, etc.)
-         * rendered outside the per-menu content (e.g. in the radial page's nav row).
+         * rendered outside the per-menu content (in the menu page's nav row).
          */
         object Navigation {
             const val CLOSE_MENU = "close_menu"
