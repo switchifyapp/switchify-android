@@ -41,14 +41,6 @@ class SettingsScreenModel(context: Context) : ViewModel() {
     }
     val menuTransparency: LiveData<Boolean> = _menuTransparency
 
-    private val _menuRowsPerPage = MutableLiveData<Int>().apply {
-        value = preferenceManager.getIntegerValue(
-            PreferenceManager.Keys.PREFERENCE_KEY_MENU_ROWS_PER_PAGE,
-            2
-        )
-    }
-    val menuRowsPerPage: LiveData<Int> = _menuRowsPerPage
-
     private val _telemetryEnabled = MutableLiveData<Boolean>().apply {
         value = preferenceManager.isTelemetryEnabled()
     }
@@ -102,16 +94,6 @@ class SettingsScreenModel(context: Context) : ViewModel() {
                 value
             )
             _menuTransparency.postValue(value)
-        }
-    }
-
-    fun setMenuRowsPerPage(value: Int) {
-        viewModelScope.launch {
-            preferenceManager.setIntegerValue(
-                PreferenceManager.Keys.PREFERENCE_KEY_MENU_ROWS_PER_PAGE,
-                value
-            )
-            _menuRowsPerPage.postValue(value)
         }
     }
 
