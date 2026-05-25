@@ -8,6 +8,7 @@ import com.enaboapps.switchify.BuildConfig
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.backend.iap.IAPHandler
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
+import com.enaboapps.switchify.service.window.MessageSeverity
 import com.enaboapps.switchify.service.window.ServiceMessageHUD
 import com.enaboapps.switchify.utils.LogEvent
 import com.enaboapps.switchify.utils.Logger
@@ -85,7 +86,8 @@ class ServiceTrialManager(
             )
             ServiceMessageHUD.instance.showMessage(
                 R.string.debug_trial_disabled_message,
-                ServiceMessageHUD.MessageType.DISAPPEARING
+                ServiceMessageHUD.MessageType.DISAPPEARING,
+                severity = MessageSeverity.Info
             )
             return
         }
@@ -102,7 +104,8 @@ class ServiceTrialManager(
             )
             ServiceMessageHUD.instance.showMessage(
                 R.string.pro_unlimited_access_message,
-                ServiceMessageHUD.MessageType.DISAPPEARING
+                ServiceMessageHUD.MessageType.DISAPPEARING,
+                severity = MessageSeverity.Success
             )
             return
         }
@@ -119,7 +122,8 @@ class ServiceTrialManager(
             )
             ServiceMessageHUD.instance.showMessage(
                 R.string.trial_blocked_device_locked_message,
-                ServiceMessageHUD.MessageType.PERMANENT
+                ServiceMessageHUD.MessageType.PERMANENT,
+                severity = MessageSeverity.Warning
             )
             return
         }
@@ -159,7 +163,8 @@ class ServiceTrialManager(
             if (BuildConfig.DEBUG) R.string.debug_trial_started_message else R.string.trial_started_message
         ServiceMessageHUD.instance.showMessage(
             messageRes,
-            ServiceMessageHUD.MessageType.DISAPPEARING
+            ServiceMessageHUD.MessageType.DISAPPEARING,
+            severity = MessageSeverity.Success
         )
     }
 
@@ -248,7 +253,8 @@ class ServiceTrialManager(
             if (isTrialActive) {
                 ServiceMessageHUD.instance.showMessage(
                     R.string.trial_warning_message,
-                    ServiceMessageHUD.MessageType.PERMANENT
+                    ServiceMessageHUD.MessageType.PERMANENT,
+                    severity = MessageSeverity.Warning
                 )
                 val timeText = if (BuildConfig.DEBUG) "10 seconds" else "10 minutes"
                 Log.d(TAG, "Trial warning shown - $timeText remaining")
@@ -283,7 +289,8 @@ class ServiceTrialManager(
                 )
                 ServiceMessageHUD.instance.showMessage(
                     R.string.trial_expired_message,
-                    ServiceMessageHUD.MessageType.PERMANENT
+                    ServiceMessageHUD.MessageType.PERMANENT,
+                    severity = MessageSeverity.Warning
                 )
                 isTrialActive = false
                 onTrialExpired()

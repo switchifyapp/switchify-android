@@ -3,6 +3,7 @@ package com.enaboapps.switchify.service.gestures
 import android.accessibilityservice.AccessibilityService
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.service.gestures.data.GestureData
+import com.enaboapps.switchify.service.window.MessageSeverity
 import com.enaboapps.switchify.service.window.ServiceMessageHUD
 import java.util.Timer
 import java.util.TimerTask
@@ -30,12 +31,14 @@ class GestureLockManager private constructor() {
         if (isLocked) {
             ServiceMessageHUD.instance.showMessage(
                 R.string.gesture_lock_enabled,
-                ServiceMessageHUD.MessageType.DISAPPEARING
+                ServiceMessageHUD.MessageType.DISAPPEARING,
+                severity = MessageSeverity.Info
             )
         } else {
             ServiceMessageHUD.instance.showMessage(
                 R.string.gesture_lock_disabled,
-                ServiceMessageHUD.MessageType.DISAPPEARING
+                ServiceMessageHUD.MessageType.DISAPPEARING,
+                severity = MessageSeverity.Info
             )
 
             // Clear the locked gesture data
@@ -108,7 +111,8 @@ class GestureLockManager private constructor() {
                 setLockedGestureData(null)
                 ServiceMessageHUD.instance.showMessage(
                     R.string.gesture_lock_timeout_disabled,
-                    ServiceMessageHUD.MessageType.DISAPPEARING
+                    ServiceMessageHUD.MessageType.DISAPPEARING,
+                    severity = MessageSeverity.Warning
                 )
             }
         }, lockTimeout)

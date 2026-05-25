@@ -8,6 +8,7 @@ import com.enaboapps.switchify.R
 import com.enaboapps.switchify.service.camera.CameraPermissionManager
 import com.enaboapps.switchify.service.core.ServiceBridge
 import com.enaboapps.switchify.service.utils.DeviceLockObserver
+import com.enaboapps.switchify.service.window.MessageSeverity
 import com.enaboapps.switchify.service.window.ServiceMessageHUD
 import com.enaboapps.switchify.utils.LogEvent
 import com.enaboapps.switchify.utils.Logger
@@ -122,7 +123,8 @@ class HeadControlService private constructor(private val context: Context) {
     private fun showCameraPermissionRequiredNotification() {
         ServiceMessageHUD.instance.showMessage(
             R.string.hud_head_control_requires_camera_permission,
-            ServiceMessageHUD.MessageType.DISAPPEARING
+            ServiceMessageHUD.MessageType.DISAPPEARING,
+            severity = MessageSeverity.Error
         )
     }
 
@@ -312,7 +314,8 @@ class HeadControlService private constructor(private val context: Context) {
                         headControlManager = HeadControlManager(context)
                         ServiceMessageHUD.instance.showMessage(
                             R.string.hud_head_control_enabled_after_unlock,
-                            ServiceMessageHUD.MessageType.DISAPPEARING
+                            ServiceMessageHUD.MessageType.DISAPPEARING,
+                            severity = MessageSeverity.Success
                         )
                     } else {
                         Log.w(
@@ -345,7 +348,8 @@ class HeadControlService private constructor(private val context: Context) {
                         headControlManager = HeadControlManager(context)
                         ServiceMessageHUD.instance.showMessage(
                             R.string.hud_head_control_enabled_after_permission_granted,
-                            ServiceMessageHUD.MessageType.DISAPPEARING
+                            ServiceMessageHUD.MessageType.DISAPPEARING,
+                            severity = MessageSeverity.Success
                         )
                     } else {
                         Log.d(
@@ -364,7 +368,8 @@ class HeadControlService private constructor(private val context: Context) {
                 // Don't change settings - user didn't intentionally disable
                 ServiceMessageHUD.instance.showMessage(
                     R.string.hud_head_control_disabled_permission_revoked,
-                    ServiceMessageHUD.MessageType.PERMANENT
+                    ServiceMessageHUD.MessageType.PERMANENT,
+                    severity = MessageSeverity.Error
                 )
             }
         )
@@ -376,7 +381,8 @@ class HeadControlService private constructor(private val context: Context) {
     private fun showDeviceLockedNotification() {
         ServiceMessageHUD.instance.showMessage(
             R.string.hud_head_control_requires_unlocked_device,
-            ServiceMessageHUD.MessageType.PERMANENT
+            ServiceMessageHUD.MessageType.PERMANENT,
+            severity = MessageSeverity.Warning
         )
     }
 

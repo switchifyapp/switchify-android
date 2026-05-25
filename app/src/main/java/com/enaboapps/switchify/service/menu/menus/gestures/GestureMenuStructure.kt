@@ -11,6 +11,7 @@ import com.enaboapps.switchify.service.menu.MenuItem
 import com.enaboapps.switchify.service.menu.MenuManager
 import com.enaboapps.switchify.service.menu.structure.MenuItemRegistry
 import com.enaboapps.switchify.service.menu.structure.MenuStructure
+import com.enaboapps.switchify.service.window.MessageSeverity
 import com.enaboapps.switchify.service.window.ServiceMessageHUD
 import kotlinx.coroutines.CoroutineScope
 
@@ -302,7 +303,8 @@ class GestureMenuStructure(
                     ServiceMessageHUD.instance.showMessage(
                         R.string.finger_mode_changed,
                         arrayOf(FingerMode.ONE.getDisplayName(context)),
-                        ServiceMessageHUD.MessageType.DISAPPEARING
+                        ServiceMessageHUD.MessageType.DISAPPEARING,
+                        severity = MessageSeverity.Success
                     )
                 }
             ),
@@ -317,7 +319,8 @@ class GestureMenuStructure(
                     ServiceMessageHUD.instance.showMessage(
                         R.string.finger_mode_changed,
                         arrayOf(FingerMode.TWO.getDisplayName(context)),
-                        ServiceMessageHUD.MessageType.DISAPPEARING
+                        ServiceMessageHUD.MessageType.DISAPPEARING,
+                        severity = MessageSeverity.Success
                     )
                 }
             ),
@@ -332,7 +335,8 @@ class GestureMenuStructure(
                     ServiceMessageHUD.instance.showMessage(
                         R.string.finger_mode_changed,
                         arrayOf(FingerMode.THREE.getDisplayName(context)),
-                        ServiceMessageHUD.MessageType.DISAPPEARING
+                        ServiceMessageHUD.MessageType.DISAPPEARING,
+                        severity = MessageSeverity.Success
                     )
                 }
             ),
@@ -347,7 +351,8 @@ class GestureMenuStructure(
                     ServiceMessageHUD.instance.showMessage(
                         R.string.finger_mode_changed,
                         arrayOf(FingerMode.FOUR.getDisplayName(context)),
-                        ServiceMessageHUD.MessageType.DISAPPEARING
+                        ServiceMessageHUD.MessageType.DISAPPEARING,
+                        severity = MessageSeverity.Success
                     )
                 }
             ),
@@ -362,7 +367,8 @@ class GestureMenuStructure(
                     ServiceMessageHUD.instance.showMessage(
                         R.string.finger_mode_changed,
                         arrayOf(FingerMode.FIVE.getDisplayName(context)),
-                        ServiceMessageHUD.MessageType.DISAPPEARING
+                        ServiceMessageHUD.MessageType.DISAPPEARING,
+                        severity = MessageSeverity.Success
                     )
                 }
             )

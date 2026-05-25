@@ -15,6 +15,7 @@ import com.enaboapps.switchify.service.gestures.placement.FingerModePreferences
 import com.enaboapps.switchify.service.gestures.placement.FingerPlacementAlgorithm
 import com.enaboapps.switchify.service.gestures.visuals.GestureVisualManager
 import com.enaboapps.switchify.service.utils.ScreenUtils
+import com.enaboapps.switchify.service.window.MessageSeverity
 import com.enaboapps.switchify.service.window.ServiceMessageHUD
 
 /**
@@ -371,7 +372,8 @@ class LinearGesturePerformer(
         }
         ServiceMessageHUD.instance.showMessage(
             messageResId,
-            ServiceMessageHUD.MessageType.DISAPPEARING
+            ServiceMessageHUD.MessageType.DISAPPEARING,
+            severity = MessageSeverity.Info
         )
     }
 

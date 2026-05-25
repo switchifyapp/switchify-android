@@ -31,6 +31,7 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.Observer
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.service.face.FaceProcessingService
+import com.enaboapps.switchify.service.window.MessageSeverity
 import com.enaboapps.switchify.service.window.ServiceMessageHUD
 import com.enaboapps.switchify.utils.LogEvent
 import com.enaboapps.switchify.utils.Logger
@@ -438,7 +439,8 @@ class CameraForegroundService : Service(), CameraLifecycle {
             retryJob = null
             ServiceMessageHUD.instance.showMessage(
                 R.string.hud_camera_recovered,
-                ServiceMessageHUD.MessageType.DISAPPEARING
+                ServiceMessageHUD.MessageType.DISAPPEARING,
+                severity = MessageSeverity.Success
             )
 
         } catch (e: Exception) {
@@ -481,7 +483,8 @@ class CameraForegroundService : Service(), CameraLifecycle {
         if (!isPausedForConflict) {
             ServiceMessageHUD.instance.showMessage(
                 R.string.hud_camera_unavailable_external_app,
-                ServiceMessageHUD.MessageType.DISAPPEARING
+                ServiceMessageHUD.MessageType.DISAPPEARING,
+                severity = MessageSeverity.Warning
             )
             pauseProcessing()
             scheduleRetry()
@@ -491,7 +494,8 @@ class CameraForegroundService : Service(), CameraLifecycle {
     private fun onCameraFatal() {
         ServiceMessageHUD.instance.showMessage(
             R.string.hud_camera_access_error,
-            ServiceMessageHUD.MessageType.DISAPPEARING
+            ServiceMessageHUD.MessageType.DISAPPEARING,
+            severity = MessageSeverity.Error
         )
         pauseProcessing()
     }

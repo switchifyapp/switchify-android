@@ -5,6 +5,7 @@ import android.util.Log
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.service.gestures.data.GestureData
 import com.enaboapps.switchify.service.gestures.patterns.store.GesturePatternStore
+import com.enaboapps.switchify.service.window.MessageSeverity
 import com.enaboapps.switchify.service.window.ServiceMessageHUD
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -46,7 +47,8 @@ object GesturePatternRecorder {
 
         ServiceMessageHUD.instance.showMessage(
             R.string.started_recording,
-            ServiceMessageHUD.MessageType.DISAPPEARING
+            ServiceMessageHUD.MessageType.DISAPPEARING,
+            severity = MessageSeverity.Info
         )
 
         Log.i(TAG, "Started recording new gesture pattern")
@@ -79,7 +81,8 @@ object GesturePatternRecorder {
 
             ServiceMessageHUD.instance.showMessage(
                 R.string.saved_gesture_pattern,
-                ServiceMessageHUD.MessageType.DISAPPEARING
+                ServiceMessageHUD.MessageType.DISAPPEARING,
+                severity = MessageSeverity.Success
             )
         }
     }
@@ -93,7 +96,8 @@ object GesturePatternRecorder {
             isRecording = false
             ServiceMessageHUD.instance.showMessage(
                 R.string.recording_canceled,
-                ServiceMessageHUD.MessageType.DISAPPEARING
+                ServiceMessageHUD.MessageType.DISAPPEARING,
+                severity = MessageSeverity.Warning
             )
         }
     }

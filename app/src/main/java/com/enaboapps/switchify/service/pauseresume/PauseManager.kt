@@ -5,6 +5,7 @@ import android.content.Intent
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.service.core.ServiceCore
+import com.enaboapps.switchify.service.window.MessageSeverity
 import com.enaboapps.switchify.service.window.ServiceMessageHUD
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -90,7 +91,8 @@ class PauseManager private constructor() {
         ServiceMessageHUD.instance.showMessage(
             R.string.hud_pause,
             arrayOf(timeoutDisplay),
-            ServiceMessageHUD.MessageType.DISAPPEARING
+            ServiceMessageHUD.MessageType.DISAPPEARING,
+            severity = MessageSeverity.Warning
         )
 
         isPaused = true
@@ -159,7 +161,8 @@ class PauseManager private constructor() {
 
         ServiceMessageHUD.instance.showMessage(
             R.string.hud_pause_resume,
-            ServiceMessageHUD.MessageType.DISAPPEARING
+            ServiceMessageHUD.MessageType.DISAPPEARING,
+            severity = MessageSeverity.Success
         )
 
         // Send broadcast that pause has ended
