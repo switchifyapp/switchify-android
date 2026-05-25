@@ -11,6 +11,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.net.HttpURLConnection
 import java.net.URL
+import java.util.UUID
 
 object Logger {
     private const val TAG = "SwitchifyLogger"
@@ -97,6 +98,7 @@ object Logger {
                     flowId = flowId,
                     stepIndex = stepIndex,
                     userId = AuthRepository.instance.getCurrentUser()?.email
+                        ?: "device:${getOrCreateDeviceId(prefs)}"
                 )
                 val payload = LogPayload(logs = listOf(entry))
 
@@ -125,5 +127,18 @@ object Logger {
                 }
             }
         }
+    }
+
+    /**
+     * Returns a stable per-install identifier used as the userId fallback when no user
+     * is signed in. Generated once on first call and persisted; the key is blacklisted
+     * from sync so it never follows the account across devices.
+     */
+    private fun getOrCreateDeviceId(prefs: PreferenceManager): String {
+        val existing = prefs.getStringValue(PreferenceManager.PREFERENCE_KEY_DEVICE_ID)
+        if (existing.isNotEmpty()) return existing
+        val generated = UUID.randomUUID().toString()
+        prefs.setStringValue(PreferenceManager.PREFERENCE_KEY_DEVICE_ID, generated)
+        return generated
     }
 }
