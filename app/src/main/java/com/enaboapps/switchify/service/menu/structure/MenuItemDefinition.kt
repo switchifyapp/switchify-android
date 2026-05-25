@@ -20,7 +20,6 @@ package com.enaboapps.switchify.service.menu.structure
  *   place of an icon. When set, this overrides both [drawableId] and the
  *   automatic initials fallback. The full [labelResource] is still used for
  *   accessibility and the highlight header.
- * @property isSmall Whether this is a small navigation item
  * @property isMenuHierarchyManipulator Whether this manipulates the menu hierarchy
  */
 data class MenuItemDefinition(
@@ -31,6 +30,5 @@ data class MenuItemDefinition(
     val userProvidedDescription: String? = null,
     val drawableId: Int = 0,
     val circleText: String? = null,
-    val isSmall: Boolean = false,
     val isMenuHierarchyManipulator: Boolean = false
 )

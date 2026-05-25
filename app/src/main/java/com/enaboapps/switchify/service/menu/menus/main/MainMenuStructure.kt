@@ -164,10 +164,8 @@ class MainMenuStructure(
             drawableId = R.drawable.ic_close_menu,
             labelResource = R.string.menu_item_close_menu,
             descriptionResource = R.string.menu_item_close_menu_description,
-            showLabelAsDescription = false,
-            isSmall = true,
             isMenuHierarchyManipulator = true,
             action = { MenuManager.getInstance().closeMenuHierarchy() }
         )
     )
-} 
+}

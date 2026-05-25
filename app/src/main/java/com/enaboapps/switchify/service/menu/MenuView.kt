@@ -50,9 +50,6 @@ class MenuView(
     /** Listener for menu view events */
     var menuViewListener: MenuViewListener? = null
 
-    /** Dynamic items to be added to the menu after the menu is opened */
-    private val dynamicItems = mutableListOf<MenuItem>()
-
     /** Base layout for the menu */
     private var baseLayout = LinearLayout(context)
 
