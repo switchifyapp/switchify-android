@@ -395,7 +395,7 @@ class ScanTreeNavigator(
      */
     fun isAutoScanCycleLimitReached(): Boolean {
         val userDefinedCycles = scanSettings.getScanCycles()
-        return currentCycle == userDefinedCycles && scanSettings.isAutoScanMode()
+        return currentCycle >= userDefinedCycles && scanSettings.isAutoScanMode()
     }
 
     /**

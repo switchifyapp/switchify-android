@@ -295,6 +295,9 @@ class ScanTree(
                 "Cycle is completed with navigator cycle break: ${navigator.isInCycleBreak}"
             )
             callback?.onSingleCycleCompleted(navigator.currentCycle)
+            if (handleAutoScanCycleLimit()) {
+                return true
+            }
             if (navigator.isInCycleBreak) {
                 callback?.onScanTreeCycleBreakStarted()
                 return true
