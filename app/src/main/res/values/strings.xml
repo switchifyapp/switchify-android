@@ -39,6 +39,7 @@
     
     <!-- Head Control Menu Items -->
     <string name="menu_item_enable_head_control">Enable Head Control</string>
+    <string name="menu_item_disable_head_control">Disable Head Control</string>
 
     <!-- Scroll Menu Items -->
     <string name="menu_item_scroll_up">Scroll Up</string>
