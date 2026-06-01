@@ -78,12 +78,19 @@ class SettingsMenuStructure(
                     MenuConstants.MenuIds.SETTINGS_MENU,
                     MenuConstants.ItemIds.Settings.TOGGLE_HEAD_CONTROL
                 )?.let { def ->
+                    val settings = HeadControlSettings(accessibilityService)
+                    val currentlyEnabled = settings.isHeadControlEnabled()
+                    val stateLabel = accessibilityService.getString(
+                        if (currentlyEnabled) R.string.menu_item_disable_head_control
+                        else R.string.menu_item_enable_head_control
+                    )
                     MenuItem(
-                        definition = def,
+                        id = def.id,
+                        userProvidedText = stateLabel,
+                        descriptionResource = def.descriptionResource,
+                        drawableId = def.drawableId,
                         action = {
                             val headControlService = ServiceCore.getHeadControlService()
-                            val settings = HeadControlSettings(accessibilityService)
-                            val currentlyEnabled = settings.isHeadControlEnabled()
 
                             val success = headControlService?.setEnabled(!currentlyEnabled) ?: false
                             if (success) {
