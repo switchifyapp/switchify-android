@@ -1,53 +1,86 @@
 package com.enaboapps.switchify.service.utils
 
-/**
- * Utility class for continuous line movement speed calculations
- * Used by techniques that move lines continuously (point scan, radar)
- * as opposed to discrete item-by-item scanning
- */
+import android.content.Context
+
+data class ContinuousLineSpeedPreset(
+    val displayName: String,
+    val representativeLevel: Int,
+    val minLegacyLevel: Int,
+    val maxLegacyLevel: Int,
+    val linearSpeedDpPerSecond: Float,
+    val radarAngularSpeedDegreesPerSecond: Float
+)
+
 object ContinuousLineSpeedUtils {
 
-    /**
-     * Convert speed level to time interval in milliseconds for continuous line movement
-     * @param speedLevel The speed level (1-25) where 1 = slowest, 25 = fastest
-     * @return Time interval in milliseconds between line movements
-     */
-    fun speedLevelToInterval(speedLevel: Int): Long {
-        val clampedSpeed = speedLevel.coerceIn(1, 25)
-        // Formula: timeInterval = 10 + (25 - speedLevel) * 48
-        // Speed 1 = 1162ms, Speed 25 = 10ms
-        return 10L + (25 - clampedSpeed) * 48L
+    const val UPDATE_PERIOD_MS = 33L
+
+    private val defaultPreset = ContinuousLineSpeedPreset(
+        displayName = "Medium",
+        representativeLevel = 13,
+        minLegacyLevel = 11,
+        maxLegacyLevel = 15,
+        linearSpeedDpPerSecond = 120f,
+        radarAngularSpeedDegreesPerSecond = 30f
+    )
+
+    private val presets = listOf(
+        ContinuousLineSpeedPreset(
+            displayName = "Very slow",
+            representativeLevel = 3,
+            minLegacyLevel = 1,
+            maxLegacyLevel = 5,
+            linearSpeedDpPerSecond = 45f,
+            radarAngularSpeedDegreesPerSecond = 12f
+        ),
+        ContinuousLineSpeedPreset(
+            displayName = "Slow",
+            representativeLevel = 8,
+            minLegacyLevel = 6,
+            maxLegacyLevel = 10,
+            linearSpeedDpPerSecond = 75f,
+            radarAngularSpeedDegreesPerSecond = 18f
+        ),
+        defaultPreset,
+        ContinuousLineSpeedPreset(
+            displayName = "Fast",
+            representativeLevel = 18,
+            minLegacyLevel = 16,
+            maxLegacyLevel = 20,
+            linearSpeedDpPerSecond = 180f,
+            radarAngularSpeedDegreesPerSecond = 45f
+        ),
+        ContinuousLineSpeedPreset(
+            displayName = "Very fast",
+            representativeLevel = 23,
+            minLegacyLevel = 21,
+            maxLegacyLevel = 25,
+            linearSpeedDpPerSecond = 270f,
+            radarAngularSpeedDegreesPerSecond = 60f
+        )
+    )
+
+    fun getDefaultSpeedLevel(): Int = defaultPreset.representativeLevel
+
+    fun getPresetForStoredLevel(level: Int): ContinuousLineSpeedPreset {
+        return presets.firstOrNull { level in it.minLegacyLevel..it.maxLegacyLevel } ?: defaultPreset
     }
 
-    /**
-     * Get speed level description for UI display
-     * @param speedLevel The speed level (1-25)
-     * @return User-friendly description of the speed level
-     */
-    fun getSpeedLevelDescription(speedLevel: Int): String {
-        return when (speedLevel.coerceIn(1, 25)) {
-            in 1..6 -> "Very Slow"
-            in 7..12 -> "Slow"
-            in 13..18 -> "Medium"
-            in 19..25 -> "Fast"
-            else -> "Medium"
-        }
+    fun getPresetOptions(): List<ContinuousLineSpeedPreset> = presets
+
+    fun getDisplayName(level: Int): String = getPresetForStoredLevel(level).displayName
+
+    fun getRepresentativeLevel(level: Int): Int = getPresetForStoredLevel(level).representativeLevel
+
+    fun getLinearSpeedPxPerSecond(context: Context, level: Int): Float {
+        return getPresetForStoredLevel(level).linearSpeedDpPerSecond * context.resources.displayMetrics.density
     }
 
-    /**
-     * Validate that a speed level is within the acceptable range
-     * @param speedLevel The speed level to validate
-     * @return True if the speed level is valid (1-25), false otherwise
-     */
-    fun isValidSpeedLevel(speedLevel: Int): Boolean {
-        return speedLevel in 1..25
+    fun getRadarAngularSpeedDegreesPerSecond(level: Int): Float {
+        return getPresetForStoredLevel(level).radarAngularSpeedDegreesPerSecond
     }
 
-    /**
-     * Get the default speed level for continuous line movement
-     * @return The default speed level (13 = Medium)
-     */
-    fun getDefaultSpeedLevel(): Int {
-        return 13
-    }
+    fun getSpeedLevelDescription(speedLevel: Int): String = getDisplayName(speedLevel)
+
+    fun isValidSpeedLevel(speedLevel: Int): Boolean = speedLevel in 1..25
 }

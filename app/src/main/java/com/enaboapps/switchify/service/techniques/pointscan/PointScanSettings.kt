@@ -94,60 +94,30 @@ object PointScanSettings {
         )?.toInt() ?: 4
     }
 
-    /**
-     * Get the line speed as time interval (converted from speed level)
-     * @return The time interval in milliseconds
-     */
-    fun getFineCursorScanRate(): Long {
-        val speedLevel = preferenceManager?.getIntegerValue(
-            PreferenceManager.Keys.PREFERENCE_KEY_POINT_SCAN_LINE_SPEED_LEVEL,
-            ContinuousLineSpeedUtils.getDefaultSpeedLevel()
-        )
-            ?: ContinuousLineSpeedUtils.getDefaultSpeedLevel()
-        return ContinuousLineSpeedUtils.speedLevelToInterval(speedLevel)
-    }
-
-    /**
-     * Get the line speed level (1-25 scale)
-     * @return The speed level where 1 = slowest, 25 = fastest
-     */
     fun getLineSpeedLevel(): Int {
-        return preferenceManager?.getIntegerValue(
+        val storedLevel = preferenceManager?.getIntegerValue(
             PreferenceManager.Keys.PREFERENCE_KEY_POINT_SCAN_LINE_SPEED_LEVEL,
             ContinuousLineSpeedUtils.getDefaultSpeedLevel()
         )
             ?: ContinuousLineSpeedUtils.getDefaultSpeedLevel()
+        return ContinuousLineSpeedUtils.getRepresentativeLevel(storedLevel)
     }
 
-    /**
-     * Set the line speed level (1-25 scale)
-     * @param speedLevel The speed level where 1 = slowest, 25 = fastest
-     */
     fun setLineSpeedLevel(speedLevel: Int, context: Context) {
-        val clampedSpeed = speedLevel.coerceIn(1, 25)
+        val representativeLevel = ContinuousLineSpeedUtils.getRepresentativeLevel(speedLevel)
         preferenceManager?.setIntegerValue(
             PreferenceManager.Keys.PREFERENCE_KEY_POINT_SCAN_LINE_SPEED_LEVEL,
-            clampedSpeed
+            representativeLevel
         )
         broadcastChanged(context)
     }
 
-    /**
-     * Convert line speed level to time interval in milliseconds
-     * @param speedLevel The speed level (1-25)
-     * @return Time interval in milliseconds
-     */
-    fun speedLevelToInterval(speedLevel: Int): Long {
-        return ContinuousLineSpeedUtils.speedLevelToInterval(speedLevel)
+    fun getLineSpeedPxPerSecond(context: Context): Float {
+        return ContinuousLineSpeedUtils.getLinearSpeedPxPerSecond(context, getLineSpeedLevel())
     }
 
-    /**
-     * Get speed level description for UI display
-     * @param speedLevel The speed level (1-25)
-     * @return User-friendly description
-     */
     fun getSpeedLevelDescription(speedLevel: Int): String {
-        return ContinuousLineSpeedUtils.getSpeedLevelDescription(speedLevel)
+        return ContinuousLineSpeedUtils.getDisplayName(speedLevel)
     }
 
     /**

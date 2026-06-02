@@ -3,6 +3,7 @@ package com.enaboapps.switchify.service.scanning
 import android.content.Context
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.service.gestures.GestureManager
+import com.enaboapps.switchify.service.utils.ContinuousLineSpeedUtils
 
 /**
  * A convenience class to get the scan settings
@@ -75,11 +76,7 @@ class ScanSettings(context: Context) {
      * @return The radar scan rate
      */
     fun getRadarScanRate(): Long {
-        val speedLevel = preferenceManager.getIntegerValue(
-            PreferenceManager.Keys.PREFERENCE_KEY_RADAR_SPEED_LEVEL,
-            13
-        )
-        return radarSpeedLevelToInterval(speedLevel)
+        return ContinuousLineSpeedUtils.UPDATE_PERIOD_MS
     }
 
     /**
@@ -87,10 +84,11 @@ class ScanSettings(context: Context) {
      * @return The speed level where 1 = slowest, 25 = fastest
      */
     fun getRadarSpeedLevel(): Int {
-        return preferenceManager.getIntegerValue(
+        val storedLevel = preferenceManager.getIntegerValue(
             PreferenceManager.Keys.PREFERENCE_KEY_RADAR_SPEED_LEVEL,
-            13
+            ContinuousLineSpeedUtils.getDefaultSpeedLevel()
         )
+        return ContinuousLineSpeedUtils.getRepresentativeLevel(storedLevel)
     }
 
     /**
@@ -98,10 +96,10 @@ class ScanSettings(context: Context) {
      * @param speedLevel The speed level where 1 = slowest, 25 = fastest
      */
     fun setRadarSpeedLevel(speedLevel: Int) {
-        val clampedSpeed = speedLevel.coerceIn(1, 25)
+        val representativeLevel = ContinuousLineSpeedUtils.getRepresentativeLevel(speedLevel)
         preferenceManager.setIntegerValue(
             PreferenceManager.Keys.PREFERENCE_KEY_RADAR_SPEED_LEVEL,
-            clampedSpeed
+            representativeLevel
         )
     }
 
@@ -111,10 +109,7 @@ class ScanSettings(context: Context) {
      * @return Time interval in milliseconds
      */
     fun radarSpeedLevelToInterval(speedLevel: Int): Long {
-        val clampedSpeed = speedLevel.coerceIn(1, 25)
-        // Formula: timeInterval = 10 + (25 - speedLevel) * 48
-        // Speed 1 = 1162ms, Speed 25 = 10ms
-        return 10L + (25 - clampedSpeed) * 48L
+        return ContinuousLineSpeedUtils.UPDATE_PERIOD_MS
     }
 
     /**
@@ -123,13 +118,7 @@ class ScanSettings(context: Context) {
      * @return User-friendly description
      */
     fun getRadarSpeedLevelDescription(speedLevel: Int): String {
-        return when (speedLevel.coerceIn(1, 25)) {
-            in 1..6 -> "Very Slow"
-            in 7..12 -> "Slow"
-            in 13..18 -> "Medium"
-            in 19..25 -> "Fast"
-            else -> "Medium"
-        }
+        return ContinuousLineSpeedUtils.getDisplayName(speedLevel)
     }
 
     /**

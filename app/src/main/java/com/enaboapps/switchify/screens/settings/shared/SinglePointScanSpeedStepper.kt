@@ -5,6 +5,7 @@ import androidx.compose.ui.platform.LocalContext
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.components.PreferenceValueSelector
 import com.enaboapps.switchify.service.techniques.pointscan.PointScanSettings
+import com.enaboapps.switchify.service.utils.ContinuousLineSpeedUtils
 
 @Composable
 fun SinglePointScanSpeedStepper() {
@@ -13,12 +14,11 @@ fun SinglePointScanSpeedStepper() {
         value = PointScanSettings.getLineSpeedLevel(),
         titleResId = R.string.preference_title_single_point_scan_speed,
         summaryResId = R.string.preference_summary_single_point_scan_speed,
-        min = 1,
-        max = 25,
-        buttonLabelFormatter = { speedLevel -> speedLevel.toString() },
-        displayFormatter = { speedLevel ->
-            "Level $speedLevel (${PointScanSettings.getSpeedLevelDescription(speedLevel)})"
-        },
+        values = ContinuousLineSpeedUtils.getPresetOptions()
+            .map { it.representativeLevel }
+            .toIntArray(),
+        buttonLabelFormatter = { speedLevel -> PointScanSettings.getSpeedLevelDescription(speedLevel) },
+        displayFormatter = { speedLevel -> PointScanSettings.getSpeedLevelDescription(speedLevel) },
         onValueChanged = { newSpeedLevel ->
             PointScanSettings.setLineSpeedLevel(newSpeedLevel, context)
         }
