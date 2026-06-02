@@ -3,6 +3,7 @@ package com.enaboapps.switchify.service.techniques.pointscan.line
 import android.content.Context
 import android.graphics.PointF
 import android.graphics.Rect
+import android.os.SystemClock
 import com.enaboapps.switchify.service.scanning.ScanDirection
 import com.enaboapps.switchify.service.scanning.ScanSettings
 import com.enaboapps.switchify.service.scanning.ScanVisualConstants
@@ -10,20 +11,25 @@ import com.enaboapps.switchify.service.scanning.ScanningScheduler
 import com.enaboapps.switchify.service.techniques.AccessTechniqueInterface
 import com.enaboapps.switchify.service.techniques.pointscan.PointScanSettings
 import com.enaboapps.switchify.service.techniques.pointscan.blocks.PointScanBlock
+import com.enaboapps.switchify.service.utils.ContinuousLineSpeedUtils
 import com.enaboapps.switchify.service.utils.ScreenUtils
 
 class PointScanLineManager(
     private val context: Context,
-    private val lineMovement: Int = 10,
     private val onPointSelected: (PointF) -> Unit
 ) : AccessTechniqueInterface {
 
-    private var scanningScheduler = ScanningScheduler(context) { stepScanning() }
+    companion object {
+        private const val MAX_ELAPSED_MS = 250L
+    }
+
+    private var scanningScheduler = ScanningScheduler(context) { stepAutoScanning() }
     private var currentDirection: ScanDirection = ScanDirection.RIGHT
-    private var currentX: Int = 0
-    private var currentY: Int = 0
+    private var currentX: Float = 0f
+    private var currentY: Float = 0f
     private var currentBlock: PointScanBlock? = null
     private val lineUI = LineUI(context)
+    private var lastUpdateTime = 0L
 
     private val scanSettings = ScanSettings(context)
 
@@ -31,7 +37,35 @@ class PointScanLineManager(
         return Rect(0, 0, ScreenUtils.getWidth(context), ScreenUtils.getHeight(context))
     }
 
-    private fun stepScanning() {
+    private fun stepAutoScanning() {
+        stepScanning(getAutoMovementDelta())
+    }
+
+    private fun stepManualScanning() {
+        stepScanning(getManualMovementDelta())
+    }
+
+    private fun getAutoMovementDelta(): Float {
+        val now = SystemClock.elapsedRealtime()
+        val elapsedMs = if (lastUpdateTime == 0L) {
+            ContinuousLineSpeedUtils.UPDATE_PERIOD_MS
+        } else {
+            now - lastUpdateTime
+        }.coerceIn(1L, MAX_ELAPSED_MS)
+        lastUpdateTime = now
+        return PointScanSettings.getLineSpeedPxPerSecond(context) * elapsedMs / 1000f
+    }
+
+    private fun getManualMovementDelta(): Float {
+        return (PointScanSettings.getLineSpeedPxPerSecond(context) * ContinuousLineSpeedUtils.UPDATE_PERIOD_MS / 1000f)
+            .coerceAtLeast(1f)
+    }
+
+    private fun resetElapsedTime() {
+        lastUpdateTime = SystemClock.elapsedRealtime()
+    }
+
+    private fun stepScanning(lineMovement: Float) {
         val lineThickness = ScreenUtils.dpToPx(context, ScanVisualConstants.CURSOR_LINE_DP)
         val bounds = currentBlock?.let { block ->
             Rect(
@@ -46,40 +80,40 @@ class PointScanLineManager(
             ScanDirection.LEFT -> {
                 if (currentX > bounds.left + lineMovement) {
                     currentX -= lineMovement
-                    lineUI.showXScanLine(currentX)
+                    lineUI.showXScanLine(currentX.toInt())
                 } else {
-                    currentX = bounds.right
-                    lineUI.showXScanLine(currentX)
+                    currentX = bounds.right.toFloat()
+                    lineUI.showXScanLine(currentX.toInt())
                 }
             }
 
             ScanDirection.RIGHT -> {
                 if (currentX < bounds.right - lineMovement) {
                     currentX += lineMovement
-                    lineUI.showXScanLine(currentX)
+                    lineUI.showXScanLine(currentX.toInt())
                 } else {
-                    currentX = bounds.left
-                    lineUI.showXScanLine(currentX)
+                    currentX = bounds.left.toFloat()
+                    lineUI.showXScanLine(currentX.toInt())
                 }
             }
 
             ScanDirection.UP -> {
                 if (currentY > bounds.top + lineMovement) {
                     currentY -= lineMovement
-                    lineUI.showYScanLine(currentY)
+                    lineUI.showYScanLine(currentY.toInt())
                 } else {
-                    currentY = bounds.bottom
-                    lineUI.showYScanLine(currentY)
+                    currentY = bounds.bottom.toFloat()
+                    lineUI.showYScanLine(currentY.toInt())
                 }
             }
 
             ScanDirection.DOWN -> {
                 if (currentY < bounds.bottom - lineMovement) {
                     currentY += lineMovement
-                    lineUI.showYScanLine(currentY)
+                    lineUI.showYScanLine(currentY.toInt())
                 } else {
-                    currentY = bounds.top
-                    lineUI.showYScanLine(currentY)
+                    currentY = bounds.top.toFloat()
+                    lineUI.showYScanLine(currentY.toInt())
                 }
             }
         }
@@ -87,7 +121,8 @@ class PointScanLineManager(
 
     override fun startAutoScanning() {
         if (scanningScheduler.isScanning() == false && scanSettings.isAutoScanMode()) {
-            val rate = PointScanSettings.getFineCursorScanRate()
+            val rate = ContinuousLineSpeedUtils.UPDATE_PERIOD_MS
+            resetElapsedTime()
             scanningScheduler.startScanning(initialDelay = rate, period = rate)
         }
     }
@@ -109,6 +144,7 @@ class PointScanLineManager(
 
     override fun resumeAutoScanning() {
         if (scanSettings.isAutoScanMode()) {
+            resetElapsedTime()
             scanningScheduler.resumeScanning()
         }
     }
@@ -121,7 +157,7 @@ class PointScanLineManager(
             else -> currentDirection
         }
         // Step scanning
-        stepScanning()
+        stepManualScanning()
     }
 
     override fun stepScanningBackward() {
@@ -132,7 +168,7 @@ class PointScanLineManager(
             else -> currentDirection
         }
         // Step scanning
-        stepScanning()
+        stepManualScanning()
     }
 
     override fun swapScanDirection() {
@@ -147,13 +183,13 @@ class PointScanLineManager(
     override fun performSelectionAction() {
         if (scanningScheduler.isScanning() == false && scanSettings.isAutoScanMode()) {
             startAutoScanning()
-            lineUI.showXScanLine(currentX)
+            lineUI.showXScanLine(currentX.toInt())
             return
         }
 
         if (currentDirection == ScanDirection.LEFT || currentDirection == ScanDirection.RIGHT) {
             currentDirection = ScanDirection.DOWN
-            lineUI.showYScanLine(currentY)
+            lineUI.showYScanLine(currentY.toInt())
 
             return
         }
@@ -163,22 +199,22 @@ class PointScanLineManager(
 
     override fun stepScanningUp() {
         currentDirection = ScanDirection.UP
-        stepScanning()
+        stepManualScanning()
     }
 
     override fun stepScanningDown() {
         currentDirection = ScanDirection.DOWN
-        stepScanning()
+        stepManualScanning()
     }
 
     override fun stepScanningLeft() {
         currentDirection = ScanDirection.LEFT
-        stepScanning()
+        stepManualScanning()
     }
 
     override fun stepScanningRight() {
         currentDirection = ScanDirection.RIGHT
-        stepScanning()
+        stepManualScanning()
     }
 
     override fun cleanup() {
@@ -190,26 +226,27 @@ class PointScanLineManager(
         scanningScheduler.stopScanning() // can't use stopScanningAndReset() because it will recursively call resetForNextUse()
         lineUI.reset()
         currentBlock = null
-        currentX = 0
-        currentY = 0
+        currentX = 0f
+        currentY = 0f
         currentDirection = ScanDirection.RIGHT
+        lastUpdateTime = 0L
     }
 
     fun setBlock(block: PointScanBlock?) {
         currentBlock = block
         lineUI.setBlock(block)
         if (block != null) {
-            currentX = block.left
-            currentY = block.top
-            lineUI.showXScanLine(currentX)
+            currentX = block.left.toFloat()
+            currentY = block.top.toFloat()
+            lineUI.showXScanLine(currentX.toInt())
         } else {
-            currentX = 0
-            currentY = 0
-            lineUI.showXScanLine(currentX)
+            currentX = 0f
+            currentY = 0f
+            lineUI.showXScanLine(currentX.toInt())
         }
     }
 
-    fun getCurrentPosition(): Pair<Int, Int> = Pair(currentX, currentY)
+    fun getCurrentPosition(): Pair<Int, Int> = Pair(currentX.toInt(), currentY.toInt())
     fun getCurrentDirection(): ScanDirection = currentDirection
     fun getCurrentBlock(): PointScanBlock? = currentBlock
 }

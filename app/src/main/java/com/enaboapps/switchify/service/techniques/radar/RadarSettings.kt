@@ -30,59 +30,33 @@ object RadarSettings {
         )
     }
 
-    /**
-     * Get the radar speed as time interval (converted from speed level)
-     * @return The radar scan rate
-     */
-    fun getScanRate(): Long {
-        val speedLevel = preferenceManager?.getIntegerValue(
-            PreferenceManager.Keys.PREFERENCE_KEY_RADAR_SPEED_LEVEL,
-            ContinuousLineSpeedUtils.getDefaultSpeedLevel()
-        ) ?: ContinuousLineSpeedUtils.getDefaultSpeedLevel()
-        return ContinuousLineSpeedUtils.speedLevelToInterval(speedLevel)
-    }
-
-    /**
-     * Get the radar speed level (1-25 scale)
-     * @return The speed level where 1 = slowest, 25 = fastest
-     */
     fun getSpeedLevel(): Int {
-        return preferenceManager?.getIntegerValue(
+        val storedLevel = preferenceManager?.getIntegerValue(
             PreferenceManager.Keys.PREFERENCE_KEY_RADAR_SPEED_LEVEL,
             ContinuousLineSpeedUtils.getDefaultSpeedLevel()
         ) ?: ContinuousLineSpeedUtils.getDefaultSpeedLevel()
+        return ContinuousLineSpeedUtils.getRepresentativeLevel(storedLevel)
     }
 
-    /**
-     * Set the radar speed level (1-25 scale)
-     * @param speedLevel The speed level where 1 = slowest, 25 = fastest
-     * @param context Context for broadcasting changes
-     */
     fun setSpeedLevel(speedLevel: Int, context: Context) {
-        val clampedSpeed = speedLevel.coerceIn(1, 25)
+        val representativeLevel = ContinuousLineSpeedUtils.getRepresentativeLevel(speedLevel)
         preferenceManager?.setIntegerValue(
             PreferenceManager.Keys.PREFERENCE_KEY_RADAR_SPEED_LEVEL,
-            clampedSpeed
+            representativeLevel
         )
         broadcastChanged(context)
     }
 
-    /**
-     * Convert radar speed level to time interval in milliseconds
-     * @param speedLevel The speed level (1-25)
-     * @return Time interval in milliseconds
-     */
-    fun speedLevelToInterval(speedLevel: Int): Long {
-        return ContinuousLineSpeedUtils.speedLevelToInterval(speedLevel)
+    fun getLinearSpeedPxPerSecond(context: Context, slowDownFactor: Float = 1f): Float {
+        return ContinuousLineSpeedUtils.getLinearSpeedPxPerSecond(context, getSpeedLevel()) / slowDownFactor
     }
 
-    /**
-     * Get radar speed level description for UI display
-     * @param speedLevel The speed level (1-25)
-     * @return User-friendly description
-     */
+    fun getAngularSpeedDegreesPerSecond(slowDownFactor: Float = 1f): Float {
+        return ContinuousLineSpeedUtils.getRadarAngularSpeedDegreesPerSecond(getSpeedLevel()) / slowDownFactor
+    }
+
     fun getSpeedLevelDescription(speedLevel: Int): String {
-        return ContinuousLineSpeedUtils.getSpeedLevelDescription(speedLevel)
+        return ContinuousLineSpeedUtils.getDisplayName(speedLevel)
     }
 
     /**

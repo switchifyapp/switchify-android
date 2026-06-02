@@ -1,12 +1,14 @@
 package com.enaboapps.switchify.service.techniques.radar
 
 import android.content.Context
+import android.os.SystemClock
 import com.enaboapps.switchify.service.gestures.GestureManager
 import com.enaboapps.switchify.service.gestures.GesturePoint
 import com.enaboapps.switchify.service.scanning.ScanSettings
 import com.enaboapps.switchify.service.scanning.ScanningScheduler
 import com.enaboapps.switchify.service.selection.SelectionHandler
 import com.enaboapps.switchify.service.techniques.AccessTechniqueInterface
+import com.enaboapps.switchify.service.utils.ContinuousLineSpeedUtils
 import com.enaboapps.switchify.service.utils.ScreenUtils
 import kotlin.math.cos
 import kotlin.math.sin
@@ -17,14 +19,12 @@ class RadarManager(private val context: Context) : AccessTechniqueInterface {
     companion object {
         private const val TAG = "RadarManager"
         private const val FULL_CIRCLE = 360f
-        private const val ROTATION_STEP = 1f  // 1 degree per step
-        private const val MOVEMENT_STEP = 0.01f  // 1% of the max distance per step
-        private const val SLOW_DOWN_FACTOR = 4f  // Factor to slow down by (4x slower)
+        private const val SLOW_DOWN_FACTOR = 4f
+        private const val MAX_ELAPSED_MS = 250L
 
         // Angle constants for radar positioning
         private const val ANGLE_RIGHT = 0f  // Horizontal right
         private const val ANGLE_LEFT = 180f  // Horizontal left
-        private const val ANGLE_TOLERANCE = 1f  // Tolerance for angle matching
 
         // Distance and position constants
         private const val INITIAL_DISTANCE_RATIO = 0f  // Starting distance from pivot
@@ -68,6 +68,7 @@ class RadarManager(private val context: Context) : AccessTechniqueInterface {
     private var targetScreenY =
         INITIAL_DISTANCE_RATIO  // Target screen Y coordinate for current angle
     private var scanningScheduler: ScanningScheduler? = null
+    private var lastUpdateTime = 0L
 
     // Windscreen wiper pivot point - configurable top or bottom
     private val wiperPivotX: Float
@@ -118,21 +119,45 @@ class RadarManager(private val context: Context) : AccessTechniqueInterface {
     }
 
     private fun update() {
+        val elapsedMs = getElapsedMs()
         when (currentStep) {
-            RadarStep.ROTATING -> rotate()
-            RadarStep.MOVING -> moveCircle()
+            RadarStep.ROTATING -> rotate(elapsedMs)
+            RadarStep.MOVING -> moveCircle(elapsedMs)
             RadarStep.IDLE -> {} // Do nothing
         }
     }
 
-    private fun rotate() {
+    private fun getElapsedMs(): Long {
+        val now = SystemClock.elapsedRealtime()
+        val elapsed = if (lastUpdateTime == 0L) {
+            ContinuousLineSpeedUtils.UPDATE_PERIOD_MS
+        } else {
+            now - lastUpdateTime
+        }
+        lastUpdateTime = now
+        return elapsed.coerceIn(1L, MAX_ELAPSED_MS)
+    }
+
+    private fun resetElapsedTime() {
+        lastUpdateTime = SystemClock.elapsedRealtime()
+    }
+
+    private fun currentSlowDownFactor(): Float {
+        return if (slowDownState == SlowDownState.SLOWED_DOWN) SLOW_DOWN_FACTOR else 1f
+    }
+
+    private fun rotate(elapsedMs: Long) {
+        val rotationStep =
+            RadarSettings.getAngularSpeedDegreesPerSecond(currentSlowDownFactor()) * elapsedMs / 1000f
+        val previousAngle = currentAngle
         currentAngle = when (rotationDirection) {
-            RotationDirection.CLOCKWISE -> (currentAngle + ROTATION_STEP) % FULL_CIRCLE
-            RotationDirection.ANTI_CLOCKWISE -> (currentAngle - ROTATION_STEP + FULL_CIRCLE) % FULL_CIRCLE
+            RotationDirection.CLOCKWISE -> (currentAngle + rotationStep) % FULL_CIRCLE
+            RotationDirection.ANTI_CLOCKWISE -> (currentAngle - rotationStep + FULL_CIRCLE) % FULL_CIRCLE
         }
 
-        // Auto-change direction when line reaches horizontal (0 degrees or 180 degrees)
-        if (shouldChangeDirection()) {
+        val boundaryAngle = crossedHorizontalBoundary(previousAngle, currentAngle)
+        if (boundaryAngle != null) {
+            currentAngle = boundaryAngle
             toggleRotationDirection()
         }
 
@@ -141,7 +166,7 @@ class RadarManager(private val context: Context) : AccessTechniqueInterface {
         updateRadarLine()
     }
 
-    private fun shouldChangeDirection(): Boolean {
+    private fun crossedHorizontalBoundary(previousAngle: Float, nextAngle: Float): Float? {
         // Change direction when completing 180° sweep from horizontal starting position
         val normalizedAngle = (currentAngle + 360) % 360
 
@@ -149,27 +174,32 @@ class RadarManager(private val context: Context) : AccessTechniqueInterface {
             // Starting from right (0°), change direction when reaching horizontal limits
             if (rotationDirection == RotationDirection.CLOCKWISE) {
                 // Clockwise from 0° -> stop at 180°
-                (normalizedAngle >= ANGLE_LEFT - ANGLE_TOLERANCE && normalizedAngle <= ANGLE_LEFT + ANGLE_TOLERANCE)
+                if (nextAngle >= ANGLE_LEFT) ANGLE_LEFT else null
             } else {
                 // Anti-clockwise from 0° -> stop at 0° (don't go past horizontal)
-                (normalizedAngle >= FULL_CIRCLE - ANGLE_TOLERANCE || normalizedAngle <= ANGLE_RIGHT + ANGLE_TOLERANCE)
+                if (nextAngle > previousAngle) ANGLE_RIGHT else null
             }
         } else {
             // Starting from left (180°), change direction when reaching horizontal limits
             if (rotationDirection == RotationDirection.CLOCKWISE) {
                 // Clockwise from 180° -> stop at 0°
-                (normalizedAngle >= FULL_CIRCLE - ANGLE_TOLERANCE || normalizedAngle <= ANGLE_RIGHT + ANGLE_TOLERANCE)
+                if (nextAngle < previousAngle) ANGLE_RIGHT else null
             } else {
                 // Anti-clockwise from 180° -> stop at 180° (don't go past horizontal)
-                (normalizedAngle >= ANGLE_LEFT - ANGLE_TOLERANCE && normalizedAngle <= ANGLE_LEFT + ANGLE_TOLERANCE)
+                if (previousAngle > ANGLE_LEFT && nextAngle <= ANGLE_LEFT) ANGLE_LEFT else null
             }
         }
     }
 
-    private fun moveCircle() {
+    private fun moveCircle(elapsedMs: Long) {
+        val movementStep = if (maxDistance > 0f) {
+            RadarSettings.getLinearSpeedPxPerSecond(context, currentSlowDownFactor()) * elapsedMs / 1000f / maxDistance
+        } else {
+            0f
+        }
         when (circleMovement) {
             CircleMovement.OUTWARD -> {
-                currentDistanceRatio += MOVEMENT_STEP
+                currentDistanceRatio += movementStep
                 val currentX = wiperPivotX + currentDistanceRatio * maxDistance * cos(
                     Math.toRadians(currentAngle.toDouble())
                 ).toFloat()
@@ -188,7 +218,7 @@ class RadarManager(private val context: Context) : AccessTechniqueInterface {
             }
 
             CircleMovement.INWARD -> {
-                currentDistanceRatio -= MOVEMENT_STEP
+                currentDistanceRatio -= movementStep
                 if (currentDistanceRatio <= INITIAL_DISTANCE_RATIO) {
                     currentDistanceRatio = INITIAL_DISTANCE_RATIO
                     circleMovement = CircleMovement.OUTWARD
@@ -283,7 +313,8 @@ class RadarManager(private val context: Context) : AccessTechniqueInterface {
 
     private fun startAutoScanIfEnabled() {
         if (scanSettings.isAutoScanMode()) {
-            val rate = RadarSettings.getScanRate()
+            val rate = ContinuousLineSpeedUtils.UPDATE_PERIOD_MS
+            resetElapsedTime()
             scanningScheduler?.startScanning(rate, rate)
         }
     }
@@ -296,8 +327,8 @@ class RadarManager(private val context: Context) : AccessTechniqueInterface {
         }
 
         when (currentStep) {
-            RadarStep.ROTATING -> rotate()
-            RadarStep.MOVING -> moveCircle()
+            RadarStep.ROTATING -> rotate(ContinuousLineSpeedUtils.UPDATE_PERIOD_MS)
+            RadarStep.MOVING -> moveCircle(ContinuousLineSpeedUtils.UPDATE_PERIOD_MS)
             RadarStep.IDLE -> {} // Do nothing
         }
     }
@@ -310,8 +341,8 @@ class RadarManager(private val context: Context) : AccessTechniqueInterface {
         }
 
         when (currentStep) {
-            RadarStep.ROTATING -> rotate()
-            RadarStep.MOVING -> moveCircle()
+            RadarStep.ROTATING -> rotate(ContinuousLineSpeedUtils.UPDATE_PERIOD_MS)
+            RadarStep.MOVING -> moveCircle(ContinuousLineSpeedUtils.UPDATE_PERIOD_MS)
             RadarStep.IDLE -> {} // Do nothing
         }
     }
@@ -360,6 +391,7 @@ class RadarManager(private val context: Context) : AccessTechniqueInterface {
                         // Second press: select line position and move to circle movement
                         slowDownState = SlowDownState.NORMAL_SPEED
                         currentStep = RadarStep.MOVING
+                        resetElapsedTime()
                         currentDistanceRatio =
                             if (circleMovement == CircleMovement.OUTWARD) INITIAL_DISTANCE_RATIO else MAX_DISTANCE_RATIO
                         updateRadarCircle()
@@ -404,6 +436,7 @@ class RadarManager(private val context: Context) : AccessTechniqueInterface {
         when (currentStep) {
             RadarStep.ROTATING -> {
                 currentStep = RadarStep.MOVING
+                resetElapsedTime()
                 currentDistanceRatio =
                     if (circleMovement == CircleMovement.OUTWARD) INITIAL_DISTANCE_RATIO else MAX_DISTANCE_RATIO
                 updateRadarCircle()
@@ -430,16 +463,11 @@ class RadarManager(private val context: Context) : AccessTechniqueInterface {
     }
 
     private fun slowDownScanning() {
-        val normalRate = RadarSettings.getScanRate()
-        val slowedRate = (normalRate * SLOW_DOWN_FACTOR).toLong()
-        scanningScheduler?.stopScanning()
-        scanningScheduler?.startScanning(slowedRate, slowedRate)
+        resetElapsedTime()
     }
 
     private fun resumeNormalSpeed() {
-        val normalRate = RadarSettings.getScanRate()
-        scanningScheduler?.stopScanning()
-        scanningScheduler?.startScanning(normalRate, normalRate)
+        resetElapsedTime()
     }
 
     override fun resetUI() {
@@ -459,6 +487,7 @@ class RadarManager(private val context: Context) : AccessTechniqueInterface {
         rotationDirection = RotationDirection.CLOCKWISE
         circleMovement = CircleMovement.OUTWARD
         slowDownState = SlowDownState.NORMAL_SPEED
+        lastUpdateTime = 0L
     }
 
     override fun cleanup() {

@@ -5,6 +5,7 @@ import androidx.compose.ui.platform.LocalContext
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.components.PreferenceValueSelector
 import com.enaboapps.switchify.service.techniques.radar.RadarSettings
+import com.enaboapps.switchify.service.utils.ContinuousLineSpeedUtils
 
 @Composable
 fun RadarSpeedStepper() {
@@ -17,12 +18,11 @@ fun RadarSpeedStepper() {
         value = RadarSettings.getSpeedLevel(),
         titleResId = R.string.preference_title_radar_speed,
         summaryResId = R.string.preference_summary_radar_speed,
-        min = 1,
-        max = 25,
-        buttonLabelFormatter = { speedLevel -> speedLevel.toString() },
-        displayFormatter = { speedLevel ->
-            "Level $speedLevel (${RadarSettings.getSpeedLevelDescription(speedLevel)})"
-        },
+        values = ContinuousLineSpeedUtils.getPresetOptions()
+            .map { it.representativeLevel }
+            .toIntArray(),
+        buttonLabelFormatter = { speedLevel -> RadarSettings.getSpeedLevelDescription(speedLevel) },
+        displayFormatter = { speedLevel -> RadarSettings.getSpeedLevelDescription(speedLevel) },
         onValueChanged = { newSpeedLevel ->
             RadarSettings.setSpeedLevel(newSpeedLevel, context)
         }
