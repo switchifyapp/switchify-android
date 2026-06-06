@@ -3,6 +3,7 @@ package com.enaboapps.switchify.pc
 import android.content.Context
 import android.net.nsd.NsdManager
 import android.net.nsd.NsdServiceInfo
+import android.os.Build
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import java.nio.charset.StandardCharsets
@@ -45,7 +46,7 @@ class PcDiscoveryService(context: Context) : PcDiscovery {
             }
 
             override fun onServiceFound(serviceInfo: NsdServiceInfo) {
-                if (serviceInfo.serviceType != SWITCHIFY_SERVICE_TYPE) return
+                if (!isSwitchifyServiceType(serviceInfo.serviceType)) return
                 resolve(serviceInfo)
             }
 
@@ -101,15 +102,25 @@ class PcDiscoveryService(context: Context) : PcDiscovery {
             val attributes = serviceInfo.attributes.mapValues { (_, value) ->
                 String(value, StandardCharsets.UTF_8)
             }
-            val hostAddress = serviceInfo.host?.hostAddress.orEmpty()
+            val hostAddresses = if (Build.VERSION.SDK_INT >= 34) {
+                serviceInfo.hostAddresses.mapNotNull { it.hostAddress }
+            } else {
+                emptyList()
+            }.ifEmpty { listOf(serviceInfo.host?.hostAddress.orEmpty()) }
             return PcDiscoveryParser.parse(
                 PcServiceRecord(
                     serviceName = serviceInfo.serviceName.orEmpty(),
                     attributes = attributes,
-                    hostAddresses = listOf(hostAddress),
+                    hostAddresses = hostAddresses,
                     port = serviceInfo.port
                 )
             )
+        }
+
+        private fun isSwitchifyServiceType(serviceType: String?): Boolean {
+            return serviceType == SWITCHIFY_SERVICE_TYPE ||
+                    serviceType == "_switchify._tcp.local" ||
+                    serviceType == "_switchify._tcp.local."
         }
     }
 }
