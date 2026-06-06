@@ -22,9 +22,24 @@ sealed class PcPingResult {
     data class Failed(val message: String) : PcPingResult()
 }
 
+sealed class PcMouseCommand {
+    data class Move(val dx: Int, val dy: Int) : PcMouseCommand()
+    data class Scroll(val dx: Int, val dy: Int) : PcMouseCommand()
+    data object LeftClick : PcMouseCommand()
+    data object DoubleClick : PcMouseCommand()
+    data object RightClick : PcMouseCommand()
+}
+
+sealed class PcCommandResult {
+    data object Ack : PcCommandResult()
+    data class AuthFailed(val message: String = "Connection expired. Connect to PC from Switchify first.") : PcCommandResult()
+    data class Failed(val message: String = "Could not send command to PC.") : PcCommandResult()
+}
+
 interface PcConnector {
     suspend fun requestApproval(pc: DiscoveredPc): PcPairingResult
     suspend fun authenticatedPing(pc: DiscoveredPc, token: String): PcPingResult
+    suspend fun sendMouseCommand(session: PcAuthenticatedSession, command: PcMouseCommand): PcCommandResult
     fun close()
 }
 
@@ -114,6 +129,34 @@ class SwitchifyPcClient(
         return PcPingResult.Failed("Found PC, but could not connect.")
     }
 
+    override suspend fun sendMouseCommand(session: PcAuthenticatedSession, command: PcMouseCommand): PcCommandResult {
+        val token = tokenStore.getToken(session.desktopId) ?: return PcCommandResult.AuthFailed()
+        return runCatching {
+            val webSocketSession = client.webSocketSession { url { takeFrom(session.websocketUrl) } }
+            val requestId = nextRequestId()
+            webSocketSession.send(
+                Frame.Text(
+                    command.toMessage(
+                        id = requestId,
+                        deviceId = session.deviceId,
+                        token = token,
+                        timestamp = System.currentTimeMillis()
+                    )
+                )
+            )
+            val response = withTimeout(5_000) { readExpectedResponse(webSocketSession, requestId) }
+            webSocketSession.close()
+            when (response) {
+                is PcProtocolResponse.Ack -> PcCommandResult.Ack
+                is PcProtocolResponse.Error -> {
+                    if (response.code == "invalid_auth") PcCommandResult.AuthFailed()
+                    else PcCommandResult.Failed()
+                }
+                else -> PcCommandResult.Failed()
+            }
+        }.getOrDefault(PcCommandResult.Failed())
+    }
+
     override fun close() {
         client.close()
     }
@@ -139,4 +182,14 @@ class SwitchifyPcClient(
     }
 
     private fun nextRequestId(): String = "android-${UUID.randomUUID()}"
+
+    private fun PcMouseCommand.toMessage(id: String, deviceId: String, token: String, timestamp: Long): String {
+        return when (this) {
+            is PcMouseCommand.Move -> PcProtocol.mouseMove(id, deviceId, token, timestamp, dx, dy)
+            is PcMouseCommand.Scroll -> PcProtocol.mouseScroll(id, deviceId, token, timestamp, dx, dy)
+            PcMouseCommand.LeftClick -> PcProtocol.mouseClick(id, deviceId, token, timestamp)
+            PcMouseCommand.DoubleClick -> PcProtocol.mouseDoubleClick(id, deviceId, token, timestamp)
+            PcMouseCommand.RightClick -> PcProtocol.mouseRightClick(id, deviceId, token, timestamp)
+        }
+    }
 }

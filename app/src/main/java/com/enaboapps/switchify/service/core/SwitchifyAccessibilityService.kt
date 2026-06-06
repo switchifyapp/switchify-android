@@ -13,6 +13,7 @@ import com.enaboapps.switchify.service.actions.AudioActionManager
 import com.enaboapps.switchify.service.actions.GlobalActionManager
 import com.enaboapps.switchify.service.camera.CameraManager
 import com.enaboapps.switchify.service.gestures.GestureManager
+import com.enaboapps.switchify.pc.PcServiceConnectionController
 import com.enaboapps.switchify.service.scanning.ScanSettings
 import com.enaboapps.switchify.service.selection.SelectionHandler
 import com.enaboapps.switchify.service.stats.StatsCollector
@@ -100,6 +101,7 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
         AudioActionManager.init(this)
 
         ServiceCore.init(this)
+        ServiceCore.setPcServiceConnectionController(PcServiceConnectionController(this, serviceScope))
 
         val scanningManager = ServiceCore.getScanningManager() ?: return
         val externalSwitchListener = ServiceCore.getExternalSwitchListener() ?: return

@@ -3,6 +3,9 @@ package com.enaboapps.switchify.service.menu.menus.main
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.backend.iap.IAPHandler
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
+import com.enaboapps.switchify.pc.PcConnectionState
+import com.enaboapps.switchify.pc.PcConnectionStateHolder
+import com.enaboapps.switchify.pc.PcServiceConnectResult
 import com.enaboapps.switchify.service.actions.GlobalActionManager
 import com.enaboapps.switchify.service.core.ServiceCore
 import com.enaboapps.switchify.service.core.SwitchifyAccessibilityService
@@ -16,10 +19,15 @@ import com.enaboapps.switchify.service.menu.structure.MenuActionResolver
 import com.enaboapps.switchify.service.menu.structure.MenuConstants
 import com.enaboapps.switchify.service.menu.structure.MenuItemRegistry
 import com.enaboapps.switchify.service.menu.structure.MenuStructure
+import com.enaboapps.switchify.screens.pc.PcMouseControlActivity
 import com.enaboapps.switchify.service.techniques.nodes.NodeExaminer
 import com.enaboapps.switchify.service.utils.DeviceLockObserver
+import com.enaboapps.switchify.service.window.MessageSeverity
+import com.enaboapps.switchify.service.window.ServiceMessageHUD
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class MainMenuStructure(
     private val accessibilityService: SwitchifyAccessibilityService,
@@ -134,6 +142,13 @@ class MainMenuStructure(
                     action = { MenuManager.getInstance().openMediaControlMenu() }
                 )
             },
+            MenuItemRegistry.getMainMenuDefinition("control_pc")?.let { def ->
+                MenuItem(
+                    definition = def,
+                    isLinkToMenu = true,
+                    action = { openPcControlMenu() }
+                )
+            },
             if (NodeExaminer.canPerformEditActions(GesturePoint.getPoint())) {
                 MenuItemRegistry.getMainMenuDefinition("edit")?.let { def ->
                     MenuItem(
@@ -157,6 +172,50 @@ class MainMenuStructure(
                 )
             }
         )
+
+    private fun openPcControlMenu() {
+        if (PcConnectionStateHolder.connectionState.value is PcConnectionState.Connected) {
+            openPcControlActivity()
+            return
+        }
+        showMessage(R.string.pc_control_connecting, MessageSeverity.Info)
+        coroutineScope.launch {
+            val result = ServiceCore.getPcServiceConnectionController()?.connectOrRequestAccess {
+                coroutineScope.launch(Dispatchers.Main) {
+                    showMessage(R.string.pc_control_waiting_approval, MessageSeverity.Info)
+                }
+            } ?: PcServiceConnectResult.Failed("No Switchify PC found.")
+            withContext(Dispatchers.Main) {
+                when (result) {
+                    is PcServiceConnectResult.Connected -> openPcControlActivity()
+                    is PcServiceConnectResult.Failed -> {
+                        val message = when (result.message) {
+                            "No Switchify PC found." -> R.string.pc_control_no_pc_found
+                            "Could not connect to PC.", "Found PC, but could not connect." -> R.string.pc_control_could_not_connect
+                            "Request rejected." -> R.string.request_rejected
+                            "Request expired. Try again." -> R.string.request_expired_try_again
+                            else -> R.string.pc_control_could_not_connect
+                        }
+                        showMessage(message, MessageSeverity.Warning)
+                    }
+                }
+            }
+        }
+    }
+
+    private fun openPcControlActivity() {
+        MenuManager.getInstance().closeMenuHierarchy()
+        accessibilityService.startActivity(PcMouseControlActivity.createIntent(accessibilityService))
+    }
+
+    private fun showMessage(messageResId: Int, severity: MessageSeverity) {
+        ServiceMessageHUD.instance.showMessage(
+            messageResId,
+            ServiceMessageHUD.MessageType.DISAPPEARING,
+            ServiceMessageHUD.Time.MEDIUM,
+            severity
+        )
+    }
 
     val menuManipulatorItems = listOfNotNull(
         MenuItem(

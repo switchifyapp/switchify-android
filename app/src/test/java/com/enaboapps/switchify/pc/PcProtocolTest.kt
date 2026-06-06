@@ -67,4 +67,45 @@ class PcProtocolTest {
 
         assertEquals("o0CHNFgcFjPSL1PaWzBP6riHHr9V8kxo-qTKAPUvT7A", proof)
     }
+
+    @Test
+    fun buildsMouseMoveCommandWithAuthProof() {
+        val json = JSONObject(
+            PcProtocol.mouseMove(
+                id = "req-1",
+                deviceId = "device-1",
+                token = "shared-token",
+                timestamp = 1000L,
+                dx = 80,
+                dy = -80
+            )
+        )
+
+        assertEquals(1, json.getInt("version"))
+        assertEquals("req-1", json.getString("id"))
+        assertEquals("device-1", json.getString("deviceId"))
+        assertEquals(1000L, json.getLong("timestamp"))
+        assertEquals("mouse.move", json.getString("type"))
+        assertEquals(80, json.getJSONObject("payload").getInt("dx"))
+        assertEquals(-80, json.getJSONObject("payload").getInt("dy"))
+        assertEquals("H2mzYjrSRbwKsOiNk7s193qUijYSNqhoxLD92Vp2QDA", json.getString("auth"))
+        assertFalse(json.toString().contains("shared-token"))
+    }
+
+    @Test
+    fun buildsMouseClickAndScrollCommands() {
+        val click = JSONObject(PcProtocol.mouseClick("click-1", "device-1", "token", 1000L))
+        val doubleClick = JSONObject(PcProtocol.mouseDoubleClick("double-1", "device-1", "token", 1000L))
+        val rightClick = JSONObject(PcProtocol.mouseRightClick("right-1", "device-1", "token", 1000L))
+        val scroll = JSONObject(PcProtocol.mouseScroll("scroll-1", "device-1", "token", 1000L, 0, 5))
+
+        assertEquals("mouse.click", click.getString("type"))
+        assertEquals("left", click.getJSONObject("payload").getString("button"))
+        assertEquals("mouse.doubleClick", doubleClick.getString("type"))
+        assertEquals("left", doubleClick.getJSONObject("payload").getString("button"))
+        assertEquals("mouse.rightClick", rightClick.getString("type"))
+        assertEquals(0, rightClick.getJSONObject("payload").length())
+        assertEquals("mouse.scroll", scroll.getString("type"))
+        assertEquals(5, scroll.getJSONObject("payload").getInt("dy"))
+    }
 }

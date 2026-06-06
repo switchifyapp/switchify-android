@@ -7,6 +7,7 @@ import com.enaboapps.switchify.service.menu.menus.gestures.GestureMenuStructure
 import com.enaboapps.switchify.service.menu.menus.main.MainMenuStructure
 import com.enaboapps.switchify.service.menu.menus.media.MediaMenuStructure
 import com.enaboapps.switchify.service.menu.menus.favouriteapps.FavouriteAppsMenuStructure
+import com.enaboapps.switchify.service.menu.menus.pc.PcControlMenuStructure
 import com.enaboapps.switchify.service.menu.menus.scroll.ScrollMenuStructure
 import com.enaboapps.switchify.service.menu.menus.settings.SettingsMenuStructure
 import com.enaboapps.switchify.service.menu.menus.system.SystemMenuStructure
@@ -23,6 +24,7 @@ class MenuStructureHolder(accessibilityService: SwitchifyAccessibilityService) {
     private val gestureMenuStructure = GestureMenuStructure(accessibilityService, serviceScope)
     private val systemMenuStructure = SystemMenuStructure(accessibilityService, serviceScope)
     private val mediaMenuStructure = MediaMenuStructure(accessibilityService, serviceScope)
+    private val pcControlMenuStructure = PcControlMenuStructure(accessibilityService, serviceScope)
     private val scrollMenuStructure = ScrollMenuStructure(accessibilityService, serviceScope)
     private val editMenuStructure = EditMenuStructure(accessibilityService, serviceScope)
     private val favouriteAppsMenuStructure = FavouriteAppsMenuStructure(accessibilityService, serviceScope)
@@ -52,6 +54,9 @@ class MenuStructureHolder(accessibilityService: SwitchifyAccessibilityService) {
 
     // Media Menu
     val mediaControlMenuObject = mediaMenuStructure.mediaControlMenuObject
+
+    // PC Menu
+    val pcControlMenuObject = pcControlMenuStructure.pcControlMenuObject
 
     // Scroll Menu
     val scrollMenuObject = scrollMenuStructure.scrollMenuObject

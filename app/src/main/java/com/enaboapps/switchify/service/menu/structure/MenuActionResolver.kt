@@ -4,6 +4,7 @@ import com.enaboapps.switchify.service.core.SwitchifyAccessibilityService
 import com.enaboapps.switchify.service.menu.menus.edit.EditMenuStructure
 import com.enaboapps.switchify.service.menu.menus.gestures.GestureMenuStructure
 import com.enaboapps.switchify.service.menu.menus.media.MediaMenuStructure
+import com.enaboapps.switchify.service.menu.menus.pc.PcControlMenuStructure
 import com.enaboapps.switchify.service.menu.menus.scroll.ScrollMenuStructure
 import com.enaboapps.switchify.service.menu.menus.settings.SettingsMenuStructure
 import com.enaboapps.switchify.service.menu.menus.system.SystemMenuStructure
@@ -90,6 +91,14 @@ object MenuActionResolver {
                     if (accessibilityService == null) return {}
                     val menu = MediaMenuStructure(accessibilityService, coroutineScope)
                         .mediaControlMenuObject
+                    val item = menu.getMenuItems().find { it.id == itemId }
+                    item?.let { { it.select() } } ?: {}
+                }
+
+                MenuConstants.MenuIds.PC_CONTROL_MENU -> {
+                    if (accessibilityService == null) return {}
+                    val menu = PcControlMenuStructure(accessibilityService, coroutineScope)
+                        .pcControlMenuObject
                     val item = menu.getMenuItems().find { it.id == itemId }
                     item?.let { { it.select() } } ?: {}
                 }

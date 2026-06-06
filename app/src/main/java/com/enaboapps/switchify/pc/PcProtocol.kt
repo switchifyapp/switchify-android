@@ -39,15 +39,53 @@ object PcProtocol {
 
     fun authenticatedPing(id: String, deviceId: String, token: String, timestamp: Long): String {
         val payload = JSONObject()
+        return authenticatedCommand(
+            id = id,
+            deviceId = deviceId,
+            token = token,
+            timestamp = timestamp,
+            type = "connection.ping",
+            payload = payload
+        )
+    }
+
+    fun authenticatedCommand(
+        id: String,
+        deviceId: String,
+        token: String,
+        timestamp: Long,
+        type: String,
+        payload: JSONObject
+    ): String {
         val message = JSONObject()
             .put("version", PC_PROTOCOL_VERSION)
             .put("id", id)
             .put("deviceId", deviceId)
             .put("timestamp", timestamp)
-            .put("type", "connection.ping")
+            .put("type", type)
             .put("payload", payload)
-        message.put("auth", authProof(id, deviceId, timestamp, "connection.ping", payload, token))
+        message.put("auth", authProof(id, deviceId, timestamp, type, payload, token))
         return message.toString()
+    }
+
+    fun mouseMove(id: String, deviceId: String, token: String, timestamp: Long, dx: Int, dy: Int): String {
+        return authenticatedCommand(id, deviceId, token, timestamp, "mouse.move", JSONObject().put("dx", dx).put("dy", dy))
+    }
+
+    fun mouseClick(id: String, deviceId: String, token: String, timestamp: Long, button: String = "left"): String {
+        return authenticatedCommand(id, deviceId, token, timestamp, "mouse.click", JSONObject().put("button", button))
+    }
+
+    fun mouseDoubleClick(id: String, deviceId: String, token: String, timestamp: Long, button: String = "left"): String {
+        return authenticatedCommand(id, deviceId, token, timestamp, "mouse.doubleClick", JSONObject().put("button", button))
+    }
+
+    fun mouseRightClick(id: String, deviceId: String, token: String, timestamp: Long): String {
+        return authenticatedCommand(id, deviceId, token, timestamp, "mouse.rightClick", JSONObject())
+    }
+
+    fun mouseScroll(id: String, deviceId: String, token: String, timestamp: Long, dx: Int, dy: Int): String {
+        return authenticatedCommand(id, deviceId, token, timestamp, "mouse.scroll", JSONObject().put("dx", dx).put("dy", dy))
     }
 
     fun parseResponse(raw: String): PcProtocolResponse {

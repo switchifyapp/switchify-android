@@ -23,6 +23,7 @@ object MenuConstants {
         "pinch_gestures_menu" to R.string.menu_title_pinch,
         "scroll_menu" to R.string.menu_title_scroll,
         "media_control_menu" to R.string.menu_title_media,
+        "pc_control_menu" to R.string.menu_title_control_pc,
         "edit_menu" to R.string.menu_title_edit
     )
 
@@ -40,6 +41,7 @@ object MenuConstants {
         const val PINCH_GESTURES_MENU = "pinch_gestures_menu"
         const val SCROLL_MENU = "scroll_menu"
         const val MEDIA_CONTROL_MENU = "media_control_menu"
+        const val PC_CONTROL_MENU = "pc_control_menu"
         const val EDIT_MENU = "edit_menu"
         const val SETTINGS_MENU = "settings_menu"
         const val FAVOURITE_APPS_MENU = "favourite_apps_menu"
@@ -60,6 +62,7 @@ object MenuConstants {
         MenuIds.PINCH_GESTURES_MENU -> R.string.menu_title_pinch
         MenuIds.SCROLL_MENU -> R.string.menu_title_scroll
         MenuIds.MEDIA_CONTROL_MENU -> R.string.menu_title_media_control
+        MenuIds.PC_CONTROL_MENU -> R.string.menu_title_control_pc
         MenuIds.EDIT_MENU -> R.string.menu_title_edit
         MenuIds.SETTINGS_MENU -> R.string.menu_title_settings
         MenuIds.FAVOURITE_APPS_MENU -> R.string.menu_title_favourite_apps
@@ -97,6 +100,7 @@ object MenuConstants {
             const val DEVICE = "device"
             const val SETTINGS = "settings"
             const val MEDIA_CONTROL = "media_control"
+            const val CONTROL_PC = "control_pc"
             const val EDIT = "edit"
             const val AI = "ai"
             const val PAUSE = "pause"
@@ -138,6 +142,22 @@ object MenuConstants {
             const val PREVIOUS_TRACK = "previous_track"
             const val NEXT_TRACK = "next_track"
             const val VOLUME_CONTROL = "volume_control"
+        }
+
+        object Pc {
+            const val MOUSE_UP_LEFT = "pc_mouse_up_left"
+            const val MOUSE_UP = "pc_mouse_up"
+            const val MOUSE_UP_RIGHT = "pc_mouse_up_right"
+            const val MOUSE_LEFT = "pc_mouse_left"
+            const val MOUSE_CLICK = "pc_mouse_click"
+            const val MOUSE_RIGHT = "pc_mouse_right"
+            const val MOUSE_DOWN_LEFT = "pc_mouse_down_left"
+            const val MOUSE_DOWN = "pc_mouse_down"
+            const val MOUSE_DOWN_RIGHT = "pc_mouse_down_right"
+            const val MOUSE_RIGHT_CLICK = "pc_mouse_right_click"
+            const val MOUSE_DOUBLE_CLICK = "pc_mouse_double_click"
+            const val MOUSE_SCROLL_UP = "pc_mouse_scroll_up"
+            const val MOUSE_SCROLL_DOWN = "pc_mouse_scroll_down"
         }
 
         /**

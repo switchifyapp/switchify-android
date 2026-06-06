@@ -1,6 +1,7 @@
 package com.enaboapps.switchify.service.core
 
 import com.enaboapps.switchify.service.camera.CameraManager
+import com.enaboapps.switchify.pc.PcServiceConnectionController
 import com.enaboapps.switchify.service.pauseresume.PauseManager
 import com.enaboapps.switchify.service.scanning.ScanningManager
 import com.enaboapps.switchify.service.switches.SwitchEventProvider
@@ -14,6 +15,7 @@ object ServiceCore {
     private lateinit var switchEventProviderRef: WeakReference<SwitchEventProvider>
     private lateinit var headControlServiceRef: WeakReference<HeadControlService>
     private lateinit var cameraManagerRef: WeakReference<CameraManager>
+    private var pcServiceConnectionController: PcServiceConnectionController? = null
 
     /**
      * Initializes the service core with the given context and accessibility service.
@@ -99,6 +101,14 @@ object ServiceCore {
         return if (::cameraManagerRef.isInitialized) cameraManagerRef.get() else null
     }
 
+    fun setPcServiceConnectionController(controller: PcServiceConnectionController) {
+        pcServiceConnectionController = controller
+    }
+
+    fun getPcServiceConnectionController(): PcServiceConnectionController? {
+        return pcServiceConnectionController
+    }
+
     /**
      * Cleans up the service core.
      */
@@ -120,5 +130,7 @@ object ServiceCore {
         if (::cameraManagerRef.isInitialized) {
             cameraManagerRef = WeakReference(null)
         }
+        pcServiceConnectionController?.cleanup()
+        pcServiceConnectionController = null
     }
 }

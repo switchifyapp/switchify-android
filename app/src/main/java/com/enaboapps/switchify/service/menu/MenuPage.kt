@@ -3,6 +3,7 @@ package com.enaboapps.switchify.service.menu
 import android.content.Context
 import android.view.Gravity
 import android.view.ViewGroup
+import android.widget.GridLayout
 import android.widget.LinearLayout
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Box
@@ -44,6 +45,7 @@ class MenuPage(
     private val contentItems: List<MenuItem>,
     private val closeItem: MenuItem?,
     private val titleResId: Int? = null,
+    private val layoutMode: MenuLayoutMode = MenuLayoutMode.List,
     private val pageIndex: Int,
     private val maxPageIndex: Int,
     val onMenuPageChanged: (pageIndex: Int) -> Unit
@@ -95,13 +97,23 @@ class MenuPage(
         // MenuSurfaceBudget — the single source of truth for what fits.
         val contentMaxWidthPx = MenuSurfaceBudget.contentMaxWidthPx(context)
 
-        val content: ViewGroup = LinearLayout(context).apply {
-            orientation = LinearLayout.VERTICAL
-            layoutParams = ViewGroup.LayoutParams(
-                contentMaxWidthPx,
-                ViewGroup.LayoutParams.WRAP_CONTENT
-            )
-            contentItems.forEach { it.inflate(this, itemSize) }
+        val content: ViewGroup = when (val mode = layoutMode) {
+            is MenuLayoutMode.Grid -> GridLayout(context).apply {
+                columnCount = mode.columns
+                layoutParams = ViewGroup.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT
+                )
+                contentItems.forEach { it.inflateGridCell(this, itemSize) }
+            }
+            MenuLayoutMode.List -> LinearLayout(context).apply {
+                orientation = LinearLayout.VERTICAL
+                layoutParams = ViewGroup.LayoutParams(
+                    contentMaxWidthPx,
+                    ViewGroup.LayoutParams.WRAP_CONTENT
+                )
+                contentItems.forEach { it.inflate(this, itemSize) }
+            }
         }
 
         val navRow = buildNavRow(smallItemSize)

@@ -59,6 +59,13 @@
             android:taskAffinity=""
             android:theme="@style/Theme.Switchify" />
 
+        <activity
+            android:name=".screens.pc.PcMouseControlActivity"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:taskAffinity=""
+            android:theme="@style/Theme.Switchify" />
+
         <service
             android:name=".service.core.SwitchifyAccessibilityService"
             android:directBootAware="true"
