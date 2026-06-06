@@ -22,6 +22,7 @@
     <uses-permission android:name="com.google.android.gms.permission.AD_ID" /> <!-- Required for advertising identifier access -->
     <uses-permission android:name="android.permission.WAKE_LOCK" /> <!-- Required for camera service wake lock -->
     <uses-permission android:name="android.permission.INTERNET" /> <!-- Required for downloading the Reply Drafter model -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" /> <!-- Required for local PC discovery -->
 
     <application
         android:name=".SwitchifyApplication"

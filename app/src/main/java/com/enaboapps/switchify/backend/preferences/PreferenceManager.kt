@@ -3,6 +3,7 @@ package com.enaboapps.switchify.backend.preferences
 import android.content.Context
 import android.content.SharedPreferences
 import androidx.core.content.edit
+import java.util.UUID
 
 class PreferenceManager(context: Context) {
 
@@ -247,6 +248,14 @@ class PreferenceManager(context: Context) {
         } catch (e: ClassCastException) {
             defaultValue
         }
+    }
+
+    fun getOrCreateDeviceId(): String {
+        val existing = getStringValue(PREFERENCE_KEY_DEVICE_ID)
+        if (existing.isNotEmpty()) return existing
+        val generated = UUID.randomUUID().toString()
+        setStringValue(PREFERENCE_KEY_DEVICE_ID, generated)
+        return generated
     }
 
     /**
