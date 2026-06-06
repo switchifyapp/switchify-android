@@ -23,7 +23,6 @@
     <uses-permission android:name="android.permission.WAKE_LOCK" /> <!-- Required for camera service wake lock -->
     <uses-permission android:name="android.permission.INTERNET" /> <!-- Required for downloading the Reply Drafter model -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" /> <!-- Required for local PC discovery -->
-    <uses-permission android:name="android.permission.ACCESS_LOCAL_NETWORK" /> <!-- Required for local PC discovery on newer Android versions -->
 
     <application
         android:name=".SwitchifyApplication"
