@@ -157,6 +157,7 @@ dependencies {
     implementation(libs.supabase.auth)
     implementation(libs.supabase.realtime)
     implementation(libs.ktor.client.android)
+    implementation(libs.ktor.client.cio)
     implementation(libs.ktor.client.websockets)
     implementation(libs.gson)
     implementation(libs.androidx.material3.android)

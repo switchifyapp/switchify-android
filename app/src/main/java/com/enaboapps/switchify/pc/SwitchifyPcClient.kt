@@ -1,7 +1,7 @@
 package com.enaboapps.switchify.pc
 
 import io.ktor.client.HttpClient
-import io.ktor.client.engine.android.Android
+import io.ktor.client.engine.cio.CIO
 import io.ktor.client.plugins.websocket.WebSockets
 import io.ktor.client.plugins.websocket.webSocketSession
 import io.ktor.http.takeFrom
@@ -32,11 +32,10 @@ class SwitchifyPcClient(
     private val identityRepository: PcDeviceIdentity,
     private val tokenStore: PcPairingTokenStore
 ) : PcConnector {
-    private val client = HttpClient(Android) {
+    private val client = HttpClient(CIO) {
         install(WebSockets)
         engine {
-            connectTimeout = 5_000
-            socketTimeout = 0
+            requestTimeout = 5_000
         }
     }
 
