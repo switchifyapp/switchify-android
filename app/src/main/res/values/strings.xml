@@ -257,6 +257,16 @@
     <!-- Screen Titles -->
     <string name="screen_title_switchify">Switchify</string>
     <string name="screen_title_settings">Settings</string>
+    <string name="pc_connection_title">Connect to PC</string>
+    <string name="pc_connection_home_summary">Find and connect to Switchify PC on your local network.</string>
+    <string name="pc_connection_permission_section">Local network</string>
+    <string name="pc_connection_permission_message">Allow local network access to find Switchify PC.</string>
+    <string name="pc_connection_permission_action">Allow local network access</string>
+    <string name="pc_connection_nearby_section">Nearby PCs</string>
+    <string name="pc_connection_fallback_section">Fallback</string>
+    <string name="pc_connection_qr_fallback_title">Scan QR instead</string>
+    <string name="pc_connection_qr_fallback_summary">Use this if automatic discovery is not available.</string>
+    <string name="pc_connection_message_title">PC connection</string>
     <string name="screen_title_accessibility_service">Accessibility Service ♿</string>
     <string name="screen_title_upgrade_pro">Unlock Pro Magic! ✨</string>
     <string name="screen_title_debug">Debug Settings</string>
