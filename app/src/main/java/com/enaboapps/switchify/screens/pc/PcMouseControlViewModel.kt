@@ -13,7 +13,6 @@ import com.enaboapps.switchify.pc.PcDeviceIdentityRepository
 import com.enaboapps.switchify.pc.PcMouseCommand
 import com.enaboapps.switchify.pc.PcAuthenticatedSession
 import com.enaboapps.switchify.pc.PcPairingTokenStore
-import com.enaboapps.switchify.pc.PcPointerMovementProfile
 import com.enaboapps.switchify.pc.PcTokenStore
 import com.enaboapps.switchify.pc.SwitchifyPcClient
 import kotlinx.coroutines.CompletableDeferred
@@ -28,7 +27,8 @@ import kotlinx.coroutines.launch
 
 data class PcMouseControlUiState(
     val connectedDisplayName: String? = null,
-    val movementStep: Int = PcMouseControlViewModel.DEFAULT_MOVE_STEP,
+    val selectedMovementSize: PcMouseMovementSize = PcMouseMovementSize.Small,
+    val movementStep: Int = PcMouseControlViewModel.FALLBACK_MOVEMENT_STEPS.small,
     val isBusy: Boolean = false,
     val busyCommand: PcMouseCommand? = null,
     val message: String? = null
@@ -36,14 +36,16 @@ data class PcMouseControlUiState(
 
 class PcMouseControlViewModel(
     private val tokenStore: PcPairingTokenStore,
-    private val connector: PcConnector
+    private val connector: PcConnector,
+    private val movementSizeStore: PcMouseMovementSizeStore
 ) : ViewModel() {
     constructor(context: Context) : this(
         tokenStore = PcTokenStore(context.applicationContext),
         connector = SwitchifyPcClient(
             PcDeviceIdentityRepository(context.applicationContext),
             PcTokenStore(context.applicationContext)
-        )
+        ),
+        movementSizeStore = PcMouseMovementPreferenceStore(context.applicationContext)
     )
 
     private val _uiState = MutableStateFlow(PcMouseControlUiState())
@@ -51,14 +53,26 @@ class PcMouseControlViewModel(
     private var liveConnection: PcMouseControlConnection? = null
     private var liveSession: PcAuthenticatedSession? = null
     private var liveConnectionDeferred: Deferred<PcMouseControlConnection?>? = null
+    private var movementSteps = FALLBACK_MOVEMENT_STEPS
 
     init {
+        val selectedSize = movementSizeStore.getSelectedSize()
+        _uiState.update {
+            it.copy(
+                selectedMovementSize = selectedSize,
+                movementStep = movementSteps.stepFor(selectedSize)
+            )
+        }
         viewModelScope.launch {
             PcConnectionStateHolder.connectionState.collect { state ->
                 _uiState.update {
                     it.copy(
                         connectedDisplayName = (state as? PcConnectionState.Connected)?.displayName,
-                        movementStep = if (state is PcConnectionState.Connected) it.movementStep else DEFAULT_MOVE_STEP
+                        movementStep = if (state is PcConnectionState.Connected) {
+                            it.movementStep
+                        } else {
+                            fallbackStepFor(it.selectedMovementSize)
+                        }
                     )
                 }
                 when (state) {
@@ -66,6 +80,16 @@ class PcMouseControlViewModel(
                     PcConnectionState.Disconnected -> closeLiveConnection()
                 }
             }
+        }
+    }
+
+    fun selectMovementSize(size: PcMouseMovementSize) {
+        movementSizeStore.setSelectedSize(size)
+        _uiState.update {
+            it.copy(
+                selectedMovementSize = size,
+                movementStep = movementSteps.stepFor(size)
+            )
         }
     }
 
@@ -134,18 +158,20 @@ class PcMouseControlViewModel(
             when (val result = connector.openMouseControlSession(session)) {
                 is PcLiveControlResult.Connected -> {
                     liveConnection = result.connection
+                    movementSteps = result.connection.pointerProfile?.toMouseMovementSteps() ?: FALLBACK_MOVEMENT_STEPS
                     _uiState.update {
-                        it.copy(movementStep = result.connection.pointerProfile?.mediumMovementStep() ?: DEFAULT_MOVE_STEP)
+                        it.copy(movementStep = movementSteps.stepFor(it.selectedMovementSize))
                     }
                     result.connection
                 }
                 is PcLiveControlResult.AuthFailed -> {
                     tokenStore.clearToken(session.desktopId)
                     PcConnectionStateHolder.setDisconnected()
+                    movementSteps = FALLBACK_MOVEMENT_STEPS
                     _uiState.update {
                         it.copy(
                             connectedDisplayName = null,
-                            movementStep = DEFAULT_MOVE_STEP,
+                            movementStep = movementSteps.stepFor(it.selectedMovementSize),
                             isBusy = false,
                             busyCommand = null,
                             message = CONNECT_FIRST_MESSAGE
@@ -173,12 +199,17 @@ class PcMouseControlViewModel(
         liveConnectionDeferred = null
     }
 
-    private fun PcPointerMovementProfile.mediumMovementStep(): Int {
-        return recommendedDeltas.medium.coerceIn(1, maxDelta)
+    private fun fallbackStepFor(size: PcMouseMovementSize): Int {
+        movementSteps = FALLBACK_MOVEMENT_STEPS
+        return movementSteps.stepFor(size)
     }
 
     companion object {
-        const val DEFAULT_MOVE_STEP = 80
+        val FALLBACK_MOVEMENT_STEPS = PcMouseMovementSteps(
+            small = 40,
+            medium = 80,
+            large = 160
+        )
         const val CONNECT_FIRST_MESSAGE = "Connect to PC from Switchify first."
         const val COMMAND_FAILED_MESSAGE = "Could not send command to PC."
     }

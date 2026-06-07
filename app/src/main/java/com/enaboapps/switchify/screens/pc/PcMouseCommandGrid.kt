@@ -10,6 +10,10 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -20,7 +24,7 @@ import com.enaboapps.switchify.R
 import com.enaboapps.switchify.pc.PcMouseCommand
 
 data class PcMouseControlSpec(
-    @StringRes val labelResId: Int,
+    @param:StringRes val labelResId: Int,
     val command: PcMouseCommand
 )
 
@@ -51,6 +55,36 @@ fun PcMouseCommandGrid(
                     text = stringResource(control.labelResId),
                     textAlign = TextAlign.Center
                 )
+            }
+        }
+    }
+}
+
+@Composable
+fun PcMouseMovementSizeSelector(
+    selectedSize: PcMouseMovementSize,
+    onSizeSelected: (PcMouseMovementSize) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val sizes = PcMouseMovementSize.entries
+    val colors = SegmentedButtonDefaults.colors(
+        activeContainerColor = MaterialTheme.colorScheme.primary,
+        activeContentColor = MaterialTheme.colorScheme.onPrimary,
+        activeBorderColor = MaterialTheme.colorScheme.primary,
+        inactiveContainerColor = MaterialTheme.colorScheme.surface,
+        inactiveContentColor = MaterialTheme.colorScheme.onSurface,
+        inactiveBorderColor = MaterialTheme.colorScheme.outline
+    )
+
+    SingleChoiceSegmentedButtonRow(modifier = modifier.fillMaxWidth()) {
+        sizes.forEachIndexed { index, size ->
+            SegmentedButton(
+                selected = selectedSize == size,
+                onClick = { onSizeSelected(size) },
+                shape = SegmentedButtonDefaults.itemShape(index = index, count = sizes.size),
+                colors = colors
+            ) {
+                Text(text = stringResource(size.labelResId))
             }
         }
     }

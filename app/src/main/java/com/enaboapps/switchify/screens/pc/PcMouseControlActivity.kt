@@ -116,6 +116,15 @@ private fun PcMouseControlScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
+                Text(
+                    text = stringResource(R.string.pc_mouse_movement_size),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                PcMouseMovementSizeSelector(
+                    selectedSize = uiState.selectedMovementSize,
+                    onSizeSelected = viewModel::selectMovementSize
+                )
                 PcMouseCommandGrid(
                     connected = uiState.connectedDisplayName != null,
                     movementStep = uiState.movementStep,

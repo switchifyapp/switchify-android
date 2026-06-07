@@ -277,6 +277,10 @@
     <string name="pc_control_could_not_connect">Could not connect to PC.</string>
     <string name="pc_control_command_failed">Could not send command to PC.</string>
     <string name="pc_mouse_control_connected">Connected to %1$s.</string>
+    <string name="pc_mouse_movement_size">Movement size</string>
+    <string name="pc_mouse_movement_small">Small</string>
+    <string name="pc_mouse_movement_medium">Medium</string>
+    <string name="pc_mouse_movement_large">Large</string>
     <string name="request_rejected">Request rejected.</string>
     <string name="request_expired_try_again">Request expired. Try again.</string>
     <string name="pc_mouse_up_left">Up left</string>
