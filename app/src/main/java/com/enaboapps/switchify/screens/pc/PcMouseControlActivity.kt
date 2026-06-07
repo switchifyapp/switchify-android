@@ -10,10 +10,11 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -99,33 +100,19 @@ private fun PcMouseControlScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
                     .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                verticalArrangement = Arrangement.spacedBy(18.dp)
             ) {
-                Text(
-                    text = uiState.connectedDisplayName?.let {
-                        stringResource(R.string.pc_mouse_control_connected, it)
-                    } ?: stringResource(R.string.pc_control_connect_first),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                PcControlStatusStrip(
+                    connectedDisplayName = uiState.connectedDisplayName,
+                    message = uiState.message
                 )
-                uiState.message?.let {
-                    Text(
-                        text = it,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                Text(
-                    text = stringResource(R.string.pc_mouse_movement_size),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                PcMouseMovementSizeSelector(
+                PcMovementSizeSection(
                     selectedSize = uiState.selectedMovementSize,
                     onSizeSelected = viewModel::selectMovementSize
                 )
-                PcMouseCommandGrid(
+                PcMouseCommandSections(
                     connected = uiState.connectedDisplayName != null,
                     movementStep = uiState.movementStep,
                     busyCommand = uiState.busyCommand,

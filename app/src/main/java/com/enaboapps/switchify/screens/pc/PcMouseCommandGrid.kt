@@ -2,13 +2,11 @@ package com.enaboapps.switchify.screens.pc
 
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SegmentedButton
@@ -36,27 +34,218 @@ fun PcMouseCommandGrid(
     onCommandSelected: (PcMouseCommand) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    LazyVerticalGrid(
-        columns = GridCells.Fixed(3),
-        modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(bottom = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    PcMouseCommandSections(
+        connected = connected,
+        movementStep = movementStep,
+        busyCommand = busyCommand,
+        onCommandSelected = onCommandSelected,
+        modifier = modifier
+    )
+}
+
+@Composable
+fun PcControlStatusStrip(
+    connectedDisplayName: String?,
+    message: String?,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
-        items(pcMouseControlSpecs(movementStep)) { control ->
-            Button(
-                onClick = { onCommandSelected(control.command) },
-                enabled = connected && busyCommand == null,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 84.dp)
-            ) {
-                Text(
-                    text = stringResource(control.labelResId),
-                    textAlign = TextAlign.Center
-                )
-            }
+        Text(
+            text = connectedDisplayName?.let {
+                stringResource(R.string.pc_mouse_control_connected, it)
+            } ?: stringResource(R.string.pc_control_connect_first),
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        message?.let {
+            Text(
+                text = it,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
+    }
+}
+
+@Composable
+fun PcMovementSizeSection(
+    selectedSize: PcMouseMovementSize,
+    onSizeSelected: (PcMouseMovementSize) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        PcCommandSectionTitle(R.string.pc_mouse_movement_size)
+        PcMouseMovementSizeSelector(
+            selectedSize = selectedSize,
+            onSizeSelected = onSizeSelected
+        )
+    }
+}
+
+@Composable
+fun PcMouseCommandSections(
+    connected: Boolean,
+    movementStep: Int,
+    busyCommand: PcMouseCommand?,
+    onCommandSelected: (PcMouseCommand) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(18.dp)
+    ) {
+        PcMovementCommandSection(
+            connected = connected,
+            movementStep = movementStep,
+            busyCommand = busyCommand,
+            onCommandSelected = onCommandSelected
+        )
+        PcButtonCommandSection(
+            titleResId = R.string.pc_mouse_section_clicks,
+            specs = pcClickControlSpecs(),
+            connected = connected,
+            busyCommand = busyCommand,
+            onCommandSelected = onCommandSelected
+        )
+        PcButtonCommandSection(
+            titleResId = R.string.pc_mouse_section_scroll,
+            specs = pcScrollControlSpecs(),
+            connected = connected,
+            busyCommand = busyCommand,
+            onCommandSelected = onCommandSelected
+        )
+    }
+}
+
+@Composable
+private fun PcMovementCommandSection(
+    connected: Boolean,
+    movementStep: Int,
+    busyCommand: PcMouseCommand?,
+    onCommandSelected: (PcMouseCommand) -> Unit
+) {
+    val controls = pcMovementControlSpecs(movementStep)
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        PcCommandSectionTitle(R.string.pc_mouse_section_movement)
+        PcCommandButtonRow(
+            specs = controls.take(3),
+            connected = connected,
+            busyCommand = busyCommand,
+            onCommandSelected = onCommandSelected,
+            minHeightDp = 76
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            PcCommandButton(
+                spec = controls[3],
+                connected = connected,
+                busyCommand = busyCommand,
+                onCommandSelected = onCommandSelected,
+                minHeightDp = 76,
+                modifier = Modifier.weight(1f)
+            )
+            Spacer(modifier = Modifier.weight(1f))
+            PcCommandButton(
+                spec = controls[4],
+                connected = connected,
+                busyCommand = busyCommand,
+                onCommandSelected = onCommandSelected,
+                minHeightDp = 76,
+                modifier = Modifier.weight(1f)
+            )
+        }
+        PcCommandButtonRow(
+            specs = controls.drop(5),
+            connected = connected,
+            busyCommand = busyCommand,
+            onCommandSelected = onCommandSelected,
+            minHeightDp = 76
+        )
+    }
+}
+
+@Composable
+private fun PcButtonCommandSection(
+    @StringRes titleResId: Int,
+    specs: List<PcMouseControlSpec>,
+    connected: Boolean,
+    busyCommand: PcMouseCommand?,
+    onCommandSelected: (PcMouseCommand) -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        PcCommandSectionTitle(titleResId)
+        PcCommandButtonRow(
+            specs = specs,
+            connected = connected,
+            busyCommand = busyCommand,
+            onCommandSelected = onCommandSelected,
+            minHeightDp = 72
+        )
+    }
+}
+
+@Composable
+private fun PcCommandSectionTitle(@StringRes titleResId: Int) {
+    Text(
+        text = stringResource(titleResId),
+        style = MaterialTheme.typography.titleMedium,
+        color = MaterialTheme.colorScheme.onSurface
+    )
+}
+
+@Composable
+private fun PcCommandButtonRow(
+    specs: List<PcMouseControlSpec>,
+    connected: Boolean,
+    busyCommand: PcMouseCommand?,
+    onCommandSelected: (PcMouseCommand) -> Unit,
+    minHeightDp: Int
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        specs.forEach { spec ->
+            PcCommandButton(
+                spec = spec,
+                connected = connected,
+                busyCommand = busyCommand,
+                onCommandSelected = onCommandSelected,
+                minHeightDp = minHeightDp,
+                modifier = Modifier.weight(1f)
+            )
+        }
+    }
+}
+
+@Composable
+private fun PcCommandButton(
+    spec: PcMouseControlSpec,
+    connected: Boolean,
+    busyCommand: PcMouseCommand?,
+    onCommandSelected: (PcMouseCommand) -> Unit,
+    minHeightDp: Int,
+    modifier: Modifier = Modifier
+) {
+    Button(
+        onClick = { onCommandSelected(spec.command) },
+        enabled = connected && busyCommand == null,
+        modifier = modifier
+            .fillMaxWidth()
+            .heightIn(min = minHeightDp.dp)
+    ) {
+        Text(
+            text = stringResource(spec.labelResId),
+            textAlign = TextAlign.Center
+        )
     }
 }
 
@@ -91,20 +280,34 @@ fun PcMouseMovementSizeSelector(
 }
 
 fun pcMouseControlSpecs(moveStep: Int): List<PcMouseControlSpec> {
+    return pcMovementControlSpecs(moveStep) + pcClickControlSpecs() + pcScrollControlSpecs()
+}
+
+fun pcMovementControlSpecs(moveStep: Int): List<PcMouseControlSpec> {
     val step = moveStep.coerceAtLeast(1)
-    val scrollStep = 5
     return listOf(
         PcMouseControlSpec(R.string.pc_mouse_up_left, PcMouseCommand.Move(-step, -step)),
         PcMouseControlSpec(R.string.pc_mouse_up, PcMouseCommand.Move(0, -step)),
         PcMouseControlSpec(R.string.pc_mouse_up_right, PcMouseCommand.Move(step, -step)),
         PcMouseControlSpec(R.string.pc_mouse_left, PcMouseCommand.Move(-step, 0)),
-        PcMouseControlSpec(R.string.pc_mouse_click, PcMouseCommand.LeftClick),
         PcMouseControlSpec(R.string.pc_mouse_right, PcMouseCommand.Move(step, 0)),
         PcMouseControlSpec(R.string.pc_mouse_down_left, PcMouseCommand.Move(-step, step)),
         PcMouseControlSpec(R.string.pc_mouse_down, PcMouseCommand.Move(0, step)),
-        PcMouseControlSpec(R.string.pc_mouse_down_right, PcMouseCommand.Move(step, step)),
-        PcMouseControlSpec(R.string.pc_mouse_right_click, PcMouseCommand.RightClick),
+        PcMouseControlSpec(R.string.pc_mouse_down_right, PcMouseCommand.Move(step, step))
+    )
+}
+
+fun pcClickControlSpecs(): List<PcMouseControlSpec> {
+    return listOf(
+        PcMouseControlSpec(R.string.pc_mouse_click, PcMouseCommand.LeftClick),
         PcMouseControlSpec(R.string.pc_mouse_double_click, PcMouseCommand.DoubleClick),
+        PcMouseControlSpec(R.string.pc_mouse_right_click, PcMouseCommand.RightClick)
+    )
+}
+
+fun pcScrollControlSpecs(): List<PcMouseControlSpec> {
+    val scrollStep = 5
+    return listOf(
         PcMouseControlSpec(R.string.pc_mouse_scroll_up, PcMouseCommand.Scroll(0, scrollStep)),
         PcMouseControlSpec(R.string.pc_mouse_scroll_down, PcMouseCommand.Scroll(0, -scrollStep))
     )
