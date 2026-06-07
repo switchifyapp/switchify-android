@@ -12,6 +12,9 @@ import com.enaboapps.switchify.pc.PcMouseCommand
 import com.enaboapps.switchify.pc.PcPairingResult
 import com.enaboapps.switchify.pc.PcPairingTokenStore
 import com.enaboapps.switchify.pc.PcPingResult
+import com.enaboapps.switchify.pc.PcPointerBounds
+import com.enaboapps.switchify.pc.PcPointerDeltas
+import com.enaboapps.switchify.pc.PcPointerMovementProfile
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -61,6 +64,40 @@ class PcMouseControlViewModelTest {
         assertEquals(1, connector.openControlSessionCalls)
         assertTrue(connector.oneShotCommands.isEmpty())
         assertNull(viewModel.uiState.value.message)
+    }
+
+    @Test
+    fun livePointerProfileSetsMovementStepToMediumDelta() = runTest(dispatcher) {
+        PcConnectionStateHolder.setConnected(session, "Switchify PC")
+        val connector = FakeConnector(PcCommandResult.Ack, pointerProfile = pointerProfile(medium = 130))
+        val viewModel = PcMouseControlViewModel(FakeTokenStore(), connector)
+
+        advanceUntilIdle()
+
+        assertEquals(130, viewModel.uiState.value.movementStep)
+    }
+
+    @Test
+    fun missingLivePointerProfileKeepsDefaultMovementStep() = runTest(dispatcher) {
+        PcConnectionStateHolder.setConnected(session, "Switchify PC")
+        val viewModel = PcMouseControlViewModel(FakeTokenStore(), FakeConnector(PcCommandResult.Ack))
+
+        advanceUntilIdle()
+
+        assertEquals(PcMouseControlViewModel.DEFAULT_MOVE_STEP, viewModel.uiState.value.movementStep)
+    }
+
+    @Test
+    fun livePointerProfileClampsMediumStepToMaxDelta() = runTest(dispatcher) {
+        PcConnectionStateHolder.setConnected(session, "Switchify PC")
+        val viewModel = PcMouseControlViewModel(
+            FakeTokenStore(),
+            FakeConnector(PcCommandResult.Ack, pointerProfile = pointerProfile(medium = 900, maxDelta = 500))
+        )
+
+        advanceUntilIdle()
+
+        assertEquals(500, viewModel.uiState.value.movementStep)
     }
 
     @Test
@@ -132,7 +169,8 @@ class PcMouseControlViewModelTest {
     }
 
     private class FakeConnector(
-        private val commandResult: PcCommandResult
+        private val commandResult: PcCommandResult,
+        private val pointerProfile: PcPointerMovementProfile? = null
     ) : PcConnector {
         constructor(commandResult: CompletableDeferred<PcCommandResult>) : this(PcCommandResult.Ack) {
             deferredResult = commandResult
@@ -155,6 +193,8 @@ class PcMouseControlViewModelTest {
             openControlSessionCalls++
             return PcLiveControlResult.Connected(
                 object : PcMouseControlConnection {
+                    override val pointerProfile: PcPointerMovementProfile? = this@FakeConnector.pointerProfile
+
                     override suspend fun sendMouseCommand(command: PcMouseCommand): PcCommandResult {
                         commands.add(command)
                         return deferredResult?.await() ?: commandResult
@@ -174,6 +214,16 @@ class PcMouseControlViewModelTest {
         }
 
         override fun close() = Unit
+    }
+
+    private fun pointerProfile(medium: Int, maxDelta: Int = 500): PcPointerMovementProfile {
+        return PcPointerMovementProfile(
+            displayId = "0:0:1280:720:1.5",
+            scaleFactor = 1.5,
+            bounds = PcPointerBounds(0, 0, 1280, 720),
+            maxDelta = maxDelta,
+            recommendedDeltas = PcPointerDeltas(small = 50, medium = medium, large = 252)
+        )
     }
 
     private class FakeTokenStore(

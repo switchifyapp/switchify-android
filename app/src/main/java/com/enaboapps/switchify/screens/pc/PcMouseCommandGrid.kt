@@ -27,6 +27,7 @@ data class PcMouseControlSpec(
 @Composable
 fun PcMouseCommandGrid(
     connected: Boolean,
+    movementStep: Int,
     busyCommand: PcMouseCommand?,
     onCommandSelected: (PcMouseCommand) -> Unit,
     modifier: Modifier = Modifier
@@ -38,7 +39,7 @@ fun PcMouseCommandGrid(
         verticalArrangement = Arrangement.spacedBy(12.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        items(pcMouseControlSpecs()) { control ->
+        items(pcMouseControlSpecs(movementStep)) { control ->
             Button(
                 onClick = { onCommandSelected(control.command) },
                 enabled = connected && busyCommand == null,
@@ -55,8 +56,8 @@ fun PcMouseCommandGrid(
     }
 }
 
-fun pcMouseControlSpecs(): List<PcMouseControlSpec> {
-    val step = 80
+fun pcMouseControlSpecs(moveStep: Int): List<PcMouseControlSpec> {
+    val step = moveStep.coerceAtLeast(1)
     val scrollStep = 5
     return listOf(
         PcMouseControlSpec(R.string.pc_mouse_up_left, PcMouseCommand.Move(-step, -step)),
