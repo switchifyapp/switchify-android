@@ -152,6 +152,10 @@ class PcConnectionViewModelTest {
             return pingResult
         }
 
+        override suspend fun sendMouseCommand(session: PcAuthenticatedSession, command: PcMouseCommand): PcCommandResult {
+            return PcCommandResult.Ack
+        }
+
         override fun close() = Unit
     }
 }

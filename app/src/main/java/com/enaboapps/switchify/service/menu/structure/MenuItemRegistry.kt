@@ -27,6 +27,7 @@ object MenuItemRegistry {
             MenuItemDefinition(MenuConstants.ItemIds.Main.DEVICE, labelResource = R.string.menu_title_device, descriptionResource = R.string.menu_item_device_description, drawableId = R.drawable.ic_device),
             MenuItemDefinition(MenuConstants.ItemIds.Main.SETTINGS, labelResource = R.string.menu_item_settings, descriptionResource = R.string.menu_item_settings_description, drawableId = R.drawable.ic_settings),
             MenuItemDefinition(MenuConstants.ItemIds.Main.MEDIA_CONTROL, labelResource = R.string.menu_title_media_control, descriptionResource = R.string.menu_item_media_control_description, drawableId = R.drawable.ic_media_control),
+            MenuItemDefinition(MenuConstants.ItemIds.Main.CONTROL_PC, labelResource = R.string.menu_item_control_pc, descriptionResource = R.string.menu_item_control_pc_description, drawableId = R.drawable.ic_control_pc),
             MenuItemDefinition(MenuConstants.ItemIds.Main.EDIT, labelResource = R.string.menu_title_edit, descriptionResource = R.string.menu_item_edit_description, drawableId = R.drawable.ic_edit),
             MenuItemDefinition(MenuConstants.ItemIds.Main.AI, labelResource = R.string.menu_title_ai, descriptionResource = R.string.menu_item_ai_description, drawableId = R.drawable.ic_ai),
             MenuItemDefinition(MenuConstants.ItemIds.Main.PAUSE, labelResource = R.string.menu_item_pause, descriptionResource = R.string.menu_item_pause_description, drawableId = R.drawable.ic_pause)
@@ -190,6 +191,24 @@ object MenuItemRegistry {
         )
     }
 
+    fun getPcControlMenuDefinitions(): List<MenuItemDefinition> {
+        return listOf(
+            MenuItemDefinition(MenuConstants.ItemIds.Pc.MOUSE_UP_LEFT, labelResource = R.string.pc_mouse_up_left, descriptionResource = R.string.pc_mouse_up_left_description, circleText = "UL"),
+            MenuItemDefinition(MenuConstants.ItemIds.Pc.MOUSE_UP, labelResource = R.string.pc_mouse_up, descriptionResource = R.string.pc_mouse_up_description, circleText = "UP"),
+            MenuItemDefinition(MenuConstants.ItemIds.Pc.MOUSE_UP_RIGHT, labelResource = R.string.pc_mouse_up_right, descriptionResource = R.string.pc_mouse_up_right_description, circleText = "UR"),
+            MenuItemDefinition(MenuConstants.ItemIds.Pc.MOUSE_LEFT, labelResource = R.string.pc_mouse_left, descriptionResource = R.string.pc_mouse_left_description, circleText = "L"),
+            MenuItemDefinition(MenuConstants.ItemIds.Pc.MOUSE_CLICK, labelResource = R.string.pc_mouse_click, descriptionResource = R.string.pc_mouse_click_description, drawableId = R.drawable.ic_gesture_tap),
+            MenuItemDefinition(MenuConstants.ItemIds.Pc.MOUSE_RIGHT, labelResource = R.string.pc_mouse_right, descriptionResource = R.string.pc_mouse_right_description, circleText = "R"),
+            MenuItemDefinition(MenuConstants.ItemIds.Pc.MOUSE_DOWN_LEFT, labelResource = R.string.pc_mouse_down_left, descriptionResource = R.string.pc_mouse_down_left_description, circleText = "DL"),
+            MenuItemDefinition(MenuConstants.ItemIds.Pc.MOUSE_DOWN, labelResource = R.string.pc_mouse_down, descriptionResource = R.string.pc_mouse_down_description, circleText = "DN"),
+            MenuItemDefinition(MenuConstants.ItemIds.Pc.MOUSE_DOWN_RIGHT, labelResource = R.string.pc_mouse_down_right, descriptionResource = R.string.pc_mouse_down_right_description, circleText = "DR"),
+            MenuItemDefinition(MenuConstants.ItemIds.Pc.MOUSE_RIGHT_CLICK, labelResource = R.string.pc_mouse_right_click, descriptionResource = R.string.pc_mouse_right_click_description, circleText = "RC"),
+            MenuItemDefinition(MenuConstants.ItemIds.Pc.MOUSE_DOUBLE_CLICK, labelResource = R.string.pc_mouse_double_click, descriptionResource = R.string.pc_mouse_double_click_description, circleText = "DC"),
+            MenuItemDefinition(MenuConstants.ItemIds.Pc.MOUSE_SCROLL_UP, labelResource = R.string.pc_mouse_scroll_up, descriptionResource = R.string.pc_mouse_scroll_up_description, circleText = "SU"),
+            MenuItemDefinition(MenuConstants.ItemIds.Pc.MOUSE_SCROLL_DOWN, labelResource = R.string.pc_mouse_scroll_down, descriptionResource = R.string.pc_mouse_scroll_down_description, circleText = "SD")
+        )
+    }
+
     /**
      * Provide menu item definitions for editing actions.
      *
@@ -236,6 +255,7 @@ object MenuItemRegistry {
             MenuConstants.MenuIds.PINCH_GESTURES_MENU -> getPinchGesturesMenuDefinitions()
             MenuConstants.MenuIds.SCROLL_MENU -> getScrollMenuDefinitions()
             MenuConstants.MenuIds.MEDIA_CONTROL_MENU -> getMediaControlMenuDefinitions()
+            MenuConstants.MenuIds.PC_CONTROL_MENU -> getPcControlMenuDefinitions()
             MenuConstants.MenuIds.EDIT_MENU -> getEditMenuDefinitions()
             MenuConstants.MenuIds.SETTINGS_MENU -> getSettingsMenuDefinitions()
             else -> emptyList()
