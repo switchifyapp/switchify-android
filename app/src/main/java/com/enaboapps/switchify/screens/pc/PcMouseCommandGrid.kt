@@ -30,14 +30,12 @@ data class PcMouseControlSpec(
 fun PcMouseCommandGrid(
     connected: Boolean,
     movementStep: Int,
-    busyCommand: PcMouseCommand?,
     onCommandSelected: (PcMouseCommand) -> Unit,
     modifier: Modifier = Modifier
 ) {
     PcMouseCommandSections(
         connected = connected,
         movementStep = movementStep,
-        busyCommand = busyCommand,
         onCommandSelected = onCommandSelected,
         modifier = modifier
     )
@@ -92,7 +90,6 @@ fun PcMovementSizeSection(
 fun PcMouseCommandSections(
     connected: Boolean,
     movementStep: Int,
-    busyCommand: PcMouseCommand?,
     onCommandSelected: (PcMouseCommand) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -103,21 +100,18 @@ fun PcMouseCommandSections(
         PcMovementCommandSection(
             connected = connected,
             movementStep = movementStep,
-            busyCommand = busyCommand,
             onCommandSelected = onCommandSelected
         )
         PcButtonCommandSection(
             titleResId = R.string.pc_mouse_section_clicks,
             specs = pcClickControlSpecs(),
             connected = connected,
-            busyCommand = busyCommand,
             onCommandSelected = onCommandSelected
         )
         PcButtonCommandSection(
             titleResId = R.string.pc_mouse_section_scroll,
             specs = pcScrollControlSpecs(),
             connected = connected,
-            busyCommand = busyCommand,
             onCommandSelected = onCommandSelected
         )
     }
@@ -127,7 +121,6 @@ fun PcMouseCommandSections(
 private fun PcMovementCommandSection(
     connected: Boolean,
     movementStep: Int,
-    busyCommand: PcMouseCommand?,
     onCommandSelected: (PcMouseCommand) -> Unit
 ) {
     val controls = pcMovementControlSpecs(movementStep)
@@ -136,7 +129,6 @@ private fun PcMovementCommandSection(
         PcCommandButtonRow(
             specs = controls.take(3),
             connected = connected,
-            busyCommand = busyCommand,
             onCommandSelected = onCommandSelected,
             minHeightDp = 76
         )
@@ -147,7 +139,6 @@ private fun PcMovementCommandSection(
             PcCommandButton(
                 spec = controls[3],
                 connected = connected,
-                busyCommand = busyCommand,
                 onCommandSelected = onCommandSelected,
                 minHeightDp = 76,
                 modifier = Modifier.weight(1f)
@@ -156,7 +147,6 @@ private fun PcMovementCommandSection(
             PcCommandButton(
                 spec = controls[4],
                 connected = connected,
-                busyCommand = busyCommand,
                 onCommandSelected = onCommandSelected,
                 minHeightDp = 76,
                 modifier = Modifier.weight(1f)
@@ -165,7 +155,6 @@ private fun PcMovementCommandSection(
         PcCommandButtonRow(
             specs = controls.drop(5),
             connected = connected,
-            busyCommand = busyCommand,
             onCommandSelected = onCommandSelected,
             minHeightDp = 76
         )
@@ -177,7 +166,6 @@ private fun PcButtonCommandSection(
     @StringRes titleResId: Int,
     specs: List<PcMouseControlSpec>,
     connected: Boolean,
-    busyCommand: PcMouseCommand?,
     onCommandSelected: (PcMouseCommand) -> Unit
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -185,7 +173,6 @@ private fun PcButtonCommandSection(
         PcCommandButtonRow(
             specs = specs,
             connected = connected,
-            busyCommand = busyCommand,
             onCommandSelected = onCommandSelected,
             minHeightDp = 72
         )
@@ -205,7 +192,6 @@ private fun PcCommandSectionTitle(@StringRes titleResId: Int) {
 private fun PcCommandButtonRow(
     specs: List<PcMouseControlSpec>,
     connected: Boolean,
-    busyCommand: PcMouseCommand?,
     onCommandSelected: (PcMouseCommand) -> Unit,
     minHeightDp: Int
 ) {
@@ -217,7 +203,6 @@ private fun PcCommandButtonRow(
             PcCommandButton(
                 spec = spec,
                 connected = connected,
-                busyCommand = busyCommand,
                 onCommandSelected = onCommandSelected,
                 minHeightDp = minHeightDp,
                 modifier = Modifier.weight(1f)
@@ -230,14 +215,13 @@ private fun PcCommandButtonRow(
 private fun PcCommandButton(
     spec: PcMouseControlSpec,
     connected: Boolean,
-    busyCommand: PcMouseCommand?,
     onCommandSelected: (PcMouseCommand) -> Unit,
     minHeightDp: Int,
     modifier: Modifier = Modifier
 ) {
     Button(
         onClick = { onCommandSelected(spec.command) },
-        enabled = connected && busyCommand == null,
+        enabled = connected,
         modifier = modifier
             .fillMaxWidth()
             .heightIn(min = minHeightDp.dp)
