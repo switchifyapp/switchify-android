@@ -130,7 +130,6 @@ class MenuView(
         val itemSize = MenuSizeManager.getItemSize(context)
         val smallItemSize = MenuSizeManager.getSmallItemSize(context)
         val titleResId = MenuConstants.getTitleResource(menu.menuId)
-        val layoutMode = menu.getLayoutMode()
         // The same chrome shows on every page of a menu by design, so the
         // pagination budget is identical across pages. We don't yet know
         // whether pagination will actually kick in here (chicken/egg), so we
@@ -143,10 +142,7 @@ class MenuView(
             hasTitle = titleResId != null,
             willShowNavRow = true
         )
-        val perPage = when (layoutMode) {
-            is MenuLayoutMode.Grid -> rowBudget * layoutMode.columns
-            MenuLayoutMode.List -> rowBudget
-        }
+        val perPage = rowBudget
         numOfPages = ((menuItems.size + perPage - 1) / perPage).coerceAtLeast(1)
         for (i in 0 until numOfPages) {
             val start = i * perPage
@@ -160,7 +156,6 @@ class MenuView(
                     contentItems = pageItems,
                     closeItem = closeItem,
                     titleResId = titleResId,
-                    layoutMode = layoutMode,
                     pageIndex = i,
                     maxPageIndex = numOfPages - 1,
                     onMenuPageChanged = ::onMenuPageChanged

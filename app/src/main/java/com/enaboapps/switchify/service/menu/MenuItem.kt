@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -135,27 +134,6 @@ class MenuItem(
         }
     }
 
-    fun inflateGridCell(parent: ViewGroup, menuSize: MenuItemSize) {
-        val context = parent.context
-        composeView = AccessibilityComposeView(context) {
-            GridMenuItemContent(
-                labelResource = labelResource,
-                userProvidedText = userProvidedText,
-                drawableId = drawableId,
-                circleText = circleText,
-                menuSize = menuSize,
-                onClick = { select() }
-            )
-        }
-
-        composeView?.let { view ->
-            val widthPx = ScreenUtils.dpToPx(context, menuSize.width.value.toInt())
-            val heightPx = ScreenUtils.dpToPx(context, menuSize.height.value.toInt())
-            view.layoutParams = ViewGroup.LayoutParams(widthPx, heightPx)
-            parent.addView(view)
-        }
-    }
-
     /**
      * Select the menu item
      */
@@ -203,78 +181,6 @@ class MenuItem(
      */
     val height: Int
         get() = composeView?.height ?: 0
-}
-
-@Composable
-private fun GridMenuItemContent(
-    labelResource: Int?,
-    userProvidedText: String?,
-    drawableId: Int,
-    circleText: String?,
-    menuSize: MenuItemSize,
-    onClick: () -> Unit
-) {
-    val text = if (labelResource != null) Resources.getString(labelResource) else userProvidedText
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(4.dp)
-            .clip(RoundedCornerShape(16.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant)
-            .clickable(onClick = onClick)
-            .padding(6.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Box(
-            modifier = Modifier
-                .size(menuSize.containerCircleSize)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.primaryContainer),
-            contentAlignment = Alignment.Center
-        ) {
-            if (circleText != null) {
-                val fontScale = LocalConfiguration.current.fontScale.coerceAtLeast(0.5f)
-                val effectiveFontSize = computeCircleTextFontSize(
-                    text = circleText,
-                    circleSizeDp = menuSize.containerCircleSize.value,
-                    fontScale = fontScale,
-                    fallback = menuSize.primaryTextSize
-                )
-                Text(
-                    text = circleText,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
-                    fontSize = effectiveFontSize,
-                    textAlign = TextAlign.Center,
-                    maxLines = 1
-                )
-            } else if (drawableId != 0) {
-                Icon(
-                    painter = painterResource(id = drawableId),
-                    contentDescription = labelResource?.let { Resources.getString(it) },
-                    modifier = Modifier.size(menuSize.iconSize),
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer
-                )
-            } else if (text != null) {
-                Text(
-                    text = circleInitials(text),
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
-                    fontSize = menuSize.primaryTextSize,
-                    textAlign = TextAlign.Center,
-                    maxLines = 1
-                )
-            }
-        }
-        Text(
-            text = text.orEmpty(),
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            fontSize = menuSize.labelTextSize,
-            textAlign = TextAlign.Center,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.fillMaxWidth()
-        )
-    }
 }
 
 @Composable
