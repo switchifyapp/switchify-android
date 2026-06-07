@@ -6,17 +6,31 @@ import org.junit.Test
 
 class PcMouseCommandGridTest {
     @Test
-    fun movementCommandsUseProvidedStep() {
-        val commands = pcMouseControlSpecs(130).map { it.command }
+    fun movementCommandsUseSmallFallbackStep() {
+        val commands = pcMouseControlSpecs(40).map { it.command }
 
-        assertEquals(PcMouseCommand.Move(-130, -130), commands[0])
-        assertEquals(PcMouseCommand.Move(0, -130), commands[1])
-        assertEquals(PcMouseCommand.Move(130, -130), commands[2])
-        assertEquals(PcMouseCommand.Move(-130, 0), commands[3])
-        assertEquals(PcMouseCommand.Move(130, 0), commands[5])
-        assertEquals(PcMouseCommand.Move(-130, 130), commands[6])
-        assertEquals(PcMouseCommand.Move(0, 130), commands[7])
-        assertEquals(PcMouseCommand.Move(130, 130), commands[8])
+        assertEquals(PcMouseCommand.Move(-40, -40), commands[0])
+        assertEquals(PcMouseCommand.Move(0, -40), commands[1])
+        assertEquals(PcMouseCommand.Move(40, -40), commands[2])
+        assertEquals(PcMouseCommand.Move(-40, 0), commands[3])
+        assertEquals(PcMouseCommand.Move(40, 0), commands[5])
+        assertEquals(PcMouseCommand.Move(-40, 40), commands[6])
+        assertEquals(PcMouseCommand.Move(0, 40), commands[7])
+        assertEquals(PcMouseCommand.Move(40, 40), commands[8])
+    }
+
+    @Test
+    fun movementCommandsUseMediumFallbackStep() {
+        val commands = pcMouseControlSpecs(80).map { it.command }
+
+        assertEquals(PcMouseCommand.Move(80, 0), commands[5])
+    }
+
+    @Test
+    fun movementCommandsUseLargeFallbackStep() {
+        val commands = pcMouseControlSpecs(160).map { it.command }
+
+        assertEquals(PcMouseCommand.Move(160, 0), commands[5])
     }
 
     @Test

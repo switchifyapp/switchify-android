@@ -55,7 +55,7 @@ class PcMouseControlViewModelTest {
     fun connectedStateSendsSelectedCommand() = runTest(dispatcher) {
         PcConnectionStateHolder.setConnected(session, "Switchify PC")
         val connector = FakeConnector(PcCommandResult.Ack)
-        val viewModel = PcMouseControlViewModel(FakeTokenStore(), connector)
+        val viewModel = PcMouseControlViewModel(FakeTokenStore(), connector, FakeMovementSizeStore())
 
         viewModel.send(PcMouseCommand.Move(80, 0))
         advanceUntilIdle()
@@ -67,10 +67,75 @@ class PcMouseControlViewModelTest {
     }
 
     @Test
-    fun livePointerProfileSetsMovementStepToSmallDelta() = runTest(dispatcher) {
+    fun firstRunDefaultsToSmallFallbackStep() = runTest(dispatcher) {
+        val viewModel = PcMouseControlViewModel(FakeTokenStore(), FakeConnector(PcCommandResult.Ack), FakeMovementSizeStore())
+
+        advanceUntilIdle()
+
+        assertEquals(PcMouseMovementSize.Small, viewModel.uiState.value.selectedMovementSize)
+        assertEquals(40, viewModel.uiState.value.movementStep)
+    }
+
+    @Test
+    fun storedMediumLoadsWithFallbackStep() = runTest(dispatcher) {
+        val viewModel = PcMouseControlViewModel(
+            FakeTokenStore(),
+            FakeConnector(PcCommandResult.Ack),
+            FakeMovementSizeStore(PcMouseMovementSize.Medium)
+        )
+
+        advanceUntilIdle()
+
+        assertEquals(PcMouseMovementSize.Medium, viewModel.uiState.value.selectedMovementSize)
+        assertEquals(80, viewModel.uiState.value.movementStep)
+    }
+
+    @Test
+    fun storedLargeLoadsWithFallbackStep() = runTest(dispatcher) {
+        val viewModel = PcMouseControlViewModel(
+            FakeTokenStore(),
+            FakeConnector(PcCommandResult.Ack),
+            FakeMovementSizeStore(PcMouseMovementSize.Large)
+        )
+
+        advanceUntilIdle()
+
+        assertEquals(PcMouseMovementSize.Large, viewModel.uiState.value.selectedMovementSize)
+        assertEquals(160, viewModel.uiState.value.movementStep)
+    }
+
+    @Test
+    fun selectingMediumPersistsPreference() = runTest(dispatcher) {
+        val movementSizeStore = FakeMovementSizeStore()
+        val viewModel = PcMouseControlViewModel(FakeTokenStore(), FakeConnector(PcCommandResult.Ack), movementSizeStore)
+
+        viewModel.selectMovementSize(PcMouseMovementSize.Medium)
+        advanceUntilIdle()
+
+        assertEquals(PcMouseMovementSize.Medium, movementSizeStore.getSelectedSize())
+        assertEquals(PcMouseMovementSize.Medium, viewModel.uiState.value.selectedMovementSize)
+        assertEquals(80, viewModel.uiState.value.movementStep)
+    }
+
+    @Test
+    fun selectingLargeUpdatesMovementStepImmediately() = runTest(dispatcher) {
+        val viewModel = PcMouseControlViewModel(FakeTokenStore(), FakeConnector(PcCommandResult.Ack), FakeMovementSizeStore())
+
+        viewModel.selectMovementSize(PcMouseMovementSize.Large)
+        advanceUntilIdle()
+
+        assertEquals(PcMouseMovementSize.Large, viewModel.uiState.value.selectedMovementSize)
+        assertEquals(160, viewModel.uiState.value.movementStep)
+    }
+
+    @Test
+    fun livePointerProfileMapsSelectedSmallToProfileSmall() = runTest(dispatcher) {
         PcConnectionStateHolder.setConnected(session, "Switchify PC")
-        val connector = FakeConnector(PcCommandResult.Ack, pointerProfile = pointerProfile(small = 50, medium = 130))
-        val viewModel = PcMouseControlViewModel(FakeTokenStore(), connector)
+        val viewModel = PcMouseControlViewModel(
+            FakeTokenStore(),
+            FakeConnector(PcCommandResult.Ack, pointerProfile = pointerProfile(small = 50, medium = 130, large = 252)),
+            FakeMovementSizeStore(PcMouseMovementSize.Small)
+        )
 
         advanceUntilIdle()
 
@@ -78,21 +143,40 @@ class PcMouseControlViewModelTest {
     }
 
     @Test
-    fun missingLivePointerProfileKeepsDefaultMovementStep() = runTest(dispatcher) {
-        PcConnectionStateHolder.setConnected(session, "Switchify PC")
-        val viewModel = PcMouseControlViewModel(FakeTokenStore(), FakeConnector(PcCommandResult.Ack))
-
-        advanceUntilIdle()
-
-        assertEquals(PcMouseControlViewModel.DEFAULT_MOVE_STEP, viewModel.uiState.value.movementStep)
-    }
-
-    @Test
-    fun livePointerProfileClampsSmallStepToMaxDelta() = runTest(dispatcher) {
+    fun livePointerProfileMapsSelectedMediumToProfileMedium() = runTest(dispatcher) {
         PcConnectionStateHolder.setConnected(session, "Switchify PC")
         val viewModel = PcMouseControlViewModel(
             FakeTokenStore(),
-            FakeConnector(PcCommandResult.Ack, pointerProfile = pointerProfile(small = 900, medium = 130, maxDelta = 500))
+            FakeConnector(PcCommandResult.Ack, pointerProfile = pointerProfile(small = 50, medium = 130, large = 252)),
+            FakeMovementSizeStore(PcMouseMovementSize.Medium)
+        )
+
+        advanceUntilIdle()
+
+        assertEquals(130, viewModel.uiState.value.movementStep)
+    }
+
+    @Test
+    fun livePointerProfileMapsSelectedLargeToProfileLarge() = runTest(dispatcher) {
+        PcConnectionStateHolder.setConnected(session, "Switchify PC")
+        val viewModel = PcMouseControlViewModel(
+            FakeTokenStore(),
+            FakeConnector(PcCommandResult.Ack, pointerProfile = pointerProfile(small = 50, medium = 130, large = 252)),
+            FakeMovementSizeStore(PcMouseMovementSize.Large)
+        )
+
+        advanceUntilIdle()
+
+        assertEquals(252, viewModel.uiState.value.movementStep)
+    }
+
+    @Test
+    fun livePointerProfileClampsSelectedStepToMaxDelta() = runTest(dispatcher) {
+        PcConnectionStateHolder.setConnected(session, "Switchify PC")
+        val viewModel = PcMouseControlViewModel(
+            FakeTokenStore(),
+            FakeConnector(PcCommandResult.Ack, pointerProfile = pointerProfile(small = 50, medium = 900, large = 1_000, maxDelta = 500)),
+            FakeMovementSizeStore(PcMouseMovementSize.Large)
         )
 
         advanceUntilIdle()
@@ -101,9 +185,24 @@ class PcMouseControlViewModelTest {
     }
 
     @Test
+    fun missingLivePointerProfileKeepsFallbackSteps() = runTest(dispatcher) {
+        PcConnectionStateHolder.setConnected(session, "Switchify PC")
+        val viewModel = PcMouseControlViewModel(
+            FakeTokenStore(),
+            FakeConnector(PcCommandResult.Ack),
+            FakeMovementSizeStore(PcMouseMovementSize.Large)
+        )
+
+        advanceUntilIdle()
+
+        assertEquals(160, viewModel.uiState.value.movementStep)
+        assertNull(viewModel.uiState.value.message)
+    }
+
+    @Test
     fun disconnectedStateShowsConnectFirstAndDoesNotSendCommand() = runTest(dispatcher) {
         val connector = FakeConnector(PcCommandResult.Ack)
-        val viewModel = PcMouseControlViewModel(FakeTokenStore(), connector)
+        val viewModel = PcMouseControlViewModel(FakeTokenStore(), connector, FakeMovementSizeStore())
 
         viewModel.send(PcMouseCommand.LeftClick)
         advanceUntilIdle()
@@ -116,7 +215,7 @@ class PcMouseControlViewModelTest {
     fun ackClearsPreviousMessage() = runTest(dispatcher) {
         PcConnectionStateHolder.setConnected(session, "Switchify PC")
         val connector = FakeConnector(PcCommandResult.Ack)
-        val viewModel = PcMouseControlViewModel(FakeTokenStore(), connector)
+        val viewModel = PcMouseControlViewModel(FakeTokenStore(), connector, FakeMovementSizeStore())
 
         viewModel.send(PcMouseCommand.LeftClick)
         advanceUntilIdle()
@@ -127,7 +226,7 @@ class PcMouseControlViewModelTest {
     @Test
     fun failedCommandShowsFailureMessage() = runTest(dispatcher) {
         PcConnectionStateHolder.setConnected(session, "Switchify PC")
-        val viewModel = PcMouseControlViewModel(FakeTokenStore(), FakeConnector(PcCommandResult.Failed()))
+        val viewModel = PcMouseControlViewModel(FakeTokenStore(), FakeConnector(PcCommandResult.Failed()), FakeMovementSizeStore())
 
         viewModel.send(PcMouseCommand.LeftClick)
         advanceUntilIdle()
@@ -139,7 +238,7 @@ class PcMouseControlViewModelTest {
     fun authFailureClearsTokenAndDisconnects() = runTest(dispatcher) {
         PcConnectionStateHolder.setConnected(session, "Switchify PC")
         val tokenStore = FakeTokenStore(mutableMapOf("desktop-1" to "token"))
-        val viewModel = PcMouseControlViewModel(tokenStore, FakeConnector(PcCommandResult.AuthFailed()))
+        val viewModel = PcMouseControlViewModel(tokenStore, FakeConnector(PcCommandResult.AuthFailed()), FakeMovementSizeStore(PcMouseMovementSize.Large))
 
         viewModel.send(PcMouseCommand.LeftClick)
         advanceUntilIdle()
@@ -147,13 +246,15 @@ class PcMouseControlViewModelTest {
         assertNull(tokenStore.getToken("desktop-1"))
         assertTrue(PcConnectionStateHolder.connectionState.value is PcConnectionState.Disconnected)
         assertEquals(PcMouseControlViewModel.CONNECT_FIRST_MESSAGE, viewModel.uiState.value.message)
+        assertEquals(PcMouseMovementSize.Large, viewModel.uiState.value.selectedMovementSize)
+        assertEquals(160, viewModel.uiState.value.movementStep)
     }
 
     @Test
     fun busyStateIsSetWhileCommandIsInFlight() = runTest(dispatcher) {
         PcConnectionStateHolder.setConnected(session, "Switchify PC")
         val deferred = CompletableDeferred<PcCommandResult>()
-        val viewModel = PcMouseControlViewModel(FakeTokenStore(), FakeConnector(deferred))
+        val viewModel = PcMouseControlViewModel(FakeTokenStore(), FakeConnector(deferred), FakeMovementSizeStore())
 
         viewModel.send(PcMouseCommand.Scroll(0, 5))
         advanceUntilIdle()
@@ -216,14 +317,24 @@ class PcMouseControlViewModelTest {
         override fun close() = Unit
     }
 
-    private fun pointerProfile(small: Int, medium: Int, maxDelta: Int = 500): PcPointerMovementProfile {
+    private fun pointerProfile(small: Int, medium: Int, large: Int, maxDelta: Int = 500): PcPointerMovementProfile {
         return PcPointerMovementProfile(
             displayId = "0:0:1280:720:1.5",
             scaleFactor = 1.5,
             bounds = PcPointerBounds(0, 0, 1280, 720),
             maxDelta = maxDelta,
-            recommendedDeltas = PcPointerDeltas(small = small, medium = medium, large = 252)
+            recommendedDeltas = PcPointerDeltas(small = small, medium = medium, large = large)
         )
+    }
+
+    private class FakeMovementSizeStore(
+        private var selectedSize: PcMouseMovementSize = PcMouseMovementSize.Small
+    ) : PcMouseMovementSizeStore {
+        override fun getSelectedSize(): PcMouseMovementSize = selectedSize
+
+        override fun setSelectedSize(size: PcMouseMovementSize) {
+            selectedSize = size
+        }
     }
 
     private class FakeTokenStore(
