@@ -67,14 +67,14 @@ class PcMouseControlViewModelTest {
     }
 
     @Test
-    fun livePointerProfileSetsMovementStepToSmallDelta() = runTest(dispatcher) {
+    fun livePointerProfileSetsMovementStepToMediumDelta() = runTest(dispatcher) {
         PcConnectionStateHolder.setConnected(session, "Switchify PC")
         val connector = FakeConnector(PcCommandResult.Ack, pointerProfile = pointerProfile(small = 50, medium = 130))
         val viewModel = PcMouseControlViewModel(FakeTokenStore(), connector)
 
         advanceUntilIdle()
 
-        assertEquals(50, viewModel.uiState.value.movementStep)
+        assertEquals(130, viewModel.uiState.value.movementStep)
     }
 
     @Test
@@ -88,11 +88,11 @@ class PcMouseControlViewModelTest {
     }
 
     @Test
-    fun livePointerProfileClampsSmallStepToMaxDelta() = runTest(dispatcher) {
+    fun livePointerProfileClampsMediumStepToMaxDelta() = runTest(dispatcher) {
         PcConnectionStateHolder.setConnected(session, "Switchify PC")
         val viewModel = PcMouseControlViewModel(
             FakeTokenStore(),
-            FakeConnector(PcCommandResult.Ack, pointerProfile = pointerProfile(small = 900, medium = 130, maxDelta = 500))
+            FakeConnector(PcCommandResult.Ack, pointerProfile = pointerProfile(small = 50, medium = 900, maxDelta = 500))
         )
 
         advanceUntilIdle()
