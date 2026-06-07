@@ -6,6 +6,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withTimeoutOrNull
+import java.util.UUID
 
 sealed class PcServiceConnectionState {
     data object Disconnected : PcServiceConnectionState()
@@ -54,7 +55,7 @@ class PcServiceConnectionController(
 
         for (pc in discovered) {
             onWaitingForApproval()
-            when (val result = connector.requestApproval(pc)) {
+            when (val result = connector.requestApproval(pc, UUID.randomUUID().toString())) {
                 is PcPairingResult.Paired -> {
                     tokenStore.saveToken(result.desktopId, result.token, result.websocketUrl, pc.displayName)
                     when (val ping = connectWithToken(pc, result.token)) {

@@ -52,7 +52,7 @@ interface PcMouseControlConnection {
 }
 
 interface PcConnector {
-    suspend fun requestApproval(pc: DiscoveredPc): PcPairingResult
+    suspend fun requestApproval(pc: DiscoveredPc, requestNonce: String): PcPairingResult
     suspend fun authenticatedPing(pc: DiscoveredPc, token: String): PcPingResult
     suspend fun openMouseControlSession(session: PcAuthenticatedSession): PcLiveControlResult
     suspend fun sendMouseCommand(session: PcAuthenticatedSession, command: PcMouseCommand): PcCommandResult
@@ -70,7 +70,7 @@ class SwitchifyPcClient(
         }
     }
 
-    override suspend fun requestApproval(pc: DiscoveredPc): PcPairingResult {
+    override suspend fun requestApproval(pc: DiscoveredPc, requestNonce: String): PcPairingResult {
         val deviceId = identityRepository.getDeviceId()
         val deviceName = identityRepository.getDeviceName()
         for (urlString in candidateUrls(pc)) {
@@ -84,7 +84,7 @@ class SwitchifyPcClient(
                             deviceId = deviceId,
                             deviceName = deviceName,
                             desktopId = pc.desktopId,
-                            requestNonce = UUID.randomUUID().toString()
+                            requestNonce = requestNonce
                         )
                     )
                 )

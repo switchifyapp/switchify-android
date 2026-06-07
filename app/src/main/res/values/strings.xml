@@ -264,6 +264,10 @@
     <string name="pc_connection_permission_action">Allow local network access</string>
     <string name="pc_connection_nearby_section">Nearby PCs</string>
     <string name="pc_connection_message_title">PC connection</string>
+    <string name="pc_pairing_code_title">Check your PC</string>
+    <string name="pc_pairing_code_pc_name">Connecting to %1$s</string>
+    <string name="pc_pairing_code_message">Confirm this code matches the one shown on your PC before accepting.</string>
+    <string name="pc_pairing_code_waiting">Waiting for approval on your PC...</string>
     <string name="menu_item_control_pc">Control PC</string>
     <string name="menu_item_control_pc_description">Control your connected computer.</string>
     <string name="menu_title_control_pc">Control PC</string>

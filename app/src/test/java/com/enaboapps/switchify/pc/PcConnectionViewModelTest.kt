@@ -2,6 +2,7 @@ package com.enaboapps.switchify.pc
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -75,6 +76,78 @@ class PcConnectionViewModelTest {
     }
 
     @Test
+    fun requestAccessShowsApprovalCodeWhileWaiting() = runTest(dispatcher) {
+        val discovery = FakeDiscovery(listOf(pc))
+        val tokens = FakeTokenStore()
+        val pairingDeferred = CompletableDeferred<PcPairingResult>()
+        val connector = FakeConnector(
+            pairingDeferred = pairingDeferred,
+            pingResult = PcPingResult.Connected("ws://192.168.1.20:7347")
+        )
+        val viewModel = viewModel(discovery, tokens, connector, requestNonceProvider = { "nonce-1" })
+        advanceUntilIdle()
+
+        viewModel.requestAccess(pc)
+        advanceUntilIdle()
+
+        assertEquals("215918", viewModel.uiState.value.approvalCode?.verificationCode)
+        assertEquals("Switchify PC", viewModel.uiState.value.approvalCode?.pcName)
+        assertEquals("Waiting for approval on your PC...", viewModel.uiState.value.discoveredPcs.first().summary)
+        assertEquals("nonce-1", connector.requestNonces.single())
+
+        pairingDeferred.complete(PcPairingResult.Failed("Request rejected."))
+        advanceUntilIdle()
+    }
+
+    @Test
+    fun pairingSuccessClearsApprovalCode() = runTest(dispatcher) {
+        val discovery = FakeDiscovery(listOf(pc))
+        val tokens = FakeTokenStore()
+        val connector = FakeConnector(
+            pairingResult = PcPairingResult.Paired("desktop-1", "token", "ws://192.168.1.20:7347"),
+            pingResult = PcPingResult.Connected("ws://192.168.1.20:7347")
+        )
+        val viewModel = viewModel(discovery, tokens, connector, requestNonceProvider = { "nonce-1" })
+        advanceUntilIdle()
+
+        viewModel.requestAccess(pc)
+        advanceUntilIdle()
+
+        assertNull(viewModel.uiState.value.approvalCode)
+        assertEquals("desktop-1", viewModel.uiState.value.connectedDesktopId)
+    }
+
+    @Test
+    fun pairingFailureClearsApprovalCodeAndShowsMessage() = runTest(dispatcher) {
+        val discovery = FakeDiscovery(listOf(pc))
+        val tokens = FakeTokenStore()
+        val connector = FakeConnector(pairingResult = PcPairingResult.Failed("Request rejected."))
+        val viewModel = viewModel(discovery, tokens, connector, requestNonceProvider = { "nonce-1" })
+        advanceUntilIdle()
+
+        viewModel.requestAccess(pc)
+        advanceUntilIdle()
+
+        assertNull(viewModel.uiState.value.approvalCode)
+        assertEquals("Request rejected.", viewModel.uiState.value.message)
+    }
+
+    @Test
+    fun savedTokenPathDoesNotShowApprovalCode() = runTest(dispatcher) {
+        val discovery = FakeDiscovery(listOf(pc))
+        val tokens = FakeTokenStore(initialTokens = mutableMapOf("desktop-1" to "token"))
+        val connector = FakeConnector(pingResult = PcPingResult.Connected("ws://192.168.1.20:7347"))
+        val viewModel = viewModel(discovery, tokens, connector, requestNonceProvider = { "nonce-1" })
+        advanceUntilIdle()
+
+        viewModel.connectWithSavedToken(pc)
+        advanceUntilIdle()
+
+        assertNull(viewModel.uiState.value.approvalCode)
+        assertEquals(0, connector.requestApprovalCalls)
+    }
+
+    @Test
     fun invalidSavedTokenClearsTokenAndOffersRequestAccess() = runTest(dispatcher) {
         val discovery = FakeDiscovery(listOf(pc))
         val tokens = FakeTokenStore(initialTokens = mutableMapOf("desktop-1" to "token"))
@@ -93,13 +166,15 @@ class PcConnectionViewModelTest {
     private fun viewModel(
         discovery: FakeDiscovery,
         tokens: FakeTokenStore,
-        connector: FakeConnector
+        connector: FakeConnector,
+        requestNonceProvider: () -> String = { "nonce" }
     ) = PcConnectionViewModel(
         context = null,
         discoveryService = discovery,
         tokenStore = tokens,
         identityRepository = FakeIdentity,
-        connector = connector
+        connector = connector,
+        requestNonceProvider = requestNonceProvider
     )
 
     private class FakeDiscovery(initialPcs: List<DiscoveredPc>) : PcDiscovery {
@@ -137,14 +212,17 @@ class PcConnectionViewModelTest {
 
     private class FakeConnector(
         private val pairingResult: PcPairingResult = PcPairingResult.Failed("Request rejected."),
-        private val pingResult: PcPingResult = PcPingResult.Failed("Found PC, but could not connect.")
+        private val pingResult: PcPingResult = PcPingResult.Failed("Found PC, but could not connect."),
+        private val pairingDeferred: CompletableDeferred<PcPairingResult>? = null
     ) : PcConnector {
         var requestApprovalCalls = 0
         var pingCalls = 0
+        val requestNonces = mutableListOf<String>()
 
-        override suspend fun requestApproval(pc: DiscoveredPc): PcPairingResult {
+        override suspend fun requestApproval(pc: DiscoveredPc, requestNonce: String): PcPairingResult {
             requestApprovalCalls++
-            return pairingResult
+            requestNonces.add(requestNonce)
+            return pairingDeferred?.await() ?: pairingResult
         }
 
         override suspend fun authenticatedPing(pc: DiscoveredPc, token: String): PcPingResult {
