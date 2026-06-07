@@ -8,6 +8,12 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
+import java.util.UUID
+
+data class PcApprovalCodeState(
+    val pcName: String,
+    val verificationCode: String
+)
 
 data class PcConnectionUiState(
     val permissionRequired: Boolean = false,
@@ -16,7 +22,8 @@ data class PcConnectionUiState(
     val connectedDesktopId: String? = null,
     val isDiscovering: Boolean = false,
     val isBusy: Boolean = false,
-    val message: String? = null
+    val message: String? = null,
+    val approvalCode: PcApprovalCodeState? = null
 )
 
 data class PcRowState(
@@ -41,7 +48,8 @@ class PcConnectionViewModel(
     private val discoveryService: PcDiscovery = PcDiscoveryService(requireNotNull(context).applicationContext),
     private val tokenStore: PcPairingTokenStore = PcTokenStore(requireNotNull(context).applicationContext),
     private val identityRepository: PcDeviceIdentity = PcDeviceIdentityRepository(requireNotNull(context).applicationContext),
-    private val connector: PcConnector = SwitchifyPcClient(identityRepository, tokenStore)
+    private val connector: PcConnector = SwitchifyPcClient(identityRepository, tokenStore),
+    private val requestNonceProvider: () -> String = { UUID.randomUUID().toString() }
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(PcConnectionUiState())
     val uiState: StateFlow<PcConnectionUiState> = _uiState.asStateFlow()
@@ -72,8 +80,20 @@ class PcConnectionViewModel(
 
     fun requestAccess(pc: DiscoveredPc) {
         viewModelScope.launch {
-            setBusy(pc.desktopId, PcRowStatus.WaitingApproval, "Waiting for approval on your PC...")
-            when (val pairing = connector.requestApproval(pc)) {
+            val deviceId = identityRepository.getDeviceId()
+            val requestNonce = requestNonceProvider()
+            val verificationCode = createPairingVerificationCode(
+                desktopId = pc.desktopId,
+                deviceId = deviceId,
+                requestNonce = requestNonce
+            )
+            setBusy(
+                desktopId = pc.desktopId,
+                status = PcRowStatus.WaitingApproval,
+                message = null,
+                approvalCode = PcApprovalCodeState(pc.displayName, verificationCode)
+            )
+            when (val pairing = connector.requestApproval(pc, requestNonce)) {
                 is PcPairingResult.Paired -> {
                     when (val ping = connector.authenticatedPing(pc, pairing.token)) {
                         is PcPingResult.Connected -> {
@@ -159,14 +179,27 @@ class PcConnectionViewModel(
         )
     }
 
-    private fun setBusy(desktopId: String, status: PcRowStatus, message: String?) {
+    private fun setBusy(
+        desktopId: String,
+        status: PcRowStatus,
+        message: String?,
+        approvalCode: PcApprovalCodeState? = null
+    ) {
         rowStatuses.value = rowStatuses.value + (desktopId to status)
-        _uiState.value = _uiState.value.copy(isBusy = true, message = message)
+        _uiState.value = _uiState.value.copy(
+            isBusy = true,
+            message = message,
+            approvalCode = approvalCode
+        )
     }
 
     private fun setIdle(desktopId: String, status: PcRowStatus, message: String?) {
         rowStatuses.value = rowStatuses.value + (desktopId to status)
-        _uiState.value = _uiState.value.copy(isBusy = false, message = message)
+        _uiState.value = _uiState.value.copy(
+            isBusy = false,
+            message = message,
+            approvalCode = null
+        )
     }
 
     private fun discoveryStatusText(status: PcDiscoveryStatus, empty: Boolean): String {

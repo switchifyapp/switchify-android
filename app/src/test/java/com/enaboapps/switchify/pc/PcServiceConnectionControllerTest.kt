@@ -136,7 +136,7 @@ class PcServiceConnectionControllerTest {
         var pingCalls = 0
         var pairingCalls = 0
 
-        override suspend fun requestApproval(pc: DiscoveredPc): PcPairingResult {
+        override suspend fun requestApproval(pc: DiscoveredPc, requestNonce: String): PcPairingResult {
             pairingCalls++
             return pairingResult
         }

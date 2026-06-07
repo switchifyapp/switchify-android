@@ -282,7 +282,7 @@ class PcMouseControlViewModelTest {
         val commands = mutableListOf<PcMouseCommand>()
         val oneShotCommands = mutableListOf<PcMouseCommand>()
 
-        override suspend fun requestApproval(pc: DiscoveredPc): PcPairingResult {
+        override suspend fun requestApproval(pc: DiscoveredPc, requestNonce: String): PcPairingResult {
             return PcPairingResult.Failed("unused")
         }
 

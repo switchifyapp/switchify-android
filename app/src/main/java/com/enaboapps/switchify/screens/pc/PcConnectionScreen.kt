@@ -2,6 +2,7 @@ package com.enaboapps.switchify.screens.pc
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -16,6 +17,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.style.TextAlign
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.enaboapps.switchify.R
@@ -23,6 +26,7 @@ import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.PanelListRow
 import com.enaboapps.switchify.components.ScrollableView
 import com.enaboapps.switchify.components.Section
+import com.enaboapps.switchify.pc.PcApprovalCodeState
 import com.enaboapps.switchify.pc.PcConnectionViewModel
 import com.enaboapps.switchify.pc.PcRowState
 import com.enaboapps.switchify.pc.PcRowStatus
@@ -74,6 +78,10 @@ fun PcConnectionScreen(navController: NavController) {
         }
     }
 
+    uiState.approvalCode?.let { approvalCode ->
+        PcApprovalCodeDialog(approvalCode)
+    }
+
     uiState.message?.let { message ->
         AlertDialog(
             onDismissRequest = viewModel::clearMessage,
@@ -86,6 +94,42 @@ fun PcConnectionScreen(navController: NavController) {
             text = { Text(message) }
         )
     }
+}
+
+@Composable
+private fun PcApprovalCodeDialog(approvalCode: PcApprovalCodeState) {
+    AlertDialog(
+        onDismissRequest = {},
+        confirmButton = {},
+        title = { Text(stringResource(R.string.pc_pairing_code_title)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(Dimens.spaceM)) {
+                Text(
+                    text = stringResource(R.string.pc_pairing_code_pc_name, approvalCode.pcName),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = stringResource(R.string.pc_pairing_code_message),
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Text(
+                    text = approvalCode.verificationCode,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = Dimens.spaceS),
+                    style = MaterialTheme.typography.headlineLarge,
+                    fontFamily = FontFamily.Monospace,
+                    textAlign = TextAlign.Center
+                )
+                Text(
+                    text = stringResource(R.string.pc_pairing_code_waiting),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    )
 }
 
 private fun PcRowState.perform(viewModel: PcConnectionViewModel) {
