@@ -70,14 +70,6 @@ fun PcConnectionScreen(navController: NavController) {
                         }
                     }
                 }
-
-                Section(titleResId = R.string.pc_connection_fallback_section) {
-                    PanelListRow(
-                        titleResId = R.string.pc_connection_qr_fallback_title,
-                        summaryResId = R.string.pc_connection_qr_fallback_summary,
-                        onClick = viewModel::showQrFallbackMessage
-                    )
-                }
             }
         }
     }

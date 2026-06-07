@@ -263,9 +263,6 @@
     <string name="pc_connection_permission_message">Allow local network access to find Switchify PC.</string>
     <string name="pc_connection_permission_action">Allow local network access</string>
     <string name="pc_connection_nearby_section">Nearby PCs</string>
-    <string name="pc_connection_fallback_section">Fallback</string>
-    <string name="pc_connection_qr_fallback_title">Scan QR instead</string>
-    <string name="pc_connection_qr_fallback_summary">Use this if automatic discovery is not available.</string>
     <string name="pc_connection_message_title">PC connection</string>
     <string name="menu_item_control_pc">Control PC</string>
     <string name="menu_item_control_pc_description">Control your connected computer.</string>

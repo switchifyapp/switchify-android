@@ -16,8 +16,7 @@ data class PcConnectionUiState(
     val connectedDesktopId: String? = null,
     val isDiscovering: Boolean = false,
     val isBusy: Boolean = false,
-    val message: String? = null,
-    val qrFallbackVisible: Boolean = true
+    val message: String? = null
 )
 
 data class PcRowState(
@@ -123,12 +122,6 @@ class PcConnectionViewModel(
                 is PcPingResult.Failed -> setIdle(pc.desktopId, PcRowStatus.Failed, result.message)
             }
         }
-    }
-
-    fun showQrFallbackMessage() {
-        _uiState.value = _uiState.value.copy(
-            message = "QR pairing is still available as a fallback, but this screen is being prepared for the production QR flow. Use automatic discovery when possible."
-        )
     }
 
     fun clearMessage() {
