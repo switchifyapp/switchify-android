@@ -46,6 +46,7 @@ sealed class PcLiveControlResult {
 }
 
 interface PcMouseControlConnection {
+    val pointerProfile: PcPointerMovementProfile?
     suspend fun sendMouseCommand(command: PcMouseCommand): PcCommandResult
     fun close()
 }
@@ -193,7 +194,8 @@ class SwitchifyPcClient(
                     LiveMouseControlConnection(
                         webSocketSession = webSocketSession,
                         authenticatedSession = session,
-                        token = token
+                        token = token,
+                        pointerProfile = requestPointerProfile(webSocketSession, session, token)
                     )
                 )
                 is PcProtocolResponse.Error -> {
@@ -209,7 +211,8 @@ class SwitchifyPcClient(
         } catch (error: Throwable) {
             if (error is CancellationException) throw error
             webSocketSession?.close()
-            PcLiveControlResult.Failed()
+            if (error is InvalidPcAuthException) PcLiveControlResult.AuthFailed()
+            else PcLiveControlResult.Failed()
         }
     }
 
@@ -231,9 +234,41 @@ class SwitchifyPcClient(
             when (response) {
                 is PcProtocolResponse.Ack -> if (response.id == requestId) return response
                 is PcProtocolResponse.PairingComplete -> if (response.id == requestId) return response
+                is PcProtocolResponse.PointerProfile -> if (response.id == requestId) return response
                 is PcProtocolResponse.Error -> if (response.id == requestId || response.id == null) return response
                 PcProtocolResponse.Invalid -> return response
             }
+        }
+    }
+
+    private suspend fun requestPointerProfile(
+        webSocketSession: WebSocketSession,
+        session: PcAuthenticatedSession,
+        token: String
+    ): PcPointerMovementProfile? {
+        return try {
+            val requestId = nextRequestId()
+            webSocketSession.send(
+                Frame.Text(
+                    PcProtocol.pointerProfile(
+                        id = requestId,
+                        deviceId = session.deviceId,
+                        token = token,
+                        timestamp = System.currentTimeMillis()
+                    )
+                )
+            )
+            when (val response = withTimeout(5_000) { readExpectedResponse(webSocketSession, requestId) }) {
+                is PcProtocolResponse.PointerProfile -> response.profile
+                is PcProtocolResponse.Error -> {
+                    if (response.code == "invalid_auth") throw InvalidPcAuthException()
+                    null
+                }
+                else -> null
+            }
+        } catch (error: Throwable) {
+            if (error is CancellationException || error is InvalidPcAuthException) throw error
+            null
         }
     }
 
@@ -252,7 +287,8 @@ class SwitchifyPcClient(
     private inner class LiveMouseControlConnection(
         private val webSocketSession: WebSocketSession,
         private val authenticatedSession: PcAuthenticatedSession,
-        private val token: String
+        private val token: String,
+        override val pointerProfile: PcPointerMovementProfile?
     ) : PcMouseControlConnection {
         override suspend fun sendMouseCommand(command: PcMouseCommand): PcCommandResult {
             return runCatching {
@@ -282,4 +318,6 @@ class SwitchifyPcClient(
             webSocketSession.cancel()
         }
     }
+
+    private class InvalidPcAuthException : RuntimeException()
 }

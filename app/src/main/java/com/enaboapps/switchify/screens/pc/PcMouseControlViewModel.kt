@@ -13,6 +13,7 @@ import com.enaboapps.switchify.pc.PcDeviceIdentityRepository
 import com.enaboapps.switchify.pc.PcMouseCommand
 import com.enaboapps.switchify.pc.PcAuthenticatedSession
 import com.enaboapps.switchify.pc.PcPairingTokenStore
+import com.enaboapps.switchify.pc.PcPointerMovementProfile
 import com.enaboapps.switchify.pc.PcTokenStore
 import com.enaboapps.switchify.pc.SwitchifyPcClient
 import kotlinx.coroutines.CompletableDeferred
@@ -27,6 +28,7 @@ import kotlinx.coroutines.launch
 
 data class PcMouseControlUiState(
     val connectedDisplayName: String? = null,
+    val movementStep: Int = PcMouseControlViewModel.DEFAULT_MOVE_STEP,
     val isBusy: Boolean = false,
     val busyCommand: PcMouseCommand? = null,
     val message: String? = null
@@ -54,7 +56,10 @@ class PcMouseControlViewModel(
         viewModelScope.launch {
             PcConnectionStateHolder.connectionState.collect { state ->
                 _uiState.update {
-                    it.copy(connectedDisplayName = (state as? PcConnectionState.Connected)?.displayName)
+                    it.copy(
+                        connectedDisplayName = (state as? PcConnectionState.Connected)?.displayName,
+                        movementStep = if (state is PcConnectionState.Connected) it.movementStep else DEFAULT_MOVE_STEP
+                    )
                 }
                 when (state) {
                     is PcConnectionState.Connected -> ensureLiveConnection(state.session)
@@ -129,6 +134,9 @@ class PcMouseControlViewModel(
             when (val result = connector.openMouseControlSession(session)) {
                 is PcLiveControlResult.Connected -> {
                     liveConnection = result.connection
+                    _uiState.update {
+                        it.copy(movementStep = result.connection.pointerProfile?.smallMovementStep() ?: DEFAULT_MOVE_STEP)
+                    }
                     result.connection
                 }
                 is PcLiveControlResult.AuthFailed -> {
@@ -137,6 +145,7 @@ class PcMouseControlViewModel(
                     _uiState.update {
                         it.copy(
                             connectedDisplayName = null,
+                            movementStep = DEFAULT_MOVE_STEP,
                             isBusy = false,
                             busyCommand = null,
                             message = CONNECT_FIRST_MESSAGE
@@ -164,7 +173,12 @@ class PcMouseControlViewModel(
         liveConnectionDeferred = null
     }
 
+    private fun PcPointerMovementProfile.smallMovementStep(): Int {
+        return recommendedDeltas.small.coerceIn(1, maxDelta)
+    }
+
     companion object {
+        const val DEFAULT_MOVE_STEP = 40
         const val CONNECT_FIRST_MESSAGE = "Connect to PC from Switchify first."
         const val COMMAND_FAILED_MESSAGE = "Could not send command to PC."
     }

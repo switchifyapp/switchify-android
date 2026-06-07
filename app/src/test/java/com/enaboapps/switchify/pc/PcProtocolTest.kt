@@ -69,6 +69,63 @@ class PcProtocolTest {
     }
 
     @Test
+    fun buildsPointerProfileCommandWithAuthProof() {
+        val json = JSONObject(
+            PcProtocol.pointerProfile(
+                id = "profile-1",
+                deviceId = "device-1",
+                token = "shared-token",
+                timestamp = 1000L
+            )
+        )
+
+        assertEquals(1, json.getInt("version"))
+        assertEquals("profile-1", json.getString("id"))
+        assertEquals("device-1", json.getString("deviceId"))
+        assertEquals(1000L, json.getLong("timestamp"))
+        assertEquals("pointer.profile", json.getString("type"))
+        assertEquals(0, json.getJSONObject("payload").length())
+        assertEquals("6g3iFCFoeVuM016G2evT0XlnNMgzqd3lflUYPNfHuI8", json.getString("auth"))
+        assertFalse(json.toString().contains("shared-token"))
+    }
+
+    @Test
+    fun parsesPointerProfileResponse() {
+        val response = PcProtocol.parseResponse(validPointerProfileResponse()) as PcProtocolResponse.PointerProfile
+
+        assertEquals("profile-1", response.id)
+        assertEquals("0:0:1280:720:1.5", response.profile.displayId)
+        assertEquals(1.5, response.profile.scaleFactor, 0.0)
+        assertEquals(1280, response.profile.bounds.width)
+        assertEquals(500, response.profile.maxDelta)
+        assertEquals(130, response.profile.recommendedDeltas.medium)
+    }
+
+    @Test
+    fun rejectsMalformedPointerProfileResponses() {
+        assertEquals(
+            PcProtocolResponse.Invalid,
+            PcProtocol.parseResponse(validPointerProfileResponse(displayId = ""))
+        )
+        assertEquals(
+            PcProtocolResponse.Invalid,
+            PcProtocol.parseResponse(validPointerProfileResponse(scaleFactor = 0.0))
+        )
+        assertEquals(
+            PcProtocolResponse.Invalid,
+            PcProtocol.parseResponse(validPointerProfileResponse(width = 0))
+        )
+        assertEquals(
+            PcProtocolResponse.Invalid,
+            PcProtocol.parseResponse(
+                """
+                {"version":1,"id":"profile-1","type":"pointer.profile","ok":true,"payload":{"displayId":"0:0:1280:720:1.5","scaleFactor":1.5,"bounds":{"x":0,"y":0,"width":1280,"height":720},"maxDelta":500},"error":null}
+                """.trimIndent()
+            )
+        )
+    }
+
+    @Test
     fun buildsMouseMoveCommandWithAuthProof() {
         val json = JSONObject(
             PcProtocol.mouseMove(
@@ -107,5 +164,15 @@ class PcProtocolTest {
         assertEquals(0, rightClick.getJSONObject("payload").length())
         assertEquals("mouse.scroll", scroll.getString("type"))
         assertEquals(5, scroll.getJSONObject("payload").getInt("dy"))
+    }
+
+    private fun validPointerProfileResponse(
+        displayId: String = "0:0:1280:720:1.5",
+        scaleFactor: Double = 1.5,
+        width: Int = 1280
+    ): String {
+        return """
+            {"version":1,"id":"profile-1","type":"pointer.profile","ok":true,"payload":{"displayId":"$displayId","scaleFactor":$scaleFactor,"bounds":{"x":0,"y":0,"width":$width,"height":720},"maxDelta":500,"recommendedDeltas":{"small":50,"medium":130,"large":252}},"error":null}
+        """.trimIndent()
     }
 }

@@ -10,6 +10,7 @@ import javax.crypto.spec.SecretKeySpec
 sealed class PcProtocolResponse {
     data class Ack(val id: String) : PcProtocolResponse()
     data class PairingComplete(val id: String, val desktopId: String, val deviceId: String, val token: String) : PcProtocolResponse()
+    data class PointerProfile(val id: String, val profile: PcPointerMovementProfile) : PcProtocolResponse()
     data class Error(val id: String?, val code: String, val message: String) : PcProtocolResponse()
     data object Invalid : PcProtocolResponse()
 }
@@ -46,6 +47,17 @@ object PcProtocol {
             timestamp = timestamp,
             type = "connection.ping",
             payload = payload
+        )
+    }
+
+    fun pointerProfile(id: String, deviceId: String, token: String, timestamp: Long): String {
+        return authenticatedCommand(
+            id = id,
+            deviceId = deviceId,
+            token = token,
+            timestamp = timestamp,
+            type = "pointer.profile",
+            payload = JSONObject()
         )
     }
 
@@ -98,6 +110,7 @@ object PcProtocol {
                         ?: PcProtocolResponse.Invalid
                 }
                 "pairing.complete" -> parsePairingComplete(json)
+                "pointer.profile" -> parsePointerProfile(json)
                 "error" -> {
                     val error = json.optJSONObject("error") ?: return@runCatching PcProtocolResponse.Invalid
                     PcProtocolResponse.Error(
@@ -167,5 +180,49 @@ object PcProtocol {
             return PcProtocolResponse.Invalid
         }
         return PcProtocolResponse.PairingComplete(id, desktopId, deviceId, token)
+    }
+
+    private fun parsePointerProfile(json: JSONObject): PcProtocolResponse {
+        if (!json.optBoolean("ok") || !json.isNull("error")) return PcProtocolResponse.Invalid
+        val id = json.optString("id").takeIf { it.isNotBlank() } ?: return PcProtocolResponse.Invalid
+        val payload = json.optJSONObject("payload") ?: return PcProtocolResponse.Invalid
+        val displayId = payload.optString("displayId").takeIf { it.isNotBlank() } ?: return PcProtocolResponse.Invalid
+        val scaleFactor = payload.optDouble("scaleFactor")
+        val boundsJson = payload.optJSONObject("bounds") ?: return PcProtocolResponse.Invalid
+        val maxDelta = payload.optInt("maxDelta")
+        val deltasJson = payload.optJSONObject("recommendedDeltas") ?: return PcProtocolResponse.Invalid
+        val bounds = PcPointerBounds(
+            x = boundsJson.optInt("x"),
+            y = boundsJson.optInt("y"),
+            width = boundsJson.optInt("width"),
+            height = boundsJson.optInt("height")
+        )
+        val deltas = PcPointerDeltas(
+            small = deltasJson.optInt("small"),
+            medium = deltasJson.optInt("medium"),
+            large = deltasJson.optInt("large")
+        )
+        if (
+            !scaleFactor.isFinite() ||
+            scaleFactor <= 0.0 ||
+            bounds.width <= 0 ||
+            bounds.height <= 0 ||
+            maxDelta <= 0 ||
+            deltas.small <= 0 ||
+            deltas.medium <= 0 ||
+            deltas.large <= 0
+        ) {
+            return PcProtocolResponse.Invalid
+        }
+        return PcProtocolResponse.PointerProfile(
+            id = id,
+            profile = PcPointerMovementProfile(
+                displayId = displayId,
+                scaleFactor = scaleFactor,
+                bounds = bounds,
+                maxDelta = maxDelta,
+                recommendedDeltas = deltas
+            )
+        )
     }
 }

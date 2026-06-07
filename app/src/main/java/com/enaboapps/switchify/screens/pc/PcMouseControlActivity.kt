@@ -118,6 +118,7 @@ private fun PcMouseControlScreen(
                 }
                 PcMouseCommandGrid(
                     connected = uiState.connectedDisplayName != null,
+                    movementStep = uiState.movementStep,
                     busyCommand = uiState.busyCommand,
                     onCommandSelected = viewModel::send
                 )
