@@ -135,7 +135,7 @@ class PcMouseControlViewModel(
                 is PcLiveControlResult.Connected -> {
                     liveConnection = result.connection
                     _uiState.update {
-                        it.copy(movementStep = result.connection.pointerProfile?.mediumMovementStep() ?: DEFAULT_MOVE_STEP)
+                        it.copy(movementStep = result.connection.pointerProfile?.smallMovementStep() ?: DEFAULT_MOVE_STEP)
                     }
                     result.connection
                 }
@@ -173,12 +173,12 @@ class PcMouseControlViewModel(
         liveConnectionDeferred = null
     }
 
-    private fun PcPointerMovementProfile.mediumMovementStep(): Int {
-        return recommendedDeltas.medium.coerceIn(1, maxDelta)
+    private fun PcPointerMovementProfile.smallMovementStep(): Int {
+        return recommendedDeltas.small.coerceIn(1, maxDelta)
     }
 
     companion object {
-        const val DEFAULT_MOVE_STEP = 80
+        const val DEFAULT_MOVE_STEP = 40
         const val CONNECT_FIRST_MESSAGE = "Connect to PC from Switchify first."
         const val COMMAND_FAILED_MESSAGE = "Could not send command to PC."
     }

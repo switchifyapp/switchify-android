@@ -67,14 +67,14 @@ class PcMouseControlViewModelTest {
     }
 
     @Test
-    fun livePointerProfileSetsMovementStepToMediumDelta() = runTest(dispatcher) {
+    fun livePointerProfileSetsMovementStepToSmallDelta() = runTest(dispatcher) {
         PcConnectionStateHolder.setConnected(session, "Switchify PC")
-        val connector = FakeConnector(PcCommandResult.Ack, pointerProfile = pointerProfile(medium = 130))
+        val connector = FakeConnector(PcCommandResult.Ack, pointerProfile = pointerProfile(small = 50, medium = 130))
         val viewModel = PcMouseControlViewModel(FakeTokenStore(), connector)
 
         advanceUntilIdle()
 
-        assertEquals(130, viewModel.uiState.value.movementStep)
+        assertEquals(50, viewModel.uiState.value.movementStep)
     }
 
     @Test
@@ -88,11 +88,11 @@ class PcMouseControlViewModelTest {
     }
 
     @Test
-    fun livePointerProfileClampsMediumStepToMaxDelta() = runTest(dispatcher) {
+    fun livePointerProfileClampsSmallStepToMaxDelta() = runTest(dispatcher) {
         PcConnectionStateHolder.setConnected(session, "Switchify PC")
         val viewModel = PcMouseControlViewModel(
             FakeTokenStore(),
-            FakeConnector(PcCommandResult.Ack, pointerProfile = pointerProfile(medium = 900, maxDelta = 500))
+            FakeConnector(PcCommandResult.Ack, pointerProfile = pointerProfile(small = 900, medium = 130, maxDelta = 500))
         )
 
         advanceUntilIdle()
@@ -216,13 +216,13 @@ class PcMouseControlViewModelTest {
         override fun close() = Unit
     }
 
-    private fun pointerProfile(medium: Int, maxDelta: Int = 500): PcPointerMovementProfile {
+    private fun pointerProfile(small: Int, medium: Int, maxDelta: Int = 500): PcPointerMovementProfile {
         return PcPointerMovementProfile(
             displayId = "0:0:1280:720:1.5",
             scaleFactor = 1.5,
             bounds = PcPointerBounds(0, 0, 1280, 720),
             maxDelta = maxDelta,
-            recommendedDeltas = PcPointerDeltas(small = 50, medium = medium, large = 252)
+            recommendedDeltas = PcPointerDeltas(small = small, medium = medium, large = 252)
         )
     }
 
