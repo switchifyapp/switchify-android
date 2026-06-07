@@ -6,6 +6,8 @@ import com.enaboapps.switchify.pc.PcCommandResult
 import com.enaboapps.switchify.pc.PcConnectionState
 import com.enaboapps.switchify.pc.PcConnectionStateHolder
 import com.enaboapps.switchify.pc.PcConnector
+import com.enaboapps.switchify.pc.PcLiveControlResult
+import com.enaboapps.switchify.pc.PcMouseControlConnection
 import com.enaboapps.switchify.pc.PcMouseCommand
 import com.enaboapps.switchify.pc.PcPairingResult
 import com.enaboapps.switchify.pc.PcPairingTokenStore
@@ -56,6 +58,8 @@ class PcMouseControlViewModelTest {
         advanceUntilIdle()
 
         assertEquals(PcMouseCommand.Move(80, 0), connector.commands.single())
+        assertEquals(1, connector.openControlSessionCalls)
+        assertTrue(connector.oneShotCommands.isEmpty())
         assertNull(viewModel.uiState.value.message)
     }
 
@@ -135,7 +139,9 @@ class PcMouseControlViewModelTest {
         }
 
         private var deferredResult: CompletableDeferred<PcCommandResult>? = null
+        var openControlSessionCalls = 0
         val commands = mutableListOf<PcMouseCommand>()
+        val oneShotCommands = mutableListOf<PcMouseCommand>()
 
         override suspend fun requestApproval(pc: DiscoveredPc): PcPairingResult {
             return PcPairingResult.Failed("unused")
@@ -145,11 +151,25 @@ class PcMouseControlViewModelTest {
             return PcPingResult.Failed("unused")
         }
 
+        override suspend fun openMouseControlSession(session: PcAuthenticatedSession): PcLiveControlResult {
+            openControlSessionCalls++
+            return PcLiveControlResult.Connected(
+                object : PcMouseControlConnection {
+                    override suspend fun sendMouseCommand(command: PcMouseCommand): PcCommandResult {
+                        commands.add(command)
+                        return deferredResult?.await() ?: commandResult
+                    }
+
+                    override fun close() = Unit
+                }
+            )
+        }
+
         override suspend fun sendMouseCommand(
             session: PcAuthenticatedSession,
             command: PcMouseCommand
         ): PcCommandResult {
-            commands.add(command)
+            oneShotCommands.add(command)
             return deferredResult?.await() ?: commandResult
         }
 

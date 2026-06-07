@@ -7,15 +7,22 @@ import com.enaboapps.switchify.pc.PcCommandResult
 import com.enaboapps.switchify.pc.PcConnectionState
 import com.enaboapps.switchify.pc.PcConnectionStateHolder
 import com.enaboapps.switchify.pc.PcConnector
+import com.enaboapps.switchify.pc.PcLiveControlResult
+import com.enaboapps.switchify.pc.PcMouseControlConnection
 import com.enaboapps.switchify.pc.PcDeviceIdentityRepository
 import com.enaboapps.switchify.pc.PcMouseCommand
+import com.enaboapps.switchify.pc.PcAuthenticatedSession
 import com.enaboapps.switchify.pc.PcPairingTokenStore
 import com.enaboapps.switchify.pc.PcTokenStore
 import com.enaboapps.switchify.pc.SwitchifyPcClient
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
 data class PcMouseControlUiState(
@@ -39,12 +46,19 @@ class PcMouseControlViewModel(
 
     private val _uiState = MutableStateFlow(PcMouseControlUiState())
     val uiState: StateFlow<PcMouseControlUiState> = _uiState.asStateFlow()
+    private var liveConnection: PcMouseControlConnection? = null
+    private var liveSession: PcAuthenticatedSession? = null
+    private var liveConnectionDeferred: Deferred<PcMouseControlConnection?>? = null
 
     init {
         viewModelScope.launch {
             PcConnectionStateHolder.connectionState.collect { state ->
                 _uiState.update {
                     it.copy(connectedDisplayName = (state as? PcConnectionState.Connected)?.displayName)
+                }
+                when (state) {
+                    is PcConnectionState.Connected -> ensureLiveConnection(state.session)
+                    PcConnectionState.Disconnected -> closeLiveConnection()
                 }
             }
         }
@@ -60,7 +74,8 @@ class PcMouseControlViewModel(
 
         _uiState.update { it.copy(isBusy = true, busyCommand = command) }
         viewModelScope.launch {
-            val result = connector.sendMouseCommand(connected.session, command)
+            val connection = liveConnection ?: ensureLiveConnection(connected.session).await()
+            val result = connection?.sendMouseCommand(command) ?: PcCommandResult.Failed()
             when (result) {
                 PcCommandResult.Ack -> {
                     _uiState.update { it.copy(isBusy = false, busyCommand = null, message = null) }
@@ -95,8 +110,58 @@ class PcMouseControlViewModel(
     }
 
     override fun onCleared() {
+        closeLiveConnection()
         connector.close()
         super.onCleared()
+    }
+
+    private fun ensureLiveConnection(session: PcAuthenticatedSession): Deferred<PcMouseControlConnection?> {
+        liveConnection?.takeIf { liveSession == session }?.let {
+            return CompletableDeferred(it)
+        }
+        liveConnectionDeferred?.takeIf { liveSession == session && it.isActive }?.let {
+            return it
+        }
+
+        closeLiveConnection()
+        liveSession = session
+        return viewModelScope.async {
+            when (val result = connector.openMouseControlSession(session)) {
+                is PcLiveControlResult.Connected -> {
+                    liveConnection = result.connection
+                    result.connection
+                }
+                is PcLiveControlResult.AuthFailed -> {
+                    tokenStore.clearToken(session.desktopId)
+                    PcConnectionStateHolder.setDisconnected()
+                    _uiState.update {
+                        it.copy(
+                            connectedDisplayName = null,
+                            isBusy = false,
+                            busyCommand = null,
+                            message = CONNECT_FIRST_MESSAGE
+                        )
+                    }
+                    null
+                }
+                is PcLiveControlResult.Failed -> {
+                    _uiState.update {
+                        it.copy(message = COMMAND_FAILED_MESSAGE)
+                    }
+                    null
+                }
+            }
+        }.also {
+            liveConnectionDeferred = it
+        }
+    }
+
+    private fun closeLiveConnection() {
+        liveConnection?.close()
+        liveConnection = null
+        liveSession = null
+        liveConnectionDeferred?.cancel()
+        liveConnectionDeferred = null
     }
 
     companion object {
