@@ -14,7 +14,6 @@ import com.enaboapps.switchify.service.menu.menus.gestures.TapGesturesMenu
 import com.enaboapps.switchify.service.menu.menus.gestures.PinchGesturesMenu
 import com.enaboapps.switchify.service.menu.menus.main.MainMenu
 import com.enaboapps.switchify.service.menu.menus.media.MediaControlMenu
-import com.enaboapps.switchify.service.menu.menus.pc.PcControlMenu
 import com.enaboapps.switchify.service.menu.menus.favouriteapps.FavouriteAppsMenu
 import com.enaboapps.switchify.service.menu.menus.scroll.ScrollMenu
 import com.enaboapps.switchify.service.menu.menus.settings.SettingsMenu
@@ -170,11 +169,6 @@ class MenuManager {
     fun openMediaControlMenu() {
         val mediaControlMenu = MediaControlMenu(accessibilityService!!)
         openMenu(mediaControlMenu.build())
-    }
-
-    fun openPcControlMenu() {
-        val pcControlMenu = PcControlMenu(accessibilityService!!)
-        openMenu(pcControlMenu.build())
     }
 
     /**

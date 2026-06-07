@@ -3,7 +3,6 @@ package com.enaboapps.switchify.service.menu.menus
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.service.core.SwitchifyAccessibilityService
 import com.enaboapps.switchify.service.menu.MenuItem
-import com.enaboapps.switchify.service.menu.MenuLayoutMode
 import com.enaboapps.switchify.service.menu.MenuManager
 import com.enaboapps.switchify.service.menu.MenuView
 import com.enaboapps.switchify.service.menu.database.MenuConfigurationRepository
@@ -25,8 +24,7 @@ open class BaseMenu(
     private val items: List<MenuItem>,
     val menuId: String? = null,
     private val dynamicLoad: (suspend () -> List<MenuItem>)? = null,
-    private val showNavMenuItems: Boolean = true,
-    private val layoutMode: MenuLayoutMode = MenuLayoutMode.List
+    private val showNavMenuItems: Boolean = true
 ) {
     // Lazy-initialized repository to avoid repeated instantiation
     private val configRepository by lazy { MenuConfigurationRepository(accessibilityService) }
@@ -128,10 +126,6 @@ open class BaseMenu(
      */
     fun shouldShowNavMenuItems(): Boolean {
         return showNavMenuItems
-    }
-
-    fun getLayoutMode(): MenuLayoutMode {
-        return layoutMode
     }
 
     /**

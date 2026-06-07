@@ -146,7 +146,7 @@ class MainMenuStructure(
                 MenuItem(
                     definition = def,
                     isLinkToMenu = true,
-                    action = { openPcControlMenu() }
+                    action = { openPcControlActivity() }
                 )
             },
             if (NodeExaminer.canPerformEditActions(GesturePoint.getPoint())) {
@@ -173,9 +173,9 @@ class MainMenuStructure(
             }
         )
 
-    private fun openPcControlMenu() {
+    private fun openPcControlActivity() {
         if (PcConnectionStateHolder.connectionState.value is PcConnectionState.Connected) {
-            openPcControlActivity()
+            launchPcControlActivity()
             return
         }
         showMessage(R.string.pc_control_connecting, MessageSeverity.Info)
@@ -187,7 +187,7 @@ class MainMenuStructure(
             } ?: PcServiceConnectResult.Failed("No Switchify PC found.")
             withContext(Dispatchers.Main) {
                 when (result) {
-                    is PcServiceConnectResult.Connected -> openPcControlActivity()
+                    is PcServiceConnectResult.Connected -> launchPcControlActivity()
                     is PcServiceConnectResult.Failed -> {
                         val message = when (result.message) {
                             "No Switchify PC found." -> R.string.pc_control_no_pc_found
@@ -203,7 +203,7 @@ class MainMenuStructure(
         }
     }
 
-    private fun openPcControlActivity() {
+    private fun launchPcControlActivity() {
         MenuManager.getInstance().closeMenuHierarchy()
         accessibilityService.startActivity(PcMouseControlActivity.createIntent(accessibilityService))
     }
