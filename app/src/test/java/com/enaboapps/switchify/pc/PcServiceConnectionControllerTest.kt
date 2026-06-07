@@ -146,6 +146,10 @@ class PcServiceConnectionControllerTest {
             return pingResult
         }
 
+        override suspend fun openMouseControlSession(session: PcAuthenticatedSession): PcLiveControlResult {
+            return PcLiveControlResult.Failed("unused")
+        }
+
         override suspend fun sendMouseCommand(session: PcAuthenticatedSession, command: PcMouseCommand): PcCommandResult {
             return PcCommandResult.Ack
         }

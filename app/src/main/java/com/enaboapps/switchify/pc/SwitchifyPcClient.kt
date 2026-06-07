@@ -6,8 +6,11 @@ import io.ktor.client.plugins.websocket.WebSockets
 import io.ktor.client.plugins.websocket.webSocketSession
 import io.ktor.http.takeFrom
 import io.ktor.websocket.Frame
+import io.ktor.websocket.WebSocketSession
 import io.ktor.websocket.close
 import io.ktor.websocket.readText
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.withTimeout
 import java.util.UUID
 
@@ -36,9 +39,21 @@ sealed class PcCommandResult {
     data class Failed(val message: String = "Could not send command to PC.") : PcCommandResult()
 }
 
+sealed class PcLiveControlResult {
+    data class Connected(val connection: PcMouseControlConnection) : PcLiveControlResult()
+    data class AuthFailed(val message: String = "Connection expired. Connect to PC from Switchify first.") : PcLiveControlResult()
+    data class Failed(val message: String = "Could not connect to PC.") : PcLiveControlResult()
+}
+
+interface PcMouseControlConnection {
+    suspend fun sendMouseCommand(command: PcMouseCommand): PcCommandResult
+    fun close()
+}
+
 interface PcConnector {
     suspend fun requestApproval(pc: DiscoveredPc): PcPairingResult
     suspend fun authenticatedPing(pc: DiscoveredPc, token: String): PcPingResult
+    suspend fun openMouseControlSession(session: PcAuthenticatedSession): PcLiveControlResult
     suspend fun sendMouseCommand(session: PcAuthenticatedSession, command: PcMouseCommand): PcCommandResult
     fun close()
 }
@@ -157,6 +172,47 @@ class SwitchifyPcClient(
         }.getOrDefault(PcCommandResult.Failed())
     }
 
+    override suspend fun openMouseControlSession(session: PcAuthenticatedSession): PcLiveControlResult {
+        val token = tokenStore.getToken(session.desktopId) ?: return PcLiveControlResult.AuthFailed()
+        var webSocketSession: WebSocketSession? = null
+        return try {
+            webSocketSession = client.webSocketSession { url { takeFrom(session.websocketUrl) } }
+            val requestId = nextRequestId()
+            webSocketSession.send(
+                Frame.Text(
+                    PcProtocol.authenticatedPing(
+                        id = requestId,
+                        deviceId = session.deviceId,
+                        token = token,
+                        timestamp = System.currentTimeMillis()
+                    )
+                )
+            )
+            when (val response = withTimeout(10_000) { readExpectedResponse(webSocketSession, requestId) }) {
+                is PcProtocolResponse.Ack -> PcLiveControlResult.Connected(
+                    LiveMouseControlConnection(
+                        webSocketSession = webSocketSession,
+                        authenticatedSession = session,
+                        token = token
+                    )
+                )
+                is PcProtocolResponse.Error -> {
+                    webSocketSession.close()
+                    if (response.code == "invalid_auth") PcLiveControlResult.AuthFailed()
+                    else PcLiveControlResult.Failed()
+                }
+                else -> {
+                    webSocketSession.close()
+                    PcLiveControlResult.Failed()
+                }
+            }
+        } catch (error: Throwable) {
+            if (error is CancellationException) throw error
+            webSocketSession?.close()
+            PcLiveControlResult.Failed()
+        }
+    }
+
     override fun close() {
         client.close()
     }
@@ -190,6 +246,40 @@ class SwitchifyPcClient(
             PcMouseCommand.LeftClick -> PcProtocol.mouseClick(id, deviceId, token, timestamp)
             PcMouseCommand.DoubleClick -> PcProtocol.mouseDoubleClick(id, deviceId, token, timestamp)
             PcMouseCommand.RightClick -> PcProtocol.mouseRightClick(id, deviceId, token, timestamp)
+        }
+    }
+
+    private inner class LiveMouseControlConnection(
+        private val webSocketSession: WebSocketSession,
+        private val authenticatedSession: PcAuthenticatedSession,
+        private val token: String
+    ) : PcMouseControlConnection {
+        override suspend fun sendMouseCommand(command: PcMouseCommand): PcCommandResult {
+            return runCatching {
+                val requestId = nextRequestId()
+                webSocketSession.send(
+                    Frame.Text(
+                        command.toMessage(
+                            id = requestId,
+                            deviceId = authenticatedSession.deviceId,
+                            token = token,
+                            timestamp = System.currentTimeMillis()
+                        )
+                    )
+                )
+                when (val response = withTimeout(5_000) { readExpectedResponse(webSocketSession, requestId) }) {
+                    is PcProtocolResponse.Ack -> PcCommandResult.Ack
+                    is PcProtocolResponse.Error -> {
+                        if (response.code == "invalid_auth") PcCommandResult.AuthFailed()
+                        else PcCommandResult.Failed()
+                    }
+                    else -> PcCommandResult.Failed()
+                }
+            }.getOrDefault(PcCommandResult.Failed())
+        }
+
+        override fun close() {
+            webSocketSession.cancel()
         }
     }
 }
