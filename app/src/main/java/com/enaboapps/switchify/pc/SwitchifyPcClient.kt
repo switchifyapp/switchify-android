@@ -25,13 +25,14 @@ sealed class PcPingResult {
     data class Failed(val message: String) : PcPingResult()
 }
 
-sealed class PcMouseCommand {
-    data class Move(val dx: Int, val dy: Int) : PcMouseCommand()
-    data class Scroll(val dx: Int, val dy: Int) : PcMouseCommand()
-    data class TypeText(val text: String) : PcMouseCommand()
-    data object LeftClick : PcMouseCommand()
-    data object DoubleClick : PcMouseCommand()
-    data object RightClick : PcMouseCommand()
+sealed class PcControlCommand {
+    data class Move(val dx: Int, val dy: Int) : PcControlCommand()
+    data class Scroll(val dx: Int, val dy: Int) : PcControlCommand()
+    data class TypeText(val text: String) : PcControlCommand()
+    data class PressKey(val key: PcKeyboardKey) : PcControlCommand()
+    data object LeftClick : PcControlCommand()
+    data object DoubleClick : PcControlCommand()
+    data object RightClick : PcControlCommand()
 }
 
 sealed class PcCommandResult {
@@ -41,22 +42,22 @@ sealed class PcCommandResult {
 }
 
 sealed class PcLiveControlResult {
-    data class Connected(val connection: PcMouseControlConnection) : PcLiveControlResult()
+    data class Connected(val connection: PcControlConnection) : PcLiveControlResult()
     data class AuthFailed(val message: String = "Connection expired. Connect to PC from Switchify first.") : PcLiveControlResult()
     data class Failed(val message: String = "Could not connect to PC.") : PcLiveControlResult()
 }
 
-interface PcMouseControlConnection {
+interface PcControlConnection {
     val pointerProfile: PcPointerMovementProfile?
-    suspend fun sendMouseCommand(command: PcMouseCommand): PcCommandResult
+    suspend fun sendCommand(command: PcControlCommand): PcCommandResult
     fun close()
 }
 
 interface PcConnector {
     suspend fun requestApproval(pc: DiscoveredPc, requestNonce: String): PcPairingResult
     suspend fun authenticatedPing(pc: DiscoveredPc, token: String): PcPingResult
-    suspend fun openMouseControlSession(session: PcAuthenticatedSession): PcLiveControlResult
-    suspend fun sendMouseCommand(session: PcAuthenticatedSession, command: PcMouseCommand): PcCommandResult
+    suspend fun openControlSession(session: PcAuthenticatedSession): PcLiveControlResult
+    suspend fun sendCommand(session: PcAuthenticatedSession, command: PcControlCommand): PcCommandResult
     fun close()
 }
 
@@ -146,7 +147,7 @@ class SwitchifyPcClient(
         return PcPingResult.Failed("Found PC, but could not connect.")
     }
 
-    override suspend fun sendMouseCommand(session: PcAuthenticatedSession, command: PcMouseCommand): PcCommandResult {
+    override suspend fun sendCommand(session: PcAuthenticatedSession, command: PcControlCommand): PcCommandResult {
         val token = tokenStore.getToken(session.desktopId) ?: return PcCommandResult.AuthFailed()
         return runCatching {
             val webSocketSession = client.webSocketSession { url { takeFrom(session.websocketUrl) } }
@@ -174,7 +175,7 @@ class SwitchifyPcClient(
         }.getOrDefault(PcCommandResult.Failed())
     }
 
-    override suspend fun openMouseControlSession(session: PcAuthenticatedSession): PcLiveControlResult {
+    override suspend fun openControlSession(session: PcAuthenticatedSession): PcLiveControlResult {
         val token = tokenStore.getToken(session.desktopId) ?: return PcLiveControlResult.AuthFailed()
         var webSocketSession: WebSocketSession? = null
         return try {
@@ -192,7 +193,7 @@ class SwitchifyPcClient(
             )
             when (val response = withTimeout(10_000) { readExpectedResponse(webSocketSession, requestId) }) {
                 is PcProtocolResponse.Ack -> PcLiveControlResult.Connected(
-                    LiveMouseControlConnection(
+                    LiveControlConnection(
                         webSocketSession = webSocketSession,
                         authenticatedSession = session,
                         token = token,
@@ -275,24 +276,25 @@ class SwitchifyPcClient(
 
     private fun nextRequestId(): String = "android-${UUID.randomUUID()}"
 
-    private fun PcMouseCommand.toMessage(id: String, deviceId: String, token: String, timestamp: Long): String {
+    private fun PcControlCommand.toMessage(id: String, deviceId: String, token: String, timestamp: Long): String {
         return when (this) {
-            is PcMouseCommand.Move -> PcProtocol.mouseMove(id, deviceId, token, timestamp, dx, dy)
-            is PcMouseCommand.Scroll -> PcProtocol.mouseScroll(id, deviceId, token, timestamp, dx, dy)
-            PcMouseCommand.LeftClick -> PcProtocol.mouseClick(id, deviceId, token, timestamp)
-            PcMouseCommand.DoubleClick -> PcProtocol.mouseDoubleClick(id, deviceId, token, timestamp)
-            PcMouseCommand.RightClick -> PcProtocol.mouseRightClick(id, deviceId, token, timestamp)
-            is PcMouseCommand.TypeText -> PcProtocol.keyboardTypeText(id, deviceId, token, timestamp, text)
+            is PcControlCommand.Move -> PcProtocol.mouseMove(id, deviceId, token, timestamp, dx, dy)
+            is PcControlCommand.Scroll -> PcProtocol.mouseScroll(id, deviceId, token, timestamp, dx, dy)
+            PcControlCommand.LeftClick -> PcProtocol.mouseClick(id, deviceId, token, timestamp)
+            PcControlCommand.DoubleClick -> PcProtocol.mouseDoubleClick(id, deviceId, token, timestamp)
+            PcControlCommand.RightClick -> PcProtocol.mouseRightClick(id, deviceId, token, timestamp)
+            is PcControlCommand.TypeText -> PcProtocol.keyboardTypeText(id, deviceId, token, timestamp, text)
+            is PcControlCommand.PressKey -> PcProtocol.keyboardKey(id, deviceId, token, timestamp, key)
         }
     }
 
-    private inner class LiveMouseControlConnection(
+    private inner class LiveControlConnection(
         private val webSocketSession: WebSocketSession,
         private val authenticatedSession: PcAuthenticatedSession,
         private val token: String,
         override val pointerProfile: PcPointerMovementProfile?
-    ) : PcMouseControlConnection {
-        override suspend fun sendMouseCommand(command: PcMouseCommand): PcCommandResult {
+    ) : PcControlConnection {
+        override suspend fun sendCommand(command: PcControlCommand): PcCommandResult {
             return runCatching {
                 val requestId = nextRequestId()
                 webSocketSession.send(

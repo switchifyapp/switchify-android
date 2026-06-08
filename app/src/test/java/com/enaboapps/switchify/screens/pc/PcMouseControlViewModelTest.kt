@@ -6,9 +6,10 @@ import com.enaboapps.switchify.pc.PcCommandResult
 import com.enaboapps.switchify.pc.PcConnectionState
 import com.enaboapps.switchify.pc.PcConnectionStateHolder
 import com.enaboapps.switchify.pc.PcConnector
+import com.enaboapps.switchify.pc.PcKeyboardKey
 import com.enaboapps.switchify.pc.PcLiveControlResult
-import com.enaboapps.switchify.pc.PcMouseControlConnection
-import com.enaboapps.switchify.pc.PcMouseCommand
+import com.enaboapps.switchify.pc.PcControlConnection
+import com.enaboapps.switchify.pc.PcControlCommand
 import com.enaboapps.switchify.pc.PcPairingResult
 import com.enaboapps.switchify.pc.PcPairingTokenStore
 import com.enaboapps.switchify.pc.PcPingResult
@@ -57,10 +58,10 @@ class PcMouseControlViewModelTest {
         val connector = FakeConnector(PcCommandResult.Ack)
         val viewModel = PcMouseControlViewModel(FakeTokenStore(), connector, FakeMovementSizeStore())
 
-        viewModel.send(PcMouseCommand.Move(80, 0))
+        viewModel.send(PcControlCommand.Move(80, 0))
         advanceUntilIdle()
 
-        assertEquals(PcMouseCommand.Move(80, 0), connector.commands.single())
+        assertEquals(PcControlCommand.Move(80, 0), connector.commands.single())
         assertEquals(1, connector.openControlSessionCalls)
         assertTrue(connector.oneShotCommands.isEmpty())
         assertNull(viewModel.uiState.value.message)
@@ -204,7 +205,7 @@ class PcMouseControlViewModelTest {
         val connector = FakeConnector(PcCommandResult.Ack)
         val viewModel = PcMouseControlViewModel(FakeTokenStore(), connector, FakeMovementSizeStore())
 
-        viewModel.send(PcMouseCommand.LeftClick)
+        viewModel.send(PcControlCommand.LeftClick)
         advanceUntilIdle()
 
         assertTrue(connector.commands.isEmpty())
@@ -212,13 +213,39 @@ class PcMouseControlViewModelTest {
     }
 
     @Test
-    fun openingTypingDialogShowsTypingState() = runTest(dispatcher) {
+    fun showTypingSurfaceSwitchesActiveSurface() = runTest(dispatcher) {
         val viewModel = PcMouseControlViewModel(FakeTokenStore(), FakeConnector(PcCommandResult.Ack), FakeMovementSizeStore())
 
-        viewModel.openTypingDialog()
+        viewModel.showTypingSurface()
         advanceUntilIdle()
 
-        assertTrue(viewModel.uiState.value.typingDialogVisible)
+        assertEquals(PcControlSurface.Typing, viewModel.uiState.value.activeSurface)
+    }
+
+    @Test
+    fun showMouseSurfaceSwitchesActiveSurfaceBackToMouse() = runTest(dispatcher) {
+        val viewModel = PcMouseControlViewModel(FakeTokenStore(), FakeConnector(PcCommandResult.Ack), FakeMovementSizeStore())
+
+        viewModel.showTypingSurface()
+        viewModel.showMouseSurface()
+        advanceUntilIdle()
+
+        assertEquals(PcControlSurface.Mouse, viewModel.uiState.value.activeSurface)
+    }
+
+    @Test
+    fun switchingSurfacesDoesNotOpenAnotherLiveSocket() = runTest(dispatcher) {
+        PcConnectionStateHolder.setConnected(session, "Switchify PC")
+        val connector = FakeConnector(PcCommandResult.Ack)
+        val viewModel = PcMouseControlViewModel(FakeTokenStore(), connector, FakeMovementSizeStore())
+
+        advanceUntilIdle()
+        viewModel.showTypingSurface()
+        viewModel.showMouseSurface()
+        viewModel.showTypingSurface()
+        advanceUntilIdle()
+
+        assertEquals(1, connector.openControlSessionCalls)
     }
 
     @Test
@@ -263,14 +290,14 @@ class PcMouseControlViewModelTest {
         val connector = FakeConnector(PcCommandResult.Ack)
         val viewModel = PcMouseControlViewModel(FakeTokenStore(), connector, FakeMovementSizeStore())
 
-        viewModel.openTypingDialog()
+        viewModel.showTypingSurface()
         viewModel.updateTypingText("Hello")
         viewModel.sendTypedText()
         advanceUntilIdle()
 
-        assertEquals(PcMouseCommand.TypeText("Hello"), connector.commands.single())
+        assertEquals(PcControlCommand.TypeText("Hello"), connector.commands.single())
         assertEquals("", viewModel.uiState.value.typingText)
-        assertTrue(viewModel.uiState.value.typingDialogVisible)
+        assertEquals(PcControlSurface.Typing, viewModel.uiState.value.activeSurface)
         assertNull(viewModel.uiState.value.typingMessage)
     }
 
@@ -279,14 +306,14 @@ class PcMouseControlViewModelTest {
         PcConnectionStateHolder.setConnected(session, "Switchify PC")
         val viewModel = PcMouseControlViewModel(FakeTokenStore(), FakeConnector(PcCommandResult.Failed()), FakeMovementSizeStore())
 
-        viewModel.openTypingDialog()
+        viewModel.showTypingSurface()
         viewModel.updateTypingText("Hello")
         viewModel.sendTypedText()
         advanceUntilIdle()
 
         assertEquals(PcMouseControlViewModel.TYPING_FAILED_MESSAGE, viewModel.uiState.value.typingMessage)
         assertEquals("Hello", viewModel.uiState.value.typingText)
-        assertTrue(viewModel.uiState.value.typingDialogVisible)
+        assertEquals(PcControlSurface.Typing, viewModel.uiState.value.activeSurface)
     }
 
     @Test
@@ -294,7 +321,7 @@ class PcMouseControlViewModelTest {
         val connector = FakeConnector(PcCommandResult.Ack)
         val viewModel = PcMouseControlViewModel(FakeTokenStore(), connector, FakeMovementSizeStore())
 
-        viewModel.openTypingDialog()
+        viewModel.showTypingSurface()
         viewModel.updateTypingText("Hello")
         viewModel.sendTypedText()
         advanceUntilIdle()
@@ -310,9 +337,51 @@ class PcMouseControlViewModelTest {
         val tokenStore = FakeTokenStore(mutableMapOf("desktop-1" to "token"))
         val viewModel = PcMouseControlViewModel(tokenStore, FakeConnector(PcCommandResult.AuthFailed()), FakeMovementSizeStore())
 
-        viewModel.openTypingDialog()
+        viewModel.showTypingSurface()
         viewModel.updateTypingText("Hello")
         viewModel.sendTypedText()
+        advanceUntilIdle()
+
+        assertNull(tokenStore.getToken("desktop-1"))
+        assertTrue(PcConnectionStateHolder.connectionState.value is PcConnectionState.Disconnected)
+        assertEquals(PcMouseControlViewModel.CONNECT_FIRST_MESSAGE, viewModel.uiState.value.message)
+        assertEquals(PcMouseControlViewModel.CONNECT_FIRST_MESSAGE, viewModel.uiState.value.typingMessage)
+    }
+
+    @Test
+    fun sendKeySendsKeyboardKeyCommand() = runTest(dispatcher) {
+        PcConnectionStateHolder.setConnected(session, "Switchify PC")
+        val connector = FakeConnector(PcCommandResult.Ack)
+        val viewModel = PcMouseControlViewModel(FakeTokenStore(), connector, FakeMovementSizeStore())
+
+        viewModel.showTypingSurface()
+        viewModel.sendKey(PcKeyboardKey.Enter)
+        advanceUntilIdle()
+
+        assertEquals(PcControlCommand.PressKey(PcKeyboardKey.Enter), connector.commands.single())
+        assertNull(viewModel.uiState.value.typingMessage)
+    }
+
+    @Test
+    fun failedKeyCommandShowsTypingFailureMessage() = runTest(dispatcher) {
+        PcConnectionStateHolder.setConnected(session, "Switchify PC")
+        val viewModel = PcMouseControlViewModel(FakeTokenStore(), FakeConnector(PcCommandResult.Failed()), FakeMovementSizeStore())
+
+        viewModel.showTypingSurface()
+        viewModel.sendKey(PcKeyboardKey.Backspace)
+        advanceUntilIdle()
+
+        assertEquals(PcMouseControlViewModel.KEY_FAILED_MESSAGE, viewModel.uiState.value.typingMessage)
+    }
+
+    @Test
+    fun keyAuthFailureClearsTokenAndDisconnects() = runTest(dispatcher) {
+        PcConnectionStateHolder.setConnected(session, "Switchify PC")
+        val tokenStore = FakeTokenStore(mutableMapOf("desktop-1" to "token"))
+        val viewModel = PcMouseControlViewModel(tokenStore, FakeConnector(PcCommandResult.AuthFailed()), FakeMovementSizeStore())
+
+        viewModel.showTypingSurface()
+        viewModel.sendKey(PcKeyboardKey.Delete)
         advanceUntilIdle()
 
         assertNull(tokenStore.getToken("desktop-1"))
@@ -327,7 +396,7 @@ class PcMouseControlViewModelTest {
         val connector = FakeConnector(PcCommandResult.Ack)
         val viewModel = PcMouseControlViewModel(FakeTokenStore(), connector, FakeMovementSizeStore())
 
-        viewModel.send(PcMouseCommand.LeftClick)
+        viewModel.send(PcControlCommand.LeftClick)
         advanceUntilIdle()
 
         assertNull(viewModel.uiState.value.message)
@@ -338,7 +407,7 @@ class PcMouseControlViewModelTest {
         PcConnectionStateHolder.setConnected(session, "Switchify PC")
         val viewModel = PcMouseControlViewModel(FakeTokenStore(), FakeConnector(PcCommandResult.Failed()), FakeMovementSizeStore())
 
-        viewModel.send(PcMouseCommand.LeftClick)
+        viewModel.send(PcControlCommand.LeftClick)
         advanceUntilIdle()
 
         assertEquals(PcMouseControlViewModel.COMMAND_FAILED_MESSAGE, viewModel.uiState.value.message)
@@ -350,7 +419,7 @@ class PcMouseControlViewModelTest {
         val tokenStore = FakeTokenStore(mutableMapOf("desktop-1" to "token"))
         val viewModel = PcMouseControlViewModel(tokenStore, FakeConnector(PcCommandResult.AuthFailed()), FakeMovementSizeStore(PcMouseMovementSize.Large))
 
-        viewModel.send(PcMouseCommand.LeftClick)
+        viewModel.send(PcControlCommand.LeftClick)
         advanceUntilIdle()
 
         assertNull(tokenStore.getToken("desktop-1"))
@@ -366,11 +435,11 @@ class PcMouseControlViewModelTest {
         val deferred = CompletableDeferred<PcCommandResult>()
         val viewModel = PcMouseControlViewModel(FakeTokenStore(), FakeConnector(deferred), FakeMovementSizeStore())
 
-        viewModel.send(PcMouseCommand.Scroll(0, 5))
+        viewModel.send(PcControlCommand.Scroll(0, 5))
         advanceUntilIdle()
 
         assertTrue(viewModel.uiState.value.isBusy)
-        assertEquals(PcMouseCommand.Scroll(0, 5), viewModel.uiState.value.busyCommand)
+        assertEquals(PcControlCommand.Scroll(0, 5), viewModel.uiState.value.busyCommand)
 
         deferred.complete(PcCommandResult.Ack)
         advanceUntilIdle()
@@ -389,8 +458,8 @@ class PcMouseControlViewModelTest {
 
         private var deferredResult: CompletableDeferred<PcCommandResult>? = null
         var openControlSessionCalls = 0
-        val commands = mutableListOf<PcMouseCommand>()
-        val oneShotCommands = mutableListOf<PcMouseCommand>()
+        val commands = mutableListOf<PcControlCommand>()
+        val oneShotCommands = mutableListOf<PcControlCommand>()
 
         override suspend fun requestApproval(pc: DiscoveredPc, requestNonce: String): PcPairingResult {
             return PcPairingResult.Failed("unused")
@@ -400,13 +469,13 @@ class PcMouseControlViewModelTest {
             return PcPingResult.Failed("unused")
         }
 
-        override suspend fun openMouseControlSession(session: PcAuthenticatedSession): PcLiveControlResult {
+        override suspend fun openControlSession(session: PcAuthenticatedSession): PcLiveControlResult {
             openControlSessionCalls++
             return PcLiveControlResult.Connected(
-                object : PcMouseControlConnection {
+                object : PcControlConnection {
                     override val pointerProfile: PcPointerMovementProfile? = this@FakeConnector.pointerProfile
 
-                    override suspend fun sendMouseCommand(command: PcMouseCommand): PcCommandResult {
+                    override suspend fun sendCommand(command: PcControlCommand): PcCommandResult {
                         commands.add(command)
                         return deferredResult?.await() ?: commandResult
                     }
@@ -416,9 +485,9 @@ class PcMouseControlViewModelTest {
             )
         }
 
-        override suspend fun sendMouseCommand(
+        override suspend fun sendCommand(
             session: PcAuthenticatedSession,
-            command: PcMouseCommand
+            command: PcControlCommand
         ): PcCommandResult {
             oneShotCommands.add(command)
             return deferredResult?.await() ?: commandResult

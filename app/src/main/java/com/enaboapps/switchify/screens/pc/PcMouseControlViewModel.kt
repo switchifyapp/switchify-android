@@ -8,9 +8,10 @@ import com.enaboapps.switchify.pc.PcConnectionState
 import com.enaboapps.switchify.pc.PcConnectionStateHolder
 import com.enaboapps.switchify.pc.PcConnector
 import com.enaboapps.switchify.pc.PcLiveControlResult
-import com.enaboapps.switchify.pc.PcMouseControlConnection
+import com.enaboapps.switchify.pc.PcControlConnection
 import com.enaboapps.switchify.pc.PcDeviceIdentityRepository
-import com.enaboapps.switchify.pc.PcMouseCommand
+import com.enaboapps.switchify.pc.PcKeyboardKey
+import com.enaboapps.switchify.pc.PcControlCommand
 import com.enaboapps.switchify.pc.PcAuthenticatedSession
 import com.enaboapps.switchify.pc.PcPairingTokenStore
 import com.enaboapps.switchify.pc.PcTokenStore
@@ -29,12 +30,12 @@ import kotlinx.coroutines.launch
 
 data class PcMouseControlUiState(
     val connectedDisplayName: String? = null,
+    val activeSurface: PcControlSurface = PcControlSurface.Mouse,
     val selectedMovementSize: PcMouseMovementSize = PcMouseMovementSize.Small,
     val movementStep: Int = PcMouseControlViewModel.FALLBACK_MOVEMENT_STEPS.small,
     val isBusy: Boolean = false,
-    val busyCommand: PcMouseCommand? = null,
+    val busyCommand: PcControlCommand? = null,
     val message: String? = null,
-    val typingDialogVisible: Boolean = false,
     val typingText: String = "",
     val typingMessage: String? = null
 )
@@ -55,9 +56,9 @@ class PcMouseControlViewModel(
 
     private val _uiState = MutableStateFlow(PcMouseControlUiState())
     val uiState: StateFlow<PcMouseControlUiState> = _uiState.asStateFlow()
-    private var liveConnection: PcMouseControlConnection? = null
+    private var liveConnection: PcControlConnection? = null
     private var liveSession: PcAuthenticatedSession? = null
-    private var liveConnectionDeferred: Deferred<PcMouseControlConnection?>? = null
+    private var liveConnectionDeferred: Deferred<PcControlConnection?>? = null
     private var movementSteps = FALLBACK_MOVEMENT_STEPS
 
     init {
@@ -98,24 +99,23 @@ class PcMouseControlViewModel(
         }
     }
 
-    fun send(command: PcMouseCommand) {
+    fun send(command: PcControlCommand) {
         sendCommand(command) {
             it.copy(isBusy = false, busyCommand = null, message = null)
         }
     }
 
-    fun openTypingDialog() {
-        _uiState.update { it.copy(typingDialogVisible = true, typingMessage = null) }
-    }
-
-    fun closeTypingDialog() {
+    fun showTypingSurface() {
         _uiState.update {
             it.copy(
-                typingDialogVisible = false,
-                typingText = "",
+                activeSurface = PcControlSurface.Typing,
                 typingMessage = null
             )
         }
+    }
+
+    fun showMouseSurface() {
+        _uiState.update { it.copy(activeSurface = PcControlSurface.Mouse, typingMessage = null) }
     }
 
     fun updateTypingText(text: String) {
@@ -138,7 +138,7 @@ class PcMouseControlViewModel(
             return
         }
         if (text.isEmpty()) return
-        sendCommand(PcMouseCommand.TypeText(text)) {
+        sendCommand(PcControlCommand.TypeText(text)) {
             it.copy(
                 isBusy = false,
                 busyCommand = null,
@@ -149,13 +149,28 @@ class PcMouseControlViewModel(
         }
     }
 
-    private fun sendCommand(command: PcMouseCommand, onAck: (PcMouseControlUiState) -> PcMouseControlUiState) {
+    fun sendKey(key: PcKeyboardKey) {
+        sendCommand(PcControlCommand.PressKey(key)) {
+            it.copy(
+                isBusy = false,
+                busyCommand = null,
+                typingMessage = null,
+                message = null
+            )
+        }
+    }
+
+    private fun sendCommand(command: PcControlCommand, onAck: (PcMouseControlUiState) -> PcMouseControlUiState) {
         val connected = PcConnectionStateHolder.connectionState.value as? PcConnectionState.Connected
         if (connected == null) {
             _uiState.update {
                 it.copy(
                     message = CONNECT_FIRST_MESSAGE,
-                    typingMessage = if (command is PcMouseCommand.TypeText) CONNECT_FIRST_MESSAGE else it.typingMessage
+                    typingMessage = if (command is PcControlCommand.TypeText || command is PcControlCommand.PressKey) {
+                        CONNECT_FIRST_MESSAGE
+                    } else {
+                        it.typingMessage
+                    }
                 )
             }
             return
@@ -165,7 +180,7 @@ class PcMouseControlViewModel(
         _uiState.update { it.copy(isBusy = true, busyCommand = command) }
         viewModelScope.launch {
             val connection = liveConnection ?: ensureLiveConnection(connected.session).await()
-            val result = connection?.sendMouseCommand(command) ?: PcCommandResult.Failed()
+            val result = connection?.sendCommand(command) ?: PcCommandResult.Failed()
             when (result) {
                 PcCommandResult.Ack -> {
                     _uiState.update(onAck)
@@ -188,8 +203,16 @@ class PcMouseControlViewModel(
                         it.copy(
                             isBusy = false,
                             busyCommand = null,
-                            message = if (command is PcMouseCommand.TypeText) it.message else COMMAND_FAILED_MESSAGE,
-                            typingMessage = if (command is PcMouseCommand.TypeText) TYPING_FAILED_MESSAGE else it.typingMessage
+                            message = if (command is PcControlCommand.TypeText || command is PcControlCommand.PressKey) {
+                                it.message
+                            } else {
+                                COMMAND_FAILED_MESSAGE
+                            },
+                            typingMessage = when (command) {
+                                is PcControlCommand.TypeText -> TYPING_FAILED_MESSAGE
+                                is PcControlCommand.PressKey -> KEY_FAILED_MESSAGE
+                                else -> it.typingMessage
+                            }
                         )
                     }
                 }
@@ -207,7 +230,7 @@ class PcMouseControlViewModel(
         super.onCleared()
     }
 
-    private fun ensureLiveConnection(session: PcAuthenticatedSession): Deferred<PcMouseControlConnection?> {
+    private fun ensureLiveConnection(session: PcAuthenticatedSession): Deferred<PcControlConnection?> {
         liveConnection?.takeIf { liveSession == session }?.let {
             return CompletableDeferred(it)
         }
@@ -218,7 +241,7 @@ class PcMouseControlViewModel(
         closeLiveConnection()
         liveSession = session
         return viewModelScope.async {
-            when (val result = connector.openMouseControlSession(session)) {
+            when (val result = connector.openControlSession(session)) {
                 is PcLiveControlResult.Connected -> {
                     liveConnection = result.connection
                     movementSteps = result.connection.pointerProfile?.toMouseMovementSteps() ?: FALLBACK_MOVEMENT_STEPS
@@ -276,6 +299,7 @@ class PcMouseControlViewModel(
         const val CONNECT_FIRST_MESSAGE = "Connect to PC from Switchify first."
         const val COMMAND_FAILED_MESSAGE = "Could not send command to PC."
         const val TYPING_FAILED_MESSAGE = "Could not send text to PC."
+        const val KEY_FAILED_MESSAGE = "Could not send key to PC."
         const val TEXT_TOO_LONG_MESSAGE = "Text is too long."
         const val TEXT_UNSUPPORTED_MESSAGE = "Text includes unsupported characters."
     }

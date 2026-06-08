@@ -1,0 +1,350 @@
+package com.enaboapps.switchify.screens.pc
+
+import androidx.annotation.StringRes
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.unit.dp
+import com.enaboapps.switchify.R
+import com.enaboapps.switchify.pc.PcKeyboardKey
+
+data class PcTypingKeySpec(
+    @param:StringRes val labelResId: Int,
+    val key: PcKeyboardKey
+)
+
+@Composable
+fun PcTypingControlScreen(
+    connectedDisplayName: String?,
+    message: String?,
+    typingText: String,
+    typingMessage: String?,
+    sendEnabled: Boolean,
+    keysEnabled: Boolean,
+    onTextChanged: (String) -> Unit,
+    onSend: () -> Unit,
+    onClear: () -> Unit,
+    onKeySelected: (PcKeyboardKey) -> Unit,
+    onMouseControls: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(18.dp)
+    ) {
+        PcControlStatusStrip(
+            connectedDisplayName = connectedDisplayName,
+            message = message
+        )
+        PcTypingTextSection(
+            text = typingText,
+            message = typingMessage,
+            onTextChanged = onTextChanged
+        )
+        PcTypingActionSection(
+            sendEnabled = sendEnabled,
+            clearEnabled = typingText.isNotEmpty(),
+            onSend = onSend,
+            onClear = onClear
+        )
+        PcTypingKeySection(
+            keysEnabled = keysEnabled,
+            onKeySelected = onKeySelected
+        )
+        PcScannedCommandTile(
+            labelResId = R.string.pc_typing_mouse_controls,
+            enabled = true,
+            onClick = onMouseControls,
+            minHeightDp = 72,
+            square = false
+        )
+    }
+}
+
+@Composable
+private fun PcTypingTextSection(
+    text: String,
+    message: String?,
+    onTextChanged: (String) -> Unit
+) {
+    val focusRequester = remember { FocusRequester() }
+    LaunchedEffect(Unit) {
+        focusRequester.requestFocus()
+    }
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        PcTypingSectionTitle(R.string.pc_typing_section_text)
+        OutlinedTextField(
+            value = text,
+            onValueChange = onTextChanged,
+            label = { Text(stringResource(R.string.pc_typing_text_label)) },
+            minLines = 4,
+            maxLines = 8,
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.None),
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 132.dp)
+                .focusRequester(focusRequester)
+        )
+        message?.let {
+            Text(
+                text = it,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.error
+            )
+        }
+    }
+}
+
+@Composable
+private fun PcTypingActionSection(
+    sendEnabled: Boolean,
+    clearEnabled: Boolean,
+    onSend: () -> Unit,
+    onClear: () -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        PcTypingSectionTitle(R.string.pc_typing_section_actions)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            PcScannedCommandTile(
+                labelResId = R.string.pc_typing_send,
+                enabled = sendEnabled,
+                onClick = onSend,
+                modifier = Modifier.weight(1f),
+                minHeightDp = 72,
+                square = false
+            )
+            PcScannedCommandTile(
+                labelResId = R.string.pc_typing_clear,
+                enabled = clearEnabled,
+                onClick = onClear,
+                modifier = Modifier.weight(1f),
+                minHeightDp = 72,
+                square = false
+            )
+        }
+    }
+}
+
+@Composable
+private fun PcTypingKeySection(
+    keysEnabled: Boolean,
+    onKeySelected: (PcKeyboardKey) -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(18.dp)) {
+        PcPrimaryKeyGroup(
+            keysEnabled = keysEnabled,
+            onKeySelected = onKeySelected
+        )
+        PcCursorKeyGroup(
+            keysEnabled = keysEnabled,
+            onKeySelected = onKeySelected
+        )
+        PcKeyGroup(
+            titleResId = R.string.pc_typing_section_document,
+            specs = pcDocumentKeySpecs(),
+            keysEnabled = keysEnabled,
+            onKeySelected = onKeySelected,
+            columns = 2
+        )
+    }
+}
+
+@Composable
+private fun PcKeyGroup(
+    @StringRes titleResId: Int,
+    specs: List<PcTypingKeySpec>,
+    keysEnabled: Boolean,
+    onKeySelected: (PcKeyboardKey) -> Unit,
+    columns: Int = 3
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        PcTypingSectionTitle(titleResId)
+        specs.chunked(columns).forEach { rowSpecs ->
+            PcTypingKeyRow(
+                specs = rowSpecs,
+                keysEnabled = keysEnabled,
+                onKeySelected = onKeySelected,
+                columns = columns
+            )
+        }
+    }
+}
+
+@Composable
+private fun PcPrimaryKeyGroup(
+    keysEnabled: Boolean,
+    onKeySelected: (PcKeyboardKey) -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        PcTypingSectionTitle(R.string.pc_typing_section_keys)
+        PcTypingKeyRow(
+            specs = pcEditingKeySpecs(),
+            keysEnabled = keysEnabled,
+            onKeySelected = onKeySelected,
+            columns = 3
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            PcTypingKeyTile(
+                spec = PcTypingKeySpec(R.string.pc_key_space, PcKeyboardKey.Space),
+                keysEnabled = keysEnabled,
+                onKeySelected = onKeySelected,
+                modifier = Modifier.weight(2f),
+                square = false
+            )
+            PcTypingKeyTile(
+                spec = PcTypingKeySpec(R.string.pc_key_tab, PcKeyboardKey.Tab),
+                keysEnabled = keysEnabled,
+                onKeySelected = onKeySelected,
+                modifier = Modifier.weight(1f)
+            )
+            PcTypingKeyTile(
+                spec = PcTypingKeySpec(R.string.pc_key_escape, PcKeyboardKey.Escape),
+                keysEnabled = keysEnabled,
+                onKeySelected = onKeySelected,
+                modifier = Modifier.weight(1f)
+            )
+        }
+    }
+}
+
+@Composable
+private fun PcCursorKeyGroup(
+    keysEnabled: Boolean,
+    onKeySelected: (PcKeyboardKey) -> Unit
+) {
+    val specs = pcCursorKeySpecs()
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        PcTypingSectionTitle(R.string.pc_typing_section_cursor)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Spacer(modifier = Modifier.weight(1f))
+            PcTypingKeyTile(specs[0], keysEnabled, onKeySelected, Modifier.weight(1f))
+            Spacer(modifier = Modifier.weight(1f))
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            PcTypingKeyTile(specs[1], keysEnabled, onKeySelected, Modifier.weight(1f))
+            Spacer(modifier = Modifier.weight(1f))
+            PcTypingKeyTile(specs[2], keysEnabled, onKeySelected, Modifier.weight(1f))
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Spacer(modifier = Modifier.weight(1f))
+            PcTypingKeyTile(specs[3], keysEnabled, onKeySelected, Modifier.weight(1f))
+            Spacer(modifier = Modifier.weight(1f))
+        }
+    }
+}
+
+@Composable
+private fun PcTypingKeyRow(
+    specs: List<PcTypingKeySpec>,
+    keysEnabled: Boolean,
+    onKeySelected: (PcKeyboardKey) -> Unit,
+    columns: Int = 3
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        specs.forEach { spec ->
+            PcTypingKeyTile(
+                spec = spec,
+                keysEnabled = keysEnabled,
+                onKeySelected = onKeySelected,
+                modifier = Modifier.weight(1f)
+            )
+        }
+        repeat(columns - specs.size) {
+            Spacer(modifier = Modifier.weight(1f))
+        }
+    }
+}
+
+@Composable
+private fun PcTypingKeyTile(
+    spec: PcTypingKeySpec,
+    keysEnabled: Boolean,
+    onKeySelected: (PcKeyboardKey) -> Unit,
+    modifier: Modifier = Modifier,
+    square: Boolean = true
+) {
+    PcScannedCommandTile(
+        labelResId = spec.labelResId,
+        enabled = keysEnabled,
+        onClick = { onKeySelected(spec.key) },
+        modifier = modifier,
+        minHeightDp = 72,
+        square = square
+    )
+}
+
+@Composable
+private fun PcTypingSectionTitle(@StringRes titleResId: Int) {
+    Text(
+        text = stringResource(titleResId),
+        style = MaterialTheme.typography.titleMedium,
+        color = MaterialTheme.colorScheme.onSurface
+    )
+}
+
+fun pcEditingKeySpecs(): List<PcTypingKeySpec> {
+    return listOf(
+        PcTypingKeySpec(R.string.pc_key_backspace, PcKeyboardKey.Backspace),
+        PcTypingKeySpec(R.string.pc_key_delete, PcKeyboardKey.Delete),
+        PcTypingKeySpec(R.string.pc_key_enter, PcKeyboardKey.Enter)
+    )
+}
+
+fun pcSpacingKeySpecs(): List<PcTypingKeySpec> {
+    return listOf(
+        PcTypingKeySpec(R.string.pc_key_space, PcKeyboardKey.Space),
+        PcTypingKeySpec(R.string.pc_key_tab, PcKeyboardKey.Tab),
+        PcTypingKeySpec(R.string.pc_key_escape, PcKeyboardKey.Escape)
+    )
+}
+
+fun pcCursorKeySpecs(): List<PcTypingKeySpec> {
+    return listOf(
+        PcTypingKeySpec(R.string.pc_key_arrow_up, PcKeyboardKey.ArrowUp),
+        PcTypingKeySpec(R.string.pc_key_arrow_left, PcKeyboardKey.ArrowLeft),
+        PcTypingKeySpec(R.string.pc_key_arrow_right, PcKeyboardKey.ArrowRight),
+        PcTypingKeySpec(R.string.pc_key_arrow_down, PcKeyboardKey.ArrowDown)
+    )
+}
+
+fun pcDocumentKeySpecs(): List<PcTypingKeySpec> {
+    return listOf(
+        PcTypingKeySpec(R.string.pc_key_home, PcKeyboardKey.Home),
+        PcTypingKeySpec(R.string.pc_key_end, PcKeyboardKey.End),
+        PcTypingKeySpec(R.string.pc_key_page_up, PcKeyboardKey.PageUp),
+        PcTypingKeySpec(R.string.pc_key_page_down, PcKeyboardKey.PageDown)
+    )
+}
