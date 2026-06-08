@@ -132,34 +132,6 @@ fun PcControlCommandSections(
 }
 
 @Composable
-fun PcTypingCommandSection(
-    connected: Boolean,
-    onOpenTyping: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Column(
-        modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
-    ) {
-        PcCommandSectionTitle(R.string.pc_mouse_section_typing)
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            PcScannedCommandTile(
-                labelResId = R.string.pc_typing_type_text,
-                enabled = connected,
-                onClick = onOpenTyping,
-                minHeightDp = 72,
-                modifier = Modifier.weight(1f)
-            )
-            Spacer(modifier = Modifier.weight(1f))
-            Spacer(modifier = Modifier.weight(1f))
-        }
-    }
-}
-
-@Composable
 private fun PcMovementCommandSection(
     connected: Boolean,
     movementStep: Int,

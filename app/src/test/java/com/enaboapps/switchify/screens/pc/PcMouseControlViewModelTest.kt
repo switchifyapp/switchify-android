@@ -78,6 +78,47 @@ class PcMouseControlViewModelTest {
     }
 
     @Test
+    fun firstRunDefaultsToMouseSurface() = runTest(dispatcher) {
+        val viewModel = PcMouseControlViewModel(
+            FakeTokenStore(),
+            FakeConnector(PcCommandResult.Ack),
+            FakeMovementSizeStore(),
+            FakeControlSurfaceStore()
+        )
+
+        advanceUntilIdle()
+
+        assertEquals(PcControlSurface.Mouse, viewModel.uiState.value.activeSurface)
+    }
+
+    @Test
+    fun storedTypingSurfaceLoadsAsActiveSurface() = runTest(dispatcher) {
+        val viewModel = PcMouseControlViewModel(
+            FakeTokenStore(),
+            FakeConnector(PcCommandResult.Ack),
+            FakeMovementSizeStore(),
+            FakeControlSurfaceStore(PcControlSurface.Typing)
+        )
+
+        advanceUntilIdle()
+
+        assertEquals(PcControlSurface.Typing, viewModel.uiState.value.activeSurface)
+    }
+
+    @Test
+    fun controlSurfacePreferenceParserDefaultsUnknownValuesToMouse() {
+        assertEquals(PcControlSurface.Mouse, PcControlSurface.fromPreferenceValue(""))
+        assertEquals(PcControlSurface.Mouse, PcControlSurface.fromPreferenceValue(null))
+        assertEquals(PcControlSurface.Mouse, PcControlSurface.fromPreferenceValue("keyboard"))
+    }
+
+    @Test
+    fun controlSurfacePreferenceParserReadsKnownValues() {
+        assertEquals(PcControlSurface.Mouse, PcControlSurface.fromPreferenceValue("mouse"))
+        assertEquals(PcControlSurface.Typing, PcControlSurface.fromPreferenceValue("typing"))
+    }
+
+    @Test
     fun storedMediumLoadsWithFallbackStep() = runTest(dispatcher) {
         val viewModel = PcMouseControlViewModel(
             FakeTokenStore(),
@@ -214,23 +255,40 @@ class PcMouseControlViewModelTest {
 
     @Test
     fun showTypingSurfaceSwitchesActiveSurface() = runTest(dispatcher) {
-        val viewModel = PcMouseControlViewModel(FakeTokenStore(), FakeConnector(PcCommandResult.Ack), FakeMovementSizeStore())
+        val surfaceStore = FakeControlSurfaceStore()
+        val viewModel = PcMouseControlViewModel(
+            FakeTokenStore(),
+            FakeConnector(PcCommandResult.Ack),
+            FakeMovementSizeStore(),
+            surfaceStore
+        )
 
-        viewModel.showTypingSurface()
+        viewModel.selectControlSurface(PcControlSurface.Typing)
         advanceUntilIdle()
 
         assertEquals(PcControlSurface.Typing, viewModel.uiState.value.activeSurface)
+        assertEquals(PcControlSurface.Typing, surfaceStore.getSelectedSurface())
     }
 
     @Test
     fun showMouseSurfaceSwitchesActiveSurfaceBackToMouse() = runTest(dispatcher) {
-        val viewModel = PcMouseControlViewModel(FakeTokenStore(), FakeConnector(PcCommandResult.Ack), FakeMovementSizeStore())
+        val surfaceStore = FakeControlSurfaceStore(PcControlSurface.Typing)
+        val viewModel = PcMouseControlViewModel(
+            FakeTokenStore(),
+            FakeConnector(PcCommandResult.Ack),
+            FakeMovementSizeStore(),
+            surfaceStore
+        )
 
-        viewModel.showTypingSurface()
-        viewModel.showMouseSurface()
+        viewModel.updateTypingText("draft")
+        viewModel.updateTypingText("draft\u001B")
+        viewModel.selectControlSurface(PcControlSurface.Mouse)
         advanceUntilIdle()
 
         assertEquals(PcControlSurface.Mouse, viewModel.uiState.value.activeSurface)
+        assertEquals(PcControlSurface.Mouse, surfaceStore.getSelectedSurface())
+        assertEquals("draft\u001B", viewModel.uiState.value.typingText)
+        assertNull(viewModel.uiState.value.typingMessage)
     }
 
     @Test
@@ -513,6 +571,16 @@ class PcMouseControlViewModelTest {
 
         override fun setSelectedSize(size: PcMouseMovementSize) {
             selectedSize = size
+        }
+    }
+
+    private class FakeControlSurfaceStore(
+        private var selectedSurface: PcControlSurface = PcControlSurface.Mouse
+    ) : PcControlSurfaceStore {
+        override fun getSelectedSurface(): PcControlSurface = selectedSurface
+
+        override fun setSelectedSurface(surface: PcControlSurface) {
+            selectedSurface = surface
         }
     }
 

@@ -26,6 +26,7 @@ class PreferenceManager(context: Context) {
         const val PREFERENCE_KEY_MOVE_REPEAT = "move_repeat"
         const val PREFERENCE_KEY_MOVE_REPEAT_DELAY = "move_repeat_delay"
         const val PREFERENCE_KEY_PC_MOUSE_MOVEMENT_SIZE = "pc_mouse_movement_size"
+        const val PREFERENCE_KEY_PC_CONTROL_SURFACE = "pc_control_surface"
         const val PREFERENCE_KEY_AUTOMATICALLY_START_SCAN_AFTER_SELECTION =
             "automatically_start_scan_after_selection"
         const val PREFERENCE_KEY_PAUSE_ON_FIRST_ITEM = "pause_on_first_item"
