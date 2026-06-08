@@ -212,6 +212,116 @@ class PcMouseControlViewModelTest {
     }
 
     @Test
+    fun openingTypingDialogShowsTypingState() = runTest(dispatcher) {
+        val viewModel = PcMouseControlViewModel(FakeTokenStore(), FakeConnector(PcCommandResult.Ack), FakeMovementSizeStore())
+
+        viewModel.openTypingDialog()
+        advanceUntilIdle()
+
+        assertTrue(viewModel.uiState.value.typingDialogVisible)
+    }
+
+    @Test
+    fun updatingTypingTextStoresText() = runTest(dispatcher) {
+        val viewModel = PcMouseControlViewModel(FakeTokenStore(), FakeConnector(PcCommandResult.Ack), FakeMovementSizeStore())
+
+        viewModel.updateTypingText("Hello")
+        advanceUntilIdle()
+
+        assertEquals("Hello", viewModel.uiState.value.typingText)
+    }
+
+    @Test
+    fun emptyTypingTextDoesNotSend() = runTest(dispatcher) {
+        PcConnectionStateHolder.setConnected(session, "Switchify PC")
+        val connector = FakeConnector(PcCommandResult.Ack)
+        val viewModel = PcMouseControlViewModel(FakeTokenStore(), connector, FakeMovementSizeStore())
+
+        viewModel.sendTypedText()
+        advanceUntilIdle()
+
+        assertTrue(connector.commands.isEmpty())
+    }
+
+    @Test
+    fun invalidTypingTextDoesNotSendAndShowsMessage() = runTest(dispatcher) {
+        PcConnectionStateHolder.setConnected(session, "Switchify PC")
+        val connector = FakeConnector(PcCommandResult.Ack)
+        val viewModel = PcMouseControlViewModel(FakeTokenStore(), connector, FakeMovementSizeStore())
+
+        viewModel.updateTypingText("hello\u001Bworld")
+        viewModel.sendTypedText()
+        advanceUntilIdle()
+
+        assertTrue(connector.commands.isEmpty())
+        assertEquals(PcMouseControlViewModel.TEXT_UNSUPPORTED_MESSAGE, viewModel.uiState.value.typingMessage)
+    }
+
+    @Test
+    fun connectedStateSendsTypedTextCommand() = runTest(dispatcher) {
+        PcConnectionStateHolder.setConnected(session, "Switchify PC")
+        val connector = FakeConnector(PcCommandResult.Ack)
+        val viewModel = PcMouseControlViewModel(FakeTokenStore(), connector, FakeMovementSizeStore())
+
+        viewModel.openTypingDialog()
+        viewModel.updateTypingText("Hello")
+        viewModel.sendTypedText()
+        advanceUntilIdle()
+
+        assertEquals(PcMouseCommand.TypeText("Hello"), connector.commands.single())
+        assertEquals("", viewModel.uiState.value.typingText)
+        assertTrue(viewModel.uiState.value.typingDialogVisible)
+        assertNull(viewModel.uiState.value.typingMessage)
+    }
+
+    @Test
+    fun failedTypedTextShowsTypingFailureMessage() = runTest(dispatcher) {
+        PcConnectionStateHolder.setConnected(session, "Switchify PC")
+        val viewModel = PcMouseControlViewModel(FakeTokenStore(), FakeConnector(PcCommandResult.Failed()), FakeMovementSizeStore())
+
+        viewModel.openTypingDialog()
+        viewModel.updateTypingText("Hello")
+        viewModel.sendTypedText()
+        advanceUntilIdle()
+
+        assertEquals(PcMouseControlViewModel.TYPING_FAILED_MESSAGE, viewModel.uiState.value.typingMessage)
+        assertEquals("Hello", viewModel.uiState.value.typingText)
+        assertTrue(viewModel.uiState.value.typingDialogVisible)
+    }
+
+    @Test
+    fun disconnectedTypedTextShowsConnectFirstAndDoesNotSend() = runTest(dispatcher) {
+        val connector = FakeConnector(PcCommandResult.Ack)
+        val viewModel = PcMouseControlViewModel(FakeTokenStore(), connector, FakeMovementSizeStore())
+
+        viewModel.openTypingDialog()
+        viewModel.updateTypingText("Hello")
+        viewModel.sendTypedText()
+        advanceUntilIdle()
+
+        assertTrue(connector.commands.isEmpty())
+        assertEquals(PcMouseControlViewModel.CONNECT_FIRST_MESSAGE, viewModel.uiState.value.message)
+        assertEquals(PcMouseControlViewModel.CONNECT_FIRST_MESSAGE, viewModel.uiState.value.typingMessage)
+    }
+
+    @Test
+    fun typedTextAuthFailureClearsTokenAndDisconnects() = runTest(dispatcher) {
+        PcConnectionStateHolder.setConnected(session, "Switchify PC")
+        val tokenStore = FakeTokenStore(mutableMapOf("desktop-1" to "token"))
+        val viewModel = PcMouseControlViewModel(tokenStore, FakeConnector(PcCommandResult.AuthFailed()), FakeMovementSizeStore())
+
+        viewModel.openTypingDialog()
+        viewModel.updateTypingText("Hello")
+        viewModel.sendTypedText()
+        advanceUntilIdle()
+
+        assertNull(tokenStore.getToken("desktop-1"))
+        assertTrue(PcConnectionStateHolder.connectionState.value is PcConnectionState.Disconnected)
+        assertEquals(PcMouseControlViewModel.CONNECT_FIRST_MESSAGE, viewModel.uiState.value.message)
+        assertEquals(PcMouseControlViewModel.CONNECT_FIRST_MESSAGE, viewModel.uiState.value.typingMessage)
+    }
+
+    @Test
     fun ackClearsPreviousMessage() = runTest(dispatcher) {
         PcConnectionStateHolder.setConnected(session, "Switchify PC")
         val connector = FakeConnector(PcCommandResult.Ack)

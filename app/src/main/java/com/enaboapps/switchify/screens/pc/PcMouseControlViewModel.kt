@@ -15,6 +15,8 @@ import com.enaboapps.switchify.pc.PcAuthenticatedSession
 import com.enaboapps.switchify.pc.PcPairingTokenStore
 import com.enaboapps.switchify.pc.PcTokenStore
 import com.enaboapps.switchify.pc.SwitchifyPcClient
+import com.enaboapps.switchify.pc.PC_KEYBOARD_TYPE_TEXT_MAX_LENGTH
+import com.enaboapps.switchify.pc.isSafePcTypedText
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.async
@@ -31,7 +33,10 @@ data class PcMouseControlUiState(
     val movementStep: Int = PcMouseControlViewModel.FALLBACK_MOVEMENT_STEPS.small,
     val isBusy: Boolean = false,
     val busyCommand: PcMouseCommand? = null,
-    val message: String? = null
+    val message: String? = null,
+    val typingDialogVisible: Boolean = false,
+    val typingText: String = "",
+    val typingMessage: String? = null
 )
 
 class PcMouseControlViewModel(
@@ -94,9 +99,65 @@ class PcMouseControlViewModel(
     }
 
     fun send(command: PcMouseCommand) {
+        sendCommand(command) {
+            it.copy(isBusy = false, busyCommand = null, message = null)
+        }
+    }
+
+    fun openTypingDialog() {
+        _uiState.update { it.copy(typingDialogVisible = true, typingMessage = null) }
+    }
+
+    fun closeTypingDialog() {
+        _uiState.update {
+            it.copy(
+                typingDialogVisible = false,
+                typingText = "",
+                typingMessage = null
+            )
+        }
+    }
+
+    fun updateTypingText(text: String) {
+        _uiState.update {
+            it.copy(
+                typingText = text,
+                typingMessage = validationMessageFor(text)
+            )
+        }
+    }
+
+    fun clearTypingText() {
+        _uiState.update { it.copy(typingText = "", typingMessage = null) }
+    }
+
+    fun sendTypedText() {
+        val text = _uiState.value.typingText
+        validationMessageFor(text)?.let { message ->
+            _uiState.update { it.copy(typingMessage = message) }
+            return
+        }
+        if (text.isEmpty()) return
+        sendCommand(PcMouseCommand.TypeText(text)) {
+            it.copy(
+                isBusy = false,
+                busyCommand = null,
+                typingText = "",
+                typingMessage = null,
+                message = null
+            )
+        }
+    }
+
+    private fun sendCommand(command: PcMouseCommand, onAck: (PcMouseControlUiState) -> PcMouseControlUiState) {
         val connected = PcConnectionStateHolder.connectionState.value as? PcConnectionState.Connected
         if (connected == null) {
-            _uiState.update { it.copy(message = CONNECT_FIRST_MESSAGE) }
+            _uiState.update {
+                it.copy(
+                    message = CONNECT_FIRST_MESSAGE,
+                    typingMessage = if (command is PcMouseCommand.TypeText) CONNECT_FIRST_MESSAGE else it.typingMessage
+                )
+            }
             return
         }
         if (_uiState.value.isBusy) return
@@ -107,7 +168,7 @@ class PcMouseControlViewModel(
             val result = connection?.sendMouseCommand(command) ?: PcCommandResult.Failed()
             when (result) {
                 PcCommandResult.Ack -> {
-                    _uiState.update { it.copy(isBusy = false, busyCommand = null, message = null) }
+                    _uiState.update(onAck)
                 }
                 is PcCommandResult.AuthFailed -> {
                     tokenStore.clearToken(connected.session.desktopId)
@@ -117,7 +178,8 @@ class PcMouseControlViewModel(
                             connectedDisplayName = null,
                             isBusy = false,
                             busyCommand = null,
-                            message = CONNECT_FIRST_MESSAGE
+                            message = CONNECT_FIRST_MESSAGE,
+                            typingMessage = CONNECT_FIRST_MESSAGE
                         )
                     }
                 }
@@ -126,7 +188,8 @@ class PcMouseControlViewModel(
                         it.copy(
                             isBusy = false,
                             busyCommand = null,
-                            message = COMMAND_FAILED_MESSAGE
+                            message = if (command is PcMouseCommand.TypeText) it.message else COMMAND_FAILED_MESSAGE,
+                            typingMessage = if (command is PcMouseCommand.TypeText) TYPING_FAILED_MESSAGE else it.typingMessage
                         )
                     }
                 }
@@ -212,5 +275,16 @@ class PcMouseControlViewModel(
         )
         const val CONNECT_FIRST_MESSAGE = "Connect to PC from Switchify first."
         const val COMMAND_FAILED_MESSAGE = "Could not send command to PC."
+        const val TYPING_FAILED_MESSAGE = "Could not send text to PC."
+        const val TEXT_TOO_LONG_MESSAGE = "Text is too long."
+        const val TEXT_UNSUPPORTED_MESSAGE = "Text includes unsupported characters."
+    }
+
+    private fun validationMessageFor(text: String): String? {
+        return when {
+            text.length > PC_KEYBOARD_TYPE_TEXT_MAX_LENGTH -> TEXT_TOO_LONG_MESSAGE
+            !isSafePcTypedText(text) -> TEXT_UNSUPPORTED_MESSAGE
+            else -> null
+        }
     }
 }
