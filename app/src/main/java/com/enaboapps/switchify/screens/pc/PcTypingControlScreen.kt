@@ -12,11 +12,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
@@ -40,7 +36,6 @@ fun PcTypingControlScreen(
     onSend: () -> Unit,
     onClear: () -> Unit,
     onKeySelected: (PcKeyboardKey) -> Unit,
-    onMouseControls: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -66,13 +61,6 @@ fun PcTypingControlScreen(
             keysEnabled = keysEnabled,
             onKeySelected = onKeySelected
         )
-        PcScannedCommandTile(
-            labelResId = R.string.pc_typing_mouse_controls,
-            enabled = true,
-            onClick = onMouseControls,
-            minHeightDp = 72,
-            square = false
-        )
     }
 }
 
@@ -82,10 +70,6 @@ private fun PcTypingTextSection(
     message: String?,
     onTextChanged: (String) -> Unit
 ) {
-    val focusRequester = remember { FocusRequester() }
-    LaunchedEffect(Unit) {
-        focusRequester.requestFocus()
-    }
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         PcTypingSectionTitle(R.string.pc_typing_section_text)
         OutlinedTextField(
@@ -98,7 +82,6 @@ private fun PcTypingTextSection(
             modifier = Modifier
                 .fillMaxWidth()
                 .heightIn(min = 132.dp)
-                .focusRequester(focusRequester)
         )
         message?.let {
             Text(

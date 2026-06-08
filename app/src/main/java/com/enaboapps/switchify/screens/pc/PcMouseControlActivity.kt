@@ -83,28 +83,15 @@ private fun PcMouseControlScreen(
     onClose: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val onBack = {
-        if (uiState.activeSurface == PcControlSurface.Typing) {
-            viewModel.showMouseSurface()
-        } else {
-            onClose()
-        }
-    }
 
-    BackHandler(onBack = onBack)
+    BackHandler(onBack = onClose)
 
     Scaffold(
         topBar = {
             NavBar(
-                title = stringResource(
-                    if (uiState.activeSurface == PcControlSurface.Typing) {
-                        R.string.pc_typing_screen_title
-                    } else {
-                        R.string.menu_title_control_pc
-                    }
-                ),
+                title = stringResource(R.string.menu_title_control_pc),
                 showBackButton = true,
-                onBackPressed = onBack
+                onBackPressed = onClose
             )
         }
     ) { paddingValues ->
@@ -121,6 +108,14 @@ private fun PcMouseControlScreen(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(18.dp)
             ) {
+                PcControlStatusStrip(
+                    connectedDisplayName = uiState.connectedDisplayName,
+                    message = uiState.message
+                )
+                PcControlSurfaceSwitcher(
+                    selectedSurface = uiState.activeSurface,
+                    onSurfaceSelected = viewModel::selectControlSurface
+                )
                 when (uiState.activeSurface) {
                     PcControlSurface.Mouse -> PcMouseControlSurface(
                         uiState = uiState,
@@ -139,8 +134,7 @@ private fun PcMouseControlScreen(
                         onTextChanged = viewModel::updateTypingText,
                         onSend = viewModel::sendTypedText,
                         onClear = viewModel::clearTypingText,
-                        onKeySelected = viewModel::sendKey,
-                        onMouseControls = viewModel::showMouseSurface
+                        onKeySelected = viewModel::sendKey
                     )
                 }
             }
@@ -153,14 +147,6 @@ private fun PcMouseControlSurface(
     uiState: PcMouseControlUiState,
     viewModel: PcMouseControlViewModel
 ) {
-    PcControlStatusStrip(
-        connectedDisplayName = uiState.connectedDisplayName,
-        message = uiState.message
-    )
-    PcTypingCommandSection(
-        connected = uiState.connectedDisplayName != null,
-        onOpenTyping = viewModel::showTypingSurface
-    )
     PcMovementSizeSection(
         selectedSize = uiState.selectedMovementSize,
         onSizeSelected = viewModel::selectMovementSize

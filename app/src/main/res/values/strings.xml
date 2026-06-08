@@ -277,6 +277,8 @@
     <string name="pc_control_no_pc_found">No Switchify PC found.</string>
     <string name="pc_control_could_not_connect">Could not connect to PC.</string>
     <string name="pc_control_command_failed">Could not send command to PC.</string>
+    <string name="pc_control_surface_mouse">Mouse</string>
+    <string name="pc_control_surface_typing">Typing</string>
     <string name="pc_mouse_control_connected">Connected to %1$s.</string>
     <string name="pc_mouse_movement_size">Movement size</string>
     <string name="pc_mouse_movement_small">Small</string>
@@ -285,7 +287,6 @@
     <string name="pc_mouse_section_movement">Movement</string>
     <string name="pc_mouse_section_clicks">Clicks</string>
     <string name="pc_mouse_section_scroll">Scroll</string>
-    <string name="pc_mouse_section_typing">Typing</string>
     <string name="request_rejected">Request rejected.</string>
     <string name="request_expired_try_again">Request expired. Try again.</string>
     <string name="pc_mouse_up_left">Up left</string>
@@ -301,8 +302,6 @@
     <string name="pc_mouse_double_click">Double click</string>
     <string name="pc_mouse_scroll_up">Scroll up</string>
     <string name="pc_mouse_scroll_down">Scroll down</string>
-    <string name="pc_typing_type_text">Type text</string>
-    <string name="pc_typing_screen_title">Type on PC</string>
     <string name="pc_typing_section_text">Text</string>
     <string name="pc_typing_section_actions">Actions</string>
     <string name="pc_typing_section_keys">Keys</string>
@@ -312,7 +311,6 @@
     <string name="pc_typing_send">Send</string>
     <string name="pc_typing_clear">Clear</string>
     <string name="pc_typing_close">Close</string>
-    <string name="pc_typing_mouse_controls">Mouse controls</string>
     <string name="pc_typing_send_failed">Could not send text to PC.</string>
     <string name="pc_typing_key_failed">Could not send key to PC.</string>
     <string name="pc_typing_text_too_long">Text is too long.</string>

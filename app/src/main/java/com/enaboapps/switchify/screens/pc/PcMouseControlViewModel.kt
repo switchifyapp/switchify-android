@@ -43,15 +43,28 @@ data class PcMouseControlUiState(
 class PcMouseControlViewModel(
     private val tokenStore: PcPairingTokenStore,
     private val connector: PcConnector,
-    private val movementSizeStore: PcMouseMovementSizeStore
+    private val movementSizeStore: PcMouseMovementSizeStore,
+    private val controlSurfaceStore: PcControlSurfaceStore
 ) : ViewModel() {
+    constructor(
+        tokenStore: PcPairingTokenStore,
+        connector: PcConnector,
+        movementSizeStore: PcMouseMovementSizeStore
+    ) : this(
+        tokenStore = tokenStore,
+        connector = connector,
+        movementSizeStore = movementSizeStore,
+        controlSurfaceStore = InMemoryControlSurfaceStore()
+    )
+
     constructor(context: Context) : this(
         tokenStore = PcTokenStore(context.applicationContext),
         connector = SwitchifyPcClient(
             PcDeviceIdentityRepository(context.applicationContext),
             PcTokenStore(context.applicationContext)
         ),
-        movementSizeStore = PcMouseMovementPreferenceStore(context.applicationContext)
+        movementSizeStore = PcMouseMovementPreferenceStore(context.applicationContext),
+        controlSurfaceStore = PcControlSurfacePreferenceStore(context.applicationContext)
     )
 
     private val _uiState = MutableStateFlow(PcMouseControlUiState())
@@ -63,8 +76,10 @@ class PcMouseControlViewModel(
 
     init {
         val selectedSize = movementSizeStore.getSelectedSize()
+        val selectedSurface = controlSurfaceStore.getSelectedSurface()
         _uiState.update {
             it.copy(
+                activeSurface = selectedSurface,
                 selectedMovementSize = selectedSize,
                 movementStep = movementSteps.stepFor(selectedSize)
             )
@@ -105,17 +120,22 @@ class PcMouseControlViewModel(
         }
     }
 
-    fun showTypingSurface() {
+    fun selectControlSurface(surface: PcControlSurface) {
+        controlSurfaceStore.setSelectedSurface(surface)
         _uiState.update {
             it.copy(
-                activeSurface = PcControlSurface.Typing,
-                typingMessage = null
+                activeSurface = surface,
+                typingMessage = if (surface == PcControlSurface.Mouse) null else it.typingMessage
             )
         }
     }
 
+    fun showTypingSurface() {
+        selectControlSurface(PcControlSurface.Typing)
+    }
+
     fun showMouseSurface() {
-        _uiState.update { it.copy(activeSurface = PcControlSurface.Mouse, typingMessage = null) }
+        selectControlSurface(PcControlSurface.Mouse)
     }
 
     fun updateTypingText(text: String) {
@@ -310,5 +330,15 @@ class PcMouseControlViewModel(
             !isSafePcTypedText(text) -> TEXT_UNSUPPORTED_MESSAGE
             else -> null
         }
+    }
+}
+
+private class InMemoryControlSurfaceStore : PcControlSurfaceStore {
+    private var surface = PcControlSurface.Mouse
+
+    override fun getSelectedSurface(): PcControlSurface = surface
+
+    override fun setSelectedSurface(surface: PcControlSurface) {
+        this.surface = surface
     }
 }
