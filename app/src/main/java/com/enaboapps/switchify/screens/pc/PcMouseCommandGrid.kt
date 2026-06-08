@@ -132,6 +132,34 @@ fun PcMouseCommandSections(
 }
 
 @Composable
+fun PcTypingCommandSection(
+    connected: Boolean,
+    onOpenTyping: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        PcCommandSectionTitle(R.string.pc_mouse_section_typing)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            PcCommandTile(
+                labelResId = R.string.pc_typing_type_text,
+                connected = connected,
+                onClick = onOpenTyping,
+                minHeightDp = 72,
+                modifier = Modifier.weight(1f)
+            )
+            Spacer(modifier = Modifier.weight(1f))
+            Spacer(modifier = Modifier.weight(1f))
+        }
+    }
+}
+
+@Composable
 private fun PcMovementCommandSection(
     connected: Boolean,
     movementStep: Int,
@@ -233,6 +261,23 @@ private fun PcCommandButton(
     minHeightDp: Int,
     modifier: Modifier = Modifier
 ) {
+    PcCommandTile(
+        labelResId = spec.labelResId,
+        connected = connected,
+        onClick = { onCommandSelected(spec.command) },
+        minHeightDp = minHeightDp,
+        modifier = modifier
+    )
+}
+
+@Composable
+private fun PcCommandTile(
+    @StringRes labelResId: Int,
+    connected: Boolean,
+    onClick: () -> Unit,
+    minHeightDp: Int,
+    modifier: Modifier = Modifier
+) {
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
     val backgroundColor = when {
@@ -261,7 +306,7 @@ private fun PcCommandButton(
                 role = Role.Button,
                 interactionSource = interactionSource,
                 indication = null,
-                onClick = { onCommandSelected(spec.command) }
+                onClick = onClick
             ),
         shape = RoundedCornerShape(8.dp),
         color = backgroundColor,
@@ -274,7 +319,7 @@ private fun PcCommandButton(
             contentAlignment = Alignment.Center
         ) {
             Text(
-                text = stringResource(spec.labelResId),
+                text = stringResource(labelResId),
                 style = MaterialTheme.typography.labelLarge,
                 color = contentColor,
                 textAlign = TextAlign.Center,

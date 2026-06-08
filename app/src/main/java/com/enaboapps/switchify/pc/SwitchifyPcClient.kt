@@ -28,6 +28,7 @@ sealed class PcPingResult {
 sealed class PcMouseCommand {
     data class Move(val dx: Int, val dy: Int) : PcMouseCommand()
     data class Scroll(val dx: Int, val dy: Int) : PcMouseCommand()
+    data class TypeText(val text: String) : PcMouseCommand()
     data object LeftClick : PcMouseCommand()
     data object DoubleClick : PcMouseCommand()
     data object RightClick : PcMouseCommand()
@@ -281,6 +282,7 @@ class SwitchifyPcClient(
             PcMouseCommand.LeftClick -> PcProtocol.mouseClick(id, deviceId, token, timestamp)
             PcMouseCommand.DoubleClick -> PcProtocol.mouseDoubleClick(id, deviceId, token, timestamp)
             PcMouseCommand.RightClick -> PcProtocol.mouseRightClick(id, deviceId, token, timestamp)
+            is PcMouseCommand.TypeText -> PcProtocol.keyboardTypeText(id, deviceId, token, timestamp, text)
         }
     }
 

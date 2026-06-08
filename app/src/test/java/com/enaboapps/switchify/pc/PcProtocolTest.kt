@@ -166,6 +166,38 @@ class PcProtocolTest {
         assertEquals(5, scroll.getJSONObject("payload").getInt("dy"))
     }
 
+    @Test
+    fun buildsKeyboardTypeTextCommandWithAuthProof() {
+        val json = JSONObject(
+            PcProtocol.keyboardTypeText(
+                id = "type-1",
+                deviceId = "device-1",
+                token = "shared-token",
+                timestamp = 1000L,
+                text = "Hello café 👋"
+            )
+        )
+
+        assertEquals(1, json.getInt("version"))
+        assertEquals("type-1", json.getString("id"))
+        assertEquals("device-1", json.getString("deviceId"))
+        assertEquals(1000L, json.getLong("timestamp"))
+        assertEquals("keyboard.typeText", json.getString("type"))
+        assertEquals("Hello café 👋", json.getJSONObject("payload").getString("text"))
+        assertEquals(
+            PcProtocol.authProof(
+                id = "type-1",
+                deviceId = "device-1",
+                timestamp = 1000L,
+                type = "keyboard.typeText",
+                payload = JSONObject().put("text", "Hello café 👋"),
+                token = "shared-token"
+            ),
+            json.getString("auth")
+        )
+        assertFalse(json.toString().contains("shared-token"))
+    }
+
     private fun validPointerProfileResponse(
         displayId: String = "0:0:1280:720:1.5",
         scaleFactor: Double = 1.5,

@@ -9,12 +9,17 @@ import androidx.activity.viewModels
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -26,6 +31,7 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.activities.ui.theme.SwitchifyTheme
 import com.enaboapps.switchify.components.NavBar
+import com.enaboapps.switchify.pc.isSafePcTypedText
 import com.enaboapps.switchify.service.core.ServiceCore
 import com.enaboapps.switchify.service.scanning.TemporaryScanModeSession
 import com.enaboapps.switchify.service.techniques.AccessTechnique
@@ -117,7 +123,78 @@ private fun PcMouseControlScreen(
                     movementStep = uiState.movementStep,
                     onCommandSelected = viewModel::send
                 )
+                PcTypingCommandSection(
+                    connected = uiState.connectedDisplayName != null,
+                    onOpenTyping = viewModel::openTypingDialog
+                )
+            }
+            if (uiState.typingDialogVisible) {
+                PcTypingDialog(
+                    text = uiState.typingText,
+                    message = uiState.typingMessage,
+                    sendEnabled = uiState.connectedDisplayName != null &&
+                            uiState.typingText.isNotEmpty() &&
+                            isSafePcTypedText(uiState.typingText) &&
+                            !uiState.isBusy,
+                    onTextChanged = viewModel::updateTypingText,
+                    onSend = viewModel::sendTypedText,
+                    onClear = viewModel::clearTypingText,
+                    onClose = viewModel::closeTypingDialog
+                )
             }
         }
     }
+}
+
+@Composable
+private fun PcTypingDialog(
+    text: String,
+    message: String?,
+    sendEnabled: Boolean,
+    onTextChanged: (String) -> Unit,
+    onSend: () -> Unit,
+    onClear: () -> Unit,
+    onClose: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onClose,
+        title = {
+            Text(text = stringResource(R.string.pc_typing_dialog_title))
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value = text,
+                    onValueChange = onTextChanged,
+                    label = { Text(stringResource(R.string.pc_typing_text_label)) },
+                    minLines = 3,
+                    maxLines = 6,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                message?.let {
+                    Text(
+                        text = it,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = onSend,
+                enabled = sendEnabled
+            ) {
+                Text(text = stringResource(R.string.pc_typing_send))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onClear) {
+                Text(text = stringResource(R.string.pc_typing_clear))
+            }
+            TextButton(onClick = onClose) {
+                Text(text = stringResource(R.string.pc_typing_close))
+            }
+        }
+    )
 }

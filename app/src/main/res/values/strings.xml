@@ -285,6 +285,7 @@
     <string name="pc_mouse_section_movement">Movement</string>
     <string name="pc_mouse_section_clicks">Clicks</string>
     <string name="pc_mouse_section_scroll">Scroll</string>
+    <string name="pc_mouse_section_typing">Typing</string>
     <string name="request_rejected">Request rejected.</string>
     <string name="request_expired_try_again">Request expired. Try again.</string>
     <string name="pc_mouse_up_left">Up left</string>
@@ -300,6 +301,15 @@
     <string name="pc_mouse_double_click">Double click</string>
     <string name="pc_mouse_scroll_up">Scroll up</string>
     <string name="pc_mouse_scroll_down">Scroll down</string>
+    <string name="pc_typing_type_text">Type text</string>
+    <string name="pc_typing_dialog_title">Type text</string>
+    <string name="pc_typing_text_label">Text</string>
+    <string name="pc_typing_send">Send</string>
+    <string name="pc_typing_clear">Clear</string>
+    <string name="pc_typing_close">Close</string>
+    <string name="pc_typing_send_failed">Could not send text to PC.</string>
+    <string name="pc_typing_text_too_long">Text is too long.</string>
+    <string name="pc_typing_text_unsupported">Text includes unsupported characters.</string>
     <string name="pc_mouse_up_left_description">Move the PC pointer up and left.</string>
     <string name="pc_mouse_up_description">Move the PC pointer up.</string>
     <string name="pc_mouse_up_right_description">Move the PC pointer up and right.</string>
