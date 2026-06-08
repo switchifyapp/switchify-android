@@ -157,6 +157,10 @@ private fun PcMouseControlSurface(
         connectedDisplayName = uiState.connectedDisplayName,
         message = uiState.message
     )
+    PcTypingCommandSection(
+        connected = uiState.connectedDisplayName != null,
+        onOpenTyping = viewModel::showTypingSurface
+    )
     PcMovementSizeSection(
         selectedSize = uiState.selectedMovementSize,
         onSizeSelected = viewModel::selectMovementSize
@@ -165,9 +169,5 @@ private fun PcMouseControlSurface(
         connected = uiState.connectedDisplayName != null,
         movementStep = uiState.movementStep,
         onCommandSelected = viewModel::send
-    )
-    PcTypingCommandSection(
-        connected = uiState.connectedDisplayName != null,
-        onOpenTyping = viewModel::showTypingSurface
     )
 }
