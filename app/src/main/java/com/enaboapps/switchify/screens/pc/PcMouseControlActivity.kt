@@ -10,6 +10,7 @@ import androidx.activity.viewModels
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -20,7 +21,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
@@ -89,7 +89,16 @@ private fun PcMouseControlScreen(
     Scaffold(
         topBar = {
             NavBar(
-                title = stringResource(R.string.menu_title_control_pc),
+                title = "",
+                titleContent = {
+                    PcControlSurfaceSwitcher(
+                        selectedSurface = uiState.activeSurface,
+                        onSurfaceSelected = viewModel::selectControlSurface,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(end = 8.dp)
+                    )
+                },
                 showBackButton = true,
                 onBackPressed = onClose
             )
@@ -111,10 +120,6 @@ private fun PcMouseControlScreen(
                 PcControlStatusStrip(
                     connectedDisplayName = uiState.connectedDisplayName,
                     message = uiState.message
-                )
-                PcControlSurfaceSwitcher(
-                    selectedSurface = uiState.activeSurface,
-                    onSurfaceSelected = viewModel::selectControlSurface
                 )
                 when (uiState.activeSurface) {
                     PcControlSurface.Mouse -> PcMouseControlSurface(

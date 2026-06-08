@@ -41,6 +41,7 @@ data class NavBarAction(
 @Composable
 fun NavBar(
     title: String,
+    titleContent: (@Composable () -> Unit)? = null,
     navController: NavController? = null,
     actions: List<NavBarAction> = emptyList(),
     showBackButton: Boolean? = null,
@@ -87,14 +88,17 @@ fun NavBar(
                     }
                 }
 
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.onPrimary,
+                Box(
                     modifier = Modifier
                         .weight(1f)
                         .padding(start = if (canGoBack) 0.dp else Dimens.spaceM)
-                )
+                ) {
+                    titleContent?.invoke() ?: Text(
+                        text = title,
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                }
 
                 actions.forEach { action ->
                     if (action.icon != null) {
