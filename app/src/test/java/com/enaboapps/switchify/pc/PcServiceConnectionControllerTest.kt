@@ -122,6 +122,16 @@ class PcServiceConnectionControllerTest {
             lastUrls.remove(desktopId)
         }
 
+        override fun listPairings(): List<PcStoredPairing> {
+            return tokens.keys.map { desktopId ->
+                PcStoredPairing(
+                    desktopId = desktopId,
+                    serviceName = null,
+                    lastUrl = lastUrls[desktopId]
+                )
+            }
+        }
+
         override fun getLastUrl(desktopId: String): String? = lastUrls[desktopId]
         override fun getServiceName(desktopId: String): String? = null
     }

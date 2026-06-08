@@ -2,6 +2,7 @@ package com.enaboapps.switchify.screens.pc
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
@@ -63,14 +64,42 @@ fun PcConnectionScreen(navController: NavController) {
                                 runtimeSummary = row.summary,
                                 onClick = { row.perform(viewModel) },
                                 trailing = {
-                                    PcRowActionButton(
-                                        text = row.actionText,
-                                        enabled = row.enabled,
-                                        connected = row.status == PcRowStatus.Connected,
-                                        onClick = { row.perform(viewModel) }
-                                    )
+                                    Row(horizontalArrangement = Arrangement.spacedBy(Dimens.spaceS)) {
+                                        PcRowActionButton(
+                                            text = row.actionText,
+                                            enabled = row.enabled,
+                                            connected = row.status == PcRowStatus.Connected,
+                                            onClick = { row.perform(viewModel) }
+                                        )
+                                        if (row.canUnpair) {
+                                            TextButton(onClick = { viewModel.requestUnpair(row.pc.desktopId, row.title) }) {
+                                                Text(stringResource(R.string.pc_connection_unpair))
+                                            }
+                                        }
+                                    }
                                 }
                             )
+                        }
+                    }
+                }
+                if (uiState.savedPairings.isNotEmpty()) {
+                    Section(titleResId = R.string.pc_connection_paired_section) {
+                        Column(modifier = Modifier.padding(vertical = Dimens.spaceS)) {
+                            uiState.savedPairings.forEach { row ->
+                                PanelListRow(
+                                    runtimeTitle = row.title,
+                                    runtimeSummary = row.summary,
+                                    onClick = { viewModel.requestUnpair(row.desktopId, row.title) },
+                                    trailing = {
+                                        TextButton(
+                                            enabled = row.canUnpair,
+                                            onClick = { viewModel.requestUnpair(row.desktopId, row.title) }
+                                        ) {
+                                            Text(stringResource(R.string.pc_connection_unpair))
+                                        }
+                                    }
+                                )
+                            }
                         }
                     }
                 }
@@ -92,6 +121,26 @@ fun PcConnectionScreen(navController: NavController) {
             },
             title = { Text(stringResource(R.string.pc_connection_message_title)) },
             text = { Text(message) }
+        )
+    }
+
+    uiState.pendingUnpair?.let { pendingUnpair ->
+        AlertDialog(
+            onDismissRequest = viewModel::dismissUnpair,
+            confirmButton = {
+                TextButton(onClick = viewModel::confirmUnpair) {
+                    Text(stringResource(R.string.pc_connection_unpair))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = viewModel::dismissUnpair) {
+                    Text(stringResource(R.string.cancel))
+                }
+            },
+            title = { Text(stringResource(R.string.pc_connection_unpair_title)) },
+            text = {
+                Text(stringResource(R.string.pc_connection_unpair_message, pendingUnpair.displayName))
+            }
         )
     }
 }
