@@ -19,11 +19,13 @@ data class PcConnectionUiState(
     val permissionRequired: Boolean = false,
     val discoveryStatusText: String = "Searching for Switchify PC...",
     val discoveredPcs: List<PcRowState> = emptyList(),
+    val savedPairings: List<PcSavedPairingRowState> = emptyList(),
     val connectedDesktopId: String? = null,
     val isDiscovering: Boolean = false,
     val isBusy: Boolean = false,
     val message: String? = null,
-    val approvalCode: PcApprovalCodeState? = null
+    val approvalCode: PcApprovalCodeState? = null,
+    val pendingUnpair: PcUnpairConfirmationState? = null
 )
 
 data class PcRowState(
@@ -32,7 +34,20 @@ data class PcRowState(
     val summary: String,
     val actionText: String,
     val enabled: Boolean,
-    val status: PcRowStatus
+    val status: PcRowStatus,
+    val canUnpair: Boolean
+)
+
+data class PcSavedPairingRowState(
+    val desktopId: String,
+    val title: String,
+    val summary: String,
+    val canUnpair: Boolean = true
+)
+
+data class PcUnpairConfirmationState(
+    val desktopId: String,
+    val displayName: String
 )
 
 enum class PcRowStatus {
@@ -60,9 +75,11 @@ class PcConnectionViewModel(
         viewModelScope.launch {
             combine(discoveryService.pcs, discoveryService.status, rowStatuses, PcConnectionStateHolder.connectionState) { pcs, status, statuses, connection ->
                 val connectedDesktopId = (connection as? PcConnectionState.Connected)?.session?.desktopId
+                val discoveredDesktopIds = pcs.map { it.desktopId }.toSet()
                 _uiState.value.copy(
                     discoveryStatusText = discoveryStatusText(status, pcs.isEmpty()),
                     discoveredPcs = pcs.map { pc -> rowState(pc, statuses[pc.desktopId] ?: PcRowStatus.Idle, connectedDesktopId) },
+                    savedPairings = savedPairings(discoveredDesktopIds),
                     connectedDesktopId = connectedDesktopId,
                     isDiscovering = status == PcDiscoveryStatus.Searching
                 )
@@ -148,6 +165,30 @@ class PcConnectionViewModel(
         _uiState.value = _uiState.value.copy(message = null)
     }
 
+    fun requestUnpair(desktopId: String, displayName: String) {
+        _uiState.value = _uiState.value.copy(
+            pendingUnpair = PcUnpairConfirmationState(desktopId, displayName)
+        )
+    }
+
+    fun dismissUnpair() {
+        _uiState.value = _uiState.value.copy(pendingUnpair = null)
+    }
+
+    fun confirmUnpair() {
+        val unpair = _uiState.value.pendingUnpair ?: return
+        tokenStore.clearToken(unpair.desktopId)
+        val connected = PcConnectionStateHolder.connectionState.value as? PcConnectionState.Connected
+        if (connected?.session?.desktopId == unpair.desktopId) {
+            PcConnectionStateHolder.setDisconnected()
+        }
+        rowStatuses.value = rowStatuses.value - unpair.desktopId
+        _uiState.value = _uiState.value.copy(
+            message = "Unpaired from ${unpair.displayName}.",
+            pendingUnpair = null
+        )
+    }
+
     override fun onCleared() {
         discoveryService.stopDiscovery()
         connector.close()
@@ -175,8 +216,21 @@ class PcConnectionViewModel(
             summary = summary,
             actionText = actionText,
             enabled = !connected && !_uiState.value.isBusy,
-            status = if (connected) PcRowStatus.Connected else status
+            status = if (connected) PcRowStatus.Connected else status,
+            canUnpair = hasToken || connected
         )
+    }
+
+    private fun savedPairings(discoveredDesktopIds: Set<String>): List<PcSavedPairingRowState> {
+        return tokenStore.listPairings()
+            .filterNot { it.desktopId in discoveredDesktopIds }
+            .map { pairing ->
+                PcSavedPairingRowState(
+                    desktopId = pairing.desktopId,
+                    title = pairing.serviceName ?: pairing.desktopId,
+                    summary = pairing.lastUrl ?: "Not nearby"
+                )
+            }
     }
 
     private fun setBusy(

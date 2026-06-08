@@ -15,6 +15,7 @@ import com.enaboapps.switchify.pc.PcPairingTokenStore
 import com.enaboapps.switchify.pc.PcPingResult
 import com.enaboapps.switchify.pc.PcPointerBounds
 import com.enaboapps.switchify.pc.PcPointerDeltas
+import com.enaboapps.switchify.pc.PcStoredPairing
 import com.enaboapps.switchify.pc.PcPointerMovementProfile
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
@@ -620,6 +621,16 @@ class PcMouseControlViewModelTest {
 
         override fun clearToken(desktopId: String) {
             tokens.remove(desktopId)
+        }
+
+        override fun listPairings(): List<PcStoredPairing> {
+            return tokens.keys.map { desktopId ->
+                PcStoredPairing(
+                    desktopId = desktopId,
+                    serviceName = null,
+                    lastUrl = null
+                )
+            }
         }
 
         override fun getLastUrl(desktopId: String): String? = null

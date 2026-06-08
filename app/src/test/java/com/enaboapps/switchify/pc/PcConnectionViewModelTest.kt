@@ -163,6 +163,83 @@ class PcConnectionViewModelTest {
         assertEquals("Request access", viewModel.uiState.value.discoveredPcs.first().actionText)
     }
 
+    @Test
+    fun savedPairingsListsStoredPcWhenNotDiscovered() = runTest(dispatcher) {
+        val discovery = FakeDiscovery(emptyList())
+        val tokens = FakeTokenStore(
+            initialTokens = mutableMapOf("desktop-1" to "token"),
+            initialLastUrls = mutableMapOf("desktop-1" to "ws://192.168.1.20:7347"),
+            initialServiceNames = mutableMapOf("desktop-1" to "Switchify PC")
+        )
+        val viewModel = viewModel(discovery, tokens, FakeConnector())
+        advanceUntilIdle()
+
+        val savedPairing = viewModel.uiState.value.savedPairings.single()
+        assertEquals("desktop-1", savedPairing.desktopId)
+        assertEquals("Switchify PC", savedPairing.title)
+        assertEquals("ws://192.168.1.20:7347", savedPairing.summary)
+    }
+
+    @Test
+    fun savedPairingsExcludeDiscoveredPc() = runTest(dispatcher) {
+        val discovery = FakeDiscovery(listOf(pc))
+        val tokens = FakeTokenStore(initialTokens = mutableMapOf("desktop-1" to "token"))
+        val viewModel = viewModel(discovery, tokens, FakeConnector())
+        advanceUntilIdle()
+
+        assertEquals(true, viewModel.uiState.value.discoveredPcs.first().canUnpair)
+        assertEquals(emptyList<PcSavedPairingRowState>(), viewModel.uiState.value.savedPairings)
+    }
+
+    @Test
+    fun confirmUnpairClearsSavedToken() = runTest(dispatcher) {
+        val discovery = FakeDiscovery(listOf(pc))
+        val tokens = FakeTokenStore(initialTokens = mutableMapOf("desktop-1" to "token"))
+        val viewModel = viewModel(discovery, tokens, FakeConnector())
+        advanceUntilIdle()
+
+        viewModel.requestUnpair("desktop-1", "Switchify PC")
+        viewModel.confirmUnpair()
+        advanceUntilIdle()
+
+        assertNull(tokens.getToken("desktop-1"))
+        assertNull(viewModel.uiState.value.pendingUnpair)
+        assertEquals("Unpaired from Switchify PC.", viewModel.uiState.value.message)
+    }
+
+    @Test
+    fun confirmUnpairDisconnectsCurrentPc() = runTest(dispatcher) {
+        val discovery = FakeDiscovery(listOf(pc))
+        val tokens = FakeTokenStore(initialTokens = mutableMapOf("desktop-1" to "token"))
+        val viewModel = viewModel(discovery, tokens, FakeConnector())
+        PcConnectionStateHolder.setConnected(
+            PcAuthenticatedSession("desktop-1", "device-1", "ws://192.168.1.20:7347"),
+            "Switchify PC"
+        )
+        advanceUntilIdle()
+
+        viewModel.requestUnpair("desktop-1", "Switchify PC")
+        viewModel.confirmUnpair()
+        advanceUntilIdle()
+
+        assertEquals(PcConnectionState.Disconnected, PcConnectionStateHolder.connectionState.value)
+    }
+
+    @Test
+    fun dismissUnpairKeepsToken() = runTest(dispatcher) {
+        val discovery = FakeDiscovery(listOf(pc))
+        val tokens = FakeTokenStore(initialTokens = mutableMapOf("desktop-1" to "token"))
+        val viewModel = viewModel(discovery, tokens, FakeConnector())
+        advanceUntilIdle()
+
+        viewModel.requestUnpair("desktop-1", "Switchify PC")
+        viewModel.dismissUnpair()
+        advanceUntilIdle()
+
+        assertEquals("token", tokens.getToken("desktop-1"))
+        assertNull(viewModel.uiState.value.pendingUnpair)
+    }
+
     private fun viewModel(
         discovery: FakeDiscovery,
         tokens: FakeTokenStore,
@@ -185,24 +262,39 @@ class PcConnectionViewModelTest {
     }
 
     private class FakeTokenStore(
-        private val initialTokens: MutableMap<String, String> = mutableMapOf()
+        private val initialTokens: MutableMap<String, String> = mutableMapOf(),
+        private val initialLastUrls: MutableMap<String, String> = mutableMapOf(),
+        private val initialServiceNames: MutableMap<String, String> = mutableMapOf()
     ) : PcPairingTokenStore {
-        private val lastUrls = mutableMapOf<String, String>()
+        private val lastUrls = initialLastUrls
+        private val serviceNames = initialServiceNames
 
         override fun getToken(desktopId: String): String? = initialTokens[desktopId]
 
         override fun saveToken(desktopId: String, token: String, lastUrl: String, serviceName: String?) {
             initialTokens[desktopId] = token
             lastUrls[desktopId] = lastUrl
+            if (!serviceName.isNullOrBlank()) serviceNames[desktopId] = serviceName
         }
 
         override fun clearToken(desktopId: String) {
             initialTokens.remove(desktopId)
             lastUrls.remove(desktopId)
+            serviceNames.remove(desktopId)
+        }
+
+        override fun listPairings(): List<PcStoredPairing> {
+            return initialTokens.keys.map { desktopId ->
+                PcStoredPairing(
+                    desktopId = desktopId,
+                    serviceName = serviceNames[desktopId],
+                    lastUrl = lastUrls[desktopId]
+                )
+            }
         }
 
         override fun getLastUrl(desktopId: String): String? = lastUrls[desktopId]
-        override fun getServiceName(desktopId: String): String? = null
+        override fun getServiceName(desktopId: String): String? = serviceNames[desktopId]
     }
 
     private object FakeIdentity : PcDeviceIdentity {
