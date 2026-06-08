@@ -104,6 +104,17 @@ object PcProtocol {
         return authenticatedCommand(id, deviceId, token, timestamp, "keyboard.typeText", JSONObject().put("text", text))
     }
 
+    fun keyboardKey(id: String, deviceId: String, token: String, timestamp: Long, key: PcKeyboardKey): String {
+        return authenticatedCommand(
+            id,
+            deviceId,
+            token,
+            timestamp,
+            "keyboard.key",
+            JSONObject().put("key", key.protocolValue)
+        )
+    }
+
     fun parseResponse(raw: String): PcProtocolResponse {
         return runCatching {
             val json = JSONObject(raw)

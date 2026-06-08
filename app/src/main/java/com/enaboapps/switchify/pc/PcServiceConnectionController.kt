@@ -80,10 +80,10 @@ class PcServiceConnectionController(
         return PcServiceConnectResult.Failed(message)
     }
 
-    suspend fun sendMouseCommand(command: PcMouseCommand): PcCommandResult {
+    suspend fun sendCommand(command: PcControlCommand): PcCommandResult {
         val connected = PcConnectionStateHolder.connectionState.value as? PcConnectionState.Connected
             ?: return PcCommandResult.AuthFailed()
-        val result = connector.sendMouseCommand(connected.session, command)
+        val result = connector.sendCommand(connected.session, command)
         if (result is PcCommandResult.AuthFailed) {
             tokenStore.clearToken(connected.session.desktopId)
             PcConnectionStateHolder.setDisconnected()

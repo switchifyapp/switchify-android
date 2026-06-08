@@ -198,6 +198,46 @@ class PcProtocolTest {
         assertFalse(json.toString().contains("shared-token"))
     }
 
+    @Test
+    fun buildsKeyboardKeyCommandWithAuthProof() {
+        val json = JSONObject(
+            PcProtocol.keyboardKey(
+                id = "key-1",
+                deviceId = "device-1",
+                token = "shared-token",
+                timestamp = 1000L,
+                key = PcKeyboardKey.Enter
+            )
+        )
+
+        assertEquals(1, json.getInt("version"))
+        assertEquals("key-1", json.getString("id"))
+        assertEquals("device-1", json.getString("deviceId"))
+        assertEquals(1000L, json.getLong("timestamp"))
+        assertEquals("keyboard.key", json.getString("type"))
+        assertEquals("Enter", json.getJSONObject("payload").getString("key"))
+        assertEquals(
+            PcProtocol.authProof(
+                id = "key-1",
+                deviceId = "device-1",
+                timestamp = 1000L,
+                type = "keyboard.key",
+                payload = JSONObject().put("key", "Enter"),
+                token = "shared-token"
+            ),
+            json.getString("auth")
+        )
+        assertFalse(json.toString().contains("shared-token"))
+    }
+
+    @Test
+    fun buildsBackspaceKeyboardKeyCommand() {
+        val json = JSONObject(PcProtocol.keyboardKey("key-2", "device-1", "token", 1000L, PcKeyboardKey.Backspace))
+
+        assertEquals("keyboard.key", json.getString("type"))
+        assertEquals("Backspace", json.getJSONObject("payload").getString("key"))
+    }
+
     private fun validPointerProfileResponse(
         displayId: String = "0:0:1280:720:1.5",
         scaleFactor: Double = 1.5,

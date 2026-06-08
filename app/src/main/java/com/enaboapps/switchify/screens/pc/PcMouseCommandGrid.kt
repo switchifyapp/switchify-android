@@ -33,21 +33,21 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.enaboapps.switchify.R
-import com.enaboapps.switchify.pc.PcMouseCommand
+import com.enaboapps.switchify.pc.PcControlCommand
 
 data class PcMouseControlSpec(
     @param:StringRes val labelResId: Int,
-    val command: PcMouseCommand
+    val command: PcControlCommand
 )
 
 @Composable
-fun PcMouseCommandGrid(
+fun PcControlCommandGrid(
     connected: Boolean,
     movementStep: Int,
-    onCommandSelected: (PcMouseCommand) -> Unit,
+    onCommandSelected: (PcControlCommand) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    PcMouseCommandSections(
+    PcControlCommandSections(
         connected = connected,
         movementStep = movementStep,
         onCommandSelected = onCommandSelected,
@@ -101,10 +101,10 @@ fun PcMovementSizeSection(
 }
 
 @Composable
-fun PcMouseCommandSections(
+fun PcControlCommandSections(
     connected: Boolean,
     movementStep: Int,
-    onCommandSelected: (PcMouseCommand) -> Unit,
+    onCommandSelected: (PcControlCommand) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -146,9 +146,9 @@ fun PcTypingCommandSection(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            PcCommandTile(
+            PcScannedCommandTile(
                 labelResId = R.string.pc_typing_type_text,
-                connected = connected,
+                enabled = connected,
                 onClick = onOpenTyping,
                 minHeightDp = 72,
                 modifier = Modifier.weight(1f)
@@ -163,7 +163,7 @@ fun PcTypingCommandSection(
 private fun PcMovementCommandSection(
     connected: Boolean,
     movementStep: Int,
-    onCommandSelected: (PcMouseCommand) -> Unit
+    onCommandSelected: (PcControlCommand) -> Unit
 ) {
     val controls = pcMovementControlSpecs(movementStep)
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -208,7 +208,7 @@ private fun PcButtonCommandSection(
     @StringRes titleResId: Int,
     specs: List<PcMouseControlSpec>,
     connected: Boolean,
-    onCommandSelected: (PcMouseCommand) -> Unit
+    onCommandSelected: (PcControlCommand) -> Unit
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         PcCommandSectionTitle(titleResId)
@@ -234,7 +234,7 @@ private fun PcCommandSectionTitle(@StringRes titleResId: Int) {
 private fun PcCommandButtonRow(
     specs: List<PcMouseControlSpec>,
     connected: Boolean,
-    onCommandSelected: (PcMouseCommand) -> Unit,
+    onCommandSelected: (PcControlCommand) -> Unit,
     minHeightDp: Int
 ) {
     Row(
@@ -257,13 +257,13 @@ private fun PcCommandButtonRow(
 private fun PcCommandButton(
     spec: PcMouseControlSpec,
     connected: Boolean,
-    onCommandSelected: (PcMouseCommand) -> Unit,
+    onCommandSelected: (PcControlCommand) -> Unit,
     minHeightDp: Int,
     modifier: Modifier = Modifier
 ) {
-    PcCommandTile(
+    PcScannedCommandTile(
         labelResId = spec.labelResId,
-        connected = connected,
+        enabled = connected,
         onClick = { onCommandSelected(spec.command) },
         minHeightDp = minHeightDp,
         modifier = modifier
@@ -271,38 +271,46 @@ private fun PcCommandButton(
 }
 
 @Composable
-private fun PcCommandTile(
+fun PcScannedCommandTile(
     @StringRes labelResId: Int,
-    connected: Boolean,
+    enabled: Boolean,
     onClick: () -> Unit,
-    minHeightDp: Int,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    minHeightDp: Int = 72,
+    square: Boolean = true
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
     val backgroundColor = when {
-        !connected -> MaterialTheme.colorScheme.surfaceVariant
+        !enabled -> MaterialTheme.colorScheme.surfaceVariant
         pressed -> MaterialTheme.colorScheme.primaryContainer
         else -> MaterialTheme.colorScheme.surface
     }
-    val borderColor = if (connected) {
+    val borderColor = if (enabled) {
         MaterialTheme.colorScheme.outline
     } else {
         MaterialTheme.colorScheme.outlineVariant
     }
-    val contentColor = if (connected) {
+    val contentColor = if (enabled) {
         MaterialTheme.colorScheme.onSurface
     } else {
         MaterialTheme.colorScheme.onSurfaceVariant
     }
-
-    Surface(
-        modifier = modifier
+    val tileModifier = if (square) {
+        modifier
             .fillMaxWidth()
             .aspectRatio(1f)
             .heightIn(min = minHeightDp.dp)
+    } else {
+        modifier
+            .fillMaxWidth()
+            .heightIn(min = minHeightDp.dp)
+    }
+
+    Surface(
+        modifier = tileModifier
             .clickable(
-                enabled = connected,
+                enabled = enabled,
                 role = Role.Button,
                 interactionSource = interactionSource,
                 indication = null,
@@ -367,29 +375,29 @@ fun pcMouseControlSpecs(moveStep: Int): List<PcMouseControlSpec> {
 fun pcMovementControlSpecs(moveStep: Int): List<PcMouseControlSpec> {
     val step = moveStep.coerceAtLeast(1)
     return listOf(
-        PcMouseControlSpec(R.string.pc_mouse_up_left, PcMouseCommand.Move(-step, -step)),
-        PcMouseControlSpec(R.string.pc_mouse_up, PcMouseCommand.Move(0, -step)),
-        PcMouseControlSpec(R.string.pc_mouse_up_right, PcMouseCommand.Move(step, -step)),
-        PcMouseControlSpec(R.string.pc_mouse_left, PcMouseCommand.Move(-step, 0)),
-        PcMouseControlSpec(R.string.pc_mouse_right, PcMouseCommand.Move(step, 0)),
-        PcMouseControlSpec(R.string.pc_mouse_down_left, PcMouseCommand.Move(-step, step)),
-        PcMouseControlSpec(R.string.pc_mouse_down, PcMouseCommand.Move(0, step)),
-        PcMouseControlSpec(R.string.pc_mouse_down_right, PcMouseCommand.Move(step, step))
+        PcMouseControlSpec(R.string.pc_mouse_up_left, PcControlCommand.Move(-step, -step)),
+        PcMouseControlSpec(R.string.pc_mouse_up, PcControlCommand.Move(0, -step)),
+        PcMouseControlSpec(R.string.pc_mouse_up_right, PcControlCommand.Move(step, -step)),
+        PcMouseControlSpec(R.string.pc_mouse_left, PcControlCommand.Move(-step, 0)),
+        PcMouseControlSpec(R.string.pc_mouse_right, PcControlCommand.Move(step, 0)),
+        PcMouseControlSpec(R.string.pc_mouse_down_left, PcControlCommand.Move(-step, step)),
+        PcMouseControlSpec(R.string.pc_mouse_down, PcControlCommand.Move(0, step)),
+        PcMouseControlSpec(R.string.pc_mouse_down_right, PcControlCommand.Move(step, step))
     )
 }
 
 fun pcClickControlSpecs(): List<PcMouseControlSpec> {
     return listOf(
-        PcMouseControlSpec(R.string.pc_mouse_click, PcMouseCommand.LeftClick),
-        PcMouseControlSpec(R.string.pc_mouse_double_click, PcMouseCommand.DoubleClick),
-        PcMouseControlSpec(R.string.pc_mouse_right_click, PcMouseCommand.RightClick)
+        PcMouseControlSpec(R.string.pc_mouse_click, PcControlCommand.LeftClick),
+        PcMouseControlSpec(R.string.pc_mouse_double_click, PcControlCommand.DoubleClick),
+        PcMouseControlSpec(R.string.pc_mouse_right_click, PcControlCommand.RightClick)
     )
 }
 
 fun pcScrollControlSpecs(): List<PcMouseControlSpec> {
     val scrollStep = 5
     return listOf(
-        PcMouseControlSpec(R.string.pc_mouse_scroll_up, PcMouseCommand.Scroll(0, scrollStep)),
-        PcMouseControlSpec(R.string.pc_mouse_scroll_down, PcMouseCommand.Scroll(0, -scrollStep))
+        PcMouseControlSpec(R.string.pc_mouse_scroll_up, PcControlCommand.Scroll(0, scrollStep)),
+        PcMouseControlSpec(R.string.pc_mouse_scroll_down, PcControlCommand.Scroll(0, -scrollStep))
     )
 }
