@@ -42,6 +42,42 @@ class PcProtocolTest {
     }
 
     @Test
+    fun parsesAckOnlyWhenOkIsTrue() {
+        val response = PcProtocol.parseResponse(
+            """{"version":1,"id":"req-1","type":"ack","ok":true,"error":null}"""
+        )
+
+        assertEquals(PcProtocolResponse.Ack("req-1"), response)
+    }
+
+    @Test
+    fun rejectsAckWhenOkIsFalse() {
+        val response = PcProtocol.parseResponse(
+            """{"version":1,"id":"req-1","type":"ack","ok":false,"error":null}"""
+        )
+
+        assertEquals(PcProtocolResponse.Invalid, response)
+    }
+
+    @Test
+    fun rejectsAckWhenOkIsMissing() {
+        val response = PcProtocol.parseResponse(
+            """{"version":1,"id":"req-1","type":"ack","error":null}"""
+        )
+
+        assertEquals(PcProtocolResponse.Invalid, response)
+    }
+
+    @Test
+    fun rejectsAckWhenErrorIsPresent() {
+        val response = PcProtocol.parseResponse(
+            """{"version":1,"id":"req-1","type":"ack","ok":true,"error":{"code":"failed","message":"failed"}}"""
+        )
+
+        assertEquals(PcProtocolResponse.Invalid, response)
+    }
+
+    @Test
     fun mapsKnownPairingErrors() {
         assertEquals("Request rejected.", PcProtocol.userMessageForError("pairing_rejected"))
         assertEquals("Request expired. Try again.", PcProtocol.userMessageForError("pairing_request_expired"))

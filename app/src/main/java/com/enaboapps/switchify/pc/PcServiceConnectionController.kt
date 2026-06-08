@@ -26,12 +26,13 @@ class PcServiceConnectionController(
     private val discovery: PcDiscovery = PcDiscoveryService(requireNotNull(context).applicationContext),
     private val tokenStore: PcPairingTokenStore = PcTokenStore(requireNotNull(context).applicationContext),
     private val identityRepository: PcDeviceIdentity = PcDeviceIdentityRepository(requireNotNull(context).applicationContext),
-    private val connector: PcConnector = SwitchifyPcClient(identityRepository, tokenStore)
+    private val connector: PcConnector = SwitchifyPcClient(identityRepository, tokenStore),
+    private val requestNonceProvider: () -> String = { UUID.randomUUID().toString() }
 ) {
     private val _state = MutableStateFlow<PcServiceConnectionState>(PcServiceConnectionState.Disconnected)
     val state: StateFlow<PcServiceConnectionState> = _state
 
-    suspend fun connectOrRequestAccess(onWaitingForApproval: () -> Unit = {}): PcServiceConnectResult {
+    suspend fun connectOrRequestAccess(onWaitingForApproval: (PcApprovalCodeState) -> Unit = {}): PcServiceConnectResult {
         (PcConnectionStateHolder.connectionState.value as? PcConnectionState.Connected)?.let {
             _state.value = PcServiceConnectionState.Connected(it.session, it.displayName)
             return PcServiceConnectResult.Connected(it.session, it.displayName)
@@ -54,8 +55,14 @@ class PcServiceConnectionController(
         }
 
         for (pc in discovered) {
-            onWaitingForApproval()
-            when (val result = connector.requestApproval(pc, UUID.randomUUID().toString())) {
+            val requestNonce = requestNonceProvider()
+            val verificationCode = createPairingVerificationCode(
+                desktopId = pc.desktopId,
+                deviceId = identityRepository.getDeviceId(),
+                requestNonce = requestNonce
+            )
+            onWaitingForApproval(PcApprovalCodeState(pc.displayName, verificationCode))
+            when (val result = connector.requestApproval(pc, requestNonce)) {
                 is PcPairingResult.Paired -> {
                     tokenStore.saveToken(result.desktopId, result.token, result.websocketUrl, pc.displayName)
                     when (val ping = connectWithToken(pc, result.token)) {

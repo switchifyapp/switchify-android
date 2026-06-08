@@ -472,6 +472,22 @@ class PcMouseControlViewModelTest {
     }
 
     @Test
+    fun failedLiveCommandClearsConnectionSoNextCommandReconnects() = runTest(dispatcher) {
+        PcConnectionStateHolder.setConnected(session, "Switchify PC")
+        val connector = FakeConnector(listOf(PcCommandResult.Failed(), PcCommandResult.Ack))
+        val viewModel = PcMouseControlViewModel(FakeTokenStore(), connector, FakeMovementSizeStore())
+
+        viewModel.send(PcControlCommand.LeftClick)
+        advanceUntilIdle()
+        viewModel.send(PcControlCommand.DoubleClick)
+        advanceUntilIdle()
+
+        assertEquals(2, connector.openControlSessionCalls)
+        assertEquals(listOf(PcControlCommand.LeftClick, PcControlCommand.DoubleClick), connector.commands)
+        assertNull(viewModel.uiState.value.message)
+    }
+
+    @Test
     fun authFailureClearsTokenAndDisconnects() = runTest(dispatcher) {
         PcConnectionStateHolder.setConnected(session, "Switchify PC")
         val tokenStore = FakeTokenStore(mutableMapOf("desktop-1" to "token"))
@@ -514,7 +530,12 @@ class PcMouseControlViewModelTest {
             deferredResult = commandResult
         }
 
+        constructor(commandResults: List<PcCommandResult>) : this(PcCommandResult.Ack) {
+            queuedResults.addAll(commandResults)
+        }
+
         private var deferredResult: CompletableDeferred<PcCommandResult>? = null
+        private val queuedResults = mutableListOf<PcCommandResult>()
         var openControlSessionCalls = 0
         val commands = mutableListOf<PcControlCommand>()
         val oneShotCommands = mutableListOf<PcControlCommand>()
@@ -535,7 +556,7 @@ class PcMouseControlViewModelTest {
 
                     override suspend fun sendCommand(command: PcControlCommand): PcCommandResult {
                         commands.add(command)
-                        return deferredResult?.await() ?: commandResult
+                        return deferredResult?.await() ?: nextCommandResult()
                     }
 
                     override fun close() = Unit
@@ -548,10 +569,14 @@ class PcMouseControlViewModelTest {
             command: PcControlCommand
         ): PcCommandResult {
             oneShotCommands.add(command)
-            return deferredResult?.await() ?: commandResult
+            return deferredResult?.await() ?: nextCommandResult()
         }
 
         override fun close() = Unit
+
+        private fun nextCommandResult(): PcCommandResult {
+            return if (queuedResults.isEmpty()) commandResult else queuedResults.removeAt(0)
+        }
     }
 
     private fun pointerProfile(small: Int, medium: Int, large: Int, maxDelta: Int = 500): PcPointerMovementProfile {
