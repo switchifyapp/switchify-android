@@ -44,7 +44,13 @@ fun BaseView(
     val title = stringResource(titleResId)
     Scaffold(
         topBar = {
-            NavBar(title, navController, navBarActions, showBackButton, onBackPressed)
+            NavBar(
+                title = title,
+                navController = navController,
+                actions = navBarActions,
+                showBackButton = showBackButton,
+                onBackPressed = onBackPressed
+            )
         },
         floatingActionButton = floatingActionButton
     ) { paddingValues ->
