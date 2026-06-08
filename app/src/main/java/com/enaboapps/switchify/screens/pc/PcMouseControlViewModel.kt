@@ -219,6 +219,7 @@ class PcMouseControlViewModel(
                     }
                 }
                 is PcCommandResult.Failed -> {
+                    closeLiveConnection()
                     _uiState.update {
                         it.copy(
                             isBusy = false,

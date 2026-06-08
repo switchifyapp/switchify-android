@@ -120,7 +120,7 @@ object PcProtocol {
             val json = JSONObject(raw)
             when (json.optString("type")) {
                 "ack" -> {
-                    if (json.optBoolean("ok") && !json.isNull("error")) PcProtocolResponse.Invalid
+                    if (!json.optBoolean("ok") || !json.isNull("error")) PcProtocolResponse.Invalid
                     else json.optString("id").takeIf { it.isNotBlank() }?.let(PcProtocolResponse::Ack)
                         ?: PcProtocolResponse.Invalid
                 }

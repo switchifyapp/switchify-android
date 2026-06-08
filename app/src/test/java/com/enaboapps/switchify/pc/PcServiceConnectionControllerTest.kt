@@ -60,12 +60,13 @@ class PcServiceConnectionControllerTest {
             pairingResult = PcPairingResult.Paired("desktop-1", "new-token", "ws://192.168.1.20:7347")
         )
         val controller = controller(tokens, connector)
-        var waitingForApproval = false
+        var approvalCode: PcApprovalCodeState? = null
 
-        val result = controller.connectOrRequestAccess { waitingForApproval = true }
+        val result = controller.connectOrRequestAccess { approvalCode = it }
 
         assertTrue(result is PcServiceConnectResult.Connected)
-        assertTrue(waitingForApproval)
+        assertEquals(PcApprovalCodeState("Switchify PC", "215918"), approvalCode)
+        assertEquals("nonce-1", connector.requestNonces.single())
         assertEquals(1, connector.pairingCalls)
         assertEquals(1, connector.pingCalls)
         assertEquals("new-token", tokens.getToken("desktop-1"))
@@ -92,7 +93,8 @@ class PcServiceConnectionControllerTest {
             discovery = FakeDiscovery(listOf(pc)),
             tokenStore = tokens,
             identityRepository = FakeIdentity,
-            connector = connector
+            connector = connector,
+            requestNonceProvider = { "nonce-1" }
         )
     }
 
@@ -135,9 +137,11 @@ class PcServiceConnectionControllerTest {
     ) : PcConnector {
         var pingCalls = 0
         var pairingCalls = 0
+        val requestNonces = mutableListOf<String>()
 
         override suspend fun requestApproval(pc: DiscoveredPc, requestNonce: String): PcPairingResult {
             pairingCalls++
+            requestNonces.add(requestNonce)
             return pairingResult
         }
 

@@ -180,9 +180,13 @@ class MainMenuStructure(
         }
         showMessage(R.string.pc_control_connecting, MessageSeverity.Info)
         coroutineScope.launch {
-            val result = ServiceCore.getPcServiceConnectionController()?.connectOrRequestAccess {
+            val result = ServiceCore.getPcServiceConnectionController()?.connectOrRequestAccess { approvalCode ->
                 coroutineScope.launch(Dispatchers.Main) {
-                    showMessage(R.string.pc_control_waiting_approval, MessageSeverity.Info)
+                    showMessage(
+                        R.string.pc_control_pairing_code,
+                        arrayOf(approvalCode.verificationCode),
+                        MessageSeverity.Info
+                    )
                 }
             } ?: PcServiceConnectResult.Failed("No Switchify PC found.")
             withContext(Dispatchers.Main) {
@@ -213,6 +217,16 @@ class MainMenuStructure(
             messageResId,
             ServiceMessageHUD.MessageType.DISAPPEARING,
             ServiceMessageHUD.Time.MEDIUM,
+            severity
+        )
+    }
+
+    private fun showMessage(messageResId: Int, messageArgs: Array<out Any>, severity: MessageSeverity) {
+        ServiceMessageHUD.instance.showMessage(
+            messageResId,
+            messageArgs,
+            ServiceMessageHUD.MessageType.DISAPPEARING,
+            ServiceMessageHUD.Time.LONG,
             severity
         )
     }

@@ -274,6 +274,7 @@
     <string name="pc_control_connecting">Connecting to PC...</string>
     <string name="pc_control_connect_first">Connect to PC from Switchify first.</string>
     <string name="pc_control_waiting_approval">Waiting for approval on your PC...</string>
+    <string name="pc_control_pairing_code">Confirm code %1$s on your PC before accepting.</string>
     <string name="pc_control_no_pc_found">No Switchify PC found.</string>
     <string name="pc_control_could_not_connect">Could not connect to PC.</string>
     <string name="pc_control_command_failed">Could not send command to PC.</string>
