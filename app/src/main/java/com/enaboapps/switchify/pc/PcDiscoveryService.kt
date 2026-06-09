@@ -27,6 +27,8 @@ class PcDiscoveryService(context: Context) : PcDiscovery {
     private val nsdManager = context.applicationContext.getSystemService(Context.NSD_SERVICE) as NsdManager
     private val discovered = linkedMapOf<String, DiscoveredPc>()
     private var discoveryListener: NsdManager.DiscoveryListener? = null
+    private val resolveSequencer = PcResolveSequencer<NsdServiceInfo>()
+    private val retriedServiceNames = mutableSetOf<String>()
 
     private val _pcs = MutableStateFlow<List<DiscoveredPc>>(emptyList())
     override val pcs: StateFlow<List<DiscoveredPc>> = _pcs
@@ -37,6 +39,7 @@ class PcDiscoveryService(context: Context) : PcDiscovery {
     override fun startDiscovery() {
         stopDiscovery()
         discovered.clear()
+        synchronized(retriedServiceNames) { retriedServiceNames.clear() }
         _pcs.value = emptyList()
         _status.value = PcDiscoveryStatus.Searching
 
@@ -75,21 +78,39 @@ class PcDiscoveryService(context: Context) : PcDiscovery {
     }
 
     override fun stopDiscovery() {
+        resolveSequencer.clear()
         val listener = discoveryListener ?: return
         runCatching { nsdManager.stopServiceDiscovery(listener) }
         discoveryListener = null
     }
 
     private fun resolve(serviceInfo: NsdServiceInfo) {
+        resolveSequencer.enqueue(serviceInfo)?.let(::startResolve)
+    }
+
+    private fun startResolve(serviceInfo: NsdServiceInfo) {
         nsdManager.resolveService(serviceInfo, object : NsdManager.ResolveListener {
-            override fun onResolveFailed(serviceInfo: NsdServiceInfo, errorCode: Int) = Unit
+            override fun onResolveFailed(failedService: NsdServiceInfo, errorCode: Int) {
+                if (errorCode == NsdManager.FAILURE_ALREADY_ACTIVE && shouldRetry(failedService)) {
+                    resolveSequencer.enqueue(failedService)
+                }
+                resolveSequencer.finish()?.let(::startResolve)
+            }
 
             override fun onServiceResolved(resolvedService: NsdServiceInfo) {
-                val pc = parse(resolvedService) ?: return
-                discovered[pc.desktopId] = pc
-                publish()
+                val pc = parse(resolvedService)
+                if (pc != null) {
+                    discovered[pc.desktopId] = pc
+                    publish()
+                }
+                resolveSequencer.finish()?.let(::startResolve)
             }
         })
+    }
+
+    private fun shouldRetry(serviceInfo: NsdServiceInfo): Boolean {
+        val name = serviceInfo.serviceName.orEmpty()
+        return synchronized(retriedServiceNames) { retriedServiceNames.add(name) }
     }
 
     private fun publish() {
