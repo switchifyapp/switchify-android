@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.consumeAsFlow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import java.util.concurrent.atomic.AtomicBoolean
 
 class AccessibilityEventPipeline(
     private val scope: CoroutineScope,
@@ -18,7 +19,8 @@ class AccessibilityEventPipeline(
     private val eventDispatcher: CoroutineDispatcher = Dispatchers.Default,
     private val onProcess: suspend () -> Unit
 ) {
-    private val channel = Channel<Int>(capacity = Channel.CONFLATED)
+    private val channel = Channel<Unit>(capacity = Channel.CONFLATED)
+    private val pendingSettledRefresh = AtomicBoolean(false)
     private var job: Job? = null
     private var settledRefreshJob: Job? = null
 
@@ -32,10 +34,10 @@ class AccessibilityEventPipeline(
             channel
                 .consumeAsFlow()
                 .flowOn(eventDispatcher)
-                .collect { eventType ->
+                .collect {
                     if (scope.isActive) {
                         onProcess()
-                        if (shouldScheduleSettledRefresh(eventType)) {
+                        if (pendingSettledRefresh.getAndSet(false)) {
                             scheduleSettledRefresh()
                         }
                     }
@@ -48,6 +50,7 @@ class AccessibilityEventPipeline(
         job = null
         settledRefreshJob?.cancel()
         settledRefreshJob = null
+        pendingSettledRefresh.set(false)
     }
 
     fun trySend(event: AccessibilityEvent) {
@@ -55,7 +58,10 @@ class AccessibilityEventPipeline(
     }
 
     internal fun trySendEventType(eventType: Int) {
-        channel.trySend(eventType)
+        if (shouldScheduleSettledRefresh(eventType)) {
+            pendingSettledRefresh.set(true)
+        }
+        channel.trySend(Unit)
     }
 
     private fun scheduleSettledRefresh() {
