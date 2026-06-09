@@ -1,6 +1,7 @@
 package com.enaboapps.switchify.screens.pc
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -20,11 +21,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.components.BaseView
-import com.enaboapps.switchify.components.PanelListRow
+import com.enaboapps.switchify.components.PreferenceComponentBase
 import com.enaboapps.switchify.components.ScrollableView
 import com.enaboapps.switchify.components.Section
 import com.enaboapps.switchify.pc.PcApprovalCodeState
@@ -32,6 +34,8 @@ import com.enaboapps.switchify.pc.PcConnectionViewModel
 import com.enaboapps.switchify.pc.PcRowState
 import com.enaboapps.switchify.pc.PcRowStatus
 import com.enaboapps.switchify.theme.Dimens
+
+private val PcConnectionCompactRowWidth = 380.dp
 
 @Composable
 fun PcConnectionScreen(navController: NavController) {
@@ -59,24 +63,12 @@ fun PcConnectionScreen(navController: NavController) {
                             modifier = Modifier.padding(horizontal = Dimens.spaceM, vertical = Dimens.spaceS)
                         )
                         uiState.discoveredPcs.forEach { row ->
-                            PanelListRow(
-                                runtimeTitle = row.title,
-                                runtimeSummary = row.summary,
+                            PcConnectionPreferenceRow(
+                                title = row.title,
+                                summary = row.summary,
                                 onClick = { row.perform(viewModel) },
-                                trailing = {
-                                    Row(horizontalArrangement = Arrangement.spacedBy(Dimens.spaceS)) {
-                                        PcRowActionButton(
-                                            text = row.actionText,
-                                            enabled = row.enabled,
-                                            connected = row.status == PcRowStatus.Connected,
-                                            onClick = { row.perform(viewModel) }
-                                        )
-                                        if (row.canUnpair) {
-                                            TextButton(onClick = { viewModel.requestUnpair(row.pc.desktopId, row.title) }) {
-                                                Text(stringResource(R.string.pc_connection_unpair))
-                                            }
-                                        }
-                                    }
+                                actions = {
+                                    PcNearbyRowActions(row = row, viewModel = viewModel)
                                 }
                             )
                         }
@@ -86,11 +78,11 @@ fun PcConnectionScreen(navController: NavController) {
                     Section(titleResId = R.string.pc_connection_paired_section) {
                         Column(modifier = Modifier.padding(vertical = Dimens.spaceS)) {
                             uiState.savedPairings.forEach { row ->
-                                PanelListRow(
-                                    runtimeTitle = row.title,
-                                    runtimeSummary = row.summary,
+                                PcConnectionPreferenceRow(
+                                    title = row.title,
+                                    summary = row.summary,
                                     onClick = { viewModel.requestUnpair(row.desktopId, row.title) },
-                                    trailing = {
+                                    actions = {
                                         TextButton(
                                             enabled = row.canUnpair,
                                             onClick = { viewModel.requestUnpair(row.desktopId, row.title) }
@@ -142,6 +134,61 @@ fun PcConnectionScreen(navController: NavController) {
                 Text(stringResource(R.string.pc_connection_unpair_message, pendingUnpair.displayName))
             }
         )
+    }
+}
+
+@Composable
+private fun PcConnectionPreferenceRow(
+    title: String,
+    summary: String,
+    onClick: () -> Unit,
+    actions: @Composable () -> Unit
+) {
+    BoxWithConstraints {
+        val compact = maxWidth < PcConnectionCompactRowWidth
+
+        PreferenceComponentBase(
+            runtimeTitle = title,
+            runtimeSummary = summary,
+            onClick = onClick,
+            trailing = {
+                if (!compact) {
+                    actions()
+                }
+            },
+            belowContent = if (compact) {
+                {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End
+                    ) {
+                        actions()
+                    }
+                }
+            } else {
+                null
+            }
+        )
+    }
+}
+
+@Composable
+private fun PcNearbyRowActions(
+    row: PcRowState,
+    viewModel: PcConnectionViewModel
+) {
+    Row(horizontalArrangement = Arrangement.spacedBy(Dimens.spaceS)) {
+        PcRowActionButton(
+            text = row.actionText,
+            enabled = row.enabled,
+            connected = row.status == PcRowStatus.Connected,
+            onClick = { row.perform(viewModel) }
+        )
+        if (row.canUnpair) {
+            TextButton(onClick = { viewModel.requestUnpair(row.pc.desktopId, row.title) }) {
+                Text(stringResource(R.string.pc_connection_unpair))
+            }
+        }
     }
 }
 

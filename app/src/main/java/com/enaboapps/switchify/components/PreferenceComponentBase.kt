@@ -19,24 +19,31 @@ import com.enaboapps.switchify.R
 
 @Composable
 fun PreferenceComponentBase(
-    titleResId: Int,
-    summaryResId: Int,
+    titleResId: Int? = null,
+    summaryResId: Int? = null,
+    runtimeTitle: String? = null,
+    runtimeSummary: String? = null,
     explanationResId: Int? = null,
     leadingIcon: ImageVector? = null,
     onClick: (() -> Unit)? = null,
-    trailing: @Composable () -> Unit
+    trailing: @Composable () -> Unit = {},
+    belowContent: (@Composable () -> Unit)? = null
 ) {
+    val title = runtimeTitle ?: titleResId?.let { stringResource(it) }.orEmpty()
+    val summary = runtimeSummary ?: summaryResId?.let { stringResource(it) }.orEmpty()
+
     PreferenceRowScaffold(
-        title = stringResource(titleResId),
-        summary = stringResource(summaryResId),
+        title = title,
+        summary = summary,
         onClick = onClick,
         leadingContent = leadingIcon?.let {
             {
                 PreferenceRowLeadingIcon(imageVector = it)
             }
-        }
+        },
+        belowContent = belowContent
     ) {
-        if (explanationResId != null) {
+        if (titleResId != null && explanationResId != null) {
             ExplanationButton(titleResId = titleResId, explanationResId = explanationResId)
         }
         trailing()
