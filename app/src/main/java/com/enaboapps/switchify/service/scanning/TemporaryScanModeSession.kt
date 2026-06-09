@@ -36,7 +36,7 @@ class TemporaryScanModeSession internal constructor(
         val current = controller.currentTechnique()
         previousTechnique = current
         if (current != targetTechnique) {
-            controller.setItemScanType()
+            applyTechnique(targetTechnique)
         }
     }
 
@@ -46,11 +46,14 @@ class TemporaryScanModeSession internal constructor(
         val previous = previousTechnique ?: return
         previousTechnique = null
         if (controller.currentTechnique() != targetTechnique || previous == targetTechnique) return
-        when (previous) {
+        applyTechnique(previous)
+    }
+
+    private fun applyTechnique(technique: String) {
+        when (technique) {
             AccessTechnique.Technique.POINT_SCAN -> controller.setPointScanType()
             AccessTechnique.Technique.RADAR -> controller.setRadarType()
-            AccessTechnique.Technique.ITEM_SCAN -> Unit
-            else -> controller.setPointScanType()
+            AccessTechnique.Technique.ITEM_SCAN -> controller.setItemScanType()
         }
     }
 }

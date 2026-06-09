@@ -41,6 +41,41 @@ class TemporaryScanModeSessionTest {
     }
 
     @Test
+    fun startAppliesPointScanTargetAndRestoresItemScan() {
+        val controller = FakeScanModeController(AccessTechnique.Technique.ITEM_SCAN)
+        val session = TemporaryScanModeSession(controller, AccessTechnique.Technique.POINT_SCAN)
+
+        session.start()
+        assertEquals(AccessTechnique.Technique.POINT_SCAN, controller.currentTechnique())
+
+        session.close()
+        assertEquals(AccessTechnique.Technique.ITEM_SCAN, controller.currentTechnique())
+    }
+
+    @Test
+    fun startAppliesRadarTarget() {
+        val controller = FakeScanModeController(AccessTechnique.Technique.ITEM_SCAN)
+        val session = TemporaryScanModeSession(controller, AccessTechnique.Technique.RADAR)
+
+        session.start()
+
+        assertEquals(AccessTechnique.Technique.RADAR, controller.currentTechnique())
+    }
+
+    @Test
+    fun closeDoesNotRestoreUnknownPreviousTechnique() {
+        val controller = FakeScanModeController("unknown_technique")
+        val session = TemporaryScanModeSession(controller, AccessTechnique.Technique.ITEM_SCAN)
+
+        session.start()
+        assertEquals(AccessTechnique.Technique.ITEM_SCAN, controller.currentTechnique())
+
+        session.close()
+        assertEquals(0, controller.restoreCalls)
+        assertEquals(AccessTechnique.Technique.ITEM_SCAN, controller.currentTechnique())
+    }
+
+    @Test
     fun closeDoesNotOverrideUserTechniqueChange() {
         val controller = FakeScanModeController(AccessTechnique.Technique.POINT_SCAN)
         val session = TemporaryScanModeSession(controller, AccessTechnique.Technique.ITEM_SCAN)
