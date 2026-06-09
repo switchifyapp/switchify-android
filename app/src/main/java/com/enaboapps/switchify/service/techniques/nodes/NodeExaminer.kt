@@ -352,6 +352,7 @@ object NodeExaminer {
      * @param nodes The list of nodes to update the actionable nodes with.
      */
     private suspend fun updateActionableNodes(nodes: List<Node>) {
+        actionableNodes = nodes
         actionableNodesFlow.emit(nodes)
     }
 
