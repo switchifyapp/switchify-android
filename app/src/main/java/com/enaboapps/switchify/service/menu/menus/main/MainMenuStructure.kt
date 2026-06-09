@@ -5,6 +5,7 @@ import com.enaboapps.switchify.backend.iap.IAPHandler
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.pc.PcConnectionState
 import com.enaboapps.switchify.pc.PcConnectionStateHolder
+import com.enaboapps.switchify.pc.PcErrorReason
 import com.enaboapps.switchify.pc.PcServiceConnectResult
 import com.enaboapps.switchify.service.actions.GlobalActionManager
 import com.enaboapps.switchify.service.core.ServiceCore
@@ -188,16 +189,15 @@ class MainMenuStructure(
                         MessageSeverity.Info
                     )
                 }
-            } ?: PcServiceConnectResult.Failed("No Switchify PC found.")
+            } ?: PcServiceConnectResult.Failed(PcErrorReason.NoPcFound, "No Switchify PC found.")
             withContext(Dispatchers.Main) {
                 when (result) {
                     is PcServiceConnectResult.Connected -> launchPcControlActivity()
                     is PcServiceConnectResult.Failed -> {
-                        val message = when (result.message) {
-                            "No Switchify PC found." -> R.string.pc_control_no_pc_found
-                            "Could not connect to PC.", "Found PC, but could not connect." -> R.string.pc_control_could_not_connect
-                            "Request rejected." -> R.string.request_rejected
-                            "Request expired. Try again." -> R.string.request_expired_try_again
+                        val message = when (result.reason) {
+                            PcErrorReason.NoPcFound -> R.string.pc_control_no_pc_found
+                            PcErrorReason.PairingRejected -> R.string.request_rejected
+                            PcErrorReason.PairingRequestExpired -> R.string.request_expired_try_again
                             else -> R.string.pc_control_could_not_connect
                         }
                         showMessage(message, MessageSeverity.Warning)

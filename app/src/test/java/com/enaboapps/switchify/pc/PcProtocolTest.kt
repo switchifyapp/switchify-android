@@ -84,6 +84,13 @@ class PcProtocolTest {
     }
 
     @Test
+    fun mapsErrorMessagesToTypedReasons() {
+        assertEquals(PcErrorReason.PairingRejected, PcProtocol.errorReason("pairing_rejected"))
+        assertEquals(PcErrorReason.PairingRequestExpired, PcProtocol.errorReason("pairing_request_expired"))
+        assertEquals(PcErrorReason.Failed, PcProtocol.errorReason("anything_else"))
+    }
+
+    @Test
     fun stableStringifySortsObjectKeys() {
         val payload = JSONObject().put("z", 1).put("a", true)
 

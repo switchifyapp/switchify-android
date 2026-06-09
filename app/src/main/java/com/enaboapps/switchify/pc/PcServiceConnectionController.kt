@@ -17,7 +17,7 @@ sealed class PcServiceConnectionState {
 
 sealed class PcServiceConnectResult {
     data class Connected(val session: PcAuthenticatedSession, val displayName: String) : PcServiceConnectResult()
-    data class Failed(val message: String) : PcServiceConnectResult()
+    data class Failed(val reason: PcErrorReason, val message: String) : PcServiceConnectResult()
 }
 
 class PcServiceConnectionController(
@@ -49,7 +49,7 @@ class PcServiceConnectionController(
             tokenStore.getToken(pc.desktopId)?.let { token ->
                 when (val result = connectWithToken(pc, token)) {
                     is PcServiceConnectResult.Connected -> return result
-                    is PcServiceConnectResult.Failed -> if (result.message == EXPIRED_MESSAGE) return result
+                    is PcServiceConnectResult.Failed -> if (result.reason == PcErrorReason.AuthExpired) return result
                 }
             }
         }
@@ -71,20 +71,20 @@ class PcServiceConnectionController(
                     }
                 }
                 is PcPairingResult.Failed -> {
-                    val failure = PcServiceConnectResult.Failed(result.message)
+                    val failure = PcServiceConnectResult.Failed(result.reason, result.message)
                     _state.value = PcServiceConnectionState.Failed(result.message)
                     return failure
                 }
             }
         }
 
-        val message = if (discovered.isEmpty()) {
-            "No Switchify PC found."
+        val failure = if (discovered.isEmpty()) {
+            PcServiceConnectResult.Failed(PcErrorReason.NoPcFound, "No Switchify PC found.")
         } else {
-            "Could not connect to PC."
+            PcServiceConnectResult.Failed(PcErrorReason.Failed, "Could not connect to PC.")
         }
-        _state.value = PcServiceConnectionState.Failed(message)
-        return PcServiceConnectResult.Failed(message)
+        _state.value = PcServiceConnectionState.Failed(failure.message)
+        return failure
     }
 
     suspend fun sendCommand(command: PcControlCommand): PcCommandResult {
@@ -117,9 +117,9 @@ class PcServiceConnectionController(
                 tokenStore.clearToken(pc.desktopId)
                 PcConnectionStateHolder.setDisconnected()
                 _state.value = PcServiceConnectionState.Failed(EXPIRED_MESSAGE)
-                PcServiceConnectResult.Failed(EXPIRED_MESSAGE)
+                PcServiceConnectResult.Failed(PcErrorReason.AuthExpired, EXPIRED_MESSAGE)
             }
-            is PcPingResult.Failed -> PcServiceConnectResult.Failed(result.message)
+            is PcPingResult.Failed -> PcServiceConnectResult.Failed(result.reason, result.message)
         }
     }
 

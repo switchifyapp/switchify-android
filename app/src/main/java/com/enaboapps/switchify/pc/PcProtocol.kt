@@ -166,10 +166,18 @@ object PcProtocol {
                 response.token.isNotBlank()
     }
 
-    fun userMessageForError(message: String): String {
+    fun errorReason(message: String): PcErrorReason {
         return when (message) {
-            "pairing_rejected" -> "Request rejected."
-            "pairing_request_expired" -> "Request expired. Try again."
+            "pairing_rejected" -> PcErrorReason.PairingRejected
+            "pairing_request_expired" -> PcErrorReason.PairingRequestExpired
+            else -> PcErrorReason.Failed
+        }
+    }
+
+    fun userMessageForError(message: String): String {
+        return when (errorReason(message)) {
+            PcErrorReason.PairingRejected -> "Request rejected."
+            PcErrorReason.PairingRequestExpired -> "Request expired. Try again."
             else -> "Could not connect to this PC."
         }
     }
