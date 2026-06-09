@@ -267,6 +267,38 @@ class PcProtocolTest {
     }
 
     @Test
+    fun buildsWindowControlCommandWithAuthProof() {
+        val json = JSONObject(
+            PcProtocol.windowControl(
+                id = "window-1",
+                deviceId = "device-1",
+                token = "shared-token",
+                timestamp = 1000L,
+                action = PcWindowControlAction.SwitchNext
+            )
+        )
+
+        assertEquals(1, json.getInt("version"))
+        assertEquals("window-1", json.getString("id"))
+        assertEquals("device-1", json.getString("deviceId"))
+        assertEquals(1000L, json.getLong("timestamp"))
+        assertEquals("window.control", json.getString("type"))
+        assertEquals("switchNext", json.getJSONObject("payload").getString("action"))
+        assertEquals(
+            PcProtocol.authProof(
+                id = "window-1",
+                deviceId = "device-1",
+                timestamp = 1000L,
+                type = "window.control",
+                payload = JSONObject().put("action", "switchNext"),
+                token = "shared-token"
+            ),
+            json.getString("auth")
+        )
+        assertFalse(json.toString().contains("shared-token"))
+    }
+
+    @Test
     fun buildsBackspaceKeyboardKeyCommand() {
         val json = JSONObject(PcProtocol.keyboardKey("key-2", "device-1", "token", 1000L, PcKeyboardKey.Backspace))
 

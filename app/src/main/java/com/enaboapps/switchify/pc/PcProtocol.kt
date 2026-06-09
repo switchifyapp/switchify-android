@@ -115,6 +115,23 @@ object PcProtocol {
         )
     }
 
+    fun windowControl(
+        id: String,
+        deviceId: String,
+        token: String,
+        timestamp: Long,
+        action: PcWindowControlAction
+    ): String {
+        return authenticatedCommand(
+            id,
+            deviceId,
+            token,
+            timestamp,
+            "window.control",
+            JSONObject().put("action", action.protocolValue)
+        )
+    }
+
     fun parseResponse(raw: String): PcProtocolResponse {
         return runCatching {
             val json = JSONObject(raw)
