@@ -14,6 +14,16 @@ import com.enaboapps.switchify.service.techniques.nodes.scanners.NodeScannerUI
 import com.enaboapps.switchify.service.techniques.pointscan.blocks.PointScanBlock
 import com.enaboapps.switchify.utils.Resources
 
+data class NodeScanSignature(
+    val left: Int,
+    val top: Int,
+    val width: Int,
+    val height: Int,
+    val contentDescription: String,
+    val description: String,
+    val elementType: String?
+)
+
 /**
  * This class represents a node
  */
@@ -48,7 +58,7 @@ class Node(
 
 
     companion object {
-        private val mainHandler = Handler(Looper.getMainLooper())
+        private val mainHandler by lazy { Handler(Looper.getMainLooper()) }
 
         /**
          * This function creates a node from AccessibilityNodeInfo
@@ -242,28 +252,26 @@ class Node(
         return getClassName()?.substringAfterLast('.')
     }
 
+    fun scanSignature(): NodeScanSignature {
+        return NodeScanSignature(
+            left = getLeft(),
+            top = getTop(),
+            width = getWidth(),
+            height = getHeight(),
+            contentDescription = getContentDescription(),
+            description = getDescription(),
+            elementType = getElementType()
+        )
+    }
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other !is Node) return false
 
-        if (x != other.x) return false
-        if (y != other.y) return false
-        if (centerX != other.centerX) return false
-        if (centerY != other.centerY) return false
-        if (width != other.width) return false
-        if (height != other.height) return false
-
-        return true
+        return scanSignature() == other.scanSignature()
     }
 
     override fun hashCode(): Int {
-        var result = x
-        result = 31 * result + y
-        result = 31 * result + centerX
-        result = 31 * result + centerY
-        result = 31 * result + width
-        result = 31 * result + height
-        return result
+        return scanSignature().hashCode()
     }
 }

@@ -17,6 +17,15 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
+internal fun areDuplicateScanNodes(previous: List<Node>?, next: List<Node>): Boolean {
+    val lastNodes = previous ?: return false
+    if (lastNodes.size != next.size) return false
+
+    return lastNodes.zip(next).all { (old, new) ->
+        old.scanSignature() == new.scanSignature()
+    }
+}
+
 /**
  * Base class for node scanners that provides common functionality for both system and keyboard scanners.
  * Implements improved handling of rapid updates using multiple detection windows.
@@ -55,8 +64,6 @@ abstract class BaseNodeScanner(
 
     // Duplicate update detection
     private var lastUpdateNodes: List<Node>? = null
-    private var lastUpdateTime = 0L
-    private val DUPLICATE_UPDATE_THRESHOLD_MS = 100L // Minimum time between updates
 
     companion object {
         private const val TAG = "BaseNodeScanner"
@@ -86,10 +93,7 @@ abstract class BaseNodeScanner(
     }
 
     open fun updateNodes(nodes: List<Node>) {
-        val currentTime = System.currentTimeMillis()
-
-        // Check for duplicate updates
-        if (isDuplicateUpdate(nodes, currentTime)) {
+        if (isDuplicateUpdate(nodes)) {
             Log.d(TAG, "Skipping duplicate update")
             return
         }
@@ -97,7 +101,6 @@ abstract class BaseNodeScanner(
         buildFromNodes(nodes)
         recordUpdateTimestamp()
         lastUpdateNodes = nodes
-        lastUpdateTime = currentTime
 
         if (nodes.isEmpty()) {
             startTimeoutToRevertToCursor()
@@ -106,25 +109,8 @@ abstract class BaseNodeScanner(
         }
     }
 
-    private fun isDuplicateUpdate(nodes: List<Node>, currentTime: Long): Boolean {
-        // Check if we're getting updates too quickly
-        if (currentTime - lastUpdateTime < DUPLICATE_UPDATE_THRESHOLD_MS) {
-            return true
-        }
-
-        // Check if the node lists are identical
-        val lastNodes = lastUpdateNodes
-        if (lastNodes != null && lastNodes.size == nodes.size) {
-            // Compare node lists by their unique identifiers or properties
-            return lastNodes.zip(nodes).all { (old, new) ->
-                old.getLeft() == new.getLeft() &&
-                        old.getTop() == new.getTop() &&
-                        old.getWidth() == new.getWidth() &&
-                        old.getHeight() == new.getHeight()
-            }
-        }
-
-        return false
+    private fun isDuplicateUpdate(nodes: List<Node>): Boolean {
+        return areDuplicateScanNodes(lastUpdateNodes, nodes)
     }
 
     open fun cleanup() {
