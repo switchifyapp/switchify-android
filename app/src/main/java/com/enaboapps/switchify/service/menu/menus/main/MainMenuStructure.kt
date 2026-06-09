@@ -3,10 +3,12 @@ package com.enaboapps.switchify.service.menu.menus.main
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.backend.iap.IAPHandler
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
+import com.enaboapps.switchify.pc.DiscoveredPc
 import com.enaboapps.switchify.pc.PcConnectionState
 import com.enaboapps.switchify.pc.PcConnectionStateHolder
 import com.enaboapps.switchify.pc.PcErrorReason
 import com.enaboapps.switchify.pc.PcServiceConnectResult
+import com.enaboapps.switchify.pc.PcServiceConnectionController
 import com.enaboapps.switchify.service.actions.GlobalActionManager
 import com.enaboapps.switchify.service.core.ServiceCore
 import com.enaboapps.switchify.service.core.SwitchifyAccessibilityService
@@ -179,9 +181,30 @@ class MainMenuStructure(
             launchPcControlActivity()
             return
         }
+        val controller = ServiceCore.getPcServiceConnectionController()
+        if (controller == null) {
+            showMessage(R.string.pc_control_no_pc_found, MessageSeverity.Warning)
+            return
+        }
         showMessage(R.string.pc_control_connecting, MessageSeverity.Info)
         coroutineScope.launch {
-            val result = ServiceCore.getPcServiceConnectionController()?.connectOrRequestAccess { approvalCode ->
+            val discovered = controller.discoverPcs()
+            withContext(Dispatchers.Main) {
+                when {
+                    discovered.isEmpty() -> showMessage(R.string.pc_control_no_pc_found, MessageSeverity.Warning)
+                    discovered.size == 1 -> connectToPcAndLaunch(controller, discovered.single())
+                    else -> MenuManager.getInstance().openChoosePcMenu(discovered) { pc ->
+                        connectToPcAndLaunch(controller, pc)
+                    }
+                }
+            }
+        }
+    }
+
+    private fun connectToPcAndLaunch(controller: PcServiceConnectionController, pc: DiscoveredPc) {
+        showMessage(R.string.pc_control_connecting, MessageSeverity.Info)
+        coroutineScope.launch {
+            val result = controller.connectTo(pc) { approvalCode ->
                 coroutineScope.launch(Dispatchers.Main) {
                     showMessage(
                         R.string.pc_control_pairing_code,
@@ -189,7 +212,7 @@ class MainMenuStructure(
                         MessageSeverity.Info
                     )
                 }
-            } ?: PcServiceConnectResult.Failed(PcErrorReason.NoPcFound, "No Switchify PC found.")
+            }
             withContext(Dispatchers.Main) {
                 when (result) {
                     is PcServiceConnectResult.Connected -> launchPcControlActivity()

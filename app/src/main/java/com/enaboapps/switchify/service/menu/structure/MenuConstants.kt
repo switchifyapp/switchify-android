@@ -46,6 +46,7 @@ object MenuConstants {
         const val GESTURE_PATTERNS_MENU = "gesture_patterns_menu"
         const val FINGER_MODE_MENU = "finger_mode_menu"
         const val AI_MENU = "ai_menu"
+        const val CHOOSE_PC_MENU = "choose_pc_menu"
     }
 
     fun getTitleResource(menuId: String?): Int? = when (menuId) {
@@ -65,6 +66,7 @@ object MenuConstants {
         MenuIds.FAVOURITE_APPS_MENU -> R.string.menu_title_favourite_apps
         MenuIds.GESTURE_PATTERNS_MENU -> R.string.gesture_patterns_title
         MenuIds.FINGER_MODE_MENU -> R.string.menu_item_finger_mode
+        MenuIds.CHOOSE_PC_MENU -> R.string.menu_title_choose_pc
         else -> null
     }
 

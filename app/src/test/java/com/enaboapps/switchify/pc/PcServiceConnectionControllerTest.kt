@@ -2,7 +2,9 @@ package com.enaboapps.switchify.pc
 
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -23,6 +25,13 @@ class PcServiceConnectionControllerTest {
         hostAddresses = listOf("192.168.1.20"),
         port = 7347,
         websocketUrls = listOf("ws://192.168.1.20:7347")
+    )
+    private val secondPc = DiscoveredPc(
+        serviceName = "Office PC",
+        desktopId = "desktop-2",
+        hostAddresses = listOf("192.168.1.21"),
+        port = 7347,
+        websocketUrls = listOf("ws://192.168.1.21:7347")
     )
 
     @Before
@@ -87,11 +96,134 @@ class PcServiceConnectionControllerTest {
         assertTrue(PcConnectionStateHolder.connectionState.value is PcConnectionState.Disconnected)
     }
 
-    private fun controller(tokens: FakeTokenStore, connector: FakeConnector): PcServiceConnectionController {
+    @Test
+    fun discoverPcsGathersLateResolvingPc() = runTest(dispatcher) {
+        val discovery = FakeDiscovery(listOf(pc))
+        val controller = controller(FakeTokenStore(), FakeConnector(PcPingResult.AuthFailed()), discovery)
+        launch {
+            delay(500)
+            discovery.pcs.value = listOf(pc, secondPc)
+        }
+
+        val discovered = controller.discoverPcs()
+
+        assertEquals(listOf(pc, secondPc), discovered)
+    }
+
+    @Test
+    fun discoverPcsReturnsEmptyWhenNothingResolves() = runTest(dispatcher) {
+        val discovery = FakeDiscovery(emptyList())
+        val controller = controller(FakeTokenStore(), FakeConnector(PcPingResult.AuthFailed()), discovery)
+
+        val discovered = controller.discoverPcs()
+
+        assertTrue(discovered.isEmpty())
+    }
+
+    @Test
+    fun connectToUsesSavedTokenWithoutPairing() = runTest(dispatcher) {
+        val tokens = FakeTokenStore(mutableMapOf("desktop-1" to "token"))
+        val connector = FakeConnector(PcPingResult.Connected("ws://192.168.1.20:7347"))
+        val controller = controller(tokens, connector)
+
+        val result = controller.connectTo(pc)
+
+        assertTrue(result is PcServiceConnectResult.Connected)
+        assertEquals(1, connector.pingCalls)
+        assertEquals(0, connector.pairingCalls)
+        assertEquals("desktop-1", (PcConnectionStateHolder.connectionState.value as PcConnectionState.Connected).session.desktopId)
+    }
+
+    @Test
+    fun connectToExpiredTokenFallsThroughToPairing() = runTest(dispatcher) {
+        val tokens = FakeTokenStore(mutableMapOf("desktop-1" to "old-token"))
+        val connector = FakeConnector(
+            pingResult = PcPingResult.AuthFailed(),
+            pairingResult = PcPairingResult.Paired("desktop-1", "new-token", "ws://192.168.1.20:7347"),
+            pingResultsByToken = mapOf(
+                "old-token" to PcPingResult.AuthFailed(),
+                "new-token" to PcPingResult.Connected("ws://192.168.1.20:7347")
+            )
+        )
+        val controller = controller(tokens, connector)
+        var approvalCode: PcApprovalCodeState? = null
+
+        val result = controller.connectTo(pc) { approvalCode = it }
+
+        assertTrue(result is PcServiceConnectResult.Connected)
+        assertEquals("Switchify PC", approvalCode?.pcName)
+        assertEquals(1, connector.pairingCalls)
+        assertEquals(2, connector.pingCalls)
+        assertEquals("new-token", tokens.getToken("desktop-1"))
+        assertTrue(PcConnectionStateHolder.connectionState.value is PcConnectionState.Connected)
+    }
+
+    @Test
+    fun connectToMissingTokenPairsDirectly() = runTest(dispatcher) {
+        val tokens = FakeTokenStore()
+        val connector = FakeConnector(
+            pingResult = PcPingResult.Connected("ws://192.168.1.21:7347"),
+            pairingResult = PcPairingResult.Paired("desktop-2", "token-2", "ws://192.168.1.21:7347")
+        )
+        val controller = controller(tokens, connector)
+
+        val result = controller.connectTo(secondPc)
+
+        assertTrue(result is PcServiceConnectResult.Connected)
+        assertEquals("Office PC", (result as PcServiceConnectResult.Connected).displayName)
+        assertEquals(1, connector.pairingCalls)
+        assertEquals("token-2", tokens.getToken("desktop-2"))
+    }
+
+    @Test
+    fun pairingFallsBackToNextPcWhenUnreachable() = runTest(dispatcher) {
+        val tokens = FakeTokenStore()
+        val connector = FakeConnector(
+            pingResult = PcPingResult.Connected("ws://192.168.1.21:7347"),
+            pairingResultsByDesktop = mapOf(
+                "desktop-1" to PcPairingResult.Failed(PcErrorReason.Unreachable, "Could not reach this PC."),
+                "desktop-2" to PcPairingResult.Paired("desktop-2", "token-2", "ws://192.168.1.21:7347")
+            )
+        )
+        val controller = controller(tokens, connector, FakeDiscovery(listOf(pc, secondPc)))
+
+        val result = controller.connectOrRequestAccess()
+
+        assertTrue(result is PcServiceConnectResult.Connected)
+        assertEquals("Office PC", (result as PcServiceConnectResult.Connected).displayName)
+        assertEquals(2, connector.pairingCalls)
+        assertEquals("token-2", tokens.getToken("desktop-2"))
+    }
+
+    @Test
+    fun pairingRejectionDoesNotFallBackToNextPc() = runTest(dispatcher) {
+        val tokens = FakeTokenStore()
+        val connector = FakeConnector(
+            pingResult = PcPingResult.Connected("ws://192.168.1.21:7347"),
+            pairingResultsByDesktop = mapOf(
+                "desktop-1" to PcPairingResult.Failed(PcErrorReason.PairingRejected, "Request rejected."),
+                "desktop-2" to PcPairingResult.Paired("desktop-2", "token-2", "ws://192.168.1.21:7347")
+            )
+        )
+        val controller = controller(tokens, connector, FakeDiscovery(listOf(pc, secondPc)))
+
+        val result = controller.connectOrRequestAccess()
+
+        assertTrue(result is PcServiceConnectResult.Failed)
+        assertEquals(PcErrorReason.PairingRejected, (result as PcServiceConnectResult.Failed).reason)
+        assertEquals(1, connector.pairingCalls)
+        assertNull(tokens.getToken("desktop-2"))
+    }
+
+    private fun controller(
+        tokens: FakeTokenStore,
+        connector: FakeConnector,
+        discovery: FakeDiscovery = FakeDiscovery(listOf(pc))
+    ): PcServiceConnectionController {
         return PcServiceConnectionController(
             context = null,
             scope = kotlinx.coroutines.CoroutineScope(dispatcher),
-            discovery = FakeDiscovery(listOf(pc)),
+            discovery = discovery,
             tokenStore = tokens,
             identityRepository = FakeIdentity,
             connector = connector,
@@ -144,7 +276,9 @@ class PcServiceConnectionControllerTest {
 
     private class FakeConnector(
         private val pingResult: PcPingResult,
-        private val pairingResult: PcPairingResult = PcPairingResult.Failed(PcErrorReason.Failed, "unused")
+        private val pairingResult: PcPairingResult = PcPairingResult.Failed(PcErrorReason.Failed, "unused"),
+        private val pingResultsByToken: Map<String, PcPingResult> = emptyMap(),
+        private val pairingResultsByDesktop: Map<String, PcPairingResult> = emptyMap()
     ) : PcConnector {
         var pingCalls = 0
         var pairingCalls = 0
@@ -153,12 +287,12 @@ class PcServiceConnectionControllerTest {
         override suspend fun requestApproval(pc: DiscoveredPc, requestNonce: String): PcPairingResult {
             pairingCalls++
             requestNonces.add(requestNonce)
-            return pairingResult
+            return pairingResultsByDesktop[pc.desktopId] ?: pairingResult
         }
 
         override suspend fun authenticatedPing(pc: DiscoveredPc, token: String): PcPingResult {
             pingCalls++
-            return pingResult
+            return pingResultsByToken[token] ?: pingResult
         }
 
         override suspend fun openControlSession(session: PcAuthenticatedSession): PcLiveControlResult {
