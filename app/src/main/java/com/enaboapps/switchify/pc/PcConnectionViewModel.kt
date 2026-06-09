@@ -3,11 +3,15 @@ package com.enaboapps.switchify.pc
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.UUID
 
 data class PcApprovalCodeState(
@@ -64,26 +68,52 @@ class PcConnectionViewModel(
     private val tokenStore: PcPairingTokenStore = PcTokenStore(requireNotNull(context).applicationContext),
     private val identityRepository: PcDeviceIdentity = PcDeviceIdentityRepository(requireNotNull(context).applicationContext),
     private val connector: PcConnector = SwitchifyPcClient(identityRepository, tokenStore),
-    private val requestNonceProvider: () -> String = { UUID.randomUUID().toString() }
+    private val requestNonceProvider: () -> String = { UUID.randomUUID().toString() },
+    private val backgroundDispatcher: CoroutineDispatcher = Dispatchers.Default
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(PcConnectionUiState())
     val uiState: StateFlow<PcConnectionUiState> = _uiState.asStateFlow()
 
     private val rowStatuses = MutableStateFlow<Map<String, PcRowStatus>>(emptyMap())
 
+    private data class DiscoveryInputs(
+        val pcs: List<DiscoveredPc>,
+        val status: PcDiscoveryStatus,
+        val statuses: Map<String, PcRowStatus>,
+        val connection: PcConnectionState
+    )
+
     init {
         viewModelScope.launch {
             combine(discoveryService.pcs, discoveryService.status, rowStatuses, PcConnectionStateHolder.connectionState) { pcs, status, statuses, connection ->
-                val connectedDesktopId = (connection as? PcConnectionState.Connected)?.session?.desktopId
-                val discoveredDesktopIds = pcs.map { it.desktopId }.toSet()
-                _uiState.value.copy(
-                    discoveryStatusText = discoveryStatusText(status, pcs.isEmpty()),
-                    discoveredPcs = pcs.map { pc -> rowState(pc, statuses[pc.desktopId] ?: PcRowStatus.Idle, connectedDesktopId) },
-                    savedPairings = savedPairings(discoveredDesktopIds),
-                    connectedDesktopId = connectedDesktopId,
-                    isDiscovering = status == PcDiscoveryStatus.Searching
-                )
-            }.collect { _uiState.value = it }
+                DiscoveryInputs(pcs, status, statuses, connection)
+            }.collect { inputs ->
+                val connectedDesktopId = (inputs.connection as? PcConnectionState.Connected)?.session?.desktopId
+                val discoveredDesktopIds = inputs.pcs.map { it.desktopId }.toSet()
+                val hasTokenByDesktopId = withContext(backgroundDispatcher) {
+                    inputs.pcs.associate { pc -> pc.desktopId to !tokenStore.getToken(pc.desktopId).isNullOrBlank() }
+                }
+                val savedPairings = withContext(backgroundDispatcher) {
+                    savedPairings(discoveredDesktopIds)
+                }
+                _uiState.update { current ->
+                    current.copy(
+                        discoveryStatusText = discoveryStatusText(inputs.status, inputs.pcs.isEmpty()),
+                        discoveredPcs = inputs.pcs.map { pc ->
+                            rowState(
+                                pc = pc,
+                                status = inputs.statuses[pc.desktopId] ?: PcRowStatus.Idle,
+                                connectedDesktopId = connectedDesktopId,
+                                hasToken = hasTokenByDesktopId[pc.desktopId] == true,
+                                isBusy = current.isBusy
+                            )
+                        },
+                        savedPairings = savedPairings,
+                        connectedDesktopId = connectedDesktopId,
+                        isDiscovering = inputs.status == PcDiscoveryStatus.Searching
+                    )
+                }
+            }
         }
     }
 
@@ -92,7 +122,7 @@ class PcConnectionViewModel(
     }
 
     fun setPermissionRequired(required: Boolean) {
-        _uiState.value = _uiState.value.copy(permissionRequired = required)
+        _uiState.update { it.copy(permissionRequired = required) }
     }
 
     fun requestAccess(pc: DiscoveredPc) {
@@ -162,17 +192,17 @@ class PcConnectionViewModel(
     }
 
     fun clearMessage() {
-        _uiState.value = _uiState.value.copy(message = null)
+        _uiState.update { it.copy(message = null) }
     }
 
     fun requestUnpair(desktopId: String, displayName: String) {
-        _uiState.value = _uiState.value.copy(
-            pendingUnpair = PcUnpairConfirmationState(desktopId, displayName)
-        )
+        _uiState.update {
+            it.copy(pendingUnpair = PcUnpairConfirmationState(desktopId, displayName))
+        }
     }
 
     fun dismissUnpair() {
-        _uiState.value = _uiState.value.copy(pendingUnpair = null)
+        _uiState.update { it.copy(pendingUnpair = null) }
     }
 
     fun confirmUnpair() {
@@ -182,11 +212,13 @@ class PcConnectionViewModel(
         if (connected?.session?.desktopId == unpair.desktopId) {
             PcConnectionStateHolder.setDisconnected()
         }
-        rowStatuses.value = rowStatuses.value - unpair.desktopId
-        _uiState.value = _uiState.value.copy(
-            message = "Unpaired from ${unpair.displayName}.",
-            pendingUnpair = null
-        )
+        rowStatuses.update { it - unpair.desktopId }
+        _uiState.update {
+            it.copy(
+                message = "Unpaired from ${unpair.displayName}.",
+                pendingUnpair = null
+            )
+        }
     }
 
     override fun onCleared() {
@@ -195,8 +227,13 @@ class PcConnectionViewModel(
         super.onCleared()
     }
 
-    private fun rowState(pc: DiscoveredPc, status: PcRowStatus, connectedDesktopId: String?): PcRowState {
-        val hasToken = !tokenStore.getToken(pc.desktopId).isNullOrBlank()
+    private fun rowState(
+        pc: DiscoveredPc,
+        status: PcRowStatus,
+        connectedDesktopId: String?,
+        hasToken: Boolean,
+        isBusy: Boolean
+    ): PcRowState {
         val connected = connectedDesktopId == pc.desktopId || status == PcRowStatus.Connected
         val actionText = when {
             connected -> "Connected"
@@ -215,7 +252,7 @@ class PcConnectionViewModel(
             title = pc.displayName,
             summary = summary,
             actionText = actionText,
-            enabled = !connected && !_uiState.value.isBusy,
+            enabled = !connected && !isBusy,
             status = if (connected) PcRowStatus.Connected else status,
             canUnpair = hasToken || connected
         )
@@ -239,21 +276,25 @@ class PcConnectionViewModel(
         message: String?,
         approvalCode: PcApprovalCodeState? = null
     ) {
-        rowStatuses.value = rowStatuses.value + (desktopId to status)
-        _uiState.value = _uiState.value.copy(
-            isBusy = true,
-            message = message,
-            approvalCode = approvalCode
-        )
+        rowStatuses.update { it + (desktopId to status) }
+        _uiState.update {
+            it.copy(
+                isBusy = true,
+                message = message,
+                approvalCode = approvalCode
+            )
+        }
     }
 
     private fun setIdle(desktopId: String, status: PcRowStatus, message: String?) {
-        rowStatuses.value = rowStatuses.value + (desktopId to status)
-        _uiState.value = _uiState.value.copy(
-            isBusy = false,
-            message = message,
-            approvalCode = null
-        )
+        rowStatuses.update { it + (desktopId to status) }
+        _uiState.update {
+            it.copy(
+                isBusy = false,
+                message = message,
+                approvalCode = null
+            )
+        }
     }
 
     private fun discoveryStatusText(status: PcDiscoveryStatus, empty: Boolean): String {
