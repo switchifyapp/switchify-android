@@ -82,6 +82,7 @@ class PcServiceConnectionControllerTest {
         val result = controller.connectOrRequestAccess()
 
         assertTrue(result is PcServiceConnectResult.Failed)
+        assertEquals(PcErrorReason.AuthExpired, (result as PcServiceConnectResult.Failed).reason)
         assertNull(tokens.getToken("desktop-1"))
         assertTrue(PcConnectionStateHolder.connectionState.value is PcConnectionState.Disconnected)
     }
@@ -143,7 +144,7 @@ class PcServiceConnectionControllerTest {
 
     private class FakeConnector(
         private val pingResult: PcPingResult,
-        private val pairingResult: PcPairingResult = PcPairingResult.Failed("unused")
+        private val pairingResult: PcPairingResult = PcPairingResult.Failed(PcErrorReason.Failed, "unused")
     ) : PcConnector {
         var pingCalls = 0
         var pairingCalls = 0

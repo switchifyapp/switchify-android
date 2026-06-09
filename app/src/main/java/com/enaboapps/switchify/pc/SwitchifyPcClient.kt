@@ -16,13 +16,13 @@ import java.util.UUID
 
 sealed class PcPairingResult {
     data class Paired(val desktopId: String, val token: String, val websocketUrl: String) : PcPairingResult()
-    data class Failed(val message: String) : PcPairingResult()
+    data class Failed(val reason: PcErrorReason, val message: String) : PcPairingResult()
 }
 
 sealed class PcPingResult {
     data class Connected(val websocketUrl: String) : PcPingResult()
     data class AuthFailed(val message: String = "Connection expired. Request access again.") : PcPingResult()
-    data class Failed(val message: String) : PcPingResult()
+    data class Failed(val reason: PcErrorReason, val message: String) : PcPingResult()
 }
 
 sealed class PcControlCommand {
@@ -109,19 +109,22 @@ class SwitchifyPcClient(
                             tokenStore.saveToken(pc.desktopId, response.token, urlString, pc.displayName)
                             PcPairingResult.Paired(pc.desktopId, response.token, urlString)
                         } else {
-                            PcPairingResult.Failed("Could not connect to this PC.")
+                            PcPairingResult.Failed(PcErrorReason.Failed, "Could not connect to this PC.")
                         }
                     }
-                    is PcProtocolResponse.Error -> PcPairingResult.Failed(PcProtocol.userMessageForError(response.message))
-                    else -> PcPairingResult.Failed("Could not connect to this PC.")
+                    is PcProtocolResponse.Error -> PcPairingResult.Failed(
+                        PcProtocol.errorReason(response.message),
+                        PcProtocol.userMessageForError(response.message)
+                    )
+                    else -> PcPairingResult.Failed(PcErrorReason.Failed, "Could not connect to this PC.")
                 }
             }.getOrElse {
-                PcPairingResult.Failed("Found PC, but could not connect.")
+                PcPairingResult.Failed(PcErrorReason.Unreachable, "Found PC, but could not connect.")
             }
             if (result is PcPairingResult.Paired) return result
-            if (result is PcPairingResult.Failed && result.message != "Found PC, but could not connect.") return result
+            if (result is PcPairingResult.Failed && result.reason != PcErrorReason.Unreachable) return result
         }
-        return PcPairingResult.Failed("Found PC, but could not connect.")
+        return PcPairingResult.Failed(PcErrorReason.Unreachable, "Found PC, but could not connect.")
     }
 
     override suspend fun authenticatedPing(pc: DiscoveredPc, token: String): PcPingResult {
@@ -146,16 +149,19 @@ class SwitchifyPcClient(
                     is PcProtocolResponse.Ack -> PcPingResult.Connected(urlString)
                     is PcProtocolResponse.Error -> {
                         if (response.code == "invalid_auth") PcPingResult.AuthFailed()
-                        else PcPingResult.Failed(PcProtocol.userMessageForError(response.message))
+                        else PcPingResult.Failed(
+                            PcProtocol.errorReason(response.message),
+                            PcProtocol.userMessageForError(response.message)
+                        )
                     }
-                    else -> PcPingResult.Failed("Could not connect to this PC.")
+                    else -> PcPingResult.Failed(PcErrorReason.Failed, "Could not connect to this PC.")
                 }
             }.getOrElse {
-                PcPingResult.Failed("Found PC, but could not connect.")
+                PcPingResult.Failed(PcErrorReason.Unreachable, "Found PC, but could not connect.")
             }
             if (result is PcPingResult.Connected || result is PcPingResult.AuthFailed) return result
         }
-        return PcPingResult.Failed("Found PC, but could not connect.")
+        return PcPingResult.Failed(PcErrorReason.Unreachable, "Found PC, but could not connect.")
     }
 
     override suspend fun sendCommand(session: PcAuthenticatedSession, command: PcControlCommand): PcCommandResult {

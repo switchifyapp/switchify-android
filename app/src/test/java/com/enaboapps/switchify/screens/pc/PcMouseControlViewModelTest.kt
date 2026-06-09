@@ -10,6 +10,7 @@ import com.enaboapps.switchify.pc.PcKeyboardKey
 import com.enaboapps.switchify.pc.PcLiveControlResult
 import com.enaboapps.switchify.pc.PcControlConnection
 import com.enaboapps.switchify.pc.PcControlCommand
+import com.enaboapps.switchify.pc.PcErrorReason
 import com.enaboapps.switchify.pc.PcPairingResult
 import com.enaboapps.switchify.pc.PcPairingTokenStore
 import com.enaboapps.switchify.pc.PcPingResult
@@ -576,11 +577,11 @@ class PcMouseControlViewModelTest {
         val oneShotCommands = mutableListOf<PcControlCommand>()
 
         override suspend fun requestApproval(pc: DiscoveredPc, requestNonce: String): PcPairingResult {
-            return PcPairingResult.Failed("unused")
+            return PcPairingResult.Failed(PcErrorReason.Failed, "unused")
         }
 
         override suspend fun authenticatedPing(pc: DiscoveredPc, token: String): PcPingResult {
-            return PcPingResult.Failed("unused")
+            return PcPingResult.Failed(PcErrorReason.Failed, "unused")
         }
 
         override suspend fun openControlSession(session: PcAuthenticatedSession): PcLiveControlResult {

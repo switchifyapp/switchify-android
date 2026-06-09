@@ -95,7 +95,7 @@ class PcConnectionViewModelTest {
         assertEquals("Waiting for approval on your PC...", viewModel.uiState.value.discoveredPcs.first().summary)
         assertEquals("nonce-1", connector.requestNonces.single())
 
-        pairingDeferred.complete(PcPairingResult.Failed("Request rejected."))
+        pairingDeferred.complete(PcPairingResult.Failed(PcErrorReason.PairingRejected, "Request rejected."))
         advanceUntilIdle()
     }
 
@@ -121,7 +121,7 @@ class PcConnectionViewModelTest {
     fun pairingFailureClearsApprovalCodeAndShowsMessage() = runTest(dispatcher) {
         val discovery = FakeDiscovery(listOf(pc))
         val tokens = FakeTokenStore()
-        val connector = FakeConnector(pairingResult = PcPairingResult.Failed("Request rejected."))
+        val connector = FakeConnector(pairingResult = PcPairingResult.Failed(PcErrorReason.PairingRejected, "Request rejected."))
         val viewModel = viewModel(discovery, tokens, connector, requestNonceProvider = { "nonce-1" })
         advanceUntilIdle()
 
@@ -303,8 +303,8 @@ class PcConnectionViewModelTest {
     }
 
     private class FakeConnector(
-        private val pairingResult: PcPairingResult = PcPairingResult.Failed("Request rejected."),
-        private val pingResult: PcPingResult = PcPingResult.Failed("Found PC, but could not connect."),
+        private val pairingResult: PcPairingResult = PcPairingResult.Failed(PcErrorReason.PairingRejected, "Request rejected."),
+        private val pingResult: PcPingResult = PcPingResult.Failed(PcErrorReason.Unreachable, "Found PC, but could not connect."),
         private val pairingDeferred: CompletableDeferred<PcPairingResult>? = null
     ) : PcConnector {
         var requestApprovalCalls = 0
