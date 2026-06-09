@@ -32,18 +32,36 @@ class PcServiceConnectionController(
     private val _state = MutableStateFlow<PcServiceConnectionState>(PcServiceConnectionState.Disconnected)
     val state: StateFlow<PcServiceConnectionState> = _state
 
-    suspend fun connectOrRequestAccess(onWaitingForApproval: (PcApprovalCodeState) -> Unit = {}): PcServiceConnectResult {
-        (PcConnectionStateHolder.connectionState.value as? PcConnectionState.Connected)?.let {
-            _state.value = PcServiceConnectionState.Connected(it.session, it.displayName)
-            return PcServiceConnectResult.Connected(it.session, it.displayName)
+    /**
+     * Discovers Switchify PCs on the local network.
+     *
+     * Waits up to [DISCOVERY_TIMEOUT_MS] for the first PC to resolve, then keeps a short
+     * settle window open so slower PCs can join the list before it is returned. This avoids
+     * deciding on a single PC just because it won the mDNS resolve race.
+     */
+    suspend fun discoverPcs(): List<DiscoveredPc> {
+        discovery.startDiscovery()
+        try {
+            var current = withTimeoutOrNull(DISCOVERY_TIMEOUT_MS) {
+                discovery.pcs.first { pcs -> pcs.isNotEmpty() }
+            } ?: return emptyList()
+            while (true) {
+                val grown = withTimeoutOrNull(SETTLE_WINDOW_MS) {
+                    discovery.pcs.first { pcs -> pcs.size > current.size }
+                } ?: break
+                current = grown
+            }
+            return current
+        } finally {
+            discovery.stopDiscovery()
         }
+    }
+
+    suspend fun connectOrRequestAccess(onWaitingForApproval: (PcApprovalCodeState) -> Unit = {}): PcServiceConnectResult {
+        existingConnection()?.let { return it }
 
         _state.value = PcServiceConnectionState.Connecting
-        discovery.startDiscovery()
-        val discovered = withTimeoutOrNull(8_000) {
-            discovery.pcs.first { pcs -> pcs.isNotEmpty() }
-        }.orEmpty()
-        discovery.stopDiscovery()
+        val discovered = discoverPcs()
 
         for (pc in discovered) {
             tokenStore.getToken(pc.desktopId)?.let { token ->
@@ -54,37 +72,55 @@ class PcServiceConnectionController(
             }
         }
 
+        var lastFailure: PcServiceConnectResult.Failed? = null
         for (pc in discovered) {
-            val requestNonce = requestNonceProvider()
-            val verificationCode = createPairingVerificationCode(
-                desktopId = pc.desktopId,
-                deviceId = identityRepository.getDeviceId(),
-                requestNonce = requestNonce
-            )
-            onWaitingForApproval(PcApprovalCodeState(pc.displayName, verificationCode))
-            when (val result = connector.requestApproval(pc, requestNonce)) {
-                is PcPairingResult.Paired -> {
-                    tokenStore.saveToken(result.desktopId, result.token, result.websocketUrl, pc.displayName)
-                    when (val ping = connectWithToken(pc, result.token)) {
-                        is PcServiceConnectResult.Connected -> return ping
-                        is PcServiceConnectResult.Failed -> return ping
+            when (val result = pairAndConnect(pc, onWaitingForApproval)) {
+                is PcServiceConnectResult.Connected -> return result
+                is PcServiceConnectResult.Failed -> {
+                    if (isUserDecision(result.reason)) {
+                        _state.value = PcServiceConnectionState.Failed(result.message)
+                        return result
                     }
-                }
-                is PcPairingResult.Failed -> {
-                    val failure = PcServiceConnectResult.Failed(result.reason, result.message)
-                    _state.value = PcServiceConnectionState.Failed(result.message)
-                    return failure
+                    lastFailure = result
                 }
             }
         }
 
-        val failure = if (discovered.isEmpty()) {
+        val failure = lastFailure ?: if (discovered.isEmpty()) {
             PcServiceConnectResult.Failed(PcErrorReason.NoPcFound, "No Switchify PC found.")
         } else {
             PcServiceConnectResult.Failed(PcErrorReason.Failed, "Could not connect to PC.")
         }
         _state.value = PcServiceConnectionState.Failed(failure.message)
         return failure
+    }
+
+    /**
+     * Connects to a specific, user-selected PC. Tries a saved token first; if the token is
+     * missing or expired, falls through to a fresh pairing request against that PC.
+     */
+    suspend fun connectTo(
+        pc: DiscoveredPc,
+        onWaitingForApproval: (PcApprovalCodeState) -> Unit = {}
+    ): PcServiceConnectResult {
+        existingConnection()?.takeIf { it.session.desktopId == pc.desktopId }?.let { return it }
+
+        _state.value = PcServiceConnectionState.Connecting
+        tokenStore.getToken(pc.desktopId)?.let { token ->
+            when (val result = connectWithToken(pc, token)) {
+                is PcServiceConnectResult.Connected -> return result
+                is PcServiceConnectResult.Failed -> if (result.reason != PcErrorReason.AuthExpired) {
+                    _state.value = PcServiceConnectionState.Failed(result.message)
+                    return result
+                }
+            }
+        }
+
+        val result = pairAndConnect(pc, onWaitingForApproval)
+        if (result is PcServiceConnectResult.Failed) {
+            _state.value = PcServiceConnectionState.Failed(result.message)
+        }
+        return result
     }
 
     suspend fun sendCommand(command: PcControlCommand): PcCommandResult {
@@ -102,6 +138,36 @@ class PcServiceConnectionController(
     fun cleanup() {
         discovery.stopDiscovery()
         connector.close()
+    }
+
+    private fun existingConnection(): PcServiceConnectResult.Connected? {
+        val connected = PcConnectionStateHolder.connectionState.value as? PcConnectionState.Connected ?: return null
+        _state.value = PcServiceConnectionState.Connected(connected.session, connected.displayName)
+        return PcServiceConnectResult.Connected(connected.session, connected.displayName)
+    }
+
+    private suspend fun pairAndConnect(
+        pc: DiscoveredPc,
+        onWaitingForApproval: (PcApprovalCodeState) -> Unit
+    ): PcServiceConnectResult {
+        val requestNonce = requestNonceProvider()
+        val verificationCode = createPairingVerificationCode(
+            desktopId = pc.desktopId,
+            deviceId = identityRepository.getDeviceId(),
+            requestNonce = requestNonce
+        )
+        onWaitingForApproval(PcApprovalCodeState(pc.displayName, verificationCode))
+        return when (val result = connector.requestApproval(pc, requestNonce)) {
+            is PcPairingResult.Paired -> {
+                tokenStore.saveToken(result.desktopId, result.token, result.websocketUrl, pc.displayName)
+                connectWithToken(pc, result.token)
+            }
+            is PcPairingResult.Failed -> PcServiceConnectResult.Failed(result.reason, result.message)
+        }
+    }
+
+    private fun isUserDecision(reason: PcErrorReason): Boolean {
+        return reason == PcErrorReason.PairingRejected || reason == PcErrorReason.PairingRequestExpired
     }
 
     private suspend fun connectWithToken(pc: DiscoveredPc, token: String): PcServiceConnectResult {
@@ -125,5 +191,7 @@ class PcServiceConnectionController(
 
     companion object {
         private const val EXPIRED_MESSAGE = "Connection expired. Request access again."
+        private const val DISCOVERY_TIMEOUT_MS = 8_000L
+        private const val SETTLE_WINDOW_MS = 1_500L
     }
 }

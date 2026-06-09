@@ -277,6 +277,8 @@
     <string name="menu_item_control_pc">Control PC</string>
     <string name="menu_item_control_pc_description">Control your connected computer.</string>
     <string name="menu_title_control_pc">Control PC</string>
+    <string name="menu_title_choose_pc">Choose PC</string>
+    <string name="menu_item_choose_pc_description">Connect to this PC.</string>
     <string name="pc_control_connecting">Connecting to PC...</string>
     <string name="pc_control_connect_first">Connect to PC from Switchify first.</string>
     <string name="pc_control_waiting_approval">Waiting for approval on your PC...</string>
