@@ -251,7 +251,8 @@ class PcConnectionViewModelTest {
         tokenStore = tokens,
         identityRepository = FakeIdentity,
         connector = connector,
-        requestNonceProvider = requestNonceProvider
+        requestNonceProvider = requestNonceProvider,
+        backgroundDispatcher = dispatcher
     )
 
     private class FakeDiscovery(initialPcs: List<DiscoveredPc>) : PcDiscovery {
