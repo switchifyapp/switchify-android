@@ -30,6 +30,16 @@ class NodeTest {
         assertEquals(first, second)
     }
 
+    @Test
+    fun equalNodesHaveEqualHashCodes() {
+        assertEquals(testNode("Mouse").hashCode(), testNode("Mouse").hashCode())
+    }
+
+    @Test
+    fun nodesWithDifferentContentHaveDifferentHashCodes() {
+        assertNotEquals(testNode("Mouse").hashCode(), testNode("Typing").hashCode())
+    }
+
     private fun testNode(contentDescription: String): Node {
         return Node.fromPointScanBlock(
             PointScanBlock(

@@ -268,10 +268,23 @@ class Node(
         if (this === other) return true
         if (other !is Node) return false
 
-        return scanSignature() == other.scanSignature()
+        return x == other.x &&
+                y == other.y &&
+                width == other.width &&
+                height == other.height &&
+                contentDescription == other.contentDescription &&
+                description == other.description &&
+                getElementType() == other.getElementType()
     }
 
     override fun hashCode(): Int {
-        return scanSignature().hashCode()
+        var result = x
+        result = 31 * result + y
+        result = 31 * result + width
+        result = 31 * result + height
+        result = 31 * result + contentDescription.hashCode()
+        result = 31 * result + description.hashCode()
+        result = 31 * result + (getElementType()?.hashCode() ?: 0)
+        return result
     }
 }
