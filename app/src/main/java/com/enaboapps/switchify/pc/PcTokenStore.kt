@@ -18,6 +18,13 @@ data class PcStoredPairing(
     val lastUrl: String?
 )
 
+/**
+ * Stores pairing tokens in device-protected SharedPreferences so saved PCs
+ * reconnect before the user unlocks the device. Tokens are stored in plain
+ * text: they only grant control of a PC that the user explicitly approved,
+ * and extracting them requires local/root access to this device. See the
+ * threat model on [PcProtocol].
+ */
 class PcTokenStore(context: Context) : PcPairingTokenStore {
     private val preferences = context
         .applicationContext

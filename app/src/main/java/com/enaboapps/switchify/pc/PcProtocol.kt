@@ -15,6 +15,32 @@ sealed class PcProtocolResponse {
     data object Invalid : PcProtocolResponse()
 }
 
+/**
+ * Switchify PC protocol message builder/parser.
+ *
+ * ## Threat model (protocol v1)
+ *
+ * Transport is plaintext `ws://` on the local network; the protocol assumes a
+ * trusted LAN. Consequences of that assumption:
+ *
+ * - The pairing token is delivered in cleartext in `pairing.complete`. An
+ *   attacker who can read LAN traffic during pairing (open Wi-Fi, ARP
+ *   spoofing) can capture the token and control the PC. After pairing the
+ *   token is never sent again; commands carry an HMAC-SHA256 proof
+ *   ([authProof]) over a canonical form of the message, so a passive observer
+ *   of normal traffic cannot forge or tamper with commands.
+ * - The 6-digit verification code shown during pairing is derived from the
+ *   desktop ID, device ID, and request nonce, all of which travel in
+ *   cleartext. It protects the user from approving the wrong device's
+ *   request; it does not protect against an active man-in-the-middle.
+ * - The user must explicitly approve every pairing on the PC, so remote
+ *   attackers cannot pair silently; the exposure window is the pairing
+ *   exchange itself on a hostile LAN.
+ *
+ * This trade-off is accepted for v1. A future protocol version should move to
+ * `wss://` with a certificate pinned at pairing, or encrypt the pairing
+ * exchange with a key derived from an out-of-band secret entered by the user.
+ */
 object PcProtocol {
     fun pairingRequest(
         id: String,
