@@ -21,9 +21,10 @@ internal fun areDuplicateScanNodes(previous: List<Node>?, next: List<Node>): Boo
     val lastNodes = previous ?: return false
     if (lastNodes.size != next.size) return false
 
-    return lastNodes.zip(next).all { (old, new) ->
-        old.scanSignature() == new.scanSignature()
+    for (index in lastNodes.indices) {
+        if (lastNodes[index] != next[index]) return false
     }
+    return true
 }
 
 /**
