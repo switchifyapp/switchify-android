@@ -54,6 +54,16 @@ interface PcControlConnection {
     fun close()
 }
 
+internal fun resolveExpectedResponse(response: PcProtocolResponse, requestId: String): PcProtocolResponse? {
+    return when (response) {
+        is PcProtocolResponse.Ack -> response.takeIf { it.id == requestId }
+        is PcProtocolResponse.PairingComplete -> response.takeIf { it.id == requestId }
+        is PcProtocolResponse.PointerProfile -> response.takeIf { it.id == requestId }
+        is PcProtocolResponse.Error -> response.takeIf { it.id == requestId || it.id == null }
+        PcProtocolResponse.Invalid -> null
+    }
+}
+
 interface PcConnector {
     suspend fun requestApproval(pc: DiscoveredPc, requestNonce: String): PcPairingResult
     suspend fun authenticatedPing(pc: DiscoveredPc, token: String): PcPingResult
@@ -233,14 +243,8 @@ class SwitchifyPcClient(
         while (true) {
             val frame = session.incoming.receive()
             if (frame !is Frame.Text) continue
-            val response = PcProtocol.parseResponse(frame.readText())
-            when (response) {
-                is PcProtocolResponse.Ack -> if (response.id == requestId) return response
-                is PcProtocolResponse.PairingComplete -> if (response.id == requestId) return response
-                is PcProtocolResponse.PointerProfile -> if (response.id == requestId) return response
-                is PcProtocolResponse.Error -> if (response.id == requestId || response.id == null) return response
-                PcProtocolResponse.Invalid -> return response
-            }
+            val response = resolveExpectedResponse(PcProtocol.parseResponse(frame.readText()), requestId)
+            if (response != null) return response
         }
     }
 
