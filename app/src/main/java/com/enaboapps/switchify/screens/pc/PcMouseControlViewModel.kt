@@ -125,7 +125,7 @@ class PcMouseControlViewModel(
         _uiState.update {
             it.copy(
                 activeSurface = surface,
-                typingMessage = if (surface == PcControlSurface.Mouse) null else it.typingMessage
+                typingMessage = if (surface != PcControlSurface.Typing) null else it.typingMessage
             )
         }
     }

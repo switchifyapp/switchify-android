@@ -10,7 +10,8 @@ enum class PcControlSurface(
     @param:StringRes val labelResId: Int
 ) {
     Mouse("mouse", R.string.pc_control_surface_mouse),
-    Typing("typing", R.string.pc_control_surface_typing);
+    Typing("typing", R.string.pc_control_surface_typing),
+    Window("window", R.string.pc_control_surface_window);
 
     companion object {
         fun fromPreferenceValue(value: String?): PcControlSurface {

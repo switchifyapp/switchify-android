@@ -17,6 +17,7 @@ import com.enaboapps.switchify.pc.PcPointerBounds
 import com.enaboapps.switchify.pc.PcPointerDeltas
 import com.enaboapps.switchify.pc.PcStoredPairing
 import com.enaboapps.switchify.pc.PcPointerMovementProfile
+import com.enaboapps.switchify.pc.PcWindowControlAction
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -107,6 +108,20 @@ class PcMouseControlViewModelTest {
     }
 
     @Test
+    fun storedWindowSurfaceLoadsAsActiveSurface() = runTest(dispatcher) {
+        val viewModel = PcMouseControlViewModel(
+            FakeTokenStore(),
+            FakeConnector(PcCommandResult.Ack),
+            FakeMovementSizeStore(),
+            FakeControlSurfaceStore(PcControlSurface.Window)
+        )
+
+        advanceUntilIdle()
+
+        assertEquals(PcControlSurface.Window, viewModel.uiState.value.activeSurface)
+    }
+
+    @Test
     fun controlSurfacePreferenceParserDefaultsUnknownValuesToMouse() {
         assertEquals(PcControlSurface.Mouse, PcControlSurface.fromPreferenceValue(""))
         assertEquals(PcControlSurface.Mouse, PcControlSurface.fromPreferenceValue(null))
@@ -117,6 +132,7 @@ class PcMouseControlViewModelTest {
     fun controlSurfacePreferenceParserReadsKnownValues() {
         assertEquals(PcControlSurface.Mouse, PcControlSurface.fromPreferenceValue("mouse"))
         assertEquals(PcControlSurface.Typing, PcControlSurface.fromPreferenceValue("typing"))
+        assertEquals(PcControlSurface.Window, PcControlSurface.fromPreferenceValue("window"))
     }
 
     @Test
@@ -358,6 +374,24 @@ class PcMouseControlViewModelTest {
         assertEquals("", viewModel.uiState.value.typingText)
         assertEquals(PcControlSurface.Typing, viewModel.uiState.value.activeSurface)
         assertNull(viewModel.uiState.value.typingMessage)
+    }
+
+    @Test
+    fun connectedStateSendsWindowControlCommand() = runTest(dispatcher) {
+        PcConnectionStateHolder.setConnected(session, "Switchify PC")
+        val connector = FakeConnector(PcCommandResult.Ack)
+        val viewModel = PcMouseControlViewModel(FakeTokenStore(), connector, FakeMovementSizeStore())
+
+        viewModel.selectControlSurface(PcControlSurface.Window)
+        viewModel.send(PcControlCommand.WindowControl(PcWindowControlAction.SwitchNext))
+        advanceUntilIdle()
+
+        assertEquals(
+            PcControlCommand.WindowControl(PcWindowControlAction.SwitchNext),
+            connector.commands.single()
+        )
+        assertEquals(PcControlSurface.Window, viewModel.uiState.value.activeSurface)
+        assertNull(viewModel.uiState.value.message)
     }
 
     @Test

@@ -141,6 +141,10 @@ private fun PcMouseControlScreen(
                         onClear = viewModel::clearTypingText,
                         onKeySelected = viewModel::sendKey
                     )
+                    PcControlSurface.Window -> PcWindowControlScreen(
+                        connected = uiState.connectedDisplayName != null,
+                        onCommandSelected = viewModel::send
+                    )
                 }
             }
         }

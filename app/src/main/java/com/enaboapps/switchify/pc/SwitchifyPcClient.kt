@@ -30,6 +30,7 @@ sealed class PcControlCommand {
     data class Scroll(val dx: Int, val dy: Int) : PcControlCommand()
     data class TypeText(val text: String) : PcControlCommand()
     data class PressKey(val key: PcKeyboardKey) : PcControlCommand()
+    data class WindowControl(val action: PcWindowControlAction) : PcControlCommand()
     data object LeftClick : PcControlCommand()
     data object DoubleClick : PcControlCommand()
     data object RightClick : PcControlCommand()
@@ -285,6 +286,7 @@ class SwitchifyPcClient(
             PcControlCommand.RightClick -> PcProtocol.mouseRightClick(id, deviceId, token, timestamp)
             is PcControlCommand.TypeText -> PcProtocol.keyboardTypeText(id, deviceId, token, timestamp, text)
             is PcControlCommand.PressKey -> PcProtocol.keyboardKey(id, deviceId, token, timestamp, key)
+            is PcControlCommand.WindowControl -> PcProtocol.windowControl(id, deviceId, token, timestamp, action)
         }
     }
 

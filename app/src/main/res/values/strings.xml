@@ -286,6 +286,7 @@
     <string name="pc_control_command_failed">Could not send command to PC.</string>
     <string name="pc_control_surface_mouse">Mouse</string>
     <string name="pc_control_surface_typing">Typing</string>
+    <string name="pc_control_surface_window">Window</string>
     <string name="pc_mouse_control_connected">Connected to %1$s.</string>
     <string name="pc_mouse_movement_size">Movement size</string>
     <string name="pc_mouse_movement_small">Small</string>
@@ -322,6 +323,14 @@
     <string name="pc_typing_key_failed">Could not send key to PC.</string>
     <string name="pc_typing_text_too_long">Text is too long.</string>
     <string name="pc_typing_text_unsupported">Text includes unsupported characters.</string>
+    <string name="pc_window_section_windows">Windows</string>
+    <string name="pc_window_switch_next">Next app</string>
+    <string name="pc_window_switch_previous">Previous app</string>
+    <string name="pc_window_task_view">Task view</string>
+    <string name="pc_window_show_desktop">Show desktop</string>
+    <string name="pc_window_minimize">Minimize</string>
+    <string name="pc_window_maximize">Maximize</string>
+    <string name="pc_window_close">Close app</string>
     <string name="pc_key_backspace">Backspace</string>
     <string name="pc_key_delete">Delete</string>
     <string name="pc_key_enter">Enter</string>
