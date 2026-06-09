@@ -2,10 +2,9 @@ name: Play Release
 
 # Fires whenever a GitHub Release is published from the AGENTS.md release flow
 # (`gh release create vX.Y.Z --generate-notes`). Both regular releases and
-# prereleases (`--prerelease`) trigger the build; the `internal` upload runs
-# for either, and the `production` upload only runs for non-prereleases — so
-# a `-rc.X` / `-beta.X` tag can ride through to internal testers without
-# leaking to the production audience.
+# prereleases (`--prerelease`) trigger the build. Prerelease tags or
+# prerelease version names are forced to internal testers only, even if the
+# GitHub Release metadata is wrong.
 on:
   release:
     types: [published]
@@ -25,6 +24,35 @@ jobs:
           # `gitVersionCode = rev-list --count HEAD` matches what was tagged.
           ref: ${{ github.event.release.tag_name }}
           fetch-depth: 0
+
+      - name: Validate release channel
+        id: release-channel
+        shell: bash
+        run: |
+          TAG="${{ github.event.release.tag_name }}"
+          IS_GITHUB_PRERELEASE="${{ github.event.release.prerelease }}"
+          VERSION_NAME="$(grep -E 'versionName = "' app/build.gradle.kts | sed -E 's/.*versionName = "([^"]+)".*/\1/')"
+
+          IS_SEMANTIC_PRERELEASE="false"
+          if [[ "$TAG" =~ -(alpha|beta|rc)(\.|$) ]] || [[ "$VERSION_NAME" =~ -(alpha|beta|rc)(\.|$) ]]; then
+            IS_SEMANTIC_PRERELEASE="true"
+          fi
+
+          if [[ "$IS_SEMANTIC_PRERELEASE" == "true" ]]; then
+            echo "play_tracks=internal" >> "$GITHUB_OUTPUT"
+            if [[ "$IS_GITHUB_PRERELEASE" != "true" ]]; then
+              echo "::error::Prerelease tag or version detected (tag: $TAG, versionName: $VERSION_NAME), but the GitHub Release is not marked as a prerelease."
+              exit 1
+            fi
+            exit 0
+          fi
+
+          if [[ "$IS_GITHUB_PRERELEASE" == "true" ]]; then
+            echo "play_tracks=internal" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "play_tracks=internal,production" >> "$GITHUB_OUTPUT"
 
       - name: Set up JDK 17
         uses: actions/setup-java@v5
@@ -54,19 +82,16 @@ jobs:
           AI_MODEL_URL:             ${{ secrets.AI_MODEL_URL }}
         run: ./gradlew bundleRelease --no-daemon
 
-      # Single upload that targets one or more Play tracks. Prereleases
-      # (`-rc.X`, `-beta.X` marked --prerelease) reach internal testers only;
-      # regular releases go to both internal and production in the same edit.
-      # Doing this as one step (with the plural `tracks` input — comma-
-      # separated) avoids the "Version code already used" rejection that a
-      # second back-to-back upload would hit.
+      # Single upload that targets one or more Play tracks. The tracks are
+      # computed by Validate release channel so beta/alpha/rc builds cannot
+      # reach production if release metadata is set incorrectly.
       - name: Upload to Play Store
         uses: r0adkll/upload-google-play@v1
         with:
           serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
           packageName: com.enaboapps.switchify
           releaseFiles: app/build/outputs/bundle/release/app-release.aab
-          tracks: ${{ github.event.release.prerelease && 'internal' || 'internal,production' }}
+          tracks: ${{ steps.release-channel.outputs.play_tracks }}
           status: completed
           releaseName: ${{ github.event.release.tag_name }}
 
