@@ -34,6 +34,7 @@ fun PreferenceRowScaffold(
     enabled: Boolean = true,
     onClick: (() -> Unit)? = null,
     leadingContent: (@Composable () -> Unit)? = null,
+    belowContent: (@Composable () -> Unit)? = null,
     trailing: @Composable RowScope.() -> Unit
 ) {
     val scheme = MaterialTheme.colorScheme
@@ -44,28 +45,65 @@ fun PreferenceRowScaffold(
         .let { if (onClick != null) it.clickable(enabled = enabled, onClick = onClick) else it }
         .padding(Dimens.spaceM)
 
-    Row(
-        modifier = rowModifier,
-        horizontalArrangement = Arrangement.spacedBy(Dimens.spaceM),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        leadingContent?.invoke()
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleMedium,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis
+    if (belowContent == null) {
+        Row(
+            modifier = rowModifier,
+            horizontalArrangement = Arrangement.spacedBy(Dimens.spaceM),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            PreferenceRowText(
+                title = title,
+                summary = summary,
+                modifier = Modifier.weight(1f),
+                leadingContent = leadingContent
             )
-            Text(
-                text = summary,
-                style = MaterialTheme.typography.bodySmall,
-                color = scheme.onSurfaceVariant,
-                maxLines = 3,
-                overflow = TextOverflow.Ellipsis
-            )
+            trailing()
         }
-        trailing()
+    } else {
+        Column(
+            modifier = rowModifier,
+            verticalArrangement = Arrangement.spacedBy(Dimens.spaceS)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(Dimens.spaceM),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                PreferenceRowText(
+                    title = title,
+                    summary = summary,
+                    modifier = Modifier.weight(1f),
+                    leadingContent = leadingContent
+                )
+                trailing()
+            }
+            belowContent()
+        }
+    }
+}
+
+@Composable
+private fun PreferenceRowText(
+    title: String,
+    summary: String,
+    modifier: Modifier = Modifier,
+    leadingContent: (@Composable () -> Unit)? = null
+) {
+    leadingContent?.invoke()
+    Column(modifier = modifier) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleMedium,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis
+        )
+        Text(
+            text = summary,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 3,
+            overflow = TextOverflow.Ellipsis
+        )
     }
 }
 
