@@ -87,6 +87,31 @@ class AccessibilityEventPipelineTest {
     }
 
     @Test
+    fun settledRefreshSurvivesConflationByNonRefreshEvent() = runTest {
+        var processCount = 0
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val pipeline = AccessibilityEventPipeline(
+            scope = this,
+            settledRefreshDelayMs = 10L,
+            eventDispatcher = dispatcher,
+            onProcess = { processCount++ }
+        )
+
+        pipeline.start()
+        pipeline.trySendEventType(AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED)
+        pipeline.trySendEventType(AccessibilityEvent.TYPE_VIEW_FOCUSED)
+        runCurrent()
+
+        assertEquals(1, processCount)
+
+        advanceTimeBy(10L)
+        runCurrent()
+
+        assertEquals(2, processCount)
+        pipeline.stop()
+    }
+
+    @Test
     fun classifiesRefreshWorthyEvents() = runTest {
         val pipeline = AccessibilityEventPipeline(
             scope = this,
