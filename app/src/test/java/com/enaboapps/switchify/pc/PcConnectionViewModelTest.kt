@@ -226,6 +226,22 @@ class PcConnectionViewModelTest {
     }
 
     @Test
+    fun setPermissionRequiredReflectsInUiState() = runTest(dispatcher) {
+        val viewModel = viewModel(FakeDiscovery(emptyList()), FakeTokenStore(), FakeConnector())
+        advanceUntilIdle()
+
+        assertEquals(false, viewModel.uiState.value.permissionRequired)
+
+        viewModel.setPermissionRequired(true)
+        advanceUntilIdle()
+        assertEquals(true, viewModel.uiState.value.permissionRequired)
+
+        viewModel.setPermissionRequired(false)
+        advanceUntilIdle()
+        assertEquals(false, viewModel.uiState.value.permissionRequired)
+    }
+
+    @Test
     fun dismissUnpairKeepsToken() = runTest(dispatcher) {
         val discovery = FakeDiscovery(listOf(pc))
         val tokens = FakeTokenStore(initialTokens = mutableMapOf("desktop-1" to "token"))

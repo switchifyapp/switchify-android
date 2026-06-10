@@ -1,5 +1,10 @@
 package com.enaboapps.switchify.screens.pc
 
+import android.Manifest
+import android.content.Intent
+import android.net.Uri
+import android.os.Build
+import android.provider.Settings
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -16,6 +21,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -25,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.enaboapps.switchify.R
+import com.enaboapps.switchify.components.ActionButton
 import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.PreferenceComponentBase
 import com.enaboapps.switchify.components.ScrollableView
@@ -34,17 +43,34 @@ import com.enaboapps.switchify.pc.PcConnectionViewModel
 import com.enaboapps.switchify.pc.PcRowState
 import com.enaboapps.switchify.pc.PcRowStatus
 import com.enaboapps.switchify.theme.Dimens
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.PermissionState
+import com.google.accompanist.permissions.isGranted
+import com.google.accompanist.permissions.rememberPermissionState
+import com.google.accompanist.permissions.shouldShowRationale
 
 private val PcConnectionCompactRowWidth = 380.dp
 
+@OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun PcConnectionScreen(navController: NavController) {
     val context = LocalContext.current
     val viewModel: PcConnectionViewModel = viewModel { PcConnectionViewModel(context.applicationContext) }
     val uiState by viewModel.uiState.collectAsState()
 
-    LaunchedEffect(Unit) {
-        viewModel.startDiscovery()
+    val permissionState: PermissionState? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        rememberPermissionState(Manifest.permission.NEARBY_WIFI_DEVICES)
+    } else {
+        null
+    }
+    val permissionGranted = permissionState?.status?.isGranted ?: true
+    var hasRequestedPermission by rememberSaveable { mutableStateOf(false) }
+
+    LaunchedEffect(permissionGranted) {
+        viewModel.setPermissionRequired(!permissionGranted)
+        if (permissionGranted) {
+            viewModel.startDiscovery()
+        }
     }
 
     BaseView(
@@ -54,23 +80,55 @@ fun PcConnectionScreen(navController: NavController) {
     ) {
         ScrollableView {
             Column(verticalArrangement = Arrangement.spacedBy(Dimens.spaceM)) {
-                Section(titleResId = R.string.pc_connection_nearby_section) {
-                    Column(modifier = Modifier.padding(vertical = Dimens.spaceS)) {
-                        Text(
-                            text = uiState.discoveryStatusText,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(horizontal = Dimens.spaceM, vertical = Dimens.spaceS)
-                        )
-                        uiState.discoveredPcs.forEach { row ->
-                            PcConnectionPreferenceRow(
-                                title = row.title,
-                                summary = row.summary,
-                                onClick = { row.perform(viewModel) },
-                                actions = {
-                                    PcNearbyRowActions(row = row, viewModel = viewModel)
+                if (uiState.permissionRequired) {
+                    Section(titleResId = R.string.pc_connection_permission_section) {
+                        Column(modifier = Modifier.padding(vertical = Dimens.spaceS)) {
+                            Text(
+                                text = stringResource(R.string.pc_connection_permission_message),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(horizontal = Dimens.spaceM, vertical = Dimens.spaceS)
+                            )
+                            ActionButton(
+                                textResId = R.string.pc_connection_permission_action,
+                                applyPadding = false,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = Dimens.spaceM, vertical = Dimens.spaceS),
+                                onClick = {
+                                    val state = permissionState ?: return@ActionButton
+                                    if (!hasRequestedPermission || state.status.shouldShowRationale) {
+                                        hasRequestedPermission = true
+                                        state.launchPermissionRequest()
+                                    } else {
+                                        val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                            data = Uri.fromParts("package", context.packageName, null)
+                                        }
+                                        context.startActivity(intent)
+                                    }
                                 }
                             )
+                        }
+                    }
+                } else {
+                    Section(titleResId = R.string.pc_connection_nearby_section) {
+                        Column(modifier = Modifier.padding(vertical = Dimens.spaceS)) {
+                            Text(
+                                text = uiState.discoveryStatusText,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(horizontal = Dimens.spaceM, vertical = Dimens.spaceS)
+                            )
+                            uiState.discoveredPcs.forEach { row ->
+                                PcConnectionPreferenceRow(
+                                    title = row.title,
+                                    summary = row.summary,
+                                    onClick = { row.perform(viewModel) },
+                                    actions = {
+                                        PcNearbyRowActions(row = row, viewModel = viewModel)
+                                    }
+                                )
+                            }
                         }
                     }
                 }

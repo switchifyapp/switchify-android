@@ -23,6 +23,10 @@
     <uses-permission android:name="android.permission.WAKE_LOCK" /> <!-- Required for camera service wake lock -->
     <uses-permission android:name="android.permission.INTERNET" /> <!-- Required for downloading the Reply Drafter model -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" /> <!-- Required for local PC discovery -->
+    <uses-permission
+        android:name="android.permission.NEARBY_WIFI_DEVICES"
+        android:usesPermissionFlags="neverForLocation" /> <!-- Required for local PC discovery on Android 13+ -->
+    <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" /> <!-- Required for mDNS multicast during PC discovery -->
 
     <application
         android:name=".SwitchifyApplication"
