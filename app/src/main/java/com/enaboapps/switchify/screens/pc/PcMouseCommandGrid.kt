@@ -357,7 +357,11 @@ fun PcMouseMovementSizeSelector(
                 shape = SegmentedButtonDefaults.itemShape(index = index, count = sizes.size),
                 colors = colors
             ) {
-                Text(text = stringResource(size.labelResId))
+                Text(
+                    text = stringResource(size.labelResId),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
             }
         }
     }
