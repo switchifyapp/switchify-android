@@ -4,7 +4,6 @@ import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -27,6 +26,9 @@ fun PcWindowControlScreen(
     onCommandSelected: (PcControlCommand) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val specs = pcWindowControlSpecs()
+    val pairedSpecs = specs.dropLast(1)
+    val closeSpec = specs.last()
     Column(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(10.dp)
@@ -36,26 +38,28 @@ fun PcWindowControlScreen(
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSurface
         )
-        pcWindowControlSpecs().chunked(2).forEach { specs ->
+        pairedSpecs.chunked(2).forEach { rowSpecs ->
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                specs.forEach { spec ->
+                rowSpecs.forEach { spec ->
                     PcScannedCommandTile(
                         labelResId = spec.labelResId,
                         enabled = connected,
                         onClick = { onCommandSelected(spec.command) },
                         modifier = Modifier.weight(1f),
-                        minHeightDp = 72,
-                        square = false
+                        minHeightDp = 72
                     )
-                }
-                if (specs.size == 1) {
-                    Spacer(modifier = Modifier.weight(1f))
                 }
             }
         }
+        PcScannedCommandTile(
+            labelResId = closeSpec.labelResId,
+            enabled = connected,
+            onClick = { onCommandSelected(closeSpec.command) },
+            minHeightDp = 72
+        )
     }
 }
 

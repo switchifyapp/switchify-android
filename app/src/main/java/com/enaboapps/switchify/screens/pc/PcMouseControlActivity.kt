@@ -9,6 +9,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -20,6 +21,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.initializer
@@ -91,13 +93,22 @@ private fun PcMouseControlScreen(
             NavBar(
                 title = "",
                 titleContent = {
-                    PcControlSurfaceSwitcher(
-                        selectedSurface = uiState.activeSurface,
-                        onSurfaceSelected = viewModel::selectControlSurface,
+                    Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(end = 8.dp)
-                    )
+                            .padding(end = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        PcConnectionStatusDot(
+                            connectedDisplayName = uiState.connectedDisplayName
+                        )
+                        PcControlSurfaceSwitcher(
+                            selectedSurface = uiState.activeSurface,
+                            onSurfaceSelected = viewModel::selectControlSurface,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
                 },
                 showBackButton = true,
                 onBackPressed = onClose
@@ -110,25 +121,23 @@ private fun PcMouseControlScreen(
                 .padding(paddingValues),
             color = MaterialTheme.colorScheme.background
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(18.dp)
-            ) {
-                PcControlStatusStrip(
-                    connectedDisplayName = uiState.connectedDisplayName,
-                    message = uiState.message
+            when (uiState.activeSurface) {
+                PcControlSurface.Mouse -> PcMouseControlSurface(
+                    uiState = uiState,
+                    viewModel = viewModel,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp)
                 )
-                when (uiState.activeSurface) {
-                    PcControlSurface.Mouse -> PcMouseControlSurface(
-                        uiState = uiState,
-                        viewModel = viewModel
-                    )
-                    PcControlSurface.Typing -> PcTypingControlScreen(
-                        connectedDisplayName = uiState.connectedDisplayName,
-                        message = uiState.message,
+                PcControlSurface.Typing -> Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(18.dp)
+                ) {
+                    PcTransientMessage(message = uiState.message)
+                    PcTypingControlScreen(
                         typingText = uiState.typingText,
                         typingMessage = uiState.typingMessage,
                         sendEnabled = uiState.connectedDisplayName != null &&
@@ -141,7 +150,16 @@ private fun PcMouseControlScreen(
                         onClear = viewModel::clearTypingText,
                         onKeySelected = viewModel::sendKey
                     )
-                    PcControlSurface.Window -> PcWindowControlScreen(
+                }
+                PcControlSurface.Window -> Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(18.dp)
+                ) {
+                    PcTransientMessage(message = uiState.message)
+                    PcWindowControlScreen(
                         connected = uiState.connectedDisplayName != null,
                         onCommandSelected = viewModel::send
                     )
@@ -154,15 +172,34 @@ private fun PcMouseControlScreen(
 @Composable
 private fun PcMouseControlSurface(
     uiState: PcMouseControlUiState,
-    viewModel: PcMouseControlViewModel
+    viewModel: PcMouseControlViewModel,
+    modifier: Modifier = Modifier
 ) {
-    PcMovementSizeSection(
-        selectedSize = uiState.selectedMovementSize,
-        onSizeSelected = viewModel::selectMovementSize
-    )
-    PcControlCommandSections(
-        connected = uiState.connectedDisplayName != null,
-        movementStep = uiState.movementStep,
-        onCommandSelected = viewModel::send
-    )
+    val connected = uiState.connectedDisplayName != null
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        PcTransientMessage(message = uiState.message)
+        PcMouseControlPad(
+            connected = connected,
+            movementStep = uiState.movementStep,
+            onCommandSelected = viewModel::send,
+            modifier = Modifier.weight(1f)
+        )
+        PcCommandButtonRow(
+            specs = pcSecondaryClickControlSpecs(),
+            connected = connected,
+            onCommandSelected = viewModel::send
+        )
+        PcCommandButtonRow(
+            specs = pcScrollControlSpecs(),
+            connected = connected,
+            onCommandSelected = viewModel::send
+        )
+        PcMovementSizeSection(
+            selectedSize = uiState.selectedMovementSize,
+            onSizeSelected = viewModel::selectMovementSize
+        )
+    }
 }

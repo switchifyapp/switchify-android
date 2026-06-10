@@ -4,7 +4,6 @@ import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.text.KeyboardOptions
@@ -26,8 +25,6 @@ data class PcTypingKeySpec(
 
 @Composable
 fun PcTypingControlScreen(
-    connectedDisplayName: String?,
-    message: String?,
     typingText: String,
     typingMessage: String?,
     sendEnabled: Boolean,
@@ -42,10 +39,6 @@ fun PcTypingControlScreen(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(18.dp)
     ) {
-        PcControlStatusStrip(
-            connectedDisplayName = connectedDisplayName,
-            message = message
-        )
         PcTypingTextSection(
             text = typingText,
             message = typingMessage,
@@ -111,16 +104,14 @@ private fun PcTypingActionSection(
                 enabled = sendEnabled,
                 onClick = onSend,
                 modifier = Modifier.weight(1f),
-                minHeightDp = 72,
-                square = false
+                minHeightDp = 72
             )
             PcScannedCommandTile(
                 labelResId = R.string.pc_typing_clear,
                 enabled = clearEnabled,
                 onClick = onClear,
                 modifier = Modifier.weight(1f),
-                minHeightDp = 72,
-                square = false
+                minHeightDp = 72
             )
         }
     }
@@ -131,58 +122,12 @@ private fun PcTypingKeySection(
     keysEnabled: Boolean,
     onKeySelected: (PcKeyboardKey) -> Unit
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(18.dp)) {
-        PcPrimaryKeyGroup(
-            keysEnabled = keysEnabled,
-            onKeySelected = onKeySelected
-        )
-        PcCursorKeyGroup(
-            keysEnabled = keysEnabled,
-            onKeySelected = onKeySelected
-        )
-        PcKeyGroup(
-            titleResId = R.string.pc_typing_section_document,
-            specs = pcDocumentKeySpecs(),
-            keysEnabled = keysEnabled,
-            onKeySelected = onKeySelected,
-            columns = 2
-        )
-    }
-}
-
-@Composable
-private fun PcKeyGroup(
-    @StringRes titleResId: Int,
-    specs: List<PcTypingKeySpec>,
-    keysEnabled: Boolean,
-    onKeySelected: (PcKeyboardKey) -> Unit,
-    columns: Int = 3
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        PcTypingSectionTitle(titleResId)
-        specs.chunked(columns).forEach { rowSpecs ->
-            PcTypingKeyRow(
-                specs = rowSpecs,
-                keysEnabled = keysEnabled,
-                onKeySelected = onKeySelected,
-                columns = columns
-            )
-        }
-    }
-}
-
-@Composable
-private fun PcPrimaryKeyGroup(
-    keysEnabled: Boolean,
-    onKeySelected: (PcKeyboardKey) -> Unit
-) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         PcTypingSectionTitle(R.string.pc_typing_section_keys)
         PcTypingKeyRow(
             specs = pcEditingKeySpecs(),
             keysEnabled = keysEnabled,
-            onKeySelected = onKeySelected,
-            columns = 3
+            onKeySelected = onKeySelected
         )
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -192,8 +137,7 @@ private fun PcPrimaryKeyGroup(
                 spec = PcTypingKeySpec(R.string.pc_key_space, PcKeyboardKey.Space),
                 keysEnabled = keysEnabled,
                 onKeySelected = onKeySelected,
-                modifier = Modifier.weight(2f),
-                square = false
+                modifier = Modifier.weight(2f)
             )
             PcTypingKeyTile(
                 spec = PcTypingKeySpec(R.string.pc_key_tab, PcKeyboardKey.Tab),
@@ -208,41 +152,16 @@ private fun PcPrimaryKeyGroup(
                 modifier = Modifier.weight(1f)
             )
         }
-    }
-}
-
-@Composable
-private fun PcCursorKeyGroup(
-    keysEnabled: Boolean,
-    onKeySelected: (PcKeyboardKey) -> Unit
-) {
-    val specs = pcCursorKeySpecs()
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        PcTypingSectionTitle(R.string.pc_typing_section_cursor)
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            Spacer(modifier = Modifier.weight(1f))
-            PcTypingKeyTile(specs[0], keysEnabled, onKeySelected, Modifier.weight(1f))
-            Spacer(modifier = Modifier.weight(1f))
-        }
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            PcTypingKeyTile(specs[1], keysEnabled, onKeySelected, Modifier.weight(1f))
-            Spacer(modifier = Modifier.weight(1f))
-            PcTypingKeyTile(specs[2], keysEnabled, onKeySelected, Modifier.weight(1f))
-        }
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            Spacer(modifier = Modifier.weight(1f))
-            PcTypingKeyTile(specs[3], keysEnabled, onKeySelected, Modifier.weight(1f))
-            Spacer(modifier = Modifier.weight(1f))
-        }
+        PcTypingKeyRow(
+            specs = pcCursorKeySpecs(),
+            keysEnabled = keysEnabled,
+            onKeySelected = onKeySelected
+        )
+        PcTypingKeyRow(
+            specs = pcDocumentKeySpecs(),
+            keysEnabled = keysEnabled,
+            onKeySelected = onKeySelected
+        )
     }
 }
 
@@ -250,8 +169,7 @@ private fun PcCursorKeyGroup(
 private fun PcTypingKeyRow(
     specs: List<PcTypingKeySpec>,
     keysEnabled: Boolean,
-    onKeySelected: (PcKeyboardKey) -> Unit,
-    columns: Int = 3
+    onKeySelected: (PcKeyboardKey) -> Unit
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -265,9 +183,6 @@ private fun PcTypingKeyRow(
                 modifier = Modifier.weight(1f)
             )
         }
-        repeat(columns - specs.size) {
-            Spacer(modifier = Modifier.weight(1f))
-        }
     }
 }
 
@@ -276,16 +191,14 @@ private fun PcTypingKeyTile(
     spec: PcTypingKeySpec,
     keysEnabled: Boolean,
     onKeySelected: (PcKeyboardKey) -> Unit,
-    modifier: Modifier = Modifier,
-    square: Boolean = true
+    modifier: Modifier = Modifier
 ) {
     PcScannedCommandTile(
         labelResId = spec.labelResId,
         enabled = keysEnabled,
         onClick = { onKeySelected(spec.key) },
         modifier = modifier,
-        minHeightDp = 72,
-        square = square
+        minHeightDp = 64
     )
 }
 
@@ -316,10 +229,10 @@ fun pcSpacingKeySpecs(): List<PcTypingKeySpec> {
 
 fun pcCursorKeySpecs(): List<PcTypingKeySpec> {
     return listOf(
-        PcTypingKeySpec(R.string.pc_key_arrow_up, PcKeyboardKey.ArrowUp),
         PcTypingKeySpec(R.string.pc_key_arrow_left, PcKeyboardKey.ArrowLeft),
-        PcTypingKeySpec(R.string.pc_key_arrow_right, PcKeyboardKey.ArrowRight),
-        PcTypingKeySpec(R.string.pc_key_arrow_down, PcKeyboardKey.ArrowDown)
+        PcTypingKeySpec(R.string.pc_key_arrow_up, PcKeyboardKey.ArrowUp),
+        PcTypingKeySpec(R.string.pc_key_arrow_down, PcKeyboardKey.ArrowDown),
+        PcTypingKeySpec(R.string.pc_key_arrow_right, PcKeyboardKey.ArrowRight)
     )
 }
 

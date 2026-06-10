@@ -2,19 +2,20 @@ package com.enaboapps.switchify.screens.pc
 
 import androidx.annotation.StringRes
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SegmentedButton
@@ -27,8 +28,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -40,46 +44,48 @@ data class PcMouseControlSpec(
     val command: PcControlCommand
 )
 
+/**
+ * Small connection indicator shown in the navbar next to the surface switcher.
+ * Non-interactive; the connection state is exposed through semantics so speech
+ * feedback still announces it without adding a scan target.
+ */
 @Composable
-fun PcControlCommandGrid(
-    connected: Boolean,
-    movementStep: Int,
-    onCommandSelected: (PcControlCommand) -> Unit,
+fun PcConnectionStatusDot(
+    connectedDisplayName: String?,
     modifier: Modifier = Modifier
 ) {
-    PcControlCommandSections(
-        connected = connected,
-        movementStep = movementStep,
-        onCommandSelected = onCommandSelected,
+    val description = connectedDisplayName?.let {
+        stringResource(R.string.pc_mouse_control_connected, it)
+    } ?: stringResource(R.string.pc_control_connect_first)
+    val dotColor = if (connectedDisplayName != null) {
+        Color(0xFF66BB6A)
+    } else {
+        MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.4f)
+    }
+    Box(
         modifier = modifier
+            .size(12.dp)
+            .background(color = dotColor, shape = CircleShape)
+            .semantics { contentDescription = description }
     )
 }
 
+/**
+ * Renders a status/error line only when there is something to say, so the
+ * surfaces do not pay a permanent layout cost for occasional messages.
+ */
 @Composable
-fun PcControlStatusStrip(
-    connectedDisplayName: String?,
+fun PcTransientMessage(
     message: String?,
     modifier: Modifier = Modifier
 ) {
-    Column(
-        modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(6.dp)
-    ) {
-        Text(
-            text = connectedDisplayName?.let {
-                stringResource(R.string.pc_mouse_control_connected, it)
-            } ?: stringResource(R.string.pc_control_connect_first),
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        message?.let {
-            Text(
-                text = it,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
+    if (message == null) return
+    Text(
+        text = message,
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = modifier.fillMaxWidth()
+    )
 }
 
 @Composable
@@ -92,7 +98,11 @@ fun PcMovementSizeSection(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        PcCommandSectionTitle(R.string.pc_mouse_movement_size)
+        Text(
+            text = stringResource(R.string.pc_mouse_movement_size),
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.onSurface
+        )
         PcMouseMovementSizeSelector(
             selectedSize = selectedSize,
             onSizeSelected = onSizeSelected
@@ -100,146 +110,67 @@ fun PcMovementSizeSection(
     }
 }
 
+/**
+ * 3x3 movement pad with the left click in the center, so the
+ * position-then-click loop stays inside one tight scan group.
+ * Rows share the available height equally.
+ */
 @Composable
-fun PcControlCommandSections(
+fun PcMouseControlPad(
     connected: Boolean,
     movementStep: Int,
     onCommandSelected: (PcControlCommand) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val specs = pcMouseGridSpecs(movementStep)
     Column(
         modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(18.dp)
+        verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        PcMovementCommandSection(
-            connected = connected,
-            movementStep = movementStep,
-            onCommandSelected = onCommandSelected
-        )
-        PcButtonCommandSection(
-            titleResId = R.string.pc_mouse_section_clicks,
-            specs = pcClickControlSpecs(),
-            connected = connected,
-            onCommandSelected = onCommandSelected
-        )
-        PcButtonCommandSection(
-            titleResId = R.string.pc_mouse_section_scroll,
-            specs = pcScrollControlSpecs(),
-            connected = connected,
-            onCommandSelected = onCommandSelected
-        )
-    }
-}
-
-@Composable
-private fun PcMovementCommandSection(
-    connected: Boolean,
-    movementStep: Int,
-    onCommandSelected: (PcControlCommand) -> Unit
-) {
-    val controls = pcMovementControlSpecs(movementStep)
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        PcCommandSectionTitle(R.string.pc_mouse_section_movement)
-        PcCommandButtonRow(
-            specs = controls.take(3),
-            connected = connected,
-            onCommandSelected = onCommandSelected,
-            minHeightDp = 76
-        )
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            PcCommandButton(
-                spec = controls[3],
-                connected = connected,
-                onCommandSelected = onCommandSelected,
-                minHeightDp = 76,
-                modifier = Modifier.weight(1f)
-            )
-            Spacer(modifier = Modifier.weight(1f))
-            PcCommandButton(
-                spec = controls[4],
-                connected = connected,
-                onCommandSelected = onCommandSelected,
-                minHeightDp = 76,
-                modifier = Modifier.weight(1f)
-            )
+        specs.chunked(3).forEach { rowSpecs ->
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                rowSpecs.forEach { spec ->
+                    PcScannedCommandTile(
+                        labelResId = spec.labelResId,
+                        enabled = connected,
+                        onClick = { onCommandSelected(spec.command) },
+                        modifier = Modifier.weight(1f),
+                        minHeightDp = 64,
+                        fillHeight = true
+                    )
+                }
+            }
         }
-        PcCommandButtonRow(
-            specs = controls.drop(5),
-            connected = connected,
-            onCommandSelected = onCommandSelected,
-            minHeightDp = 76
-        )
     }
 }
 
 @Composable
-private fun PcButtonCommandSection(
-    @StringRes titleResId: Int,
-    specs: List<PcMouseControlSpec>,
-    connected: Boolean,
-    onCommandSelected: (PcControlCommand) -> Unit
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        PcCommandSectionTitle(titleResId)
-        PcCommandButtonRow(
-            specs = specs,
-            connected = connected,
-            onCommandSelected = onCommandSelected,
-            minHeightDp = 72
-        )
-    }
-}
-
-@Composable
-private fun PcCommandSectionTitle(@StringRes titleResId: Int) {
-    Text(
-        text = stringResource(titleResId),
-        style = MaterialTheme.typography.titleMedium,
-        color = MaterialTheme.colorScheme.onSurface
-    )
-}
-
-@Composable
-private fun PcCommandButtonRow(
+fun PcCommandButtonRow(
     specs: List<PcMouseControlSpec>,
     connected: Boolean,
     onCommandSelected: (PcControlCommand) -> Unit,
-    minHeightDp: Int
+    modifier: Modifier = Modifier,
+    minHeightDp: Int = 64
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         specs.forEach { spec ->
-            PcCommandButton(
-                spec = spec,
-                connected = connected,
-                onCommandSelected = onCommandSelected,
-                minHeightDp = minHeightDp,
-                modifier = Modifier.weight(1f)
+            PcScannedCommandTile(
+                labelResId = spec.labelResId,
+                enabled = connected,
+                onClick = { onCommandSelected(spec.command) },
+                modifier = Modifier.weight(1f),
+                minHeightDp = minHeightDp
             )
         }
     }
-}
-
-@Composable
-private fun PcCommandButton(
-    spec: PcMouseControlSpec,
-    connected: Boolean,
-    onCommandSelected: (PcControlCommand) -> Unit,
-    minHeightDp: Int,
-    modifier: Modifier = Modifier
-) {
-    PcScannedCommandTile(
-        labelResId = spec.labelResId,
-        enabled = connected,
-        onClick = { onCommandSelected(spec.command) },
-        minHeightDp = minHeightDp,
-        modifier = modifier
-    )
 }
 
 @Composable
@@ -248,8 +179,8 @@ fun PcScannedCommandTile(
     enabled: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    minHeightDp: Int = 72,
-    square: Boolean = true
+    minHeightDp: Int = 64,
+    fillHeight: Boolean = false
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
@@ -268,10 +199,9 @@ fun PcScannedCommandTile(
     } else {
         MaterialTheme.colorScheme.onSurfaceVariant
     }
-    val tileModifier = if (square) {
+    val tileModifier = if (fillHeight) {
         modifier
-            .fillMaxWidth()
-            .aspectRatio(1f)
+            .fillMaxSize()
             .heightIn(min = minHeightDp.dp)
     } else {
         modifier
@@ -344,6 +274,17 @@ fun pcMouseControlSpecs(moveStep: Int): List<PcMouseControlSpec> {
     return pcMovementControlSpecs(moveStep) + pcClickControlSpecs() + pcScrollControlSpecs()
 }
 
+/**
+ * The 3x3 mouse pad in row order: the eight movement directions with the
+ * left click occupying the center cell.
+ */
+fun pcMouseGridSpecs(moveStep: Int): List<PcMouseControlSpec> {
+    val moves = pcMovementControlSpecs(moveStep)
+    return moves.take(4) +
+            PcMouseControlSpec(R.string.pc_mouse_click, PcControlCommand.LeftClick) +
+            moves.drop(4)
+}
+
 fun pcMovementControlSpecs(moveStep: Int): List<PcMouseControlSpec> {
     val step = moveStep.coerceAtLeast(1)
     return listOf(
@@ -364,6 +305,14 @@ fun pcClickControlSpecs(): List<PcMouseControlSpec> {
         PcMouseControlSpec(R.string.pc_mouse_double_click, PcControlCommand.DoubleClick),
         PcMouseControlSpec(R.string.pc_mouse_right_click, PcControlCommand.RightClick)
     )
+}
+
+/**
+ * Click actions that live below the pad; the plain left click sits in the
+ * pad center instead.
+ */
+fun pcSecondaryClickControlSpecs(): List<PcMouseControlSpec> {
+    return pcClickControlSpecs().filter { it.command != PcControlCommand.LeftClick }
 }
 
 fun pcScrollControlSpecs(): List<PcMouseControlSpec> {

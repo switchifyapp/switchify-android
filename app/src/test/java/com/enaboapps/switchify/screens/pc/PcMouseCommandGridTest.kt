@@ -59,4 +59,47 @@ class PcControlCommandGridTest {
         assertEquals(PcControlCommand.LeftClick, commands[8])
         assertEquals(PcControlCommand.Scroll(0, -5), commands.last())
     }
+
+    @Test
+    fun gridSpecsPlaceClickInCenter() {
+        val commands = pcMouseGridSpecs(40).map { it.command }
+
+        assertEquals(9, commands.size)
+        assertEquals(PcControlCommand.LeftClick, commands[4])
+        assertEquals(
+            listOf(
+                PcControlCommand.Move(-40, -40),
+                PcControlCommand.Move(0, -40),
+                PcControlCommand.Move(40, -40)
+            ),
+            commands.take(3)
+        )
+        assertEquals(PcControlCommand.Move(-40, 0), commands[3])
+        assertEquals(PcControlCommand.Move(40, 0), commands[5])
+        assertEquals(
+            listOf(
+                PcControlCommand.Move(-40, 40),
+                PcControlCommand.Move(0, 40),
+                PcControlCommand.Move(40, 40)
+            ),
+            commands.drop(6)
+        )
+    }
+
+    @Test
+    fun gridSpecsRespectMovementStep() {
+        val commands = pcMouseGridSpecs(160).map { it.command }
+
+        assertEquals(PcControlCommand.Move(160, 0), commands[5])
+    }
+
+    @Test
+    fun secondaryClickSpecsExcludeLeftClick() {
+        val commands = pcSecondaryClickControlSpecs().map { it.command }
+
+        assertEquals(
+            listOf(PcControlCommand.DoubleClick, PcControlCommand.RightClick),
+            commands
+        )
+    }
 }

@@ -26,15 +26,15 @@ class PcTypingControlScreenTest {
     }
 
     @Test
-    fun cursorKeysUseStableOrder() {
+    fun cursorKeysUseSingleRowOrder() {
         val keys = pcCursorKeySpecs().map { it.key }
 
         assertEquals(
             listOf(
-                PcKeyboardKey.ArrowUp,
                 PcKeyboardKey.ArrowLeft,
-                PcKeyboardKey.ArrowRight,
-                PcKeyboardKey.ArrowDown
+                PcKeyboardKey.ArrowUp,
+                PcKeyboardKey.ArrowDown,
+                PcKeyboardKey.ArrowRight
             ),
             keys
         )
