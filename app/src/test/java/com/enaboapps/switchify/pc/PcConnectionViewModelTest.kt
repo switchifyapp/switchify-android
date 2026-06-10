@@ -242,6 +242,44 @@ class PcConnectionViewModelTest {
     }
 
     @Test
+    fun confirmUnpairRemovesSavedPairingRow() = runTest(dispatcher) {
+        val discovery = FakeDiscovery(emptyList())
+        val tokens = FakeTokenStore(
+            initialTokens = mutableMapOf("desktop-1" to "token"),
+            initialLastUrls = mutableMapOf("desktop-1" to "ws://192.168.1.20:7347"),
+            initialServiceNames = mutableMapOf("desktop-1" to "Switchify PC")
+        )
+        val viewModel = viewModel(discovery, tokens, FakeConnector())
+        advanceUntilIdle()
+
+        assertEquals(1, viewModel.uiState.value.savedPairings.size)
+
+        viewModel.requestUnpair("desktop-1", "Switchify PC")
+        viewModel.confirmUnpair()
+        advanceUntilIdle()
+
+        assertEquals(emptyList<PcSavedPairingRowState>(), viewModel.uiState.value.savedPairings)
+    }
+
+    @Test
+    fun confirmUnpairRefreshesDiscoveredRow() = runTest(dispatcher) {
+        val discovery = FakeDiscovery(listOf(pc))
+        val tokens = FakeTokenStore(initialTokens = mutableMapOf("desktop-1" to "token"))
+        val viewModel = viewModel(discovery, tokens, FakeConnector())
+        advanceUntilIdle()
+
+        assertEquals(true, viewModel.uiState.value.discoveredPcs.first().canUnpair)
+        assertEquals("Connect", viewModel.uiState.value.discoveredPcs.first().actionText)
+
+        viewModel.requestUnpair("desktop-1", "Switchify PC")
+        viewModel.confirmUnpair()
+        advanceUntilIdle()
+
+        assertEquals(false, viewModel.uiState.value.discoveredPcs.first().canUnpair)
+        assertEquals("Request access", viewModel.uiState.value.discoveredPcs.first().actionText)
+    }
+
+    @Test
     fun dismissUnpairKeepsToken() = runTest(dispatcher) {
         val discovery = FakeDiscovery(listOf(pc))
         val tokens = FakeTokenStore(initialTokens = mutableMapOf("desktop-1" to "token"))

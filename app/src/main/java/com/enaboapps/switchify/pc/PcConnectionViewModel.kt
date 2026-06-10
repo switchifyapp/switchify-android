@@ -76,6 +76,10 @@ class PcConnectionViewModel(
 
     private val rowStatuses = MutableStateFlow<Map<String, PcRowStatus>>(emptyMap())
 
+    // Bumped on every token store mutation so the combine pipeline re-reads
+    // token-derived state (saved pairings, row actions); the store itself is not observable.
+    private val tokenRevision = MutableStateFlow(0)
+
     private data class DiscoveryInputs(
         val pcs: List<DiscoveredPc>,
         val status: PcDiscoveryStatus,
@@ -85,7 +89,7 @@ class PcConnectionViewModel(
 
     init {
         viewModelScope.launch {
-            combine(discoveryService.pcs, discoveryService.status, rowStatuses, PcConnectionStateHolder.connectionState) { pcs, status, statuses, connection ->
+            combine(discoveryService.pcs, discoveryService.status, rowStatuses, PcConnectionStateHolder.connectionState, tokenRevision) { pcs, status, statuses, connection, _ ->
                 DiscoveryInputs(pcs, status, statuses, connection)
             }.collect { inputs ->
                 val connectedDesktopId = (inputs.connection as? PcConnectionState.Connected)?.session?.desktopId
@@ -145,6 +149,7 @@ class PcConnectionViewModel(
                     when (val ping = connector.authenticatedPing(pc, pairing.token)) {
                         is PcPingResult.Connected -> {
                             tokenStore.saveToken(pc.desktopId, pairing.token, ping.websocketUrl, pc.displayName)
+                            tokenRevision.update { it + 1 }
                             PcConnectionStateHolder.setConnected(
                                 PcAuthenticatedSession(pc.desktopId, identityRepository.getDeviceId(), ping.websocketUrl),
                                 pc.displayName
@@ -153,6 +158,7 @@ class PcConnectionViewModel(
                         }
                         is PcPingResult.AuthFailed -> {
                             tokenStore.clearToken(pc.desktopId)
+                            tokenRevision.update { it + 1 }
                             PcConnectionStateHolder.setDisconnected()
                             setIdle(pc.desktopId, PcRowStatus.Failed, ping.message)
                         }
@@ -175,6 +181,7 @@ class PcConnectionViewModel(
             when (val result = connector.authenticatedPing(pc, token)) {
                 is PcPingResult.Connected -> {
                     tokenStore.saveToken(pc.desktopId, token, result.websocketUrl, pc.displayName)
+                    tokenRevision.update { it + 1 }
                     PcConnectionStateHolder.setConnected(
                         PcAuthenticatedSession(pc.desktopId, identityRepository.getDeviceId(), result.websocketUrl),
                         pc.displayName
@@ -183,6 +190,7 @@ class PcConnectionViewModel(
                 }
                 is PcPingResult.AuthFailed -> {
                     tokenStore.clearToken(pc.desktopId)
+                    tokenRevision.update { it + 1 }
                     PcConnectionStateHolder.setDisconnected()
                     setIdle(pc.desktopId, PcRowStatus.Failed, result.message)
                 }
@@ -208,6 +216,7 @@ class PcConnectionViewModel(
     fun confirmUnpair() {
         val unpair = _uiState.value.pendingUnpair ?: return
         tokenStore.clearToken(unpair.desktopId)
+        tokenRevision.update { it + 1 }
         val connected = PcConnectionStateHolder.connectionState.value as? PcConnectionState.Connected
         if (connected?.session?.desktopId == unpair.desktopId) {
             PcConnectionStateHolder.setDisconnected()
