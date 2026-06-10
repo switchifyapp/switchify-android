@@ -10,6 +10,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 
 @Composable
@@ -40,7 +41,11 @@ fun PcControlSurfaceSwitcher(
                 shape = SegmentedButtonDefaults.itemShape(index = index, count = surfaces.size),
                 colors = colors
             ) {
-                Text(text = stringResource(surface.labelResId))
+                Text(
+                    text = stringResource(surface.labelResId),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
             }
         }
     }
