@@ -3,6 +3,7 @@ package com.enaboapps.switchify.pc
 import android.content.Context
 import android.net.nsd.NsdManager
 import android.net.nsd.NsdServiceInfo
+import android.net.wifi.WifiManager
 import android.os.Build
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -23,8 +24,55 @@ interface PcDiscovery {
     fun stopDiscovery()
 }
 
-class PcDiscoveryService(context: Context) : PcDiscovery {
+/**
+ * Holds a Wi-Fi multicast lock while discovery is active so mDNS responses
+ * are not dropped by the Wi-Fi driver's multicast filter.
+ */
+interface PcMulticastLock {
+    fun acquire()
+    fun release()
+}
+
+/**
+ * Idempotent acquire/release wrapper so discovery restarts and repeated stops
+ * never unbalance the underlying lock.
+ */
+class PcMulticastLockSession(private val lock: PcMulticastLock) {
+    private var held = false
+
+    fun acquire() {
+        if (held) return
+        runCatching { lock.acquire() }
+        held = true
+    }
+
+    fun release() {
+        if (!held) return
+        runCatching { lock.release() }
+        held = false
+    }
+}
+
+private class WifiMulticastLock(context: Context) : PcMulticastLock {
+    private val multicastLock = (context.getSystemService(Context.WIFI_SERVICE) as WifiManager)
+        .createMulticastLock("switchify_pc_discovery")
+        .apply { setReferenceCounted(false) }
+
+    override fun acquire() {
+        multicastLock.acquire()
+    }
+
+    override fun release() {
+        if (multicastLock.isHeld) multicastLock.release()
+    }
+}
+
+class PcDiscoveryService(
+    context: Context,
+    multicastLock: PcMulticastLock = WifiMulticastLock(context.applicationContext)
+) : PcDiscovery {
     private val nsdManager = context.applicationContext.getSystemService(Context.NSD_SERVICE) as NsdManager
+    private val multicastLockSession = PcMulticastLockSession(multicastLock)
     private val discovered = linkedMapOf<String, DiscoveredPc>()
     private var discoveryListener: NsdManager.DiscoveryListener? = null
     private val resolveSequencer = PcResolveSequencer<NsdServiceInfo>()
@@ -74,11 +122,13 @@ class PcDiscoveryService(context: Context) : PcDiscovery {
             }
         }
         discoveryListener = listener
+        multicastLockSession.acquire()
         nsdManager.discoverServices(SWITCHIFY_SERVICE_TYPE, NsdManager.PROTOCOL_DNS_SD, listener)
     }
 
     override fun stopDiscovery() {
         resolveSequencer.clear()
+        multicastLockSession.release()
         val listener = discoveryListener ?: return
         runCatching { nsdManager.stopServiceDiscovery(listener) }
         discoveryListener = null
