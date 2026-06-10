@@ -78,7 +78,6 @@ class PcMouseControlActivity : ComponentActivity() {
         }
     }
 }
-
 @Composable
 private fun PcMouseControlScreen(
     viewModel: PcMouseControlViewModel,
@@ -122,13 +121,24 @@ private fun PcMouseControlScreen(
             color = MaterialTheme.colorScheme.background
         ) {
             when (uiState.activeSurface) {
-                PcControlSurface.Mouse -> PcMouseControlSurface(
-                    uiState = uiState,
-                    viewModel = viewModel,
+                PcControlSurface.Mouse -> Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(16.dp)
-                )
+                        .verticalScroll(rememberScrollState())
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(18.dp)
+                ) {
+                    PcTransientMessage(message = uiState.message)
+                    PcControlCommandGrid(
+                        connected = uiState.connectedDisplayName != null,
+                        movementStep = uiState.movementStep,
+                        onCommandSelected = viewModel::send
+                    )
+                    PcMovementSizeSection(
+                        selectedSize = uiState.selectedMovementSize,
+                        onSizeSelected = viewModel::selectMovementSize
+                    )
+                }
                 PcControlSurface.Typing -> Column(
                     modifier = Modifier
                         .fillMaxSize()
@@ -166,40 +176,5 @@ private fun PcMouseControlScreen(
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun PcMouseControlSurface(
-    uiState: PcMouseControlUiState,
-    viewModel: PcMouseControlViewModel,
-    modifier: Modifier = Modifier
-) {
-    val connected = uiState.connectedDisplayName != null
-    Column(
-        modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        PcTransientMessage(message = uiState.message)
-        PcMouseControlPad(
-            connected = connected,
-            movementStep = uiState.movementStep,
-            onCommandSelected = viewModel::send,
-            modifier = Modifier.weight(1f)
-        )
-        PcCommandButtonRow(
-            specs = pcSecondaryClickControlSpecs(),
-            connected = connected,
-            onCommandSelected = viewModel::send
-        )
-        PcCommandButtonRow(
-            specs = pcScrollControlSpecs(),
-            connected = connected,
-            onCommandSelected = viewModel::send
-        )
-        PcMovementSizeSection(
-            selectedSize = uiState.selectedMovementSize,
-            onSizeSelected = viewModel::selectMovementSize
-        )
     }
 }
