@@ -126,7 +126,10 @@ class PcServiceConnectionController(
     suspend fun sendCommand(command: PcControlCommand): PcCommandResult {
         val connected = PcConnectionStateHolder.connectionState.value as? PcConnectionState.Connected
             ?: return PcCommandResult.AuthFailed()
-        val result = connector.sendCommand(connected.session, command)
+        val result = retryPcAuthFailure(
+            block = { connector.sendCommand(connected.session, command) },
+            isAuthFailure = { it is PcCommandResult.AuthFailed }
+        )
         if (result is PcCommandResult.AuthFailed) {
             tokenStore.clearToken(connected.session.desktopId)
             PcConnectionStateHolder.setDisconnected()
@@ -171,7 +174,10 @@ class PcServiceConnectionController(
     }
 
     private suspend fun connectWithToken(pc: DiscoveredPc, token: String): PcServiceConnectResult {
-        return when (val result = connector.authenticatedPing(pc, token)) {
+        return when (val result = retryPcAuthFailure(
+            block = { connector.authenticatedPing(pc, token) },
+            isAuthFailure = { it is PcPingResult.AuthFailed }
+        )) {
             is PcPingResult.Connected -> {
                 tokenStore.saveToken(pc.desktopId, token, result.websocketUrl, pc.displayName)
                 val session = PcAuthenticatedSession(pc.desktopId, identityRepository.getDeviceId(), result.websocketUrl)

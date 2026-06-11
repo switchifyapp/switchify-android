@@ -19,6 +19,7 @@ import com.enaboapps.switchify.pc.PcPointerDeltas
 import com.enaboapps.switchify.pc.PcStoredPairing
 import com.enaboapps.switchify.pc.PcPointerMovementProfile
 import com.enaboapps.switchify.pc.PcWindowControlAction
+import com.enaboapps.switchify.pc.PC_AUTH_RETRY_ATTEMPTS
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -540,6 +541,90 @@ class PcMouseControlViewModelTest {
     }
 
     @Test
+    fun commandAuthFailureRetriesBeforeClearingToken() = runTest(dispatcher) {
+        PcConnectionStateHolder.setConnected(session, "Switchify PC")
+        val tokenStore = FakeTokenStore(mutableMapOf("desktop-1" to "token"))
+        val connector = FakeConnector(PcCommandResult.AuthFailed())
+        val viewModel = PcMouseControlViewModel(tokenStore, connector, FakeMovementSizeStore())
+
+        viewModel.send(PcControlCommand.LeftClick)
+        advanceUntilIdle()
+
+        assertEquals(PC_AUTH_RETRY_ATTEMPTS, connector.commands.size)
+        assertNull(tokenStore.getToken("desktop-1"))
+        assertTrue(PcConnectionStateHolder.connectionState.value is PcConnectionState.Disconnected)
+    }
+
+    @Test
+    fun commandAuthFailureThenAckKeepsToken() = runTest(dispatcher) {
+        PcConnectionStateHolder.setConnected(session, "Switchify PC")
+        val tokenStore = FakeTokenStore(mutableMapOf("desktop-1" to "token"))
+        val connector = FakeConnector(
+            List(PC_AUTH_RETRY_ATTEMPTS - 1) { PcCommandResult.AuthFailed() } + PcCommandResult.Ack
+        )
+        val viewModel = PcMouseControlViewModel(tokenStore, connector, FakeMovementSizeStore())
+
+        viewModel.send(PcControlCommand.LeftClick)
+        advanceUntilIdle()
+
+        assertEquals(PC_AUTH_RETRY_ATTEMPTS, connector.commands.size)
+        assertEquals("token", tokenStore.getToken("desktop-1"))
+        assertTrue(PcConnectionStateHolder.connectionState.value is PcConnectionState.Connected)
+        assertNull(viewModel.uiState.value.message)
+    }
+
+    @Test
+    fun commandNonAuthFailureDoesNotClearToken() = runTest(dispatcher) {
+        PcConnectionStateHolder.setConnected(session, "Switchify PC")
+        val tokenStore = FakeTokenStore(mutableMapOf("desktop-1" to "token"))
+        val connector = FakeConnector(PcCommandResult.Failed())
+        val viewModel = PcMouseControlViewModel(tokenStore, connector, FakeMovementSizeStore())
+
+        viewModel.send(PcControlCommand.LeftClick)
+        advanceUntilIdle()
+
+        assertEquals(1, connector.commands.size)
+        assertEquals("token", tokenStore.getToken("desktop-1"))
+        assertEquals(PcMouseControlViewModel.COMMAND_FAILED_MESSAGE, viewModel.uiState.value.message)
+    }
+
+    @Test
+    fun liveControlAuthFailureRetriesBeforeClearingToken() = runTest(dispatcher) {
+        val tokenStore = FakeTokenStore(mutableMapOf("desktop-1" to "token"))
+        val connector = FakeConnector(
+            PcCommandResult.Ack,
+            liveResults = List(PC_AUTH_RETRY_ATTEMPTS) { PcLiveControlResult.AuthFailed() }
+        )
+        val viewModel = PcMouseControlViewModel(tokenStore, connector, FakeMovementSizeStore())
+
+        PcConnectionStateHolder.setConnected(session, "Switchify PC")
+        advanceUntilIdle()
+
+        assertEquals(PC_AUTH_RETRY_ATTEMPTS, connector.openControlSessionCalls)
+        assertNull(tokenStore.getToken("desktop-1"))
+        assertTrue(PcConnectionStateHolder.connectionState.value is PcConnectionState.Disconnected)
+        assertEquals(PcMouseControlViewModel.CONNECT_FIRST_MESSAGE, viewModel.uiState.value.message)
+    }
+
+    @Test
+    fun liveControlAuthFailureThenConnectedKeepsToken() = runTest(dispatcher) {
+        val tokenStore = FakeTokenStore(mutableMapOf("desktop-1" to "token"))
+        val connector = FakeConnector(
+            PcCommandResult.Ack,
+            liveResults = List(PC_AUTH_RETRY_ATTEMPTS - 1) { PcLiveControlResult.AuthFailed() } +
+                PcLiveControlResult.Connected(FakeLiveConnection())
+        )
+        PcMouseControlViewModel(tokenStore, connector, FakeMovementSizeStore())
+
+        PcConnectionStateHolder.setConnected(session, "Switchify PC")
+        advanceUntilIdle()
+
+        assertEquals(PC_AUTH_RETRY_ATTEMPTS, connector.openControlSessionCalls)
+        assertEquals("token", tokenStore.getToken("desktop-1"))
+        assertTrue(PcConnectionStateHolder.connectionState.value is PcConnectionState.Connected)
+    }
+
+    @Test
     fun busyStateIsSetWhileCommandIsInFlight() = runTest(dispatcher) {
         PcConnectionStateHolder.setConnected(session, "Switchify PC")
         val deferred = CompletableDeferred<PcCommandResult>()
@@ -560,7 +645,8 @@ class PcMouseControlViewModelTest {
 
     private class FakeConnector(
         private val commandResult: PcCommandResult,
-        private val pointerProfile: PcPointerMovementProfile? = null
+        private val pointerProfile: PcPointerMovementProfile? = null,
+        liveResults: List<PcLiveControlResult> = emptyList()
     ) : PcConnector {
         constructor(commandResult: CompletableDeferred<PcCommandResult>) : this(PcCommandResult.Ack) {
             deferredResult = commandResult
@@ -572,6 +658,7 @@ class PcMouseControlViewModelTest {
 
         private var deferredResult: CompletableDeferred<PcCommandResult>? = null
         private val queuedResults = mutableListOf<PcCommandResult>()
+        private val queuedLiveResults = mutableListOf<PcLiveControlResult>().apply { addAll(liveResults) }
         var openControlSessionCalls = 0
         val commands = mutableListOf<PcControlCommand>()
         val oneShotCommands = mutableListOf<PcControlCommand>()
@@ -586,6 +673,7 @@ class PcMouseControlViewModelTest {
 
         override suspend fun openControlSession(session: PcAuthenticatedSession): PcLiveControlResult {
             openControlSessionCalls++
+            if (queuedLiveResults.isNotEmpty()) return queuedLiveResults.removeAt(0)
             return PcLiveControlResult.Connected(
                 object : PcControlConnection {
                     override val pointerProfile: PcPointerMovementProfile? = this@FakeConnector.pointerProfile
@@ -613,6 +701,14 @@ class PcMouseControlViewModelTest {
         private fun nextCommandResult(): PcCommandResult {
             return if (queuedResults.isEmpty()) commandResult else queuedResults.removeAt(0)
         }
+    }
+
+    private class FakeLiveConnection : PcControlConnection {
+        override val pointerProfile: PcPointerMovementProfile? = null
+
+        override suspend fun sendCommand(command: PcControlCommand): PcCommandResult = PcCommandResult.Ack
+
+        override fun close() = Unit
     }
 
     private fun pointerProfile(small: Int, medium: Int, large: Int, maxDelta: Int = 500): PcPointerMovementProfile {
