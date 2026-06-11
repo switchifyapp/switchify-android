@@ -101,7 +101,6 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
         AudioActionManager.init(this)
 
         ServiceCore.init(this)
-        ServiceCore.setPcServiceConnectionController(PcServiceConnectionController(this, serviceScope))
 
         val scanningManager = ServiceCore.getScanningManager() ?: return
         val externalSwitchListener = ServiceCore.getExternalSwitchListener() ?: return
@@ -167,6 +166,7 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
             IAPHandler.connect(context = this)
             // Evaluate camera state now that switches are loaded
             cameraManager.evaluateAndUpdateCameraState()
+            initPcServiceConnectionControllerIfNeeded()
             // Initialize StatsCollector now that device is unlocked and flush any queued events
             val statsCollector = StatsCollector.getInstance()
             statsCollector.ensureInitialized()
@@ -174,6 +174,11 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
                 statsCollector.forceFlush()
             }
         }
+    }
+
+    private fun initPcServiceConnectionControllerIfNeeded() {
+        if (ServiceCore.getPcServiceConnectionController() != null) return
+        ServiceCore.setPcServiceConnectionController(PcServiceConnectionController(this, serviceScope))
     }
 
 
