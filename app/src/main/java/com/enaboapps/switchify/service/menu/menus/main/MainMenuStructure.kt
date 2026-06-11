@@ -145,13 +145,15 @@ class MainMenuStructure(
                     action = { MenuManager.getInstance().openMediaControlMenu() }
                 )
             },
-            MenuItemRegistry.getMainMenuDefinition("control_pc")?.let { def ->
-                MenuItem(
-                    definition = def,
-                    isLinkToMenu = true,
-                    action = { openPcControlActivity() }
-                )
-            },
+            if (deviceLockObserver.isUserUnlocked() == true) {
+                MenuItemRegistry.getMainMenuDefinition("control_pc")?.let { def ->
+                    MenuItem(
+                        definition = def,
+                        isLinkToMenu = true,
+                        action = { openPcControlActivity() }
+                    )
+                }
+            } else null,
             if (NodeExaminer.canPerformEditActions(GesturePoint.getPoint())) {
                 MenuItemRegistry.getMainMenuDefinition("edit")?.let { def ->
                     MenuItem(
