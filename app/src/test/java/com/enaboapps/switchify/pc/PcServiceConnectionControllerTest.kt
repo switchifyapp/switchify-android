@@ -92,8 +92,40 @@ class PcServiceConnectionControllerTest {
 
         assertTrue(result is PcServiceConnectResult.Failed)
         assertEquals(PcErrorReason.AuthExpired, (result as PcServiceConnectResult.Failed).reason)
+        assertEquals(PC_AUTH_RETRY_ATTEMPTS, connector.pingCalls)
         assertNull(tokens.getToken("desktop-1"))
         assertTrue(PcConnectionStateHolder.connectionState.value is PcConnectionState.Disconnected)
+    }
+
+    @Test
+    fun savedTokenAuthFailureThenSuccessDoesNotClearToken() = runTest(dispatcher) {
+        val tokens = FakeTokenStore(mutableMapOf("desktop-1" to "token"))
+        val connector = FakeConnector(
+            pingResult = PcPingResult.AuthFailed(),
+            pingResults = List(PC_AUTH_RETRY_ATTEMPTS - 1) { PcPingResult.AuthFailed() } +
+                PcPingResult.Connected("ws://192.168.1.20:7347")
+        )
+        val controller = controller(tokens, connector)
+
+        val result = controller.connectOrRequestAccess()
+
+        assertTrue(result is PcServiceConnectResult.Connected)
+        assertEquals(PC_AUTH_RETRY_ATTEMPTS, connector.pingCalls)
+        assertEquals(0, connector.pairingCalls)
+        assertEquals("token", tokens.getToken("desktop-1"))
+    }
+
+    @Test
+    fun savedTokenNonAuthFailureDoesNotClearToken() = runTest(dispatcher) {
+        val tokens = FakeTokenStore(mutableMapOf("desktop-1" to "token"))
+        val connector = FakeConnector(PcPingResult.Failed(PcErrorReason.Unreachable, "Found PC, but could not connect."))
+        val controller = controller(tokens, connector)
+
+        val result = controller.connectOrRequestAccess()
+
+        assertTrue(result is PcServiceConnectResult.Failed)
+        assertEquals(1, connector.pingCalls)
+        assertEquals("token", tokens.getToken("desktop-1"))
     }
 
     @Test
@@ -153,7 +185,7 @@ class PcServiceConnectionControllerTest {
         assertTrue(result is PcServiceConnectResult.Connected)
         assertEquals("Switchify PC", approvalCode?.pcName)
         assertEquals(1, connector.pairingCalls)
-        assertEquals(2, connector.pingCalls)
+        assertEquals(PC_AUTH_RETRY_ATTEMPTS + 1, connector.pingCalls)
         assertEquals("new-token", tokens.getToken("desktop-1"))
         assertTrue(PcConnectionStateHolder.connectionState.value is PcConnectionState.Connected)
     }
@@ -278,8 +310,10 @@ class PcServiceConnectionControllerTest {
         private val pingResult: PcPingResult,
         private val pairingResult: PcPairingResult = PcPairingResult.Failed(PcErrorReason.Failed, "unused"),
         private val pingResultsByToken: Map<String, PcPingResult> = emptyMap(),
-        private val pairingResultsByDesktop: Map<String, PcPairingResult> = emptyMap()
+        private val pairingResultsByDesktop: Map<String, PcPairingResult> = emptyMap(),
+        pingResults: List<PcPingResult> = emptyList()
     ) : PcConnector {
+        private val queuedPingResults = ArrayDeque(pingResults)
         var pingCalls = 0
         var pairingCalls = 0
         val requestNonces = mutableListOf<String>()
@@ -292,6 +326,7 @@ class PcServiceConnectionControllerTest {
 
         override suspend fun authenticatedPing(pc: DiscoveredPc, token: String): PcPingResult {
             pingCalls++
+            queuedPingResults.removeFirstOrNull()?.let { return it }
             return pingResultsByToken[token] ?: pingResult
         }
 

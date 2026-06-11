@@ -158,9 +158,46 @@ class PcConnectionViewModelTest {
         viewModel.connectWithSavedToken(pc)
         advanceUntilIdle()
 
+        assertEquals(PC_AUTH_RETRY_ATTEMPTS, connector.pingCalls)
         assertNull(tokens.getToken("desktop-1"))
         assertEquals("Connection expired. Request access again.", viewModel.uiState.value.message)
         assertEquals("Request access", viewModel.uiState.value.discoveredPcs.first().actionText)
+    }
+
+    @Test
+    fun savedTokenAuthFailureThenSuccessKeepsToken() = runTest(dispatcher) {
+        val discovery = FakeDiscovery(listOf(pc))
+        val tokens = FakeTokenStore(initialTokens = mutableMapOf("desktop-1" to "token"))
+        val connector = FakeConnector(
+            pingResults = List(PC_AUTH_RETRY_ATTEMPTS - 1) { PcPingResult.AuthFailed() } +
+                PcPingResult.Connected("ws://192.168.1.20:7347")
+        )
+        val viewModel = viewModel(discovery, tokens, connector)
+        advanceUntilIdle()
+
+        viewModel.connectWithSavedToken(pc)
+        advanceUntilIdle()
+
+        assertEquals(PC_AUTH_RETRY_ATTEMPTS, connector.pingCalls)
+        assertEquals("token", tokens.getToken("desktop-1"))
+        assertEquals("desktop-1", viewModel.uiState.value.connectedDesktopId)
+        assertEquals("Connected", viewModel.uiState.value.discoveredPcs.first().actionText)
+    }
+
+    @Test
+    fun savedTokenNonAuthFailureDoesNotClearToken() = runTest(dispatcher) {
+        val discovery = FakeDiscovery(listOf(pc))
+        val tokens = FakeTokenStore(initialTokens = mutableMapOf("desktop-1" to "token"))
+        val connector = FakeConnector(pingResult = PcPingResult.Failed(PcErrorReason.Unreachable, "Found PC, but could not connect."))
+        val viewModel = viewModel(discovery, tokens, connector)
+        advanceUntilIdle()
+
+        viewModel.connectWithSavedToken(pc)
+        advanceUntilIdle()
+
+        assertEquals(1, connector.pingCalls)
+        assertEquals("token", tokens.getToken("desktop-1"))
+        assertEquals("Found PC, but could not connect.", viewModel.uiState.value.message)
     }
 
     @Test
@@ -310,6 +347,47 @@ class PcConnectionViewModelTest {
 
         assertEquals(1, connector.requestApprovalCalls)
         assertEquals(1, connector.pingCalls)
+        assertEquals("token", tokens.getToken("desktop-1"))
+        assertEquals("desktop-1", viewModel.uiState.value.connectedDesktopId)
+    }
+
+    @Test
+    fun postPairingAuthFailureRetriesBeforeClearingToken() = runTest(dispatcher) {
+        val discovery = FakeDiscovery(listOf(pc))
+        val tokens = FakeTokenStore()
+        val connector = FakeConnector(
+            pairingResult = PcPairingResult.Paired("desktop-1", "token", "ws://192.168.1.20:7347"),
+            pingResult = PcPingResult.AuthFailed()
+        )
+        val viewModel = viewModel(discovery, tokens, connector)
+        advanceUntilIdle()
+
+        viewModel.requestAccess(pc)
+        advanceUntilIdle()
+
+        assertEquals(PC_AUTH_RETRY_ATTEMPTS, connector.pingCalls)
+        assertNull(tokens.getToken("desktop-1"))
+        assertEquals("Connection expired. Request access again.", viewModel.uiState.value.message)
+    }
+
+    @Test
+    fun postPairingAuthFailureThenSuccessSavesToken() = runTest(dispatcher) {
+        val discovery = FakeDiscovery(listOf(pc))
+        val tokens = FakeTokenStore()
+        val connector = FakeConnector(
+            pairingResult = PcPairingResult.Paired("desktop-1", "token", "ws://192.168.1.20:7347"),
+            pingResults = listOf(
+                PcPingResult.AuthFailed(),
+                PcPingResult.Connected("ws://192.168.1.20:7347")
+            )
+        )
+        val viewModel = viewModel(discovery, tokens, connector)
+        advanceUntilIdle()
+
+        viewModel.requestAccess(pc)
+        advanceUntilIdle()
+
+        assertEquals(2, connector.pingCalls)
         assertEquals("token", tokens.getToken("desktop-1"))
         assertEquals("desktop-1", viewModel.uiState.value.connectedDesktopId)
     }
@@ -476,8 +554,10 @@ class PcConnectionViewModelTest {
     private class FakeConnector(
         private val pairingResult: PcPairingResult = PcPairingResult.Failed(PcErrorReason.PairingRejected, "Request rejected."),
         private val pingResult: PcPingResult = PcPingResult.Failed(PcErrorReason.Unreachable, "Found PC, but could not connect."),
-        private val pairingDeferred: CompletableDeferred<PcPairingResult>? = null
+        private val pairingDeferred: CompletableDeferred<PcPairingResult>? = null,
+        pingResults: List<PcPingResult> = emptyList()
     ) : PcConnector {
+        private val queuedPingResults = ArrayDeque(pingResults)
         var requestApprovalCalls = 0
         var pingCalls = 0
         val requestNonces = mutableListOf<String>()
@@ -494,7 +574,7 @@ class PcConnectionViewModelTest {
         override suspend fun authenticatedPing(pc: DiscoveredPc, token: String): PcPingResult {
             pingCalls++
             pingPcs.add(pc)
-            return pingResult
+            return queuedPingResults.removeFirstOrNull() ?: pingResult
         }
 
         override suspend fun openControlSession(session: PcAuthenticatedSession): PcLiveControlResult {

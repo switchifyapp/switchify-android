@@ -18,6 +18,7 @@ import com.enaboapps.switchify.pc.PcTokenStore
 import com.enaboapps.switchify.pc.SwitchifyPcClient
 import com.enaboapps.switchify.pc.PC_KEYBOARD_TYPE_TEXT_MAX_LENGTH
 import com.enaboapps.switchify.pc.isSafePcTypedText
+import com.enaboapps.switchify.pc.retryPcAuthFailure
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.async
@@ -200,7 +201,14 @@ class PcMouseControlViewModel(
         _uiState.update { it.copy(isBusy = true, busyCommand = command) }
         viewModelScope.launch {
             val connection = liveConnection ?: ensureLiveConnection(connected.session).await()
-            val result = connection?.sendCommand(command) ?: PcCommandResult.Failed()
+            val result = if (connection == null) {
+                PcCommandResult.Failed()
+            } else {
+                retryPcAuthFailure(
+                    block = { connection.sendCommand(command) },
+                    isAuthFailure = { it is PcCommandResult.AuthFailed }
+                )
+            }
             when (result) {
                 PcCommandResult.Ack -> {
                     _uiState.update(onAck)
@@ -262,7 +270,10 @@ class PcMouseControlViewModel(
         closeLiveConnection()
         liveSession = session
         return viewModelScope.async {
-            when (val result = connector.openControlSession(session)) {
+            when (val result = retryPcAuthFailure(
+                block = { connector.openControlSession(session) },
+                isAuthFailure = { it is PcLiveControlResult.AuthFailed }
+            )) {
                 is PcLiveControlResult.Connected -> {
                     liveConnection = result.connection
                     movementSteps = result.connection.pointerProfile?.toMouseMovementSteps() ?: FALLBACK_MOVEMENT_STEPS

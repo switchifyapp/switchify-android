@@ -266,7 +266,10 @@ class PcConnectionViewModel(
         )
         when (val pairing = connector.requestApproval(pc, requestNonce)) {
             is PcPairingResult.Paired -> {
-                when (val ping = connector.authenticatedPing(pc, pairing.token)) {
+                when (val ping = retryPcAuthFailure(
+                    block = { connector.authenticatedPing(pc, pairing.token) },
+                    isAuthFailure = { it is PcPingResult.AuthFailed }
+                )) {
                     is PcPingResult.Connected -> {
                         tokenStore.saveToken(pc.desktopId, pairing.token, ping.websocketUrl, pc.displayName)
                         tokenRevision.update { it + 1 }
@@ -296,7 +299,10 @@ class PcConnectionViewModel(
             return
         }
         setBusy(pc.desktopId, PcRowStatus.Connecting, null)
-        when (val result = connector.authenticatedPing(pc, token)) {
+        when (val result = retryPcAuthFailure(
+            block = { connector.authenticatedPing(pc, token) },
+            isAuthFailure = { it is PcPingResult.AuthFailed }
+        )) {
             is PcPingResult.Connected -> {
                 tokenStore.saveToken(pc.desktopId, token, result.websocketUrl, pc.displayName)
                 tokenRevision.update { it + 1 }
