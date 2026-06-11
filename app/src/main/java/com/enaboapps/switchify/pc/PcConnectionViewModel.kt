@@ -27,6 +27,7 @@ data class PcConnectionUiState(
     val connectedDesktopId: String? = null,
     val isDiscovering: Boolean = false,
     val isBusy: Boolean = false,
+    val isQrConnecting: Boolean = false,
     val message: String? = null,
     val approvalCode: PcApprovalCodeState? = null,
     val pendingUnpair: PcUnpairConfirmationState? = null
@@ -131,76 +132,46 @@ class PcConnectionViewModel(
 
     fun requestAccess(pc: DiscoveredPc) {
         viewModelScope.launch {
-            val deviceId = identityRepository.getDeviceId()
-            val requestNonce = requestNonceProvider()
-            val verificationCode = createPairingVerificationCode(
-                desktopId = pc.desktopId,
-                deviceId = deviceId,
-                requestNonce = requestNonce
-            )
-            setBusy(
-                desktopId = pc.desktopId,
-                status = PcRowStatus.WaitingApproval,
-                message = null,
-                approvalCode = PcApprovalCodeState(pc.displayName, verificationCode)
-            )
-            when (val pairing = connector.requestApproval(pc, requestNonce)) {
-                is PcPairingResult.Paired -> {
-                    when (val ping = connector.authenticatedPing(pc, pairing.token)) {
-                        is PcPingResult.Connected -> {
-                            tokenStore.saveToken(pc.desktopId, pairing.token, ping.websocketUrl, pc.displayName)
-                            tokenRevision.update { it + 1 }
-                            PcConnectionStateHolder.setConnected(
-                                PcAuthenticatedSession(pc.desktopId, identityRepository.getDeviceId(), ping.websocketUrl),
-                                pc.displayName
-                            )
-                            setIdle(pc.desktopId, PcRowStatus.Connected, null)
-                        }
-                        is PcPingResult.AuthFailed -> {
-                            tokenStore.clearToken(pc.desktopId)
-                            tokenRevision.update { it + 1 }
-                            PcConnectionStateHolder.setDisconnected()
-                            setIdle(pc.desktopId, PcRowStatus.Failed, ping.message)
-                        }
-                        is PcPingResult.Failed -> setIdle(pc.desktopId, PcRowStatus.Failed, ping.message)
-                    }
-                }
-                is PcPairingResult.Failed -> setIdle(pc.desktopId, PcRowStatus.Failed, pairing.message)
-            }
+            requestAccessInternal(pc)
         }
     }
 
     fun connectWithSavedToken(pc: DiscoveredPc) {
         viewModelScope.launch {
-            val token = tokenStore.getToken(pc.desktopId)
-            if (token.isNullOrBlank()) {
-                requestAccess(pc)
-                return@launch
-            }
-            setBusy(pc.desktopId, PcRowStatus.Connecting, null)
-            when (val result = connector.authenticatedPing(pc, token)) {
-                is PcPingResult.Connected -> {
-                    tokenStore.saveToken(pc.desktopId, token, result.websocketUrl, pc.displayName)
-                    tokenRevision.update { it + 1 }
-                    PcConnectionStateHolder.setConnected(
-                        PcAuthenticatedSession(pc.desktopId, identityRepository.getDeviceId(), result.websocketUrl),
-                        pc.displayName
-                    )
-                    setIdle(pc.desktopId, PcRowStatus.Connected, null)
-                }
-                is PcPingResult.AuthFailed -> {
-                    tokenStore.clearToken(pc.desktopId)
-                    tokenRevision.update { it + 1 }
-                    PcConnectionStateHolder.setDisconnected()
-                    setIdle(pc.desktopId, PcRowStatus.Failed, result.message)
-                }
-                is PcPingResult.Failed -> setIdle(pc.desktopId, PcRowStatus.Failed, result.message)
-            }
+            connectWithSavedTokenInternal(pc)
         }
     }
 
     fun clearMessage() {
         _uiState.update { it.copy(message = null) }
+    }
+
+    fun showMessage(message: String) {
+        _uiState.update { it.copy(message = message) }
+    }
+
+    fun connectFromQrPayload(rawPayload: String) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isQrConnecting = true, isBusy = true, message = null) }
+            val pc = PcQrConnectionPayloadParser.parse(rawPayload).getOrElse {
+                _uiState.update {
+                    it.copy(
+                        isQrConnecting = false,
+                        isBusy = false,
+                        message = PcQrConnectionPayloadParser.INVALID_MESSAGE,
+                        approvalCode = null
+                    )
+                }
+                return@launch
+            }
+
+            if (tokenStore.getToken(pc.desktopId).isNullOrBlank()) {
+                requestAccessInternal(pc)
+            } else {
+                connectWithSavedTokenInternal(pc)
+            }
+            _uiState.update { it.copy(isQrConnecting = false) }
+        }
     }
 
     fun requestUnpair(desktopId: String, displayName: String) {
@@ -277,6 +248,72 @@ class PcConnectionViewModel(
                     summary = pairing.lastUrl ?: "Not nearby"
                 )
             }
+    }
+
+    private suspend fun requestAccessInternal(pc: DiscoveredPc) {
+        val deviceId = identityRepository.getDeviceId()
+        val requestNonce = requestNonceProvider()
+        val verificationCode = createPairingVerificationCode(
+            desktopId = pc.desktopId,
+            deviceId = deviceId,
+            requestNonce = requestNonce
+        )
+        setBusy(
+            desktopId = pc.desktopId,
+            status = PcRowStatus.WaitingApproval,
+            message = null,
+            approvalCode = PcApprovalCodeState(pc.displayName, verificationCode)
+        )
+        when (val pairing = connector.requestApproval(pc, requestNonce)) {
+            is PcPairingResult.Paired -> {
+                when (val ping = connector.authenticatedPing(pc, pairing.token)) {
+                    is PcPingResult.Connected -> {
+                        tokenStore.saveToken(pc.desktopId, pairing.token, ping.websocketUrl, pc.displayName)
+                        tokenRevision.update { it + 1 }
+                        PcConnectionStateHolder.setConnected(
+                            PcAuthenticatedSession(pc.desktopId, identityRepository.getDeviceId(), ping.websocketUrl),
+                            pc.displayName
+                        )
+                        setIdle(pc.desktopId, PcRowStatus.Connected, null)
+                    }
+                    is PcPingResult.AuthFailed -> {
+                        tokenStore.clearToken(pc.desktopId)
+                        tokenRevision.update { it + 1 }
+                        PcConnectionStateHolder.setDisconnected()
+                        setIdle(pc.desktopId, PcRowStatus.Failed, ping.message)
+                    }
+                    is PcPingResult.Failed -> setIdle(pc.desktopId, PcRowStatus.Failed, ping.message)
+                }
+            }
+            is PcPairingResult.Failed -> setIdle(pc.desktopId, PcRowStatus.Failed, pairing.message)
+        }
+    }
+
+    private suspend fun connectWithSavedTokenInternal(pc: DiscoveredPc) {
+        val token = tokenStore.getToken(pc.desktopId)
+        if (token.isNullOrBlank()) {
+            requestAccessInternal(pc)
+            return
+        }
+        setBusy(pc.desktopId, PcRowStatus.Connecting, null)
+        when (val result = connector.authenticatedPing(pc, token)) {
+            is PcPingResult.Connected -> {
+                tokenStore.saveToken(pc.desktopId, token, result.websocketUrl, pc.displayName)
+                tokenRevision.update { it + 1 }
+                PcConnectionStateHolder.setConnected(
+                    PcAuthenticatedSession(pc.desktopId, identityRepository.getDeviceId(), result.websocketUrl),
+                    pc.displayName
+                )
+                setIdle(pc.desktopId, PcRowStatus.Connected, null)
+            }
+            is PcPingResult.AuthFailed -> {
+                tokenStore.clearToken(pc.desktopId)
+                tokenRevision.update { it + 1 }
+                PcConnectionStateHolder.setDisconnected()
+                setIdle(pc.desktopId, PcRowStatus.Failed, result.message)
+            }
+            is PcPingResult.Failed -> setIdle(pc.desktopId, PcRowStatus.Failed, result.message)
+        }
     }
 
     private fun setBusy(

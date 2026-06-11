@@ -263,6 +263,11 @@
     <string name="pc_connection_permission_message">Allow local network access to find Switchify PC.</string>
     <string name="pc_connection_permission_action">Allow local network access</string>
     <string name="pc_connection_nearby_section">Nearby PCs</string>
+    <string name="pc_connection_manual_section">Connect manually</string>
+    <string name="pc_connection_scan_qr">Scan QR code</string>
+    <string name="pc_connection_scan_qr_summary">Scan the QR code shown by Switchify PC when nearby discovery does not find it.</string>
+    <string name="pc_connection_invalid_qr_message">This is not a valid Switchify PC QR code.</string>
+    <string name="pc_connection_qr_scan_failed">Could not scan QR code.</string>
     <string name="pc_connection_paired_section">Paired PCs</string>
     <string name="pc_connection_not_nearby">Not nearby</string>
     <string name="pc_connection_unpair">Unpair</string>

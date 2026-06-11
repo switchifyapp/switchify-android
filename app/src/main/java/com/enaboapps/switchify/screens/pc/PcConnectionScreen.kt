@@ -1,6 +1,7 @@
 package com.enaboapps.switchify.screens.pc
 
 import android.Manifest
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
@@ -48,6 +49,9 @@ import com.google.accompanist.permissions.PermissionState
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
 import com.google.accompanist.permissions.shouldShowRationale
+import com.google.mlkit.vision.barcode.common.Barcode
+import com.google.mlkit.vision.codescanner.GmsBarcodeScannerOptions
+import com.google.mlkit.vision.codescanner.GmsBarcodeScanning
 
 private val PcConnectionCompactRowWidth = 380.dp
 
@@ -65,6 +69,7 @@ fun PcConnectionScreen(navController: NavController) {
     }
     val permissionGranted = permissionState?.status?.isGranted ?: true
     var hasRequestedPermission by rememberSaveable { mutableStateOf(false) }
+    val qrScanFailedMessage = stringResource(R.string.pc_connection_qr_scan_failed)
 
     LaunchedEffect(permissionGranted) {
         viewModel.setPermissionRequired(!permissionGranted)
@@ -132,6 +137,30 @@ fun PcConnectionScreen(navController: NavController) {
                         }
                     }
                 }
+                Section(titleResId = R.string.pc_connection_manual_section) {
+                    Column(modifier = Modifier.padding(vertical = Dimens.spaceS)) {
+                        Text(
+                            text = stringResource(R.string.pc_connection_scan_qr_summary),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = Dimens.spaceM, vertical = Dimens.spaceS)
+                        )
+                        ActionButton(
+                            textResId = R.string.pc_connection_scan_qr,
+                            applyPadding = false,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = Dimens.spaceM, vertical = Dimens.spaceS),
+                            onClick = {
+                                startPcQrScan(
+                                    context = context,
+                                    viewModel = viewModel,
+                                    scanFailedMessage = qrScanFailedMessage
+                                )
+                            }
+                        )
+                    }
+                }
                 if (uiState.savedPairings.isNotEmpty()) {
                     Section(titleResId = R.string.pc_connection_paired_section) {
                         Column(modifier = Modifier.padding(vertical = Dimens.spaceS)) {
@@ -193,6 +222,32 @@ fun PcConnectionScreen(navController: NavController) {
             }
         )
     }
+}
+
+private fun startPcQrScan(
+    context: Context,
+    viewModel: PcConnectionViewModel,
+    scanFailedMessage: String
+) {
+    val options = GmsBarcodeScannerOptions.Builder()
+        .setBarcodeFormats(Barcode.FORMAT_QR_CODE)
+        .enableAutoZoom()
+        .build()
+    GmsBarcodeScanning.getClient(context, options)
+        .startScan()
+        .addOnSuccessListener { barcode ->
+            val rawValue = barcode.rawValue
+            if (rawValue.isNullOrBlank()) {
+                viewModel.showMessage(scanFailedMessage)
+            } else {
+                viewModel.connectFromQrPayload(rawValue)
+            }
+        }
+        .addOnCanceledListener {
+        }
+        .addOnFailureListener {
+            viewModel.showMessage(scanFailedMessage)
+        }
 }
 
 @Composable

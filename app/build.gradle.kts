@@ -164,6 +164,7 @@ dependencies {
     implementation(libs.app.update)
     implementation(libs.play.services.reviews)
     implementation(libs.play.services.reviews.ktx)
+    implementation(libs.play.services.code.scanner)
     implementation(libs.revenuecat)
     implementation(libs.revenuecat.ui)
     implementation(libs.androidx.camera.camera2)
