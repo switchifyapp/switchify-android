@@ -80,7 +80,7 @@ jobs:
           SUPABASE_ANON_KEY:        ${{ secrets.SUPABASE_ANON_KEY }}
           GOOGLE_WEB_CLIENT_ID:     ${{ secrets.GOOGLE_WEB_CLIENT_ID }}
           AI_MODEL_URL:             ${{ secrets.AI_MODEL_URL }}
-        run: ./gradlew bundleRelease --no-daemon
+        run: ./gradlew bundleRelease --no-daemon --max-workers=2 -Dorg.gradle.jvmargs="-Xmx5g -Dfile.encoding=UTF-8"
 
       # Single upload that targets one or more Play tracks. The tracks are
       # computed by Validate release channel so beta/alpha/rc builds cannot
