@@ -22,16 +22,22 @@ class PcServiceConnectionControllerTest {
     private val pc = DiscoveredPc(
         serviceName = "Switchify PC",
         desktopId = "desktop-1",
-        hostAddresses = listOf("192.168.1.20"),
-        port = 7347,
-        websocketUrls = listOf("ws://192.168.1.20:7347")
+        bluetoothEndpoint = PcBluetoothEndpoint(
+            deviceAddress = "AA:BB:CC:DD:EE:FF",
+            deviceName = "Switchify PC",
+            desktopId = "desktop-1",
+            displayName = "Switchify PC"
+        )
     )
     private val secondPc = DiscoveredPc(
         serviceName = "Office PC",
         desktopId = "desktop-2",
-        hostAddresses = listOf("192.168.1.21"),
-        port = 7347,
-        websocketUrls = listOf("ws://192.168.1.21:7347")
+        bluetoothEndpoint = PcBluetoothEndpoint(
+            deviceAddress = "11:22:33:44:55:66",
+            deviceName = "Office PC",
+            desktopId = "desktop-2",
+            displayName = "Office PC"
+        )
     )
 
     @Before
@@ -49,7 +55,7 @@ class PcServiceConnectionControllerTest {
     @Test
     fun savedTokenReconnectDiscoversPcAndPings() = runTest(dispatcher) {
         val tokens = FakeTokenStore(mutableMapOf("desktop-1" to "token"))
-        val connector = FakeConnector(PcPingResult.Connected("ws://192.168.1.20:7347"))
+        val connector = FakeConnector(PcPingResult.Connected("AA:BB:CC:DD:EE:FF"))
         val controller = controller(tokens, connector)
 
         val result = controller.connectOrRequestAccess()
@@ -58,15 +64,30 @@ class PcServiceConnectionControllerTest {
         assertEquals(1, connector.pingCalls)
         assertEquals(0, connector.pairingCalls)
         assertEquals("desktop-1", (PcConnectionStateHolder.connectionState.value as PcConnectionState.Connected).session.desktopId)
-        assertEquals("ws://192.168.1.20:7347", tokens.getLastUrl("desktop-1"))
+        assertEquals("AA:BB:CC:DD:EE:FF", tokens.getLastEndpointId("desktop-1"))
+    }
+
+    @Test
+    fun bluetoothSavedTokenReconnectUsesBluetoothSession() = runTest(dispatcher) {
+        val tokens = FakeTokenStore(mutableMapOf("desktop-1" to "token"))
+        val connector = FakeConnector(PcPingResult.Connected("AA:BB:CC:DD:EE:FF"))
+        val controller = controller(tokens, connector, FakeDiscovery(listOf(pc)))
+
+        val result = controller.connectOrRequestAccess()
+
+        assertTrue(result is PcServiceConnectResult.Connected)
+        val session = (PcConnectionStateHolder.connectionState.value as PcConnectionState.Connected).session
+        assertEquals(PcTransport.Bluetooth, session.transport)
+        assertEquals("AA:BB:CC:DD:EE:FF", session.endpointId)
+        assertEquals("AA:BB:CC:DD:EE:FF", tokens.getLastEndpointId("desktop-1"))
     }
 
     @Test
     fun missingTokenRequestsApprovalThenPings() = runTest(dispatcher) {
         val tokens = FakeTokenStore()
         val connector = FakeConnector(
-            pingResult = PcPingResult.Connected("ws://192.168.1.20:7347"),
-            pairingResult = PcPairingResult.Paired("desktop-1", "new-token", "ws://192.168.1.20:7347")
+            pingResult = PcPingResult.Connected("AA:BB:CC:DD:EE:FF"),
+            pairingResult = PcPairingResult.Paired("desktop-1", "new-token", "AA:BB:CC:DD:EE:FF")
         )
         val controller = controller(tokens, connector)
         var approvalCode: PcApprovalCodeState? = null
@@ -103,7 +124,7 @@ class PcServiceConnectionControllerTest {
         val connector = FakeConnector(
             pingResult = PcPingResult.AuthFailed(),
             pingResults = List(PC_AUTH_RETRY_ATTEMPTS - 1) { PcPingResult.AuthFailed() } +
-                PcPingResult.Connected("ws://192.168.1.20:7347")
+                PcPingResult.Connected("AA:BB:CC:DD:EE:FF")
         )
         val controller = controller(tokens, connector)
 
@@ -155,7 +176,7 @@ class PcServiceConnectionControllerTest {
     @Test
     fun connectToUsesSavedTokenWithoutPairing() = runTest(dispatcher) {
         val tokens = FakeTokenStore(mutableMapOf("desktop-1" to "token"))
-        val connector = FakeConnector(PcPingResult.Connected("ws://192.168.1.20:7347"))
+        val connector = FakeConnector(PcPingResult.Connected("AA:BB:CC:DD:EE:FF"))
         val controller = controller(tokens, connector)
 
         val result = controller.connectTo(pc)
@@ -171,10 +192,10 @@ class PcServiceConnectionControllerTest {
         val tokens = FakeTokenStore(mutableMapOf("desktop-1" to "old-token"))
         val connector = FakeConnector(
             pingResult = PcPingResult.AuthFailed(),
-            pairingResult = PcPairingResult.Paired("desktop-1", "new-token", "ws://192.168.1.20:7347"),
+            pairingResult = PcPairingResult.Paired("desktop-1", "new-token", "AA:BB:CC:DD:EE:FF"),
             pingResultsByToken = mapOf(
                 "old-token" to PcPingResult.AuthFailed(),
-                "new-token" to PcPingResult.Connected("ws://192.168.1.20:7347")
+                "new-token" to PcPingResult.Connected("AA:BB:CC:DD:EE:FF")
             )
         )
         val controller = controller(tokens, connector)
@@ -194,8 +215,8 @@ class PcServiceConnectionControllerTest {
     fun connectToMissingTokenPairsDirectly() = runTest(dispatcher) {
         val tokens = FakeTokenStore()
         val connector = FakeConnector(
-            pingResult = PcPingResult.Connected("ws://192.168.1.21:7347"),
-            pairingResult = PcPairingResult.Paired("desktop-2", "token-2", "ws://192.168.1.21:7347")
+            pingResult = PcPingResult.Connected("11:22:33:44:55:66"),
+            pairingResult = PcPairingResult.Paired("desktop-2", "token-2", "11:22:33:44:55:66")
         )
         val controller = controller(tokens, connector)
 
@@ -211,10 +232,10 @@ class PcServiceConnectionControllerTest {
     fun pairingFallsBackToNextPcWhenUnreachable() = runTest(dispatcher) {
         val tokens = FakeTokenStore()
         val connector = FakeConnector(
-            pingResult = PcPingResult.Connected("ws://192.168.1.21:7347"),
+            pingResult = PcPingResult.Connected("11:22:33:44:55:66"),
             pairingResultsByDesktop = mapOf(
                 "desktop-1" to PcPairingResult.Failed(PcErrorReason.Unreachable, "Could not reach this PC."),
-                "desktop-2" to PcPairingResult.Paired("desktop-2", "token-2", "ws://192.168.1.21:7347")
+                "desktop-2" to PcPairingResult.Paired("desktop-2", "token-2", "11:22:33:44:55:66")
             )
         )
         val controller = controller(tokens, connector, FakeDiscovery(listOf(pc, secondPc)))
@@ -231,10 +252,10 @@ class PcServiceConnectionControllerTest {
     fun pairingRejectionDoesNotFallBackToNextPc() = runTest(dispatcher) {
         val tokens = FakeTokenStore()
         val connector = FakeConnector(
-            pingResult = PcPingResult.Connected("ws://192.168.1.21:7347"),
+            pingResult = PcPingResult.Connected("11:22:33:44:55:66"),
             pairingResultsByDesktop = mapOf(
                 "desktop-1" to PcPairingResult.Failed(PcErrorReason.PairingRejected, "Request rejected."),
-                "desktop-2" to PcPairingResult.Paired("desktop-2", "token-2", "ws://192.168.1.21:7347")
+                "desktop-2" to PcPairingResult.Paired("desktop-2", "token-2", "11:22:33:44:55:66")
             )
         )
         val controller = controller(tokens, connector, FakeDiscovery(listOf(pc, secondPc)))
@@ -273,18 +294,18 @@ class PcServiceConnectionControllerTest {
     private class FakeTokenStore(
         private val tokens: MutableMap<String, String> = mutableMapOf()
     ) : PcPairingTokenStore {
-        private val lastUrls = mutableMapOf<String, String>()
+        private val lastEndpointIds = mutableMapOf<String, String>()
 
         override fun getToken(desktopId: String): String? = tokens[desktopId]
 
-        override fun saveToken(desktopId: String, token: String, lastUrl: String, serviceName: String?) {
+        override fun saveToken(desktopId: String, token: String, lastEndpointId: String, serviceName: String?) {
             tokens[desktopId] = token
-            lastUrls[desktopId] = lastUrl
+            lastEndpointIds[desktopId] = lastEndpointId
         }
 
         override fun clearToken(desktopId: String) {
             tokens.remove(desktopId)
-            lastUrls.remove(desktopId)
+            lastEndpointIds.remove(desktopId)
         }
 
         override fun listPairings(): List<PcStoredPairing> {
@@ -292,12 +313,12 @@ class PcServiceConnectionControllerTest {
                 PcStoredPairing(
                     desktopId = desktopId,
                     serviceName = null,
-                    lastUrl = lastUrls[desktopId]
+                    lastEndpointId = lastEndpointIds[desktopId]
                 )
             }
         }
 
-        override fun getLastUrl(desktopId: String): String? = lastUrls[desktopId]
+        override fun getLastEndpointId(desktopId: String): String? = lastEndpointIds[desktopId]
         override fun getServiceName(desktopId: String): String? = null
     }
 

@@ -1,12 +1,20 @@
 package com.enaboapps.switchify.pc
 
-const val PC_PROTOCOL_VERSION = 1
-const val SWITCHIFY_SERVICE_TYPE = "_switchify._tcp."
+import kotlinx.coroutines.flow.StateFlow
 
-object PcTxtKeys {
-    const val KIND = "kind"
-    const val VERSION = "version"
-    const val DESKTOP_ID = "desktopId"
-    const val PROTOCOL_VERSION = "protocolVersion"
-    const val PAIRING = "pairing"
+const val PC_PROTOCOL_VERSION = 1
+
+enum class PcDiscoveryStatus {
+    Idle,
+    Searching,
+    Found,
+    Empty,
+    Failed
+}
+
+interface PcDiscovery {
+    val pcs: StateFlow<List<DiscoveredPc>>
+    val status: StateFlow<PcDiscoveryStatus>
+    fun startDiscovery()
+    fun stopDiscovery()
 }

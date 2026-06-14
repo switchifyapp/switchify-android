@@ -1,6 +1,8 @@
 package com.enaboapps.switchify.pc
 
 import android.content.Context
+import com.enaboapps.switchify.pc.bluetooth.PcBleDiscoveryService
+import com.enaboapps.switchify.pc.bluetooth.SwitchifyPcBleClient
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -23,10 +25,10 @@ sealed class PcServiceConnectResult {
 class PcServiceConnectionController(
     context: Context?,
     scope: CoroutineScope,
-    private val discovery: PcDiscovery = PcDiscoveryService(requireNotNull(context).applicationContext),
+    private val discovery: PcDiscovery = PcBleDiscoveryService(requireNotNull(context).applicationContext),
     private val tokenStore: PcPairingTokenStore = PcTokenStore(requireNotNull(context).applicationContext),
     private val identityRepository: PcDeviceIdentity = PcDeviceIdentityRepository(requireNotNull(context).applicationContext),
-    private val connector: PcConnector = SwitchifyPcClient(identityRepository, tokenStore),
+    private val connector: PcConnector = SwitchifyPcBleClient(requireNotNull(context).applicationContext, identityRepository, tokenStore),
     private val requestNonceProvider: () -> String = { UUID.randomUUID().toString() }
 ) {
     private val _state = MutableStateFlow<PcServiceConnectionState>(PcServiceConnectionState.Disconnected)
@@ -37,7 +39,7 @@ class PcServiceConnectionController(
      *
      * Waits up to [DISCOVERY_TIMEOUT_MS] for the first PC to resolve, then keeps a short
      * settle window open so slower PCs can join the list before it is returned. This avoids
-     * deciding on a single PC just because it won the mDNS resolve race.
+     * deciding on a single PC just because it was the first Bluetooth result.
      */
     suspend fun discoverPcs(): List<DiscoveredPc> {
         discovery.startDiscovery()
@@ -162,7 +164,7 @@ class PcServiceConnectionController(
         onWaitingForApproval(PcApprovalCodeState(pc.displayName, verificationCode))
         return when (val result = connector.requestApproval(pc, requestNonce)) {
             is PcPairingResult.Paired -> {
-                tokenStore.saveToken(result.desktopId, result.token, result.websocketUrl, pc.displayName)
+                tokenStore.saveToken(result.desktopId, result.token, result.endpointId, pc.displayName)
                 connectWithToken(pc, result.token)
             }
             is PcPairingResult.Failed -> PcServiceConnectResult.Failed(result.reason, result.message)
@@ -179,8 +181,8 @@ class PcServiceConnectionController(
             isAuthFailure = { it is PcPingResult.AuthFailed }
         )) {
             is PcPingResult.Connected -> {
-                tokenStore.saveToken(pc.desktopId, token, result.websocketUrl, pc.displayName)
-                val session = PcAuthenticatedSession(pc.desktopId, identityRepository.getDeviceId(), result.websocketUrl)
+                tokenStore.saveToken(pc.desktopId, token, result.endpointId, pc.displayName)
+                val session = PcAuthenticatedSession(pc.desktopId, identityRepository.getDeviceId(), result.endpointId)
                 PcConnectionStateHolder.setConnected(session, pc.displayName)
                 _state.value = PcServiceConnectionState.Connected(session, pc.displayName)
                 PcServiceConnectResult.Connected(session, pc.displayName)

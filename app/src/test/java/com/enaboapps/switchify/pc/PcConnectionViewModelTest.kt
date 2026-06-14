@@ -21,9 +21,12 @@ class PcConnectionViewModelTest {
     private val pc = DiscoveredPc(
         serviceName = "Switchify PC",
         desktopId = "desktop-1",
-        hostAddresses = listOf("192.168.1.20"),
-        port = 7347,
-        websocketUrls = listOf("ws://192.168.1.20:7347")
+        bluetoothEndpoint = PcBluetoothEndpoint(
+            deviceAddress = "AA:BB:CC:DD:EE:FF",
+            deviceName = "Switchify PC",
+            desktopId = "desktop-1",
+            displayName = "Switchify PC"
+        )
     )
 
     @Before
@@ -43,7 +46,7 @@ class PcConnectionViewModelTest {
     fun savedTokenPathSendsPingWithoutPairingRequest() = runTest(dispatcher) {
         val discovery = FakeDiscovery(listOf(pc))
         val tokens = FakeTokenStore(initialTokens = mutableMapOf("desktop-1" to "token"))
-        val connector = FakeConnector(pingResult = PcPingResult.Connected("ws://192.168.1.20:7347"))
+        val connector = FakeConnector(pingResult = PcPingResult.Connected("AA:BB:CC:DD:EE:FF"))
         val viewModel = viewModel(discovery, tokens, connector)
         advanceUntilIdle()
 
@@ -56,12 +59,48 @@ class PcConnectionViewModelTest {
     }
 
     @Test
+    fun bluetoothDiscoveredPcWithNoTokenRequestsAccess() = runTest(dispatcher) {
+        val discovery = FakeDiscovery(listOf(pc))
+        val tokens = FakeTokenStore()
+        val connector = FakeConnector(
+            pairingResult = PcPairingResult.Paired("desktop-1", "token", "AA:BB:CC:DD:EE:FF"),
+            pingResult = PcPingResult.Connected("AA:BB:CC:DD:EE:FF")
+        )
+        val viewModel = viewModel(discovery, tokens, connector)
+        advanceUntilIdle()
+
+        viewModel.requestAccess(pc)
+        advanceUntilIdle()
+
+        assertEquals(1, connector.requestApprovalCalls)
+        assertEquals(1, connector.pingCalls)
+        assertEquals(PcTransport.Bluetooth, (PcConnectionStateHolder.connectionState.value as PcConnectionState.Connected).session.transport)
+        assertEquals("AA:BB:CC:DD:EE:FF", tokens.getLastEndpointId("desktop-1"))
+    }
+
+    @Test
+    fun bluetoothDiscoveredPcWithSavedTokenPingsWithoutPairing() = runTest(dispatcher) {
+        val discovery = FakeDiscovery(listOf(pc))
+        val tokens = FakeTokenStore(initialTokens = mutableMapOf("desktop-1" to "token"))
+        val connector = FakeConnector(pingResult = PcPingResult.Connected("AA:BB:CC:DD:EE:FF"))
+        val viewModel = viewModel(discovery, tokens, connector)
+        advanceUntilIdle()
+
+        viewModel.connectWithSavedToken(pc)
+        advanceUntilIdle()
+
+        assertEquals(0, connector.requestApprovalCalls)
+        assertEquals(1, connector.pingCalls)
+        assertEquals(PcTransport.Bluetooth, (PcConnectionStateHolder.connectionState.value as PcConnectionState.Connected).session.transport)
+    }
+
+    @Test
     fun missingTokenPathSendsPairingRequestThenPing() = runTest(dispatcher) {
         val discovery = FakeDiscovery(listOf(pc))
         val tokens = FakeTokenStore()
         val connector = FakeConnector(
-            pairingResult = PcPairingResult.Paired("desktop-1", "token", "ws://192.168.1.20:7347"),
-            pingResult = PcPingResult.Connected("ws://192.168.1.20:7347")
+            pairingResult = PcPairingResult.Paired("desktop-1", "token", "AA:BB:CC:DD:EE:FF"),
+            pingResult = PcPingResult.Connected("AA:BB:CC:DD:EE:FF")
         )
         val viewModel = viewModel(discovery, tokens, connector)
         advanceUntilIdle()
@@ -82,7 +121,7 @@ class PcConnectionViewModelTest {
         val pairingDeferred = CompletableDeferred<PcPairingResult>()
         val connector = FakeConnector(
             pairingDeferred = pairingDeferred,
-            pingResult = PcPingResult.Connected("ws://192.168.1.20:7347")
+            pingResult = PcPingResult.Connected("AA:BB:CC:DD:EE:FF")
         )
         val viewModel = viewModel(discovery, tokens, connector, requestNonceProvider = { "nonce-1" })
         advanceUntilIdle()
@@ -104,8 +143,8 @@ class PcConnectionViewModelTest {
         val discovery = FakeDiscovery(listOf(pc))
         val tokens = FakeTokenStore()
         val connector = FakeConnector(
-            pairingResult = PcPairingResult.Paired("desktop-1", "token", "ws://192.168.1.20:7347"),
-            pingResult = PcPingResult.Connected("ws://192.168.1.20:7347")
+            pairingResult = PcPairingResult.Paired("desktop-1", "token", "AA:BB:CC:DD:EE:FF"),
+            pingResult = PcPingResult.Connected("AA:BB:CC:DD:EE:FF")
         )
         val viewModel = viewModel(discovery, tokens, connector, requestNonceProvider = { "nonce-1" })
         advanceUntilIdle()
@@ -136,7 +175,7 @@ class PcConnectionViewModelTest {
     fun savedTokenPathDoesNotShowApprovalCode() = runTest(dispatcher) {
         val discovery = FakeDiscovery(listOf(pc))
         val tokens = FakeTokenStore(initialTokens = mutableMapOf("desktop-1" to "token"))
-        val connector = FakeConnector(pingResult = PcPingResult.Connected("ws://192.168.1.20:7347"))
+        val connector = FakeConnector(pingResult = PcPingResult.Connected("AA:BB:CC:DD:EE:FF"))
         val viewModel = viewModel(discovery, tokens, connector, requestNonceProvider = { "nonce-1" })
         advanceUntilIdle()
 
@@ -170,7 +209,7 @@ class PcConnectionViewModelTest {
         val tokens = FakeTokenStore(initialTokens = mutableMapOf("desktop-1" to "token"))
         val connector = FakeConnector(
             pingResults = List(PC_AUTH_RETRY_ATTEMPTS - 1) { PcPingResult.AuthFailed() } +
-                PcPingResult.Connected("ws://192.168.1.20:7347")
+                PcPingResult.Connected("AA:BB:CC:DD:EE:FF")
         )
         val viewModel = viewModel(discovery, tokens, connector)
         advanceUntilIdle()
@@ -205,7 +244,7 @@ class PcConnectionViewModelTest {
         val discovery = FakeDiscovery(emptyList())
         val tokens = FakeTokenStore(
             initialTokens = mutableMapOf("desktop-1" to "token"),
-            initialLastUrls = mutableMapOf("desktop-1" to "ws://192.168.1.20:7347"),
+            initialLastEndpointIds = mutableMapOf("desktop-1" to "AA:BB:CC:DD:EE:FF"),
             initialServiceNames = mutableMapOf("desktop-1" to "Switchify PC")
         )
         val viewModel = viewModel(discovery, tokens, FakeConnector())
@@ -214,7 +253,32 @@ class PcConnectionViewModelTest {
         val savedPairing = viewModel.uiState.value.savedPairings.single()
         assertEquals("desktop-1", savedPairing.desktopId)
         assertEquals("Switchify PC", savedPairing.title)
-        assertEquals("ws://192.168.1.20:7347", savedPairing.summary)
+        assertEquals("AA:BB:CC:DD:EE:FF", savedPairing.summary)
+        assertEquals(true, savedPairing.canConnect)
+    }
+
+    @Test
+    fun savedBluetoothPairingCanReconnectWithoutDiscovery() = runTest(dispatcher) {
+        val discovery = FakeDiscovery(emptyList())
+        val tokens = FakeTokenStore(
+            initialTokens = mutableMapOf("desktop-1" to "token"),
+            initialLastEndpointIds = mutableMapOf("desktop-1" to "AA:BB:CC:DD:EE:FF"),
+            initialServiceNames = mutableMapOf("desktop-1" to "Switchify PC")
+        )
+        val connector = FakeConnector(pingResult = PcPingResult.Connected("AA:BB:CC:DD:EE:FF"))
+        val viewModel = viewModel(discovery, tokens, connector)
+        advanceUntilIdle()
+
+        val savedPairing = viewModel.uiState.value.savedPairings.single()
+        assertEquals("AA:BB:CC:DD:EE:FF", savedPairing.summary)
+        assertEquals(true, savedPairing.canConnect)
+
+        viewModel.connectSavedPairing("desktop-1")
+        advanceUntilIdle()
+
+        assertEquals(1, connector.pingCalls)
+        assertEquals(PcTransport.Bluetooth, (PcConnectionStateHolder.connectionState.value as PcConnectionState.Connected).session.transport)
+        assertEquals("AA:BB:CC:DD:EE:FF", connector.pingPcs.single().bluetoothEndpoint?.deviceAddress)
     }
 
     @Test
@@ -250,7 +314,7 @@ class PcConnectionViewModelTest {
         val tokens = FakeTokenStore(initialTokens = mutableMapOf("desktop-1" to "token"))
         val viewModel = viewModel(discovery, tokens, FakeConnector())
         PcConnectionStateHolder.setConnected(
-            PcAuthenticatedSession("desktop-1", "device-1", "ws://192.168.1.20:7347"),
+            PcAuthenticatedSession("desktop-1", "device-1", "AA:BB:CC:DD:EE:FF"),
             "Switchify PC"
         )
         advanceUntilIdle()
@@ -283,7 +347,7 @@ class PcConnectionViewModelTest {
         val discovery = FakeDiscovery(emptyList())
         val tokens = FakeTokenStore(
             initialTokens = mutableMapOf("desktop-1" to "token"),
-            initialLastUrls = mutableMapOf("desktop-1" to "ws://192.168.1.20:7347"),
+            initialLastEndpointIds = mutableMapOf("desktop-1" to "AA:BB:CC:DD:EE:FF"),
             initialServiceNames = mutableMapOf("desktop-1" to "Switchify PC")
         )
         val viewModel = viewModel(discovery, tokens, FakeConnector())
@@ -332,31 +396,11 @@ class PcConnectionViewModelTest {
     }
 
     @Test
-    fun connectFromQrPayloadWithNoTokenRequestsAccess() = runTest(dispatcher) {
-        val discovery = FakeDiscovery(emptyList())
-        val tokens = FakeTokenStore()
-        val connector = FakeConnector(
-            pairingResult = PcPairingResult.Paired("desktop-1", "token", "ws://[2001:bb6:a61:3700:574c:69d2:25ce:505]:7347"),
-            pingResult = PcPingResult.Connected("ws://[2001:bb6:a61:3700:574c:69d2:25ce:505]:7347")
-        )
-        val viewModel = viewModel(discovery, tokens, connector)
-        advanceUntilIdle()
-
-        viewModel.connectFromQrPayload(validQrPayload())
-        advanceUntilIdle()
-
-        assertEquals(1, connector.requestApprovalCalls)
-        assertEquals(1, connector.pingCalls)
-        assertEquals("token", tokens.getToken("desktop-1"))
-        assertEquals("desktop-1", viewModel.uiState.value.connectedDesktopId)
-    }
-
-    @Test
     fun postPairingAuthFailureRetriesBeforeClearingToken() = runTest(dispatcher) {
         val discovery = FakeDiscovery(listOf(pc))
         val tokens = FakeTokenStore()
         val connector = FakeConnector(
-            pairingResult = PcPairingResult.Paired("desktop-1", "token", "ws://192.168.1.20:7347"),
+            pairingResult = PcPairingResult.Paired("desktop-1", "token", "AA:BB:CC:DD:EE:FF"),
             pingResult = PcPingResult.AuthFailed()
         )
         val viewModel = viewModel(discovery, tokens, connector)
@@ -375,10 +419,10 @@ class PcConnectionViewModelTest {
         val discovery = FakeDiscovery(listOf(pc))
         val tokens = FakeTokenStore()
         val connector = FakeConnector(
-            pairingResult = PcPairingResult.Paired("desktop-1", "token", "ws://192.168.1.20:7347"),
+            pairingResult = PcPairingResult.Paired("desktop-1", "token", "AA:BB:CC:DD:EE:FF"),
             pingResults = listOf(
                 PcPingResult.AuthFailed(),
-                PcPingResult.Connected("ws://192.168.1.20:7347")
+                PcPingResult.Connected("AA:BB:CC:DD:EE:FF")
             )
         )
         val viewModel = viewModel(discovery, tokens, connector)
@@ -390,87 +434,6 @@ class PcConnectionViewModelTest {
         assertEquals(2, connector.pingCalls)
         assertEquals("token", tokens.getToken("desktop-1"))
         assertEquals("desktop-1", viewModel.uiState.value.connectedDesktopId)
-    }
-
-    @Test
-    fun connectFromQrPayloadWithSavedTokenPingsWithoutPairing() = runTest(dispatcher) {
-        val discovery = FakeDiscovery(emptyList())
-        val tokens = FakeTokenStore(initialTokens = mutableMapOf("desktop-1" to "token"))
-        val connector = FakeConnector(
-            pingResult = PcPingResult.Connected("ws://[2001:bb6:a61:3700:574c:69d2:25ce:505]:7347")
-        )
-        val viewModel = viewModel(discovery, tokens, connector)
-        advanceUntilIdle()
-
-        viewModel.connectFromQrPayload(validQrPayload())
-        advanceUntilIdle()
-
-        assertEquals(0, connector.requestApprovalCalls)
-        assertEquals(1, connector.pingCalls)
-        assertEquals("desktop-1", viewModel.uiState.value.connectedDesktopId)
-    }
-
-    @Test
-    fun connectFromQrPayloadRejectsInvalidQr() = runTest(dispatcher) {
-        val discovery = FakeDiscovery(emptyList())
-        val connector = FakeConnector()
-        val viewModel = viewModel(discovery, FakeTokenStore(), connector)
-        advanceUntilIdle()
-
-        viewModel.connectFromQrPayload("not json")
-        advanceUntilIdle()
-
-        assertEquals(0, connector.requestApprovalCalls)
-        assertEquals(0, connector.pingCalls)
-        assertEquals(PcQrConnectionPayloadParser.INVALID_MESSAGE, viewModel.uiState.value.message)
-    }
-
-    @Test
-    fun connectFromQrPayloadKeepsPairingApprovalRequired() = runTest(dispatcher) {
-        val discovery = FakeDiscovery(emptyList())
-        val tokens = FakeTokenStore()
-        val pairingDeferred = CompletableDeferred<PcPairingResult>()
-        val connector = FakeConnector(
-            pairingDeferred = pairingDeferred,
-            pingResult = PcPingResult.Connected("ws://[2001:bb6:a61:3700:574c:69d2:25ce:505]:7347")
-        )
-        val viewModel = viewModel(discovery, tokens, connector, requestNonceProvider = { "nonce-1" })
-        advanceUntilIdle()
-
-        viewModel.connectFromQrPayload(validQrPayload())
-        advanceUntilIdle()
-
-        assertEquals("215918", viewModel.uiState.value.approvalCode?.verificationCode)
-        assertEquals("Switchify PC", viewModel.uiState.value.approvalCode?.pcName)
-        assertEquals("nonce-1", connector.requestNonces.single())
-
-        pairingDeferred.complete(PcPairingResult.Failed(PcErrorReason.PairingRejected, "Request rejected."))
-        advanceUntilIdle()
-    }
-
-    @Test
-    fun qrPayloadUrlsBeatStaleSavedUrl() = runTest(dispatcher) {
-        val discovery = FakeDiscovery(emptyList())
-        val tokens = FakeTokenStore(
-            initialTokens = mutableMapOf("desktop-1" to "token"),
-            initialLastUrls = mutableMapOf("desktop-1" to "ws://192.168.1.180:7347")
-        )
-        val connector = FakeConnector(
-            pingResult = PcPingResult.Connected("ws://[2001:bb6:a61:3700:574c:69d2:25ce:505]:7347")
-        )
-        val viewModel = viewModel(discovery, tokens, connector)
-        advanceUntilIdle()
-
-        viewModel.connectFromQrPayload(validQrPayload())
-        advanceUntilIdle()
-
-        assertEquals(
-            listOf(
-                "ws://[2001:bb6:a61:3700:574c:69d2:25ce:505]:7347",
-                "ws://192.168.1.181:7347"
-            ),
-            connector.pingPcs.single().websocketUrls
-        )
     }
 
     private fun viewModel(
@@ -488,21 +451,6 @@ class PcConnectionViewModelTest {
         backgroundDispatcher = dispatcher
     )
 
-    private fun validQrPayload(): String {
-        return """
-            {
-              "type": "switchify.pc.connect",
-              "version": 1,
-              "desktopId": "desktop-1",
-              "displayName": "Switchify PC",
-              "urls": [
-                "ws://[2001:bb6:a61:3700:574c:69d2:25ce:505]:7347",
-                "ws://192.168.1.181:7347"
-              ]
-            }
-        """.trimIndent()
-    }
-
     private class FakeDiscovery(initialPcs: List<DiscoveredPc>) : PcDiscovery {
         override val pcs = MutableStateFlow(initialPcs)
         override val status = MutableStateFlow(if (initialPcs.isEmpty()) PcDiscoveryStatus.Empty else PcDiscoveryStatus.Found)
@@ -512,23 +460,23 @@ class PcConnectionViewModelTest {
 
     private class FakeTokenStore(
         private val initialTokens: MutableMap<String, String> = mutableMapOf(),
-        private val initialLastUrls: MutableMap<String, String> = mutableMapOf(),
+        private val initialLastEndpointIds: MutableMap<String, String> = mutableMapOf(),
         private val initialServiceNames: MutableMap<String, String> = mutableMapOf()
     ) : PcPairingTokenStore {
-        private val lastUrls = initialLastUrls
+        private val lastEndpointIds = initialLastEndpointIds
         private val serviceNames = initialServiceNames
 
         override fun getToken(desktopId: String): String? = initialTokens[desktopId]
 
-        override fun saveToken(desktopId: String, token: String, lastUrl: String, serviceName: String?) {
+        override fun saveToken(desktopId: String, token: String, lastEndpointId: String, serviceName: String?) {
             initialTokens[desktopId] = token
-            lastUrls[desktopId] = lastUrl
+            lastEndpointIds[desktopId] = lastEndpointId
             if (!serviceName.isNullOrBlank()) serviceNames[desktopId] = serviceName
         }
 
         override fun clearToken(desktopId: String) {
             initialTokens.remove(desktopId)
-            lastUrls.remove(desktopId)
+            lastEndpointIds.remove(desktopId)
             serviceNames.remove(desktopId)
         }
 
@@ -537,12 +485,12 @@ class PcConnectionViewModelTest {
                 PcStoredPairing(
                     desktopId = desktopId,
                     serviceName = serviceNames[desktopId],
-                    lastUrl = lastUrls[desktopId]
+                    lastEndpointId = lastEndpointIds[desktopId]
                 )
             }
         }
 
-        override fun getLastUrl(desktopId: String): String? = lastUrls[desktopId]
+        override fun getLastEndpointId(desktopId: String): String? = lastEndpointIds[desktopId]
         override fun getServiceName(desktopId: String): String? = serviceNames[desktopId]
     }
 
