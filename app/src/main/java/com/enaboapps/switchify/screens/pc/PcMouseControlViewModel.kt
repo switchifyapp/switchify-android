@@ -80,7 +80,7 @@ class PcMouseControlViewModel(
     private var liveConnectionDeferred: Deferred<PcControlConnection?>? = null
     private var liveConnectionEventsJob: Job? = null
     private var liveHeartbeatJob: Job? = null
-    private var pendingShutdownJob: Job? = null
+    private var pendingUiPauseShutdownJob: Job? = null
     private var reconnectJob: Job? = null
     private var lastSession: PcAuthenticatedSession? = null
     private var lastDisplayName: String? = null
@@ -300,8 +300,8 @@ class PcMouseControlViewModel(
 
     fun onPcUiResumed() {
         pcUiActive = true
-        pendingShutdownJob?.cancel()
-        pendingShutdownJob = null
+        pendingUiPauseShutdownJob?.cancel()
+        pendingUiPauseShutdownJob = null
         when (val state = PcConnectionStateHolder.connectionState.value) {
             is PcConnectionState.Connected -> {
                 ensureLiveConnection(state.session)
@@ -319,17 +319,17 @@ class PcMouseControlViewModel(
 
     fun onPcUiPaused() {
         pcUiActive = false
-        pendingShutdownJob?.cancel()
-        pendingShutdownJob = viewModelScope.launch {
-            delay(PC_CONTROL_SHUTDOWN_GRACE_MS)
+        pendingUiPauseShutdownJob?.cancel()
+        pendingUiPauseShutdownJob = viewModelScope.launch {
+            delay(PC_CONTROL_UI_PAUSE_SHUTDOWN_GRACE_MS)
             stopPcBluetooth()
         }
     }
 
     fun stopPcBluetooth() {
         pcUiActive = false
-        pendingShutdownJob?.cancel()
-        pendingShutdownJob = null
+        pendingUiPauseShutdownJob?.cancel()
+        pendingUiPauseShutdownJob = null
         reconnectJob?.cancel()
         reconnectJob = null
         closeLiveConnection()
@@ -432,7 +432,7 @@ class PcMouseControlViewModel(
                 }
             }
         }
-        if (pcUiActive || pendingShutdownJob?.isActive == true) {
+        if (pcUiActive || pendingUiPauseShutdownJob?.isActive == true) {
             startLiveHeartbeat(connection, session)
         }
     }
@@ -473,7 +473,7 @@ class PcMouseControlViewModel(
         val displayName = lastDisplayName ?: _uiState.value.connectedDisplayName ?: "Switchify PC"
         viewModelScope.launch {
             closeLiveConnection()
-            if (pcUiActive || pendingShutdownJob?.isActive == true) {
+            if (pcUiActive || pendingUiPauseShutdownJob?.isActive == true) {
                 reconnectSavedSession(session, displayName)
             }
         }
@@ -595,7 +595,7 @@ class PcMouseControlViewModel(
         const val DISCONNECTED_MESSAGE = "Disconnected."
         private const val LIVE_COMMAND_ATTEMPTS = 3
         private const val LIVE_HEARTBEAT_INTERVAL_MS = 5_000L
-        private const val PC_CONTROL_SHUTDOWN_GRACE_MS = 8_000L
+        private const val PC_CONTROL_UI_PAUSE_SHUTDOWN_GRACE_MS = 8_000L
         private val RECONNECT_BACKOFF_MS = listOf(250L, 750L, 1_500L, 3_000L)
     }
 
