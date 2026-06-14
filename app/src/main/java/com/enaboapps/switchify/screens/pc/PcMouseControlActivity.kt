@@ -56,6 +56,7 @@ class PcMouseControlActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
+        viewModel.onPcUiResumed()
         ServiceCore.getScanningManager()?.let { manager ->
             scanModeSession = TemporaryScanModeSession(
                 scanningManager = manager,
@@ -67,7 +68,7 @@ class PcMouseControlActivity : ComponentActivity() {
     override fun onPause() {
         scanModeSession?.close()
         scanModeSession = null
-        viewModel.stopPcBluetooth()
+        viewModel.onPcUiPaused()
         super.onPause()
     }
 

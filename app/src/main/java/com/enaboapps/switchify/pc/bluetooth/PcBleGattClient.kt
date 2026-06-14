@@ -17,6 +17,9 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -28,8 +31,14 @@ interface PcBleTransportFactory {
 
 interface PcBleTransportConnection {
     val endpoint: PcBluetoothEndpoint
+    val events: Flow<PcBleTransportEvent>
     suspend fun sendAndReceive(message: String, timeoutMs: Long): String
     fun close()
+}
+
+sealed class PcBleTransportEvent {
+    data object Disconnected : PcBleTransportEvent()
+    data object NotificationSubscriptionLost : PcBleTransportEvent()
 }
 
 class PcBleGattTransportFactory(private val context: Context) : PcBleTransportFactory {
@@ -43,7 +52,9 @@ private class PcBleGattConnection private constructor(
     private val gatt: BluetoothGatt,
     private val rxCharacteristic: BluetoothGattCharacteristic,
     private val incomingMessages: Channel<String>,
-    private val writeRequests: Channel<GattWriteRequest>
+    private val writeRequests: Channel<GattWriteRequest>,
+    override val events: Flow<PcBleTransportEvent>,
+    private val onClose: () -> Unit
 ) : PcBleTransportConnection {
     private val writeMutex = Mutex()
     private var closed = false
@@ -58,6 +69,7 @@ private class PcBleGattConnection private constructor(
     override fun close() {
         if (closed) return
         closed = true
+        onClose()
         runCatching { gatt.disconnect() }
         runCatching { gatt.close() }
         incomingMessages.close()
@@ -75,6 +87,7 @@ private class PcBleGattConnection private constructor(
     companion object {
         suspend fun connect(context: Context, endpoint: PcBluetoothEndpoint): PcBleGattConnection {
             if (!context.hasBluetoothConnectPermission()) throw IllegalStateException("Bluetooth permission missing.")
+            if (!context.isBluetoothEnabled()) throw IllegalStateException("Bluetooth is off.")
             val manager = context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
             val device = manager.adapter.getRemoteDevice(endpoint.deviceAddress)
             val callback = ConnectionCallback()
@@ -92,9 +105,12 @@ private class PcBleGattConnection private constructor(
         private val notificationsEnabled = CompletableDeferred<Unit>()
         private val incomingMessages = Channel<String>(Channel.BUFFERED)
         private val writeRequests = Channel<GattWriteRequest>(Channel.UNLIMITED)
+        private val events = MutableSharedFlow<PcBleTransportEvent>(extraBufferCapacity = 8)
         private val reassembler = BluetoothFrameReassembler()
         private var pendingDescriptorWrite: BluetoothGattDescriptor? = null
         private var pendingWrite: GattWriteRequest? = null
+        private var setupComplete = false
+        private var closedByClient = false
 
         suspend fun awaitConnected(context: Context, endpoint: PcBluetoothEndpoint): PcBleGattConnection {
             withTimeout(GATT_CONNECT_TIMEOUT_MS) { connected.await() }
@@ -109,6 +125,7 @@ private class PcBleGattConnection private constructor(
                 ?: throw IllegalStateException("Switchify BLE TX characteristic missing.")
             enableNotifications(tx)
             withTimeout(GATT_NOTIFY_TIMEOUT_MS) { notificationsEnabled.await() }
+            setupComplete = true
 
             CoroutineScope(Dispatchers.IO).launch {
                 for (request in writeRequests) {
@@ -130,7 +147,15 @@ private class PcBleGattConnection private constructor(
                 }
             }
 
-            return PcBleGattConnection(endpoint, gatt, rx, incomingMessages, writeRequests)
+            return PcBleGattConnection(
+                endpoint = endpoint,
+                gatt = gatt,
+                rxCharacteristic = rx,
+                incomingMessages = incomingMessages,
+                writeRequests = writeRequests,
+                events = events.asSharedFlow(),
+                onClose = { closedByClient = true }
+            )
         }
 
         override fun onConnectionStateChange(gatt: BluetoothGatt, status: Int, newState: Int) {
@@ -138,6 +163,9 @@ private class PcBleGattConnection private constructor(
                 connected.complete(Unit)
             } else if (newState == BluetoothGatt.STATE_DISCONNECTED) {
                 if (!connected.isCompleted) connected.completeExceptionally(IllegalStateException("Bluetooth disconnected."))
+                if (setupComplete && !closedByClient) {
+                    events.tryEmit(PcBleTransportEvent.Disconnected)
+                }
                 incomingMessages.close()
             }
         }
@@ -226,6 +254,11 @@ internal fun Context.hasBluetoothScanPermission(): Boolean {
 internal fun Context.hasBluetoothConnectPermission(): Boolean {
     return Build.VERSION.SDK_INT < Build.VERSION_CODES.S ||
         ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED
+}
+
+internal fun Context.isBluetoothEnabled(): Boolean {
+    val manager = getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
+    return manager.adapter?.isEnabled == true
 }
 
 private const val GATT_CONNECT_TIMEOUT_MS = 10_000L

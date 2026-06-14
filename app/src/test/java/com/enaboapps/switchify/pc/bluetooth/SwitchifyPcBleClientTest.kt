@@ -6,6 +6,7 @@ import com.enaboapps.switchify.pc.PcBluetoothEndpoint
 import com.enaboapps.switchify.pc.PcCommandResult
 import com.enaboapps.switchify.pc.PcConnector
 import com.enaboapps.switchify.pc.PcControlCommand
+import com.enaboapps.switchify.pc.PcControlConnectionEvent
 import com.enaboapps.switchify.pc.PcDeviceIdentity
 import com.enaboapps.switchify.pc.PcErrorReason
 import com.enaboapps.switchify.pc.PcKeyboardKey
@@ -15,6 +16,9 @@ import com.enaboapps.switchify.pc.PcPingResult
 import com.enaboapps.switchify.pc.PcStoredPairing
 import com.enaboapps.switchify.pc.PcTransport
 import com.enaboapps.switchify.pc.PcWindowControlAction
+import kotlinx.coroutines.async
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
@@ -102,6 +106,70 @@ class SwitchifyPcBleClientTest {
     }
 
     @Test
+    fun openControlSessionConnectsSubscribesAndPings() = runTest {
+        val tokens = FakeTokenStore(mutableMapOf("desktop-1" to "token"), mutableMapOf("desktop-1" to "Switchify PC"))
+        val seenTypes = mutableListOf<String>()
+        val transport = FakeTransportFactory { message ->
+            val json = JSONObject(message)
+            seenTypes += json.getString("type")
+            when (json.getString("type")) {
+                "connection.ping" -> ack(json.getString("id"))
+                "pointer.profile" -> pointerProfile(json.getString("id"))
+                else -> ack(json.getString("id"))
+            }
+        }
+        val session = PcAuthenticatedSession("desktop-1", "device-1", "AA:BB:CC:DD:EE:FF", PcTransport.Bluetooth)
+
+        val result = client(tokens, transport).openControlSession(session)
+
+        assertTrue(result is com.enaboapps.switchify.pc.PcLiveControlResult.Connected)
+        assertEquals(listOf("connection.ping", "pointer.profile"), seenTypes)
+    }
+
+    @Test
+    fun openControlSessionMapsBluetoothOffToSafeFailure() = runTest {
+        val tokens = FakeTokenStore(mutableMapOf("desktop-1" to "token"), mutableMapOf("desktop-1" to "Switchify PC"))
+        val transport = ThrowingTransportFactory(IllegalStateException("Bluetooth is off."))
+        val session = PcAuthenticatedSession("desktop-1", "device-1", "AA:BB:CC:DD:EE:FF", PcTransport.Bluetooth)
+
+        val result = client(tokens, transport).openControlSession(session)
+
+        assertEquals(com.enaboapps.switchify.pc.PcLiveControlResult.Failed("Bluetooth is off."), result)
+    }
+
+    @Test
+    fun openControlSessionMapsPermissionDeniedToSafeFailure() = runTest {
+        val tokens = FakeTokenStore(mutableMapOf("desktop-1" to "token"), mutableMapOf("desktop-1" to "Switchify PC"))
+        val transport = ThrowingTransportFactory(IllegalStateException("Bluetooth permission missing."))
+        val session = PcAuthenticatedSession("desktop-1", "device-1", "AA:BB:CC:DD:EE:FF", PcTransport.Bluetooth)
+
+        val result = client(tokens, transport).openControlSession(session)
+
+        assertEquals(com.enaboapps.switchify.pc.PcLiveControlResult.Failed("Bluetooth permission denied."), result)
+    }
+
+    @Test
+    fun liveConnectionForwardsDisconnectEvents() = runTest {
+        val tokens = FakeTokenStore(mutableMapOf("desktop-1" to "token"), mutableMapOf("desktop-1" to "Switchify PC"))
+        lateinit var fakeConnection: FakeConnection
+        val transport = FakeTransportFactory { message ->
+            val json = JSONObject(message)
+            when (json.getString("type")) {
+                "connection.ping" -> ack(json.getString("id"))
+                "pointer.profile" -> pointerProfile(json.getString("id"))
+                else -> ack(json.getString("id"))
+            }
+        }.also { factory -> factory.onConnection = { fakeConnection = it } }
+        val session = PcAuthenticatedSession("desktop-1", "device-1", "AA:BB:CC:DD:EE:FF", PcTransport.Bluetooth)
+        val result = client(tokens, transport).openControlSession(session) as com.enaboapps.switchify.pc.PcLiveControlResult.Connected
+
+        val event = async { result.connection.connectionEvents.first() }
+        fakeConnection.eventsFlow.emit(PcBleTransportEvent.Disconnected)
+
+        assertEquals(PcControlConnectionEvent.Disconnected, event.await())
+    }
+
+    @Test
     fun commandsReuseExistingProtocolBuilders() = runTest {
         val tokens = FakeTokenStore(mutableMapOf("desktop-1" to "token"), mutableMapOf("desktop-1" to "Switchify PC"))
         val seenTypes = mutableListOf<String>()
@@ -137,7 +205,7 @@ class SwitchifyPcBleClientTest {
         )
     }
 
-    private fun client(tokens: FakeTokenStore, transport: FakeTransportFactory): SwitchifyPcBleClient {
+    private fun client(tokens: FakeTokenStore, transport: PcBleTransportFactory): SwitchifyPcBleClient {
         return SwitchifyPcBleClient(FakeIdentity, tokens, transport)
     }
 
@@ -153,6 +221,10 @@ class SwitchifyPcBleClientTest {
 
     private fun error(id: String, code: String, message: String): String {
         return """{"version":1,"id":"$id","type":"error","ok":false,"error":{"code":"$code","message":"$message"}}"""
+    }
+
+    private fun pointerProfile(id: String): String {
+        return """{"version":1,"id":"$id","type":"pointer.profile","ok":true,"error":null,"payload":{"displayId":"0:0:1280:720:1.0","scaleFactor":1.0,"bounds":{"x":0,"y":0,"width":1280,"height":720},"maxDelta":500,"recommendedDeltas":{"small":40,"medium":80,"large":160}}}"""
     }
 
     private object FakeIdentity : PcDeviceIdentity {
@@ -191,8 +263,16 @@ class SwitchifyPcBleClientTest {
     private class FakeTransportFactory(
         private val responseProvider: (String) -> String
     ) : PcBleTransportFactory {
+        var onConnection: ((FakeConnection) -> Unit)? = null
+
         override suspend fun connect(endpoint: PcBluetoothEndpoint): PcBleTransportConnection {
-            return FakeConnection(endpoint, responseProvider)
+            return FakeConnection(endpoint, responseProvider).also { onConnection?.invoke(it) }
+        }
+    }
+
+    private class ThrowingTransportFactory(private val error: Throwable) : PcBleTransportFactory {
+        override suspend fun connect(endpoint: PcBluetoothEndpoint): PcBleTransportConnection {
+            throw error
         }
     }
 
@@ -200,6 +280,9 @@ class SwitchifyPcBleClientTest {
         override val endpoint: PcBluetoothEndpoint,
         private val responseProvider: (String) -> String
     ) : PcBleTransportConnection {
+        val eventsFlow = MutableSharedFlow<PcBleTransportEvent>(replay = 1, extraBufferCapacity = 8)
+        override val events = eventsFlow
+
         override suspend fun sendAndReceive(message: String, timeoutMs: Long): String {
             return responseProvider(message)
         }

@@ -8,6 +8,7 @@ import com.enaboapps.switchify.pc.PcCommandResult
 import com.enaboapps.switchify.pc.PcConnector
 import com.enaboapps.switchify.pc.PcControlCommand
 import com.enaboapps.switchify.pc.PcControlConnection
+import com.enaboapps.switchify.pc.PcControlConnectionEvent
 import com.enaboapps.switchify.pc.PcDeviceIdentity
 import com.enaboapps.switchify.pc.PcErrorReason
 import com.enaboapps.switchify.pc.PcKeyboardKey
@@ -21,6 +22,8 @@ import com.enaboapps.switchify.pc.PcProtocolResponse
 import com.enaboapps.switchify.pc.PcWindowControlAction
 import com.enaboapps.switchify.pc.resolveExpectedResponse
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withTimeout
 import org.json.JSONObject
 import java.util.UUID
@@ -126,7 +129,7 @@ class SwitchifyPcBleClient(
             }
         }.getOrElse {
             if (it is CancellationException) throw it
-            PcLiveControlResult.Failed()
+            PcLiveControlResult.Failed(safeConnectionFailureMessage(it))
         }
     }
 
@@ -247,6 +250,14 @@ class SwitchifyPcBleClient(
 
     private fun nextRequestId(): String = "android-${UUID.randomUUID()}"
 
+    private fun safeConnectionFailureMessage(error: Throwable): String {
+        return when (error.message) {
+            "Bluetooth permission missing." -> "Bluetooth permission denied."
+            "Bluetooth is off." -> "Bluetooth is off."
+            else -> "Could not connect to PC."
+        }
+    }
+
     private fun PcControlCommand.toMessage(id: String, deviceId: String, token: String, timestamp: Long): String {
         return when (this) {
             is PcControlCommand.Move -> PcProtocol.mouseMove(id, deviceId, token, timestamp, dx, dy)
@@ -266,6 +277,13 @@ class SwitchifyPcBleClient(
         private val token: String,
         override val pointerProfile: PcPointerMovementProfile?
     ) : PcControlConnection {
+        override val connectionEvents: Flow<PcControlConnectionEvent> = connection.events.map { event ->
+            when (event) {
+                PcBleTransportEvent.Disconnected -> PcControlConnectionEvent.Disconnected
+                PcBleTransportEvent.NotificationSubscriptionLost -> PcControlConnectionEvent.NotificationSubscriptionLost
+            }
+        }
+
         override suspend fun sendCommand(command: PcControlCommand): PcCommandResult {
             return try {
                 sendCommandMessage(connection, authenticatedSession, token, command)

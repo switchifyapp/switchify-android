@@ -1,5 +1,7 @@
 package com.enaboapps.switchify.pc
 
+import kotlinx.coroutines.flow.Flow
+
 sealed class PcPairingResult {
     data class Paired(val desktopId: String, val token: String, val endpointId: String) : PcPairingResult()
     data class Failed(val reason: PcErrorReason, val message: String) : PcPairingResult()
@@ -36,8 +38,14 @@ sealed class PcLiveControlResult {
 
 interface PcControlConnection {
     val pointerProfile: PcPointerMovementProfile?
+    val connectionEvents: Flow<PcControlConnectionEvent>
     suspend fun sendCommand(command: PcControlCommand): PcCommandResult
     fun close()
+}
+
+sealed class PcControlConnectionEvent {
+    data object Disconnected : PcControlConnectionEvent()
+    data object NotificationSubscriptionLost : PcControlConnectionEvent()
 }
 
 internal fun resolveExpectedResponse(response: PcProtocolResponse, requestId: String): PcProtocolResponse? {
