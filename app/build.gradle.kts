@@ -20,7 +20,7 @@ android {
         minSdk = 29
         targetSdk = 36
         versionCode = gitVersionCode()
-        versionName = "2.31.0-beta.23"
+        versionName = "2.31.0-beta.24"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -156,6 +156,7 @@ dependencies {
     implementation(libs.supabase.postgrest)
     implementation(libs.supabase.auth)
     implementation(libs.supabase.realtime)
+    implementation(libs.ktor.client.android)
     implementation(libs.gson)
     implementation(libs.androidx.material3.android)
     implementation(libs.app.update)
