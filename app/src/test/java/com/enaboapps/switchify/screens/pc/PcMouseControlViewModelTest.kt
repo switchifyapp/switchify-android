@@ -9,6 +9,7 @@ import com.enaboapps.switchify.pc.PcConnector
 import com.enaboapps.switchify.pc.PcKeyboardKey
 import com.enaboapps.switchify.pc.PcLiveControlResult
 import com.enaboapps.switchify.pc.PcControlConnection
+import com.enaboapps.switchify.pc.PcControlConnectionEvent
 import com.enaboapps.switchify.pc.PcControlCommand
 import com.enaboapps.switchify.pc.PcErrorReason
 import com.enaboapps.switchify.pc.PcPairingResult
@@ -23,8 +24,11 @@ import com.enaboapps.switchify.pc.PC_AUTH_RETRY_ATTEMPTS
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
@@ -682,6 +686,159 @@ class PcMouseControlViewModelTest {
         assertEquals("token", tokenStore.getToken("desktop-1"))
     }
 
+    @Test
+    fun onPauseDelaysBluetoothShutdown() = runTest(dispatcher) {
+        PcConnectionStateHolder.setConnected(session, "Switchify PC")
+        val connector = FakeConnector(PcCommandResult.Ack)
+        val viewModel = PcMouseControlViewModel(FakeTokenStore(), connector, FakeMovementSizeStore())
+        advanceUntilIdle()
+
+        viewModel.onPcUiPaused()
+        advanceTimeBy(7_999)
+        runCurrent()
+
+        assertEquals(0, connector.openedConnections.single().closeCalls)
+        assertTrue(PcConnectionStateHolder.connectionState.value is PcConnectionState.Connected)
+    }
+
+    @Test
+    fun onPauseShutsDownAfterGrace() = runTest(dispatcher) {
+        PcConnectionStateHolder.setConnected(session, "Switchify PC")
+        val connector = FakeConnector(PcCommandResult.Ack)
+        val viewModel = PcMouseControlViewModel(FakeTokenStore(), connector, FakeMovementSizeStore())
+        advanceUntilIdle()
+
+        viewModel.onPcUiPaused()
+        advanceTimeBy(8_001)
+        advanceUntilIdle()
+
+        assertEquals(1, connector.openedConnections.single().closeCalls)
+        assertEquals(1, connector.closeCalls)
+        assertTrue(PcConnectionStateHolder.connectionState.value is PcConnectionState.Disconnected)
+    }
+
+    @Test
+    fun onResumeCancelsPendingShutdown() = runTest(dispatcher) {
+        PcConnectionStateHolder.setConnected(session, "Switchify PC")
+        val connector = FakeConnector(PcCommandResult.Ack)
+        val viewModel = PcMouseControlViewModel(FakeTokenStore(), connector, FakeMovementSizeStore())
+        advanceUntilIdle()
+
+        viewModel.onPcUiPaused()
+        advanceTimeBy(4_000)
+        viewModel.onPcUiResumed()
+        advanceTimeBy(5_000)
+        advanceUntilIdle()
+
+        assertEquals(0, connector.openedConnections.single().closeCalls)
+        assertTrue(PcConnectionStateHolder.connectionState.value is PcConnectionState.Connected)
+    }
+
+    @Test
+    fun disconnectEventStartsReconnectDuringGrace() = runTest(dispatcher) {
+        PcConnectionStateHolder.setConnected(session, "Switchify PC")
+        val connector = FakeConnector(PcCommandResult.Ack)
+        val viewModel = PcMouseControlViewModel(FakeTokenStore(), connector, FakeMovementSizeStore())
+        advanceUntilIdle()
+
+        viewModel.onPcUiPaused()
+        connector.openedConnections.first().eventsFlow.emit(PcControlConnectionEvent.Disconnected)
+        runCurrent()
+
+        assertEquals(2, connector.openControlSessionCalls)
+        assertTrue(PcConnectionStateHolder.connectionState.value is PcConnectionState.Connected)
+    }
+
+    @Test
+    fun disconnectEventStartsReconnectWhenActive() = runTest(dispatcher) {
+        PcConnectionStateHolder.setConnected(session, "Switchify PC")
+        val connector = FakeConnector(PcCommandResult.Ack)
+        val viewModel = PcMouseControlViewModel(FakeTokenStore(), connector, FakeMovementSizeStore())
+        viewModel.onPcUiResumed()
+        advanceUntilIdle()
+
+        connector.openedConnections.first().eventsFlow.emit(PcControlConnectionEvent.Disconnected)
+        advanceUntilIdle()
+
+        assertEquals(2, connector.openControlSessionCalls)
+        assertTrue(PcConnectionStateHolder.connectionState.value is PcConnectionState.Connected)
+    }
+
+    @Test
+    fun reconnectSendsAuthenticatedPingThroughOpenControlSession() = runTest(dispatcher) {
+        PcConnectionStateHolder.setConnected(session, "Switchify PC")
+        val connector = FakeConnector(PcCommandResult.Ack)
+        val viewModel = PcMouseControlViewModel(FakeTokenStore(), connector, FakeMovementSizeStore())
+        viewModel.onPcUiResumed()
+        advanceUntilIdle()
+
+        connector.openedConnections.first().eventsFlow.emit(PcControlConnectionEvent.Disconnected)
+        advanceUntilIdle()
+
+        assertEquals(2, connector.openControlSessionCalls)
+    }
+
+    @Test
+    fun reconnectAuthFailureClearsToken() = runTest(dispatcher) {
+        val initialConnection = FakeLiveConnection()
+        PcConnectionStateHolder.setConnected(session, "Switchify PC")
+        val tokenStore = FakeTokenStore(mutableMapOf("desktop-1" to "token"))
+        val connector = FakeConnector(
+            PcCommandResult.Ack,
+            liveResults = listOf(
+                PcLiveControlResult.Connected(initialConnection),
+                PcLiveControlResult.AuthFailed()
+            )
+        )
+        val viewModel = PcMouseControlViewModel(tokenStore, connector, FakeMovementSizeStore())
+        viewModel.onPcUiResumed()
+        advanceUntilIdle()
+
+        initialConnection.eventsFlow.emit(PcControlConnectionEvent.Disconnected)
+        advanceUntilIdle()
+
+        assertNull(tokenStore.getToken("desktop-1"))
+        assertTrue(PcConnectionStateHolder.connectionState.value is PcConnectionState.Disconnected)
+        assertEquals("Connection expired. Connect to PC from Switchify first.", viewModel.uiState.value.message)
+    }
+
+    @Test
+    fun reconnectFailureUsesBoundedBackoff() = runTest(dispatcher) {
+        val initialConnection = FakeLiveConnection()
+        PcConnectionStateHolder.setConnected(session, "Switchify PC")
+        val connector = FakeConnector(
+            PcCommandResult.Ack,
+            liveResults = listOf(PcLiveControlResult.Connected(initialConnection)) +
+                List(4) { PcLiveControlResult.Failed() }
+        )
+        val viewModel = PcMouseControlViewModel(FakeTokenStore(), connector, FakeMovementSizeStore())
+        viewModel.onPcUiResumed()
+        advanceUntilIdle()
+
+        initialConnection.eventsFlow.emit(PcControlConnectionEvent.Disconnected)
+        advanceTimeBy(6_000)
+        advanceUntilIdle()
+
+        assertEquals(5, connector.openControlSessionCalls)
+        assertEquals(PcMouseControlViewModel.DISCONNECTED_MESSAGE, viewModel.uiState.value.message)
+        assertTrue(PcConnectionStateHolder.connectionState.value is PcConnectionState.Failed)
+    }
+
+    @Test
+    fun stopPcBluetoothStillHardStopsImmediately() = runTest(dispatcher) {
+        PcConnectionStateHolder.setConnected(session, "Switchify PC")
+        val connector = FakeConnector(PcCommandResult.Ack)
+        val viewModel = PcMouseControlViewModel(FakeTokenStore(), connector, FakeMovementSizeStore())
+        advanceUntilIdle()
+
+        viewModel.stopPcBluetooth()
+        runCurrent()
+
+        assertEquals(1, connector.openedConnections.single().closeCalls)
+        assertEquals(1, connector.closeCalls)
+        assertTrue(PcConnectionStateHolder.connectionState.value is PcConnectionState.Disconnected)
+    }
+
     private class FakeConnector(
         private val commandResult: PcCommandResult,
         private val pointerProfile: PcPointerMovementProfile? = null,
@@ -747,6 +904,8 @@ class PcMouseControlViewModelTest {
         override val pointerProfile: PcPointerMovementProfile? = null,
         private val onCommand: suspend (PcControlCommand) -> PcCommandResult = { PcCommandResult.Ack }
     ) : PcControlConnection {
+        val eventsFlow = MutableSharedFlow<PcControlConnectionEvent>(replay = 1, extraBufferCapacity = 8)
+        override val connectionEvents = eventsFlow
         var closeCalls = 0
 
         override suspend fun sendCommand(command: PcControlCommand): PcCommandResult = onCommand(command)
