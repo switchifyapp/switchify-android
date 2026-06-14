@@ -7,6 +7,7 @@ import com.enaboapps.switchify.pc.bluetooth.PcBleDiscoveryService
 import com.enaboapps.switchify.pc.bluetooth.SwitchifyPcBleClient
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -78,6 +79,7 @@ class PcConnectionViewModel(
     val uiState: StateFlow<PcConnectionUiState> = _uiState.asStateFlow()
 
     private val rowStatuses = MutableStateFlow<Map<String, PcRowStatus>>(emptyMap())
+    private var activeConnectionJob: Job? = null
 
     // Bumped on every token store mutation so the combine pipeline re-reads
     // token-derived state (saved pairings, row actions); the store itself is not observable.
@@ -133,19 +135,22 @@ class PcConnectionViewModel(
     }
 
     fun requestAccess(pc: DiscoveredPc) {
-        viewModelScope.launch {
+        activeConnectionJob?.cancel()
+        activeConnectionJob = viewModelScope.launch {
             requestAccessInternal(pc)
         }
     }
 
     fun connectWithSavedToken(pc: DiscoveredPc) {
-        viewModelScope.launch {
+        activeConnectionJob?.cancel()
+        activeConnectionJob = viewModelScope.launch {
             connectWithSavedTokenInternal(pc)
         }
     }
 
     fun connectSavedPairing(desktopId: String) {
-        viewModelScope.launch {
+        activeConnectionJob?.cancel()
+        activeConnectionJob = viewModelScope.launch {
             val endpoint = tokenStore.getLastEndpointId(desktopId)
                 ?: run {
                     showMessage("This PC is not nearby.")
@@ -202,9 +207,24 @@ class PcConnectionViewModel(
         }
     }
 
-    override fun onCleared() {
+    fun stopPcBluetooth() {
+        activeConnectionJob?.cancel()
+        activeConnectionJob = null
         discoveryService.stopDiscovery()
         connector.close()
+        PcConnectionStateHolder.setDisconnected()
+        rowStatuses.update { emptyMap() }
+        _uiState.update {
+            it.copy(
+                isBusy = false,
+                approvalCode = null,
+                isDiscovering = false
+            )
+        }
+    }
+
+    override fun onCleared() {
+        stopPcBluetooth()
         super.onCleared()
     }
 

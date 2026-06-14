@@ -67,6 +67,7 @@ class PcMouseControlActivity : ComponentActivity() {
     override fun onPause() {
         scanModeSession?.close()
         scanModeSession = null
+        viewModel.stopPcBluetooth()
         super.onPause()
     }
 

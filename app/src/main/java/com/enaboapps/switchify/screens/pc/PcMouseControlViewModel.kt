@@ -273,9 +273,23 @@ class PcMouseControlViewModel(
         _uiState.update { it.copy(message = null) }
     }
 
-    override fun onCleared() {
+    fun stopPcBluetooth() {
         closeLiveConnection()
         connector.close()
+        PcConnectionStateHolder.setDisconnected()
+        movementSteps = FALLBACK_MOVEMENT_STEPS
+        _uiState.update {
+            it.copy(
+                connectedDisplayName = null,
+                movementStep = movementSteps.stepFor(it.selectedMovementSize),
+                isBusy = false,
+                busyCommand = null
+            )
+        }
+    }
+
+    override fun onCleared() {
+        stopPcBluetooth()
         super.onCleared()
     }
 
