@@ -38,7 +38,6 @@ interface PcBleTransportConnection {
 
 sealed class PcBleTransportEvent {
     data object Disconnected : PcBleTransportEvent()
-    data object NotificationSubscriptionLost : PcBleTransportEvent()
 }
 
 class PcBleGattTransportFactory(private val context: Context) : PcBleTransportFactory {

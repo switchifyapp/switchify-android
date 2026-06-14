@@ -45,7 +45,6 @@ interface PcControlConnection {
 
 sealed class PcControlConnectionEvent {
     data object Disconnected : PcControlConnectionEvent()
-    data object NotificationSubscriptionLost : PcControlConnectionEvent()
 }
 
 internal fun resolveExpectedResponse(response: PcProtocolResponse, requestId: String): PcProtocolResponse? {
