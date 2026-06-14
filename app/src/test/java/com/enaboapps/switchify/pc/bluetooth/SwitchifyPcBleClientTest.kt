@@ -170,6 +170,27 @@ class SwitchifyPcBleClientTest {
     }
 
     @Test
+    fun liveConnectionHealthCheckSendsAuthenticatedPing() = runTest {
+        val tokens = FakeTokenStore(mutableMapOf("desktop-1" to "token"), mutableMapOf("desktop-1" to "Switchify PC"))
+        val seenTypes = mutableListOf<String>()
+        val transport = FakeTransportFactory { message ->
+            val json = JSONObject(message)
+            seenTypes += json.getString("type")
+            when (json.getString("type")) {
+                "connection.ping" -> ack(json.getString("id"))
+                "pointer.profile" -> pointerProfile(json.getString("id"))
+                else -> ack(json.getString("id"))
+            }
+        }
+        val session = PcAuthenticatedSession("desktop-1", "device-1", "AA:BB:CC:DD:EE:FF", PcTransport.Bluetooth)
+        val result = client(tokens, transport).openControlSession(session) as com.enaboapps.switchify.pc.PcLiveControlResult.Connected
+
+        assertEquals(PcCommandResult.Ack, result.connection.checkHealth())
+
+        assertEquals(listOf("connection.ping", "pointer.profile", "connection.ping"), seenTypes)
+    }
+
+    @Test
     fun commandsReuseExistingProtocolBuilders() = runTest {
         val tokens = FakeTokenStore(mutableMapOf("desktop-1" to "token"), mutableMapOf("desktop-1" to "Switchify PC"))
         val seenTypes = mutableListOf<String>()

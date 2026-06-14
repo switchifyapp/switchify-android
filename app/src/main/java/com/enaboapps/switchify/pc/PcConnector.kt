@@ -39,6 +39,7 @@ sealed class PcLiveControlResult {
 interface PcControlConnection {
     val pointerProfile: PcPointerMovementProfile?
     val connectionEvents: Flow<PcControlConnectionEvent>
+    suspend fun checkHealth(): PcCommandResult
     suspend fun sendCommand(command: PcControlCommand): PcCommandResult
     fun close()
 }

@@ -24,6 +24,8 @@ import com.enaboapps.switchify.pc.resolveExpectedResponse
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withTimeout
 import org.json.JSONObject
 import java.util.UUID
@@ -277,19 +279,41 @@ class SwitchifyPcBleClient(
         private val token: String,
         override val pointerProfile: PcPointerMovementProfile?
     ) : PcControlConnection {
+        private val sendMutex = Mutex()
+
         override val connectionEvents: Flow<PcControlConnectionEvent> = connection.events.map { event ->
             when (event) {
                 PcBleTransportEvent.Disconnected -> PcControlConnectionEvent.Disconnected
             }
         }
 
+        override suspend fun checkHealth(): PcCommandResult {
+            return sendMutex.withLock {
+                try {
+                    when (val response = sendAuthenticatedPing(connection, token)) {
+                        is PcProtocolResponse.Ack -> PcCommandResult.Ack
+                        is PcProtocolResponse.Error -> {
+                            if (response.code == "invalid_auth") PcCommandResult.AuthFailed()
+                            else PcCommandResult.Failed()
+                        }
+                        else -> PcCommandResult.Failed()
+                    }
+                } catch (error: Throwable) {
+                    if (error is CancellationException) throw error
+                    PcCommandResult.Failed()
+                }
+            }
+        }
+
         override suspend fun sendCommand(command: PcControlCommand): PcCommandResult {
-            return try {
-                sendCommandMessage(connection, authenticatedSession, token, command)
-            } catch (error: Throwable) {
-                if (error is CancellationException) throw error
-                if (error is InvalidPcAuthException) PcCommandResult.AuthFailed()
-                else PcCommandResult.Failed()
+            return sendMutex.withLock {
+                try {
+                    sendCommandMessage(connection, authenticatedSession, token, command)
+                } catch (error: Throwable) {
+                    if (error is CancellationException) throw error
+                    if (error is InvalidPcAuthException) PcCommandResult.AuthFailed()
+                    else PcCommandResult.Failed()
+                }
             }
         }
 
