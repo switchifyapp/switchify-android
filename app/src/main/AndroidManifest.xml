@@ -13,6 +13,9 @@
     <uses-feature
         android:name="android.hardware.camera"
         android:required="false" /> <!-- Required for camera switches -->
+    <uses-feature
+        android:name="android.hardware.bluetooth_le"
+        android:required="false" />
     <uses-permission android:name="android.permission.CAMERA" /> <!-- Required for camera switches -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" /> <!-- Required for foreground service -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CAMERA" /> <!-- Required for camera foreground service -->
@@ -22,11 +25,19 @@
     <uses-permission android:name="com.google.android.gms.permission.AD_ID" /> <!-- Required for advertising identifier access -->
     <uses-permission android:name="android.permission.WAKE_LOCK" /> <!-- Required for camera service wake lock -->
     <uses-permission android:name="android.permission.INTERNET" /> <!-- Required for downloading the Reply Drafter model -->
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" /> <!-- Required for local PC discovery -->
     <uses-permission
-        android:name="android.permission.NEARBY_WIFI_DEVICES"
-        android:usesPermissionFlags="neverForLocation" /> <!-- Required for local PC discovery on Android 13+ -->
-    <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" /> <!-- Required for mDNS multicast during PC discovery -->
+        android:name="android.permission.BLUETOOTH"
+        android:maxSdkVersion="30" />
+    <uses-permission
+        android:name="android.permission.BLUETOOTH_ADMIN"
+        android:maxSdkVersion="30" />
+    <uses-permission
+        android:name="android.permission.ACCESS_FINE_LOCATION"
+        android:maxSdkVersion="30" />
+    <uses-permission
+        android:name="android.permission.BLUETOOTH_SCAN"
+        android:usesPermissionFlags="neverForLocation" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
 
     <application
         android:name=".SwitchifyApplication"
@@ -38,10 +49,6 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.Switchify">
-        <meta-data
-            android:name="com.google.mlkit.vision.DEPENDENCIES"
-            android:value="barcode_ui" />
-
         <activity
             android:name=".activities.MainActivity"
             android:exported="true"

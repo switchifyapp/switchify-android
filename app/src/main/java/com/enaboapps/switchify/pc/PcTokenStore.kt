@@ -5,17 +5,17 @@ import androidx.core.content.edit
 
 interface PcPairingTokenStore {
     fun getToken(desktopId: String): String?
-    fun saveToken(desktopId: String, token: String, lastUrl: String, serviceName: String? = null)
+    fun saveToken(desktopId: String, token: String, lastEndpointId: String, serviceName: String? = null)
     fun clearToken(desktopId: String)
     fun listPairings(): List<PcStoredPairing>
-    fun getLastUrl(desktopId: String): String?
+    fun getLastEndpointId(desktopId: String): String?
     fun getServiceName(desktopId: String): String?
 }
 
 data class PcStoredPairing(
     val desktopId: String,
     val serviceName: String?,
-    val lastUrl: String?
+    val lastEndpointId: String?
 )
 
 /**
@@ -35,11 +35,11 @@ class PcTokenStore(context: Context) : PcPairingTokenStore {
         return preferences.getString(tokenKey(desktopId), null)?.takeIf { it.isNotBlank() }
     }
 
-    override fun saveToken(desktopId: String, token: String, lastUrl: String, serviceName: String?) {
+    override fun saveToken(desktopId: String, token: String, lastEndpointId: String, serviceName: String?) {
         preferences.edit {
             putStringSet(pairingIdsKey, pairingIds() + desktopId)
             putString(tokenKey(desktopId), token)
-            putString(lastUrlKey(desktopId), lastUrl)
+            putString(lastEndpointIdKey(desktopId), lastEndpointId)
             if (!serviceName.isNullOrBlank()) putString(serviceNameKey(desktopId), serviceName)
         }
     }
@@ -48,7 +48,7 @@ class PcTokenStore(context: Context) : PcPairingTokenStore {
         preferences.edit {
             putStringSet(pairingIdsKey, indexedPairingIds() - desktopId)
             remove(tokenKey(desktopId))
-            remove(lastUrlKey(desktopId))
+            remove(lastEndpointIdKey(desktopId))
             remove(serviceNameKey(desktopId))
         }
     }
@@ -60,14 +60,14 @@ class PcTokenStore(context: Context) : PcPairingTokenStore {
                 PcStoredPairing(
                     desktopId = desktopId,
                     serviceName = getServiceName(desktopId),
-                    lastUrl = getLastUrl(desktopId)
+                    lastEndpointId = getLastEndpointId(desktopId)
                 )
             }
             .sortedBy { it.serviceName ?: it.desktopId }
     }
 
-    override fun getLastUrl(desktopId: String): String? {
-        return preferences.getString(lastUrlKey(desktopId), null)?.takeIf { it.isNotBlank() }
+    override fun getLastEndpointId(desktopId: String): String? {
+        return preferences.getString(lastEndpointIdKey(desktopId), null)?.takeIf { it.isNotBlank() }
     }
 
     override fun getServiceName(desktopId: String): String? {
@@ -75,14 +75,14 @@ class PcTokenStore(context: Context) : PcPairingTokenStore {
     }
 
     private fun tokenKey(desktopId: String) = "token:$desktopId"
-    private fun lastUrlKey(desktopId: String) = "last_url:$desktopId"
+    private fun lastEndpointIdKey(desktopId: String) = "last_endpoint_id:$desktopId"
     private fun serviceNameKey(desktopId: String) = "service_name:$desktopId"
 
     private fun pairingIds(): Set<String> {
-        val legacyIds = preferences.all.keys.mapNotNull { key ->
+        val tokenIds = preferences.all.keys.mapNotNull { key ->
             key.removePrefix(tokenPrefix).takeIf { key.startsWith(tokenPrefix) && it.isNotBlank() }
         }
-        return indexedPairingIds() + legacyIds
+        return indexedPairingIds() + tokenIds
     }
 
     private fun indexedPairingIds(): Set<String> {

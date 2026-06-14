@@ -41,7 +41,7 @@ class PcMouseControlViewModelTest {
     private val session = PcAuthenticatedSession(
         desktopId = "desktop-1",
         deviceId = "device-1",
-        websocketUrl = "ws://192.168.1.20:7347"
+        endpointId = "AA:BB:CC:DD:EE:FF"
     )
 
     @Before
@@ -311,7 +311,7 @@ class PcMouseControlViewModelTest {
     }
 
     @Test
-    fun switchingSurfacesDoesNotOpenAnotherLiveSocket() = runTest(dispatcher) {
+    fun switchingSurfacesDoesNotOpenAnotherLiveConnection() = runTest(dispatcher) {
         PcConnectionStateHolder.setConnected(session, "Switchify PC")
         val connector = FakeConnector(PcCommandResult.Ack)
         val viewModel = PcMouseControlViewModel(FakeTokenStore(), connector, FakeMovementSizeStore())
@@ -509,18 +509,19 @@ class PcMouseControlViewModelTest {
     }
 
     @Test
-    fun failedLiveCommandClearsConnectionSoNextCommandReconnects() = runTest(dispatcher) {
+    fun failedLiveCommandReconnectsAndRetriesImmediately() = runTest(dispatcher) {
         PcConnectionStateHolder.setConnected(session, "Switchify PC")
-        val connector = FakeConnector(listOf(PcCommandResult.Failed(), PcCommandResult.Ack))
+        val connector = FakeConnector(listOf(PcCommandResult.Failed(), PcCommandResult.Failed(), PcCommandResult.Ack))
         val viewModel = PcMouseControlViewModel(FakeTokenStore(), connector, FakeMovementSizeStore())
 
         viewModel.send(PcControlCommand.LeftClick)
         advanceUntilIdle()
-        viewModel.send(PcControlCommand.DoubleClick)
-        advanceUntilIdle()
 
-        assertEquals(2, connector.openControlSessionCalls)
-        assertEquals(listOf(PcControlCommand.LeftClick, PcControlCommand.DoubleClick), connector.commands)
+        assertEquals(3, connector.openControlSessionCalls)
+        assertEquals(
+            listOf(PcControlCommand.LeftClick, PcControlCommand.LeftClick, PcControlCommand.LeftClick),
+            connector.commands
+        )
         assertNull(viewModel.uiState.value.message)
     }
 
@@ -583,7 +584,7 @@ class PcMouseControlViewModelTest {
         viewModel.send(PcControlCommand.LeftClick)
         advanceUntilIdle()
 
-        assertEquals(1, connector.commands.size)
+        assertEquals(3, connector.commands.size)
         assertEquals("token", tokenStore.getToken("desktop-1"))
         assertEquals(PcMouseControlViewModel.COMMAND_FAILED_MESSAGE, viewModel.uiState.value.message)
     }
@@ -746,7 +747,7 @@ class PcMouseControlViewModelTest {
     ) : PcPairingTokenStore {
         override fun getToken(desktopId: String): String? = tokens[desktopId]
 
-        override fun saveToken(desktopId: String, token: String, lastUrl: String, serviceName: String?) {
+        override fun saveToken(desktopId: String, token: String, lastEndpointId: String, serviceName: String?) {
             tokens[desktopId] = token
         }
 
@@ -759,12 +760,12 @@ class PcMouseControlViewModelTest {
                 PcStoredPairing(
                     desktopId = desktopId,
                     serviceName = null,
-                    lastUrl = null
+                    lastEndpointId = null
                 )
             }
         }
 
-        override fun getLastUrl(desktopId: String): String? = null
+        override fun getLastEndpointId(desktopId: String): String? = null
         override fun getServiceName(desktopId: String): String? = null
     }
 }

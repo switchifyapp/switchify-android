@@ -15,8 +15,8 @@ import com.enaboapps.switchify.pc.PcControlCommand
 import com.enaboapps.switchify.pc.PcAuthenticatedSession
 import com.enaboapps.switchify.pc.PcPairingTokenStore
 import com.enaboapps.switchify.pc.PcTokenStore
-import com.enaboapps.switchify.pc.SwitchifyPcClient
 import com.enaboapps.switchify.pc.PC_KEYBOARD_TYPE_TEXT_MAX_LENGTH
+import com.enaboapps.switchify.pc.bluetooth.SwitchifyPcBleClient
 import com.enaboapps.switchify.pc.isSafePcTypedText
 import com.enaboapps.switchify.pc.retryPcAuthFailure
 import kotlinx.coroutines.CompletableDeferred
@@ -60,7 +60,8 @@ class PcMouseControlViewModel(
 
     constructor(context: Context) : this(
         tokenStore = PcTokenStore(context.applicationContext),
-        connector = SwitchifyPcClient(
+        connector = SwitchifyPcBleClient(
+            context.applicationContext,
             PcDeviceIdentityRepository(context.applicationContext),
             PcTokenStore(context.applicationContext)
         ),
@@ -200,15 +201,7 @@ class PcMouseControlViewModel(
 
         _uiState.update { it.copy(isBusy = true, busyCommand = command) }
         viewModelScope.launch {
-            val connection = liveConnection ?: ensureLiveConnection(connected.session).await()
-            val result = if (connection == null) {
-                PcCommandResult.Failed()
-            } else {
-                retryPcAuthFailure(
-                    block = { connection.sendCommand(command) },
-                    isAuthFailure = { it is PcCommandResult.AuthFailed }
-                )
-            }
+            val result = sendWithLiveReconnect(connected.session, command)
             when (result) {
                 PcCommandResult.Ack -> {
                     _uiState.update(onAck)
@@ -246,6 +239,33 @@ class PcMouseControlViewModel(
                     }
                 }
             }
+        }
+    }
+
+    private suspend fun sendWithLiveReconnect(
+        session: PcAuthenticatedSession,
+        command: PcControlCommand
+    ): PcCommandResult {
+        repeat(LIVE_COMMAND_ATTEMPTS) { attempt ->
+            val result = sendWithCurrentOrNewConnection(session, command)
+            if (result !is PcCommandResult.Failed) return result
+            if (attempt < LIVE_COMMAND_ATTEMPTS - 1) closeLiveConnection()
+        }
+        return PcCommandResult.Failed()
+    }
+
+    private suspend fun sendWithCurrentOrNewConnection(
+        session: PcAuthenticatedSession,
+        command: PcControlCommand
+    ): PcCommandResult {
+        val connection = liveConnection ?: ensureLiveConnection(session).await()
+        return if (connection == null) {
+            PcCommandResult.Failed()
+        } else {
+            retryPcAuthFailure(
+                block = { connection.sendCommand(command) },
+                isAuthFailure = { it is PcCommandResult.AuthFailed }
+            )
         }
     }
 
@@ -334,6 +354,7 @@ class PcMouseControlViewModel(
         const val KEY_FAILED_MESSAGE = "Could not send key to PC."
         const val TEXT_TOO_LONG_MESSAGE = "Text is too long."
         const val TEXT_UNSUPPORTED_MESSAGE = "Text includes unsupported characters."
+        private const val LIVE_COMMAND_ATTEMPTS = 3
     }
 
     private fun validationMessageFor(text: String): String? {

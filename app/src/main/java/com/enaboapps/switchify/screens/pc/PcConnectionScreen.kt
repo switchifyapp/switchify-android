@@ -1,7 +1,6 @@
 package com.enaboapps.switchify.screens.pc
 
 import android.Manifest
-import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
@@ -45,13 +44,9 @@ import com.enaboapps.switchify.pc.PcRowState
 import com.enaboapps.switchify.pc.PcRowStatus
 import com.enaboapps.switchify.theme.Dimens
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
-import com.google.accompanist.permissions.PermissionState
 import com.google.accompanist.permissions.isGranted
-import com.google.accompanist.permissions.rememberPermissionState
+import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import com.google.accompanist.permissions.shouldShowRationale
-import com.google.mlkit.vision.barcode.common.Barcode
-import com.google.mlkit.vision.codescanner.GmsBarcodeScannerOptions
-import com.google.mlkit.vision.codescanner.GmsBarcodeScanning
 
 private val PcConnectionCompactRowWidth = 380.dp
 
@@ -61,19 +56,15 @@ fun PcConnectionScreen(navController: NavController) {
     val context = LocalContext.current
     val viewModel: PcConnectionViewModel = viewModel { PcConnectionViewModel(context.applicationContext) }
     val uiState by viewModel.uiState.collectAsState()
-
-    val permissionState: PermissionState? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-        rememberPermissionState(Manifest.permission.NEARBY_WIFI_DEVICES)
-    } else {
-        null
-    }
-    val permissionGranted = permissionState?.status?.isGranted ?: true
+    val permissionState = rememberMultiplePermissionsState(pcBluetoothPermissions())
+    val permissionGranted = permissionState.permissions.all { it.status.isGranted }
+    val shouldShowRationale = permissionState.permissions.any { it.status.shouldShowRationale }
+    val hasRuntimePermissions = permissionState.permissions.isNotEmpty()
     var hasRequestedPermission by rememberSaveable { mutableStateOf(false) }
-    val qrScanFailedMessage = stringResource(R.string.pc_connection_qr_scan_failed)
 
-    LaunchedEffect(permissionGranted) {
-        viewModel.setPermissionRequired(!permissionGranted)
-        if (permissionGranted) {
+    LaunchedEffect(permissionGranted, hasRuntimePermissions) {
+        viewModel.setPermissionRequired(hasRuntimePermissions && !permissionGranted)
+        if (!hasRuntimePermissions || permissionGranted) {
             viewModel.startDiscovery()
         }
     }
@@ -101,10 +92,9 @@ fun PcConnectionScreen(navController: NavController) {
                                     .fillMaxWidth()
                                     .padding(horizontal = Dimens.spaceM, vertical = Dimens.spaceS),
                                 onClick = {
-                                    val state = permissionState ?: return@ActionButton
-                                    if (!hasRequestedPermission || state.status.shouldShowRationale) {
+                                    if (!hasRequestedPermission || shouldShowRationale) {
                                         hasRequestedPermission = true
-                                        state.launchPermissionRequest()
+                                        permissionState.launchMultiplePermissionRequest()
                                     } else {
                                         val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
                                             data = Uri.fromParts("package", context.packageName, null)
@@ -137,30 +127,6 @@ fun PcConnectionScreen(navController: NavController) {
                         }
                     }
                 }
-                Section(titleResId = R.string.pc_connection_manual_section) {
-                    Column(modifier = Modifier.padding(vertical = Dimens.spaceS)) {
-                        Text(
-                            text = stringResource(R.string.pc_connection_scan_qr_summary),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(horizontal = Dimens.spaceM, vertical = Dimens.spaceS)
-                        )
-                        ActionButton(
-                            textResId = R.string.pc_connection_scan_qr,
-                            applyPadding = false,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = Dimens.spaceM, vertical = Dimens.spaceS),
-                            onClick = {
-                                startPcQrScan(
-                                    context = context,
-                                    viewModel = viewModel,
-                                    scanFailedMessage = qrScanFailedMessage
-                                )
-                            }
-                        )
-                    }
-                }
                 if (uiState.savedPairings.isNotEmpty()) {
                     Section(titleResId = R.string.pc_connection_paired_section) {
                         Column(modifier = Modifier.padding(vertical = Dimens.spaceS)) {
@@ -168,8 +134,16 @@ fun PcConnectionScreen(navController: NavController) {
                                 PcConnectionPreferenceRow(
                                     title = row.title,
                                     summary = row.summary,
-                                    onClick = { viewModel.requestUnpair(row.desktopId, row.title) },
+                                    onClick = {
+                                        if (row.canConnect) viewModel.connectSavedPairing(row.desktopId)
+                                        else viewModel.requestUnpair(row.desktopId, row.title)
+                                    },
                                     actions = {
+                                        if (row.canConnect) {
+                                            Button(onClick = { viewModel.connectSavedPairing(row.desktopId) }) {
+                                                Text(stringResource(R.string.pc_connection_connect))
+                                            }
+                                        }
                                         TextButton(
                                             enabled = row.canUnpair,
                                             onClick = { viewModel.requestUnpair(row.desktopId, row.title) }
@@ -224,30 +198,14 @@ fun PcConnectionScreen(navController: NavController) {
     }
 }
 
-private fun startPcQrScan(
-    context: Context,
-    viewModel: PcConnectionViewModel,
-    scanFailedMessage: String
-) {
-    val options = GmsBarcodeScannerOptions.Builder()
-        .setBarcodeFormats(Barcode.FORMAT_QR_CODE)
-        .enableAutoZoom()
-        .build()
-    GmsBarcodeScanning.getClient(context, options)
-        .startScan()
-        .addOnSuccessListener { barcode ->
-            val rawValue = barcode.rawValue
-            if (rawValue.isNullOrBlank()) {
-                viewModel.showMessage(scanFailedMessage)
-            } else {
-                viewModel.connectFromQrPayload(rawValue)
-            }
-        }
-        .addOnCanceledListener {
-        }
-        .addOnFailureListener {
-            viewModel.showMessage(scanFailedMessage)
-        }
+private fun pcBluetoothPermissions(): List<String> {
+    return when {
+        Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> listOf(
+            Manifest.permission.BLUETOOTH_SCAN,
+            Manifest.permission.BLUETOOTH_CONNECT
+        )
+        else -> listOf(Manifest.permission.ACCESS_FINE_LOCATION)
+    }
 }
 
 @Composable

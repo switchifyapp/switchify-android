@@ -12,8 +12,13 @@ interface PcConnectionRepository {
 data class PcAuthenticatedSession(
     val desktopId: String,
     val deviceId: String,
-    val websocketUrl: String
+    val endpointId: String,
+    val transport: PcTransport = PcTransport.Bluetooth
 )
+
+enum class PcTransport {
+    Bluetooth
+}
 
 sealed class PcConnectionState {
     data object Disconnected : PcConnectionState()

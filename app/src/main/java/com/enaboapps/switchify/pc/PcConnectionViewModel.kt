@@ -3,6 +3,8 @@ package com.enaboapps.switchify.pc
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.enaboapps.switchify.pc.bluetooth.PcBleDiscoveryService
+import com.enaboapps.switchify.pc.bluetooth.SwitchifyPcBleClient
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -27,7 +29,6 @@ data class PcConnectionUiState(
     val connectedDesktopId: String? = null,
     val isDiscovering: Boolean = false,
     val isBusy: Boolean = false,
-    val isQrConnecting: Boolean = false,
     val message: String? = null,
     val approvalCode: PcApprovalCodeState? = null,
     val pendingUnpair: PcUnpairConfirmationState? = null
@@ -47,7 +48,8 @@ data class PcSavedPairingRowState(
     val desktopId: String,
     val title: String,
     val summary: String,
-    val canUnpair: Boolean = true
+    val canUnpair: Boolean = true,
+    val canConnect: Boolean = false
 )
 
 data class PcUnpairConfirmationState(
@@ -65,10 +67,10 @@ enum class PcRowStatus {
 
 class PcConnectionViewModel(
     context: Context? = null,
-    private val discoveryService: PcDiscovery = PcDiscoveryService(requireNotNull(context).applicationContext),
+    private val discoveryService: PcDiscovery = PcBleDiscoveryService(requireNotNull(context).applicationContext),
     private val tokenStore: PcPairingTokenStore = PcTokenStore(requireNotNull(context).applicationContext),
     private val identityRepository: PcDeviceIdentity = PcDeviceIdentityRepository(requireNotNull(context).applicationContext),
-    private val connector: PcConnector = SwitchifyPcClient(identityRepository, tokenStore),
+    private val connector: PcConnector = SwitchifyPcBleClient(requireNotNull(context).applicationContext, identityRepository, tokenStore),
     private val requestNonceProvider: () -> String = { UUID.randomUUID().toString() },
     private val backgroundDispatcher: CoroutineDispatcher = Dispatchers.Default
 ) : ViewModel() {
@@ -142,36 +144,35 @@ class PcConnectionViewModel(
         }
     }
 
+    fun connectSavedPairing(desktopId: String) {
+        viewModelScope.launch {
+            val endpoint = tokenStore.getLastEndpointId(desktopId)
+                ?: run {
+                    showMessage("This PC is not nearby.")
+                    return@launch
+                }
+            val displayName = tokenStore.getServiceName(desktopId) ?: "Switchify PC"
+            connectWithSavedTokenInternal(
+                DiscoveredPc(
+                    serviceName = displayName,
+                    desktopId = desktopId,
+                    bluetoothEndpoint = PcBluetoothEndpoint(
+                        deviceAddress = endpoint,
+                        deviceName = null,
+                        desktopId = desktopId,
+                        displayName = displayName
+                    )
+                )
+            )
+        }
+    }
+
     fun clearMessage() {
         _uiState.update { it.copy(message = null) }
     }
 
     fun showMessage(message: String) {
         _uiState.update { it.copy(message = message) }
-    }
-
-    fun connectFromQrPayload(rawPayload: String) {
-        viewModelScope.launch {
-            _uiState.update { it.copy(isQrConnecting = true, isBusy = true, message = null) }
-            val pc = PcQrConnectionPayloadParser.parse(rawPayload).getOrElse {
-                _uiState.update {
-                    it.copy(
-                        isQrConnecting = false,
-                        isBusy = false,
-                        message = PcQrConnectionPayloadParser.INVALID_MESSAGE,
-                        approvalCode = null
-                    )
-                }
-                return@launch
-            }
-
-            if (tokenStore.getToken(pc.desktopId).isNullOrBlank()) {
-                requestAccessInternal(pc)
-            } else {
-                connectWithSavedTokenInternal(pc)
-            }
-            _uiState.update { it.copy(isQrConnecting = false) }
-        }
     }
 
     fun requestUnpair(desktopId: String, displayName: String) {
@@ -245,9 +246,19 @@ class PcConnectionViewModel(
                 PcSavedPairingRowState(
                     desktopId = pairing.desktopId,
                     title = pairing.serviceName ?: pairing.desktopId,
-                    summary = pairing.lastUrl ?: "Not nearby"
+                    summary = savedPairingSummary(pairing.lastEndpointId),
+                    canConnect = canConnectSavedPairing(pairing.lastEndpointId)
                 )
             }
+    }
+
+    private fun savedPairingSummary(lastEndpoint: String?): String {
+        if (lastEndpoint.isNullOrBlank()) return "Not nearby"
+        return lastEndpoint
+    }
+
+    private fun canConnectSavedPairing(lastEndpoint: String?): Boolean {
+        return !lastEndpoint.isNullOrBlank()
     }
 
     private suspend fun requestAccessInternal(pc: DiscoveredPc) {
@@ -271,10 +282,10 @@ class PcConnectionViewModel(
                     isAuthFailure = { it is PcPingResult.AuthFailed }
                 )) {
                     is PcPingResult.Connected -> {
-                        tokenStore.saveToken(pc.desktopId, pairing.token, ping.websocketUrl, pc.displayName)
+                        tokenStore.saveToken(pc.desktopId, pairing.token, ping.endpointId, pc.displayName)
                         tokenRevision.update { it + 1 }
                         PcConnectionStateHolder.setConnected(
-                            PcAuthenticatedSession(pc.desktopId, identityRepository.getDeviceId(), ping.websocketUrl),
+                            PcAuthenticatedSession(pc.desktopId, identityRepository.getDeviceId(), ping.endpointId),
                             pc.displayName
                         )
                         setIdle(pc.desktopId, PcRowStatus.Connected, null)
@@ -304,10 +315,10 @@ class PcConnectionViewModel(
             isAuthFailure = { it is PcPingResult.AuthFailed }
         )) {
             is PcPingResult.Connected -> {
-                tokenStore.saveToken(pc.desktopId, token, result.websocketUrl, pc.displayName)
+                tokenStore.saveToken(pc.desktopId, token, result.endpointId, pc.displayName)
                 tokenRevision.update { it + 1 }
                 PcConnectionStateHolder.setConnected(
-                    PcAuthenticatedSession(pc.desktopId, identityRepository.getDeviceId(), result.websocketUrl),
+                    PcAuthenticatedSession(pc.desktopId, identityRepository.getDeviceId(), result.endpointId),
                     pc.displayName
                 )
                 setIdle(pc.desktopId, PcRowStatus.Connected, null)
@@ -351,10 +362,11 @@ class PcConnectionViewModel(
 
     private fun discoveryStatusText(status: PcDiscoveryStatus, empty: Boolean): String {
         return when {
-            status == PcDiscoveryStatus.Searching -> "Searching for Switchify PC..."
-            status == PcDiscoveryStatus.Failed -> "Could not start PC discovery."
-            empty -> "No PCs found yet."
+            status == PcDiscoveryStatus.Searching -> "Searching for Switchify PC over Bluetooth..."
+            status == PcDiscoveryStatus.Failed -> "Could not start Bluetooth discovery."
+            empty -> "No Bluetooth PCs found yet."
             else -> "Nearby PCs"
         }
     }
+
 }
