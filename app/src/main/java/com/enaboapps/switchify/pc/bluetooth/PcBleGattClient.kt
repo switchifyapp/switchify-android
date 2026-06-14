@@ -11,6 +11,7 @@ import android.bluetooth.BluetoothManager
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
+import android.util.Log
 import androidx.core.content.ContextCompat
 import com.enaboapps.switchify.pc.PcBluetoothEndpoint
 import kotlinx.coroutines.CompletableDeferred
@@ -33,7 +34,7 @@ interface PcBleTransportConnection {
     val endpoint: PcBluetoothEndpoint
     val events: Flow<PcBleTransportEvent>
     suspend fun sendAndReceive(message: String, timeoutMs: Long): String
-    fun close()
+    fun close(reason: String = "client_close")
 }
 
 sealed class PcBleTransportEvent {
@@ -65,9 +66,10 @@ private class PcBleGattConnection private constructor(
         return withTimeout(timeoutMs) { incomingMessages.receive() }
     }
 
-    override fun close() {
+    override fun close(reason: String) {
         if (closed) return
         closed = true
+        Log.d(TAG, "PC BLE GATT closing endpoint=${endpoint.deviceAddress} reason=$reason")
         onClose()
         runCatching { gatt.disconnect() }
         runCatching { gatt.close() }
@@ -110,8 +112,10 @@ private class PcBleGattConnection private constructor(
         private var pendingWrite: GattWriteRequest? = null
         private var setupComplete = false
         private var closedByClient = false
+        private var deviceAddress = "unknown"
 
         suspend fun awaitConnected(context: Context, endpoint: PcBluetoothEndpoint): PcBleGattConnection {
+            deviceAddress = endpoint.deviceAddress
             withTimeout(GATT_CONNECT_TIMEOUT_MS) { connected.await() }
             @SuppressLint("MissingPermission")
             if (!gatt.discoverServices()) throw IllegalStateException("Could not discover Bluetooth services.")
@@ -163,6 +167,7 @@ private class PcBleGattConnection private constructor(
             } else if (newState == BluetoothGatt.STATE_DISCONNECTED) {
                 if (!connected.isCompleted) connected.completeExceptionally(IllegalStateException("Bluetooth disconnected."))
                 if (setupComplete && !closedByClient) {
+                    Log.d(TAG, "PC BLE GATT disconnected unexpectedly status=$status endpoint=$deviceAddress")
                     events.tryEmit(PcBleTransportEvent.Disconnected)
                 }
                 incomingMessages.close()
@@ -262,3 +267,4 @@ internal fun Context.isBluetoothEnabled(): Boolean {
 
 private const val GATT_CONNECT_TIMEOUT_MS = 10_000L
 private const val GATT_NOTIFY_TIMEOUT_MS = 5_000L
+private const val TAG = "PcBleGattClient"

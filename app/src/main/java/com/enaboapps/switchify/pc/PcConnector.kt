@@ -41,7 +41,17 @@ interface PcControlConnection {
     val connectionEvents: Flow<PcControlConnectionEvent>
     suspend fun checkHealth(): PcCommandResult
     suspend fun sendCommand(command: PcControlCommand): PcCommandResult
-    fun close()
+    fun close(reason: PcControlCloseReason = PcControlCloseReason.ExplicitStop)
+}
+
+enum class PcControlCloseReason(val logName: String) {
+    UiPauseGraceExpired("ui_pause_grace_expired"),
+    ExplicitStop("explicit_stop"),
+    CommandFailureRecovery("command_failure_recovery"),
+    AuthFailure("auth_failure"),
+    ConnectorShutdown("connector_shutdown"),
+    Reconnect("reconnect"),
+    UnexpectedDisconnect("unexpected_disconnect")
 }
 
 sealed class PcControlConnectionEvent {

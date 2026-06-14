@@ -9,6 +9,7 @@ import com.enaboapps.switchify.pc.PcConnectionStateHolder
 import com.enaboapps.switchify.pc.PcConnector
 import com.enaboapps.switchify.pc.PcLiveControlResult
 import com.enaboapps.switchify.pc.PcControlConnection
+import com.enaboapps.switchify.pc.PcControlCloseReason
 import com.enaboapps.switchify.pc.PcControlConnectionEvent
 import com.enaboapps.switchify.pc.PcDeviceIdentityRepository
 import com.enaboapps.switchify.pc.PcKeyboardKey
@@ -233,6 +234,7 @@ class PcMouseControlViewModel(
                 }
                 is PcCommandResult.AuthFailed -> {
                     tokenStore.clearToken(connected.session.desktopId)
+                    closeLiveConnection(PcControlCloseReason.AuthFailure)
                     PcConnectionStateHolder.setDisconnected()
                     _uiState.update {
                         it.copy(
@@ -245,7 +247,7 @@ class PcMouseControlViewModel(
                     }
                 }
                 is PcCommandResult.Failed -> {
-                    closeLiveConnection()
+                    closeLiveConnection(PcControlCloseReason.CommandFailureRecovery)
                     _uiState.update {
                         it.copy(
                             isBusy = false,
@@ -274,7 +276,7 @@ class PcMouseControlViewModel(
         repeat(LIVE_COMMAND_ATTEMPTS) { attempt ->
             val result = sendWithCurrentOrNewConnection(session, command)
             if (result !is PcCommandResult.Failed) return result
-            if (attempt < LIVE_COMMAND_ATTEMPTS - 1) closeLiveConnection()
+            if (attempt < LIVE_COMMAND_ATTEMPTS - 1) closeLiveConnection(PcControlCloseReason.CommandFailureRecovery)
         }
         return PcCommandResult.Failed()
     }
@@ -322,17 +324,17 @@ class PcMouseControlViewModel(
         pendingUiPauseShutdownJob?.cancel()
         pendingUiPauseShutdownJob = viewModelScope.launch {
             delay(PC_CONTROL_UI_PAUSE_SHUTDOWN_GRACE_MS)
-            stopPcBluetooth()
+            stopPcBluetooth(PcControlCloseReason.UiPauseGraceExpired)
         }
     }
 
-    fun stopPcBluetooth() {
+    fun stopPcBluetooth(reason: PcControlCloseReason = PcControlCloseReason.ExplicitStop) {
         pcUiActive = false
         pendingUiPauseShutdownJob?.cancel()
         pendingUiPauseShutdownJob = null
         reconnectJob?.cancel()
         reconnectJob = null
-        closeLiveConnection()
+        closeLiveConnection(reason)
         connector.close()
         PcConnectionStateHolder.setDisconnected()
         movementSteps = FALLBACK_MOVEMENT_STEPS
@@ -360,7 +362,7 @@ class PcMouseControlViewModel(
             return it
         }
 
-        closeLiveConnection()
+        closeLiveConnection(PcControlCloseReason.Reconnect)
         liveSession = session
         return viewModelScope.async {
             when (val result = retryPcAuthFailure(
@@ -409,12 +411,12 @@ class PcMouseControlViewModel(
         }
     }
 
-    private fun closeLiveConnection() {
+    private fun closeLiveConnection(reason: PcControlCloseReason = PcControlCloseReason.ExplicitStop) {
         liveConnectionEventsJob?.cancel()
         liveConnectionEventsJob = null
         liveHeartbeatJob?.cancel()
         liveHeartbeatJob = null
-        liveConnection?.close()
+        liveConnection?.close(reason)
         liveConnection = null
         liveSession = null
         liveConnectionDeferred?.cancel()
@@ -457,7 +459,7 @@ class PcMouseControlViewModel(
                                 busyCommand = null
                             )
                         }
-                        closeLiveConnection()
+                        closeLiveConnection(PcControlCloseReason.AuthFailure)
                         return@launch
                     }
                     is PcCommandResult.Failed -> {
@@ -472,7 +474,7 @@ class PcMouseControlViewModel(
     private fun handleLiveConnectionFailed(session: PcAuthenticatedSession) {
         val displayName = lastDisplayName ?: _uiState.value.connectedDisplayName ?: "Switchify PC"
         viewModelScope.launch {
-            closeLiveConnection()
+            closeLiveConnection(PcControlCloseReason.UnexpectedDisconnect)
             if (pcUiActive || pendingUiPauseShutdownJob?.isActive == true) {
                 reconnectSavedSession(session, displayName)
             }
@@ -494,7 +496,7 @@ class PcMouseControlViewModel(
                 )
             }
             for ((index, backoffMs) in RECONNECT_BACKOFF_MS.withIndex()) {
-                closeLiveConnection()
+                closeLiveConnection(PcControlCloseReason.Reconnect)
                 when (val result = connector.openControlSession(session)) {
                     is PcLiveControlResult.Connected -> {
                         liveConnection = result.connection
@@ -543,7 +545,7 @@ class PcMouseControlViewModel(
                 }
                 if (index < RECONNECT_BACKOFF_MS.lastIndex) delay(backoffMs)
             }
-            closeLiveConnection()
+            closeLiveConnection(PcControlCloseReason.CommandFailureRecovery)
             PcConnectionStateHolder.setFailed(DISCONNECTED_MESSAGE)
             _uiState.update {
                 it.copy(

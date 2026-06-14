@@ -6,6 +6,7 @@ import com.enaboapps.switchify.pc.PcCommandResult
 import com.enaboapps.switchify.pc.PcConnectionState
 import com.enaboapps.switchify.pc.PcConnectionStateHolder
 import com.enaboapps.switchify.pc.PcConnector
+import com.enaboapps.switchify.pc.PcControlCloseReason
 import com.enaboapps.switchify.pc.PcKeyboardKey
 import com.enaboapps.switchify.pc.PcLiveControlResult
 import com.enaboapps.switchify.pc.PcControlConnection
@@ -975,6 +976,7 @@ class PcMouseControlViewModelTest {
         override val connectionEvents = eventsFlow
         var healthChecks = 0
         var closeCalls = 0
+        val closeReasons = mutableListOf<PcControlCloseReason>()
 
         override suspend fun checkHealth(): PcCommandResult {
             healthChecks++
@@ -983,8 +985,9 @@ class PcMouseControlViewModelTest {
 
         override suspend fun sendCommand(command: PcControlCommand): PcCommandResult = onCommand(command)
 
-        override fun close() {
+        override fun close(reason: PcControlCloseReason) {
             closeCalls++
+            closeReasons += reason
         }
     }
 
