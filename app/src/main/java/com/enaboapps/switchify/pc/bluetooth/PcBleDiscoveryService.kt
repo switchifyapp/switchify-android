@@ -29,6 +29,8 @@ class PcBleDiscoveryService(private val context: Context) : PcDiscovery {
     private val bluetoothManager = context.applicationContext.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
     private val discovered = linkedMapOf<String, DiscoveredPc>()
     private val resolvingAddresses = mutableSetOf<String>()
+    private val resolvingGatts = mutableMapOf<String, BluetoothGatt>()
+    private val resolvingLock = Any()
     private var scanCallback: ScanCallback? = null
 
     private val _pcs = MutableStateFlow<List<DiscoveredPc>>(emptyList())
@@ -41,7 +43,10 @@ class PcBleDiscoveryService(private val context: Context) : PcDiscovery {
     override fun startDiscovery() {
         stopDiscovery()
         discovered.clear()
-        resolvingAddresses.clear()
+        synchronized(resolvingLock) {
+            resolvingAddresses.clear()
+            resolvingGatts.clear()
+        }
         _pcs.value = emptyList()
         _status.value = PcDiscoveryStatus.Searching
 
@@ -83,10 +88,20 @@ class PcBleDiscoveryService(private val context: Context) : PcDiscovery {
 
     @SuppressLint("MissingPermission")
     override fun stopDiscovery() {
-        val callback = scanCallback ?: return
+        val callback = scanCallback
         val scanner = bluetoothManager.adapter?.bluetoothLeScanner
-        runCatching { scanner?.stopScan(callback) }
+        if (callback != null) {
+            runCatching { scanner?.stopScan(callback) }
+        }
         scanCallback = null
+        val gatts = synchronized(resolvingLock) {
+            resolvingAddresses.clear()
+            resolvingGatts.values.toList().also { resolvingGatts.clear() }
+        }
+        gatts.forEach { gatt ->
+            runCatching { gatt.disconnect() }
+            runCatching { gatt.close() }
+        }
         if (_pcs.value.isEmpty() && _status.value == PcDiscoveryStatus.Searching) {
             _status.value = PcDiscoveryStatus.Empty
         }
@@ -96,13 +111,19 @@ class PcBleDiscoveryService(private val context: Context) : PcDiscovery {
     private suspend fun resolve(result: ScanResult) {
         if (!context.hasBluetoothConnectPermission()) return
         val device = result.device ?: return
-        if (!resolvingAddresses.add(device.address)) return
+        val shouldResolve = synchronized(resolvingLock) {
+            resolvingAddresses.add(device.address)
+        }
+        if (!shouldResolve) return
         val callback = StatusReadCallback(device.address, runCatching { device.name }.getOrNull())
         val gatt = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             device.connectGatt(context.applicationContext, false, callback, android.bluetooth.BluetoothDevice.TRANSPORT_LE)
         } else {
             @Suppress("DEPRECATION")
             device.connectGatt(context.applicationContext, false, callback)
+        }
+        synchronized(resolvingLock) {
+            resolvingGatts[device.address] = gatt
         }
         callback.gatt = gatt
     }
@@ -129,23 +150,20 @@ class PcBleDiscoveryService(private val context: Context) : PcDiscovery {
             if (status == BluetoothGatt.GATT_SUCCESS && newState == BluetoothGatt.STATE_CONNECTED) {
                 gatt.discoverServices()
             } else if (newState == BluetoothGatt.STATE_DISCONNECTED) {
-                resolvingAddresses.remove(deviceAddress)
-                runCatching { gatt.close() }
+                finishGatt(gatt, disconnect = false)
             }
         }
 
         @SuppressLint("MissingPermission")
         override fun onServicesDiscovered(gatt: BluetoothGatt, status: Int) {
             if (status != BluetoothGatt.GATT_SUCCESS) {
-                resolvingAddresses.remove(deviceAddress)
-                gatt.disconnect()
+                finishGatt(gatt)
                 return
             }
             val characteristic = gatt.getService(PcBleConstants.serviceUuid)
                 ?.getCharacteristic(PcBleConstants.statusCharacteristicUuid)
             if (characteristic == null || !gatt.readCharacteristic(characteristic)) {
-                resolvingAddresses.remove(deviceAddress)
-                gatt.disconnect()
+                finishGatt(gatt)
             }
         }
 
@@ -174,8 +192,17 @@ class PcBleDiscoveryService(private val context: Context) : PcDiscovery {
                 val rawStatus = String(value, StandardCharsets.UTF_8)
                 PcBleStatusParser.parse(deviceAddress, deviceName, rawStatus)?.let(::publish)
             }
-            resolvingAddresses.remove(deviceAddress)
-            gatt.disconnect()
+            finishGatt(gatt)
+        }
+
+        @SuppressLint("MissingPermission")
+        private fun finishGatt(gatt: BluetoothGatt, disconnect: Boolean = true) {
+            synchronized(resolvingLock) {
+                resolvingAddresses.remove(deviceAddress)
+                resolvingGatts.remove(deviceAddress)
+            }
+            if (disconnect) runCatching { gatt.disconnect() }
+            runCatching { gatt.close() }
         }
     }
 }

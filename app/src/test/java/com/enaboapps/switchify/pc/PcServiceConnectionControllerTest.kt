@@ -68,6 +68,36 @@ class PcServiceConnectionControllerTest {
     }
 
     @Test
+    fun disconnectStopsDiscoveryClosesConnectorAndClearsState() = runTest(dispatcher) {
+        val discovery = FakeDiscovery(listOf(pc))
+        val connector = FakeConnector(PcPingResult.Connected("AA:BB:CC:DD:EE:FF"))
+        val controller = controller(FakeTokenStore(mutableMapOf("desktop-1" to "token")), connector, discovery)
+        PcConnectionStateHolder.setConnected(PcAuthenticatedSession("desktop-1", "device-1", "AA:BB:CC:DD:EE:FF"), "Switchify PC")
+
+        controller.disconnect()
+
+        assertEquals(1, discovery.stopDiscoveryCalls)
+        assertEquals(1, connector.closeCalls)
+        assertTrue(PcConnectionStateHolder.connectionState.value is PcConnectionState.Disconnected)
+        assertTrue(controller.state.value is PcServiceConnectionState.Disconnected)
+    }
+
+    @Test
+    fun cleanupDelegatesToDisconnect() = runTest(dispatcher) {
+        val discovery = FakeDiscovery(listOf(pc))
+        val connector = FakeConnector(PcPingResult.Connected("AA:BB:CC:DD:EE:FF"))
+        val controller = controller(FakeTokenStore(mutableMapOf("desktop-1" to "token")), connector, discovery)
+        PcConnectionStateHolder.setConnected(PcAuthenticatedSession("desktop-1", "device-1", "AA:BB:CC:DD:EE:FF"), "Switchify PC")
+
+        controller.cleanup()
+
+        assertEquals(1, discovery.stopDiscoveryCalls)
+        assertEquals(1, connector.closeCalls)
+        assertTrue(PcConnectionStateHolder.connectionState.value is PcConnectionState.Disconnected)
+        assertTrue(controller.state.value is PcServiceConnectionState.Disconnected)
+    }
+
+    @Test
     fun bluetoothSavedTokenReconnectUsesBluetoothSession() = runTest(dispatcher) {
         val tokens = FakeTokenStore(mutableMapOf("desktop-1" to "token"))
         val connector = FakeConnector(PcPingResult.Connected("AA:BB:CC:DD:EE:FF"))
@@ -287,8 +317,11 @@ class PcServiceConnectionControllerTest {
     private class FakeDiscovery(initialPcs: List<DiscoveredPc>) : PcDiscovery {
         override val pcs = MutableStateFlow(initialPcs)
         override val status = MutableStateFlow(PcDiscoveryStatus.Found)
+        var stopDiscoveryCalls = 0
         override fun startDiscovery() = Unit
-        override fun stopDiscovery() = Unit
+        override fun stopDiscovery() {
+            stopDiscoveryCalls++
+        }
     }
 
     private class FakeTokenStore(
@@ -337,6 +370,7 @@ class PcServiceConnectionControllerTest {
         private val queuedPingResults = ArrayDeque(pingResults)
         var pingCalls = 0
         var pairingCalls = 0
+        var closeCalls = 0
         val requestNonces = mutableListOf<String>()
 
         override suspend fun requestApproval(pc: DiscoveredPc, requestNonce: String): PcPairingResult {
@@ -359,6 +393,8 @@ class PcServiceConnectionControllerTest {
             return PcCommandResult.Ack
         }
 
-        override fun close() = Unit
+        override fun close() {
+            closeCalls++
+        }
     }
 }

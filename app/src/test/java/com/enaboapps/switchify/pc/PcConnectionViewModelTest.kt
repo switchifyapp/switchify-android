@@ -12,6 +12,7 @@ import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
@@ -136,6 +137,58 @@ class PcConnectionViewModelTest {
 
         pairingDeferred.complete(PcPairingResult.Failed(PcErrorReason.PairingRejected, "Request rejected."))
         advanceUntilIdle()
+    }
+
+    @Test
+    fun stopPcBluetoothStopsDiscoveryAndClosesConnector() = runTest(dispatcher) {
+        val discovery = FakeDiscovery(listOf(pc))
+        val connector = FakeConnector()
+        val viewModel = viewModel(discovery, FakeTokenStore(), connector)
+        advanceUntilIdle()
+
+        viewModel.stopPcBluetooth()
+        advanceUntilIdle()
+
+        assertEquals(1, discovery.stopDiscoveryCalls)
+        assertEquals(1, connector.closeCalls)
+        assertTrue(PcConnectionStateHolder.connectionState.value is PcConnectionState.Disconnected)
+    }
+
+    @Test
+    fun stopPcBluetoothClearsConnectedStateWithoutClearingToken() = runTest(dispatcher) {
+        val tokens = FakeTokenStore(initialTokens = mutableMapOf("desktop-1" to "token"))
+        val viewModel = viewModel(FakeDiscovery(listOf(pc)), tokens, FakeConnector())
+        PcConnectionStateHolder.setConnected(PcAuthenticatedSession("desktop-1", "device-1", "AA:BB:CC:DD:EE:FF"), "Switchify PC")
+        advanceUntilIdle()
+
+        viewModel.stopPcBluetooth()
+        advanceUntilIdle()
+
+        assertTrue(PcConnectionStateHolder.connectionState.value is PcConnectionState.Disconnected)
+        assertEquals("token", tokens.getToken("desktop-1"))
+    }
+
+    @Test
+    fun stopPcBluetoothDismissesApprovalAndBusyState() = runTest(dispatcher) {
+        val discovery = FakeDiscovery(listOf(pc))
+        val pairingDeferred = CompletableDeferred<PcPairingResult>()
+        val connector = FakeConnector(pairingDeferred = pairingDeferred)
+        val viewModel = viewModel(discovery, FakeTokenStore(), connector, requestNonceProvider = { "nonce-1" })
+        advanceUntilIdle()
+
+        viewModel.requestAccess(pc)
+        advanceUntilIdle()
+        assertEquals("215918", viewModel.uiState.value.approvalCode?.verificationCode)
+
+        viewModel.stopPcBluetooth()
+        advanceUntilIdle()
+
+        assertNull(viewModel.uiState.value.approvalCode)
+        assertEquals(false, viewModel.uiState.value.isBusy)
+        assertEquals(1, connector.closeCalls)
+        pairingDeferred.complete(PcPairingResult.Paired("desktop-1", "token", "AA:BB:CC:DD:EE:FF"))
+        advanceUntilIdle()
+        assertTrue(PcConnectionStateHolder.connectionState.value is PcConnectionState.Disconnected)
     }
 
     @Test
@@ -454,8 +507,11 @@ class PcConnectionViewModelTest {
     private class FakeDiscovery(initialPcs: List<DiscoveredPc>) : PcDiscovery {
         override val pcs = MutableStateFlow(initialPcs)
         override val status = MutableStateFlow(if (initialPcs.isEmpty()) PcDiscoveryStatus.Empty else PcDiscoveryStatus.Found)
+        var stopDiscoveryCalls = 0
         override fun startDiscovery() = Unit
-        override fun stopDiscovery() = Unit
+        override fun stopDiscovery() {
+            stopDiscoveryCalls++
+        }
     }
 
     private class FakeTokenStore(
@@ -511,6 +567,7 @@ class PcConnectionViewModelTest {
         val requestNonces = mutableListOf<String>()
         val approvalPcs = mutableListOf<DiscoveredPc>()
         val pingPcs = mutableListOf<DiscoveredPc>()
+        var closeCalls = 0
 
         override suspend fun requestApproval(pc: DiscoveredPc, requestNonce: String): PcPairingResult {
             requestApprovalCalls++
@@ -533,6 +590,8 @@ class PcConnectionViewModelTest {
             return PcCommandResult.Ack
         }
 
-        override fun close() = Unit
+        override fun close() {
+            closeCalls++
+        }
     }
 }

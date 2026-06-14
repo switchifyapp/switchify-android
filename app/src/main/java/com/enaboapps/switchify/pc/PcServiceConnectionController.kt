@@ -141,8 +141,14 @@ class PcServiceConnectionController(
     }
 
     fun cleanup() {
+        disconnect()
+    }
+
+    fun disconnect() {
         discovery.stopDiscovery()
         connector.close()
+        PcConnectionStateHolder.setDisconnected()
+        _state.value = PcServiceConnectionState.Disconnected
     }
 
     private fun existingConnection(): PcServiceConnectResult.Connected? {

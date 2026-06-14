@@ -644,6 +644,44 @@ class PcMouseControlViewModelTest {
         assertNull(viewModel.uiState.value.busyCommand)
     }
 
+    @Test
+    fun stopPcBluetoothClosesLiveConnection() = runTest(dispatcher) {
+        PcConnectionStateHolder.setConnected(session, "Switchify PC")
+        val connector = FakeConnector(PcCommandResult.Ack)
+        val viewModel = PcMouseControlViewModel(FakeTokenStore(), connector, FakeMovementSizeStore())
+        advanceUntilIdle()
+
+        viewModel.stopPcBluetooth()
+        advanceUntilIdle()
+
+        assertEquals(1, connector.openedConnections.single().closeCalls)
+        assertEquals(1, connector.closeCalls)
+    }
+
+    @Test
+    fun stopPcBluetoothClearsConnectionState() = runTest(dispatcher) {
+        PcConnectionStateHolder.setConnected(session, "Switchify PC")
+        val viewModel = PcMouseControlViewModel(FakeTokenStore(), FakeConnector(PcCommandResult.Ack), FakeMovementSizeStore())
+        advanceUntilIdle()
+
+        viewModel.stopPcBluetooth()
+        advanceUntilIdle()
+
+        assertTrue(PcConnectionStateHolder.connectionState.value is PcConnectionState.Disconnected)
+        assertNull(viewModel.uiState.value.connectedDisplayName)
+    }
+
+    @Test
+    fun stopPcBluetoothKeepsSavedToken() = runTest(dispatcher) {
+        val tokenStore = FakeTokenStore(mutableMapOf("desktop-1" to "token"))
+        val viewModel = PcMouseControlViewModel(tokenStore, FakeConnector(PcCommandResult.Ack), FakeMovementSizeStore())
+
+        viewModel.stopPcBluetooth()
+        advanceUntilIdle()
+
+        assertEquals("token", tokenStore.getToken("desktop-1"))
+    }
+
     private class FakeConnector(
         private val commandResult: PcCommandResult,
         private val pointerProfile: PcPointerMovementProfile? = null,
@@ -663,6 +701,8 @@ class PcMouseControlViewModelTest {
         var openControlSessionCalls = 0
         val commands = mutableListOf<PcControlCommand>()
         val oneShotCommands = mutableListOf<PcControlCommand>()
+        val openedConnections = mutableListOf<FakeLiveConnection>()
+        var closeCalls = 0
 
         override suspend fun requestApproval(pc: DiscoveredPc, requestNonce: String): PcPairingResult {
             return PcPairingResult.Failed(PcErrorReason.Failed, "unused")
@@ -675,18 +715,15 @@ class PcMouseControlViewModelTest {
         override suspend fun openControlSession(session: PcAuthenticatedSession): PcLiveControlResult {
             openControlSessionCalls++
             if (queuedLiveResults.isNotEmpty()) return queuedLiveResults.removeAt(0)
-            return PcLiveControlResult.Connected(
-                object : PcControlConnection {
-                    override val pointerProfile: PcPointerMovementProfile? = this@FakeConnector.pointerProfile
-
-                    override suspend fun sendCommand(command: PcControlCommand): PcCommandResult {
-                        commands.add(command)
-                        return deferredResult?.await() ?: nextCommandResult()
-                    }
-
-                    override fun close() = Unit
+            val connection = FakeLiveConnection(
+                pointerProfile = pointerProfile,
+                onCommand = { command ->
+                    commands.add(command)
+                    deferredResult?.await() ?: nextCommandResult()
                 }
             )
+            openedConnections.add(connection)
+            return PcLiveControlResult.Connected(connection)
         }
 
         override suspend fun sendCommand(
@@ -697,19 +734,26 @@ class PcMouseControlViewModelTest {
             return deferredResult?.await() ?: nextCommandResult()
         }
 
-        override fun close() = Unit
+        override fun close() {
+            closeCalls++
+        }
 
         private fun nextCommandResult(): PcCommandResult {
             return if (queuedResults.isEmpty()) commandResult else queuedResults.removeAt(0)
         }
     }
 
-    private class FakeLiveConnection : PcControlConnection {
-        override val pointerProfile: PcPointerMovementProfile? = null
+    private class FakeLiveConnection(
+        override val pointerProfile: PcPointerMovementProfile? = null,
+        private val onCommand: suspend (PcControlCommand) -> PcCommandResult = { PcCommandResult.Ack }
+    ) : PcControlConnection {
+        var closeCalls = 0
 
-        override suspend fun sendCommand(command: PcControlCommand): PcCommandResult = PcCommandResult.Ack
+        override suspend fun sendCommand(command: PcControlCommand): PcCommandResult = onCommand(command)
 
-        override fun close() = Unit
+        override fun close() {
+            closeCalls++
+        }
     }
 
     private fun pointerProfile(small: Int, medium: Int, large: Int, maxDelta: Int = 500): PcPointerMovementProfile {
