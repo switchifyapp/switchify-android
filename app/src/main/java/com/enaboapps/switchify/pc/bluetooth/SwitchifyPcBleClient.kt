@@ -280,7 +280,6 @@ class SwitchifyPcBleClient(
         override val connectionEvents: Flow<PcControlConnectionEvent> = connection.events.map { event ->
             when (event) {
                 PcBleTransportEvent.Disconnected -> PcControlConnectionEvent.Disconnected
-                PcBleTransportEvent.NotificationSubscriptionLost -> PcControlConnectionEvent.NotificationSubscriptionLost
             }
         }
 

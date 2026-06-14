@@ -419,8 +419,7 @@ class PcMouseControlViewModel(
         liveConnectionEventsJob = viewModelScope.launch {
             connection.connectionEvents.collect { event ->
                 when (event) {
-                    PcControlConnectionEvent.Disconnected,
-                    PcControlConnectionEvent.NotificationSubscriptionLost -> {
+                    PcControlConnectionEvent.Disconnected -> {
                         val displayName = lastDisplayName ?: _uiState.value.connectedDisplayName ?: "Switchify PC"
                         viewModelScope.launch {
                             closeLiveConnection()
