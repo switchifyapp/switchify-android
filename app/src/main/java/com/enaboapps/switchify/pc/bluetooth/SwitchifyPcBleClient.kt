@@ -7,6 +7,7 @@ import com.enaboapps.switchify.pc.PcBluetoothEndpoint
 import com.enaboapps.switchify.pc.PcCommandResult
 import com.enaboapps.switchify.pc.PcConnector
 import com.enaboapps.switchify.pc.PcControlCommand
+import com.enaboapps.switchify.pc.PcControlCloseReason
 import com.enaboapps.switchify.pc.PcControlConnection
 import com.enaboapps.switchify.pc.PcControlConnectionEvent
 import com.enaboapps.switchify.pc.PcDeviceIdentity
@@ -118,13 +119,13 @@ class SwitchifyPcBleClient(
                     )
                 )
                 is PcProtocolResponse.Error -> {
-                    connection.close()
+                    connection.close(PcControlCloseReason.AuthFailure.logName)
                     openConnections -= connection
                     if (response.code == "invalid_auth") PcLiveControlResult.AuthFailed()
                     else PcLiveControlResult.Failed()
                 }
                 else -> {
-                    connection.close()
+                    connection.close(PcControlCloseReason.CommandFailureRecovery.logName)
                     openConnections -= connection
                     PcLiveControlResult.Failed()
                 }
@@ -144,7 +145,7 @@ class SwitchifyPcBleClient(
     }
 
     override fun close() {
-        openConnections.toList().forEach { it.close() }
+        openConnections.toList().forEach { it.close(PcControlCloseReason.ConnectorShutdown.logName) }
         openConnections.clear()
     }
 
@@ -154,7 +155,7 @@ class SwitchifyPcBleClient(
             try {
                 block(connection)
             } finally {
-                connection.close()
+                connection.close(PcControlCloseReason.ExplicitStop.logName)
             }
         }
     }
@@ -317,8 +318,8 @@ class SwitchifyPcBleClient(
             }
         }
 
-        override fun close() {
-            connection.close()
+        override fun close(reason: PcControlCloseReason) {
+            connection.close(reason.logName)
             openConnections -= connection
         }
     }

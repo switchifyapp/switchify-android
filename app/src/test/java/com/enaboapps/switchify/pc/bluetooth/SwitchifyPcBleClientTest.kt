@@ -308,6 +308,6 @@ class SwitchifyPcBleClientTest {
             return responseProvider(message)
         }
 
-        override fun close() = Unit
+        override fun close(reason: String) = Unit
     }
 }
