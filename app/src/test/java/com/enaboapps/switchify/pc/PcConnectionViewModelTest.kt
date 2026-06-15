@@ -240,7 +240,7 @@ class PcConnectionViewModelTest {
     }
 
     @Test
-    fun invalidSavedTokenClearsTokenAndOffersRequestAccess() = runTest(dispatcher) {
+    fun invalidSavedTokenKeepsTokenAndOffersConnect() = runTest(dispatcher) {
         val discovery = FakeDiscovery(listOf(pc))
         val tokens = FakeTokenStore(initialTokens = mutableMapOf("desktop-1" to "token"))
         val connector = FakeConnector(pingResult = PcPingResult.AuthFailed())
@@ -251,9 +251,10 @@ class PcConnectionViewModelTest {
         advanceUntilIdle()
 
         assertEquals(PC_AUTH_RETRY_ATTEMPTS, connector.pingCalls)
-        assertNull(tokens.getToken("desktop-1"))
+        assertEquals("token", tokens.getToken("desktop-1"))
         assertEquals("Connection expired. Request access again.", viewModel.uiState.value.message)
-        assertEquals("Request access", viewModel.uiState.value.discoveredPcs.first().actionText)
+        assertEquals("Connect", viewModel.uiState.value.discoveredPcs.first().actionText)
+        assertEquals(true, viewModel.uiState.value.discoveredPcs.first().canUnpair)
     }
 
     @Test
@@ -332,6 +333,29 @@ class PcConnectionViewModelTest {
         assertEquals(1, connector.pingCalls)
         assertEquals(PcTransport.Bluetooth, (PcConnectionStateHolder.connectionState.value as PcConnectionState.Connected).session.transport)
         assertEquals("AA:BB:CC:DD:EE:FF", connector.pingPcs.single().bluetoothEndpoint?.deviceAddress)
+    }
+
+    @Test
+    fun savedBluetoothPairingAuthFailureRemainsRetryable() = runTest(dispatcher) {
+        val discovery = FakeDiscovery(emptyList())
+        val tokens = FakeTokenStore(
+            initialTokens = mutableMapOf("desktop-1" to "token"),
+            initialLastEndpointIds = mutableMapOf("desktop-1" to "AA:BB:CC:DD:EE:FF"),
+            initialServiceNames = mutableMapOf("desktop-1" to "Switchify PC")
+        )
+        val connector = FakeConnector(pingResult = PcPingResult.AuthFailed())
+        val viewModel = viewModel(discovery, tokens, connector)
+        advanceUntilIdle()
+
+        viewModel.connectSavedPairing("desktop-1")
+        advanceUntilIdle()
+
+        assertEquals(PC_AUTH_RETRY_ATTEMPTS, connector.pingCalls)
+        assertEquals("token", tokens.getToken("desktop-1"))
+        val savedPairing = viewModel.uiState.value.savedPairings.single()
+        assertEquals("desktop-1", savedPairing.desktopId)
+        assertEquals(true, savedPairing.canConnect)
+        assertEquals("Connection expired. Request access again.", viewModel.uiState.value.message)
     }
 
     @Test
@@ -449,7 +473,7 @@ class PcConnectionViewModelTest {
     }
 
     @Test
-    fun postPairingAuthFailureRetriesBeforeClearingToken() = runTest(dispatcher) {
+    fun postPairingAuthFailureRetriesWithoutSavingToken() = runTest(dispatcher) {
         val discovery = FakeDiscovery(listOf(pc))
         val tokens = FakeTokenStore()
         val connector = FakeConnector(
