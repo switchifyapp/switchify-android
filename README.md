@@ -15,8 +15,8 @@ An Android accessibility service that enables device control through adaptive sw
 
 ### 1. Clone the repository
 ```bash
-git clone https://github.com/switchifyapp/Switchify.git
-cd Switchify
+git clone https://github.com/switchifyapp/switchify-android.git
+cd switchify-android
 ```
 
 ### 2. Configure local.properties
