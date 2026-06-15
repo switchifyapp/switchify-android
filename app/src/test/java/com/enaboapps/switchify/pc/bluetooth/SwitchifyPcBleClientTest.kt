@@ -205,6 +205,8 @@ class SwitchifyPcBleClientTest {
         assertEquals(PcCommandResult.Ack, client.sendCommand(session, PcControlCommand.LeftClick))
         assertEquals(PcCommandResult.Ack, client.sendCommand(session, PcControlCommand.DoubleClick))
         assertEquals(PcCommandResult.Ack, client.sendCommand(session, PcControlCommand.RightClick))
+        assertEquals(PcCommandResult.Ack, client.sendCommand(session, PcControlCommand.DragStart()))
+        assertEquals(PcCommandResult.Ack, client.sendCommand(session, PcControlCommand.DragEnd()))
         assertEquals(PcCommandResult.Ack, client.sendCommand(session, PcControlCommand.Move(1, 2)))
         assertEquals(PcCommandResult.Ack, client.sendCommand(session, PcControlCommand.Scroll(0, 10)))
         assertEquals(PcCommandResult.Ack, client.sendCommand(session, PcControlCommand.TypeText("hello")))
@@ -216,6 +218,8 @@ class SwitchifyPcBleClientTest {
                 "mouse.click",
                 "mouse.doubleClick",
                 "mouse.rightClick",
+                "mouse.dragStart",
+                "mouse.dragEnd",
                 "mouse.move",
                 "mouse.scroll",
                 "keyboard.typeText",

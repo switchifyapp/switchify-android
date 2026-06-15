@@ -125,6 +125,14 @@ object PcProtocol {
         return authenticatedCommand(id, deviceId, token, timestamp, "mouse.scroll", JSONObject().put("dx", dx).put("dy", dy))
     }
 
+    fun mouseDragStart(id: String, deviceId: String, token: String, timestamp: Long, button: String = "left"): String {
+        return authenticatedCommand(id, deviceId, token, timestamp, "mouse.dragStart", JSONObject().put("button", button))
+    }
+
+    fun mouseDragEnd(id: String, deviceId: String, token: String, timestamp: Long, button: String = "left"): String {
+        return authenticatedCommand(id, deviceId, token, timestamp, "mouse.dragEnd", JSONObject().put("button", button))
+    }
+
     fun keyboardTypeText(id: String, deviceId: String, token: String, timestamp: Long, text: String): String {
         return authenticatedCommand(id, deviceId, token, timestamp, "keyboard.typeText", JSONObject().put("text", text))
     }

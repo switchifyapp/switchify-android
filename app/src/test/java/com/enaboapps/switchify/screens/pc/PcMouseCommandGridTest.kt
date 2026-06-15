@@ -40,6 +40,7 @@ class PcControlCommandGridTest {
         assertEquals(PcControlCommand.LeftClick, commands[0])
         assertEquals(PcControlCommand.DoubleClick, commands[1])
         assertEquals(PcControlCommand.RightClick, commands[2])
+        assertEquals(PcControlCommand.DragStart(), commands[3])
     }
 
     @Test
@@ -67,6 +68,7 @@ class PcControlCommandGridTest {
                 PcControlCommand.LeftClick,
                 PcControlCommand.DoubleClick,
                 PcControlCommand.RightClick,
+                PcControlCommand.DragStart(),
                 PcControlCommand.Scroll(0, 5),
                 PcControlCommand.Scroll(0, -5)
             ),
@@ -98,6 +100,7 @@ class PcControlCommandGridTest {
                 PcControlCommand.Move(40, 40),
                 PcControlCommand.DoubleClick,
                 PcControlCommand.RightClick,
+                PcControlCommand.DragStart(),
                 PcControlCommand.Scroll(0, 5),
                 PcControlCommand.Scroll(0, -5)
             ),
@@ -110,8 +113,14 @@ class PcControlCommandGridTest {
         val specs = pcMouseCompactControlSpecs(40)
 
         assertEquals(15, specs.size)
-        assertEquals(13, specs.filterNotNull().size)
-        assertEquals(null, specs[13])
+        assertEquals(14, specs.filterNotNull().size)
         assertEquals(null, specs[14])
+    }
+
+    @Test
+    fun compactCommandsIncludeDragInStableScanOrder() {
+        val commands = pcMouseCompactControlSpecs(40).mapNotNull { it?.command }
+
+        assertEquals(PcControlCommand.DragStart(), commands[11])
     }
 }

@@ -210,6 +210,68 @@ class PcProtocolTest {
     }
 
     @Test
+    fun buildsMouseDragStartCommandWithAuthProof() {
+        val json = JSONObject(
+            PcProtocol.mouseDragStart(
+                id = "drag-start-1",
+                deviceId = "device-1",
+                token = "shared-token",
+                timestamp = 1000L
+            )
+        )
+
+        assertEquals(1, json.getInt("version"))
+        assertEquals("drag-start-1", json.getString("id"))
+        assertEquals("device-1", json.getString("deviceId"))
+        assertEquals(1000L, json.getLong("timestamp"))
+        assertEquals("mouse.dragStart", json.getString("type"))
+        assertEquals("left", json.getJSONObject("payload").getString("button"))
+        assertEquals(
+            PcProtocol.authProof(
+                id = "drag-start-1",
+                deviceId = "device-1",
+                timestamp = 1000L,
+                type = "mouse.dragStart",
+                payload = JSONObject().put("button", "left"),
+                token = "shared-token"
+            ),
+            json.getString("auth")
+        )
+        assertFalse(json.toString().contains("shared-token"))
+    }
+
+    @Test
+    fun buildsMouseDragEndCommandWithAuthProof() {
+        val json = JSONObject(
+            PcProtocol.mouseDragEnd(
+                id = "drag-end-1",
+                deviceId = "device-1",
+                token = "shared-token",
+                timestamp = 1000L
+            )
+        )
+
+        assertEquals(1, json.getInt("version"))
+        assertEquals("drag-end-1", json.getString("id"))
+        assertEquals("device-1", json.getString("deviceId"))
+        assertEquals(1000L, json.getLong("timestamp"))
+        assertEquals("mouse.dragEnd", json.getString("type"))
+        assertEquals("left", json.getJSONObject("payload").getString("button"))
+        assertEquals(
+            PcProtocol.authProof(
+                id = "drag-end-1",
+                deviceId = "device-1",
+                timestamp = 1000L,
+                type = "mouse.dragEnd",
+                payload = JSONObject().put("button", "left"),
+                token = "shared-token"
+            ),
+            json.getString("auth")
+        )
+        assertFalse(json.toString().contains("shared-token"))
+    }
+
+    @Test
     fun buildsKeyboardTypeTextCommandWithAuthProof() {
         val json = JSONObject(
             PcProtocol.keyboardTypeText(

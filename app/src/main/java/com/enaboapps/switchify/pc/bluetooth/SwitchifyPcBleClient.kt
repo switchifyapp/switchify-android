@@ -265,6 +265,8 @@ class SwitchifyPcBleClient(
         return when (this) {
             is PcControlCommand.Move -> PcProtocol.mouseMove(id, deviceId, token, timestamp, dx, dy)
             is PcControlCommand.Scroll -> PcProtocol.mouseScroll(id, deviceId, token, timestamp, dx, dy)
+            is PcControlCommand.DragStart -> PcProtocol.mouseDragStart(id, deviceId, token, timestamp, button)
+            is PcControlCommand.DragEnd -> PcProtocol.mouseDragEnd(id, deviceId, token, timestamp, button)
             PcControlCommand.LeftClick -> PcProtocol.mouseClick(id, deviceId, token, timestamp)
             PcControlCommand.DoubleClick -> PcProtocol.mouseDoubleClick(id, deviceId, token, timestamp)
             PcControlCommand.RightClick -> PcProtocol.mouseRightClick(id, deviceId, token, timestamp)
