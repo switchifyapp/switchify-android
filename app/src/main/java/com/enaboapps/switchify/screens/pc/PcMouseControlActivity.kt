@@ -8,8 +8,8 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -94,20 +94,21 @@ private fun PcMouseControlScreen(
             NavBar(
                 title = "",
                 titleContent = {
-                    Row(
+                    Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(end = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        contentAlignment = Alignment.CenterStart
                     ) {
-                        PcConnectionStatusDot(
-                            connectedDisplayName = uiState.connectedDisplayName
-                        )
                         PcControlSurfaceSwitcher(
                             selectedSurface = uiState.activeSurface,
                             onSurfaceSelected = viewModel::selectControlSurface,
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(start = 22.dp)
+                        )
+                        PcConnectionStatusDot(
+                            connectedDisplayName = uiState.connectedDisplayName
                         )
                     }
                 },

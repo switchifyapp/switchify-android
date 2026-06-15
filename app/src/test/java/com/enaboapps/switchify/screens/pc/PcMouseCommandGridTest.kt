@@ -73,4 +73,45 @@ class PcControlCommandGridTest {
             commands
         )
     }
+
+    @Test
+    fun compactCommandsPutClickInMovementPadCenter() {
+        val commands = pcMouseCompactControlSpecs(40).mapNotNull { it?.command }
+
+        assertEquals(PcControlCommand.LeftClick, commands[4])
+    }
+
+    @Test
+    fun compactCommandsUseStableScanOrder() {
+        val commands = pcMouseCompactControlSpecs(40).mapNotNull { it?.command }
+
+        assertEquals(
+            listOf(
+                PcControlCommand.Move(-40, -40),
+                PcControlCommand.Move(0, -40),
+                PcControlCommand.Move(40, -40),
+                PcControlCommand.Move(-40, 0),
+                PcControlCommand.LeftClick,
+                PcControlCommand.Move(40, 0),
+                PcControlCommand.Move(-40, 40),
+                PcControlCommand.Move(0, 40),
+                PcControlCommand.Move(40, 40),
+                PcControlCommand.DoubleClick,
+                PcControlCommand.RightClick,
+                PcControlCommand.Scroll(0, 5),
+                PcControlCommand.Scroll(0, -5)
+            ),
+            commands
+        )
+    }
+
+    @Test
+    fun compactCommandsPadFinalRow() {
+        val specs = pcMouseCompactControlSpecs(40)
+
+        assertEquals(15, specs.size)
+        assertEquals(13, specs.filterNotNull().size)
+        assertEquals(null, specs[13])
+        assertEquals(null, specs[14])
+    }
 }

@@ -44,4 +44,16 @@ class PcWindowControlScreenTest {
         assertEquals(R.string.pc_window_close, specs[6].labelResId)
         assertEquals(PcWindowControlAction.CloseFocused, specs[6].command.action)
     }
+
+    @Test
+    fun compactWindowCommandsKeepOrderAndPadFinalRow() {
+        val specs = pcWindowCompactControlSpecs()
+        val commands = specs.mapNotNull { it?.command }
+
+        assertEquals(9, specs.size)
+        assertEquals(7, specs.filterNotNull().size)
+        assertEquals(pcWindowControlSpecs().map { it.command }, commands)
+        assertEquals(null, specs[7])
+        assertEquals(null, specs[8])
+    }
 }
