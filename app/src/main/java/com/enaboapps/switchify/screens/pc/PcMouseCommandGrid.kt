@@ -336,9 +336,9 @@ fun pcMouseCompactControlSpecs(moveStep: Int): List<PcMouseControlSpec?> {
         movement[7],
         clicks[1],
         clicks[2],
+        clicks[3],
         scroll[0],
         scroll[1],
-        null,
         null
     )
 }
@@ -361,7 +361,8 @@ fun pcClickControlSpecs(): List<PcMouseControlSpec> {
     return listOf(
         PcMouseControlSpec(R.string.pc_mouse_click, PcControlCommand.LeftClick),
         PcMouseControlSpec(R.string.pc_mouse_double_click, PcControlCommand.DoubleClick),
-        PcMouseControlSpec(R.string.pc_mouse_right_click, PcControlCommand.RightClick)
+        PcMouseControlSpec(R.string.pc_mouse_right_click, PcControlCommand.RightClick),
+        PcMouseControlSpec(R.string.menu_item_drag, PcControlCommand.DragStart())
     )
 }
 

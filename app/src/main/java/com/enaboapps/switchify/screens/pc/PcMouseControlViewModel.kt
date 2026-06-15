@@ -24,6 +24,7 @@ data class PcMouseControlUiState(
     val activeSurface: PcControlSurface = PcControlSurface.Mouse,
     val selectedMovementSize: PcMouseMovementSize = PcMouseMovementSize.Small,
     val movementStep: Int = PcMouseControlViewModel.FALLBACK_MOVEMENT_STEPS.small,
+    val isDragging: Boolean = false,
     val isBusy: Boolean = false,
     val busyCommand: PcControlCommand? = null,
     val message: String? = null,
@@ -87,8 +88,26 @@ class PcMouseControlViewModel(
     }
 
     fun send(command: PcControlCommand) {
-        sendCommand(command) {
-            it.copy(isBusy = false, busyCommand = null, message = null)
+        val commandToSend = when (command) {
+            is PcControlCommand.DragStart,
+            is PcControlCommand.DragEnd -> if (_uiState.value.isDragging) {
+                PcControlCommand.DragEnd()
+            } else {
+                PcControlCommand.DragStart()
+            }
+            else -> command
+        }
+        sendCommand(commandToSend) {
+            it.copy(
+                isDragging = when (commandToSend) {
+                    is PcControlCommand.DragStart -> true
+                    is PcControlCommand.DragEnd -> false
+                    else -> it.isDragging
+                },
+                isBusy = false,
+                busyCommand = null,
+                message = null
+            )
         }
     }
 
@@ -250,6 +269,7 @@ class PcMouseControlViewModel(
                 _uiState.update {
                     it.copy(
                         connectedDisplayName = state.displayName,
+                        isDragging = false,
                         isBusy = false,
                         busyCommand = null,
                         message = RECONNECTING_MESSAGE,
@@ -263,6 +283,7 @@ class PcMouseControlViewModel(
                     it.copy(
                         connectedDisplayName = null,
                         movementStep = movementSteps.stepFor(it.selectedMovementSize),
+                        isDragging = false,
                         isBusy = false,
                         busyCommand = null,
                         message = CONNECT_FIRST_MESSAGE,
@@ -276,6 +297,7 @@ class PcMouseControlViewModel(
                     it.copy(
                         connectedDisplayName = null,
                         movementStep = movementSteps.stepFor(it.selectedMovementSize),
+                        isDragging = false,
                         isBusy = false,
                         busyCommand = null,
                         message = state.message,
@@ -295,6 +317,7 @@ class PcMouseControlViewModel(
                 _uiState.update {
                     it.copy(
                         connectedDisplayName = state.displayName,
+                        isDragging = false,
                         isBusy = false,
                         busyCommand = null,
                         message = RECONNECTING_MESSAGE,
@@ -306,6 +329,7 @@ class PcMouseControlViewModel(
                 _uiState.update {
                     it.copy(
                         connectedDisplayName = null,
+                        isDragging = false,
                         isBusy = false,
                         busyCommand = null,
                         message = state.message,
@@ -337,6 +361,7 @@ class PcMouseControlViewModel(
             it.copy(
                 connectedDisplayName = null,
                 movementStep = movementSteps.stepFor(it.selectedMovementSize),
+                isDragging = false,
                 isBusy = false,
                 busyCommand = null,
                 message = CONNECT_FIRST_MESSAGE,

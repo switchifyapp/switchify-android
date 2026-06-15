@@ -281,6 +281,99 @@ class PcMouseControlViewModelTest {
     }
 
     @Test
+    fun dragSendsDragStartWhenNotDragging() = runTest(dispatcher) {
+        val connector = FakeConnector()
+        val controller = connectedController(connector = connector)
+        val viewModel = viewModel(controller)
+
+        viewModel.send(PcControlCommand.DragStart())
+        advanceUntilIdle()
+
+        assertEquals(listOf(PcControlCommand.DragStart()), connector.commands)
+    }
+
+    @Test
+    fun dragAckSetsDraggingTrue() = runTest(dispatcher) {
+        val controller = connectedController()
+        val viewModel = viewModel(controller)
+
+        viewModel.send(PcControlCommand.DragStart())
+        advanceUntilIdle()
+
+        assertEquals(true, viewModel.uiState.value.isDragging)
+    }
+
+    @Test
+    fun dragSendsDragEndWhenDragging() = runTest(dispatcher) {
+        val connector = FakeConnector()
+        val controller = connectedController(connector = connector)
+        val viewModel = viewModel(controller)
+
+        viewModel.send(PcControlCommand.DragStart())
+        advanceUntilIdle()
+        viewModel.send(PcControlCommand.DragStart())
+        advanceUntilIdle()
+
+        assertEquals(
+            listOf(PcControlCommand.DragStart(), PcControlCommand.DragEnd()),
+            connector.commands
+        )
+    }
+
+    @Test
+    fun dragEndAckSetsDraggingFalse() = runTest(dispatcher) {
+        val controller = connectedController()
+        val viewModel = viewModel(controller)
+
+        viewModel.send(PcControlCommand.DragStart())
+        advanceUntilIdle()
+        viewModel.send(PcControlCommand.DragStart())
+        advanceUntilIdle()
+
+        assertEquals(false, viewModel.uiState.value.isDragging)
+    }
+
+    @Test
+    fun dragFailureDoesNotFlipDragState() = runTest(dispatcher) {
+        val connector = FakeConnector(commandResult = PcCommandResult.Failed())
+        val controller = connectedController(connector = connector)
+        val viewModel = viewModel(controller)
+
+        viewModel.send(PcControlCommand.DragStart())
+        advanceUntilIdle()
+
+        assertEquals(false, viewModel.uiState.value.isDragging)
+        assertEquals(PcMouseControlViewModel.COMMAND_FAILED_MESSAGE, viewModel.uiState.value.message)
+    }
+
+    @Test
+    fun reconnectResetsDraggingFalse() = runTest(dispatcher) {
+        val controller = connectedController()
+        val viewModel = viewModel(controller)
+        val session = PcAuthenticatedSession("desktop-1", "device-1", "AA:BB:CC:DD:EE:FF")
+
+        viewModel.send(PcControlCommand.DragStart())
+        advanceUntilIdle()
+        PcConnectionStateHolder.setReconnecting(session, "Switchify PC")
+        advanceUntilIdle()
+
+        assertEquals(false, viewModel.uiState.value.isDragging)
+    }
+
+    @Test
+    fun disconnectResetsDraggingFalse() = runTest(dispatcher) {
+        val controller = connectedController()
+        val viewModel = viewModel(controller)
+
+        viewModel.send(PcControlCommand.DragStart())
+        advanceUntilIdle()
+        controller.disconnect()
+        advanceUntilIdle()
+
+        assertEquals(false, viewModel.uiState.value.isDragging)
+    }
+
+    @Test
     fun reconnectingServiceStateShowsReconnecting() = runTest(dispatcher) {
         val session = PcAuthenticatedSession("desktop-1", "device-1", "AA:BB:CC:DD:EE:FF")
         val viewModel = viewModel(null)
