@@ -3,34 +3,20 @@ package com.enaboapps.switchify.screens.pc
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.enaboapps.switchify.pc.PC_KEYBOARD_TYPE_TEXT_MAX_LENGTH
 import com.enaboapps.switchify.pc.PcCommandResult
 import com.enaboapps.switchify.pc.PcConnectionState
 import com.enaboapps.switchify.pc.PcConnectionStateHolder
-import com.enaboapps.switchify.pc.PcConnector
-import com.enaboapps.switchify.pc.PcLiveControlResult
-import com.enaboapps.switchify.pc.PcControlConnection
-import com.enaboapps.switchify.pc.PcControlCloseReason
-import com.enaboapps.switchify.pc.PcControlConnectionEvent
-import com.enaboapps.switchify.pc.PcDeviceIdentityRepository
-import com.enaboapps.switchify.pc.PcKeyboardKey
 import com.enaboapps.switchify.pc.PcControlCommand
-import com.enaboapps.switchify.pc.PcAuthenticatedSession
-import com.enaboapps.switchify.pc.PcPairingTokenStore
-import com.enaboapps.switchify.pc.PcTokenStore
-import com.enaboapps.switchify.pc.PC_KEYBOARD_TYPE_TEXT_MAX_LENGTH
-import com.enaboapps.switchify.pc.bluetooth.SwitchifyPcBleClient
+import com.enaboapps.switchify.pc.PcKeyboardKey
+import com.enaboapps.switchify.pc.PcServiceConnectionController
+import com.enaboapps.switchify.pc.PcServiceConnectionState
 import com.enaboapps.switchify.pc.isSafePcTypedText
-import com.enaboapps.switchify.pc.retryPcAuthFailure
-import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.Deferred
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.async
-import kotlinx.coroutines.delay
+import com.enaboapps.switchify.service.core.ServiceCore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
 data class PcMouseControlUiState(
@@ -47,45 +33,27 @@ data class PcMouseControlUiState(
 )
 
 class PcMouseControlViewModel(
-    private val tokenStore: PcPairingTokenStore,
-    private val connector: PcConnector,
+    private val serviceControllerProvider: () -> PcServiceConnectionController?,
     private val movementSizeStore: PcMouseMovementSizeStore,
     private val controlSurfaceStore: PcControlSurfaceStore
 ) : ViewModel() {
     constructor(
-        tokenStore: PcPairingTokenStore,
-        connector: PcConnector,
+        serviceControllerProvider: () -> PcServiceConnectionController?,
         movementSizeStore: PcMouseMovementSizeStore
     ) : this(
-        tokenStore = tokenStore,
-        connector = connector,
+        serviceControllerProvider = serviceControllerProvider,
         movementSizeStore = movementSizeStore,
         controlSurfaceStore = InMemoryControlSurfaceStore()
     )
 
     constructor(context: Context) : this(
-        tokenStore = PcTokenStore(context.applicationContext),
-        connector = SwitchifyPcBleClient(
-            context.applicationContext,
-            PcDeviceIdentityRepository(context.applicationContext),
-            PcTokenStore(context.applicationContext)
-        ),
+        serviceControllerProvider = { ServiceCore.getPcServiceConnectionController() },
         movementSizeStore = PcMouseMovementPreferenceStore(context.applicationContext),
         controlSurfaceStore = PcControlSurfacePreferenceStore(context.applicationContext)
     )
 
     private val _uiState = MutableStateFlow(PcMouseControlUiState())
     val uiState: StateFlow<PcMouseControlUiState> = _uiState.asStateFlow()
-    private var liveConnection: PcControlConnection? = null
-    private var liveSession: PcAuthenticatedSession? = null
-    private var liveConnectionDeferred: Deferred<PcControlConnection?>? = null
-    private var liveConnectionEventsJob: Job? = null
-    private var liveHeartbeatJob: Job? = null
-    private var pendingUiPauseShutdownJob: Job? = null
-    private var reconnectJob: Job? = null
-    private var lastSession: PcAuthenticatedSession? = null
-    private var lastDisplayName: String? = null
-    private var pcUiActive = false
     private var movementSteps = FALLBACK_MOVEMENT_STEPS
 
     init {
@@ -98,35 +66,13 @@ class PcMouseControlViewModel(
                 movementStep = movementSteps.stepFor(selectedSize)
             )
         }
-        viewModelScope.launch {
-            PcConnectionStateHolder.connectionState.collect { state ->
-                val connectedDisplayName = when (state) {
-                    is PcConnectionState.Connected -> state.displayName
-                    is PcConnectionState.Reconnecting -> state.displayName
-                    PcConnectionState.Disconnected,
-                    is PcConnectionState.Failed -> null
-                }
-                _uiState.update {
-                    it.copy(
-                        connectedDisplayName = connectedDisplayName,
-                        movementStep = if (state is PcConnectionState.Connected || state is PcConnectionState.Reconnecting) {
-                            it.movementStep
-                        } else {
-                            fallbackStepFor(it.selectedMovementSize)
-                        }
-                    )
-                }
-                when (state) {
-                    is PcConnectionState.Connected -> {
-                        lastSession = state.session
-                        lastDisplayName = state.displayName
-                        ensureLiveConnection(state.session)
-                    }
-                    is PcConnectionState.Reconnecting -> Unit
-                    is PcConnectionState.Failed -> closeLiveConnection()
-                    PcConnectionState.Disconnected -> closeLiveConnection()
-                }
+        serviceControllerProvider()?.let { controller ->
+            viewModelScope.launch {
+                controller.state.collect { applyServiceState(it, controller) }
             }
+        } ?: showConnectFirst()
+        viewModelScope.launch {
+            PcConnectionStateHolder.connectionState.collect { applySharedConnectionState(it) }
         }
     }
 
@@ -206,48 +152,60 @@ class PcMouseControlViewModel(
         }
     }
 
+    fun clearMessage() {
+        _uiState.update { it.copy(message = null) }
+    }
+
+    fun onPcUiResumed() {
+        serviceControllerProvider()?.onPcUiResumed()
+    }
+
+    fun onPcUiPaused() {
+        serviceControllerProvider()?.onPcUiPaused()
+    }
+
+    fun stopPcBluetooth() {
+        serviceControllerProvider()?.disconnect()
+    }
+
+    override fun onCleared() {
+        serviceControllerProvider()?.onPcUiPaused()
+        super.onCleared()
+    }
+
     private fun sendCommand(command: PcControlCommand, onAck: (PcMouseControlUiState) -> PcMouseControlUiState) {
-        val connectionState = PcConnectionStateHolder.connectionState.value
-        val connected = connectionState as? PcConnectionState.Connected
-        if (connected == null) {
-            val message = if (connectionState is PcConnectionState.Reconnecting) RECONNECTING_MESSAGE else CONNECT_FIRST_MESSAGE
-            _uiState.update {
-                it.copy(
-                    message = message,
-                    typingMessage = if (command is PcControlCommand.TypeText || command is PcControlCommand.PressKey) {
-                        message
-                    } else {
-                        it.typingMessage
-                    }
-                )
-            }
+        val controller = serviceControllerProvider()
+        val state = controller?.state?.value
+        if (controller == null || !controller.hasLiveControlSession()) {
+            val message = if (state is PcServiceConnectionState.Reconnecting) RECONNECTING_MESSAGE else CONNECT_FIRST_MESSAGE
+            showCommandBlocked(command, message)
+            return
+        }
+        if (state is PcServiceConnectionState.Reconnecting || state is PcServiceConnectionState.OpeningControlSession) {
+            showCommandBlocked(command, RECONNECTING_MESSAGE)
             return
         }
         if (_uiState.value.isBusy) return
 
         _uiState.update { it.copy(isBusy = true, busyCommand = command) }
         viewModelScope.launch {
-            val result = sendWithLiveReconnect(connected.session, command)
-            when (result) {
-                PcCommandResult.Ack -> {
-                    _uiState.update(onAck)
-                }
+            when (val result = controller.sendControlCommand(command)) {
+                PcCommandResult.Ack -> _uiState.update(onAck)
                 is PcCommandResult.AuthFailed -> {
-                    tokenStore.clearToken(connected.session.desktopId)
-                    closeLiveConnection(PcControlCloseReason.AuthFailure)
-                    PcConnectionStateHolder.setDisconnected()
                     _uiState.update {
                         it.copy(
-                            connectedDisplayName = null,
                             isBusy = false,
                             busyCommand = null,
-                            message = CONNECT_FIRST_MESSAGE,
-                            typingMessage = CONNECT_FIRST_MESSAGE
+                            message = result.message,
+                            typingMessage = if (command is PcControlCommand.TypeText || command is PcControlCommand.PressKey) {
+                                result.message
+                            } else {
+                                it.typingMessage
+                            }
                         )
                     }
                 }
                 is PcCommandResult.Failed -> {
-                    closeLiveConnection(PcControlCloseReason.CommandFailureRecovery)
                     _uiState.update {
                         it.copy(
                             isBusy = false,
@@ -255,7 +213,7 @@ class PcMouseControlViewModel(
                             message = if (command is PcControlCommand.TypeText || command is PcControlCommand.PressKey) {
                                 it.message
                             } else {
-                                COMMAND_FAILED_MESSAGE
+                                result.message.ifBlank { COMMAND_FAILED_MESSAGE }
                             },
                             typingMessage = when (command) {
                                 is PcControlCommand.TypeText -> TYPING_FAILED_MESSAGE
@@ -269,74 +227,111 @@ class PcMouseControlViewModel(
         }
     }
 
-    private suspend fun sendWithLiveReconnect(
-        session: PcAuthenticatedSession,
-        command: PcControlCommand
-    ): PcCommandResult {
-        repeat(LIVE_COMMAND_ATTEMPTS) { attempt ->
-            val result = sendWithCurrentOrNewConnection(session, command)
-            if (result !is PcCommandResult.Failed) return result
-            if (attempt < LIVE_COMMAND_ATTEMPTS - 1) closeLiveConnection(PcControlCloseReason.CommandFailureRecovery)
+    private fun applyServiceState(state: PcServiceConnectionState, controller: PcServiceConnectionController) {
+        when (state) {
+            is PcServiceConnectionState.Connected -> {
+                movementSteps = state.pointerProfile?.toMouseMovementSteps()
+                    ?: controller.currentPointerProfile()?.toMouseMovementSteps()
+                    ?: FALLBACK_MOVEMENT_STEPS
+                _uiState.update {
+                    it.copy(
+                        connectedDisplayName = state.displayName,
+                        movementStep = movementSteps.stepFor(it.selectedMovementSize),
+                        message = if (it.message == RECONNECTING_MESSAGE || it.message == DISCONNECTED_MESSAGE || it.message == CONNECT_FIRST_MESSAGE) {
+                            null
+                        } else {
+                            it.message
+                        },
+                        connectionStatusText = null
+                    )
+                }
+            }
+            is PcServiceConnectionState.Reconnecting -> {
+                _uiState.update {
+                    it.copy(
+                        connectedDisplayName = state.displayName,
+                        isBusy = false,
+                        busyCommand = null,
+                        message = RECONNECTING_MESSAGE,
+                        connectionStatusText = RECONNECTING_MESSAGE
+                    )
+                }
+            }
+            PcServiceConnectionState.Disconnected -> {
+                movementSteps = FALLBACK_MOVEMENT_STEPS
+                _uiState.update {
+                    it.copy(
+                        connectedDisplayName = null,
+                        movementStep = movementSteps.stepFor(it.selectedMovementSize),
+                        isBusy = false,
+                        busyCommand = null,
+                        message = CONNECT_FIRST_MESSAGE,
+                        connectionStatusText = null
+                    )
+                }
+            }
+            is PcServiceConnectionState.Failed -> {
+                movementSteps = FALLBACK_MOVEMENT_STEPS
+                _uiState.update {
+                    it.copy(
+                        connectedDisplayName = null,
+                        movementStep = movementSteps.stepFor(it.selectedMovementSize),
+                        isBusy = false,
+                        busyCommand = null,
+                        message = state.message,
+                        connectionStatusText = state.message
+                    )
+                }
+            }
+            PcServiceConnectionState.Discovering,
+            PcServiceConnectionState.Pairing,
+            PcServiceConnectionState.OpeningControlSession -> Unit
         }
-        return PcCommandResult.Failed()
     }
 
-    private suspend fun sendWithCurrentOrNewConnection(
-        session: PcAuthenticatedSession,
-        command: PcControlCommand
-    ): PcCommandResult {
-        val connection = liveConnection ?: ensureLiveConnection(session).await()
-        return if (connection == null) {
-            PcCommandResult.Failed()
-        } else {
-            retryPcAuthFailure(
-                block = { connection.sendCommand(command) },
-                isAuthFailure = { it is PcCommandResult.AuthFailed }
+    private fun applySharedConnectionState(state: PcConnectionState) {
+        when (state) {
+            is PcConnectionState.Reconnecting -> {
+                _uiState.update {
+                    it.copy(
+                        connectedDisplayName = state.displayName,
+                        isBusy = false,
+                        busyCommand = null,
+                        message = RECONNECTING_MESSAGE,
+                        connectionStatusText = RECONNECTING_MESSAGE
+                    )
+                }
+            }
+            is PcConnectionState.Failed -> {
+                _uiState.update {
+                    it.copy(
+                        connectedDisplayName = null,
+                        isBusy = false,
+                        busyCommand = null,
+                        message = state.message,
+                        connectionStatusText = state.message
+                    )
+                }
+            }
+            PcConnectionState.Disconnected,
+            is PcConnectionState.Connected -> Unit
+        }
+    }
+
+    private fun showCommandBlocked(command: PcControlCommand, message: String) {
+        _uiState.update {
+            it.copy(
+                message = message,
+                typingMessage = if (command is PcControlCommand.TypeText || command is PcControlCommand.PressKey) {
+                    message
+                } else {
+                    it.typingMessage
+                }
             )
         }
     }
 
-    fun clearMessage() {
-        _uiState.update { it.copy(message = null) }
-    }
-
-    fun onPcUiResumed() {
-        pcUiActive = true
-        pendingUiPauseShutdownJob?.cancel()
-        pendingUiPauseShutdownJob = null
-        when (val state = PcConnectionStateHolder.connectionState.value) {
-            is PcConnectionState.Connected -> {
-                ensureLiveConnection(state.session)
-                liveConnection?.let { startLiveHeartbeat(it, state.session) }
-            }
-            is PcConnectionState.Reconnecting -> reconnectSavedSession(state.session, state.displayName)
-            PcConnectionState.Disconnected,
-            is PcConnectionState.Failed -> {
-                val session = lastSession
-                val displayName = lastDisplayName
-                if (session != null && displayName != null) reconnectSavedSession(session, displayName)
-            }
-        }
-    }
-
-    fun onPcUiPaused() {
-        pcUiActive = false
-        pendingUiPauseShutdownJob?.cancel()
-        pendingUiPauseShutdownJob = viewModelScope.launch {
-            delay(PC_CONTROL_UI_PAUSE_SHUTDOWN_GRACE_MS)
-            stopPcBluetooth(PcControlCloseReason.UiPauseGraceExpired)
-        }
-    }
-
-    fun stopPcBluetooth(reason: PcControlCloseReason = PcControlCloseReason.ExplicitStop) {
-        pcUiActive = false
-        pendingUiPauseShutdownJob?.cancel()
-        pendingUiPauseShutdownJob = null
-        reconnectJob?.cancel()
-        reconnectJob = null
-        closeLiveConnection(reason)
-        connector.close()
-        PcConnectionStateHolder.setDisconnected()
+    private fun showConnectFirst() {
         movementSteps = FALLBACK_MOVEMENT_STEPS
         _uiState.update {
             it.copy(
@@ -344,239 +339,10 @@ class PcMouseControlViewModel(
                 movementStep = movementSteps.stepFor(it.selectedMovementSize),
                 isBusy = false,
                 busyCommand = null,
+                message = CONNECT_FIRST_MESSAGE,
                 connectionStatusText = null
             )
         }
-    }
-
-    override fun onCleared() {
-        stopPcBluetooth()
-        super.onCleared()
-    }
-
-    private fun ensureLiveConnection(session: PcAuthenticatedSession): Deferred<PcControlConnection?> {
-        liveConnection?.takeIf { liveSession == session }?.let {
-            return CompletableDeferred(it)
-        }
-        liveConnectionDeferred?.takeIf { liveSession == session && it.isActive }?.let {
-            return it
-        }
-
-        closeLiveConnection(PcControlCloseReason.Reconnect)
-        liveSession = session
-        return viewModelScope.async {
-            when (val result = retryPcAuthFailure(
-                block = { connector.openControlSession(session) },
-                isAuthFailure = { it is PcLiveControlResult.AuthFailed }
-            )) {
-                is PcLiveControlResult.Connected -> {
-                    liveConnection = result.connection
-                    movementSteps = result.connection.pointerProfile?.toMouseMovementSteps() ?: FALLBACK_MOVEMENT_STEPS
-                    _uiState.update {
-                        it.copy(
-                            movementStep = movementSteps.stepFor(it.selectedMovementSize),
-                            message = if (it.message == RECONNECTING_MESSAGE || it.message == DISCONNECTED_MESSAGE) null else it.message,
-                            connectionStatusText = null
-                        )
-                    }
-                    observeLiveConnection(result.connection, session)
-                    result.connection
-                }
-                is PcLiveControlResult.AuthFailed -> {
-                    tokenStore.clearToken(session.desktopId)
-                    clearLastSession(session.desktopId)
-                    PcConnectionStateHolder.setDisconnected()
-                    movementSteps = FALLBACK_MOVEMENT_STEPS
-                    _uiState.update {
-                        it.copy(
-                            connectedDisplayName = null,
-                            movementStep = movementSteps.stepFor(it.selectedMovementSize),
-                            isBusy = false,
-                            busyCommand = null,
-                            message = CONNECT_FIRST_MESSAGE,
-                            connectionStatusText = null
-                        )
-                    }
-                    null
-                }
-                is PcLiveControlResult.Failed -> {
-                    _uiState.update {
-                        it.copy(message = COMMAND_FAILED_MESSAGE)
-                    }
-                    null
-                }
-            }
-        }.also {
-            liveConnectionDeferred = it
-        }
-    }
-
-    private fun closeLiveConnection(reason: PcControlCloseReason = PcControlCloseReason.ExplicitStop) {
-        liveConnectionEventsJob?.cancel()
-        liveConnectionEventsJob = null
-        liveHeartbeatJob?.cancel()
-        liveHeartbeatJob = null
-        liveConnection?.close(reason)
-        liveConnection = null
-        liveSession = null
-        liveConnectionDeferred?.cancel()
-        liveConnectionDeferred = null
-    }
-
-    private fun observeLiveConnection(connection: PcControlConnection, session: PcAuthenticatedSession) {
-        liveConnectionEventsJob?.cancel()
-        liveConnectionEventsJob = viewModelScope.launch {
-            connection.connectionEvents.collect { event ->
-                when (event) {
-                    PcControlConnectionEvent.Disconnected -> {
-                        handleLiveConnectionFailed(session)
-                    }
-                }
-            }
-        }
-        if (pcUiActive || pendingUiPauseShutdownJob?.isActive == true) {
-            startLiveHeartbeat(connection, session)
-        }
-    }
-
-    private fun startLiveHeartbeat(connection: PcControlConnection, session: PcAuthenticatedSession) {
-        liveHeartbeatJob?.cancel()
-        liveHeartbeatJob = viewModelScope.launch {
-            while (isActive) {
-                delay(LIVE_HEARTBEAT_INTERVAL_MS)
-                when (val result = connection.checkHealth()) {
-                    PcCommandResult.Ack -> Unit
-                    is PcCommandResult.AuthFailed -> {
-                        tokenStore.clearToken(session.desktopId)
-                        clearLastSession(session.desktopId)
-                        PcConnectionStateHolder.setDisconnected()
-                        _uiState.update {
-                            it.copy(
-                                connectedDisplayName = null,
-                                message = result.message,
-                                connectionStatusText = null,
-                                isBusy = false,
-                                busyCommand = null
-                            )
-                        }
-                        closeLiveConnection(PcControlCloseReason.AuthFailure)
-                        return@launch
-                    }
-                    is PcCommandResult.Failed -> {
-                        handleLiveConnectionFailed(session)
-                        return@launch
-                    }
-                }
-            }
-        }
-    }
-
-    private fun handleLiveConnectionFailed(session: PcAuthenticatedSession) {
-        val displayName = lastDisplayName ?: _uiState.value.connectedDisplayName ?: "Switchify PC"
-        viewModelScope.launch {
-            closeLiveConnection(PcControlCloseReason.UnexpectedDisconnect)
-            if (pcUiActive || pendingUiPauseShutdownJob?.isActive == true) {
-                reconnectSavedSession(session, displayName)
-            }
-        }
-    }
-
-    private fun reconnectSavedSession(session: PcAuthenticatedSession, displayName: String) {
-        if (reconnectJob?.isActive == true) return
-        lastSession = session
-        lastDisplayName = displayName
-        reconnectJob = viewModelScope.launch {
-            PcConnectionStateHolder.setReconnecting(session, displayName)
-            _uiState.update {
-                it.copy(
-                    message = RECONNECTING_MESSAGE,
-                    connectionStatusText = RECONNECTING_MESSAGE,
-                    isBusy = false,
-                    busyCommand = null
-                )
-            }
-            for ((index, backoffMs) in RECONNECT_BACKOFF_MS.withIndex()) {
-                closeLiveConnection(PcControlCloseReason.Reconnect)
-                when (val result = connector.openControlSession(session)) {
-                    is PcLiveControlResult.Connected -> {
-                        liveConnection = result.connection
-                        liveSession = session
-                        movementSteps = result.connection.pointerProfile?.toMouseMovementSteps() ?: FALLBACK_MOVEMENT_STEPS
-                        observeLiveConnection(result.connection, session)
-                        PcConnectionStateHolder.setConnected(session, displayName)
-                        _uiState.update {
-                            it.copy(
-                                connectedDisplayName = displayName,
-                                movementStep = movementSteps.stepFor(it.selectedMovementSize),
-                                message = null,
-                                connectionStatusText = null,
-                                isBusy = false,
-                                busyCommand = null
-                            )
-                        }
-                        return@launch
-                    }
-                    is PcLiveControlResult.AuthFailed -> {
-                        tokenStore.clearToken(session.desktopId)
-                        clearLastSession(session.desktopId)
-                        PcConnectionStateHolder.setDisconnected()
-                        _uiState.update {
-                            it.copy(
-                                connectedDisplayName = null,
-                                message = result.message,
-                                connectionStatusText = null,
-                                isBusy = false,
-                                busyCommand = null
-                            )
-                        }
-                        return@launch
-                    }
-                    is PcLiveControlResult.Failed -> {
-                        val safeMessage = safeReconnectMessage(result.message)
-                        _uiState.update {
-                            it.copy(
-                                message = safeMessage,
-                                connectionStatusText = safeMessage,
-                                isBusy = false,
-                                busyCommand = null
-                            )
-                        }
-                    }
-                }
-                if (index < RECONNECT_BACKOFF_MS.lastIndex) delay(backoffMs)
-            }
-            closeLiveConnection(PcControlCloseReason.CommandFailureRecovery)
-            PcConnectionStateHolder.setFailed(DISCONNECTED_MESSAGE)
-            _uiState.update {
-                it.copy(
-                    connectedDisplayName = null,
-                    message = DISCONNECTED_MESSAGE,
-                    connectionStatusText = DISCONNECTED_MESSAGE,
-                    isBusy = false,
-                    busyCommand = null
-                )
-            }
-        }
-    }
-
-    private fun safeReconnectMessage(message: String): String {
-        return when (message) {
-            BLUETOOTH_OFF_MESSAGE,
-            BLUETOOTH_PERMISSION_DENIED_MESSAGE -> message
-            else -> RECONNECTING_MESSAGE
-        }
-    }
-
-    private fun clearLastSession(desktopId: String) {
-        if (lastSession?.desktopId == desktopId) {
-            lastSession = null
-            lastDisplayName = null
-        }
-    }
-
-    private fun fallbackStepFor(size: PcMouseMovementSize): Int {
-        movementSteps = FALLBACK_MOVEMENT_STEPS
-        return movementSteps.stepFor(size)
     }
 
     companion object {
@@ -595,10 +361,6 @@ class PcMouseControlViewModel(
         const val BLUETOOTH_OFF_MESSAGE = "Bluetooth is off."
         const val BLUETOOTH_PERMISSION_DENIED_MESSAGE = "Bluetooth permission denied."
         const val DISCONNECTED_MESSAGE = "Disconnected."
-        private const val LIVE_COMMAND_ATTEMPTS = 3
-        private const val LIVE_HEARTBEAT_INTERVAL_MS = 5_000L
-        private const val PC_CONTROL_UI_PAUSE_SHUTDOWN_GRACE_MS = 8_000L
-        private val RECONNECT_BACKOFF_MS = listOf(250L, 750L, 1_500L, 3_000L)
     }
 
     private fun validationMessageFor(text: String): String? {
