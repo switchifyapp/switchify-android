@@ -311,8 +311,6 @@ class PcConnectionViewModel(
                         setIdle(pc.desktopId, PcRowStatus.Connected, null)
                     }
                     is PcPingResult.AuthFailed -> {
-                        tokenStore.clearToken(pc.desktopId)
-                        tokenRevision.update { it + 1 }
                         PcConnectionStateHolder.setDisconnected()
                         setIdle(pc.desktopId, PcRowStatus.Failed, ping.message)
                     }
@@ -344,8 +342,6 @@ class PcConnectionViewModel(
                 setIdle(pc.desktopId, PcRowStatus.Connected, null)
             }
             is PcPingResult.AuthFailed -> {
-                tokenStore.clearToken(pc.desktopId)
-                tokenRevision.update { it + 1 }
                 PcConnectionStateHolder.setDisconnected()
                 setIdle(pc.desktopId, PcRowStatus.Failed, result.message)
             }

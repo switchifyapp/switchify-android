@@ -147,7 +147,6 @@ class PcServiceConnectionController(
             isAuthFailure = { it is PcCommandResult.AuthFailed }
         )
         if (result is PcCommandResult.AuthFailed) {
-            tokenStore.clearToken(session.desktopId)
             closeLiveConnection(PcControlCloseReason.AuthFailure)
             _state.value = PcServiceConnectionState.Failed(result.message)
             PcConnectionStateHolder.setDisconnected()
@@ -254,7 +253,6 @@ class PcServiceConnectionController(
                 openLiveControlSession(session, pc.displayName)
             }
             is PcPingResult.AuthFailed -> {
-                tokenStore.clearToken(pc.desktopId)
                 PcConnectionStateHolder.setDisconnected()
                 _state.value = PcServiceConnectionState.Failed(EXPIRED_MESSAGE)
                 PcServiceConnectResult.Failed(PcErrorReason.AuthExpired, EXPIRED_MESSAGE)
@@ -283,7 +281,6 @@ class PcServiceConnectionController(
                 PcServiceConnectResult.Connected(session, displayName)
             }
             is PcLiveControlResult.AuthFailed -> {
-                tokenStore.clearToken(session.desktopId)
                 closeLiveConnection(PcControlCloseReason.AuthFailure)
                 clearLiveState()
                 PcConnectionStateHolder.setDisconnected()
@@ -333,7 +330,6 @@ class PcServiceConnectionController(
                 when (val result = connection.checkHealth()) {
                     PcCommandResult.Ack -> Unit
                     is PcCommandResult.AuthFailed -> {
-                        tokenStore.clearToken(session.desktopId)
                         closeLiveConnection(PcControlCloseReason.AuthFailure)
                         clearLiveState()
                         PcConnectionStateHolder.setDisconnected()
@@ -372,7 +368,6 @@ class PcServiceConnectionController(
                         return@launch
                     }
                     is PcLiveControlResult.AuthFailed -> {
-                        tokenStore.clearToken(session.desktopId)
                         closeLiveConnection(PcControlCloseReason.AuthFailure)
                         clearLiveState()
                         PcConnectionStateHolder.setDisconnected()
