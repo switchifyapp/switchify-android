@@ -8,6 +8,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -17,6 +18,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -44,6 +46,12 @@ import com.enaboapps.switchify.pc.PcControlCommand
 data class PcMouseControlSpec(
     @param:StringRes val labelResId: Int,
     val command: PcControlCommand
+)
+
+data class PcCompactCommandCell(
+    @param:StringRes val labelResId: Int,
+    val enabled: Boolean,
+    val onClick: () -> Unit
 )
 
 /**
@@ -130,89 +138,70 @@ fun PcControlCommandSections(
     onCommandSelected: (PcControlCommand) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Column(
-        modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(18.dp)
-    ) {
-        PcMovementCommandSection(
-            connected = connected,
-            movementStep = movementStep,
-            onCommandSelected = onCommandSelected
-        )
-        PcButtonCommandSection(
-            titleResId = R.string.pc_mouse_section_clicks,
-            specs = pcClickControlSpecs(),
-            connected = connected,
-            onCommandSelected = onCommandSelected
-        )
-        PcButtonCommandSection(
-            titleResId = R.string.pc_mouse_section_scroll,
-            specs = pcScrollControlSpecs(),
-            connected = connected,
-            onCommandSelected = onCommandSelected
-        )
-    }
+    PcCompactCommandGrid(
+        columns = 3,
+        minTileHeightDp = 52,
+        cells = pcMouseCompactControlSpecs(movementStep).map { spec ->
+            spec?.let {
+                PcCompactCommandCell(
+                    labelResId = it.labelResId,
+                    enabled = connected,
+                    onClick = { onCommandSelected(it.command) }
+                )
+            }
+        },
+        modifier = modifier
+    )
 }
 
 @Composable
-private fun PcMovementCommandSection(
-    connected: Boolean,
-    movementStep: Int,
-    onCommandSelected: (PcControlCommand) -> Unit
+fun PcCompactCommandGrid(
+    columns: Int,
+    minTileHeightDp: Int,
+    horizontalGapDp: Int = 8,
+    verticalGapDp: Int = 8,
+    cells: List<PcCompactCommandCell?>,
+    modifier: Modifier = Modifier
 ) {
-    val controls = pcMovementControlSpecs(movementStep)
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        PcCommandSectionTitle(R.string.pc_mouse_section_movement)
-        PcCommandButtonRow(
-            specs = controls.take(3),
-            connected = connected,
-            onCommandSelected = onCommandSelected,
-            minHeightDp = 76
-        )
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            PcCommandButton(
-                spec = controls[3],
-                connected = connected,
-                onCommandSelected = onCommandSelected,
-                minHeightDp = 76,
-                modifier = Modifier.weight(1f)
-            )
-            Spacer(modifier = Modifier.weight(1f))
-            PcCommandButton(
-                spec = controls[4],
-                connected = connected,
-                onCommandSelected = onCommandSelected,
-                minHeightDp = 76,
-                modifier = Modifier.weight(1f)
-            )
+    require(columns > 0)
+    val horizontalGap = horizontalGapDp.dp
+    val verticalGap = verticalGapDp.dp
+
+    BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
+        val tileWidth = (maxWidth - horizontalGap * (columns - 1)) / columns
+        Column(verticalArrangement = Arrangement.spacedBy(verticalGap)) {
+            cells.chunked(columns).forEach { rowCells ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(horizontalGap)
+                ) {
+                    rowCells.forEach { cell ->
+                        if (cell == null) {
+                            Spacer(
+                                modifier = Modifier
+                                    .width(tileWidth)
+                                    .heightIn(min = minTileHeightDp.dp)
+                            )
+                        } else {
+                            PcScannedCommandTile(
+                                labelResId = cell.labelResId,
+                                enabled = cell.enabled,
+                                onClick = cell.onClick,
+                                minHeightDp = minTileHeightDp,
+                                modifier = Modifier.width(tileWidth)
+                            )
+                        }
+                    }
+                    repeat(columns - rowCells.size) {
+                        Spacer(
+                            modifier = Modifier
+                                .width(tileWidth)
+                                .heightIn(min = minTileHeightDp.dp)
+                        )
+                    }
+                }
+            }
         }
-        PcCommandButtonRow(
-            specs = controls.drop(5),
-            connected = connected,
-            onCommandSelected = onCommandSelected,
-            minHeightDp = 76
-        )
-    }
-}
-
-@Composable
-private fun PcButtonCommandSection(
-    @StringRes titleResId: Int,
-    specs: List<PcMouseControlSpec>,
-    connected: Boolean,
-    onCommandSelected: (PcControlCommand) -> Unit
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        PcCommandSectionTitle(titleResId)
-        PcCommandButtonRow(
-            specs = specs,
-            connected = connected,
-            onCommandSelected = onCommandSelected,
-            minHeightDp = 72
-        )
     }
 }
 
@@ -226,53 +215,13 @@ private fun PcCommandSectionTitle(@StringRes titleResId: Int) {
 }
 
 @Composable
-private fun PcCommandButtonRow(
-    specs: List<PcMouseControlSpec>,
-    connected: Boolean,
-    onCommandSelected: (PcControlCommand) -> Unit,
-    minHeightDp: Int
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(10.dp)
-    ) {
-        specs.forEach { spec ->
-            PcCommandButton(
-                spec = spec,
-                connected = connected,
-                onCommandSelected = onCommandSelected,
-                modifier = Modifier.weight(1f),
-                minHeightDp = minHeightDp
-            )
-        }
-    }
-}
-
-@Composable
-private fun PcCommandButton(
-    spec: PcMouseControlSpec,
-    connected: Boolean,
-    onCommandSelected: (PcControlCommand) -> Unit,
-    minHeightDp: Int,
-    modifier: Modifier = Modifier
-) {
-    PcScannedCommandTile(
-        labelResId = spec.labelResId,
-        enabled = connected,
-        onClick = { onCommandSelected(spec.command) },
-        minHeightDp = minHeightDp,
-        modifier = modifier
-    )
-}
-
-@Composable
 fun PcScannedCommandTile(
     @StringRes labelResId: Int,
     enabled: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    minHeightDp: Int = 72,
-    square: Boolean = true
+    minHeightDp: Int = 52,
+    square: Boolean = false
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
@@ -326,7 +275,7 @@ fun PcScannedCommandTile(
                 style = MaterialTheme.typography.labelLarge,
                 color = contentColor,
                 textAlign = TextAlign.Center,
-                maxLines = 2,
+                maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
         }
@@ -369,6 +318,29 @@ fun PcMouseMovementSizeSelector(
 
 fun pcMouseControlSpecs(moveStep: Int): List<PcMouseControlSpec> {
     return pcMovementControlSpecs(moveStep) + pcClickControlSpecs() + pcScrollControlSpecs()
+}
+
+fun pcMouseCompactControlSpecs(moveStep: Int): List<PcMouseControlSpec?> {
+    val movement = pcMovementControlSpecs(moveStep)
+    val clicks = pcClickControlSpecs()
+    val scroll = pcScrollControlSpecs()
+    return listOf(
+        movement[0],
+        movement[1],
+        movement[2],
+        movement[3],
+        clicks[0],
+        movement[4],
+        movement[5],
+        movement[6],
+        movement[7],
+        clicks[1],
+        clicks[2],
+        scroll[0],
+        scroll[1],
+        null,
+        null
+    )
 }
 
 fun pcMovementControlSpecs(moveStep: Int): List<PcMouseControlSpec> {

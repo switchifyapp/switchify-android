@@ -3,7 +3,6 @@ package com.enaboapps.switchify.screens.pc
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.text.KeyboardOptions
@@ -23,6 +22,12 @@ data class PcTypingKeySpec(
     val key: PcKeyboardKey
 )
 
+sealed class PcTypingCompactCommandSpec {
+    data object Send : PcTypingCompactCommandSpec()
+    data object Clear : PcTypingCompactCommandSpec()
+    data class Key(val spec: PcTypingKeySpec) : PcTypingCompactCommandSpec()
+}
+
 @Composable
 fun PcTypingControlScreen(
     typingText: String,
@@ -37,21 +42,19 @@ fun PcTypingControlScreen(
 ) {
     Column(
         modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(18.dp)
+        verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         PcTypingTextSection(
             text = typingText,
             message = typingMessage,
             onTextChanged = onTextChanged
         )
-        PcTypingActionSection(
+        PcTypingCompactCommandGrid(
             sendEnabled = sendEnabled,
             clearEnabled = typingText.isNotEmpty(),
-            onSend = onSend,
-            onClear = onClear
-        )
-        PcTypingKeySection(
             keysEnabled = keysEnabled,
+            onSend = onSend,
+            onClear = onClear,
             onKeySelected = onKeySelected
         )
     }
@@ -69,12 +72,12 @@ private fun PcTypingTextSection(
             value = text,
             onValueChange = onTextChanged,
             label = { Text(stringResource(R.string.pc_typing_text_label)) },
-            minLines = 4,
-            maxLines = 8,
+            minLines = 3,
+            maxLines = 5,
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.None),
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(min = 132.dp)
+                .heightIn(min = 96.dp)
         )
         message?.let {
             Text(
@@ -87,118 +90,36 @@ private fun PcTypingTextSection(
 }
 
 @Composable
-private fun PcTypingActionSection(
+private fun PcTypingCompactCommandGrid(
     sendEnabled: Boolean,
     clearEnabled: Boolean,
+    keysEnabled: Boolean,
     onSend: () -> Unit,
-    onClear: () -> Unit
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        PcTypingSectionTitle(R.string.pc_typing_section_actions)
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            PcScannedCommandTile(
-                labelResId = R.string.pc_typing_send,
-                enabled = sendEnabled,
-                onClick = onSend,
-                modifier = Modifier.weight(1f),
-                minHeightDp = 72
-            )
-            PcScannedCommandTile(
-                labelResId = R.string.pc_typing_clear,
-                enabled = clearEnabled,
-                onClick = onClear,
-                modifier = Modifier.weight(1f),
-                minHeightDp = 72
-            )
-        }
-    }
-}
-
-@Composable
-private fun PcTypingKeySection(
-    keysEnabled: Boolean,
+    onClear: () -> Unit,
     onKeySelected: (PcKeyboardKey) -> Unit
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        PcTypingSectionTitle(R.string.pc_typing_section_keys)
-        PcTypingKeyRow(
-            specs = pcEditingKeySpecs(),
-            keysEnabled = keysEnabled,
-            onKeySelected = onKeySelected
-        )
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            PcTypingKeyTile(
-                spec = PcTypingKeySpec(R.string.pc_key_space, PcKeyboardKey.Space),
-                keysEnabled = keysEnabled,
-                onKeySelected = onKeySelected,
-                modifier = Modifier.weight(2f)
-            )
-            PcTypingKeyTile(
-                spec = PcTypingKeySpec(R.string.pc_key_tab, PcKeyboardKey.Tab),
-                keysEnabled = keysEnabled,
-                onKeySelected = onKeySelected,
-                modifier = Modifier.weight(1f)
-            )
-            PcTypingKeyTile(
-                spec = PcTypingKeySpec(R.string.pc_key_escape, PcKeyboardKey.Escape),
-                keysEnabled = keysEnabled,
-                onKeySelected = onKeySelected,
-                modifier = Modifier.weight(1f)
-            )
+    PcCompactCommandGrid(
+        columns = 4,
+        minTileHeightDp = 52,
+        cells = pcTypingCompactCommandSpecs().map { spec ->
+            when (spec) {
+                PcTypingCompactCommandSpec.Send -> PcCompactCommandCell(
+                    labelResId = R.string.pc_typing_send,
+                    enabled = sendEnabled,
+                    onClick = onSend
+                )
+                PcTypingCompactCommandSpec.Clear -> PcCompactCommandCell(
+                    labelResId = R.string.pc_typing_clear,
+                    enabled = clearEnabled,
+                    onClick = onClear
+                )
+                is PcTypingCompactCommandSpec.Key -> PcCompactCommandCell(
+                    labelResId = spec.spec.labelResId,
+                    enabled = keysEnabled,
+                    onClick = { onKeySelected(spec.spec.key) }
+                )
+            }
         }
-        PcTypingKeyRow(
-            specs = pcCursorKeySpecs(),
-            keysEnabled = keysEnabled,
-            onKeySelected = onKeySelected
-        )
-        PcTypingKeyRow(
-            specs = pcDocumentKeySpecs(),
-            keysEnabled = keysEnabled,
-            onKeySelected = onKeySelected
-        )
-    }
-}
-
-@Composable
-private fun PcTypingKeyRow(
-    specs: List<PcTypingKeySpec>,
-    keysEnabled: Boolean,
-    onKeySelected: (PcKeyboardKey) -> Unit
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(10.dp)
-    ) {
-        specs.forEach { spec ->
-            PcTypingKeyTile(
-                spec = spec,
-                keysEnabled = keysEnabled,
-                onKeySelected = onKeySelected,
-                modifier = Modifier.weight(1f)
-            )
-        }
-    }
-}
-
-@Composable
-private fun PcTypingKeyTile(
-    spec: PcTypingKeySpec,
-    keysEnabled: Boolean,
-    onKeySelected: (PcKeyboardKey) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    PcScannedCommandTile(
-        labelResId = spec.labelResId,
-        enabled = keysEnabled,
-        onClick = { onKeySelected(spec.key) },
-        modifier = modifier,
-        minHeightDp = 64
     )
 }
 
@@ -224,6 +145,27 @@ fun pcSpacingKeySpecs(): List<PcTypingKeySpec> {
         PcTypingKeySpec(R.string.pc_key_space, PcKeyboardKey.Space),
         PcTypingKeySpec(R.string.pc_key_tab, PcKeyboardKey.Tab),
         PcTypingKeySpec(R.string.pc_key_escape, PcKeyboardKey.Escape)
+    )
+}
+
+fun pcTypingCompactCommandSpecs(): List<PcTypingCompactCommandSpec> {
+    return listOf(
+        PcTypingCompactCommandSpec.Send,
+        PcTypingCompactCommandSpec.Clear,
+        PcTypingCompactCommandSpec.Key(PcTypingKeySpec(R.string.pc_key_backspace, PcKeyboardKey.Backspace)),
+        PcTypingCompactCommandSpec.Key(PcTypingKeySpec(R.string.pc_key_delete, PcKeyboardKey.Delete)),
+        PcTypingCompactCommandSpec.Key(PcTypingKeySpec(R.string.pc_key_enter, PcKeyboardKey.Enter)),
+        PcTypingCompactCommandSpec.Key(PcTypingKeySpec(R.string.pc_key_space, PcKeyboardKey.Space)),
+        PcTypingCompactCommandSpec.Key(PcTypingKeySpec(R.string.pc_key_tab, PcKeyboardKey.Tab)),
+        PcTypingCompactCommandSpec.Key(PcTypingKeySpec(R.string.pc_key_escape, PcKeyboardKey.Escape)),
+        PcTypingCompactCommandSpec.Key(PcTypingKeySpec(R.string.pc_key_arrow_left, PcKeyboardKey.ArrowLeft)),
+        PcTypingCompactCommandSpec.Key(PcTypingKeySpec(R.string.pc_key_arrow_up, PcKeyboardKey.ArrowUp)),
+        PcTypingCompactCommandSpec.Key(PcTypingKeySpec(R.string.pc_key_arrow_down, PcKeyboardKey.ArrowDown)),
+        PcTypingCompactCommandSpec.Key(PcTypingKeySpec(R.string.pc_key_arrow_right, PcKeyboardKey.ArrowRight)),
+        PcTypingCompactCommandSpec.Key(PcTypingKeySpec(R.string.pc_key_home, PcKeyboardKey.Home)),
+        PcTypingCompactCommandSpec.Key(PcTypingKeySpec(R.string.pc_key_end, PcKeyboardKey.End)),
+        PcTypingCompactCommandSpec.Key(PcTypingKeySpec(R.string.pc_key_page_up, PcKeyboardKey.PageUp)),
+        PcTypingCompactCommandSpec.Key(PcTypingKeySpec(R.string.pc_key_page_down, PcKeyboardKey.PageDown))
     )
 }
 

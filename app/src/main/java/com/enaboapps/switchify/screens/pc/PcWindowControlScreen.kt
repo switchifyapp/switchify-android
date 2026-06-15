@@ -3,7 +3,6 @@ package com.enaboapps.switchify.screens.pc
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -26,9 +25,6 @@ fun PcWindowControlScreen(
     onCommandSelected: (PcControlCommand) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val specs = pcWindowControlSpecs()
-    val pairedSpecs = specs.dropLast(1)
-    val closeSpec = specs.last()
     Column(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(10.dp)
@@ -38,29 +34,24 @@ fun PcWindowControlScreen(
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSurface
         )
-        pairedSpecs.chunked(2).forEach { rowSpecs ->
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                rowSpecs.forEach { spec ->
-                    PcScannedCommandTile(
-                        labelResId = spec.labelResId,
+        PcCompactCommandGrid(
+            columns = 3,
+            minTileHeightDp = 52,
+            cells = pcWindowCompactControlSpecs().map { spec ->
+                spec?.let {
+                    PcCompactCommandCell(
+                        labelResId = it.labelResId,
                         enabled = connected,
-                        onClick = { onCommandSelected(spec.command) },
-                        modifier = Modifier.weight(1f),
-                        minHeightDp = 72
+                        onClick = { onCommandSelected(it.command) }
                     )
                 }
             }
-        }
-        PcScannedCommandTile(
-            labelResId = closeSpec.labelResId,
-            enabled = connected,
-            onClick = { onCommandSelected(closeSpec.command) },
-            minHeightDp = 72
         )
     }
+}
+
+fun pcWindowCompactControlSpecs(): List<PcWindowControlSpec?> {
+    return pcWindowControlSpecs() + listOf(null, null)
 }
 
 fun pcWindowControlSpecs(): List<PcWindowControlSpec> {
