@@ -4,8 +4,6 @@ import com.enaboapps.switchify.R
 import com.enaboapps.switchify.backend.iap.IAPHandler
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.pc.DiscoveredPc
-import com.enaboapps.switchify.pc.PcConnectionState
-import com.enaboapps.switchify.pc.PcConnectionStateHolder
 import com.enaboapps.switchify.pc.PcErrorReason
 import com.enaboapps.switchify.pc.PcServiceConnectResult
 import com.enaboapps.switchify.pc.PcServiceConnectionController
@@ -176,14 +174,14 @@ class MainMenuStructure(
                     action = { ServiceCore.getPauseManager().startPause() }
                 )
             }
-        )
+    )
 
     private fun openPcControlActivity() {
-        if (PcConnectionStateHolder.connectionState.value is PcConnectionState.Connected) {
+        val controller = ServiceCore.getPcServiceConnectionController()
+        if (controller?.hasLiveControlSession() == true) {
             launchPcControlActivity()
             return
         }
-        val controller = ServiceCore.getPcServiceConnectionController()
         if (controller == null) {
             showMessage(R.string.pc_control_no_pc_found, MessageSeverity.Warning)
             return

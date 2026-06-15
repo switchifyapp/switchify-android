@@ -3,9 +3,13 @@ package com.enaboapps.switchify.pc
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.advanceTimeBy
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
@@ -62,6 +66,7 @@ class PcServiceConnectionControllerTest {
 
         assertTrue(result is PcServiceConnectResult.Connected)
         assertEquals(1, connector.pingCalls)
+        assertEquals(1, connector.openControlSessionCalls)
         assertEquals(0, connector.pairingCalls)
         assertEquals("desktop-1", (PcConnectionStateHolder.connectionState.value as PcConnectionState.Connected).session.desktopId)
         assertEquals("AA:BB:CC:DD:EE:FF", tokens.getLastEndpointId("desktop-1"))
@@ -98,6 +103,134 @@ class PcServiceConnectionControllerTest {
     }
 
     @Test
+    fun connectToDoesNotReturnConnectedWhenLiveSessionFails() = runTest(dispatcher) {
+        val tokens = FakeTokenStore(mutableMapOf("desktop-1" to "token"))
+        val connector = FakeConnector(
+            pingResult = PcPingResult.Connected("AA:BB:CC:DD:EE:FF"),
+            liveResults = listOf(PcLiveControlResult.Failed())
+        )
+        val controller = controller(tokens, connector)
+
+        val result = controller.connectTo(pc)
+
+        assertTrue(result is PcServiceConnectResult.Failed)
+        assertTrue(PcConnectionStateHolder.connectionState.value !is PcConnectionState.Connected)
+        assertTrue(controller.state.value is PcServiceConnectionState.Failed)
+    }
+
+    @Test
+    fun connectToAuthFailureOpeningLiveSessionClearsToken() = runTest(dispatcher) {
+        val tokens = FakeTokenStore(mutableMapOf("desktop-1" to "token"))
+        val connector = FakeConnector(
+            pingResult = PcPingResult.Connected("AA:BB:CC:DD:EE:FF"),
+            liveResults = List(PC_AUTH_RETRY_ATTEMPTS + 1) { PcLiveControlResult.AuthFailed() }
+        )
+        val controller = controller(tokens, connector)
+
+        val result = controller.connectTo(pc)
+
+        assertTrue(result is PcServiceConnectResult.Failed)
+        assertNull(tokens.getToken("desktop-1"))
+        assertTrue(PcConnectionStateHolder.connectionState.value is PcConnectionState.Disconnected)
+    }
+
+    @Test
+    fun existingLiveSessionReturnsWithoutOpeningAnotherSession() = runTest(dispatcher) {
+        val tokens = FakeTokenStore(mutableMapOf("desktop-1" to "token"))
+        val connector = FakeConnector(PcPingResult.Connected("AA:BB:CC:DD:EE:FF"))
+        val controller = controller(tokens, connector)
+
+        val first = controller.connectTo(pc)
+        val second = controller.connectTo(pc)
+
+        assertTrue(first is PcServiceConnectResult.Connected)
+        assertTrue(second is PcServiceConnectResult.Connected)
+        assertEquals(1, connector.openControlSessionCalls)
+    }
+
+    @Test
+    fun sendControlCommandUsesLiveConnection() = runTest(dispatcher) {
+        val tokens = FakeTokenStore(mutableMapOf("desktop-1" to "token"))
+        val connector = FakeConnector(PcPingResult.Connected("AA:BB:CC:DD:EE:FF"))
+        val controller = controller(tokens, connector)
+        controller.connectTo(pc)
+
+        val result = controller.sendControlCommand(PcControlCommand.LeftClick)
+
+        assertEquals(PcCommandResult.Ack, result)
+        assertEquals(listOf(PcControlCommand.LeftClick), connector.liveConnections.single().commands)
+        assertTrue(connector.oneShotCommands.isEmpty())
+    }
+
+    @Test
+    fun sendControlCommandWithoutLiveConnectionFails() = runTest(dispatcher) {
+        val controller = controller(FakeTokenStore(), FakeConnector(PcPingResult.Connected("AA:BB:CC:DD:EE:FF")))
+
+        val result = controller.sendControlCommand(PcControlCommand.LeftClick)
+
+        assertTrue(result is PcCommandResult.Failed)
+    }
+
+    @Test
+    fun onPcUiPausedShutsDownAfterGrace() = runTest(dispatcher) {
+        val tokens = FakeTokenStore(mutableMapOf("desktop-1" to "token"))
+        val connector = FakeConnector(PcPingResult.Connected("AA:BB:CC:DD:EE:FF"))
+        val controller = controller(tokens, connector)
+        controller.connectTo(pc)
+
+        controller.onPcUiPaused()
+        advanceTimeBy(7_999)
+        runCurrent()
+
+        assertEquals(0, connector.liveConnections.single().closeCalls)
+        assertTrue(PcConnectionStateHolder.connectionState.value is PcConnectionState.Connected)
+
+        advanceTimeBy(2)
+        runCurrent()
+
+        assertEquals(1, connector.liveConnections.single().closeCalls)
+        assertEquals(1, connector.closeCalls)
+        assertTrue(PcConnectionStateHolder.connectionState.value is PcConnectionState.Disconnected)
+    }
+
+    @Test
+    fun onPcUiResumedCancelsPauseGrace() = runTest(dispatcher) {
+        val tokens = FakeTokenStore(mutableMapOf("desktop-1" to "token"))
+        val connector = FakeConnector(PcPingResult.Connected("AA:BB:CC:DD:EE:FF"))
+        val controller = controller(tokens, connector)
+        controller.connectTo(pc)
+
+        controller.onPcUiPaused()
+        advanceTimeBy(4_000)
+        controller.onPcUiResumed()
+        advanceTimeBy(5_000)
+        runCurrent()
+
+        assertEquals(0, connector.liveConnections.single().closeCalls)
+        assertTrue(PcConnectionStateHolder.connectionState.value is PcConnectionState.Connected)
+        controller.disconnect()
+    }
+
+    @Test
+    fun heartbeatFailureStartsReconnectInController() = runTest(dispatcher) {
+        val tokens = FakeTokenStore(mutableMapOf("desktop-1" to "token"))
+        val connector = FakeConnector(
+            pingResult = PcPingResult.Connected("AA:BB:CC:DD:EE:FF"),
+            healthResults = listOf(PcCommandResult.Failed(), PcCommandResult.Ack)
+        )
+        val controller = controller(tokens, connector)
+        controller.connectTo(pc)
+        controller.onPcUiResumed()
+
+        advanceTimeBy(5_001)
+        runCurrent()
+
+        assertEquals(2, connector.openControlSessionCalls)
+        assertTrue(PcConnectionStateHolder.connectionState.value is PcConnectionState.Connected)
+        controller.disconnect()
+    }
+
+    @Test
     fun bluetoothSavedTokenReconnectUsesBluetoothSession() = runTest(dispatcher) {
         val tokens = FakeTokenStore(mutableMapOf("desktop-1" to "token"))
         val connector = FakeConnector(PcPingResult.Connected("AA:BB:CC:DD:EE:FF"))
@@ -128,7 +261,8 @@ class PcServiceConnectionControllerTest {
         assertEquals(PcApprovalCodeState("Switchify PC", "215918"), approvalCode)
         assertEquals("nonce-1", connector.requestNonces.single())
         assertEquals(1, connector.pairingCalls)
-        assertEquals(1, connector.pingCalls)
+        assertEquals(0, connector.pingCalls)
+        assertEquals(1, connector.openControlSessionCalls)
         assertEquals("new-token", tokens.getToken("desktop-1"))
         assertTrue(PcConnectionStateHolder.connectionState.value is PcConnectionState.Connected)
     }
@@ -236,7 +370,8 @@ class PcServiceConnectionControllerTest {
         assertTrue(result is PcServiceConnectResult.Connected)
         assertEquals("Switchify PC", approvalCode?.pcName)
         assertEquals(1, connector.pairingCalls)
-        assertEquals(PC_AUTH_RETRY_ATTEMPTS + 1, connector.pingCalls)
+        assertEquals(PC_AUTH_RETRY_ATTEMPTS, connector.pingCalls)
+        assertEquals(1, connector.openControlSessionCalls)
         assertEquals("new-token", tokens.getToken("desktop-1"))
         assertTrue(PcConnectionStateHolder.connectionState.value is PcConnectionState.Connected)
     }
@@ -365,13 +500,20 @@ class PcServiceConnectionControllerTest {
         private val pairingResult: PcPairingResult = PcPairingResult.Failed(PcErrorReason.Failed, "unused"),
         private val pingResultsByToken: Map<String, PcPingResult> = emptyMap(),
         private val pairingResultsByDesktop: Map<String, PcPairingResult> = emptyMap(),
+        private val healthResults: List<PcCommandResult> = emptyList(),
+        private val liveResults: List<PcLiveControlResult> = emptyList(),
         pingResults: List<PcPingResult> = emptyList()
     ) : PcConnector {
         private val queuedPingResults = ArrayDeque(pingResults)
+        private val queuedHealthResults = ArrayDeque(healthResults)
+        private val queuedLiveResults = ArrayDeque(liveResults)
         var pingCalls = 0
         var pairingCalls = 0
+        var openControlSessionCalls = 0
         var closeCalls = 0
         val requestNonces = mutableListOf<String>()
+        val liveConnections = mutableListOf<FakeLiveConnection>()
+        val oneShotCommands = mutableListOf<PcControlCommand>()
 
         override suspend fun requestApproval(pc: DiscoveredPc, requestNonce: String): PcPairingResult {
             pairingCalls++
@@ -386,15 +528,47 @@ class PcServiceConnectionControllerTest {
         }
 
         override suspend fun openControlSession(session: PcAuthenticatedSession): PcLiveControlResult {
-            return PcLiveControlResult.Failed("unused")
+            openControlSessionCalls++
+            queuedLiveResults.removeFirstOrNull()?.let { return it }
+            val connection = FakeLiveConnection(
+                onHealth = { queuedHealthResults.removeFirstOrNull() ?: PcCommandResult.Ack }
+            )
+            liveConnections += connection
+            return PcLiveControlResult.Connected(connection)
         }
 
         override suspend fun sendCommand(session: PcAuthenticatedSession, command: PcControlCommand): PcCommandResult {
+            oneShotCommands += command
             return PcCommandResult.Ack
         }
 
         override fun close() {
             closeCalls++
+        }
+    }
+
+    private class FakeLiveConnection(
+        private val onHealth: suspend () -> PcCommandResult = { PcCommandResult.Ack }
+    ) : PcControlConnection {
+        override val pointerProfile: PcPointerMovementProfile? = null
+        val eventsFlow = MutableSharedFlow<PcControlConnectionEvent>(extraBufferCapacity = 8)
+        override val connectionEvents: Flow<PcControlConnectionEvent> = eventsFlow
+        var closeCalls = 0
+        val commands = mutableListOf<PcControlCommand>()
+        val closeReasons = mutableListOf<PcControlCloseReason>()
+
+        override suspend fun checkHealth(): PcCommandResult {
+            return onHealth()
+        }
+
+        override suspend fun sendCommand(command: PcControlCommand): PcCommandResult {
+            commands += command
+            return PcCommandResult.Ack
+        }
+
+        override fun close(reason: PcControlCloseReason) {
+            closeCalls++
+            closeReasons += reason
         }
     }
 }
