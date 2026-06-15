@@ -161,9 +161,11 @@ Do NOT use TodoWrite for:
 Complete release process:
 1. Bump version in `app/build.gradle.kts` (versionName field)
 2. Commit and push the version bump
-3. Close current milestone in GitHub
-4. Create GitHub release with auto-generated release notes (tag auto-created)
-5. Watch the Play Release workflow run with `gh run watch` and do not close the terminal until it reports success — a failure here means the signed AAB never reached Google Play, so the GitHub release exists but no update rolls out to users. Investigate and rerun before walking away.
+3. Check the current release milestone for open issues before closing it
+4. HARD STOP if any issues are still open on the milestone; do not close the milestone, create a GitHub release, or continue release work until every milestone issue is closed
+5. Close current milestone in GitHub
+6. Create GitHub release with auto-generated release notes (tag auto-created)
+7. Watch the Play Release workflow run with `gh run watch` and do not close the terminal until it reports success — a failure here means the signed AAB never reached Google Play, so the GitHub release exists but no update rolls out to users. Investigate and rerun before walking away.
 
 ### Version Bumps
 - Update version in build.gradle.kts
@@ -174,6 +176,7 @@ Complete release process:
 ### Milestone Management
 - Create milestones for versions (v2.1.4, v2.1.5, etc.)
 - Assign issues to appropriate milestones
+- Before release, inspect the current milestone for open issues; any open issue is a hard stop
 - Close milestones when versions are released
 - Use milestone descriptions for release planning
 
