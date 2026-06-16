@@ -102,6 +102,7 @@ fun PcTransientMessage(
 fun PcMovementSizeSection(
     selectedSize: PcMouseMovementSize,
     onSizeSelected: (PcMouseMovementSize) -> Unit,
+    enabled: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -111,20 +112,21 @@ fun PcMovementSizeSection(
         PcCommandSectionTitle(R.string.pc_mouse_movement_size)
         PcMouseMovementSizeSelector(
             selectedSize = selectedSize,
-            onSizeSelected = onSizeSelected
+            onSizeSelected = onSizeSelected,
+            enabled = enabled
         )
     }
 }
 
 @Composable
 fun PcControlCommandGrid(
-    connected: Boolean,
+    enabled: Boolean,
     movementStep: Int,
     onCommandSelected: (PcControlCommand) -> Unit,
     modifier: Modifier = Modifier
 ) {
     PcControlCommandSections(
-        connected = connected,
+        enabled = enabled,
         movementStep = movementStep,
         onCommandSelected = onCommandSelected,
         modifier = modifier
@@ -133,7 +135,7 @@ fun PcControlCommandGrid(
 
 @Composable
 fun PcControlCommandSections(
-    connected: Boolean,
+    enabled: Boolean,
     movementStep: Int,
     onCommandSelected: (PcControlCommand) -> Unit,
     modifier: Modifier = Modifier
@@ -145,7 +147,7 @@ fun PcControlCommandSections(
             spec?.let {
                 PcCompactCommandCell(
                     labelResId = it.labelResId,
-                    enabled = connected,
+                    enabled = enabled,
                     onClick = { onCommandSelected(it.command) }
                 )
             }
@@ -286,6 +288,7 @@ fun PcScannedCommandTile(
 fun PcMouseMovementSizeSelector(
     selectedSize: PcMouseMovementSize,
     onSizeSelected: (PcMouseMovementSize) -> Unit,
+    enabled: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     val sizes = PcMouseMovementSize.entries
@@ -303,6 +306,7 @@ fun PcMouseMovementSizeSelector(
             SegmentedButton(
                 selected = selectedSize == size,
                 onClick = { onSizeSelected(size) },
+                enabled = enabled,
                 shape = SegmentedButtonDefaults.itemShape(index = index, count = sizes.size),
                 colors = colors
             ) {

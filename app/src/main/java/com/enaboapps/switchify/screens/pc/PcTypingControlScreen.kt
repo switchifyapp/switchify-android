@@ -16,6 +16,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.pc.PcKeyboardKey
+import com.enaboapps.switchify.pc.isSafePcTypedText
 
 data class PcTypingKeySpec(
     @param:StringRes val labelResId: Int,
@@ -32,8 +33,7 @@ sealed class PcTypingCompactCommandSpec {
 fun PcTypingControlScreen(
     typingText: String,
     typingMessage: String?,
-    sendEnabled: Boolean,
-    keysEnabled: Boolean,
+    enabled: Boolean,
     onTextChanged: (String) -> Unit,
     onSend: () -> Unit,
     onClear: () -> Unit,
@@ -47,12 +47,13 @@ fun PcTypingControlScreen(
         PcTypingTextSection(
             text = typingText,
             message = typingMessage,
-            onTextChanged = onTextChanged
+            onTextChanged = onTextChanged,
+            enabled = enabled
         )
         PcTypingCompactCommandGrid(
-            sendEnabled = sendEnabled,
-            clearEnabled = typingText.isNotEmpty(),
-            keysEnabled = keysEnabled,
+            sendEnabled = enabled && typingText.isNotEmpty() && isSafePcTypedText(typingText),
+            clearEnabled = enabled && typingText.isNotEmpty(),
+            keysEnabled = enabled,
             onSend = onSend,
             onClear = onClear,
             onKeySelected = onKeySelected
@@ -64,13 +65,15 @@ fun PcTypingControlScreen(
 private fun PcTypingTextSection(
     text: String,
     message: String?,
-    onTextChanged: (String) -> Unit
+    onTextChanged: (String) -> Unit,
+    enabled: Boolean
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         PcTypingSectionTitle(R.string.pc_typing_section_text)
         OutlinedTextField(
             value = text,
             onValueChange = onTextChanged,
+            enabled = enabled,
             label = { Text(stringResource(R.string.pc_typing_text_label)) },
             minLines = 3,
             maxLines = 5,

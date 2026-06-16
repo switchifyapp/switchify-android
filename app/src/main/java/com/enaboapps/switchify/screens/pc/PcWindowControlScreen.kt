@@ -21,7 +21,7 @@ data class PcWindowControlSpec(
 
 @Composable
 fun PcWindowControlScreen(
-    connected: Boolean,
+    enabled: Boolean,
     onCommandSelected: (PcControlCommand) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -41,7 +41,7 @@ fun PcWindowControlScreen(
                 spec?.let {
                     PcCompactCommandCell(
                         labelResId = it.labelResId,
-                        enabled = connected,
+                        enabled = enabled,
                         onClick = { onCommandSelected(it.command) }
                     )
                 }

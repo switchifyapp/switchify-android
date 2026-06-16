@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.dp
 fun PcControlSurfaceSwitcher(
     selectedSurface: PcControlSurface,
     onSurfaceSelected: (PcControlSurface) -> Unit,
+    enabled: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     val surfaces = PcControlSurface.entries
@@ -38,6 +39,7 @@ fun PcControlSurfaceSwitcher(
             SegmentedButton(
                 selected = selectedSurface == surface,
                 onClick = { onSurfaceSelected(surface) },
+                enabled = enabled,
                 shape = SegmentedButtonDefaults.itemShape(index = index, count = surfaces.size),
                 colors = colors
             ) {

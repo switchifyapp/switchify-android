@@ -29,7 +29,6 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.activities.ui.theme.SwitchifyTheme
 import com.enaboapps.switchify.components.NavBar
-import com.enaboapps.switchify.pc.isSafePcTypedText
 import com.enaboapps.switchify.service.core.ServiceCore
 import com.enaboapps.switchify.service.scanning.TemporaryScanModeSession
 import com.enaboapps.switchify.service.techniques.AccessTechnique
@@ -86,6 +85,7 @@ private fun PcMouseControlScreen(
     onClose: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val surfaceEnabled = uiState.connectedDisplayName != null && !uiState.isBusy
 
     BackHandler(onBack = onClose)
 
@@ -103,6 +103,7 @@ private fun PcMouseControlScreen(
                         PcControlSurfaceSwitcher(
                             selectedSurface = uiState.activeSurface,
                             onSurfaceSelected = viewModel::selectControlSurface,
+                            enabled = !uiState.isBusy,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(start = 22.dp)
@@ -133,13 +134,14 @@ private fun PcMouseControlScreen(
                 ) {
                     PcTransientMessage(message = uiState.message)
                     PcControlCommandGrid(
-                        connected = uiState.connectedDisplayName != null,
+                        enabled = surfaceEnabled,
                         movementStep = uiState.movementStep,
                         onCommandSelected = viewModel::send
                     )
                     PcMovementSizeSection(
                         selectedSize = uiState.selectedMovementSize,
-                        onSizeSelected = viewModel::selectMovementSize
+                        onSizeSelected = viewModel::selectMovementSize,
+                        enabled = !uiState.isBusy
                     )
                 }
                 PcControlSurface.Typing -> Column(
@@ -153,11 +155,7 @@ private fun PcMouseControlScreen(
                     PcTypingControlScreen(
                         typingText = uiState.typingText,
                         typingMessage = uiState.typingMessage,
-                        sendEnabled = uiState.connectedDisplayName != null &&
-                                uiState.typingText.isNotEmpty() &&
-                                isSafePcTypedText(uiState.typingText) &&
-                                !uiState.isBusy,
-                        keysEnabled = uiState.connectedDisplayName != null && !uiState.isBusy,
+                        enabled = surfaceEnabled,
                         onTextChanged = viewModel::updateTypingText,
                         onSend = viewModel::sendTypedText,
                         onClear = viewModel::clearTypingText,
@@ -173,7 +171,7 @@ private fun PcMouseControlScreen(
                 ) {
                     PcTransientMessage(message = uiState.message)
                     PcWindowControlScreen(
-                        connected = uiState.connectedDisplayName != null,
+                        enabled = surfaceEnabled,
                         onCommandSelected = viewModel::send
                     )
                 }
