@@ -65,7 +65,6 @@ class SwitchifyPcBleClient(
             when (response) {
                 is PcProtocolResponse.PairingComplete -> {
                     if (PcProtocol.validatePairingComplete(response, pc.desktopId, deviceId)) {
-                        tokenStore.saveToken(pc.desktopId, response.token, endpoint.deviceAddress, pc.displayName)
                         PcPairingResult.Paired(pc.desktopId, response.token, endpoint.deviceAddress)
                     } else {
                         PcPairingResult.Failed(PcErrorReason.Failed, "Could not connect to this PC.")
@@ -106,9 +105,12 @@ class SwitchifyPcBleClient(
     override suspend fun openControlSession(session: PcAuthenticatedSession): PcLiveControlResult {
         val endpoint = pcEndpointFromSession(session) ?: return PcLiveControlResult.Failed()
         val token = tokenStore.getToken(session.desktopId) ?: return PcLiveControlResult.AuthFailed()
-        return runCatching {
-            val connection = transportFactory.connect(endpoint)
-            openConnections += connection
+        val connection = runCatching { transportFactory.connect(endpoint) }.getOrElse {
+            if (it is CancellationException) throw it
+            return PcLiveControlResult.Failed(safeConnectionFailureMessage(it))
+        }
+        openConnections += connection
+        return try {
             when (val response = sendAuthenticatedPing(connection, token)) {
                 is PcProtocolResponse.Ack -> PcLiveControlResult.Connected(
                     LiveBleControlConnection(
@@ -130,9 +132,15 @@ class SwitchifyPcBleClient(
                     PcLiveControlResult.Failed()
                 }
             }
-        }.getOrElse {
-            if (it is CancellationException) throw it
-            PcLiveControlResult.Failed(safeConnectionFailureMessage(it))
+        } catch (error: InvalidPcAuthException) {
+            connection.close(PcControlCloseReason.AuthFailure.logName)
+            openConnections -= connection
+            PcLiveControlResult.AuthFailed()
+        } catch (error: Throwable) {
+            if (error is CancellationException) throw error
+            connection.close(PcControlCloseReason.CommandFailureRecovery.logName)
+            openConnections -= connection
+            PcLiveControlResult.Failed(safeConnectionFailureMessage(error))
         }
     }
 
