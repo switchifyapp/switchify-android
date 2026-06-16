@@ -95,7 +95,12 @@ private class PcBleGattConnection private constructor(
             @SuppressLint("MissingPermission")
             val gatt = device.connectGatt(context, false, callback, BluetoothDevice.TRANSPORT_LE)
             callback.gatt = gatt
-            return callback.awaitConnected(context, endpoint)
+            return runCatching { callback.awaitConnected(context, endpoint) }
+                .getOrElse {
+                    runCatching { gatt.disconnect() }
+                    runCatching { gatt.close() }
+                    throw it
+                }
         }
     }
 

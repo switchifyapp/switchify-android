@@ -35,6 +35,7 @@ class PcBleDiscoveryService(private val context: Context) : PcDiscovery {
     private val resolvingGatts = mutableMapOf<String, BluetoothGatt>()
     private val resolvingLock = Any()
     private var scanCallback: ScanCallback? = null
+    private var discoveryGeneration = 0L
 
     private val _pcs = MutableStateFlow<List<DiscoveredPc>>(emptyList())
     override val pcs: StateFlow<List<DiscoveredPc>> = _pcs
@@ -45,6 +46,10 @@ class PcBleDiscoveryService(private val context: Context) : PcDiscovery {
     @SuppressLint("MissingPermission")
     override fun startDiscovery() {
         stopDiscovery()
+        val generation = synchronized(resolvingLock) {
+            discoveryGeneration += 1
+            discoveryGeneration
+        }
         discovered.clear()
         synchronized(resolvingLock) {
             resolvingAddresses.clear()
@@ -65,15 +70,17 @@ class PcBleDiscoveryService(private val context: Context) : PcDiscovery {
 
         val callback = object : ScanCallback() {
             override fun onScanResult(callbackType: Int, result: ScanResult) {
-                scope.launch { resolve(result) }
+                scope.launch { resolve(result, generation) }
             }
 
             override fun onBatchScanResults(results: MutableList<ScanResult>) {
-                results.forEach { result -> scope.launch { resolve(result) } }
+                results.forEach { result -> scope.launch { resolve(result, generation) } }
             }
 
             override fun onScanFailed(errorCode: Int) {
-                _status.value = PcDiscoveryStatus.Failed
+                if (isActiveGeneration(generation)) {
+                    _status.value = PcDiscoveryStatus.Failed
+                }
             }
         }
         scanCallback = callback
@@ -98,6 +105,7 @@ class PcBleDiscoveryService(private val context: Context) : PcDiscovery {
         }
         scanCallback = null
         val gatts = synchronized(resolvingLock) {
+            discoveryGeneration += 1
             resolvingAddresses.clear()
             resolvingGatts.values.toList().also { resolvingGatts.clear() }
         }
@@ -111,14 +119,15 @@ class PcBleDiscoveryService(private val context: Context) : PcDiscovery {
     }
 
     @SuppressLint("MissingPermission")
-    private suspend fun resolve(result: ScanResult) {
+    private suspend fun resolve(result: ScanResult, generation: Long) {
         if (!context.hasBluetoothConnectPermission()) return
         val device = result.device ?: return
         val shouldResolve = synchronized(resolvingLock) {
+            if (generation != discoveryGeneration) return
             resolvingAddresses.add(device.address)
         }
         if (!shouldResolve) return
-        val callback = StatusReadCallback(device.address, runCatching { device.name }.getOrNull())
+        val callback = StatusReadCallback(generation, device.address, runCatching { device.name }.getOrNull())
         val gatt = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             device.connectGatt(context.applicationContext, false, callback, android.bluetooth.BluetoothDevice.TRANSPORT_LE)
         } else {
@@ -132,18 +141,27 @@ class PcBleDiscoveryService(private val context: Context) : PcDiscovery {
         callback.scheduleTimeout()
     }
 
-    private fun publish(endpoint: PcBluetoothEndpoint) {
-        val pc = DiscoveredPc(
-            serviceName = endpoint.displayName,
-            desktopId = endpoint.desktopId,
-            bluetoothEndpoint = endpoint
-        )
-        discovered[endpoint.desktopId] = pc
-        _pcs.value = discovered.values.toList()
+    private fun publish(endpoint: PcBluetoothEndpoint, generation: Long) {
+        val pcs = synchronized(resolvingLock) {
+            if (generation != discoveryGeneration || endpoint.deviceAddress !in resolvingAddresses) return
+            val pc = DiscoveredPc(
+                serviceName = endpoint.displayName,
+                desktopId = endpoint.desktopId,
+                bluetoothEndpoint = endpoint
+            )
+            discovered[endpoint.desktopId] = pc
+            discovered.values.toList()
+        }
+        _pcs.value = pcs
         _status.value = PcDiscoveryStatus.Found
     }
 
+    private fun isActiveGeneration(generation: Long): Boolean {
+        return synchronized(resolvingLock) { generation == discoveryGeneration }
+    }
+
     private inner class StatusReadCallback(
+        private val generation: Long,
         private val deviceAddress: String,
         private val deviceName: String?
     ) : BluetoothGattCallback() {
@@ -201,7 +219,7 @@ class PcBleDiscoveryService(private val context: Context) : PcDiscovery {
         private fun handleRead(gatt: BluetoothGatt, status: Int, value: ByteArray) {
             if (status == BluetoothGatt.GATT_SUCCESS) {
                 val rawStatus = String(value, StandardCharsets.UTF_8)
-                PcBleStatusParser.parse(deviceAddress, deviceName, rawStatus)?.let(::publish)
+                PcBleStatusParser.parse(deviceAddress, deviceName, rawStatus)?.let { publish(it, generation) }
             }
             finishGatt(gatt)
         }
