@@ -259,6 +259,75 @@ class PcMouseControlViewModelTest {
     }
 
     @Test
+    fun mouseCommandWhileBusyDoesNotSendAgain() = runTest(dispatcher) {
+        val deferred = CompletableDeferred<PcCommandResult>()
+        val connector = FakeConnector(commandResult = deferred)
+        val controller = connectedController(connector = connector)
+        val viewModel = viewModel(controller)
+
+        viewModel.send(PcControlCommand.Scroll(0, 5))
+        runCurrent()
+        viewModel.send(PcControlCommand.LeftClick)
+        advanceUntilIdle()
+
+        assertEquals(listOf(PcControlCommand.Scroll(0, 5)), connector.commands)
+        deferred.complete(PcCommandResult.Ack)
+        advanceUntilIdle()
+    }
+
+    @Test
+    fun windowCommandWhileBusyDoesNotSendAgain() = runTest(dispatcher) {
+        val deferred = CompletableDeferred<PcCommandResult>()
+        val connector = FakeConnector(commandResult = deferred)
+        val controller = connectedController(connector = connector)
+        val viewModel = viewModel(controller)
+
+        viewModel.send(PcControlCommand.Scroll(0, 5))
+        runCurrent()
+        viewModel.send(PcControlCommand.WindowControl(PcWindowControlAction.SwitchNext))
+        advanceUntilIdle()
+
+        assertEquals(listOf(PcControlCommand.Scroll(0, 5)), connector.commands)
+        deferred.complete(PcCommandResult.Ack)
+        advanceUntilIdle()
+    }
+
+    @Test
+    fun typedTextWhileBusyDoesNotSendAgain() = runTest(dispatcher) {
+        val deferred = CompletableDeferred<PcCommandResult>()
+        val connector = FakeConnector(commandResult = deferred)
+        val controller = connectedController(connector = connector)
+        val viewModel = viewModel(controller)
+
+        viewModel.send(PcControlCommand.Scroll(0, 5))
+        runCurrent()
+        viewModel.updateTypingText("Hello")
+        viewModel.sendTypedText()
+        advanceUntilIdle()
+
+        assertEquals(listOf(PcControlCommand.Scroll(0, 5)), connector.commands)
+        deferred.complete(PcCommandResult.Ack)
+        advanceUntilIdle()
+    }
+
+    @Test
+    fun keyCommandWhileBusyDoesNotSendAgain() = runTest(dispatcher) {
+        val deferred = CompletableDeferred<PcCommandResult>()
+        val connector = FakeConnector(commandResult = deferred)
+        val controller = connectedController(connector = connector)
+        val viewModel = viewModel(controller)
+
+        viewModel.send(PcControlCommand.Scroll(0, 5))
+        runCurrent()
+        viewModel.sendKey(PcKeyboardKey.Enter)
+        advanceUntilIdle()
+
+        assertEquals(listOf(PcControlCommand.Scroll(0, 5)), connector.commands)
+        deferred.complete(PcCommandResult.Ack)
+        advanceUntilIdle()
+    }
+
+    @Test
     fun commandFailureShowsCommandMessage() = runTest(dispatcher) {
         val controller = connectedController(connector = FakeConnector(commandResult = PcCommandResult.Failed()))
         val viewModel = viewModel(controller)
