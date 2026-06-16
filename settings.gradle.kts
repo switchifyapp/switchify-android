@@ -17,5 +17,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Switchify"
+rootProject.name = "switchify-android"
 include(":app")
