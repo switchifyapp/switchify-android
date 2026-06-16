@@ -19,10 +19,13 @@ import com.enaboapps.switchify.pc.PcDiscoveryStatus
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import java.nio.charset.StandardCharsets
+
+private const val STATUS_READ_TIMEOUT_MS = 5_000L
 
 class PcBleDiscoveryService(private val context: Context) : PcDiscovery {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -126,6 +129,7 @@ class PcBleDiscoveryService(private val context: Context) : PcDiscovery {
             resolvingGatts[device.address] = gatt
         }
         callback.gatt = gatt
+        callback.scheduleTimeout()
     }
 
     private fun publish(endpoint: PcBluetoothEndpoint) {
@@ -144,6 +148,13 @@ class PcBleDiscoveryService(private val context: Context) : PcDiscovery {
         private val deviceName: String?
     ) : BluetoothGattCallback() {
         lateinit var gatt: BluetoothGatt
+
+        fun scheduleTimeout() {
+            scope.launch {
+                delay(STATUS_READ_TIMEOUT_MS)
+                finishIfStillResolving()
+            }
+        }
 
         @SuppressLint("MissingPermission")
         override fun onConnectionStateChange(gatt: BluetoothGatt, status: Int, newState: Int) {
@@ -203,6 +214,21 @@ class PcBleDiscoveryService(private val context: Context) : PcDiscovery {
             }
             if (disconnect) runCatching { gatt.disconnect() }
             runCatching { gatt.close() }
+        }
+
+        @SuppressLint("MissingPermission")
+        private fun finishIfStillResolving() {
+            val pendingGatt = synchronized(resolvingLock) {
+                if (!resolvingAddresses.remove(deviceAddress)) {
+                    null
+                } else {
+                    resolvingGatts.remove(deviceAddress)
+                }
+            }
+            pendingGatt?.let { gatt ->
+                runCatching { gatt.disconnect() }
+                runCatching { gatt.close() }
+            }
         }
     }
 }
