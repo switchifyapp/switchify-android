@@ -177,6 +177,7 @@ class MainMenuStructure(
     )
 
     private fun openPcControlActivity() {
+        MenuManager.getInstance().closeMenuHierarchy()
         val controller = ServiceCore.getPcServiceConnectionController()
         if (controller?.hasLiveControlSession() == true) {
             launchPcControlActivity()
