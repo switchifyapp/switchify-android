@@ -59,6 +59,7 @@ class SwitchifyAccessibilityWindow private constructor() : LifecycleOwner, Saved
             registerScreenWatcher()
             ServiceMessageHUD.instance.setup(context.applicationContext)
             MenuHighlightHud.instance.setup(context.applicationContext)
+            ServiceStartupSplash.instance.setup(context.applicationContext)
         } catch (e: Exception) {
             Log.e(TAG, "Error in setup: ${e.message}", e)
         }
@@ -95,11 +96,13 @@ class SwitchifyAccessibilityWindow private constructor() : LifecycleOwner, Saved
             val wake = {
                 ServiceMessageHUD.instance.setup(context.applicationContext)
                 MenuHighlightHud.instance.setup(context.applicationContext)
+                ServiceStartupSplash.instance.setup(context.applicationContext)
                 show()
             }
             val sleep = {
                 ServiceMessageHUD.instance.dispose()
                 MenuHighlightHud.instance.dispose()
+                ServiceStartupSplash.instance.dispose()
                 hide()
             }
             screenWatcher = ScreenWatcher(onScreenWake = wake, onScreenSleep = sleep)
@@ -142,11 +145,7 @@ class SwitchifyAccessibilityWindow private constructor() : LifecycleOwner, Saved
                     windowManager?.addView(layout, params)
                     isVisible = true
 
-                    // Set up lifecycle owners after the view is added to reduce ANR risk
-                    // on low-end devices during ViewRootImpl initialization
-                    mainHandler.post {
-                        setupLifecycleOwners()
-                    }
+                    setupLifecycleOwners()
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Error in show: ${e.message}", e)
@@ -203,6 +202,7 @@ class SwitchifyAccessibilityWindow private constructor() : LifecycleOwner, Saved
     fun onServiceDestroy() {
         ServiceMessageHUD.instance.dispose()
         MenuHighlightHud.instance.dispose()
+        ServiceStartupSplash.instance.dispose()
         MediaPipeBackend.close()
         cleanup()
         isVisible = false // Ensure the flag is set to false for the next time the window is created

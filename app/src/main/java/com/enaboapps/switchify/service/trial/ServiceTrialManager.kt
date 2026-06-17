@@ -102,11 +102,6 @@ class ServiceTrialManager(
                     "reason" to "pro_user"
                 )
             )
-            ServiceMessageHUD.instance.showMessage(
-                R.string.pro_unlimited_access_message,
-                ServiceMessageHUD.MessageType.DISAPPEARING,
-                severity = MessageSeverity.Success
-            )
             return
         }
 

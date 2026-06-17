@@ -171,6 +171,8 @@
     <string name="pro_unlimited_access_message">Switchify Pro activated. Unlimited access to all features!</string>
     <string name="debug_trial_disabled_message">Debug mode: Trials disabled. Unlimited access!</string>
     <string name="trial_blocked_device_locked_message">Device locked. New trial start blocked for security.</string>
+    <string name="service_startup_splash_title">Switchify</string>
+    <string name="service_startup_splash_subtitle">Service ready</string>
     <string name="debug_disable_trials_title">Disable Trials</string>
     <string name="debug_disable_trials_summary">Completely disable trial system for unlimited access (debug only)</string>
 
