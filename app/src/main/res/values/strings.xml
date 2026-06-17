@@ -35,6 +35,9 @@
     <string name="menu_item_turn_group_scan_on">Turn Group Scan On</string>
     <string name="menu_item_turn_group_scan_off">Turn Group Scan Off</string>
     <string name="menu_item_group_scan_description">Toggle group scan</string>
+    <string name="menu_item_turn_gesture_lock_rearm_on">Turn Re-arm Gesture Lock On</string>
+    <string name="menu_item_turn_gesture_lock_rearm_off">Turn Re-arm Gesture Lock Off</string>
+    <string name="menu_item_gesture_lock_rearm_description">Turn gesture lock back on ready to choose another gesture</string>
     <string name="menu_item_pause">Pause Switchify</string>
     
     <!-- Head Control Menu Items -->
@@ -693,6 +696,8 @@
     <string name="preference_summary_manual_pattern_progression">Advance through gesture pattern steps by pressing a switch instead of automatic timing</string>
     <string name="preference_title_stop_pattern_on_switch">Stop Pattern on Switch Press</string>
     <string name="preference_summary_stop_pattern_on_switch">When enabled, pressing any switch will stop the currently executing gesture pattern</string>
+    <string name="preference_title_gesture_lock_auto_reenable">Re-arm Gesture Lock</string>
+    <string name="preference_summary_gesture_lock_auto_reenable">After gesture lock turns off, turn it back on ready to choose another gesture</string>
 
     <!-- Access Technique Settings Screen -->
     <string name="screen_title_access_technique_settings">Access Technique Settings</string>

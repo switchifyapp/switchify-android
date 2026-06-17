@@ -48,7 +48,7 @@ class GesturePatternExecutor(
     fun execute() {
         if (isCleanedUp) return // Prevent execution on cleaned up executor
 
-        GestureLockManager.instance.disableLock()
+        GestureLockManager.instance.disableLock(allowAutoReenable = false)
         GesturePatternManager.registerExecutor(this)
         isManualMode = isManualProgressionEnabled()
         currentStepIndex.set(-1)
