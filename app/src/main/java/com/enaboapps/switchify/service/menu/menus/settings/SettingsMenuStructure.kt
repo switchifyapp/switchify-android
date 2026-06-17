@@ -125,6 +125,33 @@ class SettingsMenuStructure(
                         MenuManager.getInstance().closeMenuHierarchy()
                     }
                 )
+            },
+            MenuItemRegistry.getDefinition(
+                MenuConstants.MenuIds.SETTINGS_MENU,
+                MenuConstants.ItemIds.Settings.TOGGLE_GESTURE_LOCK_REARM
+            )?.let { def ->
+                val prefManager = PreferenceManager(accessibilityService)
+                val currentlyEnabled = prefManager.getBooleanValue(
+                    PreferenceManager.PREFERENCE_KEY_GESTURE_LOCK_AUTO_REENABLE,
+                    false
+                )
+                val stateLabel = accessibilityService.getString(
+                    if (currentlyEnabled) R.string.menu_item_turn_gesture_lock_rearm_off
+                    else R.string.menu_item_turn_gesture_lock_rearm_on
+                )
+                MenuItem(
+                    id = def.id,
+                    userProvidedText = stateLabel,
+                    descriptionResource = def.descriptionResource,
+                    drawableId = def.drawableId,
+                    action = {
+                        prefManager.setBooleanValue(
+                            PreferenceManager.PREFERENCE_KEY_GESTURE_LOCK_AUTO_REENABLE,
+                            !currentlyEnabled
+                        )
+                        MenuManager.getInstance().closeMenuHierarchy()
+                    }
+                )
             }
         ),
         context = accessibilityService,

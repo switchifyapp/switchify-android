@@ -46,6 +46,7 @@ class PreferenceManager(context: Context) {
         const val PREFERENCE_KEY_STOP_PATTERN_ON_SWITCH = "stop_pattern_on_switch"
         const val PREFERENCE_KEY_GESTURE_PATTERN_MANUAL_PROGRESSION = "gesture_pattern_manual_progression"
         const val PREFERENCE_KEY_GESTURE_LOCK = "gesture_lock"
+        const val PREFERENCE_KEY_GESTURE_LOCK_AUTO_REENABLE = "gesture_lock_auto_reenable"
         const val PREFERENCE_KEY_SCAN_COLOR_SET = "scan_color_set"
         const val PREFERENCE_KEY_SCAN_HIGHLIGHT_TYPE = "scan_highlight_type"
         const val PREFERENCE_KEY_MENU_TRANSPARENCY = "menu_transparency"

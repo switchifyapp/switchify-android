@@ -122,6 +122,7 @@ object MenuConstants {
             const val SWITCH_TO_POINT_SCAN = "switch_to_point_scan"
             const val TOGGLE_HEAD_CONTROL = "toggle_head_control"
             const val TOGGLE_GROUP_SCAN = "toggle_group_scan"
+            const val TOGGLE_GESTURE_LOCK_REARM = "toggle_gesture_lock_rearm"
         }
 
         /**
