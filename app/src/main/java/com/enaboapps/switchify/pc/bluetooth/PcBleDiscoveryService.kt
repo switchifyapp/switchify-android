@@ -27,9 +27,13 @@ import java.nio.charset.StandardCharsets
 
 private const val STATUS_READ_TIMEOUT_MS = 5_000L
 
-class PcBleDiscoveryService(private val context: Context) : PcDiscovery {
+class PcBleDiscoveryService(
+    private val context: Context,
+    private val bluetoothManagerProvider: () -> BluetoothManager? = {
+        (context.applicationContext ?: context).getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager
+    }
+) : PcDiscovery {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-    private val bluetoothManager = context.applicationContext.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
     private val discovered = linkedMapOf<String, DiscoveredPc>()
     private val resolvingAddresses = mutableSetOf<String>()
     private val resolvingGatts = mutableMapOf<String, BluetoothGatt>()
@@ -62,7 +66,7 @@ class PcBleDiscoveryService(private val context: Context) : PcDiscovery {
             _status.value = PcDiscoveryStatus.Failed
             return
         }
-        val scanner = bluetoothManager.adapter?.bluetoothLeScanner
+        val scanner = bluetoothManagerProvider()?.adapter?.bluetoothLeScanner
         if (scanner == null) {
             _status.value = PcDiscoveryStatus.Failed
             return
@@ -99,7 +103,7 @@ class PcBleDiscoveryService(private val context: Context) : PcDiscovery {
     @SuppressLint("MissingPermission")
     override fun stopDiscovery() {
         val callback = scanCallback
-        val scanner = bluetoothManager.adapter?.bluetoothLeScanner
+        val scanner = bluetoothManagerProvider()?.adapter?.bluetoothLeScanner
         if (callback != null) {
             runCatching { scanner?.stopScan(callback) }
         }
@@ -129,10 +133,10 @@ class PcBleDiscoveryService(private val context: Context) : PcDiscovery {
         if (!shouldResolve) return
         val callback = StatusReadCallback(generation, device.address, runCatching { device.name }.getOrNull())
         val gatt = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            device.connectGatt(context.applicationContext, false, callback, android.bluetooth.BluetoothDevice.TRANSPORT_LE)
+            device.connectGatt(appContext(), false, callback, android.bluetooth.BluetoothDevice.TRANSPORT_LE)
         } else {
             @Suppress("DEPRECATION")
-            device.connectGatt(context.applicationContext, false, callback)
+            device.connectGatt(appContext(), false, callback)
         }
         synchronized(resolvingLock) {
             resolvingGatts[device.address] = gatt
@@ -158,6 +162,10 @@ class PcBleDiscoveryService(private val context: Context) : PcDiscovery {
 
     private fun isActiveGeneration(generation: Long): Boolean {
         return synchronized(resolvingLock) { generation == discoveryGeneration }
+    }
+
+    private fun appContext(): Context {
+        return context.applicationContext ?: context
     }
 
     private inner class StatusReadCallback(
