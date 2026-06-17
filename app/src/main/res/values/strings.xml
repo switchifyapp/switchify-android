@@ -13,6 +13,8 @@
     <string name="gesture_lock_disabled">Gesture lock OFF</string>
     <string name="gesture_lock_timeout_disabled">Gesture lock timed out</string>
     <string name="gesture_lock_rearmed">Gesture lock re-armed - Select a gesture</string>
+    <string name="gesture_lock_rearm_enabled">Gesture Lock Re-arm ON</string>
+    <string name="gesture_lock_rearm_disabled">Gesture Lock Re-arm OFF</string>
 
     <!-- Gesture Patterns -->
     <string name="start_recording">Start Recording</string>
@@ -227,6 +229,8 @@
     <string name="system_lock_screen_desc">Lock the screen</string>
     <string name="system_gesture_lock">Toggle Gesture Lock</string>
     <string name="system_gesture_lock_desc">Toggle the gesture lock</string>
+    <string name="system_gesture_lock_rearm">Toggle Gesture Lock Re-arm</string>
+    <string name="system_gesture_lock_rearm_desc">Turn Gesture Lock Re-arm on or off</string>
     <string name="system_power_dialog">Power Dialog</string>
     <string name="system_assistant">Open Assistant</string>
     <string name="system_screenshot">Take Screenshot</string>

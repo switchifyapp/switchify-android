@@ -4,6 +4,7 @@ import com.enaboapps.switchify.R
 import com.enaboapps.switchify.service.camera.CameraPermissionManager
 import com.enaboapps.switchify.service.core.ServiceCore
 import com.enaboapps.switchify.service.core.SwitchifyAccessibilityService
+import com.enaboapps.switchify.service.gestures.GestureLockManager
 import com.enaboapps.switchify.service.menu.MenuItem
 import com.enaboapps.switchify.service.menu.MenuManager
 import com.enaboapps.switchify.service.menu.structure.MenuConstants
@@ -145,10 +146,7 @@ class SettingsMenuStructure(
                     descriptionResource = def.descriptionResource,
                     drawableId = def.drawableId,
                     action = {
-                        prefManager.setBooleanValue(
-                            PreferenceManager.PREFERENCE_KEY_GESTURE_LOCK_AUTO_REENABLE,
-                            !currentlyEnabled
-                        )
+                        GestureLockManager.instance.toggleAutoReenable(accessibilityService)
                         MenuManager.getInstance().closeMenuHierarchy()
                     }
                 )

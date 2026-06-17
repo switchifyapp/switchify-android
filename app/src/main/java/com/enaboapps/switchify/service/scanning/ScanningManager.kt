@@ -7,6 +7,7 @@ import com.enaboapps.switchify.service.actions.GlobalActionManager
 import com.enaboapps.switchify.service.core.ServiceCore
 import com.enaboapps.switchify.service.core.SwitchifyAccessibilityService
 import com.enaboapps.switchify.service.core.Tasks
+import com.enaboapps.switchify.service.gestures.GestureLockManager
 import com.enaboapps.switchify.service.gestures.GestureManager
 import com.enaboapps.switchify.service.menu.MenuManager
 import com.enaboapps.switchify.service.selection.SelectionHandler
@@ -201,6 +202,9 @@ class ScanningManager(
                 SwitchAction.ACTION_MOVE_TO_PREVIOUS_ITEM -> currentScanMethod.stepScanningBackward()
                 SwitchAction.ACTION_TOGGLE_GESTURE_LOCK -> GestureManager.instance
                     .toggleGestureLock()
+
+                SwitchAction.ACTION_TOGGLE_GESTURE_LOCK_REARM -> GestureLockManager.instance
+                    .toggleAutoReenable(accessibilityService)
 
                 SwitchAction.ACTION_SYS_HOME -> GlobalActionManager.goHome()
                 SwitchAction.ACTION_SYS_BACK -> GlobalActionManager.goBack()
