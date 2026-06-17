@@ -109,8 +109,6 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
         val externalSwitchListener = ServiceCore.getExternalSwitchListener() ?: return
         val switchEventProvider = ServiceCore.getSwitchEventProvider() ?: return
 
-        switchEventProvider.addCameraSwitchListener(this)
-
         screenWatcherManager.register(scanningManager, externalSwitchListener)
 
         scanSettings = ScanSettings(this)
@@ -124,8 +122,8 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
             onServiceConnected = { setupCameraServiceCallbacks() }
         )
 
-        // Register camera manager with ServiceCore for HeadControl coordination
         ServiceCore.setCameraManager(cameraManager)
+        switchEventProvider.addCameraSwitchListener(this)
         eventPipeline =
             AccessibilityEventPipeline(serviceScope) { nodeUpdateCoordinator.processAccessibilityUpdate() }
         eventPipeline.start()
@@ -365,7 +363,7 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
 
     override fun onCameraSwitchAvailabilityChanged(available: Boolean) {
         logd("Camera switch availability changed: $available")
-        // Re-evaluate camera state when switches change
+        if (!::cameraManager.isInitialized) return
         cameraManager.evaluateAndUpdateCameraState()
     }
 
