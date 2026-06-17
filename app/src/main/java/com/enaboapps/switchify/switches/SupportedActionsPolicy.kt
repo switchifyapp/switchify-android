@@ -23,6 +23,7 @@ object SupportedActionsPolicy {
                     SwitchAction.ACTION_STOP_SCANNING,
                     SwitchAction.ACTION_CHANGE_SCANNING_DIRECTION,
                     SwitchAction.ACTION_TOGGLE_GESTURE_LOCK,
+                    SwitchAction.ACTION_TOGGLE_GESTURE_LOCK_REARM,
                     SwitchAction.ACTION_PAUSE
                 ) + sys
             }
@@ -34,6 +35,7 @@ object SupportedActionsPolicy {
                     SwitchAction.ACTION_MOVE_TO_PREVIOUS_ITEM,
                     SwitchAction.ACTION_STOP_SCANNING,
                     SwitchAction.ACTION_TOGGLE_GESTURE_LOCK,
+                    SwitchAction.ACTION_TOGGLE_GESTURE_LOCK_REARM,
                     SwitchAction.ACTION_PAUSE
                 ) + sys
             }
@@ -43,6 +45,7 @@ object SupportedActionsPolicy {
                     SwitchAction.ACTION_SELECT,
                     SwitchAction.ACTION_STOP_SCANNING,
                     SwitchAction.ACTION_TOGGLE_GESTURE_LOCK,
+                    SwitchAction.ACTION_TOGGLE_GESTURE_LOCK_REARM,
                     SwitchAction.ACTION_PAUSE
                 ) + sys
             }

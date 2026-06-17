@@ -1,6 +1,7 @@
 package com.enaboapps.switchify.service.gestures
 
 import android.accessibilityservice.AccessibilityService
+import android.content.Context
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.service.gestures.data.GestureData
@@ -25,6 +26,23 @@ class GestureLockManager private constructor() {
 
     fun init(service: AccessibilityService) {
         accessibilityService = service
+    }
+
+    fun toggleAutoReenable(context: Context) {
+        val preferenceManager = PreferenceManager(context)
+        val nextEnabled = !preferenceManager.getBooleanValue(
+            PreferenceManager.PREFERENCE_KEY_GESTURE_LOCK_AUTO_REENABLE,
+            false
+        )
+        preferenceManager.setBooleanValue(
+            PreferenceManager.PREFERENCE_KEY_GESTURE_LOCK_AUTO_REENABLE,
+            nextEnabled
+        )
+        showMessage(
+            if (nextEnabled) R.string.gesture_lock_rearm_enabled
+            else R.string.gesture_lock_rearm_disabled,
+            MessageSeverity.Info
+        )
     }
 
     // Function to lock/unlock the gesture lock, showing a message to the user
