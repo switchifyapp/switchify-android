@@ -18,7 +18,6 @@ import com.enaboapps.switchify.utils.LogEvent
 import com.enaboapps.switchify.utils.Logger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -61,7 +60,6 @@ class SwitchEventProvider(private val context: Context) {
 
     private suspend fun loadInitialEvents() {
         mutex.withLock {
-            delay(5000)
             val loadedEvents = localStorage.loadFromFile(context)
             synchronized(switchEvents) {
                 switchEvents.clear()
