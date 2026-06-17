@@ -17,6 +17,7 @@ class GestureLockManager private constructor() {
     private var accessibilityService: AccessibilityService? = null
     private var autoReenableProviderForTesting: (() -> Boolean)? = null
     private var suppressHudForTesting = false
+    private var messageRecorderForTesting: ((Int) -> Unit)? = null
 
     companion object {
         val instance: GestureLockManager by lazy { GestureLockManager() }
@@ -120,7 +121,7 @@ class GestureLockManager private constructor() {
         stopTimer()
         if (allowAutoReenable && hadGesture && isAutoReenableEnabled()) {
             isLocked = true
-            showMessage(R.string.gesture_lock_enabled, MessageSeverity.Info)
+            showMessage(R.string.gesture_lock_rearmed, MessageSeverity.Info)
         }
     }
 
@@ -132,7 +133,7 @@ class GestureLockManager private constructor() {
         showMessage(R.string.gesture_lock_timeout_disabled, MessageSeverity.Warning)
         if (hadGesture && isAutoReenableEnabled()) {
             isLocked = true
-            showMessage(R.string.gesture_lock_enabled, MessageSeverity.Info)
+            showMessage(R.string.gesture_lock_rearmed, MessageSeverity.Info)
         }
     }
 
@@ -147,6 +148,7 @@ class GestureLockManager private constructor() {
     }
 
     private fun showMessage(messageResId: Int, severity: MessageSeverity) {
+        messageRecorderForTesting?.invoke(messageResId)
         if (suppressHudForTesting) return
         ServiceMessageHUD.instance.showMessage(
             messageResId,
@@ -167,6 +169,10 @@ class GestureLockManager private constructor() {
         suppressHudForTesting = suppress
     }
 
+    internal fun setMessageRecorderForTesting(recorder: ((Int) -> Unit)?) {
+        messageRecorderForTesting = recorder
+    }
+
     internal fun resetForTesting() {
         isLocked = false
         lockedGestureData = null
@@ -174,5 +180,6 @@ class GestureLockManager private constructor() {
         accessibilityService = null
         autoReenableProviderForTesting = null
         suppressHudForTesting = false
+        messageRecorderForTesting = null
     }
 }
