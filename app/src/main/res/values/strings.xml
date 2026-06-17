@@ -12,6 +12,7 @@
     <string name="gesture_lock_enabled">Gesture lock ON - Select a gesture</string>
     <string name="gesture_lock_disabled">Gesture lock OFF</string>
     <string name="gesture_lock_timeout_disabled">Gesture lock timed out</string>
+    <string name="gesture_lock_rearmed">Gesture lock re-armed - Select a gesture</string>
 
     <!-- Gesture Patterns -->
     <string name="start_recording">Start Recording</string>
