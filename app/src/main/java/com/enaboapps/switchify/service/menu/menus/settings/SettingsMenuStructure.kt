@@ -146,7 +146,10 @@ class SettingsMenuStructure(
                     descriptionResource = def.descriptionResource,
                     drawableId = def.drawableId,
                     action = {
-                        GestureLockManager.instance.toggleAutoReenable(accessibilityService)
+                        GestureLockManager.instance.toggleAutoReenable(
+                            context = accessibilityService,
+                            syncGestureLock = true
+                        )
                         MenuManager.getInstance().closeMenuHierarchy()
                     }
                 )
