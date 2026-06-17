@@ -204,7 +204,10 @@ class ScanningManager(
                     .toggleGestureLock()
 
                 SwitchAction.ACTION_TOGGLE_GESTURE_LOCK_REARM -> GestureLockManager.instance
-                    .toggleAutoReenable(accessibilityService)
+                    .toggleAutoReenable(
+                        context = accessibilityService,
+                        syncGestureLock = true
+                    )
 
                 SwitchAction.ACTION_SYS_HOME -> GlobalActionManager.goHome()
                 SwitchAction.ACTION_SYS_BACK -> GlobalActionManager.goBack()
