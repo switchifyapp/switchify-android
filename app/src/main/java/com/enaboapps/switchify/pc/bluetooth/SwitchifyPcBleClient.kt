@@ -270,18 +270,24 @@ class SwitchifyPcBleClient(
         }
     }
 
-    private fun PcControlCommand.toMessage(id: String, deviceId: String, token: String, timestamp: Long): String {
+    private fun PcControlCommand.toMessage(
+        id: String,
+        deviceId: String,
+        token: String,
+        timestamp: Long,
+        responseMode: PcCommandResponseMode = PcCommandResponseMode.Ack
+    ): String {
         return when (this) {
-            is PcControlCommand.Move -> PcProtocol.mouseMove(id, deviceId, token, timestamp, dx, dy)
-            is PcControlCommand.Scroll -> PcProtocol.mouseScroll(id, deviceId, token, timestamp, dx, dy)
-            is PcControlCommand.DragStart -> PcProtocol.mouseDragStart(id, deviceId, token, timestamp, button)
-            is PcControlCommand.DragEnd -> PcProtocol.mouseDragEnd(id, deviceId, token, timestamp, button)
-            PcControlCommand.LeftClick -> PcProtocol.mouseClick(id, deviceId, token, timestamp)
-            PcControlCommand.DoubleClick -> PcProtocol.mouseDoubleClick(id, deviceId, token, timestamp)
-            PcControlCommand.RightClick -> PcProtocol.mouseRightClick(id, deviceId, token, timestamp)
-            is PcControlCommand.TypeText -> PcProtocol.keyboardTypeText(id, deviceId, token, timestamp, text)
-            is PcControlCommand.PressKey -> PcProtocol.keyboardKey(id, deviceId, token, timestamp, key)
-            is PcControlCommand.WindowControl -> PcProtocol.windowControl(id, deviceId, token, timestamp, action)
+            is PcControlCommand.Move -> PcProtocol.mouseMove(id, deviceId, token, timestamp, dx, dy, responseMode)
+            is PcControlCommand.Scroll -> PcProtocol.mouseScroll(id, deviceId, token, timestamp, dx, dy, responseMode)
+            is PcControlCommand.DragStart -> PcProtocol.mouseDragStart(id, deviceId, token, timestamp, button, responseMode)
+            is PcControlCommand.DragEnd -> PcProtocol.mouseDragEnd(id, deviceId, token, timestamp, button, responseMode)
+            PcControlCommand.LeftClick -> PcProtocol.mouseClick(id, deviceId, token, timestamp, responseMode = responseMode)
+            PcControlCommand.DoubleClick -> PcProtocol.mouseDoubleClick(id, deviceId, token, timestamp, responseMode = responseMode)
+            PcControlCommand.RightClick -> PcProtocol.mouseRightClick(id, deviceId, token, timestamp, responseMode)
+            is PcControlCommand.TypeText -> PcProtocol.keyboardTypeText(id, deviceId, token, timestamp, text, responseMode)
+            is PcControlCommand.PressKey -> PcProtocol.keyboardKey(id, deviceId, token, timestamp, key, responseMode)
+            is PcControlCommand.WindowControl -> PcProtocol.windowControl(id, deviceId, token, timestamp, action, responseMode)
         }
     }
 
@@ -330,7 +336,7 @@ class SwitchifyPcBleClient(
         }
 
         override suspend fun sendRealtimeCommand(command: PcControlCommand): PcCommandResult {
-            if (command !is PcControlCommand.Move || pointerProfile?.capabilities?.noAckMouseMove != true) {
+            if (pointerProfile?.supportsNoAck(command) != true) {
                 return sendCommand(command)
             }
 
@@ -338,13 +344,11 @@ class SwitchifyPcBleClient(
                 try {
                     val requestId = nextRequestId()
                     connection.send(
-                        PcProtocol.mouseMove(
+                        command.toMessage(
                             id = requestId,
                             deviceId = authenticatedSession.deviceId,
                             token = token,
                             timestamp = System.currentTimeMillis(),
-                            dx = command.dx,
-                            dy = command.dy,
                             responseMode = PcCommandResponseMode.None
                         )
                     )
@@ -369,4 +373,24 @@ class SwitchifyPcBleClient(
         const val PING_TIMEOUT_MS = 10_000L
         const val COMMAND_TIMEOUT_MS = 5_000L
     }
+}
+
+private fun PcControlCommand.protocolType(): String {
+    return when (this) {
+        is PcControlCommand.Move -> "mouse.move"
+        is PcControlCommand.Scroll -> "mouse.scroll"
+        is PcControlCommand.DragStart -> "mouse.dragStart"
+        is PcControlCommand.DragEnd -> "mouse.dragEnd"
+        PcControlCommand.LeftClick -> "mouse.click"
+        PcControlCommand.DoubleClick -> "mouse.doubleClick"
+        PcControlCommand.RightClick -> "mouse.rightClick"
+        is PcControlCommand.TypeText -> "keyboard.typeText"
+        is PcControlCommand.PressKey -> "keyboard.key"
+        is PcControlCommand.WindowControl -> "window.control"
+    }
+}
+
+private fun PcPointerMovementProfile.supportsNoAck(command: PcControlCommand): Boolean {
+    return capabilities.noAckCommands.contains(command.protocolType()) ||
+            (command is PcControlCommand.Move && capabilities.noAckMouseMove)
 }

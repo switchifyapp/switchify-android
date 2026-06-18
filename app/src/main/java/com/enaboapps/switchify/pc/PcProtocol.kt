@@ -134,42 +134,99 @@ object PcProtocol {
         )
     }
 
-    fun mouseClick(id: String, deviceId: String, token: String, timestamp: Long, button: String = "left"): String {
-        return authenticatedCommand(id, deviceId, token, timestamp, "mouse.click", JSONObject().put("button", button))
+    fun mouseClick(
+        id: String,
+        deviceId: String,
+        token: String,
+        timestamp: Long,
+        button: String = "left",
+        responseMode: PcCommandResponseMode = PcCommandResponseMode.Ack
+    ): String {
+        return authenticatedCommand(id, deviceId, token, timestamp, "mouse.click", JSONObject().put("button", button), responseMode)
     }
 
-    fun mouseDoubleClick(id: String, deviceId: String, token: String, timestamp: Long, button: String = "left"): String {
-        return authenticatedCommand(id, deviceId, token, timestamp, "mouse.doubleClick", JSONObject().put("button", button))
+    fun mouseDoubleClick(
+        id: String,
+        deviceId: String,
+        token: String,
+        timestamp: Long,
+        button: String = "left",
+        responseMode: PcCommandResponseMode = PcCommandResponseMode.Ack
+    ): String {
+        return authenticatedCommand(id, deviceId, token, timestamp, "mouse.doubleClick", JSONObject().put("button", button), responseMode)
     }
 
-    fun mouseRightClick(id: String, deviceId: String, token: String, timestamp: Long): String {
-        return authenticatedCommand(id, deviceId, token, timestamp, "mouse.rightClick", JSONObject())
+    fun mouseRightClick(
+        id: String,
+        deviceId: String,
+        token: String,
+        timestamp: Long,
+        responseMode: PcCommandResponseMode = PcCommandResponseMode.Ack
+    ): String {
+        return authenticatedCommand(id, deviceId, token, timestamp, "mouse.rightClick", JSONObject(), responseMode)
     }
 
-    fun mouseScroll(id: String, deviceId: String, token: String, timestamp: Long, dx: Int, dy: Int): String {
-        return authenticatedCommand(id, deviceId, token, timestamp, "mouse.scroll", JSONObject().put("dx", dx).put("dy", dy))
+    fun mouseScroll(
+        id: String,
+        deviceId: String,
+        token: String,
+        timestamp: Long,
+        dx: Int,
+        dy: Int,
+        responseMode: PcCommandResponseMode = PcCommandResponseMode.Ack
+    ): String {
+        return authenticatedCommand(id, deviceId, token, timestamp, "mouse.scroll", JSONObject().put("dx", dx).put("dy", dy), responseMode)
     }
 
-    fun mouseDragStart(id: String, deviceId: String, token: String, timestamp: Long, button: String = "left"): String {
-        return authenticatedCommand(id, deviceId, token, timestamp, "mouse.dragStart", JSONObject().put("button", button))
+    fun mouseDragStart(
+        id: String,
+        deviceId: String,
+        token: String,
+        timestamp: Long,
+        button: String = "left",
+        responseMode: PcCommandResponseMode = PcCommandResponseMode.Ack
+    ): String {
+        return authenticatedCommand(id, deviceId, token, timestamp, "mouse.dragStart", JSONObject().put("button", button), responseMode)
     }
 
-    fun mouseDragEnd(id: String, deviceId: String, token: String, timestamp: Long, button: String = "left"): String {
-        return authenticatedCommand(id, deviceId, token, timestamp, "mouse.dragEnd", JSONObject().put("button", button))
+    fun mouseDragEnd(
+        id: String,
+        deviceId: String,
+        token: String,
+        timestamp: Long,
+        button: String = "left",
+        responseMode: PcCommandResponseMode = PcCommandResponseMode.Ack
+    ): String {
+        return authenticatedCommand(id, deviceId, token, timestamp, "mouse.dragEnd", JSONObject().put("button", button), responseMode)
     }
 
-    fun keyboardTypeText(id: String, deviceId: String, token: String, timestamp: Long, text: String): String {
-        return authenticatedCommand(id, deviceId, token, timestamp, "keyboard.typeText", JSONObject().put("text", text))
+    fun keyboardTypeText(
+        id: String,
+        deviceId: String,
+        token: String,
+        timestamp: Long,
+        text: String,
+        responseMode: PcCommandResponseMode = PcCommandResponseMode.Ack
+    ): String {
+        return authenticatedCommand(id, deviceId, token, timestamp, "keyboard.typeText", JSONObject().put("text", text), responseMode)
     }
 
-    fun keyboardKey(id: String, deviceId: String, token: String, timestamp: Long, key: PcKeyboardKey): String {
+    fun keyboardKey(
+        id: String,
+        deviceId: String,
+        token: String,
+        timestamp: Long,
+        key: PcKeyboardKey,
+        responseMode: PcCommandResponseMode = PcCommandResponseMode.Ack
+    ): String {
         return authenticatedCommand(
             id,
             deviceId,
             token,
             timestamp,
             "keyboard.key",
-            JSONObject().put("key", key.protocolValue)
+            JSONObject().put("key", key.protocolValue),
+            responseMode
         )
     }
 
@@ -178,7 +235,8 @@ object PcProtocol {
         deviceId: String,
         token: String,
         timestamp: Long,
-        action: PcWindowControlAction
+        action: PcWindowControlAction,
+        responseMode: PcCommandResponseMode = PcCommandResponseMode.Ack
     ): String {
         return authenticatedCommand(
             id,
@@ -186,7 +244,8 @@ object PcProtocol {
             token,
             timestamp,
             "window.control",
-            JSONObject().put("action", action.protocolValue)
+            JSONObject().put("action", action.protocolValue),
+            responseMode
         )
     }
 
@@ -309,8 +368,10 @@ object PcProtocol {
         if (capabilitiesJson != null && capabilitiesJson.has("noAckMouseMove") && capabilitiesJson.opt("noAckMouseMove") !is Boolean) {
             return PcProtocolResponse.Invalid
         }
+        val noAckCommands = parseNoAckCommands(capabilitiesJson) ?: return PcProtocolResponse.Invalid
         val capabilities = PcPointerCapabilities(
-            noAckMouseMove = capabilitiesJson?.optBoolean("noAckMouseMove", false) ?: false
+            noAckMouseMove = capabilitiesJson?.optBoolean("noAckMouseMove", false) ?: false,
+            noAckCommands = noAckCommands
         )
         val bounds = PcPointerBounds(
             x = boundsJson.optInt("x"),
@@ -347,4 +408,35 @@ object PcProtocol {
             )
         )
     }
+
+    private fun parseNoAckCommands(capabilitiesJson: JSONObject?): Set<String>? {
+        if (capabilitiesJson == null || !capabilitiesJson.has("noAckCommands")) return emptySet()
+        val commandsJson = capabilitiesJson.opt("noAckCommands")
+        if (commandsJson !is JSONArray) return null
+
+        val commands = mutableSetOf<String>()
+        for (index in 0 until commandsJson.length()) {
+            val command = commandsJson.opt(index)
+            if (command !is String) return null
+            if (command in NO_ACK_CONTROL_COMMAND_TYPES) {
+                commands += command
+            }
+        }
+        return commands
+    }
+
+    private val NO_ACK_CONTROL_COMMAND_TYPES = setOf(
+        "mouse.move",
+        "mouse.click",
+        "mouse.doubleClick",
+        "mouse.rightClick",
+        "mouse.scroll",
+        "mouse.dragStart",
+        "mouse.dragEnd",
+        "keyboard.key",
+        "keyboard.shortcut",
+        "keyboard.typeText",
+        "media.control",
+        "window.control"
+    )
 }

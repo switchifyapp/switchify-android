@@ -97,11 +97,7 @@ class PcMouseControlViewModel(
             }
             else -> command
         }
-        if (commandToSend is PcControlCommand.Move) {
-            sendRealtimeMove(commandToSend)
-            return
-        }
-        sendCommand(commandToSend) {
+        sendNoAckCommand(commandToSend) {
             it.copy(
                 isDragging = when (commandToSend) {
                     is PcControlCommand.DragStart -> true
@@ -115,7 +111,10 @@ class PcMouseControlViewModel(
         }
     }
 
-    private fun sendRealtimeMove(command: PcControlCommand.Move) {
+    private fun sendNoAckCommand(
+        command: PcControlCommand,
+        onSent: (PcMouseControlUiState) -> PcMouseControlUiState = { it.copy(message = null) }
+    ) {
         val controller = serviceControllerProvider()
         val state = controller?.state?.value
         if (controller == null || !controller.hasLiveControlSession()) {
@@ -130,10 +129,30 @@ class PcMouseControlViewModel(
 
         viewModelScope.launch {
             when (val result = controller.sendRealtimeControlCommand(command)) {
-                PcCommandResult.Ack -> _uiState.update { it.copy(message = null) }
-                is PcCommandResult.AuthFailed -> _uiState.update { it.copy(message = result.message) }
+                PcCommandResult.Ack -> _uiState.update(onSent)
+                is PcCommandResult.AuthFailed -> _uiState.update {
+                    it.copy(
+                        message = result.message,
+                        typingMessage = if (command is PcControlCommand.TypeText || command is PcControlCommand.PressKey) {
+                            result.message
+                        } else {
+                            it.typingMessage
+                        }
+                    )
+                }
                 is PcCommandResult.Failed -> _uiState.update {
-                    it.copy(message = result.message.ifBlank { COMMAND_FAILED_MESSAGE })
+                    it.copy(
+                        message = if (command is PcControlCommand.TypeText || command is PcControlCommand.PressKey) {
+                            it.message
+                        } else {
+                            result.message.ifBlank { COMMAND_FAILED_MESSAGE }
+                        },
+                        typingMessage = when (command) {
+                            is PcControlCommand.TypeText -> TYPING_FAILED_MESSAGE
+                            is PcControlCommand.PressKey -> KEY_FAILED_MESSAGE
+                            else -> it.typingMessage
+                        }
+                    )
                 }
             }
         }
@@ -177,7 +196,7 @@ class PcMouseControlViewModel(
             return
         }
         if (text.isEmpty()) return
-        sendCommand(PcControlCommand.TypeText(text)) {
+        sendNoAckCommand(PcControlCommand.TypeText(text)) {
             it.copy(
                 isBusy = false,
                 busyCommand = null,
@@ -189,7 +208,7 @@ class PcMouseControlViewModel(
     }
 
     fun sendKey(key: PcKeyboardKey) {
-        sendCommand(PcControlCommand.PressKey(key)) {
+        sendNoAckCommand(PcControlCommand.PressKey(key)) {
             it.copy(
                 isBusy = false,
                 busyCommand = null,

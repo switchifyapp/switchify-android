@@ -10,7 +10,8 @@ data class PcPointerMovementProfile(
 )
 
 data class PcPointerCapabilities(
-    val noAckMouseMove: Boolean = false
+    val noAckMouseMove: Boolean = false,
+    val noAckCommands: Set<String> = emptySet()
 )
 
 data class PcPointerBounds(
