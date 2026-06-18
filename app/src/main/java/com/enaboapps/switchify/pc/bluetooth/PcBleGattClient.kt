@@ -17,6 +17,7 @@ import com.enaboapps.switchify.pc.PcBluetoothEndpoint
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -86,7 +87,16 @@ private class PcBleGattConnection private constructor(
         writeMutex.withLock {
             val completion = CompletableDeferred<Boolean>()
             writeRequests.send(GattWriteRequest(rxCharacteristic, BluetoothFrameCodec.encode(frame), completion))
-            if (!completion.await()) throw IllegalStateException("Bluetooth write failed.")
+            val completed = try {
+                withTimeout(GATT_WRITE_TIMEOUT_MS) { completion.await() }
+            } catch (error: TimeoutCancellationException) {
+                close("write_timeout")
+                throw IllegalStateException("Bluetooth write timed out.", error)
+            }
+            if (!completed) {
+                close("write_failed")
+                throw IllegalStateException("Bluetooth write failed.")
+            }
         }
     }
 
@@ -277,4 +287,5 @@ internal fun Context.isBluetoothEnabled(): Boolean {
 
 private const val GATT_CONNECT_TIMEOUT_MS = 10_000L
 private const val GATT_NOTIFY_TIMEOUT_MS = 5_000L
+private const val GATT_WRITE_TIMEOUT_MS = 2_000L
 private const val TAG = "PcBleGattClient"
