@@ -6,7 +6,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBars
@@ -27,6 +27,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.enaboapps.switchify.theme.Dimens
@@ -41,6 +42,7 @@ data class NavBarAction(
 @Composable
 fun NavBar(
     title: String,
+    titleContent: (@Composable () -> Unit)? = null,
     navController: NavController? = null,
     actions: List<NavBarAction> = emptyList(),
     showBackButton: Boolean? = null,
@@ -71,8 +73,8 @@ fun NavBar(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(56.dp)
-                    .padding(horizontal = 4.dp),
+                    .heightIn(min = 56.dp)
+                    .padding(horizontal = 4.dp, vertical = 6.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 if (canGoBack) {
@@ -87,14 +89,20 @@ fun NavBar(
                     }
                 }
 
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.onPrimary,
+                Box(
                     modifier = Modifier
                         .weight(1f)
-                        .padding(start = if (canGoBack) 0.dp else Dimens.spaceM)
-                )
+                        .padding(start = if (canGoBack) 0.dp else Dimens.spaceM),
+                    contentAlignment = Alignment.CenterStart
+                ) {
+                    titleContent?.invoke() ?: Text(
+                        text = title,
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
 
                 actions.forEach { action ->
                     if (action.icon != null) {

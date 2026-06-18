@@ -2,6 +2,7 @@ package com.enaboapps.switchify.utils
 
 import android.content.Context
 import android.util.Log
+import com.enaboapps.switchify.service.utils.DeviceLockObserver
 import com.google.gson.Gson
 import java.io.File
 
@@ -19,7 +20,6 @@ object CrashReporter {
     )
 
     fun install(context: Context) {
-        val appContext = context.applicationContext
         val previous = Thread.getDefaultUncaughtExceptionHandler()
         Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
             try {
@@ -30,8 +30,7 @@ object CrashReporter {
                     threadName = thread.name,
                     timestamp = System.currentTimeMillis()
                 )
-                val file = File(appContext.filesDir, CRASH_FILE)
-                file.writeText(gson.toJson(record))
+                crashFile(context).writeText(gson.toJson(record))
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to write crash record", e)
             }
@@ -40,12 +39,21 @@ object CrashReporter {
     }
 
     fun uploadPendingCrashIfPresent(context: Context) {
-        val file = File(context.filesDir, CRASH_FILE)
+        uploadCrashFile(crashFile(context))
+
+        if (DeviceLockObserver.isUserUnlocked(context)) {
+            val protectedFile = crashFile(context)
+            val legacyFile = legacyCrashFile(context)
+            if (legacyFile.absolutePath != protectedFile.absolutePath) {
+                uploadCrashFile(legacyFile)
+            }
+        }
+    }
+
+    private fun uploadCrashFile(file: File) {
         if (!file.exists()) return
         try {
             val record = gson.fromJson(file.readText(), CrashRecord::class.java)
-            // Pass throwable=null — the real stack trace is in data["stackTrace"].
-            // userId may be null here since auth hasn't initialised yet on this launch; that's expected.
             Logger.log(
                 event = LogEvent.UnhandledCrash,
                 data = mapOf(
@@ -62,5 +70,15 @@ object CrashReporter {
         } finally {
             file.delete()
         }
+    }
+
+    private fun crashFile(context: Context): File {
+        val protectedContext = context.applicationContext.createDeviceProtectedStorageContext()
+            ?: context.applicationContext
+        return File(protectedContext.filesDir, CRASH_FILE)
+    }
+
+    private fun legacyCrashFile(context: Context): File {
+        return File(context.applicationContext.filesDir, CRASH_FILE)
     }
 }

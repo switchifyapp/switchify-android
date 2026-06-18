@@ -58,7 +58,14 @@ class ExternalSwitchListener(
 
         val scanningManager = ServiceCore.getScanningManager()
         if (scanningManager != null) {
-            if (scanningManager.checkOngoingTasks()) return false
+            if (scanningManager.checkOngoingTasks()) {
+                // The press was consumed by stopping/advancing an ongoing task
+                // (e.g. auto scroll). Clear the latest action so the matching
+                // release is swallowed without firing a stale press action, and
+                // absorb the key event so it does not leak to the foreground app.
+                latestAction = null
+                return true
+            }
         }
 
         val pauseManager = ServiceCore.getPauseManager()

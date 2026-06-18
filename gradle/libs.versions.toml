@@ -24,6 +24,8 @@ ksp = "2.3.4"
 reorderable = "3.1.0"
 supabase = "3.6.0"
 ktor = "3.5.0"
+coroutines-test = "1.10.2"
+json = "20240303"
 mlkit-genai = "1.0.0-beta2"
 
 [libraries]
@@ -70,6 +72,8 @@ supabase-auth = { group = "io.github.jan-tennert.supabase", name = "auth-kt" }
 supabase-realtime = { group = "io.github.jan-tennert.supabase", name = "realtime-kt" }
 ktor-client-android = { group = "io.ktor", name = "ktor-client-android", version.ref = "ktor" }
 reorderable = { group = "sh.calvin.reorderable", name = "reorderable", version.ref = "reorderable" }
+coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "coroutines-test" }
+json = { group = "org.json", name = "json", version.ref = "json" }
 
 [plugins]
 compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }

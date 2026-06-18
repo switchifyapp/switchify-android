@@ -3,6 +3,7 @@ package com.enaboapps.switchify.backend.preferences
 import android.content.Context
 import android.content.SharedPreferences
 import androidx.core.content.edit
+import java.util.UUID
 
 class PreferenceManager(context: Context) {
 
@@ -24,6 +25,8 @@ class PreferenceManager(context: Context) {
         const val PREFERENCE_KEY_PAUSE_TIMEOUT = "pause_timeout"
         const val PREFERENCE_KEY_MOVE_REPEAT = "move_repeat"
         const val PREFERENCE_KEY_MOVE_REPEAT_DELAY = "move_repeat_delay"
+        const val PREFERENCE_KEY_PC_MOUSE_MOVEMENT_SIZE = "pc_mouse_movement_size"
+        const val PREFERENCE_KEY_PC_CONTROL_SURFACE = "pc_control_surface"
         const val PREFERENCE_KEY_AUTOMATICALLY_START_SCAN_AFTER_SELECTION =
             "automatically_start_scan_after_selection"
         const val PREFERENCE_KEY_PAUSE_ON_FIRST_ITEM = "pause_on_first_item"
@@ -43,6 +46,7 @@ class PreferenceManager(context: Context) {
         const val PREFERENCE_KEY_STOP_PATTERN_ON_SWITCH = "stop_pattern_on_switch"
         const val PREFERENCE_KEY_GESTURE_PATTERN_MANUAL_PROGRESSION = "gesture_pattern_manual_progression"
         const val PREFERENCE_KEY_GESTURE_LOCK = "gesture_lock"
+        const val PREFERENCE_KEY_GESTURE_LOCK_AUTO_REENABLE = "gesture_lock_auto_reenable"
         const val PREFERENCE_KEY_SCAN_COLOR_SET = "scan_color_set"
         const val PREFERENCE_KEY_SCAN_HIGHLIGHT_TYPE = "scan_highlight_type"
         const val PREFERENCE_KEY_MENU_TRANSPARENCY = "menu_transparency"
@@ -247,6 +251,14 @@ class PreferenceManager(context: Context) {
         } catch (e: ClassCastException) {
             defaultValue
         }
+    }
+
+    fun getOrCreateDeviceId(): String {
+        val existing = getStringValue(PREFERENCE_KEY_DEVICE_ID)
+        if (existing.isNotEmpty()) return existing
+        val generated = UUID.randomUUID().toString()
+        setStringValue(PREFERENCE_KEY_DEVICE_ID, generated)
+        return generated
     }
 
     /**

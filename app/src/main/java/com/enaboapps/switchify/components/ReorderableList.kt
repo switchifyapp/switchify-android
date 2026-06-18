@@ -39,6 +39,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.enaboapps.switchify.R
 import sh.calvin.reorderable.ReorderableItem
@@ -173,7 +174,11 @@ private fun ReorderModeToggle(
             shape = SegmentedButtonDefaults.itemShape(index = 0, count = totalCount),
             colors = colors
         ) {
-            Text(stringResource(R.string.reorder_mode_drag))
+            Text(
+                text = stringResource(R.string.reorder_mode_drag),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
         }
         SegmentedButton(
             selected = currentMode == ReorderMode.ARROWS,
@@ -181,7 +186,11 @@ private fun ReorderModeToggle(
             shape = SegmentedButtonDefaults.itemShape(index = 1, count = totalCount),
             colors = colors
         ) {
-            Text(stringResource(R.string.reorder_mode_arrows))
+            Text(
+                text = stringResource(R.string.reorder_mode_arrows),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
         }
         if (showSelect) {
             SegmentedButton(
@@ -190,7 +199,11 @@ private fun ReorderModeToggle(
                 shape = SegmentedButtonDefaults.itemShape(index = 2, count = totalCount),
                 colors = colors
             ) {
-                Text(stringResource(R.string.reorder_mode_select))
+                Text(
+                    text = stringResource(R.string.reorder_mode_select),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
             }
         }
     }

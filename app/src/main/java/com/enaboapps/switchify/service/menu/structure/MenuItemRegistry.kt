@@ -27,6 +27,7 @@ object MenuItemRegistry {
             MenuItemDefinition(MenuConstants.ItemIds.Main.DEVICE, labelResource = R.string.menu_title_device, descriptionResource = R.string.menu_item_device_description, drawableId = R.drawable.ic_device),
             MenuItemDefinition(MenuConstants.ItemIds.Main.SETTINGS, labelResource = R.string.menu_item_settings, descriptionResource = R.string.menu_item_settings_description, drawableId = R.drawable.ic_settings),
             MenuItemDefinition(MenuConstants.ItemIds.Main.MEDIA_CONTROL, labelResource = R.string.menu_title_media_control, descriptionResource = R.string.menu_item_media_control_description, drawableId = R.drawable.ic_media_control),
+            MenuItemDefinition(MenuConstants.ItemIds.Main.CONTROL_PC, labelResource = R.string.menu_item_control_pc, descriptionResource = R.string.menu_item_control_pc_description, drawableId = R.drawable.ic_control_pc),
             MenuItemDefinition(MenuConstants.ItemIds.Main.EDIT, labelResource = R.string.menu_title_edit, descriptionResource = R.string.menu_item_edit_description, drawableId = R.drawable.ic_edit),
             MenuItemDefinition(MenuConstants.ItemIds.Main.AI, labelResource = R.string.menu_title_ai, descriptionResource = R.string.menu_item_ai_description, drawableId = R.drawable.ic_ai),
             MenuItemDefinition(MenuConstants.ItemIds.Main.PAUSE, labelResource = R.string.menu_item_pause, descriptionResource = R.string.menu_item_pause_description, drawableId = R.drawable.ic_pause)
@@ -44,7 +45,8 @@ object MenuItemRegistry {
             MenuItemDefinition(MenuConstants.ItemIds.Settings.SWITCH_TO_RADAR, labelResource = R.string.access_technique_radar, descriptionResource = R.string.menu_item_switch_to_radar_description, drawableId = R.drawable.ic_radar),
             MenuItemDefinition(MenuConstants.ItemIds.Settings.SWITCH_TO_POINT_SCAN, labelResource = R.string.access_technique_point_scan, descriptionResource = R.string.menu_item_switch_to_point_scan_description, drawableId = R.drawable.ic_point_scan),
             MenuItemDefinition(MenuConstants.ItemIds.Settings.TOGGLE_HEAD_CONTROL, labelResource = R.string.menu_item_enable_head_control, descriptionResource = R.string.menu_item_toggle_head_control_description, drawableId = R.drawable.ic_head_control_pointer),
-            MenuItemDefinition(MenuConstants.ItemIds.Settings.TOGGLE_GROUP_SCAN, labelResource = R.string.menu_item_group_scan, descriptionResource = R.string.menu_item_group_scan_description, drawableId = R.drawable.ic_toggle_group_scan)
+            MenuItemDefinition(MenuConstants.ItemIds.Settings.TOGGLE_GROUP_SCAN, labelResource = R.string.menu_item_group_scan, descriptionResource = R.string.menu_item_group_scan_description, drawableId = R.drawable.ic_toggle_group_scan),
+            MenuItemDefinition(MenuConstants.ItemIds.Settings.TOGGLE_GESTURE_LOCK_REARM, labelResource = R.string.preference_title_gesture_lock_auto_reenable, descriptionResource = R.string.menu_item_gesture_lock_rearm_description, drawableId = R.drawable.ic_toggle_gesture_lock)
         )
     }
 

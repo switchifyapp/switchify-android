@@ -12,9 +12,11 @@ import com.enaboapps.switchify.service.menu.menus.gestures.SwipeGesturesMenu
 import com.enaboapps.switchify.service.menu.menus.gestures.TapAndHoldGesturesMenu
 import com.enaboapps.switchify.service.menu.menus.gestures.TapGesturesMenu
 import com.enaboapps.switchify.service.menu.menus.gestures.PinchGesturesMenu
+import com.enaboapps.switchify.pc.DiscoveredPc
 import com.enaboapps.switchify.service.menu.menus.main.MainMenu
 import com.enaboapps.switchify.service.menu.menus.media.MediaControlMenu
 import com.enaboapps.switchify.service.menu.menus.favouriteapps.FavouriteAppsMenu
+import com.enaboapps.switchify.service.menu.menus.pc.ChoosePcMenu
 import com.enaboapps.switchify.service.menu.menus.scroll.ScrollMenu
 import com.enaboapps.switchify.service.menu.menus.settings.SettingsMenu
 import com.enaboapps.switchify.service.menu.menus.system.DeviceMenu
@@ -234,6 +236,16 @@ class MenuManager {
     fun openFavouriteAppsMenu() {
         val favouriteAppsMenu = FavouriteAppsMenu(accessibilityService!!)
         openMenu(favouriteAppsMenu.build())
+    }
+
+    /**
+     * This function opens the PC chooser menu listing the given discovered PCs
+     * @param pcs The PCs discovered on the local network
+     * @param onSelect Invoked with the chosen PC after the menu closes
+     */
+    fun openChoosePcMenu(pcs: List<DiscoveredPc>, onSelect: (DiscoveredPc) -> Unit) {
+        val choosePcMenu = ChoosePcMenu(accessibilityService!!, pcs, onSelect)
+        openMenu(choosePcMenu.build())
     }
 
     /**

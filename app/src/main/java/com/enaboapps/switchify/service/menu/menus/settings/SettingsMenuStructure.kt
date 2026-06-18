@@ -4,6 +4,7 @@ import com.enaboapps.switchify.R
 import com.enaboapps.switchify.service.camera.CameraPermissionManager
 import com.enaboapps.switchify.service.core.ServiceCore
 import com.enaboapps.switchify.service.core.SwitchifyAccessibilityService
+import com.enaboapps.switchify.service.gestures.GestureLockManager
 import com.enaboapps.switchify.service.menu.MenuItem
 import com.enaboapps.switchify.service.menu.MenuManager
 import com.enaboapps.switchify.service.menu.structure.MenuConstants
@@ -121,6 +122,33 @@ class SettingsMenuStructure(
                         prefManager.setBooleanValue(
                             PreferenceManager.PREFERENCE_KEY_GROUP_SCAN,
                             !currentlyEnabled
+                        )
+                        MenuManager.getInstance().closeMenuHierarchy()
+                    }
+                )
+            },
+            MenuItemRegistry.getDefinition(
+                MenuConstants.MenuIds.SETTINGS_MENU,
+                MenuConstants.ItemIds.Settings.TOGGLE_GESTURE_LOCK_REARM
+            )?.let { def ->
+                val prefManager = PreferenceManager(accessibilityService)
+                val currentlyEnabled = prefManager.getBooleanValue(
+                    PreferenceManager.PREFERENCE_KEY_GESTURE_LOCK_AUTO_REENABLE,
+                    false
+                )
+                val stateLabel = accessibilityService.getString(
+                    if (currentlyEnabled) R.string.menu_item_turn_gesture_lock_rearm_off
+                    else R.string.menu_item_turn_gesture_lock_rearm_on
+                )
+                MenuItem(
+                    id = def.id,
+                    userProvidedText = stateLabel,
+                    descriptionResource = def.descriptionResource,
+                    drawableId = def.drawableId,
+                    action = {
+                        GestureLockManager.instance.toggleAutoReenable(
+                            context = accessibilityService,
+                            syncGestureLock = true
                         )
                         MenuManager.getInstance().closeMenuHierarchy()
                     }

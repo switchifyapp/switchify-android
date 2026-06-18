@@ -135,13 +135,14 @@ class MenuView(
         // whether pagination will actually kick in here (chicken/egg), so we
         // assume the nav row will be present — that's a slight over-budget
         // which only makes pagination a hair more conservative.
-        val perPage = MenuSurfaceBudget.rowsPerPage(
+        val rowBudget = MenuSurfaceBudget.rowsPerPage(
             context = context,
             itemSize = itemSize,
             smallItemSize = smallItemSize,
             hasTitle = titleResId != null,
             willShowNavRow = true
         )
+        val perPage = rowBudget
         numOfPages = ((menuItems.size + perPage - 1) / perPage).coerceAtLeast(1)
         for (i in 0 until numOfPages) {
             val start = i * perPage

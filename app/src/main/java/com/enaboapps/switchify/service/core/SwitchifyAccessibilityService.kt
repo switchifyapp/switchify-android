@@ -7,12 +7,14 @@ import android.view.KeyEvent
 import android.view.accessibility.AccessibilityEvent
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
+import com.enaboapps.switchify.backend.data.FileManager
 import com.enaboapps.switchify.backend.iap.IAPHandler
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.service.actions.AudioActionManager
 import com.enaboapps.switchify.service.actions.GlobalActionManager
 import com.enaboapps.switchify.service.camera.CameraManager
 import com.enaboapps.switchify.service.gestures.GestureManager
+import com.enaboapps.switchify.pc.PcServiceConnectionController
 import com.enaboapps.switchify.service.scanning.ScanSettings
 import com.enaboapps.switchify.service.selection.SelectionHandler
 import com.enaboapps.switchify.service.stats.StatsCollector
@@ -21,6 +23,7 @@ import com.enaboapps.switchify.service.techniques.AccessTechnique
 import com.enaboapps.switchify.service.trial.ServiceTrialManager
 import com.enaboapps.switchify.service.trial.ServiceTrialOverlay
 import com.enaboapps.switchify.service.utils.DeviceLockObserver
+import com.enaboapps.switchify.service.window.ServiceStartupSplash
 import com.enaboapps.switchify.service.window.SwitchifyAccessibilityWindow
 import com.enaboapps.switchify.utils.LogEvent
 import com.enaboapps.switchify.utils.Logger
@@ -49,6 +52,7 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
     private lateinit var startupOrchestrator: StartupOrchestrator
     private lateinit var nodeUpdateCoordinator: NodeUpdateCoordinator
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    private var protectedStorageMigrationAttempted = false
 
     private lateinit var eventPipeline: AccessibilityEventPipeline
 
@@ -105,8 +109,6 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
         val externalSwitchListener = ServiceCore.getExternalSwitchListener() ?: return
         val switchEventProvider = ServiceCore.getSwitchEventProvider() ?: return
 
-        switchEventProvider.addCameraSwitchListener(this)
-
         screenWatcherManager.register(scanningManager, externalSwitchListener)
 
         scanSettings = ScanSettings(this)
@@ -120,8 +122,8 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
             onServiceConnected = { setupCameraServiceCallbacks() }
         )
 
-        // Register camera manager with ServiceCore for HeadControl coordination
         ServiceCore.setCameraManager(cameraManager)
+        switchEventProvider.addCameraSwitchListener(this)
         eventPipeline =
             AccessibilityEventPipeline(serviceScope) { nodeUpdateCoordinator.processAccessibilityUpdate() }
         eventPipeline.start()
@@ -161,17 +163,68 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
     private fun initProtectedServiceComponents() {
         if (deviceLockObserver.isUserUnlocked()) {
             logd("Device unlocked, initializing protected components")
-            // Initialize components that require device unlock
+            migrateToProtectedStorageIfUnlocked()
             IAPHandler.connect(context = this)
-            // Evaluate camera state now that switches are loaded
+            startTrialOverlayIfNeeded()
             cameraManager.evaluateAndUpdateCameraState()
-            // Initialize StatsCollector now that device is unlocked and flush any queued events
+            initPcServiceConnectionControllerIfNeeded()
             val statsCollector = StatsCollector.getInstance()
             statsCollector.ensureInitialized()
             serviceScope.launch {
                 statsCollector.forceFlush()
             }
         }
+    }
+
+    private fun migrateToProtectedStorageIfUnlocked() {
+        if (protectedStorageMigrationAttempted || !deviceLockObserver.isUserUnlocked()) return
+        protectedStorageMigrationAttempted = true
+
+        try {
+            PreferenceManager(this).migrateToProtectedStorage()
+        } catch (e: Exception) {
+            Logger.log(
+                LogEvent.AppSetupStageFailed,
+                data = mapOf(
+                    "result" to "failure",
+                    "stage" to "service_preferences_migration",
+                    "reason" to "exception"
+                ),
+                throwable = e
+            )
+        }
+
+        serviceScope.launch(Dispatchers.IO) {
+            try {
+                FileManager.create(this@SwitchifyAccessibilityService)
+                    .migrateFromRegularStorage(this@SwitchifyAccessibilityService)
+                ServiceCore.getSwitchEventProvider()?.reload("protected_storage_migrated")
+            } catch (e: Exception) {
+                Logger.log(
+                    LogEvent.AppSetupStageFailed,
+                    data = mapOf(
+                        "result" to "failure",
+                        "stage" to "service_file_migration",
+                        "reason" to "exception"
+                    ),
+                    throwable = e
+                )
+            }
+        }
+    }
+
+    private fun startTrialOverlayIfNeeded() {
+        if (!deviceLockObserver.isUserUnlocked()) return
+        trialManager.startTrial()
+        if (trialManager.isTrialActive() && !IAPHandler.isPro()) {
+            trialOverlay.showOverlay()
+            trialOverlay.startUpdates()
+        }
+    }
+
+    private fun initPcServiceConnectionControllerIfNeeded() {
+        if (ServiceCore.getPcServiceConnectionController() != null) return
+        ServiceCore.setPcServiceConnectionController(PcServiceConnectionController(this, serviceScope))
     }
 
 
@@ -213,14 +266,9 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
 
         setup()
 
-        // Start the 1-hour trial for this service session
-        trialManager.startTrial()
+        ServiceStartupSplash.instance.show()
 
-        // Show trial overlay for non-Pro users
-        if (trialManager.isTrialActive() && !IAPHandler.isPro()) {
-            trialOverlay.showOverlay()
-            trialOverlay.startUpdates()
-        }
+        startTrialOverlayIfNeeded()
 
         Logger.log(LogEvent.ServiceConnected)
 
@@ -315,7 +363,7 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
 
     override fun onCameraSwitchAvailabilityChanged(available: Boolean) {
         logd("Camera switch availability changed: $available")
-        // Re-evaluate camera state when switches change
+        if (!::cameraManager.isInitialized) return
         cameraManager.evaluateAndUpdateCameraState()
     }
 

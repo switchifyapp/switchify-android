@@ -1,7 +1,9 @@
 package com.enaboapps.switchify.service.gestures
 
 import android.accessibilityservice.AccessibilityService
+import android.content.Context
 import com.enaboapps.switchify.R
+import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.service.gestures.data.GestureData
 import com.enaboapps.switchify.service.window.MessageSeverity
 import com.enaboapps.switchify.service.window.ServiceMessageHUD
@@ -14,6 +16,10 @@ class GestureLockManager private constructor() {
     private var timeoutTimer: Timer? = null
     private val lockTimeout = 120000L
     private var accessibilityService: AccessibilityService? = null
+    private var autoReenableProviderForTesting: (() -> Boolean)? = null
+    private var autoReenableSetterForTesting: ((Boolean) -> Unit)? = null
+    private var suppressHudForTesting = false
+    private var messageRecorderForTesting: ((Int) -> Unit)? = null
 
     companion object {
         val instance: GestureLockManager by lazy { GestureLockManager() }
@@ -23,37 +29,48 @@ class GestureLockManager private constructor() {
         accessibilityService = service
     }
 
+    fun toggleAutoReenable(context: Context, syncGestureLock: Boolean = false) {
+        val nextEnabled = !isAutoReenableEnabled(context)
+        setAutoReenableEnabled(context, nextEnabled)
+        applyAutoReenableToggleResult(nextEnabled, syncGestureLock)
+    }
+
+    private fun applyAutoReenableToggleResult(nextEnabled: Boolean, syncGestureLock: Boolean) {
+        showMessage(
+            if (nextEnabled) R.string.gesture_lock_rearm_enabled
+            else R.string.gesture_lock_rearm_disabled,
+            MessageSeverity.Info
+        )
+        if (syncGestureLock) {
+            if (nextEnabled) {
+                enableLockForNextGesture(showMessage = true)
+            } else {
+                disableLock(allowAutoReenable = false, showMessage = true)
+            }
+        }
+    }
+
     // Function to lock/unlock the gesture lock, showing a message to the user
     fun toggleGestureLock() {
         stopTimer()
 
-        isLocked = !isLocked
-        if (isLocked) {
-            ServiceMessageHUD.instance.showMessage(
-                R.string.gesture_lock_enabled,
-                ServiceMessageHUD.MessageType.DISAPPEARING,
-                severity = MessageSeverity.Info
-            )
+        if (!isLocked) {
+            enableLockForNextGesture(showMessage = true)
         } else {
-            ServiceMessageHUD.instance.showMessage(
-                R.string.gesture_lock_disabled,
-                ServiceMessageHUD.MessageType.DISAPPEARING,
-                severity = MessageSeverity.Info
-            )
-
-            // Clear the locked gesture data
-            lockedGestureData = null
+            showMessage(R.string.gesture_lock_disabled, MessageSeverity.Info)
+            disableLockInternal(allowAutoReenable = true)
         }
     }
 
     /**
      * Explicitly disable the gesture lock.
      */
-    fun disableLock() {
+    fun disableLock(allowAutoReenable: Boolean = true, showMessage: Boolean = false) {
         if (isLocked) {
-            isLocked = false
-            lockedGestureData = null
-            stopTimer()
+            if (showMessage) {
+                showMessage(R.string.gesture_lock_disabled, MessageSeverity.Info)
+            }
+            disableLockInternal(allowAutoReenable)
         }
     }
 
@@ -94,8 +111,10 @@ class GestureLockManager private constructor() {
             } else {
                 null
             }
-        if (isLocked) {
+        if (lockedGestureData != null) {
             startTimer()
+        } else {
+            stopTimer()
         }
     }
 
@@ -107,13 +126,7 @@ class GestureLockManager private constructor() {
         timeoutTimer = Timer()
         timeoutTimer?.schedule(object : TimerTask() {
             override fun run() {
-                isLocked = false
-                setLockedGestureData(null)
-                ServiceMessageHUD.instance.showMessage(
-                    R.string.gesture_lock_timeout_disabled,
-                    ServiceMessageHUD.MessageType.DISAPPEARING,
-                    severity = MessageSeverity.Warning
-                )
+                handleLockTimeout()
             }
         }, lockTimeout)
     }
@@ -124,5 +137,113 @@ class GestureLockManager private constructor() {
     fun stopTimer() {
         timeoutTimer?.cancel()
         timeoutTimer = null
+    }
+
+    private fun enableLockForNextGesture(showMessage: Boolean) {
+        isLocked = true
+        lockedGestureData = null
+        stopTimer()
+        if (showMessage) {
+            showMessage(R.string.gesture_lock_enabled, MessageSeverity.Info)
+        }
+    }
+
+    private fun disableLockInternal(allowAutoReenable: Boolean) {
+        val hadGesture = lockedGestureData != null
+        isLocked = false
+        lockedGestureData = null
+        stopTimer()
+        if (allowAutoReenable && hadGesture && isAutoReenableEnabled()) {
+            isLocked = true
+            showMessage(R.string.gesture_lock_rearmed, MessageSeverity.Info)
+        }
+    }
+
+    private fun handleLockTimeout() {
+        val hadGesture = lockedGestureData != null
+        isLocked = false
+        lockedGestureData = null
+        stopTimer()
+        showMessage(R.string.gesture_lock_timeout_disabled, MessageSeverity.Warning)
+        if (hadGesture && isAutoReenableEnabled()) {
+            isLocked = true
+            showMessage(R.string.gesture_lock_rearmed, MessageSeverity.Info)
+        }
+    }
+
+    private fun isAutoReenableEnabled(): Boolean {
+        autoReenableProviderForTesting?.let { return it() }
+        return accessibilityService?.let {
+            PreferenceManager(it).getBooleanValue(
+                PreferenceManager.PREFERENCE_KEY_GESTURE_LOCK_AUTO_REENABLE,
+                false
+            )
+        } ?: false
+    }
+
+    private fun isAutoReenableEnabled(context: Context): Boolean {
+        autoReenableProviderForTesting?.let { return it() }
+        return PreferenceManager(context).getBooleanValue(
+            PreferenceManager.PREFERENCE_KEY_GESTURE_LOCK_AUTO_REENABLE,
+            false
+        )
+    }
+
+    private fun setAutoReenableEnabled(context: Context, enabled: Boolean) {
+        autoReenableSetterForTesting?.let {
+            it(enabled)
+            return
+        }
+        PreferenceManager(context).setBooleanValue(
+            PreferenceManager.PREFERENCE_KEY_GESTURE_LOCK_AUTO_REENABLE,
+            enabled
+        )
+    }
+
+    private fun showMessage(messageResId: Int, severity: MessageSeverity) {
+        messageRecorderForTesting?.invoke(messageResId)
+        if (suppressHudForTesting) return
+        ServiceMessageHUD.instance.showMessage(
+            messageResId,
+            ServiceMessageHUD.MessageType.DISAPPEARING,
+            severity = severity
+        )
+    }
+
+    internal fun handleLockTimeoutForTesting() {
+        handleLockTimeout()
+    }
+
+    internal fun setAutoReenableProviderForTesting(provider: (() -> Boolean)?) {
+        autoReenableProviderForTesting = provider
+    }
+
+    internal fun setAutoReenableSetterForTesting(setter: ((Boolean) -> Unit)?) {
+        autoReenableSetterForTesting = setter
+    }
+
+    internal fun setSuppressHudForTesting(suppress: Boolean) {
+        suppressHudForTesting = suppress
+    }
+
+    internal fun setMessageRecorderForTesting(recorder: ((Int) -> Unit)?) {
+        messageRecorderForTesting = recorder
+    }
+
+    internal fun toggleAutoReenableForTesting(syncGestureLock: Boolean) {
+        val nextEnabled = !isAutoReenableEnabled()
+        autoReenableSetterForTesting?.invoke(nextEnabled)
+        applyAutoReenableToggleResult(nextEnabled, syncGestureLock)
+    }
+
+    internal fun resetForTesting() {
+        isLocked = false
+        lockedGestureData = null
+        stopTimer()
+        accessibilityService = null
+        autoReenableProviderForTesting = null
+        autoReenableSetterForTesting = null
+        suppressHudForTesting = false
+        messageRecorderForTesting = null
     }
 }

@@ -28,7 +28,8 @@ data class SwitchAction(
             ACTION_SYS_NOTIFICATIONS,
             ACTION_SYS_LOCK_SCREEN,
             ACTION_SYS_HEADSET_HOOK,
-            ACTION_PAUSE
+            ACTION_PAUSE,
+            ACTION_TOGGLE_GESTURE_LOCK_REARM
         ).map { SwitchAction(it) }
 
         const val ACTION_NONE = 0
@@ -46,6 +47,7 @@ data class SwitchAction(
         const val ACTION_SYS_LOCK_SCREEN = 12
         const val ACTION_SYS_HEADSET_HOOK = 13
         const val ACTION_PAUSE = 14
+        const val ACTION_TOGGLE_GESTURE_LOCK_REARM = 15
     }
 
     fun toMap(): Map<String, Any?> = mapOf("id" to id)
@@ -66,6 +68,7 @@ data class SwitchAction(
         ACTION_SYS_LOCK_SCREEN -> Resources.getString(R.string.system_lock_screen)
         ACTION_SYS_HEADSET_HOOK -> Resources.getString(R.string.action_headset)
         ACTION_PAUSE -> Resources.getString(R.string.action_pause)
+        ACTION_TOGGLE_GESTURE_LOCK_REARM -> Resources.getString(R.string.system_gesture_lock_rearm)
         else -> Resources.getString(R.string.unknown)
     }
 
@@ -85,6 +88,7 @@ data class SwitchAction(
         ACTION_SYS_LOCK_SCREEN -> Resources.getString(R.string.system_lock_screen_desc)
         ACTION_SYS_HEADSET_HOOK -> Resources.getString(R.string.action_headset_desc)
         ACTION_PAUSE -> Resources.getString(R.string.action_pause_desc)
+        ACTION_TOGGLE_GESTURE_LOCK_REARM -> Resources.getString(R.string.system_gesture_lock_rearm_desc)
         else -> Resources.getString(R.string.unknown)
     }
 }

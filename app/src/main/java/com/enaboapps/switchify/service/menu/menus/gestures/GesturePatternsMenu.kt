@@ -6,6 +6,7 @@ import com.enaboapps.switchify.service.gestures.patterns.store.GesturePatternSto
 import com.enaboapps.switchify.service.menu.MenuItem
 import com.enaboapps.switchify.service.menu.menus.BaseMenu
 import com.enaboapps.switchify.service.menu.structure.MenuConstants
+import com.enaboapps.switchify.service.utils.DeviceLockObserver
 
 class GesturePatternsMenu(
     accessibilityService: SwitchifyAccessibilityService
@@ -29,6 +30,7 @@ class GesturePatternsMenu(
         }
 
         suspend fun getGesturePatterns(accessibilityService: SwitchifyAccessibilityService): List<MenuItem> {
+            if (!DeviceLockObserver.isUserUnlocked(accessibilityService)) return emptyList()
             val gesturePatternStore = GesturePatternStore(accessibilityService)
             return gesturePatternStore.getPatterns().map { pattern ->
                 MenuItem(
