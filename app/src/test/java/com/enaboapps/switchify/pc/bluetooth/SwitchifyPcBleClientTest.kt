@@ -344,6 +344,59 @@ class SwitchifyPcBleClientTest {
         assertTrue(fakeConnection.sentMessages.isEmpty())
     }
 
+    @Test
+    fun realtimeCommandUsesSendOnlyWhenPointerProfileAdvertisesCommand() = runTest {
+        val tokens = FakeTokenStore(mutableMapOf("desktop-1" to "token"), mutableMapOf("desktop-1" to "Switchify PC"))
+        lateinit var fakeConnection: FakeConnection
+        val seenTypes = mutableListOf<String>()
+        val transport = FakeTransportFactory { message ->
+            val json = JSONObject(message)
+            seenTypes += json.getString("type")
+            when (json.getString("type")) {
+                "connection.ping" -> ack(json.getString("id"))
+                "pointer.profile" -> pointerProfile(
+                    json.getString("id"),
+                    noAckCommands = listOf("mouse.click", "keyboard.typeText", "window.control")
+                )
+                else -> ack(json.getString("id"))
+            }
+        }.also { factory -> factory.onConnection = { fakeConnection = it } }
+        val session = PcAuthenticatedSession("desktop-1", "device-1", "AA:BB:CC:DD:EE:FF", PcTransport.Bluetooth)
+        val result = client(tokens, transport).openControlSession(session) as PcLiveControlResult.Connected
+
+        assertEquals(PcCommandResult.Ack, result.connection.sendRealtimeCommand(PcControlCommand.LeftClick))
+        assertEquals(PcCommandResult.Ack, result.connection.sendRealtimeCommand(PcControlCommand.TypeText("Hello")))
+        assertEquals(PcCommandResult.Ack, result.connection.sendRealtimeCommand(PcControlCommand.WindowControl(PcWindowControlAction.SwitchNext)))
+
+        assertEquals(listOf("connection.ping", "pointer.profile"), seenTypes)
+        val messages = fakeConnection.sentMessages.map(::JSONObject)
+        assertEquals(listOf("mouse.click", "keyboard.typeText", "window.control"), messages.map { it.getString("type") })
+        assertTrue(messages.all { it.getString("responseMode") == "none" })
+    }
+
+    @Test
+    fun realtimeCommandFallsBackWhenPointerProfileDoesNotAdvertiseCommand() = runTest {
+        val tokens = FakeTokenStore(mutableMapOf("desktop-1" to "token"), mutableMapOf("desktop-1" to "Switchify PC"))
+        lateinit var fakeConnection: FakeConnection
+        val seenTypes = mutableListOf<String>()
+        val transport = FakeTransportFactory { message ->
+            val json = JSONObject(message)
+            seenTypes += json.getString("type")
+            when (json.getString("type")) {
+                "connection.ping" -> ack(json.getString("id"))
+                "pointer.profile" -> pointerProfile(json.getString("id"), noAckCommands = listOf("mouse.click"))
+                else -> ack(json.getString("id"))
+            }
+        }.also { factory -> factory.onConnection = { fakeConnection = it } }
+        val session = PcAuthenticatedSession("desktop-1", "device-1", "AA:BB:CC:DD:EE:FF", PcTransport.Bluetooth)
+        val result = client(tokens, transport).openControlSession(session) as PcLiveControlResult.Connected
+
+        assertEquals(PcCommandResult.Ack, result.connection.sendRealtimeCommand(PcControlCommand.Scroll(0, 5)))
+
+        assertEquals(listOf("connection.ping", "pointer.profile", "mouse.scroll"), seenTypes)
+        assertTrue(fakeConnection.sentMessages.isEmpty())
+    }
+
     private fun client(tokens: FakeTokenStore, transport: PcBleTransportFactory): SwitchifyPcBleClient {
         return SwitchifyPcBleClient(FakeIdentity, tokens, transport)
     }
@@ -362,8 +415,17 @@ class SwitchifyPcBleClientTest {
         return """{"version":1,"id":"$id","type":"error","ok":false,"error":{"code":"$code","message":"$message"}}"""
     }
 
-    private fun pointerProfile(id: String, noAckMouseMove: Boolean = false): String {
-        val capabilities = if (noAckMouseMove) ""","capabilities":{"noAckMouseMove":true}""" else ""
+    private fun pointerProfile(
+        id: String,
+        noAckMouseMove: Boolean = false,
+        noAckCommands: List<String> = emptyList()
+    ): String {
+        val capabilityItems = mutableListOf<String>()
+        if (noAckMouseMove) capabilityItems += """"noAckMouseMove":true"""
+        if (noAckCommands.isNotEmpty()) {
+            capabilityItems += """"noAckCommands":[${noAckCommands.joinToString(",") { """"$it"""" }}]"""
+        }
+        val capabilities = if (capabilityItems.isNotEmpty()) ""","capabilities":{${capabilityItems.joinToString(",")}}""" else ""
         return """{"version":1,"id":"$id","type":"pointer.profile","ok":true,"error":null,"payload":{"displayId":"0:0:1280:720:1.0","scaleFactor":1.0,"bounds":{"x":0,"y":0,"width":1280,"height":720},"maxDelta":500,"recommendedDeltas":{"small":40,"medium":80,"large":160}$capabilities}}"""
     }
 

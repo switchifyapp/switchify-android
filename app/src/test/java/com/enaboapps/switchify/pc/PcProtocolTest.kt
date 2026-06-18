@@ -143,6 +143,7 @@ class PcProtocolTest {
         assertEquals(500, response.profile.maxDelta)
         assertEquals(130, response.profile.recommendedDeltas.medium)
         assertFalse(response.profile.capabilities.noAckMouseMove)
+        assertEquals(emptySet<String>(), response.profile.capabilities.noAckCommands)
     }
 
     @Test
@@ -152,6 +153,30 @@ class PcProtocolTest {
         ) as PcProtocolResponse.PointerProfile
 
         assertTrue(response.profile.capabilities.noAckMouseMove)
+    }
+
+    @Test
+    fun parsesPointerProfileNoAckCommandCapabilities() {
+        val response = PcProtocol.parseResponse(
+            validPointerProfileResponse(
+                capabilities = ""","capabilities":{"noAckMouseMove":true,"noAckCommands":["mouse.move","mouse.click","keyboard.typeText","unknown.command"]}"""
+            )
+        ) as PcProtocolResponse.PointerProfile
+
+        assertTrue(response.profile.capabilities.noAckMouseMove)
+        assertEquals(setOf("mouse.move", "mouse.click", "keyboard.typeText"), response.profile.capabilities.noAckCommands)
+    }
+
+    @Test
+    fun rejectsMalformedPointerProfileNoAckCommands() {
+        assertEquals(
+            PcProtocolResponse.Invalid,
+            PcProtocol.parseResponse(validPointerProfileResponse(capabilities = ""","capabilities":{"noAckCommands":"mouse.click"}"""))
+        )
+        assertEquals(
+            PcProtocolResponse.Invalid,
+            PcProtocol.parseResponse(validPointerProfileResponse(capabilities = ""","capabilities":{"noAckCommands":["mouse.click",1]}"""))
+        )
     }
 
     @Test
@@ -230,6 +255,37 @@ class PcProtocolTest {
             ),
             json.getString("auth")
         )
+    }
+
+    @Test
+    fun buildsNoResponseControlCommandsWithSignedResponseMode() {
+        val commands = listOf(
+            JSONObject(PcProtocol.mouseClick("click-1", "device-1", "shared-token", 1000L, responseMode = PcCommandResponseMode.None)),
+            JSONObject(PcProtocol.mouseDoubleClick("double-1", "device-1", "shared-token", 1000L, responseMode = PcCommandResponseMode.None)),
+            JSONObject(PcProtocol.mouseRightClick("right-1", "device-1", "shared-token", 1000L, PcCommandResponseMode.None)),
+            JSONObject(PcProtocol.mouseScroll("scroll-1", "device-1", "shared-token", 1000L, 0, 5, PcCommandResponseMode.None)),
+            JSONObject(PcProtocol.mouseDragStart("drag-start-1", "device-1", "shared-token", 1000L, responseMode = PcCommandResponseMode.None)),
+            JSONObject(PcProtocol.mouseDragEnd("drag-end-1", "device-1", "shared-token", 1000L, responseMode = PcCommandResponseMode.None)),
+            JSONObject(PcProtocol.keyboardTypeText("type-1", "device-1", "shared-token", 1000L, "Hello", PcCommandResponseMode.None)),
+            JSONObject(PcProtocol.keyboardKey("key-1", "device-1", "shared-token", 1000L, PcKeyboardKey.Enter, PcCommandResponseMode.None)),
+            JSONObject(PcProtocol.windowControl("window-1", "device-1", "shared-token", 1000L, PcWindowControlAction.SwitchNext, PcCommandResponseMode.None))
+        )
+
+        for (json in commands) {
+            assertEquals("none", json.getString("responseMode"))
+            assertEquals(
+                PcProtocol.authProof(
+                    id = json.getString("id"),
+                    deviceId = "device-1",
+                    timestamp = 1000L,
+                    type = json.getString("type"),
+                    payload = json.getJSONObject("payload"),
+                    token = "shared-token",
+                    responseMode = PcCommandResponseMode.None
+                ),
+                json.getString("auth")
+            )
+        }
     }
 
     @Test
