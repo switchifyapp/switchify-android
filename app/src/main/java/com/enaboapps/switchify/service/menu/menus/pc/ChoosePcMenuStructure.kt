@@ -16,11 +16,16 @@ class ChoosePcMenuStructure {
         return pcs.map { pc ->
             MenuItem(
                 id = "choose_pc_${pc.desktopId}",
-                userProvidedText = pc.displayName,
+                userProvidedText = pickerLabel(pc),
                 descriptionResource = R.string.menu_item_choose_pc_description,
                 drawableId = R.drawable.ic_control_pc,
                 action = { onSelect(pc) }
             )
         }
+    }
+
+    private fun pickerLabel(pc: DiscoveredPc): String {
+        return pc.bluetoothEndpoint?.deviceName?.trim()?.takeIf { it.isNotBlank() }
+            ?: pc.displayName
     }
 }
