@@ -303,6 +303,25 @@ class SwitchifyPcBleClientTest {
     }
 
     @Test
+    fun realtimeMoveWriteFailureReturnsFailed() = runTest {
+        val tokens = FakeTokenStore(mutableMapOf("desktop-1" to "token"), mutableMapOf("desktop-1" to "Switchify PC"))
+        lateinit var fakeConnection: FakeConnection
+        val transport = FakeTransportFactory { message ->
+            val json = JSONObject(message)
+            when (json.getString("type")) {
+                "connection.ping" -> ack(json.getString("id"))
+                "pointer.profile" -> pointerProfile(json.getString("id"), noAckMouseMove = true)
+                else -> ack(json.getString("id"))
+            }
+        }.also { factory -> factory.onConnection = { fakeConnection = it } }
+        val session = PcAuthenticatedSession("desktop-1", "device-1", "AA:BB:CC:DD:EE:FF", PcTransport.Bluetooth)
+        val result = client(tokens, transport).openControlSession(session) as PcLiveControlResult.Connected
+        fakeConnection.sendError = IllegalStateException("Bluetooth write timed out.")
+
+        assertEquals(PcCommandResult.Failed(), result.connection.sendRealtimeCommand(PcControlCommand.Move(4, 5)))
+    }
+
+    @Test
     fun realtimeNonMoveCommandUsesReliablePath() = runTest {
         val tokens = FakeTokenStore(mutableMapOf("desktop-1" to "token"), mutableMapOf("desktop-1" to "Switchify PC"))
         lateinit var fakeConnection: FakeConnection
@@ -406,8 +425,10 @@ class SwitchifyPcBleClientTest {
         val closeReasons = mutableListOf<String>()
         val sentMessages = mutableListOf<String>()
         val receivedMessages = mutableListOf<String>()
+        var sendError: Throwable? = null
 
         override suspend fun send(message: String) {
+            sendError?.let { throw it }
             sentMessages += message
         }
 

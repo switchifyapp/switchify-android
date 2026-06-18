@@ -271,6 +271,27 @@ class PcServiceConnectionControllerTest {
     }
 
     @Test
+    fun realtimeCommandFailureStartsReconnectInController() = runTest(dispatcher) {
+        val tokens = FakeTokenStore(mutableMapOf("desktop-1" to "token"))
+        val connector = FakeConnector(
+            pingResult = PcPingResult.Connected("AA:BB:CC:DD:EE:FF"),
+            realtimeCommandResults = listOf(PcCommandResult.Failed(), PcCommandResult.Ack)
+        )
+        val controller = controller(tokens, connector)
+        controller.connectTo(pc)
+        controller.onPcUiResumed()
+
+        val result = controller.sendRealtimeControlCommand(PcControlCommand.Move(4, 5))
+        runCurrent()
+
+        assertTrue(result is PcCommandResult.Failed)
+        assertEquals(2, connector.openControlSessionCalls)
+        assertTrue(PcConnectionStateHolder.connectionState.value is PcConnectionState.Connected)
+        assertEquals(listOf(PcControlCloseReason.UnexpectedDisconnect), connector.liveConnections.first().closeReasons)
+        controller.disconnect()
+    }
+
+    @Test
     fun heartbeatAuthFailureKeepsToken() = runTest(dispatcher) {
         val tokens = FakeTokenStore(mutableMapOf("desktop-1" to "token"))
         val connector = FakeConnector(
@@ -585,11 +606,13 @@ class PcServiceConnectionControllerTest {
         private val healthResults: List<PcCommandResult> = emptyList(),
         private val liveResults: List<PcLiveControlResult> = emptyList(),
         private val commandResult: PcCommandResult = PcCommandResult.Ack,
+        private val realtimeCommandResults: List<PcCommandResult> = emptyList(),
         pingResults: List<PcPingResult> = emptyList()
     ) : PcConnector {
         private val queuedPingResults = ArrayDeque(pingResults)
         private val queuedHealthResults = ArrayDeque(healthResults)
         private val queuedLiveResults = ArrayDeque(liveResults)
+        private val queuedRealtimeCommandResults = ArrayDeque(realtimeCommandResults)
         var pingCalls = 0
         var pairingCalls = 0
         var openControlSessionCalls = 0
@@ -620,7 +643,8 @@ class PcServiceConnectionControllerTest {
             }
             val connection = FakeLiveConnection(
                 onHealth = { queuedHealthResults.removeFirstOrNull() ?: PcCommandResult.Ack },
-                onCommand = { commandResult }
+                onCommand = { commandResult },
+                onRealtimeCommand = { queuedRealtimeCommandResults.removeFirstOrNull() ?: PcCommandResult.Ack }
             )
             liveConnections += connection
             return PcLiveControlResult.Connected(connection)
