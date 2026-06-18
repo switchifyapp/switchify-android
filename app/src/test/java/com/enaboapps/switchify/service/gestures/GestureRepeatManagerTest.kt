@@ -110,6 +110,19 @@ class GestureRepeatManagerTest {
     }
 
     @Test
+    fun stopRepeatForSwitchPressRearmsGestureLockWhenStillEnabled() {
+        autoRepeatEnabled = true
+        lockWithGesture()
+
+        assertTrue(repeatManager.stopRepeatForSwitchPress())
+
+        assertFalse(repeatManager.isRepeating())
+        assertTrue(lockManager.isLocked())
+        assertFalse(lockManager.isGestureLockEngaged())
+        assertNull(lockManager.getLockedGestureData())
+    }
+
+    @Test
     fun delayIsReadFromProviderAndCoerced() {
         repeatDelay = 100L
         assertEquals(

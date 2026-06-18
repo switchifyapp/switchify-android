@@ -73,6 +73,14 @@ class GestureRepeatManager private constructor() {
         return true
     }
 
+    fun stopRepeatForSwitchPress(): Boolean {
+        val stopped = stopRepeat()
+        if (stopped && isAutoRepeatEnabled()) {
+            GestureLockManager.instance.enableLockForNextGesture(showMessage = false)
+        }
+        return stopped
+    }
+
     fun isRepeating(): Boolean = repeatJob?.isActive == true
 
     private fun applyAutoRepeatToggleResult(nextEnabled: Boolean, syncGestureLock: Boolean) {
