@@ -15,6 +15,10 @@
     <string name="gesture_lock_rearmed">Gesture lock re-armed - Select a gesture</string>
     <string name="gesture_lock_rearm_enabled">Gesture Lock Re-arm ON</string>
     <string name="gesture_lock_rearm_disabled">Gesture Lock Re-arm OFF</string>
+    <string name="gesture_repeat_enabled">Gesture Repeat ON</string>
+    <string name="gesture_repeat_disabled">Gesture Repeat OFF</string>
+    <string name="gesture_repeat_started">Gesture Repeat Started</string>
+    <string name="gesture_repeat_stopped">Gesture Repeat Stopped</string>
 
     <!-- Gesture Patterns -->
     <string name="start_recording">Start Recording</string>
@@ -41,6 +45,9 @@
     <string name="menu_item_turn_gesture_lock_rearm_on">Turn Re-arm Gesture Lock On</string>
     <string name="menu_item_turn_gesture_lock_rearm_off">Turn Re-arm Gesture Lock Off</string>
     <string name="menu_item_gesture_lock_rearm_description">Turn gesture lock back on ready to choose another gesture</string>
+    <string name="menu_item_turn_gesture_repeat_on">Turn Gesture Repeat On</string>
+    <string name="menu_item_turn_gesture_repeat_off">Turn Gesture Repeat Off</string>
+    <string name="menu_item_gesture_repeat_description">Repeat the selected gesture on a timer until a switch is pressed</string>
     <string name="menu_item_pause">Pause Switchify</string>
     
     <!-- Head Control Menu Items -->
@@ -233,6 +240,8 @@
     <string name="system_gesture_lock_desc">Toggle the gesture lock</string>
     <string name="system_gesture_lock_rearm">Toggle Gesture Lock Re-arm</string>
     <string name="system_gesture_lock_rearm_desc">Turn Gesture Lock Re-arm on or off</string>
+    <string name="system_gesture_repeat">Toggle Gesture Repeat</string>
+    <string name="system_gesture_repeat_desc">Repeat the selected gesture on a timer until a switch is pressed</string>
     <string name="system_power_dialog">Power Dialog</string>
     <string name="system_assistant">Open Assistant</string>
     <string name="system_screenshot">Take Screenshot</string>
@@ -708,6 +717,10 @@
     <string name="preference_summary_stop_pattern_on_switch">When enabled, pressing any switch will stop the currently executing gesture pattern</string>
     <string name="preference_title_gesture_lock_auto_reenable">Re-arm Gesture Lock</string>
     <string name="preference_summary_gesture_lock_auto_reenable">After gesture lock turns off, turn it back on ready to choose another gesture</string>
+    <string name="preference_title_gesture_repeat">Gesture Repeat</string>
+    <string name="preference_summary_gesture_repeat">Repeat the selected gesture until a switch is pressed</string>
+    <string name="preference_title_gesture_repeat_delay">Gesture Repeat Delay</string>
+    <string name="preference_summary_gesture_repeat_delay">The delay to wait between repeated gestures</string>
 
     <!-- Access Technique Settings Screen -->
     <string name="screen_title_access_technique_settings">Access Technique Settings</string>

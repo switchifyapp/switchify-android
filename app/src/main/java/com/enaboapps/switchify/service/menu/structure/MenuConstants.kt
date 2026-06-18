@@ -123,6 +123,7 @@ object MenuConstants {
             const val TOGGLE_HEAD_CONTROL = "toggle_head_control"
             const val TOGGLE_GROUP_SCAN = "toggle_group_scan"
             const val TOGGLE_GESTURE_LOCK_REARM = "toggle_gesture_lock_rearm"
+            const val TOGGLE_GESTURE_REPEAT = "toggle_gesture_repeat"
         }
 
         /**

@@ -4,6 +4,8 @@ import android.content.Context
 import android.util.Log
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.service.core.ServiceCore
+import com.enaboapps.switchify.service.gestures.GestureLockManager
+import com.enaboapps.switchify.service.gestures.GestureRepeatManager
 import com.enaboapps.switchify.service.scanning.ScanningManager
 import com.enaboapps.switchify.service.selection.SelectionHandler
 import com.enaboapps.switchify.service.stats.StatsCollector
@@ -55,6 +57,12 @@ class ExternalSwitchListener(
 
         // Record stats for switch press
         StatsCollector.getInstance().recordSwitchPress("external", keyCode.toString())
+
+        if (GestureRepeatManager.instance.stopRepeat()) {
+            GestureLockManager.instance.disableLock(allowAutoReenable = false)
+            latestAction = null
+            return true
+        }
 
         val scanningManager = ServiceCore.getScanningManager()
         if (scanningManager != null) {

@@ -92,6 +92,7 @@ class GestureManager private constructor() {
             LinearGesturePerformer(accessibilityService, GestureLockManager.instance)
         gestureVisualManager = GestureVisualManager(accessibilityService)
         GestureLockManager.instance.init(accessibilityService)
+        GestureRepeatManager.instance.init(accessibilityService)
     }
 
     /**

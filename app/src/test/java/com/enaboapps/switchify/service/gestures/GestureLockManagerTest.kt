@@ -14,23 +14,32 @@ import org.junit.Test
 
 class GestureLockManagerTest {
     private val manager = GestureLockManager.instance
+    private val repeatManager = GestureRepeatManager.instance
     private val messages = mutableListOf<Int>()
     private var autoReenableEnabled = false
+    private var autoRepeatEnabled = false
 
     @Before
     fun setup() {
         manager.resetForTesting()
+        repeatManager.resetForTesting()
         manager.setSuppressHudForTesting(true)
+        repeatManager.setSuppressHudForTesting(true)
         messages.clear()
         autoReenableEnabled = false
+        autoRepeatEnabled = false
         manager.setMessageRecorderForTesting { messages.add(it) }
         manager.setAutoReenableProviderForTesting { autoReenableEnabled }
         manager.setAutoReenableSetterForTesting { autoReenableEnabled = it }
+        repeatManager.setAutoRepeatProviderForTesting { autoRepeatEnabled }
+        repeatManager.setAutoRepeatSetterForTesting { autoRepeatEnabled = it }
+        repeatManager.setRepeatDelayProviderForTesting { GestureRepeatManager.DEFAULT_REPEAT_DELAY }
     }
 
     @After
     fun tearDown() {
         manager.resetForTesting()
+        repeatManager.resetForTesting()
     }
 
     @Test
@@ -239,6 +248,33 @@ class GestureLockManagerTest {
         assertTrue(manager.isLocked())
         assertNull(manager.getLockedGestureData())
         assertEquals(listOf(R.string.gesture_lock_rearm_disabled), messages)
+    }
+
+    @Test
+    fun clearingLockStopsActiveRepeat() {
+        autoRepeatEnabled = true
+        lockWithGesture()
+        assertTrue(repeatManager.isRepeating())
+
+        manager.setLockedGestureData(null)
+
+        assertFalse(repeatManager.isRepeating())
+        assertFalse(manager.isGestureLockEngaged())
+        assertNull(manager.getLockedGestureData())
+    }
+
+    @Test
+    fun timeoutDoesNotInterruptActiveRepeat() {
+        autoRepeatEnabled = true
+        lockWithGesture()
+        assertTrue(repeatManager.isRepeating())
+
+        manager.handleLockTimeoutForTesting()
+
+        assertTrue(repeatManager.isRepeating())
+        assertTrue(manager.isLocked())
+        assertTrue(manager.isGestureLockEngaged())
+        assertFalse(messages.contains(R.string.gesture_lock_timeout_disabled))
     }
 
     private fun lockWithGesture() {
