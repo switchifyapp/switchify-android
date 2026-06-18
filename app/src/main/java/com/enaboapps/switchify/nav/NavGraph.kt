@@ -19,6 +19,7 @@ import com.enaboapps.switchify.screens.settings.HeadControlSettingsScreen
 import com.enaboapps.switchify.screens.settings.SettingsScreen
 import com.enaboapps.switchify.screens.settings.aimodel.AiModelScreen
 import com.enaboapps.switchify.screens.settings.aimodel.GemmaTermsScreen
+import com.enaboapps.switchify.screens.settings.gestures.AdvancedGestureSettingsScreen
 import com.enaboapps.switchify.screens.settings.gestures.ScrollingSettingsScreen
 import com.enaboapps.switchify.screens.settings.patterns.GesturePatternsScreen
 import com.enaboapps.switchify.screens.settings.scanning.AutoScanSettingsScreen
@@ -85,6 +86,9 @@ fun NavGraph(navController: NavHostController) {
         }
         composable(NavigationRoute.ScanColor.name) {
             ScanColorSelectionScreen(navController)
+        }
+        composable(NavigationRoute.AdvancedGestureSettings.name) {
+            AdvancedGestureSettingsScreen(navController)
         }
         composable(NavigationRoute.ScrollingSettings.name) {
             ScrollingSettingsScreen(navController)
