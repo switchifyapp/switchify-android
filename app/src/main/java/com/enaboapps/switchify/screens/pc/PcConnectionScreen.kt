@@ -1,18 +1,25 @@
 package com.enaboapps.switchify.screens.pc
 
 import android.Manifest
+import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings
+import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
+import androidx.compose.material.icons.rounded.Computer
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -31,6 +38,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.enaboapps.switchify.R
@@ -50,6 +58,7 @@ import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import com.google.accompanist.permissions.shouldShowRationale
 
 private val PcConnectionCompactRowWidth = 380.dp
+private const val SwitchifyPcDownloadUrl = "https://switchifyapp.com/pc/"
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
@@ -62,6 +71,14 @@ fun PcConnectionScreen(navController: NavController) {
     val shouldShowRationale = permissionState.permissions.any { it.status.shouldShowRationale }
     val hasRuntimePermissions = permissionState.permissions.isNotEmpty()
     var hasRequestedPermission by rememberSaveable { mutableStateOf(false) }
+    val linkErrorMessage = stringResource(R.string.error_no_app_to_open_link)
+    val openDownloadPage = {
+        try {
+            context.startActivity(Intent(Intent.ACTION_VIEW, SwitchifyPcDownloadUrl.toUri()))
+        } catch (e: ActivityNotFoundException) {
+            Toast.makeText(context, linkErrorMessage, Toast.LENGTH_LONG).show()
+        }
+    }
 
     LaunchedEffect(permissionGranted, hasRuntimePermissions) {
         viewModel.setPermissionRequired(hasRuntimePermissions && !permissionGranted)
@@ -83,6 +100,7 @@ fun PcConnectionScreen(navController: NavController) {
     ) {
         ScrollableView {
             Column(verticalArrangement = Arrangement.spacedBy(Dimens.spaceM)) {
+                PcDownloadSection(openDownloadPage)
                 if (uiState.permissionRequired) {
                     Section(titleResId = R.string.pc_connection_permission_section) {
                         Column(modifier = Modifier.padding(vertical = Dimens.spaceS)) {
@@ -200,6 +218,26 @@ fun PcConnectionScreen(navController: NavController) {
             title = { Text(stringResource(R.string.pc_connection_unpair_title)) },
             text = {
                 Text(stringResource(R.string.pc_connection_unpair_message, pendingUnpair.displayName))
+            }
+        )
+    }
+}
+
+@Composable
+private fun PcDownloadSection(onOpenDownload: () -> Unit) {
+    Section(titleResId = R.string.pc_connection_setup_section) {
+        PreferenceComponentBase(
+            titleResId = R.string.pc_connection_download_pc_title,
+            summaryResId = R.string.pc_connection_download_pc_summary,
+            leadingIcon = Icons.Rounded.Computer,
+            onClick = onOpenDownload,
+            trailing = {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.OpenInNew,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    modifier = Modifier.size(20.dp)
+                )
             }
         )
     }
