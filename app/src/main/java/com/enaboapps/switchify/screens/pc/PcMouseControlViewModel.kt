@@ -97,6 +97,10 @@ class PcMouseControlViewModel(
             }
             else -> command
         }
+        if (commandToSend is PcControlCommand.Move) {
+            sendRealtimeMove(commandToSend)
+            return
+        }
         sendCommand(commandToSend) {
             it.copy(
                 isDragging = when (commandToSend) {
@@ -108,6 +112,30 @@ class PcMouseControlViewModel(
                 busyCommand = null,
                 message = null
             )
+        }
+    }
+
+    private fun sendRealtimeMove(command: PcControlCommand.Move) {
+        val controller = serviceControllerProvider()
+        val state = controller?.state?.value
+        if (controller == null || !controller.hasLiveControlSession()) {
+            val message = if (state is PcServiceConnectionState.Reconnecting) RECONNECTING_MESSAGE else CONNECT_FIRST_MESSAGE
+            showCommandBlocked(command, message)
+            return
+        }
+        if (state is PcServiceConnectionState.Reconnecting || state is PcServiceConnectionState.OpeningControlSession) {
+            showCommandBlocked(command, RECONNECTING_MESSAGE)
+            return
+        }
+
+        viewModelScope.launch {
+            when (val result = controller.sendRealtimeControlCommand(command)) {
+                PcCommandResult.Ack -> _uiState.update { it.copy(message = null) }
+                is PcCommandResult.AuthFailed -> _uiState.update { it.copy(message = result.message) }
+                is PcCommandResult.Failed -> _uiState.update {
+                    it.copy(message = result.message.ifBlank { COMMAND_FAILED_MESSAGE })
+                }
+            }
         }
     }
 

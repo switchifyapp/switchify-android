@@ -252,6 +252,79 @@ class SwitchifyPcBleClientTest {
         )
     }
 
+    @Test
+    fun realtimeMoveFallsBackWhenPointerProfileDoesNotAdvertiseNoAck() = runTest {
+        val tokens = FakeTokenStore(mutableMapOf("desktop-1" to "token"), mutableMapOf("desktop-1" to "Switchify PC"))
+        lateinit var fakeConnection: FakeConnection
+        val seenTypes = mutableListOf<String>()
+        val transport = FakeTransportFactory { message ->
+            val json = JSONObject(message)
+            seenTypes += json.getString("type")
+            when (json.getString("type")) {
+                "connection.ping" -> ack(json.getString("id"))
+                "pointer.profile" -> pointerProfile(json.getString("id"))
+                else -> ack(json.getString("id"))
+            }
+        }.also { factory -> factory.onConnection = { fakeConnection = it } }
+        val session = PcAuthenticatedSession("desktop-1", "device-1", "AA:BB:CC:DD:EE:FF", PcTransport.Bluetooth)
+        val result = client(tokens, transport).openControlSession(session) as PcLiveControlResult.Connected
+
+        assertEquals(PcCommandResult.Ack, result.connection.sendRealtimeCommand(PcControlCommand.Move(4, 5)))
+
+        assertEquals(listOf("connection.ping", "pointer.profile", "mouse.move"), seenTypes)
+        assertTrue(fakeConnection.sentMessages.isEmpty())
+    }
+
+    @Test
+    fun realtimeMoveUsesSendOnlyWhenPointerProfileAdvertisesNoAck() = runTest {
+        val tokens = FakeTokenStore(mutableMapOf("desktop-1" to "token"), mutableMapOf("desktop-1" to "Switchify PC"))
+        lateinit var fakeConnection: FakeConnection
+        val seenTypes = mutableListOf<String>()
+        val transport = FakeTransportFactory { message ->
+            val json = JSONObject(message)
+            seenTypes += json.getString("type")
+            when (json.getString("type")) {
+                "connection.ping" -> ack(json.getString("id"))
+                "pointer.profile" -> pointerProfile(json.getString("id"), noAckMouseMove = true)
+                else -> ack(json.getString("id"))
+            }
+        }.also { factory -> factory.onConnection = { fakeConnection = it } }
+        val session = PcAuthenticatedSession("desktop-1", "device-1", "AA:BB:CC:DD:EE:FF", PcTransport.Bluetooth)
+        val result = client(tokens, transport).openControlSession(session) as PcLiveControlResult.Connected
+
+        assertEquals(PcCommandResult.Ack, result.connection.sendRealtimeCommand(PcControlCommand.Move(4, 5)))
+
+        assertEquals(listOf("connection.ping", "pointer.profile"), seenTypes)
+        val message = JSONObject(fakeConnection.sentMessages.single())
+        assertEquals("mouse.move", message.getString("type"))
+        assertEquals("none", message.getString("responseMode"))
+        assertEquals(4, message.getJSONObject("payload").getInt("dx"))
+        assertEquals(5, message.getJSONObject("payload").getInt("dy"))
+    }
+
+    @Test
+    fun realtimeNonMoveCommandUsesReliablePath() = runTest {
+        val tokens = FakeTokenStore(mutableMapOf("desktop-1" to "token"), mutableMapOf("desktop-1" to "Switchify PC"))
+        lateinit var fakeConnection: FakeConnection
+        val seenTypes = mutableListOf<String>()
+        val transport = FakeTransportFactory { message ->
+            val json = JSONObject(message)
+            seenTypes += json.getString("type")
+            when (json.getString("type")) {
+                "connection.ping" -> ack(json.getString("id"))
+                "pointer.profile" -> pointerProfile(json.getString("id"), noAckMouseMove = true)
+                else -> ack(json.getString("id"))
+            }
+        }.also { factory -> factory.onConnection = { fakeConnection = it } }
+        val session = PcAuthenticatedSession("desktop-1", "device-1", "AA:BB:CC:DD:EE:FF", PcTransport.Bluetooth)
+        val result = client(tokens, transport).openControlSession(session) as PcLiveControlResult.Connected
+
+        assertEquals(PcCommandResult.Ack, result.connection.sendRealtimeCommand(PcControlCommand.LeftClick))
+
+        assertEquals(listOf("connection.ping", "pointer.profile", "mouse.click"), seenTypes)
+        assertTrue(fakeConnection.sentMessages.isEmpty())
+    }
+
     private fun client(tokens: FakeTokenStore, transport: PcBleTransportFactory): SwitchifyPcBleClient {
         return SwitchifyPcBleClient(FakeIdentity, tokens, transport)
     }
@@ -270,8 +343,9 @@ class SwitchifyPcBleClientTest {
         return """{"version":1,"id":"$id","type":"error","ok":false,"error":{"code":"$code","message":"$message"}}"""
     }
 
-    private fun pointerProfile(id: String): String {
-        return """{"version":1,"id":"$id","type":"pointer.profile","ok":true,"error":null,"payload":{"displayId":"0:0:1280:720:1.0","scaleFactor":1.0,"bounds":{"x":0,"y":0,"width":1280,"height":720},"maxDelta":500,"recommendedDeltas":{"small":40,"medium":80,"large":160}}}"""
+    private fun pointerProfile(id: String, noAckMouseMove: Boolean = false): String {
+        val capabilities = if (noAckMouseMove) ""","capabilities":{"noAckMouseMove":true}""" else ""
+        return """{"version":1,"id":"$id","type":"pointer.profile","ok":true,"error":null,"payload":{"displayId":"0:0:1280:720:1.0","scaleFactor":1.0,"bounds":{"x":0,"y":0,"width":1280,"height":720},"maxDelta":500,"recommendedDeltas":{"small":40,"medium":80,"large":160}$capabilities}}"""
     }
 
     private object FakeIdentity : PcDeviceIdentity {
@@ -330,8 +404,15 @@ class SwitchifyPcBleClientTest {
         val eventsFlow = MutableSharedFlow<PcBleTransportEvent>(replay = 1, extraBufferCapacity = 8)
         override val events = eventsFlow
         val closeReasons = mutableListOf<String>()
+        val sentMessages = mutableListOf<String>()
+        val receivedMessages = mutableListOf<String>()
+
+        override suspend fun send(message: String) {
+            sentMessages += message
+        }
 
         override suspend fun sendAndReceive(message: String, timeoutMs: Long): String {
+            receivedMessages += message
             return responseProvider(message)
         }
 

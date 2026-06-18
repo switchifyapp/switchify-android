@@ -15,6 +15,11 @@ sealed class PcProtocolResponse {
     data object Invalid : PcProtocolResponse()
 }
 
+enum class PcCommandResponseMode(val protocolValue: String) {
+    Ack("ack"),
+    None("none")
+}
+
 /**
  * Switchify PC protocol message builder/parser.
  *
@@ -92,7 +97,8 @@ object PcProtocol {
         token: String,
         timestamp: Long,
         type: String,
-        payload: JSONObject
+        payload: JSONObject,
+        responseMode: PcCommandResponseMode = PcCommandResponseMode.Ack
     ): String {
         val message = JSONObject()
             .put("version", PC_PROTOCOL_VERSION)
@@ -101,12 +107,31 @@ object PcProtocol {
             .put("timestamp", timestamp)
             .put("type", type)
             .put("payload", payload)
-        message.put("auth", authProof(id, deviceId, timestamp, type, payload, token))
+        if (responseMode != PcCommandResponseMode.Ack) {
+            message.put("responseMode", responseMode.protocolValue)
+        }
+        message.put("auth", authProof(id, deviceId, timestamp, type, payload, token, responseMode))
         return message.toString()
     }
 
-    fun mouseMove(id: String, deviceId: String, token: String, timestamp: Long, dx: Int, dy: Int): String {
-        return authenticatedCommand(id, deviceId, token, timestamp, "mouse.move", JSONObject().put("dx", dx).put("dy", dy))
+    fun mouseMove(
+        id: String,
+        deviceId: String,
+        token: String,
+        timestamp: Long,
+        dx: Int,
+        dy: Int,
+        responseMode: PcCommandResponseMode = PcCommandResponseMode.Ack
+    ): String {
+        return authenticatedCommand(
+            id,
+            deviceId,
+            token,
+            timestamp,
+            "mouse.move",
+            JSONObject().put("dx", dx).put("dy", dy),
+            responseMode
+        )
     }
 
     fun mouseClick(id: String, deviceId: String, token: String, timestamp: Long, button: String = "left"): String {
@@ -215,8 +240,24 @@ object PcProtocol {
         }
     }
 
-    fun authProof(id: String, deviceId: String, timestamp: Long, type: String, payload: JSONObject, token: String): String {
-        val canonical = listOf(PC_PROTOCOL_VERSION, id, deviceId, timestamp, type, stableStringify(payload)).joinToString("\n")
+    fun authProof(
+        id: String,
+        deviceId: String,
+        timestamp: Long,
+        type: String,
+        payload: JSONObject,
+        token: String,
+        responseMode: PcCommandResponseMode = PcCommandResponseMode.Ack
+    ): String {
+        val canonical = listOf(
+            PC_PROTOCOL_VERSION,
+            id,
+            deviceId,
+            timestamp,
+            type,
+            stableStringify(payload),
+            responseMode.protocolValue
+        ).joinToString("\n")
         val mac = Mac.getInstance("HmacSHA256")
         mac.init(SecretKeySpec(token.toByteArray(StandardCharsets.UTF_8), "HmacSHA256"))
         return Base64.getUrlEncoder()
@@ -264,6 +305,13 @@ object PcProtocol {
         val boundsJson = payload.optJSONObject("bounds") ?: return PcProtocolResponse.Invalid
         val maxDelta = payload.optInt("maxDelta")
         val deltasJson = payload.optJSONObject("recommendedDeltas") ?: return PcProtocolResponse.Invalid
+        val capabilitiesJson = payload.optJSONObject("capabilities")
+        if (capabilitiesJson != null && capabilitiesJson.has("noAckMouseMove") && capabilitiesJson.opt("noAckMouseMove") !is Boolean) {
+            return PcProtocolResponse.Invalid
+        }
+        val capabilities = PcPointerCapabilities(
+            noAckMouseMove = capabilitiesJson?.optBoolean("noAckMouseMove", false) ?: false
+        )
         val bounds = PcPointerBounds(
             x = boundsJson.optInt("x"),
             y = boundsJson.optInt("y"),
@@ -294,7 +342,8 @@ object PcProtocol {
                 scaleFactor = scaleFactor,
                 bounds = bounds,
                 maxDelta = maxDelta,
-                recommendedDeltas = deltas
+                recommendedDeltas = deltas,
+                capabilities = capabilities
             )
         )
     }

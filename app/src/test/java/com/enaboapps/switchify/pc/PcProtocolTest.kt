@@ -108,7 +108,7 @@ class PcProtocolTest {
             token = "shared-token"
         )
 
-        assertEquals("o0CHNFgcFjPSL1PaWzBP6riHHr9V8kxo-qTKAPUvT7A", proof)
+        assertEquals("98bZHKWHa3ooOYZyXBuYpzOdbPWGW5FV04fEjxAl9sI", proof)
     }
 
     @Test
@@ -128,7 +128,7 @@ class PcProtocolTest {
         assertEquals(1000L, json.getLong("timestamp"))
         assertEquals("pointer.profile", json.getString("type"))
         assertEquals(0, json.getJSONObject("payload").length())
-        assertEquals("6g3iFCFoeVuM016G2evT0XlnNMgzqd3lflUYPNfHuI8", json.getString("auth"))
+        assertEquals("lgHsjgfWbqbrE-ugPTIDzjxm5MjEdNRpbHQV9B4ZNPM", json.getString("auth"))
         assertFalse(json.toString().contains("shared-token"))
     }
 
@@ -142,6 +142,16 @@ class PcProtocolTest {
         assertEquals(1280, response.profile.bounds.width)
         assertEquals(500, response.profile.maxDelta)
         assertEquals(130, response.profile.recommendedDeltas.medium)
+        assertFalse(response.profile.capabilities.noAckMouseMove)
+    }
+
+    @Test
+    fun parsesPointerProfileNoAckMovementCapability() {
+        val response = PcProtocol.parseResponse(
+            validPointerProfileResponse(capabilities = ""","capabilities":{"noAckMouseMove":true}""")
+        ) as PcProtocolResponse.PointerProfile
+
+        assertTrue(response.profile.capabilities.noAckMouseMove)
     }
 
     @Test
@@ -188,8 +198,38 @@ class PcProtocolTest {
         assertEquals("mouse.move", json.getString("type"))
         assertEquals(80, json.getJSONObject("payload").getInt("dx"))
         assertEquals(-80, json.getJSONObject("payload").getInt("dy"))
-        assertEquals("H2mzYjrSRbwKsOiNk7s193qUijYSNqhoxLD92Vp2QDA", json.getString("auth"))
+        assertFalse(json.has("responseMode"))
+        assertEquals("UKF4IEa-XaDsoKEWmsUDy7jXNzv_YDFSb26yHG2pzhQ", json.getString("auth"))
         assertFalse(json.toString().contains("shared-token"))
+    }
+
+    @Test
+    fun buildsNoResponseMouseMoveCommandWithSignedResponseMode() {
+        val json = JSONObject(
+            PcProtocol.mouseMove(
+                id = "req-1",
+                deviceId = "device-1",
+                token = "shared-token",
+                timestamp = 1000L,
+                dx = 80,
+                dy = -80,
+                responseMode = PcCommandResponseMode.None
+            )
+        )
+
+        assertEquals("none", json.getString("responseMode"))
+        assertEquals(
+            PcProtocol.authProof(
+                id = "req-1",
+                deviceId = "device-1",
+                timestamp = 1000L,
+                type = "mouse.move",
+                payload = json.getJSONObject("payload"),
+                token = "shared-token",
+                responseMode = PcCommandResponseMode.None
+            ),
+            json.getString("auth")
+        )
     }
 
     @Test
@@ -378,10 +418,11 @@ class PcProtocolTest {
     private fun validPointerProfileResponse(
         displayId: String = "0:0:1280:720:1.5",
         scaleFactor: Double = 1.5,
-        width: Int = 1280
+        width: Int = 1280,
+        capabilities: String = ""
     ): String {
         return """
-            {"version":1,"id":"profile-1","type":"pointer.profile","ok":true,"payload":{"displayId":"$displayId","scaleFactor":$scaleFactor,"bounds":{"x":0,"y":0,"width":$width,"height":720},"maxDelta":500,"recommendedDeltas":{"small":50,"medium":130,"large":252}},"error":null}
+            {"version":1,"id":"profile-1","type":"pointer.profile","ok":true,"payload":{"displayId":"$displayId","scaleFactor":$scaleFactor,"bounds":{"x":0,"y":0,"width":$width,"height":720},"maxDelta":500,"recommendedDeltas":{"small":50,"medium":130,"large":252}$capabilities},"error":null}
         """.trimIndent()
     }
 }

@@ -195,7 +195,7 @@ class PcMouseControlViewModelTest {
     }
 
     @Test
-    fun sendCommandDelegatesToServiceController() = runTest(dispatcher) {
+    fun moveCommandDelegatesToRealtimeServiceController() = runTest(dispatcher) {
         val connector = FakeConnector()
         val controller = connectedController(connector = connector)
         val viewModel = viewModel(controller)
@@ -203,8 +203,10 @@ class PcMouseControlViewModelTest {
         viewModel.send(PcControlCommand.Move(80, 0))
         advanceUntilIdle()
 
-        assertEquals(listOf(PcControlCommand.Move(80, 0)), connector.commands)
+        assertEquals(listOf(PcControlCommand.Move(80, 0)), connector.realtimeCommands)
+        assertTrue(connector.commands.isEmpty())
         assertTrue(connector.oneShotCommands.isEmpty())
+        assertTrue(!viewModel.uiState.value.isBusy)
         assertNull(viewModel.uiState.value.message)
     }
 
@@ -271,6 +273,26 @@ class PcMouseControlViewModelTest {
         advanceUntilIdle()
 
         assertEquals(listOf(PcControlCommand.Scroll(0, 5)), connector.commands)
+        deferred.complete(PcCommandResult.Ack)
+        advanceUntilIdle()
+    }
+
+    @Test
+    fun moveCommandWhileBusyStillSendsRealtimeMovement() = runTest(dispatcher) {
+        val deferred = CompletableDeferred<PcCommandResult>()
+        val connector = FakeConnector(commandResult = deferred)
+        val controller = connectedController(connector = connector)
+        val viewModel = viewModel(controller)
+
+        viewModel.send(PcControlCommand.Scroll(0, 5))
+        runCurrent()
+        viewModel.send(PcControlCommand.Move(80, 0))
+        viewModel.send(PcControlCommand.Move(0, 80))
+        advanceUntilIdle()
+
+        assertEquals(listOf(PcControlCommand.Scroll(0, 5)), connector.commands)
+        assertEquals(listOf(PcControlCommand.Move(80, 0), PcControlCommand.Move(0, 80)), connector.realtimeCommands)
+        assertTrue(viewModel.uiState.value.isBusy)
         deferred.complete(PcCommandResult.Ack)
         advanceUntilIdle()
     }
@@ -560,6 +582,7 @@ class PcMouseControlViewModelTest {
         var openControlSessionCalls = 0
         var closeCalls = 0
         val commands = mutableListOf<PcControlCommand>()
+        val realtimeCommands = mutableListOf<PcControlCommand>()
         val oneShotCommands = mutableListOf<PcControlCommand>()
         val openedConnections = mutableListOf<FakeLiveConnection>()
 
@@ -585,6 +608,10 @@ class PcMouseControlViewModelTest {
                         is PcCommandResult -> commandResult
                         else -> PcCommandResult.Ack
                     }
+                },
+                onRealtimeCommand = { command ->
+                    realtimeCommands.add(command)
+                    PcCommandResult.Ack
                 }
             )
             openedConnections.add(connection)
@@ -604,16 +631,23 @@ class PcMouseControlViewModelTest {
     private class FakeLiveConnection(
         override val pointerProfile: PcPointerMovementProfile? = null,
         private val onCommand: suspend (PcControlCommand) -> PcCommandResult = { PcCommandResult.Ack },
+        private val onRealtimeCommand: suspend (PcControlCommand) -> PcCommandResult = { PcCommandResult.Ack },
         private val onHealth: suspend () -> PcCommandResult = { PcCommandResult.Ack }
     ) : PcControlConnection {
         val eventsFlow = MutableSharedFlow<PcControlConnectionEvent>(replay = 1, extraBufferCapacity = 8)
         override val connectionEvents = eventsFlow
         var closeCalls = 0
         val closeReasons = mutableListOf<PcControlCloseReason>()
+        val realtimeCommands = mutableListOf<PcControlCommand>()
 
         override suspend fun checkHealth(): PcCommandResult = onHealth()
 
         override suspend fun sendCommand(command: PcControlCommand): PcCommandResult = onCommand(command)
+
+        override suspend fun sendRealtimeCommand(command: PcControlCommand): PcCommandResult {
+            realtimeCommands += command
+            return onRealtimeCommand(command)
+        }
 
         override fun close(reason: PcControlCloseReason) {
             closeCalls++
