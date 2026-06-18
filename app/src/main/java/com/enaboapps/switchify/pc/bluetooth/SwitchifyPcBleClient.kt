@@ -4,6 +4,7 @@ import android.content.Context
 import com.enaboapps.switchify.pc.DiscoveredPc
 import com.enaboapps.switchify.pc.PcAuthenticatedSession
 import com.enaboapps.switchify.pc.PcBluetoothEndpoint
+import com.enaboapps.switchify.pc.PcCommandResponseMode
 import com.enaboapps.switchify.pc.PcCommandResult
 import com.enaboapps.switchify.pc.PcConnector
 import com.enaboapps.switchify.pc.PcControlCommand
@@ -324,6 +325,33 @@ class SwitchifyPcBleClient(
                     if (error is CancellationException) throw error
                     if (error is InvalidPcAuthException) PcCommandResult.AuthFailed()
                     else PcCommandResult.Failed()
+                }
+            }
+        }
+
+        override suspend fun sendRealtimeCommand(command: PcControlCommand): PcCommandResult {
+            if (command !is PcControlCommand.Move || pointerProfile?.capabilities?.noAckMouseMove != true) {
+                return sendCommand(command)
+            }
+
+            return sendMutex.withLock {
+                try {
+                    val requestId = nextRequestId()
+                    connection.send(
+                        PcProtocol.mouseMove(
+                            id = requestId,
+                            deviceId = authenticatedSession.deviceId,
+                            token = token,
+                            timestamp = System.currentTimeMillis(),
+                            dx = command.dx,
+                            dy = command.dy,
+                            responseMode = PcCommandResponseMode.None
+                        )
+                    )
+                    PcCommandResult.Ack
+                } catch (error: Throwable) {
+                    if (error is CancellationException) throw error
+                    PcCommandResult.Failed()
                 }
             }
         }

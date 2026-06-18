@@ -163,10 +163,33 @@ class PcServiceConnectionControllerTest {
     }
 
     @Test
+    fun sendRealtimeControlCommandUsesLiveConnectionRealtimePath() = runTest(dispatcher) {
+        val tokens = FakeTokenStore(mutableMapOf("desktop-1" to "token"))
+        val connector = FakeConnector(PcPingResult.Connected("AA:BB:CC:DD:EE:FF"))
+        val controller = controller(tokens, connector)
+        controller.connectTo(pc)
+
+        val result = controller.sendRealtimeControlCommand(PcControlCommand.Move(4, 5))
+
+        assertEquals(PcCommandResult.Ack, result)
+        assertEquals(listOf(PcControlCommand.Move(4, 5)), connector.liveConnections.single().realtimeCommands)
+        assertTrue(connector.liveConnections.single().commands.isEmpty())
+    }
+
+    @Test
     fun sendControlCommandWithoutLiveConnectionFails() = runTest(dispatcher) {
         val controller = controller(FakeTokenStore(), FakeConnector(PcPingResult.Connected("AA:BB:CC:DD:EE:FF")))
 
         val result = controller.sendControlCommand(PcControlCommand.LeftClick)
+
+        assertTrue(result is PcCommandResult.Failed)
+    }
+
+    @Test
+    fun sendRealtimeControlCommandWithoutLiveConnectionFails() = runTest(dispatcher) {
+        val controller = controller(FakeTokenStore(), FakeConnector(PcPingResult.Connected("AA:BB:CC:DD:EE:FF")))
+
+        val result = controller.sendRealtimeControlCommand(PcControlCommand.Move(4, 5))
 
         assertTrue(result is PcCommandResult.Failed)
     }
@@ -615,13 +638,15 @@ class PcServiceConnectionControllerTest {
 
     private class FakeLiveConnection(
         private val onHealth: suspend () -> PcCommandResult = { PcCommandResult.Ack },
-        private val onCommand: suspend () -> PcCommandResult = { PcCommandResult.Ack }
+        private val onCommand: suspend () -> PcCommandResult = { PcCommandResult.Ack },
+        private val onRealtimeCommand: suspend () -> PcCommandResult = { PcCommandResult.Ack }
     ) : PcControlConnection {
         override val pointerProfile: PcPointerMovementProfile? = null
         val eventsFlow = MutableSharedFlow<PcControlConnectionEvent>(extraBufferCapacity = 8)
         override val connectionEvents: Flow<PcControlConnectionEvent> = eventsFlow
         var closeCalls = 0
         val commands = mutableListOf<PcControlCommand>()
+        val realtimeCommands = mutableListOf<PcControlCommand>()
         val closeReasons = mutableListOf<PcControlCloseReason>()
 
         override suspend fun checkHealth(): PcCommandResult {
@@ -631,6 +656,11 @@ class PcServiceConnectionControllerTest {
         override suspend fun sendCommand(command: PcControlCommand): PcCommandResult {
             commands += command
             return onCommand()
+        }
+
+        override suspend fun sendRealtimeCommand(command: PcControlCommand): PcCommandResult {
+            realtimeCommands += command
+            return onRealtimeCommand()
         }
 
         override fun close(reason: PcControlCloseReason) {

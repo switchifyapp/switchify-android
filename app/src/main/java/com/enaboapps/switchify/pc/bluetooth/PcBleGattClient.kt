@@ -33,6 +33,7 @@ interface PcBleTransportFactory {
 interface PcBleTransportConnection {
     val endpoint: PcBluetoothEndpoint
     val events: Flow<PcBleTransportEvent>
+    suspend fun send(message: String)
     suspend fun sendAndReceive(message: String, timeoutMs: Long): String
     fun close(reason: String = "client_close")
 }
@@ -59,10 +60,14 @@ private class PcBleGattConnection private constructor(
     private val writeMutex = Mutex()
     private var closed = false
 
-    override suspend fun sendAndReceive(message: String, timeoutMs: Long): String {
+    override suspend fun send(message: String) {
         for (frame in BluetoothFrameCodec.createFrames(message)) {
             writeFrame(frame)
         }
+    }
+
+    override suspend fun sendAndReceive(message: String, timeoutMs: Long): String {
+        send(message)
         return withTimeout(timeoutMs) { incomingMessages.receive() }
     }
 

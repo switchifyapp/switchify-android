@@ -43,6 +43,7 @@ interface PcControlConnection {
     val connectionEvents: Flow<PcControlConnectionEvent>
     suspend fun checkHealth(): PcCommandResult
     suspend fun sendCommand(command: PcControlCommand): PcCommandResult
+    suspend fun sendRealtimeCommand(command: PcControlCommand): PcCommandResult
     fun close(reason: PcControlCloseReason = PcControlCloseReason.ExplicitStop)
 }
 

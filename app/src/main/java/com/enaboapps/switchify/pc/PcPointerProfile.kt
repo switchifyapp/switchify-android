@@ -5,7 +5,12 @@ data class PcPointerMovementProfile(
     val scaleFactor: Double,
     val bounds: PcPointerBounds,
     val maxDelta: Int,
-    val recommendedDeltas: PcPointerDeltas
+    val recommendedDeltas: PcPointerDeltas,
+    val capabilities: PcPointerCapabilities = PcPointerCapabilities()
+)
+
+data class PcPointerCapabilities(
+    val noAckMouseMove: Boolean = false
 )
 
 data class PcPointerBounds(

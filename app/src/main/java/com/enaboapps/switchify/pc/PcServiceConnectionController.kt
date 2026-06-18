@@ -156,6 +156,23 @@ class PcServiceConnectionController(
         return result
     }
 
+    suspend fun sendRealtimeControlCommand(command: PcControlCommand): PcCommandResult {
+        val connection = liveConnection ?: return PcCommandResult.Failed(CONNECT_FIRST_MESSAGE)
+        val session = liveSession ?: return PcCommandResult.Failed(CONNECT_FIRST_MESSAGE)
+        val result = retryPcAuthFailure(
+            block = { connection.sendRealtimeCommand(command) },
+            isAuthFailure = { it is PcCommandResult.AuthFailed }
+        )
+        if (result is PcCommandResult.AuthFailed) {
+            closeLiveConnection(PcControlCloseReason.AuthFailure)
+            _state.value = PcServiceConnectionState.Failed(result.message)
+            PcConnectionStateHolder.setDisconnected()
+        } else if (result is PcCommandResult.Failed) {
+            handleLiveConnectionFailed(session)
+        }
+        return result
+    }
+
     suspend fun sendCommand(command: PcControlCommand): PcCommandResult = sendControlCommand(command)
 
     fun onPcUiResumed() {
