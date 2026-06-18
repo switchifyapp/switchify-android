@@ -5,6 +5,7 @@ import com.enaboapps.switchify.service.camera.CameraPermissionManager
 import com.enaboapps.switchify.service.core.ServiceCore
 import com.enaboapps.switchify.service.core.SwitchifyAccessibilityService
 import com.enaboapps.switchify.service.gestures.GestureLockManager
+import com.enaboapps.switchify.service.gestures.GestureRepeatManager
 import com.enaboapps.switchify.service.menu.MenuItem
 import com.enaboapps.switchify.service.menu.MenuManager
 import com.enaboapps.switchify.service.menu.structure.MenuConstants
@@ -122,6 +123,33 @@ class SettingsMenuStructure(
                         prefManager.setBooleanValue(
                             PreferenceManager.PREFERENCE_KEY_GROUP_SCAN,
                             !currentlyEnabled
+                        )
+                        MenuManager.getInstance().closeMenuHierarchy()
+                    }
+                )
+            },
+            MenuItemRegistry.getDefinition(
+                MenuConstants.MenuIds.SETTINGS_MENU,
+                MenuConstants.ItemIds.Settings.TOGGLE_GESTURE_REPEAT
+            )?.let { def ->
+                val prefManager = PreferenceManager(accessibilityService)
+                val currentlyEnabled = prefManager.getBooleanValue(
+                    PreferenceManager.PREFERENCE_KEY_GESTURE_REPEAT,
+                    false
+                )
+                val stateLabel = accessibilityService.getString(
+                    if (currentlyEnabled) R.string.menu_item_turn_gesture_repeat_off
+                    else R.string.menu_item_turn_gesture_repeat_on
+                )
+                MenuItem(
+                    id = def.id,
+                    userProvidedText = stateLabel,
+                    descriptionResource = def.descriptionResource,
+                    drawableId = def.drawableId,
+                    action = {
+                        GestureRepeatManager.instance.toggleAutoRepeat(
+                            context = accessibilityService,
+                            syncGestureLock = true
                         )
                         MenuManager.getInstance().closeMenuHierarchy()
                     }

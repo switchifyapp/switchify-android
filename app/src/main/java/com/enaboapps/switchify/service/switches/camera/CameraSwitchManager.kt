@@ -13,6 +13,7 @@ import com.enaboapps.switchify.service.camera.CameraLifecycle
 import com.enaboapps.switchify.service.camera.CameraPermissionManager
 import com.enaboapps.switchify.service.core.ServiceCore
 import com.enaboapps.switchify.service.face.FaceProcessingService
+import com.enaboapps.switchify.service.gestures.GestureRepeatManager
 import com.enaboapps.switchify.service.pauseresume.PauseManager
 import com.enaboapps.switchify.service.scanning.ScanningManager
 import com.enaboapps.switchify.service.stats.StatsCollector
@@ -422,6 +423,7 @@ class CameraSwitchManager(
         if (switchEvent != null) {
             coroutineScope.launch(Dispatchers.Main) {
                 Log.i(TAG, "Triggering switch action for gesture: ${gesture.getName()}")
+                if (GestureRepeatManager.instance.stopRepeatForSwitchPress()) return@launch
                 if (scanningManager.checkOngoingTasks()) return@launch
                 scanningManager.performAction(switchEvent.pressAction)
             }
@@ -443,6 +445,7 @@ class CameraSwitchManager(
         if (switchEvent != null) {
             coroutineScope.launch(Dispatchers.Main) {
                 Log.i(TAG, "Triggering head turn gesture: ${gesture.getName()}")
+                if (GestureRepeatManager.instance.stopRepeatForSwitchPress()) return@launch
                 if (scanningManager.checkOngoingTasks()) return@launch
                 scanningManager.performAction(switchEvent.pressAction)
             }

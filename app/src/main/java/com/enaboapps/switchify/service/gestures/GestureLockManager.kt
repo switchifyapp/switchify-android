@@ -112,9 +112,15 @@ class GestureLockManager private constructor() {
                 null
             }
         if (lockedGestureData != null) {
-            startTimer()
+            GestureRepeatManager.instance.onLockedGestureChanged(lockedGestureData)
+            if (GestureRepeatManager.instance.isRepeating()) {
+                stopTimer()
+            } else {
+                startTimer()
+            }
         } else {
             stopTimer()
+            GestureRepeatManager.instance.onLockedGestureChanged(null)
         }
     }
 
@@ -139,10 +145,11 @@ class GestureLockManager private constructor() {
         timeoutTimer = null
     }
 
-    private fun enableLockForNextGesture(showMessage: Boolean) {
+    fun enableLockForNextGesture(showMessage: Boolean) {
         isLocked = true
         lockedGestureData = null
         stopTimer()
+        GestureRepeatManager.instance.onLockedGestureChanged(null)
         if (showMessage) {
             showMessage(R.string.gesture_lock_enabled, MessageSeverity.Info)
         }
@@ -150,6 +157,7 @@ class GestureLockManager private constructor() {
 
     private fun disableLockInternal(allowAutoReenable: Boolean) {
         val hadGesture = lockedGestureData != null
+        GestureRepeatManager.instance.stopRepeat(showMessage = false)
         isLocked = false
         lockedGestureData = null
         stopTimer()
@@ -160,7 +168,12 @@ class GestureLockManager private constructor() {
     }
 
     private fun handleLockTimeout() {
+        if (GestureRepeatManager.instance.isRepeating()) {
+            stopTimer()
+            return
+        }
         val hadGesture = lockedGestureData != null
+        GestureRepeatManager.instance.stopRepeat(showMessage = false)
         isLocked = false
         lockedGestureData = null
         stopTimer()
@@ -240,6 +253,7 @@ class GestureLockManager private constructor() {
         isLocked = false
         lockedGestureData = null
         stopTimer()
+        GestureRepeatManager.instance.stopRepeat(showMessage = false)
         accessibilityService = null
         autoReenableProviderForTesting = null
         autoReenableSetterForTesting = null

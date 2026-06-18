@@ -9,7 +9,9 @@ import com.enaboapps.switchify.R
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.components.NavRouteLink
 import com.enaboapps.switchify.components.PreferenceSwitch
+import com.enaboapps.switchify.components.PreferenceTimeStepper
 import com.enaboapps.switchify.components.Section
+import com.enaboapps.switchify.service.gestures.GestureRepeatManager
 import com.enaboapps.switchify.nav.NavigationRoute
 
 @Composable
@@ -24,8 +26,51 @@ fun GesturesSettingsSection(navController: NavController) {
             )
         )
     }
+    val gestureRepeatState = remember {
+        mutableStateOf(
+            preferenceManager.getBooleanValue(
+                PreferenceManager.PREFERENCE_KEY_GESTURE_REPEAT,
+                false
+            )
+        )
+    }
+    val gestureRepeatDelayState = remember {
+        mutableStateOf(
+            preferenceManager.getLongValue(
+                PreferenceManager.PREFERENCE_KEY_GESTURE_REPEAT_DELAY,
+                GestureRepeatManager.DEFAULT_REPEAT_DELAY
+            )
+        )
+    }
 
     Section(titleResId = R.string.settings_section_gesture) {
+        PreferenceSwitch(
+            titleResId = R.string.preference_title_gesture_repeat,
+            summaryResId = R.string.preference_summary_gesture_repeat,
+            checked = gestureRepeatState.value,
+            onCheckedChange = {
+                preferenceManager.setBooleanValue(
+                    PreferenceManager.PREFERENCE_KEY_GESTURE_REPEAT,
+                    it
+                )
+                gestureRepeatState.value = it
+            }
+        )
+        PreferenceTimeStepper(
+            value = gestureRepeatDelayState.value,
+            titleResId = R.string.preference_title_gesture_repeat_delay,
+            summaryResId = R.string.preference_summary_gesture_repeat_delay,
+            min = GestureRepeatManager.MIN_REPEAT_DELAY,
+            max = GestureRepeatManager.MAX_REPEAT_DELAY,
+            step = GestureRepeatManager.REPEAT_DELAY_STEP,
+            onValueChanged = {
+                preferenceManager.setLongValue(
+                    PreferenceManager.PREFERENCE_KEY_GESTURE_REPEAT_DELAY,
+                    it
+                )
+                gestureRepeatDelayState.value = it
+            }
+        )
         PreferenceSwitch(
             titleResId = R.string.preference_title_gesture_lock_auto_reenable,
             summaryResId = R.string.preference_summary_gesture_lock_auto_reenable,

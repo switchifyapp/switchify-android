@@ -9,6 +9,7 @@ import com.enaboapps.switchify.service.core.SwitchifyAccessibilityService
 import com.enaboapps.switchify.service.core.Tasks
 import com.enaboapps.switchify.service.gestures.GestureLockManager
 import com.enaboapps.switchify.service.gestures.GestureManager
+import com.enaboapps.switchify.service.gestures.GestureRepeatManager
 import com.enaboapps.switchify.service.menu.MenuManager
 import com.enaboapps.switchify.service.selection.SelectionHandler
 import com.enaboapps.switchify.service.techniques.AccessTechnique
@@ -205,6 +206,12 @@ class ScanningManager(
 
                 SwitchAction.ACTION_TOGGLE_GESTURE_LOCK_REARM -> GestureLockManager.instance
                     .toggleAutoReenable(
+                        context = accessibilityService,
+                        syncGestureLock = true
+                    )
+
+                SwitchAction.ACTION_TOGGLE_GESTURE_REPEAT -> GestureRepeatManager.instance
+                    .toggleAutoRepeat(
                         context = accessibilityService,
                         syncGestureLock = true
                     )
