@@ -5,6 +5,7 @@ import com.enaboapps.switchify.service.camera.CameraPermissionManager
 import com.enaboapps.switchify.service.core.ServiceCore
 import com.enaboapps.switchify.service.core.SwitchifyAccessibilityService
 import com.enaboapps.switchify.service.gestures.GestureLockManager
+import com.enaboapps.switchify.service.gestures.GestureModePolicy
 import com.enaboapps.switchify.service.gestures.GestureRepeatManager
 import com.enaboapps.switchify.service.menu.MenuItem
 import com.enaboapps.switchify.service.menu.MenuManager
@@ -132,11 +133,7 @@ class SettingsMenuStructure(
                 MenuConstants.MenuIds.SETTINGS_MENU,
                 MenuConstants.ItemIds.Settings.TOGGLE_GESTURE_REPEAT
             )?.let { def ->
-                val prefManager = PreferenceManager(accessibilityService)
-                val currentlyEnabled = prefManager.getBooleanValue(
-                    PreferenceManager.PREFERENCE_KEY_GESTURE_REPEAT,
-                    false
-                )
+                val currentlyEnabled = GestureModePolicy.isRepeatEnabled(accessibilityService)
                 val stateLabel = accessibilityService.getString(
                     if (currentlyEnabled) R.string.menu_item_turn_gesture_repeat_off
                     else R.string.menu_item_turn_gesture_repeat_on
@@ -159,11 +156,7 @@ class SettingsMenuStructure(
                 MenuConstants.MenuIds.SETTINGS_MENU,
                 MenuConstants.ItemIds.Settings.TOGGLE_GESTURE_LOCK_REARM
             )?.let { def ->
-                val prefManager = PreferenceManager(accessibilityService)
-                val currentlyEnabled = prefManager.getBooleanValue(
-                    PreferenceManager.PREFERENCE_KEY_GESTURE_LOCK_AUTO_REENABLE,
-                    false
-                )
+                val currentlyEnabled = GestureModePolicy.isRearmEnabled(accessibilityService)
                 val stateLabel = accessibilityService.getString(
                     if (currentlyEnabled) R.string.menu_item_turn_gesture_lock_rearm_off
                     else R.string.menu_item_turn_gesture_lock_rearm_on

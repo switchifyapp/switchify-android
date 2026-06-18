@@ -3,7 +3,6 @@ package com.enaboapps.switchify.service.gestures
 import android.accessibilityservice.AccessibilityService
 import android.content.Context
 import com.enaboapps.switchify.R
-import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.service.gestures.data.GestureData
 import com.enaboapps.switchify.service.window.MessageSeverity
 import com.enaboapps.switchify.service.window.ServiceMessageHUD
@@ -31,8 +30,11 @@ class GestureLockManager private constructor() {
 
     fun toggleAutoReenable(context: Context, syncGestureLock: Boolean = false) {
         val nextEnabled = !isAutoReenableEnabled(context)
-        setAutoReenableEnabled(context, nextEnabled)
-        applyAutoReenableToggleResult(nextEnabled, syncGestureLock)
+        val state = GestureModePolicy.setRearmEnabled(context, nextEnabled)
+        if (state.rearmEnabled) {
+            GestureRepeatManager.instance.stopRepeat(showMessage = false)
+        }
+        applyAutoReenableToggleResult(state.rearmEnabled, syncGestureLock)
     }
 
     private fun applyAutoReenableToggleResult(nextEnabled: Boolean, syncGestureLock: Boolean) {
@@ -52,6 +54,7 @@ class GestureLockManager private constructor() {
 
     // Function to lock/unlock the gesture lock, showing a message to the user
     fun toggleGestureLock() {
+        if (GestureRepeatManager.instance.isRepeating()) return
         stopTimer()
 
         if (!isLocked) {
@@ -185,32 +188,15 @@ class GestureLockManager private constructor() {
     }
 
     private fun isAutoReenableEnabled(): Boolean {
-        autoReenableProviderForTesting?.let { return it() }
+        autoReenableProviderForTesting?.let { return GestureModePolicy.normalizeForTesting().rearmEnabled }
         return accessibilityService?.let {
-            PreferenceManager(it).getBooleanValue(
-                PreferenceManager.PREFERENCE_KEY_GESTURE_LOCK_AUTO_REENABLE,
-                false
-            )
+            GestureModePolicy.isRearmEnabled(it)
         } ?: false
     }
 
     private fun isAutoReenableEnabled(context: Context): Boolean {
-        autoReenableProviderForTesting?.let { return it() }
-        return PreferenceManager(context).getBooleanValue(
-            PreferenceManager.PREFERENCE_KEY_GESTURE_LOCK_AUTO_REENABLE,
-            false
-        )
-    }
-
-    private fun setAutoReenableEnabled(context: Context, enabled: Boolean) {
-        autoReenableSetterForTesting?.let {
-            it(enabled)
-            return
-        }
-        PreferenceManager(context).setBooleanValue(
-            PreferenceManager.PREFERENCE_KEY_GESTURE_LOCK_AUTO_REENABLE,
-            enabled
-        )
+        autoReenableProviderForTesting?.let { return GestureModePolicy.normalizeForTesting().rearmEnabled }
+        return GestureModePolicy.isRearmEnabled(context)
     }
 
     private fun showMessage(messageResId: Int, severity: MessageSeverity) {
@@ -245,8 +231,11 @@ class GestureLockManager private constructor() {
 
     internal fun toggleAutoReenableForTesting(syncGestureLock: Boolean) {
         val nextEnabled = !isAutoReenableEnabled()
-        autoReenableSetterForTesting?.invoke(nextEnabled)
-        applyAutoReenableToggleResult(nextEnabled, syncGestureLock)
+        val state = GestureModePolicy.setRearmEnabledForTesting(nextEnabled)
+        if (state.rearmEnabled) {
+            GestureRepeatManager.instance.stopRepeat(showMessage = false)
+        }
+        applyAutoReenableToggleResult(state.rearmEnabled, syncGestureLock)
     }
 
     internal fun resetForTesting() {

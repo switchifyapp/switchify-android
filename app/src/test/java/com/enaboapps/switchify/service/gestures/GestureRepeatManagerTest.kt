@@ -17,28 +17,38 @@ class GestureRepeatManagerTest {
     private val lockManager = GestureLockManager.instance
     private val messages = mutableListOf<Int>()
     private var autoRepeatEnabled = false
+    private var autoReenableEnabled = false
     private var repeatDelay = GestureRepeatManager.DEFAULT_REPEAT_DELAY
 
     @Before
     fun setup() {
+        GestureModePolicy.resetForTesting()
         lockManager.resetForTesting()
         repeatManager.resetForTesting()
         lockManager.setSuppressHudForTesting(true)
         repeatManager.setSuppressHudForTesting(true)
         messages.clear()
         autoRepeatEnabled = false
+        autoReenableEnabled = false
         repeatDelay = GestureRepeatManager.DEFAULT_REPEAT_DELAY
         lockManager.setMessageRecorderForTesting { messages.add(it) }
         repeatManager.setMessageRecorderForTesting { messages.add(it) }
         repeatManager.setAutoRepeatProviderForTesting { autoRepeatEnabled }
         repeatManager.setAutoRepeatSetterForTesting { autoRepeatEnabled = it }
         repeatManager.setRepeatDelayProviderForTesting { repeatDelay }
+        GestureModePolicy.setPreferenceAccessorsForTesting(
+            repeatProvider = { autoRepeatEnabled },
+            rearmProvider = { autoReenableEnabled },
+            repeatSetter = { autoRepeatEnabled = it },
+            rearmSetter = { autoReenableEnabled = it }
+        )
     }
 
     @After
     fun tearDown() {
         lockManager.resetForTesting()
         repeatManager.resetForTesting()
+        GestureModePolicy.resetForTesting()
     }
 
     @Test
@@ -110,16 +120,36 @@ class GestureRepeatManagerTest {
     }
 
     @Test
-    fun stopRepeatForSwitchPressRearmsGestureLockWhenStillEnabled() {
+    fun stopRepeatForSwitchPressTurnsGestureLockOff() {
         autoRepeatEnabled = true
         lockWithGesture()
 
         assertTrue(repeatManager.stopRepeatForSwitchPress())
 
         assertFalse(repeatManager.isRepeating())
-        assertTrue(lockManager.isLocked())
+        assertFalse(lockManager.isLocked())
         assertFalse(lockManager.isGestureLockEngaged())
         assertNull(lockManager.getLockedGestureData())
+    }
+
+    @Test
+    fun stopRepeatForSwitchPressLeavesRepeatPreferenceEnabled() {
+        autoRepeatEnabled = true
+        lockWithGesture()
+
+        assertTrue(repeatManager.stopRepeatForSwitchPress())
+
+        assertTrue(autoRepeatEnabled)
+    }
+
+    @Test
+    fun turningRepeatOnDisablesRearm() {
+        autoReenableEnabled = true
+
+        repeatManager.toggleAutoRepeatForTesting(syncGestureLock = false)
+
+        assertTrue(autoRepeatEnabled)
+        assertFalse(autoReenableEnabled)
     }
 
     @Test

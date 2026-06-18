@@ -39,16 +39,13 @@ class GestureRepeatManager private constructor() {
 
     fun toggleAutoRepeat(context: Context, syncGestureLock: Boolean = false) {
         val nextEnabled = !isAutoRepeatEnabled(context)
-        setAutoRepeatEnabled(context, nextEnabled)
-        applyAutoRepeatToggleResult(nextEnabled, syncGestureLock)
+        val state = GestureModePolicy.setRepeatEnabled(context, nextEnabled)
+        applyAutoRepeatToggleResult(state.repeatEnabled, syncGestureLock)
     }
 
     fun isAutoRepeatEnabled(context: Context): Boolean {
-        autoRepeatProviderForTesting?.let { return it() }
-        return PreferenceManager(context).getBooleanValue(
-            PreferenceManager.PREFERENCE_KEY_GESTURE_REPEAT,
-            false
-        )
+        autoRepeatProviderForTesting?.let { return GestureModePolicy.normalizeForTesting().repeatEnabled }
+        return GestureModePolicy.isRepeatEnabled(context)
     }
 
     fun onLockedGestureChanged(gestureData: GestureData?) {
@@ -75,8 +72,11 @@ class GestureRepeatManager private constructor() {
 
     fun stopRepeatForSwitchPress(): Boolean {
         val stopped = stopRepeat()
-        if (stopped && isAutoRepeatEnabled()) {
-            GestureLockManager.instance.enableLockForNextGesture(showMessage = false)
+        if (stopped) {
+            GestureLockManager.instance.disableLock(
+                allowAutoReenable = false,
+                showMessage = false
+            )
         }
         return stopped
     }
@@ -122,19 +122,8 @@ class GestureRepeatManager private constructor() {
     }
 
     private fun isAutoRepeatEnabled(): Boolean {
-        autoRepeatProviderForTesting?.let { return it() }
+        autoRepeatProviderForTesting?.let { return GestureModePolicy.normalizeForTesting().repeatEnabled }
         return context?.let { isAutoRepeatEnabled(it) } ?: false
-    }
-
-    private fun setAutoRepeatEnabled(context: Context, enabled: Boolean) {
-        autoRepeatSetterForTesting?.let {
-            it(enabled)
-            return
-        }
-        PreferenceManager(context).setBooleanValue(
-            PreferenceManager.PREFERENCE_KEY_GESTURE_REPEAT,
-            enabled
-        )
     }
 
     private fun getRepeatDelay(): Long {
@@ -161,8 +150,8 @@ class GestureRepeatManager private constructor() {
 
     internal fun toggleAutoRepeatForTesting(syncGestureLock: Boolean) {
         val nextEnabled = !isAutoRepeatEnabled()
-        autoRepeatSetterForTesting?.invoke(nextEnabled)
-        applyAutoRepeatToggleResult(nextEnabled, syncGestureLock)
+        val state = GestureModePolicy.setRepeatEnabledForTesting(nextEnabled)
+        applyAutoRepeatToggleResult(state.repeatEnabled, syncGestureLock)
     }
 
     internal fun setAutoRepeatProviderForTesting(provider: (() -> Boolean)?) {

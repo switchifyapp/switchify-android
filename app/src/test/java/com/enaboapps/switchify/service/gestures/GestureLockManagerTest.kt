@@ -21,6 +21,7 @@ class GestureLockManagerTest {
 
     @Before
     fun setup() {
+        GestureModePolicy.resetForTesting()
         manager.resetForTesting()
         repeatManager.resetForTesting()
         manager.setSuppressHudForTesting(true)
@@ -34,12 +35,19 @@ class GestureLockManagerTest {
         repeatManager.setAutoRepeatProviderForTesting { autoRepeatEnabled }
         repeatManager.setAutoRepeatSetterForTesting { autoRepeatEnabled = it }
         repeatManager.setRepeatDelayProviderForTesting { GestureRepeatManager.DEFAULT_REPEAT_DELAY }
+        GestureModePolicy.setPreferenceAccessorsForTesting(
+            repeatProvider = { autoRepeatEnabled },
+            rearmProvider = { autoReenableEnabled },
+            repeatSetter = { autoRepeatEnabled = it },
+            rearmSetter = { autoReenableEnabled = it }
+        )
     }
 
     @After
     fun tearDown() {
         manager.resetForTesting()
         repeatManager.resetForTesting()
+        GestureModePolicy.resetForTesting()
     }
 
     @Test
@@ -275,6 +283,60 @@ class GestureLockManagerTest {
         assertTrue(manager.isLocked())
         assertTrue(manager.isGestureLockEngaged())
         assertFalse(messages.contains(R.string.gesture_lock_timeout_disabled))
+    }
+
+    @Test
+    fun turningRearmOnDisablesRepeat() {
+        autoRepeatEnabled = true
+        lockWithGesture()
+
+        manager.toggleAutoReenableForTesting(syncGestureLock = false)
+
+        assertTrue(autoReenableEnabled)
+        assertFalse(autoRepeatEnabled)
+        assertFalse(repeatManager.isRepeating())
+    }
+
+    @Test
+    fun toggleGestureLockIgnoredWhileRepeatIsActive() {
+        autoRepeatEnabled = true
+        lockWithGesture()
+        messages.clear()
+
+        manager.toggleGestureLock()
+
+        assertTrue(repeatManager.isRepeating())
+        assertTrue(manager.isLocked())
+        assertTrue(manager.isGestureLockEngaged())
+        assertTrue(messages.isEmpty())
+    }
+
+    @Test
+    fun autoReenableDoesNotRunWhenRepeatIsEnabledBecauseModesAreExclusive() {
+        autoRepeatEnabled = true
+        autoReenableEnabled = true
+
+        GestureModePolicy.normalizeForTesting()
+        lockWithGesture()
+        manager.disableLock()
+
+        assertFalse(autoRepeatEnabled)
+        assertFalse(autoReenableEnabled)
+        assertFalse(manager.isLocked())
+        assertFalse(messages.contains(R.string.gesture_lock_rearmed))
+    }
+
+    @Test
+    fun bothPreferencesOnNormalizeToBothOff() {
+        autoRepeatEnabled = true
+        autoReenableEnabled = true
+
+        val state = GestureModePolicy.normalizeForTesting()
+
+        assertFalse(state.repeatEnabled)
+        assertFalse(state.rearmEnabled)
+        assertFalse(autoRepeatEnabled)
+        assertFalse(autoReenableEnabled)
     }
 
     private fun lockWithGesture() {
