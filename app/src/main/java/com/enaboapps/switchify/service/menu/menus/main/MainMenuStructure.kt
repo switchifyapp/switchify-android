@@ -189,7 +189,7 @@ class MainMenuStructure(
         }
         showMessage(R.string.pc_control_connecting, MessageSeverity.Info)
         coroutineScope.launch {
-            val discovered = controller.discoverPcs()
+            val discovered = controller.discoverPairedPcs()
             withContext(Dispatchers.Main) {
                 when {
                     discovered.isEmpty() -> showMessage(R.string.pc_control_no_pc_found, MessageSeverity.Warning)
