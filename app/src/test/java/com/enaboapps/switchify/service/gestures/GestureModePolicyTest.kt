@@ -1,157 +1,144 @@
 package com.enaboapps.switchify.service.gestures
 
 import com.enaboapps.switchify.R
-import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
-import org.junit.Before
 import org.junit.Test
 
 class GestureModePolicyTest {
-    private var repeatEnabled = false
-    private var rearmEnabled = false
-
-    @Before
-    fun setup() {
-        repeatEnabled = false
-        rearmEnabled = false
-        GestureModePolicy.setPreferenceAccessorsForTesting(
-            repeatProvider = { repeatEnabled },
-            rearmProvider = { rearmEnabled },
-            repeatSetter = { repeatEnabled = it },
-            rearmSetter = { rearmEnabled = it }
-        )
-    }
-
-    @After
-    fun tearDown() {
-        GestureModePolicy.resetForTesting()
-    }
-
     @Test
-    fun normalizeLeavesBothOff() {
-        val state = GestureModePolicy.normalizeForTesting()
+    fun currentStateLeavesBothOff() {
+        val state = GestureModePolicy.currentState(
+            repeatEnabled = false,
+            rearmEnabled = false
+        )
 
         assertFalse(state.repeatEnabled)
         assertFalse(state.rearmEnabled)
-        assertFalse(repeatEnabled)
-        assertFalse(rearmEnabled)
     }
 
     @Test
-    fun normalizeLeavesRepeatOnly() {
-        repeatEnabled = true
-
-        val state = GestureModePolicy.normalizeForTesting()
+    fun currentStateLeavesRepeatOnly() {
+        val state = GestureModePolicy.currentState(
+            repeatEnabled = true,
+            rearmEnabled = false
+        )
 
         assertTrue(state.repeatEnabled)
         assertFalse(state.rearmEnabled)
-        assertTrue(repeatEnabled)
-        assertFalse(rearmEnabled)
     }
 
     @Test
-    fun normalizeLeavesRearmOnly() {
-        rearmEnabled = true
-
-        val state = GestureModePolicy.normalizeForTesting()
+    fun currentStateLeavesRearmOnly() {
+        val state = GestureModePolicy.currentState(
+            repeatEnabled = false,
+            rearmEnabled = true
+        )
 
         assertFalse(state.repeatEnabled)
         assertTrue(state.rearmEnabled)
-        assertFalse(repeatEnabled)
-        assertTrue(rearmEnabled)
     }
 
     @Test
-    fun normalizeTurnsBothOnToBothOff() {
-        repeatEnabled = true
-        rearmEnabled = true
-
-        val state = GestureModePolicy.normalizeForTesting()
+    fun currentStateNormalizesBothOnToBothOff() {
+        val state = GestureModePolicy.currentState(
+            repeatEnabled = true,
+            rearmEnabled = true
+        )
 
         assertFalse(state.repeatEnabled)
         assertFalse(state.rearmEnabled)
-        assertFalse(repeatEnabled)
-        assertFalse(rearmEnabled)
     }
 
     @Test
     fun setRepeatOnBlockedWhenRearmEnabled() {
-        rearmEnabled = true
-
-        val result = GestureModePolicy.setRepeatEnabledForTesting(true)
+        val result = GestureModePolicy.setRepeatEnabled(
+            enabled = true,
+            currentRepeatEnabled = false,
+            currentRearmEnabled = true,
+            isGestureLockEnabled = false
+        )
 
         assertFalse(result.changed)
         assertEquals(R.string.gesture_mode_blocked_rearm_enabled_for_repeat, result.blockedReasonResId)
         assertFalse(result.state.repeatEnabled)
         assertTrue(result.state.rearmEnabled)
-        assertFalse(repeatEnabled)
-        assertTrue(rearmEnabled)
     }
 
     @Test
     fun setRepeatOnBlockedWhenGestureLockEnabled() {
-        val result = GestureModePolicy.setRepeatEnabledForTesting(
-            true,
+        val result = GestureModePolicy.setRepeatEnabled(
+            enabled = true,
+            currentRepeatEnabled = false,
+            currentRearmEnabled = false,
             isGestureLockEnabled = true
         )
 
         assertFalse(result.changed)
         assertEquals(R.string.gesture_mode_blocked_lock_enabled_for_repeat, result.blockedReasonResId)
-        assertFalse(repeatEnabled)
-        assertFalse(rearmEnabled)
+        assertFalse(result.state.repeatEnabled)
+        assertFalse(result.state.rearmEnabled)
     }
 
     @Test
     fun setRearmOnBlockedWhenRepeatEnabled() {
-        repeatEnabled = true
-
-        val result = GestureModePolicy.setRearmEnabledForTesting(true)
+        val result = GestureModePolicy.setRearmEnabled(
+            enabled = true,
+            currentRepeatEnabled = true,
+            currentRearmEnabled = false,
+            isGestureLockEnabled = false
+        )
 
         assertFalse(result.changed)
         assertEquals(R.string.gesture_mode_blocked_repeat_enabled_for_rearm, result.blockedReasonResId)
         assertTrue(result.state.repeatEnabled)
         assertFalse(result.state.rearmEnabled)
-        assertTrue(repeatEnabled)
-        assertFalse(rearmEnabled)
     }
 
     @Test
     fun setRearmOnBlockedWhenGestureLockEnabled() {
-        val result = GestureModePolicy.setRearmEnabledForTesting(
-            true,
+        val result = GestureModePolicy.setRearmEnabled(
+            enabled = true,
+            currentRepeatEnabled = false,
+            currentRearmEnabled = false,
             isGestureLockEnabled = true
         )
 
         assertFalse(result.changed)
         assertEquals(R.string.gesture_mode_blocked_lock_enabled_for_rearm, result.blockedReasonResId)
-        assertFalse(repeatEnabled)
-        assertFalse(rearmEnabled)
+        assertFalse(result.state.repeatEnabled)
+        assertFalse(result.state.rearmEnabled)
     }
 
     @Test
     fun setRepeatOffAllowedWhenRearmEnabled() {
-        repeatEnabled = true
+        val result = GestureModePolicy.setRepeatEnabled(
+            enabled = false,
+            currentRepeatEnabled = false,
+            currentRearmEnabled = true,
+            isGestureLockEnabled = false
+        )
 
-        val result = GestureModePolicy.setRepeatEnabledForTesting(false)
-
-        assertFalse(repeatEnabled)
-        assertFalse(rearmEnabled)
-        assertTrue(result.changed)
+        assertFalse(result.changed)
         assertNull(result.blockedReasonResId)
+        assertFalse(result.state.repeatEnabled)
+        assertTrue(result.state.rearmEnabled)
     }
 
     @Test
     fun setRearmOffAllowedWhenRepeatEnabled() {
-        rearmEnabled = true
+        val result = GestureModePolicy.setRearmEnabled(
+            enabled = false,
+            currentRepeatEnabled = true,
+            currentRearmEnabled = false,
+            isGestureLockEnabled = false
+        )
 
-        val result = GestureModePolicy.setRearmEnabledForTesting(false)
-
-        assertFalse(repeatEnabled)
-        assertFalse(rearmEnabled)
-        assertTrue(result.changed)
+        assertFalse(result.changed)
         assertNull(result.blockedReasonResId)
+        assertTrue(result.state.repeatEnabled)
+        assertFalse(result.state.rearmEnabled)
     }
 }

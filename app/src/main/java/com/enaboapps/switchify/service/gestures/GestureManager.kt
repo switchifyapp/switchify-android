@@ -83,7 +83,6 @@ class GestureManager private constructor() {
         AutoScrollManager.getInstance().init(accessibilityService)
         GesturePatternManager.init(accessibilityService)
         preferenceManager = PreferenceManager(accessibilityService)
-        GestureModePolicy.normalize(accessibilityService)
 
         // Initialize unified execution pipeline components
         gestureDispatcher = GestureDispatcher(accessibilityService)
