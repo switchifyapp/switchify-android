@@ -19,6 +19,7 @@
     <string name="gesture_repeat_disabled">Gesture Repeat OFF</string>
     <string name="gesture_repeat_started">Gesture Repeat Started</string>
     <string name="gesture_repeat_stopped">Gesture Repeat Stopped</string>
+    <string name="gesture_repeat_waiting">Gesture Repeat waiting for next gesture</string>
 
     <!-- Gesture Patterns -->
     <string name="start_recording">Start Recording</string>

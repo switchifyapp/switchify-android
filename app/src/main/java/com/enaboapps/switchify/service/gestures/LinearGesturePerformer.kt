@@ -335,7 +335,7 @@ class LinearGesturePerformer(
         val fingerMode =
             if (fingerCount > 1) getCurrentFingerMode() else com.enaboapps.switchify.service.gestures.placement.FingerMode.ONE
 
-        gestureLockManager.setLockedGestureData(
+        GestureCaptureRouter.onGesturePerformed(
             GestureData(
                 gestureType = gestureType,
                 startPoint = startPoint,

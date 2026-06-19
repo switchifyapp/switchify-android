@@ -599,7 +599,7 @@ class GestureManager private constructor() {
      */
     fun performPinch(type: GestureType, startPoint: PointF? = null) {
         val point = startPoint ?: GesturePoint.getPoint()
-        GestureLockManager.instance.setLockedGestureData(
+        GestureCaptureRouter.onGesturePerformed(
             GestureData(
                 gestureType = type,
                 startPoint = point,

@@ -44,10 +44,8 @@ fun AdvancedGestureSettingsScreen(navController: NavController) {
                 summaryResId = R.string.preference_summary_gesture_repeat,
                 checked = gestureRepeatState.value,
                 onCheckedChange = {
-                    val state = GestureModePolicy.setRepeatEnabled(context, it)
-                    if (!state.repeatEnabled) {
-                        GestureRepeatManager.instance.stopRepeat(showMessage = false)
-                    }
+                    GestureRepeatManager.instance.setAutoRepeatEnabled(context, it)
+                    val state = GestureModePolicy.normalize(context)
                     gestureRepeatState.value = state.repeatEnabled
                     gestureLockAutoReenableState.value = state.rearmEnabled
                 }
@@ -74,7 +72,7 @@ fun AdvancedGestureSettingsScreen(navController: NavController) {
                 onCheckedChange = {
                     val state = GestureModePolicy.setRearmEnabled(context, it)
                     if (state.rearmEnabled) {
-                        GestureRepeatManager.instance.stopRepeat(showMessage = false)
+                        GestureRepeatManager.instance.turnAutoRepeatOffForGestureLockToggle()
                     }
                     gestureRepeatState.value = state.repeatEnabled
                     gestureLockAutoReenableState.value = state.rearmEnabled
