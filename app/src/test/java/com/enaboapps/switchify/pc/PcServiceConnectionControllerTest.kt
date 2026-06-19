@@ -441,6 +441,52 @@ class PcServiceConnectionControllerTest {
     }
 
     @Test
+    fun discoverPairedPcsReturnsOnlyDiscoveredPcsWithToken() = runTest(dispatcher) {
+        val tokens = FakeTokenStore(mutableMapOf("desktop-1" to "token"))
+        val controller = controller(
+            tokens,
+            FakeConnector(PcPingResult.AuthFailed()),
+            FakeDiscovery(listOf(pc, secondPc))
+        )
+
+        val discovered = controller.discoverPairedPcs()
+
+        assertEquals(listOf(pc), discovered)
+    }
+
+    @Test
+    fun discoverPairedPcsReturnsEmptyWhenNoDiscoveredPcHasToken() = runTest(dispatcher) {
+        val controller = controller(
+            FakeTokenStore(),
+            FakeConnector(PcPingResult.AuthFailed()),
+            FakeDiscovery(listOf(pc, secondPc))
+        )
+
+        val discovered = controller.discoverPairedPcs()
+
+        assertTrue(discovered.isEmpty())
+    }
+
+    @Test
+    fun discoverPairedPcsIgnoresSavedPairingsThatAreNotDiscovered() = runTest(dispatcher) {
+        val tokens = FakeTokenStore(
+            mutableMapOf(
+                "desktop-1" to "token",
+                "desktop-2" to "token-2"
+            )
+        )
+        val controller = controller(
+            tokens,
+            FakeConnector(PcPingResult.AuthFailed()),
+            FakeDiscovery(listOf(pc))
+        )
+
+        val discovered = controller.discoverPairedPcs()
+
+        assertEquals(listOf(pc), discovered)
+    }
+
+    @Test
     fun connectToUsesSavedTokenWithoutPairing() = runTest(dispatcher) {
         val tokens = FakeTokenStore(mutableMapOf("desktop-1" to "token"))
         val connector = FakeConnector(PcPingResult.Connected("AA:BB:CC:DD:EE:FF"))

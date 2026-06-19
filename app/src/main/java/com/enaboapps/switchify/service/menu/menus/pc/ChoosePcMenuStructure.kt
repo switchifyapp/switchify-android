@@ -5,7 +5,7 @@ import com.enaboapps.switchify.pc.DiscoveredPc
 import com.enaboapps.switchify.service.menu.MenuItem
 
 /**
- * Builds menu items for the "Choose PC" menu, one per discovered PC.
+ * Builds menu items for the "Choose PC" menu, one per paired discovered PC.
  */
 class ChoosePcMenuStructure {
 

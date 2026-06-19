@@ -6,7 +6,7 @@ import com.enaboapps.switchify.service.menu.menus.BaseMenu
 import com.enaboapps.switchify.service.menu.structure.MenuConstants
 
 /**
- * Menu shown when more than one Switchify PC is discovered on the local
+ * Menu shown when more than one paired Switchify PC is discovered on the local
  * network, letting the user pick which PC to connect to. Selecting a row
  * closes the menu hierarchy and invokes [onSelect] with the chosen PC.
  */

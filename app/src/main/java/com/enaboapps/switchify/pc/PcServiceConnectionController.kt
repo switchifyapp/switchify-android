@@ -73,6 +73,12 @@ class PcServiceConnectionController(
         }
     }
 
+    suspend fun discoverPairedPcs(): List<DiscoveredPc> {
+        return discoverPcs().filter { pc ->
+            !tokenStore.getToken(pc.desktopId).isNullOrBlank()
+        }
+    }
+
     suspend fun connectOrRequestAccess(onWaitingForApproval: (PcApprovalCodeState) -> Unit = {}): PcServiceConnectResult {
         existingConnection()?.let { return it }
 
