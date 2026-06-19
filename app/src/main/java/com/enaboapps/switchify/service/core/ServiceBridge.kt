@@ -124,6 +124,11 @@ object ServiceBridge {
          * @param value The new value (for validation purposes)
          */
         data class UpdateConfiguration(val key: String, val value: Any?) : ServiceCommand()
+
+        data class PerformSwitchActionForTesting(
+            val actionId: Int,
+            val source: String = "adb"
+        ) : ServiceCommand()
     }
 
     /**
