@@ -48,6 +48,7 @@ class PreferenceManager(context: Context) {
         const val PREFERENCE_KEY_GESTURE_LOCK = "gesture_lock"
         const val PREFERENCE_KEY_GESTURE_LOCK_AUTO_REENABLE = "gesture_lock_auto_reenable"
         const val PREFERENCE_KEY_GESTURE_REPEAT = "gesture_repeat"
+        const val PREFERENCE_KEY_GESTURE_REPEAT_INITIAL_DELAY = "gesture_repeat_initial_delay"
         const val PREFERENCE_KEY_GESTURE_REPEAT_DELAY = "gesture_repeat_delay"
         const val PREFERENCE_KEY_SCAN_COLOR_SET = "scan_color_set"
         const val PREFERENCE_KEY_SCAN_HIGHLIGHT_TYPE = "scan_highlight_type"

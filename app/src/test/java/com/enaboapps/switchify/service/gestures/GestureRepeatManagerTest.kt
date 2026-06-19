@@ -17,6 +17,7 @@ class GestureRepeatManagerTest {
     private val lockManager = GestureLockManager.instance
     private val autoScrollManager = AutoScrollManager.getInstance()
     private val messages = mutableListOf<Int>()
+    private var initialRepeatDelay = GestureRepeatManager.DEFAULT_INITIAL_REPEAT_DELAY
     private var repeatDelay = GestureRepeatManager.DEFAULT_REPEAT_DELAY
 
     @Before
@@ -28,10 +29,12 @@ class GestureRepeatManagerTest {
         repeatManager.setSuppressHudForTesting(true)
         autoScrollManager.setSuppressHudForTesting(true)
         messages.clear()
+        initialRepeatDelay = GestureRepeatManager.DEFAULT_INITIAL_REPEAT_DELAY
         repeatDelay = GestureRepeatManager.DEFAULT_REPEAT_DELAY
         lockManager.setMessageRecorderForTesting { messages.add(it) }
         repeatManager.setMessageRecorderForTesting { messages.add(it) }
         autoScrollManager.setMessageRecorderForTesting { messages.add(it) }
+        repeatManager.setInitialRepeatDelayProviderForTesting { initialRepeatDelay }
         repeatManager.setRepeatDelayProviderForTesting { repeatDelay }
         autoScrollManager.setAutoScrollEnabledProviderForTesting { true }
         autoScrollManager.setAutoScrollDelayProviderForTesting { 10000L }
@@ -188,7 +191,25 @@ class GestureRepeatManagerTest {
     }
 
     @Test
-    fun delayIsReadFromProviderAndCoerced() {
+    fun initialDelayIsReadFromProviderAndCoerced() {
+        initialRepeatDelay = -1L
+        assertEquals(
+            GestureRepeatManager.MIN_INITIAL_REPEAT_DELAY,
+            repeatManager.getInitialRepeatDelayForTesting()
+        )
+
+        initialRepeatDelay = 12000L
+        assertEquals(
+            GestureRepeatManager.MAX_INITIAL_REPEAT_DELAY,
+            repeatManager.getInitialRepeatDelayForTesting()
+        )
+
+        initialRepeatDelay = 750L
+        assertEquals(750L, repeatManager.getInitialRepeatDelayForTesting())
+    }
+
+    @Test
+    fun repeatDelayStillUsesMinimumOf250() {
         repeatDelay = 100L
         assertEquals(
             GestureRepeatManager.MIN_REPEAT_DELAY,
@@ -203,6 +224,21 @@ class GestureRepeatManagerTest {
 
         repeatDelay = 750L
         assertEquals(750L, repeatManager.getRepeatDelayForTesting())
+    }
+
+    @Test
+    fun turningRepeatOffClearsInitialDelayJobBeforeFirstRepeat() {
+        initialRepeatDelay = 10000L
+        repeatManager.setAutoRepeatEnabledForTesting(true)
+        performGestureForRepeat()
+        messages.clear()
+
+        repeatManager.toggleAutoRepeatForTesting(syncGestureLock = true)
+
+        assertFalse(repeatManager.isAutoRepeatEnabled())
+        assertFalse(repeatManager.isRepeating())
+        assertNull(repeatManager.getRepeatedGestureDataForTesting())
+        assertEquals(listOf(R.string.gesture_repeat_disabled), messages)
     }
 
     @Test
