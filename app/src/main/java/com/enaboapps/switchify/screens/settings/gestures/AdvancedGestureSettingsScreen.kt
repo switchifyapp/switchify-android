@@ -16,6 +16,14 @@ import com.enaboapps.switchify.service.gestures.GestureRepeatManager
 fun AdvancedGestureSettingsScreen(navController: NavController) {
     val context = LocalContext.current
     val preferenceManager = PreferenceManager(context)
+    val gestureRepeatInitialDelayState = remember {
+        mutableStateOf(
+            preferenceManager.getLongValue(
+                PreferenceManager.PREFERENCE_KEY_GESTURE_REPEAT_INITIAL_DELAY,
+                GestureRepeatManager.DEFAULT_INITIAL_REPEAT_DELAY
+            )
+        )
+    }
     val gestureRepeatDelayState = remember {
         mutableStateOf(
             preferenceManager.getLongValue(
@@ -30,6 +38,21 @@ fun AdvancedGestureSettingsScreen(navController: NavController) {
         navController = navController
     ) {
         Section(titleResId = R.string.settings_section_advanced_gestures) {
+            PreferenceTimeStepper(
+                value = gestureRepeatInitialDelayState.value,
+                titleResId = R.string.preference_title_gesture_repeat_initial_delay,
+                summaryResId = R.string.preference_summary_gesture_repeat_initial_delay,
+                min = GestureRepeatManager.MIN_INITIAL_REPEAT_DELAY,
+                max = GestureRepeatManager.MAX_INITIAL_REPEAT_DELAY,
+                step = GestureRepeatManager.INITIAL_REPEAT_DELAY_STEP,
+                onValueChanged = {
+                    preferenceManager.setLongValue(
+                        PreferenceManager.PREFERENCE_KEY_GESTURE_REPEAT_INITIAL_DELAY,
+                        it
+                    )
+                    gestureRepeatInitialDelayState.value = it
+                }
+            )
             PreferenceTimeStepper(
                 value = gestureRepeatDelayState.value,
                 titleResId = R.string.preference_title_gesture_repeat_delay,

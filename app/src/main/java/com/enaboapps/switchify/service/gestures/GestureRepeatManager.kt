@@ -19,6 +19,7 @@ class GestureRepeatManager private constructor() {
     private var repeatJob: Job? = null
     private var repeatedGestureData: GestureData? = null
     private var autoRepeatEnabled = false
+    private var initialRepeatDelayProviderForTesting: (() -> Long)? = null
     private var repeatDelayProviderForTesting: (() -> Long)? = null
     private var suppressHudForTesting = false
     private var messageRecorderForTesting: ((Int) -> Unit)? = null
@@ -29,6 +30,10 @@ class GestureRepeatManager private constructor() {
         const val MIN_REPEAT_DELAY = 250L
         const val MAX_REPEAT_DELAY = 10000L
         const val REPEAT_DELAY_STEP = 250L
+        const val DEFAULT_INITIAL_REPEAT_DELAY = DEFAULT_REPEAT_DELAY
+        const val MIN_INITIAL_REPEAT_DELAY = 0L
+        const val MAX_INITIAL_REPEAT_DELAY = MAX_REPEAT_DELAY
+        const val INITIAL_REPEAT_DELAY_STEP = REPEAT_DELAY_STEP
 
         val instance: GestureRepeatManager by lazy { GestureRepeatManager() }
     }
@@ -132,16 +137,10 @@ class GestureRepeatManager private constructor() {
         repeatedGestureData = gestureData
         showMessage(R.string.gesture_repeat_started, MessageSeverity.Success)
         repeatJob = scope.launch {
+            delay(getInitialRepeatDelay())
             while (isActive) {
-                delay(getRepeatDelay())
-                if (isActive) {
-                    isExecutingRepeatGesture = true
-                    try {
-                        repeatedGestureData?.executeGesture()
-                    } finally {
-                        isExecutingRepeatGesture = false
-                    }
-                }
+                executeRepeatedGesture()
+                if (isActive) delay(getRepeatDelay())
             }
         }
     }
@@ -160,6 +159,27 @@ class GestureRepeatManager private constructor() {
             }
             ?: DEFAULT_REPEAT_DELAY
         return delay.coerceIn(MIN_REPEAT_DELAY, MAX_REPEAT_DELAY)
+    }
+
+    private fun getInitialRepeatDelay(): Long {
+        val delay = initialRepeatDelayProviderForTesting?.invoke()
+            ?: context?.let {
+                PreferenceManager(it).getLongValue(
+                    PreferenceManager.PREFERENCE_KEY_GESTURE_REPEAT_INITIAL_DELAY,
+                    DEFAULT_INITIAL_REPEAT_DELAY
+                )
+            }
+            ?: DEFAULT_INITIAL_REPEAT_DELAY
+        return delay.coerceIn(MIN_INITIAL_REPEAT_DELAY, MAX_INITIAL_REPEAT_DELAY)
+    }
+
+    private fun executeRepeatedGesture() {
+        isExecutingRepeatGesture = true
+        try {
+            repeatedGestureData?.executeGesture()
+        } finally {
+            isExecutingRepeatGesture = false
+        }
     }
 
     private fun showMessage(messageResId: Int, severity: MessageSeverity) {
@@ -196,8 +216,16 @@ class GestureRepeatManager private constructor() {
         repeatDelayProviderForTesting = provider
     }
 
+    internal fun setInitialRepeatDelayProviderForTesting(provider: (() -> Long)?) {
+        initialRepeatDelayProviderForTesting = provider
+    }
+
     internal fun getRepeatDelayForTesting(): Long {
         return getRepeatDelay()
+    }
+
+    internal fun getInitialRepeatDelayForTesting(): Long {
+        return getInitialRepeatDelay()
     }
 
     internal fun getRepeatedGestureDataForTesting(): GestureData? {
@@ -218,6 +246,7 @@ class GestureRepeatManager private constructor() {
         repeatedGestureData = null
         context = null
         autoRepeatEnabled = false
+        initialRepeatDelayProviderForTesting = null
         repeatDelayProviderForTesting = null
         suppressHudForTesting = false
         messageRecorderForTesting = null
