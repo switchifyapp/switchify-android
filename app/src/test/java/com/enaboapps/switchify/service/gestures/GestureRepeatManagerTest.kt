@@ -15,6 +15,7 @@ import org.junit.Test
 class GestureRepeatManagerTest {
     private val repeatManager = GestureRepeatManager.instance
     private val lockManager = GestureLockManager.instance
+    private val autoScrollManager = AutoScrollManager.getInstance()
     private val messages = mutableListOf<Int>()
     private var repeatDelay = GestureRepeatManager.DEFAULT_REPEAT_DELAY
 
@@ -22,19 +23,26 @@ class GestureRepeatManagerTest {
     fun setup() {
         lockManager.resetForTesting()
         repeatManager.resetForTesting()
+        autoScrollManager.resetForTesting()
         lockManager.setSuppressHudForTesting(true)
         repeatManager.setSuppressHudForTesting(true)
+        autoScrollManager.setSuppressHudForTesting(true)
         messages.clear()
         repeatDelay = GestureRepeatManager.DEFAULT_REPEAT_DELAY
         lockManager.setMessageRecorderForTesting { messages.add(it) }
         repeatManager.setMessageRecorderForTesting { messages.add(it) }
+        autoScrollManager.setMessageRecorderForTesting { messages.add(it) }
         repeatManager.setRepeatDelayProviderForTesting { repeatDelay }
+        autoScrollManager.setAutoScrollEnabledProviderForTesting { true }
+        autoScrollManager.setAutoScrollDelayProviderForTesting { 10000L }
+        autoScrollManager.setAutoScrollPerformerForTesting { true }
     }
 
     @After
     fun tearDown() {
         lockManager.resetForTesting()
         repeatManager.resetForTesting()
+        autoScrollManager.resetForTesting()
     }
 
     @Test
@@ -156,6 +164,18 @@ class GestureRepeatManagerTest {
     }
 
     @Test
+    fun turningRepeatOnBlockedWhenAutoScrollActive() {
+        assertTrue(autoScrollManager.startAutoScroll(scrollGesture()))
+        messages.clear()
+
+        repeatManager.toggleAutoRepeatForTesting(syncGestureLock = false)
+
+        assertFalse(repeatManager.isAutoRepeatEnabled())
+        assertTrue(autoScrollManager.isAutoScrolling())
+        assertEquals(listOf(R.string.gesture_mode_blocked_auto_scroll_enabled_for_repeat), messages)
+    }
+
+    @Test
     fun repeatedGestureDoesNotRecaptureItself() {
         repeatManager.setAutoRepeatEnabledForTesting(true)
         val firstGesture = performGestureForRepeat()
@@ -208,6 +228,13 @@ class GestureRepeatManagerTest {
         return GestureData(
             gestureType = GestureType.TAP,
             startPoint = PointF(x, y)
+        )
+    }
+
+    private fun scrollGesture(): GestureData {
+        return GestureData(
+            gestureType = GestureType.SCROLL_DOWN,
+            startPoint = PointF(10f, 20f)
         )
     }
 }

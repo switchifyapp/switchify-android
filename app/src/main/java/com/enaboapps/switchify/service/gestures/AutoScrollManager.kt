@@ -20,6 +20,11 @@ class AutoScrollManager private constructor() {
     private lateinit var preferenceManager: PreferenceManager
     private val scope = CoroutineScope(Dispatchers.IO)
     private var scrollJob: Job? = null
+    private var autoScrollEnabledProviderForTesting: (() -> Boolean)? = null
+    private var autoScrollDelayProviderForTesting: (() -> Long)? = null
+    private var autoScrollPerformerForTesting: ((GestureData) -> Boolean)? = null
+    private var suppressHudForTesting = false
+    private var messageRecorderForTesting: ((Int) -> Unit)? = null
 
     companion object {
         private var instance: AutoScrollManager? = null
@@ -48,6 +53,7 @@ class AutoScrollManager private constructor() {
      * @return True if auto-scrolling is enabled, false otherwise.
      */
     private fun isAutoScrollEnabledInPreferences(): Boolean {
+        autoScrollEnabledProviderForTesting?.let { return it() }
         return preferenceManager.getBooleanValue(PreferenceManager.Keys.PREFERENCE_KEY_AUTO_SCROLL)
     }
 
@@ -56,6 +62,7 @@ class AutoScrollManager private constructor() {
      * @return The delay for auto-scrolling.
      */
     private fun getAutoScrollDelay(): Long {
+        autoScrollDelayProviderForTesting?.let { return it() }
         return preferenceManager.getLongValue(PreferenceManager.Keys.PREFERENCE_KEY_AUTO_SCROLL_DELAY)
     }
 
@@ -66,16 +73,20 @@ class AutoScrollManager private constructor() {
      */
     fun startAutoScroll(gestureData: GestureData): Boolean {
         if (!isAutoScrollEnabledInPreferences() || isAutoScrolling || !gestureData.isScroll() || scrollJob != null) return false
-        if (GestureLockManager.instance.isLocked()) return false
-        ServiceMessageHUD.instance.showMessage(
-            R.string.hud_auto_scroll_started,
-            ServiceMessageHUD.MessageType.DISAPPEARING,
-            severity = MessageSeverity.Success
+        val result = GestureModePolicy.canStartAutoScroll(
+            currentRepeatEnabled = GestureRepeatManager.instance.isAutoRepeatEnabled(),
+            currentRearmEnabled = GestureLockManager.instance.isAutoReenableEnabled(),
+            isGestureLockEnabled = GestureLockManager.instance.isLocked()
         )
+        result.blockedReasonResId?.let {
+            showMessage(it, MessageSeverity.Warning)
+            return false
+        }
+        showMessage(R.string.hud_auto_scroll_started, MessageSeverity.Success)
         isAutoScrolling = true
         scrollJob = scope.launch {
             while (isAutoScrolling) {
-                gestureData.performAutoScroll()
+                performAutoScroll(gestureData)
                 if (isAutoScrolling) delay(getAutoScrollDelay())
             }
         }
@@ -93,11 +104,7 @@ class AutoScrollManager private constructor() {
             scrollJob?.cancel()
             scrollJob = null
             isAutoScrolling = false
-            ServiceMessageHUD.instance.showMessage(
-                R.string.hud_auto_scroll_stopped,
-                ServiceMessageHUD.MessageType.DISAPPEARING,
-                severity = MessageSeverity.Info
-            )
+            showMessage(R.string.hud_auto_scroll_stopped, MessageSeverity.Info)
             return true
         }
 
@@ -110,5 +117,51 @@ class AutoScrollManager private constructor() {
      */
     fun isAutoScrolling(): Boolean {
         return isAutoScrolling
+    }
+
+    private fun showMessage(messageResId: Int, severity: MessageSeverity) {
+        messageRecorderForTesting?.invoke(messageResId)
+        if (suppressHudForTesting) return
+        ServiceMessageHUD.instance.showMessage(
+            messageResId,
+            ServiceMessageHUD.MessageType.DISAPPEARING,
+            severity = severity
+        )
+    }
+
+    private fun performAutoScroll(gestureData: GestureData): Boolean {
+        return autoScrollPerformerForTesting?.invoke(gestureData)
+            ?: gestureData.performAutoScroll()
+    }
+
+    internal fun setAutoScrollEnabledProviderForTesting(provider: (() -> Boolean)?) {
+        autoScrollEnabledProviderForTesting = provider
+    }
+
+    internal fun setAutoScrollDelayProviderForTesting(provider: (() -> Long)?) {
+        autoScrollDelayProviderForTesting = provider
+    }
+
+    internal fun setAutoScrollPerformerForTesting(performer: ((GestureData) -> Boolean)?) {
+        autoScrollPerformerForTesting = performer
+    }
+
+    internal fun setSuppressHudForTesting(suppress: Boolean) {
+        suppressHudForTesting = suppress
+    }
+
+    internal fun setMessageRecorderForTesting(recorder: ((Int) -> Unit)?) {
+        messageRecorderForTesting = recorder
+    }
+
+    internal fun resetForTesting() {
+        scrollJob?.cancel()
+        scrollJob = null
+        isAutoScrolling = false
+        autoScrollEnabledProviderForTesting = null
+        autoScrollDelayProviderForTesting = null
+        autoScrollPerformerForTesting = null
+        suppressHudForTesting = false
+        messageRecorderForTesting = null
     }
 }
