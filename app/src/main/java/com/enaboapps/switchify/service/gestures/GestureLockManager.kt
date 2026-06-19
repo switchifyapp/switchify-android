@@ -54,9 +54,7 @@ class GestureLockManager private constructor() {
 
     // Function to lock/unlock the gesture lock, showing a message to the user
     fun toggleGestureLock() {
-        if (isAutoRepeatEnabled()) {
-            GestureRepeatManager.instance.turnAutoRepeatOffForGestureLockToggle()
-        }
+        if (isAutoRepeatEnabled()) return
         stopTimer()
 
         if (!isLocked) {

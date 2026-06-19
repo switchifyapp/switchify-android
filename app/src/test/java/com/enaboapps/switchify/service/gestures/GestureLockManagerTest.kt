@@ -302,33 +302,33 @@ class GestureLockManagerTest {
     }
 
     @Test
-    fun manualToggleGestureLockTurnsRepeatOffFirst() {
+    fun manualToggleGestureLockIgnoredWhileRepeatIsWaiting() {
         autoRepeatEnabled = true
-        repeatManager.toggleAutoRepeatForTesting(syncGestureLock = false)
         messages.clear()
 
         manager.toggleGestureLock()
 
-        assertFalse(autoRepeatEnabled)
+        assertTrue(autoRepeatEnabled)
         assertFalse(repeatManager.isRepeating())
-        assertTrue(manager.isLocked())
+        assertTrue(repeatManager.isWaitingForGesture())
+        assertFalse(manager.isLocked())
         assertFalse(manager.isGestureLockEngaged())
-        assertEquals(listOf(R.string.gesture_lock_enabled), messages)
+        assertTrue(messages.isEmpty())
     }
 
     @Test
-    fun manualToggleGestureLockStopsActiveRepeatAndTurnsRepeatOff() {
+    fun manualToggleGestureLockIgnoredWhileRepeatIsRunning() {
         autoRepeatEnabled = true
         repeatManager.onGesturePerformed(testGesture())
         messages.clear()
 
         manager.toggleGestureLock()
 
-        assertFalse(autoRepeatEnabled)
-        assertFalse(repeatManager.isRepeating())
-        assertTrue(manager.isLocked())
+        assertTrue(autoRepeatEnabled)
+        assertTrue(repeatManager.isRepeating())
+        assertFalse(manager.isLocked())
         assertFalse(manager.isGestureLockEngaged())
-        assertEquals(listOf(R.string.gesture_lock_enabled), messages)
+        assertTrue(messages.isEmpty())
     }
 
     @Test
