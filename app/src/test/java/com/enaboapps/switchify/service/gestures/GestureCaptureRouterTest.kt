@@ -13,41 +13,25 @@ import org.junit.Test
 class GestureCaptureRouterTest {
     private val lockManager = GestureLockManager.instance
     private val repeatManager = GestureRepeatManager.instance
-    private var autoRepeatEnabled = false
-    private var autoReenableEnabled = false
 
     @Before
     fun setup() {
-        GestureModePolicy.resetForTesting()
         lockManager.resetForTesting()
         repeatManager.resetForTesting()
         lockManager.setSuppressHudForTesting(true)
         repeatManager.setSuppressHudForTesting(true)
-        autoRepeatEnabled = false
-        autoReenableEnabled = false
-        lockManager.setAutoReenableProviderForTesting { autoReenableEnabled }
-        lockManager.setAutoReenableSetterForTesting { autoReenableEnabled = it }
-        repeatManager.setAutoRepeatProviderForTesting { autoRepeatEnabled }
-        repeatManager.setAutoRepeatSetterForTesting { autoRepeatEnabled = it }
-        GestureModePolicy.setPreferenceAccessorsForTesting(
-            repeatProvider = { autoRepeatEnabled },
-            rearmProvider = { autoReenableEnabled },
-            repeatSetter = { autoRepeatEnabled = it },
-            rearmSetter = { autoReenableEnabled = it }
-        )
     }
 
     @After
     fun tearDown() {
         lockManager.resetForTesting()
         repeatManager.resetForTesting()
-        GestureModePolicy.resetForTesting()
     }
 
     @Test
     fun routerSendsGestureToLockAndRepeat() {
         lockManager.enableLockForNextGesture(showMessage = false)
-        autoRepeatEnabled = true
+        repeatManager.setAutoRepeatEnabledForTesting(true)
         val gestureData = testGesture()
 
         GestureCaptureRouter.onGesturePerformed(gestureData)
@@ -60,7 +44,7 @@ class GestureCaptureRouterTest {
 
     @Test
     fun routerDoesNotRequireGestureLockForRepeat() {
-        autoRepeatEnabled = true
+        repeatManager.setAutoRepeatEnabledForTesting(true)
         val gestureData = testGesture()
 
         GestureCaptureRouter.onGesturePerformed(gestureData)
