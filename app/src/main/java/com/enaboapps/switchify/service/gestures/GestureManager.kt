@@ -83,6 +83,7 @@ class GestureManager private constructor() {
         AutoScrollManager.getInstance().init(accessibilityService)
         GesturePatternManager.init(accessibilityService)
         preferenceManager = PreferenceManager(accessibilityService)
+        GestureModePolicy.normalize(accessibilityService)
 
         // Initialize unified execution pipeline components
         gestureDispatcher = GestureDispatcher(accessibilityService)
@@ -403,6 +404,7 @@ class GestureManager private constructor() {
      * @return True if a locked gesture action was performed, false otherwise.
      */
     fun performGestureLockAction(): Boolean {
+        if (GestureRepeatManager.instance.isRepeating()) return false
         if (isGestureLockEnabled()) {
             GestureLockManager.instance.getLockedGestureData()?.let { gestureData ->
                 gestureData.executeGesture()
@@ -597,7 +599,7 @@ class GestureManager private constructor() {
      */
     fun performPinch(type: GestureType, startPoint: PointF? = null) {
         val point = startPoint ?: GesturePoint.getPoint()
-        GestureLockManager.instance.setLockedGestureData(
+        GestureCaptureRouter.onGesturePerformed(
             GestureData(
                 gestureType = type,
                 startPoint = point,

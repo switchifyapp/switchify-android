@@ -19,6 +19,13 @@
     <string name="gesture_repeat_disabled">Gesture Repeat OFF</string>
     <string name="gesture_repeat_started">Gesture Repeat Started</string>
     <string name="gesture_repeat_stopped">Gesture Repeat Stopped</string>
+    <string name="gesture_repeat_waiting">Gesture Repeat waiting for next gesture</string>
+    <string name="gesture_mode_blocked_repeat_enabled">Turn off Gesture Repeat before using Gesture Lock</string>
+    <string name="gesture_mode_blocked_repeat_enabled_for_rearm">Turn off Gesture Repeat before using Re-arm Gesture Lock</string>
+    <string name="gesture_mode_blocked_rearm_enabled_for_lock">Turn off Re-arm Gesture Lock before using Gesture Lock</string>
+    <string name="gesture_mode_blocked_rearm_enabled_for_repeat">Turn off Re-arm Gesture Lock before using Gesture Repeat</string>
+    <string name="gesture_mode_blocked_lock_enabled_for_repeat">Turn off Gesture Lock before using Gesture Repeat</string>
+    <string name="gesture_mode_blocked_lock_enabled_for_rearm">Turn off Gesture Lock before using Re-arm Gesture Lock</string>
 
     <!-- Gesture Patterns -->
     <string name="start_recording">Start Recording</string>

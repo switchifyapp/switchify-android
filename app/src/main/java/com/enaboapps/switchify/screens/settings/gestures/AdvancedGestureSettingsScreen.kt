@@ -11,19 +11,17 @@ import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.PreferenceSwitch
 import com.enaboapps.switchify.components.PreferenceTimeStepper
 import com.enaboapps.switchify.components.Section
+import com.enaboapps.switchify.service.gestures.GestureLockManager
+import com.enaboapps.switchify.service.gestures.GestureModePolicy
 import com.enaboapps.switchify.service.gestures.GestureRepeatManager
 
 @Composable
 fun AdvancedGestureSettingsScreen(navController: NavController) {
     val context = LocalContext.current
     val preferenceManager = PreferenceManager(context)
+    val gestureModeState = remember { GestureModePolicy.normalize(context) }
     val gestureRepeatState = remember {
-        mutableStateOf(
-            preferenceManager.getBooleanValue(
-                PreferenceManager.PREFERENCE_KEY_GESTURE_REPEAT,
-                false
-            )
-        )
+        mutableStateOf(gestureModeState.repeatEnabled)
     }
     val gestureRepeatDelayState = remember {
         mutableStateOf(
@@ -34,12 +32,7 @@ fun AdvancedGestureSettingsScreen(navController: NavController) {
         )
     }
     val gestureLockAutoReenableState = remember {
-        mutableStateOf(
-            preferenceManager.getBooleanValue(
-                PreferenceManager.PREFERENCE_KEY_GESTURE_LOCK_AUTO_REENABLE,
-                false
-            )
-        )
+        mutableStateOf(gestureModeState.rearmEnabled)
     }
 
     BaseView(
@@ -52,11 +45,10 @@ fun AdvancedGestureSettingsScreen(navController: NavController) {
                 summaryResId = R.string.preference_summary_gesture_repeat,
                 checked = gestureRepeatState.value,
                 onCheckedChange = {
-                    preferenceManager.setBooleanValue(
-                        PreferenceManager.PREFERENCE_KEY_GESTURE_REPEAT,
-                        it
-                    )
-                    gestureRepeatState.value = it
+                    GestureRepeatManager.instance.setAutoRepeatEnabled(context, it)
+                    val state = GestureModePolicy.normalize(context)
+                    gestureRepeatState.value = state.repeatEnabled
+                    gestureLockAutoReenableState.value = state.rearmEnabled
                 }
             )
             PreferenceTimeStepper(
@@ -79,11 +71,10 @@ fun AdvancedGestureSettingsScreen(navController: NavController) {
                 summaryResId = R.string.preference_summary_gesture_lock_auto_reenable,
                 checked = gestureLockAutoReenableState.value,
                 onCheckedChange = {
-                    preferenceManager.setBooleanValue(
-                        PreferenceManager.PREFERENCE_KEY_GESTURE_LOCK_AUTO_REENABLE,
-                        it
-                    )
-                    gestureLockAutoReenableState.value = it
+                    GestureLockManager.instance.setAutoReenableEnabled(context, it)
+                    val state = GestureModePolicy.normalize(context)
+                    gestureRepeatState.value = state.repeatEnabled
+                    gestureLockAutoReenableState.value = state.rearmEnabled
                 }
             )
         }

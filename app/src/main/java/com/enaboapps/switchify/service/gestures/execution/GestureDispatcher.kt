@@ -3,7 +3,7 @@ package com.enaboapps.switchify.service.gestures.execution
 import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.GestureDescription
 import com.enaboapps.switchify.service.core.SwitchifyAccessibilityService
-import com.enaboapps.switchify.service.gestures.GestureLockManager
+import com.enaboapps.switchify.service.gestures.GestureCaptureRouter
 import com.enaboapps.switchify.service.gestures.GesturePatternRecorder
 import com.enaboapps.switchify.service.gestures.GestureStateManager
 import com.enaboapps.switchify.service.gestures.data.GestureData
@@ -175,7 +175,7 @@ class GestureDispatcher(
         try {
             // Handle gesture pattern recording and gesture lock
             gestureData?.let { data ->
-                GestureLockManager.instance.setLockedGestureData(data)
+                GestureCaptureRouter.onGesturePerformed(data)
                 GesturePatternRecorder.addGesture(data, accessibilityService)
             }
 

@@ -3,7 +3,6 @@ package com.enaboapps.switchify.service.gestures
 import android.accessibilityservice.AccessibilityService
 import android.content.Context
 import com.enaboapps.switchify.R
-import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.service.gestures.data.GestureData
 import com.enaboapps.switchify.service.window.MessageSeverity
 import com.enaboapps.switchify.service.window.ServiceMessageHUD
@@ -31,8 +30,24 @@ class GestureLockManager private constructor() {
 
     fun toggleAutoReenable(context: Context, syncGestureLock: Boolean = false) {
         val nextEnabled = !isAutoReenableEnabled(context)
-        setAutoReenableEnabled(context, nextEnabled)
-        applyAutoReenableToggleResult(nextEnabled, syncGestureLock)
+        setAutoReenableEnabled(context, nextEnabled, syncGestureLock)
+    }
+
+    fun setAutoReenableEnabled(
+        context: Context,
+        enabled: Boolean,
+        syncGestureLock: Boolean = false
+    ) {
+        val result = GestureModePolicy.setRearmEnabled(
+            context,
+            enabled,
+            isGestureLockEnabled = isLocked()
+        )
+        result.blockedReasonResId?.let {
+            showMessage(it, MessageSeverity.Warning)
+            return
+        }
+        applyAutoReenableToggleResult(result.state.rearmEnabled, syncGestureLock)
     }
 
     private fun applyAutoReenableToggleResult(nextEnabled: Boolean, syncGestureLock: Boolean) {
@@ -55,7 +70,17 @@ class GestureLockManager private constructor() {
         stopTimer()
 
         if (!isLocked) {
-            enableLockForNextGesture(showMessage = true)
+            when {
+                isAutoRepeatEnabled() -> {
+                    showMessage(R.string.gesture_mode_blocked_repeat_enabled, MessageSeverity.Warning)
+                    return
+                }
+                isAutoReenableEnabled() -> {
+                    showMessage(R.string.gesture_mode_blocked_rearm_enabled_for_lock, MessageSeverity.Warning)
+                    return
+                }
+                else -> enableLockForNextGesture(showMessage = true)
+            }
         } else {
             showMessage(R.string.gesture_lock_disabled, MessageSeverity.Info)
             disableLockInternal(allowAutoReenable = true)
@@ -112,15 +137,9 @@ class GestureLockManager private constructor() {
                 null
             }
         if (lockedGestureData != null) {
-            GestureRepeatManager.instance.onLockedGestureChanged(lockedGestureData)
-            if (GestureRepeatManager.instance.isRepeating()) {
-                stopTimer()
-            } else {
-                startTimer()
-            }
+            startTimer()
         } else {
             stopTimer()
-            GestureRepeatManager.instance.onLockedGestureChanged(null)
         }
     }
 
@@ -149,7 +168,6 @@ class GestureLockManager private constructor() {
         isLocked = true
         lockedGestureData = null
         stopTimer()
-        GestureRepeatManager.instance.onLockedGestureChanged(null)
         if (showMessage) {
             showMessage(R.string.gesture_lock_enabled, MessageSeverity.Info)
         }
@@ -157,7 +175,6 @@ class GestureLockManager private constructor() {
 
     private fun disableLockInternal(allowAutoReenable: Boolean) {
         val hadGesture = lockedGestureData != null
-        GestureRepeatManager.instance.stopRepeat(showMessage = false)
         isLocked = false
         lockedGestureData = null
         stopTimer()
@@ -168,12 +185,7 @@ class GestureLockManager private constructor() {
     }
 
     private fun handleLockTimeout() {
-        if (GestureRepeatManager.instance.isRepeating()) {
-            stopTimer()
-            return
-        }
         val hadGesture = lockedGestureData != null
-        GestureRepeatManager.instance.stopRepeat(showMessage = false)
         isLocked = false
         lockedGestureData = null
         stopTimer()
@@ -185,32 +197,21 @@ class GestureLockManager private constructor() {
     }
 
     private fun isAutoReenableEnabled(): Boolean {
-        autoReenableProviderForTesting?.let { return it() }
+        autoReenableProviderForTesting?.let { return GestureModePolicy.normalizeForTesting().rearmEnabled }
         return accessibilityService?.let {
-            PreferenceManager(it).getBooleanValue(
-                PreferenceManager.PREFERENCE_KEY_GESTURE_LOCK_AUTO_REENABLE,
-                false
-            )
+            GestureModePolicy.isRearmEnabled(it)
         } ?: false
     }
 
     private fun isAutoReenableEnabled(context: Context): Boolean {
-        autoReenableProviderForTesting?.let { return it() }
-        return PreferenceManager(context).getBooleanValue(
-            PreferenceManager.PREFERENCE_KEY_GESTURE_LOCK_AUTO_REENABLE,
-            false
-        )
+        autoReenableProviderForTesting?.let { return GestureModePolicy.normalizeForTesting().rearmEnabled }
+        return GestureModePolicy.isRearmEnabled(context)
     }
 
-    private fun setAutoReenableEnabled(context: Context, enabled: Boolean) {
-        autoReenableSetterForTesting?.let {
-            it(enabled)
-            return
-        }
-        PreferenceManager(context).setBooleanValue(
-            PreferenceManager.PREFERENCE_KEY_GESTURE_LOCK_AUTO_REENABLE,
-            enabled
-        )
+    private fun isAutoRepeatEnabled(): Boolean {
+        return accessibilityService?.let {
+            GestureModePolicy.isRepeatEnabled(it)
+        } ?: GestureModePolicy.normalizeForTesting().repeatEnabled
     }
 
     private fun showMessage(messageResId: Int, severity: MessageSeverity) {
@@ -245,15 +246,21 @@ class GestureLockManager private constructor() {
 
     internal fun toggleAutoReenableForTesting(syncGestureLock: Boolean) {
         val nextEnabled = !isAutoReenableEnabled()
-        autoReenableSetterForTesting?.invoke(nextEnabled)
-        applyAutoReenableToggleResult(nextEnabled, syncGestureLock)
+        val result = GestureModePolicy.setRearmEnabledForTesting(
+            nextEnabled,
+            isGestureLockEnabled = isLocked()
+        )
+        result.blockedReasonResId?.let {
+            showMessage(it, MessageSeverity.Warning)
+            return
+        }
+        applyAutoReenableToggleResult(result.state.rearmEnabled, syncGestureLock)
     }
 
     internal fun resetForTesting() {
         isLocked = false
         lockedGestureData = null
         stopTimer()
-        GestureRepeatManager.instance.stopRepeat(showMessage = false)
         accessibilityService = null
         autoReenableProviderForTesting = null
         autoReenableSetterForTesting = null
