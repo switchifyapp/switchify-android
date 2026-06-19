@@ -1,11 +1,18 @@
 package com.enaboapps.switchify.service.gestures
 
 import android.content.Context
+import com.enaboapps.switchify.R
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 
 data class GestureModeState(
     val repeatEnabled: Boolean,
     val rearmEnabled: Boolean
+)
+
+data class GestureModeChangeResult(
+    val state: GestureModeState,
+    val changed: Boolean,
+    val blockedReasonResId: Int? = null
 )
 
 object GestureModePolicy {
@@ -18,24 +25,64 @@ object GestureModePolicy {
         return normalizeState(context)
     }
 
-    fun setRepeatEnabled(context: Context, enabled: Boolean): GestureModeState {
-        if (enabled) {
-            writeRepeat(context, true)
-            writeRearm(context, false)
-        } else {
+    fun setRepeatEnabled(
+        context: Context,
+        enabled: Boolean,
+        isGestureLockEnabled: Boolean
+    ): GestureModeChangeResult {
+        val currentState = normalize(context)
+        if (!enabled) {
             writeRepeat(context, false)
+            return GestureModeChangeResult(normalize(context), changed = currentState.repeatEnabled)
         }
-        return normalize(context)
+
+        if (currentState.rearmEnabled) {
+            return GestureModeChangeResult(
+                currentState,
+                changed = false,
+                blockedReasonResId = R.string.gesture_mode_blocked_rearm_enabled_for_repeat
+            )
+        }
+        if (isGestureLockEnabled) {
+            return GestureModeChangeResult(
+                currentState,
+                changed = false,
+                blockedReasonResId = R.string.gesture_mode_blocked_lock_enabled_for_repeat
+            )
+        }
+
+        writeRepeat(context, true)
+        return GestureModeChangeResult(normalize(context), changed = !currentState.repeatEnabled)
     }
 
-    fun setRearmEnabled(context: Context, enabled: Boolean): GestureModeState {
-        if (enabled) {
-            writeRearm(context, true)
-            writeRepeat(context, false)
-        } else {
+    fun setRearmEnabled(
+        context: Context,
+        enabled: Boolean,
+        isGestureLockEnabled: Boolean
+    ): GestureModeChangeResult {
+        val currentState = normalize(context)
+        if (!enabled) {
             writeRearm(context, false)
+            return GestureModeChangeResult(normalize(context), changed = currentState.rearmEnabled)
         }
-        return normalize(context)
+
+        if (currentState.repeatEnabled) {
+            return GestureModeChangeResult(
+                currentState,
+                changed = false,
+                blockedReasonResId = R.string.gesture_mode_blocked_repeat_enabled_for_rearm
+            )
+        }
+        if (isGestureLockEnabled) {
+            return GestureModeChangeResult(
+                currentState,
+                changed = false,
+                blockedReasonResId = R.string.gesture_mode_blocked_lock_enabled_for_rearm
+            )
+        }
+
+        writeRearm(context, true)
+        return GestureModeChangeResult(normalize(context), changed = !currentState.rearmEnabled)
     }
 
     fun isRepeatEnabled(context: Context): Boolean {
@@ -107,24 +154,62 @@ object GestureModePolicy {
         return normalizeState(null)
     }
 
-    internal fun setRepeatEnabledForTesting(enabled: Boolean): GestureModeState {
-        if (enabled) {
-            writeRepeat(null, true)
-            writeRearm(null, false)
-        } else {
+    internal fun setRepeatEnabledForTesting(
+        enabled: Boolean,
+        isGestureLockEnabled: Boolean = false
+    ): GestureModeChangeResult {
+        val currentState = normalizeState(null)
+        if (!enabled) {
             writeRepeat(null, false)
+            return GestureModeChangeResult(normalizeState(null), changed = currentState.repeatEnabled)
         }
-        return normalizeState(null)
+
+        if (currentState.rearmEnabled) {
+            return GestureModeChangeResult(
+                currentState,
+                changed = false,
+                blockedReasonResId = R.string.gesture_mode_blocked_rearm_enabled_for_repeat
+            )
+        }
+        if (isGestureLockEnabled) {
+            return GestureModeChangeResult(
+                currentState,
+                changed = false,
+                blockedReasonResId = R.string.gesture_mode_blocked_lock_enabled_for_repeat
+            )
+        }
+
+        writeRepeat(null, true)
+        return GestureModeChangeResult(normalizeState(null), changed = !currentState.repeatEnabled)
     }
 
-    internal fun setRearmEnabledForTesting(enabled: Boolean): GestureModeState {
-        if (enabled) {
-            writeRearm(null, true)
-            writeRepeat(null, false)
-        } else {
+    internal fun setRearmEnabledForTesting(
+        enabled: Boolean,
+        isGestureLockEnabled: Boolean = false
+    ): GestureModeChangeResult {
+        val currentState = normalizeState(null)
+        if (!enabled) {
             writeRearm(null, false)
+            return GestureModeChangeResult(normalizeState(null), changed = currentState.rearmEnabled)
         }
-        return normalizeState(null)
+
+        if (currentState.repeatEnabled) {
+            return GestureModeChangeResult(
+                currentState,
+                changed = false,
+                blockedReasonResId = R.string.gesture_mode_blocked_repeat_enabled_for_rearm
+            )
+        }
+        if (isGestureLockEnabled) {
+            return GestureModeChangeResult(
+                currentState,
+                changed = false,
+                blockedReasonResId = R.string.gesture_mode_blocked_lock_enabled_for_rearm
+            )
+        }
+
+        writeRearm(null, true)
+        return GestureModeChangeResult(normalizeState(null), changed = !currentState.rearmEnabled)
     }
 
     internal fun setPreferenceAccessorsForTesting(

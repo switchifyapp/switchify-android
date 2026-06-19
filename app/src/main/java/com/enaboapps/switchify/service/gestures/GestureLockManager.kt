@@ -30,11 +30,24 @@ class GestureLockManager private constructor() {
 
     fun toggleAutoReenable(context: Context, syncGestureLock: Boolean = false) {
         val nextEnabled = !isAutoReenableEnabled(context)
-        val state = GestureModePolicy.setRearmEnabled(context, nextEnabled)
-        if (state.rearmEnabled) {
-            GestureRepeatManager.instance.turnAutoRepeatOffForGestureLockToggle()
+        setAutoReenableEnabled(context, nextEnabled, syncGestureLock)
+    }
+
+    fun setAutoReenableEnabled(
+        context: Context,
+        enabled: Boolean,
+        syncGestureLock: Boolean = false
+    ) {
+        val result = GestureModePolicy.setRearmEnabled(
+            context,
+            enabled,
+            isGestureLockEnabled = isLocked()
+        )
+        result.blockedReasonResId?.let {
+            showMessage(it, MessageSeverity.Warning)
+            return
         }
-        applyAutoReenableToggleResult(state.rearmEnabled, syncGestureLock)
+        applyAutoReenableToggleResult(result.state.rearmEnabled, syncGestureLock)
     }
 
     private fun applyAutoReenableToggleResult(nextEnabled: Boolean, syncGestureLock: Boolean) {
@@ -54,11 +67,20 @@ class GestureLockManager private constructor() {
 
     // Function to lock/unlock the gesture lock, showing a message to the user
     fun toggleGestureLock() {
-        if (isAutoRepeatEnabled()) return
         stopTimer()
 
         if (!isLocked) {
-            enableLockForNextGesture(showMessage = true)
+            when {
+                isAutoRepeatEnabled() -> {
+                    showMessage(R.string.gesture_mode_blocked_repeat_enabled, MessageSeverity.Warning)
+                    return
+                }
+                isAutoReenableEnabled() -> {
+                    showMessage(R.string.gesture_mode_blocked_rearm_enabled_for_lock, MessageSeverity.Warning)
+                    return
+                }
+                else -> enableLockForNextGesture(showMessage = true)
+            }
         } else {
             showMessage(R.string.gesture_lock_disabled, MessageSeverity.Info)
             disableLockInternal(allowAutoReenable = true)
@@ -224,11 +246,15 @@ class GestureLockManager private constructor() {
 
     internal fun toggleAutoReenableForTesting(syncGestureLock: Boolean) {
         val nextEnabled = !isAutoReenableEnabled()
-        val state = GestureModePolicy.setRearmEnabledForTesting(nextEnabled)
-        if (state.rearmEnabled) {
-            GestureRepeatManager.instance.turnAutoRepeatOffForGestureLockToggle()
+        val result = GestureModePolicy.setRearmEnabledForTesting(
+            nextEnabled,
+            isGestureLockEnabled = isLocked()
+        )
+        result.blockedReasonResId?.let {
+            showMessage(it, MessageSeverity.Warning)
+            return
         }
-        applyAutoReenableToggleResult(state.rearmEnabled, syncGestureLock)
+        applyAutoReenableToggleResult(result.state.rearmEnabled, syncGestureLock)
     }
 
     internal fun resetForTesting() {

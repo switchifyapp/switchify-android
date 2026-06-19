@@ -11,6 +11,7 @@ import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.PreferenceSwitch
 import com.enaboapps.switchify.components.PreferenceTimeStepper
 import com.enaboapps.switchify.components.Section
+import com.enaboapps.switchify.service.gestures.GestureLockManager
 import com.enaboapps.switchify.service.gestures.GestureModePolicy
 import com.enaboapps.switchify.service.gestures.GestureRepeatManager
 
@@ -70,10 +71,8 @@ fun AdvancedGestureSettingsScreen(navController: NavController) {
                 summaryResId = R.string.preference_summary_gesture_lock_auto_reenable,
                 checked = gestureLockAutoReenableState.value,
                 onCheckedChange = {
-                    val state = GestureModePolicy.setRearmEnabled(context, it)
-                    if (state.rearmEnabled) {
-                        GestureRepeatManager.instance.turnAutoRepeatOffForGestureLockToggle()
-                    }
+                    GestureLockManager.instance.setAutoReenableEnabled(context, it)
+                    val state = GestureModePolicy.normalize(context)
                     gestureRepeatState.value = state.repeatEnabled
                     gestureLockAutoReenableState.value = state.rearmEnabled
                 }

@@ -141,13 +141,26 @@ class GestureRepeatManagerTest {
     }
 
     @Test
-    fun turningRepeatOnDisablesRearm() {
+    fun turningRepeatOnBlockedWhenRearmEnabled() {
         autoReenableEnabled = true
 
         repeatManager.toggleAutoRepeatForTesting(syncGestureLock = false)
 
-        assertTrue(autoRepeatEnabled)
-        assertFalse(autoReenableEnabled)
+        assertFalse(autoRepeatEnabled)
+        assertTrue(autoReenableEnabled)
+        assertEquals(listOf(R.string.gesture_mode_blocked_rearm_enabled_for_repeat), messages)
+    }
+
+    @Test
+    fun turningRepeatOnBlockedWhenGestureLockEnabled() {
+        lockManager.toggleGestureLock()
+        messages.clear()
+
+        repeatManager.toggleAutoRepeatForTesting(syncGestureLock = false)
+
+        assertFalse(autoRepeatEnabled)
+        assertTrue(lockManager.isLocked())
+        assertEquals(listOf(R.string.gesture_mode_blocked_lock_enabled_for_repeat), messages)
     }
 
     @Test

@@ -48,8 +48,16 @@ class GestureRepeatManager private constructor() {
         enabled: Boolean,
         syncGestureLock: Boolean = false
     ) {
-        val state = GestureModePolicy.setRepeatEnabled(context, enabled)
-        applyAutoRepeatToggleResult(state.repeatEnabled)
+        val result = GestureModePolicy.setRepeatEnabled(
+            context,
+            enabled,
+            isGestureLockEnabled = GestureLockManager.instance.isLocked()
+        )
+        result.blockedReasonResId?.let {
+            showMessage(it, MessageSeverity.Warning)
+            return
+        }
+        applyAutoRepeatToggleResult(result.state.repeatEnabled)
     }
 
     fun isAutoRepeatEnabled(context: Context): Boolean {
@@ -124,7 +132,11 @@ class GestureRepeatManager private constructor() {
 
     internal fun turnAutoRepeatOffForGestureLockToggle() {
         context?.let {
-            GestureModePolicy.setRepeatEnabled(it, false)
+            GestureModePolicy.setRepeatEnabled(
+                it,
+                enabled = false,
+                isGestureLockEnabled = GestureLockManager.instance.isLocked()
+            )
         } ?: GestureModePolicy.setRepeatEnabledForTesting(false)
         stopRepeat(showMessage = false)
         repeatedGestureData = null
@@ -159,8 +171,15 @@ class GestureRepeatManager private constructor() {
 
     internal fun toggleAutoRepeatForTesting(syncGestureLock: Boolean) {
         val nextEnabled = !isAutoRepeatEnabled()
-        val state = GestureModePolicy.setRepeatEnabledForTesting(nextEnabled)
-        applyAutoRepeatToggleResult(state.repeatEnabled)
+        val result = GestureModePolicy.setRepeatEnabledForTesting(
+            nextEnabled,
+            isGestureLockEnabled = GestureLockManager.instance.isLocked()
+        )
+        result.blockedReasonResId?.let {
+            showMessage(it, MessageSeverity.Warning)
+            return
+        }
+        applyAutoRepeatToggleResult(result.state.repeatEnabled)
     }
 
     internal fun setAutoRepeatProviderForTesting(provider: (() -> Boolean)?) {
