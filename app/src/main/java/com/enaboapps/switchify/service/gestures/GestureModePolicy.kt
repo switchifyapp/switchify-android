@@ -4,7 +4,8 @@ import com.enaboapps.switchify.R
 
 data class GestureModeState(
     val repeatEnabled: Boolean,
-    val rearmEnabled: Boolean
+    val rearmEnabled: Boolean,
+    val autoScrollActive: Boolean
 )
 
 data class GestureModeChangeResult(
@@ -16,12 +17,18 @@ data class GestureModeChangeResult(
 object GestureModePolicy {
     fun currentState(
         repeatEnabled: Boolean,
-        rearmEnabled: Boolean
+        rearmEnabled: Boolean,
+        autoScrollActive: Boolean
     ): GestureModeState {
-        return if (repeatEnabled && rearmEnabled) {
-            GestureModeState(repeatEnabled = false, rearmEnabled = false)
+        val activeCount = listOf(repeatEnabled, rearmEnabled, autoScrollActive).count { it }
+        return if (activeCount > 1) {
+            GestureModeState(
+                repeatEnabled = false,
+                rearmEnabled = false,
+                autoScrollActive = false
+            )
         } else {
-            GestureModeState(repeatEnabled, rearmEnabled)
+            GestureModeState(repeatEnabled, rearmEnabled, autoScrollActive)
         }
     }
 
@@ -29,9 +36,14 @@ object GestureModePolicy {
         enabled: Boolean,
         currentRepeatEnabled: Boolean,
         currentRearmEnabled: Boolean,
-        isGestureLockEnabled: Boolean
+        isGestureLockEnabled: Boolean,
+        isAutoScrollActive: Boolean
     ): GestureModeChangeResult {
-        val currentState = currentState(currentRepeatEnabled, currentRearmEnabled)
+        val currentState = currentState(
+            currentRepeatEnabled,
+            currentRearmEnabled,
+            isAutoScrollActive
+        )
         if (!enabled) {
             return GestureModeChangeResult(
                 state = currentState.copy(repeatEnabled = false),
@@ -53,6 +65,13 @@ object GestureModePolicy {
                 blockedReasonResId = R.string.gesture_mode_blocked_lock_enabled_for_repeat
             )
         }
+        if (currentState.autoScrollActive) {
+            return GestureModeChangeResult(
+                currentState,
+                changed = false,
+                blockedReasonResId = R.string.gesture_mode_blocked_auto_scroll_enabled_for_repeat
+            )
+        }
 
         return GestureModeChangeResult(
             state = currentState.copy(repeatEnabled = true),
@@ -64,9 +83,14 @@ object GestureModePolicy {
         enabled: Boolean,
         currentRepeatEnabled: Boolean,
         currentRearmEnabled: Boolean,
-        isGestureLockEnabled: Boolean
+        isGestureLockEnabled: Boolean,
+        isAutoScrollActive: Boolean
     ): GestureModeChangeResult {
-        val currentState = currentState(currentRepeatEnabled, currentRearmEnabled)
+        val currentState = currentState(
+            currentRepeatEnabled,
+            currentRearmEnabled,
+            isAutoScrollActive
+        )
         if (!enabled) {
             return GestureModeChangeResult(
                 state = currentState.copy(rearmEnabled = false),
@@ -88,10 +112,56 @@ object GestureModePolicy {
                 blockedReasonResId = R.string.gesture_mode_blocked_lock_enabled_for_rearm
             )
         }
+        if (currentState.autoScrollActive) {
+            return GestureModeChangeResult(
+                currentState,
+                changed = false,
+                blockedReasonResId = R.string.gesture_mode_blocked_auto_scroll_enabled_for_rearm
+            )
+        }
 
         return GestureModeChangeResult(
             state = currentState.copy(rearmEnabled = true),
             changed = !currentState.rearmEnabled
+        )
+    }
+
+    fun canStartAutoScroll(
+        currentRepeatEnabled: Boolean,
+        currentRearmEnabled: Boolean,
+        isGestureLockEnabled: Boolean
+    ): GestureModeChangeResult {
+        val currentState = currentState(
+            currentRepeatEnabled,
+            currentRearmEnabled,
+            autoScrollActive = false
+        )
+
+        if (currentState.repeatEnabled) {
+            return GestureModeChangeResult(
+                currentState,
+                changed = false,
+                blockedReasonResId = R.string.gesture_mode_blocked_repeat_enabled_for_auto_scroll
+            )
+        }
+        if (currentState.rearmEnabled) {
+            return GestureModeChangeResult(
+                currentState,
+                changed = false,
+                blockedReasonResId = R.string.gesture_mode_blocked_rearm_enabled_for_auto_scroll
+            )
+        }
+        if (isGestureLockEnabled) {
+            return GestureModeChangeResult(
+                currentState,
+                changed = false,
+                blockedReasonResId = R.string.gesture_mode_blocked_lock_enabled_for_auto_scroll
+            )
+        }
+
+        return GestureModeChangeResult(
+            state = currentState.copy(autoScrollActive = true),
+            changed = true
         )
     }
 }

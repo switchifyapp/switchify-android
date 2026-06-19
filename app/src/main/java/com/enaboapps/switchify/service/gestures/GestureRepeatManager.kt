@@ -52,7 +52,8 @@ class GestureRepeatManager private constructor() {
             enabled,
             currentRepeatEnabled = autoRepeatEnabled,
             currentRearmEnabled = GestureLockManager.instance.isAutoReenableEnabled(),
-            isGestureLockEnabled = GestureLockManager.instance.isLocked()
+            isGestureLockEnabled = GestureLockManager.instance.isLocked(),
+            isAutoScrollActive = AutoScrollManager.getInstance().isAutoScrolling()
         )
         result.blockedReasonResId?.let {
             showMessage(it, MessageSeverity.Warning)
@@ -177,7 +178,8 @@ class GestureRepeatManager private constructor() {
             nextEnabled,
             currentRepeatEnabled = autoRepeatEnabled,
             currentRearmEnabled = GestureLockManager.instance.isAutoReenableEnabled(),
-            isGestureLockEnabled = GestureLockManager.instance.isLocked()
+            isGestureLockEnabled = GestureLockManager.instance.isLocked(),
+            isAutoScrollActive = AutoScrollManager.getInstance().isAutoScrolling()
         )
         result.blockedReasonResId?.let {
             showMessage(it, MessageSeverity.Warning)

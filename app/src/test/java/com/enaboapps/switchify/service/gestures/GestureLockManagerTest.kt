@@ -15,17 +15,24 @@ import org.junit.Test
 class GestureLockManagerTest {
     private val manager = GestureLockManager.instance
     private val repeatManager = GestureRepeatManager.instance
+    private val autoScrollManager = AutoScrollManager.getInstance()
     private val messages = mutableListOf<Int>()
 
     @Before
     fun setup() {
         manager.resetForTesting()
         repeatManager.resetForTesting()
+        autoScrollManager.resetForTesting()
         manager.setSuppressHudForTesting(true)
         repeatManager.setSuppressHudForTesting(true)
+        autoScrollManager.setSuppressHudForTesting(true)
         repeatManager.setRepeatDelayProviderForTesting { GestureRepeatManager.DEFAULT_REPEAT_DELAY }
         manager.setMessageRecorderForTesting { messages.add(it) }
         repeatManager.setMessageRecorderForTesting { messages.add(it) }
+        autoScrollManager.setMessageRecorderForTesting { messages.add(it) }
+        autoScrollManager.setAutoScrollEnabledProviderForTesting { true }
+        autoScrollManager.setAutoScrollDelayProviderForTesting { 10000L }
+        autoScrollManager.setAutoScrollPerformerForTesting { true }
         messages.clear()
     }
 
@@ -33,6 +40,7 @@ class GestureLockManagerTest {
     fun tearDown() {
         manager.resetForTesting()
         repeatManager.resetForTesting()
+        autoScrollManager.resetForTesting()
     }
 
     @Test
@@ -331,6 +339,18 @@ class GestureLockManagerTest {
     }
 
     @Test
+    fun toggleGestureLockOnBlockedWhenAutoScrollActive() {
+        assertTrue(autoScrollManager.startAutoScroll(scrollGesture()))
+        messages.clear()
+
+        manager.toggleGestureLock()
+
+        assertTrue(autoScrollManager.isAutoScrolling())
+        assertFalse(manager.isLocked())
+        assertEquals(listOf(R.string.gesture_mode_blocked_auto_scroll_enabled_for_lock), messages)
+    }
+
+    @Test
     fun toggleGestureLockOffAllowedEvenIfRuntimeStateInvalid() {
         manager.toggleGestureLock()
         repeatManager.setAutoRepeatEnabledForTesting(true)
@@ -355,6 +375,18 @@ class GestureLockManagerTest {
     }
 
     @Test
+    fun turningRearmOnBlockedWhenAutoScrollActive() {
+        assertTrue(autoScrollManager.startAutoScroll(scrollGesture()))
+        messages.clear()
+
+        manager.toggleAutoReenableForTesting(syncGestureLock = false)
+
+        assertTrue(autoScrollManager.isAutoScrolling())
+        assertFalse(manager.isAutoReenableEnabled())
+        assertEquals(listOf(R.string.gesture_mode_blocked_auto_scroll_enabled_for_rearm), messages)
+    }
+
+    @Test
     fun clearServiceStateDisablesRearmAndLock() {
         manager.setAutoReenableEnabledForTesting(true)
         manager.enableLockForNextGesture(showMessage = false)
@@ -371,7 +403,8 @@ class GestureLockManagerTest {
     fun bothRuntimeModesOnNormalizeToBothOff() {
         val state = GestureModePolicy.currentState(
             repeatEnabled = true,
-            rearmEnabled = true
+            rearmEnabled = true,
+            autoScrollActive = false
         )
 
         assertFalse(state.repeatEnabled)
@@ -387,6 +420,13 @@ class GestureLockManagerTest {
     private fun testGesture(): GestureData {
         return GestureData(
             gestureType = GestureType.TAP,
+            startPoint = PointF(10f, 20f)
+        )
+    }
+
+    private fun scrollGesture(): GestureData {
+        return GestureData(
+            gestureType = GestureType.SCROLL_DOWN,
             startPoint = PointF(10f, 20f)
         )
     }

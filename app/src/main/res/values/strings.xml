@@ -26,6 +26,12 @@
     <string name="gesture_mode_blocked_rearm_enabled_for_repeat">Turn off Re-arm Gesture Lock before using Gesture Repeat</string>
     <string name="gesture_mode_blocked_lock_enabled_for_repeat">Turn off Gesture Lock before using Gesture Repeat</string>
     <string name="gesture_mode_blocked_lock_enabled_for_rearm">Turn off Gesture Lock before using Re-arm Gesture Lock</string>
+    <string name="gesture_mode_blocked_auto_scroll_enabled_for_lock">Stop Auto Scroll before using Gesture Lock</string>
+    <string name="gesture_mode_blocked_auto_scroll_enabled_for_rearm">Stop Auto Scroll before using Re-arm Gesture Lock</string>
+    <string name="gesture_mode_blocked_auto_scroll_enabled_for_repeat">Stop Auto Scroll before using Gesture Repeat</string>
+    <string name="gesture_mode_blocked_repeat_enabled_for_auto_scroll">Turn off Gesture Repeat before using Auto Scroll</string>
+    <string name="gesture_mode_blocked_rearm_enabled_for_auto_scroll">Turn off Re-arm Gesture Lock before using Auto Scroll</string>
+    <string name="gesture_mode_blocked_lock_enabled_for_auto_scroll">Turn off Gesture Lock before using Auto Scroll</string>
 
     <!-- Gesture Patterns -->
     <string name="start_recording">Start Recording</string>
