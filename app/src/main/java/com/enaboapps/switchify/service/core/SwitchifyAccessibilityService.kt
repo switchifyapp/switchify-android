@@ -2,11 +2,14 @@ package com.enaboapps.switchify.service.core
 
 import android.accessibilityservice.AccessibilityService
 import android.content.Intent
+import android.content.IntentFilter
 import android.util.Log
 import android.view.KeyEvent
 import android.view.accessibility.AccessibilityEvent
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
+import com.enaboapps.switchify.BuildConfig
 import com.enaboapps.switchify.backend.data.FileManager
 import com.enaboapps.switchify.backend.iap.IAPHandler
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
@@ -27,6 +30,7 @@ import com.enaboapps.switchify.service.trial.ServiceTrialOverlay
 import com.enaboapps.switchify.service.utils.DeviceLockObserver
 import com.enaboapps.switchify.service.window.ServiceStartupSplash
 import com.enaboapps.switchify.service.window.SwitchifyAccessibilityWindow
+import com.enaboapps.switchify.switches.SwitchAction
 import com.enaboapps.switchify.utils.LogEvent
 import com.enaboapps.switchify.utils.Logger
 import kotlinx.coroutines.CoroutineScope
@@ -55,6 +59,8 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
     private lateinit var nodeUpdateCoordinator: NodeUpdateCoordinator
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private var protectedStorageMigrationAttempted = false
+    private val adbTestingBridgeReceiver = AdbTestingBridgeReceiver()
+    private var adbTestingBridgeRegistered = false
 
     private lateinit var eventPipeline: AccessibilityEventPipeline
 
@@ -131,6 +137,7 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
         eventPipeline.start()
 
         setupServiceBridge()
+        registerAdbTestingBridgeIfNeeded()
 
         // Observe Pro status changes to hide overlay when user upgrades
         serviceScope.launch {
@@ -243,6 +250,23 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
         }
     }
 
+    private fun registerAdbTestingBridgeIfNeeded() {
+        if (!BuildConfig.DEBUG || adbTestingBridgeRegistered) return
+        ContextCompat.registerReceiver(
+            this,
+            adbTestingBridgeReceiver,
+            IntentFilter(AdbTestingBridgeReceiver.ACTION_PERFORM_SWITCH_ACTION),
+            ContextCompat.RECEIVER_EXPORTED
+        )
+        adbTestingBridgeRegistered = true
+    }
+
+    private fun unregisterAdbTestingBridgeIfNeeded() {
+        if (!adbTestingBridgeRegistered) return
+        runCatching { unregisterReceiver(adbTestingBridgeReceiver) }
+        adbTestingBridgeRegistered = false
+    }
+
 
     /**
      * This method is called when an AccessibilityEvent is fired.
@@ -290,6 +314,7 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
         }
         deviceLockObserver.stopObserving()
         screenWatcherManager.unregister()
+        unregisterAdbTestingBridgeIfNeeded()
         serviceScope.coroutineContext.cancelChildren()
         if (::eventPipeline.isInitialized) {
             eventPipeline.stop()
@@ -321,6 +346,7 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
 
         // Unregister ScreenWatcher to prevent receiver leak
         screenWatcherManager.unregister()
+        unregisterAdbTestingBridgeIfNeeded()
         serviceScope.coroutineContext.cancelChildren()
         if (::eventPipeline.isInitialized) {
             eventPipeline.stop()
@@ -486,6 +512,22 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
                         else -> {
                             logd("Configuration updated: ${command.key}")
                             ServiceBridge.emitEvent(ServiceBridge.ServiceEvent.ConfigurationUpdated)
+                        }
+                    }
+                }
+
+                is ServiceBridge.ServiceCommand.PerformSwitchActionForTesting -> {
+                    commandKey = command.actionId.toString()
+                    if (!BuildConfig.DEBUG) {
+                        result = "skipped"
+                        reason = "not_debug_build"
+                    } else {
+                        val scanningManager = ServiceCore.getScanningManager()
+                        if (scanningManager == null) {
+                            result = "skipped"
+                            reason = "scanning_manager_not_ready"
+                        } else {
+                            scanningManager.performAction(SwitchAction(command.actionId))
                         }
                     }
                 }

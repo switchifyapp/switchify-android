@@ -11,6 +11,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.enaboapps.switchify.BuildConfig
@@ -21,6 +23,9 @@ import com.enaboapps.switchify.components.ActionButtonType
 import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.PreferenceSwitch
 import com.enaboapps.switchify.components.Section
+import com.enaboapps.switchify.service.core.AdbTestingBridgeReceiver
+import com.enaboapps.switchify.service.core.ServiceBridge
+import com.enaboapps.switchify.switches.SwitchAction
 
 @Composable
 fun DebugScreen(navController: NavController) {
@@ -89,5 +94,77 @@ fun DebugScreen(navController: NavController) {
                 }
             )
         }
+
+        if (BuildConfig.DEBUG) {
+            Section(titleResId = R.string.debug_section_adb_testing) {
+                Text(
+                    text = stringResource(
+                        R.string.debug_adb_testing_summary,
+                        AdbTestingBridgeReceiver.ACTION_PERFORM_SWITCH_ACTION
+                    ),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                )
+                Text(
+                    text = stringResource(
+                        R.string.debug_adb_testing_examples,
+                        AdbTestingBridgeReceiver.ACTION_PERFORM_SWITCH_ACTION
+                    ),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontFamily = FontFamily.Monospace,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                )
+                ActionButton(
+                    textResId = R.string.debug_adb_test_next,
+                    type = ActionButtonType.SECONDARY,
+                    onClick = {
+                        ServiceBridge.sendCommand(
+                            ServiceBridge.ServiceCommand.PerformSwitchActionForTesting(
+                                actionId = SwitchAction.ACTION_MOVE_TO_NEXT_ITEM,
+                                source = "debug_screen"
+                            )
+                        )
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 4.dp),
+                    applyPadding = false
+                )
+                ActionButton(
+                    textResId = R.string.debug_adb_test_previous,
+                    type = ActionButtonType.SECONDARY,
+                    onClick = {
+                        ServiceBridge.sendCommand(
+                            ServiceBridge.ServiceCommand.PerformSwitchActionForTesting(
+                                actionId = SwitchAction.ACTION_MOVE_TO_PREVIOUS_ITEM,
+                                source = "debug_screen"
+                            )
+                        )
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 4.dp),
+                    applyPadding = false
+                )
+                ActionButton(
+                    textResId = R.string.debug_adb_test_select,
+                    type = ActionButtonType.SECONDARY,
+                    onClick = {
+                        ServiceBridge.sendCommand(
+                            ServiceBridge.ServiceCommand.PerformSwitchActionForTesting(
+                                actionId = SwitchAction.ACTION_SELECT,
+                                source = "debug_screen"
+                            )
+                        )
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 4.dp),
+                    applyPadding = false
+                )
+            }
+        }
     }
-} 
+}
