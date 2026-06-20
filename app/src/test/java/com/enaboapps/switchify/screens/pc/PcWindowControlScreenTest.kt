@@ -2,6 +2,7 @@ package com.enaboapps.switchify.screens.pc
 
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.pc.PcControlCommand
+import com.enaboapps.switchify.pc.PcKeyboardKey
 import com.enaboapps.switchify.pc.PcWindowControlAction
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -55,5 +56,20 @@ class PcWindowControlScreenTest {
         assertEquals(pcWindowControlSpecs().map { it.command }, commands)
         assertEquals(null, specs[7])
         assertEquals(null, specs[8])
+    }
+
+    @Test
+    fun windowKeyboardNavigationUsesSharedOrder() {
+        assertEquals(
+            listOf(
+                PcKeyboardKey.Escape,
+                PcKeyboardKey.ArrowUp,
+                PcKeyboardKey.Enter,
+                PcKeyboardKey.ArrowLeft,
+                PcKeyboardKey.ArrowDown,
+                PcKeyboardKey.ArrowRight
+            ),
+            pcKeyboardNavigationKeys()
+        )
     }
 }

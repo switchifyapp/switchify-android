@@ -47,6 +47,12 @@ fun PcWindowControlScreen(
                 }
             }
         )
+        PcKeyboardNavigationCluster(
+            enabled = enabled,
+            onKeySelected = { key ->
+                onCommandSelected(PcControlCommand.PressKey(key))
+            }
+        )
     }
 }
 
