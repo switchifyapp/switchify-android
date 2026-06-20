@@ -10,9 +10,17 @@ import com.enaboapps.switchify.switches.SwitchAction
 class AdbTestingBridgeReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context?, intent: Intent?) {
         if (!BuildConfig.DEBUG || intent?.action != ACTION_PERFORM_SWITCH_ACTION) return
+
+        val actionName = intent.getStringExtra(EXTRA_ACTION)?.lowercase()
+        if (actionName == ACTION_RELOAD_SETTINGS) {
+            Log.d(TAG, "Performing ADB testing command: $ACTION_RELOAD_SETTINGS")
+            ServiceBridge.sendCommand(ServiceBridge.ServiceCommand.ReloadSettings)
+            return
+        }
+
         val actionId = resolveActionId(intent)
         if (!isValidActionId(actionId)) {
-            Log.w(TAG, "Ignoring invalid ADB testing action: $actionId")
+            Log.w(TAG, "Ignoring invalid ADB testing action: ${actionName ?: actionId}")
             return
         }
         ServiceBridge.sendCommand(
@@ -27,26 +35,7 @@ class AdbTestingBridgeReceiver : BroadcastReceiver() {
         if (intent.hasExtra(EXTRA_ACTION_ID)) {
             return intent.getIntExtra(EXTRA_ACTION_ID, INVALID_ACTION_ID)
         }
-        return when (intent.getStringExtra(EXTRA_ACTION)?.lowercase()) {
-            "none" -> SwitchAction.ACTION_NONE
-            "select" -> SwitchAction.ACTION_SELECT
-            "stop_scanning" -> SwitchAction.ACTION_STOP_SCANNING
-            "change_scanning_direction" -> SwitchAction.ACTION_CHANGE_SCANNING_DIRECTION
-            "next" -> SwitchAction.ACTION_MOVE_TO_NEXT_ITEM
-            "previous" -> SwitchAction.ACTION_MOVE_TO_PREVIOUS_ITEM
-            "toggle_gesture_lock" -> SwitchAction.ACTION_TOGGLE_GESTURE_LOCK
-            "home" -> SwitchAction.ACTION_SYS_HOME
-            "back" -> SwitchAction.ACTION_SYS_BACK
-            "recents" -> SwitchAction.ACTION_SYS_RECENTS
-            "quick_settings" -> SwitchAction.ACTION_SYS_QUICK_SETTINGS
-            "notifications" -> SwitchAction.ACTION_SYS_NOTIFICATIONS
-            "lock_screen" -> SwitchAction.ACTION_SYS_LOCK_SCREEN
-            "media_play_pause" -> SwitchAction.ACTION_SYS_HEADSET_HOOK
-            "pause" -> SwitchAction.ACTION_PAUSE
-            "toggle_gesture_lock_rearm" -> SwitchAction.ACTION_TOGGLE_GESTURE_LOCK_REARM
-            "toggle_gesture_repeat" -> SwitchAction.ACTION_TOGGLE_GESTURE_REPEAT
-            else -> INVALID_ACTION_ID
-        }
+        return actionNameToId[intent.getStringExtra(EXTRA_ACTION)?.lowercase()] ?: INVALID_ACTION_ID
     }
 
     private fun isValidActionId(actionId: Int): Boolean {
@@ -58,7 +47,28 @@ class AdbTestingBridgeReceiver : BroadcastReceiver() {
             "com.enaboapps.switchify.debug.PERFORM_SWITCH_ACTION"
         const val EXTRA_ACTION = "action"
         const val EXTRA_ACTION_ID = "action_id"
+        const val ACTION_RELOAD_SETTINGS = "reload_settings"
         private const val INVALID_ACTION_ID = -1
         private const val TAG = "AdbTestingBridge"
+
+        val actionNameToId = mapOf(
+            "none" to SwitchAction.ACTION_NONE,
+            "select" to SwitchAction.ACTION_SELECT,
+            "stop_scanning" to SwitchAction.ACTION_STOP_SCANNING,
+            "change_scanning_direction" to SwitchAction.ACTION_CHANGE_SCANNING_DIRECTION,
+            "next" to SwitchAction.ACTION_MOVE_TO_NEXT_ITEM,
+            "previous" to SwitchAction.ACTION_MOVE_TO_PREVIOUS_ITEM,
+            "toggle_gesture_lock" to SwitchAction.ACTION_TOGGLE_GESTURE_LOCK,
+            "home" to SwitchAction.ACTION_SYS_HOME,
+            "back" to SwitchAction.ACTION_SYS_BACK,
+            "recents" to SwitchAction.ACTION_SYS_RECENTS,
+            "quick_settings" to SwitchAction.ACTION_SYS_QUICK_SETTINGS,
+            "notifications" to SwitchAction.ACTION_SYS_NOTIFICATIONS,
+            "lock_screen" to SwitchAction.ACTION_SYS_LOCK_SCREEN,
+            "media_play_pause" to SwitchAction.ACTION_SYS_HEADSET_HOOK,
+            "pause" to SwitchAction.ACTION_PAUSE,
+            "toggle_gesture_lock_rearm" to SwitchAction.ACTION_TOGGLE_GESTURE_LOCK_REARM,
+            "toggle_gesture_repeat" to SwitchAction.ACTION_TOGGLE_GESTURE_REPEAT
+        )
     }
 }

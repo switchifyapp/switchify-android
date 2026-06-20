@@ -20,6 +20,8 @@ com.enaboapps.switchify.debug.PERFORM_SWITCH_ACTION
 
 ### Action Names
 
+Every current `SwitchAction` has a string alias:
+
 ```text
 none
 select
@@ -40,12 +42,19 @@ toggle_gesture_lock_rearm
 toggle_gesture_repeat
 ```
 
+The bridge also accepts this debug-only service command:
+
+```text
+reload_settings
+```
+
 ### Examples
 
 ```powershell
 adb shell am broadcast -a com.enaboapps.switchify.debug.PERFORM_SWITCH_ACTION -p com.enaboapps.switchify --es action next
 adb shell am broadcast -a com.enaboapps.switchify.debug.PERFORM_SWITCH_ACTION -p com.enaboapps.switchify --es action previous
 adb shell am broadcast -a com.enaboapps.switchify.debug.PERFORM_SWITCH_ACTION -p com.enaboapps.switchify --es action select
+adb shell am broadcast -a com.enaboapps.switchify.debug.PERFORM_SWITCH_ACTION -p com.enaboapps.switchify --es action reload_settings
 ```
 
 Action IDs are also accepted:
@@ -86,6 +95,6 @@ stop_scanning
 change_scanning_direction
 ```
 
-## Local Harness
+## Agentic QA Harness
 
-The local harness in `switchify-agents-testing` can prime scan settings, send bridge actions, capture evidence, and restore preference backups. If it changes preferences or switch configuration, restore from that run directory when finished.
+The agentic QA harness in [switchifyapp/switchify-android-agentic-qa](https://github.com/switchifyapp/switchify-android-agentic-qa) can prime scan settings, send bridge actions, capture evidence, and restore preference backups. If it changes preferences or switch configuration, restore from that run directory when finished.
