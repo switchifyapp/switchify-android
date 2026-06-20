@@ -432,6 +432,14 @@ class PcProtocolTest {
     }
 
     @Test
+    fun buildsFunctionKeyboardKeyCommand() {
+        val json = JSONObject(PcProtocol.keyboardKey("key-f12", "device-1", "token", 1000L, PcKeyboardKey.F12))
+
+        assertEquals("keyboard.key", json.getString("type"))
+        assertEquals("F12", json.getJSONObject("payload").getString("key"))
+    }
+
+    @Test
     fun buildsWindowControlCommandWithAuthProof() {
         val json = JSONObject(
             PcProtocol.windowControl(
