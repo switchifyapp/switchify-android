@@ -58,6 +58,10 @@ fun PcTypingControlScreen(
             onClear = onClear,
             onKeySelected = onKeySelected
         )
+        PcKeyboardNavigationCluster(
+            enabled = enabled,
+            onKeySelected = onKeySelected
+        )
     }
 }
 
@@ -157,14 +161,8 @@ fun pcTypingCompactCommandSpecs(): List<PcTypingCompactCommandSpec> {
         PcTypingCompactCommandSpec.Clear,
         PcTypingCompactCommandSpec.Key(PcTypingKeySpec(R.string.pc_key_backspace, PcKeyboardKey.Backspace)),
         PcTypingCompactCommandSpec.Key(PcTypingKeySpec(R.string.pc_key_delete, PcKeyboardKey.Delete)),
-        PcTypingCompactCommandSpec.Key(PcTypingKeySpec(R.string.pc_key_enter, PcKeyboardKey.Enter)),
         PcTypingCompactCommandSpec.Key(PcTypingKeySpec(R.string.pc_key_space, PcKeyboardKey.Space)),
         PcTypingCompactCommandSpec.Key(PcTypingKeySpec(R.string.pc_key_tab, PcKeyboardKey.Tab)),
-        PcTypingCompactCommandSpec.Key(PcTypingKeySpec(R.string.pc_key_escape, PcKeyboardKey.Escape)),
-        PcTypingCompactCommandSpec.Key(PcTypingKeySpec(R.string.pc_key_arrow_left, PcKeyboardKey.ArrowLeft)),
-        PcTypingCompactCommandSpec.Key(PcTypingKeySpec(R.string.pc_key_arrow_up, PcKeyboardKey.ArrowUp)),
-        PcTypingCompactCommandSpec.Key(PcTypingKeySpec(R.string.pc_key_arrow_down, PcKeyboardKey.ArrowDown)),
-        PcTypingCompactCommandSpec.Key(PcTypingKeySpec(R.string.pc_key_arrow_right, PcKeyboardKey.ArrowRight)),
         PcTypingCompactCommandSpec.Key(PcTypingKeySpec(R.string.pc_key_home, PcKeyboardKey.Home)),
         PcTypingCompactCommandSpec.Key(PcTypingKeySpec(R.string.pc_key_end, PcKeyboardKey.End)),
         PcTypingCompactCommandSpec.Key(PcTypingKeySpec(R.string.pc_key_page_up, PcKeyboardKey.PageUp)),

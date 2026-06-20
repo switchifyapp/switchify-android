@@ -243,6 +243,21 @@ class PcMouseControlViewModelTest {
     }
 
     @Test
+    fun windowSurfaceCanSendNavigationKeyCommand() = runTest(dispatcher) {
+        val connector = FakeConnector()
+        val controller = connectedController(connector = connector)
+        val viewModel = viewModel(controller)
+
+        viewModel.selectControlSurface(PcControlSurface.Window)
+        viewModel.send(PcControlCommand.PressKey(PcKeyboardKey.Escape))
+        advanceUntilIdle()
+
+        assertEquals(listOf(PcControlCommand.PressKey(PcKeyboardKey.Escape)), connector.realtimeCommands)
+        assertTrue(connector.commands.isEmpty())
+        assertEquals(PcControlSurface.Window, viewModel.uiState.value.activeSurface)
+    }
+
+    @Test
     fun controlCommandDoesNotSetBusy() = runTest(dispatcher) {
         val connector = FakeConnector()
         val controller = connectedController(connector = connector)
