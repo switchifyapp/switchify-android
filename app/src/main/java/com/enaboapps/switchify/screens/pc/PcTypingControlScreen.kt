@@ -169,7 +169,7 @@ fun pcTypingCompactCommandSpecs(): List<PcTypingCompactCommandSpec> {
         PcTypingCompactCommandSpec.Key(PcTypingKeySpec(R.string.pc_key_end, PcKeyboardKey.End)),
         PcTypingCompactCommandSpec.Key(PcTypingKeySpec(R.string.pc_key_page_up, PcKeyboardKey.PageUp)),
         PcTypingCompactCommandSpec.Key(PcTypingKeySpec(R.string.pc_key_page_down, PcKeyboardKey.PageDown))
-    )
+    ) + pcFunctionKeySpecs().map { PcTypingCompactCommandSpec.Key(it) }
 }
 
 fun pcCursorKeySpecs(): List<PcTypingKeySpec> {
@@ -187,5 +187,22 @@ fun pcDocumentKeySpecs(): List<PcTypingKeySpec> {
         PcTypingKeySpec(R.string.pc_key_end, PcKeyboardKey.End),
         PcTypingKeySpec(R.string.pc_key_page_up, PcKeyboardKey.PageUp),
         PcTypingKeySpec(R.string.pc_key_page_down, PcKeyboardKey.PageDown)
+    )
+}
+
+fun pcFunctionKeySpecs(): List<PcTypingKeySpec> {
+    return listOf(
+        PcTypingKeySpec(R.string.pc_key_f1, PcKeyboardKey.F1),
+        PcTypingKeySpec(R.string.pc_key_f2, PcKeyboardKey.F2),
+        PcTypingKeySpec(R.string.pc_key_f3, PcKeyboardKey.F3),
+        PcTypingKeySpec(R.string.pc_key_f4, PcKeyboardKey.F4),
+        PcTypingKeySpec(R.string.pc_key_f5, PcKeyboardKey.F5),
+        PcTypingKeySpec(R.string.pc_key_f6, PcKeyboardKey.F6),
+        PcTypingKeySpec(R.string.pc_key_f7, PcKeyboardKey.F7),
+        PcTypingKeySpec(R.string.pc_key_f8, PcKeyboardKey.F8),
+        PcTypingKeySpec(R.string.pc_key_f9, PcKeyboardKey.F9),
+        PcTypingKeySpec(R.string.pc_key_f10, PcKeyboardKey.F10),
+        PcTypingKeySpec(R.string.pc_key_f11, PcKeyboardKey.F11),
+        PcTypingKeySpec(R.string.pc_key_f12, PcKeyboardKey.F12)
     )
 }

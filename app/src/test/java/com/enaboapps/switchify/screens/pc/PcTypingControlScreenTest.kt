@@ -52,6 +52,29 @@ class PcTypingControlScreenTest {
     }
 
     @Test
+    fun functionKeysUseStableOrder() {
+        val keys = pcFunctionKeySpecs().map { it.key }
+
+        assertEquals(
+            listOf(
+                PcKeyboardKey.F1,
+                PcKeyboardKey.F2,
+                PcKeyboardKey.F3,
+                PcKeyboardKey.F4,
+                PcKeyboardKey.F5,
+                PcKeyboardKey.F6,
+                PcKeyboardKey.F7,
+                PcKeyboardKey.F8,
+                PcKeyboardKey.F9,
+                PcKeyboardKey.F10,
+                PcKeyboardKey.F11,
+                PcKeyboardKey.F12
+            ),
+            keys
+        )
+    }
+
+    @Test
     fun compactCommandsUseStableScanOrder() {
         val specs = pcTypingCompactCommandSpecs()
         val keys = specs.mapNotNull { (it as? PcTypingCompactCommandSpec.Key)?.spec?.key }
@@ -73,7 +96,19 @@ class PcTypingControlScreenTest {
                 PcKeyboardKey.Home,
                 PcKeyboardKey.End,
                 PcKeyboardKey.PageUp,
-                PcKeyboardKey.PageDown
+                PcKeyboardKey.PageDown,
+                PcKeyboardKey.F1,
+                PcKeyboardKey.F2,
+                PcKeyboardKey.F3,
+                PcKeyboardKey.F4,
+                PcKeyboardKey.F5,
+                PcKeyboardKey.F6,
+                PcKeyboardKey.F7,
+                PcKeyboardKey.F8,
+                PcKeyboardKey.F9,
+                PcKeyboardKey.F10,
+                PcKeyboardKey.F11,
+                PcKeyboardKey.F12
             ),
             keys
         )
