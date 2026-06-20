@@ -164,6 +164,17 @@ fun DebugScreen(navController: NavController) {
                         .padding(horizontal = 16.dp, vertical = 4.dp),
                     applyPadding = false
                 )
+                ActionButton(
+                    textResId = R.string.debug_adb_reload_settings,
+                    type = ActionButtonType.SECONDARY,
+                    onClick = {
+                        ServiceBridge.sendCommand(ServiceBridge.ServiceCommand.ReloadSettings)
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 4.dp),
+                    applyPadding = false
+                )
             }
         }
     }

@@ -657,11 +657,12 @@
     <string name="debug_section_crash_reporting">Crash Reporting</string>
     <string name="debug_section_adb_testing">ADB Testing</string>
     <string name="debug_force_crash">Force Crash</string>
-    <string name="debug_adb_testing_summary">Debug builds listen for %1$s while the accessibility service is running. Use it to perform Switchify actions from ADB without relying on synthetic key events.</string>
-    <string name="debug_adb_testing_examples">adb shell am broadcast -a %1$s -p com.enaboapps.switchify --es action next\nadb shell am broadcast -a %1$s -p com.enaboapps.switchify --es action previous\nadb shell am broadcast -a %1$s -p com.enaboapps.switchify --es action select</string>
+    <string name="debug_adb_testing_summary">Debug builds listen for %1$s while the accessibility service is running. Use it to perform Switchify actions and reload settings from ADB without relying on synthetic key events.</string>
+    <string name="debug_adb_testing_examples">adb shell am broadcast -a %1$s -p com.enaboapps.switchify --es action next\nadb shell am broadcast -a %1$s -p com.enaboapps.switchify --es action home\nadb shell am broadcast -a %1$s -p com.enaboapps.switchify --es action reload_settings</string>
     <string name="debug_adb_test_next">Test Next</string>
     <string name="debug_adb_test_previous">Test Previous</string>
     <string name="debug_adb_test_select">Test Select</string>
+    <string name="debug_adb_reload_settings">Reload Settings</string>
 
     <!-- Button Labels -->
     <string name="button_website">Website</string>
