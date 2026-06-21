@@ -36,7 +36,11 @@ class Tasks private constructor() {
      * @return True if any ongoing task was found and potentially stopped/advanced, false otherwise.
      */
     fun stopOngoingTaskForSwitchPress(): Boolean {
-        return stopOngoingTask()
+        return stopStoppableTask()
+    }
+
+    fun stopStoppableTaskForExternalSwitchPress(): Boolean {
+        return stopStoppableTask()
     }
 
     fun onOngoingTaskStarted() {
@@ -55,10 +59,10 @@ class Tasks private constructor() {
 
     fun stopOngoingTaskForSwitchAction(action: SwitchAction): Boolean {
         if (shouldBypassOngoingTaskStop(action)) return false
-        return stopOngoingTask()
+        return stopStoppableTask()
     }
 
-    private fun stopOngoingTask(): Boolean {
+    private fun stopStoppableTask(): Boolean {
         if (GestureRepeatManager.instance.stopRepeatForSwitchPress()) return true
 
         // Stop auto-scrolling if active

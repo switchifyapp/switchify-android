@@ -12,6 +12,7 @@ import com.enaboapps.switchify.switches.SwitchAction
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -82,6 +83,51 @@ class TasksTest {
 
         assertFalse(repeatManager.isRepeatSessionActive())
         assertTrue(repeatManager.isWaitingForGesture())
+    }
+
+    @Test
+    fun stopStoppableTaskForExternalSwitchPressStopsRepeat() {
+        repeatManager.setAutoRepeatEnabledForTesting(true)
+        repeatManager.onGesturePerformed(testGesture())
+
+        assertTrue(tasks.stopStoppableTaskForExternalSwitchPress())
+
+        assertFalse(repeatManager.isRepeatSessionActive())
+        assertTrue(repeatManager.isWaitingForGesture())
+    }
+
+    @Test
+    fun stopStoppableTaskForExternalSwitchPressStopsAutoScroll() {
+        assertTrue(autoScrollManager.startAutoScroll(scrollGesture()))
+        messages.clear()
+
+        assertTrue(tasks.stopStoppableTaskForExternalSwitchPress())
+
+        assertFalse(autoScrollManager.isAutoScrolling())
+        assertEquals(listOf(R.string.hud_auto_scroll_stopped), messages)
+    }
+
+    @Test
+    fun stopStoppableTaskForExternalSwitchPressIgnoresGestureLockEngaged() {
+        lockManager.enableLockForNextGesture(showMessage = false)
+        lockManager.setLockedGestureData(testGesture())
+
+        assertFalse(tasks.stopStoppableTaskForExternalSwitchPress())
+
+        assertTrue(lockManager.isGestureLockEngaged())
+        assertNotNull(lockManager.getLockedGestureData())
+    }
+
+    @Test
+    fun stopStoppableTaskForExternalSwitchPressIgnoresWaitingModes() {
+        repeatManager.setAutoRepeatEnabledForTesting(true)
+        lockManager.enableLockForNextGesture(showMessage = false)
+
+        assertFalse(tasks.stopStoppableTaskForExternalSwitchPress())
+
+        assertTrue(repeatManager.isWaitingForGesture())
+        assertTrue(lockManager.isLocked())
+        assertFalse(lockManager.isGestureLockEngaged())
     }
 
     @Test
