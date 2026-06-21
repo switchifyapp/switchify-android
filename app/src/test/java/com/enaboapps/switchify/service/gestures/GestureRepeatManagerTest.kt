@@ -97,8 +97,20 @@ class GestureRepeatManagerTest {
 
         assertFalse(lockManager.isLocked())
         assertTrue(repeatManager.isRepeating())
+        assertTrue(repeatManager.isRepeatSessionActive())
         assertEquals(gestureData, repeatManager.getRepeatedGestureDataForTesting())
         assertTrue(messages.contains(R.string.gesture_repeat_started))
+    }
+
+    @Test
+    fun repeatSessionActiveAsSoonAsGestureCaptured() {
+        initialRepeatDelay = 10000L
+        repeatManager.setAutoRepeatEnabledForTesting(true)
+
+        performGestureForRepeat()
+
+        assertTrue(repeatManager.isRepeatSessionActive())
+        assertFalse(repeatManager.isWaitingForGesture())
     }
 
     @Test
@@ -130,10 +142,33 @@ class GestureRepeatManagerTest {
 
         assertTrue(repeatManager.isAutoRepeatEnabled())
         assertFalse(repeatManager.isRepeating())
+        assertFalse(repeatManager.isRepeatSessionActive())
         assertTrue(repeatManager.isWaitingForGesture())
         assertFalse(lockManager.isLocked())
         assertFalse(lockManager.isGestureLockEngaged())
         assertNull(lockManager.getLockedGestureData())
+        assertEquals(
+            listOf(
+                R.string.gesture_repeat_stopped,
+                R.string.gesture_repeat_waiting
+            ),
+            messages
+        )
+    }
+
+    @Test
+    fun stopRepeatForSwitchPressConsumesDuringInitialDelay() {
+        initialRepeatDelay = 10000L
+        repeatManager.setAutoRepeatEnabledForTesting(true)
+        performGestureForRepeat()
+        messages.clear()
+
+        assertTrue(repeatManager.stopRepeatForSwitchPress())
+
+        assertTrue(repeatManager.isAutoRepeatEnabled())
+        assertFalse(repeatManager.isRepeatSessionActive())
+        assertTrue(repeatManager.isWaitingForGesture())
+        assertNull(repeatManager.getRepeatedGestureDataForTesting())
         assertEquals(
             listOf(
                 R.string.gesture_repeat_stopped,
@@ -237,8 +272,20 @@ class GestureRepeatManagerTest {
 
         assertFalse(repeatManager.isAutoRepeatEnabled())
         assertFalse(repeatManager.isRepeating())
+        assertFalse(repeatManager.isRepeatSessionActive())
         assertNull(repeatManager.getRepeatedGestureDataForTesting())
         assertEquals(listOf(R.string.gesture_repeat_disabled), messages)
+    }
+
+    @Test
+    fun turningRepeatOffClearsRepeatSession() {
+        repeatManager.setAutoRepeatEnabledForTesting(true)
+        performGestureForRepeat()
+
+        repeatManager.toggleAutoRepeatForTesting(syncGestureLock = true)
+
+        assertFalse(repeatManager.isRepeatSessionActive())
+        assertFalse(repeatManager.isAutoRepeatEnabled())
     }
 
     @Test
@@ -250,8 +297,19 @@ class GestureRepeatManagerTest {
 
         assertFalse(repeatManager.isAutoRepeatEnabled())
         assertFalse(repeatManager.isRepeating())
+        assertFalse(repeatManager.isRepeatSessionActive())
         assertFalse(repeatManager.isWaitingForGesture())
         assertNull(repeatManager.getRepeatedGestureDataForTesting())
+    }
+
+    @Test
+    fun clearServiceStateClearsRepeatSession() {
+        repeatManager.setAutoRepeatEnabledForTesting(true)
+        performGestureForRepeat()
+
+        repeatManager.clearServiceState()
+
+        assertFalse(repeatManager.isRepeatSessionActive())
     }
 
     private fun performGestureForRepeat(): GestureData {

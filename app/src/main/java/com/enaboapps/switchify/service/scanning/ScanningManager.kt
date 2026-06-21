@@ -183,7 +183,7 @@ class ScanningManager(
     }
 
     fun checkOngoingTasks(): Boolean {
-        return Tasks.getInstance().checkOngoingTasks()
+        return Tasks.getInstance().stopOngoingTaskForSwitchPress()
     }
 
     /**

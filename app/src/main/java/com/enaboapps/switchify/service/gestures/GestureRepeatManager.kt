@@ -18,6 +18,7 @@ class GestureRepeatManager private constructor() {
     private val scope = CoroutineScope(Dispatchers.IO)
     private var repeatJob: Job? = null
     private var repeatedGestureData: GestureData? = null
+    private var repeatSessionActive = false
     private var autoRepeatEnabled = false
     private var initialRepeatDelayProviderForTesting: (() -> Long)? = null
     private var repeatDelayProviderForTesting: (() -> Long)? = null
@@ -81,10 +82,11 @@ class GestureRepeatManager private constructor() {
     }
 
     fun stopRepeat(showMessage: Boolean = true): Boolean {
-        if (!isRepeating()) return false
+        if (!repeatSessionActive) return false
         repeatJob?.cancel()
         repeatJob = null
         repeatedGestureData = null
+        repeatSessionActive = false
         if (showMessage) {
             showMessage(R.string.gesture_repeat_stopped, MessageSeverity.Info)
         }
@@ -104,12 +106,15 @@ class GestureRepeatManager private constructor() {
 
     fun isRepeating(): Boolean = repeatJob?.isActive == true
 
-    fun isWaitingForGesture(): Boolean = isAutoRepeatEnabled() && !isRepeating()
+    fun isRepeatSessionActive(): Boolean = repeatSessionActive
+
+    fun isWaitingForGesture(): Boolean = isAutoRepeatEnabled() && !repeatSessionActive
 
     fun clearServiceState(showMessage: Boolean = false) {
         val wasEnabled = autoRepeatEnabled
         stopRepeat(showMessage = false)
         repeatedGestureData = null
+        repeatSessionActive = false
         autoRepeatEnabled = false
         if (showMessage && wasEnabled) {
             showMessage(R.string.gesture_repeat_disabled, MessageSeverity.Info)
@@ -134,6 +139,7 @@ class GestureRepeatManager private constructor() {
 
     private fun startRepeat(gestureData: GestureData) {
         repeatJob?.cancel()
+        repeatSessionActive = true
         repeatedGestureData = gestureData
         showMessage(R.string.gesture_repeat_started, MessageSeverity.Success)
         repeatJob = scope.launch {
@@ -244,6 +250,7 @@ class GestureRepeatManager private constructor() {
         repeatJob?.cancel()
         repeatJob = null
         repeatedGestureData = null
+        repeatSessionActive = false
         context = null
         autoRepeatEnabled = false
         initialRepeatDelayProviderForTesting = null

@@ -68,12 +68,15 @@ object ExternalSwitchLongPressHandler {
      * Performs the action if it is not null.
      * @param scanningManager The scanning manager. Can be null (will not perform the action).
      */
-    fun stopLongPress(scanningManager: ScanningManager?) {
+    fun stopLongPress(scanningManager: ScanningManager?): Boolean {
+        var actionPerformed = false
         actionToPerform?.let {
             scanningManager?.performAction(it)
             actionToPerform = null
+            actionPerformed = true
         }
         longPressJob?.cancel()
         longPressJob = null
+        return actionPerformed
     }
 }

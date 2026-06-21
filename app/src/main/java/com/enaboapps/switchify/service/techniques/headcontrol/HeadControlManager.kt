@@ -181,7 +181,7 @@ class HeadControlManager(private val context: Context) : MenuStateObserver {
     }
 
     fun performSelection() {
-        if (Tasks.getInstance().checkOngoingTasks())
+        if (Tasks.getInstance().stopOngoingTaskForSwitchPress())
             return
         if (isInMenuMode()) {
             // Defensive check: only allow selection if nodes are ready
@@ -199,7 +199,7 @@ class HeadControlManager(private val context: Context) : MenuStateObserver {
     }
 
     fun performMenuOpen() {
-        if (Tasks.getInstance().checkOngoingTasks())
+        if (Tasks.getInstance().stopOngoingTaskForSwitchPress())
             return
         // Don't open menu if already in menu mode
         if (isInMenuMode()) {
