@@ -7,6 +7,7 @@ import com.enaboapps.switchify.service.gestures.GestureLockManager
 import com.enaboapps.switchify.service.gestures.GestureRepeatManager
 import com.enaboapps.switchify.service.gestures.data.GestureData
 import com.enaboapps.switchify.service.gestures.data.GestureType
+import com.enaboapps.switchify.service.switches.external.ExternalSwitchLongPressHandler
 import com.enaboapps.switchify.switches.SwitchAction
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -24,6 +25,8 @@ class TasksTest {
 
     @Before
     fun setup() {
+        tasks.setOngoingTaskStartedListenerForTesting(null)
+        ExternalSwitchLongPressHandler.cancelLongPress()
         repeatManager.resetForTesting()
         autoScrollManager.resetForTesting()
         lockManager.resetForTesting()
@@ -42,6 +45,8 @@ class TasksTest {
 
     @After
     fun tearDown() {
+        tasks.setOngoingTaskStartedListenerForTesting(null)
+        ExternalSwitchLongPressHandler.cancelLongPress()
         repeatManager.resetForTesting()
         autoScrollManager.resetForTesting()
         lockManager.resetForTesting()
@@ -180,6 +185,17 @@ class TasksTest {
                 SwitchAction(SwitchAction.ACTION_SELECT)
             )
         )
+    }
+
+    @Test
+    fun onOngoingTaskStartedCancelsLongPress() {
+        ExternalSwitchLongPressHandler.setPendingActionForTesting(
+            SwitchAction(SwitchAction.ACTION_TOGGLE_GESTURE_LOCK)
+        )
+
+        tasks.onOngoingTaskStarted()
+
+        assertFalse(ExternalSwitchLongPressHandler.isLongPressActive())
     }
 
     private fun testGesture(): GestureData {

@@ -282,7 +282,7 @@ class ExternalSwitchListener(
         lastSwitchPressedTime = 0
         lastSwitchPressedCode = 0
         pauseSwitchPressedTime = 0
-        ExternalSwitchLongPressHandler.stopLongPress(null)
+        ExternalSwitchLongPressHandler.cancelLongPress()
     }
 
     /**

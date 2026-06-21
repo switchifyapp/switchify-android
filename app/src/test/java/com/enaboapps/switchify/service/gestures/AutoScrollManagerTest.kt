@@ -2,6 +2,7 @@ package com.enaboapps.switchify.service.gestures
 
 import android.graphics.PointF
 import com.enaboapps.switchify.R
+import com.enaboapps.switchify.service.core.Tasks
 import com.enaboapps.switchify.service.gestures.data.GestureData
 import com.enaboapps.switchify.service.gestures.data.GestureType
 import org.junit.After
@@ -20,6 +21,7 @@ class AutoScrollManagerTest {
 
     @Before
     fun setup() {
+        Tasks.getInstance().setOngoingTaskStartedListenerForTesting(null)
         autoScrollManager.resetForTesting()
         repeatManager.resetForTesting()
         lockManager.resetForTesting()
@@ -36,6 +38,7 @@ class AutoScrollManagerTest {
 
     @After
     fun tearDown() {
+        Tasks.getInstance().setOngoingTaskStartedListenerForTesting(null)
         autoScrollManager.resetForTesting()
         repeatManager.resetForTesting()
         lockManager.resetForTesting()
@@ -77,6 +80,29 @@ class AutoScrollManagerTest {
 
         assertTrue(autoScrollManager.isAutoScrolling())
         assertEquals(listOf(R.string.hud_auto_scroll_started), messages)
+    }
+
+    @Test
+    fun startingAutoScrollNotifiesOngoingTaskStarted() {
+        var notificationCount = 0
+        Tasks.getInstance().setOngoingTaskStartedListenerForTesting { notificationCount++ }
+
+        assertTrue(autoScrollManager.startAutoScroll(scrollGesture()))
+
+        assertEquals(1, notificationCount)
+        assertTrue(autoScrollManager.isAutoScrolling())
+    }
+
+    @Test
+    fun blockedAutoScrollDoesNotNotifyOngoingTaskStarted() {
+        var notificationCount = 0
+        Tasks.getInstance().setOngoingTaskStartedListenerForTesting { notificationCount++ }
+        repeatManager.setAutoRepeatEnabledForTesting(true)
+
+        assertFalse(autoScrollManager.startAutoScroll(scrollGesture()))
+
+        assertEquals(0, notificationCount)
+        assertFalse(autoScrollManager.isAutoScrolling())
     }
 
     @Test

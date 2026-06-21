@@ -77,8 +77,24 @@ object ExternalSwitchLongPressHandler {
         }
         longPressJob?.cancel()
         longPressJob = null
+        holdActions = null
         return actionPerformed
     }
 
+    fun cancelLongPress(): Boolean {
+        val hadState = longPressJob != null || holdActions != null || actionToPerform != null
+        longPressJob?.cancel()
+        longPressJob = null
+        holdActions = null
+        actionToPerform = null
+        return hadState
+    }
+
+    fun isLongPressActive(): Boolean = longPressJob?.isActive == true || actionToPerform != null
+
     fun getPendingAction(): SwitchAction? = actionToPerform
+
+    internal fun setPendingActionForTesting(action: SwitchAction?) {
+        actionToPerform = action
+    }
 }
