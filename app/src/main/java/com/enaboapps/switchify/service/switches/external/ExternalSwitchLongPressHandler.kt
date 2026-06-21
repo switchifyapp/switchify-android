@@ -79,4 +79,6 @@ object ExternalSwitchLongPressHandler {
         longPressJob = null
         return actionPerformed
     }
+
+    fun getPendingAction(): SwitchAction? = actionToPerform
 }
