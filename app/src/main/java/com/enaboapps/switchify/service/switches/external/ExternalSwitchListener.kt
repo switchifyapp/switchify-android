@@ -5,6 +5,7 @@ import android.util.Log
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.service.core.ServiceCore
 import com.enaboapps.switchify.service.core.Tasks
+import com.enaboapps.switchify.service.gestures.GestureLockManager
 import com.enaboapps.switchify.service.scanning.ScanningManager
 import com.enaboapps.switchify.service.selection.SelectionHandler
 import com.enaboapps.switchify.service.stats.StatsCollector
@@ -58,11 +59,16 @@ class ExternalSwitchListener(
         // Record stats for switch press
         StatsCollector.getInstance().recordSwitchPress("external", keyCode.toString())
 
-        val hasHoldActions = switchEvent.holdActions.isNotEmpty()
-        if (!hasHoldActions &&
-            Tasks.getInstance().stopOngoingTaskForSwitchAction(switchEvent.pressAction)
-        ) {
+        if (Tasks.getInstance().stopStoppableTaskForExternalSwitchPress()) {
             latestAction = null
+            ExternalSwitchLongPressHandler.cancelLongPress()
+            return true
+        }
+
+        if (GestureLockManager.instance.isGestureLockEngaged()) {
+            latestAction = AbsorbedSwitchAction(switchEvent, System.currentTimeMillis())
+            ExternalSwitchLongPressHandler.cancelLongPress()
+            ExternalSwitchLongPressHandler.startLongPress(context, switchEvent.name, emptyList())
             return true
         }
 
