@@ -4,6 +4,7 @@ import com.enaboapps.switchify.service.gestures.AutoScrollManager
 import com.enaboapps.switchify.service.gestures.GestureLockManager
 import com.enaboapps.switchify.service.gestures.GestureRepeatManager
 import com.enaboapps.switchify.service.gestures.patterns.GesturePatternManager
+import com.enaboapps.switchify.service.switches.external.ExternalSwitchLongPressHandler
 import com.enaboapps.switchify.switches.SwitchAction
 
 /**
@@ -12,6 +13,7 @@ import com.enaboapps.switchify.switches.SwitchAction
  * that may need to be stopped under certain conditions.
  */
 class Tasks private constructor() {
+    private var ongoingTaskStartedListenerForTesting: (() -> Unit)? = null
 
     companion object {
         private var instance: Tasks? = null
@@ -35,6 +37,11 @@ class Tasks private constructor() {
      */
     fun stopOngoingTaskForSwitchPress(): Boolean {
         return stopOngoingTask()
+    }
+
+    fun onOngoingTaskStarted() {
+        ongoingTaskStartedListenerForTesting?.invoke()
+            ?: ExternalSwitchLongPressHandler.cancelLongPress()
     }
 
     fun shouldBypassOngoingTaskStop(action: SwitchAction): Boolean {
@@ -90,4 +97,8 @@ class Tasks private constructor() {
     }
 
     fun checkOngoingTasks(): Boolean = stopOngoingTaskForSwitchPress()
+
+    internal fun setOngoingTaskStartedListenerForTesting(listener: (() -> Unit)?) {
+        ongoingTaskStartedListenerForTesting = listener
+    }
 }

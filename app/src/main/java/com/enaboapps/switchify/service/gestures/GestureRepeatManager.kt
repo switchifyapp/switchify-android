@@ -4,6 +4,7 @@ import android.content.Context
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.service.gestures.data.GestureData
+import com.enaboapps.switchify.service.core.Tasks
 import com.enaboapps.switchify.service.window.MessageSeverity
 import com.enaboapps.switchify.service.window.ServiceMessageHUD
 import kotlinx.coroutines.CoroutineScope
@@ -141,6 +142,7 @@ class GestureRepeatManager private constructor() {
         repeatJob?.cancel()
         repeatSessionActive = true
         repeatedGestureData = gestureData
+        Tasks.getInstance().onOngoingTaskStarted()
         showMessage(R.string.gesture_repeat_started, MessageSeverity.Success)
         repeatJob = scope.launch {
             delay(getInitialRepeatDelay())

@@ -2,6 +2,7 @@ package com.enaboapps.switchify.service.gestures.patterns
 
 import android.content.Context
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
+import com.enaboapps.switchify.service.core.Tasks
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
 
@@ -20,6 +21,7 @@ object GesturePatternManager {
             val id = executorIdCounter.incrementAndGet()
             activeExecutors[id] = executor
         }
+        Tasks.getInstance().onOngoingTaskStarted()
     }
 
     fun unregisterExecutor(executor: GesturePatternExecutor) {
