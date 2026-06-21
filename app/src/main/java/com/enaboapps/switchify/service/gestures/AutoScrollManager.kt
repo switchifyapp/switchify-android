@@ -4,7 +4,6 @@ import android.content.Context
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.service.gestures.data.GestureData
-import com.enaboapps.switchify.service.core.Tasks
 import com.enaboapps.switchify.service.window.MessageSeverity
 import com.enaboapps.switchify.service.window.ServiceMessageHUD
 import kotlinx.coroutines.CoroutineScope
@@ -85,7 +84,6 @@ class AutoScrollManager private constructor() {
         }
         showMessage(R.string.hud_auto_scroll_started, MessageSeverity.Success)
         isAutoScrolling = true
-        Tasks.getInstance().onOngoingTaskStarted()
         scrollJob = scope.launch {
             while (isAutoScrolling) {
                 performAutoScroll(gestureData)

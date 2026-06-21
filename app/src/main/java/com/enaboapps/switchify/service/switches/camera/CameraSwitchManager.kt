@@ -22,6 +22,7 @@ import com.enaboapps.switchify.service.techniques.headcontrol.HeadControlSetting
 import com.enaboapps.switchify.service.utils.GestureConflictDetector
 import com.enaboapps.switchify.switches.CameraSwitchFacialGesture
 import com.enaboapps.switchify.switches.SwitchEvent
+import com.enaboapps.switchify.switches.isScanMovementAction
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -423,7 +424,9 @@ class CameraSwitchManager(
         if (switchEvent != null) {
             coroutineScope.launch(Dispatchers.Main) {
                 Log.i(TAG, "Triggering switch action for gesture: ${gesture.getName()}")
-                if (Tasks.getInstance().stopOngoingTaskForSwitchAction(switchEvent.pressAction)) return@launch
+                if (!switchEvent.pressAction.isScanMovementAction() &&
+                    Tasks.getInstance().stopActiveStoppableTask()
+                ) return@launch
                 scanningManager.performAction(switchEvent.pressAction)
             }
         }
@@ -444,7 +447,9 @@ class CameraSwitchManager(
         if (switchEvent != null) {
             coroutineScope.launch(Dispatchers.Main) {
                 Log.i(TAG, "Triggering head turn gesture: ${gesture.getName()}")
-                if (Tasks.getInstance().stopOngoingTaskForSwitchAction(switchEvent.pressAction)) return@launch
+                if (!switchEvent.pressAction.isScanMovementAction() &&
+                    Tasks.getInstance().stopActiveStoppableTask()
+                ) return@launch
                 scanningManager.performAction(switchEvent.pressAction)
             }
         }

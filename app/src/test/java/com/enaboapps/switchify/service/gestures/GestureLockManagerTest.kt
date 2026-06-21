@@ -2,7 +2,6 @@ package com.enaboapps.switchify.service.gestures
 
 import android.graphics.PointF
 import com.enaboapps.switchify.R
-import com.enaboapps.switchify.service.core.Tasks
 import com.enaboapps.switchify.service.gestures.data.GestureData
 import com.enaboapps.switchify.service.gestures.data.GestureType
 import org.junit.After
@@ -21,7 +20,6 @@ class GestureLockManagerTest {
 
     @Before
     fun setup() {
-        Tasks.getInstance().setOngoingTaskStartedListenerForTesting(null)
         manager.resetForTesting()
         repeatManager.resetForTesting()
         autoScrollManager.resetForTesting()
@@ -40,7 +38,6 @@ class GestureLockManagerTest {
 
     @After
     fun tearDown() {
-        Tasks.getInstance().setOngoingTaskStartedListenerForTesting(null)
         manager.resetForTesting()
         repeatManager.resetForTesting()
         autoScrollManager.resetForTesting()
@@ -166,30 +163,6 @@ class GestureLockManagerTest {
         manager.toggleGestureLock()
 
         assertEquals(listOf(R.string.gesture_lock_enabled), messages)
-    }
-
-    @Test
-    fun capturingLockedGestureNotifiesOngoingTaskStarted() {
-        var notificationCount = 0
-        Tasks.getInstance().setOngoingTaskStartedListenerForTesting { notificationCount++ }
-
-        manager.enableLockForNextGesture(showMessage = false)
-        manager.setLockedGestureData(testGesture())
-
-        assertEquals(1, notificationCount)
-        assertTrue(manager.isGestureLockEngaged())
-    }
-
-    @Test
-    fun enablingGestureLockWaitingDoesNotNotifyOngoingTaskStarted() {
-        var notificationCount = 0
-        Tasks.getInstance().setOngoingTaskStartedListenerForTesting { notificationCount++ }
-
-        manager.enableLockForNextGesture(showMessage = false)
-
-        assertEquals(0, notificationCount)
-        assertTrue(manager.isLocked())
-        assertFalse(manager.isGestureLockEngaged())
     }
 
     @Test

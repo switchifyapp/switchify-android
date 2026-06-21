@@ -4,7 +4,6 @@ import android.accessibilityservice.AccessibilityService
 import android.content.Context
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.service.gestures.data.GestureData
-import com.enaboapps.switchify.service.core.Tasks
 import com.enaboapps.switchify.service.window.MessageSeverity
 import com.enaboapps.switchify.service.window.ServiceMessageHUD
 import java.util.Timer
@@ -153,7 +152,6 @@ class GestureLockManager private constructor() {
                 null
             }
         if (lockedGestureData != null) {
-            Tasks.getInstance().onOngoingTaskStarted()
             startTimer()
         } else {
             stopTimer()

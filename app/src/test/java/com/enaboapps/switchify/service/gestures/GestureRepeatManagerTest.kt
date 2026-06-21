@@ -2,7 +2,6 @@ package com.enaboapps.switchify.service.gestures
 
 import android.graphics.PointF
 import com.enaboapps.switchify.R
-import com.enaboapps.switchify.service.core.Tasks
 import com.enaboapps.switchify.service.gestures.data.GestureData
 import com.enaboapps.switchify.service.gestures.data.GestureType
 import org.junit.After
@@ -23,7 +22,6 @@ class GestureRepeatManagerTest {
 
     @Before
     fun setup() {
-        Tasks.getInstance().setOngoingTaskStartedListenerForTesting(null)
         lockManager.resetForTesting()
         repeatManager.resetForTesting()
         autoScrollManager.resetForTesting()
@@ -45,7 +43,6 @@ class GestureRepeatManagerTest {
 
     @After
     fun tearDown() {
-        Tasks.getInstance().setOngoingTaskStartedListenerForTesting(null)
         lockManager.resetForTesting()
         repeatManager.resetForTesting()
         autoScrollManager.resetForTesting()
@@ -103,29 +100,6 @@ class GestureRepeatManagerTest {
         assertTrue(repeatManager.isRepeatSessionActive())
         assertEquals(gestureData, repeatManager.getRepeatedGestureDataForTesting())
         assertTrue(messages.contains(R.string.gesture_repeat_started))
-    }
-
-    @Test
-    fun startingRepeatNotifiesOngoingTaskStarted() {
-        var notificationCount = 0
-        Tasks.getInstance().setOngoingTaskStartedListenerForTesting { notificationCount++ }
-        repeatManager.setAutoRepeatEnabledForTesting(true)
-
-        performGestureForRepeat()
-
-        assertEquals(1, notificationCount)
-        assertTrue(repeatManager.isRepeatSessionActive())
-    }
-
-    @Test
-    fun turningRepeatOnWaitingDoesNotNotifyOngoingTaskStarted() {
-        var notificationCount = 0
-        Tasks.getInstance().setOngoingTaskStartedListenerForTesting { notificationCount++ }
-
-        repeatManager.setAutoRepeatEnabledForTesting(true)
-
-        assertEquals(0, notificationCount)
-        assertTrue(repeatManager.isWaitingForGesture())
     }
 
     @Test

@@ -3,7 +3,6 @@ package com.enaboapps.switchify.service.switches.external
 import android.content.Context
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
-import com.enaboapps.switchify.service.gestures.GestureManager
 import com.enaboapps.switchify.service.scanning.ScanningManager
 import com.enaboapps.switchify.service.window.MessageSeverity
 import com.enaboapps.switchify.service.window.ServiceMessageHUD
@@ -28,23 +27,18 @@ object ExternalSwitchLongPressHandler {
      * @param switchName The name of the switch being held.
      * @param actions The list of actions to perform on long press.
      */
-    fun startLongPress(
+    fun startHoldPicker(
         context: Context,
         switchName: String,
         actions: List<SwitchAction>
     ) {
+        cancel()
         holdActions = actions
         val holdTime = PreferenceManager(context)
             .getLongValue(PreferenceManager.PREFERENCE_KEY_SWITCH_HOLD_TIME)
 
         longPressJob = CoroutineScope(Dispatchers.Main).launch {
             delay(holdTime)
-
-            // Toggle gesture lock if enabled
-            if (GestureManager.instance.isGestureLockEnabled()) {
-                GestureManager.instance.toggleGestureLock()
-                return@launch
-            }
 
             holdActions?.let { actionsList ->
                 for (action in actionsList) {
@@ -63,12 +57,24 @@ object ExternalSwitchLongPressHandler {
         }
     }
 
+    fun startOneShotHold(
+        context: Context,
+        delayMillis: Long,
+        onHold: () -> Unit
+    ) {
+        cancel()
+        longPressJob = CoroutineScope(Dispatchers.Main).launch {
+            delay(delayMillis)
+            onHold()
+        }
+    }
+
     /**
      * Stops the long press action sequence.
      * Performs the action if it is not null.
      * @param scanningManager The scanning manager. Can be null (will not perform the action).
      */
-    fun stopLongPress(scanningManager: ScanningManager?): Boolean {
+    fun stopAndPerformPending(scanningManager: ScanningManager?): Boolean {
         var actionPerformed = false
         actionToPerform?.let {
             scanningManager?.performAction(it)
@@ -81,7 +87,7 @@ object ExternalSwitchLongPressHandler {
         return actionPerformed
     }
 
-    fun cancelLongPress(): Boolean {
+    fun cancel(): Boolean {
         val hadState = longPressJob != null || holdActions != null || actionToPerform != null
         longPressJob?.cancel()
         longPressJob = null
@@ -90,7 +96,7 @@ object ExternalSwitchLongPressHandler {
         return hadState
     }
 
-    fun isLongPressActive(): Boolean = longPressJob?.isActive == true || actionToPerform != null
+    fun isActive(): Boolean = longPressJob?.isActive == true || actionToPerform != null
 
     fun getPendingAction(): SwitchAction? = actionToPerform
 

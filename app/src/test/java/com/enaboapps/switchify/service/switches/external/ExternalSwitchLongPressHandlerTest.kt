@@ -10,24 +10,24 @@ import org.junit.Test
 class ExternalSwitchLongPressHandlerTest {
     @After
     fun tearDown() {
-        ExternalSwitchLongPressHandler.cancelLongPress()
+        ExternalSwitchLongPressHandler.cancel()
     }
 
     @Test
-    fun cancelLongPressClearsPendingActionWithoutPerforming() {
+    fun cancelClearsPendingActionWithoutPerforming() {
         ExternalSwitchLongPressHandler.setPendingActionForTesting(
             SwitchAction(SwitchAction.ACTION_TOGGLE_GESTURE_LOCK)
         )
 
-        assertTrue(ExternalSwitchLongPressHandler.isLongPressActive())
-        assertTrue(ExternalSwitchLongPressHandler.cancelLongPress())
+        assertTrue(ExternalSwitchLongPressHandler.isActive())
+        assertTrue(ExternalSwitchLongPressHandler.cancel())
 
         assertNull(ExternalSwitchLongPressHandler.getPendingAction())
-        assertFalse(ExternalSwitchLongPressHandler.isLongPressActive())
+        assertFalse(ExternalSwitchLongPressHandler.isActive())
     }
 
     @Test
-    fun cancelLongPressReturnsFalseWhenThereIsNoState() {
-        assertFalse(ExternalSwitchLongPressHandler.cancelLongPress())
+    fun cancelReturnsFalseWhenThereIsNoState() {
+        assertFalse(ExternalSwitchLongPressHandler.cancel())
     }
 }
