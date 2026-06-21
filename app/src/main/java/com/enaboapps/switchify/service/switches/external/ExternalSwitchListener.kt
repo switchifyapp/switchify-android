@@ -58,7 +58,10 @@ class ExternalSwitchListener(
         // Record stats for switch press
         StatsCollector.getInstance().recordSwitchPress("external", keyCode.toString())
 
-        if (Tasks.getInstance().stopOngoingTaskForSwitchPress()) {
+        val hasHoldActions = switchEvent.holdActions.isNotEmpty()
+        if (!hasHoldActions &&
+            Tasks.getInstance().stopOngoingTaskForSwitchAction(switchEvent.pressAction)
+        ) {
             latestAction = null
             return true
         }
@@ -99,14 +102,23 @@ class ExternalSwitchListener(
             return false
         }
 
-        if (Tasks.getInstance().shouldAbsorbSwitchRelease()) {
+        if (scanningManager.stopMoveRepeat()) return true
+        val pendingLongPressAction = ExternalSwitchLongPressHandler.getPendingAction()
+        if (pendingLongPressAction == null &&
+            Tasks.getInstance().stopOngoingTaskForSwitchAction(switchEvent.pressAction)
+        ) {
             latestAction = null
             return true
         }
 
-        if (scanningManager.stopMoveRepeat()) return true
         val performedLongPressAction = ExternalSwitchLongPressHandler.stopLongPress(scanningManager)
-        if (performedLongPressAction && Tasks.getInstance().shouldAbsorbSwitchReleaseAfterAction()) {
+        if (performedLongPressAction) {
+            val shouldResumeScanning = pendingLongPressAction == null ||
+                    Tasks.getInstance().shouldBypassOngoingTaskStop(pendingLongPressAction) ||
+                    !Tasks.getInstance().shouldAbsorbSwitchReleaseAfterAction()
+            if (shouldResumeScanning && !SelectionHandler.isAutoSelectInProgress()) {
+                scanningManager.resumeScanning()
+            }
             latestAction = null
             return true
         }
@@ -210,7 +222,10 @@ class ExternalSwitchListener(
             }
         }
 
-        if (Tasks.getInstance().shouldAbsorbSwitchReleaseAfterAction()) {
+        if (performedPressAction &&
+            !Tasks.getInstance().shouldBypassOngoingTaskStop(switchEvent.pressAction) &&
+            Tasks.getInstance().shouldAbsorbSwitchReleaseAfterAction()
+        ) {
             latestAction = null
             return
         }

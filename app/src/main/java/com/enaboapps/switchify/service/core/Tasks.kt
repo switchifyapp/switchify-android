@@ -4,6 +4,7 @@ import com.enaboapps.switchify.service.gestures.AutoScrollManager
 import com.enaboapps.switchify.service.gestures.GestureLockManager
 import com.enaboapps.switchify.service.gestures.GestureRepeatManager
 import com.enaboapps.switchify.service.gestures.patterns.GesturePatternManager
+import com.enaboapps.switchify.switches.SwitchAction
 
 /**
  * Singleton class responsible for managing and checking ongoing tasks.
@@ -33,6 +34,24 @@ class Tasks private constructor() {
      * @return True if any ongoing task was found and potentially stopped/advanced, false otherwise.
      */
     fun stopOngoingTaskForSwitchPress(): Boolean {
+        return stopOngoingTask()
+    }
+
+    fun shouldBypassOngoingTaskStop(action: SwitchAction): Boolean {
+        return when (action.id) {
+            SwitchAction.ACTION_CHANGE_SCANNING_DIRECTION,
+            SwitchAction.ACTION_MOVE_TO_NEXT_ITEM,
+            SwitchAction.ACTION_MOVE_TO_PREVIOUS_ITEM -> true
+            else -> false
+        }
+    }
+
+    fun stopOngoingTaskForSwitchAction(action: SwitchAction): Boolean {
+        if (shouldBypassOngoingTaskStop(action)) return false
+        return stopOngoingTask()
+    }
+
+    private fun stopOngoingTask(): Boolean {
         if (GestureRepeatManager.instance.stopRepeatForSwitchPress()) return true
 
         // Stop auto-scrolling if active
@@ -54,14 +73,18 @@ class Tasks private constructor() {
         return hasOngoingTask()
     }
 
+    fun shouldAbsorbSwitchReleaseForAction(action: SwitchAction): Boolean {
+        if (shouldBypassOngoingTaskStop(action)) return false
+        return shouldAbsorbSwitchRelease()
+    }
+
     fun shouldAbsorbSwitchReleaseAfterAction(): Boolean {
-        return shouldAbsorbSwitchRelease() ||
-                GestureRepeatManager.instance.isAutoRepeatEnabled() ||
-                GestureLockManager.instance.isLocked()
+        return shouldAbsorbSwitchRelease()
     }
 
     fun hasOngoingTask(): Boolean {
         return GestureRepeatManager.instance.isRepeatSessionActive() ||
+                GestureLockManager.instance.isGestureLockEngaged() ||
                 AutoScrollManager.getInstance().isAutoScrolling() ||
                 GesturePatternManager.isGesturePatternActive()
     }
