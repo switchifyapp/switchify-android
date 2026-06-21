@@ -1,6 +1,8 @@
 package com.enaboapps.switchify.service.core
 
 import com.enaboapps.switchify.service.gestures.AutoScrollManager
+import com.enaboapps.switchify.service.gestures.GestureLockManager
+import com.enaboapps.switchify.service.gestures.GestureRepeatManager
 import com.enaboapps.switchify.service.gestures.patterns.GesturePatternManager
 
 /**
@@ -30,7 +32,9 @@ class Tasks private constructor() {
      *
      * @return True if any ongoing task was found and potentially stopped/advanced, false otherwise.
      */
-    fun checkOngoingTasks(): Boolean {
+    fun stopOngoingTaskForSwitchPress(): Boolean {
+        if (GestureRepeatManager.instance.stopRepeatForSwitchPress()) return true
+
         // Stop auto-scrolling if active
         if (AutoScrollManager.getInstance().stopAutoScroll()) return true
 
@@ -45,4 +49,22 @@ class Tasks private constructor() {
 
         return false
     }
+
+    fun shouldAbsorbSwitchRelease(): Boolean {
+        return hasOngoingTask()
+    }
+
+    fun shouldAbsorbSwitchReleaseAfterAction(): Boolean {
+        return shouldAbsorbSwitchRelease() ||
+                GestureRepeatManager.instance.isAutoRepeatEnabled() ||
+                GestureLockManager.instance.isLocked()
+    }
+
+    fun hasOngoingTask(): Boolean {
+        return GestureRepeatManager.instance.isRepeatSessionActive() ||
+                AutoScrollManager.getInstance().isAutoScrolling() ||
+                GesturePatternManager.isGesturePatternActive()
+    }
+
+    fun checkOngoingTasks(): Boolean = stopOngoingTaskForSwitchPress()
 }

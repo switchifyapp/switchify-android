@@ -403,7 +403,7 @@ class GestureManager private constructor() {
      * @return True if a locked gesture action was performed, false otherwise.
      */
     fun performGestureLockAction(): Boolean {
-        if (GestureRepeatManager.instance.isRepeating()) return false
+        if (GestureRepeatManager.instance.isRepeatSessionActive()) return false
         if (isGestureLockEnabled()) {
             GestureLockManager.instance.getLockedGestureData()?.let { gestureData ->
                 gestureData.executeGesture()

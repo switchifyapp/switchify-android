@@ -4,11 +4,12 @@ import android.content.Context
 import android.util.Log
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.service.core.ServiceCore
-import com.enaboapps.switchify.service.gestures.GestureRepeatManager
+import com.enaboapps.switchify.service.core.Tasks
 import com.enaboapps.switchify.service.scanning.ScanningManager
 import com.enaboapps.switchify.service.selection.SelectionHandler
 import com.enaboapps.switchify.service.stats.StatsCollector
 import com.enaboapps.switchify.service.switches.SwitchEventProvider
+import com.enaboapps.switchify.switches.SwitchAction
 import com.enaboapps.switchify.switches.SwitchEvent
 
 /**
@@ -57,21 +58,9 @@ class ExternalSwitchListener(
         // Record stats for switch press
         StatsCollector.getInstance().recordSwitchPress("external", keyCode.toString())
 
-        if (GestureRepeatManager.instance.stopRepeatForSwitchPress()) {
+        if (Tasks.getInstance().stopOngoingTaskForSwitchPress()) {
             latestAction = null
             return true
-        }
-
-        val scanningManager = ServiceCore.getScanningManager()
-        if (scanningManager != null) {
-            if (scanningManager.checkOngoingTasks()) {
-                // The press was consumed by stopping/advancing an ongoing task
-                // (e.g. auto scroll). Clear the latest action so the matching
-                // release is swallowed without firing a stale press action, and
-                // absorb the key event so it does not leak to the foreground app.
-                latestAction = null
-                return true
-            }
         }
 
         val pauseManager = ServiceCore.getPauseManager()
@@ -110,8 +99,17 @@ class ExternalSwitchListener(
             return false
         }
 
+        if (Tasks.getInstance().shouldAbsorbSwitchRelease()) {
+            latestAction = null
+            return true
+        }
+
         if (scanningManager.stopMoveRepeat()) return true
-        ExternalSwitchLongPressHandler.stopLongPress(scanningManager)
+        val performedLongPressAction = ExternalSwitchLongPressHandler.stopLongPress(scanningManager)
+        if (performedLongPressAction && Tasks.getInstance().shouldAbsorbSwitchReleaseAfterAction()) {
+            latestAction = null
+            return true
+        }
 
         if (handleSwitchPressedRepeat(keyCode)) {
             return true
@@ -194,21 +192,43 @@ class ExternalSwitchListener(
         val switchHoldTime =
             preferenceManager.getLongValue(PreferenceManager.PREFERENCE_KEY_SWITCH_HOLD_TIME)
 
-        if (!SelectionHandler.isAutoSelectInProgress()) {
-            scanningManager.resumeScanning()
-        }
+        var performedPressAction = false
 
         when {
             SelectionHandler.isAutoSelectInProgress() &&
                     switchEvent.holdActions.isNotEmpty() ->
                 SelectionHandler.performSelectionAction()
 
-            switchEvent.holdActions.isEmpty() ->
-                scanningManager.performAction(switchEvent.pressAction)
+            switchEvent.holdActions.isEmpty() -> {
+                performReleasePressAction(switchEvent.pressAction)
+                performedPressAction = true
+            }
 
-            timeElapsed < switchHoldTime ->
-                scanningManager.performAction(switchEvent.pressAction)
+            timeElapsed < switchHoldTime -> {
+                performReleasePressAction(switchEvent.pressAction)
+                performedPressAction = true
+            }
         }
+
+        if (Tasks.getInstance().shouldAbsorbSwitchReleaseAfterAction()) {
+            latestAction = null
+            return
+        }
+
+        if (performedPressAction && switchEvent.pressAction.id == SwitchAction.ACTION_SELECT) {
+            return
+        }
+
+        if (!SelectionHandler.isAutoSelectInProgress()) {
+            scanningManager.resumeScanning()
+        }
+    }
+
+    private fun performReleasePressAction(action: SwitchAction) {
+        if (action.id == SwitchAction.ACTION_SELECT && !SelectionHandler.isAutoSelectInProgress()) {
+            scanningManager.resumeScanning()
+        }
+        scanningManager.performAction(action)
     }
 
     /**
