@@ -7,8 +7,6 @@ import com.enaboapps.switchify.service.gestures.GestureLockManager
 import com.enaboapps.switchify.service.gestures.GestureRepeatManager
 import com.enaboapps.switchify.service.gestures.data.GestureData
 import com.enaboapps.switchify.service.gestures.data.GestureType
-import com.enaboapps.switchify.service.switches.external.ExternalSwitchLongPressHandler
-import com.enaboapps.switchify.switches.SwitchAction
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -26,8 +24,6 @@ class TasksTest {
 
     @Before
     fun setup() {
-        tasks.setOngoingTaskStartedListenerForTesting(null)
-        ExternalSwitchLongPressHandler.cancelLongPress()
         repeatManager.resetForTesting()
         autoScrollManager.resetForTesting()
         lockManager.resetForTesting()
@@ -46,21 +42,49 @@ class TasksTest {
 
     @After
     fun tearDown() {
-        tasks.setOngoingTaskStartedListenerForTesting(null)
-        ExternalSwitchLongPressHandler.cancelLongPress()
         repeatManager.resetForTesting()
         autoScrollManager.resetForTesting()
         lockManager.resetForTesting()
     }
 
     @Test
-    fun stopOngoingTaskForSwitchPressStopsRepeatBeforeAutoScroll() {
+    fun hasActiveStoppableTaskFalseForGestureLockWaiting() {
+        lockManager.enableLockForNextGesture(showMessage = false)
+
+        assertFalse(tasks.hasActiveStoppableTask())
+    }
+
+    @Test
+    fun hasActiveStoppableTaskFalseForGestureLockCaptured() {
+        lockManager.enableLockForNextGesture(showMessage = false)
+        lockManager.setLockedGestureData(testGesture())
+
+        assertFalse(tasks.hasActiveStoppableTask())
+    }
+
+    @Test
+    fun hasActiveStoppableTaskTrueForRepeatSession() {
+        repeatManager.setAutoRepeatEnabledForTesting(true)
+        repeatManager.onGesturePerformed(testGesture())
+
+        assertTrue(tasks.hasActiveStoppableTask())
+    }
+
+    @Test
+    fun hasActiveStoppableTaskTrueForAutoScroll() {
+        assertTrue(autoScrollManager.startAutoScroll(scrollGesture()))
+
+        assertTrue(tasks.hasActiveStoppableTask())
+    }
+
+    @Test
+    fun stopActiveStoppableTaskStopsRepeatFirst() {
         assertTrue(autoScrollManager.startAutoScroll(scrollGesture()))
         repeatManager.setAutoRepeatEnabledForTesting(true)
         repeatManager.onGesturePerformed(testGesture())
         messages.clear()
 
-        assertTrue(tasks.stopOngoingTaskForSwitchPress())
+        assertTrue(tasks.stopActiveStoppableTask())
 
         assertFalse(repeatManager.isRepeatSessionActive())
         assertTrue(autoScrollManager.isAutoScrolling())
@@ -74,56 +98,44 @@ class TasksTest {
     }
 
     @Test
-    fun stopOngoingTaskForSwitchPressStopsRepeatDuringInitialDelay() {
+    fun stopActiveStoppableTaskStopsRepeatDuringInitialDelay() {
         repeatManager.setAutoRepeatEnabledForTesting(true)
         repeatManager.onGesturePerformed(testGesture())
-        messages.clear()
 
-        assertTrue(tasks.stopOngoingTaskForSwitchPress())
+        assertTrue(tasks.stopActiveStoppableTask())
 
         assertFalse(repeatManager.isRepeatSessionActive())
         assertTrue(repeatManager.isWaitingForGesture())
     }
 
     @Test
-    fun stopStoppableTaskForExternalSwitchPressStopsRepeat() {
-        repeatManager.setAutoRepeatEnabledForTesting(true)
-        repeatManager.onGesturePerformed(testGesture())
-
-        assertTrue(tasks.stopStoppableTaskForExternalSwitchPress())
-
-        assertFalse(repeatManager.isRepeatSessionActive())
-        assertTrue(repeatManager.isWaitingForGesture())
-    }
-
-    @Test
-    fun stopStoppableTaskForExternalSwitchPressStopsAutoScroll() {
+    fun stopActiveStoppableTaskStopsAutoScroll() {
         assertTrue(autoScrollManager.startAutoScroll(scrollGesture()))
         messages.clear()
 
-        assertTrue(tasks.stopStoppableTaskForExternalSwitchPress())
+        assertTrue(tasks.stopActiveStoppableTask())
 
         assertFalse(autoScrollManager.isAutoScrolling())
         assertEquals(listOf(R.string.hud_auto_scroll_stopped), messages)
     }
 
     @Test
-    fun stopStoppableTaskForExternalSwitchPressIgnoresGestureLockEngaged() {
+    fun stopActiveStoppableTaskDoesNotDisableGestureLock() {
         lockManager.enableLockForNextGesture(showMessage = false)
         lockManager.setLockedGestureData(testGesture())
 
-        assertFalse(tasks.stopStoppableTaskForExternalSwitchPress())
+        assertFalse(tasks.stopActiveStoppableTask())
 
         assertTrue(lockManager.isGestureLockEngaged())
         assertNotNull(lockManager.getLockedGestureData())
     }
 
     @Test
-    fun stopStoppableTaskForExternalSwitchPressIgnoresWaitingModes() {
+    fun stopActiveStoppableTaskIgnoresWaitingModes() {
         repeatManager.setAutoRepeatEnabledForTesting(true)
         lockManager.enableLockForNextGesture(showMessage = false)
 
-        assertFalse(tasks.stopStoppableTaskForExternalSwitchPress())
+        assertFalse(tasks.stopActiveStoppableTask())
 
         assertTrue(repeatManager.isWaitingForGesture())
         assertTrue(lockManager.isLocked())
@@ -131,117 +143,12 @@ class TasksTest {
     }
 
     @Test
-    fun shouldAbsorbSwitchReleaseTrueWhileRepeatSessionActive() {
+    fun compatibilityWrapperStopsActiveTask() {
         repeatManager.setAutoRepeatEnabledForTesting(true)
         repeatManager.onGesturePerformed(testGesture())
 
-        assertTrue(tasks.shouldAbsorbSwitchRelease())
-    }
-
-    @Test
-    fun shouldAbsorbSwitchReleaseTrueWhileAutoScrollActive() {
-        assertTrue(autoScrollManager.startAutoScroll(scrollGesture()))
-
-        assertTrue(tasks.shouldAbsorbSwitchRelease())
-    }
-
-    @Test
-    fun shouldAbsorbSwitchReleaseDoesNotStopRepeat() {
-        repeatManager.setAutoRepeatEnabledForTesting(true)
-        repeatManager.onGesturePerformed(testGesture())
-
-        assertTrue(tasks.shouldAbsorbSwitchRelease())
-
-        assertTrue(repeatManager.isRepeatSessionActive())
-    }
-
-    @Test
-    fun shouldAbsorbSwitchReleaseAfterActionFalseWhileRepeatWaiting() {
-        repeatManager.setAutoRepeatEnabledForTesting(true)
-
-        assertFalse(tasks.shouldAbsorbSwitchRelease())
-        assertFalse(tasks.shouldAbsorbSwitchReleaseAfterAction())
-    }
-
-    @Test
-    fun shouldAbsorbSwitchReleaseAfterActionFalseWhileGestureLockWaiting() {
-        lockManager.enableLockForNextGesture(showMessage = false)
-
-        assertFalse(tasks.shouldAbsorbSwitchRelease())
-        assertFalse(tasks.shouldAbsorbSwitchReleaseAfterAction())
-    }
-
-    @Test
-    fun shouldAbsorbSwitchReleaseTrueWhileGestureLockEngaged() {
-        lockManager.enableLockForNextGesture(showMessage = false)
-        lockManager.setLockedGestureData(testGesture())
-
-        assertTrue(tasks.shouldAbsorbSwitchRelease())
-        assertTrue(tasks.shouldAbsorbSwitchReleaseAfterAction())
-    }
-
-    @Test
-    fun movementActionsBypassOngoingTaskStop() {
-        repeatManager.setAutoRepeatEnabledForTesting(true)
-        repeatManager.onGesturePerformed(testGesture())
-
-        assertTrue(repeatManager.isRepeatSessionActive())
-        assertFalse(
-            tasks.stopOngoingTaskForSwitchAction(
-                SwitchAction(SwitchAction.ACTION_CHANGE_SCANNING_DIRECTION)
-            )
-        )
-        assertTrue(repeatManager.isRepeatSessionActive())
-    }
-
-    @Test
-    fun selectActionStopsOngoingTask() {
-        repeatManager.setAutoRepeatEnabledForTesting(true)
-        repeatManager.onGesturePerformed(testGesture())
-
-        assertTrue(
-            tasks.stopOngoingTaskForSwitchAction(
-                SwitchAction(SwitchAction.ACTION_SELECT)
-            )
-        )
-
+        assertTrue(tasks.stopOngoingTaskForSwitchPress())
         assertFalse(repeatManager.isRepeatSessionActive())
-        assertTrue(repeatManager.isWaitingForGesture())
-    }
-
-    @Test
-    fun movementActionsDoNotAbsorbRelease() {
-        repeatManager.setAutoRepeatEnabledForTesting(true)
-        repeatManager.onGesturePerformed(testGesture())
-
-        assertFalse(
-            tasks.shouldAbsorbSwitchReleaseForAction(
-                SwitchAction(SwitchAction.ACTION_CHANGE_SCANNING_DIRECTION)
-            )
-        )
-    }
-
-    @Test
-    fun selectActionAbsorbsReleaseWhenTaskActive() {
-        repeatManager.setAutoRepeatEnabledForTesting(true)
-        repeatManager.onGesturePerformed(testGesture())
-
-        assertTrue(
-            tasks.shouldAbsorbSwitchReleaseForAction(
-                SwitchAction(SwitchAction.ACTION_SELECT)
-            )
-        )
-    }
-
-    @Test
-    fun onOngoingTaskStartedCancelsLongPress() {
-        ExternalSwitchLongPressHandler.setPendingActionForTesting(
-            SwitchAction(SwitchAction.ACTION_TOGGLE_GESTURE_LOCK)
-        )
-
-        tasks.onOngoingTaskStarted()
-
-        assertFalse(ExternalSwitchLongPressHandler.isLongPressActive())
     }
 
     private fun testGesture(): GestureData {

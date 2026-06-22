@@ -96,3 +96,9 @@ data class SwitchAction(
         else -> Resources.getString(R.string.unknown)
     }
 }
+
+fun SwitchAction.isScanMovementAction(): Boolean {
+    return id == SwitchAction.ACTION_CHANGE_SCANNING_DIRECTION ||
+            id == SwitchAction.ACTION_MOVE_TO_NEXT_ITEM ||
+            id == SwitchAction.ACTION_MOVE_TO_PREVIOUS_ITEM
+}
