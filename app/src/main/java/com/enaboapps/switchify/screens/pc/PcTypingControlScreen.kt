@@ -7,14 +7,12 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.automirrored.filled.KeyboardReturn
 import androidx.compose.material.icons.automirrored.filled.Send
@@ -23,12 +21,11 @@ import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Surface
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -133,71 +130,49 @@ private fun PcTypingTextBox(
     onClear: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val borderColor = when {
-        message != null -> MaterialTheme.colorScheme.error
-        enabled -> MaterialTheme.colorScheme.outline
-        else -> MaterialTheme.colorScheme.outlineVariant
-    }
-    val textColor = if (enabled) {
-        MaterialTheme.colorScheme.onSurface
-    } else {
-        MaterialTheme.colorScheme.onSurfaceVariant
-    }
-
-    Surface(
+    Column(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(8.dp),
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, borderColor)
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Column(
-            modifier = Modifier.padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+        OutlinedTextField(
+            value = text,
+            onValueChange = onTextChanged,
+            enabled = enabled,
+            minLines = 3,
+            maxLines = 5,
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.None),
+            label = { Text(stringResource(R.string.pc_typing_text_label)) },
+            isError = message != null,
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 96.dp)
+        )
+        AnimatedVisibility(
+            visible = shouldShowPcTypingTextActions(text),
+            enter = fadeIn(animationSpec = tween(180)) +
+                expandVertically(animationSpec = tween(180)),
+            exit = fadeOut(animationSpec = tween(140)) +
+                shrinkVertically(animationSpec = tween(140))
         ) {
-            Text(
-                text = stringResource(R.string.pc_typing_text_label),
-                style = MaterialTheme.typography.labelLarge,
-                color = if (message != null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            BasicTextField(
-                value = text,
-                onValueChange = onTextChanged,
-                enabled = enabled,
-                minLines = 3,
-                maxLines = 5,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.None),
-                textStyle = MaterialTheme.typography.bodyLarge.merge(TextStyle(color = textColor)),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 96.dp)
-            )
-            AnimatedVisibility(
-                visible = shouldShowPcTypingTextActions(text),
-                enter = fadeIn(animationSpec = tween(180)) +
-                    expandVertically(animationSpec = tween(180)),
-                exit = fadeOut(animationSpec = tween(140)) +
-                    shrinkVertically(animationSpec = tween(140))
+            AdaptiveStack(
+                modifier = Modifier.fillMaxWidth(),
+                spacing = 8.dp
             ) {
-                AdaptiveStack(
-                    modifier = Modifier.fillMaxWidth(),
-                    spacing = 8.dp
-                ) {
-                    pcTypingTextActions().forEach { action ->
-                        PcTypingTextActionButton(
-                            action = action,
-                            enabled = when (action) {
-                                PcTypingTextAction.Send,
-                                PcTypingTextAction.SendAndEnter -> sendEnabled
-                                PcTypingTextAction.Clear -> clearEnabled
-                            },
-                            onClick = when (action) {
-                                PcTypingTextAction.Send -> onSend
-                                PcTypingTextAction.SendAndEnter -> onSendAndEnter
-                                PcTypingTextAction.Clear -> onClear
-                            },
-                            modifier = Modifier.adaptiveFill()
-                        )
-                    }
+                pcTypingTextActions().forEach { action ->
+                    PcTypingTextActionButton(
+                        action = action,
+                        enabled = when (action) {
+                            PcTypingTextAction.Send,
+                            PcTypingTextAction.SendAndEnter -> sendEnabled
+                            PcTypingTextAction.Clear -> clearEnabled
+                        },
+                        onClick = when (action) {
+                            PcTypingTextAction.Send -> onSend
+                            PcTypingTextAction.SendAndEnter -> onSendAndEnter
+                            PcTypingTextAction.Clear -> onClear
+                        },
+                        modifier = Modifier.adaptiveFill()
+                    )
                 }
             }
         }
