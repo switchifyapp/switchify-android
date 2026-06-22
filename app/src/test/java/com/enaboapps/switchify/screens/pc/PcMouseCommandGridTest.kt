@@ -44,6 +44,20 @@ class PcControlCommandGridTest {
     }
 
     @Test
+    fun clickCommandUsesPrimaryTone() {
+        val specs = pcClickControlSpecs()
+
+        assertEquals(PcCommandTone.Primary, specs[0].tone)
+    }
+
+    @Test
+    fun mouseCommandsDoNotUseDestructiveTone() {
+        val specs = pcMouseControlSpecs(40)
+
+        assertEquals(false, specs.any { it.tone == PcCommandTone.Destructive })
+    }
+
+    @Test
     fun scrollCommandsKeepExistingStep() {
         val commands = pcScrollControlSpecs().map { it.command }
 
