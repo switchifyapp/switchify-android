@@ -31,6 +31,14 @@ class ScanTreeItem(
         }
     }
 
+    fun highlightEscape(groupIndex: Int? = null) {
+        if (groupIndex == null) {
+            highlightEntireItemEscape()
+        } else {
+            highlightGroupEscape(groupIndex)
+        }
+    }
+
     private fun highlightEntireItem() {
         // A single-child row is semantically the node itself — highlight with the
         // node colour (secondary) instead of the row colour (primary) so the
@@ -40,6 +48,14 @@ class ScanTreeItem(
             return
         }
         NodeScannerUI.instance.showRowBounds(getX(), y, getWidth(), getHeight())
+    }
+
+    private fun highlightEntireItemEscape() {
+        if (isSingleNode()) {
+            children[0].highlight()
+            return
+        }
+        NodeScannerUI.instance.showEscapeBounds(getX(), y, getWidth(), getHeight())
     }
 
     private fun highlightGroup(groupIndex: Int) {
@@ -55,6 +71,19 @@ class ScanTreeItem(
         val groupY = group.minOf { it.getTop() }
         val groupHeight = group.maxOf { it.getTop() + it.getHeight() } - groupY
         NodeScannerUI.instance.showRowBounds(groupX, groupY, groupWidth, groupHeight)
+    }
+
+    private fun highlightGroupEscape(groupIndex: Int) {
+        val group = groups.getOrNull(groupIndex) ?: return
+        if (group.size == 1) {
+            group[0].highlight()
+            return
+        }
+        val groupX = group.minOf { it.getLeft() }
+        val groupWidth = group.maxOf { it.getLeft() + it.getWidth() } - groupX
+        val groupY = group.minOf { it.getTop() }
+        val groupHeight = group.maxOf { it.getTop() + it.getHeight() } - groupY
+        NodeScannerUI.instance.showEscapeBounds(groupX, groupY, groupWidth, groupHeight)
     }
 
     private fun highlightNode(groupIndex: Int, nodeIndex: Int) {
@@ -95,6 +124,24 @@ class ScanTreeItem(
             }
 
             else -> throw IllegalArgumentException("Invalid unhighlight parameters")
+        }
+    }
+
+    fun unhighlightEscape(groupIndex: Int? = null) {
+        if (groupIndex == null) {
+            if (isSingleNode()) {
+                children[0].unhighlight()
+            } else {
+                NodeScannerUI.instance.hideAll()
+            }
+            return
+        }
+
+        val group = groups.getOrNull(groupIndex)
+        if (group?.size == 1) {
+            group[0].unhighlight()
+        } else {
+            NodeScannerUI.instance.hideAll()
         }
     }
 
