@@ -117,4 +117,20 @@ class PcTypingControlScreenTest {
             pcTypingTextActions()
         )
     }
+
+    @Test
+    fun typingTextActionsHiddenWhenTextIsEmpty() {
+        assertEquals(false, shouldShowPcTypingTextActions(""))
+    }
+
+    @Test
+    fun typingTextActionsShownWhenTextHasWhitespaceOnly() {
+        assertEquals(true, shouldShowPcTypingTextActions("   "))
+        assertEquals(true, shouldShowPcTypingTextActions("\n"))
+    }
+
+    @Test
+    fun typingTextActionsShownWhenTextHasVisibleCharacters() {
+        assertEquals(true, shouldShowPcTypingTextActions("Hello"))
+    }
 }

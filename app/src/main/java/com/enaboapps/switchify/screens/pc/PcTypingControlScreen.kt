@@ -1,6 +1,12 @@
 package com.enaboapps.switchify.screens.pc
 
 import androidx.annotation.StringRes
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -165,25 +171,33 @@ private fun PcTypingTextBox(
                     .fillMaxWidth()
                     .heightIn(min = 96.dp)
             )
-            AdaptiveStack(
-                modifier = Modifier.fillMaxWidth(),
-                spacing = 8.dp
+            AnimatedVisibility(
+                visible = shouldShowPcTypingTextActions(text),
+                enter = fadeIn(animationSpec = tween(180)) +
+                    expandVertically(animationSpec = tween(180)),
+                exit = fadeOut(animationSpec = tween(140)) +
+                    shrinkVertically(animationSpec = tween(140))
             ) {
-                pcTypingTextActions().forEach { action ->
-                    PcTypingTextActionButton(
-                        action = action,
-                        enabled = when (action) {
-                            PcTypingTextAction.Send,
-                            PcTypingTextAction.SendAndEnter -> sendEnabled
-                            PcTypingTextAction.Clear -> clearEnabled
-                        },
-                        onClick = when (action) {
-                            PcTypingTextAction.Send -> onSend
-                            PcTypingTextAction.SendAndEnter -> onSendAndEnter
-                            PcTypingTextAction.Clear -> onClear
-                        },
-                        modifier = Modifier.adaptiveFill()
-                    )
+                AdaptiveStack(
+                    modifier = Modifier.fillMaxWidth(),
+                    spacing = 8.dp
+                ) {
+                    pcTypingTextActions().forEach { action ->
+                        PcTypingTextActionButton(
+                            action = action,
+                            enabled = when (action) {
+                                PcTypingTextAction.Send,
+                                PcTypingTextAction.SendAndEnter -> sendEnabled
+                                PcTypingTextAction.Clear -> clearEnabled
+                            },
+                            onClick = when (action) {
+                                PcTypingTextAction.Send -> onSend
+                                PcTypingTextAction.SendAndEnter -> onSendAndEnter
+                                PcTypingTextAction.Clear -> onClear
+                            },
+                            modifier = Modifier.adaptiveFill()
+                        )
+                    }
                 }
             }
         }
@@ -282,6 +296,10 @@ fun pcTypingTextActions(): List<PcTypingTextAction> {
         PcTypingTextAction.SendAndEnter,
         PcTypingTextAction.Clear
     )
+}
+
+fun shouldShowPcTypingTextActions(text: String): Boolean {
+    return text.isNotEmpty()
 }
 
 fun pcCursorKeySpecs(): List<PcTypingKeySpec> {
