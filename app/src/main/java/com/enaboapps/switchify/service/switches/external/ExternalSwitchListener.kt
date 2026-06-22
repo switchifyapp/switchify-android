@@ -35,16 +35,13 @@ class ExternalSwitchListener(
 
     private var pressSession: ExternalSwitchPressSession = ExternalSwitchPressSession.None
     private var gestureLockHoldFired = false
+    private val pauseSwitchHoldTracker = PauseSwitchHoldTracker()
 
     /** Timestamp of the last switch press for handling repeat events */
     private var lastSwitchPressedTime: Long = 0
 
     /** Key code of the last pressed switch for handling repeat events */
     private var lastSwitchPressedCode: Int = 0
-
-    /** Timestamp of when a switch was pressed during pause (for hold-to-unpause) */
-    private var pauseSwitchPressedTime: Long = 0
-
 
     /**
      * Handles switch press events. This is the main entry point for processing
@@ -59,6 +56,13 @@ class ExternalSwitchListener(
 
         // Record stats for switch press
         StatsCollector.getInstance().recordSwitchPress("external", keyCode.toString())
+
+        val pauseManager = ServiceCore.getPauseManager()
+        if (pauseManager.isPaused) {
+            pauseSwitchHoldTracker.onPressed(keyCode, System.currentTimeMillis())
+            pauseManager.handleSwitchDuringPause()
+            return false
+        }
 
         if (!switchEvent.pressAction.isScanMovementAction() &&
             Tasks.getInstance().stopActiveStoppableTask()
@@ -83,14 +87,6 @@ class ExternalSwitchListener(
             return true
         }
 
-        val pauseManager = ServiceCore.getPauseManager()
-        if (pauseManager.isPaused) {
-            // Store the timestamp for hold-to-unpause check
-            pauseSwitchPressedTime = System.currentTimeMillis()
-            pauseManager.handleSwitchDuringPause()
-            return false
-        }
-
         processSwitchPressedActions(switchEvent)
         return true
     }
@@ -103,21 +99,20 @@ class ExternalSwitchListener(
      */
     fun onSwitchReleased(keyCode: Int): Boolean {
         val switchEvent = findSwitchEvent(keyCode) ?: return false
-        val session = pressSession.takeIf { it.matches(switchEvent) } ?: return true
 
         val pauseManager = ServiceCore.getPauseManager()
         if (pauseManager.isPaused) {
-            // Check if switch was held long enough to unpause
-            if (pauseSwitchPressedTime > 0) {
-                val holdDuration = preferenceManager.getLongValue(
-                    PreferenceManager.PREFERENCE_KEY_HOLD_TO_UNPAUSE_DURATION,
-                    2000L // Default: 2 seconds
-                )
-                pauseManager.checkHoldToUnpause(pauseSwitchPressedTime, holdDuration)
-                pauseSwitchPressedTime = 0
+            val holdDuration = preferenceManager.getLongValue(
+                PreferenceManager.PREFERENCE_KEY_HOLD_TO_UNPAUSE_DURATION,
+                2000L
+            )
+            pauseSwitchHoldTracker.consumeReleasePressTime(keyCode)?.let { pressTime ->
+                pauseManager.checkHoldToUnpause(pressTime, holdDuration)
             }
             return false
         }
+
+        val session = pressSession.takeIf { it.matches(switchEvent) } ?: return true
 
         if (scanningManager.stopMoveRepeat()) {
             clearPressSession()
@@ -338,7 +333,7 @@ class ExternalSwitchListener(
     fun reset() {
         lastSwitchPressedTime = 0
         lastSwitchPressedCode = 0
-        pauseSwitchPressedTime = 0
+        pauseSwitchHoldTracker.reset()
         clearPressSession()
         ExternalSwitchLongPressHandler.cancel()
     }
