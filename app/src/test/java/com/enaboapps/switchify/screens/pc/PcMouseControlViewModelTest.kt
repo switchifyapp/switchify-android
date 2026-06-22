@@ -228,6 +228,84 @@ class PcMouseControlViewModelTest {
     }
 
     @Test
+    fun connectedStateSendsTypedTextThenEnterCommands() = runTest(dispatcher) {
+        val connector = FakeConnector()
+        val controller = connectedController(connector = connector)
+        val viewModel = viewModel(controller)
+
+        viewModel.showTypingSurface()
+        viewModel.updateTypingText("Hello")
+        viewModel.sendTypedTextThenEnter()
+        advanceUntilIdle()
+
+        assertEquals(
+            listOf(
+                PcControlCommand.TypeText("Hello"),
+                PcControlCommand.PressKey(PcKeyboardKey.Enter)
+            ),
+            connector.realtimeCommands
+        )
+        assertEquals("", viewModel.uiState.value.typingText)
+        assertNull(viewModel.uiState.value.typingMessage)
+    }
+
+    @Test
+    fun sendTypedTextThenEnterDoesNotSendEnterWhenTextInvalid() = runTest(dispatcher) {
+        val connector = FakeConnector()
+        val controller = connectedController(connector = connector)
+        val viewModel = viewModel(controller)
+
+        viewModel.updateTypingText("hello\u001Bworld")
+        viewModel.sendTypedTextThenEnter()
+        advanceUntilIdle()
+
+        assertTrue(connector.realtimeCommands.isEmpty())
+        assertEquals("hello\u001Bworld", viewModel.uiState.value.typingText)
+        assertEquals(PcMouseControlViewModel.TEXT_UNSUPPORTED_MESSAGE, viewModel.uiState.value.typingMessage)
+    }
+
+    @Test
+    fun sendTypedTextThenEnterDoesNotSendEnterWhenTextSendFails() = runTest(dispatcher) {
+        val connector = FakeConnector(commandResult = PcCommandResult.Failed())
+        val controller = connectedController(connector = connector)
+        val viewModel = viewModel(controller)
+
+        viewModel.updateTypingText("Hello")
+        viewModel.sendTypedTextThenEnter()
+        advanceUntilIdle()
+
+        assertEquals(listOf(PcControlCommand.TypeText("Hello")), connector.realtimeCommands)
+        assertEquals("Hello", viewModel.uiState.value.typingText)
+        assertEquals(PcMouseControlViewModel.TYPING_FAILED_MESSAGE, viewModel.uiState.value.typingMessage)
+    }
+
+    @Test
+    fun sendTypedTextThenEnterClearsTextWhenEnterFailsAfterTextSends() = runTest(dispatcher) {
+        val connector = FakeConnector(
+            realtimeResults = mutableListOf(
+                PcCommandResult.Ack,
+                PcCommandResult.Failed()
+            )
+        )
+        val controller = connectedController(connector = connector)
+        val viewModel = viewModel(controller)
+
+        viewModel.updateTypingText("Hello")
+        viewModel.sendTypedTextThenEnter()
+        advanceUntilIdle()
+
+        assertEquals(
+            listOf(
+                PcControlCommand.TypeText("Hello"),
+                PcControlCommand.PressKey(PcKeyboardKey.Enter)
+            ),
+            connector.realtimeCommands
+        )
+        assertEquals("", viewModel.uiState.value.typingText)
+        assertEquals(PcMouseControlViewModel.KEY_FAILED_MESSAGE, viewModel.uiState.value.typingMessage)
+    }
+
+    @Test
     fun connectedStateSendsWindowControlCommand() = runTest(dispatcher) {
         val connector = FakeConnector()
         val controller = connectedController(connector = connector)
@@ -583,6 +661,7 @@ class PcMouseControlViewModelTest {
         private val pingResult: PcPingResult = PcPingResult.Connected("AA:BB:CC:DD:EE:FF"),
         private val pairingResult: PcPairingResult = PcPairingResult.Failed(PcErrorReason.Failed, "unused"),
         private val commandResult: Any = PcCommandResult.Ack,
+        private val realtimeResults: MutableList<PcCommandResult> = mutableListOf(),
         val liveResults: MutableList<PcLiveControlResult> = mutableListOf()
     ) : PcConnector {
         var pointerProfile: PcPointerMovementProfile? = null
@@ -620,9 +699,10 @@ class PcMouseControlViewModelTest {
                 },
                 onRealtimeCommand = { command ->
                     realtimeCommands.add(command)
-                    when (commandResult) {
-                        is CompletableDeferred<*> -> commandResult.await() as PcCommandResult
-                        is PcCommandResult -> commandResult
+                    when {
+                        realtimeResults.isNotEmpty() -> realtimeResults.removeAt(0)
+                        commandResult is CompletableDeferred<*> -> commandResult.await() as PcCommandResult
+                        commandResult is PcCommandResult -> commandResult
                         else -> PcCommandResult.Ack
                     }
                 }
