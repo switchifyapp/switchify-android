@@ -19,4 +19,11 @@ class PcKeyboardNavigationClusterTest {
             pcKeyboardNavigationKeys()
         )
     }
+
+    @Test
+    fun navigationCellsKeepStableCount() {
+        val cells = pcKeyboardNavigationCells(enabled = true, onKeySelected = {})
+
+        assertEquals(6, cells.size)
+    }
 }

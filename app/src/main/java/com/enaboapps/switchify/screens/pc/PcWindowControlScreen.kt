@@ -4,10 +4,18 @@ import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.OpenWith
+import androidx.compose.material.icons.filled.Remove
+import androidx.compose.material.icons.rounded.Computer
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.enaboapps.switchify.R
@@ -16,7 +24,9 @@ import com.enaboapps.switchify.pc.PcWindowControlAction
 
 data class PcWindowControlSpec(
     @param:StringRes val labelResId: Int,
-    val command: PcControlCommand.WindowControl
+    val command: PcControlCommand.WindowControl,
+    val icon: ImageVector? = null,
+    val tone: PcCommandTone = PcCommandTone.Neutral
 )
 
 @Composable
@@ -42,7 +52,9 @@ fun PcWindowControlScreen(
                     PcCompactCommandCell(
                         labelResId = it.labelResId,
                         enabled = enabled,
-                        onClick = { onCommandSelected(it.command) }
+                        onClick = { onCommandSelected(it.command) },
+                        icon = it.icon,
+                        tone = it.tone
                     )
                 }
             }
@@ -64,31 +76,39 @@ fun pcWindowControlSpecs(): List<PcWindowControlSpec> {
     return listOf(
         PcWindowControlSpec(
             R.string.pc_window_switch_next,
-            PcControlCommand.WindowControl(PcWindowControlAction.SwitchNext)
+            PcControlCommand.WindowControl(PcWindowControlAction.SwitchNext),
+            Icons.AutoMirrored.Filled.ArrowForward
         ),
         PcWindowControlSpec(
             R.string.pc_window_switch_previous,
-            PcControlCommand.WindowControl(PcWindowControlAction.SwitchPrevious)
+            PcControlCommand.WindowControl(PcWindowControlAction.SwitchPrevious),
+            Icons.AutoMirrored.Filled.ArrowBack
         ),
         PcWindowControlSpec(
             R.string.pc_window_task_view,
-            PcControlCommand.WindowControl(PcWindowControlAction.TaskView)
+            PcControlCommand.WindowControl(PcWindowControlAction.TaskView),
+            Icons.Rounded.Computer
         ),
         PcWindowControlSpec(
             R.string.pc_window_show_desktop,
-            PcControlCommand.WindowControl(PcWindowControlAction.ShowDesktop)
+            PcControlCommand.WindowControl(PcWindowControlAction.ShowDesktop),
+            Icons.Rounded.Computer
         ),
         PcWindowControlSpec(
             R.string.pc_window_minimize,
-            PcControlCommand.WindowControl(PcWindowControlAction.MinimizeFocused)
+            PcControlCommand.WindowControl(PcWindowControlAction.MinimizeFocused),
+            Icons.Default.Remove
         ),
         PcWindowControlSpec(
             R.string.pc_window_maximize,
-            PcControlCommand.WindowControl(PcWindowControlAction.MaximizeFocused)
+            PcControlCommand.WindowControl(PcWindowControlAction.MaximizeFocused),
+            Icons.Default.OpenWith
         ),
         PcWindowControlSpec(
             R.string.pc_window_close,
-            PcControlCommand.WindowControl(PcWindowControlAction.CloseFocused)
+            PcControlCommand.WindowControl(PcWindowControlAction.CloseFocused),
+            Icons.Default.Close,
+            PcCommandTone.Destructive
         )
     )
 }

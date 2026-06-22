@@ -21,6 +21,14 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.OpenWith
+import androidx.compose.material.icons.filled.TouchApp
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
@@ -33,25 +41,40 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.unit.dp
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.pc.PcControlCommand
 
 data class PcMouseControlSpec(
     @param:StringRes val labelResId: Int,
-    val command: PcControlCommand
+    val command: PcControlCommand,
+    val icon: ImageVector? = null,
+    val iconRotationDegrees: Float = 0f,
+    val tone: PcCommandTone = PcCommandTone.Neutral
 )
+
+enum class PcCommandTone {
+    Neutral,
+    Primary,
+    Destructive
+}
 
 data class PcCompactCommandCell(
     @param:StringRes val labelResId: Int,
     val enabled: Boolean,
-    val onClick: () -> Unit
+    val onClick: () -> Unit,
+    val icon: ImageVector? = null,
+    val iconRotationDegrees: Float = 0f,
+    val tone: PcCommandTone = PcCommandTone.Neutral
 )
 
 /**
@@ -148,7 +171,10 @@ fun PcControlCommandSections(
                 PcCompactCommandCell(
                     labelResId = it.labelResId,
                     enabled = enabled,
-                    onClick = { onCommandSelected(it.command) }
+                    onClick = { onCommandSelected(it.command) },
+                    icon = it.icon,
+                    iconRotationDegrees = it.iconRotationDegrees,
+                    tone = it.tone
                 )
             }
         },
@@ -189,6 +215,9 @@ fun PcCompactCommandGrid(
                                 labelResId = cell.labelResId,
                                 enabled = cell.enabled,
                                 onClick = cell.onClick,
+                                icon = cell.icon,
+                                iconRotationDegrees = cell.iconRotationDegrees,
+                                tone = cell.tone,
                                 minHeightDp = minTileHeightDp,
                                 modifier = Modifier.width(tileWidth)
                             )
@@ -222,6 +251,9 @@ fun PcScannedCommandTile(
     enabled: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    icon: ImageVector? = null,
+    iconRotationDegrees: Float = 0f,
+    tone: PcCommandTone = PcCommandTone.Neutral,
     minHeightDp: Int = 52,
     square: Boolean = false
 ) {
@@ -230,15 +262,25 @@ fun PcScannedCommandTile(
     val backgroundColor = when {
         !enabled -> MaterialTheme.colorScheme.surfaceVariant
         pressed -> MaterialTheme.colorScheme.primaryContainer
+        tone == PcCommandTone.Primary -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.56f)
+        tone == PcCommandTone.Destructive -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.48f)
         else -> MaterialTheme.colorScheme.surface
     }
     val borderColor = if (enabled) {
-        MaterialTheme.colorScheme.outline
+        when (tone) {
+            PcCommandTone.Primary -> MaterialTheme.colorScheme.primary.copy(alpha = 0.62f)
+            PcCommandTone.Destructive -> MaterialTheme.colorScheme.error.copy(alpha = 0.62f)
+            PcCommandTone.Neutral -> MaterialTheme.colorScheme.outline
+        }
     } else {
         MaterialTheme.colorScheme.outlineVariant
     }
     val contentColor = if (enabled) {
-        MaterialTheme.colorScheme.onSurface
+        when (tone) {
+            PcCommandTone.Primary -> MaterialTheme.colorScheme.onPrimaryContainer
+            PcCommandTone.Destructive -> MaterialTheme.colorScheme.onErrorContainer
+            PcCommandTone.Neutral -> MaterialTheme.colorScheme.onSurface
+        }
     } else {
         MaterialTheme.colorScheme.onSurfaceVariant
     }
@@ -272,14 +314,30 @@ fun PcScannedCommandTile(
                 .padding(8.dp),
             contentAlignment = Alignment.Center
         ) {
-            Text(
-                text = stringResource(labelResId),
-                style = MaterialTheme.typography.labelLarge,
-                color = contentColor,
-                textAlign = TextAlign.Center,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                icon?.let {
+                    Icon(
+                        imageVector = it,
+                        contentDescription = null,
+                        modifier = Modifier
+                            .size(22.dp)
+                            .rotate(iconRotationDegrees),
+                        tint = contentColor
+                    )
+                }
+                Text(
+                    text = stringResource(labelResId),
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = if (tone == PcCommandTone.Primary) FontWeight.SemiBold else FontWeight.Medium,
+                    color = contentColor,
+                    textAlign = TextAlign.Center,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
         }
     }
 }
@@ -350,30 +408,59 @@ fun pcMouseCompactControlSpecs(moveStep: Int): List<PcMouseControlSpec?> {
 fun pcMovementControlSpecs(moveStep: Int): List<PcMouseControlSpec> {
     val step = moveStep.coerceAtLeast(1)
     return listOf(
-        PcMouseControlSpec(R.string.pc_mouse_up_left, PcControlCommand.Move(-step, -step)),
-        PcMouseControlSpec(R.string.pc_mouse_up, PcControlCommand.Move(0, -step)),
-        PcMouseControlSpec(R.string.pc_mouse_up_right, PcControlCommand.Move(step, -step)),
-        PcMouseControlSpec(R.string.pc_mouse_left, PcControlCommand.Move(-step, 0)),
-        PcMouseControlSpec(R.string.pc_mouse_right, PcControlCommand.Move(step, 0)),
-        PcMouseControlSpec(R.string.pc_mouse_down_left, PcControlCommand.Move(-step, step)),
-        PcMouseControlSpec(R.string.pc_mouse_down, PcControlCommand.Move(0, step)),
-        PcMouseControlSpec(R.string.pc_mouse_down_right, PcControlCommand.Move(step, step))
+        PcMouseControlSpec(
+            R.string.pc_mouse_up_left,
+            PcControlCommand.Move(-step, -step),
+            Icons.Default.KeyboardArrowUp,
+            -45f
+        ),
+        PcMouseControlSpec(R.string.pc_mouse_up, PcControlCommand.Move(0, -step), Icons.Default.KeyboardArrowUp),
+        PcMouseControlSpec(
+            R.string.pc_mouse_up_right,
+            PcControlCommand.Move(step, -step),
+            Icons.Default.KeyboardArrowUp,
+            45f
+        ),
+        PcMouseControlSpec(R.string.pc_mouse_left, PcControlCommand.Move(-step, 0), Icons.AutoMirrored.Filled.ArrowBack),
+        PcMouseControlSpec(R.string.pc_mouse_right, PcControlCommand.Move(step, 0), Icons.AutoMirrored.Filled.ArrowForward),
+        PcMouseControlSpec(
+            R.string.pc_mouse_down_left,
+            PcControlCommand.Move(-step, step),
+            Icons.Default.KeyboardArrowDown,
+            45f
+        ),
+        PcMouseControlSpec(R.string.pc_mouse_down, PcControlCommand.Move(0, step), Icons.Default.KeyboardArrowDown),
+        PcMouseControlSpec(
+            R.string.pc_mouse_down_right,
+            PcControlCommand.Move(step, step),
+            Icons.Default.KeyboardArrowDown,
+            -45f
+        )
     )
 }
 
 fun pcClickControlSpecs(): List<PcMouseControlSpec> {
     return listOf(
-        PcMouseControlSpec(R.string.pc_mouse_click, PcControlCommand.LeftClick),
+        PcMouseControlSpec(
+            R.string.pc_mouse_click,
+            PcControlCommand.LeftClick,
+            Icons.Default.TouchApp,
+            tone = PcCommandTone.Primary
+        ),
         PcMouseControlSpec(R.string.pc_mouse_double_click, PcControlCommand.DoubleClick),
         PcMouseControlSpec(R.string.pc_mouse_right_click, PcControlCommand.RightClick),
-        PcMouseControlSpec(R.string.menu_item_drag, PcControlCommand.DragStart())
+        PcMouseControlSpec(R.string.menu_item_drag, PcControlCommand.DragStart(), Icons.Default.OpenWith)
     )
 }
 
 fun pcScrollControlSpecs(): List<PcMouseControlSpec> {
     val scrollStep = 5
     return listOf(
-        PcMouseControlSpec(R.string.pc_mouse_scroll_up, PcControlCommand.Scroll(0, scrollStep)),
-        PcMouseControlSpec(R.string.pc_mouse_scroll_down, PcControlCommand.Scroll(0, -scrollStep))
+        PcMouseControlSpec(R.string.pc_mouse_scroll_up, PcControlCommand.Scroll(0, scrollStep), Icons.Default.KeyboardArrowUp),
+        PcMouseControlSpec(
+            R.string.pc_mouse_scroll_down,
+            PcControlCommand.Scroll(0, -scrollStep),
+            Icons.Default.KeyboardArrowDown
+        )
     )
 }

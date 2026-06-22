@@ -59,6 +59,13 @@ class PcWindowControlScreenTest {
     }
 
     @Test
+    fun closeWindowCommandUsesDestructiveTone() {
+        val specs = pcWindowControlSpecs()
+
+        assertEquals(PcCommandTone.Destructive, specs[6].tone)
+    }
+
+    @Test
     fun windowKeyboardNavigationUsesSharedOrder() {
         assertEquals(
             listOf(
