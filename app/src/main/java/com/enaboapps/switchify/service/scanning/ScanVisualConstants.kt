@@ -24,6 +24,9 @@ object ScanVisualConstants {
     /** Halo outline that contrasts with the active highlight color. */
     const val HALO_STROKE_DP = 1
 
+    const val ESCAPE_DASH_WIDTH_DP = 8
+    const val ESCAPE_DASH_GAP_DP = 6
+
     /** Cursor crosshair line, active block outline, and radar swept-line thickness. */
     const val CURSOR_LINE_DP = 4
 

@@ -111,11 +111,11 @@ class ScanTreeHighlighter(
         val currentItem = tree.getOrNull(treeItemIndex) ?: return
 
         when {
-            !isInTreeItem -> highlightTreeItem(currentItem)
+            !isInTreeItem -> highlightTreeItemEscape(currentItem)
             scanSettings.isGroupScanEnabled() && currentItem.isGrouped() && isInGroup ->
-                highlightGroup(currentItem, groupIndex)
+                highlightGroupEscape(currentItem, groupIndex)
 
-            else -> highlightTreeItem(currentItem)
+            else -> highlightTreeItemEscape(currentItem)
         }
     }
 
@@ -143,11 +143,11 @@ class ScanTreeHighlighter(
         val currentItem = tree.getOrNull(treeItemIndex) ?: return
 
         when {
-            !isInTreeItem -> unhighlightTreeItem(currentItem)
+            !isInTreeItem -> unhighlightTreeItemEscape(currentItem)
             scanSettings.isGroupScanEnabled() && currentItem.isGrouped() && isInGroup ->
-                unhighlightGroup(currentItem, groupIndex)
+                unhighlightGroupEscape(currentItem, groupIndex)
 
-            else -> unhighlightTreeItem(currentItem)
+            else -> unhighlightTreeItemEscape(currentItem)
         }
     }
 
@@ -160,6 +160,10 @@ class ScanTreeHighlighter(
         item.highlight()
     }
 
+    private fun highlightTreeItemEscape(item: ScanTreeItem) {
+        item.highlightEscape()
+    }
+
     /**
      * Unhighlights a tree item.
      *
@@ -167,6 +171,10 @@ class ScanTreeHighlighter(
      */
     private fun unhighlightTreeItem(item: ScanTreeItem) {
         item.unhighlight()
+    }
+
+    private fun unhighlightTreeItemEscape(item: ScanTreeItem) {
+        item.unhighlightEscape()
     }
 
     /**
@@ -179,6 +187,10 @@ class ScanTreeHighlighter(
         item.highlight(groupIndex)
     }
 
+    private fun highlightGroupEscape(item: ScanTreeItem, groupIndex: Int) {
+        item.highlightEscape(groupIndex)
+    }
+
     /**
      * Unhighlights a group within a tree item.
      *
@@ -187,6 +199,10 @@ class ScanTreeHighlighter(
      */
     private fun unhighlightGroup(item: ScanTreeItem, groupIndex: Int) {
         item.unhighlight(groupIndex)
+    }
+
+    private fun unhighlightGroupEscape(item: ScanTreeItem, groupIndex: Int) {
+        item.unhighlightEscape(groupIndex)
     }
 
     /**

@@ -103,6 +103,34 @@ class NodeScannerUI {
         }
     }
 
+    fun showEscapeBounds(x: Int, y: Int, width: Int, height: Int) {
+        handler.post {
+            prepare()
+            window.getContext()?.let {
+                val params = RelativeLayout.LayoutParams(
+                    width,
+                    height
+                )
+                params.leftMargin = x
+                params.topMargin = y
+                val layout = RelativeLayout(it).apply {
+                    layoutParams = params
+                }
+                style?.let { style ->
+                    layout.background = ScanHighlightDrawable(
+                        it,
+                        style.isFill(),
+                        ScanColorManager.getScanColorSetFromPreferences(it).primaryColor,
+                        isDashed = true
+                    )
+                }
+                rowBoundsLayout = layout
+                HighlightAnimations.fadeIn(layout)
+                baseLayout?.addView(layout)
+            }
+        }
+    }
+
     fun hideItemBounds() {
         handler.post {
             val view = itemBoundsLayout ?: return@post

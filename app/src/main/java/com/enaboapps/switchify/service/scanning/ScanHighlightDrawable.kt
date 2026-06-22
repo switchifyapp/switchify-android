@@ -10,8 +10,9 @@ import com.enaboapps.switchify.service.utils.ScreenUtils
 class ScanHighlightDrawable(
     context: Context,
     isFill: Boolean,
-    color: String
-) : LayerDrawable(createLayers(context, isFill, color.toColorInt())) {
+    color: String,
+    isDashed: Boolean = false
+) : LayerDrawable(createLayers(context, isFill, color.toColorInt(), isDashed)) {
 
     private val haloOffsetPx =
         ScreenUtils.dpToPx(context, ScanVisualConstants.HALO_OFFSET_DP)
@@ -44,32 +45,52 @@ class ScanHighlightDrawable(
         private fun createLayers(
             context: Context,
             isFill: Boolean,
-            colorAsInt: Int
+            colorAsInt: Int,
+            isDashed: Boolean
         ): Array<GradientDrawable> {
             return if (isFill) {
-                createFillLayers(context, colorAsInt)
+                createFillLayers(context, colorAsInt, isDashed)
             } else {
-                createBorderLayers(context, colorAsInt)
+                createBorderLayers(context, colorAsInt, isDashed)
             }
         }
 
         private fun strokeLayer(
             context: Context,
             colorAsInt: Int,
-            strokeDp: Int
+            strokeDp: Int,
+            isDashed: Boolean = false
         ): GradientDrawable {
             val cornerRadius =
                 ScreenUtils.dpToPxFloat(context, ScanVisualConstants.CORNER_RADIUS_DP)
             return GradientDrawable().apply {
                 shape = GradientDrawable.RECTANGLE
                 this.cornerRadius = cornerRadius
-                setStroke(ScreenUtils.dpToPx(context, strokeDp), colorAsInt)
+                if (isDashed) {
+                    val dashWidth = ScreenUtils.dpToPxFloat(
+                        context,
+                        ScanVisualConstants.ESCAPE_DASH_WIDTH_DP.toFloat()
+                    )
+                    val dashGap = ScreenUtils.dpToPxFloat(
+                        context,
+                        ScanVisualConstants.ESCAPE_DASH_GAP_DP.toFloat()
+                    )
+                    setStroke(
+                        ScreenUtils.dpToPx(context, strokeDp),
+                        colorAsInt,
+                        dashWidth,
+                        dashGap
+                    )
+                } else {
+                    setStroke(ScreenUtils.dpToPx(context, strokeDp), colorAsInt)
+                }
             }
         }
 
         private fun createBorderLayers(
             context: Context,
-            colorAsInt: Int
+            colorAsInt: Int,
+            isDashed: Boolean
         ): Array<GradientDrawable> {
             val cornerRadius =
                 ScreenUtils.dpToPxFloat(context, ScanVisualConstants.CORNER_RADIUS_DP)
@@ -85,14 +106,20 @@ class ScanHighlightDrawable(
                 )
             }
 
-            val mainStroke = strokeLayer(context, colorAsInt, ScanVisualConstants.ACTIVE_STROKE_DP)
+            val mainStroke = strokeLayer(
+                context,
+                colorAsInt,
+                ScanVisualConstants.ACTIVE_STROKE_DP,
+                isDashed
+            )
 
             return arrayOf(halo, mainStroke)
         }
 
         private fun createFillLayers(
             context: Context,
-            colorAsInt: Int
+            colorAsInt: Int,
+            isDashed: Boolean
         ): Array<GradientDrawable> {
             val cornerRadius =
                 ScreenUtils.dpToPxFloat(context, ScanVisualConstants.CORNER_RADIUS_DP)
@@ -109,7 +136,12 @@ class ScanHighlightDrawable(
                 setColor(tint)
             }
 
-            val mainStroke = strokeLayer(context, colorAsInt, ScanVisualConstants.FILL_STROKE_DP)
+            val mainStroke = strokeLayer(
+                context,
+                colorAsInt,
+                ScanVisualConstants.FILL_STROKE_DP,
+                isDashed
+            )
 
             return arrayOf(fill, mainStroke)
         }
