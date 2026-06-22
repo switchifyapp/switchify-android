@@ -94,7 +94,6 @@ private fun PcTypingTextSection(
     enabled: Boolean
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        PcTypingSectionTitle(R.string.pc_typing_section_text)
         PcTypingTextBox(
             text = text,
             message = message,
@@ -247,15 +246,6 @@ private fun PcTypingCompactCommandGrid(
                 )
             }
         }
-    )
-}
-
-@Composable
-private fun PcTypingSectionTitle(@StringRes titleResId: Int) {
-    Text(
-        text = stringResource(titleResId),
-        style = MaterialTheme.typography.titleMedium,
-        color = MaterialTheme.colorScheme.onSurface
     )
 }
 
