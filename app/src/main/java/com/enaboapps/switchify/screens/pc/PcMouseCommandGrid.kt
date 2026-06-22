@@ -10,8 +10,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -52,6 +50,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.unit.dp
 import com.enaboapps.switchify.R
+import com.enaboapps.switchify.components.EqualHeightGridRow
 import com.enaboapps.switchify.pc.PcControlCommand
 
 data class PcMouseControlSpec(
@@ -199,37 +198,23 @@ fun PcCompactCommandGrid(
         val tileWidth = (maxWidth - horizontalGap * (columns - 1)) / columns
         Column(verticalArrangement = Arrangement.spacedBy(verticalGap)) {
             cells.chunked(columns).forEach { rowCells ->
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(horizontalGap)
-                ) {
-                    rowCells.forEach { cell ->
-                        if (cell == null) {
-                            Spacer(
-                                modifier = Modifier
-                                    .width(tileWidth)
-                                    .heightIn(min = minTileHeightDp.dp)
-                            )
-                        } else {
-                            PcScannedCommandTile(
-                                labelResId = cell.labelResId,
-                                enabled = cell.enabled,
-                                onClick = cell.onClick,
-                                icon = cell.icon,
-                                iconRotationDegrees = cell.iconRotationDegrees,
-                                tone = cell.tone,
-                                minHeightDp = minTileHeightDp,
-                                modifier = Modifier.width(tileWidth)
-                            )
-                        }
-                    }
-                    repeat(columns - rowCells.size) {
-                        Spacer(
-                            modifier = Modifier
-                                .width(tileWidth)
-                                .heightIn(min = minTileHeightDp.dp)
-                        )
-                    }
+                EqualHeightGridRow(
+                    items = rowCells,
+                    columns = columns,
+                    itemWidth = tileWidth,
+                    minItemHeight = minTileHeightDp.dp,
+                    horizontalGap = horizontalGap
+                ) { cell, itemModifier ->
+                    PcScannedCommandTile(
+                        labelResId = cell.labelResId,
+                        enabled = cell.enabled,
+                        onClick = cell.onClick,
+                        icon = cell.icon,
+                        iconRotationDegrees = cell.iconRotationDegrees,
+                        tone = cell.tone,
+                        minHeightDp = minTileHeightDp,
+                        modifier = itemModifier
+                    )
                 }
             }
         }
