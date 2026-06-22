@@ -96,11 +96,17 @@ object ExternalSwitchLongPressHandler {
         return hadState
     }
 
-    fun isActive(): Boolean = longPressJob?.isActive == true || actionToPerform != null
+    fun isActive(): Boolean = longPressJob?.isActive == true ||
+            holdActions != null ||
+            actionToPerform != null
 
     fun getPendingAction(): SwitchAction? = actionToPerform
 
     internal fun setPendingActionForTesting(action: SwitchAction?) {
         actionToPerform = action
+    }
+
+    internal fun setHoldActionsForTesting(actions: List<SwitchAction>?) {
+        holdActions = actions
     }
 }
