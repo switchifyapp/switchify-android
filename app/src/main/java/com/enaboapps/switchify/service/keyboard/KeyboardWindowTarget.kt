@@ -13,7 +13,8 @@ data class KeyboardWindowTarget(
         return OverlayTarget.Window(
             displayId = displayId,
             accessibilityWindowId = windowId,
-            windowType = windowType
+            windowType = windowType,
+            fallbackBoundsInScreen = boundsInScreen
         )
     }
 }

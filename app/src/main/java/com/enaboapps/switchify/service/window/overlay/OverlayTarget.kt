@@ -1,12 +1,18 @@
 package com.enaboapps.switchify.service.window.overlay
 
+import android.graphics.Rect
+
 sealed class OverlayTarget {
-    data class Display(val displayId: Int) : OverlayTarget()
+    data class Display(
+        val displayId: Int,
+        val forceSurface: Boolean = false
+    ) : OverlayTarget()
 
     data class Window(
         val displayId: Int,
         val accessibilityWindowId: Int,
-        val windowType: Int
+        val windowType: Int,
+        val fallbackBoundsInScreen: Rect? = null
     ) : OverlayTarget()
 }
 
@@ -20,7 +26,10 @@ object OverlayTargets {
     fun displayFallback(target: OverlayTarget): OverlayTarget.Display {
         return when (target) {
             is OverlayTarget.Display -> target
-            is OverlayTarget.Window -> OverlayTarget.Display(target.displayId)
+            is OverlayTarget.Window -> OverlayTarget.Display(
+                displayId = target.displayId,
+                forceSurface = true
+            )
         }
     }
 }

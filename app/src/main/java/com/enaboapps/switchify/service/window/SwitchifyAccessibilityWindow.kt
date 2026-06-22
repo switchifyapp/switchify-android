@@ -1,7 +1,9 @@
 package com.enaboapps.switchify.service.window
 
+import android.accessibilityservice.AccessibilityService
 import android.content.Context
 import android.graphics.PixelFormat
+import android.hardware.display.DisplayManager
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
@@ -18,8 +20,12 @@ import com.enaboapps.switchify.service.core.SwitchifyLifecycleOwner
 import com.enaboapps.switchify.service.llm.MediaPipeBackend
 import com.enaboapps.switchify.service.utils.ScreenWatcher
 import com.enaboapps.switchify.service.window.overlay.OverlayPlacement
+import com.enaboapps.switchify.service.window.overlay.OverlayDisplayMetrics
+import com.enaboapps.switchify.service.window.overlay.OverlayDisplayMetricsProvider
 import com.enaboapps.switchify.service.window.overlay.OverlayTarget
 import com.enaboapps.switchify.service.window.overlay.OverlayTargets
+import com.enaboapps.switchify.service.window.overlay.OverlayHandle
+import com.enaboapps.switchify.service.window.overlay.SurfaceControlOverlayBackend
 import com.enaboapps.switchify.service.window.overlay.SwitchifyOverlayHost
 
 /**
@@ -32,6 +38,8 @@ class SwitchifyAccessibilityWindow private constructor() : LifecycleOwner, Saved
     private var windowManager: WindowManager? = null
     private var baseLayout: RelativeLayout? = null
     private var context: Context? = null
+    private var surfaceControlBackend: SurfaceControlOverlayBackend? = null
+    private val surfaceOverlayHandles = mutableMapOf<ViewGroup, OverlayHandle>()
     private val mainHandler = Handler(Looper.getMainLooper())
     private var screenWatcher: ScreenWatcher? = null
     private var isVisible = false
@@ -43,7 +51,7 @@ class SwitchifyAccessibilityWindow private constructor() : LifecycleOwner, Saved
         }
     }
 
-    private val defaultDisplayTarget = OverlayTargets.defaultDisplay()
+    private val defaultDisplayTarget = OverlayTargets.defaultDisplay().copy(forceSurface = true)
 
     override val lifecycle: Lifecycle
         get() = SwitchifyLifecycleOwner.getInstance().lifecycle
@@ -62,6 +70,9 @@ class SwitchifyAccessibilityWindow private constructor() : LifecycleOwner, Saved
 
             this.context = context
             windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
+            surfaceControlBackend = (context as? AccessibilityService)?.let { service ->
+                SurfaceControlOverlayBackend(service) { baseLayout?.windowToken }
+            }
             createBaseLayout()
             registerScreenWatcher()
             ServiceMessageHUD.instance.setup(context.applicationContext)
@@ -125,6 +136,20 @@ class SwitchifyAccessibilityWindow private constructor() : LifecycleOwner, Saved
         return context
     }
 
+    fun getDisplayMetrics(target: OverlayTarget): OverlayDisplayMetrics? {
+        val context = getContext() ?: return null
+        val displayId = when (target) {
+            is OverlayTarget.Display -> target.displayId
+            is OverlayTarget.Window -> target.displayId
+        }
+        val displayManager = context.getSystemService(Context.DISPLAY_SERVICE) as? DisplayManager
+        val displayContext = displayManager
+            ?.getDisplay(displayId)
+            ?.let { context.createDisplayContext(it) }
+            ?: context
+        return OverlayDisplayMetricsProvider.displayMetrics(displayContext, displayId)
+    }
+
     /**
      * Shows the window.
      */
@@ -151,6 +176,7 @@ class SwitchifyAccessibilityWindow private constructor() : LifecycleOwner, Saved
                     // Add view with minimal overhead - lifecycle owners will be set up after
                     windowManager?.addView(layout, params)
                     isVisible = true
+                    surfaceOverlayHandles.values.forEach { it.setVisible(true) }
 
                     setupLifecycleOwners()
                 }
@@ -170,6 +196,7 @@ class SwitchifyAccessibilityWindow private constructor() : LifecycleOwner, Saved
                     windowManager?.removeView(baseLayout)
                     isVisible = false
                 }
+                surfaceOverlayHandles.values.forEach { it.setVisible(false) }
             } catch (e: Exception) {
                 Log.e(TAG, "Error in hide: ${e.message}", e)
             }
@@ -197,6 +224,7 @@ class SwitchifyAccessibilityWindow private constructor() : LifecycleOwner, Saved
 
                 // Clear all children from baseLayout
                 baseLayout?.removeAllViews()
+                releaseSurfaceOverlays()
             } catch (e: Exception) {
                 Log.e(TAG, "Error in cleanup: ${e.message}", e)
             }
@@ -218,6 +246,7 @@ class SwitchifyAccessibilityWindow private constructor() : LifecycleOwner, Saved
         screenWatcher = null
         context = null
         windowManager = null
+        surfaceControlBackend = null
         baseLayout = null
     }
 
@@ -262,18 +291,61 @@ class SwitchifyAccessibilityWindow private constructor() : LifecycleOwner, Saved
         )
     }
 
+    fun addView(
+        target: OverlayTarget,
+        view: ViewGroup,
+        x: Int,
+        y: Int,
+        width: Int,
+        height: Int
+    ) {
+        addView(
+            target = target,
+            view = view,
+            placement = OverlayPlacement.Bounds(
+                x = x,
+                y = y,
+                width = width,
+                height = height
+            )
+        )
+    }
+
     override fun addView(
         target: OverlayTarget.Display,
         view: ViewGroup,
         placement: OverlayPlacement
     ) {
+        addView(target as OverlayTarget, view, placement)
+    }
+
+    fun addView(
+        target: OverlayTarget,
+        view: ViewGroup,
+        placement: OverlayPlacement
+    ) {
         mainHandler.post {
             try {
-                if (target.displayId != OverlayTargets.DEFAULT_DISPLAY_ID) {
-                    Log.w(TAG, "Display ${target.displayId} overlays fall back to default display")
+                if (shouldUseSurfaceBackend(target)) {
+                    val handle = surfaceControlBackend?.attach(target, view, placement)
+                    if (handle != null) {
+                        handle.setVisible(isVisible)
+                        surfaceOverlayHandles[view] = handle
+                        return@post
+                    }
+                    if (target is OverlayTarget.Window) {
+                        Log.w(TAG, "Window overlay unavailable for $target; skipping fallback")
+                        return@post
+                    }
+                    if (!canUseDefaultRootFallback(target)) {
+                        Log.w(TAG, "Surface overlay unavailable for $target; no default-root fallback")
+                        return@post
+                    }
+                    Log.w(TAG, "Surface overlay unavailable for $target; falling back to default overlay")
                 }
                 val params = layoutParamsForPlacement(placement)
                 baseLayout?.addView(view, params)
+                Log.d(TAG, "Added overlay to default WindowManager root for $target")
             } catch (e: Exception) {
                 Log.e(TAG, "Error in addView: ${e.message}", e)
             }
@@ -302,6 +374,14 @@ class SwitchifyAccessibilityWindow private constructor() : LifecycleOwner, Saved
         )
     }
 
+    fun addView(target: OverlayTarget, view: ViewGroup, x: Int, y: Int) {
+        addView(
+            target = target,
+            view = view,
+            placement = OverlayPlacement.WrapAt(x, y)
+        )
+    }
+
     /**
      * Adds a view to the bottom of the window.
      * @param view The view to add.
@@ -312,6 +392,14 @@ class SwitchifyAccessibilityWindow private constructor() : LifecycleOwner, Saved
     }
 
     fun addViewToBottom(target: OverlayTarget.Display, view: ViewGroup, margins: Int = 0) {
+        addView(
+            target = target,
+            view = view,
+            placement = OverlayPlacement.BottomCentered(margins)
+        )
+    }
+
+    fun addViewToBottom(target: OverlayTarget, view: ViewGroup, margins: Int = 0) {
         addView(
             target = target,
             view = view,
@@ -336,6 +424,14 @@ class SwitchifyAccessibilityWindow private constructor() : LifecycleOwner, Saved
         )
     }
 
+    fun addViewToTop(target: OverlayTarget, view: ViewGroup, margins: Int = 0) {
+        addView(
+            target = target,
+            view = view,
+            placement = OverlayPlacement.TopCentered(margins)
+        )
+    }
+
     /**
      * Adds a view to the center of the window.
      * @param view The view to add.
@@ -352,6 +448,14 @@ class SwitchifyAccessibilityWindow private constructor() : LifecycleOwner, Saved
         )
     }
 
+    fun addViewToCenter(target: OverlayTarget, view: ViewGroup) {
+        addView(
+            target = target,
+            view = view,
+            placement = OverlayPlacement.Centered
+        )
+    }
+
     /**
      * Removes a view from the window.
      * @param view The view to remove.
@@ -361,10 +465,15 @@ class SwitchifyAccessibilityWindow private constructor() : LifecycleOwner, Saved
     }
 
     override fun removeView(target: OverlayTarget.Display, view: ViewGroup) {
+        removeView(target as OverlayTarget, view)
+    }
+
+    fun removeView(target: OverlayTarget, view: ViewGroup) {
         mainHandler.post {
             try {
-                if (target.displayId != OverlayTargets.DEFAULT_DISPLAY_ID) {
-                    Log.w(TAG, "Display ${target.displayId} removal falls back to default display")
+                surfaceOverlayHandles.remove(view)?.let { handle ->
+                    handle.release()
+                    return@post
                 }
                 if (view.parent == baseLayout) {
                     baseLayout?.removeView(view)
@@ -388,8 +497,9 @@ class SwitchifyAccessibilityWindow private constructor() : LifecycleOwner, Saved
     override fun removeView(target: OverlayTarget.Display, id: Int) {
         mainHandler.post {
             try {
-                if (target.displayId != OverlayTargets.DEFAULT_DISPLAY_ID) {
-                    Log.w(TAG, "Display ${target.displayId} removal by id falls back to default display")
+                surfaceOverlayHandles.entries.firstOrNull { it.key.id == id }?.let { entry ->
+                    surfaceOverlayHandles.remove(entry.key)?.release()
+                    return@post
                 }
                 baseLayout?.findViewById<ViewGroup>(id)?.let { view ->
                     baseLayout?.removeView(view)
@@ -398,6 +508,35 @@ class SwitchifyAccessibilityWindow private constructor() : LifecycleOwner, Saved
                 Log.e(TAG, "Error in removeView by id: ${e.message}", e)
             }
         }
+    }
+
+    private fun shouldUseSurfaceBackend(target: OverlayTarget): Boolean {
+        return when (target) {
+            is OverlayTarget.Display -> target.forceSurface ||
+                target.displayId != OverlayTargets.DEFAULT_DISPLAY_ID
+            is OverlayTarget.Window -> true
+        }
+    }
+
+    private fun canUseDefaultRootFallback(target: OverlayTarget): Boolean {
+        return target is OverlayTarget.Display &&
+            target.displayId == OverlayTargets.DEFAULT_DISPLAY_ID
+    }
+
+    fun canAttachSurfaceOverlay(target: OverlayTarget): Boolean {
+        return shouldUseSurfaceBackend(target) &&
+            surfaceControlBackend?.canAttach(target) == true
+    }
+
+    private fun releaseSurfaceOverlays() {
+        surfaceOverlayHandles.values.forEach { handle ->
+            try {
+                handle.release()
+            } catch (e: Exception) {
+                Log.e(TAG, "Error releasing surface overlay", e)
+            }
+        }
+        surfaceOverlayHandles.clear()
     }
 
     private fun layoutParamsForPlacement(placement: OverlayPlacement): RelativeLayout.LayoutParams {

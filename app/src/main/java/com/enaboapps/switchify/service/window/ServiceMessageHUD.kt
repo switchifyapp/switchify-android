@@ -149,6 +149,7 @@ class ServiceMessageHUD private constructor() {
 
     private var applicationCtx: Context? = null
     private var messageComposeView: AccessibilityComposeView? = null
+    private var currentTarget: OverlayTarget.Display? = null
     private val handler = Handler(Looper.getMainLooper())
 
     // State holders for Compose
@@ -422,6 +423,7 @@ class ServiceMessageHUD private constructor() {
         severity: MessageSeverity,
         target: OverlayTarget.Display
     ) {
+        val hudTarget = target.copy(forceSurface = true)
         applicationCtx ?: run {
             Log.e(TAG, "ApplicationContext is null, cannot show message. Call setup() first.")
             return
@@ -443,9 +445,14 @@ class ServiceMessageHUD private constructor() {
             ensureMessageComposeViewIsCreated()
             messageComposeView?.let { view ->
                 try {
-                    // Add view to window if not already there
+                    if (view.parent != null && currentTarget != hudTarget) {
+                        SwitchifyAccessibilityWindow.instance.removeView(view)
+                        currentTarget = null
+                    }
+
                     if (view.parent == null) {
-                        SwitchifyAccessibilityWindow.instance.addViewToBottom(target, view)
+                        SwitchifyAccessibilityWindow.instance.addViewToBottom(hudTarget, view)
+                        currentTarget = hudTarget
                         Log.d(TAG, "Message ComposeView added to window.")
                     }
                 } catch (e: Exception) {
@@ -531,6 +538,7 @@ class ServiceMessageHUD private constructor() {
             try {
                 SwitchifyAccessibilityWindow.instance.removeView(view)
                 messageComposeView = null
+                currentTarget = null
                 currentMessageString.value = null
                 currentMessageSeverity.value = MessageSeverity.Info
                 isMessageVisible.value = false

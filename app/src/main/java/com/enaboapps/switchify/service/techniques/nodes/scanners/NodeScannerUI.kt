@@ -7,7 +7,6 @@ import com.enaboapps.switchify.service.scanning.ScanColorManager
 import com.enaboapps.switchify.service.scanning.ScanHighlightDrawable
 import com.enaboapps.switchify.service.scanning.ScanHighlightStyle
 import com.enaboapps.switchify.service.utils.HighlightAnimations
-import com.enaboapps.switchify.service.utils.ScreenUtils
 import com.enaboapps.switchify.service.window.SwitchifyAccessibilityWindow
 import com.enaboapps.switchify.service.window.overlay.OverlayTarget
 import com.enaboapps.switchify.service.window.overlay.OverlayTargets
@@ -30,18 +29,23 @@ class NodeScannerUI {
     private val handler = Handler(Looper.getMainLooper())
 
     private fun prepare(target: OverlayTarget = OverlayTargets.defaultDisplay()) {
+        if (baseLayout != null && overlayTarget != target) {
+            hideAllNow()
+        }
         overlayTarget = target
         if (baseLayout == null) {
             window.getContext()?.let { context ->
                 baseLayout = RelativeLayout(context)
                 baseLayout?.let { layout ->
+                    val metrics = window.getDisplayMetrics(target)
+                    val fallbackMetrics = context.resources.displayMetrics
                     window.addView(
-                        OverlayTargets.displayFallback(target),
+                        target,
                         layout,
                         0,
                         0,
-                        ScreenUtils.getWidth(context),
-                        ScreenUtils.getHeight(context)
+                        metrics?.width ?: fallbackMetrics.widthPixels,
+                        metrics?.height ?: fallbackMetrics.heightPixels
                     )
                 }
             }
@@ -172,12 +176,16 @@ class NodeScannerUI {
 
     fun hideAll() {
         handler.post {
-            itemBoundsLayout = null
-            rowBoundsLayout = null
-            val base = baseLayout ?: return@post
-            baseLayout = null
-            val target = OverlayTargets.displayFallback(overlayTarget)
-            HighlightAnimations.fadeOut(base) { window.removeView(target, base) }
+            hideAllNow()
         }
+    }
+
+    private fun hideAllNow() {
+        itemBoundsLayout = null
+        rowBoundsLayout = null
+        val base = baseLayout ?: return
+        val target = overlayTarget
+        baseLayout = null
+        HighlightAnimations.fadeOut(base) { window.removeView(target, base) }
     }
 }

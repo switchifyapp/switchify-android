@@ -2,6 +2,7 @@ package com.enaboapps.switchify.service.techniques.nodes
 
 import android.graphics.PointF
 import android.graphics.Rect
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.view.accessibility.AccessibilityNodeInfo
@@ -12,6 +13,9 @@ import com.enaboapps.switchify.service.scanning.ScanNodeInterface
 import com.enaboapps.switchify.service.selection.SelectionHandler
 import com.enaboapps.switchify.service.techniques.nodes.scanners.NodeScannerUI
 import com.enaboapps.switchify.service.techniques.pointscan.blocks.PointScanBlock
+import com.enaboapps.switchify.service.window.SwitchifyAccessibilityWindow
+import com.enaboapps.switchify.service.window.overlay.OverlayTarget
+import com.enaboapps.switchify.service.window.overlay.OverlayTargets
 import com.enaboapps.switchify.utils.Resources
 
 data class NodeScanSignature(
@@ -38,6 +42,7 @@ class Node(
     private var width: Int = 0
     private var height: Int = 0
     private var highlighted: Boolean = false
+    private var overlayNodeBounds: OverlayNodeBounds? = null
 
     private var contentDescription: String = ""
 
@@ -69,6 +74,7 @@ class Node(
             val node = Node()
             val rect = Rect()
             nodeInfo.getBoundsInScreen(rect)
+            val overlayBounds = overlayBoundsFor(nodeInfo, rect)
             node.nodeInfo = nodeInfo
             node.x = rect.left
             node.y = rect.top
@@ -77,6 +83,7 @@ class Node(
             node.centerY = rect.centerY()
             node.width = rect.width()
             node.height = rect.height()
+            node.overlayNodeBounds = overlayBounds
             return node
         }
 
@@ -93,6 +100,10 @@ class Node(
             node.centerY = menuItem.y + menuItem.height / 2
             node.width = menuItem.width
             node.height = menuItem.height
+            node.overlayNodeBounds = OverlayNodeBounds.displayOnly(
+                Rect(node.x, node.y, node.x + node.width, node.y + node.height),
+                forceSurface = true
+            )
             val text = if (menuItem.labelResource != null) {
                 Resources.getString(menuItem.labelResource)
             } else {
@@ -122,8 +133,35 @@ class Node(
             node.height = cursorBlock.height
             node.centerX = cursorBlock.left + (cursorBlock.width / 2)
             node.centerY = cursorBlock.top + (cursorBlock.height / 2)
+            node.overlayNodeBounds = OverlayNodeBounds.displayOnly(
+                Rect(node.x, node.y, node.x + node.width, node.y + node.height)
+            )
             node.contentDescription = "Block ${cursorBlock.position + 1}"
             return node
+        }
+
+        private fun overlayBoundsFor(
+            nodeInfo: AccessibilityNodeInfo,
+            boundsInScreen: Rect
+        ): OverlayNodeBounds {
+            val window = nodeInfo.window
+            val boundsInWindow = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                Rect().also { nodeInfo.getBoundsInWindow(it) }
+            } else {
+                null
+            }
+            val displayId = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                window?.displayId ?: OverlayTargets.DEFAULT_DISPLAY_ID
+            } else {
+                OverlayTargets.DEFAULT_DISPLAY_ID
+            }
+            return OverlayNodeBounds(
+                displayId = displayId,
+                windowId = nodeInfo.windowId.takeIf { it >= 0 },
+                windowType = window?.type,
+                boundsInScreen = Rect(boundsInScreen),
+                boundsInWindow = boundsInWindow
+            )
         }
     }
 
@@ -190,6 +228,15 @@ class Node(
         return Rect(x, y, x + width, y + height)
     }
 
+    fun getOverlayTargetForHighlight(): OverlayTarget {
+        val overlayBounds = overlayNodeBounds ?: return OverlayTargets.defaultDisplay()
+        return targetForOverlayBounds(overlayBounds)
+    }
+
+    fun getOverlayHighlightBounds(target: OverlayTarget): Rect {
+        return overlayNodeBounds?.highlightBounds(target) ?: getBounds()
+    }
+
     override fun getContentDescription(): String {
         return contentDescription
     }
@@ -203,7 +250,20 @@ class Node(
     }
 
     override fun highlight() {
-        NodeScannerUI.Companion.instance.showItemBounds(x, y, width, height)
+        val overlayBounds = overlayNodeBounds
+        if (overlayBounds != null) {
+            val target = targetForOverlayBounds(overlayBounds)
+            val bounds = overlayBounds.highlightBounds(target)
+            NodeScannerUI.Companion.instance.showItemBounds(
+                bounds.left,
+                bounds.top,
+                bounds.width(),
+                bounds.height(),
+                target
+            )
+        } else {
+            NodeScannerUI.Companion.instance.showItemBounds(x, y, width, height)
+        }
         highlighted = true
         onHighlight?.invoke(this)
     }
@@ -212,6 +272,27 @@ class Node(
         NodeScannerUI.Companion.instance.hideItemBounds()
         highlighted = false
         onUnhighlight?.invoke()
+    }
+
+    private fun targetForOverlayBounds(overlayBounds: OverlayNodeBounds): OverlayTarget {
+        val preferredTarget = overlayBounds.target()
+        return when {
+            overlayBounds.isInputMethodWindow() -> {
+                OverlayTarget.Display(
+                    displayId = overlayBounds.displayId,
+                    forceSurface = overlayBounds.displayId != OverlayTargets.DEFAULT_DISPLAY_ID
+                )
+            }
+
+            preferredTarget is OverlayTarget.Window &&
+                    SwitchifyAccessibilityWindow.instance.canAttachSurfaceOverlay(preferredTarget) -> {
+                preferredTarget
+            }
+
+            else -> {
+                OverlayTargets.displayFallback(preferredTarget)
+            }
+        }
     }
 
     override fun select() {

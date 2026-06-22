@@ -40,7 +40,10 @@ class OverlayTargetTest {
             windowType = 3
         )
 
-        assertEquals(OverlayTarget.Display(5), OverlayTargets.displayFallback(target))
+        assertEquals(
+            OverlayTarget.Display(displayId = 5, forceSurface = true),
+            OverlayTargets.displayFallback(target)
+        )
     }
 
     @Test

@@ -168,13 +168,14 @@ class MenuHighlightHud private constructor() {
         description: String?,
         target: OverlayTarget.Display = OverlayTargets.defaultDisplay()
     ) {
+        val hudTarget = target.copy(forceSurface = true)
         if (name.isNullOrBlank()) {
             hide()
             return
         }
         handler.post {
             ensureComposeViewIsCreated()
-            attachIfNeeded(target)
+            attachIfNeeded(hudTarget)
             nameState.value = name
             descriptionState.value = description?.takeIf { it.isNotBlank() }
             visibleState.value = true

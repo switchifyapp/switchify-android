@@ -39,14 +39,26 @@ This branch adds the first compatibility layer for future overlay routing:
 
 - Target-aware scanner entrypoints
   - `NodeScannerUI.showItemBounds(...)`, `showRowBounds(...)`, and `showEscapeBounds(...)` accept an `OverlayTarget`.
-  - Window targets currently fall back to their display target until an API 34 window-attached backend exists.
+  - Window targets use the API 34 SurfaceControl backend when available and fall back to display routing otherwise.
+
+- SurfaceControl overlay backend
+  - `SurfaceControlOverlayBackend` hosts target-routed views in `SurfaceControlViewHost`.
+  - Display targets use `attachAccessibilityOverlayToDisplay(...)`.
+  - Window targets use `attachAccessibilityOverlayToWindow(...)`.
+  - Unsupported window attachment falls back to display routing before choosing window-relative bounds; failed window attachment is skipped rather than drawing stale window-relative coordinates into the display overlay.
+  - Unsupported display attachment falls back to the existing default-display overlay root.
 
 - Keyboard window target metadata
   - `KeyboardBridge` derives `KeyboardWindowTarget` from the `TYPE_INPUT_METHOD` window.
   - `KeyboardState` carries `keyboardWindowTarget` alongside existing keyboard bounds.
   - `KeyboardWindowTarget.toOverlayTarget()` converts IME metadata to `OverlayTarget.Window`.
 
-This gives the next PRs a concrete API surface to route through without changing current runtime behavior.
+- Node window target metadata
+  - `OverlayNodeBounds` carries display, window, type, screen bounds, and optional window-relative bounds.
+  - `Node.fromAccessibilityNodeInfo(...)` captures window metadata when available.
+  - `Node.highlight()` uses window-relative bounds and `OverlayTarget.Window` on API 34+ only when the service can attach a window overlay; otherwise it uses the screen-bounds display fallback.
+
+This gives Switchify an end-to-end routed path for display and window targets while preserving legacy default-display behavior.
 
 ## Current Architecture
 
