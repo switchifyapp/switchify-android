@@ -9,6 +9,8 @@ import com.enaboapps.switchify.service.scanning.ScanHighlightStyle
 import com.enaboapps.switchify.service.utils.HighlightAnimations
 import com.enaboapps.switchify.service.utils.ScreenUtils
 import com.enaboapps.switchify.service.window.SwitchifyAccessibilityWindow
+import com.enaboapps.switchify.service.window.overlay.OverlayTarget
+import com.enaboapps.switchify.service.window.overlay.OverlayTargets
 
 class NodeScannerUI {
     companion object {
@@ -23,15 +25,18 @@ class NodeScannerUI {
 
     private var itemBoundsLayout: RelativeLayout? = null
     private var rowBoundsLayout: RelativeLayout? = null
+    private var overlayTarget: OverlayTarget = OverlayTargets.defaultDisplay()
 
     private val handler = Handler(Looper.getMainLooper())
 
-    private fun prepare() {
+    private fun prepare(target: OverlayTarget = OverlayTargets.defaultDisplay()) {
+        overlayTarget = target
         if (baseLayout == null) {
             window.getContext()?.let { context ->
                 baseLayout = RelativeLayout(context)
                 baseLayout?.let { layout ->
                     window.addView(
+                        OverlayTargets.displayFallback(target),
                         layout,
                         0,
                         0,
@@ -49,9 +54,15 @@ class NodeScannerUI {
         }
     }
 
-    fun showItemBounds(x: Int, y: Int, width: Int, height: Int) {
+    fun showItemBounds(
+        x: Int,
+        y: Int,
+        width: Int,
+        height: Int,
+        target: OverlayTarget = OverlayTargets.defaultDisplay()
+    ) {
         handler.post {
-            prepare()
+            prepare(target)
             window.getContext()?.let {
                 val params = RelativeLayout.LayoutParams(
                     width,
@@ -76,9 +87,15 @@ class NodeScannerUI {
         }
     }
 
-    fun showRowBounds(x: Int, y: Int, width: Int, height: Int) {
+    fun showRowBounds(
+        x: Int,
+        y: Int,
+        width: Int,
+        height: Int,
+        target: OverlayTarget = OverlayTargets.defaultDisplay()
+    ) {
         handler.post {
-            prepare()
+            prepare(target)
             window.getContext()?.let {
                 val params = RelativeLayout.LayoutParams(
                     width,
@@ -103,9 +120,15 @@ class NodeScannerUI {
         }
     }
 
-    fun showEscapeBounds(x: Int, y: Int, width: Int, height: Int) {
+    fun showEscapeBounds(
+        x: Int,
+        y: Int,
+        width: Int,
+        height: Int,
+        target: OverlayTarget = OverlayTargets.defaultDisplay()
+    ) {
         handler.post {
-            prepare()
+            prepare(target)
             window.getContext()?.let {
                 val params = RelativeLayout.LayoutParams(
                     width,
@@ -153,7 +176,8 @@ class NodeScannerUI {
             rowBoundsLayout = null
             val base = baseLayout ?: return@post
             baseLayout = null
-            HighlightAnimations.fadeOut(base) { window.removeView(base) }
+            val target = OverlayTargets.displayFallback(overlayTarget)
+            HighlightAnimations.fadeOut(base) { window.removeView(target, base) }
         }
     }
 }

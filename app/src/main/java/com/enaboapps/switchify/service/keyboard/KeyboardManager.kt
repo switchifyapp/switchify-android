@@ -53,6 +53,7 @@ object KeyboardManager : CycleBreakListener {
     private var isEscapedFromKeyboard = false
     private var isDirectlySelectKeyboardKeysEnabled = false
     private var keyboardBounds: Rect? = null
+    private var keyboardWindowTarget: KeyboardWindowTarget? = null
 
     // uptimeMillis at which auto-select bypass becomes available again. Used to
     // hold off bypass for BYPASS_UPDATE_DELAY_MS after returnToKeyboard so the
@@ -137,7 +138,12 @@ object KeyboardManager : CycleBreakListener {
     /**
      * Called when keyboard state changes from KeyboardBridge.
      */
-    fun onKeyboardStateChanged(visible: Boolean, bounds: Rect?, scanSettings: ScanSettings) {
+    fun onKeyboardStateChanged(
+        visible: Boolean,
+        bounds: Rect?,
+        scanSettings: ScanSettings,
+        windowTarget: KeyboardWindowTarget? = null
+    ) {
         Log.d(
             TAG,
             "Keyboard state changed: visible=$visible, wasVisible=$isKeyboardVisible, isEscaped=$isEscapedFromKeyboard"
@@ -146,8 +152,10 @@ object KeyboardManager : CycleBreakListener {
         val wasVisible = isKeyboardVisible
         val wasEscaped = isEscapedFromKeyboard
         val previousBounds = keyboardBounds
+        val previousWindowTarget = keyboardWindowTarget
         isKeyboardVisible = visible
         keyboardBounds = bounds
+        keyboardWindowTarget = windowTarget
 
         // Use state machine for state transitions
         val event = if (visible) KeyboardEvent.KeyboardShown else KeyboardEvent.KeyboardHidden
@@ -179,7 +187,12 @@ object KeyboardManager : CycleBreakListener {
         isDirectlySelectKeyboardKeysEnabled = scanSettings.isDirectlySelectKeyboardKeysEnabled()
 
         // Only notify if state actually changed
-        if (stateChanged || wasEscaped != isEscapedFromKeyboard || previousBounds != keyboardBounds) {
+        if (
+            stateChanged ||
+            wasEscaped != isEscapedFromKeyboard ||
+            previousBounds != keyboardBounds ||
+            previousWindowTarget != keyboardWindowTarget
+        ) {
             updateState()
             notifyStateChanged()
         }
@@ -263,7 +276,8 @@ object KeyboardManager : CycleBreakListener {
             isVisible = isKeyboardVisible,
             isEscaped = isEscapedFromKeyboard,
             isDirectSelectEnabled = isDirectlySelectKeyboardKeysEnabled,
-            keyboardBounds = keyboardBounds
+            keyboardBounds = keyboardBounds,
+            keyboardWindowTarget = keyboardWindowTarget
         )
     }
 

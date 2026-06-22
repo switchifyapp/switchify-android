@@ -35,6 +35,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.enaboapps.switchify.service.components.AccessibilityComposeView
+import com.enaboapps.switchify.service.window.overlay.OverlayTarget
+import com.enaboapps.switchify.service.window.overlay.OverlayTargets
 
 /**
  * Singleton top-of-screen overlay that surfaces the name and one-line
@@ -149,6 +151,7 @@ class MenuHighlightHud private constructor() {
     private val nameState = mutableStateOf<String?>(null)
     private val descriptionState = mutableStateOf<String?>(null)
     private val visibleState = mutableStateOf(false)
+    private var attachedTarget: OverlayTarget.Display? = null
 
     fun setup(appCtx: Context) {
         this.applicationCtx = appCtx.applicationContext
@@ -160,14 +163,18 @@ class MenuHighlightHud private constructor() {
      * Posting null/blank [name] is treated as a hide. Re-uses the existing
      * ComposeView across scan ticks; the card content cross-fades.
      */
-    fun show(name: String?, description: String?) {
+    fun show(
+        name: String?,
+        description: String?,
+        target: OverlayTarget.Display = OverlayTargets.defaultDisplay()
+    ) {
         if (name.isNullOrBlank()) {
             hide()
             return
         }
         handler.post {
             ensureComposeViewIsCreated()
-            attachIfNeeded()
+            attachIfNeeded(target)
             nameState.value = name
             descriptionState.value = description?.takeIf { it.isNotBlank() }
             visibleState.value = true
@@ -191,6 +198,7 @@ class MenuHighlightHud private constructor() {
             }
         }
         composeView = null
+        attachedTarget = null
         nameState.value = null
         descriptionState.value = null
         visibleState.value = false
@@ -213,15 +221,20 @@ class MenuHighlightHud private constructor() {
         }
     }
 
-    private fun attachIfNeeded() {
+    private fun attachIfNeeded(target: OverlayTarget.Display) {
         val view = composeView ?: return
+        if (view.parent != null && attachedTarget != target) {
+            SwitchifyAccessibilityWindow.instance.removeView(attachedTarget ?: OverlayTargets.defaultDisplay(), view)
+            attachedTarget = null
+        }
         if (view.parent == null) {
             try {
                 // No outer window-level margin — WindowInsets.safeDrawing
                 // inside the Composable pushes the card below the status bar
                 // and any notch, and the Card already has its own 16 dp outer
                 // padding for the horizontal gap.
-                SwitchifyAccessibilityWindow.instance.addViewToTop(view)
+                SwitchifyAccessibilityWindow.instance.addViewToTop(target, view)
+                attachedTarget = target
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to attach HUD view", e)
             }

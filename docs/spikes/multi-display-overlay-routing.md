@@ -30,6 +30,22 @@ This branch adds the first compatibility layer for future overlay routing:
   - Routes existing calls through `OverlayTarget.Display(DEFAULT_DISPLAY_ID)`.
   - Logs and falls back to the default display for non-default display targets until true multi-display backing is implemented.
 
+- Target-aware display callers
+  - `ServiceMessageHUD.showMessage(...)` accepts an optional display target.
+  - `MenuHighlightHud.show(...)` accepts an optional display target.
+  - `KeyboardEscapePrompt.show(...)` accepts an optional display target.
+  - `MenuViewHandler.setup(...)` accepts an optional display target.
+  - `AccessTechniqueUIBase` can store a display target for point, radar, head-control, and trial overlays.
+
+- Target-aware scanner entrypoints
+  - `NodeScannerUI.showItemBounds(...)`, `showRowBounds(...)`, and `showEscapeBounds(...)` accept an `OverlayTarget`.
+  - Window targets currently fall back to their display target until an API 34 window-attached backend exists.
+
+- Keyboard window target metadata
+  - `KeyboardBridge` derives `KeyboardWindowTarget` from the `TYPE_INPUT_METHOD` window.
+  - `KeyboardState` carries `keyboardWindowTarget` alongside existing keyboard bounds.
+  - `KeyboardWindowTarget.toOverlayTarget()` converts IME metadata to `OverlayTarget.Window`.
+
 This gives the next PRs a concrete API surface to route through without changing current runtime behavior.
 
 ## Current Architecture

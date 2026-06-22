@@ -242,6 +242,26 @@ class SwitchifyAccessibilityWindow private constructor() : LifecycleOwner, Saved
         )
     }
 
+    fun addView(
+        target: OverlayTarget.Display,
+        view: ViewGroup,
+        x: Int,
+        y: Int,
+        width: Int,
+        height: Int
+    ) {
+        addView(
+            target = target,
+            view = view,
+            placement = OverlayPlacement.Bounds(
+                x = x,
+                y = y,
+                width = width,
+                height = height
+            )
+        )
+    }
+
     override fun addView(
         target: OverlayTarget.Display,
         view: ViewGroup,
@@ -274,14 +294,26 @@ class SwitchifyAccessibilityWindow private constructor() : LifecycleOwner, Saved
         )
     }
 
+    fun addView(target: OverlayTarget.Display, view: ViewGroup, x: Int, y: Int) {
+        addView(
+            target = target,
+            view = view,
+            placement = OverlayPlacement.WrapAt(x, y)
+        )
+    }
+
     /**
      * Adds a view to the bottom of the window.
      * @param view The view to add.
      * @param margins The margins to add to the view.
      */
     fun addViewToBottom(view: ViewGroup, margins: Int = 0) {
+        addViewToBottom(defaultDisplayTarget, view, margins)
+    }
+
+    fun addViewToBottom(target: OverlayTarget.Display, view: ViewGroup, margins: Int = 0) {
         addView(
-            target = defaultDisplayTarget,
+            target = target,
             view = view,
             placement = OverlayPlacement.BottomCentered(margins)
         )
@@ -293,8 +325,12 @@ class SwitchifyAccessibilityWindow private constructor() : LifecycleOwner, Saved
      * @param margins The margins to add to the view.
      */
     fun addViewToTop(view: ViewGroup, margins: Int = 0) {
+        addViewToTop(defaultDisplayTarget, view, margins)
+    }
+
+    fun addViewToTop(target: OverlayTarget.Display, view: ViewGroup, margins: Int = 0) {
         addView(
-            target = defaultDisplayTarget,
+            target = target,
             view = view,
             placement = OverlayPlacement.TopCentered(margins)
         )
@@ -305,8 +341,12 @@ class SwitchifyAccessibilityWindow private constructor() : LifecycleOwner, Saved
      * @param view The view to add.
      */
     fun addViewToCenter(view: ViewGroup) {
+        addViewToCenter(defaultDisplayTarget, view)
+    }
+
+    fun addViewToCenter(target: OverlayTarget.Display, view: ViewGroup) {
         addView(
-            target = defaultDisplayTarget,
+            target = target,
             view = view,
             placement = OverlayPlacement.Centered
         )

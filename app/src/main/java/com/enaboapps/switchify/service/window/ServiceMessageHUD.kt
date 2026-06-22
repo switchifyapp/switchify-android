@@ -53,6 +53,8 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.enaboapps.switchify.service.components.AccessibilityComposeView
+import com.enaboapps.switchify.service.window.overlay.OverlayTarget
+import com.enaboapps.switchify.service.window.overlay.OverlayTargets
 import com.enaboapps.switchify.utils.Resources
 import kotlinx.coroutines.launch
 import kotlin.math.abs
@@ -417,7 +419,8 @@ class ServiceMessageHUD private constructor() {
         args: Array<out Any>?,
         messageType: MessageType,
         time: Time,
-        severity: MessageSeverity
+        severity: MessageSeverity,
+        target: OverlayTarget.Display
     ) {
         applicationCtx ?: run {
             Log.e(TAG, "ApplicationContext is null, cannot show message. Call setup() first.")
@@ -442,7 +445,7 @@ class ServiceMessageHUD private constructor() {
                 try {
                     // Add view to window if not already there
                     if (view.parent == null) {
-                        SwitchifyAccessibilityWindow.instance.addViewToBottom(view)
+                        SwitchifyAccessibilityWindow.instance.addViewToBottom(target, view)
                         Log.d(TAG, "Message ComposeView added to window.")
                     }
                 } catch (e: Exception) {
@@ -476,9 +479,10 @@ class ServiceMessageHUD private constructor() {
         messageResId: Int,
         messageType: MessageType,
         time: Time = Time.MEDIUM,
-        severity: MessageSeverity = MessageSeverity.Info
+        severity: MessageSeverity = MessageSeverity.Info,
+        target: OverlayTarget.Display = OverlayTargets.defaultDisplay()
     ) {
-        showMessageInternal(messageResId, null, messageType, time, severity)
+        showMessageInternal(messageResId, null, messageType, time, severity, target)
     }
 
     /**
@@ -495,9 +499,10 @@ class ServiceMessageHUD private constructor() {
         messageArgs: Array<out Any>,
         messageType: MessageType,
         time: Time = Time.MEDIUM,
-        severity: MessageSeverity = MessageSeverity.Info
+        severity: MessageSeverity = MessageSeverity.Info,
+        target: OverlayTarget.Display = OverlayTargets.defaultDisplay()
     ) {
-        showMessageInternal(messageResId, messageArgs, messageType, time, severity)
+        showMessageInternal(messageResId, messageArgs, messageType, time, severity, target)
     }
 
     /**

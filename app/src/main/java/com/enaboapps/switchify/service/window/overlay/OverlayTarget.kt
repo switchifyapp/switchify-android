@@ -16,4 +16,11 @@ object OverlayTargets {
     fun defaultDisplay(): OverlayTarget.Display {
         return OverlayTarget.Display(DEFAULT_DISPLAY_ID)
     }
+
+    fun displayFallback(target: OverlayTarget): OverlayTarget.Display {
+        return when (target) {
+            is OverlayTarget.Display -> target
+            is OverlayTarget.Window -> OverlayTarget.Display(target.displayId)
+        }
+    }
 }

@@ -26,6 +26,24 @@ class OverlayTargetTest {
     }
 
     @Test
+    fun displayFallbackPreservesDisplayTarget() {
+        val target = OverlayTarget.Display(4)
+
+        assertEquals(target, OverlayTargets.displayFallback(target))
+    }
+
+    @Test
+    fun displayFallbackUsesWindowDisplayId() {
+        val target = OverlayTarget.Window(
+            displayId = 5,
+            accessibilityWindowId = 42,
+            windowType = 3
+        )
+
+        assertEquals(OverlayTarget.Display(5), OverlayTargets.displayFallback(target))
+    }
+
+    @Test
     fun boundsPlacementCarriesAbsoluteGeometry() {
         val placement = OverlayPlacement.Bounds(
             x = 10,
