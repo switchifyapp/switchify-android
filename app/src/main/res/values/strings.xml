@@ -358,6 +358,7 @@
     <string name="pc_typing_section_document">Document</string>
     <string name="pc_typing_text_label">Text</string>
     <string name="pc_typing_send">Send</string>
+    <string name="pc_typing_send_enter">Send + Enter</string>
     <string name="pc_typing_clear">Clear</string>
     <string name="pc_typing_close">Close</string>
     <string name="pc_typing_send_failed">Could not send text to PC.</string>

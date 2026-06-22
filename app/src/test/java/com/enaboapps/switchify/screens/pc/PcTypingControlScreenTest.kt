@@ -2,7 +2,6 @@ package com.enaboapps.switchify.screens.pc
 
 import com.enaboapps.switchify.pc.PcKeyboardKey
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class PcTypingControlScreenTest {
@@ -79,8 +78,6 @@ class PcTypingControlScreenTest {
         val specs = pcTypingCompactCommandSpecs()
         val keys = specs.mapNotNull { (it as? PcTypingCompactCommandSpec.Key)?.spec?.key }
 
-        assertTrue(specs[0] is PcTypingCompactCommandSpec.Send)
-        assertTrue(specs[1] is PcTypingCompactCommandSpec.Clear)
         assertEquals(
             listOf(
                 PcKeyboardKey.Backspace,
@@ -105,6 +102,19 @@ class PcTypingControlScreenTest {
                 PcKeyboardKey.F12
             ),
             keys
+        )
+        assertEquals(keys.size, specs.size)
+    }
+
+    @Test
+    fun typingTextActionsUseStableOrder() {
+        assertEquals(
+            listOf(
+                PcTypingTextAction.Send,
+                PcTypingTextAction.SendAndEnter,
+                PcTypingTextAction.Clear
+            ),
+            pcTypingTextActions()
         )
     }
 }

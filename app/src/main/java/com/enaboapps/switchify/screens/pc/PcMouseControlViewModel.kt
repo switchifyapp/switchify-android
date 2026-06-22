@@ -190,20 +190,86 @@ class PcMouseControlViewModel(
     }
 
     fun sendTypedText() {
+        sendTypedTextInternal(sendEnterAfterText = false)
+    }
+
+    fun sendTypedTextThenEnter() {
+        sendTypedTextInternal(sendEnterAfterText = true)
+    }
+
+    private fun sendTypedTextInternal(sendEnterAfterText: Boolean) {
         val text = _uiState.value.typingText
         validationMessageFor(text)?.let { message ->
             _uiState.update { it.copy(typingMessage = message) }
             return
         }
         if (text.isEmpty()) return
-        sendNoAckCommand(PcControlCommand.TypeText(text)) {
-            it.copy(
-                isBusy = false,
-                busyCommand = null,
-                typingText = "",
-                typingMessage = null,
-                message = null
-            )
+
+        val textCommand = PcControlCommand.TypeText(text)
+        val controller = serviceControllerProvider()
+        val state = controller?.state?.value
+        if (controller == null || !controller.hasLiveControlSession()) {
+            val message = if (state is PcServiceConnectionState.Reconnecting) RECONNECTING_MESSAGE else CONNECT_FIRST_MESSAGE
+            showCommandBlocked(textCommand, message)
+            return
+        }
+        if (state is PcServiceConnectionState.Reconnecting || state is PcServiceConnectionState.OpeningControlSession) {
+            showCommandBlocked(textCommand, RECONNECTING_MESSAGE)
+            return
+        }
+
+        viewModelScope.launch {
+            when (val textResult = controller.sendRealtimeControlCommand(textCommand)) {
+                PcCommandResult.Ack -> {
+                    _uiState.update {
+                        it.copy(
+                            isBusy = false,
+                            busyCommand = null,
+                            typingText = "",
+                            typingMessage = null,
+                            message = null
+                        )
+                    }
+                    if (sendEnterAfterText) {
+                        sendEnterAfterTypedText(controller)
+                    }
+                }
+                is PcCommandResult.AuthFailed -> _uiState.update {
+                    it.copy(
+                        message = textResult.message,
+                        typingMessage = textResult.message
+                    )
+                }
+                is PcCommandResult.Failed -> _uiState.update {
+                    it.copy(
+                        typingMessage = TYPING_FAILED_MESSAGE
+                    )
+                }
+            }
+        }
+    }
+
+    private suspend fun sendEnterAfterTypedText(controller: PcServiceConnectionController) {
+        when (val keyResult = controller.sendRealtimeControlCommand(PcControlCommand.PressKey(PcKeyboardKey.Enter))) {
+            PcCommandResult.Ack -> _uiState.update {
+                it.copy(
+                    isBusy = false,
+                    busyCommand = null,
+                    typingMessage = null,
+                    message = null
+                )
+            }
+            is PcCommandResult.AuthFailed -> _uiState.update {
+                it.copy(
+                    message = keyResult.message,
+                    typingMessage = keyResult.message
+                )
+            }
+            is PcCommandResult.Failed -> _uiState.update {
+                it.copy(
+                    typingMessage = KEY_FAILED_MESSAGE
+                )
+            }
         }
     }
 

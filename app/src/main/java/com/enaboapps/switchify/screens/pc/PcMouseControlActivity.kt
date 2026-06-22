@@ -158,6 +158,7 @@ private fun PcMouseControlScreen(
                         enabled = surfaceEnabled,
                         onTextChanged = viewModel::updateTypingText,
                         onSend = viewModel::sendTypedText,
+                        onSendAndEnter = viewModel::sendTypedTextThenEnter,
                         onClear = viewModel::clearTypingText,
                         onKeySelected = viewModel::sendKey
                     )
