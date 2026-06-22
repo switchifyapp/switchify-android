@@ -6,6 +6,32 @@ Switchify currently treats service overlay UI as one full-screen accessibility o
 
 This spike documents the current architecture, the Android APIs involved, the data gaps, and a staged implementation path. It does not change production behavior.
 
+## Implemented In This Spike
+
+This branch adds the first compatibility layer for future overlay routing:
+
+- `OverlayTarget`
+  - Represents display-scoped and window-scoped overlay destinations.
+  - Includes `windowType` so `TYPE_INPUT_METHOD` keyboard windows can be treated differently from application windows.
+
+- `OverlayPlacement`
+  - Represents the existing placement modes used by `SwitchifyAccessibilityWindow`.
+  - Covers absolute bounds, wrap-at-coordinate, top, bottom, and centered placement.
+
+- `SwitchifyOverlayHost`
+  - Defines a display-scoped add/remove interface for overlay hosts.
+
+- `OverlayDisplayMetrics` and `OverlayDisplayMetricsProvider`
+  - Introduce a small metrics value object and default-display provider.
+
+- `SwitchifyAccessibilityWindow`
+  - Implements `SwitchifyOverlayHost`.
+  - Keeps all existing public add/remove methods as compatibility wrappers.
+  - Routes existing calls through `OverlayTarget.Display(DEFAULT_DISPLAY_ID)`.
+  - Logs and falls back to the default display for non-default display targets until true multi-display backing is implemented.
+
+This gives the next PRs a concrete API surface to route through without changing current runtime behavior.
+
 ## Current Architecture
 
 The current overlay root is `SwitchifyAccessibilityWindow`.
@@ -489,4 +515,3 @@ Prioritize Android multi-display:
 - The report treats keyboard key highlights as possible window-scoped overlays because the keyboard is a `TYPE_INPUT_METHOD` window.
 - API 34 compatibility and fallback requirements are explicit.
 - `.\gradlew compileDebugKotlin` passes.
-

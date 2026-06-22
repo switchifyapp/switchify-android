@@ -17,12 +17,17 @@ import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import com.enaboapps.switchify.service.core.SwitchifyLifecycleOwner
 import com.enaboapps.switchify.service.llm.MediaPipeBackend
 import com.enaboapps.switchify.service.utils.ScreenWatcher
+import com.enaboapps.switchify.service.window.overlay.OverlayPlacement
+import com.enaboapps.switchify.service.window.overlay.OverlayTarget
+import com.enaboapps.switchify.service.window.overlay.OverlayTargets
+import com.enaboapps.switchify.service.window.overlay.SwitchifyOverlayHost
 
 /**
  * This class manages the window for the Switchify accessibility service.
  * It handles adding and removing views, as well as managing the window state.
  */
-class SwitchifyAccessibilityWindow private constructor() : LifecycleOwner, SavedStateRegistryOwner {
+class SwitchifyAccessibilityWindow private constructor() : LifecycleOwner, SavedStateRegistryOwner,
+    SwitchifyOverlayHost {
 
     private var windowManager: WindowManager? = null
     private var baseLayout: RelativeLayout? = null
@@ -37,6 +42,8 @@ class SwitchifyAccessibilityWindow private constructor() : LifecycleOwner, Saved
             SwitchifyAccessibilityWindow()
         }
     }
+
+    private val defaultDisplayTarget = OverlayTargets.defaultDisplay()
 
     override val lifecycle: Lifecycle
         get() = SwitchifyLifecycleOwner.getInstance().lifecycle
@@ -223,11 +230,29 @@ class SwitchifyAccessibilityWindow private constructor() : LifecycleOwner, Saved
      * @param height The height of the view.
      */
     fun addView(view: ViewGroup, x: Int, y: Int, width: Int, height: Int) {
+        addView(
+            target = defaultDisplayTarget,
+            view = view,
+            placement = OverlayPlacement.Bounds(
+                x = x,
+                y = y,
+                width = width,
+                height = height
+            )
+        )
+    }
+
+    override fun addView(
+        target: OverlayTarget.Display,
+        view: ViewGroup,
+        placement: OverlayPlacement
+    ) {
         mainHandler.post {
             try {
-                val params = RelativeLayout.LayoutParams(width, height)
-                params.leftMargin = x
-                params.topMargin = y
+                if (target.displayId != OverlayTargets.DEFAULT_DISPLAY_ID) {
+                    Log.w(TAG, "Display ${target.displayId} overlays fall back to default display")
+                }
+                val params = layoutParamsForPlacement(placement)
                 baseLayout?.addView(view, params)
             } catch (e: Exception) {
                 Log.e(TAG, "Error in addView: ${e.message}", e)
@@ -242,19 +267,11 @@ class SwitchifyAccessibilityWindow private constructor() : LifecycleOwner, Saved
      * @param y The y coordinate of the view.
      */
     fun addView(view: ViewGroup, x: Int, y: Int) {
-        mainHandler.post {
-            try {
-                val params = RelativeLayout.LayoutParams(
-                    RelativeLayout.LayoutParams.WRAP_CONTENT,
-                    RelativeLayout.LayoutParams.WRAP_CONTENT
-                )
-                params.leftMargin = x
-                params.topMargin = y
-                baseLayout?.addView(view, params)
-            } catch (e: Exception) {
-                Log.e(TAG, "Error in addView: ${e.message}", e)
-            }
-        }
+        addView(
+            target = defaultDisplayTarget,
+            view = view,
+            placement = OverlayPlacement.WrapAt(x, y)
+        )
     }
 
     /**
@@ -263,20 +280,11 @@ class SwitchifyAccessibilityWindow private constructor() : LifecycleOwner, Saved
      * @param margins The margins to add to the view.
      */
     fun addViewToBottom(view: ViewGroup, margins: Int = 0) {
-        mainHandler.post {
-            try {
-                val params = RelativeLayout.LayoutParams(
-                    RelativeLayout.LayoutParams.WRAP_CONTENT,
-                    RelativeLayout.LayoutParams.WRAP_CONTENT
-                )
-                params.addRule(RelativeLayout.CENTER_HORIZONTAL)
-                params.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM)
-                params.setMargins(margins, margins, margins, margins)
-                baseLayout?.addView(view, params)
-            } catch (e: Exception) {
-                Log.e(TAG, "Error in addViewToBottom: ${e.message}", e)
-            }
-        }
+        addView(
+            target = defaultDisplayTarget,
+            view = view,
+            placement = OverlayPlacement.BottomCentered(margins)
+        )
     }
 
     /**
@@ -285,20 +293,11 @@ class SwitchifyAccessibilityWindow private constructor() : LifecycleOwner, Saved
      * @param margins The margins to add to the view.
      */
     fun addViewToTop(view: ViewGroup, margins: Int = 0) {
-        mainHandler.post {
-            try {
-                val params = RelativeLayout.LayoutParams(
-                    RelativeLayout.LayoutParams.WRAP_CONTENT,
-                    RelativeLayout.LayoutParams.WRAP_CONTENT
-                )
-                params.addRule(RelativeLayout.CENTER_HORIZONTAL)
-                params.addRule(RelativeLayout.ALIGN_PARENT_TOP)
-                params.setMargins(margins, margins, margins, margins)
-                baseLayout?.addView(view, params)
-            } catch (e: Exception) {
-                Log.e(TAG, "Error in addViewToTop: ${e.message}", e)
-            }
-        }
+        addView(
+            target = defaultDisplayTarget,
+            view = view,
+            placement = OverlayPlacement.TopCentered(margins)
+        )
     }
 
     /**
@@ -306,18 +305,11 @@ class SwitchifyAccessibilityWindow private constructor() : LifecycleOwner, Saved
      * @param view The view to add.
      */
     fun addViewToCenter(view: ViewGroup) {
-        mainHandler.post {
-            try {
-                val params = RelativeLayout.LayoutParams(
-                    RelativeLayout.LayoutParams.WRAP_CONTENT,
-                    RelativeLayout.LayoutParams.WRAP_CONTENT
-                )
-                params.addRule(RelativeLayout.CENTER_IN_PARENT)
-                baseLayout?.addView(view, params)
-            } catch (e: Exception) {
-                Log.e(TAG, "Error in addViewToCenter: ${e.message}", e)
-            }
-        }
+        addView(
+            target = defaultDisplayTarget,
+            view = view,
+            placement = OverlayPlacement.Centered
+        )
     }
 
     /**
@@ -325,8 +317,15 @@ class SwitchifyAccessibilityWindow private constructor() : LifecycleOwner, Saved
      * @param view The view to remove.
      */
     fun removeView(view: ViewGroup) {
+        removeView(defaultDisplayTarget, view)
+    }
+
+    override fun removeView(target: OverlayTarget.Display, view: ViewGroup) {
         mainHandler.post {
             try {
+                if (target.displayId != OverlayTargets.DEFAULT_DISPLAY_ID) {
+                    Log.w(TAG, "Display ${target.displayId} removal falls back to default display")
+                }
                 if (view.parent == baseLayout) {
                     baseLayout?.removeView(view)
                 } else {
@@ -343,13 +342,75 @@ class SwitchifyAccessibilityWindow private constructor() : LifecycleOwner, Saved
      * @param id The id of the view to remove.
      */
     fun removeView(id: Int) {
+        removeView(defaultDisplayTarget, id)
+    }
+
+    override fun removeView(target: OverlayTarget.Display, id: Int) {
         mainHandler.post {
             try {
+                if (target.displayId != OverlayTargets.DEFAULT_DISPLAY_ID) {
+                    Log.w(TAG, "Display ${target.displayId} removal by id falls back to default display")
+                }
                 baseLayout?.findViewById<ViewGroup>(id)?.let { view ->
                     baseLayout?.removeView(view)
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Error in removeView by id: ${e.message}", e)
+            }
+        }
+    }
+
+    private fun layoutParamsForPlacement(placement: OverlayPlacement): RelativeLayout.LayoutParams {
+        return when (placement) {
+            is OverlayPlacement.Bounds -> RelativeLayout.LayoutParams(
+                placement.width,
+                placement.height
+            ).apply {
+                leftMargin = placement.x
+                topMargin = placement.y
+            }
+
+            is OverlayPlacement.WrapAt -> RelativeLayout.LayoutParams(
+                RelativeLayout.LayoutParams.WRAP_CONTENT,
+                RelativeLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                leftMargin = placement.x
+                topMargin = placement.y
+            }
+
+            is OverlayPlacement.BottomCentered -> RelativeLayout.LayoutParams(
+                RelativeLayout.LayoutParams.WRAP_CONTENT,
+                RelativeLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                addRule(RelativeLayout.CENTER_HORIZONTAL)
+                addRule(RelativeLayout.ALIGN_PARENT_BOTTOM)
+                setMargins(
+                    placement.margins,
+                    placement.margins,
+                    placement.margins,
+                    placement.margins
+                )
+            }
+
+            is OverlayPlacement.TopCentered -> RelativeLayout.LayoutParams(
+                RelativeLayout.LayoutParams.WRAP_CONTENT,
+                RelativeLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                addRule(RelativeLayout.CENTER_HORIZONTAL)
+                addRule(RelativeLayout.ALIGN_PARENT_TOP)
+                setMargins(
+                    placement.margins,
+                    placement.margins,
+                    placement.margins,
+                    placement.margins
+                )
+            }
+
+            OverlayPlacement.Centered -> RelativeLayout.LayoutParams(
+                RelativeLayout.LayoutParams.WRAP_CONTENT,
+                RelativeLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                addRule(RelativeLayout.CENTER_IN_PARENT)
             }
         }
     }
