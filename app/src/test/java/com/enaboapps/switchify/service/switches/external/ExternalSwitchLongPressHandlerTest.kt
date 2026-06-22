@@ -30,4 +30,28 @@ class ExternalSwitchLongPressHandlerTest {
     fun cancelReturnsFalseWhenThereIsNoState() {
         assertFalse(ExternalSwitchLongPressHandler.cancel())
     }
+
+    @Test
+    fun cancelClearsActiveHoldPickerState() {
+        ExternalSwitchLongPressHandler.setHoldActionsForTesting(
+            listOf(SwitchAction(SwitchAction.ACTION_TOGGLE_GESTURE_LOCK))
+        )
+
+        assertTrue(ExternalSwitchLongPressHandler.isActive())
+        assertTrue(ExternalSwitchLongPressHandler.cancel())
+
+        assertFalse(ExternalSwitchLongPressHandler.isActive())
+        assertNull(ExternalSwitchLongPressHandler.getPendingAction())
+    }
+
+    @Test
+    fun cancelPreventsPendingHoldActionFromBeingPerformed() {
+        ExternalSwitchLongPressHandler.setPendingActionForTesting(
+            SwitchAction(SwitchAction.ACTION_TOGGLE_GESTURE_LOCK)
+        )
+
+        assertTrue(ExternalSwitchLongPressHandler.cancel())
+
+        assertFalse(ExternalSwitchLongPressHandler.stopAndPerformPending(null))
+    }
 }

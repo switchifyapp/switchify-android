@@ -126,6 +126,7 @@ class ExternalSwitchListener(
         }
 
         if (SelectionHandler.isAutoSelectInProgress()) {
+            cancelCurrentPressInteraction()
             SelectionHandler.performSelectionAction()
             return true
         }
@@ -351,6 +352,11 @@ class ExternalSwitchListener(
     private fun clearPressSession() {
         pressSession = ExternalSwitchPressSession.None
         gestureLockHoldFired = false
+    }
+
+    private fun cancelCurrentPressInteraction() {
+        ExternalSwitchLongPressHandler.cancel()
+        clearPressSession()
     }
 
     private fun resumeScanningIfNeeded() {
