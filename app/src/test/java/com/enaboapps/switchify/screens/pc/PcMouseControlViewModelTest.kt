@@ -20,6 +20,7 @@ import com.enaboapps.switchify.pc.PcPairingResult
 import com.enaboapps.switchify.pc.PcPairingTokenStore
 import com.enaboapps.switchify.pc.PcPingResult
 import com.enaboapps.switchify.pc.PcPointerBounds
+import com.enaboapps.switchify.pc.PcPointerCapabilities
 import com.enaboapps.switchify.pc.PcPointerDeltas
 import com.enaboapps.switchify.pc.PcPointerMovementProfile
 import com.enaboapps.switchify.pc.PcServiceConnectionController
@@ -31,6 +32,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runCurrent
@@ -38,6 +40,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -111,6 +114,16 @@ class PcMouseControlViewModelTest {
         advanceUntilIdle()
 
         assertEquals(130, viewModel.uiState.value.movementStep)
+    }
+
+    @Test
+    fun connectedServiceStateReportsTextStreamSupport() = runTest(dispatcher) {
+        val controller = connectedController(pointerProfile = textStreamPointerProfile())
+        val viewModel = viewModel(controller)
+
+        advanceUntilIdle()
+
+        assertEquals(true, viewModel.uiState.value.supportsTextStreamInput)
     }
 
     @Test
@@ -225,6 +238,137 @@ class PcMouseControlViewModelTest {
         assertTrue(connector.commands.isEmpty())
         assertEquals("", viewModel.uiState.value.typingText)
         assertNull(viewModel.uiState.value.typingMessage)
+        assertFalse(viewModel.uiState.value.isBusy)
+        assertNull(viewModel.uiState.value.busyCommand)
+    }
+
+    @Test
+    fun typedTextSetsBusyWhileBulkSendIsInFlight() = runTest(dispatcher) {
+        val pendingText = CompletableDeferred<PcCommandResult>()
+        val connector = FakeConnector(realtimeResults = mutableListOf(pendingText))
+        val controller = connectedController(connector = connector)
+        val viewModel = viewModel(controller)
+
+        viewModel.updateTypingText("Hello")
+        viewModel.sendTypedText()
+        runCurrent()
+
+        assertTrue(viewModel.uiState.value.isBusy)
+        assertEquals(PcControlCommand.TypeText("Hello"), viewModel.uiState.value.busyCommand)
+
+        pendingText.complete(PcCommandResult.Ack)
+        advanceUntilIdle()
+
+        assertFalse(viewModel.uiState.value.isBusy)
+        assertNull(viewModel.uiState.value.busyCommand)
+        assertEquals("", viewModel.uiState.value.typingText)
+    }
+
+    @Test
+    fun typedTextThenEnterKeepsBusyUntilEnterCompletes() = runTest(dispatcher) {
+        val pendingEnter = CompletableDeferred<PcCommandResult>()
+        val connector = FakeConnector(realtimeResults = mutableListOf(PcCommandResult.Ack, pendingEnter))
+        val controller = connectedController(connector = connector)
+        val viewModel = viewModel(controller)
+
+        viewModel.updateTypingText("Hello")
+        viewModel.sendTypedTextThenEnter()
+        runCurrent()
+
+        assertTrue(viewModel.uiState.value.isBusy)
+        assertEquals("", viewModel.uiState.value.typingText)
+        assertEquals(PcControlCommand.TypeText("Hello"), viewModel.uiState.value.busyCommand)
+
+        pendingEnter.complete(PcCommandResult.Ack)
+        advanceUntilIdle()
+
+        assertFalse(viewModel.uiState.value.isBusy)
+        assertNull(viewModel.uiState.value.busyCommand)
+    }
+
+    @Test
+    fun typingSendIgnoresSecondTapWhileBusy() = runTest(dispatcher) {
+        val pendingText = CompletableDeferred<PcCommandResult>()
+        val connector = FakeConnector(realtimeResults = mutableListOf(pendingText))
+        val controller = connectedController(connector = connector)
+        val viewModel = viewModel(controller)
+
+        viewModel.updateTypingText("Hello")
+        viewModel.sendTypedText()
+        viewModel.sendTypedText()
+        runCurrent()
+
+        assertEquals(listOf(PcControlCommand.TypeText("Hello")), connector.realtimeCommands)
+
+        pendingText.complete(PcCommandResult.Ack)
+        advanceUntilIdle()
+    }
+
+    @Test
+    fun connectedStateStreamsTypedTextWhenSupported() = runTest(dispatcher) {
+        val connector = FakeConnector()
+        val controller = connectedController(connector = connector, pointerProfile = textStreamPointerProfile())
+        val viewModel = viewModel(controller)
+
+        viewModel.showTypingSurface()
+        viewModel.updateTypingText("Hi")
+        viewModel.sendTypedText()
+        advanceUntilIdle()
+
+        assertEquals(3, connector.commands.size)
+        val open = connector.commands[0] as PcControlCommand.TextStreamOpen
+        assertEquals(
+            listOf(
+                PcControlCommand.TextStreamOpen(open.streamId),
+                PcControlCommand.TextStreamChunk(open.streamId, 0, "Hi"),
+                PcControlCommand.TextStreamClose(open.streamId, expectedCount = 1)
+            ),
+            connector.commands
+        )
+        assertTrue(connector.realtimeCommands.isEmpty())
+        assertEquals("", viewModel.uiState.value.typingText)
+        assertNull(viewModel.uiState.value.typingMessage)
+        assertFalse(viewModel.uiState.value.isBusy)
+        assertNull(viewModel.uiState.value.busyCommand)
+    }
+
+    @Test
+    fun streamedTypedTextSetsBusyWhileInFlight() = runTest(dispatcher) {
+        val pendingChunk = CompletableDeferred<PcCommandResult>()
+        val connector = FakeConnector(commandResults = mutableListOf(PcCommandResult.Ack, pendingChunk, PcCommandResult.Ack))
+        val controller = connectedController(connector = connector, pointerProfile = textStreamPointerProfile())
+        val viewModel = viewModel(controller)
+
+        viewModel.updateTypingText("Hi")
+        viewModel.sendTypedText()
+        runCurrent()
+
+        assertTrue(viewModel.uiState.value.isBusy)
+        assertEquals(PcControlCommand.TypeText("Hi"), viewModel.uiState.value.busyCommand)
+
+        pendingChunk.complete(PcCommandResult.Ack)
+        advanceUntilIdle()
+
+        assertFalse(viewModel.uiState.value.isBusy)
+        assertNull(viewModel.uiState.value.busyCommand)
+        assertEquals("", viewModel.uiState.value.typingText)
+    }
+
+    @Test
+    fun connectedStateFallsBackToBulkTypedTextWhenStreamsUnsupported() = runTest(dispatcher) {
+        val connector = FakeConnector()
+        val controller = connectedController(connector = connector, pointerProfile = pointerProfile())
+        val viewModel = viewModel(controller)
+
+        viewModel.updateTypingText("Hi")
+        viewModel.sendTypedText()
+        advanceUntilIdle()
+
+        assertEquals(listOf(PcControlCommand.TypeText("Hi")), connector.realtimeCommands)
+        assertTrue(connector.commands.isEmpty())
+        assertEquals("", viewModel.uiState.value.typingText)
+        assertFalse(viewModel.uiState.value.isBusy)
+        assertNull(viewModel.uiState.value.busyCommand)
     }
 
     @Test
@@ -247,6 +391,144 @@ class PcMouseControlViewModelTest {
         )
         assertEquals("", viewModel.uiState.value.typingText)
         assertNull(viewModel.uiState.value.typingMessage)
+        assertFalse(viewModel.uiState.value.isBusy)
+        assertNull(viewModel.uiState.value.busyCommand)
+    }
+
+    @Test
+    fun connectedStateStreamsTypedTextThenEnterWhenSupported() = runTest(dispatcher) {
+        val connector = FakeConnector()
+        val controller = connectedController(connector = connector, pointerProfile = textStreamPointerProfile())
+        val viewModel = viewModel(controller)
+
+        viewModel.updateTypingText("Hi")
+        viewModel.sendTypedTextThenEnter()
+        advanceUntilIdle()
+
+        val streamId = (connector.commands[0] as PcControlCommand.TextStreamOpen).streamId
+        assertEquals(
+            listOf(
+                PcControlCommand.TextStreamOpen(streamId),
+                PcControlCommand.TextStreamChunk(streamId, 0, "Hi"),
+                PcControlCommand.TextStreamKey(streamId, 1, PcKeyboardKey.Enter),
+                PcControlCommand.TextStreamClose(streamId, expectedCount = 2)
+            ),
+            connector.commands
+        )
+        assertTrue(connector.realtimeCommands.isEmpty())
+        assertEquals("", viewModel.uiState.value.typingText)
+        assertNull(viewModel.uiState.value.typingMessage)
+        assertFalse(viewModel.uiState.value.isBusy)
+        assertNull(viewModel.uiState.value.busyCommand)
+    }
+
+    @Test
+    fun connectedStateStreamsNewlineAsEnterKey() = runTest(dispatcher) {
+        val connector = FakeConnector()
+        val controller = connectedController(connector = connector, pointerProfile = textStreamPointerProfile())
+        val viewModel = viewModel(controller)
+
+        viewModel.updateTypingText("a\nb")
+        viewModel.sendTypedText()
+        advanceUntilIdle()
+
+        val streamId = (connector.commands[0] as PcControlCommand.TextStreamOpen).streamId
+        assertEquals(
+            listOf(
+                PcControlCommand.TextStreamOpen(streamId),
+                PcControlCommand.TextStreamChunk(streamId, 0, "a"),
+                PcControlCommand.TextStreamKey(streamId, 1, PcKeyboardKey.Enter),
+                PcControlCommand.TextStreamChunk(streamId, 2, "b"),
+                PcControlCommand.TextStreamClose(streamId, expectedCount = 3)
+            ),
+            connector.commands
+        )
+        assertTrue(connector.realtimeCommands.isEmpty())
+    }
+
+    @Test
+    fun textStreamDelaysBetweenItems() = runTest(dispatcher) {
+        val connector = FakeConnector()
+        val controller = connectedController(connector = connector, pointerProfile = textStreamPointerProfile())
+        val viewModel = viewModel(controller)
+
+        viewModel.updateTypingText("abcdefghi")
+        viewModel.sendTypedText()
+        runCurrent()
+
+        val streamId = (connector.commands[0] as PcControlCommand.TextStreamOpen).streamId
+        assertEquals(
+            listOf(
+                PcControlCommand.TextStreamOpen(streamId),
+                PcControlCommand.TextStreamChunk(streamId, 0, "abcd")
+            ),
+            connector.commands
+        )
+
+        advanceTimeBy(PcMouseControlViewModel.TEXT_STREAM_SEND_DELAY_MS - 1)
+        runCurrent()
+
+        assertEquals(
+            listOf(
+                PcControlCommand.TextStreamOpen(streamId),
+                PcControlCommand.TextStreamChunk(streamId, 0, "abcd")
+            ),
+            connector.commands
+        )
+
+        advanceTimeBy(1)
+        runCurrent()
+
+        assertEquals(PcControlCommand.TextStreamChunk(streamId, 1, "efgh"), connector.commands[2])
+    }
+
+    @Test
+    fun streamedTypedTextFailureClearsBusyAndKeepsText() = runTest(dispatcher) {
+        val connector = FakeConnector(commandResults = mutableListOf(PcCommandResult.Ack, PcCommandResult.Failed()))
+        val controller = connectedController(connector = connector, pointerProfile = textStreamPointerProfile())
+        val viewModel = viewModel(controller)
+
+        viewModel.updateTypingText("Hi")
+        viewModel.sendTypedText()
+        advanceUntilIdle()
+
+        val streamId = (connector.commands[0] as PcControlCommand.TextStreamOpen).streamId
+        assertEquals(
+            listOf(
+                PcControlCommand.TextStreamOpen(streamId),
+                PcControlCommand.TextStreamChunk(streamId, 0, "Hi")
+            ),
+            connector.commands
+        )
+        assertEquals("Hi", viewModel.uiState.value.typingText)
+        assertEquals(PcMouseControlViewModel.TYPING_FAILED_MESSAGE, viewModel.uiState.value.typingMessage)
+        assertFalse(viewModel.uiState.value.isBusy)
+        assertNull(viewModel.uiState.value.busyCommand)
+    }
+
+    @Test
+    fun streamedTypedTextCloseFailureClearsBusyAndKeepsText() = runTest(dispatcher) {
+        val connector = FakeConnector(commandResults = mutableListOf(PcCommandResult.Ack, PcCommandResult.Ack, PcCommandResult.Failed()))
+        val controller = connectedController(connector = connector, pointerProfile = textStreamPointerProfile())
+        val viewModel = viewModel(controller)
+
+        viewModel.updateTypingText("Hi")
+        viewModel.sendTypedText()
+        advanceUntilIdle()
+
+        val streamId = (connector.commands[0] as PcControlCommand.TextStreamOpen).streamId
+        assertEquals(
+            listOf(
+                PcControlCommand.TextStreamOpen(streamId),
+                PcControlCommand.TextStreamChunk(streamId, 0, "Hi"),
+                PcControlCommand.TextStreamClose(streamId, expectedCount = 1)
+            ),
+            connector.commands
+        )
+        assertEquals("Hi", viewModel.uiState.value.typingText)
+        assertEquals(PcMouseControlViewModel.TYPING_FAILED_MESSAGE, viewModel.uiState.value.typingMessage)
+        assertFalse(viewModel.uiState.value.isBusy)
+        assertNull(viewModel.uiState.value.busyCommand)
     }
 
     @Test
@@ -262,6 +544,8 @@ class PcMouseControlViewModelTest {
         assertTrue(connector.realtimeCommands.isEmpty())
         assertEquals("hello\u001Bworld", viewModel.uiState.value.typingText)
         assertEquals(PcMouseControlViewModel.TEXT_UNSUPPORTED_MESSAGE, viewModel.uiState.value.typingMessage)
+        assertFalse(viewModel.uiState.value.isBusy)
+        assertNull(viewModel.uiState.value.busyCommand)
     }
 
     @Test
@@ -277,6 +561,8 @@ class PcMouseControlViewModelTest {
         assertEquals(listOf(PcControlCommand.TypeText("Hello")), connector.realtimeCommands)
         assertEquals("Hello", viewModel.uiState.value.typingText)
         assertEquals(PcMouseControlViewModel.TYPING_FAILED_MESSAGE, viewModel.uiState.value.typingMessage)
+        assertFalse(viewModel.uiState.value.isBusy)
+        assertNull(viewModel.uiState.value.busyCommand)
     }
 
     @Test
@@ -303,6 +589,8 @@ class PcMouseControlViewModelTest {
         )
         assertEquals("", viewModel.uiState.value.typingText)
         assertEquals(PcMouseControlViewModel.KEY_FAILED_MESSAGE, viewModel.uiState.value.typingMessage)
+        assertFalse(viewModel.uiState.value.isBusy)
+        assertNull(viewModel.uiState.value.busyCommand)
     }
 
     @Test
@@ -402,21 +690,69 @@ class PcMouseControlViewModelTest {
     }
 
     @Test
-    fun typedTextIsNotDroppedByBusyState() = runTest(dispatcher) {
-        val connector = FakeConnector()
+    fun typedTextIsBlockedByBusyState() = runTest(dispatcher) {
+        val pendingText = CompletableDeferred<PcCommandResult>()
+        val connector = FakeConnector(realtimeResults = mutableListOf(pendingText))
         val controller = connectedController(connector = connector)
         val viewModel = viewModel(controller)
 
-        viewModel.send(PcControlCommand.Scroll(0, 5))
+        viewModel.updateTypingText("First")
+        viewModel.sendTypedText()
         runCurrent()
+        viewModel.updateTypingText("Second")
+        viewModel.sendTypedText()
+
+        assertEquals(listOf(PcControlCommand.TypeText("First")), connector.realtimeCommands)
+
+        pendingText.complete(PcCommandResult.Ack)
+        advanceUntilIdle()
+    }
+
+    @Test
+    fun sharedReconnectStateKeepsTypedTextSendBusy() = runTest(dispatcher) {
+        val pendingText = CompletableDeferred<PcCommandResult>()
+        val connector = FakeConnector(realtimeResults = mutableListOf(pendingText))
+        val controller = connectedController(connector = connector)
+        val viewModel = viewModel(controller)
+        val session = PcAuthenticatedSession("desktop-1", "device-1", "AA:BB:CC:DD:EE:FF")
+
         viewModel.updateTypingText("Hello")
         viewModel.sendTypedText()
+        runCurrent()
+        PcConnectionStateHolder.setReconnecting(session, "Switchify PC")
         advanceUntilIdle()
 
-        assertEquals(
-            listOf(PcControlCommand.Scroll(0, 5), PcControlCommand.TypeText("Hello")),
-            connector.realtimeCommands
-        )
+        assertTrue(viewModel.uiState.value.isBusy)
+        assertEquals(PcControlCommand.TypeText("Hello"), viewModel.uiState.value.busyCommand)
+
+        pendingText.complete(PcCommandResult.Ack)
+        advanceUntilIdle()
+
+        assertFalse(viewModel.uiState.value.isBusy)
+        assertNull(viewModel.uiState.value.busyCommand)
+    }
+
+    @Test
+    fun serviceReconnectStateKeepsTypedTextSendBusy() = runTest(dispatcher) {
+        val pendingText = CompletableDeferred<PcCommandResult>()
+        val connector = FakeConnector(realtimeResults = mutableListOf(pendingText))
+        val controller = connectedController(connector = connector)
+        val viewModel = viewModel(controller)
+
+        viewModel.updateTypingText("Hello")
+        viewModel.sendTypedText()
+        runCurrent()
+        connector.openedConnections.single().eventsFlow.emit(PcControlConnectionEvent.Disconnected)
+        advanceUntilIdle()
+
+        assertTrue(viewModel.uiState.value.isBusy)
+        assertEquals(PcControlCommand.TypeText("Hello"), viewModel.uiState.value.busyCommand)
+
+        pendingText.complete(PcCommandResult.Ack)
+        advanceUntilIdle()
+
+        assertFalse(viewModel.uiState.value.isBusy)
+        assertNull(viewModel.uiState.value.busyCommand)
     }
 
     @Test
@@ -661,7 +997,8 @@ class PcMouseControlViewModelTest {
         private val pingResult: PcPingResult = PcPingResult.Connected("AA:BB:CC:DD:EE:FF"),
         private val pairingResult: PcPairingResult = PcPairingResult.Failed(PcErrorReason.Failed, "unused"),
         private val commandResult: Any = PcCommandResult.Ack,
-        private val realtimeResults: MutableList<PcCommandResult> = mutableListOf(),
+        private val commandResults: MutableList<Any> = mutableListOf(),
+        private val realtimeResults: MutableList<Any> = mutableListOf(),
         val liveResults: MutableList<PcLiveControlResult> = mutableListOf()
     ) : PcConnector {
         var pointerProfile: PcPointerMovementProfile? = null
@@ -691,19 +1028,16 @@ class PcMouseControlViewModelTest {
                 pointerProfile = pointerProfile,
                 onCommand = { command ->
                     commands.add(command)
-                    when (commandResult) {
-                        is CompletableDeferred<*> -> commandResult.await() as PcCommandResult
-                        is PcCommandResult -> commandResult
-                        else -> PcCommandResult.Ack
+                    when {
+                        commandResults.isNotEmpty() -> resolveCommandResult(commandResults.removeAt(0))
+                        else -> resolveCommandResult(commandResult)
                     }
                 },
                 onRealtimeCommand = { command ->
                     realtimeCommands.add(command)
                     when {
-                        realtimeResults.isNotEmpty() -> realtimeResults.removeAt(0)
-                        commandResult is CompletableDeferred<*> -> commandResult.await() as PcCommandResult
-                        commandResult is PcCommandResult -> commandResult
-                        else -> PcCommandResult.Ack
+                        realtimeResults.isNotEmpty() -> resolveCommandResult(realtimeResults.removeAt(0))
+                        else -> resolveCommandResult(commandResult)
                     }
                 }
             )
@@ -718,6 +1052,14 @@ class PcMouseControlViewModelTest {
 
         override fun close() {
             closeCalls++
+        }
+
+        private suspend fun resolveCommandResult(result: Any): PcCommandResult {
+            return when (result) {
+                is CompletableDeferred<*> -> result.await() as PcCommandResult
+                is PcCommandResult -> result
+                else -> PcCommandResult.Ack
+            }
         }
     }
 
@@ -748,13 +1090,36 @@ class PcMouseControlViewModelTest {
         }
     }
 
-    private fun pointerProfile(small: Int, medium: Int, large: Int, maxDelta: Int = 500): PcPointerMovementProfile {
+    private fun pointerProfile(
+        small: Int = 50,
+        medium: Int = 130,
+        large: Int = 252,
+        maxDelta: Int = 500,
+        capabilities: PcPointerCapabilities = PcPointerCapabilities()
+    ): PcPointerMovementProfile {
         return PcPointerMovementProfile(
             displayId = "0:0:1280:720:1.5",
             scaleFactor = 1.5,
             bounds = PcPointerBounds(0, 0, 1280, 720),
             maxDelta = maxDelta,
-            recommendedDeltas = PcPointerDeltas(small = small, medium = medium, large = large)
+            recommendedDeltas = PcPointerDeltas(small = small, medium = medium, large = large),
+            capabilities = capabilities
+        )
+    }
+
+    private fun textStreamPointerProfile(): PcPointerMovementProfile {
+        return pointerProfile(
+            capabilities = PcPointerCapabilities(
+                noAckCommands = setOf(
+                    "keyboard.textStream.char"
+                ),
+                supportedCommands = setOf(
+                    "keyboard.textStream.open",
+                    "keyboard.textStream.chunk",
+                    "keyboard.textStream.key",
+                    "keyboard.textStream.close"
+                )
+            )
         )
     }
 

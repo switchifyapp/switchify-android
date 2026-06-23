@@ -11,13 +11,20 @@ import com.enaboapps.switchify.pc.PcControlCommand
 import com.enaboapps.switchify.pc.PcKeyboardKey
 import com.enaboapps.switchify.pc.PcServiceConnectionController
 import com.enaboapps.switchify.pc.PcServiceConnectionState
+import com.enaboapps.switchify.pc.PcTextStreamItem
 import com.enaboapps.switchify.pc.isSafePcTypedText
+import com.enaboapps.switchify.pc.pcTextStreamItemsFor
+import com.enaboapps.switchify.pc.supportsTextStreams
 import com.enaboapps.switchify.service.core.ServiceCore
+import java.util.UUID
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 
 data class PcMouseControlUiState(
     val connectedDisplayName: String? = null,
@@ -30,6 +37,7 @@ data class PcMouseControlUiState(
     val message: String? = null,
     val typingText: String = "",
     val typingMessage: String? = null,
+    val supportsTextStreamInput: Boolean = false,
     val connectionStatusText: String? = null
 )
 
@@ -217,60 +225,215 @@ class PcMouseControlViewModel(
             showCommandBlocked(textCommand, RECONNECTING_MESSAGE)
             return
         }
+        if (_uiState.value.isBusy) return
 
+        markTypingSendBusy(text)
         viewModelScope.launch {
-            when (val textResult = controller.sendRealtimeControlCommand(textCommand)) {
-                PcCommandResult.Ack -> {
+            if (supportsTextStreams(controller, state)) {
+                sendTypedTextStream(controller, text, sendEnterAfterText)
+            } else {
+                sendBulkTypedText(controller, textCommand, sendEnterAfterText)
+            }
+        }
+    }
+
+    private suspend fun sendBulkTypedText(
+        controller: PcServiceConnectionController,
+        textCommand: PcControlCommand.TypeText,
+        sendEnterAfterText: Boolean
+    ) {
+        when (val textResult = controller.sendRealtimeControlCommand(textCommand)) {
+            PcCommandResult.Ack -> {
+                if (sendEnterAfterText) {
                     _uiState.update {
                         it.copy(
-                            isBusy = false,
-                            busyCommand = null,
                             typingText = "",
                             typingMessage = null,
                             message = null
                         )
                     }
-                    if (sendEnterAfterText) {
-                        sendEnterAfterTypedText(controller)
-                    }
-                }
-                is PcCommandResult.AuthFailed -> _uiState.update {
-                    it.copy(
-                        message = textResult.message,
-                        typingMessage = textResult.message
-                    )
-                }
-                is PcCommandResult.Failed -> _uiState.update {
-                    it.copy(
-                        typingMessage = TYPING_FAILED_MESSAGE
-                    )
+                    sendEnterAfterTypedText(controller)
+                } else {
+                    clearTypingSendSuccess()
                 }
             }
+            is PcCommandResult.AuthFailed -> clearTypingSendAuthFailure(textResult.message)
+            is PcCommandResult.Failed -> clearTypingSendFailure(TYPING_FAILED_MESSAGE)
         }
+    }
+
+    private suspend fun sendTypedTextStream(
+        controller: PcServiceConnectionController,
+        text: String,
+        sendEnterAfterText: Boolean
+    ) {
+        val streamId = "android-${UUID.randomUUID()}"
+        val items = pcTextStreamItemsFor(text).toMutableList()
+        if (sendEnterAfterText) {
+            items += PcTextStreamItem.Key(PcKeyboardKey.Enter)
+        }
+
+        when (val openResult = sendTextStreamCommandWithReconnect(controller, PcControlCommand.TextStreamOpen(streamId))) {
+            PcCommandResult.Ack -> Unit
+            is PcCommandResult.AuthFailed -> {
+                clearTypingSendAuthFailure(openResult.message)
+                return
+            }
+            is PcCommandResult.Failed -> {
+                clearTypingSendFailure(TYPING_FAILED_MESSAGE)
+                return
+            }
+        }
+
+        for ((index, item) in items.withIndex()) {
+            val command = when (item) {
+                is PcTextStreamItem.Chunk -> PcControlCommand.TextStreamChunk(streamId, index, item.text)
+                is PcTextStreamItem.Key -> PcControlCommand.TextStreamKey(streamId, index, item.key)
+            }
+            when (val itemResult = sendTextStreamCommandWithReconnect(controller, command)) {
+                PcCommandResult.Ack -> Unit
+                is PcCommandResult.AuthFailed -> {
+                    clearTypingSendAuthFailure(itemResult.message)
+                    closeTextStreamBestEffort(controller, streamId, index)
+                    return
+                }
+                is PcCommandResult.Failed -> {
+                    clearTypingSendFailure(TYPING_FAILED_MESSAGE)
+                    closeTextStreamBestEffort(controller, streamId, index)
+                    return
+                }
+            }
+            if (index < items.lastIndex) {
+                delay(TEXT_STREAM_SEND_DELAY_MS)
+            }
+        }
+
+        when (val closeResult = sendTextStreamCommandWithReconnect(controller, PcControlCommand.TextStreamClose(streamId, items.size))) {
+            PcCommandResult.Ack -> clearTypingSendSuccess()
+            is PcCommandResult.AuthFailed -> clearTypingSendAuthFailure(closeResult.message)
+            is PcCommandResult.Failed -> clearTypingSendFailure(TYPING_FAILED_MESSAGE)
+        }
+    }
+
+    private suspend fun sendTextStreamCommandWithReconnect(
+        controller: PcServiceConnectionController,
+        command: PcControlCommand,
+        realtime: Boolean = false
+    ): PcCommandResult {
+        repeat(TEXT_STREAM_RECONNECT_RETRY_LIMIT + 1) { attempt ->
+            val result = if (realtime) {
+                controller.sendRealtimeControlCommand(command)
+            } else {
+                controller.sendControlCommand(command)
+            }
+            if (result !is PcCommandResult.Failed) {
+                return result
+            }
+            if (attempt >= TEXT_STREAM_RECONNECT_RETRY_LIMIT || !shouldRetryTextStreamAfterFailure(controller)) {
+                return result
+            }
+            if (!awaitTextStreamReconnect(controller)) {
+                return result
+            }
+        }
+        return PcCommandResult.Failed()
+    }
+
+    private fun shouldRetryTextStreamAfterFailure(controller: PcServiceConnectionController): Boolean {
+        val state = controller.state.value
+        return !controller.hasLiveControlSession() ||
+                state is PcServiceConnectionState.Reconnecting ||
+                state is PcServiceConnectionState.OpeningControlSession
+    }
+
+    private suspend fun awaitTextStreamReconnect(controller: PcServiceConnectionController): Boolean {
+        return withTimeoutOrNull(TEXT_STREAM_RECONNECT_TIMEOUT_MS) {
+            controller.state.first { state ->
+                state is PcServiceConnectionState.Connected && controller.hasLiveControlSession()
+            }
+            true
+        } ?: false
+    }
+
+    private suspend fun closeTextStreamBestEffort(
+        controller: PcServiceConnectionController,
+        streamId: String,
+        processedCount: Int
+    ) {
+        runCatching {
+            controller.sendControlCommand(PcControlCommand.TextStreamClose(streamId, processedCount))
+        }
+    }
+
+    private fun supportsTextStreams(
+        controller: PcServiceConnectionController,
+        state: PcServiceConnectionState?
+    ): Boolean {
+        return (state as? PcServiceConnectionState.Connected)?.pointerProfile?.supportsTextStreams()
+            ?: controller.currentPointerProfile()?.supportsTextStreams()
+            ?: false
     }
 
     private suspend fun sendEnterAfterTypedText(controller: PcServiceConnectionController) {
         when (val keyResult = controller.sendRealtimeControlCommand(PcControlCommand.PressKey(PcKeyboardKey.Enter))) {
-            PcCommandResult.Ack -> _uiState.update {
-                it.copy(
-                    isBusy = false,
-                    busyCommand = null,
-                    typingMessage = null,
-                    message = null
-                )
-            }
-            is PcCommandResult.AuthFailed -> _uiState.update {
-                it.copy(
-                    message = keyResult.message,
-                    typingMessage = keyResult.message
-                )
-            }
-            is PcCommandResult.Failed -> _uiState.update {
-                it.copy(
-                    typingMessage = KEY_FAILED_MESSAGE
-                )
-            }
+            PcCommandResult.Ack -> clearTypingSendAfterEnter()
+            is PcCommandResult.AuthFailed -> clearTypingSendAuthFailure(keyResult.message)
+            is PcCommandResult.Failed -> clearTypingSendFailure(KEY_FAILED_MESSAGE)
         }
+    }
+
+    private fun markTypingSendBusy(text: String) {
+        _uiState.update {
+            it.copy(
+                isBusy = true,
+                busyCommand = PcControlCommand.TypeText(text),
+                typingMessage = null
+            )
+        }
+    }
+
+    private fun clearTypingSendSuccess() {
+        _uiState.update {
+            it.copy(
+                isBusy = false,
+                busyCommand = null,
+                typingText = "",
+                typingMessage = null,
+                message = null
+            )
+        }
+    }
+
+    private fun clearTypingSendAfterEnter() {
+        _uiState.update {
+            it.copy(
+                isBusy = false,
+                busyCommand = null,
+                typingMessage = null,
+                message = null
+            )
+        }
+    }
+
+    private fun clearTypingSendFailure(
+        typingMessage: String,
+        message: String? = null
+    ) {
+        _uiState.update {
+            it.copy(
+                isBusy = false,
+                busyCommand = null,
+                message = message ?: it.message,
+                typingMessage = typingMessage
+            )
+        }
+    }
+
+    private fun clearTypingSendAuthFailure(message: String) {
+        clearTypingSendFailure(
+            typingMessage = message,
+            message = message
+        )
     }
 
     fun sendKey(key: PcKeyboardKey) {
@@ -362,13 +525,15 @@ class PcMouseControlViewModel(
     private fun applyServiceState(state: PcServiceConnectionState, controller: PcServiceConnectionController) {
         when (state) {
             is PcServiceConnectionState.Connected -> {
-                movementSteps = state.pointerProfile?.toMouseMovementSteps()
+                val pointerProfile = state.pointerProfile ?: controller.currentPointerProfile()
+                movementSteps = pointerProfile?.toMouseMovementSteps()
                     ?: controller.currentPointerProfile()?.toMouseMovementSteps()
                     ?: FALLBACK_MOVEMENT_STEPS
                 _uiState.update {
                     it.copy(
                         connectedDisplayName = state.displayName,
                         movementStep = movementSteps.stepFor(it.selectedMovementSize),
+                        supportsTextStreamInput = pointerProfile?.supportsTextStreams() ?: false,
                         message = if (it.message == RECONNECTING_MESSAGE || it.message == DISCONNECTED_MESSAGE || it.message == CONNECT_FIRST_MESSAGE) {
                             null
                         } else {
@@ -383,8 +548,7 @@ class PcMouseControlViewModel(
                     it.copy(
                         connectedDisplayName = state.displayName,
                         isDragging = false,
-                        isBusy = false,
-                        busyCommand = null,
+                        supportsTextStreamInput = false,
                         message = RECONNECTING_MESSAGE,
                         connectionStatusText = RECONNECTING_MESSAGE
                     )
@@ -399,6 +563,7 @@ class PcMouseControlViewModel(
                         isDragging = false,
                         isBusy = false,
                         busyCommand = null,
+                        supportsTextStreamInput = false,
                         message = CONNECT_FIRST_MESSAGE,
                         connectionStatusText = null
                     )
@@ -413,6 +578,7 @@ class PcMouseControlViewModel(
                         isDragging = false,
                         isBusy = false,
                         busyCommand = null,
+                        supportsTextStreamInput = false,
                         message = state.message,
                         connectionStatusText = state.message
                     )
@@ -431,8 +597,7 @@ class PcMouseControlViewModel(
                     it.copy(
                         connectedDisplayName = state.displayName,
                         isDragging = false,
-                        isBusy = false,
-                        busyCommand = null,
+                        supportsTextStreamInput = false,
                         message = RECONNECTING_MESSAGE,
                         connectionStatusText = RECONNECTING_MESSAGE
                     )
@@ -445,6 +610,7 @@ class PcMouseControlViewModel(
                         isDragging = false,
                         isBusy = false,
                         busyCommand = null,
+                        supportsTextStreamInput = false,
                         message = state.message,
                         connectionStatusText = state.message
                     )
@@ -477,6 +643,7 @@ class PcMouseControlViewModel(
                 isDragging = false,
                 isBusy = false,
                 busyCommand = null,
+                supportsTextStreamInput = false,
                 message = CONNECT_FIRST_MESSAGE,
                 connectionStatusText = null
             )
@@ -495,6 +662,9 @@ class PcMouseControlViewModel(
         const val KEY_FAILED_MESSAGE = "Could not send key to PC."
         const val TEXT_TOO_LONG_MESSAGE = "Text is too long."
         const val TEXT_UNSUPPORTED_MESSAGE = "Text includes unsupported characters."
+        const val TEXT_STREAM_SEND_DELAY_MS = 250L
+        const val TEXT_STREAM_RECONNECT_TIMEOUT_MS = 15_000L
+        const val TEXT_STREAM_RECONNECT_RETRY_LIMIT = 3
         const val RECONNECTING_MESSAGE = "Reconnecting..."
         const val BLUETOOTH_OFF_MESSAGE = "Bluetooth is off."
         const val BLUETOOTH_PERMISSION_DENIED_MESSAGE = "Bluetooth permission denied."
