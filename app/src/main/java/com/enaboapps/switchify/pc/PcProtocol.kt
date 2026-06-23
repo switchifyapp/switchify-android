@@ -211,6 +211,108 @@ object PcProtocol {
         return authenticatedCommand(id, deviceId, token, timestamp, "keyboard.typeText", JSONObject().put("text", text), responseMode)
     }
 
+    fun keyboardTextStreamOpen(
+        id: String,
+        deviceId: String,
+        token: String,
+        timestamp: Long,
+        streamId: String,
+        responseMode: PcCommandResponseMode = PcCommandResponseMode.Ack
+    ): String {
+        return authenticatedCommand(
+            id,
+            deviceId,
+            token,
+            timestamp,
+            "keyboard.textStream.open",
+            JSONObject().put("streamId", streamId),
+            responseMode
+        )
+    }
+
+    fun keyboardTextStreamChar(
+        id: String,
+        deviceId: String,
+        token: String,
+        timestamp: Long,
+        streamId: String,
+        seq: Int,
+        text: String,
+        responseMode: PcCommandResponseMode = PcCommandResponseMode.None
+    ): String {
+        return authenticatedCommand(
+            id,
+            deviceId,
+            token,
+            timestamp,
+            "keyboard.textStream.char",
+            JSONObject().put("streamId", streamId).put("seq", seq).put("text", text),
+            responseMode
+        )
+    }
+
+    fun keyboardTextStreamChunk(
+        id: String,
+        deviceId: String,
+        token: String,
+        timestamp: Long,
+        streamId: String,
+        seq: Int,
+        text: String,
+        responseMode: PcCommandResponseMode = PcCommandResponseMode.Ack
+    ): String {
+        return authenticatedCommand(
+            id,
+            deviceId,
+            token,
+            timestamp,
+            "keyboard.textStream.chunk",
+            JSONObject().put("streamId", streamId).put("seq", seq).put("text", text),
+            responseMode
+        )
+    }
+
+    fun keyboardTextStreamKey(
+        id: String,
+        deviceId: String,
+        token: String,
+        timestamp: Long,
+        streamId: String,
+        seq: Int,
+        key: PcKeyboardKey,
+        responseMode: PcCommandResponseMode = PcCommandResponseMode.None
+    ): String {
+        return authenticatedCommand(
+            id,
+            deviceId,
+            token,
+            timestamp,
+            "keyboard.textStream.key",
+            JSONObject().put("streamId", streamId).put("seq", seq).put("key", key.protocolValue),
+            responseMode
+        )
+    }
+
+    fun keyboardTextStreamClose(
+        id: String,
+        deviceId: String,
+        token: String,
+        timestamp: Long,
+        streamId: String,
+        expectedCount: Int,
+        responseMode: PcCommandResponseMode = PcCommandResponseMode.Ack
+    ): String {
+        return authenticatedCommand(
+            id,
+            deviceId,
+            token,
+            timestamp,
+            "keyboard.textStream.close",
+            JSONObject().put("streamId", streamId).put("expectedCount", expectedCount),
+            responseMode
+        )
+    }
+
     fun keyboardKey(
         id: String,
         deviceId: String,
@@ -369,9 +471,11 @@ object PcProtocol {
             return PcProtocolResponse.Invalid
         }
         val noAckCommands = parseNoAckCommands(capabilitiesJson) ?: return PcProtocolResponse.Invalid
+        val supportedCommands = parseSupportedCommands(capabilitiesJson) ?: return PcProtocolResponse.Invalid
         val capabilities = PcPointerCapabilities(
             noAckMouseMove = capabilitiesJson?.optBoolean("noAckMouseMove", false) ?: false,
-            noAckCommands = noAckCommands
+            noAckCommands = noAckCommands,
+            supportedCommands = supportedCommands
         )
         val bounds = PcPointerBounds(
             x = boundsJson.optInt("x"),
@@ -425,6 +529,22 @@ object PcProtocol {
         return commands
     }
 
+    private fun parseSupportedCommands(capabilitiesJson: JSONObject?): Set<String>? {
+        if (capabilitiesJson == null || !capabilitiesJson.has("supportedCommands")) return emptySet()
+        val commandsJson = capabilitiesJson.opt("supportedCommands")
+        if (commandsJson !is JSONArray) return null
+
+        val commands = mutableSetOf<String>()
+        for (index in 0 until commandsJson.length()) {
+            val command = commandsJson.opt(index)
+            if (command !is String) return null
+            if (command in CONTROL_COMMAND_TYPES) {
+                commands += command
+            }
+        }
+        return commands
+    }
+
     private val NO_ACK_CONTROL_COMMAND_TYPES = setOf(
         "mouse.move",
         "mouse.click",
@@ -436,7 +556,18 @@ object PcProtocol {
         "keyboard.key",
         "keyboard.shortcut",
         "keyboard.typeText",
+        "keyboard.textStream.char",
+        "keyboard.textStream.key",
         "media.control",
         "window.control"
+    )
+
+    private val CONTROL_COMMAND_TYPES = NO_ACK_CONTROL_COMMAND_TYPES + setOf(
+        "connection.ping",
+        "connection.disconnecting",
+        "pointer.profile",
+        "keyboard.textStream.open",
+        "keyboard.textStream.chunk",
+        "keyboard.textStream.close"
     )
 }

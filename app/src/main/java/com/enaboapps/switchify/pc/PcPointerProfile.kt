@@ -11,7 +11,8 @@ data class PcPointerMovementProfile(
 
 data class PcPointerCapabilities(
     val noAckMouseMove: Boolean = false,
-    val noAckCommands: Set<String> = emptySet()
+    val noAckCommands: Set<String> = emptySet(),
+    val supportedCommands: Set<String> = emptySet()
 )
 
 data class PcPointerBounds(
@@ -26,3 +27,14 @@ data class PcPointerDeltas(
     val medium: Int,
     val large: Int
 )
+
+fun PcPointerMovementProfile.supportsTextStreams(): Boolean {
+    return capabilities.supportedCommands.containsAll(
+        setOf(
+            "keyboard.textStream.open",
+            "keyboard.textStream.chunk",
+            "keyboard.textStream.key",
+            "keyboard.textStream.close"
+        )
+    )
+}

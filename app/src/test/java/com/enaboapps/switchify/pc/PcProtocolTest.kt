@@ -144,6 +144,7 @@ class PcProtocolTest {
         assertEquals(130, response.profile.recommendedDeltas.medium)
         assertFalse(response.profile.capabilities.noAckMouseMove)
         assertEquals(emptySet<String>(), response.profile.capabilities.noAckCommands)
+        assertEquals(emptySet<String>(), response.profile.capabilities.supportedCommands)
     }
 
     @Test
@@ -168,6 +169,37 @@ class PcProtocolTest {
     }
 
     @Test
+    fun parsesPointerProfileSupportedCommands() {
+        val response = PcProtocol.parseResponse(
+            validPointerProfileResponse(
+                capabilities = ""","capabilities":{"supportedCommands":["keyboard.textStream.open","keyboard.textStream.chunk","keyboard.textStream.key","keyboard.textStream.close","unknown.command"]}"""
+            )
+        ) as PcProtocolResponse.PointerProfile
+
+        assertEquals(
+            setOf(
+                "keyboard.textStream.open",
+                "keyboard.textStream.chunk",
+                "keyboard.textStream.key",
+                "keyboard.textStream.close"
+            ),
+            response.profile.capabilities.supportedCommands
+        )
+        assertTrue(response.profile.supportsTextStreams())
+    }
+
+    @Test
+    fun textStreamsRequireAllSupportedCommands() {
+        val response = PcProtocol.parseResponse(
+            validPointerProfileResponse(
+                capabilities = ""","capabilities":{"supportedCommands":["keyboard.textStream.open","keyboard.textStream.chunk","keyboard.textStream.close"]}"""
+            )
+        ) as PcProtocolResponse.PointerProfile
+
+        assertFalse(response.profile.supportsTextStreams())
+    }
+
+    @Test
     fun rejectsMalformedPointerProfileNoAckCommands() {
         assertEquals(
             PcProtocolResponse.Invalid,
@@ -176,6 +208,18 @@ class PcProtocolTest {
         assertEquals(
             PcProtocolResponse.Invalid,
             PcProtocol.parseResponse(validPointerProfileResponse(capabilities = ""","capabilities":{"noAckCommands":["mouse.click",1]}"""))
+        )
+    }
+
+    @Test
+    fun rejectsMalformedPointerProfileSupportedCommands() {
+        assertEquals(
+            PcProtocolResponse.Invalid,
+            PcProtocol.parseResponse(validPointerProfileResponse(capabilities = ""","capabilities":{"supportedCommands":"keyboard.textStream.open"}"""))
+        )
+        assertEquals(
+            PcProtocolResponse.Invalid,
+            PcProtocol.parseResponse(validPointerProfileResponse(capabilities = ""","capabilities":{"supportedCommands":["keyboard.textStream.open",1]}"""))
         )
     }
 
@@ -267,6 +311,8 @@ class PcProtocolTest {
             JSONObject(PcProtocol.mouseDragStart("drag-start-1", "device-1", "shared-token", 1000L, responseMode = PcCommandResponseMode.None)),
             JSONObject(PcProtocol.mouseDragEnd("drag-end-1", "device-1", "shared-token", 1000L, responseMode = PcCommandResponseMode.None)),
             JSONObject(PcProtocol.keyboardTypeText("type-1", "device-1", "shared-token", 1000L, "Hello", PcCommandResponseMode.None)),
+            JSONObject(PcProtocol.keyboardTextStreamChar("stream-char-1", "device-1", "shared-token", 1000L, "android-1", 0, "H")),
+            JSONObject(PcProtocol.keyboardTextStreamKey("stream-key-1", "device-1", "shared-token", 1000L, "android-1", 1, PcKeyboardKey.Enter)),
             JSONObject(PcProtocol.keyboardKey("key-1", "device-1", "shared-token", 1000L, PcKeyboardKey.Enter, PcCommandResponseMode.None)),
             JSONObject(PcProtocol.windowControl("window-1", "device-1", "shared-token", 1000L, PcWindowControlAction.SwitchNext, PcCommandResponseMode.None))
         )
@@ -429,6 +475,150 @@ class PcProtocolTest {
             json.getString("auth")
         )
         assertFalse(json.toString().contains("shared-token"))
+    }
+
+    @Test
+    fun buildsTextStreamOpenCommandWithAuthProof() {
+        val json = JSONObject(
+            PcProtocol.keyboardTextStreamOpen(
+                id = "stream-open-1",
+                deviceId = "device-1",
+                token = "shared-token",
+                timestamp = 1000L,
+                streamId = "android-123"
+            )
+        )
+
+        assertEquals("keyboard.textStream.open", json.getString("type"))
+        assertEquals("android-123", json.getJSONObject("payload").getString("streamId"))
+        assertFalse(json.has("responseMode"))
+        assertEquals(
+            PcProtocol.authProof(
+                id = "stream-open-1",
+                deviceId = "device-1",
+                timestamp = 1000L,
+                type = "keyboard.textStream.open",
+                payload = JSONObject().put("streamId", "android-123"),
+                token = "shared-token"
+            ),
+            json.getString("auth")
+        )
+    }
+
+    @Test
+    fun buildsTextStreamCharCommandWithNoAckResponseMode() {
+        val json = JSONObject(
+            PcProtocol.keyboardTextStreamChar(
+                id = "stream-char-1",
+                deviceId = "device-1",
+                token = "shared-token",
+                timestamp = 1000L,
+                streamId = "android-123",
+                seq = 2,
+                text = "H"
+            )
+        )
+
+        assertEquals("keyboard.textStream.char", json.getString("type"))
+        assertEquals("none", json.getString("responseMode"))
+        assertEquals("android-123", json.getJSONObject("payload").getString("streamId"))
+        assertEquals(2, json.getJSONObject("payload").getInt("seq"))
+        assertEquals("H", json.getJSONObject("payload").getString("text"))
+        assertEquals(
+            PcProtocol.authProof(
+                id = "stream-char-1",
+                deviceId = "device-1",
+                timestamp = 1000L,
+                type = "keyboard.textStream.char",
+                payload = JSONObject().put("streamId", "android-123").put("seq", 2).put("text", "H"),
+                token = "shared-token",
+                responseMode = PcCommandResponseMode.None
+            ),
+            json.getString("auth")
+        )
+    }
+
+    @Test
+    fun buildsTextStreamChunkCommandWithAuthProof() {
+        val json = JSONObject(
+            PcProtocol.keyboardTextStreamChunk(
+                id = "stream-chunk-1",
+                deviceId = "device-1",
+                token = "shared-token",
+                timestamp = 1000L,
+                streamId = "android-123",
+                seq = 2,
+                text = "Hello"
+            )
+        )
+
+        assertEquals("keyboard.textStream.chunk", json.getString("type"))
+        assertFalse(json.has("responseMode"))
+        assertEquals("android-123", json.getJSONObject("payload").getString("streamId"))
+        assertEquals(2, json.getJSONObject("payload").getInt("seq"))
+        assertEquals("Hello", json.getJSONObject("payload").getString("text"))
+        assertEquals(
+            PcProtocol.authProof(
+                id = "stream-chunk-1",
+                deviceId = "device-1",
+                timestamp = 1000L,
+                type = "keyboard.textStream.chunk",
+                payload = JSONObject().put("streamId", "android-123").put("seq", 2).put("text", "Hello"),
+                token = "shared-token"
+            ),
+            json.getString("auth")
+        )
+    }
+
+    @Test
+    fun buildsTextStreamKeyCommandWithNoAckResponseMode() {
+        val json = JSONObject(
+            PcProtocol.keyboardTextStreamKey(
+                id = "stream-key-1",
+                deviceId = "device-1",
+                token = "shared-token",
+                timestamp = 1000L,
+                streamId = "android-123",
+                seq = 3,
+                key = PcKeyboardKey.Enter
+            )
+        )
+
+        assertEquals("keyboard.textStream.key", json.getString("type"))
+        assertEquals("none", json.getString("responseMode"))
+        assertEquals("android-123", json.getJSONObject("payload").getString("streamId"))
+        assertEquals(3, json.getJSONObject("payload").getInt("seq"))
+        assertEquals("Enter", json.getJSONObject("payload").getString("key"))
+    }
+
+    @Test
+    fun buildsTextStreamCloseCommandWithAuthProof() {
+        val json = JSONObject(
+            PcProtocol.keyboardTextStreamClose(
+                id = "stream-close-1",
+                deviceId = "device-1",
+                token = "shared-token",
+                timestamp = 1000L,
+                streamId = "android-123",
+                expectedCount = 4
+            )
+        )
+
+        assertEquals("keyboard.textStream.close", json.getString("type"))
+        assertFalse(json.has("responseMode"))
+        assertEquals("android-123", json.getJSONObject("payload").getString("streamId"))
+        assertEquals(4, json.getJSONObject("payload").getInt("expectedCount"))
+        assertEquals(
+            PcProtocol.authProof(
+                id = "stream-close-1",
+                deviceId = "device-1",
+                timestamp = 1000L,
+                type = "keyboard.textStream.close",
+                payload = JSONObject().put("streamId", "android-123").put("expectedCount", 4),
+                token = "shared-token"
+            ),
+            json.getString("auth")
+        )
     }
 
     @Test

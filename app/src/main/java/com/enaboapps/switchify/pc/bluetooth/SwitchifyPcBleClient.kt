@@ -286,6 +286,11 @@ class SwitchifyPcBleClient(
             PcControlCommand.DoubleClick -> PcProtocol.mouseDoubleClick(id, deviceId, token, timestamp, responseMode = responseMode)
             PcControlCommand.RightClick -> PcProtocol.mouseRightClick(id, deviceId, token, timestamp, responseMode)
             is PcControlCommand.TypeText -> PcProtocol.keyboardTypeText(id, deviceId, token, timestamp, text, responseMode)
+            is PcControlCommand.TextStreamOpen -> PcProtocol.keyboardTextStreamOpen(id, deviceId, token, timestamp, streamId, responseMode)
+            is PcControlCommand.TextStreamChar -> PcProtocol.keyboardTextStreamChar(id, deviceId, token, timestamp, streamId, seq, text, responseMode)
+            is PcControlCommand.TextStreamChunk -> PcProtocol.keyboardTextStreamChunk(id, deviceId, token, timestamp, streamId, seq, text, responseMode)
+            is PcControlCommand.TextStreamKey -> PcProtocol.keyboardTextStreamKey(id, deviceId, token, timestamp, streamId, seq, key, responseMode)
+            is PcControlCommand.TextStreamClose -> PcProtocol.keyboardTextStreamClose(id, deviceId, token, timestamp, streamId, expectedCount, responseMode)
             is PcControlCommand.PressKey -> PcProtocol.keyboardKey(id, deviceId, token, timestamp, key, responseMode)
             is PcControlCommand.WindowControl -> PcProtocol.windowControl(id, deviceId, token, timestamp, action, responseMode)
         }
@@ -385,6 +390,11 @@ private fun PcControlCommand.protocolType(): String {
         PcControlCommand.DoubleClick -> "mouse.doubleClick"
         PcControlCommand.RightClick -> "mouse.rightClick"
         is PcControlCommand.TypeText -> "keyboard.typeText"
+        is PcControlCommand.TextStreamOpen -> "keyboard.textStream.open"
+        is PcControlCommand.TextStreamChar -> "keyboard.textStream.char"
+        is PcControlCommand.TextStreamChunk -> "keyboard.textStream.chunk"
+        is PcControlCommand.TextStreamKey -> "keyboard.textStream.key"
+        is PcControlCommand.TextStreamClose -> "keyboard.textStream.close"
         is PcControlCommand.PressKey -> "keyboard.key"
         is PcControlCommand.WindowControl -> "window.control"
     }
