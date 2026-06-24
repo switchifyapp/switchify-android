@@ -200,18 +200,9 @@ object NodeExaminer {
             Node.fromAccessibilityNodeInfo(nodeInfo)
         }
 
-        // Deep content examination only for actionable nodes
-        // Include nodes that are clickable, long-clickable, focusable, or have ACTION_CLICK
         val newActionableNodes = newNodeInfos
-            .filter { nodeInfo ->
-                nodeInfo.isClickable ||
-                        nodeInfo.isLongClickable ||
-                        nodeInfo.isFocusable ||
-                        nodeInfo.actionList?.any { action ->
-                            action.id == AccessibilityNodeInfo.ACTION_CLICK
-                        } == true
-            }
             .map { examineNodeContent(it) }
+            .filter { it.isCurrentlyScannable() }
 
         // Get screen dimensions for filtering nodes
         val width = ScreenUtils.getWidth(context)

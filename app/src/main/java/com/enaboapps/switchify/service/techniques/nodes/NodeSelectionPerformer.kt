@@ -1,7 +1,6 @@
 package com.enaboapps.switchify.service.techniques.nodes
 
 import android.view.accessibility.AccessibilityNodeInfo
-import android.view.accessibility.AccessibilityWindowInfo
 
 internal object NodeSelectionPerformer {
     fun perform(
@@ -23,6 +22,7 @@ internal object NodeSelectionPerformer {
 
     fun perform(
         nodeInfo: AccessibilityNodeInfo?,
+        preferAccessibilityClick: Boolean,
         fallbackTap: () -> Unit
     ): Boolean {
         return perform(
@@ -30,13 +30,7 @@ internal object NodeSelectionPerformer {
                 nodeInfo?.performAction(AccessibilityNodeInfo.ACTION_CLICK) == true
             },
             fallbackTap = fallbackTap,
-            preferAccessibilityClick = !nodeInfo.isInputMethodNode()
+            preferAccessibilityClick = preferAccessibilityClick
         )
-    }
-
-    private fun AccessibilityNodeInfo?.isInputMethodNode(): Boolean {
-        return runCatching {
-            this?.window?.type == AccessibilityWindowInfo.TYPE_INPUT_METHOD
-        }.getOrDefault(false)
     }
 }
