@@ -303,7 +303,9 @@ class Node(
             GesturePoint.y = centerY
 
             SelectionHandler.setSelectAction {
-                GestureManager.instance.performTap(overrideFingerMode = com.enaboapps.switchify.service.gestures.placement.FingerMode.ONE)
+                NodeSelectionPerformer.perform(nodeInfo) {
+                    GestureManager.instance.performTap(overrideFingerMode = com.enaboapps.switchify.service.gestures.placement.FingerMode.ONE)
+                }
             }
             SelectionHandler.performSelectionAction()
         } else {
