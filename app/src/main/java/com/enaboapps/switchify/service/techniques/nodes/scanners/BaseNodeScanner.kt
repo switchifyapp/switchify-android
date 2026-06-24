@@ -9,6 +9,8 @@ import com.enaboapps.switchify.service.scanning.tree.ScanTree
 import com.enaboapps.switchify.service.scanning.tree.ScanTreeCallback
 import com.enaboapps.switchify.service.techniques.AccessTechnique
 import com.enaboapps.switchify.service.techniques.nodes.Node
+import com.enaboapps.switchify.service.window.overlay.OverlayTarget
+import com.enaboapps.switchify.service.window.overlay.OverlayTargets
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -237,7 +239,14 @@ abstract class BaseNodeScanner(
     // ScanTreeCallback implementation
     override fun onScanTreeCycleBreakStarted() {
         Log.d(TAG, "Cycle break started")
-        KeyboardEscapePrompt.instance.show(context)
+        val keyboardTarget = KeyboardManager.keyboardState.value.keyboardWindowTarget
+        val displayTarget = keyboardTarget?.let { target ->
+            OverlayTarget.Display(
+                displayId = target.displayId,
+                forceSurface = target.displayId != OverlayTargets.DEFAULT_DISPLAY_ID
+            )
+        } ?: OverlayTargets.defaultDisplay()
+        KeyboardEscapePrompt.instance.show(context, displayTarget)
     }
 
     override fun onScanTreeCycleBreakSkipped() {

@@ -1,8 +1,12 @@
 package com.enaboapps.switchify.service.scanning.tree
 
+import android.graphics.Rect
 import com.enaboapps.switchify.service.scanning.ScanNodeInterface
+import com.enaboapps.switchify.service.techniques.nodes.Node
 import com.enaboapps.switchify.service.techniques.nodes.NodeSpeaker
 import com.enaboapps.switchify.service.techniques.nodes.scanners.NodeScannerUI
+import com.enaboapps.switchify.service.window.overlay.OverlayTarget
+import com.enaboapps.switchify.service.window.overlay.OverlayTargets
 
 /**
  * This class represents an item in the 2D scan tree
@@ -47,7 +51,7 @@ class ScanTreeItem(
             children[0].highlight()
             return
         }
-        NodeScannerUI.instance.showRowBounds(getX(), y, getWidth(), getHeight())
+        showRowBoundsFor(children, isEscape = false)
     }
 
     private fun highlightEntireItemEscape() {
@@ -55,7 +59,7 @@ class ScanTreeItem(
             children[0].highlight()
             return
         }
-        NodeScannerUI.instance.showEscapeBounds(getX(), y, getWidth(), getHeight())
+        showRowBoundsFor(children, isEscape = true)
     }
 
     private fun highlightGroup(groupIndex: Int) {
@@ -66,11 +70,7 @@ class ScanTreeItem(
             group[0].highlight()
             return
         }
-        val groupX = group.minOf { it.getLeft() }
-        val groupWidth = group.maxOf { it.getLeft() + it.getWidth() } - groupX
-        val groupY = group.minOf { it.getTop() }
-        val groupHeight = group.maxOf { it.getTop() + it.getHeight() } - groupY
-        NodeScannerUI.instance.showRowBounds(groupX, groupY, groupWidth, groupHeight)
+        showRowBoundsFor(group, isEscape = false)
     }
 
     private fun highlightGroupEscape(groupIndex: Int) {
@@ -79,11 +79,88 @@ class ScanTreeItem(
             group[0].highlight()
             return
         }
-        val groupX = group.minOf { it.getLeft() }
-        val groupWidth = group.maxOf { it.getLeft() + it.getWidth() } - groupX
-        val groupY = group.minOf { it.getTop() }
-        val groupHeight = group.maxOf { it.getTop() + it.getHeight() } - groupY
-        NodeScannerUI.instance.showEscapeBounds(groupX, groupY, groupWidth, groupHeight)
+        showRowBoundsFor(group, isEscape = true)
+    }
+
+    private fun showRowBoundsFor(nodes: List<ScanNodeInterface>, isEscape: Boolean) {
+        val target = commonOverlayTarget(nodes)
+        val bounds = aggregateBounds(nodes, target)
+        if (isEscape) {
+            NodeScannerUI.instance.showEscapeBounds(
+                bounds.left,
+                bounds.top,
+                bounds.width(),
+                bounds.height(),
+                target
+            )
+        } else {
+            NodeScannerUI.instance.showRowBounds(
+                bounds.left,
+                bounds.top,
+                bounds.width(),
+                bounds.height(),
+                target
+            )
+        }
+    }
+
+    private fun commonOverlayTarget(nodes: List<ScanNodeInterface>): OverlayTarget {
+        val targets = nodes.mapNotNull { (it as? Node)?.getOverlayTargetForHighlight() }
+        if (targets.size == nodes.size && targets.isNotEmpty()) {
+            val distinctTargets = targets.distinct()
+            if (distinctTargets.size == 1) return distinctTargets.single()
+
+            val displayIds = distinctTargets.map { target ->
+                when (target) {
+                    is OverlayTarget.Display -> target.displayId
+                    is OverlayTarget.Window -> target.displayId
+                }
+            }.distinct()
+            if (displayIds.size == 1) {
+                val displayId = displayIds.single()
+                return OverlayTarget.Display(
+                    displayId = displayId,
+                    forceSurface = displayId != OverlayTargets.DEFAULT_DISPLAY_ID
+                )
+            }
+        }
+        return targets.firstOrNull()?.let { firstTarget ->
+            val displayId = displayIdFor(firstTarget)
+            OverlayTarget.Display(
+                displayId = displayId,
+                forceSurface = displayId != OverlayTargets.DEFAULT_DISPLAY_ID
+            )
+        } ?: OverlayTargets.defaultDisplay()
+    }
+
+    private fun aggregateBounds(nodes: List<ScanNodeInterface>, target: OverlayTarget): Rect {
+        val targetDisplayId = displayIdFor(target)
+        val targetNodes = nodes.filter { node ->
+            val nodeTarget = (node as? Node)?.getOverlayTargetForHighlight()
+            nodeTarget == null || displayIdFor(nodeTarget) == targetDisplayId
+        }.ifEmpty {
+            nodes.take(1)
+        }
+        val bounds = targetNodes.map { node ->
+            (node as? Node)?.getOverlayHighlightBounds(target) ?: Rect(
+                node.getLeft(),
+                node.getTop(),
+                node.getLeft() + node.getWidth(),
+                node.getTop() + node.getHeight()
+            )
+        }
+        val left = bounds.minOf { it.left }
+        val top = bounds.minOf { it.top }
+        val right = bounds.maxOf { it.right }
+        val bottom = bounds.maxOf { it.bottom }
+        return Rect(left, top, right, bottom)
+    }
+
+    private fun displayIdFor(target: OverlayTarget): Int {
+        return when (target) {
+            is OverlayTarget.Display -> target.displayId
+            is OverlayTarget.Window -> target.displayId
+        }
     }
 
     private fun highlightNode(groupIndex: Int, nodeIndex: Int) {

@@ -4,8 +4,9 @@ import android.os.Handler
 import android.os.Looper
 import android.view.ViewGroup
 import android.widget.RelativeLayout
-import com.enaboapps.switchify.service.utils.ScreenUtils
 import com.enaboapps.switchify.service.window.SwitchifyAccessibilityWindow
+import com.enaboapps.switchify.service.window.overlay.OverlayTarget
+import com.enaboapps.switchify.service.window.overlay.OverlayTargets
 
 /**
  * AccessTechniqueUIBase is the base class for all access technique UI classes.
@@ -14,9 +15,14 @@ import com.enaboapps.switchify.service.window.SwitchifyAccessibilityWindow
 open class AccessTechniqueUIBase {
     private var view: RelativeLayout? = null
     private val childViews = mutableSetOf<ViewGroup>()
+    private var overlayTarget: OverlayTarget.Display = OverlayTargets.defaultDisplay().copy(forceSurface = true)
 
     private val window = SwitchifyAccessibilityWindow.instance
     private val handler = Handler(Looper.getMainLooper())
+
+    fun setOverlayTarget(target: OverlayTarget.Display) {
+        overlayTarget = target.copy(forceSurface = true)
+    }
 
     /**
      * Shows the window.
@@ -26,12 +32,15 @@ open class AccessTechniqueUIBase {
             window.getContext()?.let { context ->
                 view = RelativeLayout(context)
                 view?.let { layout ->
+                    val metrics = window.getDisplayMetrics(overlayTarget)
+                    val fallbackMetrics = context.resources.displayMetrics
                     window.addView(
+                        overlayTarget,
                         layout,
                         0,
                         0,
-                        ScreenUtils.getWidth(context),
-                        ScreenUtils.getHeight(context)
+                        metrics?.width ?: fallbackMetrics.widthPixels,
+                        metrics?.height ?: fallbackMetrics.heightPixels
                     )
                 }
             }
@@ -159,7 +168,7 @@ open class AccessTechniqueUIBase {
     fun hide() {
         handler.post {
             view?.let {
-                window.removeView(it)
+                window.removeView(overlayTarget, it)
                 view = null
             }
             childViews.clear()

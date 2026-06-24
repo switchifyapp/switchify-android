@@ -1,10 +1,13 @@
 package com.enaboapps.switchify.service.utils
 
 import android.graphics.Rect
+import android.os.Build
 import android.util.Log
 import android.view.accessibility.AccessibilityWindowInfo
 import com.enaboapps.switchify.service.keyboard.KeyboardManager
+import com.enaboapps.switchify.service.keyboard.KeyboardWindowTarget
 import com.enaboapps.switchify.service.scanning.ScanSettings
+import com.enaboapps.switchify.service.window.overlay.OverlayTargets
 
 /**
  * Stateless bridge for detecting keyboard visibility and bounds from
@@ -22,10 +25,28 @@ object KeyboardBridge {
         val bounds = imeWindow?.let { window ->
             Rect().also { window.getBoundsInScreen(it) }
         }
-        KeyboardManager.onKeyboardStateChanged(isVisible, bounds, scanSettings)
+        val windowTarget = imeWindow?.let { window ->
+            bounds?.let { boundsInScreen ->
+                KeyboardWindowTarget(
+                    displayId = displayIdFor(window),
+                    windowId = window.id,
+                    windowType = window.type,
+                    boundsInScreen = Rect(boundsInScreen)
+                )
+            }
+        }
+        KeyboardManager.onKeyboardStateChanged(isVisible, bounds, scanSettings, windowTarget)
         Log.d(
             "KeyboardBridge",
             "Keyboard detected: $isVisible, bounds: $bounds, window count: ${windows.size}"
         )
+    }
+
+    private fun displayIdFor(window: AccessibilityWindowInfo): Int {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            window.displayId
+        } else {
+            OverlayTargets.DEFAULT_DISPLAY_ID
+        }
     }
 }
