@@ -14,7 +14,7 @@ data class OverlayNodeBounds(
     val forceDisplaySurface: Boolean = false
 ) {
     fun target(): OverlayTarget {
-        return if (windowId != null && windowType != null && boundsInWindow != null) {
+        return if (windowId != null && windowType != null && boundsInWindow.isUsableHighlightBounds()) {
             OverlayTarget.Window(
                 displayId = displayId,
                 accessibilityWindowId = windowId,
@@ -27,7 +27,7 @@ data class OverlayNodeBounds(
     }
 
     fun highlightBounds(target: OverlayTarget = target()): Rect {
-        return if (target is OverlayTarget.Window) {
+        return if (target is OverlayTarget.Window && boundsInWindow.isUsableHighlightBounds()) {
             boundsInWindow.copy()
         } else {
             boundsInScreen.copy()
@@ -64,4 +64,8 @@ private fun Rect?.copy(): Rect {
             copy.bottom = bottom
         }
     }
+}
+
+private fun Rect?.isUsableHighlightBounds(): Boolean {
+    return this != null && right > left && bottom > top
 }
