@@ -44,6 +44,70 @@ class OverlayNodeBoundsTest {
     }
 
     @Test
+    fun usesDisplayTargetWhenWindowBoundsAreEmpty() {
+        val bounds = OverlayNodeBounds(
+            displayId = 3,
+            windowId = 7,
+            windowType = 4,
+            boundsInScreen = rect(100, 200, 130, 240),
+            boundsInWindow = rect(0, 0, 0, 0)
+        )
+
+        assertEquals(OverlayTarget.Display(3), bounds.target())
+    }
+
+    @Test
+    fun usesDisplayTargetWhenWindowBoundsHaveNoWidth() {
+        val bounds = OverlayNodeBounds(
+            displayId = 3,
+            windowId = 7,
+            windowType = 4,
+            boundsInScreen = rect(100, 200, 130, 240),
+            boundsInWindow = rect(10, 20, 10, 60)
+        )
+
+        assertEquals(OverlayTarget.Display(3), bounds.target())
+    }
+
+    @Test
+    fun usesDisplayTargetWhenWindowBoundsHaveNoHeight() {
+        val bounds = OverlayNodeBounds(
+            displayId = 3,
+            windowId = 7,
+            windowType = 4,
+            boundsInScreen = rect(100, 200, 130, 240),
+            boundsInWindow = rect(10, 20, 40, 20)
+        )
+
+        assertEquals(OverlayTarget.Display(3), bounds.target())
+    }
+
+    @Test
+    fun highlightBoundsFallsBackToScreenBoundsForInvalidWindowBounds() {
+        val screenBounds = rect(100, 200, 130, 240)
+        val bounds = OverlayNodeBounds(
+            displayId = 3,
+            windowId = 7,
+            windowType = 4,
+            boundsInScreen = screenBounds,
+            boundsInWindow = rect(0, 0, 0, 0)
+        )
+
+        val highlightBounds = bounds.highlightBounds(
+            OverlayTarget.Window(
+                displayId = 3,
+                accessibilityWindowId = 7,
+                windowType = 4
+            )
+        )
+
+        assertEquals(screenBounds.left, highlightBounds.left)
+        assertEquals(screenBounds.top, highlightBounds.top)
+        assertEquals(screenBounds.right, highlightBounds.right)
+        assertEquals(screenBounds.bottom, highlightBounds.bottom)
+    }
+
+    @Test
     fun displayOnlyUsesDefaultDisplay() {
         val bounds = OverlayNodeBounds.displayOnly(rect(5, 6, 7, 8))
 
