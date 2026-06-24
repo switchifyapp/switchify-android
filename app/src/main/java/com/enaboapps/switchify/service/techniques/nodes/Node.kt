@@ -43,6 +43,7 @@ class Node(
     private var height: Int = 0
     private var highlighted: Boolean = false
     private var overlayNodeBounds: OverlayNodeBounds? = null
+    private var capabilities: NodeCapabilities? = null
 
     private var contentDescription: String = ""
 
@@ -74,7 +75,12 @@ class Node(
             val node = Node()
             val rect = Rect()
             nodeInfo.getBoundsInScreen(rect)
-            val overlayBounds = overlayBoundsFor(nodeInfo, rect)
+            val boundsInWindow = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                Rect().also { nodeInfo.getBoundsInWindow(it) }
+            } else {
+                null
+            }
+            val overlayBounds = overlayBoundsFor(nodeInfo, rect, boundsInWindow)
             node.nodeInfo = nodeInfo
             node.x = rect.left
             node.y = rect.top
@@ -84,6 +90,7 @@ class Node(
             node.width = rect.width()
             node.height = rect.height()
             node.overlayNodeBounds = overlayBounds
+            node.capabilities = NodeCapabilityClassifier.classify(nodeInfo, rect, boundsInWindow)
             return node
         }
 
@@ -142,14 +149,10 @@ class Node(
 
         private fun overlayBoundsFor(
             nodeInfo: AccessibilityNodeInfo,
-            boundsInScreen: Rect
+            boundsInScreen: Rect,
+            boundsInWindow: Rect?
         ): OverlayNodeBounds {
             val window = nodeInfo.window
-            val boundsInWindow = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                Rect().also { nodeInfo.getBoundsInWindow(it) }
-            } else {
-                null
-            }
             val displayId = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                 window?.displayId ?: OverlayTargets.DEFAULT_DISPLAY_ID
             } else {
@@ -172,12 +175,16 @@ class Node(
     }
 
     fun isActionable(actionType: ActionType): Boolean {
+        val caps = capabilities
         return when (actionType) {
-            ActionType.CUT -> nodeInfo?.actionList?.contains(AccessibilityNodeInfo.AccessibilityAction.ACTION_CUT) == true
+            ActionType.CUT -> caps?.hasCutAction
+                ?: (nodeInfo?.actionList?.contains(AccessibilityNodeInfo.AccessibilityAction.ACTION_CUT) == true)
 
-            ActionType.COPY -> nodeInfo?.actionList?.contains(AccessibilityNodeInfo.AccessibilityAction.ACTION_COPY) == true
+            ActionType.COPY -> caps?.hasCopyAction
+                ?: (nodeInfo?.actionList?.contains(AccessibilityNodeInfo.AccessibilityAction.ACTION_COPY) == true)
 
-            ActionType.PASTE -> nodeInfo?.actionList?.contains(AccessibilityNodeInfo.AccessibilityAction.ACTION_PASTE) == true
+            ActionType.PASTE -> caps?.hasPasteAction
+                ?: (nodeInfo?.actionList?.contains(AccessibilityNodeInfo.AccessibilityAction.ACTION_PASTE) == true)
         }
     }
 
@@ -235,6 +242,16 @@ class Node(
 
     fun getOverlayHighlightBounds(target: OverlayTarget): Rect {
         return overlayNodeBounds?.highlightBounds(target) ?: getBounds()
+    }
+
+    internal fun getCapabilities(): NodeCapabilities? = capabilities
+
+    internal fun isCurrentlyScannable(): Boolean {
+        return capabilities?.isCurrentlyScannable ?: false
+    }
+
+    internal fun prefersAccessibilityClickForSelection(): Boolean {
+        return capabilities?.prefersAccessibilityClickForSelection ?: true
     }
 
     override fun getContentDescription(): String {
@@ -303,7 +320,10 @@ class Node(
             GesturePoint.y = centerY
 
             SelectionHandler.setSelectAction {
-                NodeSelectionPerformer.perform(nodeInfo) {
+                NodeSelectionPerformer.perform(
+                    nodeInfo = nodeInfo,
+                    preferAccessibilityClick = prefersAccessibilityClickForSelection()
+                ) {
                     GestureManager.instance.performTap(overrideFingerMode = com.enaboapps.switchify.service.gestures.placement.FingerMode.ONE)
                 }
             }
