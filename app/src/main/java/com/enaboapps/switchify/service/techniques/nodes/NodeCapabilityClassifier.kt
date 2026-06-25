@@ -20,7 +20,9 @@ internal data class RawNodeCapabilityFacts(
     val hasText: Boolean = false,
     val hasContentDescription: Boolean = false,
     val hasUsableScreenBounds: Boolean = false,
-    val hasUsableWindowBounds: Boolean = false
+    val hasUsableWindowBounds: Boolean = false,
+    val collectionMetadata: CollectionMetadata? = null,
+    val collectionItemMetadata: CollectionItemMetadata? = null
 )
 
 internal object NodeCapabilityClassifier {
@@ -51,6 +53,8 @@ internal object NodeCapabilityClassifier {
         boundsInScreen: Rect,
         boundsInWindow: Rect?
     ): NodeCapabilities {
+        val collectionInfo = runCatching { nodeInfo.collectionInfo }.getOrNull()
+        val collectionItemInfo = runCatching { nodeInfo.collectionItemInfo }.getOrNull()
         return classifyFacts(
             RawNodeCapabilityFacts(
                 isKeyboardNode = runCatching {
@@ -65,12 +69,14 @@ internal object NodeCapabilityClassifier {
                 isChecked = nodeInfo.isCheckedCompat(),
                 isTextSelectable = nodeInfo.isTextSelectable,
                 actionIds = nodeInfo.actionList?.map { it.id }?.toSet().orEmpty(),
-                hasCollectionInfo = nodeInfo.collectionInfo != null,
-                hasCollectionItemInfo = nodeInfo.collectionItemInfo != null,
+                hasCollectionInfo = collectionInfo != null,
+                hasCollectionItemInfo = collectionItemInfo != null,
                 hasText = !nodeInfo.text.isNullOrBlank(),
                 hasContentDescription = !nodeInfo.contentDescription.isNullOrBlank(),
                 hasUsableScreenBounds = boundsInScreen.hasUsableHighlightBounds(),
-                hasUsableWindowBounds = boundsInWindow.hasUsableHighlightBounds()
+                hasUsableWindowBounds = boundsInWindow.hasUsableHighlightBounds(),
+                collectionMetadata = collectionInfo?.toMetadata(),
+                collectionItemMetadata = collectionItemInfo?.toMetadata()
             )
         )
     }
@@ -120,7 +126,13 @@ internal object NodeCapabilityClassifier {
             hasText = facts.hasText,
             hasContentDescription = facts.hasContentDescription,
             hasUsableScreenBounds = facts.hasUsableScreenBounds,
-            hasUsableWindowBounds = facts.hasUsableWindowBounds
+            hasUsableWindowBounds = facts.hasUsableWindowBounds,
+            collectionMetadata = NodeCollectionMetadata(
+                collection = facts.collectionMetadata,
+                collectionItem = facts.collectionItemMetadata
+            ).takeIf {
+                it.collection != null || it.collectionItem != null
+            }
         )
     }
 
@@ -145,6 +157,31 @@ internal object NodeCapabilityClassifier {
             else -> NodeRole.Unknown
         }
     }
+}
+
+private fun AccessibilityNodeInfo.CollectionInfo.toMetadata(): CollectionMetadata? {
+    return runCatching {
+        CollectionMetadata(
+            rowCount = rowCount,
+            columnCount = columnCount,
+            isHierarchical = isHierarchical,
+            selectionMode = selectionMode
+        )
+    }.getOrNull()
+}
+
+@Suppress("DEPRECATION")
+private fun AccessibilityNodeInfo.CollectionItemInfo.toMetadata(): CollectionItemMetadata? {
+    return runCatching {
+        CollectionItemMetadata(
+            rowIndex = rowIndex,
+            rowSpan = rowSpan,
+            columnIndex = columnIndex,
+            columnSpan = columnSpan,
+            isHeading = isHeading,
+            isSelected = isSelected
+        )
+    }.getOrNull()
 }
 
 private fun Rect?.hasUsableHighlightBounds(): Boolean {

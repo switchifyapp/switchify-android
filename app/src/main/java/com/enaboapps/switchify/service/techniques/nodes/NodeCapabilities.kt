@@ -26,7 +26,8 @@ internal data class NodeCapabilities(
     val hasText: Boolean,
     val hasContentDescription: Boolean,
     val hasUsableScreenBounds: Boolean,
-    val hasUsableWindowBounds: Boolean
+    val hasUsableWindowBounds: Boolean,
+    val collectionMetadata: NodeCollectionMetadata? = null
 ) {
     val isCurrentlyScannable: Boolean
         get() = isClickable || isLongClickable || isFocusable || hasClickAction
