@@ -267,6 +267,7 @@ class Node(
     }
 
     override fun highlight() {
+        NodeCapabilityDebugLogger.log("highlight", this)
         val overlayBounds = overlayNodeBounds
         if (overlayBounds != null) {
             val target = targetForOverlayBounds(overlayBounds)
@@ -316,6 +317,7 @@ class Node(
         unhighlight()
 
         if (onSelect == null) {
+            NodeCapabilityDebugLogger.log("select", this)
             GesturePoint.x = centerX
             GesturePoint.y = centerY
 
