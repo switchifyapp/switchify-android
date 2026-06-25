@@ -11,6 +11,8 @@ import com.enaboapps.switchify.service.gestures.GesturePoint
 import com.enaboapps.switchify.service.gestures.placement.FingerMode
 import com.enaboapps.switchify.service.menu.MenuItem
 import com.enaboapps.switchify.service.scanning.ScanNodeInterface
+import com.enaboapps.switchify.service.scanning.tree.CollectionRowHint
+import com.enaboapps.switchify.service.scanning.tree.CollectionRowHintProvider
 import com.enaboapps.switchify.service.selection.SelectionHandler
 import com.enaboapps.switchify.service.techniques.nodes.scanners.NodeScannerUI
 import com.enaboapps.switchify.service.techniques.pointscan.blocks.PointScanBlock
@@ -34,7 +36,7 @@ data class NodeScanSignature(
  */
 class Node(
     private var onSelect: (() -> Unit?)? = null
-) : ScanNodeInterface {
+) : ScanNodeInterface, CollectionRowHintProvider {
     private var nodeInfo: AccessibilityNodeInfo? = null
     private var x: Int = 0
     private var y: Int = 0
@@ -253,6 +255,22 @@ class Node(
 
     internal fun prefersAccessibilityClickForSelection(): Boolean {
         return capabilities?.prefersAccessibilityClickForSelection ?: true
+    }
+
+    override fun getCollectionRowHint(): CollectionRowHint? {
+        val item = capabilities
+            ?.collectionMetadata
+            ?.collectionItem
+            ?: return null
+
+        if (item.rowIndex < 0) return null
+
+        return CollectionRowHint(
+            rowIndex = item.rowIndex,
+            rowSpan = item.rowSpan,
+            columnIndex = item.columnIndex.takeIf { it >= 0 },
+            columnSpan = item.columnSpan.takeIf { it >= 0 }
+        )
     }
 
     override fun getContentDescription(): String {
