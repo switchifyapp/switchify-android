@@ -8,6 +8,7 @@ import android.os.Looper
 import android.view.accessibility.AccessibilityNodeInfo
 import com.enaboapps.switchify.service.gestures.GestureManager
 import com.enaboapps.switchify.service.gestures.GesturePoint
+import com.enaboapps.switchify.service.gestures.placement.FingerMode
 import com.enaboapps.switchify.service.menu.MenuItem
 import com.enaboapps.switchify.service.scanning.ScanNodeInterface
 import com.enaboapps.switchify.service.selection.SelectionHandler
@@ -322,11 +323,12 @@ class Node(
             GesturePoint.y = centerY
 
             SelectionHandler.setSelectAction {
+                val selectionDecision = NodeSelectionStrategy.decide(capabilities)
                 NodeSelectionPerformer.perform(
                     nodeInfo = nodeInfo,
-                    preferAccessibilityClick = prefersAccessibilityClickForSelection()
+                    preferAccessibilityClick = selectionDecision.preferAccessibilityClick
                 ) {
-                    GestureManager.instance.performTap(overrideFingerMode = com.enaboapps.switchify.service.gestures.placement.FingerMode.ONE)
+                    GestureManager.instance.performTap(overrideFingerMode = FingerMode.ONE)
                 }
             }
             SelectionHandler.performSelectionAction()
