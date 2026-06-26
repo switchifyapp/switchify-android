@@ -425,7 +425,7 @@ class CameraSwitchManager(
         if (switchEvent != null) {
             coroutineScope.launch(Dispatchers.Main) {
                 Log.i(TAG, "Triggering switch action for gesture: ${gesture.getName()}")
-                if (PcMouseRepeatManager.instance.stopForSwitchPress()) return@launch
+                if (stopPcMouseRepeatForSwitchPress()) return@launch
                 if (!switchEvent.pressAction.isScanMovementAction() &&
                     Tasks.getInstance().stopActiveStoppableTask()
                 ) return@launch
@@ -449,13 +449,17 @@ class CameraSwitchManager(
         if (switchEvent != null) {
             coroutineScope.launch(Dispatchers.Main) {
                 Log.i(TAG, "Triggering head turn gesture: ${gesture.getName()}")
-                if (PcMouseRepeatManager.instance.stopForSwitchPress()) return@launch
+                if (stopPcMouseRepeatForSwitchPress()) return@launch
                 if (!switchEvent.pressAction.isScanMovementAction() &&
                     Tasks.getInstance().stopActiveStoppableTask()
                 ) return@launch
                 scanningManager.performAction(switchEvent.pressAction)
             }
         }
+    }
+
+    private fun stopPcMouseRepeatForSwitchPress(): Boolean {
+        return PcMouseRepeatManager.instance.stopForSwitchPress()
     }
 
     /**

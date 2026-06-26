@@ -1,5 +1,6 @@
 package com.enaboapps.switchify.screens.settings
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.PrimaryTabRow
@@ -36,6 +37,12 @@ import com.enaboapps.switchify.screens.settings.sections.MenuSection
 import com.enaboapps.switchify.screens.settings.sections.SelectionSection
 import com.enaboapps.switchify.screens.settings.shared.ScanModeSelectionSection
 import com.enaboapps.switchify.screens.settings.techniques.AccessTechniqueSelector
+
+data class SettingsRouteLinkSpec(
+    @param:StringRes val titleResId: Int,
+    @param:StringRes val summaryResId: Int,
+    val route: String
+)
 
 @Composable
 fun SettingsScreen(navController: NavController) {
@@ -132,12 +139,13 @@ fun GeneralSettingsTab(menuSettingsModel: MenuSettingsModel, navController: NavC
                 route = NavigationRoute.AiModel.name
             )
         }
+        val pcSettingsLink = pcSettingsRouteLinkSpec()
         Section(titleResId = R.string.pc_settings_title) {
             NavRouteLink(
-                titleResId = R.string.pc_settings_mouse_repeat_title,
-                summaryResId = R.string.pc_settings_mouse_repeat_link_summary,
+                titleResId = pcSettingsLink.titleResId,
+                summaryResId = pcSettingsLink.summaryResId,
                 navController = navController,
-                route = NavigationRoute.PcSettings.name
+                route = pcSettingsLink.route
             )
         }
         InputSection(navController)
@@ -145,6 +153,14 @@ fun GeneralSettingsTab(menuSettingsModel: MenuSettingsModel, navController: NavC
         GesturesSettingsSection(navController)
         MenuSection(menuSettingsModel, navController)
     }
+}
+
+fun pcSettingsRouteLinkSpec(): SettingsRouteLinkSpec {
+    return SettingsRouteLinkSpec(
+        titleResId = R.string.pc_settings_title,
+        summaryResId = R.string.pc_settings_link_summary,
+        route = NavigationRoute.PcSettings.name
+    )
 }
 
 @Composable

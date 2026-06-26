@@ -14,11 +14,12 @@ import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.PreferenceSwitch
 import com.enaboapps.switchify.components.PreferenceTimeStepper
 import com.enaboapps.switchify.components.Section
-import com.enaboapps.switchify.pc.PcMouseRepeatManager
+import com.enaboapps.switchify.pc.PcMouseRepeatDefaults
 
 @Composable
 fun PcSettingsScreen(navController: NavController) {
-    val preferenceManager = PreferenceManager(LocalContext.current)
+    val context = LocalContext.current
+    val preferenceManager = remember(context) { PreferenceManager(context) }
     var mouseRepeat by remember {
         mutableStateOf(
             preferenceManager.getBooleanValue(
@@ -31,7 +32,7 @@ fun PcSettingsScreen(navController: NavController) {
         mutableLongStateOf(
             preferenceManager.getLongValue(
                 PreferenceManager.PREFERENCE_KEY_PC_MOUSE_REPEAT_INTERVAL,
-                PcMouseRepeatManager.DEFAULT_REPEAT_INTERVAL
+                PcMouseRepeatDefaults.DEFAULT_INTERVAL_MS
             )
         )
     }
@@ -59,9 +60,9 @@ fun PcSettingsScreen(navController: NavController) {
                     value = repeatInterval,
                     titleResId = R.string.pc_settings_mouse_repeat_interval_title,
                     summaryResId = R.string.pc_settings_mouse_repeat_interval_summary,
-                    min = PcMouseRepeatManager.MIN_REPEAT_INTERVAL,
-                    max = PcMouseRepeatManager.MAX_REPEAT_INTERVAL,
-                    step = PcMouseRepeatManager.REPEAT_INTERVAL_STEP,
+                    min = PcMouseRepeatDefaults.MIN_INTERVAL_MS,
+                    max = PcMouseRepeatDefaults.MAX_INTERVAL_MS,
+                    step = PcMouseRepeatDefaults.INTERVAL_STEP_MS,
                     onValueChanged = {
                         repeatInterval = it
                         preferenceManager.setLongValue(

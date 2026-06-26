@@ -2,7 +2,6 @@ package com.enaboapps.switchify.pc
 
 import android.content.Context
 import com.enaboapps.switchify.R
-import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.service.window.MessageSeverity
 import com.enaboapps.switchify.service.window.ServiceMessageHUD
 import kotlinx.coroutines.CoroutineScope
@@ -11,21 +10,14 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
-class PcMouseRepeatManager private constructor() {
-    private var context: Context? = null
+class PcMouseRepeatManager internal constructor(
+    private var settings: PcMouseRepeatSettings? = null,
+    private var showHudMessage: (Int, MessageSeverity) -> Unit = defaultHudMessageHandler()
+) {
     private var repeatJob: Job? = null
     private var repeatedCommand: PcControlCommand? = null
-    private var enabledProviderForTesting: (() -> Boolean)? = null
-    private var intervalProviderForTesting: (() -> Long)? = null
-    private var suppressHudForTesting = false
-    private var messageRecorderForTesting: ((Int) -> Unit)? = null
 
     companion object {
-        const val DEFAULT_REPEAT_INTERVAL = 250L
-        const val MIN_REPEAT_INTERVAL = 100L
-        const val MAX_REPEAT_INTERVAL = 2000L
-        const val REPEAT_INTERVAL_STEP = 50L
-
         val instance: PcMouseRepeatManager by lazy { PcMouseRepeatManager() }
 
         fun isRepeatable(command: PcControlCommand): Boolean {
@@ -34,7 +26,7 @@ class PcMouseRepeatManager private constructor() {
     }
 
     fun init(context: Context) {
-        this.context = context.applicationContext
+        settings = PreferencePcMouseRepeatSettings(context.applicationContext)
     }
 
     fun start(
@@ -42,33 +34,21 @@ class PcMouseRepeatManager private constructor() {
         scope: CoroutineScope,
         sendCommand: suspend (PcControlCommand) -> PcCommandResult
     ): Boolean {
-        if (!isRepeatable(command) || !isEnabled()) return false
+        if (!isRepeatable(command) || !currentSettings().isEnabled()) return false
 
         stop(showMessage = false)
         repeatedCommand = command
         repeatJob = scope.launch {
-            when (sendCommand(command)) {
-                PcCommandResult.Ack -> showMessage(R.string.pc_mouse_repeat_started, MessageSeverity.Success)
-                is PcCommandResult.AuthFailed,
-                is PcCommandResult.Failed -> {
-                    clearRepeatState()
-                    showMessage(R.string.pc_mouse_repeat_stopped, MessageSeverity.Info)
-                    return@launch
-                }
-            }
+            if (!sendAndContinue(command, sendCommand, showStartedMessage = true)) return@launch
 
             while (isActive) {
-                delay(getRepeatInterval())
+                delay(currentSettings().intervalMs())
                 if (!isActive) return@launch
-                when (sendCommand(command)) {
-                    PcCommandResult.Ack -> Unit
-                    is PcCommandResult.AuthFailed,
-                    is PcCommandResult.Failed -> {
-                        clearRepeatState()
-                        showMessage(R.string.pc_mouse_repeat_stopped, MessageSeverity.Info)
-                        return@launch
-                    }
+                if (!currentSettings().isEnabled()) {
+                    stop()
+                    return@launch
                 }
+                if (!sendAndContinue(command, sendCommand)) return@launch
             }
         }
         return true
@@ -97,26 +77,30 @@ class PcMouseRepeatManager private constructor() {
         stop(showMessage)
     }
 
-    private fun isEnabled(): Boolean {
-        enabledProviderForTesting?.let { return it() }
-        return context?.let {
-            PreferenceManager(it).getBooleanValue(
-                PreferenceManager.PREFERENCE_KEY_PC_MOUSE_REPEAT,
+    private suspend fun sendAndContinue(
+        command: PcControlCommand,
+        sendCommand: suspend (PcControlCommand) -> PcCommandResult,
+        showStartedMessage: Boolean = false
+    ): Boolean {
+        return when (sendCommand(command)) {
+            PcCommandResult.Ack -> {
+                if (showStartedMessage) showMessage(R.string.pc_mouse_repeat_started, MessageSeverity.Success)
                 true
-            )
-        } ?: true
+            }
+            is PcCommandResult.AuthFailed,
+            is PcCommandResult.Failed -> {
+                clearRepeatState()
+                showMessage(R.string.pc_mouse_repeat_stopped, MessageSeverity.Info)
+                false
+            }
+        }
     }
 
-    private fun getRepeatInterval(): Long {
-        val interval = intervalProviderForTesting?.invoke()
-            ?: context?.let {
-                PreferenceManager(it).getLongValue(
-                    PreferenceManager.PREFERENCE_KEY_PC_MOUSE_REPEAT_INTERVAL,
-                    DEFAULT_REPEAT_INTERVAL
-                )
-            }
-            ?: DEFAULT_REPEAT_INTERVAL
-        return interval.coerceIn(MIN_REPEAT_INTERVAL, MAX_REPEAT_INTERVAL)
+    private fun currentSettings(): PcMouseRepeatSettings {
+        return settings ?: object : PcMouseRepeatSettings {
+            override fun isEnabled(): Boolean = true
+            override fun intervalMs(): Long = PcMouseRepeatDefaults.DEFAULT_INTERVAL_MS
+        }
     }
 
     private fun clearRepeatState() {
@@ -125,39 +109,30 @@ class PcMouseRepeatManager private constructor() {
     }
 
     private fun showMessage(messageResId: Int, severity: MessageSeverity) {
-        messageRecorderForTesting?.invoke(messageResId)
-        if (suppressHudForTesting) return
-        ServiceMessageHUD.instance.showMessage(
-            messageResId,
-            ServiceMessageHUD.MessageType.DISAPPEARING,
-            severity = severity
-        )
-    }
-
-    internal fun setEnabledProviderForTesting(provider: (() -> Boolean)?) {
-        enabledProviderForTesting = provider
-    }
-
-    internal fun setIntervalProviderForTesting(provider: (() -> Long)?) {
-        intervalProviderForTesting = provider
-    }
-
-    internal fun setSuppressHudForTesting(suppress: Boolean) {
-        suppressHudForTesting = suppress
-    }
-
-    internal fun setMessageRecorderForTesting(recorder: ((Int) -> Unit)?) {
-        messageRecorderForTesting = recorder
+        showHudMessage(messageResId, severity)
     }
 
     internal fun resetForTesting() {
         repeatJob?.cancel()
         repeatJob = null
         repeatedCommand = null
-        context = null
-        enabledProviderForTesting = null
-        intervalProviderForTesting = null
-        suppressHudForTesting = false
-        messageRecorderForTesting = null
+        settings = null
+        showHudMessage = defaultHudMessageHandler()
     }
+
+    internal fun setSettingsForTesting(settings: PcMouseRepeatSettings) {
+        this.settings = settings
+    }
+
+    internal fun setHudMessageHandlerForTesting(showHudMessage: (Int, MessageSeverity) -> Unit) {
+        this.showHudMessage = showHudMessage
+    }
+}
+
+private fun defaultHudMessageHandler(): (Int, MessageSeverity) -> Unit = { messageResId, severity ->
+    ServiceMessageHUD.instance.showMessage(
+        messageResId,
+        ServiceMessageHUD.MessageType.DISAPPEARING,
+        severity = severity
+    )
 }
