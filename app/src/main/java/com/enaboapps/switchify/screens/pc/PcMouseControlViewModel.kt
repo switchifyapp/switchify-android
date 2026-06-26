@@ -3,13 +3,17 @@ package com.enaboapps.switchify.screens.pc
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.enaboapps.switchify.pc.DiscoveredPc
 import com.enaboapps.switchify.pc.PC_KEYBOARD_TYPE_TEXT_MAX_LENGTH
+import com.enaboapps.switchify.pc.PcApprovalCodeState
 import com.enaboapps.switchify.pc.PcCommandResult
 import com.enaboapps.switchify.pc.PcConnectionState
 import com.enaboapps.switchify.pc.PcConnectionStateHolder
 import com.enaboapps.switchify.pc.PcControlCommand
+import com.enaboapps.switchify.pc.PcErrorReason
 import com.enaboapps.switchify.pc.PcKeyboardKey
 import com.enaboapps.switchify.pc.PcMouseRepeatManager
+import com.enaboapps.switchify.pc.PcServiceConnectResult
 import com.enaboapps.switchify.pc.PcServiceConnectionController
 import com.enaboapps.switchify.pc.PcServiceConnectionState
 import com.enaboapps.switchify.pc.PcTextStreamItem
@@ -28,6 +32,14 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 
+data class PcSwitchRowState(
+    val desktopId: String,
+    val displayName: String,
+    val summary: String,
+    val connected: Boolean,
+    val enabled: Boolean
+)
+
 data class PcMouseControlUiState(
     val connectedDisplayName: String? = null,
     val activeSurface: PcControlSurface = PcControlSurface.Mouse,
@@ -40,7 +52,12 @@ data class PcMouseControlUiState(
     val typingText: String = "",
     val typingMessage: String? = null,
     val supportsTextStreamInput: Boolean = false,
-    val connectionStatusText: String? = null
+    val connectionStatusText: String? = null,
+    val switchPcChooserVisible: Boolean = false,
+    val switchPcRows: List<PcSwitchRowState> = emptyList(),
+    val isDiscoveringSwitchPcs: Boolean = false,
+    val switchingDesktopId: String? = null,
+    val switchPcApprovalCode: PcApprovalCodeState? = null
 )
 
 class PcMouseControlViewModel(
@@ -68,6 +85,7 @@ class PcMouseControlViewModel(
     private val _uiState = MutableStateFlow(PcMouseControlUiState())
     val uiState: StateFlow<PcMouseControlUiState> = _uiState.asStateFlow()
     private var movementSteps = FALLBACK_MOVEMENT_STEPS
+    private var switchPcCandidates: List<DiscoveredPc> = emptyList()
 
     init {
         val selectedSize = movementSizeStore.getSelectedSize()
@@ -236,6 +254,114 @@ class PcMouseControlViewModel(
 
     fun showMouseSurface() {
         selectControlSurface(PcControlSurface.Mouse)
+    }
+
+    fun openSwitchPcChooser() {
+        _uiState.update {
+            it.copy(
+                switchPcChooserVisible = true,
+                switchPcApprovalCode = null,
+                switchingDesktopId = null
+            )
+        }
+        refreshSwitchPcChoices()
+    }
+
+    fun dismissSwitchPcChooser() {
+        _uiState.update {
+            it.copy(
+                switchPcChooserVisible = false,
+                switchPcApprovalCode = null,
+                switchingDesktopId = null,
+                isDiscoveringSwitchPcs = false
+            )
+        }
+    }
+
+    fun refreshSwitchPcChoices() {
+        val controller = serviceControllerProvider()
+        if (controller == null) {
+            switchPcCandidates = emptyList()
+            _uiState.update {
+                it.copy(
+                    message = CONNECT_FIRST_MESSAGE,
+                    switchPcRows = emptyList(),
+                    isDiscoveringSwitchPcs = false,
+                    switchingDesktopId = null
+                )
+            }
+            return
+        }
+        _uiState.update { it.copy(isDiscoveringSwitchPcs = true) }
+        viewModelScope.launch {
+            val pcs = controller.discoverPairedPcs()
+            switchPcCandidates = pcs
+            _uiState.update {
+                it.copy(
+                    switchPcRows = switchRowsFor(pcs, it),
+                    isDiscoveringSwitchPcs = false
+                )
+            }
+        }
+    }
+
+    fun switchToPc(desktopId: String) {
+        val pc = switchPcCandidates.firstOrNull { it.desktopId == desktopId }
+        if (pc == null) {
+            _uiState.update {
+                it.copy(message = NO_PC_FOUND_MESSAGE)
+            }
+            refreshSwitchPcChoices()
+            return
+        }
+        if (isConnectedDesktop(desktopId)) {
+            dismissSwitchPcChooser()
+            return
+        }
+        val controller = serviceControllerProvider()
+        if (controller == null) {
+            _uiState.update {
+                it.copy(message = CONNECT_FIRST_MESSAGE)
+            }
+            return
+        }
+        mouseRepeatManager.clearServiceState()
+        _uiState.update {
+            it.copy(
+                isDragging = false,
+                switchingDesktopId = desktopId,
+                switchPcApprovalCode = null,
+                message = CONNECTING_MESSAGE,
+                switchPcRows = switchRowsFor(switchPcCandidates, it.copy(switchingDesktopId = desktopId, isDragging = false))
+            )
+        }
+        viewModelScope.launch {
+            when (val result = controller.connectTo(pc) { approvalCode ->
+                _uiState.update { it.copy(switchPcApprovalCode = approvalCode) }
+            }) {
+                is PcServiceConnectResult.Connected -> {
+                    _uiState.update {
+                        it.copy(
+                            switchPcChooserVisible = false,
+                            switchingDesktopId = null,
+                            switchPcApprovalCode = null,
+                            message = null,
+                            switchPcRows = switchRowsFor(switchPcCandidates, it.copy(switchingDesktopId = null))
+                        )
+                    }
+                }
+                is PcServiceConnectResult.Failed -> {
+                    _uiState.update {
+                        val next = it.copy(
+                            switchingDesktopId = null,
+                            switchPcApprovalCode = null,
+                            message = switchPcFailureMessage(result.reason)
+                        )
+                        next.copy(switchPcRows = switchRowsFor(switchPcCandidates, next))
+                    }
+                }
+            }
+        }
     }
 
     fun updateTypingText(text: String) {
@@ -594,7 +720,8 @@ class PcMouseControlViewModel(
                         } else {
                             it.message
                         },
-                        connectionStatusText = null
+                        connectionStatusText = null,
+                        switchPcRows = switchRowsFor(switchPcCandidates, it.copy(connectedDisplayName = state.displayName))
                     )
                 }
             }
@@ -606,7 +733,8 @@ class PcMouseControlViewModel(
                         isDragging = false,
                         supportsTextStreamInput = false,
                         message = RECONNECTING_MESSAGE,
-                        connectionStatusText = RECONNECTING_MESSAGE
+                        connectionStatusText = RECONNECTING_MESSAGE,
+                        switchPcRows = switchRowsFor(switchPcCandidates, it.copy(connectedDisplayName = state.displayName))
                     )
                 }
             }
@@ -622,7 +750,8 @@ class PcMouseControlViewModel(
                         busyCommand = null,
                         supportsTextStreamInput = false,
                         message = CONNECT_FIRST_MESSAGE,
-                        connectionStatusText = null
+                        connectionStatusText = null,
+                        switchPcRows = switchRowsFor(switchPcCandidates, it.copy(connectedDisplayName = null))
                     )
                 }
             }
@@ -638,7 +767,8 @@ class PcMouseControlViewModel(
                         busyCommand = null,
                         supportsTextStreamInput = false,
                         message = state.message,
-                        connectionStatusText = state.message
+                        connectionStatusText = state.message,
+                        switchPcRows = switchRowsFor(switchPcCandidates, it.copy(connectedDisplayName = null))
                     )
                 }
             }
@@ -658,7 +788,8 @@ class PcMouseControlViewModel(
                         isDragging = false,
                         supportsTextStreamInput = false,
                         message = RECONNECTING_MESSAGE,
-                        connectionStatusText = RECONNECTING_MESSAGE
+                        connectionStatusText = RECONNECTING_MESSAGE,
+                        switchPcRows = switchRowsFor(switchPcCandidates, it.copy(connectedDisplayName = state.displayName))
                     )
                 }
             }
@@ -672,7 +803,8 @@ class PcMouseControlViewModel(
                         busyCommand = null,
                         supportsTextStreamInput = false,
                         message = state.message,
-                        connectionStatusText = state.message
+                        connectionStatusText = state.message,
+                        switchPcRows = switchRowsFor(switchPcCandidates, it.copy(connectedDisplayName = null))
                     )
                 }
             }
@@ -705,8 +837,47 @@ class PcMouseControlViewModel(
                 busyCommand = null,
                 supportsTextStreamInput = false,
                 message = CONNECT_FIRST_MESSAGE,
-                connectionStatusText = null
+                connectionStatusText = null,
+                switchPcRows = switchRowsFor(switchPcCandidates, it.copy(connectedDisplayName = null))
             )
+        }
+    }
+
+    private fun switchRowsFor(
+        pcs: List<DiscoveredPc>,
+        state: PcMouseControlUiState
+    ): List<PcSwitchRowState> {
+        val connectedDesktopId = currentConnectedDesktopId()
+        return pcs.map { pc ->
+            val connected = pc.desktopId == connectedDesktopId
+            PcSwitchRowState(
+                desktopId = pc.desktopId,
+                displayName = pc.displayName,
+                summary = pc.primaryAddress,
+                connected = connected,
+                enabled = !connected && !state.isBusy && state.switchingDesktopId == null
+            )
+        }
+    }
+
+    private fun isConnectedDesktop(desktopId: String): Boolean {
+        return currentConnectedDesktopId() == desktopId
+    }
+
+    private fun currentConnectedDesktopId(): String? {
+        return when (val connectionState = PcConnectionStateHolder.connectionState.value) {
+            is PcConnectionState.Connected -> connectionState.session.desktopId
+            is PcConnectionState.Reconnecting -> connectionState.session.desktopId
+            else -> (serviceControllerProvider()?.state?.value as? PcServiceConnectionState.Connected)?.session?.desktopId
+        }
+    }
+
+    private fun switchPcFailureMessage(reason: PcErrorReason): String {
+        return when (reason) {
+            PcErrorReason.NoPcFound -> NO_PC_FOUND_MESSAGE
+            PcErrorReason.PairingRejected -> REQUEST_REJECTED_MESSAGE
+            PcErrorReason.PairingRequestExpired -> REQUEST_EXPIRED_MESSAGE
+            else -> COULD_NOT_CONNECT_MESSAGE
         }
     }
 
@@ -729,6 +900,11 @@ class PcMouseControlViewModel(
         const val BLUETOOTH_OFF_MESSAGE = "Bluetooth is off."
         const val BLUETOOTH_PERMISSION_DENIED_MESSAGE = "Bluetooth permission denied."
         const val DISCONNECTED_MESSAGE = "Disconnected."
+        const val CONNECTING_MESSAGE = "Connecting to PC..."
+        const val NO_PC_FOUND_MESSAGE = "No Switchify PC found."
+        const val COULD_NOT_CONNECT_MESSAGE = "Could not connect to PC."
+        const val REQUEST_REJECTED_MESSAGE = "Request rejected."
+        const val REQUEST_EXPIRED_MESSAGE = "Request expired. Try again."
     }
 
     private fun validationMessageFor(text: String): String? {
