@@ -522,6 +522,29 @@ class PcMouseControlViewModelTest {
     }
 
     @Test
+    fun repeatableMouseCommandIsStoppableBeforeFirstAck() = runTest(dispatcher) {
+        val firstResult = CompletableDeferred<PcCommandResult>()
+        val connector = FakeConnector(realtimeResults = mutableListOf(firstResult))
+        val controller = connectedController(connector = connector)
+        val viewModel = viewModel(controller)
+        val command = PcControlCommand.Move(80, 0)
+
+        viewModel.sendMouseCommand(command, repeatable = true)
+
+        assertEquals(listOf(command), connector.realtimeCommands)
+        assertTrue(mouseRepeatManager.isRepeating())
+        assertTrue(mouseRepeatManager.stopForSwitchPress())
+
+        firstResult.complete(PcCommandResult.Ack)
+        advanceUntilIdle()
+        advanceTimeBy(250)
+        runCurrent()
+
+        assertEquals(listOf(command), connector.realtimeCommands)
+        assertFalse(mouseRepeatManager.isRepeating())
+    }
+
+    @Test
     fun repeatableMouseCommandFailureDoesNotStartRepeat() = runTest(dispatcher) {
         val connector = FakeConnector(commandResult = PcCommandResult.Failed())
         val controller = connectedController(connector = connector)

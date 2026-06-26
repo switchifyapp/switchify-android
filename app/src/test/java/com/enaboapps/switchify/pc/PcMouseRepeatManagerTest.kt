@@ -31,12 +31,39 @@ class PcMouseRepeatManagerTest {
     }
 
     @Test
+    fun armForInitialSendMakesRepeatImmediatelyStoppable() {
+        val repeatManager = repeatManager()
+
+        assertTrue(repeatManager.armForInitialSend(PcControlCommand.Move(5, 0)))
+
+        assertTrue(repeatManager.isRepeating())
+        assertTrue(repeatManager.stopForSwitchPress())
+        assertFalse(repeatManager.isRepeating())
+    }
+
+    @Test
+    fun armForInitialSendDoesNotScheduleRepeats() = runTest {
+        val commands = mutableListOf<PcControlCommand>()
+        val repeatManager = repeatManager(intervalMs = 100L)
+
+        assertTrue(repeatManager.armForInitialSend(PcControlCommand.Move(5, 0)))
+
+        advanceTimeBy(250)
+        runCurrent()
+
+        assertEquals(emptyList<PcControlCommand>(), commands)
+        repeatManager.stop(showMessage = false)
+    }
+
+    @Test
     fun startAfterInitialSendDoesNotSendBeforeInterval() = runTest {
         val commands = mutableListOf<PcControlCommand>()
         val repeatManager = repeatManager(intervalMs = 250L)
+        val command = PcControlCommand.Move(5, 0)
 
+        assertTrue(repeatManager.armForInitialSend(command))
         assertTrue(
-            repeatManager.startAfterInitialSend(PcControlCommand.Move(5, 0), this) {
+            repeatManager.startAfterInitialSend(command, this) {
                 commands += it
                 PcCommandResult.Ack
             }
@@ -56,9 +83,11 @@ class PcMouseRepeatManagerTest {
     fun startAfterInitialSendSendsFirstRepeatAfterInterval() = runTest {
         val commands = mutableListOf<PcControlCommand>()
         val repeatManager = repeatManager(intervalMs = 250L)
+        val command = PcControlCommand.Move(5, 0)
 
+        assertTrue(repeatManager.armForInitialSend(command))
         assertTrue(
-            repeatManager.startAfterInitialSend(PcControlCommand.Move(5, 0), this) {
+            repeatManager.startAfterInitialSend(command, this) {
                 commands += it
                 PcCommandResult.Ack
             }
@@ -76,6 +105,7 @@ class PcMouseRepeatManagerTest {
         val commands = mutableListOf<PcControlCommand>()
         val repeatManager = repeatManager(enabled = false)
 
+        assertFalse(repeatManager.armForInitialSend(PcControlCommand.Scroll(0, 5)))
         assertFalse(
             repeatManager.startAfterInitialSend(PcControlCommand.Scroll(0, 5), this) {
                 commands += it
@@ -92,9 +122,11 @@ class PcMouseRepeatManagerTest {
         val commands = mutableListOf<PcControlCommand>()
         val settings = FakeMouseRepeatSettings(intervalMs = 100L)
         val repeatManager = repeatManager(settings)
+        val command = PcControlCommand.Scroll(0, 5)
 
+        assertTrue(repeatManager.armForInitialSend(command))
         assertTrue(
-            repeatManager.startAfterInitialSend(PcControlCommand.Scroll(0, 5), this) {
+            repeatManager.startAfterInitialSend(command, this) {
                 commands += it
                 PcCommandResult.Ack
             }
@@ -111,10 +143,12 @@ class PcMouseRepeatManagerTest {
     @Test
     fun stopForSwitchPressStopsRepeatOnlyWhenActive() = runTest {
         val repeatManager = repeatManager()
+        val command = PcControlCommand.Scroll(0, 5)
 
         assertFalse(repeatManager.stopForSwitchPress())
+        assertTrue(repeatManager.armForInitialSend(command))
         assertTrue(
-            repeatManager.startAfterInitialSend(PcControlCommand.Scroll(0, 5), this) {
+            repeatManager.startAfterInitialSend(command, this) {
                 PcCommandResult.Ack
             }
         )
@@ -127,9 +161,11 @@ class PcMouseRepeatManagerTest {
     @Test
     fun commandFailureStopsRepeat() = runTest {
         val repeatManager = repeatManager(intervalMs = 100L)
+        val command = PcControlCommand.Move(5, 0)
 
+        assertTrue(repeatManager.armForInitialSend(command))
         assertTrue(
-            repeatManager.startAfterInitialSend(PcControlCommand.Move(5, 0), this) {
+            repeatManager.startAfterInitialSend(command, this) {
                 PcCommandResult.Failed()
             }
         )
@@ -144,9 +180,11 @@ class PcMouseRepeatManagerTest {
     @Test
     fun authFailureStopsRepeat() = runTest {
         val repeatManager = repeatManager(intervalMs = 100L)
+        val command = PcControlCommand.Move(5, 0)
 
+        assertTrue(repeatManager.armForInitialSend(command))
         assertTrue(
-            repeatManager.startAfterInitialSend(PcControlCommand.Move(5, 0), this) {
+            repeatManager.startAfterInitialSend(command, this) {
                 PcCommandResult.AuthFailed()
             }
         )
@@ -158,15 +196,11 @@ class PcMouseRepeatManagerTest {
     }
 
     @Test
-    fun startAfterInitialSendRecordsStartedMessage() = runTest {
+    fun armForInitialSendRecordsStartedMessage() {
         val messages = mutableListOf<Int>()
         val repeatManager = repeatManager(messages = messages)
 
-        assertTrue(
-            repeatManager.startAfterInitialSend(PcControlCommand.Move(5, 0), this) {
-                PcCommandResult.Ack
-            }
-        )
+        assertTrue(repeatManager.armForInitialSend(PcControlCommand.Move(5, 0)))
 
         assertEquals(listOf(R.string.pc_mouse_repeat_started), messages)
         repeatManager.stop(showMessage = false)
@@ -176,13 +210,92 @@ class PcMouseRepeatManagerTest {
     fun stopForSwitchPressRecordsStoppedMessage() = runTest {
         val messages = mutableListOf<Int>()
         val repeatManager = repeatManager(messages = messages)
+        val command = PcControlCommand.Move(5, 0)
 
+        assertTrue(repeatManager.armForInitialSend(command))
         assertTrue(
-            repeatManager.startAfterInitialSend(PcControlCommand.Move(5, 0), this) {
+            repeatManager.startAfterInitialSend(command, this) {
                 PcCommandResult.Ack
             }
         )
         repeatManager.stopForSwitchPress()
+
+        assertEquals(
+            listOf(
+                R.string.pc_mouse_repeat_started,
+                R.string.pc_mouse_repeat_stopped
+            ),
+            messages
+        )
+    }
+
+    @Test
+    fun startAfterInitialSendDoesNotStartIfStoppedBeforeAck() = runTest {
+        val commands = mutableListOf<PcControlCommand>()
+        val repeatManager = repeatManager(intervalMs = 100L)
+        val command = PcControlCommand.Move(5, 0)
+
+        assertTrue(repeatManager.armForInitialSend(command))
+        assertTrue(repeatManager.stopForSwitchPress())
+
+        assertFalse(
+            repeatManager.startAfterInitialSend(command, this) {
+                commands += it
+                PcCommandResult.Ack
+            }
+        )
+        advanceTimeBy(100)
+        runCurrent()
+
+        assertEquals(emptyList<PcControlCommand>(), commands)
+    }
+
+    @Test
+    fun startAfterInitialSendUsesExistingArmedCommand() = runTest {
+        val commands = mutableListOf<PcControlCommand>()
+        val repeatManager = repeatManager(intervalMs = 100L)
+        val command = PcControlCommand.Scroll(0, 5)
+
+        assertTrue(repeatManager.armForInitialSend(command))
+        assertTrue(
+            repeatManager.startAfterInitialSend(command, this) {
+                commands += it
+                PcCommandResult.Ack
+            }
+        )
+        advanceTimeBy(99)
+        runCurrent()
+
+        assertEquals(emptyList<PcControlCommand>(), commands)
+
+        advanceTimeBy(1)
+        runCurrent()
+
+        assertEquals(listOf(command), commands)
+        repeatManager.stop(showMessage = false)
+    }
+
+    @Test
+    fun cancelPendingStartClearsArmedRepeatSilently() {
+        val messages = mutableListOf<Int>()
+        val repeatManager = repeatManager(messages = messages)
+
+        assertTrue(repeatManager.armForInitialSend(PcControlCommand.Move(5, 0)))
+        messages.clear()
+
+        assertTrue(repeatManager.cancelPendingStart(showMessage = false))
+
+        assertFalse(repeatManager.isRepeating())
+        assertEquals(emptyList<Int>(), messages)
+    }
+
+    @Test
+    fun stopForSwitchPressRecordsStoppedMessageWhenPending() {
+        val messages = mutableListOf<Int>()
+        val repeatManager = repeatManager(messages = messages)
+
+        assertTrue(repeatManager.armForInitialSend(PcControlCommand.Move(5, 0)))
+        assertTrue(repeatManager.stopForSwitchPress())
 
         assertEquals(
             listOf(

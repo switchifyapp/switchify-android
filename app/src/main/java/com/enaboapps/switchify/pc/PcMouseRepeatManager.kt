@@ -16,6 +16,7 @@ class PcMouseRepeatManager internal constructor(
 ) {
     private var repeatJob: Job? = null
     private var repeatedCommand: PcControlCommand? = null
+    private var repeatArmed = false
 
     companion object {
         val instance: PcMouseRepeatManager by lazy { PcMouseRepeatManager() }
@@ -33,16 +34,31 @@ class PcMouseRepeatManager internal constructor(
         return isRepeatable(command) && currentSettings().isEnabled()
     }
 
+    fun armForInitialSend(command: PcControlCommand): Boolean {
+        if (!canRepeat(command)) return false
+
+        stop(showMessage = false)
+        repeatedCommand = command
+        repeatArmed = true
+        showMessage(R.string.pc_mouse_repeat_started, MessageSeverity.Success)
+        return true
+    }
+
     fun startAfterInitialSend(
         command: PcControlCommand,
         scope: CoroutineScope,
         sendRepeatedCommand: suspend (PcControlCommand) -> PcCommandResult
     ): Boolean {
-        if (!canRepeat(command)) return false
+        if (!isRepeatable(command)) return false
+        if (!currentSettings().isEnabled()) {
+            stop()
+            return false
+        }
+        if (!repeatArmed || repeatedCommand != command) return false
 
-        stop(showMessage = false)
+        repeatJob?.cancel()
         repeatedCommand = command
-        showMessage(R.string.pc_mouse_repeat_started, MessageSeverity.Success)
+        repeatArmed = true
         repeatJob = scope.launch {
             while (isActive) {
                 delay(currentSettings().intervalMs())
@@ -53,6 +69,17 @@ class PcMouseRepeatManager internal constructor(
                 }
                 if (!sendAndContinue(command, sendRepeatedCommand)) return@launch
             }
+        }
+        return true
+    }
+
+    fun cancelPendingStart(showMessage: Boolean = false): Boolean {
+        if (!isRepeating()) return false
+
+        repeatJob?.cancel()
+        clearRepeatState()
+        if (showMessage) {
+            showMessage(R.string.pc_mouse_repeat_stopped, MessageSeverity.Info)
         }
         return true
     }
@@ -73,7 +100,7 @@ class PcMouseRepeatManager internal constructor(
     fun stopForSwitchPress(): Boolean = stop()
 
     fun isRepeating(): Boolean {
-        return repeatJob?.isActive == true && repeatedCommand != null
+        return repeatArmed && repeatedCommand != null
     }
 
     fun clearServiceState(showMessage: Boolean = false) {
@@ -105,6 +132,7 @@ class PcMouseRepeatManager internal constructor(
     private fun clearRepeatState() {
         repeatJob = null
         repeatedCommand = null
+        repeatArmed = false
     }
 
     private fun showMessage(messageResId: Int, severity: MessageSeverity) {
@@ -115,6 +143,7 @@ class PcMouseRepeatManager internal constructor(
         repeatJob?.cancel()
         repeatJob = null
         repeatedCommand = null
+        repeatArmed = false
         settings = null
         showHudMessage = defaultHudMessageHandler()
     }

@@ -143,7 +143,7 @@ class PcMouseControlViewModel(
     }
 
     fun sendMouseCommand(command: PcControlCommand, repeatable: Boolean) {
-        if (repeatable && mouseRepeatManager.canRepeat(command)) {
+        if (repeatable && mouseRepeatManager.armForInitialSend(command)) {
             sendRepeatableMouseCommand(command)
             return
         }
@@ -161,7 +161,9 @@ class PcMouseControlViewModel(
                     )
                 }
                 is PcCommandResult.AuthFailed,
-                is PcCommandResult.Failed -> Unit
+                is PcCommandResult.Failed -> {
+                    mouseRepeatManager.cancelPendingStart(showMessage = false)
+                }
             }
         }
     }
