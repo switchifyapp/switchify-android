@@ -334,6 +334,14 @@
     <string name="pc_control_no_pc_found">No Switchify PC found.</string>
     <string name="pc_control_could_not_connect">Could not connect to PC.</string>
     <string name="pc_control_command_failed">Could not send command to PC.</string>
+    <string name="pc_control_current_pc">Current PC</string>
+    <string name="pc_control_no_pc_connected">No PC connected</string>
+    <string name="pc_control_switch_pc">Switch</string>
+    <string name="pc_control_switch_pc_title">Switch PC</string>
+    <string name="pc_control_switch_pc_searching">Searching for paired PCs...</string>
+    <string name="pc_control_switch_pc_empty">No paired PCs found nearby.</string>
+    <string name="pc_control_switch_pc_connected">Connected</string>
+    <string name="pc_control_switch_pc_refresh">Refresh</string>
     <string name="pc_control_surface_mouse">Mouse</string>
     <string name="pc_control_surface_typing">Typing</string>
     <string name="pc_control_surface_window">Window</string>
