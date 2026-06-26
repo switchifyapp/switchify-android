@@ -119,7 +119,7 @@ private fun PcMouseControlScreen(
         },
         bottomBar = {
             PcControlPcSwitchStrip(
-                connectedDisplayName = uiState.connectedDisplayName,
+                connectedDisplayName = uiState.switcherConnectedDisplayName ?: uiState.connectedDisplayName,
                 enabled = !uiState.isBusy,
                 isDiscovering = uiState.isDiscoveringSwitchPcs,
                 switching = uiState.switchingDesktopId != null,

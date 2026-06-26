@@ -128,6 +128,24 @@ class PcMouseControlViewModelTest {
     }
 
     @Test
+    fun bottomStripStateUsesControlDeviceName() = runTest(dispatcher) {
+        val devicePc = pc.copy(
+            serviceName = "Switchify PC",
+            bluetoothEndpoint = pc.bluetoothEndpoint?.copy(deviceName = "Oliver Laptop")
+        )
+        val connector = FakeConnector()
+        val tokens = FakeTokenStore(mutableMapOf("desktop-1" to "token"))
+        val controller = controller(tokens, connector, FakeDiscovery(listOf(devicePc)))
+        controller.connectTo(devicePc)
+        val viewModel = viewModel(controller)
+
+        advanceUntilIdle()
+
+        assertEquals("Switchify PC", viewModel.uiState.value.connectedDisplayName)
+        assertEquals("Oliver Laptop", viewModel.uiState.value.switcherConnectedDisplayName)
+    }
+
+    @Test
     fun connectedServiceStateUsesPointerProfile() = runTest(dispatcher) {
         val controller = connectedController(pointerProfile = pointerProfile(small = 52, medium = 130, large = 260))
         val viewModel = viewModel(controller, FakeMovementSizeStore(PcMouseMovementSize.Medium))
@@ -160,6 +178,25 @@ class PcMouseControlViewModelTest {
         assertEquals(listOf("desktop-1", "desktop-2"), viewModel.uiState.value.switchPcRows.map { it.desktopId })
         assertTrue(viewModel.uiState.value.switchPcRows.first { it.desktopId == "desktop-1" }.connected)
         assertFalse(viewModel.uiState.value.switchPcRows.first { it.desktopId == "desktop-2" }.connected)
+    }
+
+    @Test
+    fun switchRowsUseActualBluetoothDeviceName() = runTest(dispatcher) {
+        val devicePc = pc.copy(
+            serviceName = "Switchify PC",
+            bluetoothEndpoint = pc.bluetoothEndpoint?.copy(deviceName = "Oliver Laptop")
+        )
+        val connector = FakeConnector()
+        val tokens = FakeTokenStore(mutableMapOf("desktop-1" to "token"))
+        val controller = controller(tokens, connector, FakeDiscovery(listOf(devicePc)))
+        controller.connectTo(devicePc)
+        val viewModel = viewModel(controller)
+        advanceUntilIdle()
+
+        viewModel.openSwitchPcChooser()
+        advanceUntilIdle()
+
+        assertEquals("Oliver Laptop", viewModel.uiState.value.switchPcRows.single().displayName)
     }
 
     @Test

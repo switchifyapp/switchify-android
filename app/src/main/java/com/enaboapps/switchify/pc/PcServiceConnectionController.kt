@@ -47,6 +47,7 @@ class PcServiceConnectionController(
     private var liveConnection: PcControlConnection? = null
     private var liveSession: PcAuthenticatedSession? = null
     private var liveDisplayName: String? = null
+    private var liveControlDeviceName: String? = null
     private var liveConnectionEventsJob: Job? = null
     private var liveHeartbeatJob: Job? = null
     private var pendingUiPauseShutdownJob: Job? = null
@@ -211,6 +212,8 @@ class PcServiceConnectionController(
 
     fun currentPointerProfile(): PcPointerMovementProfile? = pointerProfile
 
+    fun currentControlDeviceName(): String? = liveControlDeviceName
+
     fun hasLiveControlSession(): Boolean = liveConnection != null && liveSession != null
 
     fun cleanup() {
@@ -255,7 +258,7 @@ class PcServiceConnectionController(
             is PcPairingResult.Paired -> {
                 tokenStore.saveToken(result.desktopId, result.token, result.endpointId, pc.displayName)
                 val session = PcAuthenticatedSession(result.desktopId, identityRepository.getDeviceId(), result.endpointId)
-                openLiveControlSession(session, pc.displayName)
+                openLiveControlSession(session, pc.displayName, pc.controlDeviceName)
             }
             is PcPairingResult.Failed -> PcServiceConnectResult.Failed(result.reason, result.message)
         }
@@ -273,7 +276,7 @@ class PcServiceConnectionController(
             is PcPingResult.Connected -> {
                 tokenStore.saveToken(pc.desktopId, token, result.endpointId, pc.displayName)
                 val session = PcAuthenticatedSession(pc.desktopId, identityRepository.getDeviceId(), result.endpointId)
-                openLiveControlSession(session, pc.displayName)
+                openLiveControlSession(session, pc.displayName, pc.controlDeviceName)
             }
             is PcPingResult.AuthFailed -> {
                 PcConnectionStateHolder.setDisconnected()
@@ -286,21 +289,24 @@ class PcServiceConnectionController(
 
     private suspend fun openLiveControlSession(
         session: PcAuthenticatedSession,
-        displayName: String
+        displayName: String,
+        controlDeviceName: String
     ): PcServiceConnectResult {
         if (liveSession == session && liveConnection != null) {
+            liveControlDeviceName = controlDeviceName
             return PcServiceConnectResult.Connected(session, displayName)
         }
         closeLiveConnection(PcControlCloseReason.Reconnect)
         liveSession = session
         liveDisplayName = displayName
+        liveControlDeviceName = controlDeviceName
         _state.value = PcServiceConnectionState.OpeningControlSession
         return when (val result = retryPcAuthFailure(
             block = { connector.openControlSession(session) },
             isAuthFailure = { it is PcLiveControlResult.AuthFailed }
         )) {
             is PcLiveControlResult.Connected -> {
-                storeLiveConnection(result.connection, session, displayName)
+                storeLiveConnection(result.connection, session, displayName, controlDeviceName)
                 PcServiceConnectResult.Connected(session, displayName)
             }
             is PcLiveControlResult.AuthFailed -> {
@@ -321,11 +327,13 @@ class PcServiceConnectionController(
     private fun storeLiveConnection(
         connection: PcControlConnection,
         session: PcAuthenticatedSession,
-        displayName: String
+        displayName: String,
+        controlDeviceName: String
     ) {
         liveConnection = connection
         liveSession = session
         liveDisplayName = displayName
+        liveControlDeviceName = controlDeviceName
         pointerProfile = connection.pointerProfile
         observeLiveConnection(connection, session)
         startLiveHeartbeatIfNeeded()
@@ -387,7 +395,7 @@ class PcServiceConnectionController(
                 closeLiveConnection(PcControlCloseReason.Reconnect)
                 when (val result = connector.openControlSession(session)) {
                     is PcLiveControlResult.Connected -> {
-                        storeLiveConnection(result.connection, session, displayName)
+                        storeLiveConnection(result.connection, session, displayName, liveControlDeviceName ?: displayName)
                         return@launch
                     }
                     is PcLiveControlResult.AuthFailed -> {
@@ -420,6 +428,7 @@ class PcServiceConnectionController(
     private fun clearLiveState() {
         liveSession = null
         liveDisplayName = null
+        liveControlDeviceName = null
         pointerProfile = null
     }
 
