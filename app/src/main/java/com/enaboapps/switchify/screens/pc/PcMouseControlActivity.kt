@@ -136,7 +136,7 @@ private fun PcMouseControlScreen(
                     PcControlCommandGrid(
                         enabled = surfaceEnabled,
                         movementStep = uiState.movementStep,
-                        onCommandSelected = viewModel::send
+                        onCommandSelected = viewModel::sendMouseCommand
                     )
                     PcMovementSizeSection(
                         selectedSize = uiState.selectedMovementSize,

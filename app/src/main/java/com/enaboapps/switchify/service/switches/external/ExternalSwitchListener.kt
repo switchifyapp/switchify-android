@@ -3,6 +3,7 @@ package com.enaboapps.switchify.service.switches.external
 import android.content.Context
 import android.util.Log
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
+import com.enaboapps.switchify.pc.PcMouseRepeatManager
 import com.enaboapps.switchify.service.core.ServiceCore
 import com.enaboapps.switchify.service.core.Tasks
 import com.enaboapps.switchify.service.gestures.GestureLockManager
@@ -62,6 +63,12 @@ class ExternalSwitchListener(
             pauseSwitchHoldTracker.onPressed(keyCode, System.currentTimeMillis())
             pauseManager.handleSwitchDuringPause()
             return false
+        }
+
+        if (PcMouseRepeatManager.instance.stopForSwitchPress()) {
+            pressSession = ExternalSwitchPressSession.ReleaseSwallowed
+            ExternalSwitchLongPressHandler.cancel()
+            return true
         }
 
         if (!switchEvent.pressAction.isScanMovementAction() &&

@@ -309,6 +309,15 @@
     <string name="pc_connection_unpair_message">Switchify will forget %1$s. You will need to request access again before controlling this PC.</string>
     <string name="pc_connection_unpaired_message">Unpaired from %1$s.</string>
     <string name="pc_connection_message_title">PC connection</string>
+    <string name="pc_settings_title">PC Settings</string>
+    <string name="pc_settings_mouse_section">Mouse</string>
+    <string name="pc_settings_mouse_repeat_title">Mouse Repeat</string>
+    <string name="pc_settings_mouse_repeat_summary">Repeat PC mouse movement and scrolling until the next switch press.</string>
+    <string name="pc_settings_mouse_repeat_interval_title">Repeat Interval</string>
+    <string name="pc_settings_mouse_repeat_interval_summary">Time between repeated PC mouse actions.</string>
+    <string name="pc_settings_mouse_repeat_link_summary">Configure repeated PC mouse movement and scrolling.</string>
+    <string name="pc_mouse_repeat_started">Mouse Repeat Started</string>
+    <string name="pc_mouse_repeat_stopped">Mouse Repeat Stopped</string>
     <string name="pc_pairing_code_title">Check your PC</string>
     <string name="pc_pairing_code_pc_name">Connecting to %1$s</string>
     <string name="pc_pairing_code_message">Confirm this code matches the one shown on your PC before accepting.</string>

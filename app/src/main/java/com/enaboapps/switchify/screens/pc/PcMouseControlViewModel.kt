@@ -9,6 +9,7 @@ import com.enaboapps.switchify.pc.PcConnectionState
 import com.enaboapps.switchify.pc.PcConnectionStateHolder
 import com.enaboapps.switchify.pc.PcControlCommand
 import com.enaboapps.switchify.pc.PcKeyboardKey
+import com.enaboapps.switchify.pc.PcMouseRepeatManager
 import com.enaboapps.switchify.pc.PcServiceConnectionController
 import com.enaboapps.switchify.pc.PcServiceConnectionState
 import com.enaboapps.switchify.pc.PcTextStreamItem
@@ -44,7 +45,8 @@ data class PcMouseControlUiState(
 class PcMouseControlViewModel(
     private val serviceControllerProvider: () -> PcServiceConnectionController?,
     private val movementSizeStore: PcMouseMovementSizeStore,
-    private val controlSurfaceStore: PcControlSurfaceStore
+    private val controlSurfaceStore: PcControlSurfaceStore,
+    private val mouseRepeatManager: PcMouseRepeatManager = PcMouseRepeatManager.instance
 ) : ViewModel() {
     constructor(
         serviceControllerProvider: () -> PcServiceConnectionController?,
@@ -58,7 +60,8 @@ class PcMouseControlViewModel(
     constructor(context: Context) : this(
         serviceControllerProvider = { ServiceCore.getPcServiceConnectionController() },
         movementSizeStore = PcMouseMovementPreferenceStore(context.applicationContext),
-        controlSurfaceStore = PcControlSurfacePreferenceStore(context.applicationContext)
+        controlSurfaceStore = PcControlSurfacePreferenceStore(context.applicationContext),
+        mouseRepeatManager = PcMouseRepeatManager.instance.also { it.init(context.applicationContext) }
     )
 
     private val _uiState = MutableStateFlow(PcMouseControlUiState())
@@ -119,26 +122,55 @@ class PcMouseControlViewModel(
         }
     }
 
+    fun sendMouseCommand(command: PcControlCommand, repeatable: Boolean) {
+        if (repeatable && mouseRepeatManager.start(command, viewModelScope, ::sendRepeatCommand)) {
+            return
+        }
+        send(command)
+    }
+
+    private suspend fun sendRepeatCommand(command: PcControlCommand): PcCommandResult {
+        return sendNoAckCommandNow(command) {
+            it.copy(
+                isBusy = false,
+                busyCommand = null,
+                message = null
+            )
+        }
+    }
+
     private fun sendNoAckCommand(
         command: PcControlCommand,
         onSent: (PcMouseControlUiState) -> PcMouseControlUiState = { it.copy(message = null) }
     ) {
+        viewModelScope.launch {
+            sendNoAckCommandNow(command, onSent)
+        }
+    }
+
+    private suspend fun sendNoAckCommandNow(
+        command: PcControlCommand,
+        onSent: (PcMouseControlUiState) -> PcMouseControlUiState = { it.copy(message = null) }
+    ): PcCommandResult {
         val controller = serviceControllerProvider()
         val state = controller?.state?.value
         if (controller == null || !controller.hasLiveControlSession()) {
             val message = if (state is PcServiceConnectionState.Reconnecting) RECONNECTING_MESSAGE else CONNECT_FIRST_MESSAGE
             showCommandBlocked(command, message)
-            return
+            return PcCommandResult.Failed(message)
         }
         if (state is PcServiceConnectionState.Reconnecting || state is PcServiceConnectionState.OpeningControlSession) {
             showCommandBlocked(command, RECONNECTING_MESSAGE)
-            return
+            return PcCommandResult.Failed(RECONNECTING_MESSAGE)
         }
 
-        viewModelScope.launch {
-            when (val result = controller.sendRealtimeControlCommand(command)) {
-                PcCommandResult.Ack -> _uiState.update(onSent)
-                is PcCommandResult.AuthFailed -> _uiState.update {
+        return when (val result = controller.sendRealtimeControlCommand(command)) {
+            PcCommandResult.Ack -> {
+                _uiState.update(onSent)
+                result
+            }
+            is PcCommandResult.AuthFailed -> {
+                _uiState.update {
                     it.copy(
                         message = result.message,
                         typingMessage = if (command is PcControlCommand.TypeText || command is PcControlCommand.PressKey) {
@@ -148,7 +180,10 @@ class PcMouseControlViewModel(
                         }
                     )
                 }
-                is PcCommandResult.Failed -> _uiState.update {
+                result
+            }
+            is PcCommandResult.Failed -> {
+                _uiState.update {
                     it.copy(
                         message = if (command is PcControlCommand.TypeText || command is PcControlCommand.PressKey) {
                             it.message
@@ -162,6 +197,7 @@ class PcMouseControlViewModel(
                         }
                     )
                 }
+                result
             }
         }
     }
@@ -464,6 +500,7 @@ class PcMouseControlViewModel(
     }
 
     override fun onCleared() {
+        mouseRepeatManager.clearServiceState()
         serviceControllerProvider()?.onPcUiPaused()
         super.onCleared()
     }
@@ -544,6 +581,7 @@ class PcMouseControlViewModel(
                 }
             }
             is PcServiceConnectionState.Reconnecting -> {
+                mouseRepeatManager.clearServiceState()
                 _uiState.update {
                     it.copy(
                         connectedDisplayName = state.displayName,
@@ -555,6 +593,7 @@ class PcMouseControlViewModel(
                 }
             }
             PcServiceConnectionState.Disconnected -> {
+                mouseRepeatManager.clearServiceState()
                 movementSteps = FALLBACK_MOVEMENT_STEPS
                 _uiState.update {
                     it.copy(
@@ -570,6 +609,7 @@ class PcMouseControlViewModel(
                 }
             }
             is PcServiceConnectionState.Failed -> {
+                mouseRepeatManager.clearServiceState()
                 movementSteps = FALLBACK_MOVEMENT_STEPS
                 _uiState.update {
                     it.copy(
@@ -593,6 +633,7 @@ class PcMouseControlViewModel(
     private fun applySharedConnectionState(state: PcConnectionState) {
         when (state) {
             is PcConnectionState.Reconnecting -> {
+                mouseRepeatManager.clearServiceState()
                 _uiState.update {
                     it.copy(
                         connectedDisplayName = state.displayName,
@@ -604,6 +645,7 @@ class PcMouseControlViewModel(
                 }
             }
             is PcConnectionState.Failed -> {
+                mouseRepeatManager.clearServiceState()
                 _uiState.update {
                     it.copy(
                         connectedDisplayName = null,

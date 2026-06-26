@@ -58,7 +58,8 @@ data class PcMouseControlSpec(
     val command: PcControlCommand,
     val icon: ImageVector? = null,
     val iconRotationDegrees: Float = 0f,
-    val tone: PcCommandTone = PcCommandTone.Neutral
+    val tone: PcCommandTone = PcCommandTone.Neutral,
+    val repeatable: Boolean = false
 )
 
 enum class PcCommandTone {
@@ -73,7 +74,8 @@ data class PcCompactCommandCell(
     val onClick: () -> Unit,
     val icon: ImageVector? = null,
     val iconRotationDegrees: Float = 0f,
-    val tone: PcCommandTone = PcCommandTone.Neutral
+    val tone: PcCommandTone = PcCommandTone.Neutral,
+    val repeatable: Boolean = false
 )
 
 /**
@@ -144,7 +146,7 @@ fun PcMovementSizeSection(
 fun PcControlCommandGrid(
     enabled: Boolean,
     movementStep: Int,
-    onCommandSelected: (PcControlCommand) -> Unit,
+    onCommandSelected: (PcControlCommand, Boolean) -> Unit,
     modifier: Modifier = Modifier
 ) {
     PcControlCommandSections(
@@ -159,7 +161,7 @@ fun PcControlCommandGrid(
 fun PcControlCommandSections(
     enabled: Boolean,
     movementStep: Int,
-    onCommandSelected: (PcControlCommand) -> Unit,
+    onCommandSelected: (PcControlCommand, Boolean) -> Unit,
     modifier: Modifier = Modifier
 ) {
     PcCompactCommandGrid(
@@ -170,10 +172,11 @@ fun PcControlCommandSections(
                 PcCompactCommandCell(
                     labelResId = it.labelResId,
                     enabled = enabled,
-                    onClick = { onCommandSelected(it.command) },
+                    onClick = { onCommandSelected(it.command, it.repeatable) },
                     icon = it.icon,
                     iconRotationDegrees = it.iconRotationDegrees,
-                    tone = it.tone
+                    tone = it.tone,
+                    repeatable = it.repeatable
                 )
             }
         },
@@ -397,29 +400,53 @@ fun pcMovementControlSpecs(moveStep: Int): List<PcMouseControlSpec> {
             R.string.pc_mouse_up_left,
             PcControlCommand.Move(-step, -step),
             Icons.Default.KeyboardArrowUp,
-            -45f
+            -45f,
+            repeatable = true
         ),
-        PcMouseControlSpec(R.string.pc_mouse_up, PcControlCommand.Move(0, -step), Icons.Default.KeyboardArrowUp),
+        PcMouseControlSpec(
+            R.string.pc_mouse_up,
+            PcControlCommand.Move(0, -step),
+            Icons.Default.KeyboardArrowUp,
+            repeatable = true
+        ),
         PcMouseControlSpec(
             R.string.pc_mouse_up_right,
             PcControlCommand.Move(step, -step),
             Icons.Default.KeyboardArrowUp,
-            45f
+            45f,
+            repeatable = true
         ),
-        PcMouseControlSpec(R.string.pc_mouse_left, PcControlCommand.Move(-step, 0), Icons.AutoMirrored.Filled.ArrowBack),
-        PcMouseControlSpec(R.string.pc_mouse_right, PcControlCommand.Move(step, 0), Icons.AutoMirrored.Filled.ArrowForward),
+        PcMouseControlSpec(
+            R.string.pc_mouse_left,
+            PcControlCommand.Move(-step, 0),
+            Icons.AutoMirrored.Filled.ArrowBack,
+            repeatable = true
+        ),
+        PcMouseControlSpec(
+            R.string.pc_mouse_right,
+            PcControlCommand.Move(step, 0),
+            Icons.AutoMirrored.Filled.ArrowForward,
+            repeatable = true
+        ),
         PcMouseControlSpec(
             R.string.pc_mouse_down_left,
             PcControlCommand.Move(-step, step),
             Icons.Default.KeyboardArrowDown,
-            45f
+            45f,
+            repeatable = true
         ),
-        PcMouseControlSpec(R.string.pc_mouse_down, PcControlCommand.Move(0, step), Icons.Default.KeyboardArrowDown),
+        PcMouseControlSpec(
+            R.string.pc_mouse_down,
+            PcControlCommand.Move(0, step),
+            Icons.Default.KeyboardArrowDown,
+            repeatable = true
+        ),
         PcMouseControlSpec(
             R.string.pc_mouse_down_right,
             PcControlCommand.Move(step, step),
             Icons.Default.KeyboardArrowDown,
-            -45f
+            -45f,
+            repeatable = true
         )
     )
 }
@@ -441,11 +468,17 @@ fun pcClickControlSpecs(): List<PcMouseControlSpec> {
 fun pcScrollControlSpecs(): List<PcMouseControlSpec> {
     val scrollStep = 5
     return listOf(
-        PcMouseControlSpec(R.string.pc_mouse_scroll_up, PcControlCommand.Scroll(0, scrollStep), Icons.Default.KeyboardArrowUp),
+        PcMouseControlSpec(
+            R.string.pc_mouse_scroll_up,
+            PcControlCommand.Scroll(0, scrollStep),
+            Icons.Default.KeyboardArrowUp,
+            repeatable = true
+        ),
         PcMouseControlSpec(
             R.string.pc_mouse_scroll_down,
             PcControlCommand.Scroll(0, -scrollStep),
-            Icons.Default.KeyboardArrowDown
+            Icons.Default.KeyboardArrowDown,
+            repeatable = true
         )
     )
 }
