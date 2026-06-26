@@ -332,6 +332,25 @@ object PcProtocol {
         )
     }
 
+    fun keyboardShortcut(
+        id: String,
+        deviceId: String,
+        token: String,
+        timestamp: Long,
+        keys: List<PcKeyboardShortcutKey>,
+        responseMode: PcCommandResponseMode = PcCommandResponseMode.Ack
+    ): String {
+        return authenticatedCommand(
+            id,
+            deviceId,
+            token,
+            timestamp,
+            "keyboard.shortcut",
+            JSONObject().put("keys", JSONArray(keys.map { it.protocolValue })),
+            responseMode
+        )
+    }
+
     fun windowControl(
         id: String,
         deviceId: String,

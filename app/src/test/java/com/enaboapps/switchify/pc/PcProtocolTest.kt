@@ -1,6 +1,7 @@
 package com.enaboapps.switchify.pc
 
 import org.json.JSONObject
+import org.json.JSONArray
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -314,6 +315,7 @@ class PcProtocolTest {
             JSONObject(PcProtocol.keyboardTextStreamChar("stream-char-1", "device-1", "shared-token", 1000L, "android-1", 0, "H")),
             JSONObject(PcProtocol.keyboardTextStreamKey("stream-key-1", "device-1", "shared-token", 1000L, "android-1", 1, PcKeyboardKey.Enter)),
             JSONObject(PcProtocol.keyboardKey("key-1", "device-1", "shared-token", 1000L, PcKeyboardKey.Enter, PcCommandResponseMode.None)),
+            JSONObject(PcProtocol.keyboardShortcut("shortcut-1", "device-1", "shared-token", 1000L, listOf(PcKeyboardShortcutKey.Meta), PcCommandResponseMode.None)),
             JSONObject(PcProtocol.windowControl("window-1", "device-1", "shared-token", 1000L, PcWindowControlAction.SwitchNext, PcCommandResponseMode.None))
         )
 
@@ -470,6 +472,39 @@ class PcProtocolTest {
                 timestamp = 1000L,
                 type = "keyboard.key",
                 payload = JSONObject().put("key", "Enter"),
+                token = "shared-token"
+            ),
+            json.getString("auth")
+        )
+        assertFalse(json.toString().contains("shared-token"))
+    }
+
+    @Test
+    fun buildsMetaKeyboardShortcutCommand() {
+        val json = JSONObject(
+            PcProtocol.keyboardShortcut(
+                id = "shortcut-meta",
+                deviceId = "device-1",
+                token = "shared-token",
+                timestamp = 1000L,
+                keys = listOf(PcKeyboardShortcutKey.Meta)
+            )
+        )
+        val payload = json.getJSONObject("payload")
+
+        assertEquals(1, json.getInt("version"))
+        assertEquals("shortcut-meta", json.getString("id"))
+        assertEquals("device-1", json.getString("deviceId"))
+        assertEquals(1000L, json.getLong("timestamp"))
+        assertEquals("keyboard.shortcut", json.getString("type"))
+        assertEquals("Meta", payload.getJSONArray("keys").getString(0))
+        assertEquals(
+            PcProtocol.authProof(
+                id = "shortcut-meta",
+                deviceId = "device-1",
+                timestamp = 1000L,
+                type = "keyboard.shortcut",
+                payload = JSONObject().put("keys", JSONArray(listOf("Meta"))),
                 token = "shared-token"
             ),
             json.getString("auth")
