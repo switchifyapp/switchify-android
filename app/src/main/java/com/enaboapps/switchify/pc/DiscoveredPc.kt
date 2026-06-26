@@ -8,6 +8,12 @@ data class DiscoveredPc(
     val displayName: String
         get() = serviceName.ifBlank { "Switchify PC" }
 
+    val controlDeviceName: String
+        get() = bluetoothEndpoint?.deviceName?.takeIf { it.isNotBlank() }
+            ?: bluetoothEndpoint?.displayName?.takeIf { it.isNotBlank() }
+            ?: serviceName.takeIf { it.isNotBlank() }
+            ?: "Switchify PC"
+
     val primaryAddress: String
         get() = bluetoothEndpoint?.deviceName
             ?: bluetoothEndpoint?.deviceAddress

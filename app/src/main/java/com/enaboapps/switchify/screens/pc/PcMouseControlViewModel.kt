@@ -42,6 +42,7 @@ data class PcSwitchRowState(
 
 data class PcMouseControlUiState(
     val connectedDisplayName: String? = null,
+    val switcherConnectedDisplayName: String? = null,
     val activeSurface: PcControlSurface = PcControlSurface.Mouse,
     val selectedMovementSize: PcMouseMovementSize = PcMouseMovementSize.Small,
     val movementStep: Int = PcMouseControlViewModel.FALLBACK_MOVEMENT_STEPS.small,
@@ -297,7 +298,11 @@ class PcMouseControlViewModel(
             val pcs = controller.discoverPairedPcs()
             switchPcCandidates = pcs
             _uiState.update {
+                val switcherName = currentConnectedDesktopId()?.let { connectedDesktopId ->
+                    pcs.firstOrNull { pc -> pc.desktopId == connectedDesktopId }?.controlDeviceName
+                } ?: it.switcherConnectedDisplayName
                 it.copy(
+                    switcherConnectedDisplayName = switcherName,
                     switchPcRows = switchRowsFor(pcs, it),
                     isDiscoveringSwitchPcs = false
                 )
@@ -713,6 +718,7 @@ class PcMouseControlViewModel(
                 _uiState.update {
                     it.copy(
                         connectedDisplayName = state.displayName,
+                        switcherConnectedDisplayName = controller.currentControlDeviceName() ?: state.displayName,
                         movementStep = movementSteps.stepFor(it.selectedMovementSize),
                         supportsTextStreamInput = pointerProfile?.supportsTextStreams() ?: false,
                         message = if (it.message == RECONNECTING_MESSAGE || it.message == DISCONNECTED_MESSAGE || it.message == CONNECT_FIRST_MESSAGE) {
@@ -721,7 +727,13 @@ class PcMouseControlViewModel(
                             it.message
                         },
                         connectionStatusText = null,
-                        switchPcRows = switchRowsFor(switchPcCandidates, it.copy(connectedDisplayName = state.displayName))
+                        switchPcRows = switchRowsFor(
+                            switchPcCandidates,
+                            it.copy(
+                                connectedDisplayName = state.displayName,
+                                switcherConnectedDisplayName = controller.currentControlDeviceName() ?: state.displayName
+                            )
+                        )
                     )
                 }
             }
@@ -730,11 +742,18 @@ class PcMouseControlViewModel(
                 _uiState.update {
                     it.copy(
                         connectedDisplayName = state.displayName,
+                        switcherConnectedDisplayName = controller.currentControlDeviceName() ?: state.displayName,
                         isDragging = false,
                         supportsTextStreamInput = false,
                         message = RECONNECTING_MESSAGE,
                         connectionStatusText = RECONNECTING_MESSAGE,
-                        switchPcRows = switchRowsFor(switchPcCandidates, it.copy(connectedDisplayName = state.displayName))
+                        switchPcRows = switchRowsFor(
+                            switchPcCandidates,
+                            it.copy(
+                                connectedDisplayName = state.displayName,
+                                switcherConnectedDisplayName = controller.currentControlDeviceName() ?: state.displayName
+                            )
+                        )
                     )
                 }
             }
@@ -744,6 +763,7 @@ class PcMouseControlViewModel(
                 _uiState.update {
                     it.copy(
                         connectedDisplayName = null,
+                        switcherConnectedDisplayName = null,
                         movementStep = movementSteps.stepFor(it.selectedMovementSize),
                         isDragging = false,
                         isBusy = false,
@@ -751,7 +771,10 @@ class PcMouseControlViewModel(
                         supportsTextStreamInput = false,
                         message = CONNECT_FIRST_MESSAGE,
                         connectionStatusText = null,
-                        switchPcRows = switchRowsFor(switchPcCandidates, it.copy(connectedDisplayName = null))
+                        switchPcRows = switchRowsFor(
+                            switchPcCandidates,
+                            it.copy(connectedDisplayName = null, switcherConnectedDisplayName = null)
+                        )
                     )
                 }
             }
@@ -761,6 +784,7 @@ class PcMouseControlViewModel(
                 _uiState.update {
                     it.copy(
                         connectedDisplayName = null,
+                        switcherConnectedDisplayName = null,
                         movementStep = movementSteps.stepFor(it.selectedMovementSize),
                         isDragging = false,
                         isBusy = false,
@@ -768,7 +792,10 @@ class PcMouseControlViewModel(
                         supportsTextStreamInput = false,
                         message = state.message,
                         connectionStatusText = state.message,
-                        switchPcRows = switchRowsFor(switchPcCandidates, it.copy(connectedDisplayName = null))
+                        switchPcRows = switchRowsFor(
+                            switchPcCandidates,
+                            it.copy(connectedDisplayName = null, switcherConnectedDisplayName = null)
+                        )
                     )
                 }
             }
@@ -785,11 +812,15 @@ class PcMouseControlViewModel(
                 _uiState.update {
                     it.copy(
                         connectedDisplayName = state.displayName,
+                        switcherConnectedDisplayName = state.displayName,
                         isDragging = false,
                         supportsTextStreamInput = false,
                         message = RECONNECTING_MESSAGE,
                         connectionStatusText = RECONNECTING_MESSAGE,
-                        switchPcRows = switchRowsFor(switchPcCandidates, it.copy(connectedDisplayName = state.displayName))
+                        switchPcRows = switchRowsFor(
+                            switchPcCandidates,
+                            it.copy(connectedDisplayName = state.displayName, switcherConnectedDisplayName = state.displayName)
+                        )
                     )
                 }
             }
@@ -798,13 +829,17 @@ class PcMouseControlViewModel(
                 _uiState.update {
                     it.copy(
                         connectedDisplayName = null,
+                        switcherConnectedDisplayName = null,
                         isDragging = false,
                         isBusy = false,
                         busyCommand = null,
                         supportsTextStreamInput = false,
                         message = state.message,
                         connectionStatusText = state.message,
-                        switchPcRows = switchRowsFor(switchPcCandidates, it.copy(connectedDisplayName = null))
+                        switchPcRows = switchRowsFor(
+                            switchPcCandidates,
+                            it.copy(connectedDisplayName = null, switcherConnectedDisplayName = null)
+                        )
                     )
                 }
             }
@@ -831,6 +866,7 @@ class PcMouseControlViewModel(
         _uiState.update {
             it.copy(
                 connectedDisplayName = null,
+                switcherConnectedDisplayName = null,
                 movementStep = movementSteps.stepFor(it.selectedMovementSize),
                 isDragging = false,
                 isBusy = false,
@@ -838,7 +874,10 @@ class PcMouseControlViewModel(
                 supportsTextStreamInput = false,
                 message = CONNECT_FIRST_MESSAGE,
                 connectionStatusText = null,
-                switchPcRows = switchRowsFor(switchPcCandidates, it.copy(connectedDisplayName = null))
+                switchPcRows = switchRowsFor(
+                    switchPcCandidates,
+                    it.copy(connectedDisplayName = null, switcherConnectedDisplayName = null)
+                )
             )
         }
     }
@@ -852,7 +891,7 @@ class PcMouseControlViewModel(
             val connected = pc.desktopId == connectedDesktopId
             PcSwitchRowState(
                 desktopId = pc.desktopId,
-                displayName = pc.displayName,
+                displayName = pc.controlDeviceName,
                 summary = pc.primaryAddress,
                 connected = connected,
                 enabled = !connected && !state.isBusy && state.switchingDesktopId == null
