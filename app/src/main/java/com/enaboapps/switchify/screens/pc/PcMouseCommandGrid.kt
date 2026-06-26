@@ -74,8 +74,7 @@ data class PcCompactCommandCell(
     val onClick: () -> Unit,
     val icon: ImageVector? = null,
     val iconRotationDegrees: Float = 0f,
-    val tone: PcCommandTone = PcCommandTone.Neutral,
-    val repeatable: Boolean = false
+    val tone: PcCommandTone = PcCommandTone.Neutral
 )
 
 /**
@@ -175,8 +174,7 @@ fun PcControlCommandSections(
                     onClick = { onCommandSelected(it.command, it.repeatable) },
                     icon = it.icon,
                     iconRotationDegrees = it.iconRotationDegrees,
-                    tone = it.tone,
-                    repeatable = it.repeatable
+                    tone = it.tone
                 )
             }
         },

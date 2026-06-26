@@ -65,7 +65,7 @@ class ExternalSwitchListener(
             return false
         }
 
-        if (PcMouseRepeatManager.instance.stopForSwitchPress()) {
+        if (stopPcMouseRepeatForSwitchPress()) {
             pressSession = ExternalSwitchPressSession.ReleaseSwallowed
             ExternalSwitchLongPressHandler.cancel()
             return true
@@ -304,6 +304,10 @@ class ExternalSwitchListener(
             scanningManager.resumeScanning()
         }
         scanningManager.performAction(action)
+    }
+
+    private fun stopPcMouseRepeatForSwitchPress(): Boolean {
+        return PcMouseRepeatManager.instance.stopForSwitchPress()
     }
 
     /**

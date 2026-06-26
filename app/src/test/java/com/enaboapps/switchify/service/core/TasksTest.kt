@@ -5,6 +5,7 @@ import com.enaboapps.switchify.R
 import com.enaboapps.switchify.pc.PcCommandResult
 import com.enaboapps.switchify.pc.PcControlCommand
 import com.enaboapps.switchify.pc.PcMouseRepeatManager
+import com.enaboapps.switchify.pc.PcMouseRepeatSettings
 import com.enaboapps.switchify.service.gestures.AutoScrollManager
 import com.enaboapps.switchify.service.gestures.GestureLockManager
 import com.enaboapps.switchify.service.gestures.GestureRepeatManager
@@ -33,13 +34,13 @@ class TasksTest {
         repeatManager.resetForTesting()
         autoScrollManager.resetForTesting()
         lockManager.resetForTesting()
-        mouseRepeatManager.setSuppressHudForTesting(true)
+        mouseRepeatManager.setSettingsForTesting(FakeMouseRepeatSettings(intervalMs = 10000L))
+        mouseRepeatManager.setHudMessageHandlerForTesting { messageResId, _ -> messages.add(messageResId) }
         repeatManager.setSuppressHudForTesting(true)
         autoScrollManager.setSuppressHudForTesting(true)
         lockManager.setSuppressHudForTesting(true)
         repeatManager.setMessageRecorderForTesting { messages.add(it) }
         autoScrollManager.setMessageRecorderForTesting { messages.add(it) }
-        mouseRepeatManager.setIntervalProviderForTesting { 10000L }
         repeatManager.setInitialRepeatDelayProviderForTesting { 10000L }
         repeatManager.setRepeatDelayProviderForTesting { 10000L }
         autoScrollManager.setAutoScrollEnabledProviderForTesting { true }
@@ -202,5 +203,13 @@ class TasksTest {
             gestureType = GestureType.SCROLL_DOWN,
             startPoint = PointF(10f, 20f)
         )
+    }
+
+    private class FakeMouseRepeatSettings(
+        private val enabled: Boolean = true,
+        private val intervalMs: Long = 10000L
+    ) : PcMouseRepeatSettings {
+        override fun isEnabled(): Boolean = enabled
+        override fun intervalMs(): Long = intervalMs
     }
 }

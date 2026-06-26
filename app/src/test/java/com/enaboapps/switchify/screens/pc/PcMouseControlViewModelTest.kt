@@ -17,6 +17,7 @@ import com.enaboapps.switchify.pc.PcErrorReason
 import com.enaboapps.switchify.pc.PcKeyboardKey
 import com.enaboapps.switchify.pc.PcLiveControlResult
 import com.enaboapps.switchify.pc.PcMouseRepeatManager
+import com.enaboapps.switchify.pc.PcMouseRepeatSettings
 import com.enaboapps.switchify.pc.PcPairingResult
 import com.enaboapps.switchify.pc.PcPairingTokenStore
 import com.enaboapps.switchify.pc.PcPingResult
@@ -51,6 +52,7 @@ import org.junit.Test
 class PcMouseControlViewModelTest {
     private val dispatcher = StandardTestDispatcher()
     private val mouseRepeatManager = PcMouseRepeatManager.instance
+    private val mouseRepeatSettings = FakeMouseRepeatSettings()
     private val pc = DiscoveredPc(
         serviceName = "Switchify PC",
         desktopId = "desktop-1",
@@ -67,8 +69,10 @@ class PcMouseControlViewModelTest {
         Dispatchers.setMain(dispatcher)
         PcConnectionStateHolder.setDisconnected()
         mouseRepeatManager.resetForTesting()
-        mouseRepeatManager.setSuppressHudForTesting(true)
-        mouseRepeatManager.setIntervalProviderForTesting { 250L }
+        mouseRepeatSettings.enabled = true
+        mouseRepeatSettings.intervalMs = 250L
+        mouseRepeatManager.setSettingsForTesting(mouseRepeatSettings)
+        mouseRepeatManager.setHudMessageHandlerForTesting { _, _ -> }
     }
 
     @After
@@ -260,7 +264,7 @@ class PcMouseControlViewModelTest {
 
     @Test
     fun disabledMouseRepeatSendsOnlyOnce() = runTest(dispatcher) {
-        mouseRepeatManager.setEnabledProviderForTesting { false }
+        mouseRepeatSettings.enabled = false
         val connector = FakeConnector()
         val controller = connectedController(connector = connector)
         val viewModel = viewModel(controller)
@@ -299,6 +303,22 @@ class PcMouseControlViewModelTest {
         assertTrue(mouseRepeatManager.isRepeating())
 
         PcConnectionStateHolder.setReconnecting(session, "Switchify PC")
+        advanceUntilIdle()
+
+        assertFalse(mouseRepeatManager.isRepeating())
+    }
+
+    @Test
+    fun disconnectingStopsMouseRepeat() = runTest(dispatcher) {
+        val connector = FakeConnector()
+        val controller = connectedController(connector = connector)
+        val viewModel = viewModel(controller)
+
+        viewModel.sendMouseCommand(PcControlCommand.Move(80, 0), repeatable = true)
+        runCurrent()
+        assertTrue(mouseRepeatManager.isRepeating())
+
+        controller.disconnect()
         advanceUntilIdle()
 
         assertFalse(mouseRepeatManager.isRepeating())
@@ -1222,5 +1242,13 @@ class PcMouseControlViewModelTest {
         override fun setSelectedSurface(surface: PcControlSurface) {
             selectedSurface = surface
         }
+    }
+
+    private class FakeMouseRepeatSettings(
+        var enabled: Boolean = true,
+        var intervalMs: Long = 250L
+    ) : PcMouseRepeatSettings {
+        override fun isEnabled(): Boolean = enabled
+        override fun intervalMs(): Long = intervalMs
     }
 }
