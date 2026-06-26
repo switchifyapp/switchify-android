@@ -34,3 +34,7 @@ enum class PcKeyboardKey(
     F11("F11", R.string.pc_key_f11),
     F12("F12", R.string.pc_key_f12)
 }
+
+enum class PcKeyboardShortcutKey(val protocolValue: String) {
+    Meta("Meta")
+}
