@@ -44,11 +44,9 @@ import androidx.navigation.NavController
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.components.ActionButton
 import com.enaboapps.switchify.components.BaseView
-import com.enaboapps.switchify.components.NavRouteLink
 import com.enaboapps.switchify.components.PreferenceComponentBase
 import com.enaboapps.switchify.components.ScrollableView
 import com.enaboapps.switchify.components.Section
-import com.enaboapps.switchify.nav.NavigationRoute
 import com.enaboapps.switchify.pc.PcApprovalCodeState
 import com.enaboapps.switchify.pc.PcConnectionViewModel
 import com.enaboapps.switchify.pc.PcRowState
@@ -103,7 +101,6 @@ fun PcConnectionScreen(navController: NavController) {
         ScrollableView {
             Column(verticalArrangement = Arrangement.spacedBy(Dimens.spaceM)) {
                 PcDownloadSection(openDownloadPage)
-                PcSettingsSection(navController)
                 if (uiState.permissionRequired) {
                     Section(titleResId = R.string.pc_connection_permission_section) {
                         Column(modifier = Modifier.padding(vertical = Dimens.spaceS)) {
@@ -222,18 +219,6 @@ fun PcConnectionScreen(navController: NavController) {
             text = {
                 Text(stringResource(R.string.pc_connection_unpair_message, pendingUnpair.displayName))
             }
-        )
-    }
-}
-
-@Composable
-private fun PcSettingsSection(navController: NavController) {
-    Section(titleResId = R.string.pc_settings_title) {
-        NavRouteLink(
-            titleResId = R.string.pc_settings_mouse_repeat_title,
-            summaryResId = R.string.pc_settings_mouse_repeat_link_summary,
-            navController = navController,
-            route = NavigationRoute.PcSettings.name
         )
     }
 }
