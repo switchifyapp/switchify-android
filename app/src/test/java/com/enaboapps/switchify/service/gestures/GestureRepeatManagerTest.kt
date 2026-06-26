@@ -312,6 +312,33 @@ class GestureRepeatManagerTest {
         assertFalse(repeatManager.isRepeatSessionActive())
     }
 
+    @Test
+    fun turnAutoRepeatOffForGesturePatternStartClearsWaitingRepeatSilently() {
+        repeatManager.setAutoRepeatEnabledForTesting(true)
+        messages.clear()
+
+        repeatManager.turnAutoRepeatOffForGesturePatternStart()
+
+        assertFalse(repeatManager.isAutoRepeatEnabled())
+        assertFalse(repeatManager.isWaitingForGesture())
+        assertEquals(emptyList<Int>(), messages)
+    }
+
+    @Test
+    fun turnAutoRepeatOffForGesturePatternStartStopsActiveRepeatSilently() {
+        repeatManager.setAutoRepeatEnabledForTesting(true)
+        performGestureForRepeat()
+        messages.clear()
+
+        repeatManager.turnAutoRepeatOffForGesturePatternStart()
+
+        assertFalse(repeatManager.isAutoRepeatEnabled())
+        assertFalse(repeatManager.isRepeating())
+        assertFalse(repeatManager.isRepeatSessionActive())
+        assertNull(repeatManager.getRepeatedGestureDataForTesting())
+        assertEquals(emptyList<Int>(), messages)
+    }
+
     private fun performGestureForRepeat(): GestureData {
         val gestureData = testGesture()
         repeatManager.onGesturePerformed(gestureData)
