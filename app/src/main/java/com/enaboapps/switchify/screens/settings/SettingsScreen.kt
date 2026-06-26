@@ -132,6 +132,14 @@ fun GeneralSettingsTab(menuSettingsModel: MenuSettingsModel, navController: NavC
                 route = NavigationRoute.AiModel.name
             )
         }
+        Section(titleResId = R.string.pc_settings_title) {
+            NavRouteLink(
+                titleResId = R.string.pc_settings_mouse_repeat_title,
+                summaryResId = R.string.pc_settings_mouse_repeat_link_summary,
+                navController = navController,
+                route = NavigationRoute.PcSettings.name
+            )
+        }
         InputSection(navController)
         BehaviourSection(navController)
         GesturesSettingsSection(navController)

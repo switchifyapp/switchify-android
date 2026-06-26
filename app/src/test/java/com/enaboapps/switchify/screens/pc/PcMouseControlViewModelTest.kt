@@ -16,6 +16,7 @@ import com.enaboapps.switchify.pc.PcDiscoveryStatus
 import com.enaboapps.switchify.pc.PcErrorReason
 import com.enaboapps.switchify.pc.PcKeyboardKey
 import com.enaboapps.switchify.pc.PcLiveControlResult
+import com.enaboapps.switchify.pc.PcMouseRepeatManager
 import com.enaboapps.switchify.pc.PcPairingResult
 import com.enaboapps.switchify.pc.PcPairingTokenStore
 import com.enaboapps.switchify.pc.PcPingResult
@@ -49,6 +50,7 @@ import org.junit.Test
 @OptIn(ExperimentalCoroutinesApi::class)
 class PcMouseControlViewModelTest {
     private val dispatcher = StandardTestDispatcher()
+    private val mouseRepeatManager = PcMouseRepeatManager.instance
     private val pc = DiscoveredPc(
         serviceName = "Switchify PC",
         desktopId = "desktop-1",
@@ -64,10 +66,14 @@ class PcMouseControlViewModelTest {
     fun setup() {
         Dispatchers.setMain(dispatcher)
         PcConnectionStateHolder.setDisconnected()
+        mouseRepeatManager.resetForTesting()
+        mouseRepeatManager.setSuppressHudForTesting(true)
+        mouseRepeatManager.setIntervalProviderForTesting { 250L }
     }
 
     @After
     fun tearDown() {
+        mouseRepeatManager.resetForTesting()
         PcConnectionStateHolder.setDisconnected()
         Dispatchers.resetMain()
     }
@@ -221,6 +227,81 @@ class PcMouseControlViewModelTest {
         assertTrue(connector.oneShotCommands.isEmpty())
         assertTrue(!viewModel.uiState.value.isBusy)
         assertNull(viewModel.uiState.value.message)
+    }
+
+    @Test
+    fun repeatableMouseCommandSendsImmediatelyThenRepeats() = runTest(dispatcher) {
+        val connector = FakeConnector()
+        val controller = connectedController(connector = connector)
+        val viewModel = viewModel(controller)
+
+        viewModel.sendMouseCommand(PcControlCommand.Move(80, 0), repeatable = true)
+        runCurrent()
+
+        assertEquals(listOf(PcControlCommand.Move(80, 0)), connector.realtimeCommands)
+
+        advanceTimeBy(249)
+        runCurrent()
+
+        assertEquals(listOf(PcControlCommand.Move(80, 0)), connector.realtimeCommands)
+
+        advanceTimeBy(1)
+        runCurrent()
+
+        assertEquals(
+            listOf(
+                PcControlCommand.Move(80, 0),
+                PcControlCommand.Move(80, 0)
+            ),
+            connector.realtimeCommands
+        )
+        mouseRepeatManager.stop(showMessage = false)
+    }
+
+    @Test
+    fun disabledMouseRepeatSendsOnlyOnce() = runTest(dispatcher) {
+        mouseRepeatManager.setEnabledProviderForTesting { false }
+        val connector = FakeConnector()
+        val controller = connectedController(connector = connector)
+        val viewModel = viewModel(controller)
+
+        viewModel.sendMouseCommand(PcControlCommand.Scroll(0, 5), repeatable = true)
+        runCurrent()
+        advanceTimeBy(250)
+        runCurrent()
+
+        assertEquals(listOf(PcControlCommand.Scroll(0, 5)), connector.realtimeCommands)
+    }
+
+    @Test
+    fun nonRepeatableMouseCommandSendsOnlyOnce() = runTest(dispatcher) {
+        val connector = FakeConnector()
+        val controller = connectedController(connector = connector)
+        val viewModel = viewModel(controller)
+
+        viewModel.sendMouseCommand(PcControlCommand.LeftClick, repeatable = false)
+        runCurrent()
+        advanceTimeBy(250)
+        runCurrent()
+
+        assertEquals(listOf(PcControlCommand.LeftClick), connector.realtimeCommands)
+    }
+
+    @Test
+    fun reconnectingStopsMouseRepeat() = runTest(dispatcher) {
+        val connector = FakeConnector()
+        val controller = connectedController(connector = connector)
+        val viewModel = viewModel(controller)
+        val session = PcAuthenticatedSession("desktop-1", "device-1", "AA:BB:CC:DD:EE:FF")
+
+        viewModel.sendMouseCommand(PcControlCommand.Move(80, 0), repeatable = true)
+        runCurrent()
+        assertTrue(mouseRepeatManager.isRepeating())
+
+        PcConnectionStateHolder.setReconnecting(session, "Switchify PC")
+        advanceUntilIdle()
+
+        assertFalse(mouseRepeatManager.isRepeating())
     }
 
     @Test

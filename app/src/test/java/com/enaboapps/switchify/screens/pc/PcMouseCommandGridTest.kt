@@ -66,6 +66,27 @@ class PcControlCommandGridTest {
     }
 
     @Test
+    fun movementCommandsAreRepeatable() {
+        val specs = pcMovementControlSpecs(40)
+
+        assertEquals(true, specs.all { it.repeatable })
+    }
+
+    @Test
+    fun scrollCommandsAreRepeatable() {
+        val specs = pcScrollControlSpecs()
+
+        assertEquals(true, specs.all { it.repeatable })
+    }
+
+    @Test
+    fun clickCommandsAreNotRepeatable() {
+        val specs = pcClickControlSpecs()
+
+        assertEquals(false, specs.any { it.repeatable })
+    }
+
+    @Test
     fun allCommandsKeepStableGroupedOrder() {
         val commands = pcMouseControlSpecs(40).map { it.command }
 
