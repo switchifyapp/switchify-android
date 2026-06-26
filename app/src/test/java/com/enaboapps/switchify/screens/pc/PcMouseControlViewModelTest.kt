@@ -240,7 +240,6 @@ class PcMouseControlViewModelTest {
         val viewModel = viewModel(controller)
 
         viewModel.sendMouseCommand(PcControlCommand.Move(80, 0), repeatable = true)
-        runCurrent()
 
         assertEquals(listOf(PcControlCommand.Move(80, 0)), connector.realtimeCommands)
 
@@ -256,6 +255,34 @@ class PcMouseControlViewModelTest {
             listOf(
                 PcControlCommand.Move(80, 0),
                 PcControlCommand.Move(80, 0)
+            ),
+            connector.realtimeCommands
+        )
+        mouseRepeatManager.stop(showMessage = false)
+    }
+
+    @Test
+    fun repeatableScrollCommandSendsImmediatelyThenRepeats() = runTest(dispatcher) {
+        val connector = FakeConnector()
+        val controller = connectedController(connector = connector)
+        val viewModel = viewModel(controller)
+
+        viewModel.sendMouseCommand(PcControlCommand.Scroll(0, 5), repeatable = true)
+
+        assertEquals(listOf(PcControlCommand.Scroll(0, 5)), connector.realtimeCommands)
+
+        advanceTimeBy(249)
+        runCurrent()
+
+        assertEquals(listOf(PcControlCommand.Scroll(0, 5)), connector.realtimeCommands)
+
+        advanceTimeBy(1)
+        runCurrent()
+
+        assertEquals(
+            listOf(
+                PcControlCommand.Scroll(0, 5),
+                PcControlCommand.Scroll(0, 5)
             ),
             connector.realtimeCommands
         )
@@ -289,6 +316,34 @@ class PcMouseControlViewModelTest {
         runCurrent()
 
         assertEquals(listOf(PcControlCommand.LeftClick), connector.realtimeCommands)
+    }
+
+    @Test
+    fun repeatableMouseCommandFailureDoesNotStartRepeat() = runTest(dispatcher) {
+        val connector = FakeConnector(commandResult = PcCommandResult.Failed())
+        val controller = connectedController(connector = connector)
+        val viewModel = viewModel(controller)
+
+        viewModel.sendMouseCommand(PcControlCommand.Move(80, 0), repeatable = true)
+
+        assertEquals(listOf(PcControlCommand.Move(80, 0)), connector.realtimeCommands)
+        assertFalse(mouseRepeatManager.isRepeating())
+    }
+
+    @Test
+    fun repeatableMouseCommandAuthFailureDoesNotStartRepeat() = runTest(dispatcher) {
+        val connector = FakeConnector(commandResult = PcCommandResult.AuthFailed())
+        val controller = connectedController(connector = connector)
+        val viewModel = viewModel(controller)
+
+        viewModel.sendMouseCommand(PcControlCommand.Move(80, 0), repeatable = true)
+
+        assertTrue(connector.realtimeCommands.isNotEmpty())
+        assertEquals(
+            connector.realtimeCommands,
+            List(connector.realtimeCommands.size) { PcControlCommand.Move(80, 0) }
+        )
+        assertFalse(mouseRepeatManager.isRepeating())
     }
 
     @Test

@@ -83,7 +83,7 @@ class TasksTest {
     @Test
     fun hasActiveStoppableTaskTrueForMouseRepeat() = runTest {
         assertTrue(
-            mouseRepeatManager.start(PcControlCommand.Move(10, 0), this) {
+            mouseRepeatManager.startAfterInitialSend(PcControlCommand.Move(10, 0), this) {
                 PcCommandResult.Ack
             }
         )
@@ -125,7 +125,7 @@ class TasksTest {
         repeatManager.setAutoRepeatEnabledForTesting(true)
         repeatManager.onGesturePerformed(testGesture())
         assertTrue(
-            mouseRepeatManager.start(PcControlCommand.Scroll(0, 5), this) {
+            mouseRepeatManager.startAfterInitialSend(PcControlCommand.Scroll(0, 5), this) {
                 PcCommandResult.Ack
             }
         )
