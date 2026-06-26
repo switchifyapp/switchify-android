@@ -82,11 +82,22 @@ class TasksTest {
 
     @Test
     fun hasActiveStoppableTaskTrueForMouseRepeat() = runTest {
+        val command = PcControlCommand.Move(10, 0)
+
+        assertTrue(mouseRepeatManager.armForInitialSend(command))
         assertTrue(
-            mouseRepeatManager.startAfterInitialSend(PcControlCommand.Move(10, 0), this) {
+            mouseRepeatManager.startAfterInitialSend(command, this) {
                 PcCommandResult.Ack
             }
         )
+
+        assertTrue(tasks.hasActiveStoppableTask())
+        mouseRepeatManager.stop(showMessage = false)
+    }
+
+    @Test
+    fun hasActiveStoppableTaskTrueForPendingMouseRepeat() {
+        assertTrue(mouseRepeatManager.armForInitialSend(PcControlCommand.Move(10, 0)))
 
         assertTrue(tasks.hasActiveStoppableTask())
         mouseRepeatManager.stop(showMessage = false)
@@ -124,11 +135,27 @@ class TasksTest {
         assertTrue(autoScrollManager.startAutoScroll(scrollGesture()))
         repeatManager.setAutoRepeatEnabledForTesting(true)
         repeatManager.onGesturePerformed(testGesture())
+        val command = PcControlCommand.Scroll(0, 5)
+        assertTrue(mouseRepeatManager.armForInitialSend(command))
         assertTrue(
-            mouseRepeatManager.startAfterInitialSend(PcControlCommand.Scroll(0, 5), this) {
+            mouseRepeatManager.startAfterInitialSend(command, this) {
                 PcCommandResult.Ack
             }
         )
+
+        assertTrue(tasks.stopActiveStoppableTask())
+
+        assertFalse(mouseRepeatManager.isRepeating())
+        assertTrue(repeatManager.isRepeatSessionActive())
+        assertTrue(autoScrollManager.isAutoScrolling())
+    }
+
+    @Test
+    fun stopActiveStoppableTaskStopsPendingMouseRepeatFirst() {
+        assertTrue(autoScrollManager.startAutoScroll(scrollGesture()))
+        repeatManager.setAutoRepeatEnabledForTesting(true)
+        repeatManager.onGesturePerformed(testGesture())
+        assertTrue(mouseRepeatManager.armForInitialSend(PcControlCommand.Scroll(0, 5)))
 
         assertTrue(tasks.stopActiveStoppableTask())
 
