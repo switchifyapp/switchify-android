@@ -29,18 +29,21 @@ class PcMouseRepeatManager internal constructor(
         settings = PreferencePcMouseRepeatSettings(context.applicationContext)
     }
 
-    fun start(
+    fun canRepeat(command: PcControlCommand): Boolean {
+        return isRepeatable(command) && currentSettings().isEnabled()
+    }
+
+    fun startAfterInitialSend(
         command: PcControlCommand,
         scope: CoroutineScope,
-        sendCommand: suspend (PcControlCommand) -> PcCommandResult
+        sendRepeatedCommand: suspend (PcControlCommand) -> PcCommandResult
     ): Boolean {
-        if (!isRepeatable(command) || !currentSettings().isEnabled()) return false
+        if (!canRepeat(command)) return false
 
         stop(showMessage = false)
         repeatedCommand = command
+        showMessage(R.string.pc_mouse_repeat_started, MessageSeverity.Success)
         repeatJob = scope.launch {
-            if (!sendAndContinue(command, sendCommand, showStartedMessage = true)) return@launch
-
             while (isActive) {
                 delay(currentSettings().intervalMs())
                 if (!isActive) return@launch
@@ -48,7 +51,7 @@ class PcMouseRepeatManager internal constructor(
                     stop()
                     return@launch
                 }
-                if (!sendAndContinue(command, sendCommand)) return@launch
+                if (!sendAndContinue(command, sendRepeatedCommand)) return@launch
             }
         }
         return true
@@ -79,14 +82,10 @@ class PcMouseRepeatManager internal constructor(
 
     private suspend fun sendAndContinue(
         command: PcControlCommand,
-        sendCommand: suspend (PcControlCommand) -> PcCommandResult,
-        showStartedMessage: Boolean = false
+        sendCommand: suspend (PcControlCommand) -> PcCommandResult
     ): Boolean {
         return when (sendCommand(command)) {
-            PcCommandResult.Ack -> {
-                if (showStartedMessage) showMessage(R.string.pc_mouse_repeat_started, MessageSeverity.Success)
-                true
-            }
+            PcCommandResult.Ack -> true
             is PcCommandResult.AuthFailed,
             is PcCommandResult.Failed -> {
                 clearRepeatState()

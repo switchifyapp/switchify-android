@@ -18,6 +18,7 @@ import com.enaboapps.switchify.pc.pcTextStreamItemsFor
 import com.enaboapps.switchify.pc.supportsTextStreams
 import com.enaboapps.switchify.service.core.ServiceCore
 import java.util.UUID
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -123,10 +124,27 @@ class PcMouseControlViewModel(
     }
 
     fun sendMouseCommand(command: PcControlCommand, repeatable: Boolean) {
-        if (repeatable && mouseRepeatManager.start(command, viewModelScope, ::sendRepeatCommand)) {
+        if (repeatable && mouseRepeatManager.canRepeat(command)) {
+            sendRepeatableMouseCommand(command)
             return
         }
         send(command)
+    }
+
+    private fun sendRepeatableMouseCommand(command: PcControlCommand) {
+        viewModelScope.launch(start = CoroutineStart.UNDISPATCHED) {
+            when (sendRepeatCommand(command)) {
+                PcCommandResult.Ack -> {
+                    mouseRepeatManager.startAfterInitialSend(
+                        command = command,
+                        scope = viewModelScope,
+                        sendRepeatedCommand = ::sendRepeatCommand
+                    )
+                }
+                is PcCommandResult.AuthFailed,
+                is PcCommandResult.Failed -> Unit
+            }
+        }
     }
 
     private suspend fun sendRepeatCommand(command: PcControlCommand): PcCommandResult {
