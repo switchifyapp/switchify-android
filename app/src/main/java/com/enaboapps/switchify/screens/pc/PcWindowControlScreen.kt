@@ -20,7 +20,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.pc.PcControlCommand
-import com.enaboapps.switchify.pc.PcKeyboardShortcutKey
+import com.enaboapps.switchify.pc.PcKeyboardKey
 import com.enaboapps.switchify.pc.PcWindowControlAction
 
 data class PcWindowControlSpec(
@@ -77,7 +77,7 @@ fun pcWindowControlSpecs(): List<PcWindowControlSpec> {
     return listOf(
         PcWindowControlSpec(
             R.string.pc_key_start,
-            PcControlCommand.KeyboardShortcut(listOf(PcKeyboardShortcutKey.Meta)),
+            PcControlCommand.PressKey(PcKeyboardKey.Meta),
             Icons.Rounded.Computer
         ),
         PcWindowControlSpec(

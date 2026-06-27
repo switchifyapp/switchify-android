@@ -480,6 +480,38 @@ class PcProtocolTest {
     }
 
     @Test
+    fun buildsMetaKeyboardKeyCommand() {
+        val json = JSONObject(
+            PcProtocol.keyboardKey(
+                id = "key-meta",
+                deviceId = "device-1",
+                token = "shared-token",
+                timestamp = 1000L,
+                key = PcKeyboardKey.Meta
+            )
+        )
+
+        assertEquals(1, json.getInt("version"))
+        assertEquals("key-meta", json.getString("id"))
+        assertEquals("device-1", json.getString("deviceId"))
+        assertEquals(1000L, json.getLong("timestamp"))
+        assertEquals("keyboard.key", json.getString("type"))
+        assertEquals("Meta", json.getJSONObject("payload").getString("key"))
+        assertEquals(
+            PcProtocol.authProof(
+                id = "key-meta",
+                deviceId = "device-1",
+                timestamp = 1000L,
+                type = "keyboard.key",
+                payload = JSONObject().put("key", "Meta"),
+                token = "shared-token"
+            ),
+            json.getString("auth")
+        )
+        assertFalse(json.toString().contains("shared-token"))
+    }
+
+    @Test
     fun buildsMetaKeyboardShortcutCommand() {
         val json = JSONObject(
             PcProtocol.keyboardShortcut(

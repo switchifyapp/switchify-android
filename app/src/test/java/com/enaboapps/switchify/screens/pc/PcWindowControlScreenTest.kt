@@ -3,7 +3,6 @@ package com.enaboapps.switchify.screens.pc
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.pc.PcControlCommand
 import com.enaboapps.switchify.pc.PcKeyboardKey
-import com.enaboapps.switchify.pc.PcKeyboardShortcutKey
 import com.enaboapps.switchify.pc.PcWindowControlAction
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -15,7 +14,7 @@ class PcWindowControlScreenTest {
 
         assertEquals(
             listOf(
-                PcControlCommand.KeyboardShortcut(listOf(PcKeyboardShortcutKey.Meta)),
+                PcControlCommand.PressKey(PcKeyboardKey.Meta),
                 PcControlCommand.WindowControl(PcWindowControlAction.SwitchNext),
                 PcControlCommand.WindowControl(PcWindowControlAction.SwitchPrevious),
                 PcControlCommand.WindowControl(PcWindowControlAction.TaskView),
@@ -33,7 +32,7 @@ class PcWindowControlScreenTest {
         val specs = pcWindowControlSpecs()
 
         assertEquals(R.string.pc_key_start, specs[0].labelResId)
-        assertEquals(PcControlCommand.KeyboardShortcut(listOf(PcKeyboardShortcutKey.Meta)), specs[0].command)
+        assertEquals(PcControlCommand.PressKey(PcKeyboardKey.Meta), specs[0].command)
         assertEquals(R.string.pc_window_switch_next, specs[1].labelResId)
         assertEquals(PcControlCommand.WindowControl(PcWindowControlAction.SwitchNext), specs[1].command)
         assertEquals(R.string.pc_window_switch_previous, specs[2].labelResId)
