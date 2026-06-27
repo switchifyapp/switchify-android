@@ -256,6 +256,24 @@ class SwitchifyPcBleClientTest {
     }
 
     @Test
+    fun sendsMetaAsKeyboardKeyCommand() = runTest {
+        val tokens = FakeTokenStore(mutableMapOf("desktop-1" to "token"), mutableMapOf("desktop-1" to "Switchify PC"))
+        val messages = mutableListOf<JSONObject>()
+        val transport = FakeTransportFactory { message ->
+            val json = JSONObject(message)
+            messages += json
+            ack(json.getString("id"))
+        }
+        val client: PcConnector = client(tokens, transport)
+        val session = PcAuthenticatedSession("desktop-1", "device-1", "AA:BB:CC:DD:EE:FF", PcTransport.Bluetooth)
+
+        assertEquals(PcCommandResult.Ack, client.sendCommand(session, PcControlCommand.PressKey(PcKeyboardKey.Meta)))
+
+        assertEquals("keyboard.key", messages.single().getString("type"))
+        assertEquals("Meta", messages.single().getJSONObject("payload").getString("key"))
+    }
+
+    @Test
     fun realtimeMoveFallsBackWhenPointerProfileDoesNotAdvertiseNoAck() = runTest {
         val tokens = FakeTokenStore(mutableMapOf("desktop-1" to "token"), mutableMapOf("desktop-1" to "Switchify PC"))
         lateinit var fakeConnection: FakeConnection
@@ -359,7 +377,7 @@ class SwitchifyPcBleClientTest {
                 "connection.ping" -> ack(json.getString("id"))
                 "pointer.profile" -> pointerProfile(
                     json.getString("id"),
-                    noAckCommands = listOf("mouse.click", "keyboard.typeText", "keyboard.shortcut", "window.control")
+                    noAckCommands = listOf("mouse.click", "keyboard.typeText", "keyboard.key", "keyboard.shortcut", "window.control")
                 )
                 else -> ack(json.getString("id"))
             }
@@ -369,14 +387,16 @@ class SwitchifyPcBleClientTest {
 
         assertEquals(PcCommandResult.Ack, result.connection.sendRealtimeCommand(PcControlCommand.LeftClick))
         assertEquals(PcCommandResult.Ack, result.connection.sendRealtimeCommand(PcControlCommand.TypeText("Hello")))
+        assertEquals(PcCommandResult.Ack, result.connection.sendRealtimeCommand(PcControlCommand.PressKey(PcKeyboardKey.Meta)))
         assertEquals(PcCommandResult.Ack, result.connection.sendRealtimeCommand(PcControlCommand.KeyboardShortcut(listOf(PcKeyboardShortcutKey.Meta))))
         assertEquals(PcCommandResult.Ack, result.connection.sendRealtimeCommand(PcControlCommand.WindowControl(PcWindowControlAction.SwitchNext)))
 
         assertEquals(listOf("connection.ping", "pointer.profile"), seenTypes)
         val messages = fakeConnection.sentMessages.map(::JSONObject)
-        assertEquals(listOf("mouse.click", "keyboard.typeText", "keyboard.shortcut", "window.control"), messages.map { it.getString("type") })
+        assertEquals(listOf("mouse.click", "keyboard.typeText", "keyboard.key", "keyboard.shortcut", "window.control"), messages.map { it.getString("type") })
         assertTrue(messages.all { it.getString("responseMode") == "none" })
-        assertEquals("Meta", messages[2].getJSONObject("payload").getJSONArray("keys").getString(0))
+        assertEquals("Meta", messages[2].getJSONObject("payload").getString("key"))
+        assertEquals("Meta", messages[3].getJSONObject("payload").getJSONArray("keys").getString(0))
     }
 
     @Test
