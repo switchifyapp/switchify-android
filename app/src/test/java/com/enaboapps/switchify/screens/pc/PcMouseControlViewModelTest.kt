@@ -16,6 +16,7 @@ import com.enaboapps.switchify.pc.PcDiscovery
 import com.enaboapps.switchify.pc.PcDiscoveryStatus
 import com.enaboapps.switchify.pc.PcErrorReason
 import com.enaboapps.switchify.pc.PcKeyboardKey
+import com.enaboapps.switchify.pc.PcKeyboardShortcutKey
 import com.enaboapps.switchify.pc.PcLiveControlResult
 import com.enaboapps.switchify.pc.PcMouseRepeatManager
 import com.enaboapps.switchify.pc.PcMouseRepeatSettings
@@ -1006,11 +1007,11 @@ class PcMouseControlViewModelTest {
     }
 
     @Test
-    fun windowSurfaceCanSendStartKeyCommand() = runTest(dispatcher) {
+    fun windowSurfaceCanSendStartShortcutCommand() = runTest(dispatcher) {
         val connector = FakeConnector()
         val controller = connectedController(connector = connector)
         val viewModel = viewModel(controller)
-        val command = PcControlCommand.PressKey(PcKeyboardKey.Meta)
+        val command = PcControlCommand.KeyboardShortcut(listOf(PcKeyboardShortcutKey.Meta))
 
         viewModel.selectControlSurface(PcControlSurface.Window)
         viewModel.send(command)
