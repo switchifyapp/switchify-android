@@ -196,20 +196,30 @@ class SurfaceControlOverlayBackend(
         private val surfaceControl: SurfaceControl,
         private val viewHost: SurfaceControlViewHost
     ) : OverlayHandle {
+        private var released = false
+
         override fun setVisible(visible: Boolean) {
+            if (released) return
             SurfaceControl.Transaction()
                 .setVisibility(surfaceControl, visible)
                 .apply()
         }
 
         override fun release() {
-            if (view.parent === container) {
-                container.removeView(view)
+            if (released) return
+            released = true
+            try {
+                if (view.parent === container) {
+                    container.removeView(view)
+                }
+                SurfaceControl.Transaction()
+                    .reparent(surfaceControl, null)
+                    .apply()
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to release SurfaceControl overlay", e)
+            } finally {
+                viewHost.release()
             }
-            SurfaceControl.Transaction()
-                .reparent(surfaceControl, null)
-                .apply()
-            viewHost.release()
         }
     }
 

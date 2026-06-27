@@ -321,6 +321,7 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
             eventPipeline.stop()
         }
         ServiceCore.cleanup()
+        SwitchifyAccessibilityWindow.instance.onServiceDestroy()
         PcMouseRepeatManager.instance.clearServiceState()
         GestureRepeatManager.instance.clearServiceState()
         GestureLockManager.instance.clearServiceState()
