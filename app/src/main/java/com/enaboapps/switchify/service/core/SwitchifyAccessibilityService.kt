@@ -19,6 +19,7 @@ import com.enaboapps.switchify.service.camera.CameraManager
 import com.enaboapps.switchify.service.gestures.GestureLockManager
 import com.enaboapps.switchify.service.gestures.GestureManager
 import com.enaboapps.switchify.service.gestures.GestureRepeatManager
+import com.enaboapps.switchify.pc.PcMouseRepeatManager
 import com.enaboapps.switchify.pc.PcServiceConnectionController
 import com.enaboapps.switchify.service.scanning.ScanSettings
 import com.enaboapps.switchify.service.selection.SelectionHandler
@@ -320,6 +321,8 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
             eventPipeline.stop()
         }
         ServiceCore.cleanup()
+        SwitchifyAccessibilityWindow.instance.onServiceDestroy()
+        PcMouseRepeatManager.instance.clearServiceState()
         GestureRepeatManager.instance.clearServiceState()
         GestureLockManager.instance.clearServiceState()
         GlobalActionManager.cleanup()
@@ -353,6 +356,7 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
         }
 
         SwitchifyAccessibilityWindow.instance.onServiceDestroy()
+        PcMouseRepeatManager.instance.clearServiceState()
         GestureRepeatManager.instance.clearServiceState()
         GestureLockManager.instance.clearServiceState()
         SwitchifyLifecycleOwner.getInstance().handleLifecycleEvent(Lifecycle.Event.ON_DESTROY)

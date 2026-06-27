@@ -155,6 +155,10 @@ class GestureRepeatManager private constructor() {
         clearServiceState(showMessage = false)
     }
 
+    internal fun turnAutoRepeatOffForGesturePatternStart() {
+        clearServiceState(showMessage = false)
+    }
+
     private fun getRepeatDelay(): Long {
         val delay = repeatDelayProviderForTesting?.invoke()
             ?: context?.let {

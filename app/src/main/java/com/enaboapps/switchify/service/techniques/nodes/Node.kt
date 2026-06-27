@@ -2,16 +2,23 @@ package com.enaboapps.switchify.service.techniques.nodes
 
 import android.graphics.PointF
 import android.graphics.Rect
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.view.accessibility.AccessibilityNodeInfo
 import com.enaboapps.switchify.service.gestures.GestureManager
 import com.enaboapps.switchify.service.gestures.GesturePoint
+import com.enaboapps.switchify.service.gestures.placement.FingerMode
 import com.enaboapps.switchify.service.menu.MenuItem
 import com.enaboapps.switchify.service.scanning.ScanNodeInterface
+import com.enaboapps.switchify.service.scanning.tree.CollectionRowHint
+import com.enaboapps.switchify.service.scanning.tree.CollectionRowHintProvider
 import com.enaboapps.switchify.service.selection.SelectionHandler
 import com.enaboapps.switchify.service.techniques.nodes.scanners.NodeScannerUI
 import com.enaboapps.switchify.service.techniques.pointscan.blocks.PointScanBlock
+import com.enaboapps.switchify.service.window.SwitchifyAccessibilityWindow
+import com.enaboapps.switchify.service.window.overlay.OverlayTarget
+import com.enaboapps.switchify.service.window.overlay.OverlayTargets
 import com.enaboapps.switchify.utils.Resources
 
 data class NodeScanSignature(
@@ -29,7 +36,7 @@ data class NodeScanSignature(
  */
 class Node(
     private var onSelect: (() -> Unit?)? = null
-) : ScanNodeInterface {
+) : ScanNodeInterface, CollectionRowHintProvider {
     private var nodeInfo: AccessibilityNodeInfo? = null
     private var x: Int = 0
     private var y: Int = 0
@@ -38,6 +45,8 @@ class Node(
     private var width: Int = 0
     private var height: Int = 0
     private var highlighted: Boolean = false
+    private var overlayNodeBounds: OverlayNodeBounds? = null
+    private var capabilities: NodeCapabilities? = null
 
     private var contentDescription: String = ""
 
@@ -69,6 +78,12 @@ class Node(
             val node = Node()
             val rect = Rect()
             nodeInfo.getBoundsInScreen(rect)
+            val boundsInWindow = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                Rect().also { nodeInfo.getBoundsInWindow(it) }
+            } else {
+                null
+            }
+            val overlayBounds = overlayBoundsFor(nodeInfo, rect, boundsInWindow)
             node.nodeInfo = nodeInfo
             node.x = rect.left
             node.y = rect.top
@@ -77,6 +92,8 @@ class Node(
             node.centerY = rect.centerY()
             node.width = rect.width()
             node.height = rect.height()
+            node.overlayNodeBounds = overlayBounds
+            node.capabilities = NodeCapabilityClassifier.classify(nodeInfo, rect, boundsInWindow)
             return node
         }
 
@@ -93,6 +110,10 @@ class Node(
             node.centerY = menuItem.y + menuItem.height / 2
             node.width = menuItem.width
             node.height = menuItem.height
+            node.overlayNodeBounds = OverlayNodeBounds.displayOnly(
+                Rect(node.x, node.y, node.x + node.width, node.y + node.height),
+                forceSurface = true
+            )
             val text = if (menuItem.labelResource != null) {
                 Resources.getString(menuItem.labelResource)
             } else {
@@ -122,8 +143,31 @@ class Node(
             node.height = cursorBlock.height
             node.centerX = cursorBlock.left + (cursorBlock.width / 2)
             node.centerY = cursorBlock.top + (cursorBlock.height / 2)
+            node.overlayNodeBounds = OverlayNodeBounds.displayOnly(
+                Rect(node.x, node.y, node.x + node.width, node.y + node.height)
+            )
             node.contentDescription = "Block ${cursorBlock.position + 1}"
             return node
+        }
+
+        private fun overlayBoundsFor(
+            nodeInfo: AccessibilityNodeInfo,
+            boundsInScreen: Rect,
+            boundsInWindow: Rect?
+        ): OverlayNodeBounds {
+            val window = nodeInfo.window
+            val displayId = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                window?.displayId ?: OverlayTargets.DEFAULT_DISPLAY_ID
+            } else {
+                OverlayTargets.DEFAULT_DISPLAY_ID
+            }
+            return OverlayNodeBounds(
+                displayId = displayId,
+                windowId = nodeInfo.windowId.takeIf { it >= 0 },
+                windowType = window?.type,
+                boundsInScreen = Rect(boundsInScreen),
+                boundsInWindow = boundsInWindow
+            )
         }
     }
 
@@ -134,12 +178,16 @@ class Node(
     }
 
     fun isActionable(actionType: ActionType): Boolean {
+        val caps = capabilities
         return when (actionType) {
-            ActionType.CUT -> nodeInfo?.actionList?.contains(AccessibilityNodeInfo.AccessibilityAction.ACTION_CUT) == true
+            ActionType.CUT -> caps?.hasCutAction
+                ?: (nodeInfo?.actionList?.contains(AccessibilityNodeInfo.AccessibilityAction.ACTION_CUT) == true)
 
-            ActionType.COPY -> nodeInfo?.actionList?.contains(AccessibilityNodeInfo.AccessibilityAction.ACTION_COPY) == true
+            ActionType.COPY -> caps?.hasCopyAction
+                ?: (nodeInfo?.actionList?.contains(AccessibilityNodeInfo.AccessibilityAction.ACTION_COPY) == true)
 
-            ActionType.PASTE -> nodeInfo?.actionList?.contains(AccessibilityNodeInfo.AccessibilityAction.ACTION_PASTE) == true
+            ActionType.PASTE -> caps?.hasPasteAction
+                ?: (nodeInfo?.actionList?.contains(AccessibilityNodeInfo.AccessibilityAction.ACTION_PASTE) == true)
         }
     }
 
@@ -190,6 +238,41 @@ class Node(
         return Rect(x, y, x + width, y + height)
     }
 
+    fun getOverlayTargetForHighlight(): OverlayTarget {
+        val overlayBounds = overlayNodeBounds ?: return OverlayTargets.defaultDisplay()
+        return targetForOverlayBounds(overlayBounds)
+    }
+
+    fun getOverlayHighlightBounds(target: OverlayTarget): Rect {
+        return overlayNodeBounds?.highlightBounds(target) ?: getBounds()
+    }
+
+    internal fun getCapabilities(): NodeCapabilities? = capabilities
+
+    internal fun isCurrentlyScannable(): Boolean {
+        return capabilities?.isCurrentlyScannable ?: false
+    }
+
+    internal fun prefersAccessibilityClickForSelection(): Boolean {
+        return capabilities?.prefersAccessibilityClickForSelection ?: true
+    }
+
+    override fun getCollectionRowHint(): CollectionRowHint? {
+        val item = capabilities
+            ?.collectionMetadata
+            ?.collectionItem
+            ?: return null
+
+        if (item.rowIndex < 0) return null
+
+        return CollectionRowHint(
+            rowIndex = item.rowIndex,
+            rowSpan = item.rowSpan,
+            columnIndex = item.columnIndex.takeIf { it >= 0 },
+            columnSpan = item.columnSpan.takeIf { it >= 0 }
+        )
+    }
+
     override fun getContentDescription(): String {
         return contentDescription
     }
@@ -203,7 +286,21 @@ class Node(
     }
 
     override fun highlight() {
-        NodeScannerUI.Companion.instance.showItemBounds(x, y, width, height)
+        NodeCapabilityDebugLogger.log("highlight", this)
+        val overlayBounds = overlayNodeBounds
+        if (overlayBounds != null) {
+            val target = targetForOverlayBounds(overlayBounds)
+            val bounds = overlayBounds.highlightBounds(target)
+            NodeScannerUI.Companion.instance.showItemBounds(
+                bounds.left,
+                bounds.top,
+                bounds.width(),
+                bounds.height(),
+                target
+            )
+        } else {
+            NodeScannerUI.Companion.instance.showItemBounds(x, y, width, height)
+        }
         highlighted = true
         onHighlight?.invoke(this)
     }
@@ -214,15 +311,43 @@ class Node(
         onUnhighlight?.invoke()
     }
 
+    private fun targetForOverlayBounds(overlayBounds: OverlayNodeBounds): OverlayTarget {
+        val preferredTarget = overlayBounds.target()
+        return when {
+            overlayBounds.isInputMethodWindow() -> {
+                OverlayTarget.Display(
+                    displayId = overlayBounds.displayId,
+                    forceSurface = overlayBounds.displayId != OverlayTargets.DEFAULT_DISPLAY_ID
+                )
+            }
+
+            preferredTarget is OverlayTarget.Window &&
+                    SwitchifyAccessibilityWindow.instance.canAttachSurfaceOverlay(preferredTarget) -> {
+                preferredTarget
+            }
+
+            else -> {
+                OverlayTargets.displayFallback(preferredTarget)
+            }
+        }
+    }
+
     override fun select() {
         unhighlight()
 
         if (onSelect == null) {
+            NodeCapabilityDebugLogger.log("select", this)
             GesturePoint.x = centerX
             GesturePoint.y = centerY
 
             SelectionHandler.setSelectAction {
-                GestureManager.instance.performTap(overrideFingerMode = com.enaboapps.switchify.service.gestures.placement.FingerMode.ONE)
+                val selectionDecision = NodeSelectionStrategy.decide(capabilities)
+                NodeSelectionPerformer.perform(
+                    nodeInfo = nodeInfo,
+                    preferAccessibilityClick = selectionDecision.preferAccessibilityClick
+                ) {
+                    GestureManager.instance.performTap(overrideFingerMode = FingerMode.ONE)
+                }
             }
             SelectionHandler.performSelectionAction()
         } else {

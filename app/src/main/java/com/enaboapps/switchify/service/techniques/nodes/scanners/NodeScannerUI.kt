@@ -7,8 +7,9 @@ import com.enaboapps.switchify.service.scanning.ScanColorManager
 import com.enaboapps.switchify.service.scanning.ScanHighlightDrawable
 import com.enaboapps.switchify.service.scanning.ScanHighlightStyle
 import com.enaboapps.switchify.service.utils.HighlightAnimations
-import com.enaboapps.switchify.service.utils.ScreenUtils
 import com.enaboapps.switchify.service.window.SwitchifyAccessibilityWindow
+import com.enaboapps.switchify.service.window.overlay.OverlayTarget
+import com.enaboapps.switchify.service.window.overlay.OverlayTargets
 
 class NodeScannerUI {
     companion object {
@@ -23,20 +24,28 @@ class NodeScannerUI {
 
     private var itemBoundsLayout: RelativeLayout? = null
     private var rowBoundsLayout: RelativeLayout? = null
+    private var overlayTarget: OverlayTarget = OverlayTargets.defaultDisplay()
 
     private val handler = Handler(Looper.getMainLooper())
 
-    private fun prepare() {
+    private fun prepare(target: OverlayTarget = OverlayTargets.defaultDisplay()) {
+        if (baseLayout != null && overlayTarget != target) {
+            hideAllNow()
+        }
+        overlayTarget = target
         if (baseLayout == null) {
             window.getContext()?.let { context ->
                 baseLayout = RelativeLayout(context)
                 baseLayout?.let { layout ->
+                    val metrics = window.getDisplayMetrics(target)
+                    val fallbackMetrics = context.resources.displayMetrics
                     window.addView(
+                        target,
                         layout,
                         0,
                         0,
-                        ScreenUtils.getWidth(context),
-                        ScreenUtils.getHeight(context)
+                        metrics?.width ?: fallbackMetrics.widthPixels,
+                        metrics?.height ?: fallbackMetrics.heightPixels
                     )
                 }
             }
@@ -49,9 +58,15 @@ class NodeScannerUI {
         }
     }
 
-    fun showItemBounds(x: Int, y: Int, width: Int, height: Int) {
+    fun showItemBounds(
+        x: Int,
+        y: Int,
+        width: Int,
+        height: Int,
+        target: OverlayTarget = OverlayTargets.defaultDisplay()
+    ) {
         handler.post {
-            prepare()
+            prepare(target)
             window.getContext()?.let {
                 val params = RelativeLayout.LayoutParams(
                     width,
@@ -76,9 +91,15 @@ class NodeScannerUI {
         }
     }
 
-    fun showRowBounds(x: Int, y: Int, width: Int, height: Int) {
+    fun showRowBounds(
+        x: Int,
+        y: Int,
+        width: Int,
+        height: Int,
+        target: OverlayTarget = OverlayTargets.defaultDisplay()
+    ) {
         handler.post {
-            prepare()
+            prepare(target)
             window.getContext()?.let {
                 val params = RelativeLayout.LayoutParams(
                     width,
@@ -103,9 +124,15 @@ class NodeScannerUI {
         }
     }
 
-    fun showEscapeBounds(x: Int, y: Int, width: Int, height: Int) {
+    fun showEscapeBounds(
+        x: Int,
+        y: Int,
+        width: Int,
+        height: Int,
+        target: OverlayTarget = OverlayTargets.defaultDisplay()
+    ) {
         handler.post {
-            prepare()
+            prepare(target)
             window.getContext()?.let {
                 val params = RelativeLayout.LayoutParams(
                     width,
@@ -149,11 +176,16 @@ class NodeScannerUI {
 
     fun hideAll() {
         handler.post {
-            itemBoundsLayout = null
-            rowBoundsLayout = null
-            val base = baseLayout ?: return@post
-            baseLayout = null
-            HighlightAnimations.fadeOut(base) { window.removeView(base) }
+            hideAllNow()
         }
+    }
+
+    private fun hideAllNow() {
+        itemBoundsLayout = null
+        rowBoundsLayout = null
+        val base = baseLayout ?: return
+        val target = overlayTarget
+        baseLayout = null
+        HighlightAnimations.fadeOut(base) { window.removeView(target, base) }
     }
 }

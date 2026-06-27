@@ -30,6 +30,8 @@ import com.enaboapps.switchify.service.components.AccessibilityComposeView
 import com.enaboapps.switchify.service.keyboard.KeyboardManager
 import com.enaboapps.switchify.service.utils.HighlightAnimations
 import com.enaboapps.switchify.service.window.SwitchifyAccessibilityWindow
+import com.enaboapps.switchify.service.window.overlay.OverlayTarget
+import com.enaboapps.switchify.service.window.overlay.OverlayTargets
 import com.enaboapps.switchify.theme.Dimens
 
 /**
@@ -48,7 +50,11 @@ class KeyboardEscapePrompt {
         private const val TAG = "KeyboardEscapePrompt"
     }
 
-    fun show(context: Context) {
+    fun show(
+        context: Context,
+        target: OverlayTarget.Display = OverlayTargets.defaultDisplay()
+    ) {
+        val promptTarget = target.copy(forceSurface = true)
         if (isShowing) return
 
         mainHandler.post {
@@ -57,6 +63,7 @@ class KeyboardEscapePrompt {
                 val bounds = KeyboardManager.keyboardState.value.keyboardBounds
                 if (bounds != null && bounds.width() > 0 && bounds.height() > 0) {
                     SwitchifyAccessibilityWindow.instance.addView(
+                        promptTarget,
                         view,
                         bounds.left,
                         bounds.top,
@@ -64,7 +71,7 @@ class KeyboardEscapePrompt {
                         bounds.height()
                     )
                 } else {
-                    SwitchifyAccessibilityWindow.instance.addViewToCenter(view)
+                    SwitchifyAccessibilityWindow.instance.addViewToCenter(promptTarget, view)
                 }
                 HighlightAnimations.fadeIn(view)
             }

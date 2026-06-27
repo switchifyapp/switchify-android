@@ -53,6 +53,8 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.enaboapps.switchify.service.components.AccessibilityComposeView
+import com.enaboapps.switchify.service.window.overlay.OverlayTarget
+import com.enaboapps.switchify.service.window.overlay.OverlayTargets
 import com.enaboapps.switchify.utils.Resources
 import kotlinx.coroutines.launch
 import kotlin.math.abs
@@ -147,6 +149,7 @@ class ServiceMessageHUD private constructor() {
 
     private var applicationCtx: Context? = null
     private var messageComposeView: AccessibilityComposeView? = null
+    private var currentTarget: OverlayTarget.Display? = null
     private val handler = Handler(Looper.getMainLooper())
 
     // State holders for Compose
@@ -417,8 +420,10 @@ class ServiceMessageHUD private constructor() {
         args: Array<out Any>?,
         messageType: MessageType,
         time: Time,
-        severity: MessageSeverity
+        severity: MessageSeverity,
+        target: OverlayTarget.Display
     ) {
+        val hudTarget = target.copy(forceSurface = true)
         applicationCtx ?: run {
             Log.e(TAG, "ApplicationContext is null, cannot show message. Call setup() first.")
             return
@@ -440,9 +445,14 @@ class ServiceMessageHUD private constructor() {
             ensureMessageComposeViewIsCreated()
             messageComposeView?.let { view ->
                 try {
-                    // Add view to window if not already there
+                    if (view.parent != null && currentTarget != hudTarget) {
+                        SwitchifyAccessibilityWindow.instance.removeView(view)
+                        currentTarget = null
+                    }
+
                     if (view.parent == null) {
-                        SwitchifyAccessibilityWindow.instance.addViewToBottom(view)
+                        SwitchifyAccessibilityWindow.instance.addViewToBottom(hudTarget, view)
+                        currentTarget = hudTarget
                         Log.d(TAG, "Message ComposeView added to window.")
                     }
                 } catch (e: Exception) {
@@ -476,9 +486,10 @@ class ServiceMessageHUD private constructor() {
         messageResId: Int,
         messageType: MessageType,
         time: Time = Time.MEDIUM,
-        severity: MessageSeverity = MessageSeverity.Info
+        severity: MessageSeverity = MessageSeverity.Info,
+        target: OverlayTarget.Display = OverlayTargets.defaultDisplay()
     ) {
-        showMessageInternal(messageResId, null, messageType, time, severity)
+        showMessageInternal(messageResId, null, messageType, time, severity, target)
     }
 
     /**
@@ -495,9 +506,10 @@ class ServiceMessageHUD private constructor() {
         messageArgs: Array<out Any>,
         messageType: MessageType,
         time: Time = Time.MEDIUM,
-        severity: MessageSeverity = MessageSeverity.Info
+        severity: MessageSeverity = MessageSeverity.Info,
+        target: OverlayTarget.Display = OverlayTargets.defaultDisplay()
     ) {
-        showMessageInternal(messageResId, messageArgs, messageType, time, severity)
+        showMessageInternal(messageResId, messageArgs, messageType, time, severity, target)
     }
 
     /**
@@ -526,6 +538,7 @@ class ServiceMessageHUD private constructor() {
             try {
                 SwitchifyAccessibilityWindow.instance.removeView(view)
                 messageComposeView = null
+                currentTarget = null
                 currentMessageString.value = null
                 currentMessageSeverity.value = MessageSeverity.Info
                 isMessageVisible.value = false

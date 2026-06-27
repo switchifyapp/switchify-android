@@ -13,6 +13,7 @@ import com.enaboapps.switchify.screens.account.AuthScreen
 import com.enaboapps.switchify.screens.onboarding.OnboardingScreen
 import com.enaboapps.switchify.screens.paywall.AppPaywallScreen
 import com.enaboapps.switchify.screens.pc.PcConnectionScreen
+import com.enaboapps.switchify.screens.pc.PcSettingsScreen
 
 import com.enaboapps.switchify.screens.settings.CameraSettingsScreen
 import com.enaboapps.switchify.screens.settings.HeadControlSettingsScreen
@@ -74,6 +75,9 @@ fun NavGraph(navController: NavHostController) {
         }
         composable(NavigationRoute.PcConnection.name) {
             PcConnectionScreen(navController)
+        }
+        composable(NavigationRoute.PcSettings.name) {
+            PcSettingsScreen(navController)
         }
         composable(NavigationRoute.SwitchStability.name) {
             SwitchStabilityScreen(navController)

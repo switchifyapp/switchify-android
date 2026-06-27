@@ -13,6 +13,7 @@ enum class PcKeyboardKey(
     Escape("Escape", R.string.pc_key_escape),
     Space("Space", R.string.pc_key_space),
     Tab("Tab", R.string.pc_key_tab),
+    Meta("Meta", R.string.pc_key_start),
     ArrowUp("ArrowUp", R.string.pc_key_arrow_up),
     ArrowDown("ArrowDown", R.string.pc_key_arrow_down),
     ArrowLeft("ArrowLeft", R.string.pc_key_arrow_left),
@@ -33,4 +34,8 @@ enum class PcKeyboardKey(
     F10("F10", R.string.pc_key_f10),
     F11("F11", R.string.pc_key_f11),
     F12("F12", R.string.pc_key_f12)
+}
+
+enum class PcKeyboardShortcutKey(val protocolValue: String) {
+    Meta("Meta")
 }

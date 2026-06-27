@@ -20,11 +20,13 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.pc.PcControlCommand
+import com.enaboapps.switchify.pc.PcKeyboardKey
+import com.enaboapps.switchify.pc.PcKeyboardShortcutKey
 import com.enaboapps.switchify.pc.PcWindowControlAction
 
 data class PcWindowControlSpec(
     @param:StringRes val labelResId: Int,
-    val command: PcControlCommand.WindowControl,
+    val command: PcControlCommand,
     val icon: ImageVector? = null,
     val tone: PcCommandTone = PcCommandTone.Neutral
 )
@@ -69,11 +71,16 @@ fun PcWindowControlScreen(
 }
 
 fun pcWindowCompactControlSpecs(): List<PcWindowControlSpec?> {
-    return pcWindowControlSpecs() + listOf(null, null)
+    return pcWindowControlSpecs() + listOf(null)
 }
 
 fun pcWindowControlSpecs(): List<PcWindowControlSpec> {
     return listOf(
+        PcWindowControlSpec(
+            R.string.pc_key_start,
+            PcControlCommand.KeyboardShortcut(listOf(PcKeyboardShortcutKey.Meta)),
+            Icons.Rounded.Computer
+        ),
         PcWindowControlSpec(
             R.string.pc_window_switch_next,
             PcControlCommand.WindowControl(PcWindowControlAction.SwitchNext),

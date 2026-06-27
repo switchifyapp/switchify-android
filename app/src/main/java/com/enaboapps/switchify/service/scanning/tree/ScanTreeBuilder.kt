@@ -25,8 +25,23 @@ class ScanTreeBuilder(
      * @return A list of ScanTreeItems representing the built tree.
      */
     fun buildTree(nodes: List<ScanNodeInterface>, itemThreshold: Int = 40): List<ScanTreeItem> {
-        val tree = mutableListOf<ScanTreeItem>()
-        if (nodes.isEmpty()) return tree
+        if (nodes.isEmpty()) return emptyList()
+
+        val geometryRows = buildGeometryRows(nodes, itemThreshold)
+        val rows = if (scanSettings.isRowColumnScanEnabled()) {
+            CollectionRowGrouping.refineRows(geometryRows)
+        } else {
+            geometryRows
+        }
+
+        return rows.map { createScanTreeItem(it) }
+    }
+
+    private fun buildGeometryRows(
+        nodes: List<ScanNodeInterface>,
+        itemThreshold: Int
+    ): List<List<ScanNodeInterface>> {
+        val rows = mutableListOf<List<ScanNodeInterface>>()
 
         val sortedNodes = nodes.sortedBy { it.getMidY() }
         var currentTreeItem = mutableListOf<ScanNodeInterface>(sortedNodes.first())
@@ -46,7 +61,7 @@ class ScanTreeBuilder(
                 currentTreeItem.add(node)
             } else {
                 if (currentTreeItem.isNotEmpty()) {
-                    tree.add(createScanTreeItem(currentTreeItem))
+                    rows.add(currentTreeItem)
                     currentTreeItem = mutableListOf()
                 }
                 currentTreeItem.add(node)
@@ -55,10 +70,10 @@ class ScanTreeBuilder(
         }
 
         if (currentTreeItem.isNotEmpty()) {
-            tree.add(createScanTreeItem(currentTreeItem))
+            rows.add(currentTreeItem)
         }
 
-        return tree
+        return rows
     }
 
     /**

@@ -18,7 +18,8 @@ data class KeyboardState(
     val isVisible: Boolean = false,
     val isEscaped: Boolean = false,
     val isDirectSelectEnabled: Boolean = false,
-    val keyboardBounds: Rect? = null
+    val keyboardBounds: Rect? = null,
+    val keyboardWindowTarget: KeyboardWindowTarget? = null
 ) {
     /**
      * Whether the keyboard escape prompt should be shown.

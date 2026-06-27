@@ -9,6 +9,7 @@ import android.os.Looper
 import android.util.Log
 import androidx.core.content.ContextCompat
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
+import com.enaboapps.switchify.pc.PcMouseRepeatManager
 import com.enaboapps.switchify.service.camera.CameraLifecycle
 import com.enaboapps.switchify.service.camera.CameraPermissionManager
 import com.enaboapps.switchify.service.core.ServiceCore
@@ -424,6 +425,7 @@ class CameraSwitchManager(
         if (switchEvent != null) {
             coroutineScope.launch(Dispatchers.Main) {
                 Log.i(TAG, "Triggering switch action for gesture: ${gesture.getName()}")
+                if (stopPcMouseRepeatForSwitchPress()) return@launch
                 if (!switchEvent.pressAction.isScanMovementAction() &&
                     Tasks.getInstance().stopActiveStoppableTask()
                 ) return@launch
@@ -447,12 +449,17 @@ class CameraSwitchManager(
         if (switchEvent != null) {
             coroutineScope.launch(Dispatchers.Main) {
                 Log.i(TAG, "Triggering head turn gesture: ${gesture.getName()}")
+                if (stopPcMouseRepeatForSwitchPress()) return@launch
                 if (!switchEvent.pressAction.isScanMovementAction() &&
                     Tasks.getInstance().stopActiveStoppableTask()
                 ) return@launch
                 scanningManager.performAction(switchEvent.pressAction)
             }
         }
+    }
+
+    private fun stopPcMouseRepeatForSwitchPress(): Boolean {
+        return PcMouseRepeatManager.instance.stopForSwitchPress()
     }
 
     /**

@@ -501,6 +501,38 @@ class PcServiceConnectionControllerTest {
     }
 
     @Test
+    fun connectToStoresControlDeviceName() = runTest(dispatcher) {
+        val pcWithDeviceName = pc.copy(
+            serviceName = "Switchify PC",
+            bluetoothEndpoint = pc.bluetoothEndpoint?.copy(deviceName = "Oliver Laptop")
+        )
+        val tokens = FakeTokenStore(mutableMapOf("desktop-1" to "token"))
+        val connector = FakeConnector(PcPingResult.Connected("AA:BB:CC:DD:EE:FF"))
+        val controller = controller(tokens, connector, FakeDiscovery(listOf(pcWithDeviceName)))
+
+        val result = controller.connectTo(pcWithDeviceName)
+
+        assertEquals("Oliver Laptop", controller.currentControlDeviceName())
+        assertEquals("Switchify PC", (result as PcServiceConnectResult.Connected).displayName)
+    }
+
+    @Test
+    fun disconnectClearsControlDeviceName() = runTest(dispatcher) {
+        val pcWithDeviceName = pc.copy(
+            serviceName = "Switchify PC",
+            bluetoothEndpoint = pc.bluetoothEndpoint?.copy(deviceName = "Oliver Laptop")
+        )
+        val tokens = FakeTokenStore(mutableMapOf("desktop-1" to "token"))
+        val connector = FakeConnector(PcPingResult.Connected("AA:BB:CC:DD:EE:FF"))
+        val controller = controller(tokens, connector, FakeDiscovery(listOf(pcWithDeviceName)))
+
+        controller.connectTo(pcWithDeviceName)
+        controller.disconnect()
+
+        assertNull(controller.currentControlDeviceName())
+    }
+
+    @Test
     fun connectToExpiredTokenFallsThroughToPairing() = runTest(dispatcher) {
         val tokens = FakeTokenStore(mutableMapOf("desktop-1" to "old-token"))
         val connector = FakeConnector(

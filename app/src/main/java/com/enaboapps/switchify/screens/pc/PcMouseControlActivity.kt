@@ -116,6 +116,15 @@ private fun PcMouseControlScreen(
                 showBackButton = true,
                 onBackPressed = onClose
             )
+        },
+        bottomBar = {
+            PcControlPcSwitchStrip(
+                connectedDisplayName = uiState.switcherConnectedDisplayName ?: uiState.connectedDisplayName,
+                enabled = !uiState.isBusy,
+                isDiscovering = uiState.isDiscoveringSwitchPcs,
+                switching = uiState.switchingDesktopId != null,
+                onSwitchClick = viewModel::openSwitchPcChooser
+            )
         }
     ) { paddingValues ->
         Surface(
@@ -136,7 +145,7 @@ private fun PcMouseControlScreen(
                     PcControlCommandGrid(
                         enabled = surfaceEnabled,
                         movementStep = uiState.movementStep,
-                        onCommandSelected = viewModel::send
+                        onCommandSelected = viewModel::sendMouseCommand
                     )
                     PcMovementSizeSection(
                         selectedSize = uiState.selectedMovementSize,
@@ -178,5 +187,20 @@ private fun PcMouseControlScreen(
                 }
             }
         }
+    }
+
+    if (uiState.switchPcChooserVisible) {
+        PcSwitchPcDialog(
+            rows = uiState.switchPcRows,
+            isDiscovering = uiState.isDiscoveringSwitchPcs,
+            switchingDesktopId = uiState.switchingDesktopId,
+            onDismiss = viewModel::dismissSwitchPcChooser,
+            onRefresh = viewModel::refreshSwitchPcChoices,
+            onPcSelected = viewModel::switchToPc
+        )
+    }
+
+    uiState.switchPcApprovalCode?.let { approvalCode ->
+        PcSwitchPcApprovalDialog(approvalCode)
     }
 }

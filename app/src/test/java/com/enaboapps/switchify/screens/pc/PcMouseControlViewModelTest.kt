@@ -4,6 +4,7 @@ import com.enaboapps.switchify.pc.DiscoveredPc
 import com.enaboapps.switchify.pc.PcAuthenticatedSession
 import com.enaboapps.switchify.pc.PcBluetoothEndpoint
 import com.enaboapps.switchify.pc.PcCommandResult
+import com.enaboapps.switchify.pc.PcConnectionState
 import com.enaboapps.switchify.pc.PcConnectionStateHolder
 import com.enaboapps.switchify.pc.PcConnector
 import com.enaboapps.switchify.pc.PcControlCloseReason
@@ -15,7 +16,10 @@ import com.enaboapps.switchify.pc.PcDiscovery
 import com.enaboapps.switchify.pc.PcDiscoveryStatus
 import com.enaboapps.switchify.pc.PcErrorReason
 import com.enaboapps.switchify.pc.PcKeyboardKey
+import com.enaboapps.switchify.pc.PcKeyboardShortcutKey
 import com.enaboapps.switchify.pc.PcLiveControlResult
+import com.enaboapps.switchify.pc.PcMouseRepeatManager
+import com.enaboapps.switchify.pc.PcMouseRepeatSettings
 import com.enaboapps.switchify.pc.PcPairingResult
 import com.enaboapps.switchify.pc.PcPairingTokenStore
 import com.enaboapps.switchify.pc.PcPingResult
@@ -49,6 +53,8 @@ import org.junit.Test
 @OptIn(ExperimentalCoroutinesApi::class)
 class PcMouseControlViewModelTest {
     private val dispatcher = StandardTestDispatcher()
+    private val mouseRepeatManager = PcMouseRepeatManager.instance
+    private val mouseRepeatSettings = FakeMouseRepeatSettings()
     private val pc = DiscoveredPc(
         serviceName = "Switchify PC",
         desktopId = "desktop-1",
@@ -59,15 +65,31 @@ class PcMouseControlViewModelTest {
             displayName = "Switchify PC"
         )
     )
+    private val officePc = DiscoveredPc(
+        serviceName = "Office PC",
+        desktopId = "desktop-2",
+        bluetoothEndpoint = PcBluetoothEndpoint(
+            deviceAddress = "11:22:33:44:55:66",
+            deviceName = "Office PC",
+            desktopId = "desktop-2",
+            displayName = "Office PC"
+        )
+    )
 
     @Before
     fun setup() {
         Dispatchers.setMain(dispatcher)
         PcConnectionStateHolder.setDisconnected()
+        mouseRepeatManager.resetForTesting()
+        mouseRepeatSettings.enabled = true
+        mouseRepeatSettings.intervalMs = 250L
+        mouseRepeatManager.setSettingsForTesting(mouseRepeatSettings)
+        mouseRepeatManager.setHudMessageHandlerForTesting { _, _ -> }
     }
 
     @After
     fun tearDown() {
+        mouseRepeatManager.resetForTesting()
         PcConnectionStateHolder.setDisconnected()
         Dispatchers.resetMain()
     }
@@ -107,6 +129,24 @@ class PcMouseControlViewModelTest {
     }
 
     @Test
+    fun bottomStripStateUsesControlDeviceName() = runTest(dispatcher) {
+        val devicePc = pc.copy(
+            serviceName = "Switchify PC",
+            bluetoothEndpoint = pc.bluetoothEndpoint?.copy(deviceName = "Oliver Laptop")
+        )
+        val connector = FakeConnector()
+        val tokens = FakeTokenStore(mutableMapOf("desktop-1" to "token"))
+        val controller = controller(tokens, connector, FakeDiscovery(listOf(devicePc)))
+        controller.connectTo(devicePc)
+        val viewModel = viewModel(controller)
+
+        advanceUntilIdle()
+
+        assertEquals("Switchify PC", viewModel.uiState.value.connectedDisplayName)
+        assertEquals("Oliver Laptop", viewModel.uiState.value.switcherConnectedDisplayName)
+    }
+
+    @Test
     fun connectedServiceStateUsesPointerProfile() = runTest(dispatcher) {
         val controller = connectedController(pointerProfile = pointerProfile(small = 52, medium = 130, large = 260))
         val viewModel = viewModel(controller, FakeMovementSizeStore(PcMouseMovementSize.Medium))
@@ -124,6 +164,180 @@ class PcMouseControlViewModelTest {
         advanceUntilIdle()
 
         assertEquals(true, viewModel.uiState.value.supportsTextStreamInput)
+    }
+
+    @Test
+    fun openSwitchPcChooserDiscoversPairedPcs() = runTest(dispatcher) {
+        val controller = pairedController()
+        val viewModel = viewModel(controller)
+        advanceUntilIdle()
+
+        viewModel.openSwitchPcChooser()
+        advanceUntilIdle()
+
+        assertTrue(viewModel.uiState.value.switchPcChooserVisible)
+        assertEquals(listOf("desktop-1", "desktop-2"), viewModel.uiState.value.switchPcRows.map { it.desktopId })
+        assertTrue(viewModel.uiState.value.switchPcRows.first { it.desktopId == "desktop-1" }.connected)
+        assertFalse(viewModel.uiState.value.switchPcRows.first { it.desktopId == "desktop-2" }.connected)
+    }
+
+    @Test
+    fun switchRowsUseActualBluetoothDeviceName() = runTest(dispatcher) {
+        val devicePc = pc.copy(
+            serviceName = "Switchify PC",
+            bluetoothEndpoint = pc.bluetoothEndpoint?.copy(deviceName = "Oliver Laptop")
+        )
+        val connector = FakeConnector()
+        val tokens = FakeTokenStore(mutableMapOf("desktop-1" to "token"))
+        val controller = controller(tokens, connector, FakeDiscovery(listOf(devicePc)))
+        controller.connectTo(devicePc)
+        val viewModel = viewModel(controller)
+        advanceUntilIdle()
+
+        viewModel.openSwitchPcChooser()
+        advanceUntilIdle()
+
+        assertEquals("Oliver Laptop", viewModel.uiState.value.switchPcRows.single().displayName)
+    }
+
+    @Test
+    fun openSwitchPcChooserShowsEmptyWhenNoPairedPcsNearby() = runTest(dispatcher) {
+        val connector = FakeConnector()
+        val tokens = FakeTokenStore(mutableMapOf("desktop-1" to "token"))
+        val controller = controller(tokens, connector, FakeDiscovery(emptyList()))
+        val viewModel = viewModel(controller)
+
+        viewModel.openSwitchPcChooser()
+        advanceUntilIdle()
+
+        assertTrue(viewModel.uiState.value.switchPcChooserVisible)
+        assertTrue(viewModel.uiState.value.switchPcRows.isEmpty())
+        assertFalse(viewModel.uiState.value.isDiscoveringSwitchPcs)
+    }
+
+    @Test
+    fun switchToPcConnectsSelectedPairedPc() = runTest(dispatcher) {
+        val connector = FakeConnector()
+        val controller = pairedController(connector)
+        val viewModel = viewModel(controller)
+        advanceUntilIdle()
+
+        viewModel.openSwitchPcChooser()
+        advanceUntilIdle()
+        viewModel.switchToPc("desktop-2")
+        advanceUntilIdle()
+
+        val state = PcConnectionStateHolder.connectionState.value as PcConnectionState.Connected
+        assertEquals("desktop-2", state.session.desktopId)
+        assertEquals("Office PC", viewModel.uiState.value.connectedDisplayName)
+        assertFalse(viewModel.uiState.value.switchPcChooserVisible)
+        assertNull(viewModel.uiState.value.switchingDesktopId)
+        assertEquals(2, connector.openControlSessionCalls)
+    }
+
+    @Test
+    fun switchToCurrentPcDoesNotReconnect() = runTest(dispatcher) {
+        val connector = FakeConnector()
+        val controller = pairedController(connector)
+        val viewModel = viewModel(controller)
+        advanceUntilIdle()
+
+        viewModel.openSwitchPcChooser()
+        advanceUntilIdle()
+        viewModel.switchToPc("desktop-1")
+        advanceUntilIdle()
+
+        assertFalse(viewModel.uiState.value.switchPcChooserVisible)
+        assertEquals(1, connector.openControlSessionCalls)
+    }
+
+    @Test
+    fun switchToPcStopsMouseRepeatAndDragging() = runTest(dispatcher) {
+        val connector = FakeConnector()
+        val controller = pairedController(connector)
+        val viewModel = viewModel(controller)
+        advanceUntilIdle()
+        viewModel.openSwitchPcChooser()
+        advanceUntilIdle()
+
+        viewModel.sendMouseCommand(PcControlCommand.Move(80, 0), repeatable = true)
+        viewModel.send(PcControlCommand.DragStart())
+        runCurrent()
+        assertTrue(mouseRepeatManager.isRepeating())
+        assertTrue(viewModel.uiState.value.isDragging)
+
+        viewModel.switchToPc("desktop-2")
+        advanceUntilIdle()
+
+        assertFalse(mouseRepeatManager.isRepeating())
+        assertFalse(viewModel.uiState.value.isDragging)
+    }
+
+    @Test
+    fun switchToPcFailureKeepsChooserOpenAndShowsMessage() = runTest(dispatcher) {
+        val connector = FakeConnector(liveResults = mutableListOf(PcLiveControlResult.Connected(FakeLiveConnection()), PcLiveControlResult.Failed("Could not connect.")))
+        val controller = pairedController(connector)
+        val viewModel = viewModel(controller)
+        advanceUntilIdle()
+
+        viewModel.openSwitchPcChooser()
+        advanceUntilIdle()
+        viewModel.switchToPc("desktop-2")
+        advanceUntilIdle()
+
+        assertTrue(viewModel.uiState.value.switchPcChooserVisible)
+        assertNull(viewModel.uiState.value.switchingDesktopId)
+        assertEquals("Could not connect.", viewModel.uiState.value.message)
+    }
+
+    @Test
+    fun switchToPcApprovalCodeIsExposedWhenTokenExpired() = runTest(dispatcher) {
+        val pairingDeferred = CompletableDeferred<PcPairingResult>()
+        val connector = FakeConnector(
+            liveResults = mutableListOf(PcLiveControlResult.Connected(FakeLiveConnection())),
+            pingResultsByDesktop = mapOf("desktop-2" to PcPingResult.AuthFailed()),
+            pairingResultsByDesktop = mapOf("desktop-2" to pairingDeferred)
+        )
+        val controller = pairedController(connector)
+        val viewModel = viewModel(controller)
+        advanceUntilIdle()
+
+        viewModel.openSwitchPcChooser()
+        advanceUntilIdle()
+        viewModel.switchToPc("desktop-2")
+        runCurrent()
+
+        assertEquals("Office PC", viewModel.uiState.value.switchPcApprovalCode?.pcName)
+        assertEquals("838981", viewModel.uiState.value.switchPcApprovalCode?.verificationCode)
+
+        pairingDeferred.complete(PcPairingResult.Paired("desktop-2", "new-token", "11:22:33:44:55:66"))
+        advanceUntilIdle()
+    }
+
+    @Test
+    fun dismissSwitchPcChooserClearsSwitchState() = runTest(dispatcher) {
+        val pairingDeferred = CompletableDeferred<PcPairingResult>()
+        val connector = FakeConnector(
+            liveResults = mutableListOf(PcLiveControlResult.Connected(FakeLiveConnection())),
+            pingResultsByDesktop = mapOf("desktop-2" to PcPingResult.AuthFailed()),
+            pairingResultsByDesktop = mapOf("desktop-2" to pairingDeferred)
+        )
+        val controller = pairedController(connector)
+        val viewModel = viewModel(controller)
+        advanceUntilIdle()
+
+        viewModel.openSwitchPcChooser()
+        advanceUntilIdle()
+        viewModel.switchToPc("desktop-2")
+        runCurrent()
+        viewModel.dismissSwitchPcChooser()
+
+        assertFalse(viewModel.uiState.value.switchPcChooserVisible)
+        assertNull(viewModel.uiState.value.switchPcApprovalCode)
+        assertNull(viewModel.uiState.value.switchingDesktopId)
+
+        pairingDeferred.complete(PcPairingResult.Paired("desktop-2", "new-token", "11:22:33:44:55:66"))
+        advanceUntilIdle()
     }
 
     @Test
@@ -221,6 +435,175 @@ class PcMouseControlViewModelTest {
         assertTrue(connector.oneShotCommands.isEmpty())
         assertTrue(!viewModel.uiState.value.isBusy)
         assertNull(viewModel.uiState.value.message)
+    }
+
+    @Test
+    fun repeatableMouseCommandSendsImmediatelyThenRepeats() = runTest(dispatcher) {
+        val connector = FakeConnector()
+        val controller = connectedController(connector = connector)
+        val viewModel = viewModel(controller)
+
+        viewModel.sendMouseCommand(PcControlCommand.Move(80, 0), repeatable = true)
+
+        assertEquals(listOf(PcControlCommand.Move(80, 0)), connector.realtimeCommands)
+
+        advanceTimeBy(249)
+        runCurrent()
+
+        assertEquals(listOf(PcControlCommand.Move(80, 0)), connector.realtimeCommands)
+
+        advanceTimeBy(1)
+        runCurrent()
+
+        assertEquals(
+            listOf(
+                PcControlCommand.Move(80, 0),
+                PcControlCommand.Move(80, 0)
+            ),
+            connector.realtimeCommands
+        )
+        mouseRepeatManager.stop(showMessage = false)
+    }
+
+    @Test
+    fun repeatableScrollCommandSendsImmediatelyThenRepeats() = runTest(dispatcher) {
+        val connector = FakeConnector()
+        val controller = connectedController(connector = connector)
+        val viewModel = viewModel(controller)
+
+        viewModel.sendMouseCommand(PcControlCommand.Scroll(0, 5), repeatable = true)
+
+        assertEquals(listOf(PcControlCommand.Scroll(0, 5)), connector.realtimeCommands)
+
+        advanceTimeBy(249)
+        runCurrent()
+
+        assertEquals(listOf(PcControlCommand.Scroll(0, 5)), connector.realtimeCommands)
+
+        advanceTimeBy(1)
+        runCurrent()
+
+        assertEquals(
+            listOf(
+                PcControlCommand.Scroll(0, 5),
+                PcControlCommand.Scroll(0, 5)
+            ),
+            connector.realtimeCommands
+        )
+        mouseRepeatManager.stop(showMessage = false)
+    }
+
+    @Test
+    fun disabledMouseRepeatSendsOnlyOnce() = runTest(dispatcher) {
+        mouseRepeatSettings.enabled = false
+        val connector = FakeConnector()
+        val controller = connectedController(connector = connector)
+        val viewModel = viewModel(controller)
+
+        viewModel.sendMouseCommand(PcControlCommand.Scroll(0, 5), repeatable = true)
+        runCurrent()
+        advanceTimeBy(250)
+        runCurrent()
+
+        assertEquals(listOf(PcControlCommand.Scroll(0, 5)), connector.realtimeCommands)
+    }
+
+    @Test
+    fun nonRepeatableMouseCommandSendsOnlyOnce() = runTest(dispatcher) {
+        val connector = FakeConnector()
+        val controller = connectedController(connector = connector)
+        val viewModel = viewModel(controller)
+
+        viewModel.sendMouseCommand(PcControlCommand.LeftClick, repeatable = false)
+        runCurrent()
+        advanceTimeBy(250)
+        runCurrent()
+
+        assertEquals(listOf(PcControlCommand.LeftClick), connector.realtimeCommands)
+    }
+
+    @Test
+    fun repeatableMouseCommandIsStoppableBeforeFirstAck() = runTest(dispatcher) {
+        val firstResult = CompletableDeferred<PcCommandResult>()
+        val connector = FakeConnector(realtimeResults = mutableListOf(firstResult))
+        val controller = connectedController(connector = connector)
+        val viewModel = viewModel(controller)
+        val command = PcControlCommand.Move(80, 0)
+
+        viewModel.sendMouseCommand(command, repeatable = true)
+
+        assertEquals(listOf(command), connector.realtimeCommands)
+        assertTrue(mouseRepeatManager.isRepeating())
+        assertTrue(mouseRepeatManager.stopForSwitchPress())
+
+        firstResult.complete(PcCommandResult.Ack)
+        advanceUntilIdle()
+        advanceTimeBy(250)
+        runCurrent()
+
+        assertEquals(listOf(command), connector.realtimeCommands)
+        assertFalse(mouseRepeatManager.isRepeating())
+    }
+
+    @Test
+    fun repeatableMouseCommandFailureDoesNotStartRepeat() = runTest(dispatcher) {
+        val connector = FakeConnector(commandResult = PcCommandResult.Failed())
+        val controller = connectedController(connector = connector)
+        val viewModel = viewModel(controller)
+
+        viewModel.sendMouseCommand(PcControlCommand.Move(80, 0), repeatable = true)
+
+        assertEquals(listOf(PcControlCommand.Move(80, 0)), connector.realtimeCommands)
+        assertFalse(mouseRepeatManager.isRepeating())
+    }
+
+    @Test
+    fun repeatableMouseCommandAuthFailureDoesNotStartRepeat() = runTest(dispatcher) {
+        val connector = FakeConnector(commandResult = PcCommandResult.AuthFailed())
+        val controller = connectedController(connector = connector)
+        val viewModel = viewModel(controller)
+
+        viewModel.sendMouseCommand(PcControlCommand.Move(80, 0), repeatable = true)
+
+        assertTrue(connector.realtimeCommands.isNotEmpty())
+        assertEquals(
+            connector.realtimeCommands,
+            List(connector.realtimeCommands.size) { PcControlCommand.Move(80, 0) }
+        )
+        assertFalse(mouseRepeatManager.isRepeating())
+    }
+
+    @Test
+    fun reconnectingStopsMouseRepeat() = runTest(dispatcher) {
+        val connector = FakeConnector()
+        val controller = connectedController(connector = connector)
+        val viewModel = viewModel(controller)
+        val session = PcAuthenticatedSession("desktop-1", "device-1", "AA:BB:CC:DD:EE:FF")
+
+        viewModel.sendMouseCommand(PcControlCommand.Move(80, 0), repeatable = true)
+        runCurrent()
+        assertTrue(mouseRepeatManager.isRepeating())
+
+        PcConnectionStateHolder.setReconnecting(session, "Switchify PC")
+        advanceUntilIdle()
+
+        assertFalse(mouseRepeatManager.isRepeating())
+    }
+
+    @Test
+    fun disconnectingStopsMouseRepeat() = runTest(dispatcher) {
+        val connector = FakeConnector()
+        val controller = connectedController(connector = connector)
+        val viewModel = viewModel(controller)
+
+        viewModel.sendMouseCommand(PcControlCommand.Move(80, 0), repeatable = true)
+        runCurrent()
+        assertTrue(mouseRepeatManager.isRepeating())
+
+        controller.disconnect()
+        advanceUntilIdle()
+
+        assertFalse(mouseRepeatManager.isRepeating())
     }
 
     @Test
@@ -624,6 +1007,24 @@ class PcMouseControlViewModelTest {
     }
 
     @Test
+    fun windowSurfaceCanSendStartShortcutCommand() = runTest(dispatcher) {
+        val connector = FakeConnector()
+        val controller = connectedController(connector = connector)
+        val viewModel = viewModel(controller)
+        val command = PcControlCommand.KeyboardShortcut(listOf(PcKeyboardShortcutKey.Meta))
+
+        viewModel.selectControlSurface(PcControlSurface.Window)
+        viewModel.send(command)
+        advanceUntilIdle()
+
+        assertEquals(listOf(command), connector.realtimeCommands)
+        assertTrue(connector.commands.isEmpty())
+        assertEquals(PcControlSurface.Window, viewModel.uiState.value.activeSurface)
+        assertFalse(viewModel.uiState.value.isBusy)
+        assertNull(viewModel.uiState.value.message)
+    }
+
+    @Test
     fun controlCommandDoesNotSetBusy() = runTest(dispatcher) {
         val connector = FakeConnector()
         val controller = connectedController(connector = connector)
@@ -922,6 +1323,20 @@ class PcMouseControlViewModelTest {
         return controller
     }
 
+    private suspend fun pairedController(
+        connector: FakeConnector = FakeConnector()
+    ): PcServiceConnectionController {
+        val tokens = FakeTokenStore(
+            mutableMapOf(
+                "desktop-1" to "token-1",
+                "desktop-2" to "token-2"
+            )
+        )
+        val controller = controller(tokens, connector, FakeDiscovery(listOf(pc, officePc)))
+        controller.connectTo(pc)
+        return controller
+    }
+
     private fun controller(
         tokens: FakeTokenStore,
         connector: FakeConnector,
@@ -995,7 +1410,9 @@ class PcMouseControlViewModelTest {
 
     private class FakeConnector(
         private val pingResult: PcPingResult = PcPingResult.Connected("AA:BB:CC:DD:EE:FF"),
-        private val pairingResult: PcPairingResult = PcPairingResult.Failed(PcErrorReason.Failed, "unused"),
+        private val pairingResult: Any = PcPairingResult.Failed(PcErrorReason.Failed, "unused"),
+        private val pingResultsByDesktop: Map<String, PcPingResult> = emptyMap(),
+        private val pairingResultsByDesktop: Map<String, Any> = emptyMap(),
         private val commandResult: Any = PcCommandResult.Ack,
         private val commandResults: MutableList<Any> = mutableListOf(),
         private val realtimeResults: MutableList<Any> = mutableListOf(),
@@ -1013,12 +1430,12 @@ class PcMouseControlViewModelTest {
 
         override suspend fun requestApproval(pc: DiscoveredPc, requestNonce: String): PcPairingResult {
             pairingCalls++
-            return pairingResult
+            return resolvePairingResult(pairingResultsByDesktop[pc.desktopId] ?: pairingResult)
         }
 
         override suspend fun authenticatedPing(pc: DiscoveredPc, token: String): PcPingResult {
             pingCalls++
-            return pingResult
+            return pingResultsByDesktop[pc.desktopId] ?: pingResult
         }
 
         override suspend fun openControlSession(session: PcAuthenticatedSession): PcLiveControlResult {
@@ -1059,6 +1476,14 @@ class PcMouseControlViewModelTest {
                 is CompletableDeferred<*> -> result.await() as PcCommandResult
                 is PcCommandResult -> result
                 else -> PcCommandResult.Ack
+            }
+        }
+
+        private suspend fun resolvePairingResult(result: Any): PcPairingResult {
+            return when (result) {
+                is CompletableDeferred<*> -> result.await() as PcPairingResult
+                is PcPairingResult -> result
+                else -> PcPairingResult.Failed(PcErrorReason.Failed, "unused")
             }
         }
     }
@@ -1141,5 +1566,13 @@ class PcMouseControlViewModelTest {
         override fun setSelectedSurface(surface: PcControlSurface) {
             selectedSurface = surface
         }
+    }
+
+    private class FakeMouseRepeatSettings(
+        var enabled: Boolean = true,
+        var intervalMs: Long = 250L
+    ) : PcMouseRepeatSettings {
+        override fun isEnabled(): Boolean = enabled
+        override fun intervalMs(): Long = intervalMs
     }
 }

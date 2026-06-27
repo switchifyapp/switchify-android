@@ -2,6 +2,10 @@ package com.enaboapps.switchify.service.core
 
 import android.graphics.PointF
 import com.enaboapps.switchify.R
+import com.enaboapps.switchify.pc.PcCommandResult
+import com.enaboapps.switchify.pc.PcControlCommand
+import com.enaboapps.switchify.pc.PcMouseRepeatManager
+import com.enaboapps.switchify.pc.PcMouseRepeatSettings
 import com.enaboapps.switchify.service.gestures.AutoScrollManager
 import com.enaboapps.switchify.service.gestures.GestureLockManager
 import com.enaboapps.switchify.service.gestures.GestureRepeatManager
@@ -14,9 +18,11 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import kotlinx.coroutines.test.runTest
 
 class TasksTest {
     private val tasks = Tasks.getInstance()
+    private val mouseRepeatManager = PcMouseRepeatManager.instance
     private val repeatManager = GestureRepeatManager.instance
     private val autoScrollManager = AutoScrollManager.getInstance()
     private val lockManager = GestureLockManager.instance
@@ -24,9 +30,12 @@ class TasksTest {
 
     @Before
     fun setup() {
+        mouseRepeatManager.resetForTesting()
         repeatManager.resetForTesting()
         autoScrollManager.resetForTesting()
         lockManager.resetForTesting()
+        mouseRepeatManager.setSettingsForTesting(FakeMouseRepeatSettings(intervalMs = 10000L))
+        mouseRepeatManager.setHudMessageHandlerForTesting { messageResId, _ -> messages.add(messageResId) }
         repeatManager.setSuppressHudForTesting(true)
         autoScrollManager.setSuppressHudForTesting(true)
         lockManager.setSuppressHudForTesting(true)
@@ -42,6 +51,7 @@ class TasksTest {
 
     @After
     fun tearDown() {
+        mouseRepeatManager.resetForTesting()
         repeatManager.resetForTesting()
         autoScrollManager.resetForTesting()
         lockManager.resetForTesting()
@@ -71,6 +81,29 @@ class TasksTest {
     }
 
     @Test
+    fun hasActiveStoppableTaskTrueForMouseRepeat() = runTest {
+        val command = PcControlCommand.Move(10, 0)
+
+        assertTrue(mouseRepeatManager.armForInitialSend(command))
+        assertTrue(
+            mouseRepeatManager.startAfterInitialSend(command, this) {
+                PcCommandResult.Ack
+            }
+        )
+
+        assertTrue(tasks.hasActiveStoppableTask())
+        mouseRepeatManager.stop(showMessage = false)
+    }
+
+    @Test
+    fun hasActiveStoppableTaskTrueForPendingMouseRepeat() {
+        assertTrue(mouseRepeatManager.armForInitialSend(PcControlCommand.Move(10, 0)))
+
+        assertTrue(tasks.hasActiveStoppableTask())
+        mouseRepeatManager.stop(showMessage = false)
+    }
+
+    @Test
     fun hasActiveStoppableTaskTrueForAutoScroll() {
         assertTrue(autoScrollManager.startAutoScroll(scrollGesture()))
 
@@ -95,6 +128,40 @@ class TasksTest {
             ),
             messages
         )
+    }
+
+    @Test
+    fun stopActiveStoppableTaskStopsMouseRepeatFirst() = runTest {
+        assertTrue(autoScrollManager.startAutoScroll(scrollGesture()))
+        repeatManager.setAutoRepeatEnabledForTesting(true)
+        repeatManager.onGesturePerformed(testGesture())
+        val command = PcControlCommand.Scroll(0, 5)
+        assertTrue(mouseRepeatManager.armForInitialSend(command))
+        assertTrue(
+            mouseRepeatManager.startAfterInitialSend(command, this) {
+                PcCommandResult.Ack
+            }
+        )
+
+        assertTrue(tasks.stopActiveStoppableTask())
+
+        assertFalse(mouseRepeatManager.isRepeating())
+        assertTrue(repeatManager.isRepeatSessionActive())
+        assertTrue(autoScrollManager.isAutoScrolling())
+    }
+
+    @Test
+    fun stopActiveStoppableTaskStopsPendingMouseRepeatFirst() {
+        assertTrue(autoScrollManager.startAutoScroll(scrollGesture()))
+        repeatManager.setAutoRepeatEnabledForTesting(true)
+        repeatManager.onGesturePerformed(testGesture())
+        assertTrue(mouseRepeatManager.armForInitialSend(PcControlCommand.Scroll(0, 5)))
+
+        assertTrue(tasks.stopActiveStoppableTask())
+
+        assertFalse(mouseRepeatManager.isRepeating())
+        assertTrue(repeatManager.isRepeatSessionActive())
+        assertTrue(autoScrollManager.isAutoScrolling())
     }
 
     @Test
@@ -163,5 +230,13 @@ class TasksTest {
             gestureType = GestureType.SCROLL_DOWN,
             startPoint = PointF(10f, 20f)
         )
+    }
+
+    private class FakeMouseRepeatSettings(
+        private val enabled: Boolean = true,
+        private val intervalMs: Long = 10000L
+    ) : PcMouseRepeatSettings {
+        override fun isEnabled(): Boolean = enabled
+        override fun intervalMs(): Long = intervalMs
     }
 }

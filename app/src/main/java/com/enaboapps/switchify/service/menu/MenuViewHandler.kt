@@ -3,6 +3,8 @@ package com.enaboapps.switchify.service.menu
 import android.util.Log
 import android.widget.RelativeLayout
 import com.enaboapps.switchify.service.window.SwitchifyAccessibilityWindow
+import com.enaboapps.switchify.service.window.overlay.OverlayTarget
+import com.enaboapps.switchify.service.window.overlay.OverlayTargets
 
 class MenuViewHandler {
 
@@ -15,8 +17,13 @@ class MenuViewHandler {
 
     /** The base layout for the menu. */
     private var baseLayout: RelativeLayout? = null
+    private var overlayTarget: OverlayTarget.Display = OverlayTargets.defaultDisplay()
 
-    fun setup(context: android.content.Context) {
+    fun setup(
+        context: android.content.Context,
+        target: OverlayTarget.Display = OverlayTargets.defaultDisplay()
+    ) {
+        overlayTarget = target.copy(forceSurface = true)
         if (!isSetup()) {
             baseLayout = RelativeLayout(context).apply {
                 layoutParams = RelativeLayout.LayoutParams(
@@ -25,7 +32,7 @@ class MenuViewHandler {
                 )
                 id = VIEW_ID
             }
-            SwitchifyAccessibilityWindow.instance.addView(baseLayout!!, 0, 0)
+            SwitchifyAccessibilityWindow.instance.addView(overlayTarget, baseLayout!!, 0, 0)
         }
     }
 
@@ -63,9 +70,10 @@ class MenuViewHandler {
 
     fun kill() {
         if (isSetup()) {
-            SwitchifyAccessibilityWindow.instance.removeView(VIEW_ID)
+            SwitchifyAccessibilityWindow.instance.removeView(overlayTarget, VIEW_ID)
         }
         baseLayout?.removeAllViews()
         baseLayout = null
+        overlayTarget = OverlayTargets.defaultDisplay()
     }
 }
