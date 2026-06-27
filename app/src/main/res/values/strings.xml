@@ -297,6 +297,7 @@
     <string name="pc_connection_setup_section">Set up your computer</string>
     <string name="pc_connection_download_pc_title">Download Switchify PC</string>
     <string name="pc_connection_download_pc_summary">Install Switchify PC on your computer before connecting over Bluetooth.</string>
+    <string name="pc_connection_control_hint">After connecting, open the Switchify menu and choose Control PC.</string>
     <string name="pc_connection_permission_section">Bluetooth permission</string>
     <string name="pc_connection_permission_message">Switchify needs Bluetooth permission to find and connect to Switchify PC.</string>
     <string name="pc_connection_permission_action">Allow Bluetooth</string>
