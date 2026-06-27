@@ -101,6 +101,12 @@ fun PcConnectionScreen(navController: NavController) {
         ScrollableView {
             Column(verticalArrangement = Arrangement.spacedBy(Dimens.spaceM)) {
                 PcDownloadSection(openDownloadPage)
+                Text(
+                    text = stringResource(R.string.pc_connection_control_hint),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = Dimens.spaceM),
+                )
                 if (uiState.permissionRequired) {
                     Section(titleResId = R.string.pc_connection_permission_section) {
                         Column(modifier = Modifier.padding(vertical = Dimens.spaceS)) {
