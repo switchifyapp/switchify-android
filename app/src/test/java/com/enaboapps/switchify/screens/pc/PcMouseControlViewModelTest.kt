@@ -1025,6 +1025,24 @@ class PcMouseControlViewModelTest {
     }
 
     @Test
+    fun windowSurfaceCanSendEditingShortcutCommand() = runTest(dispatcher) {
+        val connector = FakeConnector()
+        val controller = connectedController(connector = connector)
+        val viewModel = viewModel(controller)
+        val command = PcControlCommand.KeyboardShortcut(listOf(PcKeyboardShortcutKey.Ctrl, PcKeyboardShortcutKey.C))
+
+        viewModel.selectControlSurface(PcControlSurface.Window)
+        viewModel.send(command)
+        advanceUntilIdle()
+
+        assertEquals(listOf(command), connector.realtimeCommands)
+        assertTrue(connector.commands.isEmpty())
+        assertEquals(PcControlSurface.Window, viewModel.uiState.value.activeSurface)
+        assertFalse(viewModel.uiState.value.isBusy)
+        assertNull(viewModel.uiState.value.message)
+    }
+
+    @Test
     fun controlCommandDoesNotSetBusy() = runTest(dispatcher) {
         val connector = FakeConnector()
         val controller = connectedController(connector = connector)

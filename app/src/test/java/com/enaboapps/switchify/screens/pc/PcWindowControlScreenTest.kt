@@ -62,6 +62,41 @@ class PcWindowControlScreenTest {
     }
 
     @Test
+    fun windowShortcutCommandsUseStableOrder() {
+        val commands = pcWindowShortcutSpecs().map { it.command }
+
+        assertEquals(
+            listOf(
+                PcControlCommand.KeyboardShortcut(listOf(PcKeyboardShortcutKey.Ctrl, PcKeyboardShortcutKey.A)),
+                PcControlCommand.KeyboardShortcut(listOf(PcKeyboardShortcutKey.Ctrl, PcKeyboardShortcutKey.C)),
+                PcControlCommand.KeyboardShortcut(listOf(PcKeyboardShortcutKey.Ctrl, PcKeyboardShortcutKey.X))
+            ),
+            commands
+        )
+    }
+
+    @Test
+    fun windowShortcutLabelsMatchActions() {
+        val specs = pcWindowShortcutSpecs()
+
+        assertEquals(R.string.pc_shortcut_select_all, specs[0].labelResId)
+        assertEquals(
+            PcControlCommand.KeyboardShortcut(listOf(PcKeyboardShortcutKey.Ctrl, PcKeyboardShortcutKey.A)),
+            specs[0].command
+        )
+        assertEquals(R.string.pc_shortcut_copy, specs[1].labelResId)
+        assertEquals(
+            PcControlCommand.KeyboardShortcut(listOf(PcKeyboardShortcutKey.Ctrl, PcKeyboardShortcutKey.C)),
+            specs[1].command
+        )
+        assertEquals(R.string.pc_shortcut_cut, specs[2].labelResId)
+        assertEquals(
+            PcControlCommand.KeyboardShortcut(listOf(PcKeyboardShortcutKey.Ctrl, PcKeyboardShortcutKey.X)),
+            specs[2].command
+        )
+    }
+
+    @Test
     fun closeWindowCommandUsesDestructiveTone() {
         val specs = pcWindowControlSpecs()
 

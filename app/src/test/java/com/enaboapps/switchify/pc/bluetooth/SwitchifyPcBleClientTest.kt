@@ -274,6 +274,49 @@ class SwitchifyPcBleClientTest {
     }
 
     @Test
+    fun sendsEditingShortcutsAsKeyboardShortcutCommands() = runTest {
+        val tokens = FakeTokenStore(mutableMapOf("desktop-1" to "token"), mutableMapOf("desktop-1" to "Switchify PC"))
+        val messages = mutableListOf<JSONObject>()
+        val transport = FakeTransportFactory { message ->
+            val json = JSONObject(message)
+            messages += json
+            ack(json.getString("id"))
+        }
+        val client: PcConnector = client(tokens, transport)
+        val session = PcAuthenticatedSession("desktop-1", "device-1", "AA:BB:CC:DD:EE:FF", PcTransport.Bluetooth)
+
+        assertEquals(
+            PcCommandResult.Ack,
+            client.sendCommand(
+                session,
+                PcControlCommand.KeyboardShortcut(listOf(PcKeyboardShortcutKey.Ctrl, PcKeyboardShortcutKey.A))
+            )
+        )
+        assertEquals(
+            PcCommandResult.Ack,
+            client.sendCommand(
+                session,
+                PcControlCommand.KeyboardShortcut(listOf(PcKeyboardShortcutKey.Ctrl, PcKeyboardShortcutKey.C))
+            )
+        )
+        assertEquals(
+            PcCommandResult.Ack,
+            client.sendCommand(
+                session,
+                PcControlCommand.KeyboardShortcut(listOf(PcKeyboardShortcutKey.Ctrl, PcKeyboardShortcutKey.X))
+            )
+        )
+
+        assertEquals(listOf("keyboard.shortcut", "keyboard.shortcut", "keyboard.shortcut"), messages.map { it.getString("type") })
+        assertEquals("Ctrl", messages[0].getJSONObject("payload").getJSONArray("keys").getString(0))
+        assertEquals("A", messages[0].getJSONObject("payload").getJSONArray("keys").getString(1))
+        assertEquals("Ctrl", messages[1].getJSONObject("payload").getJSONArray("keys").getString(0))
+        assertEquals("C", messages[1].getJSONObject("payload").getJSONArray("keys").getString(1))
+        assertEquals("Ctrl", messages[2].getJSONObject("payload").getJSONArray("keys").getString(0))
+        assertEquals("X", messages[2].getJSONObject("payload").getJSONArray("keys").getString(1))
+    }
+
+    @Test
     fun realtimeMoveFallsBackWhenPointerProfileDoesNotAdvertiseNoAck() = runTest {
         val tokens = FakeTokenStore(mutableMapOf("desktop-1" to "token"), mutableMapOf("desktop-1" to "Switchify PC"))
         lateinit var fakeConnection: FakeConnection

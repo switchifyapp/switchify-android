@@ -61,6 +61,24 @@ fun PcWindowControlScreen(
                 }
             }
         )
+        Text(
+            text = stringResource(R.string.pc_window_section_shortcuts),
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        PcCompactCommandGrid(
+            columns = 3,
+            minTileHeightDp = 52,
+            cells = pcWindowShortcutSpecs().map { spec ->
+                PcCompactCommandCell(
+                    labelResId = spec.labelResId,
+                    enabled = enabled,
+                    onClick = { onCommandSelected(spec.command) },
+                    icon = spec.icon,
+                    tone = spec.tone
+                )
+            }
+        )
         PcKeyboardNavigationCluster(
             enabled = enabled,
             onKeySelected = { key ->
@@ -72,6 +90,23 @@ fun PcWindowControlScreen(
 
 fun pcWindowCompactControlSpecs(): List<PcWindowControlSpec?> {
     return pcWindowControlSpecs() + listOf(null)
+}
+
+fun pcWindowShortcutSpecs(): List<PcWindowControlSpec> {
+    return listOf(
+        PcWindowControlSpec(
+            R.string.pc_shortcut_select_all,
+            PcControlCommand.KeyboardShortcut(listOf(PcKeyboardShortcutKey.Ctrl, PcKeyboardShortcutKey.A))
+        ),
+        PcWindowControlSpec(
+            R.string.pc_shortcut_copy,
+            PcControlCommand.KeyboardShortcut(listOf(PcKeyboardShortcutKey.Ctrl, PcKeyboardShortcutKey.C))
+        ),
+        PcWindowControlSpec(
+            R.string.pc_shortcut_cut,
+            PcControlCommand.KeyboardShortcut(listOf(PcKeyboardShortcutKey.Ctrl, PcKeyboardShortcutKey.X))
+        )
+    )
 }
 
 fun pcWindowControlSpecs(): List<PcWindowControlSpec> {

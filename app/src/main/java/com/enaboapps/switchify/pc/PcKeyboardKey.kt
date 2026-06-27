@@ -37,5 +37,9 @@ enum class PcKeyboardKey(
 }
 
 enum class PcKeyboardShortcutKey(val protocolValue: String) {
-    Meta("Meta")
+    Meta("Meta"),
+    Ctrl("Ctrl"),
+    A("A"),
+    C("C"),
+    X("X")
 }
