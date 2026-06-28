@@ -47,14 +47,23 @@ class SwitchifyAccessibilityWindow private constructor() : LifecycleOwner, Saved
     private var isVisible = false
     private var windowGeneration = 0
     private var acceptingOverlayOperations = false
+    private val windowStateCleaner = WindowStateCleaner()
 
     companion object {
         private const val TAG = "SwitchifyAccessibilityWindow"
-        private const val SHUTDOWN_CLEANUP_TIMEOUT_MS = 500L
+        private const val SHUTDOWN_CLEANUP_TIMEOUT_MS = 2_000L
         val instance: SwitchifyAccessibilityWindow by lazy {
             SwitchifyAccessibilityWindow()
         }
     }
+
+    private data class WindowState(
+        val generation: Int,
+        val windowManager: WindowManager?,
+        val baseLayout: RelativeLayout?,
+        val surfaceHandles: MutableMap<ViewGroup, OverlayHandle>,
+        val wasVisible: Boolean
+    )
 
     private val defaultDisplayTarget = OverlayTargets.defaultDisplay().copy(forceSurface = true)
 
@@ -72,7 +81,9 @@ class SwitchifyAccessibilityWindow private constructor() : LifecycleOwner, Saved
         try {
             acceptingOverlayOperations = false
             windowGeneration += 1
-            cleanupOnMainBlocking()
+            if (!cleanupOnMainBlocking()) {
+                Log.w(TAG, "Timed out while cleaning up previous window state before setup")
+            }
 
             this.context = context
             windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
@@ -215,10 +226,10 @@ class SwitchifyAccessibilityWindow private constructor() : LifecycleOwner, Saved
      */
     fun cleanup() {
         if (Looper.myLooper() == Looper.getMainLooper()) {
-            if (acceptingOverlayOperations) cleanupNow()
+            cleanupCurrentStateNow()
             return
         }
-        postIfCurrentGeneration { cleanupNow() }
+        mainHandler.post { cleanupCurrentStateNow() }
     }
 
     /**
@@ -226,11 +237,14 @@ class SwitchifyAccessibilityWindow private constructor() : LifecycleOwner, Saved
      */
     fun onServiceDestroy() {
         acceptingOverlayOperations = false
+        windowGeneration += 1
         ServiceMessageHUD.instance.dispose()
         MenuHighlightHud.instance.dispose()
         ServiceStartupSplash.instance.dispose()
         MediaPipeBackend.close()
-        cleanupForServiceShutdown()
+        if (!cleanupOnMainBlocking()) {
+            Log.w(TAG, "Timed out waiting for service window cleanup")
+        }
         getContext()?.let { ctx ->
             screenWatcher?.unregister(ctx)
         }
@@ -239,6 +253,8 @@ class SwitchifyAccessibilityWindow private constructor() : LifecycleOwner, Saved
         windowManager = null
         surfaceControlBackend = null
         baseLayout = null
+        surfaceOverlayHandles.clear()
+        isVisible = false
     }
 
     /**
@@ -527,62 +543,86 @@ class SwitchifyAccessibilityWindow private constructor() : LifecycleOwner, Saved
         }
     }
 
-    private fun cleanupForServiceShutdown() {
-        acceptingOverlayOperations = false
-        cleanupOnMainBlocking()
-    }
-
-    private fun cleanupOnMainBlocking() {
+    private fun cleanupOnMainBlocking(): Boolean {
         if (Looper.myLooper() == Looper.getMainLooper()) {
-            cleanupNow()
-            return
+            cleanupCurrentStateNow()
+            return true
         }
+        val state = captureCurrentWindowState()
         val latch = CountDownLatch(1)
         mainHandler.postAtFrontOfQueue {
             try {
-                cleanupNow()
+                cleanupSnapshotNow(state)
             } finally {
                 latch.countDown()
             }
         }
-        if (!latch.await(SHUTDOWN_CLEANUP_TIMEOUT_MS, TimeUnit.MILLISECONDS)) {
-            Log.w(TAG, "Timed out waiting for window cleanup")
+        return latch.await(SHUTDOWN_CLEANUP_TIMEOUT_MS, TimeUnit.MILLISECONDS).also { completed ->
+            if (!completed) {
+                Log.w(TAG, "Timed out waiting for window cleanup")
+            }
         }
     }
 
-    private fun cleanupNow() {
-        try {
-            releaseSurfaceOverlays()
-            for (i in 0 until (baseLayout?.childCount ?: 0)) {
-                val child = baseLayout?.getChildAt(i)
+    private fun cleanupCurrentStateNow() {
+        cleanupSnapshotNow(captureCurrentWindowState())
+    }
+
+    private fun captureCurrentWindowState(): WindowState {
+        val state = WindowState(
+            generation = windowGeneration,
+            windowManager = windowManager,
+            baseLayout = baseLayout,
+            surfaceHandles = surfaceOverlayHandles.toMutableMap(),
+            wasVisible = isVisible
+        )
+        surfaceOverlayHandles.clear()
+        isVisible = false
+        return state
+    }
+
+    private fun cleanupSnapshotNow(state: WindowState) {
+        windowStateCleaner.cleanup(
+            WindowCleanupState(
+                surfaceHandles = state.surfaceHandles.mapKeys { it.key as Any }
+                    .mapValues { OverlayHandleCleanupHandle(it.value) }
+                    .toMutableMap(),
+                root = state.baseLayout?.let { layout ->
+                    AndroidWindowCleanupRoot(state.windowManager, layout)
+                },
+                wasVisible = state.wasVisible
+            )
+        )
+    }
+
+    private class OverlayHandleCleanupHandle(
+        private val handle: OverlayHandle
+    ) : WindowCleanupHandle {
+        override fun release() {
+            handle.release()
+        }
+    }
+
+    private class AndroidWindowCleanupRoot(
+        private val windowManager: WindowManager?,
+        private val layout: RelativeLayout
+    ) : WindowCleanupRoot {
+        override val isAttachedToWindow: Boolean
+            get() = layout.parent != null
+
+        override fun removeDescendantViews() {
+            for (i in 0 until layout.childCount) {
+                val child = layout.getChildAt(i)
                 if (child is ViewGroup) {
                     child.removeAllViews()
                 }
             }
-            baseLayout?.removeAllViews()
-            baseLayout?.let { layout ->
-                if (isVisible || layout.parent != null) {
-                    windowManager?.removeViewImmediate(layout)
-                }
-            }
-            isVisible = false
-        } catch (e: IllegalArgumentException) {
-            isVisible = false
-            Log.w(TAG, "Window was already removed during cleanup", e)
-        } catch (e: Exception) {
-            Log.e(TAG, "Error in cleanup: ${e.message}", e)
+            layout.removeAllViews()
         }
-    }
 
-    private fun releaseSurfaceOverlays() {
-        surfaceOverlayHandles.values.forEach { handle ->
-            try {
-                handle.release()
-            } catch (e: Exception) {
-                Log.e(TAG, "Error releasing surface overlay", e)
-            }
+        override fun removeImmediately() {
+            windowManager?.removeViewImmediate(layout)
         }
-        surfaceOverlayHandles.clear()
     }
 
     private fun layoutParamsForPlacement(placement: OverlayPlacement): RelativeLayout.LayoutParams {
