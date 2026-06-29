@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.util.Log
 import com.enaboapps.switchify.BuildConfig
+import com.enaboapps.switchify.service.window.SwitchifyAccessibilityWindow
 import com.enaboapps.switchify.switches.SwitchAction
 
 class AdbTestingBridgeReceiver : BroadcastReceiver() {
@@ -15,6 +16,11 @@ class AdbTestingBridgeReceiver : BroadcastReceiver() {
         if (actionName == ACTION_RELOAD_SETTINGS) {
             Log.d(TAG, "Performing ADB testing command: $ACTION_RELOAD_SETTINGS")
             ServiceBridge.sendCommand(ServiceBridge.ServiceCommand.ReloadSettings)
+            return
+        }
+        if (actionName == ACTION_DUMP_OVERLAY_STATE) {
+            Log.d(TAG, "Performing ADB testing command: $ACTION_DUMP_OVERLAY_STATE")
+            SwitchifyAccessibilityWindow.instance.dumpOverlayDebugState()
             return
         }
 
@@ -48,6 +54,7 @@ class AdbTestingBridgeReceiver : BroadcastReceiver() {
         const val EXTRA_ACTION = "action"
         const val EXTRA_ACTION_ID = "action_id"
         const val ACTION_RELOAD_SETTINGS = "reload_settings"
+        const val ACTION_DUMP_OVERLAY_STATE = "dump_overlay_state"
         private const val INVALID_ACTION_ID = -1
         private const val TAG = "AdbTestingBridge"
 
