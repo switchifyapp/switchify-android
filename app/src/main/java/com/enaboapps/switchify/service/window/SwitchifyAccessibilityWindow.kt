@@ -46,8 +46,37 @@ class SwitchifyAccessibilityWindow private constructor() : LifecycleOwner, Saved
     private var screenWatcher: ScreenWatcher? = null
     private var isVisible = false
     private var windowGeneration = 0
+    private var rootOverlayId: Long? = null
     private var acceptingOverlayOperations = false
-    private val windowStateCleaner = WindowStateCleaner()
+    private val windowStateCleaner = WindowStateCleaner(
+        onCleanupStarted = { state, rootAttached ->
+            Log.d(
+                TAG,
+                "Cleaning window generation=${state.generation} surfaceHandles=${state.surfaceHandles.size} rootVisible=${state.wasVisible} rootAttached=$rootAttached"
+            )
+        },
+        onHandleReleased = { key ->
+            Log.d(TAG, "Released captured surface overlay key=${System.identityHashCode(key)}")
+        },
+        onHandleReleaseFailed = { key, throwable ->
+            Log.w(
+                TAG,
+                "Failed to release captured surface overlay key=${System.identityHashCode(key)}",
+                throwable
+            )
+        },
+        onRootRemoved = { id ->
+            SwitchifyOverlayDebugRegistry.recordRootRemoved(id)
+            Log.d(TAG, "Removed WindowManager root overlay id=$id")
+        },
+        onRootAlreadyRemoved = { id, throwable ->
+            SwitchifyOverlayDebugRegistry.recordRootRemoved(id)
+            Log.w(TAG, "WindowManager root overlay already removed id=$id", throwable)
+        },
+        onRootRemoveFailed = { id, throwable ->
+            Log.e(TAG, "Failed to remove WindowManager root overlay id=$id", throwable)
+        }
+    )
 
     companion object {
         private const val TAG = "SwitchifyAccessibilityWindow"
@@ -62,7 +91,8 @@ class SwitchifyAccessibilityWindow private constructor() : LifecycleOwner, Saved
         val windowManager: WindowManager?,
         val baseLayout: RelativeLayout?,
         val surfaceHandles: MutableMap<ViewGroup, OverlayHandle>,
-        val wasVisible: Boolean
+        val wasVisible: Boolean,
+        val rootOverlayId: Long?
     )
 
     private val defaultDisplayTarget = OverlayTargets.defaultDisplay().copy(forceSurface = true)
@@ -88,7 +118,11 @@ class SwitchifyAccessibilityWindow private constructor() : LifecycleOwner, Saved
             this.context = context
             windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
             surfaceControlBackend = (context as? AccessibilityService)?.let { service ->
-                SurfaceControlOverlayBackend(service) { baseLayout?.windowToken }
+                SurfaceControlOverlayBackend(
+                    service = service,
+                    hostTokenProvider = { baseLayout?.windowToken },
+                    generationProvider = { windowGeneration }
+                )
             }
             createBaseLayout()
             acceptingOverlayOperations = true
@@ -188,11 +222,20 @@ class SwitchifyAccessibilityWindow private constructor() : LifecycleOwner, Saved
                 )
                 params.layoutInDisplayCutoutMode =
                     WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+                val title = "Switchify:root:generation=$windowGeneration"
+                params.setTitle(title)
 
                 baseLayout?.let { layout ->
                     // Add view with minimal overhead - lifecycle owners will be set up after
                     windowManager?.addView(layout, params)
                     isVisible = true
+                    rootOverlayId = SwitchifyOverlayDebugRegistry.recordRootShown(
+                        generation = windowGeneration,
+                        title = title,
+                        viewId = layout.id,
+                        viewClass = layout.javaClass.name,
+                        handleIdentityHash = System.identityHashCode(layout)
+                    )
                     surfaceOverlayHandles.values.forEach { it.setVisible(true) }
 
                     setupLifecycleOwners()
@@ -212,6 +255,9 @@ class SwitchifyAccessibilityWindow private constructor() : LifecycleOwner, Saved
                 if (isVisible && baseLayout != null) {
                     windowManager?.removeView(baseLayout)
                     isVisible = false
+                    SwitchifyOverlayDebugRegistry.recordRootRemoved(rootOverlayId)
+                    Log.d(TAG, "Removed WindowManager root overlay id=$rootOverlayId during hide")
+                    rootOverlayId = null
                 }
                 surfaceOverlayHandles.values.forEach { it.setVisible(false) }
             } catch (e: Exception) {
@@ -254,7 +300,12 @@ class SwitchifyAccessibilityWindow private constructor() : LifecycleOwner, Saved
         surfaceControlBackend = null
         baseLayout = null
         surfaceOverlayHandles.clear()
+        rootOverlayId = null
         isVisible = false
+    }
+
+    fun dumpOverlayDebugState() {
+        Log.d(TAG, SwitchifyOverlayDebugRegistry.snapshotText())
     }
 
     /**
@@ -574,9 +625,11 @@ class SwitchifyAccessibilityWindow private constructor() : LifecycleOwner, Saved
             windowManager = windowManager,
             baseLayout = baseLayout,
             surfaceHandles = surfaceOverlayHandles.toMutableMap(),
-            wasVisible = isVisible
+            wasVisible = isVisible,
+            rootOverlayId = rootOverlayId
         )
         surfaceOverlayHandles.clear()
+        rootOverlayId = null
         isVisible = false
         return state
     }
@@ -588,9 +641,10 @@ class SwitchifyAccessibilityWindow private constructor() : LifecycleOwner, Saved
                     .mapValues { OverlayHandleCleanupHandle(it.value) }
                     .toMutableMap(),
                 root = state.baseLayout?.let { layout ->
-                    AndroidWindowCleanupRoot(state.windowManager, layout)
+                    AndroidWindowCleanupRoot(state.windowManager, layout, state.rootOverlayId)
                 },
-                wasVisible = state.wasVisible
+                wasVisible = state.wasVisible,
+                generation = state.generation
             )
         )
     }
@@ -605,7 +659,8 @@ class SwitchifyAccessibilityWindow private constructor() : LifecycleOwner, Saved
 
     private class AndroidWindowCleanupRoot(
         private val windowManager: WindowManager?,
-        private val layout: RelativeLayout
+        private val layout: RelativeLayout,
+        override val debugOverlayId: Long?
     ) : WindowCleanupRoot {
         override val isAttachedToWindow: Boolean
             get() = layout.parent != null

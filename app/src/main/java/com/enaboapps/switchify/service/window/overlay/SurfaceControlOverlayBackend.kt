@@ -17,10 +17,12 @@ import android.widget.FrameLayout
 import androidx.lifecycle.setViewTreeLifecycleOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import com.enaboapps.switchify.service.core.SwitchifyLifecycleOwner
+import com.enaboapps.switchify.service.window.SwitchifyOverlayDebugRegistry
 
 class SurfaceControlOverlayBackend(
     private val service: AccessibilityService,
-    private val hostTokenProvider: () -> IBinder?
+    private val hostTokenProvider: () -> IBinder?,
+    private val generationProvider: () -> Int
 ) : OverlayBackend {
     fun canAttach(target: OverlayTarget): Boolean {
         return Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE &&
@@ -75,17 +77,38 @@ class SurfaceControlOverlayBackend(
                 )
             }
 
-            SurfaceControl.Transaction()
-                .setVisibility(surfaceControl, true)
-                .setLayer(surfaceControl, SURFACE_LAYER)
-                .apply()
-            Log.d(TAG, "Attached SurfaceControl overlay to $target")
-            SurfaceControlOverlayHandle(
+            val transaction = SurfaceControl.Transaction()
+            try {
+                transaction
+                    .setVisibility(surfaceControl, true)
+                    .setLayer(surfaceControl, SURFACE_LAYER)
+                    .apply()
+            } finally {
+                transaction.close()
+            }
+            val id = SwitchifyOverlayDebugRegistry.nextOverlayId()
+            val handle = SurfaceControlOverlayHandle(
+                id = id,
                 view = view,
                 container = container,
                 surfaceControl = surfaceControl,
                 viewHost = viewHost
             )
+            SwitchifyOverlayDebugRegistry.recordSurfaceAttached(
+                id = id,
+                backend = backendNameFor(target),
+                generation = generationProvider(),
+                target = target.toString(),
+                viewId = view.id,
+                viewClass = view.javaClass.name,
+                handleIdentityHash = System.identityHashCode(handle),
+                surface = surfaceControl.toString()
+            )
+            Log.d(
+                TAG,
+                "Attached SurfaceControl overlay id=$id target=$target view=${view.javaClass.name} handle=${System.identityHashCode(handle)} surface=$surfaceControl"
+            )
+            handle
         } catch (e: Exception) {
             (view.parent as? ViewGroup)?.removeView(view)
             viewHost?.release()
@@ -101,6 +124,13 @@ class SurfaceControlOverlayBackend(
         }
         val displayManager = service.getSystemService(Context.DISPLAY_SERVICE) as DisplayManager
         return displayManager.getDisplay(displayId)
+    }
+
+    private fun backendNameFor(target: OverlayTarget): String {
+        return when (target) {
+            is OverlayTarget.Display -> SwitchifyOverlayDebugRegistry.BACKEND_SURFACE_CONTROL_DISPLAY
+            is OverlayTarget.Window -> SwitchifyOverlayDebugRegistry.BACKEND_SURFACE_CONTROL_WINDOW
+        }
     }
 
     private fun metricsFor(displayId: Int): OverlayDisplayMetrics {
@@ -191,6 +221,7 @@ class SurfaceControlOverlayBackend(
     )
 
     private class SurfaceControlOverlayHandle(
+        private val id: Long,
         override val view: ViewGroup,
         private val container: ViewGroup,
         private val surfaceControl: SurfaceControl,
@@ -200,9 +231,14 @@ class SurfaceControlOverlayBackend(
 
         override fun setVisible(visible: Boolean) {
             if (released) return
-            SurfaceControl.Transaction()
-                .setVisibility(surfaceControl, visible)
-                .apply()
+            val transaction = SurfaceControl.Transaction()
+            try {
+                transaction
+                    .setVisibility(surfaceControl, visible)
+                    .apply()
+            } finally {
+                transaction.close()
+            }
         }
 
         override fun release() {
@@ -212,11 +248,19 @@ class SurfaceControlOverlayBackend(
                 if (view.parent === container) {
                     container.removeView(view)
                 }
-                SurfaceControl.Transaction()
-                    .reparent(surfaceControl, null)
-                    .apply()
+                val transaction = SurfaceControl.Transaction()
+                try {
+                    transaction
+                        .reparent(surfaceControl, null)
+                        .apply()
+                } finally {
+                    transaction.close()
+                }
+                SwitchifyOverlayDebugRegistry.recordSurfaceReleased(id)
+                Log.d(TAG, "Released SurfaceControl overlay id=$id surface=$surfaceControl")
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to release SurfaceControl overlay", e)
+                SwitchifyOverlayDebugRegistry.recordSurfaceReleaseFailed(id, e)
+                Log.e(TAG, "Failed to release SurfaceControl overlay id=$id surface=$surfaceControl", e)
             } finally {
                 viewHost.release()
             }
