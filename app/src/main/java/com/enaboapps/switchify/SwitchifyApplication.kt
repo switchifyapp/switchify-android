@@ -8,6 +8,7 @@ import androidx.lifecycle.ProcessLifecycleOwner
 import com.enaboapps.switchify.service.stats.StatsCollector
 import com.enaboapps.switchify.utils.CrashReporter
 import com.enaboapps.switchify.utils.Logger
+import com.enaboapps.switchify.utils.ProcessExitReporter
 import com.enaboapps.switchify.utils.Resources
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -32,7 +33,8 @@ class SwitchifyApplication : Application() {
         // kicked off immediately below).
         Logger.init(this)
 
-        CrashReporter.uploadPendingCrashIfPresent(this)
+        ProcessExitReporter.reportRecentExits(this)
+        CrashReporter.enqueueUpload(this)
         CrashReporter.install(this)
 
         // Initialize stats collector

@@ -13,6 +13,10 @@ import java.net.HttpURLConnection
 import java.net.URL
 import java.util.UUID
 
+internal fun interface TimberlogsSender {
+    fun send(json: String): Int
+}
+
 object Logger {
     private const val TAG = "SwitchifyLogger"
     private const val TIMBERLOGS_URL = "https://timberlogs-ingest.enaboapps.workers.dev/v1/logs"
@@ -20,6 +24,24 @@ object Logger {
 
     private val scope = CoroutineScope(Dispatchers.IO)
     private val gson = Gson()
+    private var sender: TimberlogsSender = TimberlogsSender { json ->
+        val url = URL(TIMBERLOGS_URL)
+        val connection = url.openConnection() as HttpURLConnection
+        try {
+            connection.requestMethod = "POST"
+            connection.setRequestProperty("Content-Type", "application/json")
+            connection.setRequestProperty("Authorization", "Bearer ${BuildConfig.TIMBERLOGS_API_KEY}")
+            connection.doOutput = true
+
+            connection.outputStream.use { os ->
+                os.write(json.toByteArray())
+            }
+
+            connection.responseCode
+        } finally {
+            connection.disconnect()
+        }
+    }
 
     /**
      * Holds the PreferenceManager used to read the telemetry opt-in flag. Set by
@@ -27,6 +49,8 @@ object Logger {
      * no-op — safer than assuming telemetry is allowed.
      */
     private var preferenceManager: PreferenceManager? = null
+    private var telemetryEnabledOverride: (() -> Boolean)? = null
+    private var userIdOverride: (() -> String?)? = null
 
     /**
      * Wires up the telemetry opt-in gate. Must be called before any Logger.log(..)
@@ -64,69 +88,130 @@ object Logger {
         flowId: String? = null,
         stepIndex: Int? = null
     ) {
-        // Single telemetry opt-in gate. Covers analytics events and the crash-upload
-        // path in CrashReporter.uploadPendingCrashIfPresent, which routes through
-        // Logger.log. Short-circuits on the caller's thread so we don't spin up a
-        // coroutine for a suppressed event.
-        val prefs = preferenceManager
-        if (prefs == null || !prefs.isTelemetryEnabled()) {
-            if (BuildConfig.DEBUG) {
-                Log.d(TAG, "Suppressed (telemetry off): ${event.eventName}")
-            }
+        if (!isTelemetryEnabled()) {
+            logSuppressed(event)
             return
+        }
+        CrashReporter.recordBreadcrumb(event)
+
+        scope.launch {
+            logNow(event, data, throwable, flowId, stepIndex, breadcrumbAlreadyRecorded = true)
+        }
+    }
+
+    internal fun logNow(
+        event: LogEvent,
+        data: Map<String, Any?> = emptyMap(),
+        throwable: Throwable? = null,
+        flowId: String? = null,
+        stepIndex: Int? = null
+    ): Boolean {
+        return logNow(event, data, throwable, flowId, stepIndex, breadcrumbAlreadyRecorded = false)
+    }
+
+    private fun logNow(
+        event: LogEvent,
+        data: Map<String, Any?>,
+        throwable: Throwable?,
+        flowId: String?,
+        stepIndex: Int?,
+        breadcrumbAlreadyRecorded: Boolean
+    ): Boolean {
+        val prefs = preferenceManager
+        if (!isTelemetryEnabled(prefs)) {
+            logSuppressed(event)
+            return false
+        }
+
+        if (!breadcrumbAlreadyRecorded) {
+            CrashReporter.recordBreadcrumb(event)
         }
 
         val sanitizedData = data.filterValues { it != null }.mapValues { it.value as Any }
 
         if (BuildConfig.DEBUG) {
-            Log.d(TAG, "Event logged: ${event.eventName}")
+            safeLogD("Event logged: ${event.eventName}")
         }
 
-        scope.launch {
+        return try {
+            val entry = LogEntry(
+                level = event.level,
+                message = event.eventName,
+                source = SOURCE,
+                environment = if (BuildConfig.DEBUG) "development" else "production",
+                dataset = event.dataset,
+                version = BuildConfig.VERSION_NAME,
+                data = sanitizedData.ifEmpty { null },
+                errorName = throwable?.javaClass?.simpleName,
+                errorStack = throwable?.stackTraceToString(),
+                tags = event.tags.ifEmpty { null },
+                flowId = flowId,
+                stepIndex = stepIndex,
+                userId = userIdOverride?.invoke() ?: AuthRepository.instance.getCurrentUser()?.email ?: deviceUserId(prefs)
+            )
+            val payload = LogPayload(logs = listOf(entry))
+            val responseCode = sender.send(gson.toJson(payload))
+            if (BuildConfig.DEBUG) {
+                safeLogD("Timberlogs response: $responseCode")
+            }
+            responseCode in 200..299
+        } catch (e: Exception) {
+            if (BuildConfig.DEBUG) {
+                safeLogE("Failed to log event: ${e.message}", e)
+            }
+            false
+        }
+    }
+
+    internal fun isTelemetryEnabled(): Boolean {
+        return isTelemetryEnabled(preferenceManager)
+    }
+
+    private fun isTelemetryEnabled(prefs: PreferenceManager?): Boolean {
+        return telemetryEnabledOverride?.invoke() ?: (prefs?.isTelemetryEnabled() == true)
+    }
+
+    private fun logSuppressed(event: LogEvent) {
+        if (BuildConfig.DEBUG) {
+            safeLogD("Suppressed (telemetry off): ${event.eventName}")
+        }
+    }
+
+    private fun deviceUserId(prefs: PreferenceManager?): String {
+        return prefs?.let { "device:${getOrCreateDeviceId(it)}" } ?: "device:unknown"
+    }
+
+    internal fun setSenderForTesting(testSender: TimberlogsSender) {
+        sender = testSender
+    }
+
+    internal fun setTelemetryEnabledOverrideForTesting(provider: (() -> Boolean)?) {
+        telemetryEnabledOverride = provider
+    }
+
+    internal fun setUserIdOverrideForTesting(provider: (() -> String?)?) {
+        userIdOverride = provider
+    }
+
+    internal fun resetForTesting() {
+        sender = TimberlogsSender { json ->
+            val url = URL(TIMBERLOGS_URL)
+            val connection = url.openConnection() as HttpURLConnection
             try {
-                val entry = LogEntry(
-                    level = event.level,
-                    message = event.eventName,
-                    source = SOURCE,
-                    environment = if (BuildConfig.DEBUG) "development" else "production",
-                    dataset = event.dataset,
-                    version = BuildConfig.VERSION_NAME,
-                    data = sanitizedData.ifEmpty { null },
-                    errorName = throwable?.javaClass?.simpleName,
-                    errorStack = throwable?.stackTraceToString(),
-                    tags = event.tags.ifEmpty { null },
-                    flowId = flowId,
-                    stepIndex = stepIndex,
-                    userId = AuthRepository.instance.getCurrentUser()?.email
-                        ?: "device:${getOrCreateDeviceId(prefs)}"
-                )
-                val payload = LogPayload(logs = listOf(entry))
-
-                val json = gson.toJson(payload)
-
-                val url = URL(TIMBERLOGS_URL)
-                val connection = url.openConnection() as HttpURLConnection
                 connection.requestMethod = "POST"
                 connection.setRequestProperty("Content-Type", "application/json")
                 connection.setRequestProperty("Authorization", "Bearer ${BuildConfig.TIMBERLOGS_API_KEY}")
                 connection.doOutput = true
-
                 connection.outputStream.use { os ->
                     os.write(json.toByteArray())
                 }
-
-                val responseCode = connection.responseCode
-                if (BuildConfig.DEBUG) {
-                    Log.d(TAG, "Timberlogs response: $responseCode")
-                }
-
+                connection.responseCode
+            } finally {
                 connection.disconnect()
-            } catch (e: Exception) {
-                if (BuildConfig.DEBUG) {
-                    Log.e(TAG, "Failed to log event: ${e.message}", e)
-                }
             }
         }
+        telemetryEnabledOverride = null
+        userIdOverride = null
     }
 
     /**
@@ -140,5 +225,13 @@ object Logger {
         val generated = UUID.randomUUID().toString()
         prefs.setStringValue(PreferenceManager.PREFERENCE_KEY_DEVICE_ID, generated)
         return generated
+    }
+
+    private fun safeLogD(message: String) {
+        runCatching { Log.d(TAG, message) }
+    }
+
+    private fun safeLogE(message: String, throwable: Throwable) {
+        runCatching { Log.e(TAG, message, throwable) }
     }
 }

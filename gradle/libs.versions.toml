@@ -27,6 +27,7 @@ ktor = "3.5.1"
 coroutines-test = "1.11.0"
 json = "20260522"
 mlkit-genai = "1.0.0-beta2"
+work-runtime = "2.11.2"
 
 [libraries]
 compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "compose-bom" }
@@ -74,6 +75,7 @@ ktor-client-android = { group = "io.ktor", name = "ktor-client-android", version
 reorderable = { group = "sh.calvin.reorderable", name = "reorderable", version.ref = "reorderable" }
 coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "coroutines-test" }
 json = { group = "org.json", name = "json", version.ref = "json" }
+work-runtime-ktx = { group = "androidx.work", name = "work-runtime-ktx", version.ref = "work-runtime" }
 
 [plugins]
 compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
