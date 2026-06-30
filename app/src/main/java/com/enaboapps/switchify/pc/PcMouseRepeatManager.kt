@@ -15,10 +15,13 @@ class PcMouseRepeatManager internal constructor(
     private var showHudMessage: (Int, MessageSeverity) -> Unit = defaultHudMessageHandler()
 ) {
     private var repeatJob: Job? = null
+    private var reconnectGraceJob: Job? = null
     private var repeatedCommand: PcControlCommand? = null
     private var repeatArmed = false
+    private var pausedForReconnect = false
 
     companion object {
+        internal const val RECONNECT_GRACE_MS = 5_000L
         val instance: PcMouseRepeatManager by lazy { PcMouseRepeatManager() }
 
         fun isRepeatable(command: PcControlCommand): Boolean {
@@ -47,6 +50,7 @@ class PcMouseRepeatManager internal constructor(
     fun startAfterInitialSend(
         command: PcControlCommand,
         scope: CoroutineScope,
+        shouldPauseForReconnect: () -> Boolean = { false },
         sendRepeatedCommand: suspend (PcControlCommand) -> PcCommandResult
     ): Boolean {
         if (!isRepeatable(command)) return false
@@ -57,6 +61,61 @@ class PcMouseRepeatManager internal constructor(
         if (!repeatArmed || repeatedCommand != command) return false
 
         repeatJob?.cancel()
+        reconnectGraceJob?.cancel()
+        reconnectGraceJob = null
+        pausedForReconnect = false
+        startRepeatJob(command, scope, sendRepeatedCommand, shouldPauseForReconnect)
+        return true
+    }
+
+    fun pauseForReconnect(
+        scope: CoroutineScope,
+        graceMs: Long = RECONNECT_GRACE_MS
+    ): Boolean {
+        if (!isRepeating()) return false
+        if (pausedForReconnect) return true
+
+        repeatJob?.cancel()
+        repeatJob = null
+        pausedForReconnect = true
+        reconnectGraceJob?.cancel()
+        reconnectGraceJob = scope.launch {
+            delay(graceMs)
+            if (pausedForReconnect) {
+                stop(showMessage = true)
+            }
+        }
+        return true
+    }
+
+    fun resumeAfterReconnect(
+        scope: CoroutineScope,
+        sendRepeatedCommand: suspend (PcControlCommand) -> PcCommandResult
+    ): Boolean {
+        val command = repeatedCommand ?: return false
+        if (!pausedForReconnect) return false
+        if (!canRepeat(command)) {
+            stop(showMessage = false)
+            return false
+        }
+
+        reconnectGraceJob?.cancel()
+        reconnectGraceJob = null
+        pausedForReconnect = false
+        startRepeatJob(command, scope, sendRepeatedCommand) { false }
+        return true
+    }
+
+    fun isPausedForReconnect(): Boolean {
+        return pausedForReconnect
+    }
+
+    private fun startRepeatJob(
+        command: PcControlCommand,
+        scope: CoroutineScope,
+        sendRepeatedCommand: suspend (PcControlCommand) -> PcCommandResult,
+        shouldPauseForReconnect: () -> Boolean
+    ) {
         repeatedCommand = command
         repeatArmed = true
         repeatJob = scope.launch {
@@ -67,16 +126,18 @@ class PcMouseRepeatManager internal constructor(
                     stop()
                     return@launch
                 }
-                if (!sendAndContinue(command, sendRepeatedCommand)) return@launch
+                if (!sendAndContinue(command, scope, sendRepeatedCommand, shouldPauseForReconnect)) {
+                    return@launch
+                }
             }
         }
-        return true
     }
 
     fun cancelPendingStart(showMessage: Boolean = false): Boolean {
         if (!isRepeating()) return false
 
         repeatJob?.cancel()
+        reconnectGraceJob?.cancel()
         clearRepeatState()
         if (showMessage) {
             showMessage(R.string.pc_mouse_repeat_stopped, MessageSeverity.Info)
@@ -90,6 +151,7 @@ class PcMouseRepeatManager internal constructor(
             return false
         }
         repeatJob?.cancel()
+        reconnectGraceJob?.cancel()
         clearRepeatState()
         if (showMessage) {
             showMessage(R.string.pc_mouse_repeat_stopped, MessageSeverity.Info)
@@ -109,14 +171,24 @@ class PcMouseRepeatManager internal constructor(
 
     private suspend fun sendAndContinue(
         command: PcControlCommand,
-        sendCommand: suspend (PcControlCommand) -> PcCommandResult
+        scope: CoroutineScope,
+        sendCommand: suspend (PcControlCommand) -> PcCommandResult,
+        shouldPauseForReconnect: () -> Boolean
     ): Boolean {
         return when (sendCommand(command)) {
             PcCommandResult.Ack -> true
-            is PcCommandResult.AuthFailed,
-            is PcCommandResult.Failed -> {
+            is PcCommandResult.AuthFailed -> {
                 clearRepeatState()
                 showMessage(R.string.pc_mouse_repeat_stopped, MessageSeverity.Info)
+                false
+            }
+            is PcCommandResult.Failed -> {
+                if (shouldPauseForReconnect()) {
+                    pauseForReconnect(scope)
+                } else {
+                    clearRepeatState()
+                    showMessage(R.string.pc_mouse_repeat_stopped, MessageSeverity.Info)
+                }
                 false
             }
         }
@@ -131,8 +203,10 @@ class PcMouseRepeatManager internal constructor(
 
     private fun clearRepeatState() {
         repeatJob = null
+        reconnectGraceJob = null
         repeatedCommand = null
         repeatArmed = false
+        pausedForReconnect = false
     }
 
     private fun showMessage(messageResId: Int, severity: MessageSeverity) {
@@ -141,9 +215,12 @@ class PcMouseRepeatManager internal constructor(
 
     internal fun resetForTesting() {
         repeatJob?.cancel()
+        reconnectGraceJob?.cancel()
         repeatJob = null
+        reconnectGraceJob = null
         repeatedCommand = null
         repeatArmed = false
+        pausedForReconnect = false
         settings = null
         showHudMessage = defaultHudMessageHandler()
     }
