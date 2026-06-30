@@ -558,6 +558,27 @@ class PcMouseControlViewModelTest {
     }
 
     @Test
+    fun repeatedMouseCommandFailurePausesForReconnect() = runTest(dispatcher) {
+        val connector = FakeConnector(
+            realtimeResults = mutableListOf(PcCommandResult.Ack, PcCommandResult.Failed())
+        )
+        val controller = connectedController(connector = connector)
+        val viewModel = viewModel(controller)
+        controller.onPcUiResumed()
+        connector.liveResults += PcLiveControlResult.Failed("Disconnected.")
+
+        viewModel.sendMouseCommand(PcControlCommand.Move(80, 0), repeatable = true)
+        runCurrent()
+        advanceTimeBy(mouseRepeatSettings.intervalMs)
+        runCurrent()
+
+        assertTrue(mouseRepeatManager.isRepeating())
+        assertTrue(mouseRepeatManager.isPausedForReconnect())
+        mouseRepeatManager.stop(showMessage = false)
+        controller.disconnect()
+    }
+
+    @Test
     fun repeatableMouseCommandAuthFailureDoesNotStartRepeat() = runTest(dispatcher) {
         val connector = FakeConnector(commandResult = PcCommandResult.AuthFailed())
         val controller = connectedController(connector = connector)
@@ -574,7 +595,7 @@ class PcMouseControlViewModelTest {
     }
 
     @Test
-    fun reconnectingStopsMouseRepeat() = runTest(dispatcher) {
+    fun reconnectingPausesMouseRepeat() = runTest(dispatcher) {
         val connector = FakeConnector()
         val controller = connectedController(connector = connector)
         val viewModel = viewModel(controller)
@@ -585,9 +606,61 @@ class PcMouseControlViewModelTest {
         assertTrue(mouseRepeatManager.isRepeating())
 
         PcConnectionStateHolder.setReconnecting(session, "Switchify PC")
-        advanceUntilIdle()
+        runCurrent()
+
+        assertTrue(mouseRepeatManager.isRepeating())
+        assertTrue(mouseRepeatManager.isPausedForReconnect())
+        mouseRepeatManager.stop(showMessage = false)
+    }
+
+    @Test
+    fun reconnectGraceExpiryStopsMouseRepeat() = runTest(dispatcher) {
+        val connector = FakeConnector()
+        val controller = connectedController(connector = connector)
+        val viewModel = viewModel(controller)
+        val session = PcAuthenticatedSession("desktop-1", "device-1", "AA:BB:CC:DD:EE:FF")
+
+        viewModel.sendMouseCommand(PcControlCommand.Move(80, 0), repeatable = true)
+        runCurrent()
+        PcConnectionStateHolder.setReconnecting(session, "Switchify PC")
+        runCurrent()
+
+        advanceTimeBy(PcMouseRepeatManager.RECONNECT_GRACE_MS)
+        runCurrent()
 
         assertFalse(mouseRepeatManager.isRepeating())
+        assertFalse(mouseRepeatManager.isPausedForReconnect())
+    }
+
+    @Test
+    fun connectedAfterReconnectResumesPausedMouseRepeat() = runTest(dispatcher) {
+        val connector = FakeConnector()
+        val controller = connectedController(connector = connector)
+        val viewModel = viewModel(controller)
+        controller.onPcUiResumed()
+        connector.liveResults += PcLiveControlResult.Failed("Disconnected.")
+        viewModel.sendMouseCommand(PcControlCommand.Move(80, 0), repeatable = true)
+        runCurrent()
+        connector.realtimeCommands.clear()
+
+        connector.openedConnections.single().eventsFlow.tryEmit(PcControlConnectionEvent.Disconnected)
+        runCurrent()
+
+        assertTrue(mouseRepeatManager.isRepeating())
+        assertTrue(mouseRepeatManager.isPausedForReconnect())
+        advanceTimeBy(249)
+        runCurrent()
+        assertEquals(emptyList<PcControlCommand>(), connector.realtimeCommands)
+
+        advanceTimeBy(1)
+        runCurrent()
+        advanceTimeBy(mouseRepeatSettings.intervalMs)
+        runCurrent()
+
+        assertFalse(mouseRepeatManager.isPausedForReconnect())
+        assertEquals(listOf(PcControlCommand.Move(80, 0)), connector.realtimeCommands)
+        mouseRepeatManager.stop(showMessage = false)
+        controller.disconnect()
     }
 
     @Test

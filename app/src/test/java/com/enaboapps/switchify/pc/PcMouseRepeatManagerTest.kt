@@ -178,6 +178,155 @@ class PcMouseRepeatManagerTest {
     }
 
     @Test
+    fun pauseForReconnectKeepsRepeatArmedWithoutSending() = runTest {
+        val commands = mutableListOf<PcControlCommand>()
+        val repeatManager = repeatManager(intervalMs = 100L)
+        val command = PcControlCommand.Move(5, 0)
+
+        assertTrue(repeatManager.armForInitialSend(command))
+        assertTrue(
+            repeatManager.startAfterInitialSend(command, this) {
+                commands += it
+                PcCommandResult.Ack
+            }
+        )
+        assertTrue(repeatManager.pauseForReconnect(this))
+
+        advanceTimeBy(PcMouseRepeatManager.RECONNECT_GRACE_MS - 1)
+        runCurrent()
+
+        assertTrue(repeatManager.isRepeating())
+        assertTrue(repeatManager.isPausedForReconnect())
+        assertEquals(emptyList<PcControlCommand>(), commands)
+        repeatManager.stop(showMessage = false)
+    }
+
+    @Test
+    fun resumeAfterReconnectRestartsRepeatAfterInterval() = runTest {
+        val commands = mutableListOf<PcControlCommand>()
+        val repeatManager = repeatManager(intervalMs = 100L)
+        val command = PcControlCommand.Scroll(0, 5)
+
+        assertTrue(repeatManager.armForInitialSend(command))
+        assertTrue(
+            repeatManager.startAfterInitialSend(command, this) {
+                commands += it
+                PcCommandResult.Ack
+            }
+        )
+        assertTrue(repeatManager.pauseForReconnect(this))
+
+        assertTrue(
+            repeatManager.resumeAfterReconnect(this) {
+                commands += it
+                PcCommandResult.Ack
+            }
+        )
+        advanceTimeBy(99)
+        runCurrent()
+        assertEquals(emptyList<PcControlCommand>(), commands)
+
+        advanceTimeBy(1)
+        runCurrent()
+
+        assertFalse(repeatManager.isPausedForReconnect())
+        assertEquals(listOf(command), commands)
+        repeatManager.stop(showMessage = false)
+    }
+
+    @Test
+    fun pauseForReconnectStopsAfterGraceExpires() = runTest {
+        val messages = mutableListOf<Int>()
+        val repeatManager = repeatManager(intervalMs = 100L, messages = messages)
+        val command = PcControlCommand.Move(5, 0)
+
+        assertTrue(repeatManager.armForInitialSend(command))
+        assertTrue(
+            repeatManager.startAfterInitialSend(command, this) {
+                PcCommandResult.Ack
+            }
+        )
+        assertTrue(repeatManager.pauseForReconnect(this))
+
+        advanceTimeBy(PcMouseRepeatManager.RECONNECT_GRACE_MS)
+        runCurrent()
+
+        assertFalse(repeatManager.isRepeating())
+        assertFalse(repeatManager.isPausedForReconnect())
+        assertEquals(
+            listOf(
+                R.string.pc_mouse_repeat_started,
+                R.string.pc_mouse_repeat_stopped
+            ),
+            messages
+        )
+    }
+
+    @Test
+    fun stopForSwitchPressStopsPausedReconnectRepeat() = runTest {
+        val repeatManager = repeatManager(intervalMs = 100L)
+        val command = PcControlCommand.Move(5, 0)
+
+        assertTrue(repeatManager.armForInitialSend(command))
+        assertTrue(
+            repeatManager.startAfterInitialSend(command, this) {
+                PcCommandResult.Ack
+            }
+        )
+        assertTrue(repeatManager.pauseForReconnect(this))
+
+        assertTrue(repeatManager.stopForSwitchPress())
+
+        assertFalse(repeatManager.isRepeating())
+        assertFalse(repeatManager.isPausedForReconnect())
+    }
+
+    @Test
+    fun failedRepeatCommandPausesWhenReconnectPredicateIsTrue() = runTest {
+        val repeatManager = repeatManager(intervalMs = 100L)
+        val command = PcControlCommand.Move(5, 0)
+
+        assertTrue(repeatManager.armForInitialSend(command))
+        assertTrue(
+            repeatManager.startAfterInitialSend(
+                command = command,
+                scope = this,
+                sendRepeatedCommand = { PcCommandResult.Failed() },
+                shouldPauseForReconnect = { true }
+            )
+        )
+
+        advanceTimeBy(100)
+        runCurrent()
+
+        assertTrue(repeatManager.isRepeating())
+        assertTrue(repeatManager.isPausedForReconnect())
+        repeatManager.stop(showMessage = false)
+    }
+
+    @Test
+    fun failedRepeatCommandStopsWhenReconnectPredicateIsFalse() = runTest {
+        val repeatManager = repeatManager(intervalMs = 100L)
+        val command = PcControlCommand.Move(5, 0)
+
+        assertTrue(repeatManager.armForInitialSend(command))
+        assertTrue(
+            repeatManager.startAfterInitialSend(
+                command = command,
+                scope = this,
+                sendRepeatedCommand = { PcCommandResult.Failed() },
+                shouldPauseForReconnect = { false }
+            )
+        )
+
+        advanceTimeBy(100)
+        runCurrent()
+
+        assertFalse(repeatManager.isRepeating())
+        assertFalse(repeatManager.isPausedForReconnect())
+    }
+
+    @Test
     fun authFailureStopsRepeat() = runTest {
         val repeatManager = repeatManager(intervalMs = 100L)
         val command = PcControlCommand.Move(5, 0)

@@ -157,7 +157,13 @@ class PcMouseControlViewModel(
                     mouseRepeatManager.startAfterInitialSend(
                         command = command,
                         scope = viewModelScope,
-                        sendRepeatedCommand = ::sendRepeatCommand
+                        sendRepeatedCommand = ::sendRepeatCommand,
+                        shouldPauseForReconnect = {
+                            val controller = serviceControllerProvider()
+                            controller?.state?.value is PcServiceConnectionState.Reconnecting ||
+                                (controller?.state?.value is PcServiceConnectionState.Connected && !controller.hasLiveControlSession()) ||
+                                PcConnectionStateHolder.connectionState.value is PcConnectionState.Reconnecting
+                        }
                     )
                 }
                 is PcCommandResult.AuthFailed,
@@ -738,9 +744,13 @@ class PcMouseControlViewModel(
                         )
                     )
                 }
+                mouseRepeatManager.resumeAfterReconnect(
+                    scope = viewModelScope,
+                    sendRepeatedCommand = ::sendRepeatCommand
+                )
             }
             is PcServiceConnectionState.Reconnecting -> {
-                mouseRepeatManager.clearServiceState()
+                mouseRepeatManager.pauseForReconnect(viewModelScope)
                 _uiState.update {
                     it.copy(
                         connectedDisplayName = state.displayName,
@@ -810,7 +820,7 @@ class PcMouseControlViewModel(
     private fun applySharedConnectionState(state: PcConnectionState) {
         when (state) {
             is PcConnectionState.Reconnecting -> {
-                mouseRepeatManager.clearServiceState()
+                mouseRepeatManager.pauseForReconnect(viewModelScope)
                 _uiState.update {
                     it.copy(
                         connectedDisplayName = state.displayName,
