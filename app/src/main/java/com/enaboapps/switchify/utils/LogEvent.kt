@@ -114,6 +114,7 @@ sealed class LogEvent(
     object UserFeedbackSubmissionError : LogEvent("user_feedback_submission_error", level = "error", dataset = "feedback", tags = listOf("feedback", "failure"))
 
     object UnhandledCrash : LogEvent("unhandled_crash", level = "error", dataset = "app", tags = listOf("crash", "uncaught_exception"))
+    object ProcessExitDetected : LogEvent("process_exit_detected", level = "warn", dataset = "app", tags = listOf("crash", "process_exit"))
 
     object OnDeviceAiFailed : LogEvent("on_device_ai_failed", level = "error", dataset = "ai", tags = listOf("ai", "failure"))
 }
