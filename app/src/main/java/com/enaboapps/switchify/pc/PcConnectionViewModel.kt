@@ -24,7 +24,9 @@ data class PcApprovalCodeState(
 
 data class PcConnectionUiState(
     val permissionRequired: Boolean = false,
+    val discoveryStatus: PcDiscoveryStatus = PcDiscoveryStatus.Empty,
     val discoveryStatusText: String = "Searching for Switchify PC...",
+    val pcRows: List<PcConnectionRowState> = emptyList(),
     val discoveredPcs: List<PcRowState> = emptyList(),
     val savedPairings: List<PcSavedPairingRowState> = emptyList(),
     val connectedDesktopId: String? = null,
@@ -56,6 +58,27 @@ data class PcSavedPairingRowState(
     val canSetDefault: Boolean = false,
     val isDefault: Boolean = false
 )
+
+data class PcConnectionRowState(
+    val desktopId: String,
+    val title: String,
+    val summary: String,
+    val source: PcConnectionRowSource,
+    val status: PcRowStatus,
+    val actionText: String?,
+    val enabled: Boolean,
+    val canRequestAccess: Boolean,
+    val canConnect: Boolean,
+    val canUnpair: Boolean,
+    val canSetDefault: Boolean,
+    val isDefault: Boolean,
+    val discoveredPc: DiscoveredPc?
+)
+
+enum class PcConnectionRowSource {
+    Discovered,
+    SavedOnly
+}
 
 data class PcUnpairConfirmationState(
     val desktopId: String,
@@ -112,9 +135,20 @@ class PcConnectionViewModel(
                 val defaultDesktopId = withContext(backgroundDispatcher) {
                     tokenStore.getDefaultDesktopId()
                 }
+                val pcRows = buildPcRows(
+                    pcs = inputs.pcs,
+                    statuses = inputs.statuses,
+                    connectedDesktopId = connectedDesktopId,
+                    hasTokenByDesktopId = hasTokenByDesktopId,
+                    savedPairings = savedPairings,
+                    defaultDesktopId = defaultDesktopId,
+                    isBusy = _uiState.value.isBusy
+                )
                 _uiState.update { current ->
                     current.copy(
+                        discoveryStatus = inputs.status,
                         discoveryStatusText = discoveryStatusText(inputs.status, inputs.pcs.isEmpty()),
+                        pcRows = pcRows,
                         discoveredPcs = inputs.pcs.map { pc ->
                             rowState(
                                 pc = pc,
@@ -298,6 +332,91 @@ class PcConnectionViewModel(
                     canSetDefault = true
                 )
             }
+    }
+
+    private fun buildPcRows(
+        pcs: List<DiscoveredPc>,
+        statuses: Map<String, PcRowStatus>,
+        connectedDesktopId: String?,
+        hasTokenByDesktopId: Map<String, Boolean>,
+        savedPairings: List<PcSavedPairingRowState>,
+        defaultDesktopId: String?,
+        isBusy: Boolean
+    ): List<PcConnectionRowState> {
+        val discoveredRows = pcs.map { pc ->
+            discoveredPcRow(
+                pc = pc,
+                status = statuses[pc.desktopId] ?: PcRowStatus.Idle,
+                connectedDesktopId = connectedDesktopId,
+                hasToken = hasTokenByDesktopId[pc.desktopId] == true,
+                defaultDesktopId = defaultDesktopId,
+                isBusy = isBusy
+            )
+        }
+        val savedOnlyRows = savedPairings.map { pairing ->
+            savedOnlyPcRow(pairing, defaultDesktopId)
+        }
+        return discoveredRows + savedOnlyRows
+    }
+
+    private fun discoveredPcRow(
+        pc: DiscoveredPc,
+        status: PcRowStatus,
+        connectedDesktopId: String?,
+        hasToken: Boolean,
+        defaultDesktopId: String?,
+        isBusy: Boolean
+    ): PcConnectionRowState {
+        val connected = connectedDesktopId == pc.desktopId || status == PcRowStatus.Connected
+        val rowStatus = if (connected) PcRowStatus.Connected else status
+        val actionText = when {
+            connected -> null
+            hasToken -> "Connect"
+            else -> "Request access"
+        }
+        val summary = when {
+            connected -> "Connected"
+            status == PcRowStatus.WaitingApproval -> "Waiting for approval on your PC..."
+            status == PcRowStatus.Connecting -> "Connecting..."
+            status == PcRowStatus.Failed -> "Try again"
+            else -> pc.primaryAddress
+        }
+        return PcConnectionRowState(
+            desktopId = pc.desktopId,
+            title = pc.displayName,
+            summary = summary,
+            source = PcConnectionRowSource.Discovered,
+            status = rowStatus,
+            actionText = actionText,
+            enabled = !connected && !isBusy,
+            canRequestAccess = !hasToken && !connected,
+            canConnect = hasToken && !connected,
+            canUnpair = hasToken || connected,
+            canSetDefault = hasToken,
+            isDefault = pc.desktopId == defaultDesktopId,
+            discoveredPc = pc
+        )
+    }
+
+    private fun savedOnlyPcRow(
+        pairing: PcSavedPairingRowState,
+        defaultDesktopId: String?
+    ): PcConnectionRowState {
+        return PcConnectionRowState(
+            desktopId = pairing.desktopId,
+            title = pairing.title,
+            summary = if (pairing.canConnect) pairing.summary else "Not available",
+            source = PcConnectionRowSource.SavedOnly,
+            status = PcRowStatus.Idle,
+            actionText = if (pairing.canConnect) "Connect" else null,
+            enabled = pairing.canConnect,
+            canRequestAccess = false,
+            canConnect = pairing.canConnect,
+            canUnpair = pairing.canUnpair,
+            canSetDefault = pairing.canSetDefault,
+            isDefault = pairing.desktopId == defaultDesktopId,
+            discoveredPc = null
+        )
     }
 
     private fun savedPairingSummary(lastEndpoint: String?): String {

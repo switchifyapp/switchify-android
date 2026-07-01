@@ -380,6 +380,95 @@ class PcConnectionViewModelTest {
     }
 
     @Test
+    fun pcRowsIncludesDiscoveredUnpairedPc() = runTest(dispatcher) {
+        val discovery = FakeDiscovery(listOf(pc))
+        val viewModel = viewModel(discovery, FakeTokenStore(), FakeConnector())
+        advanceUntilIdle()
+
+        val row = viewModel.uiState.value.pcRows.single()
+        assertEquals("desktop-1", row.desktopId)
+        assertEquals(PcConnectionRowSource.Discovered, row.source)
+        assertEquals(true, row.canRequestAccess)
+        assertEquals(false, row.canSetDefault)
+        assertEquals("Request access", row.actionText)
+    }
+
+    @Test
+    fun pcRowsIncludesDiscoveredPairedPc() = runTest(dispatcher) {
+        val discovery = FakeDiscovery(listOf(pc))
+        val tokens = FakeTokenStore(initialTokens = mutableMapOf("desktop-1" to "token"))
+        val viewModel = viewModel(discovery, tokens, FakeConnector())
+        advanceUntilIdle()
+
+        val row = viewModel.uiState.value.pcRows.single()
+        assertEquals(PcConnectionRowSource.Discovered, row.source)
+        assertEquals(true, row.canConnect)
+        assertEquals(true, row.canUnpair)
+        assertEquals(true, row.canSetDefault)
+    }
+
+    @Test
+    fun pcRowsMergesDiscoveredAndSavedPairing() = runTest(dispatcher) {
+        val discovery = FakeDiscovery(listOf(pc))
+        val tokens = FakeTokenStore(
+            initialTokens = mutableMapOf("desktop-1" to "token"),
+            initialLastEndpointIds = mutableMapOf("desktop-1" to "AA:BB:CC:DD:EE:FF"),
+            initialServiceNames = mutableMapOf("desktop-1" to "Switchify PC")
+        )
+        val viewModel = viewModel(discovery, tokens, FakeConnector())
+        advanceUntilIdle()
+
+        assertEquals(1, viewModel.uiState.value.pcRows.size)
+        assertEquals(PcConnectionRowSource.Discovered, viewModel.uiState.value.pcRows.single().source)
+    }
+
+    @Test
+    fun pcRowsIncludesSavedOnlyPairing() = runTest(dispatcher) {
+        val discovery = FakeDiscovery(emptyList())
+        val tokens = FakeTokenStore(
+            initialTokens = mutableMapOf("desktop-1" to "token"),
+            initialLastEndpointIds = mutableMapOf("desktop-1" to "AA:BB:CC:DD:EE:FF"),
+            initialServiceNames = mutableMapOf("desktop-1" to "Switchify PC")
+        )
+        val viewModel = viewModel(discovery, tokens, FakeConnector())
+        advanceUntilIdle()
+
+        val row = viewModel.uiState.value.pcRows.single()
+        assertEquals(PcConnectionRowSource.SavedOnly, row.source)
+        assertEquals(true, row.canConnect)
+        assertEquals("AA:BB:CC:DD:EE:FF", row.summary)
+    }
+
+    @Test
+    fun pcRowsIncludesSavedOnlyPairingWithoutEndpoint() = runTest(dispatcher) {
+        val discovery = FakeDiscovery(emptyList())
+        val tokens = FakeTokenStore(
+            initialTokens = mutableMapOf("desktop-1" to "token"),
+            initialServiceNames = mutableMapOf("desktop-1" to "Switchify PC")
+        )
+        val viewModel = viewModel(discovery, tokens, FakeConnector())
+        advanceUntilIdle()
+
+        val row = viewModel.uiState.value.pcRows.single()
+        assertEquals(PcConnectionRowSource.SavedOnly, row.source)
+        assertEquals(false, row.canConnect)
+        assertEquals("Not available", row.summary)
+    }
+
+    @Test
+    fun pcRowsMarksDefault() = runTest(dispatcher) {
+        val discovery = FakeDiscovery(listOf(pc))
+        val tokens = FakeTokenStore(
+            initialTokens = mutableMapOf("desktop-1" to "token"),
+            initialDefaultDesktopId = "desktop-1"
+        )
+        val viewModel = viewModel(discovery, tokens, FakeConnector())
+        advanceUntilIdle()
+
+        assertEquals(true, viewModel.uiState.value.pcRows.single().isDefault)
+    }
+
+    @Test
     fun pairedDiscoveredPcCanBeSetAsDefault() = runTest(dispatcher) {
         val discovery = FakeDiscovery(listOf(pc))
         val tokens = FakeTokenStore(initialTokens = mutableMapOf("desktop-1" to "token"))
@@ -550,6 +639,35 @@ class PcConnectionViewModelTest {
         viewModel.setPermissionRequired(false)
         advanceUntilIdle()
         assertEquals(false, viewModel.uiState.value.permissionRequired)
+    }
+
+    @Test
+    fun uiStateIncludesDiscoveryStatusSearching() = runTest(dispatcher) {
+        val discovery = FakeDiscovery(emptyList())
+        discovery.status.value = PcDiscoveryStatus.Searching
+        val viewModel = viewModel(discovery, FakeTokenStore(), FakeConnector())
+        advanceUntilIdle()
+
+        assertEquals(PcDiscoveryStatus.Searching, viewModel.uiState.value.discoveryStatus)
+    }
+
+    @Test
+    fun uiStateIncludesDiscoveryStatusFound() = runTest(dispatcher) {
+        val discovery = FakeDiscovery(listOf(pc))
+        val viewModel = viewModel(discovery, FakeTokenStore(), FakeConnector())
+        advanceUntilIdle()
+
+        assertEquals(PcDiscoveryStatus.Found, viewModel.uiState.value.discoveryStatus)
+    }
+
+    @Test
+    fun uiStateIncludesDiscoveryStatusFailed() = runTest(dispatcher) {
+        val discovery = FakeDiscovery(emptyList())
+        discovery.status.value = PcDiscoveryStatus.Failed
+        val viewModel = viewModel(discovery, FakeTokenStore(), FakeConnector())
+        advanceUntilIdle()
+
+        assertEquals(PcDiscoveryStatus.Failed, viewModel.uiState.value.discoveryStatus)
     }
 
     @Test
