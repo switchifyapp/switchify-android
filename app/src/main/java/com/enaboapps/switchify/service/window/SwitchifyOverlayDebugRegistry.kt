@@ -1,24 +1,24 @@
 package com.enaboapps.switchify.service.window
 
-import java.util.concurrent.atomic.AtomicLong
-
 internal object SwitchifyOverlayDebugRegistry {
-    private val nextId = AtomicLong(1L)
-    private val records = linkedMapOf<Long, OverlayDebugRecord>()
+    private val records = linkedMapOf<String, OverlayDebugRecord>()
 
     fun recordRootShown(
-        generation: Int,
+        identity: OverlayDebugIdentity,
         title: String,
         viewId: Int,
         viewClass: String,
         handleIdentityHash: Int
-    ): Long {
-        val id = nextId.getAndIncrement()
+    ): String {
+        val id = identity.diagnosticId
         synchronized(records) {
             records[id] = OverlayDebugRecord(
                 id = id,
+                stableId = identity.stableId,
                 backend = BACKEND_WINDOW_MANAGER_ROOT,
-                generation = generation,
+                serviceEpoch = identity.serviceEpoch,
+                generation = identity.generation,
+                sequence = identity.sequence,
                 target = title,
                 viewId = viewId,
                 viewClass = viewClass,
@@ -29,25 +29,28 @@ internal object SwitchifyOverlayDebugRegistry {
         return id
     }
 
-    fun recordRootRemoved(id: Long?) {
+    fun recordRootRemoved(id: String?) {
         recordReleased(id)
     }
 
     fun recordSurfaceAttached(
-        id: Long,
+        identity: OverlayDebugIdentity,
         backend: String,
-        generation: Int,
         target: String,
         viewId: Int,
         viewClass: String,
         handleIdentityHash: Int,
         surface: String
     ) {
+        val id = identity.diagnosticId
         synchronized(records) {
             records[id] = OverlayDebugRecord(
                 id = id,
+                stableId = identity.stableId,
                 backend = backend,
-                generation = generation,
+                serviceEpoch = identity.serviceEpoch,
+                generation = identity.generation,
+                sequence = identity.sequence,
                 target = target,
                 viewId = viewId,
                 viewClass = viewClass,
@@ -58,11 +61,11 @@ internal object SwitchifyOverlayDebugRegistry {
         }
     }
 
-    fun recordSurfaceReleased(id: Long) {
+    fun recordSurfaceReleased(id: String) {
         recordReleased(id)
     }
 
-    fun recordSurfaceReleaseFailed(id: Long, throwable: Throwable) {
+    fun recordSurfaceReleaseFailed(id: String, throwable: Throwable) {
         synchronized(records) {
             records[id] = records[id]?.copy(
                 releaseFailure = "${throwable.javaClass.simpleName}: ${throwable.message}"
@@ -77,8 +80,11 @@ internal object SwitchifyOverlayDebugRegistry {
             appendLine("Switchify overlay registry:")
             snapshot.forEach { record ->
                 append("id=").append(record.id)
+                    .append(" stableId=").append(record.stableId)
                     .append(" backend=").append(record.backend)
+                    .append(" serviceEpoch=").append(record.serviceEpoch)
                     .append(" generation=").append(record.generation)
+                    .append(" sequence=").append(record.sequence)
                     .append(" target=").append(record.target)
                     .append(" viewId=").append(record.viewId)
                     .append(" viewClass=").append(record.viewClass)
@@ -103,14 +109,9 @@ internal object SwitchifyOverlayDebugRegistry {
         synchronized(records) {
             records.clear()
         }
-        nextId.set(1L)
     }
 
-    fun nextOverlayId(): Long {
-        return nextId.getAndIncrement()
-    }
-
-    private fun recordReleased(id: Long?) {
+    private fun recordReleased(id: String?) {
         if (id == null) return
         synchronized(records) {
             records[id] = records[id]?.copy(
@@ -125,9 +126,12 @@ internal object SwitchifyOverlayDebugRegistry {
     internal const val BACKEND_SURFACE_CONTROL_WINDOW = "surface_control_window"
 
     private data class OverlayDebugRecord(
-        val id: Long,
+        val id: String,
+        val stableId: String,
         val backend: String,
+        val serviceEpoch: Long,
         val generation: Int,
+        val sequence: Long,
         val target: String,
         val viewId: Int,
         val viewClass: String,

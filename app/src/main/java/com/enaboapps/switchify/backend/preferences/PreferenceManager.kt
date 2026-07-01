@@ -60,6 +60,7 @@ class PreferenceManager(context: Context) {
         const val PREFERENCE_KEY_TELEMETRY_ENABLED = "telemetry_enabled"
         const val PREFERENCE_KEY_DEVICE_ID = "device_id"
         const val PREFERENCE_KEY_LAST_PROCESS_EXIT_TIMESTAMP = "last_process_exit_timestamp"
+        const val PREFERENCE_KEY_OVERLAY_SERVICE_EPOCH = "overlay_service_epoch"
         const val PREFERENCE_KEY_ONBOARDING_CURRENT_STEP = "onboarding_current_step"
         const val PREFERENCE_KEY_ONBOARDING_USER_TYPE = "onboarding_user_type"
         const val PREFERENCE_KEY_ONBOARDING_IS_NEW_USER = "onboarding_is_new_user"
@@ -107,6 +108,7 @@ class PreferenceManager(context: Context) {
             PREFERENCE_KEY_TELEMETRY_ENABLED,
             PREFERENCE_KEY_DEVICE_ID,
             PREFERENCE_KEY_LAST_PROCESS_EXIT_TIMESTAMP,
+            PREFERENCE_KEY_OVERLAY_SERVICE_EPOCH,
             PREFERENCE_KEY_GEMMA_TERMS_ACCEPTED
         )
     }
@@ -266,6 +268,12 @@ class PreferenceManager(context: Context) {
         val generated = UUID.randomUUID().toString()
         setStringValue(PREFERENCE_KEY_DEVICE_ID, generated)
         return generated
+    }
+
+    fun nextOverlayServiceEpoch(): Long {
+        val next = getLongValue(PREFERENCE_KEY_OVERLAY_SERVICE_EPOCH, 0L) + 1L
+        setLongValue(PREFERENCE_KEY_OVERLAY_SERVICE_EPOCH, next)
+        return next
     }
 
     /**

@@ -15,7 +15,7 @@ internal interface WindowCleanupHandle {
 
 internal interface WindowCleanupRoot {
     val isAttachedToWindow: Boolean
-    val debugOverlayId: Long?
+    val debugOverlayId: String?
 
     fun removeDescendantViews()
     fun removeImmediately()
@@ -31,9 +31,9 @@ internal class WindowStateCleaner(
     private val onCleanupStarted: (WindowCleanupState, Boolean) -> Unit = { _, _ -> },
     private val onHandleReleased: (Any) -> Unit = {},
     private val onHandleReleaseFailed: (Any, Throwable) -> Unit = { _, _ -> },
-    private val onRootRemoved: (Long?) -> Unit = {},
-    private val onRootAlreadyRemoved: (Long?, Throwable) -> Unit = { _, _ -> },
-    private val onRootRemoveFailed: (Long?, Throwable) -> Unit = { _, _ -> }
+    private val onRootRemoved: (String?) -> Unit = {},
+    private val onRootAlreadyRemoved: (String?, Throwable) -> Unit = { _, _ -> },
+    private val onRootRemoveFailed: (String?, Throwable) -> Unit = { _, _ -> }
 ) {
     fun cleanup(state: WindowCleanupState) {
         val rootAttachedAtCapture = state.root?.isAttachedToWindow == true
