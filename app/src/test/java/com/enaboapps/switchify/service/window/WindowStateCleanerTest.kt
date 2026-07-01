@@ -152,8 +152,9 @@ class WindowStateCleanerTest {
 
     @Test
     fun cleanupReportsRootRemovalOutcome() {
-        val removedRoots = mutableListOf<Long?>()
-        val root = FakeRoot(attached = true, debugOverlayId = 22L)
+        val removedRoots = mutableListOf<String?>()
+        val rootId = "root:default-display:epoch=1:generation=1:sequence=1"
+        val root = FakeRoot(attached = true, debugOverlayId = rootId)
         val state = WindowCleanupState(
             surfaceHandles = mutableMapOf(),
             root = root,
@@ -164,15 +165,16 @@ class WindowStateCleanerTest {
             onRootRemoved = { id -> removedRoots += id }
         ).cleanup(state)
 
-        assertEquals(listOf(22L), removedRoots)
+        assertEquals(listOf(rootId), removedRoots)
     }
 
     @Test
     fun cleanupReportsAlreadyRemovedRootOutcome() {
-        val alreadyRemovedRoots = mutableListOf<Long?>()
+        val alreadyRemovedRoots = mutableListOf<String?>()
+        val rootId = "root:default-display:epoch=1:generation=1:sequence=1"
         val root = FakeRoot(
             attached = true,
-            debugOverlayId = 33L,
+            debugOverlayId = rootId,
             removeFailure = IllegalArgumentException("already removed")
         )
         val state = WindowCleanupState(
@@ -186,7 +188,7 @@ class WindowStateCleanerTest {
             onRootAlreadyRemoved = { id, _ -> alreadyRemovedRoots += id }
         ).cleanup(state)
 
-        assertEquals(listOf(33L), alreadyRemovedRoots)
+        assertEquals(listOf(rootId), alreadyRemovedRoots)
     }
 
     private class FakeHandle(
@@ -206,7 +208,7 @@ class WindowStateCleanerTest {
 
     private class FakeRoot(
         private val attached: Boolean,
-        override val debugOverlayId: Long? = null,
+        override val debugOverlayId: String? = null,
         private val removeFailure: RuntimeException? = null
     ) : WindowCleanupRoot {
         var descendantsRemoved = false

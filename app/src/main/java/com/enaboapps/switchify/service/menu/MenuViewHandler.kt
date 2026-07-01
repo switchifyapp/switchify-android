@@ -12,7 +12,7 @@ class MenuViewHandler {
         val instance: MenuViewHandler by lazy { MenuViewHandler() }
 
         private const val TAG = "MenuViewHandler"
-        private const val VIEW_ID = 1512
+        internal const val VIEW_ID = 1512
     }
 
     /** The base layout for the menu. */

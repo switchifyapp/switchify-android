@@ -4,7 +4,6 @@ import android.accessibilityservice.AccessibilityService
 import android.content.Context
 import android.hardware.display.DisplayManager
 import android.graphics.Region
-import android.os.Binder
 import android.os.Build
 import android.os.IBinder
 import android.util.Log
@@ -17,12 +16,13 @@ import android.widget.FrameLayout
 import androidx.lifecycle.setViewTreeLifecycleOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import com.enaboapps.switchify.service.core.SwitchifyLifecycleOwner
+import com.enaboapps.switchify.service.window.OverlayDebugIdentity
 import com.enaboapps.switchify.service.window.SwitchifyOverlayDebugRegistry
 
-class SurfaceControlOverlayBackend(
+internal class SurfaceControlOverlayBackend(
     private val service: AccessibilityService,
     private val hostTokenProvider: () -> IBinder?,
-    private val generationProvider: () -> Int
+    private val identityProvider: (OverlayTarget, ViewGroup) -> OverlayDebugIdentity
 ) : OverlayBackend {
     fun canAttach(target: OverlayTarget): Boolean {
         return Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE &&
@@ -37,7 +37,7 @@ class SurfaceControlOverlayBackend(
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) return null
 
         val display = displayFor(target) ?: return null
-        val token = hostTokenProvider() ?: Binder()
+        val token = hostTokenProvider()?.takeIf(::hasRequiredHostToken) ?: return null
         val metrics = metricsFor(display.displayId)
         val surfaceSize = surfaceSizeFor(placement, metrics)
         if (surfaceSize.width <= 0 || surfaceSize.height <= 0) return null
@@ -86,7 +86,8 @@ class SurfaceControlOverlayBackend(
             } finally {
                 transaction.close()
             }
-            val id = SwitchifyOverlayDebugRegistry.nextOverlayId()
+            val identity = identityProvider(target, view)
+            val id = identity.diagnosticId
             val handle = SurfaceControlOverlayHandle(
                 id = id,
                 view = view,
@@ -95,9 +96,8 @@ class SurfaceControlOverlayBackend(
                 viewHost = viewHost
             )
             SwitchifyOverlayDebugRegistry.recordSurfaceAttached(
-                id = id,
+                identity = identity,
                 backend = backendNameFor(target),
-                generation = generationProvider(),
                 target = target.toString(),
                 viewId = view.id,
                 viewClass = view.javaClass.name,
@@ -106,7 +106,7 @@ class SurfaceControlOverlayBackend(
             )
             Log.d(
                 TAG,
-                "Attached SurfaceControl overlay id=$id target=$target view=${view.javaClass.name} handle=${System.identityHashCode(handle)} surface=$surfaceControl"
+                "Attached SurfaceControl overlay id=$id stableId=${identity.stableId} target=$target view=${view.javaClass.name} handle=${System.identityHashCode(handle)} surface=$surfaceControl"
             )
             handle
         } catch (e: Exception) {
@@ -221,7 +221,7 @@ class SurfaceControlOverlayBackend(
     )
 
     private class SurfaceControlOverlayHandle(
-        private val id: Long,
+        private val id: String,
         override val view: ViewGroup,
         private val container: ViewGroup,
         private val surfaceControl: SurfaceControl,
@@ -270,5 +270,9 @@ class SurfaceControlOverlayBackend(
     companion object {
         private const val TAG = "SurfaceControlOverlay"
         private const val SURFACE_LAYER = 1
+
+        internal fun hasRequiredHostToken(token: IBinder?): Boolean {
+            return token != null
+        }
     }
 }
