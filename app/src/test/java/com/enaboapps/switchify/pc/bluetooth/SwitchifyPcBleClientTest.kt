@@ -507,6 +507,7 @@ class SwitchifyPcBleClientTest {
         private val serviceNames: MutableMap<String, String> = mutableMapOf()
     ) : PcPairingTokenStore {
         private val lastEndpointIds = mutableMapOf<String, String>()
+        private var defaultDesktopId: String? = null
 
         override fun getToken(desktopId: String): String? = tokens[desktopId]
 
@@ -520,6 +521,7 @@ class SwitchifyPcBleClientTest {
             tokens.remove(desktopId)
             lastEndpointIds.remove(desktopId)
             serviceNames.remove(desktopId)
+            if (defaultDesktopId == desktopId) defaultDesktopId = null
         }
 
         override fun listPairings(): List<PcStoredPairing> {
@@ -528,6 +530,20 @@ class SwitchifyPcBleClientTest {
 
         override fun getLastEndpointId(desktopId: String): String? = lastEndpointIds[desktopId]
         override fun getServiceName(desktopId: String): String? = serviceNames[desktopId]
+        override fun getDefaultDesktopId(): String? {
+            val desktopId = defaultDesktopId ?: return null
+            if (tokens.containsKey(desktopId)) return desktopId
+            defaultDesktopId = null
+            return null
+        }
+
+        override fun setDefaultDesktopId(desktopId: String) {
+            if (tokens.containsKey(desktopId)) defaultDesktopId = desktopId
+        }
+
+        override fun clearDefaultDesktopId() {
+            defaultDesktopId = null
+        }
     }
 
     private class FakeTransportFactory(

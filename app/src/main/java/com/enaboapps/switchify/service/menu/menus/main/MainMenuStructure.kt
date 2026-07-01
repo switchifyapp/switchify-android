@@ -7,6 +7,7 @@ import com.enaboapps.switchify.pc.DiscoveredPc
 import com.enaboapps.switchify.pc.PcErrorReason
 import com.enaboapps.switchify.pc.PcServiceConnectResult
 import com.enaboapps.switchify.pc.PcServiceConnectionController
+import com.enaboapps.switchify.pc.PcTokenStore
 import com.enaboapps.switchify.service.actions.GlobalActionManager
 import com.enaboapps.switchify.service.core.ServiceCore
 import com.enaboapps.switchify.service.core.SwitchifyAccessibilityService
@@ -37,6 +38,7 @@ class MainMenuStructure(
     private val gestureMenuStructure = GestureMenuStructure(accessibilityService, coroutineScope)
     private val deviceLockObserver = DeviceLockObserver(accessibilityService)
     private val preferenceManager = PreferenceManager(accessibilityService)
+    private val pcTokenStore = PcTokenStore(accessibilityService.applicationContext)
     private val repository = MenuConfigurationRepository(accessibilityService)
 
     val deviceItem = MenuItem(
@@ -190,11 +192,12 @@ class MainMenuStructure(
         showMessage(R.string.pc_control_connecting, MessageSeverity.Info)
         coroutineScope.launch {
             val discovered = controller.discoverPairedPcs()
+            val defaultDesktopId = pcTokenStore.getDefaultDesktopId()
             withContext(Dispatchers.Main) {
-                when {
-                    discovered.isEmpty() -> showMessage(R.string.pc_control_no_pc_found, MessageSeverity.Warning)
-                    discovered.size == 1 -> connectToPcAndLaunch(controller, discovered.single())
-                    else -> MenuManager.getInstance().openChoosePcMenu(discovered) { pc ->
+                when (val selection = selectPcForMainMenu(discovered, defaultDesktopId)) {
+                    PcMainMenuSelection.NoPcFound -> showMessage(R.string.pc_control_no_pc_found, MessageSeverity.Warning)
+                    is PcMainMenuSelection.Connect -> connectToPcAndLaunch(controller, selection.pc)
+                    is PcMainMenuSelection.ShowChooser -> MenuManager.getInstance().openChoosePcMenu(selection.pcs) { pc ->
                         connectToPcAndLaunch(controller, pc)
                     }
                 }

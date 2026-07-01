@@ -1467,6 +1467,7 @@ class PcMouseControlViewModelTest {
         private val tokens: MutableMap<String, String> = mutableMapOf()
     ) : PcPairingTokenStore {
         private val lastEndpointIds = mutableMapOf<String, String>()
+        private var defaultDesktopId: String? = null
 
         override fun getToken(desktopId: String): String? = tokens[desktopId]
 
@@ -1478,6 +1479,7 @@ class PcMouseControlViewModelTest {
         override fun clearToken(desktopId: String) {
             tokens.remove(desktopId)
             lastEndpointIds.remove(desktopId)
+            if (defaultDesktopId == desktopId) defaultDesktopId = null
         }
 
         override fun listPairings(): List<PcStoredPairing> {
@@ -1492,6 +1494,20 @@ class PcMouseControlViewModelTest {
 
         override fun getLastEndpointId(desktopId: String): String? = lastEndpointIds[desktopId]
         override fun getServiceName(desktopId: String): String? = null
+        override fun getDefaultDesktopId(): String? {
+            val desktopId = defaultDesktopId ?: return null
+            if (tokens.containsKey(desktopId)) return desktopId
+            defaultDesktopId = null
+            return null
+        }
+
+        override fun setDefaultDesktopId(desktopId: String) {
+            if (tokens.containsKey(desktopId)) defaultDesktopId = desktopId
+        }
+
+        override fun clearDefaultDesktopId() {
+            defaultDesktopId = null
+        }
     }
 
     private object FakeIdentity : PcDeviceIdentity {

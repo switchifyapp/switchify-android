@@ -29,6 +29,16 @@ class PcConnectionViewModelTest {
             displayName = "Switchify PC"
         )
     )
+    private val secondPc = DiscoveredPc(
+        serviceName = "Office PC",
+        desktopId = "desktop-2",
+        bluetoothEndpoint = PcBluetoothEndpoint(
+            deviceAddress = "11:22:33:44:55:66",
+            deviceName = "Office PC",
+            desktopId = "desktop-2",
+            displayName = "Office PC"
+        )
+    )
 
     @Before
     fun setup() {
@@ -370,6 +380,92 @@ class PcConnectionViewModelTest {
     }
 
     @Test
+    fun pairedDiscoveredPcCanBeSetAsDefault() = runTest(dispatcher) {
+        val discovery = FakeDiscovery(listOf(pc))
+        val tokens = FakeTokenStore(initialTokens = mutableMapOf("desktop-1" to "token"))
+        val viewModel = viewModel(discovery, tokens, FakeConnector())
+        advanceUntilIdle()
+
+        val row = viewModel.uiState.value.discoveredPcs.single()
+        assertEquals(true, row.canSetDefault)
+        assertEquals(false, row.isDefault)
+    }
+
+    @Test
+    fun unpairedDiscoveredPcCannotBeSetAsDefault() = runTest(dispatcher) {
+        val discovery = FakeDiscovery(listOf(pc))
+        val viewModel = viewModel(discovery, FakeTokenStore(), FakeConnector())
+        advanceUntilIdle()
+
+        val row = viewModel.uiState.value.discoveredPcs.single()
+        assertEquals(false, row.canSetDefault)
+        assertEquals(false, row.isDefault)
+    }
+
+    @Test
+    fun savedPairingCanBeSetAsDefault() = runTest(dispatcher) {
+        val discovery = FakeDiscovery(emptyList())
+        val tokens = FakeTokenStore(
+            initialTokens = mutableMapOf("desktop-1" to "token"),
+            initialLastEndpointIds = mutableMapOf("desktop-1" to "AA:BB:CC:DD:EE:FF"),
+            initialServiceNames = mutableMapOf("desktop-1" to "Switchify PC")
+        )
+        val viewModel = viewModel(discovery, tokens, FakeConnector())
+        advanceUntilIdle()
+
+        val row = viewModel.uiState.value.savedPairings.single()
+        assertEquals(true, row.canSetDefault)
+        assertEquals(false, row.isDefault)
+    }
+
+    @Test
+    fun currentDefaultDiscoveredRowIsMarkedDefault() = runTest(dispatcher) {
+        val discovery = FakeDiscovery(listOf(pc))
+        val tokens = FakeTokenStore(
+            initialTokens = mutableMapOf("desktop-1" to "token"),
+            initialDefaultDesktopId = "desktop-1"
+        )
+        val viewModel = viewModel(discovery, tokens, FakeConnector())
+        advanceUntilIdle()
+
+        val row = viewModel.uiState.value.discoveredPcs.single()
+        assertEquals(true, row.isDefault)
+    }
+
+    @Test
+    fun setDefaultPcStoresDefaultAndUpdatesDiscoveredRow() = runTest(dispatcher) {
+        val discovery = FakeDiscovery(listOf(pc))
+        val tokens = FakeTokenStore(initialTokens = mutableMapOf("desktop-1" to "token"))
+        val viewModel = viewModel(discovery, tokens, FakeConnector())
+        advanceUntilIdle()
+
+        viewModel.setDefaultPc("desktop-1", "Switchify PC")
+        advanceUntilIdle()
+
+        assertEquals("desktop-1", tokens.getDefaultDesktopId())
+        assertEquals(true, viewModel.uiState.value.discoveredPcs.single().isDefault)
+        assertEquals("Default PC set to Switchify PC.", viewModel.uiState.value.message)
+    }
+
+    @Test
+    fun setDefaultPcStoresDefaultAndUpdatesSavedPairingRow() = runTest(dispatcher) {
+        val discovery = FakeDiscovery(emptyList())
+        val tokens = FakeTokenStore(
+            initialTokens = mutableMapOf("desktop-1" to "token"),
+            initialLastEndpointIds = mutableMapOf("desktop-1" to "AA:BB:CC:DD:EE:FF"),
+            initialServiceNames = mutableMapOf("desktop-1" to "Switchify PC")
+        )
+        val viewModel = viewModel(discovery, tokens, FakeConnector())
+        advanceUntilIdle()
+
+        viewModel.setDefaultPc("desktop-1", "Switchify PC")
+        advanceUntilIdle()
+
+        assertEquals("desktop-1", tokens.getDefaultDesktopId())
+        assertEquals(true, viewModel.uiState.value.savedPairings.single().isDefault)
+    }
+
+    @Test
     fun confirmUnpairClearsSavedToken() = runTest(dispatcher) {
         val discovery = FakeDiscovery(listOf(pc))
         val tokens = FakeTokenStore(initialTokens = mutableMapOf("desktop-1" to "token"))
@@ -383,6 +479,43 @@ class PcConnectionViewModelTest {
         assertNull(tokens.getToken("desktop-1"))
         assertNull(viewModel.uiState.value.pendingUnpair)
         assertEquals("Unpaired from Switchify PC.", viewModel.uiState.value.message)
+    }
+
+    @Test
+    fun confirmUnpairClearsDefaultWhenUnpairingDefaultPc() = runTest(dispatcher) {
+        val discovery = FakeDiscovery(listOf(pc))
+        val tokens = FakeTokenStore(
+            initialTokens = mutableMapOf("desktop-1" to "token"),
+            initialDefaultDesktopId = "desktop-1"
+        )
+        val viewModel = viewModel(discovery, tokens, FakeConnector())
+        advanceUntilIdle()
+
+        viewModel.requestUnpair("desktop-1", "Switchify PC")
+        viewModel.confirmUnpair()
+        advanceUntilIdle()
+
+        assertNull(tokens.getDefaultDesktopId())
+    }
+
+    @Test
+    fun confirmUnpairKeepsDefaultWhenUnpairingDifferentPc() = runTest(dispatcher) {
+        val discovery = FakeDiscovery(listOf(pc, secondPc))
+        val tokens = FakeTokenStore(
+            initialTokens = mutableMapOf(
+                "desktop-1" to "token",
+                "desktop-2" to "token-2"
+            ),
+            initialDefaultDesktopId = "desktop-1"
+        )
+        val viewModel = viewModel(discovery, tokens, FakeConnector())
+        advanceUntilIdle()
+
+        viewModel.requestUnpair("desktop-2", "Office PC")
+        viewModel.confirmUnpair()
+        advanceUntilIdle()
+
+        assertEquals("desktop-1", tokens.getDefaultDesktopId())
     }
 
     @Test
@@ -541,7 +674,8 @@ class PcConnectionViewModelTest {
     private class FakeTokenStore(
         private val initialTokens: MutableMap<String, String> = mutableMapOf(),
         private val initialLastEndpointIds: MutableMap<String, String> = mutableMapOf(),
-        private val initialServiceNames: MutableMap<String, String> = mutableMapOf()
+        private val initialServiceNames: MutableMap<String, String> = mutableMapOf(),
+        private var initialDefaultDesktopId: String? = null
     ) : PcPairingTokenStore {
         private val lastEndpointIds = initialLastEndpointIds
         private val serviceNames = initialServiceNames
@@ -558,6 +692,7 @@ class PcConnectionViewModelTest {
             initialTokens.remove(desktopId)
             lastEndpointIds.remove(desktopId)
             serviceNames.remove(desktopId)
+            if (initialDefaultDesktopId == desktopId) initialDefaultDesktopId = null
         }
 
         override fun listPairings(): List<PcStoredPairing> {
@@ -572,6 +707,20 @@ class PcConnectionViewModelTest {
 
         override fun getLastEndpointId(desktopId: String): String? = lastEndpointIds[desktopId]
         override fun getServiceName(desktopId: String): String? = serviceNames[desktopId]
+        override fun getDefaultDesktopId(): String? {
+            val desktopId = initialDefaultDesktopId ?: return null
+            if (initialTokens.containsKey(desktopId)) return desktopId
+            initialDefaultDesktopId = null
+            return null
+        }
+
+        override fun setDefaultDesktopId(desktopId: String) {
+            if (initialTokens.containsKey(desktopId)) initialDefaultDesktopId = desktopId
+        }
+
+        override fun clearDefaultDesktopId() {
+            initialDefaultDesktopId = null
+        }
     }
 
     private object FakeIdentity : PcDeviceIdentity {
