@@ -175,6 +175,11 @@ fun PcConnectionScreen(navController: NavController) {
                                                 Text(stringResource(R.string.pc_connection_connect))
                                             }
                                         }
+                                        PcDefaultAction(
+                                            isDefault = row.isDefault,
+                                            canSetDefault = row.canSetDefault,
+                                            onSetDefault = { viewModel.setDefaultPc(row.desktopId, row.title) }
+                                        )
                                         TextButton(
                                             enabled = row.canUnpair,
                                             onClick = { viewModel.requestUnpair(row.desktopId, row.title) }
@@ -307,9 +312,33 @@ private fun PcNearbyRowActions(
             onClick = { row.perform(viewModel) }
         )
         if (row.canUnpair) {
+            PcDefaultAction(
+                isDefault = row.isDefault,
+                canSetDefault = row.canSetDefault,
+                onSetDefault = { viewModel.setDefaultPc(row.pc.desktopId, row.title) }
+            )
             TextButton(onClick = { viewModel.requestUnpair(row.pc.desktopId, row.title) }) {
                 Text(stringResource(R.string.pc_connection_unpair))
             }
+        }
+    }
+}
+
+@Composable
+private fun PcDefaultAction(
+    isDefault: Boolean,
+    canSetDefault: Boolean,
+    onSetDefault: () -> Unit
+) {
+    when {
+        isDefault -> Text(
+            text = stringResource(R.string.pc_connection_default),
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.padding(horizontal = Dimens.spaceS)
+        )
+        canSetDefault -> TextButton(onClick = onSetDefault) {
+            Text(stringResource(R.string.pc_connection_make_default))
         }
     }
 }

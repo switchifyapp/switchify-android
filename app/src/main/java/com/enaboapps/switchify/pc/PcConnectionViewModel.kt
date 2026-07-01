@@ -42,7 +42,9 @@ data class PcRowState(
     val actionText: String,
     val enabled: Boolean,
     val status: PcRowStatus,
-    val canUnpair: Boolean
+    val canUnpair: Boolean,
+    val canSetDefault: Boolean,
+    val isDefault: Boolean
 )
 
 data class PcSavedPairingRowState(
@@ -50,7 +52,9 @@ data class PcSavedPairingRowState(
     val title: String,
     val summary: String,
     val canUnpair: Boolean = true,
-    val canConnect: Boolean = false
+    val canConnect: Boolean = false,
+    val canSetDefault: Boolean = false,
+    val isDefault: Boolean = false
 )
 
 data class PcUnpairConfirmationState(
@@ -105,6 +109,9 @@ class PcConnectionViewModel(
                 val savedPairings = withContext(backgroundDispatcher) {
                     savedPairings(discoveredDesktopIds)
                 }
+                val defaultDesktopId = withContext(backgroundDispatcher) {
+                    tokenStore.getDefaultDesktopId()
+                }
                 _uiState.update { current ->
                     current.copy(
                         discoveryStatusText = discoveryStatusText(inputs.status, inputs.pcs.isEmpty()),
@@ -114,10 +121,13 @@ class PcConnectionViewModel(
                                 status = inputs.statuses[pc.desktopId] ?: PcRowStatus.Idle,
                                 connectedDesktopId = connectedDesktopId,
                                 hasToken = hasTokenByDesktopId[pc.desktopId] == true,
+                                defaultDesktopId = defaultDesktopId,
                                 isBusy = current.isBusy
                             )
                         },
-                        savedPairings = savedPairings,
+                        savedPairings = savedPairings.map { row ->
+                            row.copy(isDefault = row.desktopId == defaultDesktopId)
+                        },
                         connectedDesktopId = connectedDesktopId,
                         isDiscovering = inputs.status == PcDiscoveryStatus.Searching
                     )
@@ -207,6 +217,20 @@ class PcConnectionViewModel(
         }
     }
 
+    fun setDefaultPc(desktopId: String, displayName: String) {
+        if (tokenStore.getToken(desktopId).isNullOrBlank()) return
+        tokenStore.setDefaultDesktopId(desktopId)
+        tokenRevision.update { it + 1 }
+        _uiState.update {
+            it.copy(message = "Default PC set to $displayName.")
+        }
+    }
+
+    fun clearDefaultPc() {
+        tokenStore.clearDefaultDesktopId()
+        tokenRevision.update { it + 1 }
+    }
+
     fun stopPcBluetooth() {
         activeConnectionJob?.cancel()
         activeConnectionJob = null
@@ -233,6 +257,7 @@ class PcConnectionViewModel(
         status: PcRowStatus,
         connectedDesktopId: String?,
         hasToken: Boolean,
+        defaultDesktopId: String?,
         isBusy: Boolean
     ): PcRowState {
         val connected = connectedDesktopId == pc.desktopId || status == PcRowStatus.Connected
@@ -255,7 +280,9 @@ class PcConnectionViewModel(
             actionText = actionText,
             enabled = !connected && !isBusy,
             status = if (connected) PcRowStatus.Connected else status,
-            canUnpair = hasToken || connected
+            canUnpair = hasToken || connected,
+            canSetDefault = hasToken,
+            isDefault = pc.desktopId == defaultDesktopId
         )
     }
 
@@ -267,7 +294,8 @@ class PcConnectionViewModel(
                     desktopId = pairing.desktopId,
                     title = pairing.serviceName ?: pairing.desktopId,
                     summary = savedPairingSummary(pairing.lastEndpointId),
-                    canConnect = canConnectSavedPairing(pairing.lastEndpointId)
+                    canConnect = canConnectSavedPairing(pairing.lastEndpointId),
+                    canSetDefault = true
                 )
             }
     }

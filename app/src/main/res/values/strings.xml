@@ -305,6 +305,9 @@
     <string name="pc_connection_paired_section">Paired PCs</string>
     <string name="pc_connection_connect">Connect</string>
     <string name="pc_connection_not_nearby">Not nearby</string>
+    <string name="pc_connection_default">Default</string>
+    <string name="pc_connection_make_default">Make default</string>
+    <string name="pc_connection_default_set_message">Default PC set to %1$s.</string>
     <string name="pc_connection_unpair">Unpair</string>
     <string name="pc_connection_unpair_title">Unpair PC?</string>
     <string name="pc_connection_unpair_message">Switchify will forget %1$s. You will need to request access again before controlling this PC.</string>

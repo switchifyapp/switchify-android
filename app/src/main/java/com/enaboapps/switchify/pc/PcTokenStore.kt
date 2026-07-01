@@ -10,6 +10,9 @@ interface PcPairingTokenStore {
     fun listPairings(): List<PcStoredPairing>
     fun getLastEndpointId(desktopId: String): String?
     fun getServiceName(desktopId: String): String?
+    fun getDefaultDesktopId(): String?
+    fun setDefaultDesktopId(desktopId: String)
+    fun clearDefaultDesktopId()
 }
 
 data class PcStoredPairing(
@@ -50,6 +53,9 @@ class PcTokenStore(context: Context) : PcPairingTokenStore {
             remove(tokenKey(desktopId))
             remove(lastEndpointIdKey(desktopId))
             remove(serviceNameKey(desktopId))
+            if (preferences.getString(defaultDesktopIdKey, null) == desktopId) {
+                remove(defaultDesktopIdKey)
+            }
         }
     }
 
@@ -74,6 +80,26 @@ class PcTokenStore(context: Context) : PcPairingTokenStore {
         return preferences.getString(serviceNameKey(desktopId), null)?.takeIf { it.isNotBlank() }
     }
 
+    override fun getDefaultDesktopId(): String? {
+        val desktopId = preferences.getString(defaultDesktopIdKey, null)?.takeIf { it.isNotBlank() } ?: return null
+        if (getToken(desktopId) != null) return desktopId
+        clearDefaultDesktopId()
+        return null
+    }
+
+    override fun setDefaultDesktopId(desktopId: String) {
+        if (getToken(desktopId) == null) return
+        preferences.edit {
+            putString(defaultDesktopIdKey, desktopId)
+        }
+    }
+
+    override fun clearDefaultDesktopId() {
+        preferences.edit {
+            remove(defaultDesktopIdKey)
+        }
+    }
+
     private fun tokenKey(desktopId: String) = "token:$desktopId"
     private fun lastEndpointIdKey(desktopId: String) = "last_endpoint_id:$desktopId"
     private fun serviceNameKey(desktopId: String) = "service_name:$desktopId"
@@ -91,6 +117,7 @@ class PcTokenStore(context: Context) : PcPairingTokenStore {
 
     private companion object {
         const val pairingIdsKey = "paired_desktop_ids"
+        const val defaultDesktopIdKey = "default_desktop_id"
         const val tokenPrefix = "token:"
     }
 }
