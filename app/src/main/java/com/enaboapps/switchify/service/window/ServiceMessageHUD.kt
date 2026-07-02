@@ -423,7 +423,7 @@ class ServiceMessageHUD private constructor() {
         severity: MessageSeverity,
         target: OverlayTarget.Display
     ) {
-        val hudTarget = target.copy(forceSurface = true)
+        val hudTarget = target
         applicationCtx ?: run {
             Log.e(TAG, "ApplicationContext is null, cannot show message. Call setup() first.")
             return

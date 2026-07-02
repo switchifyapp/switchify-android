@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.res.Configuration
+import android.os.PowerManager
 
 /**
  * This class watches the screen for changes including screen state and orientation.
@@ -34,6 +35,7 @@ class ScreenWatcher(
     }
 
     fun register(context: Context) {
+        isScreenOn = isScreenInteractive(context)
         context.registerReceiver(screenReceiver, IntentFilter().apply {
             addAction(Intent.ACTION_SCREEN_ON)
             addAction(Intent.ACTION_SCREEN_OFF)
@@ -41,6 +43,11 @@ class ScreenWatcher(
         })
         // Initialize the current orientation
         currentOrientation = context.resources.configuration.orientation
+    }
+
+    internal fun isScreenInteractive(context: Context): Boolean {
+        val powerManager = context.getSystemService(Context.POWER_SERVICE) as? PowerManager
+        return powerManager?.isInteractive ?: true
     }
 
     /**

@@ -168,7 +168,7 @@ class MenuHighlightHud private constructor() {
         description: String?,
         target: OverlayTarget.Display = OverlayTargets.defaultDisplay()
     ) {
-        val hudTarget = target.copy(forceSurface = true)
+        val hudTarget = target
         if (name.isNullOrBlank()) {
             hide()
             return

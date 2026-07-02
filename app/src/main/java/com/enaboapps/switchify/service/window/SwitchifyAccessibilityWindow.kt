@@ -27,6 +27,8 @@ import com.enaboapps.switchify.service.window.overlay.OverlayDisplayMetricsProvi
 import com.enaboapps.switchify.service.window.overlay.OverlayTarget
 import com.enaboapps.switchify.service.window.overlay.OverlayTargets
 import com.enaboapps.switchify.service.window.overlay.OverlayHandle
+import com.enaboapps.switchify.service.window.overlay.OverlaySurfacePolicy
+import com.enaboapps.switchify.service.window.overlay.SurfaceOverlayLimit
 import com.enaboapps.switchify.service.window.overlay.SurfaceControlOverlayBackend
 import com.enaboapps.switchify.service.window.overlay.SwitchifyOverlayHost
 import java.util.concurrent.CountDownLatch
@@ -99,7 +101,7 @@ class SwitchifyAccessibilityWindow private constructor() : LifecycleOwner, Saved
         val rootOverlayId: String?
     )
 
-    private val defaultDisplayTarget = OverlayTargets.defaultDisplay().copy(forceSurface = true)
+    private val defaultDisplayTarget = OverlayTargets.defaultDisplay()
 
     override val lifecycle: Lifecycle
         get() = SwitchifyLifecycleOwner.getInstance().lifecycle
@@ -394,15 +396,24 @@ class SwitchifyAccessibilityWindow private constructor() : LifecycleOwner, Saved
         postIfCurrentGeneration {
             try {
                 if (shouldUseSurfaceBackend(target)) {
-                    if (baseLayout?.windowToken == null) {
-                        Log.w(TAG, "Surface overlay unavailable for $target because root token is missing")
-                        if (target is OverlayTarget.Window) return@postIfCurrentGeneration
+                    surfaceOverlayHandles.remove(view)?.release()
+                    if (!SurfaceOverlayLimit.canAddSurfaceOverlay(surfaceOverlayHandles.size)) {
+                        Log.w(
+                            TAG,
+                            "Surface overlay limit reached for $target view=${view.javaClass.name}"
+                        )
+                        if (!canUseDefaultRootFallback(target)) return@postIfCurrentGeneration
                     } else {
-                        val handle = surfaceControlBackend?.attach(target, view, placement)
-                        if (handle != null) {
-                            handle.setVisible(isVisible)
-                            surfaceOverlayHandles[view] = handle
-                            return@postIfCurrentGeneration
+                        if (baseLayout?.windowToken == null) {
+                            Log.w(TAG, "Surface overlay unavailable for $target because root token is missing")
+                            if (target is OverlayTarget.Window) return@postIfCurrentGeneration
+                        } else {
+                            val handle = surfaceControlBackend?.attach(target, view, placement)
+                            if (handle != null) {
+                                handle.setVisible(isVisible)
+                                surfaceOverlayHandles[view] = handle
+                                return@postIfCurrentGeneration
+                            }
                         }
                     }
                     if (target is OverlayTarget.Window) {
@@ -583,11 +594,7 @@ class SwitchifyAccessibilityWindow private constructor() : LifecycleOwner, Saved
     }
 
     private fun shouldUseSurfaceBackend(target: OverlayTarget): Boolean {
-        return when (target) {
-            is OverlayTarget.Display -> target.forceSurface ||
-                target.displayId != OverlayTargets.DEFAULT_DISPLAY_ID
-            is OverlayTarget.Window -> true
-        }
+        return OverlaySurfacePolicy.shouldUseSurfaceBackend(target)
     }
 
     private fun canUseDefaultRootFallback(target: OverlayTarget): Boolean {
