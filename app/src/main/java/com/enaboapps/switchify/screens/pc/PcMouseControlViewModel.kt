@@ -143,11 +143,51 @@ class PcMouseControlViewModel(
     }
 
     fun sendMouseCommand(command: PcControlCommand, repeatable: Boolean) {
+        val mouseRepeat = currentMouseRepeatCapabilities()
+        if (repeatable && mouseRepeat?.supported == true) {
+            if (mouseRepeat.enabled) {
+                sendPcSideRepeatCommand(command)
+            } else {
+                send(command)
+            }
+            return
+        }
+
         if (repeatable && mouseRepeatManager.armForInitialSend(command)) {
             sendRepeatableMouseCommand(command)
             return
         }
         send(command)
+    }
+
+    private fun sendPcSideRepeatCommand(command: PcControlCommand) {
+        val controller = serviceControllerProvider()
+        if (controller == null || !mouseRepeatManager.armPcSideRepeat(
+            command = command,
+            scope = viewModelScope,
+            stopRepeatedCommand = { controller.sendControlCommand(PcControlCommand.RepeatStop) }
+        )) {
+            send(command)
+            return
+        }
+
+        viewModelScope.launch(start = CoroutineStart.UNDISPATCHED) {
+            when (sendNoAckCommandNow(PcControlCommand.RepeatStart(command)) {
+                it.copy(
+                    isBusy = false,
+                    busyCommand = null,
+                    message = null
+                )
+            }) {
+                PcCommandResult.Ack -> {
+                    mouseRepeatManager.confirmPcSideStarted(command)
+                }
+                is PcCommandResult.AuthFailed,
+                is PcCommandResult.Failed -> {
+                    mouseRepeatManager.cancelPcSidePending(showMessage = false)
+                }
+            }
+        }
     }
 
     private fun sendRepeatableMouseCommand(command: PcControlCommand) {
@@ -566,6 +606,12 @@ class PcMouseControlViewModel(
             ?: controller.currentPointerProfile()?.supportsTextStreams()
             ?: false
     }
+
+    private fun currentMouseRepeatCapabilities() =
+        ((serviceControllerProvider()?.state?.value as? PcServiceConnectionState.Connected)?.pointerProfile
+            ?: serviceControllerProvider()?.currentPointerProfile())
+            ?.capabilities
+            ?.mouseRepeat
 
     private suspend fun sendEnterAfterTypedText(controller: PcServiceConnectionController) {
         when (val keyResult = controller.sendRealtimeControlCommand(PcControlCommand.PressKey(PcKeyboardKey.Enter))) {

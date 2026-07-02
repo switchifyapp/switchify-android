@@ -280,6 +280,8 @@ class SwitchifyPcBleClient(
         return when (this) {
             is PcControlCommand.Move -> PcProtocol.mouseMove(id, deviceId, token, timestamp, dx, dy, responseMode)
             is PcControlCommand.Scroll -> PcProtocol.mouseScroll(id, deviceId, token, timestamp, dx, dy, responseMode)
+            is PcControlCommand.RepeatStart -> PcProtocol.mouseRepeatStart(id, deviceId, token, timestamp, command)
+            PcControlCommand.RepeatStop -> PcProtocol.mouseRepeatStop(id, deviceId, token, timestamp)
             is PcControlCommand.DragStart -> PcProtocol.mouseDragStart(id, deviceId, token, timestamp, button, responseMode)
             is PcControlCommand.DragEnd -> PcProtocol.mouseDragEnd(id, deviceId, token, timestamp, button, responseMode)
             PcControlCommand.LeftClick -> PcProtocol.mouseClick(id, deviceId, token, timestamp, responseMode = responseMode)
@@ -385,6 +387,8 @@ private fun PcControlCommand.protocolType(): String {
     return when (this) {
         is PcControlCommand.Move -> "mouse.move"
         is PcControlCommand.Scroll -> "mouse.scroll"
+        is PcControlCommand.RepeatStart -> "mouse.repeat.start"
+        PcControlCommand.RepeatStop -> "mouse.repeat.stop"
         is PcControlCommand.DragStart -> "mouse.dragStart"
         is PcControlCommand.DragEnd -> "mouse.dragEnd"
         PcControlCommand.LeftClick -> "mouse.click"
