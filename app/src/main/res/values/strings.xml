@@ -341,6 +341,7 @@
     <string name="pc_settings_mouse_repeat_summary">Repeat PC mouse movement and scrolling until the next switch press.</string>
     <string name="pc_settings_mouse_repeat_interval_title">Repeat Interval</string>
     <string name="pc_settings_mouse_repeat_interval_summary">Time between repeated PC mouse actions.</string>
+    <string name="pc_settings_mouse_repeat_configured_on_pc">PC mouse repeat is configured in Switchify PC.</string>
     <string name="pc_settings_link_summary">Configure PC controls and connection settings.</string>
     <string name="pc_mouse_repeat_started">Mouse Repeat Started</string>
     <string name="pc_mouse_repeat_stopped">Mouse Repeat Stopped</string>

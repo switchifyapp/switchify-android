@@ -16,6 +16,8 @@ sealed class PcPingResult {
 sealed class PcControlCommand {
     data class Move(val dx: Int, val dy: Int) : PcControlCommand()
     data class Scroll(val dx: Int, val dy: Int) : PcControlCommand()
+    data class RepeatStart(val command: PcControlCommand) : PcControlCommand()
+    data object RepeatStop : PcControlCommand()
     data class DragStart(val button: String = "left") : PcControlCommand()
     data class DragEnd(val button: String = "left") : PcControlCommand()
     data class TypeText(val text: String) : PcControlCommand()

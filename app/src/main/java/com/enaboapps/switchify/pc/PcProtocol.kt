@@ -178,6 +178,41 @@ object PcProtocol {
         return authenticatedCommand(id, deviceId, token, timestamp, "mouse.scroll", JSONObject().put("dx", dx).put("dy", dy), responseMode)
     }
 
+    fun mouseRepeatStart(
+        id: String,
+        deviceId: String,
+        token: String,
+        timestamp: Long,
+        command: PcControlCommand
+    ): String {
+        val nested = when (command) {
+            is PcControlCommand.Move -> JSONObject()
+                .put("type", "mouse.move")
+                .put("payload", JSONObject().put("dx", command.dx).put("dy", command.dy))
+            is PcControlCommand.Scroll -> JSONObject()
+                .put("type", "mouse.scroll")
+                .put("payload", JSONObject().put("dx", command.dx).put("dy", command.dy))
+            else -> throw IllegalArgumentException("Unsupported repeat command.")
+        }
+        return authenticatedCommand(
+            id,
+            deviceId,
+            token,
+            timestamp,
+            "mouse.repeat.start",
+            JSONObject().put("command", nested)
+        )
+    }
+
+    fun mouseRepeatStop(
+        id: String,
+        deviceId: String,
+        token: String,
+        timestamp: Long
+    ): String {
+        return authenticatedCommand(id, deviceId, token, timestamp, "mouse.repeat.stop", JSONObject())
+    }
+
     fun mouseDragStart(
         id: String,
         deviceId: String,
@@ -494,7 +529,8 @@ object PcProtocol {
         val capabilities = PcPointerCapabilities(
             noAckMouseMove = capabilitiesJson?.optBoolean("noAckMouseMove", false) ?: false,
             noAckCommands = noAckCommands,
-            supportedCommands = supportedCommands
+            supportedCommands = supportedCommands,
+            mouseRepeat = parseMouseRepeatCapabilities(capabilitiesJson) ?: return PcProtocolResponse.Invalid
         )
         val bounds = PcPointerBounds(
             x = boundsJson.optInt("x"),
@@ -529,6 +565,26 @@ object PcProtocol {
                 recommendedDeltas = deltas,
                 capabilities = capabilities
             )
+        )
+    }
+
+    private fun parseMouseRepeatCapabilities(capabilitiesJson: JSONObject?): PcMouseRepeatCapabilities? {
+        val repeatJson = capabilitiesJson?.opt("mouseRepeat") ?: return PcMouseRepeatCapabilities()
+        if (repeatJson !is JSONObject) return null
+
+        val intervalMs = repeatJson.optLong("intervalMs", 250L)
+        val minIntervalMs = repeatJson.optLong("minIntervalMs", 100L)
+        val maxIntervalMs = repeatJson.optLong("maxIntervalMs", 2000L)
+        if (intervalMs <= 0L || minIntervalMs <= 0L || maxIntervalMs < minIntervalMs) return null
+        if (repeatJson.has("supported") && repeatJson.opt("supported") !is Boolean) return null
+        if (repeatJson.has("enabled") && repeatJson.opt("enabled") !is Boolean) return null
+
+        return PcMouseRepeatCapabilities(
+            supported = repeatJson.optBoolean("supported", false),
+            enabled = repeatJson.optBoolean("enabled", false),
+            intervalMs = intervalMs,
+            minIntervalMs = minIntervalMs,
+            maxIntervalMs = maxIntervalMs
         )
     }
 
@@ -585,6 +641,8 @@ object PcProtocol {
         "connection.ping",
         "connection.disconnecting",
         "pointer.profile",
+        "mouse.repeat.start",
+        "mouse.repeat.stop",
         "keyboard.textStream.open",
         "keyboard.textStream.chunk",
         "keyboard.textStream.close"

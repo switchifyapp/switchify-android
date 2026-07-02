@@ -19,6 +19,10 @@ class PcMouseRepeatManager internal constructor(
     private var repeatedCommand: PcControlCommand? = null
     private var repeatArmed = false
     private var pausedForReconnect = false
+    private var pcSideRepeatActive = false
+    private var pcSideRepeatPending = false
+    private var stopPcSideRepeat: (suspend () -> PcCommandResult)? = null
+    private var pcSideScope: CoroutineScope? = null
 
     companion object {
         internal const val RECONNECT_GRACE_MS = 5_000L
@@ -30,7 +34,7 @@ class PcMouseRepeatManager internal constructor(
     }
 
     fun init(context: Context) {
-        settings = PreferencePcMouseRepeatSettings(context.applicationContext)
+        settings = DefaultPcMouseRepeatSettings
     }
 
     fun canRepeat(command: PcControlCommand): Boolean {
@@ -44,6 +48,43 @@ class PcMouseRepeatManager internal constructor(
         repeatedCommand = command
         repeatArmed = true
         showMessage(R.string.pc_mouse_repeat_started, MessageSeverity.Success)
+        return true
+    }
+
+    fun armPcSideRepeat(
+        command: PcControlCommand,
+        scope: CoroutineScope,
+        stopRepeatedCommand: suspend () -> PcCommandResult
+    ): Boolean {
+        if (!isRepeatable(command)) return false
+
+        stop(showMessage = false)
+        pcSideRepeatPending = true
+        pcSideRepeatActive = false
+        pcSideScope = scope
+        stopPcSideRepeat = stopRepeatedCommand
+        repeatedCommand = command
+        repeatArmed = true
+        showMessage(R.string.pc_mouse_repeat_started, MessageSeverity.Success)
+        return true
+    }
+
+    fun confirmPcSideStarted(command: PcControlCommand): Boolean {
+        if (!pcSideRepeatPending || repeatedCommand != command) return false
+
+        pcSideRepeatPending = false
+        pcSideRepeatActive = true
+        repeatArmed = true
+        return true
+    }
+
+    fun cancelPcSidePending(showMessage: Boolean = false): Boolean {
+        if (!pcSideRepeatPending && !pcSideRepeatActive) return false
+
+        clearPcSideRepeatState()
+        if (showMessage) {
+            showMessage(R.string.pc_mouse_repeat_stopped, MessageSeverity.Info)
+        }
         return true
     }
 
@@ -159,10 +200,28 @@ class PcMouseRepeatManager internal constructor(
         return true
     }
 
-    fun stopForSwitchPress(): Boolean = stop()
+    fun stopForSwitchPress(): Boolean {
+        if (stopPcSideForSwitchPress()) return true
+        return stop()
+    }
+
+    private fun stopPcSideForSwitchPress(): Boolean {
+        if (!pcSideRepeatPending && !pcSideRepeatActive) return false
+
+        val stop = stopPcSideRepeat
+        val scope = pcSideScope
+        clearPcSideRepeatState()
+        showMessage(R.string.pc_mouse_repeat_stopped, MessageSeverity.Info)
+        if (stop != null && scope != null) {
+            scope.launch {
+                stop()
+            }
+        }
+        return true
+    }
 
     fun isRepeating(): Boolean {
-        return repeatArmed && repeatedCommand != null
+        return (repeatArmed && repeatedCommand != null) || pcSideRepeatPending || pcSideRepeatActive
     }
 
     fun clearServiceState(showMessage: Boolean = false) {
@@ -207,6 +266,20 @@ class PcMouseRepeatManager internal constructor(
         repeatedCommand = null
         repeatArmed = false
         pausedForReconnect = false
+        clearPcSideState()
+    }
+
+    private fun clearPcSideRepeatState() {
+        repeatedCommand = null
+        repeatArmed = false
+        clearPcSideState()
+    }
+
+    private fun clearPcSideState() {
+        pcSideRepeatActive = false
+        pcSideRepeatPending = false
+        stopPcSideRepeat = null
+        pcSideScope = null
     }
 
     private fun showMessage(messageResId: Int, severity: MessageSeverity) {
@@ -221,6 +294,7 @@ class PcMouseRepeatManager internal constructor(
         repeatedCommand = null
         repeatArmed = false
         pausedForReconnect = false
+        clearPcSideState()
         settings = null
         showHudMessage = defaultHudMessageHandler()
     }
@@ -232,6 +306,11 @@ class PcMouseRepeatManager internal constructor(
     internal fun setHudMessageHandlerForTesting(showHudMessage: (Int, MessageSeverity) -> Unit) {
         this.showHudMessage = showHudMessage
     }
+}
+
+private object DefaultPcMouseRepeatSettings : PcMouseRepeatSettings {
+    override fun isEnabled(): Boolean = true
+    override fun intervalMs(): Long = PcMouseRepeatDefaults.DEFAULT_INTERVAL_MS
 }
 
 private fun defaultHudMessageHandler(): (Int, MessageSeverity) -> Unit = { messageResId, severity ->

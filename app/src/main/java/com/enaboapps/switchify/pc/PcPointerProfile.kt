@@ -12,7 +12,16 @@ data class PcPointerMovementProfile(
 data class PcPointerCapabilities(
     val noAckMouseMove: Boolean = false,
     val noAckCommands: Set<String> = emptySet(),
-    val supportedCommands: Set<String> = emptySet()
+    val supportedCommands: Set<String> = emptySet(),
+    val mouseRepeat: PcMouseRepeatCapabilities = PcMouseRepeatCapabilities()
+)
+
+data class PcMouseRepeatCapabilities(
+    val supported: Boolean = false,
+    val enabled: Boolean = false,
+    val intervalMs: Long = 250L,
+    val minIntervalMs: Long = 100L,
+    val maxIntervalMs: Long = 2000L
 )
 
 data class PcPointerBounds(
