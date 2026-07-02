@@ -6,6 +6,7 @@ import android.graphics.PixelFormat
 import android.hardware.display.DisplayManager
 import android.os.Handler
 import android.os.Looper
+import android.os.PowerManager
 import android.util.Log
 import android.view.ViewGroup
 import android.view.WindowManager
@@ -27,6 +28,8 @@ import com.enaboapps.switchify.service.window.overlay.OverlayDisplayMetricsProvi
 import com.enaboapps.switchify.service.window.overlay.OverlayTarget
 import com.enaboapps.switchify.service.window.overlay.OverlayTargets
 import com.enaboapps.switchify.service.window.overlay.OverlayHandle
+import com.enaboapps.switchify.service.window.overlay.OverlaySurfacePolicy
+import com.enaboapps.switchify.service.window.overlay.SurfaceOverlayLimit
 import com.enaboapps.switchify.service.window.overlay.SurfaceControlOverlayBackend
 import com.enaboapps.switchify.service.window.overlay.SwitchifyOverlayHost
 import java.util.concurrent.CountDownLatch
@@ -52,6 +55,8 @@ class SwitchifyAccessibilityWindow private constructor() : LifecycleOwner, Saved
     private var serviceEpoch = 0L
     private var overlaySequence = 0L
     private var acceptingOverlayOperations = false
+    private var isScreenInteractive = true
+    private var rootShowRequested = false
     private val windowStateCleaner = WindowStateCleaner(
         onCleanupStarted = { state, rootAttached ->
             Log.d(
@@ -99,7 +104,7 @@ class SwitchifyAccessibilityWindow private constructor() : LifecycleOwner, Saved
         val rootOverlayId: String?
     )
 
-    private val defaultDisplayTarget = OverlayTargets.defaultDisplay().copy(forceSurface = true)
+    private val defaultDisplayTarget = OverlayTargets.defaultDisplay()
 
     override val lifecycle: Lifecycle
         get() = SwitchifyLifecycleOwner.getInstance().lifecycle
@@ -116,6 +121,7 @@ class SwitchifyAccessibilityWindow private constructor() : LifecycleOwner, Saved
             acceptingOverlayOperations = false
             serviceEpoch = PreferenceManager(context.applicationContext).nextOverlayServiceEpoch()
             overlaySequence = 0L
+            isScreenInteractive = isDeviceInteractive(context)
             windowGeneration += 1
             if (!cleanupOnMainBlocking()) {
                 Log.w(TAG, "Timed out while cleaning up previous window state before setup")
@@ -172,16 +178,18 @@ class SwitchifyAccessibilityWindow private constructor() : LifecycleOwner, Saved
         if (screenWatcher == null) {
             val context = getContext() ?: return
             val wake = {
+                isScreenInteractive = true
                 ServiceMessageHUD.instance.setup(context.applicationContext)
                 MenuHighlightHud.instance.setup(context.applicationContext)
                 ServiceStartupSplash.instance.setup(context.applicationContext)
-                show()
+                if (rootShowRequested) show()
             }
             val sleep = {
+                isScreenInteractive = false
                 ServiceMessageHUD.instance.dispose()
                 MenuHighlightHud.instance.dispose()
                 ServiceStartupSplash.instance.dispose()
-                hide()
+                hideForScreenSleep()
             }
             screenWatcher = ScreenWatcher(onScreenWake = wake, onScreenSleep = sleep)
             screenWatcher?.register(context)
@@ -214,10 +222,15 @@ class SwitchifyAccessibilityWindow private constructor() : LifecycleOwner, Saved
      * Shows the window.
      */
     fun show() {
+        rootShowRequested = true
         postIfCurrentGeneration {
             try {
                 if (isVisible) {
                     Log.d(TAG, "Window already visible, skipping show()")
+                    return@postIfCurrentGeneration
+                }
+                if (!isScreenInteractive) {
+                    Log.d(TAG, "Deferring WindowManager root show while screen is non-interactive")
                     return@postIfCurrentGeneration
                 }
 
@@ -259,6 +272,15 @@ class SwitchifyAccessibilityWindow private constructor() : LifecycleOwner, Saved
      * Hides the window without cleaning up views.
      */
     fun hide() {
+        rootShowRequested = false
+        hideInternal()
+    }
+
+    private fun hideForScreenSleep() {
+        hideInternal()
+    }
+
+    private fun hideInternal() {
         postIfCurrentGeneration {
             try {
                 if (isVisible && baseLayout != null) {
@@ -292,6 +314,8 @@ class SwitchifyAccessibilityWindow private constructor() : LifecycleOwner, Saved
      */
     fun onServiceDestroy() {
         acceptingOverlayOperations = false
+        rootShowRequested = false
+        isScreenInteractive = false
         windowGeneration += 1
         ServiceMessageHUD.instance.dispose()
         MenuHighlightHud.instance.dispose()
@@ -394,15 +418,24 @@ class SwitchifyAccessibilityWindow private constructor() : LifecycleOwner, Saved
         postIfCurrentGeneration {
             try {
                 if (shouldUseSurfaceBackend(target)) {
-                    if (baseLayout?.windowToken == null) {
-                        Log.w(TAG, "Surface overlay unavailable for $target because root token is missing")
-                        if (target is OverlayTarget.Window) return@postIfCurrentGeneration
+                    surfaceOverlayHandles.remove(view)?.release()
+                    if (!SurfaceOverlayLimit.canAddSurfaceOverlay(surfaceOverlayHandles.size)) {
+                        Log.w(
+                            TAG,
+                            "Surface overlay limit reached for $target view=${view.javaClass.name}"
+                        )
+                        if (!canUseDefaultRootFallback(target)) return@postIfCurrentGeneration
                     } else {
-                        val handle = surfaceControlBackend?.attach(target, view, placement)
-                        if (handle != null) {
-                            handle.setVisible(isVisible)
-                            surfaceOverlayHandles[view] = handle
-                            return@postIfCurrentGeneration
+                        if (baseLayout?.windowToken == null) {
+                            Log.w(TAG, "Surface overlay unavailable for $target because root token is missing")
+                            if (target is OverlayTarget.Window) return@postIfCurrentGeneration
+                        } else {
+                            val handle = surfaceControlBackend?.attach(target, view, placement)
+                            if (handle != null) {
+                                handle.setVisible(isVisible)
+                                surfaceOverlayHandles[view] = handle
+                                return@postIfCurrentGeneration
+                            }
                         }
                     }
                     if (target is OverlayTarget.Window) {
@@ -583,11 +616,7 @@ class SwitchifyAccessibilityWindow private constructor() : LifecycleOwner, Saved
     }
 
     private fun shouldUseSurfaceBackend(target: OverlayTarget): Boolean {
-        return when (target) {
-            is OverlayTarget.Display -> target.forceSurface ||
-                target.displayId != OverlayTargets.DEFAULT_DISPLAY_ID
-            is OverlayTarget.Window -> true
-        }
+        return OverlaySurfacePolicy.shouldUseSurfaceBackend(target)
     }
 
     private fun canUseDefaultRootFallback(target: OverlayTarget): Boolean {
@@ -616,6 +645,11 @@ class SwitchifyAccessibilityWindow private constructor() : LifecycleOwner, Saved
             generation = windowGeneration,
             sequence = overlaySequence
         )
+    }
+
+    private fun isDeviceInteractive(context: Context?): Boolean {
+        val powerManager = context?.getSystemService(Context.POWER_SERVICE) as? PowerManager
+        return powerManager?.isInteractive ?: true
     }
 
     private fun stableOverlayIdFor(target: OverlayTarget, view: ViewGroup): String {

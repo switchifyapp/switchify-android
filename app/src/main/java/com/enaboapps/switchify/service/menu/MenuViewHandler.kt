@@ -23,7 +23,7 @@ class MenuViewHandler {
         context: android.content.Context,
         target: OverlayTarget.Display = OverlayTargets.defaultDisplay()
     ) {
-        overlayTarget = target.copy(forceSurface = true)
+        overlayTarget = target
         if (!isSetup()) {
             baseLayout = RelativeLayout(context).apply {
                 layoutParams = RelativeLayout.LayoutParams(
