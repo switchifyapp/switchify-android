@@ -74,7 +74,8 @@ data class PcCompactCommandCell(
     val onClick: () -> Unit,
     val icon: ImageVector? = null,
     val iconRotationDegrees: Float = 0f,
-    val tone: PcCommandTone = PcCommandTone.Neutral
+    val tone: PcCommandTone = PcCommandTone.Neutral,
+    val selected: Boolean = false
 )
 
 /**
@@ -213,6 +214,7 @@ fun PcCompactCommandGrid(
                         icon = cell.icon,
                         iconRotationDegrees = cell.iconRotationDegrees,
                         tone = cell.tone,
+                        selected = cell.selected,
                         minHeightDp = minTileHeightDp,
                         modifier = itemModifier
                     )
@@ -240,6 +242,7 @@ fun PcScannedCommandTile(
     icon: ImageVector? = null,
     iconRotationDegrees: Float = 0f,
     tone: PcCommandTone = PcCommandTone.Neutral,
+    selected: Boolean = false,
     minHeightDp: Int = 52,
     square: Boolean = false
 ) {
@@ -248,24 +251,27 @@ fun PcScannedCommandTile(
     val backgroundColor = when {
         !enabled -> MaterialTheme.colorScheme.surfaceVariant
         pressed -> MaterialTheme.colorScheme.primaryContainer
+        selected -> MaterialTheme.colorScheme.primaryContainer
         tone == PcCommandTone.Primary -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.56f)
         tone == PcCommandTone.Destructive -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.48f)
         else -> MaterialTheme.colorScheme.surface
     }
     val borderColor = if (enabled) {
-        when (tone) {
-            PcCommandTone.Primary -> MaterialTheme.colorScheme.primary.copy(alpha = 0.62f)
-            PcCommandTone.Destructive -> MaterialTheme.colorScheme.error.copy(alpha = 0.62f)
-            PcCommandTone.Neutral -> MaterialTheme.colorScheme.outline
+        when {
+            selected -> MaterialTheme.colorScheme.primary
+            tone == PcCommandTone.Primary -> MaterialTheme.colorScheme.primary.copy(alpha = 0.62f)
+            tone == PcCommandTone.Destructive -> MaterialTheme.colorScheme.error.copy(alpha = 0.62f)
+            else -> MaterialTheme.colorScheme.outline
         }
     } else {
         MaterialTheme.colorScheme.outlineVariant
     }
     val contentColor = if (enabled) {
-        when (tone) {
-            PcCommandTone.Primary -> MaterialTheme.colorScheme.onPrimaryContainer
-            PcCommandTone.Destructive -> MaterialTheme.colorScheme.onErrorContainer
-            PcCommandTone.Neutral -> MaterialTheme.colorScheme.onSurface
+        when {
+            selected -> MaterialTheme.colorScheme.onPrimaryContainer
+            tone == PcCommandTone.Primary -> MaterialTheme.colorScheme.onPrimaryContainer
+            tone == PcCommandTone.Destructive -> MaterialTheme.colorScheme.onErrorContainer
+            else -> MaterialTheme.colorScheme.onSurface
         }
     } else {
         MaterialTheme.colorScheme.onSurfaceVariant

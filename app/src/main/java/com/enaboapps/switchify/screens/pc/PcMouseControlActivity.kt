@@ -182,6 +182,8 @@ private fun PcMouseControlScreen(
                     PcTransientMessage(message = uiState.message)
                     PcWindowControlScreen(
                         enabled = surfaceEnabled,
+                        activeModifiers = uiState.activeModifiers,
+                        onModifierSelected = viewModel::toggleModifier,
                         onCommandSelected = viewModel::send
                     )
                 }

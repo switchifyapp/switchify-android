@@ -1,6 +1,7 @@
 package com.enaboapps.switchify.screens.pc
 
 import android.content.Context
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.enaboapps.switchify.pc.DiscoveredPc
@@ -12,6 +13,7 @@ import com.enaboapps.switchify.pc.PcConnectionStateHolder
 import com.enaboapps.switchify.pc.PcControlCommand
 import com.enaboapps.switchify.pc.PcErrorReason
 import com.enaboapps.switchify.pc.PcKeyboardKey
+import com.enaboapps.switchify.pc.PcKeyboardModifierKey
 import com.enaboapps.switchify.pc.PcMouseRepeatManager
 import com.enaboapps.switchify.pc.PcServiceConnectResult
 import com.enaboapps.switchify.pc.PcServiceConnectionController
@@ -19,6 +21,7 @@ import com.enaboapps.switchify.pc.PcServiceConnectionState
 import com.enaboapps.switchify.pc.PcTextStreamItem
 import com.enaboapps.switchify.pc.isSafePcTypedText
 import com.enaboapps.switchify.pc.pcTextStreamItemsFor
+import com.enaboapps.switchify.pc.supportsModifierToggle
 import com.enaboapps.switchify.pc.supportsTextStreams
 import com.enaboapps.switchify.service.core.ServiceCore
 import java.util.UUID
@@ -54,6 +57,8 @@ data class PcMouseControlUiState(
     val typingText: String = "",
     val typingMessage: String? = null,
     val supportsTextStreamInput: Boolean = false,
+    val supportsModifierToggles: Boolean = false,
+    val activeModifiers: Set<PcKeyboardModifierKey> = emptySet(),
     val connectionStatusText: String? = null,
     val switchPcChooserVisible: Boolean = false,
     val switchPcRows: List<PcSwitchRowState> = emptyList(),
@@ -136,6 +141,31 @@ class PcMouseControlViewModel(
                     is PcControlCommand.DragStart -> true
                     is PcControlCommand.DragEnd -> false
                     else -> it.isDragging
+                },
+                isBusy = false,
+                busyCommand = null,
+                message = null
+            )
+        }
+    }
+
+    fun toggleModifier(key: PcKeyboardModifierKey) {
+        val state = _uiState.value
+        val isActive = state.activeModifiers.contains(key)
+        val command = if (isActive) {
+            PcControlCommand.ModifierUp(key)
+        } else {
+            PcControlCommand.ModifierDown(key)
+        }
+        debugLog(
+            "Toggling PC modifier key=${key.protocolValue}, active=$isActive, advertised=${state.supportsModifierToggles}"
+        )
+        sendNoAckCommand(command) {
+            it.copy(
+                activeModifiers = if (isActive) {
+                    it.activeModifiers - key
+                } else {
+                    it.activeModifiers + key
                 },
                 isBusy = false,
                 busyCommand = null,
@@ -259,6 +289,7 @@ class PcMouseControlViewModel(
             is PcCommandResult.AuthFailed -> {
                 _uiState.update {
                     it.copy(
+                        activeModifiers = emptySet(),
                         message = result.message,
                         typingMessage = if (command is PcControlCommand.TypeText || command is PcControlCommand.PressKey) {
                             result.message
@@ -381,11 +412,13 @@ class PcMouseControlViewModel(
             }
             return
         }
+        releaseActiveModifiersIfPossible()
         mouseRepeatManager.clearServiceState()
         switchPcConnectionJob?.cancel()
         _uiState.update {
             it.copy(
                 isDragging = false,
+                activeModifiers = emptySet(),
                 switchingDesktopId = desktopId,
                 switchPcApprovalCode = null,
                 message = CONNECTING_MESSAGE,
@@ -438,6 +471,20 @@ class PcMouseControlViewModel(
     private fun clearActiveSwitchPcConnection() {
         switchPcConnectionJob?.cancel()
         switchPcConnectionJob = null
+    }
+
+    private fun releaseActiveModifiersIfPossible() {
+        val modifiers = _uiState.value.activeModifiers.toList()
+        if (modifiers.isEmpty()) return
+        _uiState.update { it.copy(activeModifiers = emptySet()) }
+        val controller = serviceControllerProvider()
+        if (controller == null || !controller.hasLiveControlSession()) return
+
+        viewModelScope.launch {
+            modifiers.forEach { key ->
+                controller.sendRealtimeControlCommand(PcControlCommand.ModifierUp(key))
+            }
+        }
     }
 
     fun updateTypingText(text: String) {
@@ -718,6 +765,7 @@ class PcMouseControlViewModel(
     }
 
     fun onPcUiPaused() {
+        releaseActiveModifiersIfPossible()
         serviceControllerProvider()?.onPcUiPaused()
     }
 
@@ -726,6 +774,7 @@ class PcMouseControlViewModel(
     }
 
     override fun onCleared() {
+        releaseActiveModifiersIfPossible()
         clearActiveSwitchPcConnection()
         mouseRepeatManager.clearServiceState()
         serviceControllerProvider()?.onPcUiPaused()
@@ -753,6 +802,7 @@ class PcMouseControlViewModel(
                 is PcCommandResult.AuthFailed -> {
                     _uiState.update {
                         it.copy(
+                            activeModifiers = emptySet(),
                             isBusy = false,
                             busyCommand = null,
                             message = result.message,
@@ -790,6 +840,10 @@ class PcMouseControlViewModel(
         when (state) {
             is PcServiceConnectionState.Connected -> {
                 val pointerProfile = state.pointerProfile ?: controller.currentPointerProfile()
+                val supportsModifierToggles = pointerProfile?.supportsModifierToggle() ?: false
+                debugLog(
+                    "Connected PC profile displayName=${state.displayName}, modifierTogglesAdvertised=$supportsModifierToggles, supportedCommands=${pointerProfile?.capabilities?.supportedCommands.orEmpty()}"
+                )
                 movementSteps = pointerProfile?.toMouseMovementSteps()
                     ?: controller.currentPointerProfile()?.toMouseMovementSteps()
                     ?: FALLBACK_MOVEMENT_STEPS
@@ -799,6 +853,7 @@ class PcMouseControlViewModel(
                         switcherConnectedDisplayName = controller.currentControlDeviceName() ?: state.displayName,
                         movementStep = movementSteps.stepFor(it.selectedMovementSize),
                         supportsTextStreamInput = pointerProfile?.supportsTextStreams() ?: false,
+                        supportsModifierToggles = supportsModifierToggles,
                         message = if (it.message == RECONNECTING_MESSAGE || it.message == DISCONNECTED_MESSAGE || it.message == CONNECT_FIRST_MESSAGE) {
                             null
                         } else {
@@ -826,7 +881,9 @@ class PcMouseControlViewModel(
                         connectedDisplayName = state.displayName,
                         switcherConnectedDisplayName = controller.currentControlDeviceName() ?: state.displayName,
                         isDragging = false,
+                        activeModifiers = emptySet(),
                         supportsTextStreamInput = false,
+                        supportsModifierToggles = false,
                         message = RECONNECTING_MESSAGE,
                         connectionStatusText = RECONNECTING_MESSAGE,
                         switchPcRows = switchRowsFor(
@@ -848,9 +905,11 @@ class PcMouseControlViewModel(
                         switcherConnectedDisplayName = null,
                         movementStep = movementSteps.stepFor(it.selectedMovementSize),
                         isDragging = false,
+                        activeModifiers = emptySet(),
                         isBusy = false,
                         busyCommand = null,
                         supportsTextStreamInput = false,
+                        supportsModifierToggles = false,
                         message = CONNECT_FIRST_MESSAGE,
                         connectionStatusText = null,
                         switchPcRows = switchRowsFor(
@@ -869,9 +928,11 @@ class PcMouseControlViewModel(
                         switcherConnectedDisplayName = null,
                         movementStep = movementSteps.stepFor(it.selectedMovementSize),
                         isDragging = false,
+                        activeModifiers = emptySet(),
                         isBusy = false,
                         busyCommand = null,
                         supportsTextStreamInput = false,
+                        supportsModifierToggles = false,
                         message = state.message,
                         connectionStatusText = state.message,
                         switchPcRows = switchRowsFor(
@@ -896,7 +957,9 @@ class PcMouseControlViewModel(
                         connectedDisplayName = state.displayName,
                         switcherConnectedDisplayName = state.displayName,
                         isDragging = false,
+                        activeModifiers = emptySet(),
                         supportsTextStreamInput = false,
+                        supportsModifierToggles = false,
                         message = RECONNECTING_MESSAGE,
                         connectionStatusText = RECONNECTING_MESSAGE,
                         switchPcRows = switchRowsFor(
@@ -913,9 +976,11 @@ class PcMouseControlViewModel(
                         connectedDisplayName = null,
                         switcherConnectedDisplayName = null,
                         isDragging = false,
+                        activeModifiers = emptySet(),
                         isBusy = false,
                         busyCommand = null,
                         supportsTextStreamInput = false,
+                        supportsModifierToggles = false,
                         message = state.message,
                         connectionStatusText = state.message,
                         switchPcRows = switchRowsFor(
@@ -951,9 +1016,11 @@ class PcMouseControlViewModel(
                 switcherConnectedDisplayName = null,
                 movementStep = movementSteps.stepFor(it.selectedMovementSize),
                 isDragging = false,
+                activeModifiers = emptySet(),
                 isBusy = false,
                 busyCommand = null,
                 supportsTextStreamInput = false,
+                supportsModifierToggles = false,
                 message = CONNECT_FIRST_MESSAGE,
                 connectionStatusText = null,
                 switchPcRows = switchRowsFor(
@@ -1002,7 +1069,12 @@ class PcMouseControlViewModel(
         }
     }
 
+    private fun debugLog(message: String) {
+        runCatching { Log.d(TAG, message) }
+    }
+
     companion object {
+        private const val TAG = "PcMouseControlViewModel"
         val FALLBACK_MOVEMENT_STEPS = PcMouseMovementSteps(
             small = 40,
             medium = 80,

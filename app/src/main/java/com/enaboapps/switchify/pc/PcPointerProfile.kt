@@ -47,3 +47,12 @@ fun PcPointerMovementProfile.supportsTextStreams(): Boolean {
         )
     )
 }
+
+fun PcPointerMovementProfile.supportsModifierToggle(): Boolean {
+    return capabilities.supportedCommands.containsAll(
+        setOf(
+            "keyboard.modifierDown",
+            "keyboard.modifierUp"
+        )
+    )
+}

@@ -28,6 +28,8 @@ sealed class PcControlCommand {
     data class TextStreamClose(val streamId: String, val expectedCount: Int) : PcControlCommand()
     data class PressKey(val key: PcKeyboardKey) : PcControlCommand()
     data class KeyboardShortcut(val keys: List<PcKeyboardShortcutKey>) : PcControlCommand()
+    data class ModifierDown(val key: PcKeyboardModifierKey) : PcControlCommand()
+    data class ModifierUp(val key: PcKeyboardModifierKey) : PcControlCommand()
     data class WindowControl(val action: PcWindowControlAction) : PcControlCommand()
     data object LeftClick : PcControlCommand()
     data object DoubleClick : PcControlCommand()

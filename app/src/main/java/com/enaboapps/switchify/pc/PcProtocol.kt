@@ -386,6 +386,44 @@ object PcProtocol {
         )
     }
 
+    fun keyboardModifierDown(
+        id: String,
+        deviceId: String,
+        token: String,
+        timestamp: Long,
+        key: PcKeyboardModifierKey,
+        responseMode: PcCommandResponseMode = PcCommandResponseMode.Ack
+    ): String {
+        return authenticatedCommand(
+            id,
+            deviceId,
+            token,
+            timestamp,
+            "keyboard.modifierDown",
+            JSONObject().put("key", key.protocolValue),
+            responseMode
+        )
+    }
+
+    fun keyboardModifierUp(
+        id: String,
+        deviceId: String,
+        token: String,
+        timestamp: Long,
+        key: PcKeyboardModifierKey,
+        responseMode: PcCommandResponseMode = PcCommandResponseMode.Ack
+    ): String {
+        return authenticatedCommand(
+            id,
+            deviceId,
+            token,
+            timestamp,
+            "keyboard.modifierUp",
+            JSONObject().put("key", key.protocolValue),
+            responseMode
+        )
+    }
+
     fun windowControl(
         id: String,
         deviceId: String,
@@ -630,6 +668,8 @@ object PcProtocol {
         "mouse.dragEnd",
         "keyboard.key",
         "keyboard.shortcut",
+        "keyboard.modifierDown",
+        "keyboard.modifierUp",
         "keyboard.typeText",
         "keyboard.textStream.char",
         "keyboard.textStream.key",

@@ -3,6 +3,7 @@ package com.enaboapps.switchify.screens.pc
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.pc.PcControlCommand
 import com.enaboapps.switchify.pc.PcKeyboardKey
+import com.enaboapps.switchify.pc.PcKeyboardModifierKey
 import com.enaboapps.switchify.pc.PcKeyboardShortcutKey
 import com.enaboapps.switchify.pc.PcWindowControlAction
 import org.junit.Assert.assertEquals
@@ -72,6 +73,30 @@ class PcWindowControlScreenTest {
                 PcControlCommand.KeyboardShortcut(listOf(PcKeyboardShortcutKey.Ctrl, PcKeyboardShortcutKey.X))
             ),
             commands
+        )
+    }
+
+    @Test
+    fun modifierSpecsUseStableOrder() {
+        val specs = pcWindowModifierSpecs()
+
+        assertEquals(
+            listOf(
+                PcKeyboardModifierKey.Ctrl,
+                PcKeyboardModifierKey.Alt,
+                PcKeyboardModifierKey.Shift,
+                PcKeyboardModifierKey.Meta
+            ),
+            specs.map { it.key }
+        )
+        assertEquals(
+            listOf(
+                R.string.pc_modifier_ctrl,
+                R.string.pc_modifier_alt,
+                R.string.pc_modifier_shift,
+                R.string.pc_modifier_start
+            ),
+            specs.map { it.labelResId }
         )
     }
 
