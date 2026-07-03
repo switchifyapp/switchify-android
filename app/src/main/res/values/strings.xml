@@ -323,6 +323,12 @@
     <string name="pc_connection_default">Default</string>
     <string name="pc_connection_make_default">Make default</string>
     <string name="pc_connection_default_set_message">Default PC set to %1$s.</string>
+    <string name="pc_connection_default_picker_title">Default PC</string>
+    <string name="pc_connection_default_last_connection">Use last connection</string>
+    <string name="pc_connection_default_last_connection_summary">Switchify will use the most recently connected PC.</string>
+    <string name="pc_connection_default_last_connection_current_summary">Currently: %1$s</string>
+    <string name="pc_connection_default_specific_summary">Always connect to this PC when it is available.</string>
+    <string name="pc_connection_default_last_set_message">Default set to last connection.</string>
     <string name="pc_connection_status_connected">Connected</string>
     <string name="pc_connection_status_waiting">Waiting</string>
     <string name="pc_connection_status_connecting">Connecting</string>

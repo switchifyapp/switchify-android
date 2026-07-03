@@ -29,6 +29,9 @@ class PcConnectionViewModelTest {
             displayName = "Switchify PC"
         )
     )
+    private val friendlyPc = pc.copy(
+        bluetoothEndpoint = pc.bluetoothEndpoint?.copy(deviceName = "Oliver Laptop")
+    )
     private val secondPc = DiscoveredPc(
         serviceName = "Office PC",
         desktopId = "desktop-2",
@@ -469,6 +472,150 @@ class PcConnectionViewModelTest {
     }
 
     @Test
+    fun defaultChoicesIncludeLastConnectionFirst() = runTest(dispatcher) {
+        val tokens = FakeTokenStore(initialTokens = mutableMapOf("desktop-1" to "token"))
+        val viewModel = viewModel(FakeDiscovery(listOf(pc)), tokens, FakeConnector())
+        advanceUntilIdle()
+
+        val firstChoice = viewModel.uiState.value.defaultPcChoices.first()
+        assertEquals(PcDefaultPcPreference.LastConnection, firstChoice.preference)
+        assertEquals("Use last connection", firstChoice.title)
+    }
+
+    @Test
+    fun defaultChoicesIncludePairedPcs() = runTest(dispatcher) {
+        val tokens = FakeTokenStore(
+            initialTokens = mutableMapOf("desktop-1" to "token"),
+            initialServiceNames = mutableMapOf("desktop-1" to "Switchify PC")
+        )
+        val viewModel = viewModel(FakeDiscovery(emptyList()), tokens, FakeConnector())
+        advanceUntilIdle()
+
+        assertEquals(
+            listOf(
+                PcDefaultPcPreference.LastConnection,
+                PcDefaultPcPreference.SpecificPc("desktop-1")
+            ),
+            viewModel.uiState.value.defaultPcChoices.map { it.preference }
+        )
+    }
+
+    @Test
+    fun defaultChoicesPreferDiscoveredFriendlyNameOverStoredName() = runTest(dispatcher) {
+        val tokens = FakeTokenStore(
+            initialTokens = mutableMapOf("desktop-1" to "token"),
+            initialServiceNames = mutableMapOf("desktop-1" to "Switchify PC"),
+            initialLastConnectedDesktopId = "desktop-1"
+        )
+        val viewModel = viewModel(FakeDiscovery(listOf(friendlyPc)), tokens, FakeConnector())
+        advanceUntilIdle()
+
+        val choices = viewModel.uiState.value.defaultPcChoices
+        assertEquals("Currently: Oliver Laptop", choices.first().description)
+        assertEquals("Oliver Laptop", choices[1].title)
+    }
+
+    @Test
+    fun discoveredRowsUseFriendlyControlDeviceName() = runTest(dispatcher) {
+        val viewModel = viewModel(FakeDiscovery(listOf(friendlyPc)), FakeTokenStore(), FakeConnector())
+        advanceUntilIdle()
+
+        assertEquals("Oliver Laptop", viewModel.uiState.value.pcRows.single().title)
+    }
+
+    @Test
+    fun defaultPreferenceDefaultsToLastConnection() = runTest(dispatcher) {
+        val viewModel = viewModel(FakeDiscovery(emptyList()), FakeTokenStore(), FakeConnector())
+        advanceUntilIdle()
+
+        assertEquals(PcDefaultPcPreference.LastConnection, viewModel.uiState.value.defaultPreference)
+    }
+
+    @Test
+    fun setDefaultPcPreferenceToLastConnectionUpdatesStateAndMessage() = runTest(dispatcher) {
+        val tokens = FakeTokenStore(
+            initialTokens = mutableMapOf("desktop-1" to "token"),
+            initialDefaultDesktopId = "desktop-1"
+        )
+        val viewModel = viewModel(FakeDiscovery(listOf(pc)), tokens, FakeConnector())
+        advanceUntilIdle()
+
+        viewModel.setDefaultPcPreference(PcDefaultPcPreference.LastConnection)
+        advanceUntilIdle()
+
+        assertEquals(PcDefaultPcPreference.LastConnection, tokens.getDefaultPcPreference())
+        assertEquals(PcDefaultPcPreference.LastConnection, viewModel.uiState.value.defaultPreference)
+        assertEquals("Default set to last connection.", viewModel.uiState.value.message)
+        assertEquals(false, viewModel.uiState.value.pcRows.single().isDefault)
+    }
+
+    @Test
+    fun setDefaultPcPreferenceToSpecificPcUpdatesStateAndMessage() = runTest(dispatcher) {
+        val tokens = FakeTokenStore(
+            initialTokens = mutableMapOf("desktop-1" to "token"),
+            initialServiceNames = mutableMapOf("desktop-1" to "Switchify PC")
+        )
+        val viewModel = viewModel(FakeDiscovery(listOf(pc)), tokens, FakeConnector())
+        advanceUntilIdle()
+
+        viewModel.setDefaultPcPreference(PcDefaultPcPreference.SpecificPc("desktop-1"))
+        advanceUntilIdle()
+
+        assertEquals(PcDefaultPcPreference.SpecificPc("desktop-1"), tokens.getDefaultPcPreference())
+        assertEquals(true, viewModel.uiState.value.pcRows.single().isDefault)
+        assertEquals("Default PC set to Switchify PC.", viewModel.uiState.value.message)
+    }
+
+    @Test
+    fun setDefaultPcPreferenceUsesDiscoveredFriendlyNameInMessage() = runTest(dispatcher) {
+        val tokens = FakeTokenStore(
+            initialTokens = mutableMapOf("desktop-1" to "token"),
+            initialServiceNames = mutableMapOf("desktop-1" to "Switchify PC")
+        )
+        val viewModel = viewModel(FakeDiscovery(listOf(friendlyPc)), tokens, FakeConnector())
+        advanceUntilIdle()
+
+        viewModel.setDefaultPcPreference(PcDefaultPcPreference.SpecificPc("desktop-1"))
+        advanceUntilIdle()
+
+        assertEquals("Default PC set to Oliver Laptop.", viewModel.uiState.value.message)
+    }
+
+    @Test
+    fun successfulPairingRecordsLastConnection() = runTest(dispatcher) {
+        val discovery = FakeDiscovery(listOf(friendlyPc))
+        val tokens = FakeTokenStore()
+        val connector = FakeConnector(
+            pairingResult = PcPairingResult.Paired("desktop-1", "token", "AA:BB:CC:DD:EE:FF"),
+            pingResult = PcPingResult.Connected("AA:BB:CC:DD:EE:FF")
+        )
+        val viewModel = viewModel(discovery, tokens, connector)
+        advanceUntilIdle()
+
+        viewModel.requestAccess(friendlyPc)
+        advanceUntilIdle()
+
+        assertEquals("desktop-1", tokens.getLastConnectedDesktopId())
+        assertEquals("Oliver Laptop", tokens.getServiceName("desktop-1"))
+    }
+
+    @Test
+    fun successfulSavedTokenConnectionRecordsLastConnection() = runTest(dispatcher) {
+        val tokens = FakeTokenStore(initialTokens = mutableMapOf("desktop-1" to "token"))
+        val viewModel = viewModel(
+            FakeDiscovery(listOf(pc)),
+            tokens,
+            FakeConnector(pingResult = PcPingResult.Connected("AA:BB:CC:DD:EE:FF"))
+        )
+        advanceUntilIdle()
+
+        viewModel.connectWithSavedToken(pc)
+        advanceUntilIdle()
+
+        assertEquals("desktop-1", tokens.getLastConnectedDesktopId())
+    }
+
+    @Test
     fun pairedDiscoveredPcCanBeSetAsDefault() = runTest(dispatcher) {
         val discovery = FakeDiscovery(listOf(pc))
         val tokens = FakeTokenStore(initialTokens = mutableMapOf("desktop-1" to "token"))
@@ -793,7 +940,8 @@ class PcConnectionViewModelTest {
         private val initialTokens: MutableMap<String, String> = mutableMapOf(),
         private val initialLastEndpointIds: MutableMap<String, String> = mutableMapOf(),
         private val initialServiceNames: MutableMap<String, String> = mutableMapOf(),
-        private var initialDefaultDesktopId: String? = null
+        private var initialDefaultDesktopId: String? = null,
+        private var initialLastConnectedDesktopId: String? = null
     ) : PcPairingTokenStore {
         private val lastEndpointIds = initialLastEndpointIds
         private val serviceNames = initialServiceNames
@@ -811,6 +959,7 @@ class PcConnectionViewModelTest {
             lastEndpointIds.remove(desktopId)
             serviceNames.remove(desktopId)
             if (initialDefaultDesktopId == desktopId) initialDefaultDesktopId = null
+            if (initialLastConnectedDesktopId == desktopId) initialLastConnectedDesktopId = null
         }
 
         override fun listPairings(): List<PcStoredPairing> {
@@ -838,6 +987,17 @@ class PcConnectionViewModelTest {
 
         override fun clearDefaultDesktopId() {
             initialDefaultDesktopId = null
+        }
+
+        override fun getLastConnectedDesktopId(): String? {
+            val desktopId = initialLastConnectedDesktopId ?: return null
+            if (initialTokens.containsKey(desktopId)) return desktopId
+            initialLastConnectedDesktopId = null
+            return null
+        }
+
+        override fun recordSuccessfulConnection(desktopId: String) {
+            if (initialTokens.containsKey(desktopId)) initialLastConnectedDesktopId = desktopId
         }
     }
 

@@ -192,9 +192,10 @@ class MainMenuStructure(
         showMessage(R.string.pc_control_connecting, MessageSeverity.Info)
         coroutineScope.launch {
             val discovered = controller.discoverPairedPcs()
-            val defaultDesktopId = pcTokenStore.getDefaultDesktopId()
+            val defaultPreference = pcTokenStore.getDefaultPcPreference()
+            val lastConnectedDesktopId = pcTokenStore.getLastConnectedDesktopId()
             withContext(Dispatchers.Main) {
-                when (val selection = selectPcForMainMenu(discovered, defaultDesktopId)) {
+                when (val selection = selectPcForMainMenu(discovered, defaultPreference, lastConnectedDesktopId)) {
                     PcMainMenuSelection.NoPcFound -> showMessage(R.string.pc_control_no_pc_found, MessageSeverity.Warning)
                     is PcMainMenuSelection.Connect -> connectToPcAndLaunch(controller, selection.pc)
                     is PcMainMenuSelection.ShowChooser -> MenuManager.getInstance().openChoosePcMenu(selection.pcs) { pc ->

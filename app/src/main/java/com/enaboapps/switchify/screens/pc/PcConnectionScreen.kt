@@ -57,6 +57,7 @@ import com.enaboapps.switchify.R
 import com.enaboapps.switchify.components.ActionButton
 import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.Panel
+import com.enaboapps.switchify.components.Picker
 import com.enaboapps.switchify.components.PreferenceComponentBase
 import com.enaboapps.switchify.components.PreferenceRowLeadingIcon
 import com.enaboapps.switchify.components.ScrollableView
@@ -133,6 +134,7 @@ fun PcConnectionScreen(navController: NavController) {
                     onRequestPermission = requestBluetoothPermission
                 )
                 if (!uiState.permissionRequired) {
+                    PcDefaultPcPicker(uiState = uiState, viewModel = viewModel)
                     PcListSection(uiState = uiState, viewModel = viewModel)
                 }
                 PcDownloadSection(openDownloadPage)
@@ -330,11 +332,7 @@ private fun PcListSection(
                         status = row.deviceStatus(),
                         primaryAction = row.primaryAction(viewModel),
                         secondaryActions = {
-                            PcDefaultAction(
-                                isDefault = row.isDefault,
-                                canSetDefault = row.canSetDefault,
-                                onSetDefault = { viewModel.setDefaultPc(row.desktopId, row.title) }
-                            )
+                            PcDefaultAction(isDefault = row.isDefault)
                             if (row.canUnpair) {
                                 TextButton(onClick = { viewModel.requestUnpair(row.desktopId, row.title) }) {
                                     Text(stringResource(R.string.pc_connection_unpair))
@@ -347,6 +345,23 @@ private fun PcListSection(
             }
         }
     }
+}
+
+@Composable
+private fun PcDefaultPcPicker(
+    uiState: PcConnectionUiState,
+    viewModel: PcConnectionViewModel
+) {
+    Picker(
+        titleResId = R.string.pc_connection_default_picker_title,
+        selectedItem = uiState.defaultPcChoices.firstOrNull {
+            it.preference == uiState.defaultPreference
+        },
+        items = uiState.defaultPcChoices,
+        onItemSelected = { viewModel.setDefaultPcPreference(it.preference) },
+        itemToString = { it.title },
+        itemDescription = { it.description }
+    )
 }
 
 @Composable
@@ -508,15 +523,10 @@ private fun PcStatusChip(status: PcConnectionDeviceStatus) {
 
 @Composable
 private fun PcDefaultAction(
-    isDefault: Boolean,
-    canSetDefault: Boolean,
-    onSetDefault: () -> Unit
+    isDefault: Boolean
 ) {
-    when {
-        isDefault -> PcStatusChip(PcConnectionDeviceStatus.Default)
-        canSetDefault -> TextButton(onClick = onSetDefault) {
-            Text(stringResource(R.string.pc_connection_make_default))
-        }
+    if (isDefault) {
+        PcStatusChip(PcConnectionDeviceStatus.Default)
     }
 }
 

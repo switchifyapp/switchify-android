@@ -26,6 +26,9 @@ data class PcConnectionUiState(
     val permissionRequired: Boolean = false,
     val discoveryStatus: PcDiscoveryStatus = PcDiscoveryStatus.Empty,
     val discoveryStatusText: String = "Searching for Switchify PC...",
+    val defaultPreference: PcDefaultPcPreference = PcDefaultPcPreference.LastConnection,
+    val lastConnectedDesktopId: String? = null,
+    val defaultPcChoices: List<PcDefaultPcChoice> = emptyList(),
     val pcRows: List<PcConnectionRowState> = emptyList(),
     val discoveredPcs: List<PcRowState> = emptyList(),
     val savedPairings: List<PcSavedPairingRowState> = emptyList(),
@@ -35,6 +38,12 @@ data class PcConnectionUiState(
     val message: String? = null,
     val approvalCode: PcApprovalCodeState? = null,
     val pendingUnpair: PcUnpairConfirmationState? = null
+)
+
+data class PcDefaultPcChoice(
+    val preference: PcDefaultPcPreference,
+    val title: String,
+    val description: String
 )
 
 data class PcRowState(
@@ -129,11 +138,18 @@ class PcConnectionViewModel(
                 val hasTokenByDesktopId = withContext(backgroundDispatcher) {
                     inputs.pcs.associate { pc -> pc.desktopId to !tokenStore.getToken(pc.desktopId).isNullOrBlank() }
                 }
-                val savedPairings = withContext(backgroundDispatcher) {
-                    savedPairings(discoveredDesktopIds)
+                val allPairings = withContext(backgroundDispatcher) {
+                    tokenStore.listPairings()
                 }
-                val defaultDesktopId = withContext(backgroundDispatcher) {
-                    tokenStore.getDefaultDesktopId()
+                val savedPairings = withContext(backgroundDispatcher) {
+                    savedPairings(allPairings, discoveredDesktopIds)
+                }
+                val defaultPreference = withContext(backgroundDispatcher) {
+                    tokenStore.getDefaultPcPreference()
+                }
+                val defaultDesktopId = (defaultPreference as? PcDefaultPcPreference.SpecificPc)?.desktopId
+                val lastConnectedDesktopId = withContext(backgroundDispatcher) {
+                    tokenStore.getLastConnectedDesktopId()
                 }
                 val pcRows = buildPcRows(
                     pcs = inputs.pcs,
@@ -148,6 +164,9 @@ class PcConnectionViewModel(
                     current.copy(
                         discoveryStatus = inputs.status,
                         discoveryStatusText = discoveryStatusText(inputs.status, inputs.pcs.isEmpty()),
+                        defaultPreference = defaultPreference,
+                        lastConnectedDesktopId = lastConnectedDesktopId,
+                        defaultPcChoices = buildDefaultPcChoices(allPairings, inputs.pcs, lastConnectedDesktopId),
                         pcRows = pcRows,
                         discoveredPcs = inputs.pcs.map { pc ->
                             rowState(
@@ -252,17 +271,38 @@ class PcConnectionViewModel(
     }
 
     fun setDefaultPc(desktopId: String, displayName: String) {
-        if (tokenStore.getToken(desktopId).isNullOrBlank()) return
-        tokenStore.setDefaultDesktopId(desktopId)
-        tokenRevision.update { it + 1 }
-        _uiState.update {
-            it.copy(message = "Default PC set to $displayName.")
-        }
+        setDefaultPcPreference(PcDefaultPcPreference.SpecificPc(desktopId), displayName)
     }
 
     fun clearDefaultPc() {
-        tokenStore.clearDefaultDesktopId()
+        setDefaultPcPreference(PcDefaultPcPreference.LastConnection)
+    }
+
+    fun setDefaultPcPreference(preference: PcDefaultPcPreference) {
+        val displayName = (preference as? PcDefaultPcPreference.SpecificPc)?.desktopId?.let { desktopId ->
+            _uiState.value.pcRows.firstOrNull { it.desktopId == desktopId }?.title
+                ?: tokenStore.getServiceName(desktopId)
+                ?: desktopId
+        }
+        setDefaultPcPreference(preference, displayName)
+    }
+
+    private fun setDefaultPcPreference(
+        preference: PcDefaultPcPreference,
+        displayName: String? = null
+    ) {
+        if (preference is PcDefaultPcPreference.SpecificPc && tokenStore.getToken(preference.desktopId).isNullOrBlank()) {
+            return
+        }
+        tokenStore.setDefaultPcPreference(preference)
         tokenRevision.update { it + 1 }
+        _uiState.update {
+            val message = when (preference) {
+                PcDefaultPcPreference.LastConnection -> "Default set to last connection."
+                is PcDefaultPcPreference.SpecificPc -> "Default PC set to ${displayName ?: preference.desktopId}."
+            }
+            it.copy(message = message)
+        }
     }
 
     fun stopPcBluetooth() {
@@ -309,7 +349,7 @@ class PcConnectionViewModel(
         }
         return PcRowState(
             pc = pc,
-            title = pc.displayName,
+            title = pc.controlDeviceName,
             summary = summary,
             actionText = actionText,
             enabled = !connected && !isBusy,
@@ -320,8 +360,11 @@ class PcConnectionViewModel(
         )
     }
 
-    private fun savedPairings(discoveredDesktopIds: Set<String>): List<PcSavedPairingRowState> {
-        return tokenStore.listPairings()
+    private fun savedPairings(
+        pairings: List<PcStoredPairing>,
+        discoveredDesktopIds: Set<String>
+    ): List<PcSavedPairingRowState> {
+        return pairings
             .filterNot { it.desktopId in discoveredDesktopIds }
             .map { pairing ->
                 PcSavedPairingRowState(
@@ -332,6 +375,33 @@ class PcConnectionViewModel(
                     canSetDefault = true
                 )
             }
+    }
+
+    private fun buildDefaultPcChoices(
+        pairings: List<PcStoredPairing>,
+        discoveredPcs: List<DiscoveredPc>,
+        lastConnectedDesktopId: String?
+    ): List<PcDefaultPcChoice> {
+        val discoveredNames = discoveredPcs.associate { it.desktopId to it.controlDeviceName }
+        val lastConnectionDisplayName = pairings.firstOrNull {
+            it.desktopId == lastConnectedDesktopId
+        }?.let { pairing -> discoveredNames[pairing.desktopId] ?: pairing.serviceName ?: pairing.desktopId }
+        val lastConnectionDescription = lastConnectionDisplayName?.let {
+            "Currently: $it"
+        } ?: "Switchify will use the most recently connected PC."
+        return listOf(
+            PcDefaultPcChoice(
+                preference = PcDefaultPcPreference.LastConnection,
+                title = "Use last connection",
+                description = lastConnectionDescription
+            )
+        ) + pairings.map { pairing ->
+            PcDefaultPcChoice(
+                preference = PcDefaultPcPreference.SpecificPc(pairing.desktopId),
+                title = discoveredNames[pairing.desktopId] ?: pairing.serviceName ?: pairing.desktopId,
+                description = "Always connect to this PC when it is available."
+            )
+        }
     }
 
     private fun buildPcRows(
@@ -383,7 +453,7 @@ class PcConnectionViewModel(
         }
         return PcConnectionRowState(
             desktopId = pc.desktopId,
-            title = pc.displayName,
+            title = pc.controlDeviceName,
             summary = summary,
             source = PcConnectionRowSource.Discovered,
             status = rowStatus,
@@ -440,7 +510,7 @@ class PcConnectionViewModel(
             desktopId = pc.desktopId,
             status = PcRowStatus.WaitingApproval,
             message = null,
-            approvalCode = PcApprovalCodeState(pc.displayName, verificationCode)
+            approvalCode = PcApprovalCodeState(pc.controlDeviceName, verificationCode)
         )
         when (val pairing = connector.requestApproval(pc, requestNonce)) {
             is PcPairingResult.Paired -> {
@@ -449,11 +519,12 @@ class PcConnectionViewModel(
                     isAuthFailure = { it is PcPingResult.AuthFailed }
                 )) {
                     is PcPingResult.Connected -> {
-                        tokenStore.saveToken(pc.desktopId, pairing.token, ping.endpointId, pc.displayName)
+                        tokenStore.saveToken(pc.desktopId, pairing.token, ping.endpointId, pc.controlDeviceName)
+                        tokenStore.recordSuccessfulConnection(pc.desktopId)
                         tokenRevision.update { it + 1 }
                         PcConnectionStateHolder.setConnected(
                             PcAuthenticatedSession(pc.desktopId, identityRepository.getDeviceId(), ping.endpointId),
-                            pc.displayName
+                            pc.controlDeviceName
                         )
                         setIdle(pc.desktopId, PcRowStatus.Connected, null)
                     }
@@ -480,11 +551,12 @@ class PcConnectionViewModel(
             isAuthFailure = { it is PcPingResult.AuthFailed }
         )) {
             is PcPingResult.Connected -> {
-                tokenStore.saveToken(pc.desktopId, token, result.endpointId, pc.displayName)
+                tokenStore.saveToken(pc.desktopId, token, result.endpointId, pc.controlDeviceName)
+                tokenStore.recordSuccessfulConnection(pc.desktopId)
                 tokenRevision.update { it + 1 }
                 PcConnectionStateHolder.setConnected(
                     PcAuthenticatedSession(pc.desktopId, identityRepository.getDeviceId(), result.endpointId),
-                    pc.displayName
+                    pc.controlDeviceName
                 )
                 setIdle(pc.desktopId, PcRowStatus.Connected, null)
             }

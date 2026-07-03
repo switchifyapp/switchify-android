@@ -253,12 +253,12 @@ class PcServiceConnectionController(
             deviceId = identityRepository.getDeviceId(),
             requestNonce = requestNonce
         )
-        onWaitingForApproval(PcApprovalCodeState(pc.displayName, verificationCode))
+        onWaitingForApproval(PcApprovalCodeState(pc.controlDeviceName, verificationCode))
         return when (val result = connector.requestApproval(pc, requestNonce)) {
             is PcPairingResult.Paired -> {
-                tokenStore.saveToken(result.desktopId, result.token, result.endpointId, pc.displayName)
+                tokenStore.saveToken(result.desktopId, result.token, result.endpointId, pc.controlDeviceName)
                 val session = PcAuthenticatedSession(result.desktopId, identityRepository.getDeviceId(), result.endpointId)
-                openLiveControlSession(session, pc.displayName, pc.controlDeviceName)
+                openLiveControlSession(session, pc.controlDeviceName, pc.controlDeviceName)
             }
             is PcPairingResult.Failed -> PcServiceConnectResult.Failed(result.reason, result.message)
         }
@@ -274,9 +274,9 @@ class PcServiceConnectionController(
             isAuthFailure = { it is PcPingResult.AuthFailed }
         )) {
             is PcPingResult.Connected -> {
-                tokenStore.saveToken(pc.desktopId, token, result.endpointId, pc.displayName)
+                tokenStore.saveToken(pc.desktopId, token, result.endpointId, pc.controlDeviceName)
                 val session = PcAuthenticatedSession(pc.desktopId, identityRepository.getDeviceId(), result.endpointId)
-                openLiveControlSession(session, pc.displayName, pc.controlDeviceName)
+                openLiveControlSession(session, pc.controlDeviceName, pc.controlDeviceName)
             }
             is PcPingResult.AuthFailed -> {
                 PcConnectionStateHolder.setDisconnected()
@@ -335,6 +335,7 @@ class PcServiceConnectionController(
         liveDisplayName = displayName
         liveControlDeviceName = controlDeviceName
         pointerProfile = connection.pointerProfile
+        tokenStore.recordSuccessfulConnection(session.desktopId)
         observeLiveConnection(connection, session)
         startLiveHeartbeatIfNeeded()
         _state.value = PcServiceConnectionState.Connected(session, displayName, pointerProfile)
