@@ -10,9 +10,26 @@ interface PcPairingTokenStore {
     fun listPairings(): List<PcStoredPairing>
     fun getLastEndpointId(desktopId: String): String?
     fun getServiceName(desktopId: String): String?
+    fun getDefaultPcPreference(): PcDefaultPcPreference {
+        return getDefaultDesktopId()?.let { PcDefaultPcPreference.SpecificPc(it) }
+            ?: PcDefaultPcPreference.LastConnection
+    }
+    fun setDefaultPcPreference(preference: PcDefaultPcPreference) {
+        when (preference) {
+            PcDefaultPcPreference.LastConnection -> clearDefaultDesktopId()
+            is PcDefaultPcPreference.SpecificPc -> setDefaultDesktopId(preference.desktopId)
+        }
+    }
+    fun getLastConnectedDesktopId(): String? = null
+    fun recordSuccessfulConnection(desktopId: String) = Unit
     fun getDefaultDesktopId(): String?
     fun setDefaultDesktopId(desktopId: String)
     fun clearDefaultDesktopId()
+}
+
+sealed class PcDefaultPcPreference {
+    data object LastConnection : PcDefaultPcPreference()
+    data class SpecificPc(val desktopId: String) : PcDefaultPcPreference()
 }
 
 data class PcStoredPairing(
@@ -55,6 +72,10 @@ class PcTokenStore(context: Context) : PcPairingTokenStore {
             remove(serviceNameKey(desktopId))
             if (preferences.getString(defaultDesktopIdKey, null) == desktopId) {
                 remove(defaultDesktopIdKey)
+                putString(defaultPreferenceModeKey, defaultPreferenceModeLastConnection)
+            }
+            if (preferences.getString(lastConnectedDesktopIdKey, null) == desktopId) {
+                remove(lastConnectedDesktopIdKey)
             }
         }
     }
@@ -80,24 +101,68 @@ class PcTokenStore(context: Context) : PcPairingTokenStore {
         return preferences.getString(serviceNameKey(desktopId), null)?.takeIf { it.isNotBlank() }
     }
 
-    override fun getDefaultDesktopId(): String? {
-        val desktopId = preferences.getString(defaultDesktopIdKey, null)?.takeIf { it.isNotBlank() } ?: return null
+    override fun getDefaultPcPreference(): PcDefaultPcPreference {
+        val mode = preferences.getString(defaultPreferenceModeKey, null)
+        val desktopId = preferences.getString(defaultDesktopIdKey, null)?.takeIf { it.isNotBlank() }
+        if (mode == null) {
+            if (desktopId != null && getToken(desktopId) != null) {
+                return PcDefaultPcPreference.SpecificPc(desktopId)
+            }
+            setDefaultPcPreference(PcDefaultPcPreference.LastConnection)
+            return PcDefaultPcPreference.LastConnection
+        }
+        if (mode == defaultPreferenceModeSpecificPc) {
+            if (desktopId != null && getToken(desktopId) != null) {
+                return PcDefaultPcPreference.SpecificPc(desktopId)
+            }
+            setDefaultPcPreference(PcDefaultPcPreference.LastConnection)
+            return PcDefaultPcPreference.LastConnection
+        }
+        return PcDefaultPcPreference.LastConnection
+    }
+
+    override fun setDefaultPcPreference(preference: PcDefaultPcPreference) {
+        when (preference) {
+            PcDefaultPcPreference.LastConnection -> preferences.edit {
+                putString(defaultPreferenceModeKey, defaultPreferenceModeLastConnection)
+                remove(defaultDesktopIdKey)
+            }
+            is PcDefaultPcPreference.SpecificPc -> {
+                if (getToken(preference.desktopId) == null) return
+                preferences.edit {
+                    putString(defaultPreferenceModeKey, defaultPreferenceModeSpecificPc)
+                    putString(defaultDesktopIdKey, preference.desktopId)
+                }
+            }
+        }
+    }
+
+    override fun getLastConnectedDesktopId(): String? {
+        val desktopId = preferences.getString(lastConnectedDesktopIdKey, null)?.takeIf { it.isNotBlank() } ?: return null
         if (getToken(desktopId) != null) return desktopId
-        clearDefaultDesktopId()
+        preferences.edit {
+            remove(lastConnectedDesktopIdKey)
+        }
         return null
     }
 
-    override fun setDefaultDesktopId(desktopId: String) {
+    override fun recordSuccessfulConnection(desktopId: String) {
         if (getToken(desktopId) == null) return
         preferences.edit {
-            putString(defaultDesktopIdKey, desktopId)
+            putString(lastConnectedDesktopIdKey, desktopId)
         }
     }
 
+    override fun getDefaultDesktopId(): String? {
+        return (getDefaultPcPreference() as? PcDefaultPcPreference.SpecificPc)?.desktopId
+    }
+
+    override fun setDefaultDesktopId(desktopId: String) {
+        setDefaultPcPreference(PcDefaultPcPreference.SpecificPc(desktopId))
+    }
+
     override fun clearDefaultDesktopId() {
-        preferences.edit {
-            remove(defaultDesktopIdKey)
-        }
+        setDefaultPcPreference(PcDefaultPcPreference.LastConnection)
     }
 
     private fun tokenKey(desktopId: String) = "token:$desktopId"
@@ -117,7 +182,11 @@ class PcTokenStore(context: Context) : PcPairingTokenStore {
 
     private companion object {
         const val pairingIdsKey = "paired_desktop_ids"
+        const val defaultPreferenceModeKey = "default_preference_mode"
         const val defaultDesktopIdKey = "default_desktop_id"
+        const val lastConnectedDesktopIdKey = "last_connected_desktop_id"
+        const val defaultPreferenceModeLastConnection = "last_connection"
+        const val defaultPreferenceModeSpecificPc = "specific_pc"
         const val tokenPrefix = "token:"
     }
 }
