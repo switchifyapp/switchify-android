@@ -23,6 +23,7 @@ import com.enaboapps.switchify.pc.supportsTextStreams
 import com.enaboapps.switchify.service.core.ServiceCore
 import java.util.UUID
 import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -87,6 +88,7 @@ class PcMouseControlViewModel(
     val uiState: StateFlow<PcMouseControlUiState> = _uiState.asStateFlow()
     private var movementSteps = FALLBACK_MOVEMENT_STEPS
     private var switchPcCandidates: List<DiscoveredPc> = emptyList()
+    private var switchPcConnectionJob: Job? = null
 
     init {
         val selectedSize = movementSizeStore.getSelectedSize()
@@ -317,6 +319,7 @@ class PcMouseControlViewModel(
     }
 
     fun dismissSwitchPcChooser() {
+        clearActiveSwitchPcConnection()
         _uiState.update {
             it.copy(
                 switchPcChooserVisible = false,
@@ -379,6 +382,7 @@ class PcMouseControlViewModel(
             return
         }
         mouseRepeatManager.clearServiceState()
+        switchPcConnectionJob?.cancel()
         _uiState.update {
             it.copy(
                 isDragging = false,
@@ -388,11 +392,12 @@ class PcMouseControlViewModel(
                 switchPcRows = switchRowsFor(switchPcCandidates, it.copy(switchingDesktopId = desktopId, isDragging = false))
             )
         }
-        viewModelScope.launch {
+        switchPcConnectionJob = viewModelScope.launch {
             when (val result = controller.connectTo(pc) { approvalCode ->
                 _uiState.update { it.copy(switchPcApprovalCode = approvalCode) }
             }) {
                 is PcServiceConnectResult.Connected -> {
+                    switchPcConnectionJob = null
                     _uiState.update {
                         it.copy(
                             switchPcChooserVisible = false,
@@ -404,6 +409,7 @@ class PcMouseControlViewModel(
                     }
                 }
                 is PcServiceConnectResult.Failed -> {
+                    switchPcConnectionJob = null
                     _uiState.update {
                         val next = it.copy(
                             switchingDesktopId = null,
@@ -415,6 +421,23 @@ class PcMouseControlViewModel(
                 }
             }
         }
+    }
+
+    fun cancelSwitchPcPairing() {
+        clearActiveSwitchPcConnection()
+        _uiState.update {
+            val next = it.copy(
+                switchingDesktopId = null,
+                switchPcApprovalCode = null,
+                message = null
+            )
+            next.copy(switchPcRows = switchRowsFor(switchPcCandidates, next))
+        }
+    }
+
+    private fun clearActiveSwitchPcConnection() {
+        switchPcConnectionJob?.cancel()
+        switchPcConnectionJob = null
     }
 
     fun updateTypingText(text: String) {
@@ -703,6 +726,7 @@ class PcMouseControlViewModel(
     }
 
     override fun onCleared() {
+        clearActiveSwitchPcConnection()
         mouseRepeatManager.clearServiceState()
         serviceControllerProvider()?.onPcUiPaused()
         super.onCleared()

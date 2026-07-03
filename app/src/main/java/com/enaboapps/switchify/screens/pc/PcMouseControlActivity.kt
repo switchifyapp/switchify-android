@@ -201,6 +201,9 @@ private fun PcMouseControlScreen(
     }
 
     uiState.switchPcApprovalCode?.let { approvalCode ->
-        PcSwitchPcApprovalDialog(approvalCode)
+        PcSwitchPcApprovalDialog(
+            approvalCode = approvalCode,
+            onCancel = viewModel::cancelSwitchPcPairing
+        )
     }
 }

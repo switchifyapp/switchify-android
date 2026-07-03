@@ -218,10 +218,18 @@ private fun PcSwitchPcRow(
 }
 
 @Composable
-fun PcSwitchPcApprovalDialog(approvalCode: com.enaboapps.switchify.pc.PcApprovalCodeState) {
+fun PcSwitchPcApprovalDialog(
+    approvalCode: com.enaboapps.switchify.pc.PcApprovalCodeState,
+    onCancel: () -> Unit
+) {
     AlertDialog(
-        onDismissRequest = {},
+        onDismissRequest = onCancel,
         confirmButton = {},
+        dismissButton = {
+            TextButton(onClick = onCancel) {
+                Text(stringResource(R.string.cancel))
+            }
+        },
         title = { Text(stringResource(R.string.pc_pairing_code_title)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {

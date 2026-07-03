@@ -143,7 +143,10 @@ fun PcConnectionScreen(navController: NavController) {
     }
 
     uiState.approvalCode?.let { approvalCode ->
-        PcApprovalCodeDialog(approvalCode)
+        PcApprovalCodeDialog(
+            approvalCode = approvalCode,
+            onCancel = viewModel::cancelPairing
+        )
     }
 
     uiState.message?.let { message ->
@@ -618,10 +621,18 @@ private fun PcConnectionRowState.perform(viewModel: PcConnectionViewModel) {
 }
 
 @Composable
-private fun PcApprovalCodeDialog(approvalCode: PcApprovalCodeState) {
+private fun PcApprovalCodeDialog(
+    approvalCode: PcApprovalCodeState,
+    onCancel: () -> Unit
+) {
     AlertDialog(
-        onDismissRequest = {},
+        onDismissRequest = onCancel,
         confirmButton = {},
+        dismissButton = {
+            TextButton(onClick = onCancel) {
+                Text(stringResource(R.string.cancel))
+            }
+        },
         title = { Text(stringResource(R.string.pc_pairing_code_title)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(Dimens.spaceM)) {
