@@ -142,7 +142,7 @@ class PcMouseControlViewModelTest {
 
         advanceUntilIdle()
 
-        assertEquals("Switchify PC", viewModel.uiState.value.connectedDisplayName)
+        assertEquals("Oliver Laptop", viewModel.uiState.value.connectedDisplayName)
         assertEquals("Oliver Laptop", viewModel.uiState.value.switcherConnectedDisplayName)
     }
 
@@ -315,6 +315,32 @@ class PcMouseControlViewModelTest {
     }
 
     @Test
+    fun cancelSwitchPcPairingDismissesApprovalAndClearsSwitchingState() = runTest(dispatcher) {
+        val pairingDeferred = CompletableDeferred<PcPairingResult>()
+        val connector = FakeConnector(
+            liveResults = mutableListOf(PcLiveControlResult.Connected(FakeLiveConnection())),
+            pingResultsByDesktop = mapOf("desktop-2" to PcPingResult.AuthFailed()),
+            pairingResultsByDesktop = mapOf("desktop-2" to pairingDeferred)
+        )
+        val controller = pairedController(connector)
+        val viewModel = viewModel(controller)
+        advanceUntilIdle()
+
+        viewModel.openSwitchPcChooser()
+        advanceUntilIdle()
+        viewModel.switchToPc("desktop-2")
+        runCurrent()
+        viewModel.cancelSwitchPcPairing()
+        advanceUntilIdle()
+
+        assertNull(viewModel.uiState.value.switchPcApprovalCode)
+        assertNull(viewModel.uiState.value.switchingDesktopId)
+        assertTrue(viewModel.uiState.value.switchPcChooserVisible)
+        assertEquals("Switchify PC", viewModel.uiState.value.connectedDisplayName)
+        assertTrue(viewModel.uiState.value.switchPcRows.first { it.desktopId == "desktop-2" }.enabled)
+    }
+
+    @Test
     fun dismissSwitchPcChooserClearsSwitchState() = runTest(dispatcher) {
         val pairingDeferred = CompletableDeferred<PcPairingResult>()
         val connector = FakeConnector(
@@ -338,6 +364,31 @@ class PcMouseControlViewModelTest {
 
         pairingDeferred.complete(PcPairingResult.Paired("desktop-2", "new-token", "11:22:33:44:55:66"))
         advanceUntilIdle()
+    }
+
+    @Test
+    fun cancelSwitchPcPairingDoesNotReplaceCurrentConnectionWhenPairingCompletesLater() = runTest(dispatcher) {
+        val pairingDeferred = CompletableDeferred<PcPairingResult>()
+        val connector = FakeConnector(
+            liveResults = mutableListOf(PcLiveControlResult.Connected(FakeLiveConnection())),
+            pingResultsByDesktop = mapOf("desktop-2" to PcPingResult.AuthFailed()),
+            pairingResultsByDesktop = mapOf("desktop-2" to pairingDeferred)
+        )
+        val controller = pairedController(connector)
+        val viewModel = viewModel(controller)
+        advanceUntilIdle()
+
+        viewModel.openSwitchPcChooser()
+        advanceUntilIdle()
+        viewModel.switchToPc("desktop-2")
+        runCurrent()
+        viewModel.cancelSwitchPcPairing()
+        pairingDeferred.complete(PcPairingResult.Paired("desktop-2", "new-token", "11:22:33:44:55:66"))
+        advanceUntilIdle()
+
+        assertEquals("Switchify PC", viewModel.uiState.value.connectedDisplayName)
+        assertNull(viewModel.uiState.value.switchingDesktopId)
+        assertNull(viewModel.uiState.value.switchPcApprovalCode)
     }
 
     @Test

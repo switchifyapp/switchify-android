@@ -153,6 +153,66 @@ class PcConnectionViewModelTest {
     }
 
     @Test
+    fun cancelPairingDismissesApprovalAndClearsBusyState() = runTest(dispatcher) {
+        val pairingDeferred = CompletableDeferred<PcPairingResult>()
+        val connector = FakeConnector(pairingDeferred = pairingDeferred)
+        val viewModel = viewModel(FakeDiscovery(listOf(pc)), FakeTokenStore(), connector, requestNonceProvider = { "nonce-1" })
+        advanceUntilIdle()
+
+        viewModel.requestAccess(pc)
+        advanceUntilIdle()
+        viewModel.cancelPairing()
+        advanceUntilIdle()
+
+        val row = viewModel.uiState.value.pcRows.single()
+        assertNull(viewModel.uiState.value.approvalCode)
+        assertEquals(false, viewModel.uiState.value.isBusy)
+        assertEquals(PcRowStatus.Idle, row.status)
+        assertEquals(true, row.enabled)
+        assertEquals(1, connector.closeCalls)
+    }
+
+    @Test
+    fun cancelPairingDoesNotSaveTokenWhenPairingCompletesLater() = runTest(dispatcher) {
+        val pairingDeferred = CompletableDeferred<PcPairingResult>()
+        val tokens = FakeTokenStore()
+        val viewModel = viewModel(
+            FakeDiscovery(listOf(pc)),
+            tokens,
+            FakeConnector(
+                pairingDeferred = pairingDeferred,
+                pingResult = PcPingResult.Connected("AA:BB:CC:DD:EE:FF")
+            )
+        )
+        advanceUntilIdle()
+
+        viewModel.requestAccess(pc)
+        advanceUntilIdle()
+        viewModel.cancelPairing()
+        pairingDeferred.complete(PcPairingResult.Paired("desktop-1", "token", "AA:BB:CC:DD:EE:FF"))
+        advanceUntilIdle()
+
+        assertNull(tokens.getToken("desktop-1"))
+        assertNull(tokens.getLastConnectedDesktopId())
+        assertTrue(PcConnectionStateHolder.connectionState.value !is PcConnectionState.Connected)
+    }
+
+    @Test
+    fun cancelPairingIsNoOpWithoutActivePairing() = runTest(dispatcher) {
+        val connector = FakeConnector()
+        val viewModel = viewModel(FakeDiscovery(listOf(pc)), FakeTokenStore(), connector)
+        advanceUntilIdle()
+
+        viewModel.cancelPairing()
+        advanceUntilIdle()
+
+        assertNull(viewModel.uiState.value.approvalCode)
+        assertEquals(false, viewModel.uiState.value.isBusy)
+        assertEquals(PcRowStatus.Idle, viewModel.uiState.value.pcRows.single().status)
+        assertEquals(1, connector.closeCalls)
+    }
+
+    @Test
     fun stopPcBluetoothStopsDiscoveryAndClosesConnector() = runTest(dispatcher) {
         val discovery = FakeDiscovery(listOf(pc))
         val connector = FakeConnector()

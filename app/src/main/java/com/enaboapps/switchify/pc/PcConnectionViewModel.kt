@@ -235,6 +235,28 @@ class PcConnectionViewModel(
         }
     }
 
+    fun cancelPairing() {
+        activeConnectionJob?.cancel()
+        activeConnectionJob = null
+        connector.close()
+        rowStatuses.update { statuses ->
+            statuses.mapValues { (_, status) ->
+                if (status == PcRowStatus.WaitingApproval || status == PcRowStatus.Connecting) {
+                    PcRowStatus.Idle
+                } else {
+                    status
+                }
+            }
+        }
+        _uiState.update {
+            it.copy(
+                isBusy = false,
+                approvalCode = null,
+                message = null
+            )
+        }
+    }
+
     fun clearMessage() {
         _uiState.update { it.copy(message = null) }
     }
