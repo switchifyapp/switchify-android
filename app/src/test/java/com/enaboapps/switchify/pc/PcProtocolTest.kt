@@ -550,6 +550,60 @@ class PcProtocolTest {
     }
 
     @Test
+    fun shortcutKeysIncludeFullAlphabetInOrder() {
+        assertEquals(
+            ('A'..'Z').map { it.toString() },
+            PC_SHORTCUT_LETTER_KEYS.map { it.protocolValue }
+        )
+    }
+
+    @Test
+    fun buildsMultiModifierAlphabetShortcutCommands() {
+        val ctrlShiftA = JSONObject(
+            PcProtocol.keyboardShortcut(
+                id = "shortcut-ctrl-shift-a",
+                deviceId = "device-1",
+                token = "shared-token",
+                timestamp = 1000L,
+                keys = listOf(PcKeyboardShortcutKey.Ctrl, PcKeyboardShortcutKey.Shift, PcKeyboardShortcutKey.A)
+            )
+        )
+        val altF = JSONObject(
+            PcProtocol.keyboardShortcut(
+                id = "shortcut-alt-f",
+                deviceId = "device-1",
+                token = "shared-token",
+                timestamp = 1000L,
+                keys = listOf(PcKeyboardShortcutKey.Alt, PcKeyboardShortcutKey.F)
+            )
+        )
+        val ctrlZ = JSONObject(
+            PcProtocol.keyboardShortcut(
+                id = "shortcut-ctrl-z",
+                deviceId = "device-1",
+                token = "shared-token",
+                timestamp = 1000L,
+                keys = listOf(PcKeyboardShortcutKey.Ctrl, PcKeyboardShortcutKey.Z)
+            )
+        )
+
+        assertEquals(listOf("Ctrl", "Shift", "A"), ctrlShiftA.getJSONObject("payload").getJSONArray("keys").asStringList())
+        assertEquals(listOf("Alt", "F"), altF.getJSONObject("payload").getJSONArray("keys").asStringList())
+        assertEquals(listOf("Ctrl", "Z"), ctrlZ.getJSONObject("payload").getJSONArray("keys").asStringList())
+        assertEquals(
+            PcProtocol.authProof(
+                id = "shortcut-ctrl-shift-a",
+                deviceId = "device-1",
+                timestamp = 1000L,
+                type = "keyboard.shortcut",
+                payload = JSONObject().put("keys", JSONArray(listOf("Ctrl", "Shift", "A"))),
+                token = "shared-token"
+            ),
+            ctrlShiftA.getString("auth")
+        )
+    }
+
+    @Test
     fun buildsKeyboardModifierCommandsWithAuthProof() {
         val down = JSONObject(
             PcProtocol.keyboardModifierDown(
@@ -800,4 +854,8 @@ class PcProtocolTest {
             {"version":1,"id":"profile-1","type":"pointer.profile","ok":true,"payload":{"displayId":"$displayId","scaleFactor":$scaleFactor,"bounds":{"x":0,"y":0,"width":$width,"height":720},"maxDelta":500,"recommendedDeltas":{"small":50,"medium":130,"large":252}$capabilities},"error":null}
         """.trimIndent()
     }
+}
+
+private fun JSONArray.asStringList(): List<String> {
+    return (0 until length()).map { index -> getString(index) }
 }

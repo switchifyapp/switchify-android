@@ -14,11 +14,17 @@ import androidx.compose.material.icons.rounded.Computer
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.enaboapps.switchify.R
+import com.enaboapps.switchify.components.CollapsibleSection
+import com.enaboapps.switchify.pc.PC_SHORTCUT_LETTER_KEYS
 import com.enaboapps.switchify.pc.PcControlCommand
 import com.enaboapps.switchify.pc.PcKeyboardKey
 import com.enaboapps.switchify.pc.PcKeyboardModifierKey
@@ -37,6 +43,7 @@ fun PcWindowControlScreen(
     enabled: Boolean,
     activeModifiers: Set<PcKeyboardModifierKey>,
     onModifierSelected: (PcKeyboardModifierKey) -> Unit,
+    onShortcutLetterSelected: (PcKeyboardShortcutKey) -> Unit,
     onCommandSelected: (PcControlCommand) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -81,28 +88,52 @@ fun PcWindowControlScreen(
                 )
             }
         )
-        Text(
-            text = stringResource(R.string.pc_window_section_shortcuts),
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurface
-        )
-        PcCompactCommandGrid(
-            columns = 3,
-            minTileHeightDp = 52,
-            cells = pcWindowShortcutSpecs().map { spec ->
-                PcCompactCommandCell(
-                    labelResId = spec.labelResId,
-                    enabled = enabled,
-                    onClick = { onCommandSelected(spec.command) },
-                    icon = spec.icon,
-                    tone = spec.tone
-                )
-            }
+        PcShortcutAlphabetAccordion(
+            enabled = enabled,
+            activeModifiers = activeModifiers,
+            onShortcutLetterSelected = onShortcutLetterSelected
         )
         PcKeyboardNavigationCluster(
             enabled = enabled,
             onKeySelected = { key ->
                 onCommandSelected(PcControlCommand.PressKey(key))
+            }
+        )
+    }
+}
+
+@Composable
+fun PcShortcutAlphabetAccordion(
+    enabled: Boolean,
+    activeModifiers: Set<PcKeyboardModifierKey>,
+    onShortcutLetterSelected: (PcKeyboardShortcutKey) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var expanded by rememberSaveable { mutableStateOf(false) }
+    val orderedModifiers = orderedShortcutModifiers(activeModifiers)
+    val modifierLabels = orderedModifiers.map { stringResource(it.labelResId) }.joinToString(" + ")
+    val subtitle = if (orderedModifiers.isEmpty()) {
+        stringResource(R.string.pc_window_shortcuts_no_modifier)
+    } else {
+        stringResource(R.string.pc_window_shortcuts_with_modifiers, modifierLabels)
+    }
+    CollapsibleSection(
+        title = stringResource(R.string.pc_window_section_shortcuts),
+        subtitle = subtitle,
+        expanded = expanded,
+        onExpandedChange = { expanded = it },
+        enabled = enabled,
+        modifier = modifier
+    ) {
+        PcCompactTextCommandGrid(
+            columns = 6,
+            minTileHeightDp = 44,
+            cells = pcWindowShortcutLetterSpecs().map { key ->
+                PcCompactTextCommandCell(
+                    label = key.protocolValue,
+                    enabled = enabled && orderedModifiers.isNotEmpty(),
+                    onClick = { onShortcutLetterSelected(key) }
+                )
             }
         )
     }
@@ -122,25 +153,21 @@ fun pcWindowModifierSpecs(): List<PcWindowModifierSpec> {
     )
 }
 
-fun pcWindowCompactControlSpecs(): List<PcWindowControlSpec?> {
-    return pcWindowControlSpecs() + listOf(null)
+fun orderedShortcutModifiers(activeModifiers: Set<PcKeyboardModifierKey>): List<PcKeyboardModifierKey> {
+    return listOf(
+        PcKeyboardModifierKey.Ctrl,
+        PcKeyboardModifierKey.Alt,
+        PcKeyboardModifierKey.Shift,
+        PcKeyboardModifierKey.Meta
+    ).filter { activeModifiers.contains(it) }
 }
 
-fun pcWindowShortcutSpecs(): List<PcWindowControlSpec> {
-    return listOf(
-        PcWindowControlSpec(
-            R.string.pc_shortcut_select_all,
-            PcControlCommand.KeyboardShortcut(listOf(PcKeyboardShortcutKey.Ctrl, PcKeyboardShortcutKey.A))
-        ),
-        PcWindowControlSpec(
-            R.string.pc_shortcut_copy,
-            PcControlCommand.KeyboardShortcut(listOf(PcKeyboardShortcutKey.Ctrl, PcKeyboardShortcutKey.C))
-        ),
-        PcWindowControlSpec(
-            R.string.pc_shortcut_cut,
-            PcControlCommand.KeyboardShortcut(listOf(PcKeyboardShortcutKey.Ctrl, PcKeyboardShortcutKey.X))
-        )
-    )
+fun pcWindowShortcutLetterSpecs(): List<PcKeyboardShortcutKey> {
+    return PC_SHORTCUT_LETTER_KEYS
+}
+
+fun pcWindowCompactControlSpecs(): List<PcWindowControlSpec?> {
+    return pcWindowControlSpecs() + listOf(null)
 }
 
 fun pcWindowControlSpecs(): List<PcWindowControlSpec> {

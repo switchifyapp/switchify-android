@@ -37,11 +37,36 @@ enum class PcKeyboardKey(
 }
 
 enum class PcKeyboardShortcutKey(val protocolValue: String) {
-    Meta("Meta"),
     Ctrl("Ctrl"),
+    Alt("Alt"),
+    Shift("Shift"),
+    Meta("Meta"),
     A("A"),
+    B("B"),
     C("C"),
-    X("X")
+    D("D"),
+    E("E"),
+    F("F"),
+    G("G"),
+    H("H"),
+    I("I"),
+    J("J"),
+    K("K"),
+    L("L"),
+    M("M"),
+    N("N"),
+    O("O"),
+    P("P"),
+    Q("Q"),
+    R("R"),
+    S("S"),
+    T("T"),
+    U("U"),
+    V("V"),
+    W("W"),
+    X("X"),
+    Y("Y"),
+    Z("Z")
 }
 
 enum class PcKeyboardModifierKey(
@@ -53,3 +78,41 @@ enum class PcKeyboardModifierKey(
     Shift("Shift", R.string.pc_modifier_shift),
     Meta("Meta", R.string.pc_modifier_start)
 }
+
+fun PcKeyboardModifierKey.toShortcutKey(): PcKeyboardShortcutKey {
+    return when (this) {
+        PcKeyboardModifierKey.Ctrl -> PcKeyboardShortcutKey.Ctrl
+        PcKeyboardModifierKey.Alt -> PcKeyboardShortcutKey.Alt
+        PcKeyboardModifierKey.Shift -> PcKeyboardShortcutKey.Shift
+        PcKeyboardModifierKey.Meta -> PcKeyboardShortcutKey.Meta
+    }
+}
+
+val PC_SHORTCUT_LETTER_KEYS: List<PcKeyboardShortcutKey> = listOf(
+    PcKeyboardShortcutKey.A,
+    PcKeyboardShortcutKey.B,
+    PcKeyboardShortcutKey.C,
+    PcKeyboardShortcutKey.D,
+    PcKeyboardShortcutKey.E,
+    PcKeyboardShortcutKey.F,
+    PcKeyboardShortcutKey.G,
+    PcKeyboardShortcutKey.H,
+    PcKeyboardShortcutKey.I,
+    PcKeyboardShortcutKey.J,
+    PcKeyboardShortcutKey.K,
+    PcKeyboardShortcutKey.L,
+    PcKeyboardShortcutKey.M,
+    PcKeyboardShortcutKey.N,
+    PcKeyboardShortcutKey.O,
+    PcKeyboardShortcutKey.P,
+    PcKeyboardShortcutKey.Q,
+    PcKeyboardShortcutKey.R,
+    PcKeyboardShortcutKey.S,
+    PcKeyboardShortcutKey.T,
+    PcKeyboardShortcutKey.U,
+    PcKeyboardShortcutKey.V,
+    PcKeyboardShortcutKey.W,
+    PcKeyboardShortcutKey.X,
+    PcKeyboardShortcutKey.Y,
+    PcKeyboardShortcutKey.Z
+)

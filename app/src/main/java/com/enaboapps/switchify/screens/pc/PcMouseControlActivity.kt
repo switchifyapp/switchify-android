@@ -184,6 +184,7 @@ private fun PcMouseControlScreen(
                         enabled = surfaceEnabled,
                         activeModifiers = uiState.activeModifiers,
                         onModifierSelected = viewModel::toggleModifier,
+                        onShortcutLetterSelected = viewModel::sendShortcutLetter,
                         onCommandSelected = viewModel::send
                     )
                 }
