@@ -9,8 +9,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Keyboard
 import androidx.compose.material.icons.filled.TouchApp
 import androidx.compose.material.icons.rounded.Computer
@@ -31,6 +33,7 @@ fun PcControlSurfaceSwitcher(
     selectedSurface: PcControlSurface,
     onSurfaceSelected: (PcControlSurface) -> Unit,
     enabled: Boolean = true,
+    onClose: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     Surface(
@@ -85,6 +88,35 @@ fun PcControlSurfaceSwitcher(
                                 tint = contentColor
                             )
                         }
+                    }
+                }
+            }
+            onClose?.let { close ->
+                val contentColor = if (enabled) {
+                    MaterialTheme.colorScheme.onSurface
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                }
+                Box(
+                    modifier = Modifier
+                        .width(56.dp)
+                        .heightIn(min = 48.dp)
+                        .padding(4.dp)
+                ) {
+                    IconButton(
+                        onClick = close,
+                        enabled = enabled,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(40.dp)
+                            .semantics { contentDescription = "Close PC controls" }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = null,
+                            modifier = Modifier.size(22.dp),
+                            tint = contentColor
+                        )
                     }
                 }
             }

@@ -104,17 +104,12 @@ private fun PcMouseControlScreen(
                             selectedSurface = uiState.activeSurface,
                             onSurfaceSelected = viewModel::selectControlSurface,
                             enabled = !uiState.isBusy,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(start = 22.dp)
-                        )
-                        PcConnectionStatusDot(
-                            connectedDisplayName = uiState.connectedDisplayName
+                            onClose = onClose,
+                            modifier = Modifier.fillMaxWidth()
                         )
                     }
                 },
-                showBackButton = true,
-                onBackPressed = onClose
+                showBackButton = false
             )
         },
         bottomBar = {
