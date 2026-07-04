@@ -35,8 +35,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.OpenWith
@@ -585,33 +583,36 @@ fun pcMovementControlSpecs(moveStep: Int): List<PcMouseControlSpec> {
         PcMouseControlSpec(
             R.string.pc_mouse_left,
             PcControlCommand.Move(-step, 0),
-            Icons.AutoMirrored.Filled.ArrowBack,
+            Icons.Default.KeyboardArrowUp,
+            -90f,
             repeatable = true
         ),
         PcMouseControlSpec(
             R.string.pc_mouse_right,
             PcControlCommand.Move(step, 0),
-            Icons.AutoMirrored.Filled.ArrowForward,
+            Icons.Default.KeyboardArrowUp,
+            90f,
             repeatable = true
         ),
         PcMouseControlSpec(
             R.string.pc_mouse_down_left,
             PcControlCommand.Move(-step, step),
-            Icons.Default.KeyboardArrowDown,
-            45f,
+            Icons.Default.KeyboardArrowUp,
+            -135f,
             repeatable = true
         ),
         PcMouseControlSpec(
             R.string.pc_mouse_down,
             PcControlCommand.Move(0, step),
-            Icons.Default.KeyboardArrowDown,
+            Icons.Default.KeyboardArrowUp,
+            180f,
             repeatable = true
         ),
         PcMouseControlSpec(
             R.string.pc_mouse_down_right,
             PcControlCommand.Move(step, step),
-            Icons.Default.KeyboardArrowDown,
-            -45f,
+            Icons.Default.KeyboardArrowUp,
+            135f,
             repeatable = true
         )
     )
