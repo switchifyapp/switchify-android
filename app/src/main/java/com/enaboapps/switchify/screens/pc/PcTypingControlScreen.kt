@@ -9,18 +9,20 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.automirrored.filled.KeyboardReturn
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -196,13 +198,8 @@ private fun PcTypingTextActionButton(
         PcTypingTextAction.SendAndEnter -> R.string.pc_typing_send_enter
         PcTypingTextAction.Clear -> R.string.pc_typing_clear
     }
-
-    OutlinedButton(
-        onClick = onClick,
-        enabled = enabled,
-        modifier = modifier.heightIn(min = 48.dp),
-        shape = RoundedCornerShape(8.dp)
-    ) {
+    val buttonModifier = modifier.heightIn(min = 48.dp)
+    val content: @Composable RowScope.() -> Unit = {
         Icon(
             imageVector = icon,
             contentDescription = null
@@ -212,6 +209,37 @@ private fun PcTypingTextActionButton(
             modifier = Modifier.padding(start = 6.dp),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
+        )
+    }
+
+    when (action) {
+        PcTypingTextAction.Send -> Button(
+            onClick = onClick,
+            enabled = enabled,
+            modifier = buttonModifier,
+            content = content
+        )
+
+        PcTypingTextAction.SendAndEnter -> FilledTonalButton(
+            onClick = onClick,
+            enabled = enabled,
+            modifier = buttonModifier,
+            colors = ButtonDefaults.filledTonalButtonColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                contentColor = MaterialTheme.colorScheme.primary
+            ),
+            content = content
+        )
+
+        PcTypingTextAction.Clear -> FilledTonalButton(
+            onClick = onClick,
+            enabled = enabled,
+            modifier = buttonModifier,
+            colors = ButtonDefaults.filledTonalButtonColors(
+                containerColor = MaterialTheme.colorScheme.errorContainer,
+                contentColor = MaterialTheme.colorScheme.onErrorContainer
+            ),
+            content = content
         )
     }
 }
