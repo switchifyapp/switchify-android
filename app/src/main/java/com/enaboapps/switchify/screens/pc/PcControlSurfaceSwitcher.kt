@@ -38,6 +38,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -68,6 +69,7 @@ fun PcControlSurfaceSwitcher(
                 .fillMaxWidth()
                 .height(SwitcherHeight)
         ) {
+            val isTablet = LocalConfiguration.current.smallestScreenWidthDp.dp >= 600.dp
             val surfaces = PcControlSurface.entries
             val closeWidth = if (onClose != null) CloseButtonWidth else 0.dp
             val tabWidth = (maxWidth - closeWidth) / surfaces.size
@@ -124,7 +126,7 @@ fun PcControlSurfaceSwitcher(
                             tint = contentColor
                         )
                         AnimatedVisibility(
-                            visible = selected,
+                            visible = selected && isTablet,
                             enter = fadeIn() + expandHorizontally(),
                             exit = fadeOut() + shrinkHorizontally()
                         ) {
