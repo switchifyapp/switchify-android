@@ -269,7 +269,7 @@ private fun TimeRangeSelector(
         onExpandedChange = { expanded = it },
         modifier = modifier.fillMaxWidth()
     ) {
-        OutlinedTextField(
+        TextField(
             value = when (selectedRange) {
                 TimeRange.TODAY -> stringResource(R.string.stats_time_today)
                 TimeRange.WEEK -> stringResource(R.string.stats_time_week)

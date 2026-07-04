@@ -292,7 +292,7 @@ fun PaletteDialog(
                     expanded = expanded,
                     onExpandedChange = { expanded = it }
                 ) {
-                    OutlinedTextField(
+                    TextField(
                         value = if (selectedFilter == null) {
                             stringResource(R.string.filter_all_menus)
                         } else {
