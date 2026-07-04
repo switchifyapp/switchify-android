@@ -3,6 +3,9 @@ package com.enaboapps.switchify.screens.settings
 import android.Manifest
 import android.app.Application
 import androidx.camera.view.PreviewView
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,8 +17,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.PrimaryTabRow
-import androidx.compose.material3.Tab
 import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -40,10 +41,13 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.enaboapps.switchify.R
+import com.enaboapps.switchify.components.AnimatedTabContent
 import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.CameraPermissionHandler
 import com.enaboapps.switchify.components.NavigationHintCard
 import com.enaboapps.switchify.components.Panel
+import com.enaboapps.switchify.components.PillTab
+import com.enaboapps.switchify.components.PillTabRow
 import com.enaboapps.switchify.components.PreferenceTimeStepper
 import com.enaboapps.switchify.components.ScrollableView
 import com.enaboapps.switchify.components.Section
@@ -130,34 +134,30 @@ private fun CameraSettingsContent(
                 modifier = Modifier.padding(vertical = 8.dp)
             )
 
-            PrimaryTabRow(
-                selectedTabIndex = selectedTabIndex,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                tabTitles.forEachIndexed { index, title ->
-                    Tab(
-                        text = { Text(title) },
-                        selected = selectedTabIndex == index,
-                        onClick = { selectedTabIndex = index }
+            PillTabRow(
+                tabs = tabTitles.map { PillTab(it) },
+                selectedIndex = selectedTabIndex,
+                onTabSelected = { selectedTabIndex = it },
+                modifier = Modifier.padding(vertical = 8.dp)
+            )
+
+            AnimatedTabContent(targetState = selectedTabIndex) { tabIndex ->
+                when (tabIndex) {
+                    0 -> TestGesturesTab(
+                        detectedExpressions = detectedExpressions,
+                        isFaceDetected = isFaceDetected,
+                        onAdjustTiming = { selectedTabIndex = 1 }
+                    )
+
+                    1 -> TimingSettingsTab(
+                        viewModel = viewModel,
+                        smileTime = smileTime,
+                        leftWinkTime = leftWinkTime,
+                        rightWinkTime = rightWinkTime,
+                        blinkTime = blinkTime,
+                        puckerTime = puckerTime
                     )
                 }
-            }
-
-            when (selectedTabIndex) {
-                0 -> TestGesturesTab(
-                    detectedExpressions = detectedExpressions,
-                    isFaceDetected = isFaceDetected,
-                    onAdjustTiming = { selectedTabIndex = 1 }
-                )
-
-                1 -> TimingSettingsTab(
-                    viewModel = viewModel,
-                    smileTime = smileTime,
-                    leftWinkTime = leftWinkTime,
-                    rightWinkTime = rightWinkTime,
-                    blinkTime = blinkTime,
-                    puckerTime = puckerTime
-                )
             }
         }
 
@@ -266,13 +266,22 @@ private fun GestureQuickCheckGrid(
                 rowItems.forEach { id ->
                     val active = detectedExpressions.contains(id)
                     val name = CameraSwitchFacialGesture(id).getName()
+                    val tileColor by animateColorAsState(
+                        targetValue = if (active) {
+                            MaterialTheme.colorScheme.primaryContainer
+                        } else {
+                            MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp)
+                        },
+                        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+                        label = "gestureTileColor"
+                    )
 
                     Panel(
                         modifier = Modifier
                             .weight(1f)
                             .heightIn(min = 64.dp),
                         shape = MaterialTheme.shapes.medium,
-                        containerColor = if (active) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp)
+                        containerColor = tileColor
                     ) {
                         Box(
                             modifier = Modifier

@@ -2,6 +2,7 @@ package com.enaboapps.switchify.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,6 +18,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -38,11 +40,32 @@ fun PreferenceRowScaffold(
     trailing: @Composable RowScope.() -> Unit
 ) {
     val scheme = MaterialTheme.colorScheme
+    val interactionSource = remember { MutableInteractionSource() }
+    val backgroundColor = if (onClick != null) {
+        animatedPressContainerColor(
+            interactionSource = interactionSource,
+            idleColor = scheme.surfaceColorAtElevation(1.dp),
+            pressedColor = scheme.surfaceContainerHigh
+        )
+    } else {
+        scheme.surfaceColorAtElevation(1.dp)
+    }
     val rowModifier = modifier
         .fillMaxWidth()
         .heightIn(min = 56.dp)
-        .background(scheme.surfaceColorAtElevation(1.dp))
-        .let { if (onClick != null) it.clickable(enabled = enabled, onClick = onClick) else it }
+        .background(backgroundColor)
+        .let {
+            if (onClick != null) {
+                it.clickable(
+                    enabled = enabled,
+                    interactionSource = interactionSource,
+                    indication = null,
+                    onClick = onClick
+                )
+            } else {
+                it
+            }
+        }
         .padding(Dimens.spaceM)
 
     if (belowContent == null) {

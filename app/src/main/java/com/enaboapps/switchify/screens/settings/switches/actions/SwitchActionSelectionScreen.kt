@@ -1,6 +1,7 @@
 package com.enaboapps.switchify.screens.settings.switches.actions
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -38,6 +39,8 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.components.BaseView
+import com.enaboapps.switchify.components.animatedPressContainerColor
+import com.enaboapps.switchify.components.springPressScale
 import com.enaboapps.switchify.switches.RequiredActionsPolicy
 import com.enaboapps.switchify.switches.SupportedActionsPolicy
 import com.enaboapps.switchify.switches.SwitchAction
@@ -129,18 +132,26 @@ private fun ActionItem(
     isSelected: Boolean,
     onClick: () -> Unit
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val containerColor = animatedPressContainerColor(
+        interactionSource = interactionSource,
+        idleColor = MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp),
+        pressedColor = MaterialTheme.colorScheme.primaryContainer,
+        selected = isSelected
+    )
     Surface(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp)
+            .springPressScale(interactionSource)
             .semantics { selected = isSelected }
-            .clickable(onClick = onClick),
-        color = if (isSelected) {
-            MaterialTheme.colorScheme.primaryContainer
-        } else {
-            MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp)
-        },
-        shape = RoundedCornerShape(8.dp)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick
+            ),
+        color = containerColor,
+        shape = RoundedCornerShape(12.dp)
     ) {
         Row(
             modifier = Modifier

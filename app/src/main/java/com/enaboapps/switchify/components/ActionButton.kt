@@ -4,8 +4,8 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -24,13 +24,13 @@ enum class ActionButtonType {
     PRIMARY,
 
     /**
-     * Secondary action button - outlined style with primary colors
+     * Secondary action button - tonal style with primary content
      * Use for secondary actions like "Cancel", "Skip", "Back", etc.
      */
     SECONDARY,
 
     /**
-     * Destructive action button - outlined style with error colors
+     * Destructive action button - tonal style with error container colors
      * Use for destructive actions like "Delete", "Remove", "Clear", etc.
      */
     DESTRUCTIVE
@@ -108,10 +108,14 @@ fun ActionButton(
         }
 
         ActionButtonType.SECONDARY -> {
-            OutlinedButton(
+            FilledTonalButton(
                 onClick = onClick,
                 enabled = enabled,
                 modifier = buttonModifier,
+                colors = ButtonDefaults.filledTonalButtonColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    contentColor = MaterialTheme.colorScheme.primary
+                ),
                 contentPadding = contentPadding
             ) {
                 if (leadingIcon != null) {
@@ -126,12 +130,13 @@ fun ActionButton(
         }
 
         ActionButtonType.DESTRUCTIVE -> {
-            OutlinedButton(
+            FilledTonalButton(
                 onClick = onClick,
                 enabled = enabled,
                 modifier = buttonModifier,
-                colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = MaterialTheme.colorScheme.error
+                colors = ButtonDefaults.filledTonalButtonColors(
+                    containerColor = MaterialTheme.colorScheme.errorContainer,
+                    contentColor = MaterialTheme.colorScheme.onErrorContainer
                 ),
                 contentPadding = contentPadding
             ) {

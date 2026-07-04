@@ -34,7 +34,6 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.TouchApp
 import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -145,7 +144,10 @@ fun AccessibilityServiceComponent(
             Spacer(modifier = Modifier.height(Dimens.spaceL))
 
             // Privacy section
-            OutlinedCard(modifier = Modifier.fillMaxWidth()) {
+            Panel(
+                modifier = Modifier.fillMaxWidth(),
+                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+            ) {
                 Row(
                     modifier = Modifier.padding(Dimens.spaceM),
                     verticalAlignment = Alignment.Top

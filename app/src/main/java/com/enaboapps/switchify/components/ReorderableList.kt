@@ -25,9 +25,6 @@ import androidx.compose.material.icons.filled.OpenWith
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.surfaceColorAtElevation
@@ -39,7 +36,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.enaboapps.switchify.R
 import sh.calvin.reorderable.ReorderableItem
@@ -147,7 +143,7 @@ fun <T> ReorderableList(
 }
 
 /**
- * Mode toggle segmented button row.
+ * Mode toggle rendered as the shared sliding pill switcher.
  */
 @Composable
 private fun ReorderModeToggle(
@@ -156,57 +152,23 @@ private fun ReorderModeToggle(
     onModeChange: (ReorderMode) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val colors = SegmentedButtonDefaults.colors(
-        activeContainerColor = MaterialTheme.colorScheme.primary,
-        activeContentColor = MaterialTheme.colorScheme.onPrimary,
-        activeBorderColor = MaterialTheme.colorScheme.primary,
-        inactiveContainerColor = MaterialTheme.colorScheme.surface,
-        inactiveContentColor = MaterialTheme.colorScheme.onSurface,
-        inactiveBorderColor = MaterialTheme.colorScheme.outline
+    val modes = if (showSelect) {
+        listOf(ReorderMode.DRAG, ReorderMode.ARROWS, ReorderMode.SELECT)
+    } else {
+        listOf(ReorderMode.DRAG, ReorderMode.ARROWS)
+    }
+    val labels = listOf(
+        stringResource(R.string.reorder_mode_drag),
+        stringResource(R.string.reorder_mode_arrows),
+        stringResource(R.string.reorder_mode_select)
     )
 
-    val totalCount = if (showSelect) 3 else 2
-
-    SingleChoiceSegmentedButtonRow(modifier = modifier) {
-        SegmentedButton(
-            selected = currentMode == ReorderMode.DRAG,
-            onClick = { onModeChange(ReorderMode.DRAG) },
-            shape = SegmentedButtonDefaults.itemShape(index = 0, count = totalCount),
-            colors = colors
-        ) {
-            Text(
-                text = stringResource(R.string.reorder_mode_drag),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-        }
-        SegmentedButton(
-            selected = currentMode == ReorderMode.ARROWS,
-            onClick = { onModeChange(ReorderMode.ARROWS) },
-            shape = SegmentedButtonDefaults.itemShape(index = 1, count = totalCount),
-            colors = colors
-        ) {
-            Text(
-                text = stringResource(R.string.reorder_mode_arrows),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-        }
-        if (showSelect) {
-            SegmentedButton(
-                selected = currentMode == ReorderMode.SELECT,
-                onClick = { onModeChange(ReorderMode.SELECT) },
-                shape = SegmentedButtonDefaults.itemShape(index = 2, count = totalCount),
-                colors = colors
-            ) {
-                Text(
-                    text = stringResource(R.string.reorder_mode_select),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-        }
-    }
+    PillTabRow(
+        tabs = modes.mapIndexed { index, _ -> PillTab(label = labels[index]) },
+        selectedIndex = modes.indexOf(currentMode).coerceAtLeast(0),
+        onTabSelected = { index -> onModeChange(modes[index]) },
+        modifier = modifier
+    )
 }
 
 /**
@@ -441,7 +403,7 @@ private fun InsertAtEndRow(selectedLabel: String, onClick: () -> Unit) {
             .fillMaxWidth()
             .padding(vertical = 4.dp),
         color = MaterialTheme.colorScheme.surfaceColorAtElevation(2.dp),
-        shape = RoundedCornerShape(8.dp)
+        shape = RoundedCornerShape(12.dp)
     ) {
         Row(
             modifier = Modifier

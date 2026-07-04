@@ -1,6 +1,7 @@
 package com.enaboapps.switchify.screens.onboarding.steps
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloat
@@ -40,9 +41,10 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -76,7 +78,6 @@ data class PracticeBox(
     val id: Int,
     val icon: ImageVector,
     val label: String,
-    val color: Color,
     var isActivated: Boolean = false
 )
 
@@ -98,26 +99,22 @@ fun PracticeStep(
             PracticeBox(
                 id = 0,
                 icon = Icons.Default.Favorite,
-                label = Resources.getString(R.string.onboarding_practice_box_1),
-                color = Color(0xFFE91E63)
+                label = Resources.getString(R.string.onboarding_practice_box_1)
             ),
             PracticeBox(
                 id = 1,
                 icon = Icons.Default.Star,
-                label = Resources.getString(R.string.onboarding_practice_box_2),
-                color = Color(0xFFFFC107)
+                label = Resources.getString(R.string.onboarding_practice_box_2)
             ),
             PracticeBox(
                 id = 2,
                 icon = Icons.Default.Celebration,
-                label = Resources.getString(R.string.onboarding_practice_box_3),
-                color = Color(0xFF4CAF50)
+                label = Resources.getString(R.string.onboarding_practice_box_3)
             ),
             PracticeBox(
                 id = 3,
                 icon = Icons.Default.EmojiEmotions,
-                label = Resources.getString(R.string.onboarding_practice_box_4),
-                color = Color(0xFF2196F3)
+                label = Resources.getString(R.string.onboarding_practice_box_4)
             )
         )
     }
@@ -313,36 +310,34 @@ private fun PracticeBoxItem(
         label = "rotation"
     )
 
+    val containerColor by animateColorAsState(
+        targetValue = if (box.isActivated) {
+            MaterialTheme.colorScheme.primaryContainer
+        } else {
+            MaterialTheme.colorScheme.surfaceContainerHigh
+        },
+        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+        label = "practiceBoxColor"
+    )
+    val contentColor = if (box.isActivated) {
+        MaterialTheme.colorScheme.onPrimaryContainer
+    } else {
+        MaterialTheme.colorScheme.onSurfaceVariant
+    }
+
     Card(
         modifier = modifier
             .wrapContentHeight()
             .scale(scale)
             .clickable(enabled = !box.isActivated) { onActivate() },
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = if (box.isActivated) 0.dp else 8.dp
-        ),
-        colors = CardDefaults.cardColors(
-            containerColor = if (box.isActivated)
-                box.color.copy(alpha = 0.2f)
-            else
-                MaterialTheme.colorScheme.surface
-        ),
-        border = if (!box.isActivated) {
-            CardDefaults.outlinedCardBorder()
-        } else {
-            null
-        }
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        colors = CardDefaults.cardColors(containerColor = containerColor)
     ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .heightIn(min = 120.dp)
-                .background(
-                    if (box.isActivated)
-                        box.color.copy(alpha = 0.1f)
-                    else
-                        Color.Transparent
-                )
                 .padding(16.dp),
             contentAlignment = Alignment.Center
         ) {
@@ -358,7 +353,7 @@ private fun PracticeBoxItem(
                         .graphicsLayer {
                             rotationZ = rotation
                         },
-                    tint = if (box.isActivated) box.color else MaterialTheme.colorScheme.onSurfaceVariant
+                    tint = contentColor
                 )
 
                 Spacer(modifier = Modifier.height(8.dp))
@@ -368,7 +363,7 @@ private fun PracticeBoxItem(
                     style = MaterialTheme.typography.bodyMedium,
                     textAlign = TextAlign.Center,
                     fontWeight = if (box.isActivated) FontWeight.Bold else FontWeight.Normal,
-                    color = if (box.isActivated) box.color else MaterialTheme.colorScheme.onSurfaceVariant
+                    color = contentColor
                 )
 
                 // Checkmark overlay
@@ -382,7 +377,7 @@ private fun PracticeBoxItem(
                         modifier = Modifier
                             .size(24.dp)
                             .padding(top = 4.dp),
-                        tint = box.color
+                        tint = MaterialTheme.colorScheme.primary
                     )
                 }
             }
@@ -419,7 +414,7 @@ private fun CelebrationOverlay() {
                 modifier = Modifier
                     .size(120.dp)
                     .scale(scale),
-                tint = Color(0xFFFFC107)
+                tint = MaterialTheme.colorScheme.primaryContainer
             )
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -440,15 +435,16 @@ private fun CelebrationOverlay() {
         }
 
         // Confetti effect (simplified)
+        val scheme = MaterialTheme.colorScheme
         repeat(20) {
             val offsetX = remember { Random.nextInt(-200, 200).dp }
             val offsetY = remember { Random.nextInt(-300, -100).dp }
             val color = remember {
                 listOf(
-                    Color(0xFFE91E63),
-                    Color(0xFFFFC107),
-                    Color(0xFF4CAF50),
-                    Color(0xFF2196F3)
+                    scheme.primary,
+                    scheme.primaryContainer,
+                    scheme.secondary,
+                    scheme.secondaryContainer
                 ).random()
             }
 
@@ -495,12 +491,16 @@ private fun AccessibilityServiceAlert(
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                OutlinedButton(
-                    onClick = onSkipPractice
+                FilledTonalButton(
+                    onClick = onSkipPractice,
+                    colors = ButtonDefaults.filledTonalButtonColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        contentColor = MaterialTheme.colorScheme.primary
+                    )
                 ) {
                     Text(stringResource(R.string.onboarding_skip_practice))
                 }
-                
+
                 TextButton(
                     onClick = onDismiss
                 ) {

@@ -21,8 +21,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.PrimaryTabRow
-import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -43,8 +41,11 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
+import com.enaboapps.switchify.components.AnimatedTabContent
 import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.Panel
+import com.enaboapps.switchify.components.PillTab
+import com.enaboapps.switchify.components.PillTabRow
 import com.enaboapps.switchify.components.PreferenceSwitch
 import com.enaboapps.switchify.components.ReorderMode
 import com.enaboapps.switchify.components.ReorderableList
@@ -74,22 +75,18 @@ fun GesturePatternsScreen(navController: NavController) {
         enableScroll = false  // Tabs manage scrolling
     ) {
         Column {
-            PrimaryTabRow(
-                selectedTabIndex = selectedTabIndex,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                tabTitles.forEachIndexed { index, title ->
-                    Tab(
-                        text = { Text(title) },
-                        selected = selectedTabIndex == index,
-                        onClick = { selectedTabIndex = index }
-                    )
-                }
-            }
+            PillTabRow(
+                tabs = tabTitles.map { PillTab(it) },
+                selectedIndex = selectedTabIndex,
+                onTabSelected = { selectedTabIndex = it },
+                modifier = Modifier.padding(vertical = 8.dp)
+            )
 
-            when (selectedTabIndex) {
-                0 -> PatternListTab(viewModel = viewModel)
-                1 -> PatternSettingsTab()
+            AnimatedTabContent(targetState = selectedTabIndex) { tabIndex ->
+                when (tabIndex) {
+                    0 -> PatternListTab(viewModel = viewModel)
+                    1 -> PatternSettingsTab()
+                }
             }
         }
     }

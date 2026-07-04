@@ -2,6 +2,7 @@ package com.enaboapps.switchify.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -18,7 +19,7 @@ import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedCard
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.surfaceColorAtElevation
@@ -55,13 +56,23 @@ fun <T> Picker(
 
     val selectedLabel = if (selectedItem != null) itemToString(selectedItem) else ""
     val scheme = MaterialTheme.colorScheme
+    val interactionSource = remember { MutableInteractionSource() }
+    val triggerColor = animatedPressContainerColor(
+        interactionSource = interactionSource,
+        idleColor = scheme.surfaceColorAtElevation(1.dp),
+        pressedColor = scheme.surfaceContainerHigh
+    )
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = 56.dp)
-            .background(scheme.surfaceColorAtElevation(1.dp))
-            .clickable { expanded = true }
+            .background(triggerColor)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = { expanded = true }
+            )
             .padding(Dimens.spaceM),
         horizontalArrangement = Arrangement.spacedBy(Dimens.spaceM),
         verticalAlignment = Alignment.CenterVertically
@@ -101,14 +112,32 @@ fun <T> Picker(
                     verticalArrangement = Arrangement.spacedBy(Dimens.spaceXs)
                 ) {
                     items.forEach { item ->
-                        OutlinedCard(
+                        val selected = item == selectedItem
+                        val optionInteraction = remember(item) { MutableInteractionSource() }
+                        val optionColor = animatedPressContainerColor(
+                            interactionSource = optionInteraction,
+                            idleColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                            pressedColor = MaterialTheme.colorScheme.primaryContainer,
+                            selected = selected
+                        )
+                        val contentColor = if (selected) {
+                            MaterialTheme.colorScheme.onPrimaryContainer
+                        } else {
+                            MaterialTheme.colorScheme.onSurface
+                        }
+                        Surface(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable {
-                                    onItemSelected(item)
-                                    expanded = false
-                                },
-                            shape = RoundedCornerShape(8.dp)
+                                .clickable(
+                                    interactionSource = optionInteraction,
+                                    indication = null,
+                                    onClick = {
+                                        onItemSelected(item)
+                                        expanded = false
+                                    }
+                                ),
+                            shape = RoundedCornerShape(12.dp),
+                            color = optionColor
                         ) {
                             Column(
                                 modifier = Modifier
@@ -118,7 +147,8 @@ fun <T> Picker(
                                 Text(
                                     text = itemToString(item),
                                     style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Medium
+                                    fontWeight = FontWeight.Medium,
+                                    color = contentColor
                                 )
                                 val description = itemDescription(item)
                                 if (description.isNotBlank()) {
@@ -126,7 +156,11 @@ fun <T> Picker(
                                     Text(
                                         text = description,
                                         style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        color = if (selected) {
+                                            MaterialTheme.colorScheme.onPrimaryContainer
+                                        } else {
+                                            MaterialTheme.colorScheme.onSurfaceVariant
+                                        }
                                     )
                                 }
                             }

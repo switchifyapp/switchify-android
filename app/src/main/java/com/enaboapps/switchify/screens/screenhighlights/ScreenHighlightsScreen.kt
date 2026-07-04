@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -27,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.components.ActionButton
 import com.enaboapps.switchify.components.NavBar
+import com.enaboapps.switchify.components.Panel
 import com.enaboapps.switchify.service.llm.ExtractedItem
 import com.enaboapps.switchify.service.llm.HighlightType
 import com.enaboapps.switchify.theme.Dimens
@@ -112,9 +112,10 @@ private fun ItemsContent(items: List<ExtractedItem>, onSelect: (ExtractedItem) -
 
 @Composable
 private fun HighlightCard(item: ExtractedItem, onClick: () -> Unit) {
-    Card(
+    Panel(
         onClick = onClick,
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.medium
     ) {
         Column(
             modifier = Modifier.padding(Dimens.spaceM),
