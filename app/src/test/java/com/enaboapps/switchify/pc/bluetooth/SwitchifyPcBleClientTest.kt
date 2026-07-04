@@ -311,14 +311,24 @@ class SwitchifyPcBleClientTest {
                 PcControlCommand.KeyboardShortcut(listOf(PcKeyboardShortcutKey.Ctrl, PcKeyboardShortcutKey.X))
             )
         )
+        assertEquals(
+            PcCommandResult.Ack,
+            client.sendCommand(
+                session,
+                PcControlCommand.KeyboardShortcut(listOf(PcKeyboardShortcutKey.Ctrl, PcKeyboardShortcutKey.Shift, PcKeyboardShortcutKey.Z))
+            )
+        )
 
-        assertEquals(listOf("keyboard.shortcut", "keyboard.shortcut", "keyboard.shortcut"), messages.map { it.getString("type") })
+        assertEquals(listOf("keyboard.shortcut", "keyboard.shortcut", "keyboard.shortcut", "keyboard.shortcut"), messages.map { it.getString("type") })
         assertEquals("Ctrl", messages[0].getJSONObject("payload").getJSONArray("keys").getString(0))
         assertEquals("A", messages[0].getJSONObject("payload").getJSONArray("keys").getString(1))
         assertEquals("Ctrl", messages[1].getJSONObject("payload").getJSONArray("keys").getString(0))
         assertEquals("C", messages[1].getJSONObject("payload").getJSONArray("keys").getString(1))
         assertEquals("Ctrl", messages[2].getJSONObject("payload").getJSONArray("keys").getString(0))
         assertEquals("X", messages[2].getJSONObject("payload").getJSONArray("keys").getString(1))
+        assertEquals("Ctrl", messages[3].getJSONObject("payload").getJSONArray("keys").getString(0))
+        assertEquals("Shift", messages[3].getJSONObject("payload").getJSONArray("keys").getString(1))
+        assertEquals("Z", messages[3].getJSONObject("payload").getJSONArray("keys").getString(2))
     }
 
     @Test

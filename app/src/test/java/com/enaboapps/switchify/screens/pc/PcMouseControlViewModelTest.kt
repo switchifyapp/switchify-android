@@ -1168,6 +1168,69 @@ class PcMouseControlViewModelTest {
     }
 
     @Test
+    fun shortcutLetterWithoutActiveModifiersDoesNotSendCommand() = runTest(dispatcher) {
+        val connector = FakeConnector()
+        val controller = connectedController(connector = connector)
+        val viewModel = viewModel(controller)
+
+        viewModel.sendShortcutLetter(PcKeyboardShortcutKey.C)
+        advanceUntilIdle()
+
+        assertTrue(connector.realtimeCommands.isEmpty())
+        assertEquals(PcMouseControlViewModel.SELECT_SHORTCUT_MODIFIER_MESSAGE, viewModel.uiState.value.message)
+    }
+
+    @Test
+    fun shortcutLetterSendsWithActiveModifiersInStableOrder() = runTest(dispatcher) {
+        val connector = FakeConnector()
+        val controller = connectedController(connector = connector)
+        val viewModel = viewModel(controller)
+        advanceUntilIdle()
+
+        viewModel.toggleModifier(PcKeyboardModifierKey.Shift)
+        advanceUntilIdle()
+        viewModel.toggleModifier(PcKeyboardModifierKey.Ctrl)
+        advanceUntilIdle()
+        viewModel.sendShortcutLetter(PcKeyboardShortcutKey.Z)
+        advanceUntilIdle()
+
+        assertEquals(
+            listOf(
+                PcControlCommand.ModifierDown(PcKeyboardModifierKey.Shift),
+                PcControlCommand.ModifierDown(PcKeyboardModifierKey.Ctrl),
+                PcControlCommand.KeyboardShortcut(
+                    listOf(
+                        PcKeyboardShortcutKey.Ctrl,
+                        PcKeyboardShortcutKey.Shift,
+                        PcKeyboardShortcutKey.Z
+                    )
+                )
+            ),
+            connector.realtimeCommands
+        )
+        assertEquals(setOf(PcKeyboardModifierKey.Shift, PcKeyboardModifierKey.Ctrl), viewModel.uiState.value.activeModifiers)
+        assertNull(viewModel.uiState.value.message)
+    }
+
+    @Test
+    fun failedShortcutLetterDoesNotClearActiveModifiers() = runTest(dispatcher) {
+        val connector = FakeConnector(
+            realtimeResults = mutableListOf(PcCommandResult.Ack, PcCommandResult.Failed())
+        )
+        val controller = connectedController(connector = connector)
+        val viewModel = viewModel(controller)
+        advanceUntilIdle()
+
+        viewModel.toggleModifier(PcKeyboardModifierKey.Ctrl)
+        advanceUntilIdle()
+        viewModel.sendShortcutLetter(PcKeyboardShortcutKey.C)
+        advanceUntilIdle()
+
+        assertEquals(setOf(PcKeyboardModifierKey.Ctrl), viewModel.uiState.value.activeModifiers)
+        assertEquals(PcMouseControlViewModel.COMMAND_FAILED_MESSAGE, viewModel.uiState.value.message)
+    }
+
+    @Test
     fun controlCommandDoesNotSetBusy() = runTest(dispatcher) {
         val connector = FakeConnector()
         val controller = connectedController(connector = connector)

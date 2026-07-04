@@ -6,6 +6,7 @@ import com.enaboapps.switchify.pc.PcKeyboardKey
 import com.enaboapps.switchify.pc.PcKeyboardModifierKey
 import com.enaboapps.switchify.pc.PcKeyboardShortcutKey
 import com.enaboapps.switchify.pc.PcWindowControlAction
+import com.enaboapps.switchify.pc.toShortcutKey
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -63,16 +64,10 @@ class PcWindowControlScreenTest {
     }
 
     @Test
-    fun windowShortcutCommandsUseStableOrder() {
-        val commands = pcWindowShortcutSpecs().map { it.command }
-
+    fun shortcutLetterSpecsUseAlphabeticalOrder() {
         assertEquals(
-            listOf(
-                PcControlCommand.KeyboardShortcut(listOf(PcKeyboardShortcutKey.Ctrl, PcKeyboardShortcutKey.A)),
-                PcControlCommand.KeyboardShortcut(listOf(PcKeyboardShortcutKey.Ctrl, PcKeyboardShortcutKey.C)),
-                PcControlCommand.KeyboardShortcut(listOf(PcKeyboardShortcutKey.Ctrl, PcKeyboardShortcutKey.X))
-            ),
-            commands
+            ('A'..'Z').map { it.toString() },
+            pcWindowShortcutLetterSpecs().map { it.protocolValue }
         )
     }
 
@@ -101,23 +96,33 @@ class PcWindowControlScreenTest {
     }
 
     @Test
-    fun windowShortcutLabelsMatchActions() {
-        val specs = pcWindowShortcutSpecs()
+    fun shortcutModifiersUseStableOrderAndMapping() {
+        val modifiers = orderedShortcutModifiers(
+            setOf(
+                PcKeyboardModifierKey.Meta,
+                PcKeyboardModifierKey.Shift,
+                PcKeyboardModifierKey.Ctrl,
+                PcKeyboardModifierKey.Alt
+            )
+        )
 
-        assertEquals(R.string.pc_shortcut_select_all, specs[0].labelResId)
         assertEquals(
-            PcControlCommand.KeyboardShortcut(listOf(PcKeyboardShortcutKey.Ctrl, PcKeyboardShortcutKey.A)),
-            specs[0].command
+            listOf(
+                PcKeyboardModifierKey.Ctrl,
+                PcKeyboardModifierKey.Alt,
+                PcKeyboardModifierKey.Shift,
+                PcKeyboardModifierKey.Meta
+            ),
+            modifiers
         )
-        assertEquals(R.string.pc_shortcut_copy, specs[1].labelResId)
         assertEquals(
-            PcControlCommand.KeyboardShortcut(listOf(PcKeyboardShortcutKey.Ctrl, PcKeyboardShortcutKey.C)),
-            specs[1].command
-        )
-        assertEquals(R.string.pc_shortcut_cut, specs[2].labelResId)
-        assertEquals(
-            PcControlCommand.KeyboardShortcut(listOf(PcKeyboardShortcutKey.Ctrl, PcKeyboardShortcutKey.X)),
-            specs[2].command
+            listOf(
+                PcKeyboardShortcutKey.Ctrl,
+                PcKeyboardShortcutKey.Alt,
+                PcKeyboardShortcutKey.Shift,
+                PcKeyboardShortcutKey.Meta
+            ),
+            modifiers.map { it.toShortcutKey() }
         )
     }
 

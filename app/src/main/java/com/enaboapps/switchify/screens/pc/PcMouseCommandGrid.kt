@@ -78,6 +78,13 @@ data class PcCompactCommandCell(
     val selected: Boolean = false
 )
 
+data class PcCompactTextCommandCell(
+    val label: String,
+    val enabled: Boolean,
+    val onClick: () -> Unit,
+    val selected: Boolean = false
+)
+
 /**
  * Small connection indicator shown in the navbar next to the surface switcher.
  * Non-interactive; the connection state is exposed through semantics so speech
@@ -225,6 +232,44 @@ fun PcCompactCommandGrid(
 }
 
 @Composable
+fun PcCompactTextCommandGrid(
+    columns: Int,
+    minTileHeightDp: Int,
+    horizontalGapDp: Int = 8,
+    verticalGapDp: Int = 8,
+    cells: List<PcCompactTextCommandCell>,
+    modifier: Modifier = Modifier
+) {
+    require(columns > 0)
+    val horizontalGap = horizontalGapDp.dp
+    val verticalGap = verticalGapDp.dp
+
+    BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
+        val tileWidth = (maxWidth - horizontalGap * (columns - 1)) / columns
+        Column(verticalArrangement = Arrangement.spacedBy(verticalGap)) {
+            cells.chunked(columns).forEach { rowCells ->
+                EqualHeightGridRow(
+                    items = rowCells,
+                    columns = columns,
+                    itemWidth = tileWidth,
+                    minItemHeight = minTileHeightDp.dp,
+                    horizontalGap = horizontalGap
+                ) { cell, itemModifier ->
+                    PcScannedCommandTile(
+                        label = cell.label,
+                        enabled = cell.enabled,
+                        onClick = cell.onClick,
+                        selected = cell.selected,
+                        minHeightDp = minTileHeightDp,
+                        modifier = itemModifier
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun PcCommandSectionTitle(@StringRes titleResId: Int) {
     Text(
         text = stringResource(titleResId),
@@ -236,6 +281,33 @@ private fun PcCommandSectionTitle(@StringRes titleResId: Int) {
 @Composable
 fun PcScannedCommandTile(
     @StringRes labelResId: Int,
+    enabled: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    icon: ImageVector? = null,
+    iconRotationDegrees: Float = 0f,
+    tone: PcCommandTone = PcCommandTone.Neutral,
+    selected: Boolean = false,
+    minHeightDp: Int = 52,
+    square: Boolean = false
+) {
+    PcScannedCommandTile(
+        label = stringResource(labelResId),
+        enabled = enabled,
+        onClick = onClick,
+        modifier = modifier,
+        icon = icon,
+        iconRotationDegrees = iconRotationDegrees,
+        tone = tone,
+        selected = selected,
+        minHeightDp = minHeightDp,
+        square = square
+    )
+}
+
+@Composable
+fun PcScannedCommandTile(
+    label: String,
     enabled: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -321,7 +393,7 @@ fun PcScannedCommandTile(
                     )
                 }
                 Text(
-                    text = stringResource(labelResId),
+                    text = label,
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = if (tone == PcCommandTone.Primary) FontWeight.SemiBold else FontWeight.Medium,
                     color = contentColor,

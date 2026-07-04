@@ -425,9 +425,8 @@
     <string name="pc_window_close">Close app</string>
     <string name="pc_window_section_modifiers">Modifiers</string>
     <string name="pc_window_section_shortcuts">Shortcuts</string>
-    <string name="pc_shortcut_select_all">Select all</string>
-    <string name="pc_shortcut_copy">Copy</string>
-    <string name="pc_shortcut_cut">Cut</string>
+    <string name="pc_window_shortcuts_no_modifier">Choose Ctrl, Alt, Shift, or Start first.</string>
+    <string name="pc_window_shortcuts_with_modifiers">Send with %1$s.</string>
     <string name="pc_modifier_ctrl">Ctrl</string>
     <string name="pc_modifier_alt">Alt</string>
     <string name="pc_modifier_shift">Shift</string>

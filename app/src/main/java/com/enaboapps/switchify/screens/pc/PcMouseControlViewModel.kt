@@ -14,6 +14,7 @@ import com.enaboapps.switchify.pc.PcControlCommand
 import com.enaboapps.switchify.pc.PcErrorReason
 import com.enaboapps.switchify.pc.PcKeyboardKey
 import com.enaboapps.switchify.pc.PcKeyboardModifierKey
+import com.enaboapps.switchify.pc.PcKeyboardShortcutKey
 import com.enaboapps.switchify.pc.PcMouseRepeatManager
 import com.enaboapps.switchify.pc.PcServiceConnectResult
 import com.enaboapps.switchify.pc.PcServiceConnectionController
@@ -23,6 +24,7 @@ import com.enaboapps.switchify.pc.isSafePcTypedText
 import com.enaboapps.switchify.pc.pcTextStreamItemsFor
 import com.enaboapps.switchify.pc.supportsModifierToggle
 import com.enaboapps.switchify.pc.supportsTextStreams
+import com.enaboapps.switchify.pc.toShortcutKey
 import com.enaboapps.switchify.service.core.ServiceCore
 import java.util.UUID
 import kotlinx.coroutines.CoroutineStart
@@ -167,6 +169,22 @@ class PcMouseControlViewModel(
                 } else {
                     it.activeModifiers + key
                 },
+                isBusy = false,
+                busyCommand = null,
+                message = null
+            )
+        }
+    }
+
+    fun sendShortcutLetter(letter: PcKeyboardShortcutKey) {
+        val modifiers = orderedShortcutModifiers(_uiState.value.activeModifiers)
+        if (modifiers.isEmpty()) {
+            _uiState.update { it.copy(message = SELECT_SHORTCUT_MODIFIER_MESSAGE) }
+            return
+        }
+        val keys = modifiers.map { it.toShortcutKey() } + letter
+        sendNoAckCommand(PcControlCommand.KeyboardShortcut(keys)) {
+            it.copy(
                 isBusy = false,
                 busyCommand = null,
                 message = null
@@ -1086,6 +1104,7 @@ class PcMouseControlViewModel(
         const val KEY_FAILED_MESSAGE = "Could not send key to PC."
         const val TEXT_TOO_LONG_MESSAGE = "Text is too long."
         const val TEXT_UNSUPPORTED_MESSAGE = "Text includes unsupported characters."
+        const val SELECT_SHORTCUT_MODIFIER_MESSAGE = "Choose Ctrl, Alt, Shift, or Start first."
         const val TEXT_STREAM_SEND_DELAY_MS = 250L
         const val TEXT_STREAM_RECONNECT_TIMEOUT_MS = 15_000L
         const val TEXT_STREAM_RECONNECT_RETRY_LIMIT = 3
