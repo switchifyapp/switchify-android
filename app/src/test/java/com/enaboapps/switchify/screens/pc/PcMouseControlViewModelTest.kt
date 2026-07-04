@@ -1470,6 +1470,107 @@ class PcMouseControlViewModelTest {
     }
 
     @Test
+    fun leftClickClearsDraggingAfterSuccessfulSend() = runTest(dispatcher) {
+        val connector = FakeConnector()
+        val controller = connectedController(connector = connector)
+        val viewModel = viewModel(controller)
+
+        viewModel.send(PcControlCommand.DragStart())
+        advanceUntilIdle()
+        viewModel.send(PcControlCommand.LeftClick)
+        advanceUntilIdle()
+
+        assertEquals(
+            listOf(PcControlCommand.DragStart(), PcControlCommand.LeftClick),
+            connector.realtimeCommands
+        )
+        assertFalse(viewModel.uiState.value.isDragging)
+    }
+
+    @Test
+    fun rightClickClearsDraggingAfterSuccessfulSend() = runTest(dispatcher) {
+        val controller = connectedController()
+        val viewModel = viewModel(controller)
+
+        viewModel.send(PcControlCommand.DragStart())
+        advanceUntilIdle()
+        viewModel.send(PcControlCommand.RightClick)
+        advanceUntilIdle()
+
+        assertFalse(viewModel.uiState.value.isDragging)
+    }
+
+    @Test
+    fun doubleClickClearsDraggingAfterSuccessfulSend() = runTest(dispatcher) {
+        val controller = connectedController()
+        val viewModel = viewModel(controller)
+
+        viewModel.send(PcControlCommand.DragStart())
+        advanceUntilIdle()
+        viewModel.send(PcControlCommand.DoubleClick)
+        advanceUntilIdle()
+
+        assertFalse(viewModel.uiState.value.isDragging)
+    }
+
+    @Test
+    fun failedClickDoesNotClearDraggingMirror() = runTest(dispatcher) {
+        val connector = FakeConnector(
+            realtimeResults = mutableListOf(PcCommandResult.Ack, PcCommandResult.Failed())
+        )
+        val controller = connectedController(connector = connector)
+        val viewModel = viewModel(controller)
+
+        viewModel.send(PcControlCommand.DragStart())
+        advanceUntilIdle()
+        viewModel.send(PcControlCommand.LeftClick)
+        advanceUntilIdle()
+
+        assertTrue(viewModel.uiState.value.isDragging)
+        assertEquals(PcMouseControlViewModel.COMMAND_FAILED_MESSAGE, viewModel.uiState.value.message)
+    }
+
+    @Test
+    fun moveDoesNotClearDragging() = runTest(dispatcher) {
+        val controller = connectedController()
+        val viewModel = viewModel(controller)
+
+        viewModel.send(PcControlCommand.DragStart())
+        advanceUntilIdle()
+        viewModel.send(PcControlCommand.Move(dx = 10, dy = 0))
+        advanceUntilIdle()
+
+        assertTrue(viewModel.uiState.value.isDragging)
+    }
+
+    @Test
+    fun scrollDoesNotClearDragging() = runTest(dispatcher) {
+        val controller = connectedController()
+        val viewModel = viewModel(controller)
+
+        viewModel.send(PcControlCommand.DragStart())
+        advanceUntilIdle()
+        viewModel.send(PcControlCommand.Scroll(dx = 0, dy = -1))
+        advanceUntilIdle()
+
+        assertTrue(viewModel.uiState.value.isDragging)
+    }
+
+    @Test
+    fun modifierToggleDoesNotClearDragging() = runTest(dispatcher) {
+        val controller = connectedController(pointerProfile = modifierPointerProfile())
+        val viewModel = viewModel(controller)
+        advanceUntilIdle()
+
+        viewModel.send(PcControlCommand.DragStart())
+        advanceUntilIdle()
+        viewModel.toggleModifier(PcKeyboardModifierKey.Ctrl)
+        advanceUntilIdle()
+
+        assertTrue(viewModel.uiState.value.isDragging)
+    }
+
+    @Test
     fun supportedProfileEnablesModifierToggles() = runTest(dispatcher) {
         val controller = connectedController(pointerProfile = modifierPointerProfile())
         val viewModel = viewModel(controller)

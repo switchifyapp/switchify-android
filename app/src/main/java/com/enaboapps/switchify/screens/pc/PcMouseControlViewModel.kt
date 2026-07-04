@@ -142,7 +142,7 @@ class PcMouseControlViewModel(
                 isDragging = when (commandToSend) {
                     is PcControlCommand.DragStart -> true
                     is PcControlCommand.DragEnd -> false
-                    else -> it.isDragging
+                    else -> if (it.isDragging && commandToSend.endsActiveDragWithClick()) false else it.isDragging
                 },
                 isBusy = false,
                 busyCommand = null,
@@ -1132,6 +1132,12 @@ class PcMouseControlViewModel(
             else -> null
         }
     }
+}
+
+private fun PcControlCommand.endsActiveDragWithClick(): Boolean {
+    return this is PcControlCommand.LeftClick ||
+        this is PcControlCommand.DoubleClick ||
+        this is PcControlCommand.RightClick
 }
 
 private class InMemoryControlSurfaceStore : PcControlSurfaceStore {
