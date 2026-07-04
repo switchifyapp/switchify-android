@@ -3,6 +3,7 @@ package com.enaboapps.switchify.screens.pc
 import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloat
@@ -160,8 +161,11 @@ fun PcTransientMessage(
     if (message != null) {
         lastMessage = message
     }
+    val visibleState = remember { MutableTransitionState(message != null) }
+    visibleState.targetState = message != null
+    if (message == null && visibleState.isIdle && !visibleState.currentState) return
     AnimatedVisibility(
-        visible = message != null,
+        visibleState = visibleState,
         enter = fadeIn() + expandVertically(),
         exit = fadeOut() + shrinkVertically(),
         modifier = modifier.fillMaxWidth()
@@ -188,16 +192,16 @@ fun PcMovementSizeSection(
     enabled: Boolean = true,
     modifier: Modifier = Modifier
 ) {
-    Column(
-        modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        PcCommandSectionTitle(R.string.pc_mouse_movement_size)
-        PcMouseMovementSizeSelector(
-            selectedSize = selectedSize,
-            onSizeSelected = onSizeSelected,
-            enabled = enabled
-        )
+    Column(modifier = modifier.fillMaxWidth()) {
+        Section(titleResId = R.string.pc_mouse_movement_size) {
+            Box(modifier = Modifier.padding(12.dp)) {
+                PcMouseMovementSizeSelector(
+                    selectedSize = selectedSize,
+                    onSizeSelected = onSizeSelected,
+                    enabled = enabled
+                )
+            }
+        }
     }
 }
 
@@ -352,15 +356,6 @@ fun PcCompactTextCommandGrid(
             }
         }
     }
-}
-
-@Composable
-private fun PcCommandSectionTitle(@StringRes titleResId: Int) {
-    Text(
-        text = stringResource(titleResId),
-        style = MaterialTheme.typography.titleMedium,
-        color = MaterialTheme.colorScheme.onSurface
-    )
 }
 
 @Composable

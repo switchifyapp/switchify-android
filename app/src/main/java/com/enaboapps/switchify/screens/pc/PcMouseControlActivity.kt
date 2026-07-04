@@ -159,7 +159,7 @@ private fun PcMouseControlScreen(
                 ) {
                     PcTransientMessage(message = uiState.message)
                     when (activeSurface) {
-                        PcControlSurface.Mouse -> {
+                        PcControlSurface.Mouse -> Column(modifier = Modifier.fillMaxWidth()) {
                             PcControlCommandGrid(
                                 enabled = surfaceEnabled,
                                 movementStep = uiState.movementStep,
