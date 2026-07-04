@@ -183,12 +183,18 @@ class PcMouseControlViewModel(
             return
         }
         val keys = modifiers.map { it.toShortcutKey() } + letter
-        sendNoAckCommand(PcControlCommand.KeyboardShortcut(keys)) {
-            it.copy(
-                isBusy = false,
-                busyCommand = null,
-                message = null
-            )
+        viewModelScope.launch {
+            when (sendNoAckCommandNow(PcControlCommand.KeyboardShortcut(keys)) {
+                it.copy(
+                    isBusy = false,
+                    busyCommand = null,
+                    message = null
+                )
+            }) {
+                PcCommandResult.Ack -> releaseActiveModifiersIfPossible()
+                is PcCommandResult.AuthFailed,
+                is PcCommandResult.Failed -> Unit
+            }
         }
     }
 
@@ -492,7 +498,7 @@ class PcMouseControlViewModel(
     }
 
     private fun releaseActiveModifiersIfPossible() {
-        val modifiers = _uiState.value.activeModifiers.toList()
+        val modifiers = orderedShortcutModifiers(_uiState.value.activeModifiers).asReversed()
         if (modifiers.isEmpty()) return
         _uiState.update { it.copy(activeModifiers = emptySet()) }
         val controller = serviceControllerProvider()

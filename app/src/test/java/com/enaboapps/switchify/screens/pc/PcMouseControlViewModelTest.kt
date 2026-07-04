@@ -1204,11 +1204,13 @@ class PcMouseControlViewModelTest {
                         PcKeyboardShortcutKey.Shift,
                         PcKeyboardShortcutKey.Z
                     )
-                )
+                ),
+                PcControlCommand.ModifierUp(PcKeyboardModifierKey.Shift),
+                PcControlCommand.ModifierUp(PcKeyboardModifierKey.Ctrl)
             ),
             connector.realtimeCommands
         )
-        assertEquals(setOf(PcKeyboardModifierKey.Shift, PcKeyboardModifierKey.Ctrl), viewModel.uiState.value.activeModifiers)
+        assertEquals(emptySet<PcKeyboardModifierKey>(), viewModel.uiState.value.activeModifiers)
         assertNull(viewModel.uiState.value.message)
     }
 
