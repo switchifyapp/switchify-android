@@ -663,6 +663,7 @@ private fun HeadControlTestContent(
                     )
 
                     // Ball overlay
+                    val ballColor = MaterialTheme.colorScheme.secondary
                     Canvas(
                         modifier = Modifier.fillMaxSize()
                     ) {
@@ -678,7 +679,7 @@ private fun HeadControlTestContent(
 
                         // Draw the ball
                         drawCircle(
-                            color = Color(0xFF2196F3), // Blue color
+                            color = ballColor,
                             radius = ballRadius * 0.3f, // Scale down for the card
                             center = Offset(ballDrawX, ballDrawY)
                         )

@@ -1,10 +1,13 @@
 package com.enaboapps.switchify.screens.onboarding
 
-import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -17,6 +20,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
@@ -113,12 +117,22 @@ fun OnboardingScreen(navController: NavController) {
             }
 
             // Animated content based on current step
-            AnimatedVisibility(
-                visible = true,
-                enter = slideInHorizontally { it } + fadeIn(),
-                exit = slideOutHorizontally { -it } + fadeOut()
-            ) {
-                when (uiState.currentStep) {
+            AnimatedContent(
+                targetState = uiState.currentStep,
+                transitionSpec = {
+                    val forward = targetState.ordinal >= initialState.ordinal
+                    val slideSpec = spring<IntOffset>(
+                        dampingRatio = Spring.DampingRatioLowBouncy,
+                        stiffness = Spring.StiffnessMediumLow
+                    )
+                    (fadeIn(spring(stiffness = Spring.StiffnessMediumLow)) +
+                            slideInHorizontally(slideSpec) { if (forward) it / 6 else -it / 6 }) togetherWith
+                        (fadeOut(spring(stiffness = Spring.StiffnessMedium)) +
+                                slideOutHorizontally(slideSpec) { if (forward) -it / 6 else it / 6 })
+                },
+                label = "onboardingStep"
+            ) { currentStep ->
+                when (currentStep) {
                     OnboardingStep.WELCOME -> WelcomeStep(
                         isNewUser = uiState.isNewUser,
                         onNewUserChoice = { isNew ->

@@ -24,6 +24,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.enaboapps.switchify.R
+import com.enaboapps.switchify.components.ActionButton
+import com.enaboapps.switchify.components.ActionButtonType
 import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.ScrollableView
 import com.enaboapps.switchify.components.Section
@@ -195,12 +197,13 @@ fun StatsScreen(navController: NavController) {
                 Spacer(modifier = Modifier.height(24.dp))
 
                 // Clear data button
-                OutlinedButton(
+                ActionButton(
+                    textResId = R.string.stats_clear_data,
                     onClick = { showClearDialog = true },
+                    type = ActionButtonType.DESTRUCTIVE,
+                    applyPadding = false,
                     modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(stringResource(R.string.stats_clear_data))
-                }
+                )
 
                 Spacer(modifier = Modifier.height(16.dp))
             }
