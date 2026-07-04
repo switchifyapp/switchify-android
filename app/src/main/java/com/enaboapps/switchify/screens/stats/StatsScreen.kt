@@ -29,6 +29,8 @@ import com.enaboapps.switchify.components.ActionButtonType
 import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.ScrollableView
 import com.enaboapps.switchify.components.Section
+import com.enaboapps.switchify.components.SwitchifyTextFieldShape
+import com.enaboapps.switchify.components.switchifyTextFieldColors
 import com.enaboapps.switchify.screens.stats.components.ActivityChart
 import com.enaboapps.switchify.screens.stats.components.BreakdownList
 import com.enaboapps.switchify.screens.stats.components.StatCard
@@ -278,6 +280,8 @@ private fun TimeRangeSelector(
             readOnly = true,
             label = { Text(stringResource(R.string.stats_time_range_label)) },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            shape = SwitchifyTextFieldShape,
+            colors = switchifyTextFieldColors(),
             modifier = Modifier
                 .fillMaxWidth()
                 .menuAnchor(type = ExposedDropdownMenuAnchorType.PrimaryNotEditable)

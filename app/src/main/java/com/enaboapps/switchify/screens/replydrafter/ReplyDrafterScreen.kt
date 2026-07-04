@@ -17,7 +17,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -30,6 +29,7 @@ import com.enaboapps.switchify.R
 import com.enaboapps.switchify.components.ActionButton
 import com.enaboapps.switchify.components.NavBar
 import com.enaboapps.switchify.components.Panel
+import com.enaboapps.switchify.components.SwitchifyTextField
 import com.enaboapps.switchify.theme.Dimens
 
 @Composable
@@ -174,7 +174,7 @@ private fun GuidanceInputRow(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Dimens.spaceS)
     ) {
-        OutlinedTextField(
+        SwitchifyTextField(
             value = guidance,
             onValueChange = onGuidanceChange,
             modifier = Modifier.weight(1f),

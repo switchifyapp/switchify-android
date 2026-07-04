@@ -28,6 +28,8 @@ import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.ReorderMode
 import com.enaboapps.switchify.components.ReorderableList
 import com.enaboapps.switchify.components.SelectModeState
+import com.enaboapps.switchify.components.SwitchifyTextFieldShape
+import com.enaboapps.switchify.components.switchifyTextFieldColors
 import com.enaboapps.switchify.screens.settings.menu.models.MenuCustomizationScreenModel
 import com.enaboapps.switchify.screens.settings.menu.models.PaletteItem
 import com.enaboapps.switchify.service.menu.MenuItem
@@ -300,6 +302,8 @@ fun PaletteDialog(
                         readOnly = true,
                         label = { Text(stringResource(R.string.filter_by_menu)) },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                        shape = SwitchifyTextFieldShape,
+                        colors = switchifyTextFieldColors(),
                         modifier = Modifier
                             .fillMaxWidth()
                             .menuAnchor(type = androidx.compose.material3.ExposedDropdownMenuAnchorType.PrimaryNotEditable)

@@ -3,7 +3,6 @@ package com.enaboapps.switchify.components
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -12,7 +11,6 @@ import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -56,7 +54,7 @@ fun TextArea(
             .fillMaxWidth()
             .padding(horizontal = Dimens.spaceM)
     ) {
-        OutlinedTextField(
+        SwitchifyTextField(
             value = value,
             onValueChange = { newValue ->
                 if (maxLength == null || newValue.length <= maxLength) {
@@ -67,7 +65,6 @@ fun TextArea(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 22.dp),
-            shape = RoundedCornerShape(12.dp),
             keyboardOptions = KeyboardOptions(
                 keyboardType = keyboardType,
                 imeAction = imeAction

@@ -21,7 +21,6 @@ import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -31,6 +30,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.components.AdaptiveStack
+import com.enaboapps.switchify.components.SwitchifyTextField
 import com.enaboapps.switchify.pc.PcKeyboardKey
 import com.enaboapps.switchify.pc.isSafePcTypedText
 
@@ -134,7 +134,7 @@ private fun PcTypingTextBox(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        OutlinedTextField(
+        SwitchifyTextField(
             value = text,
             onValueChange = onTextChanged,
             enabled = enabled,
