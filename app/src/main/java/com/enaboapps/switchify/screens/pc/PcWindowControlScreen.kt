@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.pc.PcControlCommand
 import com.enaboapps.switchify.pc.PcKeyboardKey
+import com.enaboapps.switchify.pc.PcKeyboardModifierKey
 import com.enaboapps.switchify.pc.PcKeyboardShortcutKey
 import com.enaboapps.switchify.pc.PcWindowControlAction
 
@@ -34,6 +35,8 @@ data class PcWindowControlSpec(
 @Composable
 fun PcWindowControlScreen(
     enabled: Boolean,
+    activeModifiers: Set<PcKeyboardModifierKey>,
+    onModifierSelected: (PcKeyboardModifierKey) -> Unit,
     onCommandSelected: (PcControlCommand) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -62,6 +65,23 @@ fun PcWindowControlScreen(
             }
         )
         Text(
+            text = stringResource(R.string.pc_window_section_modifiers),
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        PcCompactCommandGrid(
+            columns = 4,
+            minTileHeightDp = 52,
+            cells = pcWindowModifierSpecs().map { spec ->
+                PcCompactCommandCell(
+                    labelResId = spec.labelResId,
+                    enabled = enabled,
+                    onClick = { onModifierSelected(spec.key) },
+                    selected = activeModifiers.contains(spec.key)
+                )
+            }
+        )
+        Text(
             text = stringResource(R.string.pc_window_section_shortcuts),
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSurface
@@ -86,6 +106,20 @@ fun PcWindowControlScreen(
             }
         )
     }
+}
+
+data class PcWindowModifierSpec(
+    @param:StringRes val labelResId: Int,
+    val key: PcKeyboardModifierKey
+)
+
+fun pcWindowModifierSpecs(): List<PcWindowModifierSpec> {
+    return listOf(
+        PcWindowModifierSpec(R.string.pc_modifier_ctrl, PcKeyboardModifierKey.Ctrl),
+        PcWindowModifierSpec(R.string.pc_modifier_alt, PcKeyboardModifierKey.Alt),
+        PcWindowModifierSpec(R.string.pc_modifier_shift, PcKeyboardModifierKey.Shift),
+        PcWindowModifierSpec(R.string.pc_modifier_start, PcKeyboardModifierKey.Meta)
+    )
 }
 
 fun pcWindowCompactControlSpecs(): List<PcWindowControlSpec?> {

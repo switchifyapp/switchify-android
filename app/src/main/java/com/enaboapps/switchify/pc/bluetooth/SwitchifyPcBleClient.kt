@@ -295,6 +295,8 @@ class SwitchifyPcBleClient(
             is PcControlCommand.TextStreamClose -> PcProtocol.keyboardTextStreamClose(id, deviceId, token, timestamp, streamId, expectedCount, responseMode)
             is PcControlCommand.PressKey -> PcProtocol.keyboardKey(id, deviceId, token, timestamp, key, responseMode)
             is PcControlCommand.KeyboardShortcut -> PcProtocol.keyboardShortcut(id, deviceId, token, timestamp, keys, responseMode)
+            is PcControlCommand.ModifierDown -> PcProtocol.keyboardModifierDown(id, deviceId, token, timestamp, key, responseMode)
+            is PcControlCommand.ModifierUp -> PcProtocol.keyboardModifierUp(id, deviceId, token, timestamp, key, responseMode)
             is PcControlCommand.WindowControl -> PcProtocol.windowControl(id, deviceId, token, timestamp, action, responseMode)
         }
     }
@@ -402,6 +404,8 @@ private fun PcControlCommand.protocolType(): String {
         is PcControlCommand.TextStreamClose -> "keyboard.textStream.close"
         is PcControlCommand.PressKey -> "keyboard.key"
         is PcControlCommand.KeyboardShortcut -> "keyboard.shortcut"
+        is PcControlCommand.ModifierDown -> "keyboard.modifierDown"
+        is PcControlCommand.ModifierUp -> "keyboard.modifierUp"
         is PcControlCommand.WindowControl -> "window.control"
     }
 }

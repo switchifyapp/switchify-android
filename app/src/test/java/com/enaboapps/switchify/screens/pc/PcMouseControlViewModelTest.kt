@@ -16,6 +16,7 @@ import com.enaboapps.switchify.pc.PcDiscovery
 import com.enaboapps.switchify.pc.PcDiscoveryStatus
 import com.enaboapps.switchify.pc.PcErrorReason
 import com.enaboapps.switchify.pc.PcKeyboardKey
+import com.enaboapps.switchify.pc.PcKeyboardModifierKey
 import com.enaboapps.switchify.pc.PcKeyboardShortcutKey
 import com.enaboapps.switchify.pc.PcLiveControlResult
 import com.enaboapps.switchify.pc.PcMouseRepeatManager
@@ -1404,6 +1405,142 @@ class PcMouseControlViewModelTest {
     }
 
     @Test
+    fun supportedProfileEnablesModifierToggles() = runTest(dispatcher) {
+        val controller = connectedController(pointerProfile = modifierPointerProfile())
+        val viewModel = viewModel(controller)
+
+        advanceUntilIdle()
+
+        assertTrue(viewModel.uiState.value.supportsModifierToggles)
+    }
+
+    @Test
+    fun unsupportedProfileDisablesModifierToggles() = runTest(dispatcher) {
+        val controller = connectedController(pointerProfile = pointerProfile())
+        val viewModel = viewModel(controller)
+
+        advanceUntilIdle()
+
+        assertFalse(viewModel.uiState.value.supportsModifierToggles)
+    }
+
+    @Test
+    fun modifierToggleSendsWithoutAdvertisedSupport() = runTest(dispatcher) {
+        val connector = FakeConnector()
+        val controller = connectedController(connector = connector, pointerProfile = pointerProfile())
+        val viewModel = viewModel(controller)
+        advanceUntilIdle()
+
+        viewModel.toggleModifier(PcKeyboardModifierKey.Ctrl)
+        advanceUntilIdle()
+
+        assertEquals(listOf(PcControlCommand.ModifierDown(PcKeyboardModifierKey.Ctrl)), connector.realtimeCommands)
+        assertEquals(setOf(PcKeyboardModifierKey.Ctrl), viewModel.uiState.value.activeModifiers)
+    }
+
+    @Test
+    fun modifierToggleDownMarksActiveAfterAck() = runTest(dispatcher) {
+        val connector = FakeConnector()
+        val controller = connectedController(connector = connector, pointerProfile = modifierPointerProfile())
+        val viewModel = viewModel(controller)
+        advanceUntilIdle()
+
+        viewModel.toggleModifier(PcKeyboardModifierKey.Ctrl)
+        advanceUntilIdle()
+
+        assertEquals(listOf(PcControlCommand.ModifierDown(PcKeyboardModifierKey.Ctrl)), connector.realtimeCommands)
+        assertEquals(setOf(PcKeyboardModifierKey.Ctrl), viewModel.uiState.value.activeModifiers)
+    }
+
+    @Test
+    fun modifierToggleUpClearsActiveAfterAck() = runTest(dispatcher) {
+        val connector = FakeConnector()
+        val controller = connectedController(connector = connector, pointerProfile = modifierPointerProfile())
+        val viewModel = viewModel(controller)
+        advanceUntilIdle()
+
+        viewModel.toggleModifier(PcKeyboardModifierKey.Ctrl)
+        advanceUntilIdle()
+        viewModel.toggleModifier(PcKeyboardModifierKey.Ctrl)
+        advanceUntilIdle()
+
+        assertEquals(
+            listOf(
+                PcControlCommand.ModifierDown(PcKeyboardModifierKey.Ctrl),
+                PcControlCommand.ModifierUp(PcKeyboardModifierKey.Ctrl)
+            ),
+            connector.realtimeCommands
+        )
+        assertEquals(emptySet<PcKeyboardModifierKey>(), viewModel.uiState.value.activeModifiers)
+    }
+
+    @Test
+    fun failedModifierDownDoesNotMarkActive() = runTest(dispatcher) {
+        val connector = FakeConnector(commandResult = PcCommandResult.Failed())
+        val controller = connectedController(connector = connector, pointerProfile = modifierPointerProfile())
+        val viewModel = viewModel(controller)
+        advanceUntilIdle()
+
+        viewModel.toggleModifier(PcKeyboardModifierKey.Shift)
+        advanceUntilIdle()
+
+        assertEquals(emptySet<PcKeyboardModifierKey>(), viewModel.uiState.value.activeModifiers)
+    }
+
+    @Test
+    fun modifiersCoexistWithDrag() = runTest(dispatcher) {
+        val connector = FakeConnector()
+        val controller = connectedController(connector = connector, pointerProfile = modifierPointerProfile())
+        val viewModel = viewModel(controller)
+        advanceUntilIdle()
+
+        viewModel.toggleModifier(PcKeyboardModifierKey.Ctrl)
+        advanceUntilIdle()
+        viewModel.send(PcControlCommand.DragStart())
+        advanceUntilIdle()
+
+        assertEquals(setOf(PcKeyboardModifierKey.Ctrl), viewModel.uiState.value.activeModifiers)
+        assertTrue(viewModel.uiState.value.isDragging)
+    }
+
+    @Test
+    fun reconnectClearsActiveModifiers() = runTest(dispatcher) {
+        val controller = connectedController(pointerProfile = modifierPointerProfile())
+        val viewModel = viewModel(controller)
+        val session = PcAuthenticatedSession("desktop-1", "device-1", "AA:BB:CC:DD:EE:FF")
+        advanceUntilIdle()
+
+        viewModel.toggleModifier(PcKeyboardModifierKey.Alt)
+        advanceUntilIdle()
+        PcConnectionStateHolder.setReconnecting(session, "Switchify PC")
+        advanceUntilIdle()
+
+        assertEquals(emptySet<PcKeyboardModifierKey>(), viewModel.uiState.value.activeModifiers)
+    }
+
+    @Test
+    fun uiPauseReleasesAndClearsActiveModifiers() = runTest(dispatcher) {
+        val connector = FakeConnector()
+        val controller = connectedController(connector = connector, pointerProfile = modifierPointerProfile())
+        val viewModel = viewModel(controller)
+        advanceUntilIdle()
+
+        viewModel.toggleModifier(PcKeyboardModifierKey.Meta)
+        advanceUntilIdle()
+        viewModel.onPcUiPaused()
+        advanceUntilIdle()
+
+        assertEquals(emptySet<PcKeyboardModifierKey>(), viewModel.uiState.value.activeModifiers)
+        assertEquals(
+            listOf(
+                PcControlCommand.ModifierDown(PcKeyboardModifierKey.Meta),
+                PcControlCommand.ModifierUp(PcKeyboardModifierKey.Meta)
+            ),
+            connector.realtimeCommands
+        )
+    }
+
+    @Test
     fun reconnectResetsDraggingFalse() = runTest(dispatcher) {
         val controller = connectedController()
         val viewModel = viewModel(controller)
@@ -1701,6 +1838,21 @@ class PcMouseControlViewModelTest {
                     "keyboard.textStream.chunk",
                     "keyboard.textStream.key",
                     "keyboard.textStream.close"
+                )
+            )
+        )
+    }
+
+    private fun modifierPointerProfile(): PcPointerMovementProfile {
+        return pointerProfile(
+            capabilities = PcPointerCapabilities(
+                noAckCommands = setOf(
+                    "keyboard.modifierDown",
+                    "keyboard.modifierUp"
+                ),
+                supportedCommands = setOf(
+                    "keyboard.modifierDown",
+                    "keyboard.modifierUp"
                 )
             )
         )

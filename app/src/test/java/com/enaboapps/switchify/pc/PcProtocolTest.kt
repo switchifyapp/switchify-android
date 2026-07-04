@@ -173,7 +173,7 @@ class PcProtocolTest {
     fun parsesPointerProfileSupportedCommands() {
         val response = PcProtocol.parseResponse(
             validPointerProfileResponse(
-                capabilities = ""","capabilities":{"supportedCommands":["keyboard.textStream.open","keyboard.textStream.chunk","keyboard.textStream.key","keyboard.textStream.close","unknown.command"]}"""
+                capabilities = ""","capabilities":{"supportedCommands":["keyboard.textStream.open","keyboard.textStream.chunk","keyboard.textStream.key","keyboard.textStream.close","keyboard.modifierDown","keyboard.modifierUp","unknown.command"]}"""
             )
         ) as PcProtocolResponse.PointerProfile
 
@@ -182,11 +182,14 @@ class PcProtocolTest {
                 "keyboard.textStream.open",
                 "keyboard.textStream.chunk",
                 "keyboard.textStream.key",
-                "keyboard.textStream.close"
+                "keyboard.textStream.close",
+                "keyboard.modifierDown",
+                "keyboard.modifierUp"
             ),
             response.profile.capabilities.supportedCommands
         )
         assertTrue(response.profile.supportsTextStreams())
+        assertTrue(response.profile.supportsModifierToggle())
     }
 
     @Test
@@ -316,6 +319,8 @@ class PcProtocolTest {
             JSONObject(PcProtocol.keyboardTextStreamKey("stream-key-1", "device-1", "shared-token", 1000L, "android-1", 1, PcKeyboardKey.Enter)),
             JSONObject(PcProtocol.keyboardKey("key-1", "device-1", "shared-token", 1000L, PcKeyboardKey.Enter, PcCommandResponseMode.None)),
             JSONObject(PcProtocol.keyboardShortcut("shortcut-1", "device-1", "shared-token", 1000L, listOf(PcKeyboardShortcutKey.Meta), PcCommandResponseMode.None)),
+            JSONObject(PcProtocol.keyboardModifierDown("modifier-down-1", "device-1", "shared-token", 1000L, PcKeyboardModifierKey.Ctrl, PcCommandResponseMode.None)),
+            JSONObject(PcProtocol.keyboardModifierUp("modifier-up-1", "device-1", "shared-token", 1000L, PcKeyboardModifierKey.Ctrl, PcCommandResponseMode.None)),
             JSONObject(PcProtocol.windowControl("window-1", "device-1", "shared-token", 1000L, PcWindowControlAction.SwitchNext, PcCommandResponseMode.None))
         )
 
@@ -542,6 +547,55 @@ class PcProtocolTest {
             json.getString("auth")
         )
         assertFalse(json.toString().contains("shared-token"))
+    }
+
+    @Test
+    fun buildsKeyboardModifierCommandsWithAuthProof() {
+        val down = JSONObject(
+            PcProtocol.keyboardModifierDown(
+                id = "modifier-down-1",
+                deviceId = "device-1",
+                token = "shared-token",
+                timestamp = 1000L,
+                key = PcKeyboardModifierKey.Ctrl
+            )
+        )
+        val up = JSONObject(
+            PcProtocol.keyboardModifierUp(
+                id = "modifier-up-1",
+                deviceId = "device-1",
+                token = "shared-token",
+                timestamp = 1000L,
+                key = PcKeyboardModifierKey.Ctrl
+            )
+        )
+
+        assertEquals("keyboard.modifierDown", down.getString("type"))
+        assertEquals("Ctrl", down.getJSONObject("payload").getString("key"))
+        assertEquals(
+            PcProtocol.authProof(
+                id = "modifier-down-1",
+                deviceId = "device-1",
+                timestamp = 1000L,
+                type = "keyboard.modifierDown",
+                payload = JSONObject().put("key", "Ctrl"),
+                token = "shared-token"
+            ),
+            down.getString("auth")
+        )
+        assertEquals("keyboard.modifierUp", up.getString("type"))
+        assertEquals("Ctrl", up.getJSONObject("payload").getString("key"))
+        assertEquals(
+            PcProtocol.authProof(
+                id = "modifier-up-1",
+                deviceId = "device-1",
+                timestamp = 1000L,
+                type = "keyboard.modifierUp",
+                payload = JSONObject().put("key", "Ctrl"),
+                token = "shared-token"
+            ),
+            up.getString("auth")
+        )
     }
 
     @Test

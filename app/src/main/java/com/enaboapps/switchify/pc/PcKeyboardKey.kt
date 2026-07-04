@@ -43,3 +43,13 @@ enum class PcKeyboardShortcutKey(val protocolValue: String) {
     C("C"),
     X("X")
 }
+
+enum class PcKeyboardModifierKey(
+    val protocolValue: String,
+    @param:StringRes val labelResId: Int
+) {
+    Ctrl("Ctrl", R.string.pc_modifier_ctrl),
+    Alt("Alt", R.string.pc_modifier_alt),
+    Shift("Shift", R.string.pc_modifier_shift),
+    Meta("Meta", R.string.pc_modifier_start)
+}

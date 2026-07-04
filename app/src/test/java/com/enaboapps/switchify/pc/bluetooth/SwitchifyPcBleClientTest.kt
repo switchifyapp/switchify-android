@@ -11,6 +11,7 @@ import com.enaboapps.switchify.pc.PcControlConnectionEvent
 import com.enaboapps.switchify.pc.PcDeviceIdentity
 import com.enaboapps.switchify.pc.PcErrorReason
 import com.enaboapps.switchify.pc.PcKeyboardKey
+import com.enaboapps.switchify.pc.PcKeyboardModifierKey
 import com.enaboapps.switchify.pc.PcKeyboardShortcutKey
 import com.enaboapps.switchify.pc.PcLiveControlResult
 import com.enaboapps.switchify.pc.PcPairingResult
@@ -235,6 +236,8 @@ class SwitchifyPcBleClientTest {
         assertEquals(PcCommandResult.Ack, client.sendCommand(session, PcControlCommand.TypeText("hello")))
         assertEquals(PcCommandResult.Ack, client.sendCommand(session, PcControlCommand.PressKey(PcKeyboardKey.Enter)))
         assertEquals(PcCommandResult.Ack, client.sendCommand(session, PcControlCommand.KeyboardShortcut(listOf(PcKeyboardShortcutKey.Meta))))
+        assertEquals(PcCommandResult.Ack, client.sendCommand(session, PcControlCommand.ModifierDown(PcKeyboardModifierKey.Ctrl)))
+        assertEquals(PcCommandResult.Ack, client.sendCommand(session, PcControlCommand.ModifierUp(PcKeyboardModifierKey.Ctrl)))
         assertEquals(PcCommandResult.Ack, client.sendCommand(session, PcControlCommand.WindowControl(PcWindowControlAction.MinimizeFocused)))
 
         assertEquals(
@@ -249,6 +252,8 @@ class SwitchifyPcBleClientTest {
                 "keyboard.typeText",
                 "keyboard.key",
                 "keyboard.shortcut",
+                "keyboard.modifierDown",
+                "keyboard.modifierUp",
                 "window.control"
             ),
             seenTypes
@@ -420,7 +425,15 @@ class SwitchifyPcBleClientTest {
                 "connection.ping" -> ack(json.getString("id"))
                 "pointer.profile" -> pointerProfile(
                     json.getString("id"),
-                    noAckCommands = listOf("mouse.click", "keyboard.typeText", "keyboard.key", "keyboard.shortcut", "window.control")
+                    noAckCommands = listOf(
+                        "mouse.click",
+                        "keyboard.typeText",
+                        "keyboard.key",
+                        "keyboard.shortcut",
+                        "keyboard.modifierDown",
+                        "keyboard.modifierUp",
+                        "window.control"
+                    )
                 )
                 else -> ack(json.getString("id"))
             }
@@ -432,14 +445,29 @@ class SwitchifyPcBleClientTest {
         assertEquals(PcCommandResult.Ack, result.connection.sendRealtimeCommand(PcControlCommand.TypeText("Hello")))
         assertEquals(PcCommandResult.Ack, result.connection.sendRealtimeCommand(PcControlCommand.PressKey(PcKeyboardKey.Meta)))
         assertEquals(PcCommandResult.Ack, result.connection.sendRealtimeCommand(PcControlCommand.KeyboardShortcut(listOf(PcKeyboardShortcutKey.Meta))))
+        assertEquals(PcCommandResult.Ack, result.connection.sendRealtimeCommand(PcControlCommand.ModifierDown(PcKeyboardModifierKey.Ctrl)))
+        assertEquals(PcCommandResult.Ack, result.connection.sendRealtimeCommand(PcControlCommand.ModifierUp(PcKeyboardModifierKey.Ctrl)))
         assertEquals(PcCommandResult.Ack, result.connection.sendRealtimeCommand(PcControlCommand.WindowControl(PcWindowControlAction.SwitchNext)))
 
         assertEquals(listOf("connection.ping", "pointer.profile"), seenTypes)
         val messages = fakeConnection.sentMessages.map(::JSONObject)
-        assertEquals(listOf("mouse.click", "keyboard.typeText", "keyboard.key", "keyboard.shortcut", "window.control"), messages.map { it.getString("type") })
+        assertEquals(
+            listOf(
+                "mouse.click",
+                "keyboard.typeText",
+                "keyboard.key",
+                "keyboard.shortcut",
+                "keyboard.modifierDown",
+                "keyboard.modifierUp",
+                "window.control"
+            ),
+            messages.map { it.getString("type") }
+        )
         assertTrue(messages.all { it.getString("responseMode") == "none" })
         assertEquals("Meta", messages[2].getJSONObject("payload").getString("key"))
         assertEquals("Meta", messages[3].getJSONObject("payload").getJSONArray("keys").getString(0))
+        assertEquals("Ctrl", messages[4].getJSONObject("payload").getString("key"))
+        assertEquals("Ctrl", messages[5].getJSONObject("payload").getString("key"))
     }
 
     @Test
