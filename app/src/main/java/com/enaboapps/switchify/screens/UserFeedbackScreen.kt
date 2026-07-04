@@ -9,7 +9,6 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -35,6 +34,7 @@ import com.enaboapps.switchify.components.Panel
 import com.enaboapps.switchify.components.Picker
 import com.enaboapps.switchify.components.ScrollableView
 import com.enaboapps.switchify.components.Section
+import com.enaboapps.switchify.components.SwitchifyTextField
 import com.enaboapps.switchify.utils.LogEvent
 import com.enaboapps.switchify.utils.Logger
 
@@ -114,7 +114,7 @@ fun UserFeedbackScreen(navController: NavController) {
                 )
 
                 Section(titleResId = R.string.feedback_details_section) {
-                    OutlinedTextField(
+                    SwitchifyTextField(
                         value = feedbackText,
                         onValueChange = {
                             feedbackText = it
@@ -140,7 +140,7 @@ fun UserFeedbackScreen(navController: NavController) {
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    OutlinedTextField(
+                    SwitchifyTextField(
                         value = contactEmail,
                         onValueChange = { contactEmail = it },
                         label = { Text(stringResource(R.string.feedback_email_label)) },

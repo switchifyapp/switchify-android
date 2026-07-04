@@ -20,7 +20,6 @@ import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -51,6 +50,7 @@ import com.enaboapps.switchify.components.ReorderMode
 import com.enaboapps.switchify.components.ReorderableList
 import com.enaboapps.switchify.components.ScrollableView
 import com.enaboapps.switchify.components.Section
+import com.enaboapps.switchify.components.SwitchifyTextField
 import com.enaboapps.switchify.service.gestures.patterns.model.GesturePattern
 
 @Composable
@@ -304,7 +304,7 @@ private fun EditPatternNameDialog(
                     modifier = Modifier.padding(bottom = 16.dp)
                 )
 
-                OutlinedTextField(
+                SwitchifyTextField(
                     value = currentName,
                     onValueChange = onNameChange,
                     label = { Text(stringResource(R.string.pattern_name)) },

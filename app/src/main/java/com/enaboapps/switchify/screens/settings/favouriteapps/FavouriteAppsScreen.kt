@@ -24,7 +24,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -48,6 +47,7 @@ import com.enaboapps.switchify.R
 import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.Panel
 import com.enaboapps.switchify.components.ReorderableList
+import com.enaboapps.switchify.components.SwitchifyTextField
 import com.enaboapps.switchify.components.animatedPressContainerColor
 import com.enaboapps.switchify.service.utils.FavouriteAppsManager.FavouriteApp
 
@@ -216,7 +216,7 @@ private fun AppPickerDialog(
                 }
 
                 // Search field
-                OutlinedTextField(
+                SwitchifyTextField(
                     value = searchQuery,
                     onValueChange = { viewModel.updateSearchQuery(it) },
                     modifier = Modifier
