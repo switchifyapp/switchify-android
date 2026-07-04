@@ -17,8 +17,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.PrimaryTabRow
-import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -45,9 +43,12 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
+import com.enaboapps.switchify.components.AnimatedTabContent
 import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.CameraPermissionHandler
 import com.enaboapps.switchify.components.Panel
+import com.enaboapps.switchify.components.PillTab
+import com.enaboapps.switchify.components.PillTabRow
 import com.enaboapps.switchify.components.PreferenceSwitch
 import com.enaboapps.switchify.components.PreferenceTimeStepper
 import com.enaboapps.switchify.components.PreferenceValueSelector
@@ -787,23 +788,23 @@ fun HeadControlSettingsScreen(navController: NavController) {
         enableScroll = false
     ) {
         Column {
-            PrimaryTabRow(
-                selectedTabIndex = selectedTabIndex,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                tabTitles.forEachIndexed { index, title ->
-                    Tab(
-                        text = { Text(title) },
-                        selected = selectedTabIndex == index,
-                        onClick = { selectedTabIndex = index }
-                    )
-                }
-            }
+            PillTabRow(
+                tabs = tabTitles.map { PillTab(it) },
+                selectedIndex = selectedTabIndex,
+                onTabSelected = { selectedTabIndex = it },
+                modifier = Modifier.padding(vertical = 8.dp)
+            )
 
-            when (selectedTabIndex) {
-                0 -> HeadControlMovementTab(settings = settings, prefs = prefs)
-                1 -> HeadControlSelectionTab(settings = settings, prefs = prefs, context = context)
-                2 -> HeadControlTestTab(settings = settings, context = context)
+            AnimatedTabContent(targetState = selectedTabIndex) { tabIndex ->
+                when (tabIndex) {
+                    0 -> HeadControlMovementTab(settings = settings, prefs = prefs)
+                    1 -> HeadControlSelectionTab(
+                        settings = settings,
+                        prefs = prefs,
+                        context = context
+                    )
+                    2 -> HeadControlTestTab(settings = settings, context = context)
+                }
             }
         }
     }

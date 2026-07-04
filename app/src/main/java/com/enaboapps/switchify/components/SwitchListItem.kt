@@ -73,19 +73,21 @@ fun SwitchListItem(
                     modifier = Modifier.weight(1f)
                 ) {
                     // Switch type icon
+                    val typeColor = when (switchType) {
+                        SwitchType.EXTERNAL -> MaterialTheme.colorScheme.secondary
+                        SwitchType.CAMERA -> MaterialTheme.colorScheme.primary
+                    }
                     Box(
                         modifier = Modifier
                             .size(32.dp)
                             .clip(CircleShape)
-                            .background(
-                                switchType.color.copy(alpha = 0.12f)
-                            ),
+                            .background(typeColor.copy(alpha = 0.12f)),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = switchType.icon,
                             contentDescription = null,
-                            tint = switchType.color,
+                            tint = typeColor,
                             modifier = Modifier.size(16.dp)
                         )
                     }
@@ -284,18 +286,15 @@ data class SwitchAction(
 
 enum class SwitchType(
     val displayNameRes: Int,
-    val icon: ImageVector,
-    val color: androidx.compose.ui.graphics.Color
+    val icon: ImageVector
 ) {
     EXTERNAL(
         R.string.switch_type_external,
-        Icons.Default.Cable,
-        androidx.compose.ui.graphics.Color(0xFF2196F3)
+        Icons.Default.Cable
     ),
     CAMERA(
         R.string.switch_type_camera,
-        Icons.Default.Camera,
-        androidx.compose.ui.graphics.Color(0xFF4CAF50)
+        Icons.Default.Camera
     )
 }
 

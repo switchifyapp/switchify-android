@@ -1,6 +1,7 @@
 package com.enaboapps.switchify.components
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Card
@@ -9,6 +10,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
@@ -25,18 +27,37 @@ fun Panel(
     onClick: (() -> Unit)? = null,
     content: @Composable () -> Unit
 ) {
-    val rootModifier = if (onClick != null) {
-        modifier.clickable(role = Role.Button, onClick = onClick)
+    if (onClick != null) {
+        val interactionSource = remember { MutableInteractionSource() }
+        val animatedColor = animatedPressContainerColor(
+            interactionSource = interactionSource,
+            idleColor = containerColor,
+            pressedColor = MaterialTheme.colorScheme.surfaceContainerHigh
+        )
+        Card(
+            modifier = modifier
+                .springPressScale(interactionSource)
+                .clickable(
+                    role = Role.Button,
+                    interactionSource = interactionSource,
+                    indication = null,
+                    onClick = onClick
+                ),
+            shape = shape,
+            colors = CardDefaults.cardColors(containerColor = animatedColor),
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+        ) {
+            content()
+        }
     } else {
-        modifier
-    }
-    Card(
-        modifier = rootModifier,
-        shape = shape,
-        colors = CardDefaults.cardColors(containerColor = containerColor),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-    ) {
-        content()
+        Card(
+            modifier = modifier,
+            shape = shape,
+            colors = CardDefaults.cardColors(containerColor = containerColor),
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+        ) {
+            content()
+        }
     }
 }
 

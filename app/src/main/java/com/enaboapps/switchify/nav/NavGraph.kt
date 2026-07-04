@@ -1,6 +1,13 @@
 package com.enaboapps.switchify.nav
 
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.unit.IntOffset
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -52,7 +59,28 @@ import com.enaboapps.switchify.screens.stats.StatsScreen
  */
 @Composable
 fun NavGraph(navController: NavHostController) {
-    NavHost(navController, startDestination = NavigationRoute.Home.name) {
+    val fadeSpec = spring<Float>(stiffness = Spring.StiffnessMediumLow)
+    val slideSpec = spring<IntOffset>(
+        dampingRatio = Spring.DampingRatioLowBouncy,
+        stiffness = Spring.StiffnessMediumLow
+    )
+
+    NavHost(
+        navController,
+        startDestination = NavigationRoute.Home.name,
+        enterTransition = {
+            fadeIn(fadeSpec) + slideInHorizontally(slideSpec) { it / 12 }
+        },
+        exitTransition = {
+            fadeOut(fadeSpec) + slideOutHorizontally(slideSpec) { -it / 12 }
+        },
+        popEnterTransition = {
+            fadeIn(fadeSpec) + slideInHorizontally(slideSpec) { -it / 12 }
+        },
+        popExitTransition = {
+            fadeOut(fadeSpec) + slideOutHorizontally(slideSpec) { it / 12 }
+        }
+    ) {
         composable(NavigationRoute.Home.name) {
             HomeScreen(navController)
         }

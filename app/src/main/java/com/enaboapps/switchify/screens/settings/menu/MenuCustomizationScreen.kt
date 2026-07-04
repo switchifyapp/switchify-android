@@ -1,5 +1,8 @@
 package com.enaboapps.switchify.screens.settings.menu
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -464,14 +467,19 @@ fun MenuItemRow(
         baseModifier
     }
 
-    Surface(
-        modifier = rowModifier,
-        color = when {
+    val rowColor by animateColorAsState(
+        targetValue = when {
             isDragging -> MaterialTheme.colorScheme.primaryContainer
             isHighlighted -> MaterialTheme.colorScheme.secondaryContainer
             else -> MaterialTheme.colorScheme.surfaceColorAtElevation(2.dp)
         },
-        shape = RoundedCornerShape(8.dp),
+        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+        label = "menuItemRowColor"
+    )
+    Surface(
+        modifier = rowModifier,
+        color = rowColor,
+        shape = RoundedCornerShape(12.dp),
         tonalElevation = if (isDragging) 8.dp else 0.dp
     ) {
         Row(

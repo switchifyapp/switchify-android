@@ -3,9 +3,6 @@ package com.enaboapps.switchify.screens.settings
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.PrimaryTabRow
-import androidx.compose.material3.Tab
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -21,8 +18,11 @@ import androidx.navigation.NavController
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.auth.repository.AuthRepository
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
+import com.enaboapps.switchify.components.AnimatedTabContent
 import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.NavRouteLink
+import com.enaboapps.switchify.components.PillTab
+import com.enaboapps.switchify.components.PillTabRow
 import com.enaboapps.switchify.components.ScrollableView
 import com.enaboapps.switchify.components.Section
 import com.enaboapps.switchify.nav.NavigationRoute
@@ -76,26 +76,25 @@ fun SettingsScreen(navController: NavController) {
         padding = 0.dp,
         enableScroll = false
     ) {
-        PrimaryTabRow(selectedTabIndex = selectedTabIndex) {
-            listOf(
-                R.string.settings_tab_general,
-                R.string.settings_tab_scanning,
-                R.string.settings_tab_selection,
-                R.string.settings_tab_about
-            ).forEachIndexed { index, tabResId ->
-                Tab(
-                    selected = selectedTabIndex == index,
-                    onClick = { selectedTabIndex = index },
-                    text = { Text(stringResource(tabResId)) }
-                )
-            }
-        }
+        PillTabRow(
+            tabs = listOf(
+                PillTab(stringResource(R.string.settings_tab_general)),
+                PillTab(stringResource(R.string.settings_tab_scanning)),
+                PillTab(stringResource(R.string.settings_tab_selection)),
+                PillTab(stringResource(R.string.settings_tab_about))
+            ),
+            selectedIndex = selectedTabIndex,
+            onTabSelected = { selectedTabIndex = it },
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+        )
 
-        when (selectedTabIndex) {
-            0 -> GeneralSettingsTab(menuSettingsModel, navController)
-            1 -> ScanningSettingsTab(navController)
-            2 -> SelectionSettingsTab(selectionSettingsModel)
-            3 -> AboutSection(aboutSettingsModel, navController)
+        AnimatedTabContent(targetState = selectedTabIndex) { tabIndex ->
+            when (tabIndex) {
+                0 -> GeneralSettingsTab(menuSettingsModel, navController)
+                1 -> ScanningSettingsTab(navController)
+                2 -> SelectionSettingsTab(selectionSettingsModel)
+                3 -> AboutSection(aboutSettingsModel, navController)
+            }
         }
     }
 }

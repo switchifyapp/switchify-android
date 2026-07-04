@@ -13,7 +13,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -30,6 +29,7 @@ import androidx.compose.ui.text.style.TextAlign
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.components.ActionButton
 import com.enaboapps.switchify.components.NavBar
+import com.enaboapps.switchify.components.Panel
 import com.enaboapps.switchify.theme.Dimens
 
 @Composable
@@ -128,9 +128,10 @@ private fun SuggestionsContent(replies: List<String>, onSelect: (String) -> Unit
 
 @Composable
 private fun ReplyCard(reply: String, onClick: () -> Unit) {
-    Card(
+    Panel(
         onClick = onClick,
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.medium
     ) {
         Text(
             text = reply,

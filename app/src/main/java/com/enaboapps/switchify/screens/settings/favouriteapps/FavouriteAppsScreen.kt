@@ -1,6 +1,8 @@
 package com.enaboapps.switchify.screens.settings.favouriteapps
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -33,6 +35,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -45,6 +48,7 @@ import com.enaboapps.switchify.R
 import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.Panel
 import com.enaboapps.switchify.components.ReorderableList
+import com.enaboapps.switchify.components.animatedPressContainerColor
 import com.enaboapps.switchify.service.utils.FavouriteAppsManager.FavouriteApp
 
 @Composable
@@ -265,10 +269,21 @@ private fun AppPickerItem(
     app: FavouriteApp,
     onClick: () -> Unit
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val rowColor = animatedPressContainerColor(
+        interactionSource = interactionSource,
+        idleColor = Color.Transparent,
+        pressedColor = MaterialTheme.colorScheme.surfaceContainerHigh
+    )
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
+            .background(rowColor)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick
+            )
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {

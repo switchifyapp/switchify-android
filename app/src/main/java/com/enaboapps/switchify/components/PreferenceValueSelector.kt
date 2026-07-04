@@ -1,5 +1,8 @@
 package com.enaboapps.switchify.components
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -14,9 +17,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -98,7 +101,17 @@ fun PreferenceValueSelector(
                             horizontalArrangement = Arrangement.SpaceEvenly
                         ) {
                             rowValues.forEach { i ->
-                                OutlinedButton(
+                                val selected = currentValue == i
+                                val containerColor by animateColorAsState(
+                                    targetValue = if (selected) {
+                                        MaterialTheme.colorScheme.primaryContainer
+                                    } else {
+                                        MaterialTheme.colorScheme.surfaceContainerHigh
+                                    },
+                                    animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+                                    label = "valueOptionColor"
+                                )
+                                FilledTonalButton(
                                     onClick = {
                                         currentValue = i
                                         onValueChanged(i)
@@ -107,12 +120,9 @@ fun PreferenceValueSelector(
                                     modifier = Modifier
                                         .weight(1f)
                                         .padding(horizontal = 2.dp),
-                                    colors = ButtonDefaults.outlinedButtonColors(
-                                        containerColor = if (currentValue == i)
-                                            MaterialTheme.colorScheme.primaryContainer
-                                        else
-                                            MaterialTheme.colorScheme.surface,
-                                        contentColor = if (currentValue == i)
+                                    colors = ButtonDefaults.filledTonalButtonColors(
+                                        containerColor = containerColor,
+                                        contentColor = if (selected)
                                             MaterialTheme.colorScheme.onPrimaryContainer
                                         else
                                             MaterialTheme.colorScheme.onSurface
