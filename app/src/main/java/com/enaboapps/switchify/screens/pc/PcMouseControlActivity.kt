@@ -7,6 +7,13 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -128,8 +135,22 @@ private fun PcMouseControlScreen(
                 .padding(paddingValues),
             color = MaterialTheme.colorScheme.background
         ) {
-            when (uiState.activeSurface) {
-                PcControlSurface.Mouse -> Column(
+            AnimatedContent(
+                targetState = uiState.activeSurface,
+                transitionSpec = {
+                    (fadeIn(spring(stiffness = Spring.StiffnessMediumLow)) +
+                            slideInVertically(
+                                animationSpec = spring(
+                                    dampingRatio = Spring.DampingRatioLowBouncy,
+                                    stiffness = Spring.StiffnessMediumLow
+                                ),
+                                initialOffsetY = { it / 24 }
+                            )) togetherWith
+                        fadeOut(spring(stiffness = Spring.StiffnessMedium))
+                },
+                label = "pcControlSurface"
+            ) { activeSurface ->
+                Column(
                     modifier = Modifier
                         .fillMaxSize()
                         .verticalScroll(rememberScrollState())
@@ -137,51 +158,37 @@ private fun PcMouseControlScreen(
                     verticalArrangement = Arrangement.spacedBy(18.dp)
                 ) {
                     PcTransientMessage(message = uiState.message)
-                    PcControlCommandGrid(
-                        enabled = surfaceEnabled,
-                        movementStep = uiState.movementStep,
-                        onCommandSelected = viewModel::sendMouseCommand
-                    )
-                    PcMovementSizeSection(
-                        selectedSize = uiState.selectedMovementSize,
-                        onSizeSelected = viewModel::selectMovementSize,
-                        enabled = !uiState.isBusy
-                    )
-                }
-                PcControlSurface.Typing -> Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .verticalScroll(rememberScrollState())
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(18.dp)
-                ) {
-                    PcTransientMessage(message = uiState.message)
-                    PcTypingControlScreen(
-                        typingText = uiState.typingText,
-                        typingMessage = uiState.typingMessage,
-                        enabled = surfaceEnabled,
-                        onTextChanged = viewModel::updateTypingText,
-                        onSend = viewModel::sendTypedText,
-                        onSendAndEnter = viewModel::sendTypedTextThenEnter,
-                        onClear = viewModel::clearTypingText,
-                        onKeySelected = viewModel::sendKey
-                    )
-                }
-                PcControlSurface.Window -> Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .verticalScroll(rememberScrollState())
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(18.dp)
-                ) {
-                    PcTransientMessage(message = uiState.message)
-                    PcWindowControlScreen(
-                        enabled = surfaceEnabled,
-                        activeModifiers = uiState.activeModifiers,
-                        onModifierSelected = viewModel::toggleModifier,
-                        onShortcutLetterSelected = viewModel::sendShortcutLetter,
-                        onCommandSelected = viewModel::send
-                    )
+                    when (activeSurface) {
+                        PcControlSurface.Mouse -> Column(modifier = Modifier.fillMaxWidth()) {
+                            PcControlCommandGrid(
+                                enabled = surfaceEnabled,
+                                movementStep = uiState.movementStep,
+                                onCommandSelected = viewModel::sendMouseCommand
+                            )
+                            PcMovementSizeSection(
+                                selectedSize = uiState.selectedMovementSize,
+                                onSizeSelected = viewModel::selectMovementSize,
+                                enabled = !uiState.isBusy
+                            )
+                        }
+                        PcControlSurface.Typing -> PcTypingControlScreen(
+                            typingText = uiState.typingText,
+                            typingMessage = uiState.typingMessage,
+                            enabled = surfaceEnabled,
+                            onTextChanged = viewModel::updateTypingText,
+                            onSend = viewModel::sendTypedText,
+                            onSendAndEnter = viewModel::sendTypedTextThenEnter,
+                            onClear = viewModel::clearTypingText,
+                            onKeySelected = viewModel::sendKey
+                        )
+                        PcControlSurface.Window -> PcWindowControlScreen(
+                            enabled = surfaceEnabled,
+                            activeModifiers = uiState.activeModifiers,
+                            onModifierSelected = viewModel::toggleModifier,
+                            onShortcutLetterSelected = viewModel::sendShortcutLetter,
+                            onCommandSelected = viewModel::send
+                        )
+                    }
                 }
             }
         }
