@@ -1,6 +1,20 @@
 package com.enaboapps.switchify.screens.pc
 
 import androidx.annotation.StringRes
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -36,9 +50,13 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -51,6 +69,7 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.unit.dp
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.components.EqualHeightGridRow
+import com.enaboapps.switchify.components.Section
 import com.enaboapps.switchify.pc.PcControlCommand
 
 data class PcMouseControlSpec(
@@ -98,14 +117,30 @@ fun PcConnectionStatusDot(
     val description = connectedDisplayName?.let {
         stringResource(R.string.pc_mouse_control_connected, it)
     } ?: stringResource(R.string.pc_control_connect_first)
-    val dotColor = if (connectedDisplayName != null) {
+    val connected = connectedDisplayName != null
+    val dotColor = if (connected) {
         Color(0xFF66BB6A)
     } else {
         MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.4f)
     }
+    val pulseScale = if (connected) {
+        val pulseTransition = rememberInfiniteTransition(label = "connectionPulse")
+        pulseTransition.animateFloat(
+            initialValue = 1f,
+            targetValue = 1.25f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 900),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "connectionPulseScale"
+        ).value
+    } else {
+        1f
+    }
     Box(
         modifier = modifier
             .size(12.dp)
+            .scale(pulseScale)
             .background(color = dotColor, shape = CircleShape)
             .semantics { contentDescription = description }
     )
@@ -114,19 +149,36 @@ fun PcConnectionStatusDot(
 /**
  * Renders a status/error line only when there is something to say, so the
  * surfaces do not pay a permanent layout cost for occasional messages.
+ * The last message is remembered so the exit animation has content to show.
  */
 @Composable
 fun PcTransientMessage(
     message: String?,
     modifier: Modifier = Modifier
 ) {
-    if (message == null) return
-    Text(
-        text = message,
-        style = MaterialTheme.typography.bodyMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    var lastMessage by remember { mutableStateOf(message) }
+    if (message != null) {
+        lastMessage = message
+    }
+    AnimatedVisibility(
+        visible = message != null,
+        enter = fadeIn() + expandVertically(),
+        exit = fadeOut() + shrinkVertically(),
         modifier = modifier.fillMaxWidth()
-    )
+    ) {
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp),
+            color = MaterialTheme.colorScheme.secondaryContainer
+        ) {
+            Text(
+                text = lastMessage.orEmpty(),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)
+            )
+        }
+    }
 }
 
 @Composable
@@ -171,23 +223,56 @@ fun PcControlCommandSections(
     onCommandSelected: (PcControlCommand, Boolean) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    PcCompactCommandGrid(
-        columns = 3,
-        minTileHeightDp = 52,
-        cells = pcMouseCompactControlSpecs(movementStep).map { spec ->
-            spec?.let {
-                PcCompactCommandCell(
-                    labelResId = it.labelResId,
-                    enabled = enabled,
-                    onClick = { onCommandSelected(it.command, it.repeatable) },
-                    icon = it.icon,
-                    iconRotationDegrees = it.iconRotationDegrees,
-                    tone = it.tone
+    val specs = pcMouseCompactControlSpecs(movementStep)
+    val dpadCells = specs.take(9).map { it.toCommandCell(enabled, onCommandSelected) }
+    val clickCells = specs.subList(9, 12).map { it.toCommandCell(enabled, onCommandSelected) }
+    val scrollCells = specs.subList(12, 14).map { it.toCommandCell(enabled, onCommandSelected) }
+
+    Column(modifier = modifier.fillMaxWidth()) {
+        Section(titleResId = R.string.pc_mouse_section_movement) {
+            Box(modifier = Modifier.padding(12.dp)) {
+                PcCompactCommandGrid(
+                    columns = 3,
+                    minTileHeightDp = 56,
+                    cells = dpadCells
                 )
             }
-        },
-        modifier = modifier
-    )
+        }
+        Section(titleResId = R.string.pc_mouse_section_clicks) {
+            Box(modifier = Modifier.padding(12.dp)) {
+                PcCompactCommandGrid(
+                    columns = 3,
+                    minTileHeightDp = 52,
+                    cells = clickCells
+                )
+            }
+        }
+        Section(titleResId = R.string.pc_mouse_section_scroll) {
+            Box(modifier = Modifier.padding(12.dp)) {
+                PcCompactCommandGrid(
+                    columns = 2,
+                    minTileHeightDp = 52,
+                    cells = scrollCells
+                )
+            }
+        }
+    }
+}
+
+private fun PcMouseControlSpec?.toCommandCell(
+    enabled: Boolean,
+    onCommandSelected: (PcControlCommand, Boolean) -> Unit
+): PcCompactCommandCell? {
+    return this?.let {
+        PcCompactCommandCell(
+            labelResId = it.labelResId,
+            enabled = enabled,
+            onClick = { onCommandSelected(it.command, it.repeatable) },
+            icon = it.icon,
+            iconRotationDegrees = it.iconRotationDegrees,
+            tone = it.tone
+        )
+    }
 }
 
 @Composable
@@ -320,23 +405,29 @@ fun PcScannedCommandTile(
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
-    val backgroundColor = when {
-        !enabled -> MaterialTheme.colorScheme.surfaceVariant
-        pressed -> MaterialTheme.colorScheme.primaryContainer
-        selected -> MaterialTheme.colorScheme.primaryContainer
-        tone == PcCommandTone.Primary -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.56f)
-        tone == PcCommandTone.Destructive -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.48f)
-        else -> MaterialTheme.colorScheme.surface
-    }
-    val borderColor = if (enabled) {
-        when {
-            selected -> MaterialTheme.colorScheme.primary
-            tone == PcCommandTone.Primary -> MaterialTheme.colorScheme.primary.copy(alpha = 0.62f)
-            tone == PcCommandTone.Destructive -> MaterialTheme.colorScheme.error.copy(alpha = 0.62f)
-            else -> MaterialTheme.colorScheme.outline
-        }
+    val backgroundColor by animateColorAsState(
+        targetValue = when {
+            !enabled -> MaterialTheme.colorScheme.surfaceVariant
+            pressed || selected -> MaterialTheme.colorScheme.primaryContainer
+            tone == PcCommandTone.Primary -> MaterialTheme.colorScheme.primaryContainer
+            tone == PcCommandTone.Destructive -> MaterialTheme.colorScheme.errorContainer
+            else -> MaterialTheme.colorScheme.surfaceContainerHigh
+        },
+        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+        label = "tileBackground"
+    )
+    val pressScale by animateFloatAsState(
+        targetValue = if (pressed && enabled) 0.96f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMedium
+        ),
+        label = "tileScale"
+    )
+    val border = if (enabled && selected) {
+        BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
     } else {
-        MaterialTheme.colorScheme.outlineVariant
+        null
     }
     val contentColor = if (enabled) {
         when {
@@ -361,6 +452,10 @@ fun PcScannedCommandTile(
 
     Surface(
         modifier = tileModifier
+            .graphicsLayer {
+                scaleX = pressScale
+                scaleY = pressScale
+            }
             .clickable(
                 enabled = enabled,
                 role = Role.Button,
@@ -368,9 +463,9 @@ fun PcScannedCommandTile(
                 indication = null,
                 onClick = onClick
             ),
-        shape = RoundedCornerShape(8.dp),
+        shape = RoundedCornerShape(12.dp),
         color = backgroundColor,
-        border = BorderStroke(1.dp, borderColor)
+        border = border
     ) {
         Box(
             modifier = Modifier
