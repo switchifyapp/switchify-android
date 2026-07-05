@@ -1,6 +1,7 @@
 package com.enaboapps.switchify.service.techniques.nodes
 
 import android.graphics.Rect
+import android.os.Build
 import android.view.accessibility.AccessibilityNodeInfo
 import android.view.accessibility.AccessibilityWindowInfo
 
@@ -67,7 +68,7 @@ internal object NodeCapabilityClassifier {
                 isScrollable = nodeInfo.isScrollable,
                 isCheckable = nodeInfo.isCheckable,
                 isChecked = nodeInfo.isCheckedCompat(),
-                isTextSelectable = nodeInfo.isTextSelectable,
+                isTextSelectable = nodeInfo.isTextSelectableCompat(),
                 actionIds = nodeInfo.actionList?.map { it.id }?.toSet().orEmpty(),
                 hasCollectionInfo = collectionInfo != null,
                 hasCollectionItemInfo = collectionItemInfo != null,
@@ -191,4 +192,12 @@ private fun Rect?.hasUsableHighlightBounds(): Boolean {
 @Suppress("DEPRECATION")
 private fun AccessibilityNodeInfo.isCheckedCompat(): Boolean {
     return isChecked
+}
+
+private fun AccessibilityNodeInfo.isTextSelectableCompat(): Boolean {
+    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        runCatching { isTextSelectable }.getOrDefault(false)
+    } else {
+        false
+    }
 }

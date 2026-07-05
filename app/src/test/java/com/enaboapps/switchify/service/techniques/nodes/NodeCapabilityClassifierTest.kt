@@ -223,4 +223,13 @@ class NodeCapabilityClassifierTest {
         assertEquals(NodeRole.TextOnly, capabilities.role)
         assertFalse(capabilities.isCurrentlyScannable)
     }
+
+    @Test
+    fun textSelectableFactIsRecorded() {
+        val capabilities = NodeCapabilityClassifier.classifyFacts(
+            RawNodeCapabilityFacts(isTextSelectable = true)
+        )
+
+        assertTrue(capabilities.isTextSelectable)
+    }
 }
