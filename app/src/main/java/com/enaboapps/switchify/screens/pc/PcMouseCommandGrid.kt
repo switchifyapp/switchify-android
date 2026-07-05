@@ -207,13 +207,19 @@ fun PcMovementSizeSection(
 fun PcControlCommandGrid(
     enabled: Boolean,
     movementStep: Int,
+    selectedSize: PcMouseMovementSize,
+    onSizeSelected: (PcMouseMovementSize) -> Unit,
     onCommandSelected: (PcControlCommand, Boolean) -> Unit,
+    sizeSelectorEnabled: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     PcControlCommandSections(
         enabled = enabled,
         movementStep = movementStep,
+        selectedSize = selectedSize,
+        onSizeSelected = onSizeSelected,
         onCommandSelected = onCommandSelected,
+        sizeSelectorEnabled = sizeSelectorEnabled,
         modifier = modifier
     )
 }
@@ -222,7 +228,10 @@ fun PcControlCommandGrid(
 fun PcControlCommandSections(
     enabled: Boolean,
     movementStep: Int,
+    selectedSize: PcMouseMovementSize,
+    onSizeSelected: (PcMouseMovementSize) -> Unit,
     onCommandSelected: (PcControlCommand, Boolean) -> Unit,
+    sizeSelectorEnabled: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     val specs = pcMouseCompactControlSpecs(movementStep)
@@ -249,6 +258,11 @@ fun PcControlCommandSections(
                 )
             }
         }
+        PcMovementSizeSection(
+            selectedSize = selectedSize,
+            onSizeSelected = onSizeSelected,
+            enabled = sizeSelectorEnabled
+        )
         Section(titleResId = R.string.pc_mouse_section_scroll) {
             Box(modifier = Modifier.padding(12.dp)) {
                 PcCompactCommandGrid(
