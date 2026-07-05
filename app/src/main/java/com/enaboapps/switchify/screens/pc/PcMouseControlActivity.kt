@@ -163,12 +163,10 @@ private fun PcMouseControlScreen(
                             PcControlCommandGrid(
                                 enabled = surfaceEnabled,
                                 movementStep = uiState.movementStep,
-                                onCommandSelected = viewModel::sendMouseCommand
-                            )
-                            PcMovementSizeSection(
                                 selectedSize = uiState.selectedMovementSize,
                                 onSizeSelected = viewModel::selectMovementSize,
-                                enabled = !uiState.isBusy
+                                onCommandSelected = viewModel::sendMouseCommand,
+                                sizeSelectorEnabled = !uiState.isBusy
                             )
                         }
                         PcControlSurface.Typing -> PcTypingControlScreen(
