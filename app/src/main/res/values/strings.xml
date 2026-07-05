@@ -386,7 +386,6 @@
     <string name="pc_mouse_movement_large">Large</string>
     <string name="pc_mouse_section_movement">Movement</string>
     <string name="pc_mouse_section_clicks">Clicks</string>
-    <string name="pc_mouse_section_scroll">Scroll</string>
     <string name="request_rejected">Request rejected.</string>
     <string name="request_expired_try_again">Request expired. Try again.</string>
     <string name="pc_mouse_up_left">Up left</string>
