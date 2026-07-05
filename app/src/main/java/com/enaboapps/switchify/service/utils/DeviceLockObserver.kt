@@ -1,5 +1,6 @@
 package com.enaboapps.switchify.service.utils
 
+import android.app.KeyguardManager
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -19,6 +20,13 @@ class DeviceLockObserver(context: Context) {
             val um =
                 context.applicationContext.getSystemService(Context.USER_SERVICE) as UserManager
             return um.isUserUnlocked
+        }
+
+        @JvmStatic
+        fun isKeyguardLocked(context: Context): Boolean {
+            val km =
+                context.applicationContext.getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager
+            return km.isKeyguardLocked
         }
     }
 

@@ -145,7 +145,9 @@ class MainMenuStructure(
                     action = { MenuManager.getInstance().openMediaControlMenu() }
                 )
             },
-            if (deviceLockObserver.isUserUnlocked() == true) {
+            if (deviceLockObserver.isUserUnlocked() == true &&
+                !DeviceLockObserver.isKeyguardLocked(accessibilityService)
+            ) {
                 MenuItemRegistry.getMainMenuDefinition("control_pc")?.let { def ->
                     MenuItem(
                         definition = def,
