@@ -235,15 +235,14 @@ fun PcControlCommandSections(
     modifier: Modifier = Modifier
 ) {
     val specs = pcMouseCompactControlSpecs(movementStep)
-    val dpadCells = specs.take(9).map { it.toCommandCell(enabled, onCommandSelected) }
-    val clickCells = specs.subList(9, 12).map { it.toCommandCell(enabled, onCommandSelected) }
-    val scrollCells = specs.subList(12, 14).map { it.toCommandCell(enabled, onCommandSelected) }
+    val dpadCells = specs.take(12).map { it.toCommandCell(enabled, onCommandSelected) }
+    val clickCells = specs.subList(12, 15).map { it.toCommandCell(enabled, onCommandSelected) }
 
     Column(modifier = modifier.fillMaxWidth()) {
         Section(titleResId = R.string.pc_mouse_section_movement) {
             Box(modifier = Modifier.padding(12.dp)) {
                 PcCompactCommandGrid(
-                    columns = 3,
+                    columns = 4,
                     minTileHeightDp = 56,
                     cells = dpadCells
                 )
@@ -263,15 +262,6 @@ fun PcControlCommandSections(
             onSizeSelected = onSizeSelected,
             enabled = sizeSelectorEnabled
         )
-        Section(titleResId = R.string.pc_mouse_section_scroll) {
-            Box(modifier = Modifier.padding(12.dp)) {
-                PcCompactCommandGrid(
-                    columns = 2,
-                    minTileHeightDp = 52,
-                    cells = scrollCells
-                )
-            }
-        }
     }
 }
 
@@ -556,18 +546,18 @@ fun pcMouseCompactControlSpecs(moveStep: Int): List<PcMouseControlSpec?> {
         movement[0],
         movement[1],
         movement[2],
+        scroll[0],
         movement[3],
         clicks[0],
         movement[4],
+        null,
         movement[5],
         movement[6],
         movement[7],
+        scroll[1],
         clicks[1],
         clicks[2],
-        clicks[3],
-        scroll[0],
-        scroll[1],
-        null
+        clicks[3]
     )
 }
 

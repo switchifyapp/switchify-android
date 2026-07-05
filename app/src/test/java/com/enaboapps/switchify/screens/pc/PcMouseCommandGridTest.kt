@@ -115,7 +115,7 @@ class PcControlCommandGridTest {
     fun compactCommandsPutClickInMovementPadCenter() {
         val commands = pcMouseCompactControlSpecs(40).mapNotNull { it?.command }
 
-        assertEquals(PcControlCommand.LeftClick, commands[4])
+        assertEquals(PcControlCommand.LeftClick, commands[5])
     }
 
     @Test
@@ -127,35 +127,35 @@ class PcControlCommandGridTest {
                 PcControlCommand.Move(-40, -40),
                 PcControlCommand.Move(0, -40),
                 PcControlCommand.Move(40, -40),
+                PcControlCommand.Scroll(0, 5),
                 PcControlCommand.Move(-40, 0),
                 PcControlCommand.LeftClick,
                 PcControlCommand.Move(40, 0),
                 PcControlCommand.Move(-40, 40),
                 PcControlCommand.Move(0, 40),
                 PcControlCommand.Move(40, 40),
+                PcControlCommand.Scroll(0, -5),
                 PcControlCommand.DoubleClick,
                 PcControlCommand.RightClick,
-                PcControlCommand.DragStart(),
-                PcControlCommand.Scroll(0, 5),
-                PcControlCommand.Scroll(0, -5)
+                PcControlCommand.DragStart()
             ),
             commands
         )
     }
 
     @Test
-    fun compactCommandsPadFinalRow() {
+    fun compactCommandsPadScrollColumnMiddle() {
         val specs = pcMouseCompactControlSpecs(40)
 
         assertEquals(15, specs.size)
         assertEquals(14, specs.filterNotNull().size)
-        assertEquals(null, specs[14])
+        assertEquals(null, specs[7])
     }
 
     @Test
     fun compactCommandsIncludeDragInStableScanOrder() {
         val commands = pcMouseCompactControlSpecs(40).mapNotNull { it?.command }
 
-        assertEquals(PcControlCommand.DragStart(), commands[11])
+        assertEquals(PcControlCommand.DragStart(), commands[13])
     }
 }
