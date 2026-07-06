@@ -22,14 +22,21 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
@@ -93,8 +100,10 @@ private fun PcMouseControlScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val surfaceEnabled = uiState.connectedDisplayName != null && !uiState.isBusy
+    var closeConfirmationVisible by rememberSaveable { mutableStateOf(false) }
+    val requestClose = { closeConfirmationVisible = true }
 
-    BackHandler(onBack = onClose)
+    BackHandler(onBack = requestClose)
 
     Scaffold(
         topBar = {
@@ -111,7 +120,7 @@ private fun PcMouseControlScreen(
                             selectedSurface = uiState.activeSurface,
                             onSurfaceSelected = viewModel::selectControlSurface,
                             enabled = !uiState.isBusy,
-                            onClose = onClose,
+                            onClose = requestClose,
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
@@ -212,6 +221,29 @@ private fun PcMouseControlScreen(
         PcSwitchPcApprovalDialog(
             approvalCode = approvalCode,
             onCancel = viewModel::cancelSwitchPcPairing
+        )
+    }
+
+    if (closeConfirmationVisible) {
+        AlertDialog(
+            onDismissRequest = { closeConfirmationVisible = false },
+            title = { Text(text = stringResource(R.string.pc_control_close_confirm_title)) },
+            text = { Text(text = stringResource(R.string.pc_control_close_confirm_message)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        closeConfirmationVisible = false
+                        onClose()
+                    }
+                ) {
+                    Text(text = stringResource(R.string.pc_control_close_confirm_action))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { closeConfirmationVisible = false }) {
+                    Text(text = stringResource(R.string.pc_control_close_confirm_cancel))
+                }
+            }
         )
     }
 }
