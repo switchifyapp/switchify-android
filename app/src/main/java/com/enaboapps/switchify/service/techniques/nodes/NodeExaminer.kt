@@ -10,6 +10,7 @@ import com.enaboapps.switchify.service.keyboard.KeyboardNodeExtractor
 import com.enaboapps.switchify.service.utils.ScreenUtils
 import com.enaboapps.switchify.utils.LogEvent
 import com.enaboapps.switchify.utils.Logger
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -131,6 +132,7 @@ object NodeExaminer {
                 }
             }
         } catch (e: Exception) {
+            if (isExpectedNodeExaminerCancellation(e)) throw e
             val packageName = rootNode?.packageName?.toString()
             Log.e(TAG, "Error examining accessibility tree (app=$packageName)", e)
             Logger.log(
@@ -145,6 +147,10 @@ object NodeExaminer {
             )
             recordFailure(packageName)
         }
+    }
+
+    internal fun isExpectedNodeExaminerCancellation(error: Throwable): Boolean {
+        return error is CancellationException
     }
 
     private fun recordFailure(packageName: String?) {
