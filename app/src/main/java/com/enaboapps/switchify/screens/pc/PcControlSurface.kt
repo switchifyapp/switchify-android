@@ -41,3 +41,31 @@ class PcControlSurfacePreferenceStore(context: Context) : PcControlSurfaceStore 
         )
     }
 }
+
+interface PcTypingDraftStore {
+    fun getDraft(): String
+    fun setDraft(text: String)
+    fun clearDraft()
+}
+
+class PcTypingDraftPreferenceStore(context: Context) : PcTypingDraftStore {
+    private val preferenceManager = PreferenceManager(context.applicationContext)
+
+    override fun getDraft(): String {
+        return preferenceManager.getStringValue(PreferenceManager.PREFERENCE_KEY_PC_TYPING_DRAFT)
+    }
+
+    override fun setDraft(text: String) {
+        preferenceManager.setStringValue(
+            PreferenceManager.PREFERENCE_KEY_PC_TYPING_DRAFT,
+            text
+        )
+    }
+
+    override fun clearDraft() {
+        preferenceManager.setStringValue(
+            PreferenceManager.PREFERENCE_KEY_PC_TYPING_DRAFT,
+            ""
+        )
+    }
+}

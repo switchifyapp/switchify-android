@@ -81,6 +81,7 @@ data class PcMouseControlUiState(
 class PcMouseControlViewModel(
     private val serviceControllerProvider: () -> PcServiceConnectionController?,
     private val controlSurfaceStore: PcControlSurfaceStore,
+    private val typingDraftStore: PcTypingDraftStore = InMemoryTypingDraftStore(),
     private val mouseRepeatManager: PcMouseRepeatManager = PcMouseRepeatManager.instance
 ) : ViewModel() {
     constructor(
@@ -93,6 +94,7 @@ class PcMouseControlViewModel(
     constructor(context: Context) : this(
         serviceControllerProvider = { ServiceCore.getPcServiceConnectionController() },
         controlSurfaceStore = PcControlSurfacePreferenceStore(context.applicationContext),
+        typingDraftStore = PcTypingDraftPreferenceStore(context.applicationContext),
         mouseRepeatManager = PcMouseRepeatManager.instance.also { it.init(context.applicationContext) }
     )
 
@@ -104,10 +106,13 @@ class PcMouseControlViewModel(
 
     init {
         val selectedSurface = controlSurfaceStore.getSelectedSurface()
+        val typingDraft = typingDraftStore.getDraft()
         _uiState.update {
             it.copy(
                 activeSurface = selectedSurface,
-                movementStep = movementStep
+                movementStep = movementStep,
+                typingText = typingDraft,
+                typingMessage = validationMessageFor(typingDraft)
             )
         }
         serviceControllerProvider()?.let { controller ->
@@ -529,6 +534,7 @@ class PcMouseControlViewModel(
     }
 
     fun updateTypingText(text: String) {
+        typingDraftStore.setDraft(text)
         _uiState.update {
             it.copy(
                 typingText = text,
@@ -538,6 +544,7 @@ class PcMouseControlViewModel(
     }
 
     fun clearTypingText() {
+        typingDraftStore.clearDraft()
         _uiState.update { it.copy(typingText = "", typingMessage = null) }
     }
 
@@ -743,6 +750,7 @@ class PcMouseControlViewModel(
     }
 
     private fun clearTypingSendSuccess() {
+        typingDraftStore.clearDraft()
         _uiState.update {
             it.copy(
                 isBusy = false,
@@ -755,6 +763,7 @@ class PcMouseControlViewModel(
     }
 
     private fun clearTypingSendAfterEnter() {
+        typingDraftStore.clearDraft()
         _uiState.update {
             it.copy(
                 isBusy = false,
@@ -1199,5 +1208,19 @@ private class InMemoryControlSurfaceStore : PcControlSurfaceStore {
 
     override fun setSelectedSurface(surface: PcControlSurface) {
         this.surface = surface
+    }
+}
+
+private class InMemoryTypingDraftStore : PcTypingDraftStore {
+    private var draft = ""
+
+    override fun getDraft(): String = draft
+
+    override fun setDraft(text: String) {
+        draft = text
+    }
+
+    override fun clearDraft() {
+        draft = ""
     }
 }
