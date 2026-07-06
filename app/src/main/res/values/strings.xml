@@ -377,6 +377,10 @@
     <string name="pc_control_switch_pc_connected">Connected</string>
     <string name="pc_control_switch_pc_refresh">Refresh</string>
     <string name="pc_control_close">Close PC controls</string>
+    <string name="pc_control_close_confirm_title">Close Control PC?</string>
+    <string name="pc_control_close_confirm_message">Your PC controls will close.</string>
+    <string name="pc_control_close_confirm_action">Close</string>
+    <string name="pc_control_close_confirm_cancel">Stay</string>
     <string name="pc_control_surface_mouse">Mouse</string>
     <string name="pc_control_surface_typing">Typing</string>
     <string name="pc_control_surface_window">Window</string>
