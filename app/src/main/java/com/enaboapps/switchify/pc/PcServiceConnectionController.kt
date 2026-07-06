@@ -3,6 +3,8 @@ package com.enaboapps.switchify.pc
 import android.content.Context
 import com.enaboapps.switchify.pc.bluetooth.PcBleDiscoveryService
 import com.enaboapps.switchify.pc.bluetooth.SwitchifyPcBleClient
+import com.enaboapps.switchify.utils.LogEvent
+import com.enaboapps.switchify.utils.Logger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -125,7 +127,7 @@ class PcServiceConnectionController(
     suspend fun connectOrRequestAccess(onWaitingForApproval: (PcApprovalCodeState) -> Unit = {}): PcServiceConnectResult {
         return runExclusiveAttempt {
             connectOrRequestAccessInternal(onWaitingForApproval)
-        }
+        }.also { logConnectFailure(it, desktopId = null) }
     }
 
     private suspend fun connectOrRequestAccessInternal(onWaitingForApproval: (PcApprovalCodeState) -> Unit): PcServiceConnectResult {
@@ -175,7 +177,7 @@ class PcServiceConnectionController(
     ): PcServiceConnectResult {
         return runExclusiveAttempt {
             connectToInternal(pc, onWaitingForApproval)
-        }
+        }.also { logConnectFailure(it, pc.desktopId) }
     }
 
     private suspend fun connectToInternal(
@@ -483,6 +485,10 @@ class PcServiceConnectionController(
     }
 
     private fun handleLiveConnectionFailed(session: PcAuthenticatedSession) {
+        Logger.log(
+            LogEvent.PcConnectionLost,
+            data = mapOf("desktopId" to session.desktopId)
+        )
         val displayName = liveDisplayName ?: "Switchify PC"
         closeLiveConnection(PcControlCloseReason.UnexpectedDisconnect)
         liveSession = session
@@ -515,6 +521,13 @@ class PcServiceConnectionController(
                 }
                 if (index < RECONNECT_BACKOFF_MS.lastIndex) delay(backoffMs)
             }
+            Logger.log(
+                LogEvent.PcReconnectFailed,
+                data = mapOf(
+                    "desktopId" to session.desktopId,
+                    "attempts" to RECONNECT_BACKOFF_MS.size
+                )
+            )
             closeLiveConnection(PcControlCloseReason.CommandFailureRecovery)
             clearLiveState()
             PcConnectionStateHolder.setFailed(DISCONNECTED_MESSAGE)
@@ -536,6 +549,18 @@ class PcServiceConnectionController(
         liveDisplayName = null
         liveControlDeviceName = null
         pointerProfile = null
+    }
+
+    private fun logConnectFailure(result: PcServiceConnectResult, desktopId: String?) {
+        if (result !is PcServiceConnectResult.Failed) return
+        Logger.log(
+            LogEvent.PcConnectFailed,
+            data = mapOf(
+                "reason" to result.reason.name,
+                "message" to result.message,
+                "desktopId" to desktopId
+            )
+        )
     }
 
     companion object {

@@ -23,6 +23,8 @@ import com.enaboapps.switchify.pc.PcProtocol
 import com.enaboapps.switchify.pc.PcProtocolResponse
 import com.enaboapps.switchify.pc.PcWindowControlAction
 import com.enaboapps.switchify.pc.resolveExpectedResponse
+import com.enaboapps.switchify.utils.LogEvent
+import com.enaboapps.switchify.utils.Logger
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -79,6 +81,7 @@ class SwitchifyPcBleClient(
             }
         }.getOrElse {
             if (it is CancellationException) throw it
+            logTransportError("pairing", pc.desktopId, it)
             PcPairingResult.Failed(PcErrorReason.Unreachable, "Found PC, but could not connect.")
         }
     }
@@ -99,6 +102,7 @@ class SwitchifyPcBleClient(
             }
         }.getOrElse {
             if (it is CancellationException) throw it
+            logTransportError("ping", pc.desktopId, it)
             PcPingResult.Failed(PcErrorReason.Unreachable, "Found PC, but could not connect.")
         }
     }
@@ -108,6 +112,7 @@ class SwitchifyPcBleClient(
         val token = tokenStore.getToken(session.desktopId) ?: return PcLiveControlResult.AuthFailed()
         val connection = runCatching { transportFactory.connect(endpoint) }.getOrElse {
             if (it is CancellationException) throw it
+            logTransportError("open_session", session.desktopId, it)
             return PcLiveControlResult.Failed(safeConnectionFailureMessage(it))
         }
         openConnections += connection
@@ -139,6 +144,7 @@ class SwitchifyPcBleClient(
             PcLiveControlResult.AuthFailed()
         } catch (error: Throwable) {
             if (error is CancellationException) throw error
+            logTransportError("open_session", session.desktopId, error)
             connection.close(PcControlCloseReason.CommandFailureRecovery.logName)
             openConnections -= connection
             PcLiveControlResult.Failed(safeConnectionFailureMessage(error))
@@ -261,6 +267,17 @@ class SwitchifyPcBleClient(
     }
 
     private fun nextRequestId(): String = "android-${UUID.randomUUID()}"
+
+    private fun logTransportError(operation: String, desktopId: String, error: Throwable) {
+        Logger.log(
+            LogEvent.PcBleTransportError,
+            data = mapOf(
+                "operation" to operation,
+                "desktopId" to desktopId
+            ),
+            throwable = error
+        )
+    }
 
     private fun safeConnectionFailureMessage(error: Throwable): String {
         return when (error.message) {
