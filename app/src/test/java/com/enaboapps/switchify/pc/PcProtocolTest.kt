@@ -134,6 +134,39 @@ class PcProtocolTest {
     }
 
     @Test
+    fun buildsPointerSpeedSetCommandWithAuthProof() {
+        val json = JSONObject(
+            PcProtocol.pointerSpeedSet(
+                id = "speed-1",
+                deviceId = "device-1",
+                token = "shared-token",
+                timestamp = 1000L,
+                scalePercent = 125.0
+            )
+        )
+
+        assertEquals(1, json.getInt("version"))
+        assertEquals("speed-1", json.getString("id"))
+        assertEquals("device-1", json.getString("deviceId"))
+        assertEquals(1000L, json.getLong("timestamp"))
+        assertEquals("pointer.speed.set", json.getString("type"))
+        assertEquals(125.0, json.getJSONObject("payload").getDouble("scalePercent"), 0.0)
+        assertFalse(json.has("responseMode"))
+        assertEquals(
+            PcProtocol.authProof(
+                id = "speed-1",
+                deviceId = "device-1",
+                timestamp = 1000L,
+                type = "pointer.speed.set",
+                payload = json.getJSONObject("payload"),
+                token = "shared-token"
+            ),
+            json.getString("auth")
+        )
+        assertFalse(json.toString().contains("shared-token"))
+    }
+
+    @Test
     fun parsesPointerProfileResponse() {
         val response = PcProtocol.parseResponse(validPointerProfileResponse()) as PcProtocolResponse.PointerProfile
 
@@ -147,6 +180,7 @@ class PcProtocolTest {
         assertEquals(emptySet<String>(), response.profile.capabilities.noAckCommands)
         assertEquals(emptySet<String>(), response.profile.capabilities.supportedCommands)
         assertFalse(response.profile.capabilities.pointerSpeed.supported)
+        assertFalse(response.profile.capabilities.pointerSpeed.setSupported)
         assertEquals(130, response.profile.pointerMoveStep())
     }
 
@@ -154,11 +188,12 @@ class PcProtocolTest {
     fun parsesPointerProfileSpeedCapability() {
         val response = PcProtocol.parseResponse(
             validPointerProfileResponse(
-                capabilities = ""","capabilities":{"pointerSpeed":{"supported":true,"scalePercent":125,"minScalePercent":25,"maxScalePercent":225,"stepPercent":5,"baseMoveDelta":128,"effectiveMoveDelta":160}}"""
+                capabilities = ""","capabilities":{"pointerSpeed":{"supported":true,"setSupported":true,"scalePercent":125,"minScalePercent":25,"maxScalePercent":225,"stepPercent":5,"baseMoveDelta":128,"effectiveMoveDelta":160}}"""
             )
         ) as PcProtocolResponse.PointerProfile
 
         assertTrue(response.profile.capabilities.pointerSpeed.supported)
+        assertTrue(response.profile.capabilities.pointerSpeed.setSupported)
         assertEquals(125.0, response.profile.capabilities.pointerSpeed.scalePercent, 0.0)
         assertEquals(225.0, response.profile.capabilities.pointerSpeed.maxScalePercent, 0.0)
         assertEquals(128, response.profile.capabilities.pointerSpeed.baseMoveDelta)
@@ -173,6 +208,14 @@ class PcProtocolTest {
             PcProtocol.parseResponse(
                 validPointerProfileResponse(
                     capabilities = ""","capabilities":{"pointerSpeed":{"supported":true,"scalePercent":300,"minScalePercent":25,"maxScalePercent":225,"stepPercent":5,"baseMoveDelta":128,"effectiveMoveDelta":160}}"""
+                )
+            )
+        )
+        assertEquals(
+            PcProtocolResponse.Invalid,
+            PcProtocol.parseResponse(
+                validPointerProfileResponse(
+                    capabilities = ""","capabilities":{"pointerSpeed":{"supported":true,"setSupported":"yes","scalePercent":125,"minScalePercent":25,"maxScalePercent":225,"stepPercent":5,"baseMoveDelta":128,"effectiveMoveDelta":160}}"""
                 )
             )
         )

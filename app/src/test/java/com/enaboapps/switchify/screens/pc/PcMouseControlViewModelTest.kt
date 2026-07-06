@@ -156,6 +156,7 @@ class PcMouseControlViewModelTest {
                 capabilities = PcPointerCapabilities(
                     pointerSpeed = PcPointerSpeedCapabilities(
                         supported = true,
+                        setSupported = true,
                         scalePercent = 125.0,
                         baseMoveDelta = 128,
                         effectiveMoveDelta = 160
@@ -169,7 +170,126 @@ class PcMouseControlViewModelTest {
 
         assertEquals(128, viewModel.uiState.value.movementStep)
         assertEquals(true, viewModel.uiState.value.pointerSpeedSupported)
-        assertEquals("Set in Switchify PC: 125%", viewModel.uiState.value.pointerSpeedPercentLabel)
+        assertEquals("125%", viewModel.uiState.value.pointerSpeedPercentLabel)
+    }
+
+    @Test
+    fun pointerSpeedSetSupportEnablesSpeedEditing() = runTest(dispatcher) {
+        val controller = connectedController(
+            pointerProfile = pointerProfile(
+                capabilities = PcPointerCapabilities(
+                    pointerSpeed = PcPointerSpeedCapabilities(
+                        supported = true,
+                        setSupported = true,
+                        scalePercent = 160.0,
+                        minScalePercent = 25.0,
+                        maxScalePercent = 225.0,
+                        stepPercent = 5.0,
+                        baseMoveDelta = 128,
+                        effectiveMoveDelta = 205
+                    )
+                )
+            )
+        )
+        val viewModel = viewModel(controller)
+
+        advanceUntilIdle()
+
+        assertTrue(viewModel.uiState.value.pointerSpeedSupported)
+        assertTrue(viewModel.uiState.value.pointerSpeedSetSupported)
+        assertEquals(160.0, viewModel.uiState.value.pointerSpeedScalePercent, 0.0)
+        assertEquals(25.0, viewModel.uiState.value.pointerSpeedMinScalePercent, 0.0)
+        assertEquals(225.0, viewModel.uiState.value.pointerSpeedMaxScalePercent, 0.0)
+        assertEquals(5.0, viewModel.uiState.value.pointerSpeedStepPercent, 0.0)
+    }
+
+    @Test
+    fun settingPointerSpeedSendsNormalizedValueAndUpdatesAfterAck() = runTest(dispatcher) {
+        val connector = FakeConnector()
+        val controller = connectedController(
+            connector = connector,
+            pointerProfile = pointerProfile(
+                capabilities = PcPointerCapabilities(
+                    pointerSpeed = PcPointerSpeedCapabilities(
+                        supported = true,
+                        setSupported = true,
+                        scalePercent = 100.0,
+                        minScalePercent = 25.0,
+                        maxScalePercent = 225.0,
+                        stepPercent = 5.0,
+                        baseMoveDelta = 128,
+                        effectiveMoveDelta = 128
+                    )
+                )
+            )
+        )
+        val viewModel = viewModel(controller)
+        advanceUntilIdle()
+
+        viewModel.setPointerSpeed(127.0)
+        advanceUntilIdle()
+
+        assertEquals(listOf(PcControlCommand.SetPointerSpeed(125.0)), connector.commands)
+        assertEquals(125.0, viewModel.uiState.value.pointerSpeedScalePercent, 0.0)
+        assertEquals("125%", viewModel.uiState.value.pointerSpeedPercentLabel)
+        assertEquals(128, viewModel.uiState.value.movementStep)
+    }
+
+    @Test
+    fun failedPointerSpeedSetDoesNotUpdateDisplayedSpeed() = runTest(dispatcher) {
+        val connector = FakeConnector(commandResults = mutableListOf(PcCommandResult.Failed()))
+        val controller = connectedController(
+            connector = connector,
+            pointerProfile = pointerProfile(
+                capabilities = PcPointerCapabilities(
+                    pointerSpeed = PcPointerSpeedCapabilities(
+                        supported = true,
+                        setSupported = true,
+                        scalePercent = 100.0,
+                        minScalePercent = 25.0,
+                        maxScalePercent = 225.0,
+                        stepPercent = 5.0,
+                        baseMoveDelta = 128,
+                        effectiveMoveDelta = 128
+                    )
+                )
+            )
+        )
+        val viewModel = viewModel(controller)
+        advanceUntilIdle()
+
+        viewModel.setPointerSpeed(160.0)
+        advanceUntilIdle()
+
+        assertEquals(listOf(PcControlCommand.SetPointerSpeed(160.0)), connector.commands)
+        assertEquals(100.0, viewModel.uiState.value.pointerSpeedScalePercent, 0.0)
+        assertEquals("100%", viewModel.uiState.value.pointerSpeedPercentLabel)
+        assertEquals(PcMouseControlViewModel.COMMAND_FAILED_MESSAGE, viewModel.uiState.value.message)
+    }
+
+    @Test
+    fun unsupportedPointerSpeedSetDoesNotSendCommand() = runTest(dispatcher) {
+        val connector = FakeConnector()
+        val controller = connectedController(
+            connector = connector,
+            pointerProfile = pointerProfile(
+                capabilities = PcPointerCapabilities(
+                    pointerSpeed = PcPointerSpeedCapabilities(
+                        supported = true,
+                        setSupported = false,
+                        scalePercent = 100.0
+                    )
+                )
+            )
+        )
+        val viewModel = viewModel(controller)
+        advanceUntilIdle()
+
+        viewModel.setPointerSpeed(160.0)
+        advanceUntilIdle()
+
+        assertTrue(connector.commands.isEmpty())
+        assertEquals(PcMouseControlViewModel.POINTER_SPEED_UNAVAILABLE_MESSAGE, viewModel.uiState.value.message)
     }
 
     @Test
@@ -416,7 +536,7 @@ class PcMouseControlViewModelTest {
         assertEquals(80, viewModel.uiState.value.movementStep)
         assertEquals(false, viewModel.uiState.value.pointerSpeedSupported)
         assertEquals(
-            "Update Switchify PC to view pointer speed.",
+            "Update Switchify PC to set pointer speed.",
             viewModel.uiState.value.pointerSpeedPercentLabel
         )
     }

@@ -19,6 +19,7 @@ data class PcPointerCapabilities(
 
 data class PcPointerSpeedCapabilities(
     val supported: Boolean = false,
+    val setSupported: Boolean = false,
     val scalePercent: Double = 100.0,
     val minScalePercent: Double = 25.0,
     val maxScalePercent: Double = 225.0,

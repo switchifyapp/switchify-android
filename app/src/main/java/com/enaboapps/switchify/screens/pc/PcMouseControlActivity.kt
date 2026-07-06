@@ -163,7 +163,14 @@ private fun PcMouseControlScreen(
                             PcControlCommandGrid(
                                 enabled = surfaceEnabled,
                                 movementStep = uiState.movementStep,
+                                pointerSpeedScalePercent = uiState.pointerSpeedScalePercent,
+                                pointerSpeedMinScalePercent = uiState.pointerSpeedMinScalePercent,
+                                pointerSpeedMaxScalePercent = uiState.pointerSpeedMaxScalePercent,
+                                pointerSpeedStepPercent = uiState.pointerSpeedStepPercent,
+                                pointerSpeedSupported = uiState.pointerSpeedSupported && uiState.pointerSpeedSetSupported,
+                                pointerSpeedControlEnabled = uiState.pointerSpeedSupported && uiState.pointerSpeedSetSupported && !uiState.isBusy,
                                 pointerSpeedLabel = uiState.pointerSpeedPercentLabel,
+                                onPointerSpeedSelected = viewModel::setPointerSpeed,
                                 onCommandSelected = viewModel::sendMouseCommand
                             )
                         }

@@ -55,6 +55,11 @@ data class PcMouseControlUiState(
     val activeSurface: PcControlSurface = PcControlSurface.Mouse,
     val movementStep: Int = PcMouseControlViewModel.FALLBACK_MOVEMENT_STEP,
     val pointerSpeedSupported: Boolean = false,
+    val pointerSpeedSetSupported: Boolean = false,
+    val pointerSpeedScalePercent: Double = 100.0,
+    val pointerSpeedMinScalePercent: Double = 25.0,
+    val pointerSpeedMaxScalePercent: Double = 225.0,
+    val pointerSpeedStepPercent: Double = 5.0,
     val pointerSpeedPercentLabel: String = PcMouseControlViewModel.POINTER_SPEED_UNAVAILABLE_MESSAGE,
     val isDragging: Boolean = false,
     val isBusy: Boolean = false,
@@ -202,6 +207,30 @@ class PcMouseControlViewModel(
             return
         }
         send(command)
+    }
+
+    fun setPointerSpeed(scalePercent: Double) {
+        val state = _uiState.value
+        if (!state.pointerSpeedSupported || !state.pointerSpeedSetSupported) {
+            _uiState.update { it.copy(message = POINTER_SPEED_UNAVAILABLE_MESSAGE) }
+            return
+        }
+
+        val normalized = normalizePointerSpeed(
+            scalePercent,
+            state.pointerSpeedMinScalePercent,
+            state.pointerSpeedMaxScalePercent,
+            state.pointerSpeedStepPercent
+        )
+        sendCommand(PcControlCommand.SetPointerSpeed(normalized)) {
+            it.copy(
+                pointerSpeedScalePercent = normalized,
+                pointerSpeedPercentLabel = pointerSpeedLabel(normalized),
+                isBusy = false,
+                busyCommand = null,
+                message = null
+            )
+        }
     }
 
     private fun sendPcSideRepeatCommand(command: PcControlCommand) {
@@ -865,7 +894,12 @@ class PcMouseControlViewModel(
                         switcherConnectedDisplayName = controller.currentControlDeviceName() ?: state.displayName,
                         movementStep = movementStep,
                         pointerSpeedSupported = pointerProfile?.capabilities?.pointerSpeed?.supported == true,
-                        pointerSpeedPercentLabel = pointerSpeedLabel(pointerProfile),
+                        pointerSpeedSetSupported = pointerProfile?.capabilities?.pointerSpeed?.setSupported == true,
+                        pointerSpeedScalePercent = pointerProfile?.capabilities?.pointerSpeed?.scalePercent ?: 100.0,
+                        pointerSpeedMinScalePercent = pointerProfile?.capabilities?.pointerSpeed?.minScalePercent ?: 25.0,
+                        pointerSpeedMaxScalePercent = pointerProfile?.capabilities?.pointerSpeed?.maxScalePercent ?: 225.0,
+                        pointerSpeedStepPercent = pointerProfile?.capabilities?.pointerSpeed?.stepPercent ?: 5.0,
+                        pointerSpeedPercentLabel = pointerSpeedLabel(pointerProfile?.capabilities?.pointerSpeed?.scalePercent),
                         supportsTextStreamInput = pointerProfile?.supportsTextStreams() ?: false,
                         supportsModifierToggles = supportsModifierToggles,
                         message = if (it.message == RECONNECTING_MESSAGE || it.message == DISCONNECTED_MESSAGE || it.message == CONNECT_FIRST_MESSAGE) {
@@ -897,6 +931,7 @@ class PcMouseControlViewModel(
                         isDragging = false,
                         activeModifiers = emptySet(),
                         pointerSpeedSupported = false,
+                        pointerSpeedSetSupported = false,
                         pointerSpeedPercentLabel = POINTER_SPEED_UNAVAILABLE_MESSAGE,
                         supportsTextStreamInput = false,
                         supportsModifierToggles = false,
@@ -921,6 +956,8 @@ class PcMouseControlViewModel(
                         switcherConnectedDisplayName = null,
                         movementStep = movementStep,
                         pointerSpeedSupported = false,
+                        pointerSpeedSetSupported = false,
+                        pointerSpeedScalePercent = 100.0,
                         pointerSpeedPercentLabel = POINTER_SPEED_UNAVAILABLE_MESSAGE,
                         isDragging = false,
                         activeModifiers = emptySet(),
@@ -946,6 +983,8 @@ class PcMouseControlViewModel(
                         switcherConnectedDisplayName = null,
                         movementStep = movementStep,
                         pointerSpeedSupported = false,
+                        pointerSpeedSetSupported = false,
+                        pointerSpeedScalePercent = 100.0,
                         pointerSpeedPercentLabel = POINTER_SPEED_UNAVAILABLE_MESSAGE,
                         isDragging = false,
                         activeModifiers = emptySet(),
@@ -1036,6 +1075,8 @@ class PcMouseControlViewModel(
                 switcherConnectedDisplayName = null,
                 movementStep = movementStep,
                 pointerSpeedSupported = false,
+                pointerSpeedSetSupported = false,
+                pointerSpeedScalePercent = 100.0,
                 pointerSpeedPercentLabel = POINTER_SPEED_UNAVAILABLE_MESSAGE,
                 isDragging = false,
                 activeModifiers = emptySet(),
@@ -1091,15 +1132,20 @@ class PcMouseControlViewModel(
         }
     }
 
-    private fun pointerSpeedLabel(pointerProfile: PcPointerMovementProfile?): String {
-        val speed = pointerProfile?.capabilities?.pointerSpeed
-        if (speed?.supported != true) return POINTER_SPEED_UNAVAILABLE_MESSAGE
-        val percent = if (speed.scalePercent % 1.0 == 0.0) {
-            speed.scalePercent.toInt().toString()
+    private fun pointerSpeedLabel(scalePercent: Double?): String {
+        if (scalePercent == null) return POINTER_SPEED_UNAVAILABLE_MESSAGE
+        val percent = if (scalePercent % 1.0 == 0.0) {
+            scalePercent.toInt().toString()
         } else {
-            String.format(Locale.ROOT, "%.1f", speed.scalePercent)
+            String.format(Locale.ROOT, "%.1f", scalePercent)
         }
-        return "$POINTER_SPEED_PREFIX$percent%"
+        return "$percent%"
+    }
+
+    private fun normalizePointerSpeed(value: Double, min: Double, max: Double, step: Double): Double {
+        val bounded = value.coerceIn(min, max)
+        val normalizedStep = if (step > 0.0) step else 5.0
+        return kotlin.math.round(bounded / normalizedStep) * normalizedStep
     }
 
     private fun debugLog(message: String) {
@@ -1109,8 +1155,7 @@ class PcMouseControlViewModel(
     companion object {
         private const val TAG = "PcMouseControlViewModel"
         const val FALLBACK_MOVEMENT_STEP = 80
-        const val POINTER_SPEED_PREFIX = "Set in Switchify PC: "
-        const val POINTER_SPEED_UNAVAILABLE_MESSAGE = "Update Switchify PC to view pointer speed."
+        const val POINTER_SPEED_UNAVAILABLE_MESSAGE = "Update Switchify PC to set pointer speed."
         const val CONNECT_FIRST_MESSAGE = "Connect to PC from Switchify first."
         const val COMMAND_FAILED_MESSAGE = "Could not send command to PC."
         const val TYPING_FAILED_MESSAGE = "Could not send text to PC."

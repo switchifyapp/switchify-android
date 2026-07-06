@@ -382,6 +382,8 @@
     <string name="pc_control_surface_window">Window</string>
     <string name="pc_mouse_control_connected">Connected to %1$s.</string>
     <string name="pc_mouse_pointer_speed">Pointer speed</string>
+    <string name="pc_mouse_pointer_speed_configured">Set in Switchify PC.</string>
+    <string name="pc_mouse_pointer_speed_unavailable">Update Switchify PC to set pointer speed.</string>
     <string name="pc_mouse_section_movement">Movement</string>
     <string name="pc_mouse_section_clicks">Clicks</string>
     <string name="request_rejected">Request rejected.</string>

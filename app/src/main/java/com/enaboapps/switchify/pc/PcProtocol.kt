@@ -91,6 +91,23 @@ object PcProtocol {
         )
     }
 
+    fun pointerSpeedSet(
+        id: String,
+        deviceId: String,
+        token: String,
+        timestamp: Long,
+        scalePercent: Double
+    ): String {
+        return authenticatedCommand(
+            id = id,
+            deviceId = deviceId,
+            token = token,
+            timestamp = timestamp,
+            type = "pointer.speed.set",
+            payload = JSONObject().put("scalePercent", jsonNumber(scalePercent))
+        )
+    }
+
     fun authenticatedCommand(
         id: String,
         deviceId: String,
@@ -112,6 +129,10 @@ object PcProtocol {
         }
         message.put("auth", authProof(id, deviceId, timestamp, type, payload, token, responseMode))
         return message.toString()
+    }
+
+    private fun jsonNumber(value: Double): Number {
+        return if (value.isFinite() && value % 1.0 == 0.0) value.toInt() else value
     }
 
     fun mouseMove(
@@ -631,6 +652,7 @@ object PcProtocol {
         val speedJson = capabilitiesJson?.opt("pointerSpeed") ?: return PcPointerSpeedCapabilities()
         if (speedJson !is JSONObject) return null
         if (speedJson.has("supported") && speedJson.opt("supported") !is Boolean) return null
+        if (speedJson.has("setSupported") && speedJson.opt("setSupported") !is Boolean) return null
 
         val scalePercent = speedJson.optDouble("scalePercent", 100.0)
         val minScalePercent = speedJson.optDouble("minScalePercent", 25.0)
@@ -662,6 +684,7 @@ object PcProtocol {
 
         return PcPointerSpeedCapabilities(
             supported = speedJson.optBoolean("supported", false),
+            setSupported = speedJson.optBoolean("setSupported", false),
             scalePercent = scalePercent,
             minScalePercent = minScalePercent,
             maxScalePercent = maxScalePercent,
@@ -726,6 +749,7 @@ object PcProtocol {
         "connection.ping",
         "connection.disconnecting",
         "pointer.profile",
+        "pointer.speed.set",
         "mouse.repeat.start",
         "mouse.repeat.stop",
         "keyboard.textStream.open",

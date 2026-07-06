@@ -315,6 +315,7 @@ class SwitchifyPcBleClient(
             is PcControlCommand.ModifierDown -> PcProtocol.keyboardModifierDown(id, deviceId, token, timestamp, key, responseMode)
             is PcControlCommand.ModifierUp -> PcProtocol.keyboardModifierUp(id, deviceId, token, timestamp, key, responseMode)
             is PcControlCommand.WindowControl -> PcProtocol.windowControl(id, deviceId, token, timestamp, action, responseMode)
+            is PcControlCommand.SetPointerSpeed -> PcProtocol.pointerSpeedSet(id, deviceId, token, timestamp, scalePercent)
         }
     }
 
@@ -424,6 +425,7 @@ private fun PcControlCommand.protocolType(): String {
         is PcControlCommand.ModifierDown -> "keyboard.modifierDown"
         is PcControlCommand.ModifierUp -> "keyboard.modifierUp"
         is PcControlCommand.WindowControl -> "window.control"
+        is PcControlCommand.SetPointerSpeed -> "pointer.speed.set"
     }
 }
 

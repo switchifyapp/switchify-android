@@ -41,6 +41,7 @@ import androidx.compose.material.icons.filled.OpenWith
 import androidx.compose.material.icons.filled.TouchApp
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -67,6 +68,7 @@ import com.enaboapps.switchify.R
 import com.enaboapps.switchify.components.EqualHeightGridRow
 import com.enaboapps.switchify.components.Section
 import com.enaboapps.switchify.pc.PcControlCommand
+import kotlin.math.roundToInt
 
 data class PcMouseControlSpec(
     @param:StringRes val labelResId: Int,
@@ -184,14 +186,28 @@ fun PcTransientMessage(
 fun PcControlCommandGrid(
     enabled: Boolean,
     movementStep: Int,
+    pointerSpeedScalePercent: Double,
+    pointerSpeedMinScalePercent: Double,
+    pointerSpeedMaxScalePercent: Double,
+    pointerSpeedStepPercent: Double,
+    pointerSpeedSupported: Boolean,
+    pointerSpeedControlEnabled: Boolean,
     pointerSpeedLabel: String,
+    onPointerSpeedSelected: (Double) -> Unit,
     onCommandSelected: (PcControlCommand, Boolean) -> Unit,
     modifier: Modifier = Modifier
 ) {
     PcControlCommandSections(
         enabled = enabled,
         movementStep = movementStep,
+        pointerSpeedScalePercent = pointerSpeedScalePercent,
+        pointerSpeedMinScalePercent = pointerSpeedMinScalePercent,
+        pointerSpeedMaxScalePercent = pointerSpeedMaxScalePercent,
+        pointerSpeedStepPercent = pointerSpeedStepPercent,
+        pointerSpeedSupported = pointerSpeedSupported,
+        pointerSpeedControlEnabled = pointerSpeedControlEnabled,
         pointerSpeedLabel = pointerSpeedLabel,
+        onPointerSpeedSelected = onPointerSpeedSelected,
         onCommandSelected = onCommandSelected,
         modifier = modifier
     )
@@ -201,7 +217,14 @@ fun PcControlCommandGrid(
 fun PcControlCommandSections(
     enabled: Boolean,
     movementStep: Int,
+    pointerSpeedScalePercent: Double,
+    pointerSpeedMinScalePercent: Double,
+    pointerSpeedMaxScalePercent: Double,
+    pointerSpeedStepPercent: Double,
+    pointerSpeedSupported: Boolean,
+    pointerSpeedControlEnabled: Boolean,
     pointerSpeedLabel: String,
+    onPointerSpeedSelected: (Double) -> Unit,
     onCommandSelected: (PcControlCommand, Boolean) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -228,15 +251,37 @@ fun PcControlCommandSections(
                 )
             }
         }
-        PcPointerSpeedSection(pointerSpeedLabel = pointerSpeedLabel)
+        PcPointerSpeedSection(
+            scalePercent = pointerSpeedScalePercent,
+            minScalePercent = pointerSpeedMinScalePercent,
+            maxScalePercent = pointerSpeedMaxScalePercent,
+            stepPercent = pointerSpeedStepPercent,
+            supported = pointerSpeedSupported,
+            enabled = pointerSpeedControlEnabled,
+            label = pointerSpeedLabel,
+            onSpeedSelected = onPointerSpeedSelected
+        )
     }
 }
 
 @Composable
 fun PcPointerSpeedSection(
-    pointerSpeedLabel: String,
+    scalePercent: Double,
+    minScalePercent: Double,
+    maxScalePercent: Double,
+    stepPercent: Double,
+    supported: Boolean,
+    enabled: Boolean,
+    label: String,
+    onSpeedSelected: (Double) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var displayedScale by remember(scalePercent) { mutableStateOf(scalePercent) }
+    val min = minScalePercent.toFloat()
+    val max = maxScalePercent.toFloat()
+    val step = stepPercent.takeIf { it > 0.0 } ?: 5.0
+    val steps = (((maxScalePercent - minScalePercent) / step).roundToInt() - 1).coerceAtLeast(0)
+
     Section(titleResId = R.string.pc_mouse_pointer_speed) {
         Surface(
             modifier = modifier
@@ -245,12 +290,34 @@ fun PcPointerSpeedSection(
             shape = RoundedCornerShape(12.dp),
             color = MaterialTheme.colorScheme.surfaceContainerHigh
         ) {
-            Text(
-                text = pointerSpeedLabel,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)
-            )
+            Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
+                Text(
+                    text = if (supported) label else stringResource(R.string.pc_mouse_pointer_speed_unavailable),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = stringResource(
+                        if (supported) {
+                            R.string.pc_mouse_pointer_speed_configured
+                        } else {
+                            R.string.pc_mouse_pointer_speed_unavailable
+                        }
+                    ),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 2.dp)
+                )
+                Slider(
+                    value = displayedScale.toFloat().coerceIn(min, max),
+                    onValueChange = { displayedScale = it.toDouble() },
+                    onValueChangeFinished = { onSpeedSelected(displayedScale) },
+                    enabled = supported && enabled,
+                    valueRange = min..max,
+                    steps = steps,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+            }
         }
     }
 }
