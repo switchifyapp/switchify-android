@@ -4,7 +4,9 @@ import android.content.Context
 import com.enaboapps.switchify.pc.bluetooth.PcBleDiscoveryService
 import com.enaboapps.switchify.pc.bluetooth.SwitchifyPcBleClient
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -13,6 +15,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import java.util.UUID
+import kotlin.coroutines.coroutineContext
 
 sealed class PcServiceConnectionState {
     data object Disconnected : PcServiceConnectionState()
@@ -44,6 +47,12 @@ class PcServiceConnectionController(
 ) {
     private val _state = MutableStateFlow<PcServiceConnectionState>(PcServiceConnectionState.Disconnected)
     val state: StateFlow<PcServiceConnectionState> = _state
+    val discoveredPcs: StateFlow<List<DiscoveredPc>> get() = discovery.pcs
+    val discoveryStatus: StateFlow<PcDiscoveryStatus> get() = discovery.status
+    private val discoveryLock = Any()
+    private var discoveryRequests = 0
+    private val attemptLock = Any()
+    private var activeAttemptJob: Job? = null
     private var liveConnection: PcControlConnection? = null
     private var liveSession: PcAuthenticatedSession? = null
     private var liveDisplayName: String? = null
@@ -55,9 +64,42 @@ class PcServiceConnectionController(
     private var pcUiActive = false
     private var pointerProfile: PcPointerMovementProfile? = null
 
+    fun startContinuousDiscovery() {
+        acquireDiscovery()
+    }
+
+    fun stopContinuousDiscovery() {
+        releaseDiscovery()
+    }
+
+    private fun acquireDiscovery() {
+        val shouldStart = synchronized(discoveryLock) {
+            discoveryRequests++
+            discoveryRequests == 1
+        }
+        if (shouldStart) {
+            discovery.startDiscovery()
+        }
+    }
+
+    private fun releaseDiscovery() {
+        val shouldStop = synchronized(discoveryLock) {
+            if (discoveryRequests == 0) return
+            discoveryRequests--
+            discoveryRequests == 0
+        }
+        if (shouldStop) {
+            discovery.stopDiscovery()
+        }
+    }
+
+    private fun hasDiscoveryRequests(): Boolean {
+        return synchronized(discoveryLock) { discoveryRequests > 0 }
+    }
+
     suspend fun discoverPcs(): List<DiscoveredPc> {
         _state.value = PcServiceConnectionState.Discovering
-        discovery.startDiscovery()
+        acquireDiscovery()
         try {
             var current = withTimeoutOrNull(DISCOVERY_TIMEOUT_MS) {
                 discovery.pcs.first { pcs -> pcs.isNotEmpty() }
@@ -70,7 +112,7 @@ class PcServiceConnectionController(
             }
             return current
         } finally {
-            discovery.stopDiscovery()
+            releaseDiscovery()
         }
     }
 
@@ -81,6 +123,12 @@ class PcServiceConnectionController(
     }
 
     suspend fun connectOrRequestAccess(onWaitingForApproval: (PcApprovalCodeState) -> Unit = {}): PcServiceConnectResult {
+        return runExclusiveAttempt {
+            connectOrRequestAccessInternal(onWaitingForApproval)
+        }
+    }
+
+    private suspend fun connectOrRequestAccessInternal(onWaitingForApproval: (PcApprovalCodeState) -> Unit): PcServiceConnectResult {
         existingConnection()?.let { return it }
 
         val discovered = discoverPcs()
@@ -124,6 +172,15 @@ class PcServiceConnectionController(
     suspend fun connectTo(
         pc: DiscoveredPc,
         onWaitingForApproval: (PcApprovalCodeState) -> Unit = {}
+    ): PcServiceConnectResult {
+        return runExclusiveAttempt {
+            connectToInternal(pc, onWaitingForApproval)
+        }
+    }
+
+    private suspend fun connectToInternal(
+        pc: DiscoveredPc,
+        onWaitingForApproval: (PcApprovalCodeState) -> Unit
     ): PcServiceConnectResult {
         existingConnection()?.takeIf { it.session.desktopId == pc.desktopId }?.let {
             return it
@@ -202,10 +259,55 @@ class PcServiceConnectionController(
         if (pendingUiPauseShutdownJob?.isActive == true) return
         pendingUiPauseShutdownJob = scope.launch {
             delay(PC_CONTROL_UI_PAUSE_SHUTDOWN_GRACE_MS)
+            if (hasActiveConnectionAttempt()) return@launch
             closeLiveConnection(PcControlCloseReason.UiPauseGraceExpired)
             connector.close()
             clearLiveState()
             PcConnectionStateHolder.setDisconnected()
+            _state.value = PcServiceConnectionState.Disconnected
+        }
+    }
+
+    fun cancelConnectionAttempt() {
+        val cancelled = synchronized(attemptLock) {
+            val job = activeAttemptJob
+            activeAttemptJob = null
+            job
+        }
+        if (cancelled == null) return
+        cancelled.cancel()
+        restoreStateAfterCancelledAttempt()
+    }
+
+    private fun hasActiveConnectionAttempt(): Boolean {
+        return synchronized(attemptLock) { activeAttemptJob != null }
+    }
+
+    private suspend fun runExclusiveAttempt(block: suspend () -> PcServiceConnectResult): PcServiceConnectResult {
+        val myJob = coroutineContext[Job]
+        val previous = synchronized(attemptLock) {
+            val job = activeAttemptJob
+            activeAttemptJob = myJob
+            job
+        }
+        if (previous != null && previous !== myJob) {
+            previous.cancel()
+        }
+        return try {
+            block()
+        } finally {
+            synchronized(attemptLock) {
+                if (activeAttemptJob === myJob) activeAttemptJob = null
+            }
+        }
+    }
+
+    private fun restoreStateAfterCancelledAttempt() {
+        val session = liveSession
+        val displayName = liveDisplayName
+        if (liveConnection != null && session != null && displayName != null) {
+            _state.value = PcServiceConnectionState.Connected(session, displayName, pointerProfile)
+        } else {
             _state.value = PcServiceConnectionState.Disconnected
         }
     }
@@ -221,12 +323,15 @@ class PcServiceConnectionController(
     }
 
     fun disconnect() {
+        cancelConnectionAttempt()
         pendingUiPauseShutdownJob?.cancel()
         pendingUiPauseShutdownJob = null
         reconnectJob?.cancel()
         reconnectJob = null
         closeLiveConnection(PcControlCloseReason.ExplicitStop)
-        discovery.stopDiscovery()
+        if (!hasDiscoveryRequests()) {
+            discovery.stopDiscovery()
+        }
         connector.close()
         clearLiveState()
         PcConnectionStateHolder.setDisconnected()
@@ -434,6 +539,18 @@ class PcServiceConnectionController(
     }
 
     companion object {
+        @Volatile
+        private var instance: PcServiceConnectionController? = null
+
+        fun getInstance(context: Context): PcServiceConnectionController {
+            return instance ?: synchronized(this) {
+                instance ?: PcServiceConnectionController(
+                    context = context.applicationContext,
+                    scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+                ).also { instance = it }
+            }
+        }
+
         private const val EXPIRED_MESSAGE = "Connection expired. Request access again."
         private const val CONNECT_FIRST_MESSAGE = "Connect to PC from Switchify first."
         private const val DISCONNECTED_MESSAGE = "Disconnected."

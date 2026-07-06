@@ -1,5 +1,6 @@
 package com.enaboapps.switchify.pc
 
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -9,12 +10,14 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -700,6 +703,137 @@ class PcServiceConnectionControllerTest {
         assertNull(tokens.getToken("desktop-2"))
     }
 
+    @Test
+    fun newConnectionAttemptCancelsPreviousAttemptAcrossCallers() = runTest(dispatcher) {
+        val firstPairing = CompletableDeferred<PcPairingResult>()
+        val tokens = FakeTokenStore()
+        val connector = FakeConnector(
+            pingResult = PcPingResult.Connected("11:22:33:44:55:66"),
+            pairingDeferredsByDesktop = mapOf("desktop-1" to firstPairing),
+            pairingResultsByDesktop = mapOf(
+                "desktop-2" to PcPairingResult.Paired("desktop-2", "token-2", "11:22:33:44:55:66")
+            )
+        )
+        val controller = controller(tokens, connector, FakeDiscovery(listOf(pc, secondPc)))
+
+        val firstJob = launch { controller.connectTo(pc) }
+        runCurrent()
+
+        val second = controller.connectTo(secondPc)
+        runCurrent()
+
+        assertTrue(firstJob.isCancelled)
+        assertTrue(second is PcServiceConnectResult.Connected)
+        assertNull(tokens.getToken("desktop-1"))
+        assertEquals("token-2", tokens.getToken("desktop-2"))
+        assertEquals("desktop-2", (PcConnectionStateHolder.connectionState.value as PcConnectionState.Connected).session.desktopId)
+
+        firstPairing.complete(PcPairingResult.Paired("desktop-1", "token", "AA:BB:CC:DD:EE:FF"))
+        runCurrent()
+
+        assertNull(tokens.getToken("desktop-1"))
+        assertEquals("desktop-2", (PcConnectionStateHolder.connectionState.value as PcConnectionState.Connected).session.desktopId)
+    }
+
+    @Test
+    fun cancelConnectionAttemptAbortsPendingPairing() = runTest(dispatcher) {
+        val pairing = CompletableDeferred<PcPairingResult>()
+        val tokens = FakeTokenStore()
+        val connector = FakeConnector(
+            pingResult = PcPingResult.Connected("AA:BB:CC:DD:EE:FF"),
+            pairingDeferredsByDesktop = mapOf("desktop-1" to pairing)
+        )
+        val controller = controller(tokens, connector)
+
+        val job = launch { controller.connectTo(pc) }
+        runCurrent()
+        controller.cancelConnectionAttempt()
+        runCurrent()
+
+        assertTrue(job.isCancelled)
+        assertTrue(controller.state.value is PcServiceConnectionState.Disconnected)
+
+        pairing.complete(PcPairingResult.Paired("desktop-1", "token", "AA:BB:CC:DD:EE:FF"))
+        runCurrent()
+
+        assertNull(tokens.getToken("desktop-1"))
+        assertTrue(PcConnectionStateHolder.connectionState.value is PcConnectionState.Disconnected)
+    }
+
+    @Test
+    fun cancelConnectionAttemptKeepsEstablishedLiveSession() = runTest(dispatcher) {
+        val tokens = FakeTokenStore(mutableMapOf("desktop-1" to "token"))
+        val connector = FakeConnector(PcPingResult.Connected("AA:BB:CC:DD:EE:FF"))
+        val controller = controller(tokens, connector)
+        controller.connectTo(pc)
+
+        controller.cancelConnectionAttempt()
+
+        assertEquals(0, connector.liveConnections.single().closeCalls)
+        assertTrue(PcConnectionStateHolder.connectionState.value is PcConnectionState.Connected)
+    }
+
+    @Test
+    fun continuousDiscoveryRefCountKeepsScanRunningAcrossOneShotDiscovery() = runTest(dispatcher) {
+        val discovery = FakeDiscovery(listOf(pc))
+        val controller = controller(FakeTokenStore(), FakeConnector(PcPingResult.AuthFailed()), discovery)
+
+        controller.startContinuousDiscovery()
+        assertEquals(1, discovery.startDiscoveryCalls)
+
+        controller.discoverPcs()
+        assertEquals(0, discovery.stopDiscoveryCalls)
+
+        controller.stopContinuousDiscovery()
+        assertEquals(1, discovery.stopDiscoveryCalls)
+
+        controller.stopContinuousDiscovery()
+        assertEquals(1, discovery.stopDiscoveryCalls)
+    }
+
+    @Test
+    fun disconnectLeavesContinuousDiscoveryRunning() = runTest(dispatcher) {
+        val discovery = FakeDiscovery(listOf(pc))
+        val connector = FakeConnector(PcPingResult.Connected("AA:BB:CC:DD:EE:FF"))
+        val controller = controller(FakeTokenStore(mutableMapOf("desktop-1" to "token")), connector, discovery)
+        controller.startContinuousDiscovery()
+        controller.connectTo(pc)
+
+        controller.disconnect()
+
+        assertEquals(0, discovery.stopDiscoveryCalls)
+        assertEquals(1, connector.liveConnections.single().closeCalls)
+        assertTrue(PcConnectionStateHolder.connectionState.value is PcConnectionState.Disconnected)
+
+        controller.stopContinuousDiscovery()
+        assertEquals(1, discovery.stopDiscoveryCalls)
+    }
+
+    @Test
+    fun uiPauseGraceSkipsShutdownWhileAttemptInFlight() = runTest(dispatcher) {
+        val pairing = CompletableDeferred<PcPairingResult>()
+        val connector = FakeConnector(
+            pingResult = PcPingResult.Connected("AA:BB:CC:DD:EE:FF"),
+            pairingDeferredsByDesktop = mapOf("desktop-1" to pairing)
+        )
+        val controller = controller(FakeTokenStore(), connector)
+
+        val job = launch { controller.connectTo(pc) }
+        runCurrent()
+        controller.onPcUiPaused()
+        advanceTimeBy(8_001)
+        runCurrent()
+
+        assertEquals(0, connector.closeCalls)
+        assertFalse(job.isCancelled)
+
+        pairing.complete(PcPairingResult.Paired("desktop-1", "token", "AA:BB:CC:DD:EE:FF"))
+        advanceUntilIdle()
+
+        assertTrue(controller.state.value is PcServiceConnectionState.Connected)
+        controller.disconnect()
+    }
+
     private fun controller(
         tokens: FakeTokenStore,
         connector: FakeConnector,
@@ -719,8 +853,11 @@ class PcServiceConnectionControllerTest {
     private class FakeDiscovery(initialPcs: List<DiscoveredPc>) : PcDiscovery {
         override val pcs = MutableStateFlow(initialPcs)
         override val status = MutableStateFlow(PcDiscoveryStatus.Found)
+        var startDiscoveryCalls = 0
         var stopDiscoveryCalls = 0
-        override fun startDiscovery() = Unit
+        override fun startDiscovery() {
+            startDiscoveryCalls++
+        }
         override fun stopDiscovery() {
             stopDiscoveryCalls++
         }
@@ -799,6 +936,7 @@ class PcServiceConnectionControllerTest {
         private val pairingResult: PcPairingResult = PcPairingResult.Failed(PcErrorReason.Failed, "unused"),
         private val pingResultsByToken: Map<String, PcPingResult> = emptyMap(),
         private val pairingResultsByDesktop: Map<String, PcPairingResult> = emptyMap(),
+        private val pairingDeferredsByDesktop: Map<String, CompletableDeferred<PcPairingResult>> = emptyMap(),
         private val healthResults: List<PcCommandResult> = emptyList(),
         private val liveResults: List<PcLiveControlResult> = emptyList(),
         private val commandResult: PcCommandResult = PcCommandResult.Ack,
@@ -820,6 +958,7 @@ class PcServiceConnectionControllerTest {
         override suspend fun requestApproval(pc: DiscoveredPc, requestNonce: String): PcPairingResult {
             pairingCalls++
             requestNonces.add(requestNonce)
+            pairingDeferredsByDesktop[pc.desktopId]?.let { return it.await() }
             return pairingResultsByDesktop[pc.desktopId] ?: pairingResult
         }
 
