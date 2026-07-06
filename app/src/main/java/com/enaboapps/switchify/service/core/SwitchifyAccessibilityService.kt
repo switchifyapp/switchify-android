@@ -234,7 +234,7 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
 
     private fun initPcServiceConnectionControllerIfNeeded() {
         if (ServiceCore.getPcServiceConnectionController() != null) return
-        ServiceCore.setPcServiceConnectionController(PcServiceConnectionController(this, serviceScope))
+        ServiceCore.setPcServiceConnectionController(PcServiceConnectionController.getInstance(this))
     }
 
 

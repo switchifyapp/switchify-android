@@ -130,7 +130,7 @@ object ServiceCore {
         if (::cameraManagerRef.isInitialized) {
             cameraManagerRef = WeakReference(null)
         }
-        pcServiceConnectionController?.cleanup()
-        pcServiceConnectionController = null
+        // The PC connection controller is an app-scoped singleton shared with the
+        // app UI; it manages its own session lifecycle and outlives the service.
     }
 }

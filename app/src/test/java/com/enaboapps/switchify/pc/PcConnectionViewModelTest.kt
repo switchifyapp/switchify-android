@@ -1,12 +1,17 @@
 package com.enaboapps.switchify.pc
 
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
@@ -87,7 +92,7 @@ class PcConnectionViewModelTest {
         advanceUntilIdle()
 
         assertEquals(1, connector.requestApprovalCalls)
-        assertEquals(1, connector.pingCalls)
+        assertEquals(1, connector.openControlSessionCalls)
         assertEquals(PcTransport.Bluetooth, (PcConnectionStateHolder.connectionState.value as PcConnectionState.Connected).session.transport)
         assertEquals("AA:BB:CC:DD:EE:FF", tokens.getLastEndpointId("desktop-1"))
     }
@@ -123,7 +128,7 @@ class PcConnectionViewModelTest {
         advanceUntilIdle()
 
         assertEquals(1, connector.requestApprovalCalls)
-        assertEquals(1, connector.pingCalls)
+        assertEquals(1, connector.openControlSessionCalls)
         assertEquals("token", tokens.getToken("desktop-1"))
         assertEquals("desktop-1", viewModel.uiState.value.connectedDesktopId)
     }
@@ -175,7 +180,6 @@ class PcConnectionViewModelTest {
         viewModel.requestAccess(secondPc)
         advanceUntilIdle()
 
-        assertEquals(1, connector.closeCalls)
         assertEquals(PcRowStatus.Idle, viewModel.uiState.value.pcRows.first { it.desktopId == "desktop-1" }.status)
         assertEquals(PcRowStatus.WaitingApproval, viewModel.uiState.value.pcRows.first { it.desktopId == "desktop-2" }.status)
         assertEquals("Office PC", viewModel.uiState.value.approvalCode?.pcName)
@@ -214,7 +218,6 @@ class PcConnectionViewModelTest {
         viewModel.connectWithSavedToken(secondPc)
         advanceUntilIdle()
 
-        assertEquals(1, connector.closeCalls)
         assertEquals("desktop-2", viewModel.uiState.value.connectedDesktopId)
         assertEquals(PcRowStatus.Idle, viewModel.uiState.value.pcRows.first { it.desktopId == "desktop-1" }.status)
 
@@ -245,7 +248,6 @@ class PcConnectionViewModelTest {
         viewModel.connectSavedPairing("desktop-2")
         advanceUntilIdle()
 
-        assertEquals(1, connector.closeCalls)
         assertEquals("desktop-2", viewModel.uiState.value.connectedDesktopId)
 
         firstPairing.complete(PcPairingResult.Paired("desktop-1", "token", "AA:BB:CC:DD:EE:FF"))
@@ -272,7 +274,6 @@ class PcConnectionViewModelTest {
         assertEquals(false, viewModel.uiState.value.isBusy)
         assertEquals(PcRowStatus.Idle, row.status)
         assertEquals(true, row.enabled)
-        assertEquals(1, connector.closeCalls)
     }
 
     @Test
@@ -312,35 +313,58 @@ class PcConnectionViewModelTest {
         assertNull(viewModel.uiState.value.approvalCode)
         assertEquals(false, viewModel.uiState.value.isBusy)
         assertEquals(PcRowStatus.Idle, viewModel.uiState.value.pcRows.single().status)
-        assertEquals(1, connector.closeCalls)
+        assertEquals(0, connector.closeCalls)
     }
 
     @Test
-    fun stopPcBluetoothStopsDiscoveryAndClosesConnector() = runTest(dispatcher) {
+    fun stopPcBluetoothStopsRequestedDiscovery() = runTest(dispatcher) {
         val discovery = FakeDiscovery(listOf(pc))
         val connector = FakeConnector()
         val viewModel = viewModel(discovery, FakeTokenStore(), connector)
         advanceUntilIdle()
 
+        viewModel.startDiscovery()
         viewModel.stopPcBluetooth()
         advanceUntilIdle()
 
+        assertEquals(1, discovery.startDiscoveryCalls)
         assertEquals(1, discovery.stopDiscoveryCalls)
-        assertEquals(1, connector.closeCalls)
-        assertTrue(PcConnectionStateHolder.connectionState.value is PcConnectionState.Disconnected)
     }
 
     @Test
-    fun stopPcBluetoothClearsConnectedStateWithoutClearingToken() = runTest(dispatcher) {
+    fun stopPcBluetoothDoesNotStompSharedConnectionState() = runTest(dispatcher) {
         val tokens = FakeTokenStore(initialTokens = mutableMapOf("desktop-1" to "token"))
-        val viewModel = viewModel(FakeDiscovery(listOf(pc)), tokens, FakeConnector())
-        PcConnectionStateHolder.setConnected(PcAuthenticatedSession("desktop-1", "device-1", "AA:BB:CC:DD:EE:FF"), "Switchify PC")
+        val connector = FakeConnector(pingResultsByDesktop = mapOf("desktop-1" to PcPingResult.Connected("AA:BB:CC:DD:EE:FF")))
+        val viewModel = viewModel(FakeDiscovery(listOf(pc)), tokens, connector)
+        advanceUntilIdle()
+        viewModel.connectWithSavedToken(pc)
         advanceUntilIdle()
 
         viewModel.stopPcBluetooth()
         advanceUntilIdle()
 
+        assertTrue(PcConnectionStateHolder.connectionState.value is PcConnectionState.Connected)
+        assertEquals(0, connector.liveConnections.single().closeCalls)
+        assertEquals("token", tokens.getToken("desktop-1"))
+    }
+
+    @Test
+    fun leavingAllPcScreensClosesLiveSessionAfterGrace() = runTest(dispatcher) {
+        val tokens = FakeTokenStore(initialTokens = mutableMapOf("desktop-1" to "token"))
+        val connector = FakeConnector(pingResultsByDesktop = mapOf("desktop-1" to PcPingResult.Connected("AA:BB:CC:DD:EE:FF")))
+        val viewModel = viewModel(FakeDiscovery(listOf(pc)), tokens, connector)
+        advanceUntilIdle()
+        viewModel.onScreenVisible()
+        viewModel.connectWithSavedToken(pc)
+        runCurrent()
+
+        viewModel.onScreenHidden()
+        viewModel.stopPcBluetooth()
+        advanceTimeBy(8_001)
+        runCurrent()
+
         assertTrue(PcConnectionStateHolder.connectionState.value is PcConnectionState.Disconnected)
+        assertEquals(1, connector.liveConnections.single().closeCalls)
         assertEquals("token", tokens.getToken("desktop-1"))
     }
 
@@ -361,7 +385,6 @@ class PcConnectionViewModelTest {
 
         assertNull(viewModel.uiState.value.approvalCode)
         assertEquals(false, viewModel.uiState.value.isBusy)
-        assertEquals(1, connector.closeCalls)
         pairingDeferred.complete(PcPairingResult.Paired("desktop-1", "token", "AA:BB:CC:DD:EE:FF"))
         advanceUntilIdle()
         assertTrue(PcConnectionStateHolder.connectionState.value is PcConnectionState.Disconnected)
@@ -416,10 +439,13 @@ class PcConnectionViewModelTest {
     }
 
     @Test
-    fun invalidSavedTokenKeepsTokenAndOffersConnect() = runTest(dispatcher) {
+    fun invalidSavedTokenFallsThroughToPairingAndKeepsToken() = runTest(dispatcher) {
         val discovery = FakeDiscovery(listOf(pc))
         val tokens = FakeTokenStore(initialTokens = mutableMapOf("desktop-1" to "token"))
-        val connector = FakeConnector(pingResult = PcPingResult.AuthFailed())
+        val connector = FakeConnector(
+            pingResult = PcPingResult.AuthFailed(),
+            pairingResult = PcPairingResult.Failed(PcErrorReason.PairingRejected, "Request rejected.")
+        )
         val viewModel = viewModel(discovery, tokens, connector)
         advanceUntilIdle()
 
@@ -427,8 +453,9 @@ class PcConnectionViewModelTest {
         advanceUntilIdle()
 
         assertEquals(PC_AUTH_RETRY_ATTEMPTS, connector.pingCalls)
+        assertEquals(1, connector.requestApprovalCalls)
         assertEquals("token", tokens.getToken("desktop-1"))
-        assertEquals("Connection expired. Request access again.", viewModel.uiState.value.message)
+        assertEquals("Request rejected.", viewModel.uiState.value.message)
         assertEquals("Connect", viewModel.uiState.value.discoveredPcs.first().actionText)
         assertEquals(true, viewModel.uiState.value.discoveredPcs.first().canUnpair)
     }
@@ -519,7 +546,10 @@ class PcConnectionViewModelTest {
             initialLastEndpointIds = mutableMapOf("desktop-1" to "AA:BB:CC:DD:EE:FF"),
             initialServiceNames = mutableMapOf("desktop-1" to "Switchify PC")
         )
-        val connector = FakeConnector(pingResult = PcPingResult.AuthFailed())
+        val connector = FakeConnector(
+            pingResult = PcPingResult.AuthFailed(),
+            pairingResult = PcPairingResult.Failed(PcErrorReason.PairingRejected, "Request rejected.")
+        )
         val viewModel = viewModel(discovery, tokens, connector)
         advanceUntilIdle()
 
@@ -531,7 +561,7 @@ class PcConnectionViewModelTest {
         val savedPairing = viewModel.uiState.value.savedPairings.single()
         assertEquals("desktop-1", savedPairing.desktopId)
         assertEquals(true, savedPairing.canConnect)
-        assertEquals("Connection expired. Request access again.", viewModel.uiState.value.message)
+        assertEquals("Request rejected.", viewModel.uiState.value.message)
     }
 
     @Test
@@ -1034,12 +1064,12 @@ class PcConnectionViewModelTest {
     }
 
     @Test
-    fun postPairingAuthFailureRetriesWithoutSavingToken() = runTest(dispatcher) {
+    fun postPairingLiveSessionAuthFailureShowsExpiredMessage() = runTest(dispatcher) {
         val discovery = FakeDiscovery(listOf(pc))
         val tokens = FakeTokenStore()
         val connector = FakeConnector(
             pairingResult = PcPairingResult.Paired("desktop-1", "token", "AA:BB:CC:DD:EE:FF"),
-            pingResult = PcPingResult.AuthFailed()
+            liveResults = List(PC_AUTH_RETRY_ATTEMPTS) { PcLiveControlResult.AuthFailed() }
         )
         val viewModel = viewModel(discovery, tokens, connector)
         advanceUntilIdle()
@@ -1047,21 +1077,19 @@ class PcConnectionViewModelTest {
         viewModel.requestAccess(pc)
         advanceUntilIdle()
 
-        assertEquals(PC_AUTH_RETRY_ATTEMPTS, connector.pingCalls)
-        assertNull(tokens.getToken("desktop-1"))
+        assertEquals(PC_AUTH_RETRY_ATTEMPTS, connector.openControlSessionCalls)
+        assertEquals("token", tokens.getToken("desktop-1"))
         assertEquals("Connection expired. Request access again.", viewModel.uiState.value.message)
+        assertTrue(PcConnectionStateHolder.connectionState.value is PcConnectionState.Disconnected)
     }
 
     @Test
-    fun postPairingAuthFailureThenSuccessSavesToken() = runTest(dispatcher) {
+    fun postPairingLiveSessionAuthFailureThenSuccessConnects() = runTest(dispatcher) {
         val discovery = FakeDiscovery(listOf(pc))
         val tokens = FakeTokenStore()
         val connector = FakeConnector(
             pairingResult = PcPairingResult.Paired("desktop-1", "token", "AA:BB:CC:DD:EE:FF"),
-            pingResults = listOf(
-                PcPingResult.AuthFailed(),
-                PcPingResult.Connected("AA:BB:CC:DD:EE:FF")
-            )
+            liveResults = listOf(PcLiveControlResult.AuthFailed())
         )
         val viewModel = viewModel(discovery, tokens, connector)
         advanceUntilIdle()
@@ -1069,7 +1097,7 @@ class PcConnectionViewModelTest {
         viewModel.requestAccess(pc)
         advanceUntilIdle()
 
-        assertEquals(2, connector.pingCalls)
+        assertEquals(2, connector.openControlSessionCalls)
         assertEquals("token", tokens.getToken("desktop-1"))
         assertEquals("desktop-1", viewModel.uiState.value.connectedDesktopId)
     }
@@ -1081,19 +1109,34 @@ class PcConnectionViewModelTest {
         requestNonceProvider: () -> String = { "nonce" }
     ) = PcConnectionViewModel(
         context = null,
-        discoveryService = discovery,
+        controller = controller(discovery, tokens, connector, requestNonceProvider),
+        tokenStore = tokens,
+        backgroundDispatcher = dispatcher
+    )
+
+    private fun controller(
+        discovery: FakeDiscovery,
+        tokens: FakeTokenStore,
+        connector: FakeConnector,
+        requestNonceProvider: () -> String = { "nonce" }
+    ) = PcServiceConnectionController(
+        context = null,
+        scope = CoroutineScope(dispatcher),
+        discovery = discovery,
         tokenStore = tokens,
         identityRepository = FakeIdentity,
         connector = connector,
-        requestNonceProvider = requestNonceProvider,
-        backgroundDispatcher = dispatcher
+        requestNonceProvider = requestNonceProvider
     )
 
     private class FakeDiscovery(initialPcs: List<DiscoveredPc>) : PcDiscovery {
         override val pcs = MutableStateFlow(initialPcs)
         override val status = MutableStateFlow(if (initialPcs.isEmpty()) PcDiscoveryStatus.Empty else PcDiscoveryStatus.Found)
+        var startDiscoveryCalls = 0
         var stopDiscoveryCalls = 0
-        override fun startDiscovery() = Unit
+        override fun startDiscovery() {
+            startDiscoveryCalls++
+        }
         override fun stopDiscovery() {
             stopDiscoveryCalls++
         }
@@ -1175,14 +1218,18 @@ class PcConnectionViewModelTest {
         private val pairingDeferred: CompletableDeferred<PcPairingResult>? = null,
         private val pairingDeferredsByDesktop: Map<String, CompletableDeferred<PcPairingResult>> = emptyMap(),
         private val pingResultsByDesktop: Map<String, PcPingResult> = emptyMap(),
-        pingResults: List<PcPingResult> = emptyList()
+        pingResults: List<PcPingResult> = emptyList(),
+        liveResults: List<PcLiveControlResult> = emptyList()
     ) : PcConnector {
         private val queuedPingResults = ArrayDeque(pingResults)
+        private val queuedLiveResults = ArrayDeque(liveResults)
         var requestApprovalCalls = 0
         var pingCalls = 0
+        var openControlSessionCalls = 0
         val requestNonces = mutableListOf<String>()
         val approvalPcs = mutableListOf<DiscoveredPc>()
         val pingPcs = mutableListOf<DiscoveredPc>()
+        val liveConnections = mutableListOf<FakeLiveConnection>()
         var closeCalls = 0
 
         override suspend fun requestApproval(pc: DiscoveredPc, requestNonce: String): PcPairingResult {
@@ -1200,7 +1247,11 @@ class PcConnectionViewModelTest {
         }
 
         override suspend fun openControlSession(session: PcAuthenticatedSession): PcLiveControlResult {
-            return PcLiveControlResult.Failed("unused")
+            openControlSessionCalls++
+            queuedLiveResults.removeFirstOrNull()?.let { return it }
+            val connection = FakeLiveConnection()
+            liveConnections += connection
+            return PcLiveControlResult.Connected(connection)
         }
 
         override suspend fun sendCommand(session: PcAuthenticatedSession, command: PcControlCommand): PcCommandResult {
@@ -1208,6 +1259,23 @@ class PcConnectionViewModelTest {
         }
 
         override fun close() {
+            closeCalls++
+        }
+    }
+
+    private class FakeLiveConnection : PcControlConnection {
+        override val pointerProfile: PcPointerMovementProfile? = null
+        override val connectionEvents: Flow<PcControlConnectionEvent> =
+            MutableSharedFlow(extraBufferCapacity = 1)
+        var closeCalls = 0
+
+        override suspend fun checkHealth(): PcCommandResult = PcCommandResult.Ack
+
+        override suspend fun sendCommand(command: PcControlCommand): PcCommandResult = PcCommandResult.Ack
+
+        override suspend fun sendRealtimeCommand(command: PcControlCommand): PcCommandResult = PcCommandResult.Ack
+
+        override fun close(reason: PcControlCloseReason) {
             closeCalls++
         }
     }
