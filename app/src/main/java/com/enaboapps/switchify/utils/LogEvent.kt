@@ -117,4 +117,9 @@ sealed class LogEvent(
     object ProcessExitDetected : LogEvent("process_exit_detected", level = "warn", dataset = "app", tags = listOf("crash", "process_exit"))
 
     object OnDeviceAiFailed : LogEvent("on_device_ai_failed", level = "error", dataset = "ai", tags = listOf("ai", "failure"))
+
+    object PcConnectFailed : LogEvent("pc_connect_failed", level = "error", dataset = "pc", tags = listOf("pc", "connection", "failure"))
+    object PcConnectionLost : LogEvent("pc_connection_lost", level = "warn", dataset = "pc", tags = listOf("pc", "connection"))
+    object PcReconnectFailed : LogEvent("pc_reconnect_failed", level = "error", dataset = "pc", tags = listOf("pc", "connection", "failure"))
+    object PcBleTransportError : LogEvent("pc_ble_transport_error", level = "error", dataset = "pc", tags = listOf("pc", "bluetooth", "failure"))
 }
