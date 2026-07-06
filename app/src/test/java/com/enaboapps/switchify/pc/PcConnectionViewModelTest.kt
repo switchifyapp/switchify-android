@@ -317,6 +317,57 @@ class PcConnectionViewModelTest {
     }
 
     @Test
+    fun connectingToSecondPcShowsOnlyOneConnectedRow() = runTest(dispatcher) {
+        val tokens = FakeTokenStore(
+            initialTokens = mutableMapOf(
+                "desktop-1" to "token",
+                "desktop-2" to "token-2"
+            )
+        )
+        val connector = FakeConnector(
+            pingResultsByDesktop = mapOf(
+                "desktop-1" to PcPingResult.Connected("AA:BB:CC:DD:EE:FF"),
+                "desktop-2" to PcPingResult.Connected("11:22:33:44:55:66")
+            )
+        )
+        val viewModel = viewModel(FakeDiscovery(listOf(pc, secondPc)), tokens, connector)
+        advanceUntilIdle()
+
+        viewModel.connectWithSavedToken(pc)
+        advanceUntilIdle()
+        viewModel.connectWithSavedToken(secondPc)
+        advanceUntilIdle()
+
+        val connectedRows = viewModel.uiState.value.pcRows.filter { it.status == PcRowStatus.Connected }
+        assertEquals(listOf("desktop-2"), connectedRows.map { it.desktopId })
+        assertEquals(
+            listOf("desktop-2"),
+            viewModel.uiState.value.discoveredPcs.filter { it.status == PcRowStatus.Connected }.map { it.pc.desktopId }
+        )
+        assertEquals("desktop-2", viewModel.uiState.value.connectedDesktopId)
+    }
+
+    @Test
+    fun sessionCloseClearsConnectedRow() = runTest(dispatcher) {
+        val tokens = FakeTokenStore(initialTokens = mutableMapOf("desktop-1" to "token"))
+        val connector = FakeConnector(pingResultsByDesktop = mapOf("desktop-1" to PcPingResult.Connected("AA:BB:CC:DD:EE:FF")))
+        val viewModel = viewModel(FakeDiscovery(listOf(pc)), tokens, connector)
+        advanceUntilIdle()
+        viewModel.onScreenVisible()
+        viewModel.connectWithSavedToken(pc)
+        runCurrent()
+        assertEquals(PcRowStatus.Connected, viewModel.uiState.value.pcRows.single().status)
+
+        viewModel.onScreenHidden()
+        viewModel.stopPcBluetooth()
+        advanceTimeBy(8_001)
+        runCurrent()
+
+        assertEquals(PcRowStatus.Idle, viewModel.uiState.value.pcRows.single().status)
+        assertNull(viewModel.uiState.value.connectedDesktopId)
+    }
+
+    @Test
     fun stopPcBluetoothStopsRequestedDiscovery() = runTest(dispatcher) {
         val discovery = FakeDiscovery(listOf(pc))
         val connector = FakeConnector()

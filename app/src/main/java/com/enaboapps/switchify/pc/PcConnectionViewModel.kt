@@ -385,7 +385,7 @@ class PcConnectionViewModel(
         defaultDesktopId: String?,
         isBusy: Boolean
     ): PcRowState {
-        val connected = connectedDesktopId == pc.desktopId || status == PcRowStatus.Connected
+        val connected = connectedDesktopId == pc.desktopId
         val actionText = when {
             connected -> "Connected"
             hasToken -> "Connect"
@@ -488,7 +488,7 @@ class PcConnectionViewModel(
         defaultDesktopId: String?,
         isBusy: Boolean
     ): PcConnectionRowState {
-        val connected = connectedDesktopId == pc.desktopId || status == PcRowStatus.Connected
+        val connected = connectedDesktopId == pc.desktopId
         val rowStatus = if (connected) PcRowStatus.Connected else status
         val actionText = when {
             connected -> null
@@ -565,7 +565,9 @@ class PcConnectionViewModel(
         when (result) {
             is PcServiceConnectResult.Connected -> {
                 tokenRevision.update { it + 1 }
-                setIdle(pc.desktopId, PcRowStatus.Connected, null)
+                // Connected display state derives from PcConnectionStateHolder (the single
+                // source of truth); a sticky per-row Connected status would outlive the session.
+                setIdle(pc.desktopId, PcRowStatus.Idle, null)
             }
             is PcServiceConnectResult.Failed -> {
                 setIdle(pc.desktopId, PcRowStatus.Failed, result.message)
