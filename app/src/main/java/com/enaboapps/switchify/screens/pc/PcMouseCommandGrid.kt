@@ -41,9 +41,6 @@ import androidx.compose.material.icons.filled.OpenWith
 import androidx.compose.material.icons.filled.TouchApp
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -184,42 +181,18 @@ fun PcTransientMessage(
 }
 
 @Composable
-fun PcMovementSizeSection(
-    selectedSize: PcMouseMovementSize,
-    onSizeSelected: (PcMouseMovementSize) -> Unit,
-    enabled: Boolean = true,
-    modifier: Modifier = Modifier
-) {
-    Column(modifier = modifier.fillMaxWidth()) {
-        Section(titleResId = R.string.pc_mouse_movement_size) {
-            Box(modifier = Modifier.padding(12.dp)) {
-                PcMouseMovementSizeSelector(
-                    selectedSize = selectedSize,
-                    onSizeSelected = onSizeSelected,
-                    enabled = enabled
-                )
-            }
-        }
-    }
-}
-
-@Composable
 fun PcControlCommandGrid(
     enabled: Boolean,
     movementStep: Int,
-    selectedSize: PcMouseMovementSize,
-    onSizeSelected: (PcMouseMovementSize) -> Unit,
+    pointerSpeedLabel: String,
     onCommandSelected: (PcControlCommand, Boolean) -> Unit,
-    sizeSelectorEnabled: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     PcControlCommandSections(
         enabled = enabled,
         movementStep = movementStep,
-        selectedSize = selectedSize,
-        onSizeSelected = onSizeSelected,
+        pointerSpeedLabel = pointerSpeedLabel,
         onCommandSelected = onCommandSelected,
-        sizeSelectorEnabled = sizeSelectorEnabled,
         modifier = modifier
     )
 }
@@ -228,10 +201,8 @@ fun PcControlCommandGrid(
 fun PcControlCommandSections(
     enabled: Boolean,
     movementStep: Int,
-    selectedSize: PcMouseMovementSize,
-    onSizeSelected: (PcMouseMovementSize) -> Unit,
+    pointerSpeedLabel: String,
     onCommandSelected: (PcControlCommand, Boolean) -> Unit,
-    sizeSelectorEnabled: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     val specs = pcMouseCompactControlSpecs(movementStep)
@@ -257,11 +228,30 @@ fun PcControlCommandSections(
                 )
             }
         }
-        PcMovementSizeSection(
-            selectedSize = selectedSize,
-            onSizeSelected = onSizeSelected,
-            enabled = sizeSelectorEnabled
-        )
+        PcPointerSpeedSection(pointerSpeedLabel = pointerSpeedLabel)
+    }
+}
+
+@Composable
+fun PcPointerSpeedSection(
+    pointerSpeedLabel: String,
+    modifier: Modifier = Modifier
+) {
+    Section(titleResId = R.string.pc_mouse_pointer_speed) {
+        Surface(
+            modifier = modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            shape = RoundedCornerShape(12.dp),
+            color = MaterialTheme.colorScheme.surfaceContainerHigh
+        ) {
+            Text(
+                text = pointerSpeedLabel,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)
+            )
+        }
     }
 }
 
@@ -491,42 +481,6 @@ fun PcScannedCommandTile(
                     color = contentColor,
                     textAlign = TextAlign.Center,
                     maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-        }
-    }
-}
-
-@Composable
-fun PcMouseMovementSizeSelector(
-    selectedSize: PcMouseMovementSize,
-    onSizeSelected: (PcMouseMovementSize) -> Unit,
-    enabled: Boolean = true,
-    modifier: Modifier = Modifier
-) {
-    val sizes = PcMouseMovementSize.entries
-    val colors = SegmentedButtonDefaults.colors(
-        activeContainerColor = MaterialTheme.colorScheme.primary,
-        activeContentColor = MaterialTheme.colorScheme.onPrimary,
-        activeBorderColor = MaterialTheme.colorScheme.primary,
-        inactiveContainerColor = MaterialTheme.colorScheme.surface,
-        inactiveContentColor = MaterialTheme.colorScheme.onSurface,
-        inactiveBorderColor = MaterialTheme.colorScheme.outline
-    )
-
-    SingleChoiceSegmentedButtonRow(modifier = modifier.fillMaxWidth()) {
-        sizes.forEachIndexed { index, size ->
-            SegmentedButton(
-                selected = selectedSize == size,
-                onClick = { onSizeSelected(size) },
-                enabled = enabled,
-                shape = SegmentedButtonDefaults.itemShape(index = index, count = sizes.size),
-                colors = colors
-            ) {
-                Text(
-                    text = stringResource(size.labelResId),
-                    maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
             }

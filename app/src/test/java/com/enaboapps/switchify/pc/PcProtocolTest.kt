@@ -146,6 +146,36 @@ class PcProtocolTest {
         assertFalse(response.profile.capabilities.noAckMouseMove)
         assertEquals(emptySet<String>(), response.profile.capabilities.noAckCommands)
         assertEquals(emptySet<String>(), response.profile.capabilities.supportedCommands)
+        assertFalse(response.profile.capabilities.pointerSpeed.supported)
+        assertEquals(130, response.profile.pointerMoveStep())
+    }
+
+    @Test
+    fun parsesPointerProfileSpeedCapability() {
+        val response = PcProtocol.parseResponse(
+            validPointerProfileResponse(
+                capabilities = ""","capabilities":{"pointerSpeed":{"supported":true,"scalePercent":125,"minScalePercent":25,"maxScalePercent":225,"stepPercent":5,"baseMoveDelta":128,"effectiveMoveDelta":160}}"""
+            )
+        ) as PcProtocolResponse.PointerProfile
+
+        assertTrue(response.profile.capabilities.pointerSpeed.supported)
+        assertEquals(125.0, response.profile.capabilities.pointerSpeed.scalePercent, 0.0)
+        assertEquals(225.0, response.profile.capabilities.pointerSpeed.maxScalePercent, 0.0)
+        assertEquals(128, response.profile.capabilities.pointerSpeed.baseMoveDelta)
+        assertEquals(160, response.profile.capabilities.pointerSpeed.effectiveMoveDelta)
+        assertEquals(128, response.profile.pointerMoveStep())
+    }
+
+    @Test
+    fun rejectsMalformedPointerProfileSpeedCapability() {
+        assertEquals(
+            PcProtocolResponse.Invalid,
+            PcProtocol.parseResponse(
+                validPointerProfileResponse(
+                    capabilities = ""","capabilities":{"pointerSpeed":{"supported":true,"scalePercent":300,"minScalePercent":25,"maxScalePercent":225,"stepPercent":5,"baseMoveDelta":128,"effectiveMoveDelta":160}}"""
+                )
+            )
+        )
     }
 
     @Test

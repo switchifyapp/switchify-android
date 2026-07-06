@@ -15,6 +15,7 @@ import com.enaboapps.switchify.pc.PcErrorReason
 import com.enaboapps.switchify.pc.PcKeyboardKey
 import com.enaboapps.switchify.pc.PcKeyboardModifierKey
 import com.enaboapps.switchify.pc.PcKeyboardShortcutKey
+import com.enaboapps.switchify.pc.PcPointerMovementProfile
 import com.enaboapps.switchify.pc.PcMouseRepeatManager
 import com.enaboapps.switchify.pc.PcServiceConnectResult
 import com.enaboapps.switchify.pc.PcServiceConnectionController
@@ -22,11 +23,13 @@ import com.enaboapps.switchify.pc.PcServiceConnectionState
 import com.enaboapps.switchify.pc.PcTextStreamItem
 import com.enaboapps.switchify.pc.isSafePcTypedText
 import com.enaboapps.switchify.pc.pcTextStreamItemsFor
+import com.enaboapps.switchify.pc.pointerMoveStep
 import com.enaboapps.switchify.pc.supportsModifierToggle
 import com.enaboapps.switchify.pc.supportsTextStreams
 import com.enaboapps.switchify.pc.toShortcutKey
 import com.enaboapps.switchify.service.core.ServiceCore
 import java.util.UUID
+import java.util.Locale
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -50,8 +53,9 @@ data class PcMouseControlUiState(
     val connectedDisplayName: String? = null,
     val switcherConnectedDisplayName: String? = null,
     val activeSurface: PcControlSurface = PcControlSurface.Mouse,
-    val selectedMovementSize: PcMouseMovementSize = PcMouseMovementSize.Small,
-    val movementStep: Int = PcMouseControlViewModel.FALLBACK_MOVEMENT_STEPS.small,
+    val movementStep: Int = PcMouseControlViewModel.FALLBACK_MOVEMENT_STEP,
+    val pointerSpeedSupported: Boolean = false,
+    val pointerSpeedPercentLabel: String = PcMouseControlViewModel.POINTER_SPEED_UNAVAILABLE_MESSAGE,
     val isDragging: Boolean = false,
     val isBusy: Boolean = false,
     val busyCommand: PcControlCommand? = null,
@@ -71,40 +75,34 @@ data class PcMouseControlUiState(
 
 class PcMouseControlViewModel(
     private val serviceControllerProvider: () -> PcServiceConnectionController?,
-    private val movementSizeStore: PcMouseMovementSizeStore,
     private val controlSurfaceStore: PcControlSurfaceStore,
     private val mouseRepeatManager: PcMouseRepeatManager = PcMouseRepeatManager.instance
 ) : ViewModel() {
     constructor(
-        serviceControllerProvider: () -> PcServiceConnectionController?,
-        movementSizeStore: PcMouseMovementSizeStore
+        serviceControllerProvider: () -> PcServiceConnectionController?
     ) : this(
         serviceControllerProvider = serviceControllerProvider,
-        movementSizeStore = movementSizeStore,
         controlSurfaceStore = InMemoryControlSurfaceStore()
     )
 
     constructor(context: Context) : this(
         serviceControllerProvider = { ServiceCore.getPcServiceConnectionController() },
-        movementSizeStore = PcMouseMovementPreferenceStore(context.applicationContext),
         controlSurfaceStore = PcControlSurfacePreferenceStore(context.applicationContext),
         mouseRepeatManager = PcMouseRepeatManager.instance.also { it.init(context.applicationContext) }
     )
 
     private val _uiState = MutableStateFlow(PcMouseControlUiState())
     val uiState: StateFlow<PcMouseControlUiState> = _uiState.asStateFlow()
-    private var movementSteps = FALLBACK_MOVEMENT_STEPS
+    private var movementStep = FALLBACK_MOVEMENT_STEP
     private var switchPcCandidates: List<DiscoveredPc> = emptyList()
     private var switchPcConnectionJob: Job? = null
 
     init {
-        val selectedSize = movementSizeStore.getSelectedSize()
         val selectedSurface = controlSurfaceStore.getSelectedSurface()
         _uiState.update {
             it.copy(
                 activeSurface = selectedSurface,
-                selectedMovementSize = selectedSize,
-                movementStep = movementSteps.stepFor(selectedSize)
+                movementStep = movementStep
             )
         }
         serviceControllerProvider()?.let { controller ->
@@ -114,16 +112,6 @@ class PcMouseControlViewModel(
         } ?: showConnectFirst()
         viewModelScope.launch {
             PcConnectionStateHolder.connectionState.collect { applySharedConnectionState(it) }
-        }
-    }
-
-    fun selectMovementSize(size: PcMouseMovementSize) {
-        movementSizeStore.setSelectedSize(size)
-        _uiState.update {
-            it.copy(
-                selectedMovementSize = size,
-                movementStep = movementSteps.stepFor(size)
-            )
         }
     }
 
@@ -868,14 +856,16 @@ class PcMouseControlViewModel(
                 debugLog(
                     "Connected PC profile displayName=${state.displayName}, modifierTogglesAdvertised=$supportsModifierToggles, supportedCommands=${pointerProfile?.capabilities?.supportedCommands.orEmpty()}"
                 )
-                movementSteps = pointerProfile?.toMouseMovementSteps()
-                    ?: controller.currentPointerProfile()?.toMouseMovementSteps()
-                    ?: FALLBACK_MOVEMENT_STEPS
+                movementStep = pointerProfile?.pointerMoveStep()
+                    ?: controller.currentPointerProfile()?.pointerMoveStep()
+                    ?: FALLBACK_MOVEMENT_STEP
                 _uiState.update {
                     it.copy(
                         connectedDisplayName = state.displayName,
                         switcherConnectedDisplayName = controller.currentControlDeviceName() ?: state.displayName,
-                        movementStep = movementSteps.stepFor(it.selectedMovementSize),
+                        movementStep = movementStep,
+                        pointerSpeedSupported = pointerProfile?.capabilities?.pointerSpeed?.supported == true,
+                        pointerSpeedPercentLabel = pointerSpeedLabel(pointerProfile),
                         supportsTextStreamInput = pointerProfile?.supportsTextStreams() ?: false,
                         supportsModifierToggles = supportsModifierToggles,
                         message = if (it.message == RECONNECTING_MESSAGE || it.message == DISCONNECTED_MESSAGE || it.message == CONNECT_FIRST_MESSAGE) {
@@ -906,6 +896,8 @@ class PcMouseControlViewModel(
                         switcherConnectedDisplayName = controller.currentControlDeviceName() ?: state.displayName,
                         isDragging = false,
                         activeModifiers = emptySet(),
+                        pointerSpeedSupported = false,
+                        pointerSpeedPercentLabel = POINTER_SPEED_UNAVAILABLE_MESSAGE,
                         supportsTextStreamInput = false,
                         supportsModifierToggles = false,
                         message = RECONNECTING_MESSAGE,
@@ -922,12 +914,14 @@ class PcMouseControlViewModel(
             }
             PcServiceConnectionState.Disconnected -> {
                 mouseRepeatManager.clearServiceState()
-                movementSteps = FALLBACK_MOVEMENT_STEPS
+                movementStep = FALLBACK_MOVEMENT_STEP
                 _uiState.update {
                     it.copy(
                         connectedDisplayName = null,
                         switcherConnectedDisplayName = null,
-                        movementStep = movementSteps.stepFor(it.selectedMovementSize),
+                        movementStep = movementStep,
+                        pointerSpeedSupported = false,
+                        pointerSpeedPercentLabel = POINTER_SPEED_UNAVAILABLE_MESSAGE,
                         isDragging = false,
                         activeModifiers = emptySet(),
                         isBusy = false,
@@ -945,12 +939,14 @@ class PcMouseControlViewModel(
             }
             is PcServiceConnectionState.Failed -> {
                 mouseRepeatManager.clearServiceState()
-                movementSteps = FALLBACK_MOVEMENT_STEPS
+                movementStep = FALLBACK_MOVEMENT_STEP
                 _uiState.update {
                     it.copy(
                         connectedDisplayName = null,
                         switcherConnectedDisplayName = null,
-                        movementStep = movementSteps.stepFor(it.selectedMovementSize),
+                        movementStep = movementStep,
+                        pointerSpeedSupported = false,
+                        pointerSpeedPercentLabel = POINTER_SPEED_UNAVAILABLE_MESSAGE,
                         isDragging = false,
                         activeModifiers = emptySet(),
                         isBusy = false,
@@ -1033,12 +1029,14 @@ class PcMouseControlViewModel(
     }
 
     private fun showConnectFirst() {
-        movementSteps = FALLBACK_MOVEMENT_STEPS
+        movementStep = FALLBACK_MOVEMENT_STEP
         _uiState.update {
             it.copy(
                 connectedDisplayName = null,
                 switcherConnectedDisplayName = null,
-                movementStep = movementSteps.stepFor(it.selectedMovementSize),
+                movementStep = movementStep,
+                pointerSpeedSupported = false,
+                pointerSpeedPercentLabel = POINTER_SPEED_UNAVAILABLE_MESSAGE,
                 isDragging = false,
                 activeModifiers = emptySet(),
                 isBusy = false,
@@ -1093,17 +1091,26 @@ class PcMouseControlViewModel(
         }
     }
 
+    private fun pointerSpeedLabel(pointerProfile: PcPointerMovementProfile?): String {
+        val speed = pointerProfile?.capabilities?.pointerSpeed
+        if (speed?.supported != true) return POINTER_SPEED_UNAVAILABLE_MESSAGE
+        val percent = if (speed.scalePercent % 1.0 == 0.0) {
+            speed.scalePercent.toInt().toString()
+        } else {
+            String.format(Locale.ROOT, "%.1f", speed.scalePercent)
+        }
+        return "$POINTER_SPEED_PREFIX$percent%"
+    }
+
     private fun debugLog(message: String) {
         runCatching { Log.d(TAG, message) }
     }
 
     companion object {
         private const val TAG = "PcMouseControlViewModel"
-        val FALLBACK_MOVEMENT_STEPS = PcMouseMovementSteps(
-            small = 40,
-            medium = 80,
-            large = 160
-        )
+        const val FALLBACK_MOVEMENT_STEP = 80
+        const val POINTER_SPEED_PREFIX = "Set in Switchify PC: "
+        const val POINTER_SPEED_UNAVAILABLE_MESSAGE = "Update Switchify PC to view pointer speed."
         const val CONNECT_FIRST_MESSAGE = "Connect to PC from Switchify first."
         const val COMMAND_FAILED_MESSAGE = "Could not send command to PC."
         const val TYPING_FAILED_MESSAGE = "Could not send text to PC."

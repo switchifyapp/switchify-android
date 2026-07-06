@@ -13,7 +13,18 @@ data class PcPointerCapabilities(
     val noAckMouseMove: Boolean = false,
     val noAckCommands: Set<String> = emptySet(),
     val supportedCommands: Set<String> = emptySet(),
-    val mouseRepeat: PcMouseRepeatCapabilities = PcMouseRepeatCapabilities()
+    val mouseRepeat: PcMouseRepeatCapabilities = PcMouseRepeatCapabilities(),
+    val pointerSpeed: PcPointerSpeedCapabilities = PcPointerSpeedCapabilities()
+)
+
+data class PcPointerSpeedCapabilities(
+    val supported: Boolean = false,
+    val scalePercent: Double = 100.0,
+    val minScalePercent: Double = 25.0,
+    val maxScalePercent: Double = 225.0,
+    val stepPercent: Double = 5.0,
+    val baseMoveDelta: Int = 128,
+    val effectiveMoveDelta: Int = 128
 )
 
 data class PcMouseRepeatCapabilities(
@@ -55,4 +66,10 @@ fun PcPointerMovementProfile.supportsModifierToggle(): Boolean {
             "keyboard.modifierUp"
         )
     )
+}
+
+fun PcPointerMovementProfile.pointerMoveStep(): Int {
+    val speed = capabilities.pointerSpeed
+    val candidate = if (speed.supported) speed.baseMoveDelta else recommendedDeltas.medium
+    return candidate.coerceIn(1, maxDelta)
 }
