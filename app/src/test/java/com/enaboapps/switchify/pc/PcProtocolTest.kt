@@ -181,6 +181,7 @@ class PcProtocolTest {
         assertEquals(emptySet<String>(), response.profile.capabilities.supportedCommands)
         assertFalse(response.profile.capabilities.pointerSpeed.supported)
         assertFalse(response.profile.capabilities.pointerSpeed.setSupported)
+        assertEquals(5.0, response.profile.capabilities.pointerSpeed.minScalePercent, 0.0)
         assertEquals(130, response.profile.pointerMoveStep())
     }
 
@@ -188,13 +189,14 @@ class PcProtocolTest {
     fun parsesPointerProfileSpeedCapability() {
         val response = PcProtocol.parseResponse(
             validPointerProfileResponse(
-                capabilities = ""","capabilities":{"pointerSpeed":{"supported":true,"setSupported":true,"scalePercent":125,"minScalePercent":25,"maxScalePercent":225,"stepPercent":5,"baseMoveDelta":128,"effectiveMoveDelta":160}}"""
+                capabilities = ""","capabilities":{"pointerSpeed":{"supported":true,"setSupported":true,"scalePercent":125,"minScalePercent":5,"maxScalePercent":225,"stepPercent":5,"baseMoveDelta":128,"effectiveMoveDelta":160}}"""
             )
         ) as PcProtocolResponse.PointerProfile
 
         assertTrue(response.profile.capabilities.pointerSpeed.supported)
         assertTrue(response.profile.capabilities.pointerSpeed.setSupported)
         assertEquals(125.0, response.profile.capabilities.pointerSpeed.scalePercent, 0.0)
+        assertEquals(5.0, response.profile.capabilities.pointerSpeed.minScalePercent, 0.0)
         assertEquals(225.0, response.profile.capabilities.pointerSpeed.maxScalePercent, 0.0)
         assertEquals(128, response.profile.capabilities.pointerSpeed.baseMoveDelta)
         assertEquals(160, response.profile.capabilities.pointerSpeed.effectiveMoveDelta)
@@ -207,7 +209,7 @@ class PcProtocolTest {
             PcProtocolResponse.Invalid,
             PcProtocol.parseResponse(
                 validPointerProfileResponse(
-                    capabilities = ""","capabilities":{"pointerSpeed":{"supported":true,"scalePercent":300,"minScalePercent":25,"maxScalePercent":225,"stepPercent":5,"baseMoveDelta":128,"effectiveMoveDelta":160}}"""
+                    capabilities = ""","capabilities":{"pointerSpeed":{"supported":true,"scalePercent":300,"minScalePercent":5,"maxScalePercent":225,"stepPercent":5,"baseMoveDelta":128,"effectiveMoveDelta":160}}"""
                 )
             )
         )
@@ -215,7 +217,7 @@ class PcProtocolTest {
             PcProtocolResponse.Invalid,
             PcProtocol.parseResponse(
                 validPointerProfileResponse(
-                    capabilities = ""","capabilities":{"pointerSpeed":{"supported":true,"setSupported":"yes","scalePercent":125,"minScalePercent":25,"maxScalePercent":225,"stepPercent":5,"baseMoveDelta":128,"effectiveMoveDelta":160}}"""
+                    capabilities = ""","capabilities":{"pointerSpeed":{"supported":true,"setSupported":"yes","scalePercent":125,"minScalePercent":5,"maxScalePercent":225,"stepPercent":5,"baseMoveDelta":128,"effectiveMoveDelta":160}}"""
                 )
             )
         )

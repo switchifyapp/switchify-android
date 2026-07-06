@@ -655,7 +655,7 @@ object PcProtocol {
         if (speedJson.has("setSupported") && speedJson.opt("setSupported") !is Boolean) return null
 
         val scalePercent = speedJson.optDouble("scalePercent", 100.0)
-        val minScalePercent = speedJson.optDouble("minScalePercent", 25.0)
+        val minScalePercent = speedJson.optDouble("minScalePercent", 5.0)
         val maxScalePercent = speedJson.optDouble("maxScalePercent", 225.0)
         val stepPercent = speedJson.optDouble("stepPercent", 5.0)
         val baseMoveDeltaValue = speedJson.opt("baseMoveDelta")

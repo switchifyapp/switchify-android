@@ -41,7 +41,6 @@ import androidx.compose.material.icons.filled.OpenWith
 import androidx.compose.material.icons.filled.TouchApp
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -55,6 +54,7 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -66,9 +66,10 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.unit.dp
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.components.EqualHeightGridRow
+import com.enaboapps.switchify.components.Picker
 import com.enaboapps.switchify.components.Section
 import com.enaboapps.switchify.pc.PcControlCommand
-import kotlin.math.roundToInt
+import kotlin.math.round
 
 data class PcMouseControlSpec(
     @param:StringRes val labelResId: Int,
@@ -276,49 +277,100 @@ fun PcPointerSpeedSection(
     onSpeedSelected: (Double) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var displayedScale by remember(scalePercent) { mutableStateOf(scalePercent) }
-    val min = minScalePercent.toFloat()
-    val max = maxScalePercent.toFloat()
-    val step = stepPercent.takeIf { it > 0.0 } ?: 5.0
-    val steps = (((maxScalePercent - minScalePercent) / step).roundToInt() - 1).coerceAtLeast(0)
+    val context = LocalContext.current
+    val speedOptions = remember(minScalePercent, maxScalePercent, stepPercent) {
+        pointerSpeedOptions(minScalePercent, maxScalePercent, stepPercent)
+    }
+    val selectedSpeed = remember(scalePercent, minScalePercent, maxScalePercent, stepPercent) {
+        normalizePointerSpeedForPicker(scalePercent, minScalePercent, maxScalePercent, stepPercent)
+    }
 
     Section(titleResId = R.string.pc_mouse_pointer_speed) {
-        Surface(
-            modifier = modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            shape = RoundedCornerShape(12.dp),
-            color = MaterialTheme.colorScheme.surfaceContainerHigh
-        ) {
-            Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
-                Text(
-                    text = if (supported) label else stringResource(R.string.pc_mouse_pointer_speed_unavailable),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = stringResource(
-                        if (supported) {
-                            R.string.pc_mouse_pointer_speed_configured
-                        } else {
-                            R.string.pc_mouse_pointer_speed_unavailable
-                        }
-                    ),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 2.dp)
-                )
-                Slider(
-                    value = displayedScale.toFloat().coerceIn(min, max),
-                    onValueChange = { displayedScale = it.toDouble() },
-                    onValueChangeFinished = { onSpeedSelected(displayedScale) },
-                    enabled = supported && enabled,
-                    valueRange = min..max,
-                    steps = steps,
-                    modifier = Modifier.padding(top = 4.dp)
-                )
+        if (supported) {
+            Picker(
+                titleResId = R.string.pc_mouse_pointer_speed,
+                selectedItem = selectedSpeed,
+                items = speedOptions,
+                onItemSelected = onSpeedSelected,
+                itemToString = { "${formatPointerSpeedPercent(it)}%" },
+                itemDescription = { speed ->
+                    context.getString(
+                        R.string.pc_mouse_pointer_speed_option_description,
+                        "${formatPointerSpeedPercent(speed)}%"
+                    )
+                },
+                enabled = enabled
+            )
+        } else {
+            Surface(
+                modifier = modifier
+                    .fillMaxWidth()
+                    .padding(12.dp),
+                shape = RoundedCornerShape(12.dp),
+                color = MaterialTheme.colorScheme.surfaceContainerHigh
+            ) {
+                Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
+                    Text(
+                        text = label,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = stringResource(R.string.pc_mouse_pointer_speed_unavailable),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 2.dp)
+                    )
+                }
             }
         }
+    }
+}
+
+internal fun pointerSpeedOptions(
+    minScalePercent: Double,
+    maxScalePercent: Double,
+    stepPercent: Double
+): List<Double> {
+    val step = if (stepPercent.isFinite() && stepPercent > 0.0) stepPercent else 5.0
+    val min = if (minScalePercent.isFinite() && minScalePercent > 0.0) minScalePercent else 5.0
+    val max = if (maxScalePercent.isFinite() && maxScalePercent >= min) maxScalePercent else min
+    val options = mutableListOf<Double>()
+    var current = normalizePointerSpeedForPicker(min, min, max, step)
+    while (current <= max + 0.0001) {
+        options += normalizePointerSpeedOption(current)
+        current += step
+    }
+    val normalizedMax = normalizePointerSpeedForPicker(max, min, max, step)
+    if (options.lastOrNull() != normalizedMax) {
+        options += normalizedMax
+    }
+    return options.distinct()
+}
+
+internal fun normalizePointerSpeedForPicker(
+    value: Double,
+    minScalePercent: Double,
+    maxScalePercent: Double,
+    stepPercent: Double
+): Double {
+    val step = if (stepPercent.isFinite() && stepPercent > 0.0) stepPercent else 5.0
+    val min = if (minScalePercent.isFinite() && minScalePercent > 0.0) minScalePercent else 5.0
+    val max = if (maxScalePercent.isFinite() && maxScalePercent >= min) maxScalePercent else min
+    val bounded = value.coerceIn(min, max)
+    return normalizePointerSpeedOption((round(bounded / step) * step).coerceIn(min, max))
+}
+
+private fun normalizePointerSpeedOption(value: Double): Double {
+    return round(value * 10.0) / 10.0
+}
+
+private fun formatPointerSpeedPercent(value: Double): String {
+    val normalized = normalizePointerSpeedOption(value)
+    return if (normalized % 1.0 == 0.0) {
+        normalized.toInt().toString()
+    } else {
+        java.lang.String.format(java.util.Locale.ROOT, "%.1f", normalized)
     }
 }
 

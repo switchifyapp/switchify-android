@@ -182,7 +182,7 @@ class PcMouseControlViewModelTest {
                         supported = true,
                         setSupported = true,
                         scalePercent = 160.0,
-                        minScalePercent = 25.0,
+                        minScalePercent = 5.0,
                         maxScalePercent = 225.0,
                         stepPercent = 5.0,
                         baseMoveDelta = 128,
@@ -198,7 +198,7 @@ class PcMouseControlViewModelTest {
         assertTrue(viewModel.uiState.value.pointerSpeedSupported)
         assertTrue(viewModel.uiState.value.pointerSpeedSetSupported)
         assertEquals(160.0, viewModel.uiState.value.pointerSpeedScalePercent, 0.0)
-        assertEquals(25.0, viewModel.uiState.value.pointerSpeedMinScalePercent, 0.0)
+        assertEquals(5.0, viewModel.uiState.value.pointerSpeedMinScalePercent, 0.0)
         assertEquals(225.0, viewModel.uiState.value.pointerSpeedMaxScalePercent, 0.0)
         assertEquals(5.0, viewModel.uiState.value.pointerSpeedStepPercent, 0.0)
     }
@@ -214,7 +214,7 @@ class PcMouseControlViewModelTest {
                         supported = true,
                         setSupported = true,
                         scalePercent = 100.0,
-                        minScalePercent = 25.0,
+                        minScalePercent = 5.0,
                         maxScalePercent = 225.0,
                         stepPercent = 5.0,
                         baseMoveDelta = 128,
@@ -236,6 +236,37 @@ class PcMouseControlViewModelTest {
     }
 
     @Test
+    fun settingPointerSpeedClampsToFivePercentMinimum() = runTest(dispatcher) {
+        val connector = FakeConnector()
+        val controller = connectedController(
+            connector = connector,
+            pointerProfile = pointerProfile(
+                capabilities = PcPointerCapabilities(
+                    pointerSpeed = PcPointerSpeedCapabilities(
+                        supported = true,
+                        setSupported = true,
+                        scalePercent = 100.0,
+                        minScalePercent = 5.0,
+                        maxScalePercent = 225.0,
+                        stepPercent = 5.0,
+                        baseMoveDelta = 128,
+                        effectiveMoveDelta = 128
+                    )
+                )
+            )
+        )
+        val viewModel = viewModel(controller)
+        advanceUntilIdle()
+
+        viewModel.setPointerSpeed(1.0)
+        advanceUntilIdle()
+
+        assertEquals(listOf(PcControlCommand.SetPointerSpeed(5.0)), connector.commands)
+        assertEquals(5.0, viewModel.uiState.value.pointerSpeedScalePercent, 0.0)
+        assertEquals("5%", viewModel.uiState.value.pointerSpeedPercentLabel)
+    }
+
+    @Test
     fun failedPointerSpeedSetDoesNotUpdateDisplayedSpeed() = runTest(dispatcher) {
         val connector = FakeConnector(commandResults = mutableListOf(PcCommandResult.Failed()))
         val controller = connectedController(
@@ -246,7 +277,7 @@ class PcMouseControlViewModelTest {
                         supported = true,
                         setSupported = true,
                         scalePercent = 100.0,
-                        minScalePercent = 25.0,
+                        minScalePercent = 5.0,
                         maxScalePercent = 225.0,
                         stepPercent = 5.0,
                         baseMoveDelta = 128,

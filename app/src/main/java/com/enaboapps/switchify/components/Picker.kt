@@ -30,6 +30,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -44,7 +45,8 @@ fun <T> Picker(
     items: List<T>,
     onItemSelected: (T) -> Unit,
     itemToString: (T) -> String,
-    itemDescription: (T) -> String
+    itemDescription: (T) -> String,
+    enabled: Boolean = true
 ) {
     var expanded by remember { mutableStateOf(false) }
 
@@ -69,10 +71,12 @@ fun <T> Picker(
             .heightIn(min = 56.dp)
             .background(triggerColor)
             .clickable(
+                enabled = enabled,
                 interactionSource = interactionSource,
                 indication = null,
                 onClick = { expanded = true }
             )
+            .alpha(if (enabled) 1f else 0.55f)
             .padding(Dimens.spaceM),
         horizontalArrangement = Arrangement.spacedBy(Dimens.spaceM),
         verticalAlignment = Alignment.CenterVertically
