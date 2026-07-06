@@ -618,6 +618,48 @@ class PcMouseControlViewModelTest {
     }
 
     @Test
+    fun typingDraftRestoresFromStore() = runTest(dispatcher) {
+        val viewModel = viewModel(null, typingDraftStore = FakeTypingDraftStore("Hello"))
+
+        advanceUntilIdle()
+
+        assertEquals("Hello", viewModel.uiState.value.typingText)
+    }
+
+    @Test
+    fun typingTextChangesAreSavedToDraftStore() = runTest(dispatcher) {
+        val draftStore = FakeTypingDraftStore()
+        val viewModel = viewModel(null, typingDraftStore = draftStore)
+
+        viewModel.updateTypingText("Hello")
+        advanceUntilIdle()
+
+        assertEquals("Hello", draftStore.getDraft())
+    }
+
+    @Test
+    fun clearTypingTextClearsDraftStore() = runTest(dispatcher) {
+        val draftStore = FakeTypingDraftStore("Hello")
+        val viewModel = viewModel(null, typingDraftStore = draftStore)
+
+        viewModel.clearTypingText()
+        advanceUntilIdle()
+
+        assertEquals("", viewModel.uiState.value.typingText)
+        assertEquals("", draftStore.getDraft())
+    }
+
+    @Test
+    fun restoredInvalidDraftShowsValidationMessage() = runTest(dispatcher) {
+        val viewModel = viewModel(null, typingDraftStore = FakeTypingDraftStore("hello\u001Bworld"))
+
+        advanceUntilIdle()
+
+        assertEquals("hello\u001Bworld", viewModel.uiState.value.typingText)
+        assertEquals(PcMouseControlViewModel.TEXT_UNSUPPORTED_MESSAGE, viewModel.uiState.value.typingMessage)
+    }
+
+    @Test
     fun invalidTypingTextDoesNotSendAndShowsMessage() = runTest(dispatcher) {
         val connector = FakeConnector()
         val controller = connectedController(connector = connector)
@@ -909,6 +951,20 @@ class PcMouseControlViewModelTest {
     }
 
     @Test
+    fun successfulTypedTextSendClearsDraftStore() = runTest(dispatcher) {
+        val draftStore = FakeTypingDraftStore()
+        val controller = connectedController()
+        val viewModel = viewModel(controller, typingDraftStore = draftStore)
+
+        viewModel.updateTypingText("Hello")
+        viewModel.sendTypedText()
+        advanceUntilIdle()
+
+        assertEquals("", viewModel.uiState.value.typingText)
+        assertEquals("", draftStore.getDraft())
+    }
+
+    @Test
     fun typedTextSetsBusyWhileBulkSendIsInFlight() = runTest(dispatcher) {
         val pendingText = CompletableDeferred<PcCommandResult>()
         val connector = FakeConnector(realtimeResults = mutableListOf(pendingText))
@@ -1059,6 +1115,20 @@ class PcMouseControlViewModelTest {
         assertNull(viewModel.uiState.value.typingMessage)
         assertFalse(viewModel.uiState.value.isBusy)
         assertNull(viewModel.uiState.value.busyCommand)
+    }
+
+    @Test
+    fun successfulTypedTextThenEnterClearsDraftStore() = runTest(dispatcher) {
+        val draftStore = FakeTypingDraftStore()
+        val controller = connectedController()
+        val viewModel = viewModel(controller, typingDraftStore = draftStore)
+
+        viewModel.updateTypingText("Hello")
+        viewModel.sendTypedTextThenEnter()
+        advanceUntilIdle()
+
+        assertEquals("", viewModel.uiState.value.typingText)
+        assertEquals("", draftStore.getDraft())
     }
 
     @Test
@@ -1229,6 +1299,21 @@ class PcMouseControlViewModelTest {
         assertEquals(PcMouseControlViewModel.TYPING_FAILED_MESSAGE, viewModel.uiState.value.typingMessage)
         assertFalse(viewModel.uiState.value.isBusy)
         assertNull(viewModel.uiState.value.busyCommand)
+    }
+
+    @Test
+    fun failedTypedTextSendKeepsDraftStore() = runTest(dispatcher) {
+        val draftStore = FakeTypingDraftStore()
+        val connector = FakeConnector(commandResult = PcCommandResult.Failed())
+        val controller = connectedController(connector = connector)
+        val viewModel = viewModel(controller, typingDraftStore = draftStore)
+
+        viewModel.updateTypingText("Hello")
+        viewModel.sendTypedText()
+        advanceUntilIdle()
+
+        assertEquals("Hello", viewModel.uiState.value.typingText)
+        assertEquals("Hello", draftStore.getDraft())
     }
 
     @Test
@@ -1958,11 +2043,13 @@ class PcMouseControlViewModelTest {
 
     private fun viewModel(
         controller: PcServiceConnectionController?,
-        controlSurfaceStore: FakeControlSurfaceStore = FakeControlSurfaceStore()
+        controlSurfaceStore: FakeControlSurfaceStore = FakeControlSurfaceStore(),
+        typingDraftStore: FakeTypingDraftStore = FakeTypingDraftStore()
     ): PcMouseControlViewModel {
         return PcMouseControlViewModel(
             serviceControllerProvider = { controller },
-            controlSurfaceStore = controlSurfaceStore
+            controlSurfaceStore = controlSurfaceStore,
+            typingDraftStore = typingDraftStore
         )
     }
 
@@ -2187,6 +2274,20 @@ class PcMouseControlViewModelTest {
 
         override fun setSelectedSurface(surface: PcControlSurface) {
             selectedSurface = surface
+        }
+    }
+
+    private class FakeTypingDraftStore(
+        private var draft: String = ""
+    ) : PcTypingDraftStore {
+        override fun getDraft(): String = draft
+
+        override fun setDraft(text: String) {
+            draft = text
+        }
+
+        override fun clearDraft() {
+            draft = ""
         }
     }
 
