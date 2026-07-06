@@ -28,6 +28,7 @@ import com.enaboapps.switchify.pc.PcPointerBounds
 import com.enaboapps.switchify.pc.PcPointerCapabilities
 import com.enaboapps.switchify.pc.PcPointerDeltas
 import com.enaboapps.switchify.pc.PcPointerMovementProfile
+import com.enaboapps.switchify.pc.PcPointerSpeedCapabilities
 import com.enaboapps.switchify.pc.PcServiceConnectionController
 import com.enaboapps.switchify.pc.PcStoredPairing
 import com.enaboapps.switchify.pc.PcWindowControlAction
@@ -149,12 +150,177 @@ class PcMouseControlViewModelTest {
 
     @Test
     fun connectedServiceStateUsesPointerProfile() = runTest(dispatcher) {
-        val controller = connectedController(pointerProfile = pointerProfile(small = 52, medium = 130, large = 260))
-        val viewModel = viewModel(controller, FakeMovementSizeStore(PcMouseMovementSize.Medium))
+        val controller = connectedController(
+            pointerProfile = pointerProfile(
+                medium = 130,
+                capabilities = PcPointerCapabilities(
+                    pointerSpeed = PcPointerSpeedCapabilities(
+                        supported = true,
+                        setSupported = true,
+                        scalePercent = 125.0,
+                        baseMoveDelta = 128,
+                        effectiveMoveDelta = 160
+                    )
+                )
+            )
+        )
+        val viewModel = viewModel(controller)
 
         advanceUntilIdle()
 
-        assertEquals(130, viewModel.uiState.value.movementStep)
+        assertEquals(128, viewModel.uiState.value.movementStep)
+        assertEquals(true, viewModel.uiState.value.pointerSpeedSupported)
+        assertEquals("125%", viewModel.uiState.value.pointerSpeedPercentLabel)
+    }
+
+    @Test
+    fun pointerSpeedSetSupportEnablesSpeedEditing() = runTest(dispatcher) {
+        val controller = connectedController(
+            pointerProfile = pointerProfile(
+                capabilities = PcPointerCapabilities(
+                    pointerSpeed = PcPointerSpeedCapabilities(
+                        supported = true,
+                        setSupported = true,
+                        scalePercent = 160.0,
+                        minScalePercent = 5.0,
+                        maxScalePercent = 225.0,
+                        stepPercent = 5.0,
+                        baseMoveDelta = 128,
+                        effectiveMoveDelta = 205
+                    )
+                )
+            )
+        )
+        val viewModel = viewModel(controller)
+
+        advanceUntilIdle()
+
+        assertTrue(viewModel.uiState.value.pointerSpeedSupported)
+        assertTrue(viewModel.uiState.value.pointerSpeedSetSupported)
+        assertEquals(160.0, viewModel.uiState.value.pointerSpeedScalePercent, 0.0)
+        assertEquals(5.0, viewModel.uiState.value.pointerSpeedMinScalePercent, 0.0)
+        assertEquals(225.0, viewModel.uiState.value.pointerSpeedMaxScalePercent, 0.0)
+        assertEquals(5.0, viewModel.uiState.value.pointerSpeedStepPercent, 0.0)
+    }
+
+    @Test
+    fun settingPointerSpeedSendsNormalizedValueAndUpdatesAfterAck() = runTest(dispatcher) {
+        val connector = FakeConnector()
+        val controller = connectedController(
+            connector = connector,
+            pointerProfile = pointerProfile(
+                capabilities = PcPointerCapabilities(
+                    pointerSpeed = PcPointerSpeedCapabilities(
+                        supported = true,
+                        setSupported = true,
+                        scalePercent = 100.0,
+                        minScalePercent = 5.0,
+                        maxScalePercent = 225.0,
+                        stepPercent = 5.0,
+                        baseMoveDelta = 128,
+                        effectiveMoveDelta = 128
+                    )
+                )
+            )
+        )
+        val viewModel = viewModel(controller)
+        advanceUntilIdle()
+
+        viewModel.setPointerSpeed(127.0)
+        advanceUntilIdle()
+
+        assertEquals(listOf(PcControlCommand.SetPointerSpeed(125.0)), connector.commands)
+        assertEquals(125.0, viewModel.uiState.value.pointerSpeedScalePercent, 0.0)
+        assertEquals("125%", viewModel.uiState.value.pointerSpeedPercentLabel)
+        assertEquals(128, viewModel.uiState.value.movementStep)
+    }
+
+    @Test
+    fun settingPointerSpeedClampsToFivePercentMinimum() = runTest(dispatcher) {
+        val connector = FakeConnector()
+        val controller = connectedController(
+            connector = connector,
+            pointerProfile = pointerProfile(
+                capabilities = PcPointerCapabilities(
+                    pointerSpeed = PcPointerSpeedCapabilities(
+                        supported = true,
+                        setSupported = true,
+                        scalePercent = 100.0,
+                        minScalePercent = 5.0,
+                        maxScalePercent = 225.0,
+                        stepPercent = 5.0,
+                        baseMoveDelta = 128,
+                        effectiveMoveDelta = 128
+                    )
+                )
+            )
+        )
+        val viewModel = viewModel(controller)
+        advanceUntilIdle()
+
+        viewModel.setPointerSpeed(1.0)
+        advanceUntilIdle()
+
+        assertEquals(listOf(PcControlCommand.SetPointerSpeed(5.0)), connector.commands)
+        assertEquals(5.0, viewModel.uiState.value.pointerSpeedScalePercent, 0.0)
+        assertEquals("5%", viewModel.uiState.value.pointerSpeedPercentLabel)
+    }
+
+    @Test
+    fun failedPointerSpeedSetDoesNotUpdateDisplayedSpeed() = runTest(dispatcher) {
+        val connector = FakeConnector(commandResults = mutableListOf(PcCommandResult.Failed()))
+        val controller = connectedController(
+            connector = connector,
+            pointerProfile = pointerProfile(
+                capabilities = PcPointerCapabilities(
+                    pointerSpeed = PcPointerSpeedCapabilities(
+                        supported = true,
+                        setSupported = true,
+                        scalePercent = 100.0,
+                        minScalePercent = 5.0,
+                        maxScalePercent = 225.0,
+                        stepPercent = 5.0,
+                        baseMoveDelta = 128,
+                        effectiveMoveDelta = 128
+                    )
+                )
+            )
+        )
+        val viewModel = viewModel(controller)
+        advanceUntilIdle()
+
+        viewModel.setPointerSpeed(160.0)
+        advanceUntilIdle()
+
+        assertEquals(listOf(PcControlCommand.SetPointerSpeed(160.0)), connector.commands)
+        assertEquals(100.0, viewModel.uiState.value.pointerSpeedScalePercent, 0.0)
+        assertEquals("100%", viewModel.uiState.value.pointerSpeedPercentLabel)
+        assertEquals(PcMouseControlViewModel.COMMAND_FAILED_MESSAGE, viewModel.uiState.value.message)
+    }
+
+    @Test
+    fun unsupportedPointerSpeedSetDoesNotSendCommand() = runTest(dispatcher) {
+        val connector = FakeConnector()
+        val controller = connectedController(
+            connector = connector,
+            pointerProfile = pointerProfile(
+                capabilities = PcPointerCapabilities(
+                    pointerSpeed = PcPointerSpeedCapabilities(
+                        supported = true,
+                        setSupported = false,
+                        scalePercent = 100.0
+                    )
+                )
+            )
+        )
+        val viewModel = viewModel(controller)
+        advanceUntilIdle()
+
+        viewModel.setPointerSpeed(160.0)
+        advanceUntilIdle()
+
+        assertTrue(connector.commands.isEmpty())
+        assertEquals(PcMouseControlViewModel.POINTER_SPEED_UNAVAILABLE_MESSAGE, viewModel.uiState.value.message)
     }
 
     @Test
@@ -393,13 +559,17 @@ class PcMouseControlViewModelTest {
     }
 
     @Test
-    fun firstRunDefaultsToSmallFallbackStep() = runTest(dispatcher) {
+    fun firstRunDefaultsToMediumFallbackStep() = runTest(dispatcher) {
         val viewModel = viewModel(null)
 
         advanceUntilIdle()
 
-        assertEquals(PcMouseMovementSize.Small, viewModel.uiState.value.selectedMovementSize)
-        assertEquals(40, viewModel.uiState.value.movementStep)
+        assertEquals(80, viewModel.uiState.value.movementStep)
+        assertEquals(false, viewModel.uiState.value.pointerSpeedSupported)
+        assertEquals(
+            "Update Switchify PC to set pointer speed.",
+            viewModel.uiState.value.pointerSpeedPercentLabel
+        )
     }
 
     @Test
@@ -409,18 +579,6 @@ class PcMouseControlViewModelTest {
         advanceUntilIdle()
 
         assertEquals(PcControlSurface.Typing, viewModel.uiState.value.activeSurface)
-    }
-
-    @Test
-    fun selectingMediumPersistsPreference() = runTest(dispatcher) {
-        val movementSizeStore = FakeMovementSizeStore()
-        val viewModel = viewModel(null, movementSizeStore)
-
-        viewModel.selectMovementSize(PcMouseMovementSize.Medium)
-        advanceUntilIdle()
-
-        assertEquals(PcMouseMovementSize.Medium, movementSizeStore.getSelectedSize())
-        assertEquals(80, viewModel.uiState.value.movementStep)
     }
 
     @Test
@@ -1800,12 +1958,10 @@ class PcMouseControlViewModelTest {
 
     private fun viewModel(
         controller: PcServiceConnectionController?,
-        movementSizeStore: FakeMovementSizeStore = FakeMovementSizeStore(),
         controlSurfaceStore: FakeControlSurfaceStore = FakeControlSurfaceStore()
     ): PcMouseControlViewModel {
         return PcMouseControlViewModel(
             serviceControllerProvider = { controller },
-            movementSizeStore = movementSizeStore,
             controlSurfaceStore = controlSurfaceStore
         )
     }
@@ -2022,16 +2178,6 @@ class PcMouseControlViewModelTest {
                 )
             )
         )
-    }
-
-    private class FakeMovementSizeStore(
-        private var selectedSize: PcMouseMovementSize = PcMouseMovementSize.Small
-    ) : PcMouseMovementSizeStore {
-        override fun getSelectedSize(): PcMouseMovementSize = selectedSize
-
-        override fun setSelectedSize(size: PcMouseMovementSize) {
-            selectedSize = size
-        }
     }
 
     private class FakeControlSurfaceStore(

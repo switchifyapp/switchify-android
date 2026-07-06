@@ -41,9 +41,6 @@ import androidx.compose.material.icons.filled.OpenWith
 import androidx.compose.material.icons.filled.TouchApp
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -57,6 +54,7 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -68,8 +66,10 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.unit.dp
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.components.EqualHeightGridRow
+import com.enaboapps.switchify.components.Picker
 import com.enaboapps.switchify.components.Section
 import com.enaboapps.switchify.pc.PcControlCommand
+import kotlin.math.round
 
 data class PcMouseControlSpec(
     @param:StringRes val labelResId: Int,
@@ -184,42 +184,32 @@ fun PcTransientMessage(
 }
 
 @Composable
-fun PcMovementSizeSection(
-    selectedSize: PcMouseMovementSize,
-    onSizeSelected: (PcMouseMovementSize) -> Unit,
-    enabled: Boolean = true,
-    modifier: Modifier = Modifier
-) {
-    Column(modifier = modifier.fillMaxWidth()) {
-        Section(titleResId = R.string.pc_mouse_movement_size) {
-            Box(modifier = Modifier.padding(12.dp)) {
-                PcMouseMovementSizeSelector(
-                    selectedSize = selectedSize,
-                    onSizeSelected = onSizeSelected,
-                    enabled = enabled
-                )
-            }
-        }
-    }
-}
-
-@Composable
 fun PcControlCommandGrid(
     enabled: Boolean,
     movementStep: Int,
-    selectedSize: PcMouseMovementSize,
-    onSizeSelected: (PcMouseMovementSize) -> Unit,
+    pointerSpeedScalePercent: Double,
+    pointerSpeedMinScalePercent: Double,
+    pointerSpeedMaxScalePercent: Double,
+    pointerSpeedStepPercent: Double,
+    pointerSpeedSupported: Boolean,
+    pointerSpeedControlEnabled: Boolean,
+    pointerSpeedLabel: String,
+    onPointerSpeedSelected: (Double) -> Unit,
     onCommandSelected: (PcControlCommand, Boolean) -> Unit,
-    sizeSelectorEnabled: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     PcControlCommandSections(
         enabled = enabled,
         movementStep = movementStep,
-        selectedSize = selectedSize,
-        onSizeSelected = onSizeSelected,
+        pointerSpeedScalePercent = pointerSpeedScalePercent,
+        pointerSpeedMinScalePercent = pointerSpeedMinScalePercent,
+        pointerSpeedMaxScalePercent = pointerSpeedMaxScalePercent,
+        pointerSpeedStepPercent = pointerSpeedStepPercent,
+        pointerSpeedSupported = pointerSpeedSupported,
+        pointerSpeedControlEnabled = pointerSpeedControlEnabled,
+        pointerSpeedLabel = pointerSpeedLabel,
+        onPointerSpeedSelected = onPointerSpeedSelected,
         onCommandSelected = onCommandSelected,
-        sizeSelectorEnabled = sizeSelectorEnabled,
         modifier = modifier
     )
 }
@@ -228,10 +218,15 @@ fun PcControlCommandGrid(
 fun PcControlCommandSections(
     enabled: Boolean,
     movementStep: Int,
-    selectedSize: PcMouseMovementSize,
-    onSizeSelected: (PcMouseMovementSize) -> Unit,
+    pointerSpeedScalePercent: Double,
+    pointerSpeedMinScalePercent: Double,
+    pointerSpeedMaxScalePercent: Double,
+    pointerSpeedStepPercent: Double,
+    pointerSpeedSupported: Boolean,
+    pointerSpeedControlEnabled: Boolean,
+    pointerSpeedLabel: String,
+    onPointerSpeedSelected: (Double) -> Unit,
     onCommandSelected: (PcControlCommand, Boolean) -> Unit,
-    sizeSelectorEnabled: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     val specs = pcMouseCompactControlSpecs(movementStep)
@@ -257,11 +252,125 @@ fun PcControlCommandSections(
                 )
             }
         }
-        PcMovementSizeSection(
-            selectedSize = selectedSize,
-            onSizeSelected = onSizeSelected,
-            enabled = sizeSelectorEnabled
+        PcPointerSpeedSection(
+            scalePercent = pointerSpeedScalePercent,
+            minScalePercent = pointerSpeedMinScalePercent,
+            maxScalePercent = pointerSpeedMaxScalePercent,
+            stepPercent = pointerSpeedStepPercent,
+            supported = pointerSpeedSupported,
+            enabled = pointerSpeedControlEnabled,
+            label = pointerSpeedLabel,
+            onSpeedSelected = onPointerSpeedSelected
         )
+    }
+}
+
+@Composable
+fun PcPointerSpeedSection(
+    scalePercent: Double,
+    minScalePercent: Double,
+    maxScalePercent: Double,
+    stepPercent: Double,
+    supported: Boolean,
+    enabled: Boolean,
+    label: String,
+    onSpeedSelected: (Double) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val context = LocalContext.current
+    val speedOptions = remember(minScalePercent, maxScalePercent, stepPercent) {
+        pointerSpeedOptions(minScalePercent, maxScalePercent, stepPercent)
+    }
+    val selectedSpeed = remember(scalePercent, minScalePercent, maxScalePercent, stepPercent) {
+        normalizePointerSpeedForPicker(scalePercent, minScalePercent, maxScalePercent, stepPercent)
+    }
+
+    Section(titleResId = R.string.pc_mouse_pointer_speed) {
+        if (supported) {
+            Picker(
+                titleResId = R.string.pc_mouse_pointer_speed,
+                selectedItem = selectedSpeed,
+                items = speedOptions,
+                onItemSelected = onSpeedSelected,
+                itemToString = { "${formatPointerSpeedPercent(it)}%" },
+                itemDescription = { speed ->
+                    context.getString(
+                        R.string.pc_mouse_pointer_speed_option_description,
+                        "${formatPointerSpeedPercent(speed)}%"
+                    )
+                },
+                enabled = enabled
+            )
+        } else {
+            Surface(
+                modifier = modifier
+                    .fillMaxWidth()
+                    .padding(12.dp),
+                shape = RoundedCornerShape(12.dp),
+                color = MaterialTheme.colorScheme.surfaceContainerHigh
+            ) {
+                Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
+                    Text(
+                        text = label,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = stringResource(R.string.pc_mouse_pointer_speed_unavailable),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 2.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
+internal fun pointerSpeedOptions(
+    minScalePercent: Double,
+    maxScalePercent: Double,
+    stepPercent: Double
+): List<Double> {
+    val step = if (stepPercent.isFinite() && stepPercent > 0.0) stepPercent else 5.0
+    val min = if (minScalePercent.isFinite() && minScalePercent > 0.0) minScalePercent else 5.0
+    val max = if (maxScalePercent.isFinite() && maxScalePercent >= min) maxScalePercent else min
+    val options = mutableListOf<Double>()
+    var current = normalizePointerSpeedForPicker(min, min, max, step)
+    while (current <= max + 0.0001) {
+        options += normalizePointerSpeedOption(current)
+        current += step
+    }
+    val normalizedMax = normalizePointerSpeedForPicker(max, min, max, step)
+    if (options.lastOrNull() != normalizedMax) {
+        options += normalizedMax
+    }
+    return options.distinct()
+}
+
+internal fun normalizePointerSpeedForPicker(
+    value: Double,
+    minScalePercent: Double,
+    maxScalePercent: Double,
+    stepPercent: Double
+): Double {
+    val step = if (stepPercent.isFinite() && stepPercent > 0.0) stepPercent else 5.0
+    val min = if (minScalePercent.isFinite() && minScalePercent > 0.0) minScalePercent else 5.0
+    val max = if (maxScalePercent.isFinite() && maxScalePercent >= min) maxScalePercent else min
+    val bounded = value.coerceIn(min, max)
+    return normalizePointerSpeedOption((round(bounded / step) * step).coerceIn(min, max))
+}
+
+private fun normalizePointerSpeedOption(value: Double): Double {
+    return round(value * 10.0) / 10.0
+}
+
+private fun formatPointerSpeedPercent(value: Double): String {
+    val normalized = normalizePointerSpeedOption(value)
+    return if (normalized % 1.0 == 0.0) {
+        normalized.toInt().toString()
+    } else {
+        java.lang.String.format(java.util.Locale.ROOT, "%.1f", normalized)
     }
 }
 
@@ -491,42 +600,6 @@ fun PcScannedCommandTile(
                     color = contentColor,
                     textAlign = TextAlign.Center,
                     maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-        }
-    }
-}
-
-@Composable
-fun PcMouseMovementSizeSelector(
-    selectedSize: PcMouseMovementSize,
-    onSizeSelected: (PcMouseMovementSize) -> Unit,
-    enabled: Boolean = true,
-    modifier: Modifier = Modifier
-) {
-    val sizes = PcMouseMovementSize.entries
-    val colors = SegmentedButtonDefaults.colors(
-        activeContainerColor = MaterialTheme.colorScheme.primary,
-        activeContentColor = MaterialTheme.colorScheme.onPrimary,
-        activeBorderColor = MaterialTheme.colorScheme.primary,
-        inactiveContainerColor = MaterialTheme.colorScheme.surface,
-        inactiveContentColor = MaterialTheme.colorScheme.onSurface,
-        inactiveBorderColor = MaterialTheme.colorScheme.outline
-    )
-
-    SingleChoiceSegmentedButtonRow(modifier = modifier.fillMaxWidth()) {
-        sizes.forEachIndexed { index, size ->
-            SegmentedButton(
-                selected = selectedSize == size,
-                onClick = { onSizeSelected(size) },
-                enabled = enabled,
-                shape = SegmentedButtonDefaults.itemShape(index = index, count = sizes.size),
-                colors = colors
-            ) {
-                Text(
-                    text = stringResource(size.labelResId),
-                    maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
             }

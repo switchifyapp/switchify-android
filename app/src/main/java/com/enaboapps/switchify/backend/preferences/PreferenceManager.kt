@@ -25,7 +25,6 @@ class PreferenceManager(context: Context) {
         const val PREFERENCE_KEY_PAUSE_TIMEOUT = "pause_timeout"
         const val PREFERENCE_KEY_MOVE_REPEAT = "move_repeat"
         const val PREFERENCE_KEY_MOVE_REPEAT_DELAY = "move_repeat_delay"
-        const val PREFERENCE_KEY_PC_MOUSE_MOVEMENT_SIZE = "pc_mouse_movement_size"
         const val PREFERENCE_KEY_PC_CONTROL_SURFACE = "pc_control_surface"
         const val PREFERENCE_KEY_PC_MOUSE_REPEAT = "pc_mouse_repeat"
         const val PREFERENCE_KEY_PC_MOUSE_REPEAT_INTERVAL = "pc_mouse_repeat_interval"

@@ -332,6 +332,25 @@ class SwitchifyPcBleClientTest {
     }
 
     @Test
+    fun sendsPointerSpeedSetWithAckResponseMode() = runTest {
+        val tokens = FakeTokenStore(mutableMapOf("desktop-1" to "token"), mutableMapOf("desktop-1" to "Switchify PC"))
+        val messages = mutableListOf<JSONObject>()
+        val transport = FakeTransportFactory { message ->
+            val json = JSONObject(message)
+            messages += json
+            ack(json.getString("id"))
+        }
+        val client: PcConnector = client(tokens, transport)
+        val session = PcAuthenticatedSession("desktop-1", "device-1", "AA:BB:CC:DD:EE:FF", PcTransport.Bluetooth)
+
+        assertEquals(PcCommandResult.Ack, client.sendCommand(session, PcControlCommand.SetPointerSpeed(125.0)))
+
+        assertEquals("pointer.speed.set", messages.single().getString("type"))
+        assertEquals(125.0, messages.single().getJSONObject("payload").getDouble("scalePercent"), 0.0)
+        assertTrue(!messages.single().has("responseMode"))
+    }
+
+    @Test
     fun realtimeMoveFallsBackWhenPointerProfileDoesNotAdvertiseNoAck() = runTest {
         val tokens = FakeTokenStore(mutableMapOf("desktop-1" to "token"), mutableMapOf("desktop-1" to "Switchify PC"))
         lateinit var fakeConnection: FakeConnection

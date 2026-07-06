@@ -91,6 +91,23 @@ object PcProtocol {
         )
     }
 
+    fun pointerSpeedSet(
+        id: String,
+        deviceId: String,
+        token: String,
+        timestamp: Long,
+        scalePercent: Double
+    ): String {
+        return authenticatedCommand(
+            id = id,
+            deviceId = deviceId,
+            token = token,
+            timestamp = timestamp,
+            type = "pointer.speed.set",
+            payload = JSONObject().put("scalePercent", jsonNumber(scalePercent))
+        )
+    }
+
     fun authenticatedCommand(
         id: String,
         deviceId: String,
@@ -112,6 +129,10 @@ object PcProtocol {
         }
         message.put("auth", authProof(id, deviceId, timestamp, type, payload, token, responseMode))
         return message.toString()
+    }
+
+    private fun jsonNumber(value: Double): Number {
+        return if (value.isFinite() && value % 1.0 == 0.0) value.toInt() else value
     }
 
     fun mouseMove(
@@ -568,7 +589,8 @@ object PcProtocol {
             noAckMouseMove = capabilitiesJson?.optBoolean("noAckMouseMove", false) ?: false,
             noAckCommands = noAckCommands,
             supportedCommands = supportedCommands,
-            mouseRepeat = parseMouseRepeatCapabilities(capabilitiesJson) ?: return PcProtocolResponse.Invalid
+            mouseRepeat = parseMouseRepeatCapabilities(capabilitiesJson) ?: return PcProtocolResponse.Invalid,
+            pointerSpeed = parsePointerSpeedCapabilities(capabilitiesJson) ?: return PcProtocolResponse.Invalid
         )
         val bounds = PcPointerBounds(
             x = boundsJson.optInt("x"),
@@ -623,6 +645,52 @@ object PcProtocol {
             intervalMs = intervalMs,
             minIntervalMs = minIntervalMs,
             maxIntervalMs = maxIntervalMs
+        )
+    }
+
+    private fun parsePointerSpeedCapabilities(capabilitiesJson: JSONObject?): PcPointerSpeedCapabilities? {
+        val speedJson = capabilitiesJson?.opt("pointerSpeed") ?: return PcPointerSpeedCapabilities()
+        if (speedJson !is JSONObject) return null
+        if (speedJson.has("supported") && speedJson.opt("supported") !is Boolean) return null
+        if (speedJson.has("setSupported") && speedJson.opt("setSupported") !is Boolean) return null
+
+        val scalePercent = speedJson.optDouble("scalePercent", 100.0)
+        val minScalePercent = speedJson.optDouble("minScalePercent", 5.0)
+        val maxScalePercent = speedJson.optDouble("maxScalePercent", 225.0)
+        val stepPercent = speedJson.optDouble("stepPercent", 5.0)
+        val baseMoveDeltaValue = speedJson.opt("baseMoveDelta")
+        val effectiveMoveDeltaValue = speedJson.opt("effectiveMoveDelta")
+        if (baseMoveDeltaValue != null && baseMoveDeltaValue !is Number) return null
+        if (effectiveMoveDeltaValue != null && effectiveMoveDeltaValue !is Number) return null
+        val baseMoveDelta = baseMoveDeltaValue?.toInt() ?: 128
+        val effectiveMoveDelta = effectiveMoveDeltaValue?.toInt() ?: baseMoveDelta
+
+        if (
+            !scalePercent.isFinite() ||
+            !minScalePercent.isFinite() ||
+            !maxScalePercent.isFinite() ||
+            !stepPercent.isFinite() ||
+            scalePercent <= 0.0 ||
+            minScalePercent <= 0.0 ||
+            maxScalePercent < minScalePercent ||
+            scalePercent < minScalePercent ||
+            scalePercent > maxScalePercent ||
+            stepPercent <= 0.0 ||
+            baseMoveDelta <= 0 ||
+            effectiveMoveDelta <= 0
+        ) {
+            return null
+        }
+
+        return PcPointerSpeedCapabilities(
+            supported = speedJson.optBoolean("supported", false),
+            setSupported = speedJson.optBoolean("setSupported", false),
+            scalePercent = scalePercent,
+            minScalePercent = minScalePercent,
+            maxScalePercent = maxScalePercent,
+            stepPercent = stepPercent,
+            baseMoveDelta = baseMoveDelta,
+            effectiveMoveDelta = effectiveMoveDelta
         )
     }
 
@@ -681,6 +749,7 @@ object PcProtocol {
         "connection.ping",
         "connection.disconnecting",
         "pointer.profile",
+        "pointer.speed.set",
         "mouse.repeat.start",
         "mouse.repeat.stop",
         "keyboard.textStream.open",

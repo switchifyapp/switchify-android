@@ -158,4 +158,38 @@ class PcControlCommandGridTest {
 
         assertEquals(PcControlCommand.DragStart(), commands[13])
     }
+
+    @Test
+    fun pointerSpeedOptionsStartAtAdvertisedMinimumAndUseStep() {
+        val options = pointerSpeedOptions(
+            minScalePercent = 5.0,
+            maxScalePercent = 225.0,
+            stepPercent = 5.0
+        )
+
+        assertEquals(5.0, options.first(), 0.0)
+        assertEquals(10.0, options[1], 0.0)
+        assertEquals(100.0, options[19], 0.0)
+        assertEquals(225.0, options.last(), 0.0)
+    }
+
+    @Test
+    fun pointerSpeedOptionsHonorAdvertisedOlderMinimum() {
+        val options = pointerSpeedOptions(
+            minScalePercent = 25.0,
+            maxScalePercent = 225.0,
+            stepPercent = 5.0
+        )
+
+        assertEquals(25.0, options.first(), 0.0)
+        assertEquals(225.0, options.last(), 0.0)
+    }
+
+    @Test
+    fun normalizePointerSpeedForPickerClampsAndRounds() {
+        assertEquals(5.0, normalizePointerSpeedForPicker(1.0, 5.0, 225.0, 5.0), 0.0)
+        assertEquals(5.0, normalizePointerSpeedForPicker(7.0, 5.0, 225.0, 5.0), 0.0)
+        assertEquals(10.0, normalizePointerSpeedForPicker(8.0, 5.0, 225.0, 5.0), 0.0)
+        assertEquals(225.0, normalizePointerSpeedForPicker(300.0, 5.0, 225.0, 5.0), 0.0)
+    }
 }
