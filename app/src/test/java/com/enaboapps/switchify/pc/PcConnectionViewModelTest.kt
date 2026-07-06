@@ -153,6 +153,109 @@ class PcConnectionViewModelTest {
     }
 
     @Test
+    fun startingSecondRequestAccessCancelsFirstAndClearsFirstRow() = runTest(dispatcher) {
+        val firstPairing = CompletableDeferred<PcPairingResult>()
+        val secondPairing = CompletableDeferred<PcPairingResult>()
+        val tokens = FakeTokenStore()
+        val connector = FakeConnector(
+            pairingDeferredsByDesktop = mapOf(
+                "desktop-1" to firstPairing,
+                "desktop-2" to secondPairing
+            ),
+            pingResultsByDesktop = mapOf(
+                "desktop-1" to PcPingResult.Connected("AA:BB:CC:DD:EE:FF"),
+                "desktop-2" to PcPingResult.Connected("11:22:33:44:55:66")
+            )
+        )
+        val viewModel = viewModel(FakeDiscovery(listOf(pc, secondPc)), tokens, connector, requestNonceProvider = { "nonce-1" })
+        advanceUntilIdle()
+
+        viewModel.requestAccess(pc)
+        advanceUntilIdle()
+        viewModel.requestAccess(secondPc)
+        advanceUntilIdle()
+
+        assertEquals(1, connector.closeCalls)
+        assertEquals(PcRowStatus.Idle, viewModel.uiState.value.pcRows.first { it.desktopId == "desktop-1" }.status)
+        assertEquals(PcRowStatus.WaitingApproval, viewModel.uiState.value.pcRows.first { it.desktopId == "desktop-2" }.status)
+        assertEquals("Office PC", viewModel.uiState.value.approvalCode?.pcName)
+
+        firstPairing.complete(PcPairingResult.Paired("desktop-1", "token", "AA:BB:CC:DD:EE:FF"))
+        advanceUntilIdle()
+
+        assertNull(tokens.getToken("desktop-1"))
+        assertNull(viewModel.uiState.value.connectedDesktopId)
+
+        secondPairing.complete(PcPairingResult.Paired("desktop-2", "token-2", "11:22:33:44:55:66"))
+        advanceUntilIdle()
+
+        assertEquals("desktop-2", viewModel.uiState.value.connectedDesktopId)
+        assertNull(tokens.getToken("desktop-1"))
+        assertEquals("token-2", tokens.getToken("desktop-2"))
+    }
+
+    @Test
+    fun connectWithSavedTokenTakesOverPendingRequestAccess() = runTest(dispatcher) {
+        val firstPairing = CompletableDeferred<PcPairingResult>()
+        val tokens = FakeTokenStore(
+            initialTokens = mutableMapOf("desktop-2" to "token-2"),
+            initialLastEndpointIds = mutableMapOf("desktop-2" to "11:22:33:44:55:66"),
+            initialServiceNames = mutableMapOf("desktop-2" to "Office PC")
+        )
+        val connector = FakeConnector(
+            pairingDeferredsByDesktop = mapOf("desktop-1" to firstPairing),
+            pingResultsByDesktop = mapOf("desktop-2" to PcPingResult.Connected("11:22:33:44:55:66"))
+        )
+        val viewModel = viewModel(FakeDiscovery(listOf(pc, secondPc)), tokens, connector, requestNonceProvider = { "nonce-1" })
+        advanceUntilIdle()
+
+        viewModel.requestAccess(pc)
+        advanceUntilIdle()
+        viewModel.connectWithSavedToken(secondPc)
+        advanceUntilIdle()
+
+        assertEquals(1, connector.closeCalls)
+        assertEquals("desktop-2", viewModel.uiState.value.connectedDesktopId)
+        assertEquals(PcRowStatus.Idle, viewModel.uiState.value.pcRows.first { it.desktopId == "desktop-1" }.status)
+
+        firstPairing.complete(PcPairingResult.Paired("desktop-1", "token", "AA:BB:CC:DD:EE:FF"))
+        advanceUntilIdle()
+
+        assertNull(tokens.getToken("desktop-1"))
+        assertEquals("desktop-2", viewModel.uiState.value.connectedDesktopId)
+    }
+
+    @Test
+    fun savedPairingConnectionTakesOverPendingRequestAccess() = runTest(dispatcher) {
+        val firstPairing = CompletableDeferred<PcPairingResult>()
+        val tokens = FakeTokenStore(
+            initialTokens = mutableMapOf("desktop-2" to "token-2"),
+            initialLastEndpointIds = mutableMapOf("desktop-2" to "11:22:33:44:55:66"),
+            initialServiceNames = mutableMapOf("desktop-2" to "Office PC")
+        )
+        val connector = FakeConnector(
+            pairingDeferredsByDesktop = mapOf("desktop-1" to firstPairing),
+            pingResultsByDesktop = mapOf("desktop-2" to PcPingResult.Connected("11:22:33:44:55:66"))
+        )
+        val viewModel = viewModel(FakeDiscovery(listOf(pc)), tokens, connector, requestNonceProvider = { "nonce-1" })
+        advanceUntilIdle()
+
+        viewModel.requestAccess(pc)
+        advanceUntilIdle()
+        viewModel.connectSavedPairing("desktop-2")
+        advanceUntilIdle()
+
+        assertEquals(1, connector.closeCalls)
+        assertEquals("desktop-2", viewModel.uiState.value.connectedDesktopId)
+
+        firstPairing.complete(PcPairingResult.Paired("desktop-1", "token", "AA:BB:CC:DD:EE:FF"))
+        advanceUntilIdle()
+
+        assertNull(tokens.getToken("desktop-1"))
+        assertEquals("desktop-2", viewModel.uiState.value.connectedDesktopId)
+    }
+
+    @Test
     fun cancelPairingDismissesApprovalAndClearsBusyState() = runTest(dispatcher) {
         val pairingDeferred = CompletableDeferred<PcPairingResult>()
         val connector = FakeConnector(pairingDeferred = pairingDeferred)
@@ -1070,6 +1173,8 @@ class PcConnectionViewModelTest {
         private val pairingResult: PcPairingResult = PcPairingResult.Failed(PcErrorReason.PairingRejected, "Request rejected."),
         private val pingResult: PcPingResult = PcPingResult.Failed(PcErrorReason.Unreachable, "Found PC, but could not connect."),
         private val pairingDeferred: CompletableDeferred<PcPairingResult>? = null,
+        private val pairingDeferredsByDesktop: Map<String, CompletableDeferred<PcPairingResult>> = emptyMap(),
+        private val pingResultsByDesktop: Map<String, PcPingResult> = emptyMap(),
         pingResults: List<PcPingResult> = emptyList()
     ) : PcConnector {
         private val queuedPingResults = ArrayDeque(pingResults)
@@ -1084,13 +1189,14 @@ class PcConnectionViewModelTest {
             requestApprovalCalls++
             requestNonces.add(requestNonce)
             approvalPcs.add(pc)
-            return pairingDeferred?.await() ?: pairingResult
+            return pairingDeferredsByDesktop[pc.desktopId]?.await() ?: pairingDeferred?.await() ?: pairingResult
         }
 
         override suspend fun authenticatedPing(pc: DiscoveredPc, token: String): PcPingResult {
             pingCalls++
             pingPcs.add(pc)
-            return queuedPingResults.removeFirstOrNull() ?: pingResult
+            queuedPingResults.removeFirstOrNull()?.let { return it }
+            return pingResultsByDesktop[pc.desktopId] ?: pingResult
         }
 
         override suspend fun openControlSession(session: PcAuthenticatedSession): PcLiveControlResult {

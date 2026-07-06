@@ -149,6 +149,34 @@ class PcServiceConnectionControllerTest {
     }
 
     @Test
+    fun connectToSecondPcReplacesExistingLiveSession() = runTest(dispatcher) {
+        val tokens = FakeTokenStore(
+            mutableMapOf(
+                "desktop-1" to "token",
+                "desktop-2" to "token-2"
+            )
+        )
+        val connector = FakeConnector(
+            pingResult = PcPingResult.Connected("AA:BB:CC:DD:EE:FF"),
+            pingResults = listOf(
+                PcPingResult.Connected("AA:BB:CC:DD:EE:FF"),
+                PcPingResult.Connected("11:22:33:44:55:66")
+            )
+        )
+        val controller = controller(tokens, connector, FakeDiscovery(listOf(pc, secondPc)))
+
+        val first = controller.connectTo(pc)
+        val second = controller.connectTo(secondPc)
+
+        assertTrue(first is PcServiceConnectResult.Connected)
+        assertTrue(second is PcServiceConnectResult.Connected)
+        assertEquals(2, connector.openControlSessionCalls)
+        assertEquals(listOf(PcControlCloseReason.Reconnect), connector.liveConnections.first().closeReasons)
+        assertEquals("desktop-2", (PcConnectionStateHolder.connectionState.value as PcConnectionState.Connected).session.desktopId)
+        assertEquals("Office PC", (controller.state.value as PcServiceConnectionState.Connected).displayName)
+    }
+
+    @Test
     fun sendControlCommandUsesLiveConnection() = runTest(dispatcher) {
         val tokens = FakeTokenStore(mutableMapOf("desktop-1" to "token"))
         val connector = FakeConnector(PcPingResult.Connected("AA:BB:CC:DD:EE:FF"))

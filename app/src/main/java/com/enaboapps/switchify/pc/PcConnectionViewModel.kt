@@ -116,6 +116,7 @@ class PcConnectionViewModel(
 
     private val rowStatuses = MutableStateFlow<Map<String, PcRowStatus>>(emptyMap())
     private var activeConnectionJob: Job? = null
+    private var activeConnectionAttemptId = 0
 
     // Bumped on every token store mutation so the combine pipeline re-reads
     // token-derived state (saved pairings, row actions); the store itself is not observable.
@@ -198,46 +199,62 @@ class PcConnectionViewModel(
     }
 
     fun requestAccess(pc: DiscoveredPc) {
-        activeConnectionJob?.cancel()
+        val attemptId = beginExclusiveConnectionAttempt()
         activeConnectionJob = viewModelScope.launch {
-            requestAccessInternal(pc)
+            try {
+                requestAccessInternal(pc, attemptId)
+            } finally {
+                clearActiveConnectionAttempt(attemptId)
+            }
         }
     }
 
     fun connectWithSavedToken(pc: DiscoveredPc) {
-        activeConnectionJob?.cancel()
+        val attemptId = beginExclusiveConnectionAttempt()
         activeConnectionJob = viewModelScope.launch {
-            connectWithSavedTokenInternal(pc)
+            try {
+                connectWithSavedTokenInternal(pc, attemptId)
+            } finally {
+                clearActiveConnectionAttempt(attemptId)
+            }
         }
     }
 
     fun connectSavedPairing(desktopId: String) {
-        activeConnectionJob?.cancel()
+        val attemptId = beginExclusiveConnectionAttempt()
         activeConnectionJob = viewModelScope.launch {
-            val endpoint = tokenStore.getLastEndpointId(desktopId)
-                ?: run {
-                    showMessage("This PC is not nearby.")
-                    return@launch
-                }
-            val displayName = tokenStore.getServiceName(desktopId) ?: "Switchify PC"
-            connectWithSavedTokenInternal(
-                DiscoveredPc(
-                    serviceName = displayName,
-                    desktopId = desktopId,
-                    bluetoothEndpoint = PcBluetoothEndpoint(
-                        deviceAddress = endpoint,
-                        deviceName = null,
+            try {
+                val endpoint = tokenStore.getLastEndpointId(desktopId)
+                    ?: run {
+                        if (isActiveConnectionAttempt(attemptId)) {
+                            showMessage("This PC is not nearby.")
+                        }
+                        return@launch
+                    }
+                val displayName = tokenStore.getServiceName(desktopId) ?: "Switchify PC"
+                connectWithSavedTokenInternal(
+                    DiscoveredPc(
+                        serviceName = displayName,
                         desktopId = desktopId,
-                        displayName = displayName
-                    )
+                        bluetoothEndpoint = PcBluetoothEndpoint(
+                            deviceAddress = endpoint,
+                            deviceName = null,
+                            desktopId = desktopId,
+                            displayName = displayName
+                        )
+                    ),
+                    attemptId
                 )
-            )
+            } finally {
+                clearActiveConnectionAttempt(attemptId)
+            }
         }
     }
 
     fun cancelPairing() {
         activeConnectionJob?.cancel()
         activeConnectionJob = null
+        activeConnectionAttemptId++
         connector.close()
         rowStatuses.update { statuses ->
             statuses.mapValues { (_, status) ->
@@ -330,6 +347,7 @@ class PcConnectionViewModel(
     fun stopPcBluetooth() {
         activeConnectionJob?.cancel()
         activeConnectionJob = null
+        activeConnectionAttemptId++
         discoveryService.stopDiscovery()
         connector.close()
         PcConnectionStateHolder.setDisconnected()
@@ -520,7 +538,7 @@ class PcConnectionViewModel(
         return !lastEndpoint.isNullOrBlank()
     }
 
-    private suspend fun requestAccessInternal(pc: DiscoveredPc) {
+    private suspend fun requestAccessInternal(pc: DiscoveredPc, attemptId: Int) {
         val deviceId = identityRepository.getDeviceId()
         val requestNonce = requestNonceProvider()
         val verificationCode = createPairingVerificationCode(
@@ -536,11 +554,13 @@ class PcConnectionViewModel(
         )
         when (val pairing = connector.requestApproval(pc, requestNonce)) {
             is PcPairingResult.Paired -> {
+                if (!isActiveConnectionAttempt(attemptId)) return
                 when (val ping = retryPcAuthFailure(
                     block = { connector.authenticatedPing(pc, pairing.token) },
                     isAuthFailure = { it is PcPingResult.AuthFailed }
                 )) {
                     is PcPingResult.Connected -> {
+                        if (!isActiveConnectionAttempt(attemptId)) return
                         tokenStore.saveToken(pc.desktopId, pairing.token, ping.endpointId, pc.controlDeviceName)
                         tokenStore.recordSuccessfulConnection(pc.desktopId)
                         tokenRevision.update { it + 1 }
@@ -551,20 +571,25 @@ class PcConnectionViewModel(
                         setIdle(pc.desktopId, PcRowStatus.Connected, null)
                     }
                     is PcPingResult.AuthFailed -> {
+                        if (!isActiveConnectionAttempt(attemptId)) return
                         PcConnectionStateHolder.setDisconnected()
                         setIdle(pc.desktopId, PcRowStatus.Failed, ping.message)
                     }
-                    is PcPingResult.Failed -> setIdle(pc.desktopId, PcRowStatus.Failed, ping.message)
+                    is PcPingResult.Failed -> if (isActiveConnectionAttempt(attemptId)) {
+                        setIdle(pc.desktopId, PcRowStatus.Failed, ping.message)
+                    }
                 }
             }
-            is PcPairingResult.Failed -> setIdle(pc.desktopId, PcRowStatus.Failed, pairing.message)
+            is PcPairingResult.Failed -> if (isActiveConnectionAttempt(attemptId)) {
+                setIdle(pc.desktopId, PcRowStatus.Failed, pairing.message)
+            }
         }
     }
 
-    private suspend fun connectWithSavedTokenInternal(pc: DiscoveredPc) {
+    private suspend fun connectWithSavedTokenInternal(pc: DiscoveredPc, attemptId: Int) {
         val token = tokenStore.getToken(pc.desktopId)
         if (token.isNullOrBlank()) {
-            requestAccessInternal(pc)
+            requestAccessInternal(pc, attemptId)
             return
         }
         setBusy(pc.desktopId, PcRowStatus.Connecting, null)
@@ -573,6 +598,7 @@ class PcConnectionViewModel(
             isAuthFailure = { it is PcPingResult.AuthFailed }
         )) {
             is PcPingResult.Connected -> {
+                if (!isActiveConnectionAttempt(attemptId)) return
                 tokenStore.saveToken(pc.desktopId, token, result.endpointId, pc.controlDeviceName)
                 tokenStore.recordSuccessfulConnection(pc.desktopId)
                 tokenRevision.update { it + 1 }
@@ -583,10 +609,53 @@ class PcConnectionViewModel(
                 setIdle(pc.desktopId, PcRowStatus.Connected, null)
             }
             is PcPingResult.AuthFailed -> {
+                if (!isActiveConnectionAttempt(attemptId)) return
                 PcConnectionStateHolder.setDisconnected()
                 setIdle(pc.desktopId, PcRowStatus.Failed, result.message)
             }
-            is PcPingResult.Failed -> setIdle(pc.desktopId, PcRowStatus.Failed, result.message)
+            is PcPingResult.Failed -> if (isActiveConnectionAttempt(attemptId)) {
+                setIdle(pc.desktopId, PcRowStatus.Failed, result.message)
+            }
+        }
+    }
+
+    private fun beginExclusiveConnectionAttempt(): Int {
+        val previousJob = activeConnectionJob
+        previousJob?.cancel()
+        activeConnectionJob = null
+        activeConnectionAttemptId++
+        if (previousJob != null) {
+            connector.close()
+        }
+        resetPendingConnectionRows()
+        _uiState.update {
+            it.copy(
+                isBusy = false,
+                approvalCode = null
+            )
+        }
+        return activeConnectionAttemptId
+    }
+
+    private fun clearActiveConnectionAttempt(attemptId: Int) {
+        if (activeConnectionAttemptId == attemptId) {
+            activeConnectionJob = null
+        }
+    }
+
+    private fun isActiveConnectionAttempt(attemptId: Int): Boolean {
+        return activeConnectionAttemptId == attemptId
+    }
+
+    private fun resetPendingConnectionRows() {
+        rowStatuses.update { statuses ->
+            statuses.mapValues { (_, status) ->
+                if (status == PcRowStatus.WaitingApproval || status == PcRowStatus.Connecting) {
+                    PcRowStatus.Idle
+                } else {
+                    status
+                }
+            }
         }
     }
 
