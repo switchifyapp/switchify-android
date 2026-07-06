@@ -108,6 +108,9 @@ fun PcConnectionScreen(navController: NavController) {
             context.startActivity(intent)
         }
     }
+    val openPcControls = {
+        context.startActivity(PcMouseControlActivity.createIntent(context))
+    }
 
     LaunchedEffect(permissionGranted, hasRuntimePermissions) {
         viewModel.setPermissionRequired(hasRuntimePermissions && !permissionGranted)
@@ -131,7 +134,8 @@ fun PcConnectionScreen(navController: NavController) {
             Column(verticalArrangement = Arrangement.spacedBy(Dimens.spaceM)) {
                 PcConnectionStatusPanel(
                     uiState = uiState,
-                    onRequestPermission = requestBluetoothPermission
+                    onRequestPermission = requestBluetoothPermission,
+                    onOpenPcControls = openPcControls
                 )
                 if (!uiState.permissionRequired) {
                     PcDefaultPcPicker(uiState = uiState, viewModel = viewModel)
@@ -216,7 +220,8 @@ private fun pcBluetoothPermissions(): List<String> {
 @Composable
 private fun PcConnectionStatusPanel(
     uiState: PcConnectionUiState,
-    onRequestPermission: () -> Unit
+    onRequestPermission: () -> Unit,
+    onOpenPcControls: () -> Unit
 ) {
     val mode = pcConnectionOverviewMode(uiState)
     val connectedName = connectedPcTitle(uiState)
@@ -259,6 +264,14 @@ private fun PcConnectionStatusPanel(
                             onClick = onRequestPermission
                         )
                     }
+                    if (mode == PcConnectionOverviewMode.Connected) {
+                        ActionButton(
+                            textResId = R.string.pc_connection_open_control,
+                            applyPadding = false,
+                            modifier = Modifier.fillMaxWidth(),
+                            onClick = onOpenPcControls
+                        )
+                    }
                 }
             } else {
                 Row(
@@ -275,6 +288,11 @@ private fun PcConnectionStatusPanel(
                     if (mode == PcConnectionOverviewMode.PermissionRequired) {
                         Button(onClick = onRequestPermission) {
                             Text(stringResource(R.string.pc_connection_permission_action))
+                        }
+                    }
+                    if (mode == PcConnectionOverviewMode.Connected) {
+                        Button(onClick = onOpenPcControls) {
+                            Text(stringResource(R.string.pc_connection_open_control))
                         }
                     }
                 }

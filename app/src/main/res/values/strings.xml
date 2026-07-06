@@ -297,11 +297,11 @@
     <string name="pc_connection_setup_section">Set up your computer</string>
     <string name="pc_connection_download_pc_title">Download Switchify PC</string>
     <string name="pc_connection_download_pc_summary">Install Switchify PC on your computer before connecting over Bluetooth.</string>
-    <string name="pc_connection_control_hint">After connecting, open the Switchify menu and choose Control PC.</string>
+    <string name="pc_connection_control_hint">Control your connected PC from Switchify.</string>
     <string name="pc_connection_status_permission_title">Bluetooth permission needed</string>
     <string name="pc_connection_status_permission_summary">Allow Bluetooth so Switchify can find nearby PCs.</string>
     <string name="pc_connection_status_connected_title">Connected to %1$s</string>
-    <string name="pc_connection_status_connected_summary">Open the Switchify menu and choose Control PC.</string>
+    <string name="pc_connection_status_connected_summary">Control your connected PC from Switchify.</string>
     <string name="pc_connection_status_searching_title">Looking for PCs</string>
     <string name="pc_connection_status_searching_summary">Keep Switchify PC open on your computer.</string>
     <string name="pc_connection_status_ready_title">Ready to connect</string>
@@ -319,6 +319,7 @@
     <string name="pc_connection_nearby_empty_summary">Open Switchify PC on your computer and keep Bluetooth enabled.</string>
     <string name="pc_connection_paired_section">Saved PCs</string>
     <string name="pc_connection_connect">Connect</string>
+    <string name="pc_connection_open_control">Open Control PC</string>
     <string name="pc_connection_not_nearby">Not nearby</string>
     <string name="pc_connection_default">Default</string>
     <string name="pc_connection_make_default">Make default</string>
