@@ -13,7 +13,8 @@ object SupportedActionsPolicy {
             SwitchAction.ACTION_SYS_QUICK_SETTINGS,
             SwitchAction.ACTION_SYS_NOTIFICATIONS,
             SwitchAction.ACTION_SYS_LOCK_SCREEN,
-            SwitchAction.ACTION_SYS_HEADSET_HOOK
+            SwitchAction.ACTION_SYS_HEADSET_HOOK,
+            SwitchAction.ACTION_CONTROL_PC
         )
 
         return when {
