@@ -19,6 +19,13 @@ class SwitchActionTest {
     }
 
     @Test
+    fun actionsIncludesControlPc() {
+        val ids = SwitchAction.actions.map { it.id }
+
+        assertTrue(ids.contains(SwitchAction.ACTION_CONTROL_PC))
+    }
+
+    @Test
     fun toggleGestureLockRearmUsesStableAppendedId() {
         assertTrue(SwitchAction.ACTION_TOGGLE_GESTURE_LOCK_REARM == 15)
     }
@@ -26,5 +33,10 @@ class SwitchActionTest {
     @Test
     fun toggleGestureRepeatUsesStableAppendedId() {
         assertTrue(SwitchAction.ACTION_TOGGLE_GESTURE_REPEAT == 16)
+    }
+
+    @Test
+    fun controlPcUsesStableAppendedId() {
+        assertTrue(SwitchAction.ACTION_CONTROL_PC == 17)
     }
 }

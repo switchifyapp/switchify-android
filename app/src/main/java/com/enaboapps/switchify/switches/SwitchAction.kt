@@ -30,7 +30,8 @@ data class SwitchAction(
             ACTION_SYS_HEADSET_HOOK,
             ACTION_PAUSE,
             ACTION_TOGGLE_GESTURE_LOCK_REARM,
-            ACTION_TOGGLE_GESTURE_REPEAT
+            ACTION_TOGGLE_GESTURE_REPEAT,
+            ACTION_CONTROL_PC
         ).map { SwitchAction(it) }
 
         const val ACTION_NONE = 0
@@ -50,6 +51,7 @@ data class SwitchAction(
         const val ACTION_PAUSE = 14
         const val ACTION_TOGGLE_GESTURE_LOCK_REARM = 15
         const val ACTION_TOGGLE_GESTURE_REPEAT = 16
+        const val ACTION_CONTROL_PC = 17
     }
 
     fun toMap(): Map<String, Any?> = mapOf("id" to id)
@@ -72,6 +74,7 @@ data class SwitchAction(
         ACTION_PAUSE -> Resources.getString(R.string.action_pause)
         ACTION_TOGGLE_GESTURE_LOCK_REARM -> Resources.getString(R.string.system_gesture_lock_rearm)
         ACTION_TOGGLE_GESTURE_REPEAT -> Resources.getString(R.string.system_gesture_repeat)
+        ACTION_CONTROL_PC -> Resources.getString(R.string.menu_item_control_pc)
         else -> Resources.getString(R.string.unknown)
     }
 
@@ -93,6 +96,7 @@ data class SwitchAction(
         ACTION_PAUSE -> Resources.getString(R.string.action_pause_desc)
         ACTION_TOGGLE_GESTURE_LOCK_REARM -> Resources.getString(R.string.system_gesture_lock_rearm_desc)
         ACTION_TOGGLE_GESTURE_REPEAT -> Resources.getString(R.string.system_gesture_repeat_desc)
+        ACTION_CONTROL_PC -> Resources.getString(R.string.menu_item_control_pc_description)
         else -> Resources.getString(R.string.unknown)
     }
 }

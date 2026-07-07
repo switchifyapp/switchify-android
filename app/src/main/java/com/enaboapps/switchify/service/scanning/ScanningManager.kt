@@ -11,6 +11,7 @@ import com.enaboapps.switchify.service.gestures.GestureLockManager
 import com.enaboapps.switchify.service.gestures.GestureManager
 import com.enaboapps.switchify.service.gestures.GestureRepeatManager
 import com.enaboapps.switchify.service.menu.MenuManager
+import com.enaboapps.switchify.service.menu.menus.main.PcControlLauncher
 import com.enaboapps.switchify.service.selection.SelectionHandler
 import com.enaboapps.switchify.service.techniques.AccessTechnique
 import com.enaboapps.switchify.service.techniques.AccessTechniqueInterface
@@ -42,6 +43,11 @@ class ScanningManager(
 
     // Active scan method manager
     private val activeScanMethod = ActiveAccessTechnique(accessibilityService)
+
+    private val pcControlLauncher = PcControlLauncher(
+        accessibilityService,
+        accessibilityService.getServiceScope()
+    )
 
     private var moveRepeatManager: MoveRepeatManager? = MoveRepeatManager(accessibilityService)
 
@@ -223,6 +229,7 @@ class ScanningManager(
                 SwitchAction.ACTION_SYS_NOTIFICATIONS -> GlobalActionManager.openNotifications()
                 SwitchAction.ACTION_SYS_LOCK_SCREEN -> GlobalActionManager.lockScreen()
                 SwitchAction.ACTION_SYS_HEADSET_HOOK -> GlobalActionManager.toggleMediaPlayback()
+                SwitchAction.ACTION_CONTROL_PC -> pcControlLauncher.open()
                 SwitchAction.ACTION_PAUSE -> {
                     Log.d(TAG, "ACTION_PAUSE triggered")
                     val pauseManager = ServiceCore.getPauseManager()
