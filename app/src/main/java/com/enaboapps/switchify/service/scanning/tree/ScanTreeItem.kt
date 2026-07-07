@@ -17,7 +17,8 @@ import com.enaboapps.switchify.service.window.overlay.OverlayTargets
 class ScanTreeItem(
     val children: List<ScanNodeInterface>,
     val y: Int,
-    private val isGroupScanEnabled: Boolean
+    private val isGroupScanEnabled: Boolean,
+    private val boundsUi: ScanTreeBoundsUi = NodeScannerBoundsUi
 ) {
     private val groups: List<List<ScanNodeInterface>> = splitIntoGroups(children)
 
@@ -78,7 +79,7 @@ class ScanTreeItem(
         val target = commonOverlayTarget(nodes)
         val bounds = aggregateBounds(nodes, target)
         if (isEscape) {
-            NodeScannerUI.instance.showEscapeBounds(
+            boundsUi.showEscapeBounds(
                 bounds.left,
                 bounds.top,
                 bounds.width(),
@@ -86,7 +87,7 @@ class ScanTreeItem(
                 target
             )
         } else {
-            NodeScannerUI.instance.showRowBounds(
+            boundsUi.showRowBounds(
                 bounds.left,
                 bounds.top,
                 bounds.width(),
@@ -176,7 +177,7 @@ class ScanTreeItem(
                 if (isSingleNode()) {
                     children[0].unhighlight()
                 } else {
-                    NodeScannerUI.instance.hideAll()
+                    unhighlightAggregate(children)
                 }
             }
 
@@ -188,7 +189,7 @@ class ScanTreeItem(
                 if (group?.size == 1) {
                     group[0].unhighlight()
                 } else {
-                    NodeScannerUI.instance.hideAll()
+                    group?.let { unhighlightAggregate(it) } ?: boundsUi.hideAll()
                 }
             }
 
@@ -198,11 +199,16 @@ class ScanTreeItem(
 
     fun unhighlightEscape(groupIndex: Int? = null) {
         if (groupIndex == null) {
-            NodeScannerUI.instance.hideAll()
+            unhighlightAggregate(children)
             return
         }
 
-        NodeScannerUI.instance.hideAll()
+        groups.getOrNull(groupIndex)?.let { unhighlightAggregate(it) } ?: boundsUi.hideAll()
+    }
+
+    private fun unhighlightAggregate(nodes: List<ScanNodeInterface>) {
+        nodes.forEach { it.unhighlight() }
+        boundsUi.hideAll()
     }
 
     /**
@@ -291,5 +297,51 @@ class ScanTreeItem(
         } else {
             listOf(sortedNodes)
         }
+    }
+}
+
+interface ScanTreeBoundsUi {
+    fun showRowBounds(
+        x: Int,
+        y: Int,
+        width: Int,
+        height: Int,
+        target: OverlayTarget
+    )
+
+    fun showEscapeBounds(
+        x: Int,
+        y: Int,
+        width: Int,
+        height: Int,
+        target: OverlayTarget
+    )
+
+    fun hideAll()
+}
+
+private object NodeScannerBoundsUi : ScanTreeBoundsUi {
+    override fun showRowBounds(
+        x: Int,
+        y: Int,
+        width: Int,
+        height: Int,
+        target: OverlayTarget
+    ) {
+        NodeScannerUI.instance.showRowBounds(x, y, width, height, target)
+    }
+
+    override fun showEscapeBounds(
+        x: Int,
+        y: Int,
+        width: Int,
+        height: Int,
+        target: OverlayTarget
+    ) {
+        NodeScannerUI.instance.showEscapeBounds(x, y, width, height, target)
+    }
+
+    override fun hideAll() {
+        NodeScannerUI.instance.hideAll()
     }
 }
