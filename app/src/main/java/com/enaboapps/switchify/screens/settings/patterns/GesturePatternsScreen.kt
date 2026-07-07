@@ -3,11 +3,13 @@ package com.enaboapps.switchify.screens.settings.patterns
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
@@ -240,41 +242,73 @@ private fun PatternItem(
             MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp)
         }
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Reorder controls (drag handle or arrow buttons)
-            reorderControls()
-
-            Text(
-                text = pattern.name,
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.weight(1f),
-                maxLines = 1
-            )
-
-            Row(
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(onClick = onEdit) {
-                    Icon(
-                        imageVector = Icons.Default.Edit,
-                        contentDescription = stringResource(R.string.edit_pattern)
+        BoxWithConstraints {
+            val compact = maxWidth < 360.dp
+            if (compact) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        reorderControls()
+                        PatternActions(onEdit = onEdit, onDelete = onDelete)
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = pattern.name,
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.fillMaxWidth(),
+                        maxLines = 1
                     )
                 }
-
-                IconButton(onClick = onDelete) {
-                    Icon(
-                        imageVector = Icons.Default.Delete,
-                        contentDescription = stringResource(R.string.delete_pattern)
+            } else {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    reorderControls()
+                    Text(
+                        text = pattern.name,
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.weight(1f),
+                        maxLines = 1
                     )
+                    PatternActions(onEdit = onEdit, onDelete = onDelete)
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun PatternActions(
+    onEdit: () -> Unit,
+    onDelete: () -> Unit
+) {
+    Row(
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        IconButton(onClick = onEdit) {
+            Icon(
+                imageVector = Icons.Default.Edit,
+                contentDescription = stringResource(R.string.edit_pattern)
+            )
+        }
+
+        IconButton(onClick = onDelete) {
+            Icon(
+                imageVector = Icons.Default.Delete,
+                contentDescription = stringResource(R.string.delete_pattern)
+            )
         }
     }
 }

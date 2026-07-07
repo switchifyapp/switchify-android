@@ -486,49 +486,110 @@ fun MenuItemRow(
         shape = RoundedCornerShape(12.dp),
         tonalElevation = if (isDragging) 8.dp else 0.dp
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            // Reorder controls (drag handle, arrow buttons, or select control)
-            reorderControls()
-
-            // Item label
-            Text(
-                text = itemLabel,
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = if (isVisible) FontWeight.Normal else FontWeight.Light,
-                color = if (isVisible) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.weight(1f)
-            )
-
-            if (showTrailingActions) {
-                // Delete button for user-added items, visibility toggle for default items
-                if (onDelete != null) {
-                    IconButton(onClick = onDelete) {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = stringResource(R.string.button_delete),
-                            tint = MaterialTheme.colorScheme.error
-                        )
+        BoxWithConstraints {
+            val compact = maxWidth < 360.dp
+            if (compact) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        reorderControls()
+                        if (showTrailingActions) {
+                            MenuItemTrailingAction(
+                                isVisible = isVisible,
+                                onVisibilityToggle = onVisibilityToggle,
+                                onDelete = onDelete
+                            )
+                        }
                     }
-                } else {
-                    IconButton(onClick = onVisibilityToggle) {
-                        Icon(
-                            imageVector = if (isVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                            contentDescription = if (isVisible) {
-                                stringResource(R.string.content_desc_hide_item)
-                            } else {
-                                stringResource(R.string.content_desc_show_item)
-                            },
-                            tint = if (isVisible) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                    Spacer(modifier = Modifier.height(8.dp))
+                    MenuItemLabel(
+                        itemLabel = itemLabel,
+                        isVisible = isVisible,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            } else {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    reorderControls()
+                    MenuItemLabel(
+                        itemLabel = itemLabel,
+                        isVisible = isVisible,
+                        modifier = Modifier.weight(1f)
+                    )
+                    if (showTrailingActions) {
+                        MenuItemTrailingAction(
+                            isVisible = isVisible,
+                            onVisibilityToggle = onVisibilityToggle,
+                            onDelete = onDelete
                         )
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun MenuItemLabel(
+    itemLabel: String,
+    isVisible: Boolean,
+    modifier: Modifier = Modifier
+) {
+    Text(
+        text = itemLabel,
+        style = MaterialTheme.typography.bodyLarge,
+        fontWeight = if (isVisible) FontWeight.Normal else FontWeight.Light,
+        color = if (isVisible) {
+            MaterialTheme.colorScheme.onSurface
+        } else {
+            MaterialTheme.colorScheme.onSurfaceVariant
+        },
+        modifier = modifier
+    )
+}
+
+@Composable
+private fun MenuItemTrailingAction(
+    isVisible: Boolean,
+    onVisibilityToggle: () -> Unit,
+    onDelete: (() -> Unit)?
+) {
+    if (onDelete != null) {
+        IconButton(onClick = onDelete) {
+            Icon(
+                imageVector = Icons.Default.Close,
+                contentDescription = stringResource(R.string.button_delete),
+                tint = MaterialTheme.colorScheme.error
+            )
+        }
+    } else {
+        IconButton(onClick = onVisibilityToggle) {
+            Icon(
+                imageVector = if (isVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                contentDescription = if (isVisible) {
+                    stringResource(R.string.content_desc_hide_item)
+                } else {
+                    stringResource(R.string.content_desc_show_item)
+                },
+                tint = if (isVisible) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                }
+            )
         }
     }
 }

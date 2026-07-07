@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -127,28 +128,60 @@ private fun FavouriteAppItem(
             .padding(horizontal = 16.dp, vertical = 4.dp),
         shape = MaterialTheme.shapes.medium
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            reorderControls()
-            Text(
-                text = app.appName,
-                style = MaterialTheme.typography.bodyLarge,
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(horizontal = 8.dp)
-            )
-            IconButton(onClick = onRemove) {
-                Icon(
-                    imageVector = Icons.Default.Delete,
-                    contentDescription = "Remove",
-                    tint = MaterialTheme.colorScheme.error
-                )
+        BoxWithConstraints {
+            val compact = maxWidth < 360.dp
+            if (compact) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp, vertical = 8.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        reorderControls()
+                        RemoveFavouriteAppButton(onRemove)
+                    }
+                    Text(
+                        text = app.appName,
+                        style = MaterialTheme.typography.bodyLarge,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                    )
+                }
+            } else {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    reorderControls()
+                    Text(
+                        text = app.appName,
+                        style = MaterialTheme.typography.bodyLarge,
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(horizontal = 8.dp)
+                    )
+                    RemoveFavouriteAppButton(onRemove)
+                }
             }
         }
+    }
+}
+
+@Composable
+private fun RemoveFavouriteAppButton(onRemove: () -> Unit) {
+    IconButton(onClick = onRemove) {
+        Icon(
+            imageVector = Icons.Default.Delete,
+            contentDescription = "Remove",
+            tint = MaterialTheme.colorScheme.error
+        )
     }
 }
 
