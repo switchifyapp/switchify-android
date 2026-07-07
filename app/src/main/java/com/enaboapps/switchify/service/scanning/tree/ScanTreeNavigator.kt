@@ -13,11 +13,35 @@ import com.enaboapps.switchify.service.scanning.ScanSettings
  * @property scanSettings The settings for scanning behavior.
  * @property hasCycleBreak Indicates whether scanning includes a break between cycles
  */
-class ScanTreeNavigator(
+internal interface ScanTreeNavigatorSettings {
+    fun isRowColumnScanEnabled(): Boolean
+    fun isDirectionalScanMode(): Boolean
+    fun isGroupScanEnabled(): Boolean
+    fun getScanCycles(): Int
+    fun isAutoScanMode(): Boolean
+}
+
+private class ScanSettingsNavigatorAdapter(
+    private val scanSettings: ScanSettings
+) : ScanTreeNavigatorSettings {
+    override fun isRowColumnScanEnabled(): Boolean = scanSettings.isRowColumnScanEnabled()
+    override fun isDirectionalScanMode(): Boolean = scanSettings.isDirectionalScanMode()
+    override fun isGroupScanEnabled(): Boolean = scanSettings.isGroupScanEnabled()
+    override fun getScanCycles(): Int = scanSettings.getScanCycles()
+    override fun isAutoScanMode(): Boolean = scanSettings.isAutoScanMode()
+}
+
+class ScanTreeNavigator internal constructor(
     private val tree: List<ScanTreeItem>,
-    private val scanSettings: ScanSettings,
+    private val scanSettings: ScanTreeNavigatorSettings,
     private val hasCycleBreak: () -> Boolean = { false }
 ) {
+    constructor(
+        tree: List<ScanTreeItem>,
+        scanSettings: ScanSettings,
+        hasCycleBreak: () -> Boolean = { false }
+    ) : this(tree, ScanSettingsNavigatorAdapter(scanSettings), hasCycleBreak)
+
     /** Represents the different types of escape states in the scanning tree */
     sealed class EscapeState {
         object None : EscapeState()

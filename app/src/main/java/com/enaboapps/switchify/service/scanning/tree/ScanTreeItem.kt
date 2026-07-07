@@ -55,10 +55,6 @@ class ScanTreeItem(
     }
 
     private fun highlightEntireItemEscape() {
-        if (isSingleNode()) {
-            children[0].highlight()
-            return
-        }
         showRowBoundsFor(children, isEscape = true)
     }
 
@@ -75,10 +71,6 @@ class ScanTreeItem(
 
     private fun highlightGroupEscape(groupIndex: Int) {
         val group = groups.getOrNull(groupIndex) ?: return
-        if (group.size == 1) {
-            group[0].highlight()
-            return
-        }
         showRowBoundsFor(group, isEscape = true)
     }
 
@@ -206,20 +198,11 @@ class ScanTreeItem(
 
     fun unhighlightEscape(groupIndex: Int? = null) {
         if (groupIndex == null) {
-            if (isSingleNode()) {
-                children[0].unhighlight()
-            } else {
-                NodeScannerUI.instance.hideAll()
-            }
+            NodeScannerUI.instance.hideAll()
             return
         }
 
-        val group = groups.getOrNull(groupIndex)
-        if (group?.size == 1) {
-            group[0].unhighlight()
-        } else {
-            NodeScannerUI.instance.hideAll()
-        }
+        NodeScannerUI.instance.hideAll()
     }
 
     /**
