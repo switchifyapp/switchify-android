@@ -1,14 +1,19 @@
 package com.enaboapps.switchify.screens.settings.switches.actions
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -86,48 +91,107 @@ fun SwitchActionField(
             )
         }
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(20.dp)
-        ) {
-            // Reorder controls (if provided)
-            if (reorderControls != null) {
-                reorderControls()
-            }
+        BoxWithConstraints {
+            val compact = maxWidth < 360.dp
+            if (compact) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        if (reorderControls != null) {
+                            reorderControls()
+                        } else {
+                            Spacer(modifier = Modifier.weight(1f))
+                        }
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            if (onDelete != null) {
+                                IconButton(
+                                    onClick = onDelete,
+                                    modifier = Modifier.size(40.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Delete,
+                                        contentDescription = stringResource(R.string.button_delete),
+                                        tint = MaterialTheme.colorScheme.error
+                                    )
+                                }
+                            }
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                contentDescription = null
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(Dimens.spaceS))
+                    SwitchActionText(
+                        title = title,
+                        switchAction = switchAction,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            } else {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(20.dp)
+                ) {
+                    if (reorderControls != null) {
+                        reorderControls()
+                    }
 
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-            ) {
-                Text(
-                    text = title.uppercase(),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Medium
-                )
-                Spacer(modifier = Modifier.height(Dimens.spaceXs))
-                Text(
-                    text = switchAction.getActionName(),
-                    style = MaterialTheme.typography.bodySmall
-                )
-                Spacer(modifier = Modifier.height(Dimens.spaceXs))
-                Text(
-                    text = switchAction.getActionDescription(),
-                    style = MaterialTheme.typography.bodySmall
-                )
-            }
+                    SwitchActionText(
+                        title = title,
+                        switchAction = switchAction,
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth()
+                    )
 
-            if (onDelete != null) {
-                TextButton(onClick = onDelete) {
-                    Text(text = stringResource(R.string.button_delete))
+                    if (onDelete != null) {
+                        TextButton(onClick = onDelete) {
+                            Text(text = stringResource(R.string.button_delete))
+                        }
+                    }
+
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                        contentDescription = null,
+                        modifier = Modifier.padding(start = Dimens.spaceM)
+                    )
                 }
             }
-
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                contentDescription = null,
-                modifier = Modifier.padding(start = Dimens.spaceM)
-            )
         }
+    }
+}
+
+@Composable
+private fun SwitchActionText(
+    title: String,
+    switchAction: SwitchAction,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+    ) {
+        Text(
+            text = title.uppercase(),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Medium
+        )
+        Spacer(modifier = Modifier.height(Dimens.spaceXs))
+        Text(
+            text = switchAction.getActionName(),
+            style = MaterialTheme.typography.bodySmall
+        )
+        Spacer(modifier = Modifier.height(Dimens.spaceXs))
+        Text(
+            text = switchAction.getActionDescription(),
+            style = MaterialTheme.typography.bodySmall
+        )
     }
 }
