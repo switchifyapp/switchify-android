@@ -25,6 +25,7 @@ import com.enaboapps.switchify.pc.isSafePcTypedText
 import com.enaboapps.switchify.pc.pcTextStreamItemsFor
 import com.enaboapps.switchify.pc.pointerMoveStep
 import com.enaboapps.switchify.pc.supportsModifierToggle
+import com.enaboapps.switchify.pc.supportsNoAckTextStreamChunks
 import com.enaboapps.switchify.pc.supportsTextStreams
 import com.enaboapps.switchify.pc.toShortcutKey
 import com.enaboapps.switchify.service.core.ServiceCore
@@ -32,7 +33,6 @@ import java.util.UUID
 import java.util.Locale
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -580,7 +580,7 @@ class PcMouseControlViewModel(
 
         markTypingSendBusy(text)
         viewModelScope.launch {
-            if (supportsTextStreams(controller, state)) {
+            if (supportsTextStreams(controller, state) && requiresTextStream(text)) {
                 sendTypedTextStream(controller, text, sendEnterAfterText)
             } else {
                 sendBulkTypedText(controller, textCommand, sendEnterAfterText)
@@ -593,16 +593,14 @@ class PcMouseControlViewModel(
         textCommand: PcControlCommand.TypeText,
         sendEnterAfterText: Boolean
     ) {
-        when (val textResult = controller.sendRealtimeControlCommand(textCommand)) {
+        val textResult = if (sendEnterAfterText) {
+            controller.sendControlCommand(textCommand)
+        } else {
+            controller.sendRealtimeControlCommand(textCommand)
+        }
+        when (textResult) {
             PcCommandResult.Ack -> {
                 if (sendEnterAfterText) {
-                    _uiState.update {
-                        it.copy(
-                            typingText = "",
-                            typingMessage = null,
-                            message = null
-                        )
-                    }
                     sendEnterAfterTypedText(controller)
                 } else {
                     clearTypingSendSuccess()
@@ -620,6 +618,7 @@ class PcMouseControlViewModel(
     ) {
         val streamId = "android-${UUID.randomUUID()}"
         val items = pcTextStreamItemsFor(text).toMutableList()
+        val chunksCanUseNoAck = supportsNoAckTextStreamChunks(controller, controller.state.value)
         if (sendEnterAfterText) {
             items += PcTextStreamItem.Key(PcKeyboardKey.Enter)
         }
@@ -641,7 +640,8 @@ class PcMouseControlViewModel(
                 is PcTextStreamItem.Chunk -> PcControlCommand.TextStreamChunk(streamId, index, item.text)
                 is PcTextStreamItem.Key -> PcControlCommand.TextStreamKey(streamId, index, item.key)
             }
-            when (val itemResult = sendTextStreamCommandWithReconnect(controller, command)) {
+            val realtime = chunksCanUseNoAck && item is PcTextStreamItem.Chunk
+            when (val itemResult = sendTextStreamCommandWithReconnect(controller, command, realtime = realtime)) {
                 PcCommandResult.Ack -> Unit
                 is PcCommandResult.AuthFailed -> {
                     clearTypingSendAuthFailure(itemResult.message)
@@ -653,9 +653,6 @@ class PcMouseControlViewModel(
                     closeTextStreamBestEffort(controller, streamId, index)
                     return
                 }
-            }
-            if (index < items.lastIndex) {
-                delay(TEXT_STREAM_SEND_DELAY_MS)
             }
         }
 
@@ -725,6 +722,19 @@ class PcMouseControlViewModel(
             ?: false
     }
 
+    private fun supportsNoAckTextStreamChunks(
+        controller: PcServiceConnectionController,
+        state: PcServiceConnectionState?
+    ): Boolean {
+        return (state as? PcServiceConnectionState.Connected)?.pointerProfile?.supportsNoAckTextStreamChunks()
+            ?: controller.currentPointerProfile()?.supportsNoAckTextStreamChunks()
+            ?: false
+    }
+
+    private fun requiresTextStream(text: String): Boolean {
+        return text.any { it == '\n' || it == '\r' || it == '\t' }
+    }
+
     private fun currentMouseRepeatCapabilities() =
         ((serviceControllerProvider()?.state?.value as? PcServiceConnectionState.Connected)?.pointerProfile
             ?: serviceControllerProvider()?.currentPointerProfile())
@@ -732,10 +742,10 @@ class PcMouseControlViewModel(
             ?.mouseRepeat
 
     private suspend fun sendEnterAfterTypedText(controller: PcServiceConnectionController) {
-        when (val keyResult = controller.sendRealtimeControlCommand(PcControlCommand.PressKey(PcKeyboardKey.Enter))) {
+        when (val keyResult = controller.sendControlCommand(PcControlCommand.PressKey(PcKeyboardKey.Enter))) {
             PcCommandResult.Ack -> clearTypingSendAfterEnter()
-            is PcCommandResult.AuthFailed -> clearTypingSendAuthFailure(keyResult.message)
-            is PcCommandResult.Failed -> clearTypingSendFailure(KEY_FAILED_MESSAGE)
+            is PcCommandResult.AuthFailed -> clearTypingSendFailureAfterTextSent(keyResult.message, keyResult.message)
+            is PcCommandResult.Failed -> clearTypingSendFailureAfterTextSent(KEY_FAILED_MESSAGE)
         }
     }
 
@@ -768,6 +778,7 @@ class PcMouseControlViewModel(
             it.copy(
                 isBusy = false,
                 busyCommand = null,
+                typingText = "",
                 typingMessage = null,
                 message = null
             )
@@ -793,6 +804,22 @@ class PcMouseControlViewModel(
             typingMessage = message,
             message = message
         )
+    }
+
+    private fun clearTypingSendFailureAfterTextSent(
+        typingMessage: String,
+        message: String? = null
+    ) {
+        typingDraftStore.clearDraft()
+        _uiState.update {
+            it.copy(
+                isBusy = false,
+                busyCommand = null,
+                typingText = "",
+                message = message ?: it.message,
+                typingMessage = typingMessage
+            )
+        }
     }
 
     fun sendKey(key: PcKeyboardKey) {
@@ -1172,7 +1199,6 @@ class PcMouseControlViewModel(
         const val TEXT_TOO_LONG_MESSAGE = "Text is too long."
         const val TEXT_UNSUPPORTED_MESSAGE = "Text includes unsupported characters."
         const val SELECT_SHORTCUT_MODIFIER_MESSAGE = "Choose Ctrl, Alt, Shift, or Start first."
-        const val TEXT_STREAM_SEND_DELAY_MS = 250L
         const val TEXT_STREAM_RECONNECT_TIMEOUT_MS = 15_000L
         const val TEXT_STREAM_RECONNECT_RETRY_LIMIT = 3
         const val RECONNECTING_MESSAGE = "Reconnecting..."

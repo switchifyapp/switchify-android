@@ -60,6 +60,10 @@ fun PcPointerMovementProfile.supportsTextStreams(): Boolean {
     )
 }
 
+fun PcPointerMovementProfile.supportsNoAckTextStreamChunks(): Boolean {
+    return capabilities.noAckCommands.contains("keyboard.textStream.chunk")
+}
+
 fun PcPointerMovementProfile.supportsModifierToggle(): Boolean {
     return capabilities.supportedCommands.containsAll(
         setOf(
