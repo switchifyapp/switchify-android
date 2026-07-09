@@ -989,7 +989,7 @@ class PcMouseControlViewModelTest {
     @Test
     fun typedTextThenEnterKeepsBusyUntilEnterCompletes() = runTest(dispatcher) {
         val pendingEnter = CompletableDeferred<PcCommandResult>()
-        val connector = FakeConnector(realtimeResults = mutableListOf(PcCommandResult.Ack, pendingEnter))
+        val connector = FakeConnector(commandResults = mutableListOf(PcCommandResult.Ack, pendingEnter))
         val controller = connectedController(connector = connector)
         val viewModel = viewModel(controller)
 
@@ -998,7 +998,7 @@ class PcMouseControlViewModelTest {
         runCurrent()
 
         assertTrue(viewModel.uiState.value.isBusy)
-        assertEquals("", viewModel.uiState.value.typingText)
+        assertEquals("Hello", viewModel.uiState.value.typingText)
         assertEquals(PcControlCommand.TypeText("Hello"), viewModel.uiState.value.busyCommand)
 
         pendingEnter.complete(PcCommandResult.Ack)
@@ -1043,6 +1043,37 @@ class PcMouseControlViewModelTest {
         assertNull(viewModel.uiState.value.typingMessage)
         assertFalse(viewModel.uiState.value.isBusy)
         assertNull(viewModel.uiState.value.busyCommand)
+        assertEquals("", viewModel.uiState.value.typingText)
+    }
+
+    @Test
+    fun typedTextThenEnterUsesAckedCommandsToPreserveOrder() = runTest(dispatcher) {
+        val pendingEnter = CompletableDeferred<PcCommandResult>()
+        val connector = FakeConnector(commandResults = mutableListOf(PcCommandResult.Ack, pendingEnter))
+        val controller = connectedController(connector = connector)
+        val viewModel = viewModel(controller)
+
+        viewModel.updateTypingText("First")
+        viewModel.sendTypedTextThenEnter()
+        runCurrent()
+        viewModel.updateTypingText("Second")
+        viewModel.sendTypedText()
+
+        assertEquals(
+            listOf(
+                PcControlCommand.TypeText("First"),
+                PcControlCommand.PressKey(PcKeyboardKey.Enter)
+            ),
+            connector.commands
+        )
+        assertTrue(connector.realtimeCommands.isEmpty())
+        assertTrue(viewModel.uiState.value.isBusy)
+
+        pendingEnter.complete(PcCommandResult.Ack)
+        advanceUntilIdle()
+
+        assertFalse(viewModel.uiState.value.isBusy)
+        assertEquals("", viewModel.uiState.value.typingText)
     }
 
     @Test
@@ -1134,8 +1165,9 @@ class PcMouseControlViewModelTest {
                 PcControlCommand.TypeText("Hello"),
                 PcControlCommand.PressKey(PcKeyboardKey.Enter)
             ),
-            connector.realtimeCommands
+            connector.commands
         )
+        assertTrue(connector.realtimeCommands.isEmpty())
         assertEquals("", viewModel.uiState.value.typingText)
         assertNull(viewModel.uiState.value.typingMessage)
         assertFalse(viewModel.uiState.value.isBusy)
@@ -1171,9 +1203,9 @@ class PcMouseControlViewModelTest {
                 PcControlCommand.TypeText("Hi"),
                 PcControlCommand.PressKey(PcKeyboardKey.Enter)
             ),
-            connector.realtimeCommands
+            connector.commands
         )
-        assertTrue(connector.commands.isEmpty())
+        assertTrue(connector.realtimeCommands.isEmpty())
         assertEquals("", viewModel.uiState.value.typingText)
         assertNull(viewModel.uiState.value.typingMessage)
         assertFalse(viewModel.uiState.value.isBusy)
@@ -1354,7 +1386,8 @@ class PcMouseControlViewModelTest {
         viewModel.sendTypedTextThenEnter()
         advanceUntilIdle()
 
-        assertEquals(listOf(PcControlCommand.TypeText("Hello")), connector.realtimeCommands)
+        assertEquals(listOf(PcControlCommand.TypeText("Hello")), connector.commands)
+        assertTrue(connector.realtimeCommands.isEmpty())
         assertEquals("Hello", viewModel.uiState.value.typingText)
         assertEquals(PcMouseControlViewModel.TYPING_FAILED_MESSAGE, viewModel.uiState.value.typingMessage)
         assertFalse(viewModel.uiState.value.isBusy)
@@ -1379,7 +1412,7 @@ class PcMouseControlViewModelTest {
     @Test
     fun sendTypedTextThenEnterClearsTextWhenEnterFailsAfterTextSends() = runTest(dispatcher) {
         val connector = FakeConnector(
-            realtimeResults = mutableListOf(
+            commandResults = mutableListOf(
                 PcCommandResult.Ack,
                 PcCommandResult.Failed()
             )
@@ -1396,8 +1429,9 @@ class PcMouseControlViewModelTest {
                 PcControlCommand.TypeText("Hello"),
                 PcControlCommand.PressKey(PcKeyboardKey.Enter)
             ),
-            connector.realtimeCommands
+            connector.commands
         )
+        assertTrue(connector.realtimeCommands.isEmpty())
         assertEquals("", viewModel.uiState.value.typingText)
         assertEquals(PcMouseControlViewModel.KEY_FAILED_MESSAGE, viewModel.uiState.value.typingMessage)
         assertFalse(viewModel.uiState.value.isBusy)

@@ -593,16 +593,14 @@ class PcMouseControlViewModel(
         textCommand: PcControlCommand.TypeText,
         sendEnterAfterText: Boolean
     ) {
-        when (val textResult = controller.sendRealtimeControlCommand(textCommand)) {
+        val textResult = if (sendEnterAfterText) {
+            controller.sendControlCommand(textCommand)
+        } else {
+            controller.sendRealtimeControlCommand(textCommand)
+        }
+        when (textResult) {
             PcCommandResult.Ack -> {
                 if (sendEnterAfterText) {
-                    _uiState.update {
-                        it.copy(
-                            typingText = "",
-                            typingMessage = null,
-                            message = null
-                        )
-                    }
                     sendEnterAfterTypedText(controller)
                 } else {
                     clearTypingSendSuccess()
@@ -744,10 +742,10 @@ class PcMouseControlViewModel(
             ?.mouseRepeat
 
     private suspend fun sendEnterAfterTypedText(controller: PcServiceConnectionController) {
-        when (val keyResult = controller.sendRealtimeControlCommand(PcControlCommand.PressKey(PcKeyboardKey.Enter))) {
+        when (val keyResult = controller.sendControlCommand(PcControlCommand.PressKey(PcKeyboardKey.Enter))) {
             PcCommandResult.Ack -> clearTypingSendAfterEnter()
-            is PcCommandResult.AuthFailed -> clearTypingSendAuthFailure(keyResult.message)
-            is PcCommandResult.Failed -> clearTypingSendFailure(KEY_FAILED_MESSAGE)
+            is PcCommandResult.AuthFailed -> clearTypingSendFailureAfterTextSent(keyResult.message, keyResult.message)
+            is PcCommandResult.Failed -> clearTypingSendFailureAfterTextSent(KEY_FAILED_MESSAGE)
         }
     }
 
@@ -780,6 +778,7 @@ class PcMouseControlViewModel(
             it.copy(
                 isBusy = false,
                 busyCommand = null,
+                typingText = "",
                 typingMessage = null,
                 message = null
             )
@@ -805,6 +804,22 @@ class PcMouseControlViewModel(
             typingMessage = message,
             message = message
         )
+    }
+
+    private fun clearTypingSendFailureAfterTextSent(
+        typingMessage: String,
+        message: String? = null
+    ) {
+        typingDraftStore.clearDraft()
+        _uiState.update {
+            it.copy(
+                isBusy = false,
+                busyCommand = null,
+                typingText = "",
+                message = message ?: it.message,
+                typingMessage = typingMessage
+            )
+        }
     }
 
     fun sendKey(key: PcKeyboardKey) {
