@@ -34,8 +34,7 @@ class PcKeyboardTextTest {
     fun streamItemsSplitAsciiTextIntoBoundedChunks() {
         assertEquals(
             listOf(
-                PcTextStreamItem.Chunk("Hell"),
-                PcTextStreamItem.Chunk("o")
+                PcTextStreamItem.Chunk("Hello")
             ),
             pcTextStreamItemsFor("Hello")
         )
@@ -43,23 +42,28 @@ class PcKeyboardTextTest {
 
     @Test
     fun streamItemsSplitLongTextIntoBoundedChunks() {
+        val firstChunk = "a".repeat(PC_TEXT_STREAM_CHUNK_MAX_CHARS)
+
         assertEquals(
             listOf(
-                PcTextStreamItem.Chunk("abcd"),
-                PcTextStreamItem.Chunk("efgh"),
-                PcTextStreamItem.Chunk("i")
+                PcTextStreamItem.Chunk(firstChunk),
+                PcTextStreamItem.Chunk("b")
             ),
-            pcTextStreamItemsFor("abcdefghi")
+            pcTextStreamItemsFor(firstChunk + "b")
         )
     }
 
     @Test
     fun streamItemsKeepEmojiSurrogatePairTogether() {
         val wavingHand = "\uD83D\uDC4B"
+        val prefix = "a".repeat(PC_TEXT_STREAM_CHUNK_MAX_CHARS - 1)
 
         assertEquals(
-            listOf(PcTextStreamItem.Chunk(wavingHand)),
-            pcTextStreamItemsFor(wavingHand)
+            listOf(
+                PcTextStreamItem.Chunk(prefix),
+                PcTextStreamItem.Chunk(wavingHand)
+            ),
+            pcTextStreamItemsFor(prefix + wavingHand)
         )
     }
 

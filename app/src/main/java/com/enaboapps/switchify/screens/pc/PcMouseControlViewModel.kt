@@ -25,6 +25,7 @@ import com.enaboapps.switchify.pc.isSafePcTypedText
 import com.enaboapps.switchify.pc.pcTextStreamItemsFor
 import com.enaboapps.switchify.pc.pointerMoveStep
 import com.enaboapps.switchify.pc.supportsModifierToggle
+import com.enaboapps.switchify.pc.supportsNoAckTextStreamChunks
 import com.enaboapps.switchify.pc.supportsTextStreams
 import com.enaboapps.switchify.pc.toShortcutKey
 import com.enaboapps.switchify.service.core.ServiceCore
@@ -32,7 +33,6 @@ import java.util.UUID
 import java.util.Locale
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -580,7 +580,7 @@ class PcMouseControlViewModel(
 
         markTypingSendBusy(text)
         viewModelScope.launch {
-            if (supportsTextStreams(controller, state)) {
+            if (supportsTextStreams(controller, state) && requiresTextStream(text)) {
                 sendTypedTextStream(controller, text, sendEnterAfterText)
             } else {
                 sendBulkTypedText(controller, textCommand, sendEnterAfterText)
@@ -620,6 +620,7 @@ class PcMouseControlViewModel(
     ) {
         val streamId = "android-${UUID.randomUUID()}"
         val items = pcTextStreamItemsFor(text).toMutableList()
+        val chunksCanUseNoAck = supportsNoAckTextStreamChunks(controller, controller.state.value)
         if (sendEnterAfterText) {
             items += PcTextStreamItem.Key(PcKeyboardKey.Enter)
         }
@@ -641,7 +642,8 @@ class PcMouseControlViewModel(
                 is PcTextStreamItem.Chunk -> PcControlCommand.TextStreamChunk(streamId, index, item.text)
                 is PcTextStreamItem.Key -> PcControlCommand.TextStreamKey(streamId, index, item.key)
             }
-            when (val itemResult = sendTextStreamCommandWithReconnect(controller, command)) {
+            val realtime = chunksCanUseNoAck && item is PcTextStreamItem.Chunk
+            when (val itemResult = sendTextStreamCommandWithReconnect(controller, command, realtime = realtime)) {
                 PcCommandResult.Ack -> Unit
                 is PcCommandResult.AuthFailed -> {
                     clearTypingSendAuthFailure(itemResult.message)
@@ -653,9 +655,6 @@ class PcMouseControlViewModel(
                     closeTextStreamBestEffort(controller, streamId, index)
                     return
                 }
-            }
-            if (index < items.lastIndex) {
-                delay(TEXT_STREAM_SEND_DELAY_MS)
             }
         }
 
@@ -723,6 +722,19 @@ class PcMouseControlViewModel(
         return (state as? PcServiceConnectionState.Connected)?.pointerProfile?.supportsTextStreams()
             ?: controller.currentPointerProfile()?.supportsTextStreams()
             ?: false
+    }
+
+    private fun supportsNoAckTextStreamChunks(
+        controller: PcServiceConnectionController,
+        state: PcServiceConnectionState?
+    ): Boolean {
+        return (state as? PcServiceConnectionState.Connected)?.pointerProfile?.supportsNoAckTextStreamChunks()
+            ?: controller.currentPointerProfile()?.supportsNoAckTextStreamChunks()
+            ?: false
+    }
+
+    private fun requiresTextStream(text: String): Boolean {
+        return text.any { it == '\n' || it == '\r' || it == '\t' }
     }
 
     private fun currentMouseRepeatCapabilities() =
@@ -1172,7 +1184,6 @@ class PcMouseControlViewModel(
         const val TEXT_TOO_LONG_MESSAGE = "Text is too long."
         const val TEXT_UNSUPPORTED_MESSAGE = "Text includes unsupported characters."
         const val SELECT_SHORTCUT_MODIFIER_MESSAGE = "Choose Ctrl, Alt, Shift, or Start first."
-        const val TEXT_STREAM_SEND_DELAY_MS = 250L
         const val TEXT_STREAM_RECONNECT_TIMEOUT_MS = 15_000L
         const val TEXT_STREAM_RECONNECT_RETRY_LIMIT = 3
         const val RECONNECTING_MESSAGE = "Reconnecting..."

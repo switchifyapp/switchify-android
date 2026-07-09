@@ -236,12 +236,12 @@ class PcProtocolTest {
     fun parsesPointerProfileNoAckCommandCapabilities() {
         val response = PcProtocol.parseResponse(
             validPointerProfileResponse(
-                capabilities = ""","capabilities":{"noAckMouseMove":true,"noAckCommands":["mouse.move","mouse.click","keyboard.typeText","unknown.command"]}"""
+                capabilities = ""","capabilities":{"noAckMouseMove":true,"noAckCommands":["mouse.move","mouse.click","keyboard.typeText","keyboard.textStream.chunk","unknown.command"]}"""
             )
         ) as PcProtocolResponse.PointerProfile
 
         assertTrue(response.profile.capabilities.noAckMouseMove)
-        assertEquals(setOf("mouse.move", "mouse.click", "keyboard.typeText"), response.profile.capabilities.noAckCommands)
+        assertEquals(setOf("mouse.move", "mouse.click", "keyboard.typeText", "keyboard.textStream.chunk"), response.profile.capabilities.noAckCommands)
     }
 
     @Test

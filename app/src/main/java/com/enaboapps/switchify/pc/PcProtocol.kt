@@ -739,6 +739,7 @@ object PcProtocol {
         "keyboard.modifierDown",
         "keyboard.modifierUp",
         "keyboard.typeText",
+        "keyboard.textStream.chunk",
         "keyboard.textStream.char",
         "keyboard.textStream.key",
         "media.control",

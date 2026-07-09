@@ -1,7 +1,7 @@
 package com.enaboapps.switchify.pc
 
 const val PC_KEYBOARD_TYPE_TEXT_MAX_LENGTH = 2_000
-const val PC_TEXT_STREAM_CHUNK_CODE_POINTS = 4
+const val PC_TEXT_STREAM_CHUNK_MAX_CHARS = 120
 
 sealed class PcTextStreamItem {
     data class Chunk(val text: String) : PcTextStreamItem()
@@ -20,13 +20,11 @@ fun isSafePcTypedText(text: String): Boolean {
 fun pcTextStreamItemsFor(text: String): List<PcTextStreamItem> {
     val items = mutableListOf<PcTextStreamItem>()
     val chunk = StringBuilder()
-    var chunkCodePoints = 0
 
     fun flushChunk() {
         if (chunk.isNotEmpty()) {
             items += PcTextStreamItem.Chunk(chunk.toString())
             chunk.clear()
-            chunkCodePoints = 0
         }
     }
 
@@ -44,11 +42,10 @@ fun pcTextStreamItemsFor(text: String): List<PcTextStreamItem> {
                 items += PcTextStreamItem.Key(PcKeyboardKey.Tab)
             }
             else -> {
-                chunk.append(itemText)
-                chunkCodePoints += 1
-                if (chunkCodePoints >= PC_TEXT_STREAM_CHUNK_CODE_POINTS) {
+                if (chunk.length + itemText.length > PC_TEXT_STREAM_CHUNK_MAX_CHARS) {
                     flushChunk()
                 }
+                chunk.append(itemText)
             }
         }
         index += Character.charCount(codePoint)
