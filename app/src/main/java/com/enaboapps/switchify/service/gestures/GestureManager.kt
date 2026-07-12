@@ -15,6 +15,7 @@ import com.enaboapps.switchify.service.gestures.placement.FingerMode
 import com.enaboapps.switchify.service.gestures.placement.FingerModePreferences
 import com.enaboapps.switchify.service.gestures.placement.FingerPlacementAlgorithm
 import com.enaboapps.switchify.service.gestures.visuals.GestureVisualManager
+import com.enaboapps.switchify.service.gestures.visuals.GestureVisualManagerRole
 import com.enaboapps.switchify.service.techniques.nodes.NodeExaminer
 import com.enaboapps.switchify.utils.LogEvent
 import com.enaboapps.switchify.utils.Logger
@@ -90,7 +91,10 @@ class GestureManager private constructor() {
 
         linearGesturePerformer =
             LinearGesturePerformer(accessibilityService, GestureLockManager.instance)
-        gestureVisualManager = GestureVisualManager(accessibilityService)
+        gestureVisualManager = GestureVisualManager(
+            accessibilityService,
+            GestureVisualManagerRole.GESTURE_MANAGER
+        )
         GestureLockManager.instance.init(accessibilityService)
         GestureRepeatManager.instance.init(accessibilityService)
     }

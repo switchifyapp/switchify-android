@@ -6,6 +6,7 @@ import com.enaboapps.switchify.service.gestures.GestureManager
 import com.enaboapps.switchify.service.gestures.GesturePoint
 import com.enaboapps.switchify.service.gestures.GestureStateManager
 import com.enaboapps.switchify.service.gestures.visuals.GestureVisualManager
+import com.enaboapps.switchify.service.gestures.visuals.GestureVisualManagerRole
 import com.enaboapps.switchify.service.keyboard.KeyboardManager
 import com.enaboapps.switchify.service.menu.MenuManager
 import com.enaboapps.switchify.service.scanning.ScanSettings
@@ -55,7 +56,10 @@ object SelectionHandler {
     fun init(appContext: Context) {
         // Use application context to avoid leaking activity or other contexts
         scanSettings = ScanSettings(appContext)
-        gestureVisualManager = GestureVisualManager(appContext.applicationContext)
+        gestureVisualManager = GestureVisualManager(
+            appContext.applicationContext,
+            GestureVisualManagerRole.SELECTION_HANDLER
+        )
     }
 
     /**

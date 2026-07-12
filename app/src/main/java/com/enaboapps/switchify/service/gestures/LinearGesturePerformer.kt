@@ -14,6 +14,7 @@ import com.enaboapps.switchify.service.gestures.placement.FingerMode
 import com.enaboapps.switchify.service.gestures.placement.FingerModePreferences
 import com.enaboapps.switchify.service.gestures.placement.FingerPlacementAlgorithm
 import com.enaboapps.switchify.service.gestures.visuals.GestureVisualManager
+import com.enaboapps.switchify.service.gestures.visuals.GestureVisualManagerRole
 import com.enaboapps.switchify.service.utils.ScreenUtils
 import com.enaboapps.switchify.service.window.MessageSeverity
 import com.enaboapps.switchify.service.window.ServiceMessageHUD
@@ -73,7 +74,10 @@ class LinearGesturePerformer(
     /**
      * The current point visual
      */
-    private val gestureVisualManager = GestureVisualManager(accessibilityService)
+    private val gestureVisualManager = GestureVisualManager(
+        accessibilityService,
+        GestureVisualManagerRole.LINEAR_GESTURE_PERFORMER
+    )
 
     // State management is now handled by GestureStateManager
 

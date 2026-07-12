@@ -11,7 +11,6 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
@@ -26,7 +25,7 @@ object GestureStateManager {
     private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
 
     // State listeners for cross-component communication
-    private val stateListeners = ConcurrentHashMap<String, GestureStateListener>()
+    private val stateListeners = GestureStateListenerRegistry()
 
     // Core gesture execution state
     private val isPerformingGesture = AtomicBoolean(false)
@@ -74,7 +73,7 @@ object GestureStateManager {
      * Registers a state listener for gesture events.
      */
     fun addStateListener(id: String, listener: GestureStateListener) {
-        stateListeners[id] = listener
+        stateListeners.add(id, listener)
     }
 
     /**
@@ -88,13 +87,7 @@ object GestureStateManager {
      * Notifies all listeners of a state change.
      */
     private fun notifyStateChange(event: String, data: Map<String, Any> = emptyMap()) {
-        stateListeners.values.forEach { listener ->
-            try {
-                listener.onStateChanged(event, data)
-            } catch (e: Exception) {
-                // Log but don't let one listener failure affect others
-            }
-        }
+        stateListeners.notify(event, data)
     }
 
     // === Gesture Execution State Management ===
