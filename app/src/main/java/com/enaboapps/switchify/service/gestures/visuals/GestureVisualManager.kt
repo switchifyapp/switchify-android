@@ -28,7 +28,12 @@ import java.lang.ref.WeakReference
  * Consolidates and standardizes visual feedback across the gesture system.
  * Integrates with GestureStateManager for coordinated state management.
  */
-class GestureVisualManager(context: Context) : GestureStateManager.GestureStateListener {
+class GestureVisualManager(
+    context: Context,
+    role: GestureVisualManagerRole
+) : GestureStateManager.GestureStateListener {
+
+    private val stateListenerId = role.listenerId
 
     /**
      * Ensures UI operations happen on the main thread.
@@ -99,7 +104,7 @@ class GestureVisualManager(context: Context) : GestureStateManager.GestureStateL
 
     init {
         // Register as state listener for coordinated visual feedback
-        GestureStateManager.addStateListener("visual_manager", this)
+        GestureStateManager.addStateListener(stateListenerId, this)
     }
 
     /**
@@ -773,8 +778,15 @@ class GestureVisualManager(context: Context) : GestureStateManager.GestureStateL
      * Releases all resources and clears references.
      */
     fun release() {
-        GestureStateManager.removeStateListener("visual_manager")
+        GestureStateManager.removeStateListener(stateListenerId)
         clearAllVisuals()
         contextRef.clear()
     }
+}
+
+enum class GestureVisualManagerRole(internal val listenerId: String) {
+    GESTURE_MANAGER("visual_manager:gesture_manager"),
+    LINEAR_GESTURE_PERFORMER("visual_manager:linear_gesture_performer"),
+    MENU_MANAGER("visual_manager:menu_manager"),
+    SELECTION_HANDLER("visual_manager:selection_handler")
 }

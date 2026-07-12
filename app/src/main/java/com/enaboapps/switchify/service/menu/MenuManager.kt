@@ -2,6 +2,7 @@ package com.enaboapps.switchify.service.menu
 
 import com.enaboapps.switchify.service.core.SwitchifyAccessibilityService
 import com.enaboapps.switchify.service.gestures.visuals.GestureVisualManager
+import com.enaboapps.switchify.service.gestures.visuals.GestureVisualManagerRole
 import com.enaboapps.switchify.service.menu.menus.ai.AiMenu
 import com.enaboapps.switchify.service.menu.menus.edit.EditMenu
 import com.enaboapps.switchify.service.menu.menus.gestures.CustomGestureConfirmationMenu
@@ -80,7 +81,10 @@ class MenuManager {
         this.scanningManager = scanningManager
         menuHierarchy = MenuHierarchy(scanningManager)
         this.accessibilityService = accessibilityService
-        gestureVisualManager = GestureVisualManager(accessibilityService)
+        gestureVisualManager = GestureVisualManager(
+            accessibilityService,
+            GestureVisualManagerRole.MENU_MANAGER
+        )
     }
 
     fun switchToPointScan() {
