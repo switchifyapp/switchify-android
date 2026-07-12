@@ -8,6 +8,7 @@ import android.graphics.PointF
 import android.graphics.drawable.GradientDrawable
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import android.view.View
 import android.view.animation.Animation
 import android.view.animation.ScaleAnimation
@@ -57,6 +58,31 @@ class GestureVisualManager(context: Context) : GestureStateManager.GestureStateL
 
     // Multi-finger arrow animation tracking
     private val activeMultiFingerArrows = mutableListOf<AnimatedGestureArrow>()
+    private val pendingMultiFingerArrowRunnables = mutableListOf<Runnable>()
+
+    private sealed interface LinearGestureVisualRequest {
+        data class Single(
+            val x1: Int,
+            val y1: Int,
+            val x2: Int,
+            val y2: Int,
+            val duration: Long
+        ) : LinearGestureVisualRequest
+
+        data class Multi(
+            val startPositions: List<PointF>,
+            val endPositions: List<PointF>,
+            val duration: Long
+        ) : LinearGestureVisualRequest
+    }
+
+    private val linearGestureVisualThrottle = LinearGestureVisualThrottle(
+        intervalMs = LINEAR_GESTURE_VISUAL_THROTTLE_MS,
+        currentTimeMs = SystemClock::uptimeMillis,
+        postDelayed = mainHandler::postDelayed,
+        removeCallbacks = mainHandler::removeCallbacks,
+        display = ::displayLinearGestureVisual
+    )
 
     // Tap-family visuals (ripples for tap/double-tap, ring for tap-and-hold).
     // These are kept here so [clearCurrentVisual] / [clearAllVisuals] can
@@ -68,6 +94,7 @@ class GestureVisualManager(context: Context) : GestureStateManager.GestureStateL
     companion object {
         // Standardized circle size - compromise between existing 40px and 60px
         private const val STANDARD_CIRCLE_SIZE = 48
+        private const val LINEAR_GESTURE_VISUAL_THROTTLE_MS = 500L
     }
 
     init {
@@ -222,7 +249,11 @@ class GestureVisualManager(context: Context) : GestureStateManager.GestureStateL
      * @param duration Animation duration in milliseconds
      */
     fun showArrowAnimation(x1: Int, y1: Int, x2: Int, y2: Int, duration: Long) {
-        animatedGestureArrow.showArrowAnimation(x1, y1, x2, y2, duration)
+        onMainThread {
+            linearGestureVisualThrottle.submit(
+                LinearGestureVisualRequest.Single(x1, y1, x2, y2, duration)
+            )
+        }
     }
 
     /**
@@ -245,41 +276,61 @@ class GestureVisualManager(context: Context) : GestureStateManager.GestureStateL
             "Start positions and end positions must have the same size: ${startPositions.size} vs ${endPositions.size}"
         }
 
+        onMainThread {
+            linearGestureVisualThrottle.submit(
+                LinearGestureVisualRequest.Multi(
+                    startPositions.toList(),
+                    endPositions.toList(),
+                    duration
+                )
+            )
+        }
+    }
+
+    private fun displayLinearGestureVisual(request: LinearGestureVisualRequest) {
+        clearActiveLinearGestureVisuals()
+        when (request) {
+            is LinearGestureVisualRequest.Single -> animatedGestureArrow.showArrowAnimation(
+                request.x1,
+                request.y1,
+                request.x2,
+                request.y2,
+                request.duration
+            )
+
+            is LinearGestureVisualRequest.Multi -> displayMultiFingerArrowAnimation(request)
+        }
+    }
+
+    private fun displayMultiFingerArrowAnimation(request: LinearGestureVisualRequest.Multi) {
         val context = contextRef.get() ?: return
-
-        // Create coordinated arrow animations for each finger path
-        val arrowInstances = mutableListOf<AnimatedGestureArrow>()
-
-        startPositions.zip(endPositions).forEachIndexed { index, (start, end) ->
-            val arrowInstance = AnimatedGestureArrow(context)
-            arrowInstances.add(arrowInstance)
-
-            // Start arrow animation with slight delay for visual effect (staggered by 50ms)
-            val staggeredDelay = index * 50L
-
-            mainHandler.postDelayed({
-                arrowInstance.showArrowAnimation(
+        request.startPositions.zip(request.endPositions).forEachIndexed { index, (start, end) ->
+            val arrow = AnimatedGestureArrow(context)
+            activeMultiFingerArrows.add(arrow)
+            lateinit var runnable: Runnable
+            runnable = Runnable {
+                pendingMultiFingerArrowRunnables.remove(runnable)
+                arrow.showArrowAnimation(
                     start.x.toInt(),
                     start.y.toInt(),
                     end.x.toInt(),
                     end.y.toInt(),
-                    duration
+                    request.duration
                 ) {
-                    // Clean up this arrow instance when animation completes
-                    arrowInstances.remove(arrowInstance)
+                    activeMultiFingerArrows.remove(arrow)
                 }
-            }, staggeredDelay)
+            }
+            pendingMultiFingerArrowRunnables.add(runnable)
+            mainHandler.postDelayed(runnable, index * 50L)
         }
+    }
 
-        // Store arrow instances for potential cleanup
-        activeMultiFingerArrows.addAll(arrowInstances)
-
-        // Auto cleanup after animation duration + stagger time
-        val totalDuration = duration + (startPositions.size * 50L)
-        mainHandler.postDelayed({
-            activeMultiFingerArrows.forEach { it.cancel() }
-            activeMultiFingerArrows.clear()
-        }, totalDuration)
+    private fun clearActiveLinearGestureVisuals() {
+        animatedGestureArrow.cancel()
+        pendingMultiFingerArrowRunnables.forEach(mainHandler::removeCallbacks)
+        pendingMultiFingerArrowRunnables.clear()
+        activeMultiFingerArrows.forEach(AnimatedGestureArrow::cancel)
+        activeMultiFingerArrows.clear()
     }
 
     /**
@@ -665,7 +716,11 @@ class GestureVisualManager(context: Context) : GestureStateManager.GestureStateL
     /**
      * Clears all visual feedback (single and multi-finger).
      */
-    private fun clearAllVisuals() {
+    private fun clearAllVisuals(clearLinearGestureVisuals: Boolean = true) {
+        if (clearLinearGestureVisuals) {
+            linearGestureVisualThrottle.clear()
+            clearActiveLinearGestureVisuals()
+        }
         // Clear single finger visuals
         clearCurrentVisual()
 
@@ -687,12 +742,6 @@ class GestureVisualManager(context: Context) : GestureStateManager.GestureStateL
             }
         }
 
-        // Clear multi-finger arrow animations
-        activeMultiFingerArrows.forEach { arrow ->
-            arrow.cancel()
-        }
-        activeMultiFingerArrows.clear()
-
         // Reset state
         currentMultiFingerVisual = null
         activeFingerCircles.clear()
@@ -705,8 +754,7 @@ class GestureVisualManager(context: Context) : GestureStateManager.GestureStateL
     override fun onStateChanged(event: String, data: Map<String, Any>) {
         when (event) {
             GestureStateManager.EVENT_GESTURE_ENDED -> {
-                // Always clear all visuals when a gesture ends
-                clearAllVisuals()
+                clearAllVisuals(clearLinearGestureVisuals = false)
             }
 
             GestureStateManager.EVENT_AUTO_SELECT_CANCELLED -> {

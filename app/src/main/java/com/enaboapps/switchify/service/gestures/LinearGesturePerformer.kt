@@ -346,7 +346,6 @@ class LinearGesturePerformer(
         )
 
         GestureStateManager.endGesture()
-        gestureVisualManager.hideAllVisuals()
     }
 
     /**
