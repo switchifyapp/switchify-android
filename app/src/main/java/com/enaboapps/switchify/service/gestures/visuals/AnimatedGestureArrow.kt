@@ -85,7 +85,7 @@ class AnimatedGestureArrow(private val context: Context) {
                 override fun onAnimationStart(animation: Animation?) {}
                 override fun onAnimationRepeat(animation: Animation?) {}
                 override fun onAnimationEnd(animation: Animation?) {
-                    removeArrow()
+                    removeArrow(container, arrow, animation)
                     onAnimationEnd()
                 }
             })
@@ -95,17 +95,26 @@ class AnimatedGestureArrow(private val context: Context) {
         arrow.startAnimation(animation)
     }
 
-    private fun removeArrow() {
-        arrowContainer?.let {
-            SwitchifyAccessibilityWindow.instance.removeView(it)
-        }
-        arrowView = null
-        arrowContainer = null
-        currentAnimation = null
+    private fun removeArrow(
+        container: RelativeLayout,
+        arrow: ImageView,
+        animation: Animation?
+    ) {
+        SwitchifyAccessibilityWindow.instance.removeView(container)
+        if (arrowContainer === container) arrowContainer = null
+        if (arrowView === arrow) arrowView = null
+        if (currentAnimation === animation) currentAnimation = null
     }
 
     fun cancel() {
-        currentAnimation?.cancel()
-        removeArrow()
+        val animation = currentAnimation
+        val arrow = arrowView
+        val container = arrowContainer
+        animation?.setAnimationListener(null)
+        arrow?.clearAnimation()
+        animation?.cancel()
+        if (container != null && arrow != null) {
+            removeArrow(container, arrow, animation)
+        }
     }
-} 
+}
