@@ -10,20 +10,32 @@ class AndroidGestureTargetIndicatorRenderer(context: Context) : GestureTargetInd
     private val context = context.applicationContext
     private val mainHandler = Handler(Looper.getMainLooper())
     private val accessibilityWindow = SwitchifyAccessibilityWindow.instance
+    private val tokens = GestureVisualTokens(context)
     private var indicatorView: RelativeLayout? = null
 
     override fun show(point: GestureTargetPoint) {
         onMainThread {
             hideNow()
-            val view = GestureCircleViewFactory.create(context, INDICATOR_SIZE)
+            val view = GestureCircleViewFactory.createTarget(context)
             indicatorView = view
             accessibilityWindow.addView(
                 view,
-                point.x - INDICATOR_SIZE / 2,
-                point.y - INDICATOR_SIZE / 2,
-                INDICATOR_SIZE,
-                INDICATOR_SIZE
+                point.x - tokens.targetHalo / 2,
+                point.y - tokens.targetHalo / 2,
+                tokens.targetHalo,
+                tokens.targetHalo
             )
+            if (GestureVisualMotionPolicy.animationsEnabled()) {
+                view.alpha = 0f
+                view.scaleX = 0.72f
+                view.scaleY = 0.72f
+                view.animate()
+                    .alpha(1f)
+                    .scaleX(1f)
+                    .scaleY(1f)
+                    .setDuration(180L)
+                    .start()
+            }
         }
     }
 
@@ -48,7 +60,4 @@ class AndroidGestureTargetIndicatorRenderer(context: Context) : GestureTargetInd
         }
     }
 
-    private companion object {
-        const val INDICATOR_SIZE = 48
-    }
 }

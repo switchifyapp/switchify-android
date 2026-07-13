@@ -5,46 +5,37 @@ import android.graphics.drawable.GradientDrawable
 import android.view.View
 import android.widget.ImageView
 import android.widget.RelativeLayout
-import androidx.core.content.ContextCompat
-import com.enaboapps.switchify.R
 
 internal object GestureCircleViewFactory {
-    fun create(context: Context, size: Int): RelativeLayout {
-        val primary = ContextCompat.getColor(context, R.color.gesture_visual_primary)
-        val shadowDrawable = GradientDrawable().apply {
+    fun createTarget(context: Context): RelativeLayout {
+        val tokens = GestureVisualTokens(context)
+        val haloDrawable = GradientDrawable().apply {
             shape = GradientDrawable.OVAL
-            setColor(0x20000000)
-            setSize(size, size)
+            setColor((tokens.primary and 0x00FFFFFF) or (56 shl 24))
         }
-        val mainDrawable = GradientDrawable().apply {
+        val coreDrawable = GradientDrawable().apply {
             shape = GradientDrawable.OVAL
-            setColor(primary)
-            setStroke(1, 0x20000000)
-            setSize(size, size)
+            setColor(tokens.primary)
         }
-        val shadowView = ImageView(context).apply {
-            setImageDrawable(shadowDrawable)
-            layoutParams = RelativeLayout.LayoutParams(size, size).apply {
-                leftMargin = 2
-                topMargin = 2
+        val halo = ImageView(context).apply {
+            setImageDrawable(haloDrawable)
+            layoutParams = RelativeLayout.LayoutParams(tokens.targetHalo, tokens.targetHalo)
+        }
+        val core = ImageView(context).apply {
+            setImageDrawable(coreDrawable)
+            layoutParams = RelativeLayout.LayoutParams(tokens.targetCore, tokens.targetCore).apply {
+                leftMargin = (tokens.targetHalo - tokens.targetCore) / 2
+                topMargin = (tokens.targetHalo - tokens.targetCore) / 2
             }
-            isClickable = false
-            isFocusable = false
-            importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
-        }
-        val mainView = ImageView(context).apply {
-            setImageDrawable(mainDrawable)
-            layoutParams = RelativeLayout.LayoutParams(size, size)
-            isClickable = false
-            isFocusable = false
-            importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
+            elevation = tokens.dp(2f).toFloat()
         }
         return RelativeLayout(context).apply {
             isClickable = false
             isFocusable = false
             importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
-            addView(shadowView)
-            addView(mainView)
+            addView(halo)
+            addView(core)
         }
     }
+
 }
