@@ -5,6 +5,8 @@ import android.animation.AnimatorListenerAdapter
 import android.animation.ValueAnimator
 import android.content.Context
 import android.graphics.PointF
+import android.os.Handler
+import android.os.Looper
 import android.view.View
 import android.view.animation.PathInterpolator
 import android.widget.RelativeLayout
@@ -15,9 +17,8 @@ class AnimatedGestureArrow(
     private val context: Context,
     private val fingerLabel: Int? = null
 ) {
-    private var container: RelativeLayout? = null
-    private var animator: ValueAnimator? = null
-    private var pendingRemoval: Pair<View, Runnable>? = null
+    private val mainHandler = Handler(Looper.getMainLooper())
+    private var activeSession: VisualSession? = null
 
     fun showArrowAnimation(
         startX: Int,
@@ -48,7 +49,13 @@ class AnimatedGestureArrow(
             importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
             addView(pathView)
         }
-        container = wrapper
+        val session = VisualSession(wrapper, onAnimationEnd)
+        session.cleanupCoordinator = GestureVisualCleanupCoordinator(
+            postDelayed = { runnable, delayMs -> mainHandler.postDelayed(runnable, delayMs) },
+            removeCallbacks = mainHandler::removeCallbacks,
+            cleanup = { finish(session) }
+        )
+        activeSession = session
         SwitchifyAccessibilityWindow.instance.addView(
             wrapper,
             0,
@@ -59,9 +66,7 @@ class AnimatedGestureArrow(
 
         if (!GestureVisualMotionPolicy.animationsEnabled()) {
             pathView.progress = 1f
-            val removal = Runnable { remove(wrapper, null, onAnimationEnd) }
-            pendingRemoval = pathView to removal
-            pathView.postDelayed(removal, STATIC_DWELL_MS)
+            session.cleanupCoordinator.schedule(STATIC_DWELL_MS)
             return
         }
 
@@ -70,38 +75,50 @@ class AnimatedGestureArrow(
             interpolator = PathInterpolator(0.2f, 0f, 0f, 1f)
             addUpdateListener { pathView.progress = it.animatedValue as Float }
             addListener(object : AnimatorListenerAdapter() {
+                override fun onAnimationCancel(animation: Animator) {
+                    session.cleanupCoordinator.complete()
+                }
+
                 override fun onAnimationEnd(animation: Animator) {
-                    remove(wrapper, animation as ValueAnimator, onAnimationEnd)
+                    session.cleanupCoordinator.complete()
                 }
             })
         }
-        animator = animation
+        session.animator = animation
+        session.cleanupCoordinator.schedule(
+            GestureVisualCleanupDeadline.calculate(
+                durationMs = duration,
+                durationScale = ValueAnimator.getDurationScale(),
+                graceMs = CLEANUP_GRACE_MS
+            )
+        )
         animation.start()
     }
 
     fun cancel() {
-        pendingRemoval?.let { (view, runnable) -> view.removeCallbacks(runnable) }
-        pendingRemoval = null
-        val activeContainer = container
-        val activeAnimator = animator
-        activeAnimator?.removeAllListeners()
-        activeAnimator?.cancel()
-        if (activeContainer != null) remove(activeContainer, activeAnimator) {}
+        activeSession?.cleanupCoordinator?.complete()
     }
 
-    private fun remove(
-        ownedContainer: RelativeLayout,
-        ownedAnimator: ValueAnimator?,
-        onRemoved: () -> Unit
+    private fun finish(session: VisualSession) {
+        session.animator?.let { animation ->
+            animation.removeAllListeners()
+            if (animation.isStarted) animation.cancel()
+        }
+        SwitchifyAccessibilityWindow.instance.removeView(session.container)
+        if (activeSession === session) activeSession = null
+        session.onRemoved()
+    }
+
+    private class VisualSession(
+        val container: RelativeLayout,
+        val onRemoved: () -> Unit
     ) {
-        SwitchifyAccessibilityWindow.instance.removeView(ownedContainer)
-        if (container === ownedContainer) container = null
-        if (animator === ownedAnimator) animator = null
-        pendingRemoval = null
-        onRemoved()
+        lateinit var cleanupCoordinator: GestureVisualCleanupCoordinator
+        var animator: ValueAnimator? = null
     }
 
     private companion object {
         const val STATIC_DWELL_MS = 280L
+        const val CLEANUP_GRACE_MS = 250L
     }
 }
