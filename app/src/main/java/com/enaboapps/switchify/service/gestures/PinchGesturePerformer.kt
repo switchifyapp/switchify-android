@@ -8,6 +8,7 @@ import com.enaboapps.switchify.service.gestures.data.GestureData
 import com.enaboapps.switchify.service.gestures.data.GestureType
 import com.enaboapps.switchify.service.gestures.execution.GestureDispatcher
 import com.enaboapps.switchify.service.gestures.execution.GesturePathBuilder
+import com.enaboapps.switchify.service.gestures.execution.PinchGestureGeometry
 import com.enaboapps.switchify.service.gestures.visuals.PinchVisual
 import com.enaboapps.switchify.service.utils.ScreenUtils
 
@@ -15,7 +16,6 @@ object PinchGesturePerformer {
 
     private const val TAG = "PinchGesturePerformer"
     private const val PINCH_AMOUNT_DP = 300 // Pinch amount in density-independent pixels (dp)
-    private const val VISUAL_CIRCLE_SIZE_DP = 120 // Size of the visual circle in dp
 
     private var pinchVisual: PinchVisual? = null
 
@@ -53,25 +53,15 @@ object PinchGesturePerformer {
         )
         Log.d(TAG, "Center Point: (${centerPoint.x}, ${centerPoint.y})")
 
-        // Calculate pinch amount based on screen density
-        val density = accessibilityService.resources.displayMetrics.density
-        val pinchAmountPx = (PINCH_AMOUNT_DP * density).toInt()
-        val visualCircleSize = (VISUAL_CIRCLE_SIZE_DP * density)
-        Log.d(TAG, "Pinch Amount (px): $pinchAmountPx")
+        val expands = type == GestureType.PINCH_OUT
+        val geometry = PinchGestureGeometry.calculate(centerPoint.x, centerPoint.y, expands)
 
         // Show visual feedback
-        pinchVisual?.start(
-            centerPoint.x,
-            centerPoint.y,
-            visualCircleSize,
-            GestureData.PINCH_DURATION,
-            type == GestureType.PINCH_OUT
-        )
+        pinchVisual?.start(geometry, GestureData.PINCH_DURATION)
 
         // Create gesture description using unified path builder
         val gestureDescription = GesturePathBuilder.createPinchPath(
-            centerPoint,
-            type == GestureType.PINCH_OUT,
+            geometry,
             GestureData.PINCH_DURATION
         )
 

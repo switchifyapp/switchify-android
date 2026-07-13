@@ -31,6 +31,7 @@ import com.enaboapps.switchify.service.window.SwitchifyAccessibilityWindow
 class TapAndHoldRingVisual(private val context: Context) {
     private var container: RelativeLayout? = null
     private var animator: ValueAnimator? = null
+    private var pendingRemoval: Pair<View, Runnable>? = null
 
     /**
      * Show the visual centred on ([x], [y]) and animate the ring fill over
@@ -41,8 +42,12 @@ class TapAndHoldRingVisual(private val context: Context) {
 
         val primary = ContextCompat.getColor(context, R.color.gesture_visual_primary)
         val onPrimary = ContextCompat.getColor(context, R.color.gesture_visual_on_primary)
+        val tokens = GestureVisualTokens(context)
         val ringView = RingView(context, durationLabel(durationMs), primary, onPrimary).apply {
-            layoutParams = RelativeLayout.LayoutParams(CONTAINER_SIZE_PX, CONTAINER_SIZE_PX)
+            layoutParams = RelativeLayout.LayoutParams(
+                tokens.progressContainer,
+                tokens.progressContainer
+            )
             isClickable = false
             isFocusable = false
             importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
@@ -60,12 +65,19 @@ class TapAndHoldRingVisual(private val context: Context) {
 
         SwitchifyAccessibilityWindow.instance.addView(
             wrapper,
-            x - CONTAINER_SIZE_PX / 2,
-            y - CONTAINER_SIZE_PX / 2,
-            CONTAINER_SIZE_PX,
-            CONTAINER_SIZE_PX
+            x - tokens.progressContainer / 2,
+            y - tokens.progressContainer / 2,
+            tokens.progressContainer,
+            tokens.progressContainer
         )
         container = wrapper
+
+        if (!GestureVisualMotionPolicy.animationsEnabled()) {
+            val removal = Runnable { removeView() }
+            pendingRemoval = ringView to removal
+            ringView.postDelayed(removal, durationMs)
+            return
+        }
 
         animator = ValueAnimator.ofFloat(0f, 360f).apply {
             duration = durationMs
@@ -85,6 +97,9 @@ class TapAndHoldRingVisual(private val context: Context) {
 
     /** Cancel any in-flight ring animation and remove the view. */
     fun cancel() {
+        pendingRemoval?.let { (view, runnable) -> view.removeCallbacks(runnable) }
+        pendingRemoval = null
+        animator?.removeAllListeners()
         animator?.cancel()
         removeView()
     }
@@ -93,6 +108,7 @@ class TapAndHoldRingVisual(private val context: Context) {
         container?.let { SwitchifyAccessibilityWindow.instance.removeView(it) }
         container = null
         animator = null
+        pendingRemoval = null
     }
 
     /**
@@ -119,17 +135,18 @@ class TapAndHoldRingVisual(private val context: Context) {
         primaryColor: Int,
         onPrimaryColor: Int
     ) : View(context) {
+        private val tokens = GestureVisualTokens(context)
         var sweepAngle: Float = 0f
 
         private val shadowRingPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             style = Paint.Style.STROKE
-            strokeWidth = (RING_STROKE_PX + 2).toFloat()
+            strokeWidth = tokens.progressStroke + tokens.dp(2f)
             color = Color.argb(60, 0, 0, 0)
         }
 
         private val ringTrackPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             style = Paint.Style.STROKE
-            strokeWidth = RING_STROKE_PX.toFloat()
+            strokeWidth = tokens.progressStroke
             // Faint primary track so the user sees the ring outline before
             // the progress arc reaches that point.
             color = withAlpha(primaryColor, 80)
@@ -137,7 +154,7 @@ class TapAndHoldRingVisual(private val context: Context) {
 
         private val ringProgressPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             style = Paint.Style.STROKE
-            strokeWidth = RING_STROKE_PX.toFloat()
+            strokeWidth = tokens.progressStroke
             color = primaryColor
             strokeCap = Paint.Cap.ROUND
         }
@@ -153,7 +170,7 @@ class TapAndHoldRingVisual(private val context: Context) {
         private val labelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = onPrimaryColor
             textAlign = Paint.Align.CENTER
-            textSize = LABEL_TEXT_SIZE_PX.toFloat()
+            textSize = tokens.labelText
             typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
         }
 
@@ -168,7 +185,7 @@ class TapAndHoldRingVisual(private val context: Context) {
 
             // Ring geometry: stroke is centred on the path, so inset by half
             // the stroke width to keep it inside the view bounds.
-            val ringRadius = (CONTAINER_SIZE_PX - RING_STROKE_PX) / 2f
+            val ringRadius = (width - tokens.progressStroke) / 2f
             arcRect.set(cx - ringRadius, cy - ringRadius, cx + ringRadius, cy + ringRadius)
 
             // Subtle drop shadow on the ring track for visibility on light
@@ -184,8 +201,14 @@ class TapAndHoldRingVisual(private val context: Context) {
             // Inner dot — drawn on top of (and inside) the ring. Slight
             // shadow offset for depth, matching the existing visuals'
             // shadow style.
-            canvas.drawCircle(cx + 2f, cy + 2f, DOT_RADIUS_PX.toFloat(), dotShadowPaint)
-            canvas.drawCircle(cx, cy, DOT_RADIUS_PX.toFloat(), dotPaint)
+            val dotRadius = tokens.targetCore / 2f
+            canvas.drawCircle(
+                cx + tokens.shadowOffset,
+                cy + tokens.shadowOffset,
+                dotRadius,
+                dotShadowPaint
+            )
+            canvas.drawCircle(cx, cy, dotRadius, dotPaint)
 
             // Centre the text vertically: shift baseline by half the font's
             // ascent + descent so the visual centre of the glyph sits at cy.
@@ -195,14 +218,4 @@ class TapAndHoldRingVisual(private val context: Context) {
         }
     }
 
-    companion object {
-        // Container holds ring + dot. 96 px gives ~6 px of clearance on each
-        // side after the 3 px ring stroke, comfortably bigger than the
-        // existing 48 px STANDARD_CIRCLE_SIZE for taps so a hold is
-        // visually distinct from a tap at a glance.
-        private const val CONTAINER_SIZE_PX = 96
-        private const val RING_STROKE_PX = 4
-        private const val DOT_RADIUS_PX = 22  // ~44 px diameter, fits inside the ring with margin
-        private const val LABEL_TEXT_SIZE_PX = 22
-    }
 }

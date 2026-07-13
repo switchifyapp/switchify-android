@@ -7,44 +7,42 @@ import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
+import android.graphics.RectF
 import android.view.View
-import android.view.animation.PathInterpolator
 import android.widget.RelativeLayout
 import com.enaboapps.switchify.service.window.SwitchifyAccessibilityWindow
 
-class TapRippleVisual(private val context: Context) {
+internal class CountdownProgressVisual(private val context: Context) {
     private var container: RelativeLayout? = null
     private var animator: ValueAnimator? = null
     private var pendingRemoval: Pair<View, Runnable>? = null
 
-    fun show(x: Int, y: Int, durationMs: Long = DEFAULT_DURATION_MS) {
+    fun show(x: Int, y: Int, durationMs: Long) {
         cancel()
         val tokens = GestureVisualTokens(context)
-        val visual = TapLandingView(context).apply {
-            layoutParams = RelativeLayout.LayoutParams(tokens.tapHalo, tokens.tapHalo)
-            isClickable = false
-            isFocusable = false
-            importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
+        val visual = CountdownView(context).apply {
+            layoutParams = RelativeLayout.LayoutParams(
+                tokens.progressContainer,
+                tokens.progressContainer
+            )
         }
         val wrapper = RelativeLayout(context).apply { addView(visual) }
         container = wrapper
         SwitchifyAccessibilityWindow.instance.addView(
             wrapper,
-            x - tokens.tapHalo / 2,
-            y - tokens.tapHalo / 2,
-            tokens.tapHalo,
-            tokens.tapHalo
+            x - tokens.progressContainer / 2,
+            y - tokens.progressContainer / 2,
+            tokens.progressContainer,
+            tokens.progressContainer
         )
         if (!GestureVisualMotionPolicy.animationsEnabled()) {
-            visual.progress = STATIC_PROGRESS
             val removal = Runnable { remove(wrapper, null) }
             pendingRemoval = visual to removal
             visual.postDelayed(removal, durationMs)
             return
         }
-        val animation = ValueAnimator.ofFloat(0f, 1f).apply {
+        val animation = ValueAnimator.ofFloat(1f, 0f).apply {
             duration = durationMs
-            interpolator = PathInterpolator(0.2f, 0f, 0f, 1f)
             addUpdateListener { visual.progress = it.animatedValue as Float }
             addListener(object : AnimatorListenerAdapter() {
                 override fun onAnimationEnd(animation: Animator) {
@@ -73,35 +71,34 @@ class TapRippleVisual(private val context: Context) {
         pendingRemoval = null
     }
 
-    private class TapLandingView(context: Context) : View(context) {
+    private class CountdownView(context: Context) : View(context) {
         private val tokens = GestureVisualTokens(context)
-        var progress = 0f
+        var progress = 1f
             set(value) {
                 field = value
                 invalidate()
             }
-        private val halo = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            style = Paint.Style.STROKE
-            strokeWidth = tokens.dp(3f).toFloat()
-        }
         private val shadow = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = Color.argb(65, 0, 0, 0)
         }
+        private val track = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.STROKE
+            strokeWidth = tokens.progressStroke
+            strokeCap = Paint.Cap.ROUND
+            color = (tokens.primary and 0x00FFFFFF) or (70 shl 24)
+        }
+        private val progressPaint = Paint(track).apply { color = tokens.primary }
         private val core = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = tokens.primary }
+        private val arc = RectF()
 
         override fun onDraw(canvas: Canvas) {
             val cx = width / 2f
             val cy = height / 2f
-            val phase = (progress / 0.72f).coerceAtMost(1f)
-            val coreScale = (progress / 0.22f).coerceAtMost(1f)
-            val fade = if (progress < 0.72f) 1f else 1f - (progress - 0.72f) / 0.28f
-            halo.color = withAlpha(tokens.primary, (180 * fade).toInt())
-            val haloRadius = tokens.tapCore / 2f +
-                (tokens.tapHalo - tokens.tapCore) / 2f * phase
-            canvas.drawCircle(cx, cy, haloRadius, halo)
-            val coreRadius = tokens.tapCore / 2f * coreScale
-            shadow.alpha = (65 * fade).toInt()
-            core.alpha = (255 * fade).toInt()
+            val radius = (width - tokens.progressStroke) / 2f
+            arc.set(cx - radius, cy - radius, cx + radius, cy + radius)
+            canvas.drawArc(arc, 0f, 360f, false, track)
+            canvas.drawArc(arc, -90f, 360f * progress, false, progressPaint)
+            val coreRadius = tokens.targetCore / 2f
             canvas.drawCircle(
                 cx + tokens.shadowOffset,
                 cy + tokens.shadowOffset,
@@ -110,14 +107,5 @@ class TapRippleVisual(private val context: Context) {
             )
             canvas.drawCircle(cx, cy, coreRadius, core)
         }
-
-        private fun withAlpha(color: Int, alpha: Int): Int {
-            return (color and 0x00FFFFFF) or (alpha.coerceIn(0, 255) shl 24)
-        }
-    }
-
-    private companion object {
-        const val DEFAULT_DURATION_MS = 300L
-        const val STATIC_PROGRESS = 0.5f
     }
 }

@@ -5,14 +5,11 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.PointF
-import android.graphics.drawable.GradientDrawable
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
 import android.view.View
 import android.view.animation.Animation
-import android.view.animation.ScaleAnimation
-import android.widget.ImageView
 import android.widget.RelativeLayout
 import androidx.core.content.ContextCompat
 import com.enaboapps.switchify.R
@@ -50,11 +47,12 @@ class GestureVisualManager(
     private val accessibilityWindow = SwitchifyAccessibilityWindow.instance
     private val animatedGestureArrow = AnimatedGestureArrow(context)
     private val mainHandler = Handler(Looper.getMainLooper())
+    private val visualTokens = GestureVisualTokens(context)
 
     // Active visual tracking - single finger
     private var currentCircle: WeakReference<RelativeLayout>? = null
-    private var currentAnimation: ScaleAnimation? = null
     private var removeHandler: Handler? = null
+    private val countdownProgressVisual = CountdownProgressVisual(context)
 
     // Multi-finger visual tracking
     private var currentMultiFingerVisual: WeakReference<RelativeLayout>? = null
@@ -98,7 +96,6 @@ class GestureVisualManager(
 
     companion object {
         // Standardized circle size - compromise between existing 40px and 60px
-        private const val STANDARD_CIRCLE_SIZE = 48
         private const val LINEAR_GESTURE_VISUAL_THROTTLE_MS = 500L
     }
 
@@ -117,15 +114,15 @@ class GestureVisualManager(
         clearCurrentVisual()
 
         val context = contextRef.get() ?: return
-        val circleLayout = GestureCircleViewFactory.create(context, STANDARD_CIRCLE_SIZE)
+        val circleLayout = GestureCircleViewFactory.createTarget(context)
 
         onMainThread {
             accessibilityWindow.addView(
                 circleLayout,
-                x - STANDARD_CIRCLE_SIZE / 2,
-                y - STANDARD_CIRCLE_SIZE / 2,
-                STANDARD_CIRCLE_SIZE,
-                STANDARD_CIRCLE_SIZE
+                x - visualTokens.targetHalo / 2,
+                y - visualTokens.targetHalo / 2,
+                visualTokens.targetHalo,
+                visualTokens.targetHalo
             )
         }
 
@@ -147,43 +144,7 @@ class GestureVisualManager(
      */
     fun showCountdownCircle(x: Int, y: Int, duration: Long) {
         clearCurrentVisual()
-
-        val context = contextRef.get() ?: return
-        val circleLayout = GestureCircleViewFactory.create(context, STANDARD_CIRCLE_SIZE)
-
-        onMainThread {
-            accessibilityWindow.addView(
-                circleLayout,
-                x - STANDARD_CIRCLE_SIZE / 2,
-                y - STANDARD_CIRCLE_SIZE / 2,
-                STANDARD_CIRCLE_SIZE,
-                STANDARD_CIRCLE_SIZE
-            )
-        }
-
-        currentCircle = WeakReference(circleLayout)
-
-        // Create shrinking animation
-        val scaleAnimation = ScaleAnimation(
-            1f, 0f, 1f, 0f,
-            Animation.RELATIVE_TO_SELF, 0.5f,
-            Animation.RELATIVE_TO_SELF, 0.5f
-        ).apply {
-            this.duration = duration
-            fillAfter = true
-        }
-
-        currentAnimation = scaleAnimation
-        // Apply animation to both shadow and main circle views for proper countdown effect
-        onMainThread {
-            circleLayout.getChildAt(0)?.startAnimation(scaleAnimation) // shadowView
-            circleLayout.getChildAt(1)?.startAnimation(scaleAnimation) // mainView
-        }
-
-        // Auto-remove after animation
-        removeHandler = Handler(Looper.getMainLooper()).apply {
-            postDelayed({ clearCurrentVisual() }, duration)
-        }
+        countdownProgressVisual.show(x, y, duration)
     }
 
     /**
@@ -310,7 +271,7 @@ class GestureVisualManager(
     private fun displayMultiFingerArrowAnimation(request: LinearGestureVisualRequest.Multi) {
         val context = contextRef.get() ?: return
         request.startPositions.zip(request.endPositions).forEachIndexed { index, (start, end) ->
-            val arrow = AnimatedGestureArrow(context)
+            val arrow = AnimatedGestureArrow(context, index + 1)
             activeMultiFingerArrows.add(arrow)
             lateinit var runnable: Runnable
             runnable = Runnable {
@@ -326,7 +287,7 @@ class GestureVisualManager(
                 }
             }
             pendingMultiFingerArrowRunnables.add(runnable)
-            mainHandler.postDelayed(runnable, index * 50L)
+            mainHandler.post(runnable)
         }
     }
 
@@ -416,15 +377,15 @@ class GestureVisualManager(
 
         // Create individual circles for each finger
         placement.fingerPoints.forEachIndexed { index, point ->
-            val circleLayout = createFingerCircle(context, index, placement.fingerCount)
+            val circleLayout = createFingerCircle(context, index)
 
             onMainThread {
                 accessibilityWindow.addView(
                     circleLayout,
-                    point.x.toInt() - STANDARD_CIRCLE_SIZE / 2,
-                    point.y.toInt() - STANDARD_CIRCLE_SIZE / 2,
-                    STANDARD_CIRCLE_SIZE,
-                    STANDARD_CIRCLE_SIZE
+                    point.x.toInt() - visualTokens.touchPoint / 2,
+                    point.y.toInt() - visualTokens.touchPoint / 2,
+                    visualTokens.touchPoint,
+                    visualTokens.touchPoint
                 )
             }
 
@@ -461,13 +422,13 @@ class GestureVisualManager(
             val bounds = calculateContainerBounds(placement.fingerPoints)
 
             placement.fingerPoints.forEachIndexed { index, point ->
-                val circleLayout = createFingerCircle(context, index, 2)
+                val circleLayout = createFingerCircle(context, index)
 
                 val layoutParams = RelativeLayout.LayoutParams(
-                    STANDARD_CIRCLE_SIZE, STANDARD_CIRCLE_SIZE
+                    visualTokens.touchPoint, visualTokens.touchPoint
                 ).apply {
-                    leftMargin = (point.x - bounds.left).toInt() - STANDARD_CIRCLE_SIZE / 2
-                    topMargin = (point.y - bounds.top).toInt() - STANDARD_CIRCLE_SIZE / 2
+                    leftMargin = (point.x - bounds.left).toInt() - visualTokens.touchPoint / 2
+                    topMargin = (point.y - bounds.top).toInt() - visualTokens.touchPoint / 2
                 }
 
                 addView(circleLayout, layoutParams)
@@ -480,66 +441,9 @@ class GestureVisualManager(
      */
     private fun createFingerCircle(
         context: Context,
-        fingerIndex: Int,
-        totalFingers: Int
+        fingerIndex: Int
     ): RelativeLayout {
-        // Choose colors based on finger index with distinct colors for up to 5 fingers
-        val colors = when (fingerIndex) {
-            0 -> Pair(0xFFFFFFFF.toInt(), 0xFF4CAF50.toInt()) // White with green accent
-            1 -> Pair(0xFFFFFFFF.toInt(), 0xFF2196F3.toInt()) // White with blue accent
-            2 -> Pair(0xFFFFFFFF.toInt(), 0xFF9C27B0.toInt()) // White with purple accent
-            3 -> Pair(0xFFFFFFFF.toInt(), 0xFFFF5722.toInt()) // White with deep orange accent
-            4 -> Pair(0xFFFFFFFF.toInt(), 0xFFE91E63.toInt()) // White with pink accent
-            else -> Pair(
-                0xFFFFFFFF.toInt(),
-                0xFF607D8B.toInt()
-            ) // White with blue-gray accent (fallback)
-        }
-
-        // Create shadow circle
-        val shadowDrawable = GradientDrawable().apply {
-            shape = GradientDrawable.OVAL
-            setColor(0x30000000) // Semi-transparent black shadow
-            setSize(STANDARD_CIRCLE_SIZE, STANDARD_CIRCLE_SIZE)
-        }
-
-        // Create main circle with colored border
-        val mainDrawable = GradientDrawable().apply {
-            shape = GradientDrawable.OVAL
-            setColor(colors.first) // White fill
-            setStroke(3, colors.second) // Colored border
-            setSize(STANDARD_CIRCLE_SIZE, STANDARD_CIRCLE_SIZE)
-        }
-
-        // Shadow layer
-        val shadowView = ImageView(context).apply {
-            setImageDrawable(shadowDrawable)
-            layoutParams =
-                RelativeLayout.LayoutParams(STANDARD_CIRCLE_SIZE, STANDARD_CIRCLE_SIZE).apply {
-                    leftMargin = 2
-                    topMargin = 2
-                }
-            isClickable = false
-            isFocusable = false
-            importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
-        }
-
-        // Main circle layer
-        val mainView = ImageView(context).apply {
-            setImageDrawable(mainDrawable)
-            layoutParams = RelativeLayout.LayoutParams(STANDARD_CIRCLE_SIZE, STANDARD_CIRCLE_SIZE)
-            isClickable = false
-            isFocusable = false
-            importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
-        }
-
-        return RelativeLayout(context).apply {
-            isClickable = false
-            isFocusable = false
-            importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
-            addView(shadowView)
-            addView(mainView)
-        }
+        return NumberedTouchPointView.create(context, fingerIndex + 1, visualTokens.touchPoint)
     }
 
     /**
@@ -547,7 +451,7 @@ class GestureVisualManager(
      * Clamps to screen bounds to prevent off-screen rendering.
      */
     private fun calculateContainerBounds(points: List<PointF>): android.graphics.Rect {
-        val margin = STANDARD_CIRCLE_SIZE
+        val margin = visualTokens.touchPoint
         val minX = (points.minOf { it.x } - margin).toInt().coerceAtLeast(0)
         val maxX = (points.maxOf { it.x } + margin).toInt()
         val minY = (points.minOf { it.y } - margin).toInt().coerceAtLeast(0)
@@ -639,7 +543,7 @@ class GestureVisualManager(
      * Clears any current single-finger visual and associated handlers/animations.
      */
     private fun clearCurrentVisual() {
-        currentAnimation?.cancel()
+        countdownProgressVisual.cancel()
         removeHandler?.removeCallbacksAndMessages(null)
 
         currentCircle?.get()?.let { circle ->
@@ -649,7 +553,6 @@ class GestureVisualManager(
         }
 
         currentCircle = null
-        currentAnimation = null
         removeHandler = null
 
         // Cancel any in-flight tap-family visuals (ripples + tap-and-hold ring).

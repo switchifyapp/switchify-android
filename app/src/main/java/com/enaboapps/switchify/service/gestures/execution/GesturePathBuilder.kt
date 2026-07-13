@@ -157,30 +157,28 @@ object GesturePathBuilder {
         isPinchIn: Boolean,
         duration: Long = GestureData.PINCH_DURATION
     ): GestureDescription {
-        val startSeparation = if (isPinchIn) 50f else 200f
-        val endSeparation = if (isPinchIn) 200f else 50f
+        return createPinchPath(
+            PinchGestureGeometry.calculate(centerPoint.x, centerPoint.y, isPinchIn),
+            duration
+        )
+    }
 
-        // First finger path (left side)
-        val finger1Start = PointF(centerPoint.x - startSeparation / 2, centerPoint.y)
-        val finger1End = PointF(centerPoint.x - endSeparation / 2, centerPoint.y)
+    fun createPinchPath(
+        geometry: PinchGestureGeometry,
+        duration: Long = GestureData.PINCH_DURATION
+    ): GestureDescription {
         val finger1Path = Path().apply {
-            moveTo(finger1Start.x, finger1Start.y)
-            lineTo(finger1End.x, finger1End.y)
+            moveTo(geometry.first.start.x, geometry.first.start.y)
+            lineTo(geometry.first.end.x, geometry.first.end.y)
         }
-        val finger1Stroke = GestureDescription.StrokeDescription(finger1Path, 0, duration)
-
-        // Second finger path (right side)
-        val finger2Start = PointF(centerPoint.x + startSeparation / 2, centerPoint.y)
-        val finger2End = PointF(centerPoint.x + endSeparation / 2, centerPoint.y)
         val finger2Path = Path().apply {
-            moveTo(finger2Start.x, finger2Start.y)
-            lineTo(finger2End.x, finger2End.y)
+            moveTo(geometry.second.start.x, geometry.second.start.y)
+            lineTo(geometry.second.end.x, geometry.second.end.y)
         }
-        val finger2Stroke = GestureDescription.StrokeDescription(finger2Path, 0, duration)
 
         return GestureDescription.Builder()
-            .addStroke(finger1Stroke)
-            .addStroke(finger2Stroke)
+            .addStroke(GestureDescription.StrokeDescription(finger1Path, 0, duration))
+            .addStroke(GestureDescription.StrokeDescription(finger2Path, 0, duration))
             .build()
     }
 
