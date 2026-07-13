@@ -9,7 +9,6 @@ import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
 import android.view.View
-import android.view.animation.Animation
 import android.widget.RelativeLayout
 import androidx.core.content.ContextCompat
 import com.enaboapps.switchify.R
@@ -95,7 +94,6 @@ class GestureVisualManager(
     private var pendingDoubleTapRunnable: Runnable? = null
 
     companion object {
-        // Standardized circle size - compromise between existing 40px and 60px
         private const val LINEAR_GESTURE_VISUAL_THROTTLE_MS = 500L
     }
 
@@ -144,7 +142,9 @@ class GestureVisualManager(
      */
     fun showCountdownCircle(x: Int, y: Int, duration: Long) {
         clearCurrentVisual()
-        countdownProgressVisual.show(x, y, duration)
+        onMainThread {
+            countdownProgressVisual.show(x, y, duration)
+        }
     }
 
     /**
@@ -543,7 +543,7 @@ class GestureVisualManager(
      * Clears any current single-finger visual and associated handlers/animations.
      */
     private fun clearCurrentVisual() {
-        countdownProgressVisual.cancel()
+        onMainThread { countdownProgressVisual.cancel() }
         removeHandler?.removeCallbacksAndMessages(null)
 
         currentCircle?.get()?.let { circle ->

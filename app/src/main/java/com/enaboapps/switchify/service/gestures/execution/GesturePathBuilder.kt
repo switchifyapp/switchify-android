@@ -148,17 +148,17 @@ object GesturePathBuilder {
      * Creates a pinch gesture with correct pinch mechanics.
      *
      * @param centerPoint Center point of the pinch
-     * @param isPinchIn True for pinch in (zoom in), false for pinch out (zoom out)
+     * @param expands True when the fingers spread apart (zoom in), false when they move together (zoom out)
      * @param duration Duration of the pinch gesture
      * @return GestureDescription for the pinch
      */
     fun createPinchPath(
         centerPoint: PointF,
-        isPinchIn: Boolean,
+        expands: Boolean,
         duration: Long = GestureData.PINCH_DURATION
     ): GestureDescription {
         return createPinchPath(
-            PinchGestureGeometry.calculate(centerPoint.x, centerPoint.y, isPinchIn),
+            PinchGestureGeometry.calculate(centerPoint.x, centerPoint.y, expands),
             duration
         )
     }

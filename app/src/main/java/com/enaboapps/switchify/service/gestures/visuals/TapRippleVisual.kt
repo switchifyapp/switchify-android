@@ -96,8 +96,9 @@ class TapRippleVisual(private val context: Context) {
             val coreScale = (progress / 0.22f).coerceAtMost(1f)
             val fade = if (progress < 0.72f) 1f else 1f - (progress - 0.72f) / 0.28f
             halo.color = withAlpha(tokens.primary, (180 * fade).toInt())
+            val maxHaloRadius = (width - halo.strokeWidth) / 2f
             val haloRadius = tokens.tapCore / 2f +
-                (tokens.tapHalo - tokens.tapCore) / 2f * phase
+                (maxHaloRadius - tokens.tapCore / 2f) * phase
             canvas.drawCircle(cx, cy, haloRadius, halo)
             val coreRadius = tokens.tapCore / 2f * coreScale
             shadow.alpha = (65 * fade).toInt()

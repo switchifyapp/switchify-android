@@ -105,6 +105,9 @@ class PinchVisual(private val context: Context) {
             strokeCap = Paint.Cap.ROUND
         }
         private val point = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = tokens.primary }
+        private val pointShadow = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.argb(80, 0, 0, 0)
+        }
         private val label = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = tokens.onPrimary
             textAlign = Paint.Align.CENTER
@@ -145,9 +148,8 @@ class PinchVisual(private val context: Context) {
                 x + tokens.shadowOffset,
                 y + tokens.shadowOffset,
                 radius,
-                underlay.apply { style = Paint.Style.FILL }
+                pointShadow
             )
-            underlay.style = Paint.Style.STROKE
             canvas.drawCircle(x, y, radius, point)
             val metrics = label.fontMetrics
             canvas.drawText(number.toString(), x, y - (metrics.ascent + metrics.descent) / 2f, label)

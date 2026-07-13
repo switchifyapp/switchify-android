@@ -2,15 +2,13 @@ package com.enaboapps.switchify.service.gestures.visuals
 
 import android.animation.ValueAnimator
 import android.content.Context
+import android.util.TypedValue
 import androidx.core.content.ContextCompat
 import com.enaboapps.switchify.R
 import kotlin.math.roundToInt
 
 internal class GestureVisualTokens(context: Context) {
-    private val units = GestureVisualUnitConverter(
-        context.resources.displayMetrics.density,
-        context.resources.displayMetrics.scaledDensity
-    )
+    private val displayMetrics = context.resources.displayMetrics
     val primary = ContextCompat.getColor(context, R.color.gesture_visual_primary)
     val onPrimary = ContextCompat.getColor(context, R.color.gesture_visual_on_primary)
     val targetCore = dp(24f)
@@ -26,18 +24,12 @@ internal class GestureVisualTokens(context: Context) {
     val labelText = sp(12f)
     val shadowOffset = dp(2f).toFloat()
 
-    fun dp(value: Float): Int = units.dp(value)
+    fun dp(value: Float): Int =
+        TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, value, displayMetrics)
+            .roundToInt()
 
-    private fun sp(value: Float): Float = units.sp(value)
-}
-
-internal class GestureVisualUnitConverter(
-    private val density: Float,
-    private val scaledDensity: Float
-) {
-    fun dp(value: Float): Int = (value * density).roundToInt()
-
-    fun sp(value: Float): Float = value * scaledDensity
+    private fun sp(value: Float): Float =
+        TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, value, displayMetrics)
 }
 
 internal enum class GestureVisualMotionMode {
