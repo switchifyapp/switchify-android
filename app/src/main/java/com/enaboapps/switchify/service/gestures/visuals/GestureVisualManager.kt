@@ -117,7 +117,7 @@ class GestureVisualManager(
         clearCurrentVisual()
 
         val context = contextRef.get() ?: return
-        val circleLayout = createCircleLayout(context, STANDARD_CIRCLE_SIZE)
+        val circleLayout = GestureCircleViewFactory.create(context, STANDARD_CIRCLE_SIZE)
 
         onMainThread {
             accessibilityWindow.addView(
@@ -149,7 +149,7 @@ class GestureVisualManager(
         clearCurrentVisual()
 
         val context = contextRef.get() ?: return
-        val circleLayout = createCircleLayout(context, STANDARD_CIRCLE_SIZE)
+        val circleLayout = GestureCircleViewFactory.create(context, STANDARD_CIRCLE_SIZE)
 
         onMainThread {
             accessibilityWindow.addView(
@@ -636,59 +636,6 @@ class GestureVisualManager(
     }
 
     /**
-     * Creates a standardized circle layout filled with the brand primary
-     * colour. Used by [showStaticCircle] / [showCountdownCircle] for
-     * gesture-start indicators (e.g. before a swipe).
-     */
-    private fun createCircleLayout(context: Context, size: Int): RelativeLayout {
-        val primary = ContextCompat.getColor(context, R.color.gesture_visual_primary)
-
-        // Create shadow circle (slightly offset and darker)
-        val shadowDrawable = GradientDrawable().apply {
-            shape = GradientDrawable.OVAL
-            setColor(0x20000000) // Semi-transparent black shadow
-            setSize(size, size)
-        }
-
-        // Create main primary-coloured circle
-        val mainDrawable = GradientDrawable().apply {
-            shape = GradientDrawable.OVAL
-            setColor(primary)
-            setStroke(1, 0x20000000) // Subtle dark stroke for definition
-            setSize(size, size)
-        }
-
-        // Shadow layer
-        val shadowView = ImageView(context).apply {
-            setImageDrawable(shadowDrawable)
-            layoutParams = RelativeLayout.LayoutParams(size, size).apply {
-                leftMargin = 2
-                topMargin = 2
-            }
-            isClickable = false
-            isFocusable = false
-            importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
-        }
-
-        // Main circle layer
-        val mainView = ImageView(context).apply {
-            setImageDrawable(mainDrawable)
-            layoutParams = RelativeLayout.LayoutParams(size, size)
-            isClickable = false
-            isFocusable = false
-            importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
-        }
-
-        return RelativeLayout(context).apply {
-            isClickable = false
-            isFocusable = false
-            importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
-            addView(shadowView)
-            addView(mainView)
-        }
-    }
-
-    /**
      * Clears any current single-finger visual and associated handlers/animations.
      */
     private fun clearCurrentVisual() {
@@ -787,6 +734,5 @@ class GestureVisualManager(
 enum class GestureVisualManagerRole(internal val listenerId: String) {
     GESTURE_MANAGER("visual_manager:gesture_manager"),
     LINEAR_GESTURE_PERFORMER("visual_manager:linear_gesture_performer"),
-    MENU_MANAGER("visual_manager:menu_manager"),
     SELECTION_HANDLER("visual_manager:selection_handler")
 }

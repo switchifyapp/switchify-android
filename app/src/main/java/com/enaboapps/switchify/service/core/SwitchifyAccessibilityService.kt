@@ -152,7 +152,8 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
 
         techniqueEnforcer.enforceCompatibility()
 
-        GestureManager.instance.setup(this)
+        val gestureTargetIndicator = ServiceCore.getGestureTargetIndicator() ?: return
+        GestureManager.instance.setup(this, gestureTargetIndicator)
         SelectionHandler.init(this)
 
         deviceLockObserver.startObserving(

@@ -16,6 +16,7 @@ import com.enaboapps.switchify.service.gestures.placement.FingerModePreferences
 import com.enaboapps.switchify.service.gestures.placement.FingerPlacementAlgorithm
 import com.enaboapps.switchify.service.gestures.visuals.GestureVisualManager
 import com.enaboapps.switchify.service.gestures.visuals.GestureVisualManagerRole
+import com.enaboapps.switchify.service.gestures.visuals.GestureTargetIndicatorController
 import com.enaboapps.switchify.service.techniques.nodes.NodeExaminer
 import com.enaboapps.switchify.utils.LogEvent
 import com.enaboapps.switchify.utils.Logger
@@ -79,7 +80,10 @@ class GestureManager private constructor() {
      *
      * @param accessibilityService The SwitchifyAccessibilityService providing Android accessibility APIs
      */
-    fun setup(accessibilityService: SwitchifyAccessibilityService) {
+    fun setup(
+        accessibilityService: SwitchifyAccessibilityService,
+        gestureTargetIndicator: GestureTargetIndicatorController
+    ) {
         this.accessibilityService = accessibilityService
         AutoScrollManager.getInstance().init(accessibilityService)
         GesturePatternManager.init(accessibilityService)
@@ -90,7 +94,11 @@ class GestureManager private constructor() {
         timingCoordinator = GestureTimingCoordinator()
 
         linearGesturePerformer =
-            LinearGesturePerformer(accessibilityService, GestureLockManager.instance)
+            LinearGesturePerformer(
+                accessibilityService,
+                GestureLockManager.instance,
+                gestureTargetIndicator
+            )
         gestureVisualManager = GestureVisualManager(
             accessibilityService,
             GestureVisualManagerRole.GESTURE_MANAGER
