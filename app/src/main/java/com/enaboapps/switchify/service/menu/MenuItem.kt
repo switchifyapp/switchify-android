@@ -70,13 +70,8 @@ class MenuItem(
     val isBackButton: Boolean = false,
     private val action: () -> Unit
 ) {
-    internal fun displayText(): String {
-        return if (labelResource != null) {
-            Resources.getString(labelResource)
-        } else {
-            userProvidedText.orEmpty()
-        }
-    }
+    internal fun displayText(): String =
+        resolveMenuItemLabel(labelResource, userProvidedText).orEmpty()
 
     internal val showsForwardChevron: Boolean
         get() = isLinkToMenu && !isBackButton
@@ -207,7 +202,7 @@ private fun MenuItemContent(
     menuSize: MenuItemSize,
     onClick: () -> Unit
 ) {
-    val text = if (labelResource != null) Resources.getString(labelResource) else userProvidedText
+    val text = resolveMenuItemLabel(labelResource, userProvidedText)
 
     Box(modifier = Modifier.fillMaxSize()) {
         if (isMenuHierarchyManipulator) {
@@ -402,6 +397,14 @@ private fun computeCircleTextFontSize(
     val maxSp = circleSizeDp * ratio / fontScale
     return if (fallback.value > maxSp) maxSp.sp else fallback
 }
+
+/**
+ * Single source of truth for a menu item's visible label — used both by the
+ * rendered row and by the width measurement in MenuPage, so the two can
+ * never resolve different text.
+ */
+private fun resolveMenuItemLabel(labelResource: Int?, userProvidedText: String?): String? =
+    if (labelResource != null) Resources.getString(labelResource) else userProvidedText
 
 private val WHITESPACE_REGEX = Regex("\\s+")
 

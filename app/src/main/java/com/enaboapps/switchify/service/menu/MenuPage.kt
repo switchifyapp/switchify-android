@@ -97,13 +97,14 @@ class MenuPage(
 
         val itemSize = MenuSizeManager.getItemSize(context)
         val smallItemSize = MenuSizeManager.getSmallItemSize(context)
-        val navRow = buildNavRow(smallItemSize)
-        val showNavRow = navRow.childCount > 0
+        val navigationItems = buildNavigationItems()
+        val navigationCellWidthPx = navigationCellWidthPx(smallItemSize, navigationItems.size)
+        val navRow = buildNavRow(smallItemSize, navigationItems, navigationCellWidthPx)
+        val showNavRow = navigationItems.isNotEmpty()
         val titleText = titleResId?.let { context.getString(it) }
         val contentWidthPx = calculateContentWidth(
             itemSize = itemSize,
-            smallItemSize = smallItemSize,
-            navigationItemCount = navRow.childCount,
+            navigationWidthPx = navigationItems.size * navigationCellWidthPx,
             title = titleText
         )
 
@@ -133,8 +134,7 @@ class MenuPage(
 
     private fun calculateContentWidth(
         itemSize: MenuItemSize,
-        smallItemSize: MenuItemSize,
-        navigationItemCount: Int,
+        navigationWidthPx: Int,
         title: String?
     ): Int {
         val labelPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -143,6 +143,10 @@ class MenuPage(
                 itemSize.labelTextSize.value,
                 context.resources.displayMetrics
             )
+            // Row labels inherit Material3 bodyLarge letter spacing (the app
+            // theme does not override bodyLarge), so the measurement must
+            // include it or long labels wrap despite fitting.
+            letterSpacing = LABEL_LETTER_SPACING_SP / itemSize.labelTextSize.value
         }
         val circleWidthPx = ScreenUtils.dpToPx(
             context,
@@ -159,16 +163,6 @@ class MenuPage(
                     if (item.showsForwardChevron) chevronWidthPx else 0
             )
         }
-        val navigationCellWidthPx = MenuContentWidthCalculator.navigationCellWidth(
-            availableWidthPx = MenuSurfaceBudget.contentMaxWidthPx(context),
-            preferredWidthPx = ScreenUtils.dpToPx(
-                context,
-                smallItemSize.width.value.toInt()
-            ),
-            minimumTouchWidthPx = ScreenUtils.dpToPx(context, MINIMUM_TOUCH_TARGET_DP),
-            itemCount = navigationItemCount
-        )
-        val navigationWidthPx = navigationItemCount * navigationCellWidthPx
         val titleWidthPx = title?.let { text ->
             val titlePaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
                 textSize = TypedValue.applyDimension(
@@ -177,6 +171,7 @@ class MenuPage(
                     context.resources.displayMetrics
                 )
                 typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+                letterSpacing = TITLE_LETTER_SPACING_SP / TITLE_TEXT_SIZE_SP
             }
             ceil(titlePaint.measureText(text).toDouble()).toInt()
         } ?: 0
@@ -188,19 +183,10 @@ class MenuPage(
     }
 
     /**
-     * Bottom nav row: [prev] [close] [next]. Prev/next are elided when they
-     * don't apply (first/last page, single page). Returns an empty LinearLayout
-     * if nothing belongs here — caller skips adding it in that case.
+     * Nav-row items in display order: [prev] [close] [next]. Prev/next are
+     * elided when they don't apply (first/last page, single page).
      */
-    private fun buildNavRow(smallItemSize: MenuItemSize): LinearLayout {
-        val navRow = LinearLayout(context).apply {
-            orientation = LinearLayout.HORIZONTAL
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            ).also { it.gravity = Gravity.CENTER_HORIZONTAL }
-        }
-
+    private fun buildNavigationItems(): List<MenuItem> {
         val navigationItems = mutableListOf<MenuItem>()
         if (hasPagination && pageIndex > 0) {
             prevPageMenuItem = pageNavItem(
@@ -223,20 +209,39 @@ class MenuPage(
                 action = { nextPage() }
             ).also(navigationItems::add)
         }
+        return navigationItems
+    }
 
-        val navigationCellWidthPx = MenuContentWidthCalculator.navigationCellWidth(
+    private fun navigationCellWidthPx(smallItemSize: MenuItemSize, itemCount: Int): Int =
+        MenuContentWidthCalculator.navigationCellWidth(
             availableWidthPx = MenuSurfaceBudget.contentMaxWidthPx(context),
             preferredWidthPx = ScreenUtils.dpToPx(
                 context,
                 smallItemSize.width.value.toInt()
             ),
             minimumTouchWidthPx = ScreenUtils.dpToPx(context, MINIMUM_TOUCH_TARGET_DP),
-            itemCount = navigationItems.size
+            itemCount = itemCount
         )
-        navigationItems.forEach { item ->
-            item.inflate(navRow, smallItemSize, navigationCellWidthPx)
-        }
 
+    /**
+     * Bottom nav row hosting [navigationItems]. Returns an empty LinearLayout
+     * when there are no items — caller skips adding it in that case.
+     */
+    private fun buildNavRow(
+        smallItemSize: MenuItemSize,
+        navigationItems: List<MenuItem>,
+        cellWidthPx: Int
+    ): LinearLayout {
+        val navRow = LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).also { it.gravity = Gravity.CENTER_HORIZONTAL }
+        }
+        navigationItems.forEach { item ->
+            item.inflate(navRow, smallItemSize, cellWidthPx)
+        }
         return navRow
     }
 
@@ -273,6 +278,11 @@ class MenuPage(
         const val LABEL_WIDTH_TOLERANCE_DP = 4
         const val MINIMUM_TOUCH_TARGET_DP = 48
         const val TITLE_TEXT_SIZE_SP = 16f
+
+        // Material3 defaults inherited by the rendered text: bodyLarge for
+        // row labels, titleMedium for the title.
+        const val LABEL_LETTER_SPACING_SP = 0.5f
+        const val TITLE_LETTER_SPACING_SP = 0.15f
     }
 }
 
