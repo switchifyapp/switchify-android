@@ -34,7 +34,6 @@ interface MenuViewListener {
  * MenuView class responsible for managing and displaying the menu interface.
  * This class handles the creation, display, and navigation of menu pages,
  * as well as the dynamic resizing of the menu when pages change.
- * It maintains a fixed position on the screen and tracks the maximum width and height encountered.
  *
  * @property context The application context.
  * @property menu The base menu to be displayed.
@@ -64,12 +63,6 @@ class MenuView(
 
     /** Scan tree for managing menu item selection */
     val scanTree = ScanTree(context)
-
-    /** Tracks the maximum width encountered */
-    private var maxWidth = 0
-
-    /** Tracks the maximum height encountered */
-    private var maxHeight = 0
 
     /** Preference manager */
     private val preferenceManager = PreferenceManager(context)
@@ -202,7 +195,6 @@ class MenuView(
                 ViewTreeObserver.OnGlobalLayoutListener {
                 override fun onGlobalLayout() {
                     pageLayout.viewTreeObserver.removeOnGlobalLayoutListener(this)
-                    updateMaxDimensions()
                     resizeAndRepositionMenu()
                 }
             })
@@ -223,14 +215,6 @@ class MenuView(
                 MenuManager.getInstance().closeMenuHierarchy()
             }
         }
-    }
-
-    /**
-     * Updates the maximum dimensions based on the current layout size.
-     */
-    private fun updateMaxDimensions() {
-        maxWidth = maxWidth.coerceAtLeast(baseLayout.width)
-        maxHeight = maxHeight.coerceAtLeast(baseLayout.height)
     }
 
     /**
@@ -257,6 +241,8 @@ class MenuView(
         baseLayout.post {
             val screenWidth = context.resources.displayMetrics.widthPixels
             val screenHeight = context.resources.displayMetrics.heightPixels
+            val menuWidth = baseLayout.width
+            val menuHeight = baseLayout.height
 
             // The MenuHighlightHud occupies the top of the screen; keep the
             // menu surface below its footprint so the two never overlap.
@@ -264,13 +250,18 @@ class MenuView(
 
             val offset = 50
             val gesturePoint = GesturePoint.getPoint()
-            val x = if (gesturePoint.x + maxWidth + offset > screenWidth) {
-                screenWidth - maxWidth.toFloat() - offset
+            val preferredX = if (gesturePoint.x + menuWidth + offset > screenWidth) {
+                screenWidth - menuWidth.toFloat() - offset
             } else {
                 gesturePoint.x + offset
             }
-            var y = if (gesturePoint.y + maxHeight + offset > screenHeight) {
-                GesturePoint.y - maxHeight.toFloat() - offset
+            val x = MenuHorizontalPositionCalculator.clamp(
+                preferredX = preferredX.toInt(),
+                menuWidth = menuWidth,
+                screenWidth = screenWidth
+            )
+            var y = if (gesturePoint.y + menuHeight + offset > screenHeight) {
+                GesturePoint.y - menuHeight.toFloat() - offset
             } else {
                 gesturePoint.y + offset
             }
@@ -279,13 +270,13 @@ class MenuView(
             // bottom of the screen.
             if (y < topReserved) {
                 y = topReserved.toFloat()
-            } else if (y + maxHeight > screenHeight) {
-                y = (screenHeight - maxHeight).toFloat()
+            } else if (y + menuHeight > screenHeight) {
+                y = (screenHeight - menuHeight).toFloat()
             }
 
             MenuViewHandler.instance.updateView(
                 baseLayout,
-                x.toInt(),
+                x,
                 y.toInt(),
                 WRAP_CONTENT,
                 WRAP_CONTENT
@@ -347,7 +338,5 @@ class MenuView(
         MenuHighlightHud.instance.hide()
         scanTree.cleanup()
         menuViewListener?.onMenuViewClosed()
-        maxWidth = 0
-        maxHeight = 0
     }
 }
