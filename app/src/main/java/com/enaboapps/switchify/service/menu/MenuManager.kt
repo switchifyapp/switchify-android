@@ -1,8 +1,10 @@
 package com.enaboapps.switchify.service.menu
 
 import com.enaboapps.switchify.service.core.SwitchifyAccessibilityService
-import com.enaboapps.switchify.service.gestures.visuals.GestureVisualManager
-import com.enaboapps.switchify.service.gestures.visuals.GestureVisualManagerRole
+import com.enaboapps.switchify.service.gestures.GesturePoint
+import com.enaboapps.switchify.service.gestures.visuals.GestureTargetIndicatorController
+import com.enaboapps.switchify.service.gestures.visuals.GestureTargetIndicatorOwner
+import com.enaboapps.switchify.service.gestures.visuals.GestureTargetPoint
 import com.enaboapps.switchify.service.menu.menus.ai.AiMenu
 import com.enaboapps.switchify.service.menu.menus.edit.EditMenu
 import com.enaboapps.switchify.service.menu.menus.gestures.CustomGestureConfirmationMenu
@@ -49,10 +51,7 @@ class MenuManager {
      */
     private val menuStateObservers = mutableListOf<MenuStateObserver>()
 
-    /**
-     * The current point visual
-     */
-    private lateinit var gestureVisualManager: GestureVisualManager
+    private lateinit var gestureTargetIndicator: GestureTargetIndicatorController
 
     /**
      * The scanning manager
@@ -76,15 +75,13 @@ class MenuManager {
      */
     fun setup(
         scanningManager: ScanningManager,
-        accessibilityService: SwitchifyAccessibilityService
+        accessibilityService: SwitchifyAccessibilityService,
+        gestureTargetIndicator: GestureTargetIndicatorController
     ) {
         this.scanningManager = scanningManager
         menuHierarchy = MenuHierarchy(scanningManager)
         this.accessibilityService = accessibilityService
-        gestureVisualManager = GestureVisualManager(
-            accessibilityService,
-            GestureVisualManagerRole.MENU_MANAGER
-        )
+        this.gestureTargetIndicator = gestureTargetIndicator
     }
 
     fun switchToPointScan() {
@@ -106,11 +103,6 @@ class MenuManager {
         val mainMenu = MainMenu(accessibilityService!!)
         openMenu(mainMenu.build())
 
-        // Show the current point visual
-        gestureVisualManager.showStaticCircle(
-            com.enaboapps.switchify.service.gestures.GesturePoint.x,
-            com.enaboapps.switchify.service.gestures.GesturePoint.y
-        )
     }
 
     /**
@@ -257,8 +249,14 @@ class MenuManager {
      * @param menu The menu to open
      */
     private fun openMenu(menu: MenuView) {
-        // Add the menu to the hierarchy
-        menuHierarchy?.openMenu(menu)
+        menuHierarchy?.let { hierarchy ->
+            val point = GesturePoint.getPoint()
+            gestureTargetIndicator.acquire(
+                GestureTargetIndicatorOwner.MENU,
+                GestureTargetPoint(point.x.toInt(), point.y.toInt())
+            )
+            hierarchy.openMenu(menu)
+        }
     }
 
     /**
@@ -280,8 +278,7 @@ class MenuManager {
     fun closeMenuHierarchy() {
         menuHierarchy?.removeAllMenus()
 
-        // Hide the current point visual
-        gestureVisualManager.hideCircle()
+        gestureTargetIndicator.release(GestureTargetIndicatorOwner.MENU)
     }
 
     /**

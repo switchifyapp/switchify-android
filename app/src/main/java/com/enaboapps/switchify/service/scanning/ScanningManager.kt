@@ -10,6 +10,7 @@ import com.enaboapps.switchify.service.core.Tasks
 import com.enaboapps.switchify.service.gestures.GestureLockManager
 import com.enaboapps.switchify.service.gestures.GestureManager
 import com.enaboapps.switchify.service.gestures.GestureRepeatManager
+import com.enaboapps.switchify.service.gestures.visuals.GestureTargetIndicatorController
 import com.enaboapps.switchify.service.menu.MenuManager
 import com.enaboapps.switchify.service.menu.menus.main.PcControlLauncher
 import com.enaboapps.switchify.service.selection.SelectionHandler
@@ -30,7 +31,8 @@ import com.enaboapps.switchify.utils.Logger
  * @property accessibilityService The accessibility service instance used for system-level actions.
  */
 class ScanningManager(
-    private val accessibilityService: SwitchifyAccessibilityService
+    private val accessibilityService: SwitchifyAccessibilityService,
+    private val gestureTargetIndicator: GestureTargetIndicatorController
 ) {
     companion object {
         private const val TAG = "ScanningManager"
@@ -80,7 +82,7 @@ class ScanningManager(
     fun setup() {
         SwitchifyAccessibilityWindow.instance.setup(accessibilityService)
         SwitchifyAccessibilityWindow.instance.show()
-        MenuManager.getInstance().setup(this, accessibilityService)
+        MenuManager.getInstance().setup(this, accessibilityService, gestureTargetIndicator)
     }
 
     /**

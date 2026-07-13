@@ -1,6 +1,8 @@
 package com.enaboapps.switchify.service.core
 
 import com.enaboapps.switchify.service.camera.CameraManager
+import com.enaboapps.switchify.service.gestures.visuals.AndroidGestureTargetIndicatorRenderer
+import com.enaboapps.switchify.service.gestures.visuals.GestureTargetIndicatorController
 import com.enaboapps.switchify.pc.PcServiceConnectionController
 import com.enaboapps.switchify.service.pauseresume.PauseManager
 import com.enaboapps.switchify.service.scanning.ScanningManager
@@ -16,6 +18,7 @@ object ServiceCore {
     private lateinit var headControlServiceRef: WeakReference<HeadControlService>
     private lateinit var cameraManagerRef: WeakReference<CameraManager>
     private var pcServiceConnectionController: PcServiceConnectionController? = null
+    private var gestureTargetIndicator: GestureTargetIndicatorController? = null
 
     /**
      * Initializes the service core with the given context and accessibility service.
@@ -25,7 +28,12 @@ object ServiceCore {
         // Initialize PauseManager singleton
         PauseManager.getInstance().init(accessibilityService)
 
-        scanningManagerRef = WeakReference(ScanningManager(accessibilityService))
+        gestureTargetIndicator = GestureTargetIndicatorController(
+            AndroidGestureTargetIndicatorRenderer(accessibilityService)
+        )
+        scanningManagerRef = WeakReference(
+            ScanningManager(accessibilityService, requireNotNull(gestureTargetIndicator))
+        )
         switchEventProviderRef = WeakReference(SwitchEventProvider(accessibilityService))
         headControlServiceRef = WeakReference(HeadControlService.getInstance(accessibilityService))
 
@@ -52,6 +60,8 @@ object ServiceCore {
     fun getScanningManager(): ScanningManager? {
         return if (::scanningManagerRef.isInitialized) scanningManagerRef.get() else null
     }
+
+    fun getGestureTargetIndicator(): GestureTargetIndicatorController? = gestureTargetIndicator
 
     /**
      * Gets the external switch listener instance.
@@ -113,6 +123,8 @@ object ServiceCore {
      * Cleans up the service core.
      */
     fun cleanup() {
+        gestureTargetIndicator?.release()
+        gestureTargetIndicator = null
         if (::scanningManagerRef.isInitialized) {
             scanningManagerRef.get()?.shutdown()
             scanningManagerRef = WeakReference(null)

@@ -15,6 +15,10 @@ import com.enaboapps.switchify.service.gestures.placement.FingerModePreferences
 import com.enaboapps.switchify.service.gestures.placement.FingerPlacementAlgorithm
 import com.enaboapps.switchify.service.gestures.visuals.GestureVisualManager
 import com.enaboapps.switchify.service.gestures.visuals.GestureVisualManagerRole
+import com.enaboapps.switchify.service.gestures.visuals.GestureTargetIndicatorController
+import com.enaboapps.switchify.service.gestures.visuals.GestureTargetIndicatorOwner
+import com.enaboapps.switchify.service.gestures.visuals.GestureTargetIndicatorSuppression
+import com.enaboapps.switchify.service.gestures.visuals.GestureTargetPoint
 import com.enaboapps.switchify.service.utils.ScreenUtils
 import com.enaboapps.switchify.service.window.MessageSeverity
 import com.enaboapps.switchify.service.window.ServiceMessageHUD
@@ -61,7 +65,8 @@ import com.enaboapps.switchify.service.window.ServiceMessageHUD
  */
 class LinearGesturePerformer(
     private val accessibilityService: SwitchifyAccessibilityService,
-    private val gestureLockManager: GestureLockManager
+    private val gestureLockManager: GestureLockManager,
+    private val gestureTargetIndicator: GestureTargetIndicatorController
 ) {
     private val gestureDispatcher = GestureDispatcher(accessibilityService)
     private val fingerPlacementAlgorithm = FingerPlacementAlgorithm()
@@ -111,6 +116,8 @@ class LinearGesturePerformer(
             Log.d(TAG, "GestureStateManager state: ${GestureStateManager.getStateSummary()}")
             return // Already performing gesture or too soon since last gesture
         }
+
+        acquireGestureTarget(startPoint)
 
         Log.d(TAG, "startGesture successful - state set in GestureStateManager")
         Log.d(
@@ -165,17 +172,10 @@ class LinearGesturePerformer(
 
         // Show appropriate visual feedback based on finger placement
         if (fingerPlacement != null && fingerPlacement.fingerCount > 1) {
-            // Show multi-finger visual feedback with finger positions
-            gestureVisualManager.showMultiFingerVisual(fingerPlacement)
+            showMultiFingerStartVisual(fingerPlacement)
             Log.d(
                 TAG,
                 "Showing multi-finger start visual for ${fingerPlacement.fingerCount} fingers (explicit count)"
-            )
-        } else {
-            // Fall back to single finger visual feedback
-            gestureVisualManager.showStaticCircle(
-                startPoint.x.toInt(),
-                startPoint.y.toInt()
             )
         }
     }
@@ -225,6 +225,8 @@ class LinearGesturePerformer(
             return // Already performing gesture or too soon since last gesture
         }
 
+        acquireGestureTarget(startPoint)
+
         Log.d(TAG, "startGesture successful - state set in GestureStateManager")
         Log.d(
             TAG,
@@ -265,17 +267,10 @@ class LinearGesturePerformer(
 
         // Show appropriate visual feedback based on finger placement
         if (fingerPlacement != null && fingerPlacement.fingerCount > 1) {
-            // Show multi-finger visual feedback with finger positions
-            gestureVisualManager.showMultiFingerVisual(fingerPlacement)
+            showMultiFingerStartVisual(fingerPlacement)
             Log.d(
                 TAG,
                 "Showing multi-finger start visual for ${fingerPlacement.fingerCount} fingers"
-            )
-        } else {
-            // Fall back to single finger visual feedback
-            gestureVisualManager.showStaticCircle(
-                startPoint.x.toInt(),
-                startPoint.y.toInt()
             )
         }
     }
@@ -327,6 +322,7 @@ class LinearGesturePerformer(
             Log.w(TAG, "endGesture failed - startPoint or gestureType is null")
             GestureStateManager.cancelGesture()
             gestureVisualManager.hideAllVisuals()
+            releaseGestureTarget()
             return
         }
 
@@ -350,6 +346,7 @@ class LinearGesturePerformer(
         )
 
         GestureStateManager.endGesture()
+        releaseGestureTarget()
     }
 
     /**
@@ -358,6 +355,33 @@ class LinearGesturePerformer(
     fun cancelGesture() {
         GestureStateManager.cancelGesture()
         gestureVisualManager.hideAllVisuals()
+        releaseGestureTarget()
+    }
+
+    private fun acquireGestureTarget(point: PointF) {
+        gestureTargetIndicator.resume(
+            GestureTargetIndicatorSuppression.MULTI_FINGER_PREVIEW
+        )
+        gestureTargetIndicator.acquire(
+            GestureTargetIndicatorOwner.LINEAR_GESTURE,
+            GestureTargetPoint(point.x.toInt(), point.y.toInt())
+        )
+    }
+
+    private fun showMultiFingerStartVisual(
+        fingerPlacement: com.enaboapps.switchify.service.gestures.placement.FingerPlacement
+    ) {
+        gestureTargetIndicator.suppress(
+            GestureTargetIndicatorSuppression.MULTI_FINGER_PREVIEW
+        )
+        gestureVisualManager.showMultiFingerVisual(fingerPlacement)
+    }
+
+    private fun releaseGestureTarget() {
+        gestureTargetIndicator.release(GestureTargetIndicatorOwner.LINEAR_GESTURE)
+        gestureTargetIndicator.resume(
+            GestureTargetIndicatorSuppression.MULTI_FINGER_PREVIEW
+        )
     }
 
     // State reset is now handled by GestureStateManager
@@ -613,7 +637,7 @@ class LinearGesturePerformer(
      * Cancels any ongoing gestures and resets the gesture state.
      */
     fun cancelOngoingGestures() {
-        GestureStateManager.cancelGesture()
+        cancelGesture()
     }
 
     // === Helper Methods for Multi-Finger Support ===
