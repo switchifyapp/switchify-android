@@ -1,6 +1,10 @@
 package com.enaboapps.switchify.service.menu
 
 import android.content.Context
+import android.graphics.Paint
+import android.graphics.Typeface
+import android.text.TextPaint
+import android.util.TypedValue
 import android.view.Gravity
 import android.view.ViewGroup
 import android.widget.LinearLayout
@@ -8,6 +12,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -15,6 +20,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -24,7 +30,9 @@ import com.enaboapps.switchify.R
 import com.enaboapps.switchify.service.components.AccessibilityComposeView
 import com.enaboapps.switchify.service.menu.structure.MenuConstants
 import com.enaboapps.switchify.service.techniques.nodes.Node
+import com.enaboapps.switchify.service.utils.ScreenUtils
 import com.enaboapps.switchify.service.window.MenuHighlightHud
+import kotlin.math.ceil
 
 /**
  * Renders a single page of the service menu.
@@ -89,50 +97,97 @@ class MenuPage(
 
         val itemSize = MenuSizeManager.getItemSize(context)
         val smallItemSize = MenuSizeManager.getSmallItemSize(context)
-
-        // List is sized to the content width and paginated by MenuView so it
-        // can't overflow vertically. Both width and pagination derive from
-        // MenuSurfaceBudget — the single source of truth for what fits.
-        val contentMaxWidthPx = MenuSurfaceBudget.contentMaxWidthPx(context)
+        val navigationItems = buildNavigationItems()
+        val navigationCellWidthPx = navigationCellWidthPx(smallItemSize, navigationItems.size)
+        val navRow = buildNavRow(smallItemSize, navigationItems, navigationCellWidthPx)
+        val showNavRow = navigationItems.isNotEmpty()
+        val titleText = titleResId?.let { context.getString(it) }
+        val contentWidthPx = calculateContentWidth(
+            itemSize = itemSize,
+            navigationWidthPx = navigationItems.size * navigationCellWidthPx,
+            title = titleText
+        )
 
         val content: ViewGroup = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
             layoutParams = ViewGroup.LayoutParams(
-                contentMaxWidthPx,
+                contentWidthPx,
                 ViewGroup.LayoutParams.WRAP_CONTENT
             )
             contentItems.forEach { it.inflate(this, itemSize) }
         }
 
-        val navRow = buildNavRow(smallItemSize)
-        val showNavRow = navRow.childCount > 0
-        val titleText = titleResId?.let { context.getString(it) }
-
         return AccessibilityComposeView(context) {
-            MenuPageBackground(isTransparent) {
+            MenuPageBackground(
+                isTransparent = isTransparent,
+                surfaceMaxWidthPx = MenuSurfaceBudget.surfaceMaxWidthPx(context)
+            ) {
                 MenuPageBody(
                     title = titleText,
                     content = content,
-                    navRow = if (showNavRow) navRow else null
+                    navRow = if (showNavRow) navRow else null,
+                    contentMaxWidthPx = MenuSurfaceBudget.contentMaxWidthPx(context)
                 )
             }
         }
     }
 
-    /**
-     * Bottom nav row: [prev] [close] [next]. Prev/next are elided when they
-     * don't apply (first/last page, single page). Returns an empty LinearLayout
-     * if nothing belongs here — caller skips adding it in that case.
-     */
-    private fun buildNavRow(smallItemSize: MenuItemSize): LinearLayout {
-        val navRow = LinearLayout(context).apply {
-            orientation = LinearLayout.HORIZONTAL
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            ).also { it.gravity = Gravity.CENTER_HORIZONTAL }
+    private fun calculateContentWidth(
+        itemSize: MenuItemSize,
+        navigationWidthPx: Int,
+        title: String?
+    ): Int {
+        val labelPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
+            textSize = TypedValue.applyDimension(
+                TypedValue.COMPLEX_UNIT_SP,
+                itemSize.labelTextSize.value,
+                context.resources.displayMetrics
+            )
+            // Row labels inherit Material3 bodyLarge letter spacing (the app
+            // theme does not override bodyLarge), so the measurement must
+            // include it or long labels wrap despite fitting.
+            letterSpacing = LABEL_LETTER_SPACING_SP / itemSize.labelTextSize.value
         }
+        val circleWidthPx = ScreenUtils.dpToPx(
+            context,
+            itemSize.containerCircleSize.value.toInt()
+        )
+        val rowPaddingPx = ScreenUtils.dpToPx(context, ROW_HORIZONTAL_PADDING_DP)
+        val labelSpacingPx = ScreenUtils.dpToPx(context, LABEL_SPACING_DP)
+        val chevronWidthPx = ScreenUtils.dpToPx(context, CHEVRON_WIDTH_DP)
+        val labelTolerancePx = ScreenUtils.dpToPx(context, LABEL_WIDTH_TOLERANCE_DP)
+        val rows = contentItems.map { item ->
+            MenuRowWidth(
+                labelWidthPx = ceil(labelPaint.measureText(item.displayText()).toDouble()).toInt(),
+                fixedWidthPx = rowPaddingPx + circleWidthPx + labelSpacingPx + labelTolerancePx +
+                    if (item.showsForwardChevron) chevronWidthPx else 0
+            )
+        }
+        val titleWidthPx = title?.let { text ->
+            val titlePaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
+                textSize = TypedValue.applyDimension(
+                    TypedValue.COMPLEX_UNIT_SP,
+                    TITLE_TEXT_SIZE_SP,
+                    context.resources.displayMetrics
+                )
+                typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+                letterSpacing = TITLE_LETTER_SPACING_SP / TITLE_TEXT_SIZE_SP
+            }
+            ceil(titlePaint.measureText(text).toDouble()).toInt()
+        } ?: 0
+        return MenuContentWidthCalculator.calculate(
+            maxWidthPx = MenuSurfaceBudget.contentMaxWidthPx(context),
+            minimumWidthPx = maxOf(navigationWidthPx, titleWidthPx),
+            rows = rows
+        )
+    }
 
+    /**
+     * Nav-row items in display order: [prev] [close] [next]. Prev/next are
+     * elided when they don't apply (first/last page, single page).
+     */
+    private fun buildNavigationItems(): List<MenuItem> {
+        val navigationItems = mutableListOf<MenuItem>()
         if (hasPagination && pageIndex > 0) {
             prevPageMenuItem = pageNavItem(
                 id = MenuConstants.ItemIds.Navigation.PREV_PAGE,
@@ -140,10 +195,10 @@ class MenuPage(
                 labelResource = R.string.menu_item_previous_page,
                 descriptionResource = R.string.menu_item_previous_page_description,
                 action = { previousPage() }
-            ).also { it.inflate(navRow, smallItemSize) }
+            ).also(navigationItems::add)
         }
 
-        closeItem?.inflate(navRow, smallItemSize)
+        closeItem?.let(navigationItems::add)
 
         if (hasPagination && pageIndex < maxPageIndex) {
             nextPageMenuItem = pageNavItem(
@@ -152,9 +207,41 @@ class MenuPage(
                 labelResource = R.string.menu_item_next_page,
                 descriptionResource = R.string.menu_item_next_page_description,
                 action = { nextPage() }
-            ).also { it.inflate(navRow, smallItemSize) }
+            ).also(navigationItems::add)
         }
+        return navigationItems
+    }
 
+    private fun navigationCellWidthPx(smallItemSize: MenuItemSize, itemCount: Int): Int =
+        MenuContentWidthCalculator.navigationCellWidth(
+            availableWidthPx = MenuSurfaceBudget.contentMaxWidthPx(context),
+            preferredWidthPx = ScreenUtils.dpToPx(
+                context,
+                smallItemSize.width.value.toInt()
+            ),
+            minimumTouchWidthPx = ScreenUtils.dpToPx(context, MINIMUM_TOUCH_TARGET_DP),
+            itemCount = itemCount
+        )
+
+    /**
+     * Bottom nav row hosting [navigationItems]. Returns an empty LinearLayout
+     * when there are no items — caller skips adding it in that case.
+     */
+    private fun buildNavRow(
+        smallItemSize: MenuItemSize,
+        navigationItems: List<MenuItem>,
+        cellWidthPx: Int
+    ): LinearLayout {
+        val navRow = LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).also { it.gravity = Gravity.CENTER_HORIZONTAL }
+        }
+        navigationItems.forEach { item ->
+            item.inflate(navRow, smallItemSize, cellWidthPx)
+        }
         return navRow
     }
 
@@ -183,14 +270,31 @@ class MenuPage(
         val newIndex = if (pageIndex == maxPageIndex) 0 else pageIndex + 1
         onMenuPageChanged(newIndex)
     }
+
+    private companion object {
+        const val ROW_HORIZONTAL_PADDING_DP = 24
+        const val LABEL_SPACING_DP = 12
+        const val CHEVRON_WIDTH_DP = 24
+        const val LABEL_WIDTH_TOLERANCE_DP = 4
+        const val MINIMUM_TOUCH_TARGET_DP = 48
+        const val TITLE_TEXT_SIZE_SP = 16f
+
+        // Material3 defaults inherited by the rendered text: bodyLarge for
+        // row labels, titleMedium for the title.
+        const val LABEL_LETTER_SPACING_SP = 0.5f
+        const val TITLE_LETTER_SPACING_SP = 0.15f
+    }
 }
 
 @Composable
 private fun MenuPageBackground(
     isTransparent: Boolean,
+    surfaceMaxWidthPx: Int,
     content: @Composable () -> Unit
 ) {
+    val surfaceMaxWidth = with(LocalDensity.current) { surfaceMaxWidthPx.toDp() }
     Surface(
+        modifier = Modifier.widthIn(max = surfaceMaxWidth),
         shape = RoundedCornerShape(28.dp),
         color = MaterialTheme.colorScheme.surface.copy(
             alpha = if (isTransparent) 0.82f else 0.98f
@@ -223,8 +327,10 @@ private fun MenuPageBackground(
 private fun MenuPageBody(
     title: String?,
     content: ViewGroup,
-    navRow: LinearLayout?
+    navRow: LinearLayout?,
+    contentMaxWidthPx: Int
 ) {
+    val contentMaxWidth = with(LocalDensity.current) { contentMaxWidthPx.toDp() }
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         if (title != null) {
             Text(
@@ -235,7 +341,9 @@ private fun MenuPageBody(
                 textAlign = TextAlign.Center,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.padding(bottom = 12.dp)
+                modifier = Modifier
+                    .widthIn(max = contentMaxWidth)
+                    .padding(bottom = 12.dp)
             )
         }
         AndroidView(factory = { content })

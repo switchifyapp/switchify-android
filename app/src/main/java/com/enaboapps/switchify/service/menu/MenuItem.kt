@@ -70,6 +70,12 @@ class MenuItem(
     val isBackButton: Boolean = false,
     private val action: () -> Unit
 ) {
+    internal fun displayText(): String =
+        resolveMenuItemLabel(labelResource, userProvidedText).orEmpty()
+
+    internal val showsForwardChevron: Boolean
+        get() = isLinkToMenu && !isBackButton
+
     /**
      * Convenience constructor that accepts a MenuItemDefinition.
      * This ensures menu metadata is defined once in MenuItemRegistry.
@@ -102,7 +108,7 @@ class MenuItem(
      * cell size from the profile. Content items fill the parent row width
      * and use the profile's [MenuItemSize.rowHeightDp] for their height.
      */
-    fun inflate(parent: ViewGroup, menuSize: MenuItemSize) {
+    fun inflate(parent: ViewGroup, menuSize: MenuItemSize, navigationWidthPx: Int? = null) {
         val context = parent.context
         composeView = AccessibilityComposeView(context) {
             MenuItemContent(
@@ -120,7 +126,8 @@ class MenuItem(
 
         composeView?.let { view ->
             view.layoutParams = if (isMenuHierarchyManipulator) {
-                val widthPx = ScreenUtils.dpToPx(context, menuSize.width.value.toInt())
+                val widthPx = navigationWidthPx
+                    ?: ScreenUtils.dpToPx(context, menuSize.width.value.toInt())
                 val heightPx = ScreenUtils.dpToPx(context, menuSize.height.value.toInt())
                 ViewGroup.LayoutParams(widthPx, heightPx)
             } else {
@@ -195,7 +202,7 @@ private fun MenuItemContent(
     menuSize: MenuItemSize,
     onClick: () -> Unit
 ) {
-    val text = if (labelResource != null) Resources.getString(labelResource) else userProvidedText
+    val text = resolveMenuItemLabel(labelResource, userProvidedText)
 
     Box(modifier = Modifier.fillMaxSize()) {
         if (isMenuHierarchyManipulator) {
@@ -390,6 +397,14 @@ private fun computeCircleTextFontSize(
     val maxSp = circleSizeDp * ratio / fontScale
     return if (fallback.value > maxSp) maxSp.sp else fallback
 }
+
+/**
+ * Single source of truth for a menu item's visible label — used both by the
+ * rendered row and by the width measurement in MenuPage, so the two can
+ * never resolve different text.
+ */
+private fun resolveMenuItemLabel(labelResource: Int?, userProvidedText: String?): String? =
+    if (labelResource != null) Resources.getString(labelResource) else userProvidedText
 
 private val WHITESPACE_REGEX = Regex("\\s+")
 
