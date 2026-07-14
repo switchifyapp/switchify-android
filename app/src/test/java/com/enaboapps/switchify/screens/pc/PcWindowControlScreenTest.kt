@@ -2,6 +2,7 @@ package com.enaboapps.switchify.screens.pc
 
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.pc.PcControlCommand
+import com.enaboapps.switchify.pc.PcDisplayDirection
 import com.enaboapps.switchify.pc.PcKeyboardKey
 import com.enaboapps.switchify.pc.PcKeyboardModifierKey
 import com.enaboapps.switchify.pc.PcKeyboardShortcutKey
@@ -11,6 +12,33 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class PcWindowControlScreenTest {
+    @Test
+    fun monitorCommandsUseDirectionalCrossOrder() {
+        val specs = pcDisplayNavigationSpecs()
+
+        assertEquals(9, specs.size)
+        assertEquals(
+            listOf(
+                PcControlCommand.MoveToDisplay(PcDisplayDirection.Up),
+                PcControlCommand.MoveToDisplay(PcDisplayDirection.Left),
+                PcControlCommand.MoveToDisplay(PcDisplayDirection.Right),
+                PcControlCommand.MoveToDisplay(PcDisplayDirection.Down)
+            ),
+            specs.mapNotNull { it?.command }
+        )
+        assertEquals(listOf(0, 2, 4, 6, 8), specs.indices.filter { specs[it] == null })
+    }
+
+    @Test
+    fun monitorVisibilityAndEnabledStateAreCapabilitySafe() {
+        assertEquals(false, shouldShowPcDisplayNavigation(supported = false, displayCount = 2))
+        assertEquals(false, shouldShowPcDisplayNavigation(supported = true, displayCount = 1))
+        assertEquals(true, shouldShowPcDisplayNavigation(supported = true, displayCount = 2))
+        assertEquals(false, pcDisplayNavigationControlsEnabled(surfaceEnabled = false, isDragging = false))
+        assertEquals(false, pcDisplayNavigationControlsEnabled(surfaceEnabled = true, isDragging = true))
+        assertEquals(true, pcDisplayNavigationControlsEnabled(surfaceEnabled = true, isDragging = false))
+    }
+
     @Test
     fun windowCommandsUseStableOrder() {
         val commands = pcWindowControlSpecs().map { it.command }

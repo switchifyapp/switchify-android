@@ -195,6 +195,11 @@ private fun PcMouseControlScreen(
                         )
                         PcControlSurface.Window -> PcWindowControlScreen(
                             enabled = surfaceEnabled,
+                            monitorNavigationVisible = shouldShowPcDisplayNavigation(
+                                uiState.displayNavigationSupported,
+                                uiState.displayCount
+                            ),
+                            monitorNavigationEnabled = pcDisplayNavigationControlsEnabled(surfaceEnabled, uiState.isDragging),
                             activeModifiers = uiState.activeModifiers,
                             onModifierSelected = viewModel::toggleModifier,
                             onShortcutLetterSelected = viewModel::sendShortcutLetter,
@@ -246,4 +251,12 @@ private fun PcMouseControlScreen(
             }
         )
     }
+}
+
+internal fun shouldShowPcDisplayNavigation(supported: Boolean, displayCount: Int): Boolean {
+    return supported && displayCount > 1
+}
+
+internal fun pcDisplayNavigationControlsEnabled(surfaceEnabled: Boolean, isDragging: Boolean): Boolean {
+    return surfaceEnabled && !isDragging
 }

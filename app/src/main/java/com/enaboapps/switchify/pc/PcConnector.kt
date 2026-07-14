@@ -13,6 +13,13 @@ sealed class PcPingResult {
     data class Failed(val reason: PcErrorReason, val message: String) : PcPingResult()
 }
 
+enum class PcDisplayDirection(val protocolValue: String) {
+    Left("left"),
+    Right("right"),
+    Up("up"),
+    Down("down")
+}
+
 sealed class PcControlCommand {
     data class Move(val dx: Int, val dy: Int) : PcControlCommand()
     data class Scroll(val dx: Int, val dy: Int) : PcControlCommand()
@@ -32,6 +39,7 @@ sealed class PcControlCommand {
     data class ModifierUp(val key: PcKeyboardModifierKey) : PcControlCommand()
     data class WindowControl(val action: PcWindowControlAction) : PcControlCommand()
     data class SetPointerSpeed(val scalePercent: Double) : PcControlCommand()
+    data class MoveToDisplay(val direction: PcDisplayDirection) : PcControlCommand()
     data object LeftClick : PcControlCommand()
     data object DoubleClick : PcControlCommand()
     data object RightClick : PcControlCommand()

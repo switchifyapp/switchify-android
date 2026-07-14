@@ -250,7 +250,7 @@ class SwitchifyPcBleClient(
             is PcProtocolResponse.Ack -> PcCommandResult.Ack
             is PcProtocolResponse.Error -> {
                 if (response.code == "invalid_auth") PcCommandResult.AuthFailed()
-                else PcCommandResult.Failed()
+                else PcCommandResult.Failed(response.message.ifBlank { "Could not send command to PC." })
             }
             else -> PcCommandResult.Failed()
         }
@@ -316,6 +316,7 @@ class SwitchifyPcBleClient(
             is PcControlCommand.ModifierUp -> PcProtocol.keyboardModifierUp(id, deviceId, token, timestamp, key, responseMode)
             is PcControlCommand.WindowControl -> PcProtocol.windowControl(id, deviceId, token, timestamp, action, responseMode)
             is PcControlCommand.SetPointerSpeed -> PcProtocol.pointerSpeedSet(id, deviceId, token, timestamp, scalePercent)
+            is PcControlCommand.MoveToDisplay -> PcProtocol.pointerDisplayMove(id, deviceId, token, timestamp, direction)
         }
     }
 
@@ -426,6 +427,7 @@ private fun PcControlCommand.protocolType(): String {
         is PcControlCommand.ModifierUp -> "keyboard.modifierUp"
         is PcControlCommand.WindowControl -> "window.control"
         is PcControlCommand.SetPointerSpeed -> "pointer.speed.set"
+        is PcControlCommand.MoveToDisplay -> "pointer.display.move"
     }
 }
 
