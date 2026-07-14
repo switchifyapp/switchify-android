@@ -125,6 +125,7 @@ class PcServiceConnectionController(
     }
 
     suspend fun connectOrRequestAccess(onWaitingForApproval: (PcApprovalCodeState) -> Unit = {}): PcServiceConnectResult {
+        cancelReconnect()
         return runExclusiveAttempt {
             connectOrRequestAccessInternal(onWaitingForApproval)
         }.also { logConnectFailure(it, desktopId = null) }
@@ -175,6 +176,7 @@ class PcServiceConnectionController(
         pc: DiscoveredPc,
         onWaitingForApproval: (PcApprovalCodeState) -> Unit = {}
     ): PcServiceConnectResult {
+        cancelReconnect()
         return runExclusiveAttempt {
             connectToInternal(pc, onWaitingForApproval)
         }.also { logConnectFailure(it, pc.desktopId) }
@@ -262,6 +264,7 @@ class PcServiceConnectionController(
         pendingUiPauseShutdownJob = scope.launch {
             delay(PC_CONTROL_UI_PAUSE_SHUTDOWN_GRACE_MS)
             if (hasActiveConnectionAttempt()) return@launch
+            cancelReconnect()
             closeLiveConnection(PcControlCloseReason.UiPauseGraceExpired)
             connector.close()
             clearLiveState()
@@ -328,8 +331,7 @@ class PcServiceConnectionController(
         cancelConnectionAttempt()
         pendingUiPauseShutdownJob?.cancel()
         pendingUiPauseShutdownJob = null
-        reconnectJob?.cancel()
-        reconnectJob = null
+        cancelReconnect()
         closeLiveConnection(PcControlCloseReason.ExplicitStop)
         if (!hasDiscoveryRequests()) {
             discovery.stopDiscovery()
@@ -500,10 +502,11 @@ class PcServiceConnectionController(
 
     private fun reconnectLiveSession(session: PcAuthenticatedSession, displayName: String) {
         if (reconnectJob?.isActive == true) return
-        reconnectJob = scope.launch {
+        val job = scope.launch {
             _state.value = PcServiceConnectionState.Reconnecting(session, displayName)
             PcConnectionStateHolder.setReconnecting(session, displayName)
-            for ((index, backoffMs) in RECONNECT_BACKOFF_MS.withIndex()) {
+            var failureCount = 0
+            while (isActive && shouldMaintainLiveConnection()) {
                 closeLiveConnection(PcControlCloseReason.Reconnect)
                 when (val result = connector.openControlSession(session)) {
                     is PcLiveControlResult.Connected -> {
@@ -517,22 +520,34 @@ class PcServiceConnectionController(
                         _state.value = PcServiceConnectionState.Failed(result.message)
                         return@launch
                     }
-                    is PcLiveControlResult.Failed -> Unit
+                    is PcLiveControlResult.Failed -> {
+                        if (result.reason != PcLiveControlFailureReason.Transient) {
+                            closeLiveConnection(PcControlCloseReason.CommandFailureRecovery)
+                            clearLiveState()
+                            PcConnectionStateHolder.setFailed(result.message)
+                            _state.value = PcServiceConnectionState.Failed(result.message)
+                            return@launch
+                        }
+                    }
                 }
-                if (index < RECONNECT_BACKOFF_MS.lastIndex) delay(backoffMs)
+                val backoffMs = RECONNECT_BACKOFF_MS[failureCount.coerceAtMost(RECONNECT_BACKOFF_MS.lastIndex)]
+                failureCount++
+                delay(backoffMs)
             }
-            Logger.log(
-                LogEvent.PcReconnectFailed,
-                data = mapOf(
-                    "desktopId" to session.desktopId,
-                    "attempts" to RECONNECT_BACKOFF_MS.size
-                )
-            )
-            closeLiveConnection(PcControlCloseReason.CommandFailureRecovery)
-            clearLiveState()
-            PcConnectionStateHolder.setFailed(DISCONNECTED_MESSAGE)
-            _state.value = PcServiceConnectionState.Failed(DISCONNECTED_MESSAGE)
         }
+        reconnectJob = job
+        job.invokeOnCompletion {
+            if (reconnectJob === job) reconnectJob = null
+        }
+    }
+
+    private fun shouldMaintainLiveConnection(): Boolean {
+        return pcUiActive || pendingUiPauseShutdownJob?.isActive == true
+    }
+
+    private fun cancelReconnect() {
+        reconnectJob?.cancel()
+        reconnectJob = null
     }
 
     private fun closeLiveConnection(reason: PcControlCloseReason) {
@@ -578,11 +593,10 @@ class PcServiceConnectionController(
 
         private const val EXPIRED_MESSAGE = "Connection expired. Request access again."
         private const val CONNECT_FIRST_MESSAGE = "Connect to PC from Switchify first."
-        private const val DISCONNECTED_MESSAGE = "Disconnected."
         private const val LIVE_HEARTBEAT_INTERVAL_MS = 5_000L
         private const val PC_CONTROL_UI_PAUSE_SHUTDOWN_GRACE_MS = 8_000L
         private const val DISCOVERY_TIMEOUT_MS = 8_000L
         private const val SETTLE_WINDOW_MS = 1_500L
-        private val RECONNECT_BACKOFF_MS = listOf(250L, 750L, 1_500L, 3_000L)
+        private val RECONNECT_BACKOFF_MS = listOf(500L, 1_000L, 2_000L, 4_000L, 8_000L, 15_000L, 30_000L)
     }
 }
