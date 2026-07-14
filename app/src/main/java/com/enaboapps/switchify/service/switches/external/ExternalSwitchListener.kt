@@ -7,6 +7,7 @@ import com.enaboapps.switchify.pc.PcMouseRepeatManager
 import com.enaboapps.switchify.service.core.ServiceCore
 import com.enaboapps.switchify.service.core.Tasks
 import com.enaboapps.switchify.service.gestures.GestureLockManager
+import com.enaboapps.switchify.service.keyboard.KeyboardManager
 import com.enaboapps.switchify.service.scanning.ScanningManager
 import com.enaboapps.switchify.service.selection.SelectionHandler
 import com.enaboapps.switchify.service.stats.StatsCollector
@@ -35,6 +36,7 @@ class ExternalSwitchListener(
     private val preferenceManager = PreferenceManager(context)
 
     private var pressSession: ExternalSwitchPressSession = ExternalSwitchPressSession.None
+    private val suppressedSwitchCodes = mutableSetOf<Int>()
     private var gestureLockHoldFired = false
     private val pauseSwitchHoldTracker = PauseSwitchHoldTracker()
 
@@ -52,7 +54,13 @@ class ExternalSwitchListener(
      * @return true if the event was handled and should be consumed, false otherwise
      */
     fun onSwitchPressed(keyCode: Int): Boolean {
+        if (keyCode in suppressedSwitchCodes) return true
         val switchEvent = findSwitchEvent(keyCode) ?: return false
+        if (KeyboardManager.shouldSuppressSwitchInput()) {
+            suppressedSwitchCodes += keyCode
+            suppressCurrentSwitchInteraction(swallowRelease = true)
+            return true
+        }
         switchEvent.log()
 
         // Record stats for switch press
@@ -105,7 +113,15 @@ class ExternalSwitchListener(
      * @return true if the event was handled and should be consumed, false otherwise
      */
     fun onSwitchReleased(keyCode: Int): Boolean {
+        if (suppressedSwitchCodes.remove(keyCode)) {
+            suppressCurrentSwitchInteraction(swallowRelease = false)
+            return true
+        }
         val switchEvent = findSwitchEvent(keyCode) ?: return false
+        if (KeyboardManager.shouldSuppressSwitchInput()) {
+            suppressCurrentSwitchInteraction(swallowRelease = false)
+            return true
+        }
 
         val pauseManager = ServiceCore.getPauseManager()
         if (pauseManager.isPaused) {
@@ -345,6 +361,7 @@ class ExternalSwitchListener(
     fun reset() {
         lastSwitchPressedTime = 0
         lastSwitchPressedCode = 0
+        suppressedSwitchCodes.clear()
         pauseSwitchHoldTracker.reset()
         clearPressSession()
         ExternalSwitchLongPressHandler.cancel()
@@ -368,6 +385,20 @@ class ExternalSwitchListener(
     private fun cancelCurrentPressInteraction() {
         ExternalSwitchLongPressHandler.cancel()
         clearPressSession()
+    }
+
+    private fun suppressCurrentSwitchInteraction(swallowRelease: Boolean) {
+        val hadActiveInteraction = pressSession != ExternalSwitchPressSession.None &&
+            pressSession != ExternalSwitchPressSession.ReleaseSwallowed
+        scanningManager.stopMoveRepeat()
+        ExternalSwitchLongPressHandler.cancel()
+        clearPressSession()
+        if (swallowRelease) {
+            pressSession = ExternalSwitchPressSession.ReleaseSwallowed
+        }
+        if (hadActiveInteraction) {
+            resumeScanningIfNeeded()
+        }
     }
 
     private fun resumeScanningIfNeeded() {

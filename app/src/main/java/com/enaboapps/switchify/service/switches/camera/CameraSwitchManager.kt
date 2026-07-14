@@ -13,8 +13,9 @@ import com.enaboapps.switchify.pc.PcMouseRepeatManager
 import com.enaboapps.switchify.service.camera.CameraLifecycle
 import com.enaboapps.switchify.service.camera.CameraPermissionManager
 import com.enaboapps.switchify.service.core.ServiceCore
-import com.enaboapps.switchify.service.face.FaceProcessingService
 import com.enaboapps.switchify.service.core.Tasks
+import com.enaboapps.switchify.service.face.FaceProcessingService
+import com.enaboapps.switchify.service.keyboard.KeyboardManager
 import com.enaboapps.switchify.service.pauseresume.PauseManager
 import com.enaboapps.switchify.service.scanning.ScanningManager
 import com.enaboapps.switchify.service.stats.StatsCollector
@@ -418,12 +419,11 @@ class CameraSwitchManager(
     }
 
     private fun triggerSwitchAction(gesture: CameraSwitchFacialGesture) {
-        // Record stats for camera gesture
-        StatsCollector.getInstance().recordSwitchPress("camera", gesture.id)
-
-        val switchEvent = findSwitchEventForGesture(gesture)
-        if (switchEvent != null) {
-            coroutineScope.launch(Dispatchers.Main) {
+        coroutineScope.launch(Dispatchers.Main) {
+            if (KeyboardManager.shouldSuppressSwitchInput()) return@launch
+            StatsCollector.getInstance().recordSwitchPress("camera", gesture.id)
+            val switchEvent = findSwitchEventForGesture(gesture)
+            if (switchEvent != null) {
                 Log.i(TAG, "Triggering switch action for gesture: ${gesture.getName()}")
                 if (stopPcMouseRepeatForSwitchPress()) return@launch
                 if (!switchEvent.pressAction.isScanMovementAction() &&
@@ -438,6 +438,7 @@ class CameraSwitchManager(
         switchEventProvider.findCamera(gesture.id)
 
     private fun triggerHeadTurnGesture(gesture: CameraSwitchFacialGesture) {
+        if (KeyboardManager.shouldSuppressSwitchInput()) return
         val currentTime = System.currentTimeMillis()
         if (currentTime - lastHeadTurnTime < headTurnCooldown) {
             return // Rate limiting
@@ -448,6 +449,7 @@ class CameraSwitchManager(
         val switchEvent = findSwitchEventForGesture(gesture)
         if (switchEvent != null) {
             coroutineScope.launch(Dispatchers.Main) {
+                if (KeyboardManager.shouldSuppressSwitchInput()) return@launch
                 Log.i(TAG, "Triggering head turn gesture: ${gesture.getName()}")
                 if (stopPcMouseRepeatForSwitchPress()) return@launch
                 if (!switchEvent.pressAction.isScanMovementAction() &&
