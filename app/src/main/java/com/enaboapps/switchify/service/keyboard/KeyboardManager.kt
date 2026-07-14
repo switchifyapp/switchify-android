@@ -47,6 +47,7 @@ object KeyboardManager : CycleBreakListener {
      * See: https://github.com/enaboapps/switchify/issues/1507
      */
     private const val BYPASS_UPDATE_DELAY_MS = 250L
+    private const val SWITCH_INPUT_SUPPRESSION_DURATION_MS = 1000L
 
     // State tracking - single source of truth
     private var isKeyboardVisible = false
@@ -59,6 +60,10 @@ object KeyboardManager : CycleBreakListener {
     // hold off bypass for BYPASS_UPDATE_DELAY_MS after returnToKeyboard so the
     // keyboard UI can stabilise before direct selection re-engages.
     private var bypassUnlockAt: Long = 0L
+    private val switchInputGuard = KeyboardHideSwitchInputGuard(
+        SWITCH_INPUT_SUPPRESSION_DURATION_MS,
+        SystemClock::uptimeMillis
+    )
 
     // State machine for explicit state transitions
     private val stateMachine = KeyboardStateMachine()
@@ -156,6 +161,7 @@ object KeyboardManager : CycleBreakListener {
         isKeyboardVisible = visible
         keyboardBounds = bounds
         keyboardWindowTarget = windowTarget
+        switchInputGuard.onKeyboardVisibilityChanged(visible)
 
         // Use state machine for state transitions
         val event = if (visible) KeyboardEvent.KeyboardShown else KeyboardEvent.KeyboardHidden
@@ -297,6 +303,10 @@ object KeyboardManager : CycleBreakListener {
      */
     fun isKeyboardVisible(): Boolean {
         return isKeyboardVisible
+    }
+
+    fun shouldSuppressSwitchInput(): Boolean {
+        return switchInputGuard.shouldSuppressSwitchInput()
     }
 
     /**
