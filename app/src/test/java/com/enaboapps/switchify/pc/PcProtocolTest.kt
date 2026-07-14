@@ -167,6 +167,35 @@ class PcProtocolTest {
     }
 
     @Test
+    fun buildsPointerDisplayMoveCommandWithAuthProof() {
+        val json = JSONObject(
+            PcProtocol.pointerDisplayMove(
+                id = "display-1",
+                deviceId = "device-1",
+                token = "shared-token",
+                timestamp = 1000L,
+                direction = PcDisplayDirection.Left
+            )
+        )
+
+        assertEquals("pointer.display.move", json.getString("type"))
+        assertEquals("left", json.getJSONObject("payload").getString("direction"))
+        assertFalse(json.has("responseMode"))
+        assertEquals(
+            PcProtocol.authProof(
+                id = "display-1",
+                deviceId = "device-1",
+                timestamp = 1000L,
+                type = "pointer.display.move",
+                payload = JSONObject().put("direction", "left"),
+                token = "shared-token"
+            ),
+            json.getString("auth")
+        )
+        assertFalse(json.toString().contains("shared-token"))
+    }
+
+    @Test
     fun parsesPointerProfileResponse() {
         val response = PcProtocol.parseResponse(validPointerProfileResponse()) as PcProtocolResponse.PointerProfile
 
@@ -181,6 +210,8 @@ class PcProtocolTest {
         assertEquals(emptySet<String>(), response.profile.capabilities.supportedCommands)
         assertFalse(response.profile.capabilities.pointerSpeed.supported)
         assertFalse(response.profile.capabilities.pointerSpeed.setSupported)
+        assertFalse(response.profile.capabilities.displayNavigation.supported)
+        assertEquals(1, response.profile.capabilities.displayNavigation.displayCount)
         assertEquals(5.0, response.profile.capabilities.pointerSpeed.minScalePercent, 0.0)
         assertEquals(130, response.profile.pointerMoveStep())
     }
@@ -201,6 +232,33 @@ class PcProtocolTest {
         assertEquals(128, response.profile.capabilities.pointerSpeed.baseMoveDelta)
         assertEquals(160, response.profile.capabilities.pointerSpeed.effectiveMoveDelta)
         assertEquals(128, response.profile.pointerMoveStep())
+    }
+
+    @Test
+    fun parsesPointerDisplayNavigationCapability() {
+        val response = PcProtocol.parseResponse(
+            validPointerProfileResponse(
+                capabilities = ""","capabilities":{"supportedCommands":["pointer.display.move"],"displayNavigation":{"supported":true,"displayCount":3}}"""
+            )
+        ) as PcProtocolResponse.PointerProfile
+
+        assertTrue(response.profile.capabilities.displayNavigation.supported)
+        assertEquals(3, response.profile.capabilities.displayNavigation.displayCount)
+        assertTrue(response.profile.supportsDisplayNavigation())
+    }
+
+    @Test
+    fun rejectsMalformedPointerDisplayNavigationCapability() {
+        listOf(
+            ""","capabilities":{"displayNavigation":{"supported":true,"displayCount":0}}""",
+            ""","capabilities":{"displayNavigation":{"supported":"yes","displayCount":2}}""",
+            ""","capabilities":{"displayNavigation":{"supported":true,"displayCount":2,"extra":true}}"""
+        ).forEach { capabilities ->
+            assertEquals(
+                PcProtocolResponse.Invalid,
+                PcProtocol.parseResponse(validPointerProfileResponse(capabilities = capabilities))
+            )
+        }
     }
 
     @Test

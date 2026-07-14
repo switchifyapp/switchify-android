@@ -8,6 +8,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.OpenWith
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.rounded.Computer
@@ -26,6 +28,7 @@ import com.enaboapps.switchify.R
 import com.enaboapps.switchify.components.CollapsibleSection
 import com.enaboapps.switchify.pc.PC_SHORTCUT_LETTER_KEYS
 import com.enaboapps.switchify.pc.PcControlCommand
+import com.enaboapps.switchify.pc.PcDisplayDirection
 import com.enaboapps.switchify.pc.PcKeyboardKey
 import com.enaboapps.switchify.pc.PcKeyboardModifierKey
 import com.enaboapps.switchify.pc.PcKeyboardShortcutKey
@@ -41,6 +44,8 @@ data class PcWindowControlSpec(
 @Composable
 fun PcWindowControlScreen(
     enabled: Boolean,
+    monitorNavigationVisible: Boolean,
+    monitorNavigationEnabled: Boolean,
     activeModifiers: Set<PcKeyboardModifierKey>,
     onModifierSelected: (PcKeyboardModifierKey) -> Unit,
     onShortcutLetterSelected: (PcKeyboardShortcutKey) -> Unit,
@@ -71,6 +76,27 @@ fun PcWindowControlScreen(
                 }
             }
         )
+        if (monitorNavigationVisible) {
+            Text(
+                text = stringResource(R.string.pc_window_section_monitors),
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            PcCompactCommandGrid(
+                columns = 3,
+                minTileHeightDp = 52,
+                cells = pcDisplayNavigationSpecs().map { spec ->
+                    spec?.let {
+                        PcCompactCommandCell(
+                            labelResId = it.labelResId,
+                            enabled = monitorNavigationEnabled,
+                            onClick = { onCommandSelected(it.command) },
+                            icon = it.icon
+                        )
+                    }
+                }
+            )
+        }
         Text(
             text = stringResource(R.string.pc_window_section_modifiers),
             style = MaterialTheme.typography.titleMedium,
@@ -100,6 +126,36 @@ fun PcWindowControlScreen(
             }
         )
     }
+}
+
+fun pcDisplayNavigationSpecs(): List<PcWindowControlSpec?> {
+    return listOf(
+        null,
+        PcWindowControlSpec(
+            R.string.pc_monitor_up,
+            PcControlCommand.MoveToDisplay(PcDisplayDirection.Up),
+            Icons.Default.KeyboardArrowUp
+        ),
+        null,
+        PcWindowControlSpec(
+            R.string.pc_monitor_left,
+            PcControlCommand.MoveToDisplay(PcDisplayDirection.Left),
+            Icons.AutoMirrored.Filled.ArrowBack
+        ),
+        null,
+        PcWindowControlSpec(
+            R.string.pc_monitor_right,
+            PcControlCommand.MoveToDisplay(PcDisplayDirection.Right),
+            Icons.AutoMirrored.Filled.ArrowForward
+        ),
+        null,
+        PcWindowControlSpec(
+            R.string.pc_monitor_down,
+            PcControlCommand.MoveToDisplay(PcDisplayDirection.Down),
+            Icons.Default.KeyboardArrowDown
+        ),
+        null
+    )
 }
 
 @Composable

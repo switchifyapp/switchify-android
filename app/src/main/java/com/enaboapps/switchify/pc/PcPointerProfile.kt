@@ -14,7 +14,13 @@ data class PcPointerCapabilities(
     val noAckCommands: Set<String> = emptySet(),
     val supportedCommands: Set<String> = emptySet(),
     val mouseRepeat: PcMouseRepeatCapabilities = PcMouseRepeatCapabilities(),
-    val pointerSpeed: PcPointerSpeedCapabilities = PcPointerSpeedCapabilities()
+    val pointerSpeed: PcPointerSpeedCapabilities = PcPointerSpeedCapabilities(),
+    val displayNavigation: PcDisplayNavigationCapabilities = PcDisplayNavigationCapabilities()
+)
+
+data class PcDisplayNavigationCapabilities(
+    val supported: Boolean = false,
+    val displayCount: Int = 1
 )
 
 data class PcPointerSpeedCapabilities(
@@ -77,4 +83,10 @@ fun PcPointerMovementProfile.pointerMoveStep(): Int {
     val speed = capabilities.pointerSpeed
     val candidate = if (speed.supported) speed.baseMoveDelta else recommendedDeltas.medium
     return candidate.coerceIn(1, maxDelta)
+}
+
+fun PcPointerMovementProfile.supportsDisplayNavigation(): Boolean {
+    return capabilities.displayNavigation.supported &&
+            capabilities.displayNavigation.displayCount > 1 &&
+            capabilities.supportedCommands.contains("pointer.display.move")
 }

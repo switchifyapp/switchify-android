@@ -9,6 +9,7 @@ import com.enaboapps.switchify.pc.PcControlCommand
 import com.enaboapps.switchify.pc.PcControlCloseReason
 import com.enaboapps.switchify.pc.PcControlConnectionEvent
 import com.enaboapps.switchify.pc.PcDeviceIdentity
+import com.enaboapps.switchify.pc.PcDisplayDirection
 import com.enaboapps.switchify.pc.PcErrorReason
 import com.enaboapps.switchify.pc.PcKeyboardKey
 import com.enaboapps.switchify.pc.PcKeyboardModifierKey
@@ -239,6 +240,7 @@ class SwitchifyPcBleClientTest {
         assertEquals(PcCommandResult.Ack, client.sendCommand(session, PcControlCommand.ModifierDown(PcKeyboardModifierKey.Ctrl)))
         assertEquals(PcCommandResult.Ack, client.sendCommand(session, PcControlCommand.ModifierUp(PcKeyboardModifierKey.Ctrl)))
         assertEquals(PcCommandResult.Ack, client.sendCommand(session, PcControlCommand.WindowControl(PcWindowControlAction.MinimizeFocused)))
+        assertEquals(PcCommandResult.Ack, client.sendCommand(session, PcControlCommand.MoveToDisplay(PcDisplayDirection.Right)))
 
         assertEquals(
             listOf(
@@ -254,10 +256,26 @@ class SwitchifyPcBleClientTest {
                 "keyboard.shortcut",
                 "keyboard.modifierDown",
                 "keyboard.modifierUp",
-                "window.control"
+                "window.control",
+                "pointer.display.move"
             ),
             seenTypes
         )
+    }
+
+    @Test
+    fun preservesStructuredCommandErrorMessage() = runTest {
+        val tokens = FakeTokenStore(mutableMapOf("desktop-1" to "token"), mutableMapOf("desktop-1" to "Switchify PC"))
+        val transport = FakeTransportFactory { message ->
+            val json = JSONObject(message)
+            error(json.getString("id"), "no_display_in_direction", "No monitor to the right.")
+        }
+        val client: PcConnector = client(tokens, transport)
+        val session = PcAuthenticatedSession("desktop-1", "device-1", "AA:BB:CC:DD:EE:FF", PcTransport.Bluetooth)
+
+        val result = client.sendCommand(session, PcControlCommand.MoveToDisplay(PcDisplayDirection.Right))
+
+        assertEquals(PcCommandResult.Failed("No monitor to the right."), result)
     }
 
     @Test

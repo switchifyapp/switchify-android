@@ -25,6 +25,7 @@ import com.enaboapps.switchify.pc.isSafePcTypedText
 import com.enaboapps.switchify.pc.pcTextStreamItemsFor
 import com.enaboapps.switchify.pc.pointerMoveStep
 import com.enaboapps.switchify.pc.supportsModifierToggle
+import com.enaboapps.switchify.pc.supportsDisplayNavigation
 import com.enaboapps.switchify.pc.supportsNoAckTextStreamChunks
 import com.enaboapps.switchify.pc.supportsTextStreams
 import com.enaboapps.switchify.pc.toShortcutKey
@@ -61,6 +62,8 @@ data class PcMouseControlUiState(
     val pointerSpeedMaxScalePercent: Double = 225.0,
     val pointerSpeedStepPercent: Double = 5.0,
     val pointerSpeedPercentLabel: String = PcMouseControlViewModel.POINTER_SPEED_UNAVAILABLE_MESSAGE,
+    val displayNavigationSupported: Boolean = false,
+    val displayCount: Int = 1,
     val isDragging: Boolean = false,
     val isBusy: Boolean = false,
     val busyCommand: PcControlCommand? = null,
@@ -936,6 +939,8 @@ class PcMouseControlViewModel(
                         pointerSpeedMaxScalePercent = pointerProfile?.capabilities?.pointerSpeed?.maxScalePercent ?: 225.0,
                         pointerSpeedStepPercent = pointerProfile?.capabilities?.pointerSpeed?.stepPercent ?: 5.0,
                         pointerSpeedPercentLabel = pointerSpeedLabel(pointerProfile?.capabilities?.pointerSpeed?.scalePercent),
+                        displayNavigationSupported = pointerProfile?.supportsDisplayNavigation() == true,
+                        displayCount = pointerProfile?.capabilities?.displayNavigation?.displayCount ?: 1,
                         supportsTextStreamInput = pointerProfile?.supportsTextStreams() ?: false,
                         supportsModifierToggles = supportsModifierToggles,
                         message = if (it.message == RECONNECTING_MESSAGE || it.message == DISCONNECTED_MESSAGE || it.message == CONNECT_FIRST_MESSAGE) {
@@ -969,6 +974,8 @@ class PcMouseControlViewModel(
                         pointerSpeedSupported = false,
                         pointerSpeedSetSupported = false,
                         pointerSpeedPercentLabel = POINTER_SPEED_UNAVAILABLE_MESSAGE,
+                        displayNavigationSupported = false,
+                        displayCount = 1,
                         supportsTextStreamInput = false,
                         supportsModifierToggles = false,
                         message = RECONNECTING_MESSAGE,
@@ -995,6 +1002,8 @@ class PcMouseControlViewModel(
                         pointerSpeedSetSupported = false,
                         pointerSpeedScalePercent = 100.0,
                         pointerSpeedPercentLabel = POINTER_SPEED_UNAVAILABLE_MESSAGE,
+                        displayNavigationSupported = false,
+                        displayCount = 1,
                         isDragging = false,
                         activeModifiers = emptySet(),
                         isBusy = false,
@@ -1022,6 +1031,8 @@ class PcMouseControlViewModel(
                         pointerSpeedSetSupported = false,
                         pointerSpeedScalePercent = 100.0,
                         pointerSpeedPercentLabel = POINTER_SPEED_UNAVAILABLE_MESSAGE,
+                        displayNavigationSupported = false,
+                        displayCount = 1,
                         isDragging = false,
                         activeModifiers = emptySet(),
                         isBusy = false,
@@ -1053,6 +1064,8 @@ class PcMouseControlViewModel(
                         switcherConnectedDisplayName = state.displayName,
                         isDragging = false,
                         activeModifiers = emptySet(),
+                        displayNavigationSupported = false,
+                        displayCount = 1,
                         supportsTextStreamInput = false,
                         supportsModifierToggles = false,
                         message = RECONNECTING_MESSAGE,
@@ -1074,6 +1087,8 @@ class PcMouseControlViewModel(
                         activeModifiers = emptySet(),
                         isBusy = false,
                         busyCommand = null,
+                        displayNavigationSupported = false,
+                        displayCount = 1,
                         supportsTextStreamInput = false,
                         supportsModifierToggles = false,
                         message = state.message,
@@ -1114,6 +1129,8 @@ class PcMouseControlViewModel(
                 pointerSpeedSetSupported = false,
                 pointerSpeedScalePercent = 100.0,
                 pointerSpeedPercentLabel = POINTER_SPEED_UNAVAILABLE_MESSAGE,
+                displayNavigationSupported = false,
+                displayCount = 1,
                 isDragging = false,
                 activeModifiers = emptySet(),
                 isBusy = false,

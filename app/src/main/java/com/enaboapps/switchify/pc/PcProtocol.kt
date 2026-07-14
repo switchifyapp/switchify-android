@@ -108,6 +108,23 @@ object PcProtocol {
         )
     }
 
+    fun pointerDisplayMove(
+        id: String,
+        deviceId: String,
+        token: String,
+        timestamp: Long,
+        direction: PcDisplayDirection
+    ): String {
+        return authenticatedCommand(
+            id = id,
+            deviceId = deviceId,
+            token = token,
+            timestamp = timestamp,
+            type = "pointer.display.move",
+            payload = JSONObject().put("direction", direction.protocolValue)
+        )
+    }
+
     fun authenticatedCommand(
         id: String,
         deviceId: String,
@@ -590,7 +607,8 @@ object PcProtocol {
             noAckCommands = noAckCommands,
             supportedCommands = supportedCommands,
             mouseRepeat = parseMouseRepeatCapabilities(capabilitiesJson) ?: return PcProtocolResponse.Invalid,
-            pointerSpeed = parsePointerSpeedCapabilities(capabilitiesJson) ?: return PcProtocolResponse.Invalid
+            pointerSpeed = parsePointerSpeedCapabilities(capabilitiesJson) ?: return PcProtocolResponse.Invalid,
+            displayNavigation = parseDisplayNavigationCapabilities(capabilitiesJson) ?: return PcProtocolResponse.Invalid
         )
         val bounds = PcPointerBounds(
             x = boundsJson.optInt("x"),
@@ -645,6 +663,22 @@ object PcProtocol {
             intervalMs = intervalMs,
             minIntervalMs = minIntervalMs,
             maxIntervalMs = maxIntervalMs
+        )
+    }
+
+    private fun parseDisplayNavigationCapabilities(capabilitiesJson: JSONObject?): PcDisplayNavigationCapabilities? {
+        val navigationJson = capabilitiesJson?.opt("displayNavigation") ?: return PcDisplayNavigationCapabilities()
+        if (navigationJson !is JSONObject) return null
+        if (navigationJson.length() != 2) return null
+        if (navigationJson.opt("supported") !is Boolean) return null
+        val displayCountValue = navigationJson.opt("displayCount")
+        if (displayCountValue !is Number) return null
+        val displayCount = displayCountValue.toInt()
+        if (displayCountValue.toDouble() != displayCount.toDouble() || displayCount !in 1..64) return null
+
+        return PcDisplayNavigationCapabilities(
+            supported = navigationJson.getBoolean("supported"),
+            displayCount = displayCount
         )
     }
 
@@ -750,6 +784,7 @@ object PcProtocol {
         "connection.ping",
         "connection.disconnecting",
         "pointer.profile",
+        "pointer.display.move",
         "pointer.speed.set",
         "mouse.repeat.start",
         "mouse.repeat.stop",

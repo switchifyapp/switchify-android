@@ -14,6 +14,7 @@ import com.enaboapps.switchify.pc.PcControlConnectionEvent
 import com.enaboapps.switchify.pc.PcDeviceIdentity
 import com.enaboapps.switchify.pc.PcDiscovery
 import com.enaboapps.switchify.pc.PcDiscoveryStatus
+import com.enaboapps.switchify.pc.PcDisplayNavigationCapabilities
 import com.enaboapps.switchify.pc.PcErrorReason
 import com.enaboapps.switchify.pc.PcKeyboardKey
 import com.enaboapps.switchify.pc.PcKeyboardModifierKey
@@ -171,6 +172,27 @@ class PcMouseControlViewModelTest {
         assertEquals(128, viewModel.uiState.value.movementStep)
         assertEquals(true, viewModel.uiState.value.pointerSpeedSupported)
         assertEquals("125%", viewModel.uiState.value.pointerSpeedPercentLabel)
+    }
+
+    @Test
+    fun connectedServiceStateExposesAdvertisedDisplayNavigation() = runTest(dispatcher) {
+        val controller = connectedController(
+            pointerProfile = pointerProfile(
+                capabilities = PcPointerCapabilities(
+                    supportedCommands = setOf("pointer.display.move"),
+                    displayNavigation = PcDisplayNavigationCapabilities(
+                        supported = true,
+                        displayCount = 3
+                    )
+                )
+            )
+        )
+        val viewModel = viewModel(controller)
+
+        advanceUntilIdle()
+
+        assertTrue(viewModel.uiState.value.displayNavigationSupported)
+        assertEquals(3, viewModel.uiState.value.displayCount)
     }
 
     @Test
