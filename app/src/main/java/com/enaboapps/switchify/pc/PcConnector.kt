@@ -51,10 +51,19 @@ sealed class PcCommandResult {
     data class Failed(val message: String = "Could not send command to PC.") : PcCommandResult()
 }
 
+enum class PcLiveControlFailureReason {
+    Transient,
+    BluetoothDisabled,
+    PermissionDenied
+}
+
 sealed class PcLiveControlResult {
     data class Connected(val connection: PcControlConnection) : PcLiveControlResult()
     data class AuthFailed(val message: String = "Connection expired. Connect to PC from Switchify first.") : PcLiveControlResult()
-    data class Failed(val message: String = "Could not connect to PC.") : PcLiveControlResult()
+    data class Failed(
+        val message: String = "Could not connect to PC.",
+        val reason: PcLiveControlFailureReason = PcLiveControlFailureReason.Transient
+    ) : PcLiveControlResult()
 }
 
 interface PcControlConnection {

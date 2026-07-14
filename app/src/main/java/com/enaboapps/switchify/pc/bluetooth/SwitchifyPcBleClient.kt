@@ -14,6 +14,7 @@ import com.enaboapps.switchify.pc.PcControlConnectionEvent
 import com.enaboapps.switchify.pc.PcDeviceIdentity
 import com.enaboapps.switchify.pc.PcErrorReason
 import com.enaboapps.switchify.pc.PcKeyboardKey
+import com.enaboapps.switchify.pc.PcLiveControlFailureReason
 import com.enaboapps.switchify.pc.PcLiveControlResult
 import com.enaboapps.switchify.pc.PcPairingResult
 import com.enaboapps.switchify.pc.PcPairingTokenStore
@@ -113,7 +114,7 @@ class SwitchifyPcBleClient(
         val connection = runCatching { transportFactory.connect(endpoint) }.getOrElse {
             if (it is CancellationException) throw it
             logTransportError("open_session", session.desktopId, it)
-            return PcLiveControlResult.Failed(safeConnectionFailureMessage(it))
+            return liveControlFailure(it)
         }
         openConnections += connection
         return try {
@@ -147,7 +148,7 @@ class SwitchifyPcBleClient(
             logTransportError("open_session", session.desktopId, error)
             connection.close(PcControlCloseReason.CommandFailureRecovery.logName)
             openConnections -= connection
-            PcLiveControlResult.Failed(safeConnectionFailureMessage(error))
+            liveControlFailure(error)
         }
     }
 
@@ -279,11 +280,17 @@ class SwitchifyPcBleClient(
         )
     }
 
-    private fun safeConnectionFailureMessage(error: Throwable): String {
+    private fun liveControlFailure(error: Throwable): PcLiveControlResult.Failed {
         return when (error.message) {
-            "Bluetooth permission missing." -> "Bluetooth permission denied."
-            "Bluetooth is off." -> "Bluetooth is off."
-            else -> "Could not connect to PC."
+            "Bluetooth permission missing." -> PcLiveControlResult.Failed(
+                message = "Bluetooth permission denied.",
+                reason = PcLiveControlFailureReason.PermissionDenied
+            )
+            "Bluetooth is off." -> PcLiveControlResult.Failed(
+                message = "Bluetooth is off.",
+                reason = PcLiveControlFailureReason.BluetoothDisabled
+            )
+            else -> PcLiveControlResult.Failed()
         }
     }
 

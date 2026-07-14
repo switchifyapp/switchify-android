@@ -139,7 +139,13 @@ class SwitchifyPcBleClientTest {
 
         val result = client(tokens, transport).openControlSession(session)
 
-        assertEquals(com.enaboapps.switchify.pc.PcLiveControlResult.Failed("Bluetooth is off."), result)
+        assertEquals(
+            com.enaboapps.switchify.pc.PcLiveControlResult.Failed(
+                message = "Bluetooth is off.",
+                reason = com.enaboapps.switchify.pc.PcLiveControlFailureReason.BluetoothDisabled
+            ),
+            result
+        )
     }
 
     @Test
@@ -150,7 +156,13 @@ class SwitchifyPcBleClientTest {
 
         val result = client(tokens, transport).openControlSession(session)
 
-        assertEquals(com.enaboapps.switchify.pc.PcLiveControlResult.Failed("Bluetooth permission denied."), result)
+        assertEquals(
+            com.enaboapps.switchify.pc.PcLiveControlResult.Failed(
+                message = "Bluetooth permission denied.",
+                reason = com.enaboapps.switchify.pc.PcLiveControlFailureReason.PermissionDenied
+            ),
+            result
+        )
     }
 
     @Test

@@ -913,28 +913,32 @@ class PcMouseControlViewModelTest {
         val viewModel = viewModel(controller)
         controller.onPcUiResumed()
         connector.liveResults += PcLiveControlResult.Failed("Disconnected.")
-        viewModel.sendMouseCommand(PcControlCommand.Move(80, 0), repeatable = true)
-        runCurrent()
-        connector.realtimeCommands.clear()
+        try {
+            viewModel.sendMouseCommand(PcControlCommand.Move(80, 0), repeatable = true)
+            runCurrent()
+            connector.realtimeCommands.clear()
 
-        connector.openedConnections.single().eventsFlow.tryEmit(PcControlConnectionEvent.Disconnected)
-        runCurrent()
+            connector.openedConnections.single().eventsFlow.tryEmit(PcControlConnectionEvent.Disconnected)
+            runCurrent()
 
-        assertTrue(mouseRepeatManager.isRepeating())
-        assertTrue(mouseRepeatManager.isPausedForReconnect())
-        advanceTimeBy(249)
-        runCurrent()
-        assertEquals(emptyList<PcControlCommand>(), connector.realtimeCommands)
+            assertTrue(mouseRepeatManager.isRepeating())
+            assertTrue(mouseRepeatManager.isPausedForReconnect())
+            advanceTimeBy(499)
+            runCurrent()
+            assertEquals(emptyList<PcControlCommand>(), connector.realtimeCommands)
 
-        advanceTimeBy(1)
-        runCurrent()
-        advanceTimeBy(mouseRepeatSettings.intervalMs)
-        runCurrent()
+            advanceTimeBy(1)
+            runCurrent()
+            advanceTimeBy(mouseRepeatSettings.intervalMs)
+            runCurrent()
 
-        assertFalse(mouseRepeatManager.isPausedForReconnect())
-        assertEquals(listOf(PcControlCommand.Move(80, 0)), connector.realtimeCommands)
-        mouseRepeatManager.stop(showMessage = false)
-        controller.disconnect()
+            assertFalse(mouseRepeatManager.isPausedForReconnect())
+            assertEquals(listOf(PcControlCommand.Move(80, 0)), connector.realtimeCommands)
+        } finally {
+            mouseRepeatManager.stop(showMessage = false)
+            controller.disconnect()
+            runCurrent()
+        }
     }
 
     @Test

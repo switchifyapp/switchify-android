@@ -365,6 +365,199 @@ class PcServiceConnectionControllerTest {
     }
 
     @Test
+    fun transientReconnectContinuesPastFormerAttemptLimit() = runTest(dispatcher) {
+        val initialConnection = FakeLiveConnection()
+        val recoveredConnection = FakeLiveConnection()
+        val connector = FakeConnector(
+            pingResult = PcPingResult.Connected("AA:BB:CC:DD:EE:FF"),
+            liveResults = listOf(PcLiveControlResult.Connected(initialConnection)) +
+                List(5) { PcLiveControlResult.Failed() } +
+                PcLiveControlResult.Connected(recoveredConnection)
+        )
+        val controller = controller(FakeTokenStore(mutableMapOf("desktop-1" to "token")), connector)
+        controller.connectTo(pc)
+        controller.onPcUiResumed()
+        runCurrent()
+
+        try {
+            initialConnection.eventsFlow.tryEmit(PcControlConnectionEvent.Disconnected)
+            runCurrent()
+
+            assertEquals(2, connector.openControlSessionCalls)
+            assertTrue(controller.state.value is PcServiceConnectionState.Reconnecting)
+
+            advanceTimeBy(15_500)
+            runCurrent()
+
+            assertEquals(7, connector.openControlSessionCalls)
+            assertTrue(controller.state.value is PcServiceConnectionState.Connected)
+            assertTrue(controller.hasLiveControlSession())
+        } finally {
+            controller.disconnect()
+            runCurrent()
+        }
+    }
+
+    @Test
+    fun transientReconnectBackoffProgressesAndCapsAtThirtySeconds() = runTest(dispatcher) {
+        val initialConnection = FakeLiveConnection()
+        val connector = FakeConnector(
+            pingResult = PcPingResult.Connected("AA:BB:CC:DD:EE:FF"),
+            liveResults = listOf(PcLiveControlResult.Connected(initialConnection)) +
+                List(10) { PcLiveControlResult.Failed() }
+        )
+        val controller = controller(FakeTokenStore(mutableMapOf("desktop-1" to "token")), connector)
+        controller.connectTo(pc)
+        controller.onPcUiResumed()
+        runCurrent()
+
+        try {
+            initialConnection.eventsFlow.tryEmit(PcControlConnectionEvent.Disconnected)
+            runCurrent()
+
+            assertEquals(2, connector.openControlSessionCalls)
+            listOf(500L, 1_000L, 2_000L, 4_000L, 8_000L, 15_000L, 30_000L, 30_000L).forEachIndexed { index, delayMs ->
+                advanceTimeBy(delayMs)
+                runCurrent()
+                assertEquals(index + 3, connector.openControlSessionCalls)
+            }
+        } finally {
+            controller.disconnect()
+            runCurrent()
+        }
+    }
+
+    @Test
+    fun duplicateDisconnectEventsShareOneReconnectLoop() = runTest(dispatcher) {
+        val initialConnection = FakeLiveConnection()
+        val connector = FakeConnector(
+            pingResult = PcPingResult.Connected("AA:BB:CC:DD:EE:FF"),
+            liveResults = listOf(
+                PcLiveControlResult.Connected(initialConnection),
+                PcLiveControlResult.Failed(),
+                PcLiveControlResult.Connected(FakeLiveConnection())
+            )
+        )
+        val controller = controller(FakeTokenStore(mutableMapOf("desktop-1" to "token")), connector)
+        controller.connectTo(pc)
+        controller.onPcUiResumed()
+        runCurrent()
+
+        try {
+            initialConnection.eventsFlow.tryEmit(PcControlConnectionEvent.Disconnected)
+            initialConnection.eventsFlow.tryEmit(PcControlConnectionEvent.Disconnected)
+            runCurrent()
+
+            assertEquals(2, connector.openControlSessionCalls)
+            assertTrue(controller.state.value is PcServiceConnectionState.Reconnecting)
+
+            advanceTimeBy(500)
+            runCurrent()
+
+            assertEquals(3, connector.openControlSessionCalls)
+            assertTrue(controller.state.value is PcServiceConnectionState.Connected)
+        } finally {
+            controller.disconnect()
+            runCurrent()
+        }
+    }
+
+    @Test
+    fun pauseGraceExpiryCancelsPersistentReconnect() = runTest(dispatcher) {
+        val initialConnection = FakeLiveConnection()
+        val connector = FakeConnector(
+            pingResult = PcPingResult.Connected("AA:BB:CC:DD:EE:FF"),
+            liveResults = listOf(PcLiveControlResult.Connected(initialConnection)) +
+                List(5) { PcLiveControlResult.Failed() } +
+                PcLiveControlResult.Connected(FakeLiveConnection())
+        )
+        val controller = controller(FakeTokenStore(mutableMapOf("desktop-1" to "token")), connector)
+        controller.connectTo(pc)
+        controller.onPcUiResumed()
+        runCurrent()
+
+        initialConnection.eventsFlow.tryEmit(PcControlConnectionEvent.Disconnected)
+        runCurrent()
+        controller.onPcUiPaused()
+        advanceTimeBy(8_001)
+        runCurrent()
+        val callsAfterShutdown = connector.openControlSessionCalls
+
+        advanceTimeBy(60_000)
+        runCurrent()
+
+        assertEquals(callsAfterShutdown, connector.openControlSessionCalls)
+        assertTrue(controller.state.value is PcServiceConnectionState.Disconnected)
+        assertFalse(controller.hasLiveControlSession())
+    }
+
+    @Test
+    fun switchingPcCancelsReconnectForPreviousSession() = runTest(dispatcher) {
+        val initialConnection = FakeLiveConnection()
+        val connector = FakeConnector(
+            pingResult = PcPingResult.Connected("AA:BB:CC:DD:EE:FF"),
+            liveResults = listOf(
+                PcLiveControlResult.Connected(initialConnection),
+                PcLiveControlResult.Failed(),
+                PcLiveControlResult.Connected(FakeLiveConnection())
+            )
+        )
+        val tokens = FakeTokenStore(mutableMapOf("desktop-1" to "token-1", "desktop-2" to "token-2"))
+        val controller = controller(tokens, connector)
+        controller.connectTo(pc)
+        controller.onPcUiResumed()
+        runCurrent()
+
+        try {
+            initialConnection.eventsFlow.tryEmit(PcControlConnectionEvent.Disconnected)
+            runCurrent()
+            val result = controller.connectTo(secondPc)
+            runCurrent()
+
+            assertTrue(result is PcServiceConnectResult.Connected)
+            assertEquals("desktop-2", (controller.state.value as PcServiceConnectionState.Connected).session.desktopId)
+            assertEquals(3, connector.openControlSessionCalls)
+
+            advanceTimeBy(60_000)
+            runCurrent()
+
+            assertEquals(3, connector.openControlSessionCalls)
+            assertEquals("desktop-2", (controller.state.value as PcServiceConnectionState.Connected).session.desktopId)
+        } finally {
+            controller.disconnect()
+            runCurrent()
+        }
+    }
+
+    @Test
+    fun terminalReconnectFailureStopsWithoutFurtherAttempts() = runTest(dispatcher) {
+        val initialConnection = FakeLiveConnection()
+        val connector = FakeConnector(
+            pingResult = PcPingResult.Connected("AA:BB:CC:DD:EE:FF"),
+            liveResults = listOf(
+                PcLiveControlResult.Connected(initialConnection),
+                PcLiveControlResult.Failed(
+                    message = "Bluetooth is off.",
+                    reason = PcLiveControlFailureReason.BluetoothDisabled
+                )
+            )
+        )
+        val controller = controller(FakeTokenStore(mutableMapOf("desktop-1" to "token")), connector)
+        controller.connectTo(pc)
+        controller.onPcUiResumed()
+        runCurrent()
+
+        initialConnection.eventsFlow.tryEmit(PcControlConnectionEvent.Disconnected)
+        runCurrent()
+        advanceTimeBy(60_000)
+        runCurrent()
+
+        assertEquals(2, connector.openControlSessionCalls)
+        assertEquals(PcServiceConnectionState.Failed("Bluetooth is off."), controller.state.value)
+        assertEquals(PcConnectionState.Failed("Bluetooth is off."), PcConnectionStateHolder.connectionState.value)
+    }
+
+    @Test
     fun bluetoothSavedTokenReconnectUsesBluetoothSession() = runTest(dispatcher) {
         val tokens = FakeTokenStore(mutableMapOf("desktop-1" to "token"))
         val connector = FakeConnector(PcPingResult.Connected("AA:BB:CC:DD:EE:FF"))
