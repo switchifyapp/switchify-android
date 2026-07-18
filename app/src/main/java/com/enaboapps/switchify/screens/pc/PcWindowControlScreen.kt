@@ -26,7 +26,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.components.CollapsibleSection
-import com.enaboapps.switchify.pc.PC_SHORTCUT_LETTER_KEYS
+import com.enaboapps.switchify.pc.PC_SHORTCUT_TARGET_KEYS
 import com.enaboapps.switchify.pc.PcControlCommand
 import com.enaboapps.switchify.pc.PcDisplayDirection
 import com.enaboapps.switchify.pc.PcKeyboardKey
@@ -48,7 +48,7 @@ fun PcWindowControlScreen(
     monitorNavigationEnabled: Boolean,
     activeModifiers: Set<PcKeyboardModifierKey>,
     onModifierSelected: (PcKeyboardModifierKey) -> Unit,
-    onShortcutLetterSelected: (PcKeyboardShortcutKey) -> Unit,
+    onShortcutKeySelected: (PcKeyboardShortcutKey) -> Unit,
     onCommandSelected: (PcControlCommand) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -73,10 +73,10 @@ fun PcWindowControlScreen(
                 )
             }
         )
-        PcShortcutAlphabetAccordion(
+        PcShortcutKeyAccordion(
             enabled = enabled,
             activeModifiers = activeModifiers,
-            onShortcutLetterSelected = onShortcutLetterSelected
+            onShortcutKeySelected = onShortcutKeySelected
         )
         Text(
             text = stringResource(R.string.pc_window_section_windows),
@@ -159,10 +159,10 @@ fun pcDisplayNavigationSpecs(): List<PcWindowControlSpec?> {
 }
 
 @Composable
-fun PcShortcutAlphabetAccordion(
+fun PcShortcutKeyAccordion(
     enabled: Boolean,
     activeModifiers: Set<PcKeyboardModifierKey>,
-    onShortcutLetterSelected: (PcKeyboardShortcutKey) -> Unit,
+    onShortcutKeySelected: (PcKeyboardShortcutKey) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var expanded by rememberSaveable { mutableStateOf(false) }
@@ -184,11 +184,11 @@ fun PcShortcutAlphabetAccordion(
         PcCompactTextCommandGrid(
             columns = 6,
             minTileHeightDp = 44,
-            cells = pcWindowShortcutLetterSpecs().map { key ->
+            cells = pcWindowShortcutKeySpecs().map { key ->
                 PcCompactTextCommandCell(
                     label = key.protocolValue,
                     enabled = enabled && orderedModifiers.isNotEmpty(),
-                    onClick = { onShortcutLetterSelected(key) }
+                    onClick = { onShortcutKeySelected(key) }
                 )
             }
         )
@@ -218,8 +218,8 @@ fun orderedShortcutModifiers(activeModifiers: Set<PcKeyboardModifierKey>): List<
     ).filter { activeModifiers.contains(it) }
 }
 
-fun pcWindowShortcutLetterSpecs(): List<PcKeyboardShortcutKey> {
-    return PC_SHORTCUT_LETTER_KEYS
+fun pcWindowShortcutKeySpecs(): List<PcKeyboardShortcutKey> {
+    return PC_SHORTCUT_TARGET_KEYS
 }
 
 fun pcWindowCompactControlSpecs(): List<PcWindowControlSpec?> {
