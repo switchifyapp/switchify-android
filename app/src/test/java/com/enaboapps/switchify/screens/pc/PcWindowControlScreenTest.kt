@@ -92,10 +92,10 @@ class PcWindowControlScreenTest {
     }
 
     @Test
-    fun shortcutLetterSpecsUseAlphabeticalOrder() {
+    fun shortcutKeySpecsUseFunctionThenAlphabeticalOrder() {
         assertEquals(
-            ('A'..'Z').map { it.toString() },
-            pcWindowShortcutLetterSpecs().map { it.protocolValue }
+            (1..12).map { "F$it" } + ('A'..'Z').map { it.toString() },
+            pcWindowShortcutKeySpecs().map { it.protocolValue }
         )
     }
 

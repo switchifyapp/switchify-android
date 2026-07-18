@@ -362,6 +362,43 @@ class SwitchifyPcBleClientTest {
     }
 
     @Test
+    fun sendsFunctionKeyShortcutsAsKeyboardShortcutCommands() = runTest {
+        val tokens = FakeTokenStore(mutableMapOf("desktop-1" to "token"), mutableMapOf("desktop-1" to "Switchify PC"))
+        val messages = mutableListOf<JSONObject>()
+        val transport = FakeTransportFactory { message ->
+            val json = JSONObject(message)
+            messages += json
+            ack(json.getString("id"))
+        }
+        val client: PcConnector = client(tokens, transport)
+        val session = PcAuthenticatedSession("desktop-1", "device-1", "AA:BB:CC:DD:EE:FF", PcTransport.Bluetooth)
+
+        assertEquals(
+            PcCommandResult.Ack,
+            client.sendCommand(
+                session,
+                PcControlCommand.KeyboardShortcut(listOf(PcKeyboardShortcutKey.Ctrl, PcKeyboardShortcutKey.F1))
+            )
+        )
+        assertEquals(
+            PcCommandResult.Ack,
+            client.sendCommand(
+                session,
+                PcControlCommand.KeyboardShortcut(
+                    listOf(PcKeyboardShortcutKey.Alt, PcKeyboardShortcutKey.Shift, PcKeyboardShortcutKey.F12)
+                )
+            )
+        )
+
+        assertEquals(listOf("keyboard.shortcut", "keyboard.shortcut"), messages.map { it.getString("type") })
+        assertEquals("Ctrl", messages[0].getJSONObject("payload").getJSONArray("keys").getString(0))
+        assertEquals("F1", messages[0].getJSONObject("payload").getJSONArray("keys").getString(1))
+        assertEquals("Alt", messages[1].getJSONObject("payload").getJSONArray("keys").getString(0))
+        assertEquals("Shift", messages[1].getJSONObject("payload").getJSONArray("keys").getString(1))
+        assertEquals("F12", messages[1].getJSONObject("payload").getJSONArray("keys").getString(2))
+    }
+
+    @Test
     fun sendsPointerSpeedSetWithAckResponseMode() = runTest {
         val tokens = FakeTokenStore(mutableMapOf("desktop-1" to "token"), mutableMapOf("desktop-1" to "Switchify PC"))
         val messages = mutableListOf<JSONObject>()

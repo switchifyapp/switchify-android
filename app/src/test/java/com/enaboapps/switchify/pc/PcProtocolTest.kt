@@ -683,11 +683,36 @@ class PcProtocolTest {
     }
 
     @Test
-    fun shortcutKeysIncludeFullAlphabetInOrder() {
+    fun shortcutTargetKeysIncludeFunctionKeysThenFullAlphabet() {
         assertEquals(
-            ('A'..'Z').map { it.toString() },
-            PC_SHORTCUT_LETTER_KEYS.map { it.protocolValue }
+            (1..12).map { "F$it" } + ('A'..'Z').map { it.toString() },
+            PC_SHORTCUT_TARGET_KEYS.map { it.protocolValue }
         )
+    }
+
+    @Test
+    fun buildsFunctionKeyShortcutCommands() {
+        val ctrlF1 = JSONObject(
+            PcProtocol.keyboardShortcut(
+                id = "shortcut-ctrl-f1",
+                deviceId = "device-1",
+                token = "shared-token",
+                timestamp = 1000L,
+                keys = listOf(PcKeyboardShortcutKey.Ctrl, PcKeyboardShortcutKey.F1)
+            )
+        )
+        val altShiftF12 = JSONObject(
+            PcProtocol.keyboardShortcut(
+                id = "shortcut-alt-shift-f12",
+                deviceId = "device-1",
+                token = "shared-token",
+                timestamp = 1000L,
+                keys = listOf(PcKeyboardShortcutKey.Alt, PcKeyboardShortcutKey.Shift, PcKeyboardShortcutKey.F12)
+            )
+        )
+
+        assertEquals(listOf("Ctrl", "F1"), ctrlF1.getJSONObject("payload").getJSONArray("keys").asStringList())
+        assertEquals(listOf("Alt", "Shift", "F12"), altShiftF12.getJSONObject("payload").getJSONArray("keys").asStringList())
     }
 
     @Test

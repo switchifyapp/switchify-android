@@ -202,7 +202,7 @@ private fun PcMouseControlScreen(
                             monitorNavigationEnabled = pcDisplayNavigationControlsEnabled(surfaceEnabled, uiState.isDragging),
                             activeModifiers = uiState.activeModifiers,
                             onModifierSelected = viewModel::toggleModifier,
-                            onShortcutLetterSelected = viewModel::sendShortcutLetter,
+                            onShortcutKeySelected = viewModel::sendShortcutKey,
                             onCommandSelected = viewModel::send
                         )
                     }

@@ -177,13 +177,13 @@ class PcMouseControlViewModel(
         }
     }
 
-    fun sendShortcutLetter(letter: PcKeyboardShortcutKey) {
+    fun sendShortcutKey(key: PcKeyboardShortcutKey) {
         val modifiers = orderedShortcutModifiers(_uiState.value.activeModifiers)
         if (modifiers.isEmpty()) {
             _uiState.update { it.copy(message = SELECT_SHORTCUT_MODIFIER_MESSAGE) }
             return
         }
-        val keys = modifiers.map { it.toShortcutKey() } + letter
+        val keys = modifiers.map { it.toShortcutKey() } + key
         viewModelScope.launch {
             when (sendNoAckCommandNow(PcControlCommand.KeyboardShortcut(keys)) {
                 it.copy(
