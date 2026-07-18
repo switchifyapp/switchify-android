@@ -57,6 +57,28 @@ fun PcWindowControlScreen(
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         Text(
+            text = stringResource(R.string.pc_window_section_modifiers),
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        PcCompactCommandGrid(
+            columns = 4,
+            minTileHeightDp = 52,
+            cells = pcWindowModifierSpecs().map { spec ->
+                PcCompactCommandCell(
+                    labelResId = spec.labelResId,
+                    enabled = enabled,
+                    onClick = { onModifierSelected(spec.key) },
+                    selected = activeModifiers.contains(spec.key)
+                )
+            }
+        )
+        PcShortcutAlphabetAccordion(
+            enabled = enabled,
+            activeModifiers = activeModifiers,
+            onShortcutLetterSelected = onShortcutLetterSelected
+        )
+        Text(
             text = stringResource(R.string.pc_window_section_windows),
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSurface
@@ -97,28 +119,6 @@ fun PcWindowControlScreen(
                 }
             )
         }
-        Text(
-            text = stringResource(R.string.pc_window_section_modifiers),
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurface
-        )
-        PcCompactCommandGrid(
-            columns = 4,
-            minTileHeightDp = 52,
-            cells = pcWindowModifierSpecs().map { spec ->
-                PcCompactCommandCell(
-                    labelResId = spec.labelResId,
-                    enabled = enabled,
-                    onClick = { onModifierSelected(spec.key) },
-                    selected = activeModifiers.contains(spec.key)
-                )
-            }
-        )
-        PcShortcutAlphabetAccordion(
-            enabled = enabled,
-            activeModifiers = activeModifiers,
-            onShortcutLetterSelected = onShortcutLetterSelected
-        )
         PcKeyboardNavigationCluster(
             enabled = enabled,
             onKeySelected = { key ->
