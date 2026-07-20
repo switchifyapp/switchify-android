@@ -52,6 +52,10 @@ import com.enaboapps.switchify.service.gestures.placement.TwoFingerPlacement
  * - Manages multi-finger gesture coordination for zoom operations
  */
 object GesturePathBuilder {
+    data class ContinuedGesture(
+        val initial: GestureDescription,
+        val continuation: GestureDescription
+    )
 
     /**
      * Creates a simple tap gesture path.
@@ -144,6 +148,37 @@ object GesturePathBuilder {
         return GestureDescription.Builder().addStroke(stroke).build()
     }
 
+    fun createHoldAndDragPath(
+        startPoint: PointF,
+        endPoint: PointF,
+        holdDuration: Long,
+        dragDuration: Long = GestureData.DRAG_DURATION
+    ): ContinuedGesture {
+        val holdPath = Path().apply {
+            moveTo(startPoint.x, startPoint.y)
+        }
+        val holdStroke = GestureDescription.StrokeDescription(
+            holdPath,
+            0,
+            holdDuration,
+            true
+        )
+        val dragPath = Path().apply {
+            moveTo(startPoint.x, startPoint.y)
+            lineTo(endPoint.x, endPoint.y)
+        }
+        val dragStroke = holdStroke.continueStroke(
+            dragPath,
+            0,
+            dragDuration,
+            false
+        )
+        return ContinuedGesture(
+            initial = GestureDescription.Builder().addStroke(holdStroke).build(),
+            continuation = GestureDescription.Builder().addStroke(dragStroke).build()
+        )
+    }
+
     /**
      * Creates a pinch gesture with correct pinch mechanics.
      *
@@ -213,6 +248,7 @@ object GesturePathBuilder {
             GestureType.TAP_AND_HOLD_5S -> GestureData.TAP_AND_HOLD_5S_DURATION
             GestureType.TAP_AND_HOLD_10S -> GestureData.TAP_AND_HOLD_10S_DURATION
             GestureType.DRAG -> GestureData.DRAG_DURATION
+            GestureType.HOLD_AND_DRAG -> HoldAndDragTiming.systemHoldDuration() + GestureData.DRAG_DURATION
             GestureType.SCROLL_UP, GestureType.SCROLL_DOWN,
             GestureType.SCROLL_LEFT, GestureType.SCROLL_RIGHT -> GestureData.SCROLL_DURATION
 

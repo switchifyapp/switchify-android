@@ -124,6 +124,12 @@ class GestureMenuStructure(
                     action = { GestureManager.instance.startDragGesture() }
                 )
             },
+            MenuItemRegistry.getDefinition("gestures_menu", "hold_and_drag")?.let { def ->
+                MenuItem(
+                    definition = def,
+                    action = { GestureManager.instance.startHoldAndDragGesture() }
+                )
+            },
             MenuItemRegistry.getDefinition("gestures_menu", "pinch_gestures")?.let { def ->
                 MenuItem(
                     definition = def,

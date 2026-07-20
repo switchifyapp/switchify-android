@@ -187,6 +187,7 @@ object MenuConstants {
             const val TAP_GESTURES = "tap_gestures"
             const val SWIPE_GESTURES = "swipe_gestures"
             const val DRAG = "drag"
+            const val HOLD_AND_DRAG = "hold_and_drag"
             const val PINCH_GESTURES = "pinch_gestures"
             const val FINGER_MODE = "finger_mode"
             const val TOGGLE_GESTURE_LOCK = "toggle_gesture_lock"

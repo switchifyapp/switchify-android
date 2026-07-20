@@ -300,6 +300,95 @@ class GestureDispatcher(
         dispatch(gestureDescription, gestureType, gestureData, handler)
     }
 
+    fun dispatchContinuedWithActions(
+        gesture: GesturePathBuilder.ContinuedGesture,
+        gestureType: GestureType,
+        gestureData: GestureData,
+        onContinuationStarted: (() -> Unit)? = null,
+        onCompleted: (() -> Unit)? = null,
+        onCancelled: (() -> Unit)? = null,
+        onError: ((Throwable) -> Unit)? = null
+    ) {
+        val reportError: (Throwable) -> Unit = { error ->
+            Logger.log(
+                LogEvent.GestureDispatchFailed,
+                data = mapOf(
+                    "result" to "failure",
+                    "reason" to "continued_dispatch_error",
+                    "gesture_type" to gestureType.name.lowercase()
+                ),
+                throwable = error
+            )
+            GestureStateManager.notifyGestureDispatchError(gestureType, error)
+            onError?.invoke(error)
+        }
+        val terminal = GestureSequenceTerminal(
+            onCompleted = {
+                try {
+                    GestureCaptureRouter.onGesturePerformed(gestureData)
+                    GesturePatternRecorder.addGesture(gestureData, accessibilityService)
+                    GestureStateManager.notifyGestureDispatchCompleted(gestureType)
+                    onCompleted?.invoke()
+                } catch (error: Throwable) {
+                    reportError(error)
+                }
+            },
+            onCancelled = {
+                GestureStateManager.notifyGestureDispatchCancelled(gestureType)
+                onCancelled?.invoke()
+            },
+            onError = reportError
+        )
+
+        try {
+            val initialAccepted = accessibilityService.dispatchGesture(
+                gesture.initial,
+                object : AccessibilityService.GestureResultCallback() {
+                    override fun onCompleted(gestureDescription: GestureDescription?) {
+                        super.onCompleted(gestureDescription)
+                        if (terminal.isFinished()) return
+                        try {
+                            onContinuationStarted?.invoke()
+                            val continuationAccepted = accessibilityService.dispatchGesture(
+                                gesture.continuation,
+                                object : AccessibilityService.GestureResultCallback() {
+                                    override fun onCompleted(gestureDescription: GestureDescription?) {
+                                        super.onCompleted(gestureDescription)
+                                        terminal.complete()
+                                    }
+
+                                    override fun onCancelled(gestureDescription: GestureDescription?) {
+                                        super.onCancelled(gestureDescription)
+                                        terminal.cancel()
+                                    }
+                                },
+                                null
+                            )
+                            if (!continuationAccepted) {
+                                terminal.error(IllegalStateException("Hold-and-drag continuation was rejected"))
+                            }
+                        } catch (error: Throwable) {
+                            terminal.error(error)
+                        }
+                    }
+
+                    override fun onCancelled(gestureDescription: GestureDescription?) {
+                        super.onCancelled(gestureDescription)
+                        terminal.cancel()
+                    }
+                },
+                null
+            )
+            if (initialAccepted) {
+                GestureStateManager.notifyGestureDispatchStarted(gestureType)
+            } else {
+                terminal.error(IllegalStateException("Hold-and-drag hold was rejected"))
+            }
+        } catch (error: Throwable) {
+            terminal.error(error)
+        }
+    }
+
     /**
      * Checks if the accessibility service is available for gesture dispatch.
      *

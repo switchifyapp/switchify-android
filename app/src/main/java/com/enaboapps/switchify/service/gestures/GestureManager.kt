@@ -8,6 +8,7 @@ import com.enaboapps.switchify.service.core.SwitchifyAccessibilityService
 import com.enaboapps.switchify.service.gestures.data.GestureData
 import com.enaboapps.switchify.service.gestures.data.GestureType
 import com.enaboapps.switchify.service.gestures.execution.GestureDispatcher
+import com.enaboapps.switchify.service.gestures.execution.GestureExecutionPolicy
 import com.enaboapps.switchify.service.gestures.execution.GesturePathBuilder
 import com.enaboapps.switchify.service.gestures.execution.GestureTimingCoordinator
 import com.enaboapps.switchify.service.gestures.patterns.GesturePatternManager
@@ -460,9 +461,13 @@ class GestureManager private constructor() {
      */
     fun performCustomGestureAction(gestureData: GestureData): Boolean {
         // Always use stored finger count for pattern playback accuracy
+        val fingerCount = GestureExecutionPolicy.fingerCount(
+            gestureData.gestureType,
+            gestureData.fingerCount
+        )
         linearGesturePerformer.startGesture(
             gestureData.gestureType,
-            gestureData.fingerCount,
+            fingerCount,
             false,
             gestureData.startPoint
         )
@@ -542,6 +547,13 @@ class GestureManager private constructor() {
      */
     fun startDragGesture() {
         linearGesturePerformer.startGesture(GestureType.DRAG)
+    }
+
+    fun startHoldAndDragGesture() {
+        linearGesturePerformer.startGesture(
+            GestureType.HOLD_AND_DRAG,
+            explicitFingerCount = 1
+        )
     }
 
     /**

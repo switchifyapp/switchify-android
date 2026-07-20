@@ -92,6 +92,7 @@
     <string name="menu_item_tap_and_hold">Tap and Hold</string>
     <string name="menu_item_swipe_gestures">Swipe Gestures</string>
     <string name="menu_item_drag">Drag</string>
+    <string name="menu_item_hold_and_drag">Hold and Drag</string>
     <string name="menu_item_pinch_gestures">Pinch Gestures</string>
     <string name="menu_item_swipe_up">Swipe Up</string>
     <string name="menu_item_swipe_down">Swipe Down</string>
@@ -163,6 +164,7 @@
     <!-- HUD Messages -->
     <string name="hud_release_to_perform">Let go of %1$s to %2$s</string>
     <string name="hud_select_drag">Select where to drag to</string>
+    <string name="hud_select_hold_and_drag">Select where to move the held item</string>
     <string name="hud_select_swipe">Select where to swipe to</string>
     <string name="hud_camera_access_error">Camera access is not granted. Please grant camera access in the app settings and then restart the Accessibility Service.</string>
     <string name="hud_camera_unavailable_external_app">Camera taken by external app</string>
@@ -1226,6 +1228,7 @@
     <string name="menu_item_swipe_gestures_description">Open swipe gesture options</string>
     <string name="menu_item_pinch_gestures_description">Open pinch gesture options</string>
     <string name="menu_item_drag_description">Start a drag gesture from the cursor</string>
+    <string name="menu_item_hold_and_drag_description">Hold an item, then drag it from the cursor</string>
     <string name="menu_item_finger_mode_description">Choose how many fingers to use for gestures</string>
     <string name="menu_item_toggle_gesture_lock_description">Repeat the next gesture without reopening the menu</string>
     <string name="menu_item_swipe_up_description">Swipe up from the cursor location</string>

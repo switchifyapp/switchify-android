@@ -60,6 +60,7 @@ enum class GestureType {
 
     // Interactive movement gestures
     DRAG,               // Direct drag movement with immediate execution
+    HOLD_AND_DRAG,
 
     // Content scrolling - optimized for content navigation
     SCROLL_UP,          // Scroll content upward

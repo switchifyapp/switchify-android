@@ -10,6 +10,7 @@ import com.enaboapps.switchify.service.gestures.data.GestureData
 import com.enaboapps.switchify.service.gestures.data.GestureType
 import com.enaboapps.switchify.service.gestures.execution.GestureDispatcher
 import com.enaboapps.switchify.service.gestures.execution.GesturePathBuilder
+import com.enaboapps.switchify.service.gestures.execution.HoldAndDragTiming
 import com.enaboapps.switchify.service.gestures.placement.FingerMode
 import com.enaboapps.switchify.service.gestures.placement.FingerModePreferences
 import com.enaboapps.switchify.service.gestures.placement.FingerPlacementAlgorithm
@@ -327,26 +328,16 @@ class LinearGesturePerformer(
         }
 
         val calculatedEndPoint = endPoint ?: calculateEndPoint(gestureType, startPoint)
-        performGesture(gestureType, startPoint, calculatedEndPoint)
-
-        // Get finger count from current finger placement for gesture lock
-        val fingerPlacement = GestureStateManager.getCurrentFingerPlacement()
-        val fingerCount = fingerPlacement?.fingerCount ?: 1
-        val fingerMode =
-            if (fingerCount > 1) getCurrentFingerMode() else com.enaboapps.switchify.service.gestures.placement.FingerMode.ONE
-
-        GestureCaptureRouter.onGesturePerformed(
-            GestureData(
-                gestureType = gestureType,
-                startPoint = startPoint,
-                endPoint = calculatedEndPoint,
-                fingerCount = fingerCount,
-                fingerMode = fingerMode
-            )
+        val lifecycleHandledByDispatcher = performGesture(
+            gestureType,
+            startPoint,
+            calculatedEndPoint
         )
 
-        GestureStateManager.endGesture()
-        releaseGestureTarget()
+        if (!lifecycleHandledByDispatcher) {
+            GestureStateManager.endGesture()
+            releaseGestureTarget()
+        }
     }
 
     /**
@@ -394,6 +385,7 @@ class LinearGesturePerformer(
     private fun showGestureMessage(type: GestureType) {
         val messageResId = when (type) {
             GestureType.DRAG -> R.string.hud_select_drag
+            GestureType.HOLD_AND_DRAG -> R.string.hud_select_hold_and_drag
             GestureType.CUSTOM_SWIPE -> R.string.hud_select_swipe
             else -> return
         }
@@ -415,7 +407,9 @@ class LinearGesturePerformer(
         val screenWidth = ScreenUtils.getWidth(accessibilityService)
         val screenHeight = ScreenUtils.getHeight(accessibilityService)
         return when (type) {
-            GestureType.DRAG, GestureType.CUSTOM_SWIPE -> GesturePoint.getPoint()
+            GestureType.DRAG,
+            GestureType.HOLD_AND_DRAG,
+            GestureType.CUSTOM_SWIPE -> GesturePoint.getPoint()
             GestureType.SWIPE_UP, GestureType.SCROLL_DOWN -> PointF(
                 start.x,
                 start.y - screenHeight / 5f
@@ -474,7 +468,12 @@ class LinearGesturePerformer(
      * @param start Gesture starting coordinates for path calculation
      * @param end Gesture ending coordinates for path calculation
      */
-    private fun performGesture(type: GestureType, start: PointF, end: PointF) {
+    private fun performGesture(type: GestureType, start: PointF, end: PointF): Boolean {
+        if (type == GestureType.HOLD_AND_DRAG) {
+            performHoldAndDrag(start, end)
+            return true
+        }
+
         try {
             Log.d(TAG, "performGesture called - type: $type, start: $start, end: $end")
 
@@ -565,6 +564,54 @@ class LinearGesturePerformer(
         } catch (e: Exception) {
             Log.e(TAG, "Error performing gesture", e)
         }
+        return false
+    }
+
+    private fun performHoldAndDrag(start: PointF, end: PointF) {
+        val holdDuration = HoldAndDragTiming.systemHoldDuration()
+        val gesture = GesturePathBuilder.createHoldAndDragPath(
+            startPoint = start,
+            endPoint = end,
+            holdDuration = holdDuration
+        )
+        val gestureData = GestureData(
+            gestureType = GestureType.HOLD_AND_DRAG,
+            startPoint = start,
+            endPoint = end,
+            fingerCount = 1,
+            fingerMode = FingerMode.ONE
+        )
+
+        gestureVisualManager.showTapAndHoldRing(
+            start.x.toInt(),
+            start.y.toInt(),
+            holdDuration
+        )
+        gestureDispatcher.dispatchContinuedWithActions(
+            gesture = gesture,
+            gestureType = GestureType.HOLD_AND_DRAG,
+            gestureData = gestureData,
+            onContinuationStarted = {
+                gestureVisualManager.hideCircle()
+                showVisualFeedback(start, end, GestureType.HOLD_AND_DRAG)
+            },
+            onCompleted = {
+                GestureStateManager.endGesture()
+                releaseGestureTarget()
+            },
+            onCancelled = {
+                finishCancelledHoldAndDrag()
+            },
+            onError = {
+                finishCancelledHoldAndDrag()
+            }
+        )
+    }
+
+    private fun finishCancelledHoldAndDrag() {
+        GestureStateManager.cancelGesture()
+        gestureVisualManager.hideAllVisuals()
+        releaseGestureTarget()
     }
 
     /**
@@ -620,7 +667,8 @@ class LinearGesturePerformer(
      */
     private fun getDurationForGestureType(type: GestureType): Long {
         return when (type) {
-            GestureType.DRAG -> GestureData.DRAG_DURATION
+            GestureType.DRAG,
+            GestureType.HOLD_AND_DRAG -> GestureData.DRAG_DURATION
             GestureType.SCROLL_UP, GestureType.SCROLL_DOWN, GestureType.SCROLL_LEFT, GestureType.SCROLL_RIGHT -> GestureData.SCROLL_DURATION
             else -> GestureData.SWIPE_DURATION
         }
