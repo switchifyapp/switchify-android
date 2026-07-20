@@ -52,6 +52,11 @@ import com.enaboapps.switchify.service.gestures.placement.TwoFingerPlacement
  * - Manages multi-finger gesture coordination for zoom operations
  */
 object GesturePathBuilder {
+    data class ContinuedGesture(
+        val initial: GestureDescription,
+        val continuation: GestureDescription,
+        val continuationPoint: PointF
+    )
 
     /**
      * Creates a simple tap gesture path.
@@ -144,6 +149,51 @@ object GesturePathBuilder {
         return GestureDescription.Builder().addStroke(stroke).build()
     }
 
+    fun createHoldAndDragPath(
+        startPoint: PointF,
+        endPoint: PointF,
+        holdDuration: Long,
+        dragDuration: Long = GestureData.DRAG_DURATION
+    ): ContinuedGesture {
+        val continuationPoint = holdContinuationPoint(startPoint, endPoint)
+        val holdPath = Path().apply {
+            moveTo(startPoint.x, startPoint.y)
+            lineTo(continuationPoint.x, continuationPoint.y)
+        }
+        val holdStroke = GestureDescription.StrokeDescription(
+            holdPath,
+            0,
+            holdDuration,
+            true
+        )
+        val dragPath = Path().apply {
+            moveTo(continuationPoint.x, continuationPoint.y)
+            lineTo(endPoint.x, endPoint.y)
+        }
+        val dragStroke = holdStroke.continueStroke(
+            dragPath,
+            0,
+            dragDuration,
+            false
+        )
+        return ContinuedGesture(
+            initial = GestureDescription.Builder().addStroke(holdStroke).build(),
+            continuation = GestureDescription.Builder().addStroke(dragStroke).build(),
+            continuationPoint = continuationPoint
+        )
+    }
+
+    private fun holdContinuationPoint(startPoint: PointF, endPoint: PointF): PointF {
+        val deltaX = endPoint.x - startPoint.x
+        val deltaY = endPoint.y - startPoint.y
+        val distance = kotlin.math.hypot(deltaX, deltaY)
+        if (distance == 0f) return PointF(startPoint.x + 1f, startPoint.y)
+        return PointF(
+            startPoint.x + deltaX / distance,
+            startPoint.y + deltaY / distance
+        )
+    }
+
     /**
      * Creates a pinch gesture with correct pinch mechanics.
      *
@@ -213,6 +263,7 @@ object GesturePathBuilder {
             GestureType.TAP_AND_HOLD_5S -> GestureData.TAP_AND_HOLD_5S_DURATION
             GestureType.TAP_AND_HOLD_10S -> GestureData.TAP_AND_HOLD_10S_DURATION
             GestureType.DRAG -> GestureData.DRAG_DURATION
+            GestureType.HOLD_AND_DRAG -> HoldAndDragTiming.systemTotalDuration()
             GestureType.SCROLL_UP, GestureType.SCROLL_DOWN,
             GestureType.SCROLL_LEFT, GestureType.SCROLL_RIGHT -> GestureData.SCROLL_DURATION
 

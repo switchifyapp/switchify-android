@@ -2,6 +2,7 @@ package com.enaboapps.switchify.service.gestures.data
 
 import android.graphics.PointF
 import com.enaboapps.switchify.service.gestures.GestureManager
+import com.enaboapps.switchify.service.gestures.execution.HoldAndDragTiming
 
 data class GestureData(
     val gestureType: GestureType,
@@ -41,6 +42,7 @@ data class GestureData(
         GestureType.CUSTOM_SWIPE -> SWIPE_DURATION
 
         GestureType.DRAG -> DRAG_DURATION
+        GestureType.HOLD_AND_DRAG -> HoldAndDragTiming.systemTotalDuration()
 
         GestureType.PINCH_IN,
         GestureType.PINCH_OUT -> PINCH_DURATION
@@ -146,7 +148,8 @@ data class GestureData(
             }
 
             GestureType.CUSTOM_SWIPE,
-            GestureType.DRAG -> {
+            GestureType.DRAG,
+            GestureType.HOLD_AND_DRAG -> {
                 GestureManager.instance.performCustomGestureAction(sanitizedGesture)
             }
 
