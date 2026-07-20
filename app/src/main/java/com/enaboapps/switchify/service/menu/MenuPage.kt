@@ -99,7 +99,12 @@ class MenuPage(
         val smallItemSize = MenuSizeManager.getSmallItemSize(context)
         val navigationItems = buildNavigationItems()
         val navigationCellWidthPx = navigationCellWidthPx(smallItemSize, navigationItems.size)
-        val navRow = buildNavRow(smallItemSize, navigationItems, navigationCellWidthPx)
+        val navRow = buildNavRow(
+            smallItemSize = smallItemSize,
+            navigationItems = navigationItems,
+            cellWidthPx = navigationCellWidthPx,
+            isTransparent = isTransparent
+        )
         val showNavRow = navigationItems.isNotEmpty()
         val titleText = titleResId?.let { context.getString(it) }
         val contentWidthPx = calculateContentWidth(
@@ -147,6 +152,7 @@ class MenuPage(
             // theme does not override bodyLarge), so the measurement must
             // include it or long labels wrap despite fitting.
             letterSpacing = LABEL_LETTER_SPACING_SP / itemSize.labelTextSize.value
+            typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
         }
         val circleWidthPx = ScreenUtils.dpToPx(
             context,
@@ -230,7 +236,8 @@ class MenuPage(
     private fun buildNavRow(
         smallItemSize: MenuItemSize,
         navigationItems: List<MenuItem>,
-        cellWidthPx: Int
+        cellWidthPx: Int,
+        isTransparent: Boolean
     ): LinearLayout {
         val navRow = LinearLayout(context).apply {
             orientation = LinearLayout.HORIZONTAL
@@ -240,7 +247,12 @@ class MenuPage(
             ).also { it.gravity = Gravity.CENTER_HORIZONTAL }
         }
         navigationItems.forEach { item ->
-            item.inflate(navRow, smallItemSize, cellWidthPx)
+            item.inflate(
+                parent = navRow,
+                menuSize = smallItemSize,
+                navigationWidthPx = cellWidthPx,
+                isTransparent = isTransparent
+            )
         }
         return navRow
     }

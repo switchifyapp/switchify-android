@@ -2,7 +2,6 @@ package com.enaboapps.switchify.service.menu
 
 import android.view.ViewGroup
 import android.widget.LinearLayout
-import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -137,7 +136,12 @@ class MenuItem(
      * cell size from the profile. Content items fill the parent row width
      * and use the profile's [MenuItemSize.rowHeightDp] for their height.
      */
-    fun inflate(parent: ViewGroup, menuSize: MenuItemSize, navigationWidthPx: Int? = null) {
+    fun inflate(
+        parent: ViewGroup,
+        menuSize: MenuItemSize,
+        navigationWidthPx: Int? = null,
+        isTransparent: Boolean = false
+    ) {
         val context = parent.context
         composeView = AccessibilityComposeView(context) {
             MenuItemContent(
@@ -147,13 +151,13 @@ class MenuItem(
                 circleText = circleText,
                 isMenuHierarchyManipulator = isMenuHierarchyManipulator,
                 isLinkToMenu = isLinkToMenu,
-                isBackButton = isBackButton,
                 visualRole = MenuItemVisualRole.resolve(
                     id = id,
                     isBackButton = isBackButton,
                     isMenuHierarchyManipulator = isMenuHierarchyManipulator
                 ),
                 menuSize = menuSize,
+                isTransparent = isTransparent,
                 onClick = { select() }
             )
         }
@@ -232,9 +236,9 @@ private fun MenuItemContent(
     circleText: String?,
     isMenuHierarchyManipulator: Boolean,
     isLinkToMenu: Boolean,
-    isBackButton: Boolean,
     visualRole: MenuItemVisualRole,
     menuSize: MenuItemSize,
+    isTransparent: Boolean,
     onClick: () -> Unit
 ) {
     val text = resolveMenuItemLabel(labelResource, userProvidedText)
@@ -246,6 +250,7 @@ private fun MenuItemContent(
                 labelResource = labelResource,
                 visualRole = visualRole,
                 menuSize = menuSize,
+                isTransparent = isTransparent,
                 onClick = onClick
             )
         } else {
@@ -256,7 +261,6 @@ private fun MenuItemContent(
                 labelResource = labelResource,
                 menuSize = menuSize,
                 isLinkToMenu = isLinkToMenu,
-                isBackButton = isBackButton,
                 visualRole = visualRole,
                 onClick = onClick
             )
@@ -270,14 +274,16 @@ private fun NavigationMenuItem(
     labelResource: Int?,
     visualRole: MenuItemVisualRole,
     menuSize: MenuItemSize,
+    isTransparent: Boolean,
     onClick: () -> Unit
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
+    val containerAlpha = if (isTransparent) 0.72f else 1f
     val baseContainerColor = when (visualRole) {
         MenuItemVisualRole.CLOSE -> MaterialTheme.colorScheme.errorContainer
         else -> MaterialTheme.colorScheme.surfaceContainerHighest
-    }
+    }.copy(alpha = containerAlpha)
     val containerColor = pressedContainerColor(baseContainerColor, isPressed)
     val iconColor = when (visualRole) {
         MenuItemVisualRole.CLOSE -> MaterialTheme.colorScheme.onErrorContainer
@@ -290,7 +296,7 @@ private fun NavigationMenuItem(
             .fillMaxSize()
             .clickable(
                 interactionSource = interactionSource,
-                indication = LocalIndication.current,
+                indication = null,
                 onClick = onClick
             )
             .padding(menuSize.padding),
@@ -323,7 +329,6 @@ private fun RegularMenuItem(
     labelResource: Int?,
     menuSize: MenuItemSize,
     isLinkToMenu: Boolean,
-    isBackButton: Boolean,
     visualRole: MenuItemVisualRole,
     onClick: () -> Unit
 ) {
@@ -363,7 +368,7 @@ private fun RegularMenuItem(
             .background(rowColor)
             .clickable(
                 interactionSource = interactionSource,
-                indication = LocalIndication.current,
+                indication = null,
                 onClick = onClick
             )
             .padding(horizontal = 12.dp),
@@ -435,7 +440,7 @@ private fun RegularMenuItem(
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f)
         )
-        if (isLinkToMenu && !isBackButton) {
+        if (isLinkToMenu && visualRole != MenuItemVisualRole.BACK) {
             Icon(
                 imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
                 contentDescription = null,
