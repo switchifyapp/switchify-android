@@ -80,3 +80,6 @@ google-services.json
 
 # Sentry Config File
 sentry.properties
+
+# Local scratch data
+/tmp/
