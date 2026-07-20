@@ -2,6 +2,8 @@ package com.enaboapps.switchify.service.gestures.execution
 
 import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.GestureDescription
+import android.os.Handler
+import android.os.Looper
 import com.enaboapps.switchify.service.core.SwitchifyAccessibilityService
 import com.enaboapps.switchify.service.gestures.GestureCaptureRouter
 import com.enaboapps.switchify.service.gestures.GesturePatternRecorder
@@ -47,6 +49,15 @@ import com.enaboapps.switchify.utils.Logger
 class GestureDispatcher(
     private val accessibilityService: SwitchifyAccessibilityService
 ) {
+
+    private val mainHandler = Handler(Looper.getMainLooper())
+
+    private companion object {
+        // Slack on top of the expected gesture duration before the watchdog
+        // treats a silent dispatch (no completion or cancellation callback,
+        // e.g. service teardown mid-gesture) as cancelled.
+        const val CONTINUED_GESTURE_WATCHDOG_MARGIN_MS = 2000L
+    }
 
     /**
      * Callback interface for handling gesture execution results.
@@ -304,18 +315,23 @@ class GestureDispatcher(
         gesture: GesturePathBuilder.ContinuedGesture,
         gestureType: GestureType,
         gestureData: GestureData,
+        expectedDurationMs: Long,
         onContinuationStarted: (() -> Unit)? = null,
         onCompleted: (() -> Unit)? = null,
         onCancelled: (() -> Unit)? = null,
         onError: ((Throwable) -> Unit)? = null
     ) {
+        lateinit var watchdog: Runnable
         val reportError: (Throwable) -> Unit = { error ->
+            mainHandler.removeCallbacks(watchdog)
             Logger.log(
                 LogEvent.GestureDispatchFailed,
                 data = mapOf(
                     "result" to "failure",
                     "reason" to "continued_dispatch_error",
-                    "gesture_type" to gestureType.name.lowercase()
+                    "gesture_type" to gestureType.name.lowercase(),
+                    "finger_count" to gestureData.fingerCount,
+                    "has_gesture_data" to true
                 ),
                 throwable = error
             )
@@ -324,6 +340,7 @@ class GestureDispatcher(
         }
         val terminal = GestureSequenceTerminal(
             onCompleted = {
+                mainHandler.removeCallbacks(watchdog)
                 try {
                     GestureCaptureRouter.onGesturePerformed(gestureData)
                     GesturePatternRecorder.addGesture(gestureData, accessibilityService)
@@ -334,11 +351,13 @@ class GestureDispatcher(
                 }
             },
             onCancelled = {
+                mainHandler.removeCallbacks(watchdog)
                 GestureStateManager.notifyGestureDispatchCancelled(gestureType)
                 onCancelled?.invoke()
             },
             onError = reportError
         )
+        watchdog = Runnable { terminal.cancel() }
 
         try {
             val initialAccepted = accessibilityService.dispatchGesture(
@@ -381,6 +400,10 @@ class GestureDispatcher(
             )
             if (initialAccepted) {
                 GestureStateManager.notifyGestureDispatchStarted(gestureType)
+                mainHandler.postDelayed(
+                    watchdog,
+                    expectedDurationMs + CONTINUED_GESTURE_WATCHDOG_MARGIN_MS
+                )
             } else {
                 terminal.error(IllegalStateException("Hold-and-drag hold was rejected"))
             }

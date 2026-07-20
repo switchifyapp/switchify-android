@@ -16,4 +16,7 @@ object HoldAndDragTiming {
 
     fun totalDuration(longPressTimeoutMs: Long): Long =
         holdDuration(longPressTimeoutMs) + GestureData.DRAG_DURATION
+
+    fun systemTotalDuration(): Long =
+        totalDuration(ViewConfiguration.getLongPressTimeout().toLong())
 }

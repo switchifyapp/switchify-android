@@ -591,6 +591,7 @@ class LinearGesturePerformer(
             gesture = gesture,
             gestureType = GestureType.HOLD_AND_DRAG,
             gestureData = gestureData,
+            expectedDurationMs = holdDuration + GestureData.DRAG_DURATION,
             onContinuationStarted = {
                 gestureVisualManager.hideCircle()
                 showVisualFeedback(start, end, GestureType.HOLD_AND_DRAG)

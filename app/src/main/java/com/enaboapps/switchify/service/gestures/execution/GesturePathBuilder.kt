@@ -263,7 +263,7 @@ object GesturePathBuilder {
             GestureType.TAP_AND_HOLD_5S -> GestureData.TAP_AND_HOLD_5S_DURATION
             GestureType.TAP_AND_HOLD_10S -> GestureData.TAP_AND_HOLD_10S_DURATION
             GestureType.DRAG -> GestureData.DRAG_DURATION
-            GestureType.HOLD_AND_DRAG -> HoldAndDragTiming.systemHoldDuration() + GestureData.DRAG_DURATION
+            GestureType.HOLD_AND_DRAG -> HoldAndDragTiming.systemTotalDuration()
             GestureType.SCROLL_UP, GestureType.SCROLL_DOWN,
             GestureType.SCROLL_LEFT, GestureType.SCROLL_RIGHT -> GestureData.SCROLL_DURATION
 
