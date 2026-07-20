@@ -296,13 +296,13 @@ private fun MenuPageBackground(
     Surface(
         modifier = Modifier.widthIn(max = surfaceMaxWidth),
         shape = RoundedCornerShape(28.dp),
-        color = MaterialTheme.colorScheme.surface.copy(
-            alpha = if (isTransparent) 0.82f else 0.98f
+        color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(
+            alpha = if (isTransparent) 0.84f else 0.98f
         ),
-        tonalElevation = 6.dp,
+        tonalElevation = 3.dp,
         border = BorderStroke(
             1.dp,
-            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
+            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f)
         )
     ) {
         Box(

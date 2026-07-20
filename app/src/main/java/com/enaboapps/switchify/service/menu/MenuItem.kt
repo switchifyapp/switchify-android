@@ -2,8 +2,11 @@ package com.enaboapps.switchify.service.menu
 
 import android.view.ViewGroup
 import android.widget.LinearLayout
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,20 +24,46 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.enaboapps.switchify.service.components.AccessibilityComposeView
+import com.enaboapps.switchify.service.menu.structure.MenuConstants
 import com.enaboapps.switchify.service.menu.structure.MenuItemDefinition
 import com.enaboapps.switchify.service.utils.ScreenUtils
 import com.enaboapps.switchify.utils.Resources
+
+internal enum class MenuItemVisualRole {
+    REGULAR,
+    BACK,
+    NAVIGATION,
+    CLOSE;
+
+    companion object {
+        fun resolve(
+            id: String,
+            isBackButton: Boolean,
+            isMenuHierarchyManipulator: Boolean
+        ): MenuItemVisualRole = when {
+            id == MenuConstants.ItemIds.Navigation.CLOSE_MENU -> CLOSE
+            isBackButton -> BACK
+            isMenuHierarchyManipulator -> NAVIGATION
+            else -> REGULAR
+        }
+    }
+}
 
 /**
  * This class represents a menu item
@@ -119,6 +148,11 @@ class MenuItem(
                 isMenuHierarchyManipulator = isMenuHierarchyManipulator,
                 isLinkToMenu = isLinkToMenu,
                 isBackButton = isBackButton,
+                visualRole = MenuItemVisualRole.resolve(
+                    id = id,
+                    isBackButton = isBackButton,
+                    isMenuHierarchyManipulator = isMenuHierarchyManipulator
+                ),
                 menuSize = menuSize,
                 onClick = { select() }
             )
@@ -199,6 +233,7 @@ private fun MenuItemContent(
     isMenuHierarchyManipulator: Boolean,
     isLinkToMenu: Boolean,
     isBackButton: Boolean,
+    visualRole: MenuItemVisualRole,
     menuSize: MenuItemSize,
     onClick: () -> Unit
 ) {
@@ -209,6 +244,7 @@ private fun MenuItemContent(
             NavigationMenuItem(
                 drawableId = drawableId,
                 labelResource = labelResource,
+                visualRole = visualRole,
                 menuSize = menuSize,
                 onClick = onClick
             )
@@ -221,6 +257,7 @@ private fun MenuItemContent(
                 menuSize = menuSize,
                 isLinkToMenu = isLinkToMenu,
                 isBackButton = isBackButton,
+                visualRole = visualRole,
                 onClick = onClick
             )
         }
@@ -231,14 +268,31 @@ private fun MenuItemContent(
 private fun NavigationMenuItem(
     drawableId: Int,
     labelResource: Int?,
+    visualRole: MenuItemVisualRole,
     menuSize: MenuItemSize,
     onClick: () -> Unit
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val baseContainerColor = when (visualRole) {
+        MenuItemVisualRole.CLOSE -> MaterialTheme.colorScheme.errorContainer
+        else -> MaterialTheme.colorScheme.surfaceContainerHighest
+    }
+    val containerColor = pressedContainerColor(baseContainerColor, isPressed)
+    val iconColor = when (visualRole) {
+        MenuItemVisualRole.CLOSE -> MaterialTheme.colorScheme.onErrorContainer
+        else -> MaterialTheme.colorScheme.onSurfaceVariant
+    }
+
     // Maintain full menu item size with centered circular icon
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .clickable(onClick = onClick)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = LocalIndication.current,
+                onClick = onClick
+            )
             .padding(menuSize.padding),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
@@ -248,14 +302,14 @@ private fun NavigationMenuItem(
             modifier = Modifier
                 .size(menuSize.navigationCircleSize)
                 .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)),
+                .background(containerColor),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 painter = painterResource(id = drawableId),
                 contentDescription = labelResource?.let { Resources.getString(it) },
                 modifier = Modifier.size(menuSize.navigationIconSize),
-                tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f) // Dimmed
+                tint = iconColor
             )
         }
     }
@@ -270,10 +324,11 @@ private fun RegularMenuItem(
     menuSize: MenuItemSize,
     isLinkToMenu: Boolean,
     isBackButton: Boolean,
+    visualRole: MenuItemVisualRole,
     onClick: () -> Unit
 ) {
     // List row: coloured circle on the left, full label text on the right,
-    // sitting on a rounded surfaceVariant background so each row reads as a
+    // sitting on a rounded tonal background so each row reads as a
     // tappable tile. Outer vertical padding creates a visible gap between
     // adjacent row backgrounds; the clip ensures the ripple respects the
     // rounded shape.
@@ -283,18 +338,34 @@ private fun RegularMenuItem(
     // the previous menu), but a forward-pointing chevron next to its
     // back-arrow icon would point the wrong way — its secondaryContainer
     // circle and back-arrow icon already communicate the action.
-    val circleColor = if (isBackButton) MaterialTheme.colorScheme.secondaryContainer
-                      else MaterialTheme.colorScheme.primaryContainer
-    val iconTint = if (isBackButton) MaterialTheme.colorScheme.onSecondaryContainer
-                   else MaterialTheme.colorScheme.onPrimaryContainer
+    val circleColor = if (visualRole == MenuItemVisualRole.BACK) {
+        MaterialTheme.colorScheme.secondaryContainer
+    } else {
+        MaterialTheme.colorScheme.primaryContainer
+    }
+    val iconTint = if (visualRole == MenuItemVisualRole.BACK) {
+        MaterialTheme.colorScheme.onSecondaryContainer
+    } else {
+        MaterialTheme.colorScheme.onPrimaryContainer
+    }
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val rowColor = pressedContainerColor(
+        baseColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+        isPressed = isPressed
+    )
 
     Row(
         modifier = Modifier
             .fillMaxSize()
             .padding(vertical = 4.dp)
-            .clip(RoundedCornerShape(16.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant)
-            .clickable(onClick = onClick)
+            .clip(RoundedCornerShape(20.dp))
+            .background(rowColor)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = LocalIndication.current,
+                onClick = onClick
+            )
             .padding(horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -357,8 +428,9 @@ private fun RegularMenuItem(
         Spacer(modifier = Modifier.width(12.dp))
         Text(
             text = text.orEmpty(),
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = MaterialTheme.colorScheme.onSurface,
             fontSize = menuSize.labelTextSize,
+            fontWeight = FontWeight.Medium,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f)
@@ -373,6 +445,14 @@ private fun RegularMenuItem(
         }
     }
 }
+
+@Composable
+private fun pressedContainerColor(baseColor: Color, isPressed: Boolean): Color =
+    if (isPressed) {
+        MaterialTheme.colorScheme.primary.copy(alpha = 0.12f).compositeOver(baseColor)
+    } else {
+        baseColor
+    }
 
 /**
  * Pick a font size that lets [text] fit inside a circle of [circleSizeDp]
