@@ -6,20 +6,20 @@ import org.junit.Test
 
 class HoldAndDragTimingTest {
     @Test
-    fun holdDurationAddsRecognitionBuffer() {
-        assertEquals(600L, HoldAndDragTiming.holdDuration(500L))
+    fun holdDurationUsesOneSecondMinimum() {
+        assertEquals(1000L, HoldAndDragTiming.holdDuration(500L))
     }
 
     @Test
     fun totalDurationIncludesDragMovement() {
         assertEquals(
-            600L + GestureData.DRAG_DURATION,
+            1000L + GestureData.DRAG_DURATION,
             HoldAndDragTiming.totalDuration(500L)
         )
     }
 
     @Test
-    fun negativeTimeoutUsesRecognitionBufferOnly() {
-        assertEquals(100L, HoldAndDragTiming.holdDuration(-1L))
+    fun longerSystemTimeoutKeepsRecognitionBuffer() {
+        assertEquals(1600L, HoldAndDragTiming.holdDuration(1500L))
     }
 }

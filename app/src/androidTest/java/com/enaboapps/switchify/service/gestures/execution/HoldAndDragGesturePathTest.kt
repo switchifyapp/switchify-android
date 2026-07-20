@@ -35,10 +35,18 @@ class HoldAndDragGesturePathTest {
 
         assertTrue(holdStroke.willContinue())
         assertFalse(dragStroke.willContinue())
-        assertEquals(start.x, holdPoints[holdPoints.size - 2], 0.01f)
-        assertEquals(start.y, holdPoints[holdPoints.size - 1], 0.01f)
-        assertEquals(start.x, dragStartPosition[0], 0.01f)
-        assertEquals(start.y, dragStartPosition[1], 0.01f)
+        assertEquals(sequence.continuationPoint.x, holdPoints[holdPoints.size - 2], 0.01f)
+        assertEquals(sequence.continuationPoint.y, holdPoints[holdPoints.size - 1], 0.01f)
+        assertEquals(sequence.continuationPoint.x, dragStartPosition[0], 0.01f)
+        assertEquals(sequence.continuationPoint.y, dragStartPosition[1], 0.01f)
+        assertEquals(
+            1f,
+            kotlin.math.hypot(
+                sequence.continuationPoint.x - start.x,
+                sequence.continuationPoint.y - start.y
+            ),
+            0.01f
+        )
         assertEquals(end.x, dragEndPosition[0], 0.01f)
         assertEquals(end.y, dragEndPosition[1], 0.01f)
         assertEquals(

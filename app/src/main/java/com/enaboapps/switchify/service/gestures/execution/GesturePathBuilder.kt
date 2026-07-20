@@ -54,7 +54,8 @@ import com.enaboapps.switchify.service.gestures.placement.TwoFingerPlacement
 object GesturePathBuilder {
     data class ContinuedGesture(
         val initial: GestureDescription,
-        val continuation: GestureDescription
+        val continuation: GestureDescription,
+        val continuationPoint: PointF
     )
 
     /**
@@ -154,8 +155,10 @@ object GesturePathBuilder {
         holdDuration: Long,
         dragDuration: Long = GestureData.DRAG_DURATION
     ): ContinuedGesture {
+        val continuationPoint = holdContinuationPoint(startPoint, endPoint)
         val holdPath = Path().apply {
             moveTo(startPoint.x, startPoint.y)
+            lineTo(continuationPoint.x, continuationPoint.y)
         }
         val holdStroke = GestureDescription.StrokeDescription(
             holdPath,
@@ -164,7 +167,7 @@ object GesturePathBuilder {
             true
         )
         val dragPath = Path().apply {
-            moveTo(startPoint.x, startPoint.y)
+            moveTo(continuationPoint.x, continuationPoint.y)
             lineTo(endPoint.x, endPoint.y)
         }
         val dragStroke = holdStroke.continueStroke(
@@ -175,7 +178,19 @@ object GesturePathBuilder {
         )
         return ContinuedGesture(
             initial = GestureDescription.Builder().addStroke(holdStroke).build(),
-            continuation = GestureDescription.Builder().addStroke(dragStroke).build()
+            continuation = GestureDescription.Builder().addStroke(dragStroke).build(),
+            continuationPoint = continuationPoint
+        )
+    }
+
+    private fun holdContinuationPoint(startPoint: PointF, endPoint: PointF): PointF {
+        val deltaX = endPoint.x - startPoint.x
+        val deltaY = endPoint.y - startPoint.y
+        val distance = kotlin.math.hypot(deltaX, deltaY)
+        if (distance == 0f) return PointF(startPoint.x + 1f, startPoint.y)
+        return PointF(
+            startPoint.x + deltaX / distance,
+            startPoint.y + deltaY / distance
         )
     }
 
