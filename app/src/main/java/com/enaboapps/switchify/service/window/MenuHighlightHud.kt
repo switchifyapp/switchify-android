@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
@@ -266,12 +267,12 @@ class MenuHighlightHud private constructor() {
                     modifier = Modifier
                         .widthIn(max = 600.dp)
                         .padding(16.dp),
-                    shape = MaterialTheme.shapes.medium,
+                    shape = RoundedCornerShape(28.dp),
                     colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.96f),
                         contentColor = MaterialTheme.colorScheme.onSurface
                     ),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                    elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
                 ) {
                     // Cross-fade the textual content as the scanner moves
                     // between items, keyed on (name, description) so any
