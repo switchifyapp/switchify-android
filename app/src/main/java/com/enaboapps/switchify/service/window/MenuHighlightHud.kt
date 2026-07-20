@@ -269,8 +269,8 @@ class MenuHighlightHud private constructor() {
                         .padding(16.dp),
                     shape = RoundedCornerShape(28.dp),
                     colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.inverseSurface.copy(alpha = 0.96f),
-                        contentColor = MaterialTheme.colorScheme.inverseOnSurface
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.96f),
+                        contentColor = MaterialTheme.colorScheme.onSurface
                     ),
                     elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
                 ) {
@@ -292,7 +292,7 @@ class MenuHighlightHud private constructor() {
                                 text = currentName,
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.inverseOnSurface,
+                                color = MaterialTheme.colorScheme.onSurface,
                                 textAlign = TextAlign.Center,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
@@ -302,7 +302,7 @@ class MenuHighlightHud private constructor() {
                                 Text(
                                     text = currentDescription,
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.inverseOnSurface,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     textAlign = TextAlign.Center,
                                     // Allow long descriptions to wrap rather
                                     // than ellipsize. Cap at 3 lines so the
