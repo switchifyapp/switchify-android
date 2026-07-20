@@ -13,6 +13,7 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import com.enaboapps.switchify.BuildConfig
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
+import com.enaboapps.switchify.service.utils.DeviceLockObserver
 import com.google.gson.Gson
 import org.json.JSONObject
 import java.io.File
@@ -84,11 +85,27 @@ object CrashReporter {
         }
     }
 
-    fun enqueueUpload(context: Context) {
-        migrateLegacyCrashIfPresent(context)
-        val request = createUploadWorkRequest()
-        WorkManager.getInstance(context.applicationContext)
-            .enqueueUniqueWork(UNIQUE_UPLOAD_WORK_NAME, ExistingWorkPolicy.KEEP, request)
+    fun enqueueUpload(context: Context): Boolean {
+        return scheduleUploadIfUnlocked(DeviceLockObserver.isUserUnlocked(context)) {
+            migrateLegacyCrashIfPresent(context)
+            val request = createUploadWorkRequest()
+            WorkManager.getInstance(context.applicationContext)
+                .enqueueUniqueWork(UNIQUE_UPLOAD_WORK_NAME, ExistingWorkPolicy.KEEP, request)
+        }
+    }
+
+    internal fun scheduleUploadIfUnlocked(
+        isUserUnlocked: Boolean,
+        schedule: () -> Unit
+    ): Boolean {
+        if (!isUserUnlocked) return false
+        return try {
+            schedule()
+            true
+        } catch (e: Exception) {
+            safeLogE("Failed to schedule crash upload", e)
+            false
+        }
     }
 
     internal fun createUploadWorkRequest(): OneTimeWorkRequest {

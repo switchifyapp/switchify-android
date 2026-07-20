@@ -85,6 +85,39 @@ class CrashReporterTest {
     }
 
     @Test
+    fun uploadSchedulingIsDeferredWhileUserIsLocked() {
+        var scheduleCount = 0
+
+        val scheduled = CrashReporter.scheduleUploadIfUnlocked(false) {
+            scheduleCount++
+        }
+
+        assertFalse(scheduled)
+        assertEquals(0, scheduleCount)
+    }
+
+    @Test
+    fun uploadSchedulingRunsAfterUserUnlocks() {
+        var scheduleCount = 0
+
+        val scheduled = CrashReporter.scheduleUploadIfUnlocked(true) {
+            scheduleCount++
+        }
+
+        assertTrue(scheduled)
+        assertEquals(1, scheduleCount)
+    }
+
+    @Test
+    fun uploadSchedulingFailureDoesNotEscape() {
+        val scheduled = CrashReporter.scheduleUploadIfUnlocked(true) {
+            throw IllegalStateException("WorkManager unavailable")
+        }
+
+        assertFalse(scheduled)
+    }
+
+    @Test
     fun breadcrumbsAreIncludedAndCapped() {
         val directory = tempDirectory()
         Logger.setTelemetryEnabledOverrideForTesting { true }

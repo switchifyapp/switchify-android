@@ -5,6 +5,7 @@ import android.util.Log
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
+import androidx.work.Configuration
 import com.enaboapps.switchify.service.stats.StatsCollector
 import com.enaboapps.switchify.utils.CrashReporter
 import com.enaboapps.switchify.utils.Logger
@@ -15,13 +16,16 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 
-class SwitchifyApplication : Application() {
+class SwitchifyApplication : Application(), Configuration.Provider {
 
     companion object {
         private const val TAG = "SwitchifyApplication"
     }
 
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+
+    override val workManagerConfiguration: Configuration
+        get() = Configuration.Builder().build()
 
     override fun onCreate() {
         super.onCreate()
