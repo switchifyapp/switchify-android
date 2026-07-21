@@ -29,6 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.components.AdaptiveStack
@@ -67,7 +68,7 @@ fun PcTypingControlScreen(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        PcTypingTextSection(
+        PcTypingComposer(
             text = typingText,
             message = typingMessage,
             onTextChanged = onTextChanged,
@@ -88,16 +89,24 @@ fun PcTypingControlScreen(
 }
 
 @Composable
-private fun PcTypingTextSection(
+internal fun PcTypingComposer(
     text: String,
     message: String?,
     onTextChanged: (String) -> Unit,
     onSend: () -> Unit,
     onSendAndEnter: () -> Unit,
     onClear: () -> Unit,
-    enabled: Boolean
+    enabled: Boolean,
+    modifier: Modifier = Modifier,
+    textFieldModifier: Modifier = Modifier,
+    textFieldMinLines: Int = 3,
+    textFieldMaxLines: Int = 5,
+    textFieldMinHeight: Dp = 96.dp
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
         PcTypingTextBox(
             text = text,
             message = message,
@@ -107,7 +116,11 @@ private fun PcTypingTextSection(
             onTextChanged = onTextChanged,
             onSend = onSend,
             onSendAndEnter = onSendAndEnter,
-            onClear = onClear
+            onClear = onClear,
+            modifier = textFieldModifier,
+            textFieldMinLines = textFieldMinLines,
+            textFieldMaxLines = textFieldMaxLines,
+            textFieldMinHeight = textFieldMinHeight
         )
         message?.let {
             Text(
@@ -130,24 +143,27 @@ private fun PcTypingTextBox(
     onSend: () -> Unit,
     onSendAndEnter: () -> Unit,
     onClear: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier,
+    textFieldMinLines: Int,
+    textFieldMaxLines: Int,
+    textFieldMinHeight: Dp
 ) {
     Column(
-        modifier = modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         SwitchifyTextField(
             value = text,
             onValueChange = onTextChanged,
             enabled = enabled,
-            minLines = 3,
-            maxLines = 5,
+            minLines = textFieldMinLines,
+            maxLines = textFieldMaxLines,
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.None),
             label = { Text(stringResource(R.string.pc_typing_text_label)) },
             isError = message != null,
-            modifier = Modifier
+            modifier = modifier
                 .fillMaxWidth()
-                .heightIn(min = 96.dp)
+                .heightIn(min = textFieldMinHeight)
         )
         AnimatedVisibility(
             visible = shouldShowPcTypingTextActions(text),

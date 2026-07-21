@@ -386,6 +386,9 @@
     <string name="pc_control_surface_mouse">Mouse</string>
     <string name="pc_control_surface_typing">Typing</string>
     <string name="pc_control_surface_window">Window</string>
+    <string name="pc_control_quick_input">Quick input</string>
+    <string name="pc_control_quick_input_title">Quick input</string>
+    <string name="pc_control_quick_input_close">Close quick input</string>
     <string name="pc_mouse_control_connected">Connected to %1$s.</string>
     <string name="pc_mouse_pointer_speed">Pointer speed</string>
     <string name="pc_mouse_pointer_speed_configured">Set in Switchify PC.</string>

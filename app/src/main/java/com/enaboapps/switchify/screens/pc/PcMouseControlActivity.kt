@@ -8,6 +8,7 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
@@ -101,6 +102,7 @@ private fun PcMouseControlScreen(
     val uiState by viewModel.uiState.collectAsState()
     val surfaceEnabled = uiState.connectedDisplayName != null && !uiState.isBusy
     var closeConfirmationVisible by rememberSaveable { mutableStateOf(false) }
+    var quickInputVisible by rememberSaveable { mutableStateOf(false) }
     val requestClose = { closeConfirmationVisible = true }
 
     BackHandler(onBack = requestClose)
@@ -129,13 +131,23 @@ private fun PcMouseControlScreen(
             )
         },
         bottomBar = {
-            PcControlPcSwitchStrip(
-                connectedDisplayName = uiState.switcherConnectedDisplayName ?: uiState.connectedDisplayName,
-                enabled = !uiState.isBusy,
-                isDiscovering = uiState.isDiscoveringSwitchPcs,
-                switching = uiState.switchingDesktopId != null,
-                onSwitchClick = viewModel::openSwitchPcChooser
-            )
+            Column {
+                AnimatedVisibility(
+                    visible = shouldShowPcQuickInputButton(uiState.activeSurface)
+                ) {
+                    PcQuickInputButton(
+                        enabled = surfaceEnabled,
+                        onClick = { quickInputVisible = true }
+                    )
+                }
+                PcControlPcSwitchStrip(
+                    connectedDisplayName = uiState.switcherConnectedDisplayName ?: uiState.connectedDisplayName,
+                    enabled = !uiState.isBusy,
+                    isDiscovering = uiState.isDiscoveringSwitchPcs,
+                    switching = uiState.switchingDesktopId != null,
+                    onSwitchClick = viewModel::openSwitchPcChooser
+                )
+            }
         }
     ) { paddingValues ->
         Surface(
@@ -249,6 +261,20 @@ private fun PcMouseControlScreen(
                     Text(text = stringResource(R.string.pc_control_close_confirm_cancel))
                 }
             }
+        )
+    }
+
+    if (quickInputVisible && shouldShowPcQuickInputButton(uiState.activeSurface)) {
+        PcQuickInputSheet(
+            typingText = uiState.typingText,
+            typingMessage = uiState.typingMessage,
+            enabled = surfaceEnabled,
+            onTextChanged = viewModel::updateTypingText,
+            onSend = viewModel::sendTypedText,
+            onSendAndEnter = viewModel::sendTypedTextThenEnter,
+            onClear = viewModel::clearTypingText,
+            onKeySelected = viewModel::sendKey,
+            onDismissRequest = { quickInputVisible = false }
         )
     }
 }
