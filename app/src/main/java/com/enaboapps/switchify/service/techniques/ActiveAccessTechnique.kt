@@ -2,6 +2,7 @@ package com.enaboapps.switchify.service.techniques
 
 import android.content.Context
 import com.enaboapps.switchify.service.core.ServiceBridge
+import com.enaboapps.switchify.service.core.SwitchifyAccessibilityService
 import com.enaboapps.switchify.service.keyboard.KeyboardManager
 import com.enaboapps.switchify.service.keyboard.KeyboardNodesPolicy
 import com.enaboapps.switchify.service.keyboard.KeyboardStateListener
@@ -260,10 +261,16 @@ class ActiveAccessTechnique(private val context: Context) : AccessTechniqueObser
         isKeyboardVisible: Boolean,
         isEscapedFromKeyboard: Boolean
     ) {
-        if (keyboardNodesPolicy.shouldKeepKeyboardScannerAlive(KeyboardManager.keyboardState.value)) {
+        if (isKeyboardVisible && !isEscapedFromKeyboard) {
             cleanupAllExceptKeyboard()
         } else {
-            cleanupKeyboard()
+            if (!isKeyboardVisible) {
+                cleanupKeyboard()
+            }
+            runCatching { currentAccessTechnique }
+            if (isKeyboardVisible && isEscapedFromKeyboard) {
+                (context as? SwitchifyAccessibilityService)?.refreshAccessibilityNodes()
+            }
         }
     }
 }

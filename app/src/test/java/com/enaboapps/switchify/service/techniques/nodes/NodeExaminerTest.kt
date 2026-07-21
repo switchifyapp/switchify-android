@@ -26,4 +26,46 @@ class NodeExaminerTest {
 
         assertFalse(NodeExaminer.isExpectedNodeExaminerCancellation(error))
     }
+
+    @Test
+    fun visibleKeyboardUsesKeyboardRoot() {
+        assertTrue(
+            NodeExaminer.shouldExamineKeyboardRoot(
+                isKeyboardVisible = true,
+                isEscapedFromKeyboard = false
+            )
+        )
+    }
+
+    @Test
+    fun escapedKeyboardUsesApplicationRoot() {
+        assertFalse(
+            NodeExaminer.shouldExamineKeyboardRoot(
+                isKeyboardVisible = true,
+                isEscapedFromKeyboard = true
+            )
+        )
+        assertTrue(
+            NodeExaminer.shouldExamineApplicationRoot(
+                isKeyboardVisible = true,
+                isEscapedFromKeyboard = true
+            )
+        )
+    }
+
+    @Test
+    fun hiddenKeyboardUsesActiveWindowRoot() {
+        assertFalse(
+            NodeExaminer.shouldExamineKeyboardRoot(
+                isKeyboardVisible = false,
+                isEscapedFromKeyboard = false
+            )
+        )
+        assertFalse(
+            NodeExaminer.shouldExamineApplicationRoot(
+                isKeyboardVisible = false,
+                isEscapedFromKeyboard = false
+            )
+        )
+    }
 }

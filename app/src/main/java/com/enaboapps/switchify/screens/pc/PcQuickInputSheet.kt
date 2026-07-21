@@ -3,6 +3,7 @@ package com.enaboapps.switchify.screens.pc
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
@@ -12,6 +13,9 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Keyboard
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.KeyboardHide
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
@@ -19,12 +23,14 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -36,6 +42,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.pc.PcKeyboardKey
+import kotlinx.coroutines.launch
 
 internal fun shouldShowPcQuickInputButton(surface: PcControlSurface): Boolean {
     return surface == PcControlSurface.Mouse || surface == PcControlSurface.Window
@@ -82,6 +89,7 @@ fun PcQuickInputButton(
 fun PcQuickInputSheet(
     typingText: String,
     typingMessage: String?,
+    connected: Boolean,
     enabled: Boolean,
     onTextChanged: (String) -> Unit,
     onSend: () -> Unit,
@@ -106,6 +114,7 @@ fun PcQuickInputSheet(
         PcQuickInputContent(
             typingText = typingText,
             typingMessage = typingMessage,
+            connected = connected,
             enabled = enabled,
             onTextChanged = onTextChanged,
             onSend = onSend,
@@ -121,6 +130,7 @@ fun PcQuickInputSheet(
 internal fun PcQuickInputContent(
     typingText: String,
     typingMessage: String?,
+    connected: Boolean,
     enabled: Boolean,
     onTextChanged: (String) -> Unit,
     onSend: () -> Unit,
@@ -131,12 +141,15 @@ internal fun PcQuickInputContent(
     modifier: Modifier = Modifier
 ) {
     val focusRequester = remember { FocusRequester() }
+    val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
+    val scrollState = rememberScrollState()
+    val coroutineScope = rememberCoroutineScope()
 
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .verticalScroll(rememberScrollState())
+            .fillMaxHeight(0.9f)
             .imePadding()
             .padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -151,6 +164,19 @@ internal fun PcQuickInputContent(
                 style = MaterialTheme.typography.titleLarge,
                 color = MaterialTheme.colorScheme.onSurface
             )
+            IconButton(
+                onClick = {
+                    focusManager.clearFocus(force = true)
+                    keyboardController?.hide()
+                }
+            ) {
+                Icon(
+                    imageVector = Icons.Default.KeyboardHide,
+                    contentDescription = stringResource(
+                        R.string.pc_control_quick_input_hide_keyboard
+                    )
+                )
+            }
             IconButton(onClick = onClose) {
                 Icon(
                     imageVector = Icons.Default.Close,
@@ -158,27 +184,75 @@ internal fun PcQuickInputContent(
                 )
             }
         }
-        PcTypingComposer(
-            text = typingText,
-            message = typingMessage,
-            onTextChanged = onTextChanged,
-            onSend = onSend,
-            onSendAndEnter = onSendAndEnter,
-            onClear = onClear,
-            enabled = enabled,
-            textFieldModifier = Modifier.focusRequester(focusRequester),
-            textFieldMinLines = 2,
-            textFieldMaxLines = 3,
-            textFieldMinHeight = 72.dp
-        )
-        PcKeyboardNavigationCluster(
-            enabled = enabled,
-            onKeySelected = onKeySelected
-        )
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth()
+                .verticalScroll(scrollState),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            PcTypingComposer(
+                text = typingText,
+                message = typingMessage,
+                onTextChanged = onTextChanged,
+                onSend = onSend,
+                onSendAndEnter = onSendAndEnter,
+                onClear = onClear,
+                enabled = enabled,
+                textFieldModifier = Modifier.focusRequester(focusRequester),
+                textFieldMinLines = 2,
+                textFieldMaxLines = 3,
+                textFieldMinHeight = 72.dp
+            )
+            PcKeyboardNavigationCluster(
+                enabled = enabled,
+                onKeySelected = onKeySelected
+            )
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            OutlinedButton(
+                onClick = {
+                    coroutineScope.launch {
+                        scrollState.animateScrollTo(
+                            (scrollState.value - scrollState.viewportSize).coerceAtLeast(0)
+                        )
+                    }
+                },
+                enabled = scrollState.value > 0,
+                modifier = Modifier.weight(1f)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.KeyboardArrowUp,
+                    contentDescription = null
+                )
+                Text(stringResource(R.string.pc_control_quick_input_previous_controls))
+            }
+            OutlinedButton(
+                onClick = {
+                    coroutineScope.launch {
+                        scrollState.animateScrollTo(
+                            (scrollState.value + scrollState.viewportSize)
+                                .coerceAtMost(scrollState.maxValue)
+                        )
+                    }
+                },
+                enabled = scrollState.value < scrollState.maxValue,
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(stringResource(R.string.pc_control_quick_input_next_controls))
+                Icon(
+                    imageVector = Icons.Default.KeyboardArrowDown,
+                    contentDescription = null
+                )
+            }
+        }
     }
 
-    LaunchedEffect(enabled) {
-        if (enabled) {
+    LaunchedEffect(connected) {
+        if (connected) {
             focusRequester.requestFocus()
             keyboardController?.show()
         }

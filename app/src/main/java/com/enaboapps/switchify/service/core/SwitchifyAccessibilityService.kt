@@ -282,6 +282,12 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
         }
     }
 
+    fun refreshAccessibilityNodes() {
+        serviceScope.launch {
+            nodeUpdateCoordinator.processAccessibilityUpdate()
+        }
+    }
+
 
     override fun onInterrupt() {
         SwitchifyAccessibilityWindow.instance.cleanup()

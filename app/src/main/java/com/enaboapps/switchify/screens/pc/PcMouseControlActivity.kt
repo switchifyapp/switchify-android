@@ -268,6 +268,7 @@ private fun PcMouseControlScreen(
         PcQuickInputSheet(
             typingText = uiState.typingText,
             typingMessage = uiState.typingMessage,
+            connected = uiState.connectedDisplayName != null,
             enabled = surfaceEnabled,
             onTextChanged = viewModel::updateTypingText,
             onSend = viewModel::sendTypedText,

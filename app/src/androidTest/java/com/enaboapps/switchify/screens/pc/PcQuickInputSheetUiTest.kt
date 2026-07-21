@@ -4,6 +4,7 @@ import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertIsNotFocused
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -11,6 +12,9 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.activities.ui.theme.SwitchifyTheme
 import com.enaboapps.switchify.pc.PcKeyboardKey
@@ -31,6 +35,7 @@ class PcQuickInputSheetUiTest {
                 PcQuickInputContent(
                     typingText = "Shared draft",
                     typingMessage = null,
+                    connected = true,
                     enabled = true,
                     onTextChanged = {},
                     onSend = {},
@@ -57,6 +62,7 @@ class PcQuickInputSheetUiTest {
                 PcQuickInputContent(
                     typingText = "Keep me",
                     typingMessage = null,
+                    connected = true,
                     enabled = true,
                     onTextChanged = {},
                     onSend = {},
@@ -88,6 +94,7 @@ class PcQuickInputSheetUiTest {
                 PcQuickInputContent(
                     typingText = "Invalid\u001Btext",
                     typingMessage = errorMessage,
+                    connected = true,
                     enabled = true,
                     onTextChanged = {},
                     onSend = {},
@@ -118,6 +125,7 @@ class PcQuickInputSheetUiTest {
                 PcQuickInputContent(
                     typingText = "",
                     typingMessage = null,
+                    connected = true,
                     enabled = true,
                     onTextChanged = {},
                     onSend = {},
@@ -136,5 +144,38 @@ class PcQuickInputSheetUiTest {
         composeTestRule.runOnIdle {
             assertEquals(pcKeyboardNavigationKeys(), selectedKeys)
         }
+    }
+
+    @Test
+    fun busyTransitionDoesNotReopenHiddenKeyboard() {
+        var enabled by mutableStateOf(true)
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+
+        composeTestRule.setContent {
+            SwitchifyTheme {
+                PcQuickInputContent(
+                    typingText = "",
+                    typingMessage = null,
+                    connected = true,
+                    enabled = enabled,
+                    onTextChanged = {},
+                    onSend = {},
+                    onSendAndEnter = {},
+                    onClear = {},
+                    onKeySelected = {},
+                    onClose = {}
+                )
+            }
+        }
+
+        composeTestRule
+            .onNodeWithContentDescription(
+                context.getString(R.string.pc_control_quick_input_hide_keyboard)
+            )
+            .performClick()
+        composeTestRule.runOnIdle { enabled = false }
+        composeTestRule.runOnIdle { enabled = true }
+
+        composeTestRule.onNode(hasSetTextAction()).assertIsNotFocused()
     }
 }
