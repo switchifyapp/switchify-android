@@ -91,10 +91,20 @@ object NodeExaminer {
         // ActiveAccessTechnique's scanner routing. NodeUpdateCoordinator pushes
         // KeyboardBridge state before calling examineAccessibilityTree, so the
         // StateFlow value reflects this event's windows.
-        val isKeyboardVisible = KeyboardManager.keyboardState.value.isVisible
+        val keyboardState = KeyboardManager.keyboardState.value
+        val examineKeyboardRoot = shouldExamineKeyboardRoot(
+            isKeyboardVisible = keyboardState.isVisible,
+            isEscapedFromKeyboard = keyboardState.isEscaped
+        )
 
-        val rootNode = if (isKeyboardVisible) {
+        val rootNode = if (examineKeyboardRoot) {
             keyboardExtractor.getKeyboardRootNode(windows)
+        } else if (shouldExamineApplicationRoot(
+                isKeyboardVisible = keyboardState.isVisible,
+                isEscapedFromKeyboard = keyboardState.isEscaped
+            )
+        ) {
+            findApplicationRootNode(windows) ?: activeWindowRootNode
         } else {
             activeWindowRootNode
         }
@@ -103,7 +113,7 @@ object NodeExaminer {
             rootNode?.let { rootNode ->
                 val startTime = System.currentTimeMillis()
                 val result = withTimeoutOrNull(TREE_PROCESSING_TIMEOUT_MS) {
-                    processAccessibilityTree(rootNode, context, isKeyboardVisible)
+                    processAccessibilityTree(rootNode, context, examineKeyboardRoot)
                 }
                 val elapsed = System.currentTimeMillis() - startTime
 
@@ -118,7 +128,7 @@ object NodeExaminer {
                             "result" to "timeout",
                             "timeout_ms" to TREE_PROCESSING_TIMEOUT_MS,
                             "elapsed_ms" to elapsed,
-                            "keyboard_visible" to isKeyboardVisible,
+                            "keyboard_visible" to keyboardState.isVisible,
                             "app_package" to (rootNode.packageName?.toString() ?: "unknown")
                         )
                     )
@@ -140,7 +150,7 @@ object NodeExaminer {
                 data = mapOf(
                     "result" to "failure",
                     "reason" to "examine_accessibility_tree_exception",
-                    "keyboard_visible" to isKeyboardVisible,
+                    "keyboard_visible" to keyboardState.isVisible,
                     "app_package" to (packageName ?: "unknown")
                 ),
                 throwable = e
@@ -151,6 +161,35 @@ object NodeExaminer {
 
     internal fun isExpectedNodeExaminerCancellation(error: Throwable): Boolean {
         return error is CancellationException
+    }
+
+    internal fun shouldExamineKeyboardRoot(
+        isKeyboardVisible: Boolean,
+        isEscapedFromKeyboard: Boolean
+    ): Boolean {
+        return isKeyboardVisible && !isEscapedFromKeyboard
+    }
+
+    internal fun shouldExamineApplicationRoot(
+        isKeyboardVisible: Boolean,
+        isEscapedFromKeyboard: Boolean
+    ): Boolean {
+        return isKeyboardVisible && isEscapedFromKeyboard
+    }
+
+    private fun findApplicationRootNode(
+        windows: List<AccessibilityWindowInfo>
+    ): AccessibilityNodeInfo? {
+        return windows
+            .asSequence()
+            .filter { it.type == AccessibilityWindowInfo.TYPE_APPLICATION }
+            .sortedWith(
+                compareByDescending<AccessibilityWindowInfo> { it.isActive }
+                    .thenByDescending { it.isFocused }
+                    .thenByDescending { it.layer }
+            )
+            .mapNotNull { it.root }
+            .firstOrNull()
     }
 
     private fun recordFailure(packageName: String?) {

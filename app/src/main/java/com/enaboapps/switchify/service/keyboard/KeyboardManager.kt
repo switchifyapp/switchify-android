@@ -230,6 +230,7 @@ object KeyboardManager : CycleBreakListener {
         isEscapedFromKeyboard = true
 
         updateState()
+        notifyStateChanged()
     }
 
     /**
@@ -263,6 +264,7 @@ object KeyboardManager : CycleBreakListener {
         bypassUnlockAt = SystemClock.uptimeMillis() + BYPASS_UPDATE_DELAY_MS
 
         updateState()
+        notifyStateChanged()
 
         // Delay completes the state machine return transition once the keyboard
         // UI has stabilised. Bypass timing is handled by bypassUnlockAt above.
