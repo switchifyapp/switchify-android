@@ -602,7 +602,15 @@ class ScanTreeNavigator internal constructor(
      * Resets the navigator to its initial state.
      */
     fun reset() {
-        resetCycleProgress(notifyCycleBreakCancellation = false)
+        resetState(notifyCycleBreakCancellation = true)
+    }
+
+    internal fun resetAfterCycleBreakUiCleanup() {
+        resetState(notifyCycleBreakCancellation = false)
+    }
+
+    private fun resetState(notifyCycleBreakCancellation: Boolean) {
+        resetCycleProgress(notifyCycleBreakCancellation)
         currentTreeItem = 0
         currentGroup = 0
         currentColumn = 0

@@ -582,7 +582,7 @@ class ScanTree(
         callback?.onScanTreeStopped()
         callback?.onScanTreeCycleBreakSkipped()
         highlighter.unhighlightAll()
-        navigator.reset()
+        navigator.resetAfterCycleBreakUiCleanup()
         isManualScanActive = false
         callback?.onScanTreeReset()
     }

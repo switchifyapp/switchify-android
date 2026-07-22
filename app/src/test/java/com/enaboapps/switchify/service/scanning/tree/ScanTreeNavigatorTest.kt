@@ -180,7 +180,7 @@ class ScanTreeNavigatorTest {
     }
 
     @Test
-    fun resetClearsCycleBreakWithoutInvokingCancellationCallback() {
+    fun resetCancelsActiveCycleBreakExactlyOnce() {
         var cancellationCount = 0
         val navigator = navigatorForRows(
             row("only"),
@@ -191,6 +191,25 @@ class ScanTreeNavigatorTest {
         navigator.moveSelectionToNext()
 
         navigator.reset()
+
+        assertEquals(0, navigator.currentCycle)
+        assertFalse(navigator.isInCycleBreak)
+        assertFalse(navigator.hasCompletedCycle())
+        assertEquals(1, cancellationCount)
+    }
+
+    @Test
+    fun resetAfterUiCleanupDoesNotDuplicateCancellationCallback() {
+        var cancellationCount = 0
+        val navigator = navigatorForRows(
+            row("only"),
+            settings = TestNavigatorSettings(),
+            hasCycleBreak = { true },
+            onCycleBreakCancelled = { cancellationCount++ }
+        )
+        navigator.moveSelectionToNext()
+
+        navigator.resetAfterCycleBreakUiCleanup()
 
         assertEquals(0, navigator.currentCycle)
         assertFalse(navigator.isInCycleBreak)
