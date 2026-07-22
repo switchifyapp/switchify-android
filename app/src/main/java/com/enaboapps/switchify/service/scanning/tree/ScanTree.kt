@@ -72,7 +72,13 @@ class ScanTree(
      * Initializes the navigator, selector, and highlighter components.
      */
     private fun initializeComponents() {
-        navigator = ScanTreeNavigator(tree, scanSettings, hasCycleBreak)
+        navigator = ScanTreeNavigator(
+            tree,
+            scanSettings,
+            hasCycleBreak
+        ) {
+            callback?.onScanTreeCycleBreakSkipped()
+        }
         selector = ScanTreeSelector(tree, navigator, scanSettings, stopScanningOnSelect)
         highlighter = ScanTreeHighlighter(tree, scanSettings)
     }
@@ -600,14 +606,7 @@ class ScanTree(
      * @param nodeIndex The node index within the tree item
      */
     fun setSpatialPosition(treeIndex: Int, nodeIndex: Int) {
-        if (treeIndex < tree.size && nodeIndex < tree[treeIndex].children.size) {
-            // Update navigator position directly
-            navigator.currentTreeItem = treeIndex
-            navigator.currentColumn = nodeIndex
-            navigator.isInTreeItem = true
-            navigator.isInGroup = false
-            navigator.isScanningGroups = false
-            // Highlight the new position
+        if (navigator.setSpatialPosition(treeIndex, nodeIndex)) {
             highlightCurrent()
         }
     }
