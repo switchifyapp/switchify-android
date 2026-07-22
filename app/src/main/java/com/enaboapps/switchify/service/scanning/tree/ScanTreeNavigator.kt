@@ -34,13 +34,30 @@ private class ScanSettingsNavigatorAdapter(
 class ScanTreeNavigator internal constructor(
     private val tree: List<ScanTreeItem>,
     private val scanSettings: ScanTreeNavigatorSettings,
-    private val hasCycleBreak: () -> Boolean = { false }
+    private val hasCycleBreak: () -> Boolean = { false },
+    private val onCycleBreakCancelled: () -> Unit = {}
 ) {
     constructor(
         tree: List<ScanTreeItem>,
         scanSettings: ScanSettings,
         hasCycleBreak: () -> Boolean = { false }
-    ) : this(tree, ScanSettingsNavigatorAdapter(scanSettings), hasCycleBreak)
+    ) : this(
+        tree,
+        ScanSettingsNavigatorAdapter(scanSettings),
+        hasCycleBreak
+    )
+
+    internal constructor(
+        tree: List<ScanTreeItem>,
+        scanSettings: ScanSettings,
+        hasCycleBreak: () -> Boolean,
+        onCycleBreakCancelled: () -> Unit
+    ) : this(
+        tree,
+        ScanSettingsNavigatorAdapter(scanSettings),
+        hasCycleBreak,
+        onCycleBreakCancelled
+    )
 
     /** Represents the different types of escape states in the scanning tree */
     sealed class EscapeState {
@@ -57,18 +74,36 @@ class ScanTreeNavigator internal constructor(
 
     /** Indicates whether the scanning is currently within a group. */
     var isInGroup = false
+        set(value) {
+            if (field != value) {
+                resetCycleProgress()
+                field = value
+            }
+        }
 
     /** The index of the current column within the current group or the current node in non-row-column mode. */
     var currentColumn = 0
 
     /** Indicates whether the scanning is currently within a tree item. */
     var isInTreeItem = false
+        set(value) {
+            if (field != value) {
+                resetCycleProgress()
+                field = value
+            }
+        }
 
     /** Tracks the current cycle of the scanning tree */
     var currentCycle = 0
 
     /** Indicates whether we're scanning groups or items within a group. */
-    var isScanningGroups = true
+    var isScanningGroups = scanSettings.isGroupScanEnabled()
+        set(value) {
+            if (field != value) {
+                resetCycleProgress()
+                field = value
+            }
+        }
 
     /** Indicates whether we're in the cycle break */
     var isInCycleBreak = false
@@ -78,6 +113,12 @@ class ScanTreeNavigator internal constructor(
 
     /** The current direction of scanning. */
     var scanDirection = ScanDirection.DOWN
+        set(value) {
+            if (field != value) {
+                resetCycleProgress()
+                field = value
+            }
+        }
 
     /** The current escape state */
     private var escapeState: EscapeState = EscapeState.None
@@ -387,6 +428,16 @@ class ScanTreeNavigator internal constructor(
         currentCycle++
     }
 
+    internal fun resetCycleProgress(notifyCycleBreakCancellation: Boolean = true) {
+        val wasInCycleBreak = isInCycleBreak
+        currentCycle = 0
+        justCompletedCycle = false
+        isInCycleBreak = false
+        if (wasInCycleBreak && notifyCycleBreakCancellation) {
+            onCycleBreakCancelled()
+        }
+    }
+
     /**
      * Finds out if the current item has only one group.
      * @return True if the current item has only one group, false otherwise.
@@ -470,7 +521,6 @@ class ScanTreeNavigator internal constructor(
         if (!isRowColumnScanEnabled) {
             currentColumn = 0
         }
-        currentCycle = 0
     }
 
     private fun resetToGroupEscape() {
@@ -535,14 +585,35 @@ class ScanTreeNavigator internal constructor(
         }
     }
 
+    fun setSpatialPosition(treeIndex: Int, nodeIndex: Int): Boolean {
+        val item = tree.getOrNull(treeIndex) ?: return false
+        if (nodeIndex !in item.children.indices) return false
+
+        resetCycleProgress()
+        currentTreeItem = treeIndex
+        currentColumn = nodeIndex
+        isInTreeItem = true
+        isInGroup = false
+        isScanningGroups = false
+        return true
+    }
+
     /**
      * Resets the navigator to its initial state.
      */
     fun reset() {
+        resetState(notifyCycleBreakCancellation = true)
+    }
+
+    internal fun resetAfterCycleBreakUiCleanup() {
+        resetState(notifyCycleBreakCancellation = false)
+    }
+
+    private fun resetState(notifyCycleBreakCancellation: Boolean) {
+        resetCycleProgress(notifyCycleBreakCancellation)
         currentTreeItem = 0
         currentGroup = 0
         currentColumn = 0
-        currentCycle = 0
 
         if (scanSettings.isDirectionalScanMode()) {
             // In directional mode, start positioned at the first node
