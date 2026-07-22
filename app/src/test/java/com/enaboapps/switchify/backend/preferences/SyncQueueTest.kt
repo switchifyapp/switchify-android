@@ -199,6 +199,80 @@ class SyncQueueTest {
     }
 
     @Test
+    fun clearDuringUploadDoesNotRemoveRequeuedMatchingChange() = runTest {
+        val uploadStarted = CompletableDeferred<Unit>()
+        val finishUpload = CompletableDeferred<Unit>()
+        val uploads = mutableListOf<Map<String, Any>>()
+        val queue = createQueue { changes ->
+            uploads += changes
+            if (uploads.size == 1) {
+                uploadStarted.complete(Unit)
+                finishUpload.await()
+            }
+            Result.success(Unit)
+        }
+
+        queue.queueChange("delay", 1000L)
+        runCurrent()
+        advanceTimeBy(3000L)
+        runCurrent()
+        uploadStarted.await()
+
+        queue.clearQueue()
+        queue.queueChange("delay", 1000L)
+        finishUpload.complete(Unit)
+        runCurrent()
+
+        assertEquals(1, queue.getPendingCount())
+
+        advanceTimeBy(3000L)
+        runCurrent()
+
+        assertEquals(
+            listOf(mapOf("delay" to 1000L), mapOf("delay" to 1000L)),
+            uploads
+        )
+        assertEquals(0, queue.getPendingCount())
+    }
+
+    @Test
+    fun syncWaitingBeforeClearDoesNotUploadChangesQueuedAfterClear() = runTest {
+        val uploadStarted = CompletableDeferred<Unit>()
+        val finishUpload = CompletableDeferred<Unit>()
+        val uploads = mutableListOf<Map<String, Any>>()
+        val queue = createQueue { changes ->
+            uploads += changes
+            if (uploads.size == 1) {
+                uploadStarted.complete(Unit)
+                finishUpload.await()
+            }
+            Result.success(Unit)
+        }
+
+        queue.queueChange("delay", 1000L)
+        runCurrent()
+        advanceTimeBy(3000L)
+        runCurrent()
+        uploadStarted.await()
+
+        queue.forceSyncNow()
+        runCurrent()
+        queue.clearQueue()
+        queue.queueChange("speed", 2)
+        finishUpload.complete(Unit)
+        runCurrent()
+
+        assertEquals(listOf(mapOf("delay" to 1000L)), uploads)
+        assertEquals(1, queue.getPendingCount())
+
+        advanceTimeBy(3000L)
+        runCurrent()
+
+        assertEquals(mapOf("speed" to 2), uploads.last())
+        assertEquals(0, queue.getPendingCount())
+    }
+
+    @Test
     fun successfulUploadKeepsNewerValuePending() = runTest {
         val finishFirstUpload = CompletableDeferred<Unit>()
         val uploads = mutableListOf<Map<String, Any>>()

@@ -10,7 +10,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withTimeoutOrNull
-import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
 
 private const val SYNC_QUEUE_TAG = "SyncQueue"
@@ -25,12 +24,25 @@ class SyncQueue internal constructor(
     private val uploader: suspend (Map<String, Any>) -> Result<Unit>,
     private val logger: SyncQueueLogger = AndroidSyncQueueLogger
 ) {
-    private val pendingChanges = ConcurrentHashMap<String, Any>()
-    private val syncSignals = Channel<Long>(Channel.CONFLATED)
+    private data class PendingChange(
+        val value: Any,
+        val epoch: Long,
+        val revision: Long
+    )
+
+    private data class SyncSignal(
+        val generation: Long,
+        val epoch: Long
+    )
+
+    private val queueLock = Any()
+    private val pendingChanges = mutableMapOf<String, PendingChange>()
+    private val syncSignals = Channel<SyncSignal>(Channel.CONFLATED)
     private val syncGeneration = AtomicLong(0L)
     private val syncMutex = Mutex()
+    private var queueEpoch = 0L
+    private var nextRevision = 0L
 
-    @Volatile
     private var isPaused = false
 
     private constructor() : this(
@@ -60,16 +72,21 @@ class SyncQueue internal constructor(
 
     /** Queues a preference change for sync after the debounce delay. */
     fun queueChange(key: String, value: Any) {
-        if (isPaused) {
-            logger.debug("SyncQueue is paused, ignoring change for key: $key")
-            return
+        val wasQueued = synchronized(queueLock) {
+            if (isPaused) {
+                false
+            } else {
+                logger.debug("Queueing change for key: $key")
+                val revision = ++nextRevision
+                pendingChanges[key] = PendingChange(value, queueEpoch, revision)
+                val signal = SyncSignal(syncGeneration.incrementAndGet(), queueEpoch)
+                syncSignals.trySend(signal)
+                true
+            }
         }
-
-        logger.debug("Queueing change for key: $key")
-
-        pendingChanges[key] = value
-        val generation = syncGeneration.incrementAndGet()
-        syncSignals.trySend(generation)
+        if (!wasQueued) {
+            logger.debug("SyncQueue is paused, ignoring change for key: $key")
+        }
     }
 
     /**
@@ -78,51 +95,67 @@ class SyncQueue internal constructor(
     fun forceSyncNow() {
         logger.debug("Forcing immediate sync")
 
-        syncGeneration.incrementAndGet()
+        val expectedEpoch = synchronized(queueLock) {
+            syncGeneration.incrementAndGet()
+            queueEpoch
+        }
         coroutineScope.launch {
-            performBatchedSync()
+            performBatchedSync(expectedEpoch = expectedEpoch)
         }
     }
 
     private suspend fun processSyncSignals() {
-        for (initialGeneration in syncSignals) {
-            var scheduledGeneration = initialGeneration
+        for (initialSignal in syncSignals) {
+            var scheduledSignal = initialSignal
             while (true) {
-                val newerGeneration = withTimeoutOrNull(syncDelayMs) {
+                val newerSignal = withTimeoutOrNull(syncDelayMs) {
                     syncSignals.receive()
                 } ?: break
-                scheduledGeneration = newerGeneration
+                scheduledSignal = newerSignal
             }
 
-            performBatchedSync(scheduledGeneration)
+            performBatchedSync(
+                expectedGeneration = scheduledSignal.generation,
+                expectedEpoch = scheduledSignal.epoch
+            )
         }
     }
 
     /**
      * Performs batched sync of all pending changes.
      */
-    private suspend fun performBatchedSync(expectedGeneration: Long? = null) {
+    private suspend fun performBatchedSync(
+        expectedGeneration: Long? = null,
+        expectedEpoch: Long
+    ) {
         syncMutex.withLock {
-            if (
-                expectedGeneration != null &&
-                (isPaused || expectedGeneration != syncGeneration.get())
-            ) {
-                return
+            val changesToSync = synchronized(queueLock) {
+                if (
+                    expectedEpoch != queueEpoch ||
+                    expectedGeneration != null &&
+                    (isPaused || expectedGeneration != syncGeneration.get())
+                ) {
+                    return
+                }
+                pendingChanges.toMap()
             }
 
-            if (pendingChanges.isEmpty()) {
+            if (changesToSync.isEmpty()) {
                 logger.debug("No pending changes to sync")
                 return
             }
 
             try {
-                val changesToSync = pendingChanges.toMap()
                 logger.info("Syncing ${changesToSync.size} batched changes")
 
-                uploader(changesToSync).fold(
+                uploader(changesToSync.mapValues { it.value.value }).fold(
                     onSuccess = {
-                        changesToSync.forEach { (key, value) ->
-                            pendingChanges.remove(key, value)
+                        synchronized(queueLock) {
+                            changesToSync.forEach { (key, change) ->
+                                if (pendingChanges[key] == change) {
+                                    pendingChanges.remove(key)
+                                }
+                            }
                         }
                         logger.info("Batched sync completed successfully")
                     },
@@ -143,8 +176,11 @@ class SyncQueue internal constructor(
      */
     fun clearQueue() {
         logger.debug("Clearing sync queue")
-        syncGeneration.incrementAndGet()
-        pendingChanges.clear()
+        synchronized(queueLock) {
+            syncGeneration.incrementAndGet()
+            queueEpoch++
+            pendingChanges.clear()
+        }
     }
 
     /**
@@ -152,8 +188,10 @@ class SyncQueue internal constructor(
      */
     fun pause() {
         logger.debug("Pausing sync queue")
-        isPaused = true
-        syncGeneration.incrementAndGet()
+        synchronized(queueLock) {
+            isPaused = true
+            syncGeneration.incrementAndGet()
+        }
     }
 
     /**
@@ -161,13 +199,15 @@ class SyncQueue internal constructor(
      */
     fun resume() {
         logger.debug("Resuming sync queue")
-        isPaused = false
+        synchronized(queueLock) {
+            isPaused = false
+        }
     }
 
     /**
      * Returns the number of pending changes.
      */
-    fun getPendingCount(): Int = pendingChanges.size
+    fun getPendingCount(): Int = synchronized(queueLock) { pendingChanges.size }
 }
 
 internal interface SyncQueueLogger {
