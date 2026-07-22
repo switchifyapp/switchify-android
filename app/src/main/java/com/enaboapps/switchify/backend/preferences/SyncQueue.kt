@@ -1,29 +1,63 @@
 package com.enaboapps.switchify.backend.preferences
 
 import android.util.Log
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
-import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.atomic.AtomicReference
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withTimeoutOrNull
+import java.util.concurrent.atomic.AtomicLong
+
+private const val SYNC_QUEUE_TAG = "SyncQueue"
 
 /**
  * Manages queuing and batching of preference sync operations.
  * Implements debouncing with a 3-second delay to avoid excessive network calls.
  */
-class SyncQueue private constructor() {
-    private val coroutineScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
-    private val pendingChanges = ConcurrentHashMap<String, Any>()
-    private val currentSyncJob = AtomicReference<Job?>(null)
+class SyncQueue internal constructor(
+    private val coroutineScope: CoroutineScope,
+    private val syncDelayMs: Long,
+    private val uploader: suspend (Map<String, Any>) -> Result<Unit>,
+    private val logger: SyncQueueLogger = AndroidSyncQueueLogger
+) {
+    private data class PendingChange(
+        val value: Any,
+        val epoch: Long,
+        val revision: Long
+    )
 
-    @Volatile
+    private data class SyncSignal(
+        val generation: Long,
+        val epoch: Long
+    )
+
+    private val queueLock = Any()
+    private val pendingChanges = mutableMapOf<String, PendingChange>()
+    private val syncSignals = Channel<SyncSignal>(Channel.CONFLATED)
+    private val syncGeneration = AtomicLong(0L)
+    private val syncMutex = Mutex()
+    private var queueEpoch = 0L
+    private var nextRevision = 0L
+
     private var isPaused = false
 
+    private constructor() : this(
+        coroutineScope = CoroutineScope(Dispatchers.IO + SupervisorJob()),
+        syncDelayMs = SYNC_DELAY_MS,
+        uploader = { changes -> PreferenceSync.getInstance().uploadBatchedChanges(changes) }
+    )
+
+    init {
+        coroutineScope.launch {
+            processSyncSignals()
+        }
+    }
+
     companion object {
-        private const val TAG = "SyncQueue"
         private const val SYNC_DELAY_MS = 3000L
 
         @Volatile
@@ -36,80 +70,104 @@ class SyncQueue private constructor() {
         }
     }
 
-    /**
-     * Queues a preference change for sync. Cancels previous sync job and starts a new one
-     * with 3-second delay.
-     */
+    /** Queues a preference change for sync after the debounce delay. */
     fun queueChange(key: String, value: Any) {
-        if (isPaused) {
-            Log.d(TAG, "SyncQueue is paused, ignoring change for key: $key")
-            return
+        val wasQueued = synchronized(queueLock) {
+            if (isPaused) {
+                false
+            } else {
+                logger.debug("Queueing change for key: $key")
+                val revision = ++nextRevision
+                pendingChanges[key] = PendingChange(value, queueEpoch, revision)
+                val signal = SyncSignal(syncGeneration.incrementAndGet(), queueEpoch)
+                syncSignals.trySend(signal)
+                true
+            }
         }
-
-        Log.d(TAG, "Queueing change for key: $key")
-
-        // Add to pending changes
-        pendingChanges[key] = value
-
-        // Cancel previous sync job
-        currentSyncJob.get()?.cancel()
-
-        // Start new debounced sync job
-        val newJob = coroutineScope.launch {
-            delay(SYNC_DELAY_MS)
-            performBatchedSync()
+        if (!wasQueued) {
+            logger.debug("SyncQueue is paused, ignoring change for key: $key")
         }
-
-        currentSyncJob.set(newJob)
     }
 
     /**
      * Forces immediate sync of all pending changes without delay.
      */
     fun forceSyncNow() {
-        Log.d(TAG, "Forcing immediate sync")
+        logger.debug("Forcing immediate sync")
 
-        // Cancel pending job
-        currentSyncJob.get()?.cancel()
-
-        // Sync immediately
+        val expectedEpoch = synchronized(queueLock) {
+            syncGeneration.incrementAndGet()
+            queueEpoch
+        }
         coroutineScope.launch {
-            performBatchedSync()
+            performBatchedSync(expectedEpoch = expectedEpoch)
+        }
+    }
+
+    private suspend fun processSyncSignals() {
+        for (initialSignal in syncSignals) {
+            var scheduledSignal = initialSignal
+            while (true) {
+                val newerSignal = withTimeoutOrNull(syncDelayMs) {
+                    syncSignals.receive()
+                } ?: break
+                scheduledSignal = newerSignal
+            }
+
+            performBatchedSync(
+                expectedGeneration = scheduledSignal.generation,
+                expectedEpoch = scheduledSignal.epoch
+            )
         }
     }
 
     /**
      * Performs batched sync of all pending changes.
      */
-    private suspend fun performBatchedSync() {
-        if (pendingChanges.isEmpty()) {
-            Log.d(TAG, "No pending changes to sync")
-            return
-        }
-
-        try {
-            // Create snapshot of pending changes
-            val changesToSync = pendingChanges.toMap()
-            Log.i(TAG, "Syncing ${changesToSync.size} batched changes")
-
-            // Get current sync instance and perform upload
-            val result = PreferenceSync.getInstance().uploadBatchedChanges(changesToSync)
-
-            result.fold(
-                onSuccess = {
-                    // Remove successfully synced changes
-                    changesToSync.keys.forEach { key ->
-                        pendingChanges.remove(key, changesToSync[key])
-                    }
-                    Log.i(TAG, "Batched sync completed successfully")
-                },
-                onFailure = { e ->
-                    Log.e(TAG, "Batched sync failed", e)
-                    // Changes remain in queue for retry
+    private suspend fun performBatchedSync(
+        expectedGeneration: Long? = null,
+        expectedEpoch: Long
+    ) {
+        syncMutex.withLock {
+            val changesToSync = synchronized(queueLock) {
+                if (
+                    expectedEpoch != queueEpoch ||
+                    expectedGeneration != null &&
+                    (isPaused || expectedGeneration != syncGeneration.get())
+                ) {
+                    return
                 }
-            )
-        } catch (e: Exception) {
-            Log.e(TAG, "Error during batched sync", e)
+                pendingChanges.toMap()
+            }
+
+            if (changesToSync.isEmpty()) {
+                logger.debug("No pending changes to sync")
+                return
+            }
+
+            try {
+                logger.info("Syncing ${changesToSync.size} batched changes")
+
+                uploader(changesToSync.mapValues { it.value.value }).fold(
+                    onSuccess = {
+                        synchronized(queueLock) {
+                            changesToSync.forEach { (key, change) ->
+                                if (pendingChanges[key] == change) {
+                                    pendingChanges.remove(key)
+                                }
+                            }
+                        }
+                        logger.info("Batched sync completed successfully")
+                    },
+                    onFailure = { error ->
+                        logger.error("Batched sync failed", error)
+                    }
+                )
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Exception) {
+                logger.error("Error during batched sync", error)
+            }
         }
     }
 
@@ -117,30 +175,57 @@ class SyncQueue private constructor() {
      * Clears all pending changes (useful for logout scenarios).
      */
     fun clearQueue() {
-        Log.d(TAG, "Clearing sync queue")
-        currentSyncJob.get()?.cancel()
-        pendingChanges.clear()
+        logger.debug("Clearing sync queue")
+        synchronized(queueLock) {
+            syncGeneration.incrementAndGet()
+            queueEpoch++
+            pendingChanges.clear()
+        }
     }
 
     /**
      * Pauses the sync queue to prevent conflicts during authentication sync.
      */
     fun pause() {
-        Log.d(TAG, "Pausing sync queue")
-        isPaused = true
-        currentSyncJob.get()?.cancel()
+        logger.debug("Pausing sync queue")
+        synchronized(queueLock) {
+            isPaused = true
+            syncGeneration.incrementAndGet()
+        }
     }
 
     /**
      * Resumes the sync queue after authentication sync is complete.
      */
     fun resume() {
-        Log.d(TAG, "Resuming sync queue")
-        isPaused = false
+        logger.debug("Resuming sync queue")
+        synchronized(queueLock) {
+            isPaused = false
+        }
     }
 
     /**
      * Returns the number of pending changes.
      */
-    fun getPendingCount(): Int = pendingChanges.size
+    fun getPendingCount(): Int = synchronized(queueLock) { pendingChanges.size }
+}
+
+internal interface SyncQueueLogger {
+    fun debug(message: String)
+    fun info(message: String)
+    fun error(message: String, throwable: Throwable)
+}
+
+private object AndroidSyncQueueLogger : SyncQueueLogger {
+    override fun debug(message: String) {
+        Log.d(SYNC_QUEUE_TAG, message)
+    }
+
+    override fun info(message: String) {
+        Log.i(SYNC_QUEUE_TAG, message)
+    }
+
+    override fun error(message: String, throwable: Throwable) {
+        Log.e(SYNC_QUEUE_TAG, message, throwable)
+    }
 }
