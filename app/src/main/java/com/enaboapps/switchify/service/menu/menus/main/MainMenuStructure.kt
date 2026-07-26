@@ -7,9 +7,8 @@ import com.enaboapps.switchify.service.actions.GlobalActionManager
 import com.enaboapps.switchify.service.core.ServiceCore
 import com.enaboapps.switchify.service.core.SwitchifyAccessibilityService
 import com.enaboapps.switchify.service.gestures.GesturePoint
+import com.enaboapps.switchify.service.grid3.Grid3ControlLauncher
 import com.enaboapps.switchify.service.keyboard.KeyboardManager
-import com.enaboapps.switchify.screens.grid3.Grid3ControlActivity
-import com.enaboapps.switchify.service.grid3.Grid3StartResult
 import com.enaboapps.switchify.service.menu.MenuItem
 import com.enaboapps.switchify.service.menu.MenuManager
 import com.enaboapps.switchify.service.menu.database.MenuConfigurationRepository
@@ -30,24 +29,7 @@ class MainMenuStructure(
     private val deviceLockObserver = DeviceLockObserver(accessibilityService)
     private val preferenceManager = PreferenceManager(accessibilityService)
     private val pcControlLauncher = PcControlLauncher(accessibilityService, coroutineScope)
-    private val grid3ControlLauncher = PcControlLauncher(
-        accessibilityService = accessibilityService,
-        coroutineScope = coroutineScope,
-        intentFactory = Grid3ControlActivity::createIntent,
-        beforeLaunch = {
-            when (ServiceCore.getGrid3SwitchForwarder()?.start()) {
-                Grid3StartResult.Started -> true
-                Grid3StartResult.NoExternalSwitches -> {
-                    showGrid3LaunchError(R.string.grid3_no_external_switches)
-                    false
-                }
-                else -> {
-                    showGrid3LaunchError(R.string.grid3_pc_unsupported)
-                    false
-                }
-            }
-        }
-    )
+    private val grid3ControlLauncher = Grid3ControlLauncher(accessibilityService, coroutineScope)
     private val repository = MenuConfigurationRepository(accessibilityService)
 
     val deviceItem = MenuItem(
@@ -199,15 +181,6 @@ class MainMenuStructure(
                 )
             }
     )
-
-    private fun showGrid3LaunchError(messageResId: Int) {
-        com.enaboapps.switchify.service.window.ServiceMessageHUD.instance.showMessage(
-            messageResId,
-            com.enaboapps.switchify.service.window.ServiceMessageHUD.MessageType.DISAPPEARING,
-            com.enaboapps.switchify.service.window.ServiceMessageHUD.Time.LONG,
-            com.enaboapps.switchify.service.window.MessageSeverity.Warning
-        )
-    }
 
     val menuManipulatorItems = listOfNotNull(
         MenuItem(

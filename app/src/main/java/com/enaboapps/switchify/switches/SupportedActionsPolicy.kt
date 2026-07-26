@@ -1,11 +1,22 @@
 package com.enaboapps.switchify.switches
 
 import android.content.Context
+import com.enaboapps.switchify.service.scanning.ScanMode
 import com.enaboapps.switchify.service.scanning.ScanSettings
 
 object SupportedActionsPolicy {
     fun supportedActionIds(context: Context): Set<Int> {
         val settings = ScanSettings(context)
+        val mode = when {
+            settings.isAutoScanMode() -> ScanMode.Modes.MODE_AUTO
+            settings.isManualScanMode() -> ScanMode.Modes.MODE_MANUAL
+            settings.isDirectionalScanMode() -> ScanMode.Modes.MODE_DIRECTIONAL
+            else -> return emptySet()
+        }
+        return supportedActionIdsForMode(mode)
+    }
+
+    internal fun supportedActionIdsForMode(mode: String): Set<Int> {
         val sys = setOf(
             SwitchAction.ACTION_SYS_HOME,
             SwitchAction.ACTION_SYS_BACK,
@@ -14,11 +25,12 @@ object SupportedActionsPolicy {
             SwitchAction.ACTION_SYS_NOTIFICATIONS,
             SwitchAction.ACTION_SYS_LOCK_SCREEN,
             SwitchAction.ACTION_SYS_HEADSET_HOOK,
-            SwitchAction.ACTION_CONTROL_PC
+            SwitchAction.ACTION_CONTROL_PC,
+            SwitchAction.ACTION_CONTROL_GRID_3
         )
 
-        return when {
-            settings.isAutoScanMode() -> {
+        return when (mode) {
+            ScanMode.Modes.MODE_AUTO -> {
                 setOf(
                     SwitchAction.ACTION_SELECT,
                     SwitchAction.ACTION_STOP_SCANNING,
@@ -30,7 +42,7 @@ object SupportedActionsPolicy {
                 ) + sys
             }
 
-            settings.isManualScanMode() -> {
+            ScanMode.Modes.MODE_MANUAL -> {
                 setOf(
                     SwitchAction.ACTION_SELECT,
                     SwitchAction.ACTION_MOVE_TO_NEXT_ITEM,
@@ -43,7 +55,7 @@ object SupportedActionsPolicy {
                 ) + sys
             }
 
-            settings.isDirectionalScanMode() -> {
+            ScanMode.Modes.MODE_DIRECTIONAL -> {
                 setOf(
                     SwitchAction.ACTION_SELECT,
                     SwitchAction.ACTION_STOP_SCANNING,

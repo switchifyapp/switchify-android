@@ -1,0 +1,15 @@
+package com.enaboapps.switchify.service.core
+
+import com.enaboapps.switchify.switches.SwitchAction
+import org.junit.Assert.assertEquals
+import org.junit.Test
+
+class AdbTestingBridgeReceiverTest {
+    @Test
+    fun controlGrid3AliasUsesStableSwitchAction() {
+        assertEquals(
+            SwitchAction.ACTION_CONTROL_GRID_3,
+            AdbTestingBridgeReceiver.actionNameToId["control_grid_3"]
+        )
+    }
+}
