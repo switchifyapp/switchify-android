@@ -128,6 +128,20 @@ class BluetoothFrameCodecTest {
         )
     }
 
+    @Test
+    fun pendingGattWriteFailsImmediatelyAndRejectsLaterWritesAfterDisconnect() = runTest {
+        val completion = PcBleWriteCompletion()
+        val active = kotlinx.coroutines.CompletableDeferred<Boolean>()
+        val queuedAfterFailure = kotlinx.coroutines.CompletableDeferred<Boolean>()
+
+        assertTrue(completion.begin(active))
+        completion.fail()
+        assertFalse(active.await())
+        assertFalse(completion.begin(queuedAfterFailure))
+        assertFalse(queuedAfterFailure.await())
+        assertFalse(completion.complete(success = true))
+    }
+
     private fun validFrame(): BluetoothFrame {
         return BluetoothFrameCodec.createFrames("abc", messageId = "message-1").single()
     }

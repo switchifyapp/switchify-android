@@ -152,6 +152,37 @@ class Grid3SwitchForwarderTest {
     }
 
     @Test
+    fun staleSnapshotCompletionDoesNotReplaceNewerRemoteEdgeState() = runTest {
+        val syncStarted = CompletableDeferred<Unit>()
+        val allowSyncToComplete = CompletableDeferred<Unit>()
+        val host = FakeHost(
+            mutableListOf(switchEvent("20", "Primary")),
+            sequencedSupported = true,
+            syncStarted = syncStarted,
+            allowSyncToComplete = allowSyncToComplete,
+            syncResults = mutableListOf(
+                PcCommandResult.Ack,
+                PcCommandResult.Ack,
+                PcCommandResult.Failed("Final synchronization failed.")
+            )
+        )
+        val forwarder = Grid3SwitchForwarder(host, backgroundScope)
+        forwarder.start()
+        runCurrent()
+        syncStarted.await()
+
+        forwarder.onSwitchPressed(20, downTimeMs = 1_000L, eventTimeMs = 1_000L)
+        runCurrent()
+        allowSyncToComplete.complete(Unit)
+        runCurrent()
+        forwarder.stop()
+
+        val fallbackReleases = host.commands.filterIsInstance<PcControlCommand.GridSwitchSet>()
+            .filterNot { it.down }
+        assertEquals(listOf(1), fallbackReleases.map { it.switchId })
+    }
+
+    @Test
     fun legacyPcKeepsAcknowledgedUnsequencedEdges() = runTest {
         val host = FakeHost(mutableListOf(switchEvent("20", "Primary")))
         val forwarder = Grid3SwitchForwarder(host, backgroundScope)
@@ -601,7 +632,8 @@ class Grid3SwitchForwarderTest {
         private val downStarted: CompletableDeferred<Unit>? = null,
         private val allowDownToComplete: CompletableDeferred<Unit>? = null,
         private val syncStarted: CompletableDeferred<Unit>? = null,
-        private val allowSyncToComplete: CompletableDeferred<Unit>? = null
+        private val allowSyncToComplete: CompletableDeferred<Unit>? = null,
+        private val syncResults: MutableList<PcCommandResult> = mutableListOf()
     ) : Grid3ForwardingHost {
         val mutableConnectionState = MutableStateFlow<PcServiceConnectionState>(
             PcServiceConnectionState.Connected(
@@ -661,6 +693,9 @@ class Grid3SwitchForwarderTest {
             if (command is PcControlCommand.GridSwitchSync) {
                 syncStarted?.complete(Unit)
                 allowSyncToComplete?.await()
+                if (syncResults.isNotEmpty()) {
+                    return syncResults.removeAt(0)
+                }
             }
             if (command is PcControlCommand.GridSwitchSet && command.down) {
                 downStarted?.complete(Unit)

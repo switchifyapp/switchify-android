@@ -188,6 +188,7 @@ class Grid3SwitchForwarder internal constructor(
     private val remotelyHeld = mutableSetOf<Int>()
     private var gridSessionId: String? = null
     private var nextGridSequence = 0L
+    private var lastRemoteSequence = 0L
     private var snapshotJob: Job? = null
     private var destroying = false
 
@@ -250,6 +251,7 @@ class Grid3SwitchForwarder internal constructor(
             remotelyHeld.clear()
             gridSessionId = if (useSequencedDelivery) UUID.randomUUID().toString() else null
             nextGridSequence = 0L
+            lastRemoteSequence = 0L
             _state.value = Grid3ForwardingState(
                 active = true,
                 pcName = host.currentPcName(),
@@ -487,9 +489,19 @@ class Grid3SwitchForwarder internal constructor(
         )
         synchronized(stateLock) {
             if (generation != action.generation) return@synchronized
-            when {
-                result == PcCommandResult.Ack && action.down -> remotelyHeld += action.switchId
-                result == PcCommandResult.Ack && !action.down -> remotelyHeld -= action.switchId
+            val sequence = action.delivery?.sequence
+            if (
+                result == PcCommandResult.Ack &&
+                (sequence == null || sequence >= lastRemoteSequence)
+            ) {
+                if (sequence != null) {
+                    lastRemoteSequence = sequence
+                }
+                if (action.down) {
+                    remotelyHeld += action.switchId
+                } else {
+                    remotelyHeld -= action.switchId
+                }
             }
         }
     }
@@ -516,7 +528,12 @@ class Grid3SwitchForwarder internal constructor(
         )
         if (result == PcCommandResult.Ack) {
             synchronized(stateLock) {
-                if (_state.value.active && generation == action.generation) {
+                if (
+                    _state.value.active &&
+                    generation == action.generation &&
+                    action.sequence >= lastRemoteSequence
+                ) {
+                    lastRemoteSequence = action.sequence
                     remotelyHeld.clear()
                     remotelyHeld.addAll(action.pressedSwitchIds)
                 }
@@ -617,6 +634,7 @@ class Grid3SwitchForwarder internal constructor(
                     mappingByKeyCode = emptyMap()
                     gridSessionId = null
                     nextGridSequence = 0L
+                    lastRemoteSequence = 0L
                     _state.value = Grid3ForwardingState()
                 }
             }

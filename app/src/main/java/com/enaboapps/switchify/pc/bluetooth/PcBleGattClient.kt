@@ -179,8 +179,8 @@ private class PcBleGattConnection private constructor(
         private val responseRouter = PcBleResponseRouter()
         private val events = MutableSharedFlow<PcBleTransportEvent>(extraBufferCapacity = 8)
         private val reassembler = BluetoothFrameReassembler()
+        private val writeCompletion = PcBleWriteCompletion()
         private var pendingDescriptorWrite: BluetoothGattDescriptor? = null
-        private var pendingWrite: GattWriteRequest? = null
         private var setupComplete = false
         private var closedByClient = false
         private var deviceAddress = "unknown"
@@ -203,7 +203,7 @@ private class PcBleGattConnection private constructor(
 
             CoroutineScope(Dispatchers.IO).launch {
                 for (request in writeRequests) {
-                    pendingWrite = request
+                    if (!writeCompletion.begin(request.completion)) continue
                     val writeType = when (request.writeMode) {
                         PcBleWriteMode.WithResponse -> BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT
                         PcBleWriteMode.WithoutResponse -> BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE
@@ -219,8 +219,7 @@ private class PcBleGattConnection private constructor(
                         gatt.writeCharacteristic(request.characteristic)
                     }
                     if (!started) {
-                        pendingWrite = null
-                        request.completion.complete(false)
+                        writeCompletion.complete(success = false)
                     }
                 }
             }
@@ -232,7 +231,10 @@ private class PcBleGattConnection private constructor(
                 writeRequests = writeRequests,
                 responseRouter = responseRouter,
                 events = events.asSharedFlow(),
-                onClose = { closedByClient = true }
+                onClose = {
+                    closedByClient = true
+                    failGattWrites()
+                }
             )
         }
 
@@ -246,6 +248,7 @@ private class PcBleGattConnection private constructor(
                     events.tryEmit(PcBleTransportEvent.Disconnected)
                 }
                 responseRouter.fail(IllegalStateException("Bluetooth disconnected."))
+                failGattWrites()
             }
         }
 
@@ -272,8 +275,7 @@ private class PcBleGattConnection private constructor(
         }
 
         override fun onCharacteristicWrite(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic, status: Int) {
-            pendingWrite?.completion?.complete(status == BluetoothGatt.GATT_SUCCESS)
-            pendingWrite = null
+            writeCompletion.complete(status == BluetoothGatt.GATT_SUCCESS)
         }
 
         override fun onDescriptorWrite(gatt: BluetoothGatt, descriptor: BluetoothGattDescriptor, status: Int) {
@@ -313,6 +315,15 @@ private class PcBleGattConnection private constructor(
                 is BluetoothFrameReassemblyResult.Rejected -> Unit
             }
         }
+
+        private fun failGattWrites() {
+            writeCompletion.fail()
+            while (true) {
+                val request = writeRequests.tryReceive().getOrNull() ?: break
+                request.completion.complete(false)
+            }
+            writeRequests.close()
+        }
     }
 }
 
@@ -350,6 +361,38 @@ internal class PcBleResponseRouter {
                 response.completeExceptionally(error)
             }
         }
+    }
+}
+
+internal class PcBleWriteCompletion {
+    private val lock = Any()
+    private var pending: CompletableDeferred<Boolean>? = null
+    private var failed = false
+
+    fun begin(completion: CompletableDeferred<Boolean>): Boolean {
+        val accepted = synchronized(lock) {
+            if (failed) return@synchronized false
+            check(pending == null)
+            pending = completion
+            true
+        }
+        if (!accepted) completion.complete(false)
+        return accepted
+    }
+
+    fun complete(success: Boolean): Boolean {
+        val completion = synchronized(lock) {
+            pending.also { pending = null }
+        } ?: return false
+        return completion.complete(success)
+    }
+
+    fun fail() {
+        val completion = synchronized(lock) {
+            failed = true
+            pending.also { pending = null }
+        }
+        completion?.complete(false)
     }
 }
 
