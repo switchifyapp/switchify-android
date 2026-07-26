@@ -1,5 +1,7 @@
 package com.enaboapps.switchify.service.grid3
 
+import android.util.Log
+import com.enaboapps.switchify.BuildConfig
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.pc.PcCommandResult
 import com.enaboapps.switchify.pc.PcControlCommand
@@ -19,6 +21,15 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+
+internal object Grid3SwitchDiagnostics {
+    private const val TAG = "Grid3SwitchTrace"
+
+    fun log(message: String) {
+        if (!BuildConfig.DEBUG) return
+        runCatching { Log.d(TAG, message) }
+    }
+}
 
 data class Grid3SwitchMapping(
     val keyCode: String,
@@ -221,15 +232,39 @@ class Grid3SwitchForwarder internal constructor(
 
     override fun onSwitchPressed(keyCode: Int, downTimeMs: Long, eventTimeMs: Long): Boolean {
         val action = synchronized(stateLock) {
-            if (!_state.value.active) return false
-            val mapping = mappingByKeyCode[keyCode] ?: return true
+            if (!_state.value.active) {
+                Grid3SwitchDiagnostics.log("match action=down result=inactive keyCode=$keyCode")
+                return false
+            }
+            val mapping = mappingByKeyCode[keyCode]
+            if (mapping == null) {
+                Grid3SwitchDiagnostics.log(
+                    "match action=down result=unmapped keyCode=$keyCode downTime=$downTimeMs eventTime=$eventTimeMs"
+                )
+                return true
+            }
             val activePress = activePresses[keyCode]
-            if (activePress?.downTimeMs == downTimeMs) return true
+            if (activePress?.downTimeMs == downTimeMs) {
+                Grid3SwitchDiagnostics.log(
+                    "match action=down result=repeat keyCode=$keyCode switchId=${mapping.switchId} " +
+                        "downTime=$downTimeMs eventTime=$eventTimeMs"
+                )
+                return true
+            }
             activePresses[keyCode] = ActivePress(downTimeMs)
             updatePressedState()
             if (activePress == null) {
+                Grid3SwitchDiagnostics.log(
+                    "match action=down result=accepted keyCode=$keyCode switchId=${mapping.switchId} " +
+                        "downTime=$downTimeMs eventTime=$eventTimeMs"
+                )
                 ForwardingAction.SetState(generation, keyCode, mapping.switchId, down = true)
             } else {
+                Grid3SwitchDiagnostics.log(
+                    "match action=down result=recover_missing_up keyCode=$keyCode " +
+                        "switchId=${mapping.switchId} previousDownTime=${activePress.downTimeMs} " +
+                        "downTime=$downTimeMs eventTime=$eventTimeMs"
+                )
                 ForwardingAction.RestartPress(generation, keyCode, mapping.switchId)
             }
         }
@@ -252,14 +287,43 @@ class Grid3SwitchForwarder internal constructor(
         cancelled: Boolean
     ): Boolean {
         val queued = synchronized(stateLock) {
-            if (!_state.value.active) return false
-            val mapping = mappingByKeyCode[keyCode] ?: return true
-            val activePress = activePresses[keyCode] ?: return true
-            if (activePress.downTimeMs != downTimeMs) return true
+            if (!_state.value.active) {
+                Grid3SwitchDiagnostics.log("match action=up result=inactive keyCode=$keyCode")
+                return false
+            }
+            val mapping = mappingByKeyCode[keyCode]
+            if (mapping == null) {
+                Grid3SwitchDiagnostics.log(
+                    "match action=up result=unmapped keyCode=$keyCode downTime=$downTimeMs " +
+                        "eventTime=$eventTimeMs cancelled=$cancelled"
+                )
+                return true
+            }
+            val activePress = activePresses[keyCode]
+            if (activePress == null) {
+                Grid3SwitchDiagnostics.log(
+                    "match action=up result=no_active_press keyCode=$keyCode switchId=${mapping.switchId} " +
+                        "downTime=$downTimeMs eventTime=$eventTimeMs cancelled=$cancelled"
+                )
+                return true
+            }
+            if (activePress.downTimeMs != downTimeMs) {
+                Grid3SwitchDiagnostics.log(
+                    "match action=up result=stale_sequence keyCode=$keyCode switchId=${mapping.switchId} " +
+                        "activeDownTime=${activePress.downTimeMs} downTime=$downTimeMs " +
+                        "eventTime=$eventTimeMs cancelled=$cancelled"
+                )
+                return true
+            }
             activePresses.remove(keyCode)
             updatePressedState()
-            val shouldStop = !cancelled &&
-                (eventTimeMs - downTimeMs).coerceAtLeast(0L) >= _state.value.holdToStopDurationMs
+            val durationMs = (eventTimeMs - downTimeMs).coerceAtLeast(0L)
+            val shouldStop = !cancelled && durationMs >= _state.value.holdToStopDurationMs
+            Grid3SwitchDiagnostics.log(
+                "match action=up result=accepted keyCode=$keyCode switchId=${mapping.switchId} " +
+                    "downTime=$downTimeMs eventTime=$eventTimeMs duration=$durationMs " +
+                    "cancelled=$cancelled stop=$shouldStop"
+            )
             Triple(
                 ForwardingAction.SetState(generation, keyCode, mapping.switchId, down = false),
                 shouldStop,
@@ -303,6 +367,9 @@ class Grid3SwitchForwarder internal constructor(
     }
 
     private suspend fun processRestartPress(action: ForwardingAction.RestartPress) {
+        Grid3SwitchDiagnostics.log(
+            "send action=recover_missing_up phase=start keyCode=${action.keyCode} switchId=${action.switchId}"
+        )
         sendMutex.withLock {
             processSetStateLocked(
                 ForwardingAction.SetState(action.generation, action.keyCode, action.switchId, down = false)
@@ -323,6 +390,15 @@ class Grid3SwitchForwarder internal constructor(
         } catch (error: Exception) {
             PcCommandResult.Failed(error.message ?: "Could not send switch state.")
         }
+        val resultName = when (result) {
+            PcCommandResult.Ack -> "ack"
+            is PcCommandResult.AuthFailed -> "auth_failed"
+            is PcCommandResult.Failed -> "failed"
+        }
+        Grid3SwitchDiagnostics.log(
+            "send action=${if (action.down) "down" else "up"} keyCode=${action.keyCode} " +
+                "switchId=${action.switchId} result=$resultName"
+        )
         synchronized(stateLock) {
             if (generation != action.generation) return@synchronized
             when {
