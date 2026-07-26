@@ -351,6 +351,9 @@
     <string name="pc_settings_mouse_repeat_interval_title">Repeat Interval</string>
     <string name="pc_settings_mouse_repeat_interval_summary">Time between repeated PC mouse actions.</string>
     <string name="pc_settings_mouse_repeat_configured_on_pc">PC mouse repeat is configured in Switchify PC.</string>
+    <string name="pc_settings_grid3_section">Grid 3</string>
+    <string name="pc_settings_grid3_hold_to_stop_title">Hold to stop</string>
+    <string name="pc_settings_grid3_hold_to_stop_summary">How long to hold and release a forwarded switch before Grid 3 control stops.</string>
     <string name="pc_settings_link_summary">Configure PC controls and connection settings.</string>
     <string name="pc_mouse_repeat_started">Mouse Repeat Started</string>
     <string name="pc_mouse_repeat_stopped">Mouse Repeat Stopped</string>

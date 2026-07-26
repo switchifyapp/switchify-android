@@ -35,6 +35,23 @@ class ExternalSwitchGrid3DiversionTest {
         assertTrue(missing.onReleased(1) { true })
     }
 
+    @Test
+    fun forwardsAndroidPressSequenceMetadata() {
+        val handler = FakeHandler(consume = true)
+        val diversion = ExternalSwitchGrid3Diversion { handler }
+
+        assertTrue(diversion.onPressed(42, 1_000L, 1_100L) { false })
+        assertTrue(diversion.onReleased(42, 1_000L, 1_200L, cancelled = true) { false })
+
+        assertEquals(
+            listOf(
+                "down:42:1000:1100",
+                "up:42:1000:1200:true"
+            ),
+            handler.calls
+        )
+    }
+
     private class FakeHandler(private val consume: Boolean) : Grid3SwitchInputHandler {
         val calls = mutableListOf<String>()
 
@@ -45,6 +62,21 @@ class ExternalSwitchGrid3DiversionTest {
 
         override fun onSwitchReleased(keyCode: Int): Boolean {
             calls += "up:$keyCode"
+            return consume
+        }
+
+        override fun onSwitchPressed(keyCode: Int, downTimeMs: Long, eventTimeMs: Long): Boolean {
+            calls += "down:$keyCode:$downTimeMs:$eventTimeMs"
+            return consume
+        }
+
+        override fun onSwitchReleased(
+            keyCode: Int,
+            downTimeMs: Long,
+            eventTimeMs: Long,
+            cancelled: Boolean
+        ): Boolean {
+            calls += "up:$keyCode:$downTimeMs:$eventTimeMs:$cancelled"
             return consume
         }
     }

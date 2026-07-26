@@ -57,8 +57,8 @@ class ExternalSwitchListener(
      * @param keyCode The system key code of the pressed switch
      * @return true if the event was handled and should be consumed, false otherwise
      */
-    fun onSwitchPressed(keyCode: Int): Boolean {
-        return grid3Diversion.onPressed(keyCode) {
+    fun onSwitchPressed(keyCode: Int, downTimeMs: Long, eventTimeMs: Long): Boolean {
+        return grid3Diversion.onPressed(keyCode, downTimeMs, eventTimeMs) {
             onSwitchPressedNormally(keyCode)
         }
     }
@@ -122,8 +122,13 @@ class ExternalSwitchListener(
      * @param keyCode The system key code of the released switch
      * @return true if the event was handled and should be consumed, false otherwise
      */
-    fun onSwitchReleased(keyCode: Int): Boolean {
-        return grid3Diversion.onReleased(keyCode) {
+    fun onSwitchReleased(
+        keyCode: Int,
+        downTimeMs: Long,
+        eventTimeMs: Long,
+        cancelled: Boolean
+    ): Boolean {
+        return grid3Diversion.onReleased(keyCode, downTimeMs, eventTimeMs, cancelled) {
             onSwitchReleasedNormally(keyCode)
         }
     }
@@ -427,6 +432,35 @@ class ExternalSwitchListener(
 internal class ExternalSwitchGrid3Diversion(
     private val handler: () -> Grid3SwitchInputHandler?
 ) {
+    fun onPressed(
+        keyCode: Int,
+        downTimeMs: Long,
+        eventTimeMs: Long,
+        normalHandling: () -> Boolean
+    ): Boolean {
+        return if (handler()?.onSwitchPressed(keyCode, downTimeMs, eventTimeMs) == true) {
+            true
+        } else {
+            normalHandling()
+        }
+    }
+
+    fun onReleased(
+        keyCode: Int,
+        downTimeMs: Long,
+        eventTimeMs: Long,
+        cancelled: Boolean,
+        normalHandling: () -> Boolean
+    ): Boolean {
+        return if (
+            handler()?.onSwitchReleased(keyCode, downTimeMs, eventTimeMs, cancelled) == true
+        ) {
+            true
+        } else {
+            normalHandling()
+        }
+    }
+
     fun onPressed(keyCode: Int, normalHandling: () -> Boolean): Boolean {
         return if (handler()?.onSwitchPressed(keyCode) == true) true else normalHandling()
     }

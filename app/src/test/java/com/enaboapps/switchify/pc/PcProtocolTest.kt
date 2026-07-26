@@ -228,15 +228,92 @@ class PcProtocolTest {
     }
 
     @Test
-    fun parsesGridSwitchCapabilityButNeverNoAckCapability() {
+    fun parsesGridSwitchRealtimeAndSynchronizationCapabilities() {
         val response = PcProtocol.parseResponse(
             validPointerProfileResponse(
-                capabilities = ""","capabilities":{"supportedCommands":["grid.switch.set"],"noAckCommands":["grid.switch.set"]}"""
+                capabilities = ""","capabilities":{"supportedCommands":["grid.switch.set","grid.switch.sync"],"noAckCommands":["grid.switch.set"]}"""
             )
         ) as PcProtocolResponse.PointerProfile
 
-        assertEquals(setOf(PcProtocol.GRID_SWITCH_SET_COMMAND), response.profile.capabilities.supportedCommands)
-        assertFalse(response.profile.capabilities.noAckCommands.contains(PcProtocol.GRID_SWITCH_SET_COMMAND))
+        assertEquals(
+            setOf(PcProtocol.GRID_SWITCH_SET_COMMAND, PcProtocol.GRID_SWITCH_SYNC_COMMAND),
+            response.profile.capabilities.supportedCommands
+        )
+        assertTrue(response.profile.capabilities.noAckCommands.contains(PcProtocol.GRID_SWITCH_SET_COMMAND))
+    }
+
+    @Test
+    fun buildsSequencedGridSwitchAndSynchronizationPayloads() {
+        val edge = JSONObject(
+            PcProtocol.gridSwitchSet(
+                id = "grid-edge",
+                deviceId = "device-1",
+                token = "shared-token",
+                timestamp = 1000L,
+                switchId = 2,
+                down = false,
+                sessionId = "99a1dbcf-6be4-4c6c-8664-d33fd698e32b",
+                sequence = 7L
+            )
+        )
+        val sync = JSONObject(
+            PcProtocol.gridSwitchSync(
+                id = "grid-sync",
+                deviceId = "device-1",
+                token = "shared-token",
+                timestamp = 1000L,
+                sessionId = "99a1dbcf-6be4-4c6c-8664-d33fd698e32b",
+                sequence = 8L,
+                pressedSwitchIds = setOf(8, 2)
+            )
+        )
+
+        val edgePayload = edge.getJSONObject("payload")
+        assertEquals(2, edgePayload.getInt("switchId"))
+        assertEquals("up", edgePayload.getString("state"))
+        assertEquals("99a1dbcf-6be4-4c6c-8664-d33fd698e32b", edgePayload.getString("sessionId"))
+        assertEquals(7L, edgePayload.getLong("sequence"))
+        assertEquals(PcProtocol.GRID_SWITCH_SYNC_COMMAND, sync.getString("type"))
+        val syncPayload = sync.getJSONObject("payload")
+        assertEquals("99a1dbcf-6be4-4c6c-8664-d33fd698e32b", syncPayload.getString("sessionId"))
+        assertEquals(8L, syncPayload.getLong("sequence"))
+        assertEquals("[2,8]", syncPayload.getJSONArray("pressedSwitchIds").toString())
+    }
+
+    @Test
+    fun buildsSequencedGridSwitchWithNoAckResponseModeAndMatchingProof() {
+        val payload = JSONObject()
+            .put("switchId", 2)
+            .put("state", "up")
+            .put("sessionId", "99a1dbcf-6be4-4c6c-8664-d33fd698e32b")
+            .put("sequence", 7L)
+        val json = JSONObject(
+            PcProtocol.gridSwitchSet(
+                id = "grid-edge",
+                deviceId = "device-1",
+                token = "shared-token",
+                timestamp = 1000L,
+                switchId = 2,
+                down = false,
+                sessionId = "99a1dbcf-6be4-4c6c-8664-d33fd698e32b",
+                sequence = 7L,
+                responseMode = PcCommandResponseMode.None
+            )
+        )
+
+        assertEquals("none", json.getString("responseMode"))
+        assertEquals(
+            PcProtocol.authProof(
+                id = "grid-edge",
+                deviceId = "device-1",
+                timestamp = 1000L,
+                type = PcProtocol.GRID_SWITCH_SET_COMMAND,
+                payload = payload,
+                token = "shared-token",
+                responseMode = PcCommandResponseMode.None
+            ),
+            json.getString("auth")
+        )
     }
 
     @Test

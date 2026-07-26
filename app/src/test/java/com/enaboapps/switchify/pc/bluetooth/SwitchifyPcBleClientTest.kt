@@ -468,6 +468,48 @@ class SwitchifyPcBleClientTest {
     }
 
     @Test
+    fun realtimeGridEdgeUsesNoResponseGattWriteAndNoAckProtocolMode() = runTest {
+        val tokens = FakeTokenStore(mutableMapOf("desktop-1" to "token"), mutableMapOf("desktop-1" to "Switchify PC"))
+        lateinit var fakeConnection: FakeConnection
+        val transport = FakeTransportFactory { message ->
+            val json = JSONObject(message)
+            when (json.getString("type")) {
+                "connection.ping" -> ack(json.getString("id"))
+                "pointer.profile" -> pointerProfile(
+                    json.getString("id"),
+                    noAckCommands = listOf("grid.switch.set")
+                )
+                else -> ack(json.getString("id"))
+            }
+        }.also { factory -> factory.onConnection = { fakeConnection = it } }
+        val session = PcAuthenticatedSession("desktop-1", "device-1", "AA:BB:CC:DD:EE:FF", PcTransport.Bluetooth)
+        val result = client(tokens, transport).openControlSession(session) as PcLiveControlResult.Connected
+
+        assertEquals(
+            PcCommandResult.Ack,
+            result.connection.sendRealtimeCommand(
+                PcControlCommand.GridSwitchSet(
+                    switchId = 1,
+                    down = false,
+                    sessionId = "99a1dbcf-6be4-4c6c-8664-d33fd698e32b",
+                    sequence = 4L
+                )
+            )
+        )
+
+        val message = JSONObject(fakeConnection.sentMessages.single())
+        assertEquals("grid.switch.set", message.getString("type"))
+        assertEquals("none", message.getString("responseMode"))
+        assertEquals("up", message.getJSONObject("payload").getString("state"))
+        assertEquals(listOf(PcBleWriteMode.WithoutResponse), fakeConnection.sentWriteModes)
+        assertEquals(listOf(true), fakeConnection.lowLatencyRequests)
+
+        result.connection.close(PcControlCloseReason.ExplicitStop)
+
+        assertEquals(listOf(true, false), fakeConnection.lowLatencyRequests)
+    }
+
+    @Test
     fun realtimeMoveWriteFailureReturnsFailed() = runTest {
         val tokens = FakeTokenStore(mutableMapOf("desktop-1" to "token"), mutableMapOf("desktop-1" to "Switchify PC"))
         lateinit var fakeConnection: FakeConnection
@@ -694,17 +736,25 @@ class SwitchifyPcBleClientTest {
         override val events = eventsFlow
         val closeReasons = mutableListOf<String>()
         val sentMessages = mutableListOf<String>()
+        val sentWriteModes = mutableListOf<PcBleWriteMode>()
         val receivedMessages = mutableListOf<String>()
+        val lowLatencyRequests = mutableListOf<Boolean>()
         var sendError: Throwable? = null
 
-        override suspend fun send(message: String) {
+        override suspend fun send(message: String, writeMode: PcBleWriteMode) {
             sendError?.let { throw it }
             sentMessages += message
+            sentWriteModes += writeMode
         }
 
-        override suspend fun sendAndReceive(message: String, timeoutMs: Long): String {
+        override suspend fun sendAndReceive(message: String, requestId: String, timeoutMs: Long): String {
             receivedMessages += message
             return responseProvider(message)
+        }
+
+        override fun requestLowLatency(enabled: Boolean): Boolean {
+            lowLatencyRequests += enabled
+            return true
         }
 
         override fun close(reason: String) {

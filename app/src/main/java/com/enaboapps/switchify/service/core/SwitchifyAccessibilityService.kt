@@ -20,6 +20,7 @@ import com.enaboapps.switchify.service.gestures.GestureLockManager
 import com.enaboapps.switchify.service.gestures.GestureManager
 import com.enaboapps.switchify.service.gestures.GestureRepeatManager
 import com.enaboapps.switchify.service.grid3.Grid3SwitchForwarder
+import com.enaboapps.switchify.service.grid3.Grid3SwitchDiagnostics
 import com.enaboapps.switchify.pc.PcMouseRepeatManager
 import com.enaboapps.switchify.pc.PcServiceConnectionController
 import com.enaboapps.switchify.service.scanning.ScanSettings
@@ -430,9 +431,30 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
      */
     private fun handleSwitchEvent(event: KeyEvent): Boolean {
         val externalSwitchListener = ServiceCore.getExternalSwitchListener() ?: return false
+        if (ServiceCore.getGrid3SwitchForwarder()?.state?.value?.active == true) {
+            val actionName = when (event.action) {
+                KeyEvent.ACTION_DOWN -> "down"
+                KeyEvent.ACTION_UP -> "up"
+                else -> event.action.toString()
+            }
+            Grid3SwitchDiagnostics.log(
+                "raw action=$actionName keyCode=${event.keyCode} " +
+                    "downTime=${event.downTime} eventTime=${event.eventTime} " +
+                    "repeat=${event.repeatCount} cancelled=${event.isCanceled}"
+            )
+        }
         return when (event.action) {
-            KeyEvent.ACTION_DOWN -> externalSwitchListener.onSwitchPressed(event.keyCode)
-            KeyEvent.ACTION_UP -> externalSwitchListener.onSwitchReleased(event.keyCode)
+            KeyEvent.ACTION_DOWN -> externalSwitchListener.onSwitchPressed(
+                event.keyCode,
+                event.downTime,
+                event.eventTime
+            )
+            KeyEvent.ACTION_UP -> externalSwitchListener.onSwitchReleased(
+                event.keyCode,
+                event.downTime,
+                event.eventTime,
+                event.isCanceled
+            )
             else -> false
         }
     }

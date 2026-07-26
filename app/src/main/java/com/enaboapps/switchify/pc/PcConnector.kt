@@ -40,7 +40,17 @@ sealed class PcControlCommand {
     data class WindowControl(val action: PcWindowControlAction) : PcControlCommand()
     data class SetPointerSpeed(val scalePercent: Double) : PcControlCommand()
     data class MoveToDisplay(val direction: PcDisplayDirection) : PcControlCommand()
-    data class GridSwitchSet(val switchId: Int, val down: Boolean) : PcControlCommand()
+    data class GridSwitchSet(
+        val switchId: Int,
+        val down: Boolean,
+        val sessionId: String? = null,
+        val sequence: Long? = null
+    ) : PcControlCommand()
+    data class GridSwitchSync(
+        val sessionId: String,
+        val sequence: Long,
+        val pressedSwitchIds: Set<Int>
+    ) : PcControlCommand()
     data object LeftClick : PcControlCommand()
     data object DoubleClick : PcControlCommand()
     data object RightClick : PcControlCommand()
