@@ -29,6 +29,7 @@ class PreferenceManager(context: Context) {
         const val PREFERENCE_KEY_PC_TYPING_DRAFT = "pc_typing_draft"
         const val PREFERENCE_KEY_PC_MOUSE_REPEAT = "pc_mouse_repeat"
         const val PREFERENCE_KEY_PC_MOUSE_REPEAT_INTERVAL = "pc_mouse_repeat_interval"
+        const val PREFERENCE_KEY_GRID3_HOLD_TO_STOP_DURATION = "grid3_hold_to_stop_duration"
         const val PREFERENCE_KEY_AUTOMATICALLY_START_SCAN_AFTER_SELECTION =
             "automatically_start_scan_after_selection"
         const val PREFERENCE_KEY_PAUSE_ON_FIRST_ITEM = "pause_on_first_item"

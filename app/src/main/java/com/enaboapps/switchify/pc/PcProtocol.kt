@@ -131,17 +131,47 @@ object PcProtocol {
         token: String,
         timestamp: Long,
         switchId: Int,
-        down: Boolean
+        down: Boolean,
+        sessionId: String? = null,
+        sequence: Long? = null
     ): String {
+        val payload = JSONObject()
+            .put("switchId", switchId)
+            .put("state", if (down) "down" else "up")
+        if (sessionId != null && sequence != null) {
+            payload
+                .put("sessionId", sessionId)
+                .put("sequence", sequence)
+        }
         return authenticatedCommand(
             id = id,
             deviceId = deviceId,
             token = token,
             timestamp = timestamp,
             type = GRID_SWITCH_SET_COMMAND,
+            payload = payload
+        )
+    }
+
+    fun gridSwitchSync(
+        id: String,
+        deviceId: String,
+        token: String,
+        timestamp: Long,
+        sessionId: String,
+        sequence: Long,
+        pressedSwitchIds: Set<Int>
+    ): String {
+        return authenticatedCommand(
+            id = id,
+            deviceId = deviceId,
+            token = token,
+            timestamp = timestamp,
+            type = GRID_SWITCH_SYNC_COMMAND,
             payload = JSONObject()
-                .put("switchId", switchId)
-                .put("state", if (down) "down" else "up")
+                .put("sessionId", sessionId)
+                .put("sequence", sequence)
+                .put("pressedSwitchIds", JSONArray(pressedSwitchIds.sorted()))
         )
     }
 
@@ -797,7 +827,8 @@ object PcProtocol {
         "keyboard.textStream.char",
         "keyboard.textStream.key",
         "media.control",
-        "window.control"
+        "window.control",
+        GRID_SWITCH_SET_COMMAND
     )
 
     private val CONTROL_COMMAND_TYPES = NO_ACK_CONTROL_COMMAND_TYPES + setOf(
@@ -811,8 +842,10 @@ object PcProtocol {
         "keyboard.textStream.open",
         "keyboard.textStream.chunk",
         "keyboard.textStream.close",
-        GRID_SWITCH_SET_COMMAND
+        GRID_SWITCH_SET_COMMAND,
+        GRID_SWITCH_SYNC_COMMAND
     )
 
     const val GRID_SWITCH_SET_COMMAND = "grid.switch.set"
+    const val GRID_SWITCH_SYNC_COMMAND = "grid.switch.sync"
 }

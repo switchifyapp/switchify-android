@@ -15,12 +15,15 @@ import com.enaboapps.switchify.switches.SWITCH_EVENT_TYPE_EXTERNAL
 import com.enaboapps.switchify.switches.SwitchEvent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import java.util.UUID
 
 internal object Grid3SwitchDiagnostics {
     private const val TAG = "Grid3SwitchTrace"
@@ -69,6 +72,7 @@ internal interface Grid3ForwardingHost {
     fun maintainConnection()
     fun releaseConnection()
     suspend fun send(command: PcControlCommand): PcCommandResult
+    suspend fun sendRealtime(command: PcControlCommand): PcCommandResult = send(command)
 }
 
 interface Grid3SwitchInputHandler {
@@ -100,7 +104,7 @@ private class AndroidGrid3ForwardingHost(
     override fun currentPcName() = controller.currentControlDeviceName()
     override fun configuredSwitches() = switchEventProvider.externalSwitches()
     override fun holdToStopDurationMs() = preferenceManager.getLongValue(
-        PreferenceManager.PREFERENCE_KEY_HOLD_TO_UNPAUSE_DURATION,
+        PreferenceManager.PREFERENCE_KEY_GRID3_HOLD_TO_STOP_DURATION,
         Grid3SwitchForwarder.DEFAULT_HOLD_TO_STOP_MS
     )
     override fun suspendScanning() {
@@ -115,6 +119,8 @@ private class AndroidGrid3ForwardingHost(
     override fun maintainConnection() = controller.onPcUiResumed()
     override fun releaseConnection() = controller.onPcUiPaused()
     override suspend fun send(command: PcControlCommand) = controller.sendControlCommand(command)
+    override suspend fun sendRealtime(command: PcControlCommand) =
+        controller.sendRealtimeControlCommand(command)
 }
 
 class Grid3SwitchForwarder internal constructor(
@@ -141,13 +147,32 @@ class Grid3SwitchForwarder internal constructor(
     )
 
     private sealed class ForwardingAction {
-        data class SetState(val generation: Long, val keyCode: Int, val switchId: Int, val down: Boolean) :
+        data class SetState(
+            val generation: Long,
+            val keyCode: Int,
+            val switchId: Int,
+            val down: Boolean,
+            val delivery: Grid3Delivery?
+        ) :
             ForwardingAction()
-        data class RestartPress(val generation: Long, val keyCode: Int, val switchId: Int) :
+        data class RestartPress(
+            val generation: Long,
+            val keyCode: Int,
+            val switchId: Int,
+            val releaseDelivery: Grid3Delivery?,
+            val pressDelivery: Grid3Delivery?
+        ) :
             ForwardingAction()
+        data class Sync(
+            val generation: Long,
+            val sessionId: String,
+            val sequence: Long,
+            val pressedSwitchIds: Set<Int>
+        ) : ForwardingAction()
         data class Stop(val generation: Long) : ForwardingAction()
     }
 
+    private data class Grid3Delivery(val sessionId: String, val sequence: Long)
     private data class ActivePress(val downTimeMs: Long)
 
     private val stateLock = Any()
@@ -159,6 +184,10 @@ class Grid3SwitchForwarder internal constructor(
     private var mappingByKeyCode = emptyMap<Int, Grid3SwitchMapping>()
     private val activePresses = mutableMapOf<Int, ActivePress>()
     private val remotelyHeld = mutableSetOf<Int>()
+    private var gridSessionId: String? = null
+    private var nextGridSequence = 0L
+    private var syncPending = false
+    private var snapshotJob: Job? = null
     private var destroying = false
 
     init {
@@ -167,6 +196,7 @@ class Grid3SwitchForwarder internal constructor(
                 when (action) {
                     is ForwardingAction.SetState -> processSetState(action)
                     is ForwardingAction.RestartPress -> processRestartPress(action)
+                    is ForwardingAction.Sync -> processSync(action)
                     is ForwardingAction.Stop -> stop(action.generation)
                 }
             }
@@ -195,6 +225,9 @@ class Grid3SwitchForwarder internal constructor(
         val sorted = sortConfiguredSwitches(externalSwitches)
         val forwarded = sorted.take(MAX_FORWARDED_SWITCHES)
         val holdToStopDurationMs = host.holdToStopDurationMs()
+        val useSequencedDelivery =
+            profile.capabilities.supportedCommands.contains(PcProtocol.GRID_SWITCH_SYNC_COMMAND) &&
+                profile.capabilities.noAckCommands.contains(PcProtocol.GRID_SWITCH_SET_COMMAND)
         val mappings = forwarded.mapIndexed { index, switchEvent ->
             Grid3SwitchMapping(
                 keyCode = switchEvent.code,
@@ -209,6 +242,9 @@ class Grid3SwitchForwarder internal constructor(
             }.toMap()
             activePresses.clear()
             remotelyHeld.clear()
+            gridSessionId = if (useSequencedDelivery) UUID.randomUUID().toString() else null
+            nextGridSequence = 0L
+            syncPending = false
             _state.value = Grid3ForwardingState(
                 active = true,
                 pcName = host.currentPcName(),
@@ -219,6 +255,10 @@ class Grid3SwitchForwarder internal constructor(
         }
         host.suspendScanning()
         host.maintainConnection()
+        if (useSequencedDelivery) {
+            enqueueSyncSnapshot()
+            startSnapshotLoop()
+        }
         return Grid3StartResult.Started
     }
 
@@ -258,14 +298,26 @@ class Grid3SwitchForwarder internal constructor(
                     "match action=down result=accepted keyCode=$keyCode switchId=${mapping.switchId} " +
                         "downTime=$downTimeMs eventTime=$eventTimeMs"
                 )
-                ForwardingAction.SetState(generation, keyCode, mapping.switchId, down = true)
+                ForwardingAction.SetState(
+                    generation,
+                    keyCode,
+                    mapping.switchId,
+                    down = true,
+                    delivery = nextDeliveryLocked()
+                )
             } else {
                 Grid3SwitchDiagnostics.log(
                     "match action=down result=recover_missing_up keyCode=$keyCode " +
                         "switchId=${mapping.switchId} previousDownTime=${activePress.downTimeMs} " +
                         "downTime=$downTimeMs eventTime=$eventTimeMs"
                 )
-                ForwardingAction.RestartPress(generation, keyCode, mapping.switchId)
+                ForwardingAction.RestartPress(
+                    generation,
+                    keyCode,
+                    mapping.switchId,
+                    releaseDelivery = nextDeliveryLocked(),
+                    pressDelivery = nextDeliveryLocked()
+                )
             }
         }
         enqueue(action)
@@ -325,7 +377,13 @@ class Grid3SwitchForwarder internal constructor(
                     "cancelled=$cancelled stop=$shouldStop"
             )
             Triple(
-                ForwardingAction.SetState(generation, keyCode, mapping.switchId, down = false),
+                ForwardingAction.SetState(
+                    generation,
+                    keyCode,
+                    mapping.switchId,
+                    down = false,
+                    delivery = nextDeliveryLocked()
+                ),
                 shouldStop,
                 generation
             )
@@ -372,10 +430,22 @@ class Grid3SwitchForwarder internal constructor(
         )
         sendMutex.withLock {
             processSetStateLocked(
-                ForwardingAction.SetState(action.generation, action.keyCode, action.switchId, down = false)
+                ForwardingAction.SetState(
+                    action.generation,
+                    action.keyCode,
+                    action.switchId,
+                    down = false,
+                    delivery = action.releaseDelivery
+                )
             )
             processSetStateLocked(
-                ForwardingAction.SetState(action.generation, action.keyCode, action.switchId, down = true)
+                ForwardingAction.SetState(
+                    action.generation,
+                    action.keyCode,
+                    action.switchId,
+                    down = true,
+                    delivery = action.pressDelivery
+                )
             )
         }
     }
@@ -385,8 +455,18 @@ class Grid3SwitchForwarder internal constructor(
             _state.value.active && generation == action.generation
         }
         if (!active) return
+        val command = PcControlCommand.GridSwitchSet(
+            switchId = action.switchId,
+            down = action.down,
+            sessionId = action.delivery?.sessionId,
+            sequence = action.delivery?.sequence
+        )
         val result = try {
-            host.send(PcControlCommand.GridSwitchSet(action.switchId, action.down))
+            if (action.delivery == null) {
+                host.send(command)
+            } else {
+                host.sendRealtime(command)
+            }
         } catch (error: Exception) {
             PcCommandResult.Failed(error.message ?: "Could not send switch state.")
         }
@@ -408,23 +488,130 @@ class Grid3SwitchForwarder internal constructor(
         }
     }
 
+    private suspend fun processSync(action: ForwardingAction.Sync) {
+        try {
+            sendMutex.withLock {
+                val active = synchronized(stateLock) {
+                    _state.value.active && generation == action.generation
+                }
+                if (!active) return
+                val result = try {
+                    host.send(
+                        PcControlCommand.GridSwitchSync(
+                            sessionId = action.sessionId,
+                            sequence = action.sequence,
+                            pressedSwitchIds = action.pressedSwitchIds
+                        )
+                    )
+                } catch (error: Exception) {
+                    PcCommandResult.Failed(error.message ?: "Could not synchronize switch state.")
+                }
+                Grid3SwitchDiagnostics.log(
+                    "send action=sync sequence=${action.sequence} " +
+                        "pressed=${action.pressedSwitchIds.sorted()} result=${resultName(result)}"
+                )
+                if (result == PcCommandResult.Ack) {
+                    synchronized(stateLock) {
+                        if (generation == action.generation) {
+                            remotelyHeld.clear()
+                            remotelyHeld.addAll(action.pressedSwitchIds)
+                        }
+                    }
+                }
+            }
+        } finally {
+            synchronized(stateLock) {
+                if (generation == action.generation) {
+                    syncPending = false
+                }
+            }
+        }
+    }
+
+    private fun nextDeliveryLocked(): Grid3Delivery? {
+        val sessionId = gridSessionId ?: return null
+        nextGridSequence++
+        return Grid3Delivery(sessionId, nextGridSequence)
+    }
+
+    private fun createSyncActionLocked(): ForwardingAction.Sync? {
+        val sessionId = gridSessionId ?: return null
+        if (!_state.value.active || syncPending) return null
+        nextGridSequence++
+        syncPending = true
+        val pressedSwitchIds = activePresses.keys.mapNotNull { keyCode ->
+            mappingByKeyCode[keyCode]?.switchId
+        }.toSet()
+        return ForwardingAction.Sync(
+            generation = generation,
+            sessionId = sessionId,
+            sequence = nextGridSequence,
+            pressedSwitchIds = pressedSwitchIds
+        )
+    }
+
+    private fun enqueueSyncSnapshot() {
+        val action = synchronized(stateLock) { createSyncActionLocked() } ?: return
+        enqueue(action)
+    }
+
+    private fun startSnapshotLoop() {
+        snapshotJob?.cancel()
+        snapshotJob = scope.launch {
+            while (true) {
+                delay(SNAPSHOT_INTERVAL_MS)
+                val active = synchronized(stateLock) { _state.value.active }
+                if (!active) return@launch
+                enqueueSyncSnapshot()
+            }
+        }
+    }
+
+    private fun resultName(result: PcCommandResult): String {
+        return when (result) {
+            PcCommandResult.Ack -> "ack"
+            is PcCommandResult.AuthFailed -> "auth_failed"
+            is PcCommandResult.Failed -> "failed"
+        }
+    }
+
     private suspend fun stop(expectedGeneration: Long) {
+        var finalSync: PcControlCommand.GridSwitchSync? = null
         val shouldStop = synchronized(stateLock) {
             if (!_state.value.active || generation != expectedGeneration) return
             _state.value = _state.value.copy(active = false)
             activePresses.clear()
+            gridSessionId?.let { sessionId ->
+                nextGridSequence++
+                finalSync = PcControlCommand.GridSwitchSync(
+                    sessionId = sessionId,
+                    sequence = nextGridSequence,
+                    pressedSwitchIds = emptySet()
+                )
+            }
             true
         }
         if (!shouldStop) return
+        snapshotJob?.cancel()
+        snapshotJob = null
         try {
             sendMutex.withLock {
-                val held = synchronized(stateLock) {
-                    if (generation != expectedGeneration) emptyList() else remotelyHeld.toList().sorted()
-                }
-                held.forEach { switchId ->
+                val syncResult = finalSync?.let { command ->
                     try {
-                        host.send(PcControlCommand.GridSwitchSet(switchId, down = false))
-                    } catch (_: Exception) {
+                        host.send(command)
+                    } catch (error: Exception) {
+                        PcCommandResult.Failed(error.message ?: "Could not synchronize switch state.")
+                    }
+                }
+                if (syncResult != PcCommandResult.Ack) {
+                    val held = synchronized(stateLock) {
+                        if (generation != expectedGeneration) emptyList() else remotelyHeld.toList().sorted()
+                    }
+                    held.forEach { switchId ->
+                        try {
+                            host.send(PcControlCommand.GridSwitchSet(switchId, down = false))
+                        } catch (_: Exception) {
+                        }
                     }
                 }
             }
@@ -433,6 +620,9 @@ class Grid3SwitchForwarder internal constructor(
                 if (generation == expectedGeneration) {
                     remotelyHeld.clear()
                     mappingByKeyCode = emptyMap()
+                    gridSessionId = null
+                    nextGridSequence = 0L
+                    syncPending = false
                     _state.value = Grid3ForwardingState()
                 }
             }
@@ -456,6 +646,7 @@ class Grid3SwitchForwarder internal constructor(
     }
 
     private suspend fun handleConnectionState(connectionState: PcServiceConnectionState) {
+        var shouldSynchronize = false
         val currentGeneration = synchronized(stateLock) {
             if (!_state.value.active) return
             when (connectionState) {
@@ -464,6 +655,7 @@ class Grid3SwitchForwarder internal constructor(
                         connectionStatus = Grid3ConnectionStatus.Connected,
                         pcName = connectionState.displayName
                     )
+                    shouldSynchronize = gridSessionId != null
                 }
                 is PcServiceConnectionState.Reconnecting -> {
                     remotelyHeld.clear()
@@ -480,6 +672,8 @@ class Grid3SwitchForwarder internal constructor(
         }
         if (currentGeneration != null) {
             stop(currentGeneration)
+        } else if (shouldSynchronize) {
+            enqueueSyncSnapshot()
         }
     }
 
@@ -493,7 +687,8 @@ class Grid3SwitchForwarder internal constructor(
 
     companion object {
         const val MAX_FORWARDED_SWITCHES = 8
-        const val DEFAULT_HOLD_TO_STOP_MS = 2_000L
+        const val DEFAULT_HOLD_TO_STOP_MS = 5_000L
+        const val SNAPSHOT_INTERVAL_MS = 1_000L
 
         fun sortConfiguredSwitches(switches: List<SwitchEvent>): List<SwitchEvent> {
             return switches.sortedWith { first, second ->

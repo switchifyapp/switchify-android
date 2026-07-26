@@ -330,7 +330,18 @@ class SwitchifyPcBleClient(
                 token,
                 timestamp,
                 switchId,
-                down
+                down,
+                sessionId,
+                sequence
+            )
+            is PcControlCommand.GridSwitchSync -> PcProtocol.gridSwitchSync(
+                id,
+                deviceId,
+                token,
+                timestamp,
+                sessionId,
+                sequence,
+                pressedSwitchIds
             )
         }
     }
@@ -444,6 +455,7 @@ private fun PcControlCommand.protocolType(): String {
         is PcControlCommand.SetPointerSpeed -> "pointer.speed.set"
         is PcControlCommand.MoveToDisplay -> "pointer.display.move"
         is PcControlCommand.GridSwitchSet -> PcProtocol.GRID_SWITCH_SET_COMMAND
+        is PcControlCommand.GridSwitchSync -> PcProtocol.GRID_SWITCH_SYNC_COMMAND
     }
 }
 

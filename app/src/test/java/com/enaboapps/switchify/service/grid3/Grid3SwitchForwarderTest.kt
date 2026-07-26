@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.runCurrent
+import kotlinx.coroutines.test.advanceTimeBy
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -83,6 +84,71 @@ class Grid3SwitchForwarderTest {
             ),
             host.commands
         )
+        forwarder.stop()
+    }
+
+    @Test
+    fun sequencedDeliveryUsesRealtimeEdgesAndAcknowledgedSnapshots() = runTest {
+        val host = FakeHost(
+            mutableListOf(switchEvent("20", "Primary")),
+            sequencedSupported = true
+        )
+        val forwarder = Grid3SwitchForwarder(host, backgroundScope)
+        forwarder.start()
+        runCurrent()
+        host.commands.clear()
+        host.realtimeCommands.clear()
+
+        forwarder.onSwitchPressed(20, downTimeMs = 1_000L, eventTimeMs = 1_000L)
+        forwarder.onSwitchReleased(
+            20,
+            downTimeMs = 1_000L,
+            eventTimeMs = 1_100L,
+            cancelled = false
+        )
+        runCurrent()
+
+        val edges = host.realtimeCommands.filterIsInstance<PcControlCommand.GridSwitchSet>()
+        assertEquals(2, edges.size)
+        assertTrue(edges.first().down)
+        assertFalse(edges.last().down)
+        assertEquals(edges.first().sessionId, edges.last().sessionId)
+        assertTrue(requireNotNull(edges.first().sequence) < requireNotNull(edges.last().sequence))
+
+        advanceTimeBy(Grid3SwitchForwarder.SNAPSHOT_INTERVAL_MS)
+        runCurrent()
+
+        val sync = host.commands.filterIsInstance<PcControlCommand.GridSwitchSync>().last()
+        assertTrue(sync.pressedSwitchIds.isEmpty())
+        assertTrue(sync.sequence > requireNotNull(edges.last().sequence))
+        forwarder.stop()
+    }
+
+    @Test
+    fun legacyPcKeepsAcknowledgedUnsequencedEdges() = runTest {
+        val host = FakeHost(mutableListOf(switchEvent("20", "Primary")))
+        val forwarder = Grid3SwitchForwarder(host, backgroundScope)
+        forwarder.start()
+
+        forwarder.onSwitchPressed(20)
+        forwarder.onSwitchReleased(20)
+        runCurrent()
+
+        val edges = host.commands.filterIsInstance<PcControlCommand.GridSwitchSet>()
+        assertEquals(2, edges.size)
+        assertTrue(host.realtimeCommands.isEmpty())
+        assertTrue(edges.all { it.sessionId == null && it.sequence == null })
+        forwarder.stop()
+    }
+
+    @Test
+    fun defaultHoldToStopDurationIsFiveSeconds() = runTest {
+        val host = FakeHost(mutableListOf(switchEvent("20", "Primary")))
+        val forwarder = Grid3SwitchForwarder(host, backgroundScope)
+
+        forwarder.start()
+
+        assertEquals(5_000L, forwarder.state.value.holdToStopDurationMs)
         forwarder.stop()
     }
 
@@ -427,6 +493,37 @@ class Grid3SwitchForwarderTest {
     }
 
     @Test
+    fun sequencedReconnectImmediatelySynchronizesCurrentPressedSet() = runTest {
+        val host = FakeHost(
+            mutableListOf(switchEvent("1", "One")),
+            sequencedSupported = true
+        )
+        val forwarder = Grid3SwitchForwarder(host, backgroundScope)
+        forwarder.start()
+        runCurrent()
+        forwarder.onSwitchPressed(1)
+        runCurrent()
+        host.commands.clear()
+
+        host.mutableConnectionState.value = PcServiceConnectionState.Reconnecting(
+            session = com.enaboapps.switchify.pc.PcAuthenticatedSession("desktop", "device", "endpoint"),
+            displayName = "Office PC"
+        )
+        runCurrent()
+        host.mutableConnectionState.value = PcServiceConnectionState.Connected(
+            session = com.enaboapps.switchify.pc.PcAuthenticatedSession("desktop", "device", "endpoint"),
+            displayName = "Office PC",
+            pointerProfile = null
+        )
+        runCurrent()
+
+        val sync = host.commands.filterIsInstance<PcControlCommand.GridSwitchSync>().single()
+        assertEquals(setOf(1), sync.pressedSwitchIds)
+        assertTrue(forwarder.state.value.active)
+        forwarder.stop()
+    }
+
+    @Test
     fun terminalFailureReleasesHeldSwitchAndRestoresScanning() = runTest {
         val host = FakeHost(mutableListOf(switchEvent("1", "One")))
         val forwarder = Grid3SwitchForwarder(host, backgroundScope)
@@ -471,7 +568,8 @@ class Grid3SwitchForwarderTest {
     private class FakeHost(
         val switches: MutableList<SwitchEvent>,
         supported: Boolean = true,
-        private val holdDurationMs: Long = 2_000L,
+        private val sequencedSupported: Boolean = false,
+        private val holdDurationMs: Long = Grid3SwitchForwarder.DEFAULT_HOLD_TO_STOP_MS,
         private val throwOnReleaseIds: Set<Int> = emptySet(),
         private val downStarted: CompletableDeferred<Unit>? = null,
         private val allowDownToComplete: CompletableDeferred<Unit>? = null
@@ -485,6 +583,7 @@ class Grid3SwitchForwarderTest {
         )
         override val connectionState: StateFlow<PcServiceConnectionState> = mutableConnectionState
         val commands = mutableListOf<PcControlCommand>()
+        val realtimeCommands = mutableListOf<PcControlCommand>()
         var suspendCount = 0
         var restoreCount = 0
         var maintainCount = 0
@@ -496,7 +595,19 @@ class Grid3SwitchForwarderTest {
             maxDelta = 500,
             recommendedDeltas = PcPointerDeltas(50, 100, 200),
             capabilities = PcPointerCapabilities(
-                supportedCommands = if (supported) setOf(PcProtocol.GRID_SWITCH_SET_COMMAND) else emptySet()
+                supportedCommands = if (supported) {
+                    buildSet {
+                        add(PcProtocol.GRID_SWITCH_SET_COMMAND)
+                        if (sequencedSupported) add(PcProtocol.GRID_SWITCH_SYNC_COMMAND)
+                    }
+                } else {
+                    emptySet()
+                },
+                noAckCommands = if (sequencedSupported) {
+                    setOf(PcProtocol.GRID_SWITCH_SET_COMMAND)
+                } else {
+                    emptySet()
+                }
             )
         )
 
@@ -529,6 +640,10 @@ class Grid3SwitchForwarderTest {
                 throw IllegalStateException("Release failed")
             }
             return PcCommandResult.Ack
+        }
+        override suspend fun sendRealtime(command: PcControlCommand): PcCommandResult {
+            realtimeCommands += command
+            return send(command)
         }
     }
 
