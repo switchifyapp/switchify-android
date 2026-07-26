@@ -133,7 +133,8 @@ object PcProtocol {
         switchId: Int,
         down: Boolean,
         sessionId: String? = null,
-        sequence: Long? = null
+        sequence: Long? = null,
+        responseMode: PcCommandResponseMode = PcCommandResponseMode.Ack
     ): String {
         val payload = JSONObject()
             .put("switchId", switchId)
@@ -149,7 +150,8 @@ object PcProtocol {
             token = token,
             timestamp = timestamp,
             type = GRID_SWITCH_SET_COMMAND,
-            payload = payload
+            payload = payload,
+            responseMode = responseMode
         )
     }
 

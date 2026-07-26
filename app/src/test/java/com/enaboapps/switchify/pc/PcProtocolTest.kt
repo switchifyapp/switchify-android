@@ -281,6 +281,42 @@ class PcProtocolTest {
     }
 
     @Test
+    fun buildsSequencedGridSwitchWithNoAckResponseModeAndMatchingProof() {
+        val payload = JSONObject()
+            .put("switchId", 2)
+            .put("state", "up")
+            .put("sessionId", "99a1dbcf-6be4-4c6c-8664-d33fd698e32b")
+            .put("sequence", 7L)
+        val json = JSONObject(
+            PcProtocol.gridSwitchSet(
+                id = "grid-edge",
+                deviceId = "device-1",
+                token = "shared-token",
+                timestamp = 1000L,
+                switchId = 2,
+                down = false,
+                sessionId = "99a1dbcf-6be4-4c6c-8664-d33fd698e32b",
+                sequence = 7L,
+                responseMode = PcCommandResponseMode.None
+            )
+        )
+
+        assertEquals("none", json.getString("responseMode"))
+        assertEquals(
+            PcProtocol.authProof(
+                id = "grid-edge",
+                deviceId = "device-1",
+                timestamp = 1000L,
+                type = PcProtocol.GRID_SWITCH_SET_COMMAND,
+                payload = payload,
+                token = "shared-token",
+                responseMode = PcCommandResponseMode.None
+            ),
+            json.getString("auth")
+        )
+    }
+
+    @Test
     fun parsesPointerProfileResponse() {
         val response = PcProtocol.parseResponse(validPointerProfileResponse()) as PcProtocolResponse.PointerProfile
 

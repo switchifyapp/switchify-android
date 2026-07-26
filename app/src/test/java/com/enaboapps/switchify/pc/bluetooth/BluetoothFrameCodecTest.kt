@@ -1,7 +1,9 @@
 package com.enaboapps.switchify.pc.bluetooth
 
+import kotlinx.coroutines.test.runTest
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -83,6 +85,47 @@ class BluetoothFrameCodecTest {
         assertTrue(json.has("isFinal"))
         assertTrue(json.has("totalBytes"))
         assertTrue(json.has("payloadBase64"))
+    }
+
+    @Test
+    fun responseRouterCompletesOnlyTheMatchingRequest() = runTest {
+        val router = PcBleResponseRouter()
+        val first = router.register("request-1")
+        val second = router.register("request-2")
+        val secondMessage = """{"id":"request-2","type":"ack"}"""
+
+        assertFalse(router.route("""{"id":"stale","type":"ack"}"""))
+        assertTrue(router.route(secondMessage))
+        assertEquals(secondMessage, second.await())
+        assertFalse(first.isCompleted)
+    }
+
+    @Test
+    fun responseRouterFailsEveryPendingRequestOnDisconnect() = runTest {
+        val router = PcBleResponseRouter()
+        val first = router.register("request-1")
+        val second = router.register("request-2")
+
+        router.fail(IllegalStateException("disconnected"))
+
+        assertEquals("disconnected", runCatching { first.await() }.exceptionOrNull()?.message)
+        assertEquals("disconnected", runCatching { second.await() }.exceptionOrNull()?.message)
+    }
+
+    @Test
+    fun noResponseWriteFallsBackWhenCharacteristicDoesNotSupportIt() {
+        assertEquals(
+            PcBleWriteMode.WithoutResponse,
+            resolveBleWriteMode(PcBleWriteMode.WithoutResponse, supportsWithoutResponse = true)
+        )
+        assertEquals(
+            PcBleWriteMode.WithResponse,
+            resolveBleWriteMode(PcBleWriteMode.WithoutResponse, supportsWithoutResponse = false)
+        )
+        assertEquals(
+            PcBleWriteMode.WithResponse,
+            resolveBleWriteMode(PcBleWriteMode.WithResponse, supportsWithoutResponse = true)
+        )
     }
 
     private fun validFrame(): BluetoothFrame {

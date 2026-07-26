@@ -31,7 +31,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import kotlinx.coroutines.withTimeout
 import org.json.JSONObject
 import java.util.UUID
 
@@ -117,6 +116,7 @@ class SwitchifyPcBleClient(
             return liveControlFailure(it)
         }
         openConnections += connection
+        connection.requestLowLatency(true)
         return try {
             when (val response = sendAuthenticatedPing(connection, token)) {
                 is PcProtocolResponse.Ack -> PcLiveControlResult.Connected(
@@ -197,14 +197,9 @@ class SwitchifyPcBleClient(
         requestId: String,
         timeoutMs: Long
     ): PcProtocolResponse {
-        return withTimeout(timeoutMs) {
-            while (true) {
-                val raw = connection.sendAndReceive(message, timeoutMs)
-                val response = resolveExpectedResponse(PcProtocol.parseResponse(raw), requestId)
-                if (response != null) return@withTimeout response
-            }
-            PcProtocolResponse.Invalid
-        }
+        val raw = connection.sendAndReceive(message, requestId, timeoutMs)
+        return resolveExpectedResponse(PcProtocol.parseResponse(raw), requestId)
+            ?: PcProtocolResponse.Invalid
     }
 
     private suspend fun requestPointerProfile(
@@ -332,7 +327,8 @@ class SwitchifyPcBleClient(
                 switchId,
                 down,
                 sessionId,
-                sequence
+                sequence,
+                responseMode
             )
             is PcControlCommand.GridSwitchSync -> PcProtocol.gridSwitchSync(
                 id,
@@ -352,7 +348,7 @@ class SwitchifyPcBleClient(
         private val token: String,
         override val pointerProfile: PcPointerMovementProfile?
     ) : PcControlConnection {
-        private val sendMutex = Mutex()
+        private val realtimeSendMutex = Mutex()
 
         override val connectionEvents: Flow<PcControlConnectionEvent> = connection.events.map { event ->
             when (event) {
@@ -361,32 +357,28 @@ class SwitchifyPcBleClient(
         }
 
         override suspend fun checkHealth(): PcCommandResult {
-            return sendMutex.withLock {
-                try {
-                    when (val response = sendAuthenticatedPing(connection, token)) {
-                        is PcProtocolResponse.Ack -> PcCommandResult.Ack
-                        is PcProtocolResponse.Error -> {
-                            if (response.code == "invalid_auth") PcCommandResult.AuthFailed()
-                            else PcCommandResult.Failed()
-                        }
-                        else -> PcCommandResult.Failed()
+            return try {
+                when (val response = sendAuthenticatedPing(connection, token)) {
+                    is PcProtocolResponse.Ack -> PcCommandResult.Ack
+                    is PcProtocolResponse.Error -> {
+                        if (response.code == "invalid_auth") PcCommandResult.AuthFailed()
+                        else PcCommandResult.Failed()
                     }
-                } catch (error: Throwable) {
-                    if (error is CancellationException) throw error
-                    PcCommandResult.Failed()
+                    else -> PcCommandResult.Failed()
                 }
+            } catch (error: Throwable) {
+                if (error is CancellationException) throw error
+                PcCommandResult.Failed()
             }
         }
 
         override suspend fun sendCommand(command: PcControlCommand): PcCommandResult {
-            return sendMutex.withLock {
-                try {
-                    sendCommandMessage(connection, authenticatedSession, token, command)
-                } catch (error: Throwable) {
-                    if (error is CancellationException) throw error
-                    if (error is InvalidPcAuthException) PcCommandResult.AuthFailed()
-                    else PcCommandResult.Failed()
-                }
+            return try {
+                sendCommandMessage(connection, authenticatedSession, token, command)
+            } catch (error: Throwable) {
+                if (error is CancellationException) throw error
+                if (error is InvalidPcAuthException) PcCommandResult.AuthFailed()
+                else PcCommandResult.Failed()
             }
         }
 
@@ -395,7 +387,7 @@ class SwitchifyPcBleClient(
                 return sendCommand(command)
             }
 
-            return sendMutex.withLock {
+            return realtimeSendMutex.withLock {
                 try {
                     val requestId = nextRequestId()
                     connection.send(
@@ -405,7 +397,8 @@ class SwitchifyPcBleClient(
                             token = token,
                             timestamp = System.currentTimeMillis(),
                             responseMode = PcCommandResponseMode.None
-                        )
+                        ),
+                        PcBleWriteMode.WithoutResponse
                     )
                     PcCommandResult.Ack
                 } catch (error: Throwable) {
@@ -416,6 +409,7 @@ class SwitchifyPcBleClient(
         }
 
         override fun close(reason: PcControlCloseReason) {
+            connection.requestLowLatency(false)
             connection.close(reason.logName)
             openConnections -= connection
         }
