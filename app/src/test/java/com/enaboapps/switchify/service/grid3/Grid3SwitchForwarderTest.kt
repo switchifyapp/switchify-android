@@ -87,6 +87,19 @@ class Grid3SwitchForwarderTest {
     }
 
     @Test
+    fun releaseWithoutForwardedPressDoesNotSendActivationGesture() = runTest {
+        val host = FakeHost(mutableListOf(switchEvent("20", "Primary")))
+        val forwarder = Grid3SwitchForwarder(host, backgroundScope)
+        forwarder.start()
+
+        assertTrue(forwarder.onSwitchReleased(20))
+        runCurrent()
+
+        assertTrue(host.commands.isEmpty())
+        forwarder.stop()
+    }
+
+    @Test
     fun unknownAndOverflowSwitchesAreConsumedWithoutForwarding() = runTest {
         val switches = (1..9).map { switchEvent(it.toString(), "Switch $it") }.toMutableList()
         val host = FakeHost(switches)

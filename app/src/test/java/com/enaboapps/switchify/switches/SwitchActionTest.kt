@@ -1,5 +1,6 @@
 package com.enaboapps.switchify.switches
 
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -26,6 +27,20 @@ class SwitchActionTest {
     }
 
     @Test
+    fun actionsIncludesControlGrid3() {
+        val ids = SwitchAction.actions.map { it.id }
+
+        assertTrue(ids.contains(SwitchAction.ACTION_CONTROL_GRID_3))
+    }
+
+    @Test
+    fun actionIdsAreUnique() {
+        val ids = SwitchAction.actions.map { it.id }
+
+        assertEquals(ids.size, ids.toSet().size)
+    }
+
+    @Test
     fun toggleGestureLockRearmUsesStableAppendedId() {
         assertTrue(SwitchAction.ACTION_TOGGLE_GESTURE_LOCK_REARM == 15)
     }
@@ -38,5 +53,10 @@ class SwitchActionTest {
     @Test
     fun controlPcUsesStableAppendedId() {
         assertTrue(SwitchAction.ACTION_CONTROL_PC == 17)
+    }
+
+    @Test
+    fun controlGrid3UsesStableAppendedId() {
+        assertTrue(SwitchAction.ACTION_CONTROL_GRID_3 == 18)
     }
 }
