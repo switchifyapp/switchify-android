@@ -324,6 +324,14 @@ class SwitchifyPcBleClient(
             is PcControlCommand.WindowControl -> PcProtocol.windowControl(id, deviceId, token, timestamp, action, responseMode)
             is PcControlCommand.SetPointerSpeed -> PcProtocol.pointerSpeedSet(id, deviceId, token, timestamp, scalePercent)
             is PcControlCommand.MoveToDisplay -> PcProtocol.pointerDisplayMove(id, deviceId, token, timestamp, direction)
+            is PcControlCommand.GridSwitchSet -> PcProtocol.gridSwitchSet(
+                id,
+                deviceId,
+                token,
+                timestamp,
+                switchId,
+                down
+            )
         }
     }
 
@@ -435,6 +443,7 @@ private fun PcControlCommand.protocolType(): String {
         is PcControlCommand.WindowControl -> "window.control"
         is PcControlCommand.SetPointerSpeed -> "pointer.speed.set"
         is PcControlCommand.MoveToDisplay -> "pointer.display.move"
+        is PcControlCommand.GridSwitchSet -> PcProtocol.GRID_SWITCH_SET_COMMAND
     }
 }
 

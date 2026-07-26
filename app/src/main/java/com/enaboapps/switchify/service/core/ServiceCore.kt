@@ -3,6 +3,7 @@ package com.enaboapps.switchify.service.core
 import com.enaboapps.switchify.service.camera.CameraManager
 import com.enaboapps.switchify.service.gestures.visuals.AndroidGestureTargetIndicatorRenderer
 import com.enaboapps.switchify.service.gestures.visuals.GestureTargetIndicatorController
+import com.enaboapps.switchify.service.grid3.Grid3SwitchForwarder
 import com.enaboapps.switchify.pc.PcServiceConnectionController
 import com.enaboapps.switchify.service.pauseresume.PauseManager
 import com.enaboapps.switchify.service.scanning.ScanningManager
@@ -18,6 +19,7 @@ object ServiceCore {
     private lateinit var headControlServiceRef: WeakReference<HeadControlService>
     private lateinit var cameraManagerRef: WeakReference<CameraManager>
     private var pcServiceConnectionController: PcServiceConnectionController? = null
+    private var grid3SwitchForwarder: Grid3SwitchForwarder? = null
     private var gestureTargetIndicator: GestureTargetIndicatorController? = null
 
     /**
@@ -119,10 +121,23 @@ object ServiceCore {
         return pcServiceConnectionController
     }
 
+    fun setGrid3SwitchForwarder(forwarder: Grid3SwitchForwarder) {
+        grid3SwitchForwarder = forwarder
+    }
+
+    fun getGrid3SwitchForwarder(): Grid3SwitchForwarder? = grid3SwitchForwarder
+
+    fun takeGrid3SwitchForwarder(): Grid3SwitchForwarder? {
+        return grid3SwitchForwarder.also {
+            grid3SwitchForwarder = null
+        }
+    }
+
     /**
      * Cleans up the service core.
      */
     fun cleanup() {
+        grid3SwitchForwarder = null
         gestureTargetIndicator?.release()
         gestureTargetIndicator = null
         if (::scanningManagerRef.isInitialized) {

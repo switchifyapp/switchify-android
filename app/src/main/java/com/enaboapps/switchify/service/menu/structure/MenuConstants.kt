@@ -100,6 +100,7 @@ object MenuConstants {
             const val SETTINGS = "settings"
             const val MEDIA_CONTROL = "media_control"
             const val CONTROL_PC = "control_pc"
+            const val CONTROL_GRID_3 = "control_grid_3"
             const val EDIT = "edit"
             const val AI = "ai"
             const val PAUSE = "pause"

@@ -114,6 +114,10 @@ class SwitchEventProvider(private val context: Context) {
         }
     }
 
+    fun externalSwitches(): List<SwitchEvent> = synchronized(switchEvents) {
+        switchEvents.filter { it.type == SWITCH_EVENT_TYPE_EXTERNAL }.map { it.copy() }
+    }
+
     fun addCameraSwitchListener(listener: CameraSwitchListener) {
         cameraSwitchListeners.add(listener)
     }

@@ -7,6 +7,7 @@ import com.enaboapps.switchify.pc.PcMouseRepeatManager
 import com.enaboapps.switchify.service.core.ServiceCore
 import com.enaboapps.switchify.service.core.Tasks
 import com.enaboapps.switchify.service.gestures.GestureLockManager
+import com.enaboapps.switchify.service.grid3.Grid3SwitchInputHandler
 import com.enaboapps.switchify.service.keyboard.KeyboardManager
 import com.enaboapps.switchify.service.scanning.ScanningManager
 import com.enaboapps.switchify.service.selection.SelectionHandler
@@ -39,6 +40,9 @@ class ExternalSwitchListener(
     private val suppressedSwitchCodes = mutableSetOf<Int>()
     private var gestureLockHoldFired = false
     private val pauseSwitchHoldTracker = PauseSwitchHoldTracker()
+    private val grid3Diversion = ExternalSwitchGrid3Diversion {
+        ServiceCore.getGrid3SwitchForwarder()
+    }
 
     /** Timestamp of the last switch press for handling repeat events */
     private var lastSwitchPressedTime: Long = 0
@@ -54,6 +58,12 @@ class ExternalSwitchListener(
      * @return true if the event was handled and should be consumed, false otherwise
      */
     fun onSwitchPressed(keyCode: Int): Boolean {
+        return grid3Diversion.onPressed(keyCode) {
+            onSwitchPressedNormally(keyCode)
+        }
+    }
+
+    private fun onSwitchPressedNormally(keyCode: Int): Boolean {
         if (keyCode in suppressedSwitchCodes) return true
         val switchEvent = findSwitchEvent(keyCode) ?: return false
         if (KeyboardManager.shouldSuppressSwitchInput()) {
@@ -113,6 +123,12 @@ class ExternalSwitchListener(
      * @return true if the event was handled and should be consumed, false otherwise
      */
     fun onSwitchReleased(keyCode: Int): Boolean {
+        return grid3Diversion.onReleased(keyCode) {
+            onSwitchReleasedNormally(keyCode)
+        }
+    }
+
+    private fun onSwitchReleasedNormally(keyCode: Int): Boolean {
         if (suppressedSwitchCodes.remove(keyCode)) {
             suppressCurrentSwitchInteraction(swallowRelease = false)
             return true
@@ -405,5 +421,17 @@ class ExternalSwitchListener(
         if (!SelectionHandler.isAutoSelectInProgress()) {
             scanningManager.resumeScanning()
         }
+    }
+}
+
+internal class ExternalSwitchGrid3Diversion(
+    private val handler: () -> Grid3SwitchInputHandler?
+) {
+    fun onPressed(keyCode: Int, normalHandling: () -> Boolean): Boolean {
+        return if (handler()?.onSwitchPressed(keyCode) == true) true else normalHandling()
+    }
+
+    fun onReleased(keyCode: Int, normalHandling: () -> Boolean): Boolean {
+        return if (handler()?.onSwitchReleased(keyCode) == true) true else normalHandling()
     }
 }
