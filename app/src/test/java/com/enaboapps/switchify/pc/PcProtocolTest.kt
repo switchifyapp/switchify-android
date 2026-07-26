@@ -196,6 +196,50 @@ class PcProtocolTest {
     }
 
     @Test
+    fun buildsAckOnlyGridSwitchCommandWithExactPayload() {
+        val json = JSONObject(
+            PcProtocol.gridSwitchSet(
+                id = "grid-1",
+                deviceId = "device-1",
+                token = "shared-token",
+                timestamp = 1000L,
+                switchId = 8,
+                down = true
+            )
+        )
+
+        assertEquals(PcProtocol.GRID_SWITCH_SET_COMMAND, json.getString("type"))
+        assertFalse(json.has("responseMode"))
+        assertEquals(
+            """{"switchId":8,"state":"down"}""",
+            json.getJSONObject("payload").toString()
+        )
+        assertEquals(
+            PcProtocol.authProof(
+                id = "grid-1",
+                deviceId = "device-1",
+                timestamp = 1000L,
+                type = PcProtocol.GRID_SWITCH_SET_COMMAND,
+                payload = json.getJSONObject("payload"),
+                token = "shared-token"
+            ),
+            json.getString("auth")
+        )
+    }
+
+    @Test
+    fun parsesGridSwitchCapabilityButNeverNoAckCapability() {
+        val response = PcProtocol.parseResponse(
+            validPointerProfileResponse(
+                capabilities = ""","capabilities":{"supportedCommands":["grid.switch.set"],"noAckCommands":["grid.switch.set"]}"""
+            )
+        ) as PcProtocolResponse.PointerProfile
+
+        assertEquals(setOf(PcProtocol.GRID_SWITCH_SET_COMMAND), response.profile.capabilities.supportedCommands)
+        assertFalse(response.profile.capabilities.noAckCommands.contains(PcProtocol.GRID_SWITCH_SET_COMMAND))
+    }
+
+    @Test
     fun parsesPointerProfileResponse() {
         val response = PcProtocol.parseResponse(validPointerProfileResponse()) as PcProtocolResponse.PointerProfile
 

@@ -125,6 +125,26 @@ object PcProtocol {
         )
     }
 
+    fun gridSwitchSet(
+        id: String,
+        deviceId: String,
+        token: String,
+        timestamp: Long,
+        switchId: Int,
+        down: Boolean
+    ): String {
+        return authenticatedCommand(
+            id = id,
+            deviceId = deviceId,
+            token = token,
+            timestamp = timestamp,
+            type = GRID_SWITCH_SET_COMMAND,
+            payload = JSONObject()
+                .put("switchId", switchId)
+                .put("state", if (down) "down" else "up")
+        )
+    }
+
     fun authenticatedCommand(
         id: String,
         deviceId: String,
@@ -790,6 +810,9 @@ object PcProtocol {
         "mouse.repeat.stop",
         "keyboard.textStream.open",
         "keyboard.textStream.chunk",
-        "keyboard.textStream.close"
+        "keyboard.textStream.close",
+        GRID_SWITCH_SET_COMMAND
     )
+
+    const val GRID_SWITCH_SET_COMMAND = "grid.switch.set"
 }

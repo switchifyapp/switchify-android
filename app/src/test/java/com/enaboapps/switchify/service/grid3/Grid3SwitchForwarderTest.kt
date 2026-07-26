@@ -1,0 +1,402 @@
+package com.enaboapps.switchify.service.grid3
+
+import com.enaboapps.switchify.pc.PcCommandResult
+import com.enaboapps.switchify.pc.PcControlCommand
+import com.enaboapps.switchify.pc.PcPointerBounds
+import com.enaboapps.switchify.pc.PcPointerCapabilities
+import com.enaboapps.switchify.pc.PcPointerDeltas
+import com.enaboapps.switchify.pc.PcPointerMovementProfile
+import com.enaboapps.switchify.pc.PcProtocol
+import com.enaboapps.switchify.pc.PcServiceConnectionState
+import com.enaboapps.switchify.switches.SWITCH_EVENT_TYPE_CAMERA
+import com.enaboapps.switchify.switches.SWITCH_EVENT_TYPE_EXTERNAL
+import com.enaboapps.switchify.switches.SwitchAction
+import com.enaboapps.switchify.switches.SwitchEvent
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.async
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.test.runCurrent
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
+import org.junit.Test
+
+@OptIn(ExperimentalCoroutinesApi::class)
+class Grid3SwitchForwarderTest {
+    @Test
+    fun mapsEightExternalSwitchesInNumericThenLexicalOrderAndFreezesSession() = runTest {
+        val host = FakeHost(
+            mutableListOf(
+                switchEvent("10", "Ten"),
+                switchEvent("A", "A"),
+                switchEvent("2", "Two"),
+                switchEvent("1", "One"),
+                switchEvent("3", "Three"),
+                switchEvent("4", "Four"),
+                switchEvent("5", "Five"),
+                switchEvent("6", "Six"),
+                switchEvent("7", "Seven"),
+                switchEvent("8", "Eight"),
+                switchEvent("9", "Camera", SWITCH_EVENT_TYPE_CAMERA)
+            )
+        )
+        val forwarder = Grid3SwitchForwarder(host, backgroundScope)
+
+        assertEquals(Grid3StartResult.Started, forwarder.start())
+        assertEquals(
+            listOf("1", "2", "3", "4", "5", "6", "7", "8"),
+            forwarder.state.value.mappings.map { it.keyCode }
+        )
+        assertEquals(listOf("Ten", "A"), forwarder.state.value.overflowSwitches)
+
+        host.switches.clear()
+        host.switches += switchEvent("99", "New")
+        assertTrue(forwarder.onSwitchPressed(99))
+        assertTrue(forwarder.onSwitchPressed(1))
+        runCurrent()
+
+        assertEquals(listOf(PcControlCommand.GridSwitchSet(1, true)), host.commands)
+        forwarder.stop()
+    }
+
+    @Test
+    fun forwardsOrderedDeduplicatedDownAndUpWithLiveFeedback() = runTest {
+        val host = FakeHost(mutableListOf(switchEvent("20", "Primary")))
+        val forwarder = Grid3SwitchForwarder(host, backgroundScope)
+        forwarder.start()
+
+        assertTrue(forwarder.onSwitchPressed(20))
+        assertTrue(forwarder.state.value.mappings.single().pressed)
+        assertTrue(forwarder.onSwitchPressed(20))
+        assertTrue(forwarder.onSwitchReleased(20))
+        assertFalse(forwarder.state.value.mappings.single().pressed)
+        assertTrue(forwarder.onSwitchReleased(20))
+        runCurrent()
+
+        assertEquals(
+            listOf(
+                PcControlCommand.GridSwitchSet(1, true),
+                PcControlCommand.GridSwitchSet(1, false)
+            ),
+            host.commands
+        )
+        forwarder.stop()
+    }
+
+    @Test
+    fun unknownAndOverflowSwitchesAreConsumedWithoutForwarding() = runTest {
+        val switches = (1..9).map { switchEvent(it.toString(), "Switch $it") }.toMutableList()
+        val host = FakeHost(switches)
+        val forwarder = Grid3SwitchForwarder(host, backgroundScope)
+        forwarder.start()
+
+        assertTrue(forwarder.onSwitchPressed(9))
+        assertTrue(forwarder.onSwitchReleased(9))
+        assertTrue(forwarder.onSwitchPressed(100))
+        assertTrue(forwarder.onSwitchReleased(100))
+        runCurrent()
+
+        assertTrue(host.commands.isEmpty())
+        forwarder.stop()
+    }
+
+    @Test
+    fun holdAndReleaseSendsUpThenStopsAndRestoresScanning() = runTest {
+        var now = 1_000L
+        val host = FakeHost(mutableListOf(switchEvent("4", "Hold")), holdDurationMs = 2_000L)
+        val forwarder = Grid3SwitchForwarder(host, backgroundScope) { now }
+        forwarder.start()
+        forwarder.onSwitchPressed(4)
+        runCurrent()
+
+        now = 3_000L
+        forwarder.onSwitchReleased(4)
+        runCurrent()
+
+        assertEquals(
+            listOf(
+                PcControlCommand.GridSwitchSet(1, true),
+                PcControlCommand.GridSwitchSet(1, false)
+            ),
+            host.commands
+        )
+        assertFalse(forwarder.state.value.active)
+        assertEquals(1, host.suspendCount)
+        assertEquals(1, host.restoreCount)
+        assertEquals(1, host.releaseCount)
+    }
+
+    @Test
+    fun explicitStopReleasesEveryRemotelyHeldSwitch() = runTest {
+        val host = FakeHost(
+            mutableListOf(
+                switchEvent("1", "One"),
+                switchEvent("2", "Two")
+            )
+        )
+        val forwarder = Grid3SwitchForwarder(host, backgroundScope)
+        forwarder.start()
+        forwarder.onSwitchPressed(1)
+        forwarder.onSwitchPressed(2)
+        runCurrent()
+
+        forwarder.stop()
+
+        assertEquals(
+            listOf(
+                PcControlCommand.GridSwitchSet(1, true),
+                PcControlCommand.GridSwitchSet(2, true),
+                PcControlCommand.GridSwitchSet(1, false),
+                PcControlCommand.GridSwitchSet(2, false)
+            ),
+            host.commands
+        )
+        assertEquals(1, host.restoreCount)
+    }
+
+    @Test
+    fun explicitStopWaitsForInFlightDownThenReleasesIt() = runTest {
+        val downStarted = CompletableDeferred<Unit>()
+        val allowDownToComplete = CompletableDeferred<Unit>()
+        val host = FakeHost(
+            mutableListOf(switchEvent("1", "One")),
+            downStarted = downStarted,
+            allowDownToComplete = allowDownToComplete
+        )
+        val forwarder = Grid3SwitchForwarder(host, backgroundScope)
+        forwarder.start()
+        forwarder.onSwitchPressed(1)
+        downStarted.await()
+
+        val stop = async { forwarder.stop() }
+        runCurrent()
+        allowDownToComplete.complete(Unit)
+        stop.await()
+
+        assertEquals(
+            listOf(
+                PcControlCommand.GridSwitchSet(1, true),
+                PcControlCommand.GridSwitchSet(1, false)
+            ),
+            host.commands
+        )
+        assertFalse(forwarder.state.value.active)
+        assertEquals(1, host.restoreCount)
+    }
+
+    @Test
+    fun slowTransportBurstStopsInsteadOfBuildingAnUnboundedBacklog() = runTest {
+        val downStarted = CompletableDeferred<Unit>()
+        val allowDownToComplete = CompletableDeferred<Unit>()
+        val host = FakeHost(
+            mutableListOf(switchEvent("1", "One")),
+            downStarted = downStarted,
+            allowDownToComplete = allowDownToComplete
+        )
+        val forwarder = Grid3SwitchForwarder(host, backgroundScope)
+        forwarder.start()
+        forwarder.onSwitchPressed(1)
+        downStarted.await()
+
+        repeat(100) {
+            forwarder.onSwitchReleased(1)
+            forwarder.onSwitchPressed(1)
+        }
+
+        assertFalse(forwarder.state.value.active)
+        allowDownToComplete.complete(Unit)
+        runCurrent()
+
+        assertEquals(
+            listOf(
+                PcControlCommand.GridSwitchSet(1, true),
+                PcControlCommand.GridSwitchSet(1, false)
+            ),
+            host.commands
+        )
+        assertEquals(1, host.restoreCount)
+    }
+
+    @Test
+    fun destroyReleasesConnectionWithoutRestartingScanning() = runTest {
+        val host = FakeHost(mutableListOf(switchEvent("1", "One")))
+        val forwarder = Grid3SwitchForwarder(host, backgroundScope)
+        forwarder.start()
+
+        forwarder.destroy()
+
+        assertFalse(forwarder.state.value.active)
+        assertEquals(0, host.restoreCount)
+        assertEquals(1, host.releaseCount)
+    }
+
+    @Test
+    fun cleanupContinuesAfterIndividualReleaseFailure() = runTest {
+        val host = FakeHost(
+            mutableListOf(
+                switchEvent("1", "One"),
+                switchEvent("2", "Two")
+            ),
+            throwOnReleaseIds = setOf(1)
+        )
+        val forwarder = Grid3SwitchForwarder(host, backgroundScope)
+        forwarder.start()
+        forwarder.onSwitchPressed(1)
+        forwarder.onSwitchPressed(2)
+        runCurrent()
+
+        forwarder.stop()
+
+        assertEquals(
+            listOf(
+                PcControlCommand.GridSwitchSet(1, true),
+                PcControlCommand.GridSwitchSet(2, true),
+                PcControlCommand.GridSwitchSet(1, false),
+                PcControlCommand.GridSwitchSet(2, false)
+            ),
+            host.commands
+        )
+        assertEquals(1, host.restoreCount)
+    }
+
+    @Test
+    fun reconnectClearsAssumedRemoteHoldsButKeepsModeActive() = runTest {
+        val host = FakeHost(mutableListOf(switchEvent("1", "One")))
+        val forwarder = Grid3SwitchForwarder(host, backgroundScope)
+        forwarder.start()
+        forwarder.onSwitchPressed(1)
+        runCurrent()
+
+        host.mutableConnectionState.value = PcServiceConnectionState.Reconnecting(
+            session = com.enaboapps.switchify.pc.PcAuthenticatedSession("desktop", "device", "endpoint"),
+            displayName = "Office PC"
+        )
+        runCurrent()
+
+        assertTrue(forwarder.state.value.active)
+        assertEquals(Grid3ConnectionStatus.Reconnecting, forwarder.state.value.connectionStatus)
+        forwarder.stop()
+        assertEquals(listOf(PcControlCommand.GridSwitchSet(1, true)), host.commands)
+    }
+
+    @Test
+    fun terminalFailureReleasesHeldSwitchAndRestoresScanning() = runTest {
+        val host = FakeHost(mutableListOf(switchEvent("1", "One")))
+        val forwarder = Grid3SwitchForwarder(host, backgroundScope)
+        forwarder.start()
+        forwarder.onSwitchPressed(1)
+        runCurrent()
+
+        host.mutableConnectionState.value = PcServiceConnectionState.Failed("Terminal")
+        runCurrent()
+
+        assertFalse(forwarder.state.value.active)
+        assertEquals(
+            listOf(
+                PcControlCommand.GridSwitchSet(1, true),
+                PcControlCommand.GridSwitchSet(1, false)
+            ),
+            host.commands
+        )
+        assertEquals(1, host.restoreCount)
+    }
+
+    @Test
+    fun entryRequiresExternalSwitchAndCapabilityWithoutSuspendingScanning() = runTest {
+        val noSwitchHost = FakeHost(mutableListOf())
+        val unsupportedHost = FakeHost(
+            mutableListOf(switchEvent("1", "One")),
+            supported = false
+        )
+
+        assertEquals(
+            Grid3StartResult.NoExternalSwitches,
+            Grid3SwitchForwarder(noSwitchHost, backgroundScope).start()
+        )
+        assertEquals(
+            Grid3StartResult.UnsupportedPc,
+            Grid3SwitchForwarder(unsupportedHost, backgroundScope).start()
+        )
+        assertEquals(0, noSwitchHost.suspendCount)
+        assertEquals(0, unsupportedHost.suspendCount)
+    }
+
+    private class FakeHost(
+        val switches: MutableList<SwitchEvent>,
+        supported: Boolean = true,
+        private val holdDurationMs: Long = 2_000L,
+        private val throwOnReleaseIds: Set<Int> = emptySet(),
+        private val downStarted: CompletableDeferred<Unit>? = null,
+        private val allowDownToComplete: CompletableDeferred<Unit>? = null
+    ) : Grid3ForwardingHost {
+        val mutableConnectionState = MutableStateFlow<PcServiceConnectionState>(
+            PcServiceConnectionState.Connected(
+                session = com.enaboapps.switchify.pc.PcAuthenticatedSession("desktop", "device", "endpoint"),
+                displayName = "Office PC",
+                pointerProfile = null
+            )
+        )
+        override val connectionState: StateFlow<PcServiceConnectionState> = mutableConnectionState
+        val commands = mutableListOf<PcControlCommand>()
+        var suspendCount = 0
+        var restoreCount = 0
+        var maintainCount = 0
+        var releaseCount = 0
+        private val profile = PcPointerMovementProfile(
+            displayId = "display",
+            scaleFactor = 1.0,
+            bounds = PcPointerBounds(0, 0, 1920, 1080),
+            maxDelta = 500,
+            recommendedDeltas = PcPointerDeltas(50, 100, 200),
+            capabilities = PcPointerCapabilities(
+                supportedCommands = if (supported) setOf(PcProtocol.GRID_SWITCH_SET_COMMAND) else emptySet()
+            )
+        )
+
+        override fun currentPointerProfile() = profile
+        override fun currentPcName() = "Office PC"
+        override fun configuredSwitches() = switches.toList()
+        override fun holdToStopDurationMs() = holdDurationMs
+        override fun suspendScanning() {
+            suspendCount++
+        }
+        override fun restoreScanning() {
+            restoreCount++
+        }
+        override fun maintainConnection() {
+            maintainCount++
+        }
+        override fun releaseConnection() {
+            releaseCount++
+        }
+        override suspend fun send(command: PcControlCommand): PcCommandResult {
+            commands += command
+            if (command is PcControlCommand.GridSwitchSet && command.down) {
+                downStarted?.complete(Unit)
+                allowDownToComplete?.await()
+            }
+            if (command is PcControlCommand.GridSwitchSet &&
+                !command.down &&
+                command.switchId in throwOnReleaseIds
+            ) {
+                throw IllegalStateException("Release failed")
+            }
+            return PcCommandResult.Ack
+        }
+    }
+
+    private fun switchEvent(
+        code: String,
+        name: String,
+        type: String = SWITCH_EVENT_TYPE_EXTERNAL
+    ) = SwitchEvent(
+        type = type,
+        name = name,
+        code = code,
+        pressAction = SwitchAction(0),
+        holdActions = emptyList()
+    )
+}

@@ -1,5 +1,7 @@
 package com.enaboapps.switchify.service.menu.menus.main
 
+import android.content.Context
+import android.content.Intent
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.pc.DiscoveredPc
 import com.enaboapps.switchify.pc.PcErrorReason
@@ -19,7 +21,9 @@ import kotlinx.coroutines.withContext
 
 class PcControlLauncher(
     private val accessibilityService: SwitchifyAccessibilityService,
-    private val coroutineScope: CoroutineScope
+    private val coroutineScope: CoroutineScope,
+    private val intentFactory: (Context) -> Intent = PcMouseControlActivity::createIntent,
+    private val beforeLaunch: () -> Boolean = { true }
 ) {
     private val pcTokenStore = PcTokenStore(accessibilityService.applicationContext)
 
@@ -27,7 +31,7 @@ class PcControlLauncher(
         MenuManager.getInstance().closeMenuHierarchy()
         val controller = ServiceCore.getPcServiceConnectionController()
         if (controller?.hasLiveControlSession() == true) {
-            launchPcControlActivity()
+            launchControlActivity()
             return
         }
         if (controller == null) {
@@ -65,7 +69,7 @@ class PcControlLauncher(
             }
             withContext(Dispatchers.Main) {
                 when (result) {
-                    is PcServiceConnectResult.Connected -> launchPcControlActivity()
+                    is PcServiceConnectResult.Connected -> launchControlActivity()
                     is PcServiceConnectResult.Failed -> {
                         val message = when (result.reason) {
                             PcErrorReason.NoPcFound -> R.string.pc_control_no_pc_found
@@ -80,9 +84,10 @@ class PcControlLauncher(
         }
     }
 
-    private fun launchPcControlActivity() {
+    private fun launchControlActivity() {
+        if (!beforeLaunch()) return
         MenuManager.getInstance().closeMenuHierarchy()
-        accessibilityService.startActivity(PcMouseControlActivity.createIntent(accessibilityService))
+        accessibilityService.startActivity(intentFactory(accessibilityService))
     }
 
     private fun showMessage(messageResId: Int, severity: MessageSeverity) {
