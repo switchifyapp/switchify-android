@@ -63,6 +63,19 @@ internal interface Grid3ForwardingHost {
 interface Grid3SwitchInputHandler {
     fun onSwitchPressed(keyCode: Int): Boolean
     fun onSwitchReleased(keyCode: Int): Boolean
+
+    fun onSwitchPressed(keyCode: Int, downTimeMs: Long, eventTimeMs: Long): Boolean {
+        return onSwitchPressed(keyCode)
+    }
+
+    fun onSwitchReleased(
+        keyCode: Int,
+        downTimeMs: Long,
+        eventTimeMs: Long,
+        cancelled: Boolean
+    ): Boolean {
+        return onSwitchReleased(keyCode)
+    }
 }
 
 private class AndroidGrid3ForwardingHost(
@@ -119,8 +132,12 @@ class Grid3SwitchForwarder internal constructor(
     private sealed class ForwardingAction {
         data class SetState(val generation: Long, val keyCode: Int, val switchId: Int, val down: Boolean) :
             ForwardingAction()
+        data class RestartPress(val generation: Long, val keyCode: Int, val switchId: Int) :
+            ForwardingAction()
         data class Stop(val generation: Long) : ForwardingAction()
     }
+
+    private data class ActivePress(val downTimeMs: Long)
 
     private val stateLock = Any()
     private val sendMutex = Mutex()
@@ -129,8 +146,7 @@ class Grid3SwitchForwarder internal constructor(
     val state: StateFlow<Grid3ForwardingState> = _state
     private var generation = 0L
     private var mappingByKeyCode = emptyMap<Int, Grid3SwitchMapping>()
-    private val physicallyPressed = mutableSetOf<Int>()
-    private val pressTimes = mutableMapOf<Int, Long>()
+    private val activePresses = mutableMapOf<Int, ActivePress>()
     private val remotelyHeld = mutableSetOf<Int>()
     private var destroying = false
 
@@ -139,6 +155,7 @@ class Grid3SwitchForwarder internal constructor(
             for (action in actions) {
                 when (action) {
                     is ForwardingAction.SetState -> processSetState(action)
+                    is ForwardingAction.RestartPress -> processRestartPress(action)
                     is ForwardingAction.Stop -> stop(action.generation)
                 }
             }
@@ -179,8 +196,7 @@ class Grid3SwitchForwarder internal constructor(
             mappingByKeyCode = mappings.mapNotNull { mapping ->
                 mapping.keyCode.toIntOrNull()?.let { it to mapping }
             }.toMap()
-            physicallyPressed.clear()
-            pressTimes.clear()
+            activePresses.clear()
             remotelyHeld.clear()
             _state.value = Grid3ForwardingState(
                 active = true,
@@ -196,27 +212,54 @@ class Grid3SwitchForwarder internal constructor(
     }
 
     override fun onSwitchPressed(keyCode: Int): Boolean {
+        val eventTimeMs = now()
+        val downTimeMs = synchronized(stateLock) {
+            activePresses[keyCode]?.downTimeMs ?: eventTimeMs
+        }
+        return onSwitchPressed(keyCode, downTimeMs, eventTimeMs)
+    }
+
+    override fun onSwitchPressed(keyCode: Int, downTimeMs: Long, eventTimeMs: Long): Boolean {
         val action = synchronized(stateLock) {
             if (!_state.value.active) return false
             val mapping = mappingByKeyCode[keyCode] ?: return true
-            if (!physicallyPressed.add(keyCode)) return true
-            pressTimes[keyCode] = now()
+            val activePress = activePresses[keyCode]
+            if (activePress?.downTimeMs == downTimeMs) return true
+            activePresses[keyCode] = ActivePress(downTimeMs)
             updatePressedState()
-            ForwardingAction.SetState(generation, keyCode, mapping.switchId, down = true)
+            if (activePress == null) {
+                ForwardingAction.SetState(generation, keyCode, mapping.switchId, down = true)
+            } else {
+                ForwardingAction.RestartPress(generation, keyCode, mapping.switchId)
+            }
         }
         enqueue(action)
         return true
     }
 
     override fun onSwitchReleased(keyCode: Int): Boolean {
+        val eventTimeMs = now()
+        val downTimeMs = synchronized(stateLock) {
+            activePresses[keyCode]?.downTimeMs ?: eventTimeMs
+        }
+        return onSwitchReleased(keyCode, downTimeMs, eventTimeMs, cancelled = false)
+    }
+
+    override fun onSwitchReleased(
+        keyCode: Int,
+        downTimeMs: Long,
+        eventTimeMs: Long,
+        cancelled: Boolean
+    ): Boolean {
         val queued = synchronized(stateLock) {
             if (!_state.value.active) return false
             val mapping = mappingByKeyCode[keyCode] ?: return true
-            if (!physicallyPressed.remove(keyCode)) return true
-            val pressTime = pressTimes.remove(keyCode)
+            val activePress = activePresses[keyCode] ?: return true
+            if (activePress.downTimeMs != downTimeMs) return true
+            activePresses.remove(keyCode)
             updatePressedState()
-            val shouldStop = pressTime != null &&
-                now() - pressTime >= _state.value.holdToStopDurationMs
+            val shouldStop = !cancelled &&
+                (eventTimeMs - downTimeMs).coerceAtLeast(0L) >= _state.value.holdToStopDurationMs
             Triple(
                 ForwardingAction.SetState(generation, keyCode, mapping.switchId, down = false),
                 shouldStop,
@@ -255,21 +298,36 @@ class Grid3SwitchForwarder internal constructor(
 
     private suspend fun processSetState(action: ForwardingAction.SetState) {
         sendMutex.withLock {
-            val active = synchronized(stateLock) {
-                _state.value.active && generation == action.generation
-            }
-            if (!active) return
-            val result = try {
-                host.send(PcControlCommand.GridSwitchSet(action.switchId, action.down))
-            } catch (error: Exception) {
-                PcCommandResult.Failed(error.message ?: "Could not send switch state.")
-            }
-            synchronized(stateLock) {
-                if (generation != action.generation) return@synchronized
-                when {
-                    result == PcCommandResult.Ack && action.down -> remotelyHeld += action.switchId
-                    result == PcCommandResult.Ack && !action.down -> remotelyHeld -= action.switchId
-                }
+            processSetStateLocked(action)
+        }
+    }
+
+    private suspend fun processRestartPress(action: ForwardingAction.RestartPress) {
+        sendMutex.withLock {
+            processSetStateLocked(
+                ForwardingAction.SetState(action.generation, action.keyCode, action.switchId, down = false)
+            )
+            processSetStateLocked(
+                ForwardingAction.SetState(action.generation, action.keyCode, action.switchId, down = true)
+            )
+        }
+    }
+
+    private suspend fun processSetStateLocked(action: ForwardingAction.SetState) {
+        val active = synchronized(stateLock) {
+            _state.value.active && generation == action.generation
+        }
+        if (!active) return
+        val result = try {
+            host.send(PcControlCommand.GridSwitchSet(action.switchId, action.down))
+        } catch (error: Exception) {
+            PcCommandResult.Failed(error.message ?: "Could not send switch state.")
+        }
+        synchronized(stateLock) {
+            if (generation != action.generation) return@synchronized
+            when {
+                result == PcCommandResult.Ack && action.down -> remotelyHeld += action.switchId
+                result == PcCommandResult.Ack && !action.down -> remotelyHeld -= action.switchId
             }
         }
     }
@@ -278,8 +336,7 @@ class Grid3SwitchForwarder internal constructor(
         val shouldStop = synchronized(stateLock) {
             if (!_state.value.active || generation != expectedGeneration) return
             _state.value = _state.value.copy(active = false)
-            physicallyPressed.clear()
-            pressTimes.clear()
+            activePresses.clear()
             true
         }
         if (!shouldStop) return
@@ -353,7 +410,7 @@ class Grid3SwitchForwarder internal constructor(
     private fun updatePressedState() {
         _state.value = _state.value.copy(
             mappings = _state.value.mappings.map { mapping ->
-                mapping.copy(pressed = mapping.keyCode.toIntOrNull() in physicallyPressed)
+                mapping.copy(pressed = mapping.keyCode.toIntOrNull() in activePresses)
             }
         )
     }

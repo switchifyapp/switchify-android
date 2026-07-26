@@ -87,6 +87,137 @@ class Grid3SwitchForwarderTest {
     }
 
     @Test
+    fun repeatedDownFromSameSequenceDoesNotResetHoldDuration() = runTest {
+        val host = FakeHost(
+            mutableListOf(switchEvent("20", "Primary")),
+            holdDurationMs = 2_000L
+        )
+        val forwarder = Grid3SwitchForwarder(host, backgroundScope)
+        forwarder.start()
+
+        assertTrue(forwarder.onSwitchPressed(20, downTimeMs = 1_000L, eventTimeMs = 1_000L))
+        assertTrue(forwarder.onSwitchPressed(20, downTimeMs = 1_000L, eventTimeMs = 2_000L))
+        assertTrue(
+            forwarder.onSwitchReleased(
+                20,
+                downTimeMs = 1_000L,
+                eventTimeMs = 3_000L,
+                cancelled = false
+            )
+        )
+        runCurrent()
+
+        assertEquals(
+            listOf(
+                PcControlCommand.GridSwitchSet(1, true),
+                PcControlCommand.GridSwitchSet(1, false)
+            ),
+            host.commands
+        )
+        assertFalse(forwarder.state.value.active)
+    }
+
+    @Test
+    fun newSequenceRecoversMissingReleaseAndUsesItsOwnHoldDuration() = runTest {
+        val host = FakeHost(
+            mutableListOf(switchEvent("20", "Primary")),
+            holdDurationMs = 2_000L
+        )
+        val forwarder = Grid3SwitchForwarder(host, backgroundScope)
+        forwarder.start()
+
+        forwarder.onSwitchPressed(20, downTimeMs = 1_000L, eventTimeMs = 1_000L)
+        forwarder.onSwitchPressed(20, downTimeMs = 10_000L, eventTimeMs = 10_000L)
+        assertTrue(forwarder.state.value.mappings.single().pressed)
+        forwarder.onSwitchReleased(
+            20,
+            downTimeMs = 10_000L,
+            eventTimeMs = 10_100L,
+            cancelled = false
+        )
+        runCurrent()
+
+        assertEquals(
+            listOf(
+                PcControlCommand.GridSwitchSet(1, true),
+                PcControlCommand.GridSwitchSet(1, false),
+                PcControlCommand.GridSwitchSet(1, true),
+                PcControlCommand.GridSwitchSet(1, false)
+            ),
+            host.commands
+        )
+        assertFalse(forwarder.state.value.mappings.single().pressed)
+        assertTrue(forwarder.state.value.active)
+        forwarder.stop()
+    }
+
+    @Test
+    fun staleReleaseDoesNotReleaseRecoveredCurrentSequence() = runTest {
+        val host = FakeHost(mutableListOf(switchEvent("20", "Primary")))
+        val forwarder = Grid3SwitchForwarder(host, backgroundScope)
+        forwarder.start()
+
+        forwarder.onSwitchPressed(20, downTimeMs = 1_000L, eventTimeMs = 1_000L)
+        forwarder.onSwitchPressed(20, downTimeMs = 2_000L, eventTimeMs = 2_000L)
+        forwarder.onSwitchReleased(
+            20,
+            downTimeMs = 1_000L,
+            eventTimeMs = 2_100L,
+            cancelled = false
+        )
+        runCurrent()
+
+        assertTrue(forwarder.state.value.mappings.single().pressed)
+        assertEquals(
+            listOf(
+                PcControlCommand.GridSwitchSet(1, true),
+                PcControlCommand.GridSwitchSet(1, false),
+                PcControlCommand.GridSwitchSet(1, true)
+            ),
+            host.commands
+        )
+
+        forwarder.onSwitchReleased(
+            20,
+            downTimeMs = 2_000L,
+            eventTimeMs = 2_100L,
+            cancelled = false
+        )
+        runCurrent()
+        assertFalse(forwarder.state.value.mappings.single().pressed)
+        forwarder.stop()
+    }
+
+    @Test
+    fun cancelledLongReleaseDoesNotStopForwarding() = runTest {
+        val host = FakeHost(
+            mutableListOf(switchEvent("20", "Primary")),
+            holdDurationMs = 2_000L
+        )
+        val forwarder = Grid3SwitchForwarder(host, backgroundScope)
+        forwarder.start()
+
+        forwarder.onSwitchPressed(20, downTimeMs = 1_000L, eventTimeMs = 1_000L)
+        forwarder.onSwitchReleased(
+            20,
+            downTimeMs = 1_000L,
+            eventTimeMs = 4_000L,
+            cancelled = true
+        )
+        runCurrent()
+
+        assertEquals(
+            listOf(
+                PcControlCommand.GridSwitchSet(1, true),
+                PcControlCommand.GridSwitchSet(1, false)
+            ),
+            host.commands
+        )
+        assertTrue(forwarder.state.value.active)
+        forwarder.stop()
+    }
+
+    @Test
     fun releaseWithoutForwardedPressDoesNotSendActivationGesture() = runTest {
         val host = FakeHost(mutableListOf(switchEvent("20", "Primary")))
         val forwarder = Grid3SwitchForwarder(host, backgroundScope)

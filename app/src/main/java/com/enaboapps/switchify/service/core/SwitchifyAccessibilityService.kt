@@ -431,8 +431,17 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
     private fun handleSwitchEvent(event: KeyEvent): Boolean {
         val externalSwitchListener = ServiceCore.getExternalSwitchListener() ?: return false
         return when (event.action) {
-            KeyEvent.ACTION_DOWN -> externalSwitchListener.onSwitchPressed(event.keyCode)
-            KeyEvent.ACTION_UP -> externalSwitchListener.onSwitchReleased(event.keyCode)
+            KeyEvent.ACTION_DOWN -> externalSwitchListener.onSwitchPressed(
+                event.keyCode,
+                event.downTime,
+                event.eventTime
+            )
+            KeyEvent.ACTION_UP -> externalSwitchListener.onSwitchReleased(
+                event.keyCode,
+                event.downTime,
+                event.eventTime,
+                event.isCanceled
+            )
             else -> false
         }
     }
