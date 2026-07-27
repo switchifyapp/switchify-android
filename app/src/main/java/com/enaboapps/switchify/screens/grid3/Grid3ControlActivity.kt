@@ -86,6 +86,7 @@ import com.enaboapps.switchify.service.grid3.Grid3SwitchForwarder
 import com.enaboapps.switchify.service.grid3.Grid3SwitchMapping
 import com.enaboapps.switchify.service.grid3.Grid3StartResult
 import com.enaboapps.switchify.service.grid3.PcSwitchCatalogResult
+import com.enaboapps.switchify.service.grid3.PcSwitchControlExitReason
 import com.enaboapps.switchify.service.utils.DeviceLockObserver
 import com.enaboapps.switchify.pc.PcSwitchProfileCatalog
 import com.enaboapps.switchify.pc.PcSwitchProfileSummary
@@ -134,6 +135,13 @@ open class PcSwitchControlActivity : ComponentActivity() {
                     mutableStateOf(state.active)
                 }
                 var transitionAnnouncement by remember { mutableStateOf<String?>(null) }
+                LaunchedEffect(forwarder) {
+                    forwarder.terminalExitEvents.collect { reason ->
+                        if (reason == PcSwitchControlExitReason.InactivityTimeout) {
+                            finishAndRemoveTask()
+                        }
+                    }
+                }
                 LaunchedEffect(state.active, showChooser) {
                     if (state.active && !showChooser) {
                         hasShownActiveSession = true

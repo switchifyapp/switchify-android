@@ -405,6 +405,7 @@
     <string name="pc_switch_mapping_preview_description">Mappings for %1$s: %2$s</string>
     <string name="pc_switch_binding">%1$d. %2$s</string>
     <string name="pc_switch_chooser_announcement">PC Switch Control stopped. Choose a profile.</string>
+    <string name="pc_switch_inactivity_timeout">PC Switch Control stopped after one minute without switch activity.</string>
     <string name="pc_switch_start_failed">PC Switch Control could not start.</string>
     <string name="pc_switch_retry">Retry</string>
     <string name="pc_switch_start">Start</string>
