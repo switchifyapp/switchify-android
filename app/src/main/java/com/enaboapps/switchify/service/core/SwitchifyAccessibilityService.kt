@@ -19,7 +19,7 @@ import com.enaboapps.switchify.service.camera.CameraManager
 import com.enaboapps.switchify.service.gestures.GestureLockManager
 import com.enaboapps.switchify.service.gestures.GestureManager
 import com.enaboapps.switchify.service.gestures.GestureRepeatManager
-import com.enaboapps.switchify.service.grid3.Grid3SwitchForwarder
+import com.enaboapps.switchify.service.pcswitchcontrol.PcSwitchControlForwarder
 import com.enaboapps.switchify.pc.PcMouseRepeatManager
 import com.enaboapps.switchify.pc.PcServiceConnectionController
 import com.enaboapps.switchify.service.scanning.ScanSettings
@@ -62,7 +62,7 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
     private lateinit var startupOrchestrator: StartupOrchestrator
     private lateinit var nodeUpdateCoordinator: NodeUpdateCoordinator
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
-    private val grid3CleanupScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val pcSwitchControlCleanupScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var protectedStorageMigrationAttempted = false
     private val adbTestingBridgeReceiver = AdbTestingBridgeReceiver()
     private var adbTestingBridgeRegistered = false
@@ -80,7 +80,7 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
 
     companion object {
         private const val TAG = "SwitchifyAccessibilityService"
-        private const val GRID3_CLEANUP_TIMEOUT_MS = 1_500L
+        private const val PC_SWITCH_CONTROL_CLEANUP_TIMEOUT_MS = 1_500L
     }
 
     override fun onCreate() {
@@ -244,11 +244,11 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
             ?: PcServiceConnectionController.getInstance(this).also {
                 ServiceCore.setPcServiceConnectionController(it)
             }
-        if (ServiceCore.getGrid3SwitchForwarder() == null) {
+        if (ServiceCore.getPcSwitchControlForwarder() == null) {
             val scanningManager = ServiceCore.getScanningManager() ?: return
             val switchEventProvider = ServiceCore.getSwitchEventProvider() ?: return
-            ServiceCore.setGrid3SwitchForwarder(
-                Grid3SwitchForwarder(
+            ServiceCore.setPcSwitchControlForwarder(
+                PcSwitchControlForwarder(
                     controller = controller,
                     scanningManager = scanningManager,
                     switchEventProvider = switchEventProvider,
@@ -338,7 +338,7 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
 
 
     override fun onUnbind(intent: Intent?): Boolean {
-        cleanupGrid3Forwarder()
+        cleanupPcSwitchControlForwarder()
         if (::cameraManager.isInitialized) {
             cameraManager.cleanup()
         }
@@ -365,7 +365,7 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
     }
 
     override fun onDestroy() {
-        cleanupGrid3Forwarder()
+        cleanupPcSwitchControlForwarder()
         // Hide and stop trial overlay updates
         if (::trialOverlay.isInitialized) {
             trialOverlay.hideOverlay()
@@ -407,11 +407,11 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
         super.onDestroy()
     }
 
-    private fun cleanupGrid3Forwarder() {
-        val forwarder = ServiceCore.takeGrid3SwitchForwarder() ?: return
+    private fun cleanupPcSwitchControlForwarder() {
+        val forwarder = ServiceCore.takePcSwitchControlForwarder() ?: return
         forwarder.prepareForDestroy()
-        grid3CleanupScope.launch {
-            withTimeoutOrNull(GRID3_CLEANUP_TIMEOUT_MS) {
+        pcSwitchControlCleanupScope.launch {
+            withTimeoutOrNull(PC_SWITCH_CONTROL_CLEANUP_TIMEOUT_MS) {
                 forwarder.destroy()
             }
         }

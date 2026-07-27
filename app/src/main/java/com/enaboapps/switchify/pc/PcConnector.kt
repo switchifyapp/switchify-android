@@ -40,13 +40,13 @@ sealed class PcControlCommand {
     data class WindowControl(val action: PcWindowControlAction) : PcControlCommand()
     data class SetPointerSpeed(val scalePercent: Double) : PcControlCommand()
     data class MoveToDisplay(val direction: PcDisplayDirection) : PcControlCommand()
-    data class GridSwitchSet(
+    data class LegacyGridSwitchSet(
         val switchId: Int,
         val down: Boolean,
         val sessionId: String? = null,
         val sequence: Long? = null
     ) : PcControlCommand()
-    data class GridSwitchSync(
+    data class LegacyGridSwitchSync(
         val sessionId: String,
         val sequence: Long,
         val pressedSwitchIds: Set<Int>

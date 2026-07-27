@@ -19,7 +19,7 @@ import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.PreferenceValueSelector
 import com.enaboapps.switchify.components.Section
-import com.enaboapps.switchify.service.grid3.Grid3SwitchForwarder
+import com.enaboapps.switchify.service.pcswitchcontrol.PcSwitchControlForwarder
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
@@ -40,11 +40,11 @@ fun PcSettingsScreen(navController: NavController) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
-        Section(titleResId = R.string.pc_settings_grid3_section) {
+        Section(titleResId = R.string.pc_settings_switch_control_section) {
             PreferenceValueSelector(
                 value = holdToStopDurationMs,
-                titleResId = R.string.pc_settings_grid3_hold_to_stop_title,
-                summaryResId = R.string.pc_settings_grid3_hold_to_stop_summary,
+                titleResId = R.string.pc_settings_switch_control_hold_to_stop_title,
+                summaryResId = R.string.pc_settings_switch_control_hold_to_stop_summary,
                 values = intArrayOf(3_000, 5_000, 7_000, 10_000),
                 buttonLabelFormatter = { value -> "${value / 1_000}s" },
                 displayFormatter = { value -> "${value / 1_000} seconds" },
@@ -58,15 +58,15 @@ internal class PcSettingsViewModel(context: Context) : ViewModel() {
     private val preferenceManager = PreferenceManager(context)
     private val _holdToStopDurationMs = MutableStateFlow(
         preferenceManager.getLongValue(
-            PreferenceManager.PREFERENCE_KEY_GRID3_HOLD_TO_STOP_DURATION,
-            Grid3SwitchForwarder.DEFAULT_HOLD_TO_STOP_MS
+            PreferenceManager.PREFERENCE_KEY_PC_SWITCH_CONTROL_HOLD_TO_STOP_DURATION,
+            PcSwitchControlForwarder.DEFAULT_HOLD_TO_STOP_MS
         ).toInt()
     )
     val holdToStopDurationMs: StateFlow<Int> = _holdToStopDurationMs
 
     fun setHoldToStopDuration(value: Int) {
         preferenceManager.setLongValue(
-            PreferenceManager.PREFERENCE_KEY_GRID3_HOLD_TO_STOP_DURATION,
+            PreferenceManager.PREFERENCE_KEY_PC_SWITCH_CONTROL_HOLD_TO_STOP_DURATION,
             value.toLong()
         )
         _holdToStopDurationMs.value = value

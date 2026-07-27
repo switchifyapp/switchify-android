@@ -7,7 +7,7 @@ import com.enaboapps.switchify.pc.PcMouseRepeatManager
 import com.enaboapps.switchify.service.core.ServiceCore
 import com.enaboapps.switchify.service.core.Tasks
 import com.enaboapps.switchify.service.gestures.GestureLockManager
-import com.enaboapps.switchify.service.grid3.Grid3SwitchInputHandler
+import com.enaboapps.switchify.service.pcswitchcontrol.PcSwitchControlInputHandler
 import com.enaboapps.switchify.service.keyboard.KeyboardManager
 import com.enaboapps.switchify.service.scanning.ScanningManager
 import com.enaboapps.switchify.service.selection.SelectionHandler
@@ -40,8 +40,8 @@ class ExternalSwitchListener(
     private val suppressedSwitchCodes = mutableSetOf<Int>()
     private var gestureLockHoldFired = false
     private val pauseSwitchHoldTracker = PauseSwitchHoldTracker()
-    private val grid3Diversion = ExternalSwitchGrid3Diversion {
-        ServiceCore.getGrid3SwitchForwarder()
+    private val pcSwitchControlDiversion = ExternalSwitchPcSwitchControlDiversion {
+        ServiceCore.getPcSwitchControlForwarder()
     }
 
     /** Timestamp of the last switch press for handling repeat events */
@@ -58,7 +58,7 @@ class ExternalSwitchListener(
      * @return true if the event was handled and should be consumed, false otherwise
      */
     fun onSwitchPressed(keyCode: Int, downTimeMs: Long, eventTimeMs: Long): Boolean {
-        return grid3Diversion.onPressed(keyCode, downTimeMs, eventTimeMs) {
+        return pcSwitchControlDiversion.onPressed(keyCode, downTimeMs, eventTimeMs) {
             onSwitchPressedNormally(keyCode)
         }
     }
@@ -128,7 +128,7 @@ class ExternalSwitchListener(
         eventTimeMs: Long,
         cancelled: Boolean
     ): Boolean {
-        return grid3Diversion.onReleased(
+        return pcSwitchControlDiversion.onReleased(
             keyCode = keyCode,
             downTimeMs = downTimeMs,
             eventTimeMs = eventTimeMs,
@@ -392,7 +392,7 @@ class ExternalSwitchListener(
         lastSwitchPressedCode = 0
         suppressedSwitchCodes.clear()
         pauseSwitchHoldTracker.reset()
-        grid3Diversion.reset()
+        pcSwitchControlDiversion.reset()
         clearPressSession()
         ExternalSwitchLongPressHandler.cancel()
     }
@@ -438,8 +438,8 @@ class ExternalSwitchListener(
     }
 }
 
-internal class ExternalSwitchGrid3Diversion(
-    private val handler: () -> Grid3SwitchInputHandler?
+internal class ExternalSwitchPcSwitchControlDiversion(
+    private val handler: () -> PcSwitchControlInputHandler?
 ) {
     private data class NormalPress(val downTimeMs: Long, val activation: Long)
 

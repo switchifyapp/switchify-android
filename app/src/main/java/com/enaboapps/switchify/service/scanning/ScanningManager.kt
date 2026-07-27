@@ -11,7 +11,7 @@ import com.enaboapps.switchify.service.gestures.GestureLockManager
 import com.enaboapps.switchify.service.gestures.GestureManager
 import com.enaboapps.switchify.service.gestures.GestureRepeatManager
 import com.enaboapps.switchify.service.gestures.visuals.GestureTargetIndicatorController
-import com.enaboapps.switchify.service.grid3.PcSwitchControlLauncher
+import com.enaboapps.switchify.service.pcswitchcontrol.PcSwitchControlLauncher
 import com.enaboapps.switchify.service.menu.MenuManager
 import com.enaboapps.switchify.service.menu.menus.main.PcControlLauncher
 import com.enaboapps.switchify.service.selection.SelectionHandler
@@ -51,7 +51,7 @@ class ScanningManager(
         accessibilityService,
         accessibilityService.getServiceScope()
     )
-    private val grid3ControlLauncher = PcSwitchControlLauncher(
+    private val pcSwitchControlLauncher = PcSwitchControlLauncher(
         accessibilityService,
         accessibilityService.getServiceScope()
     )
@@ -237,7 +237,7 @@ class ScanningManager(
                 SwitchAction.ACTION_SYS_LOCK_SCREEN -> GlobalActionManager.lockScreen()
                 SwitchAction.ACTION_SYS_HEADSET_HOOK -> GlobalActionManager.toggleMediaPlayback()
                 SwitchAction.ACTION_CONTROL_PC -> pcControlLauncher.open()
-                SwitchAction.ACTION_PC_SWITCH_CONTROL -> grid3ControlLauncher.open()
+                SwitchAction.ACTION_PC_SWITCH_CONTROL -> pcSwitchControlLauncher.open()
                 SwitchAction.ACTION_PAUSE -> {
                     Log.d(TAG, "ACTION_PAUSE triggered")
                     val pauseManager = ServiceCore.getPauseManager()

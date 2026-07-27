@@ -198,7 +198,7 @@ class PcProtocolTest {
     @Test
     fun buildsAckOnlyGridSwitchCommandWithExactPayload() {
         val json = JSONObject(
-            PcProtocol.gridSwitchSet(
+            PcProtocol.legacyGridSwitchSet(
                 id = "grid-1",
                 deviceId = "device-1",
                 token = "shared-token",
@@ -208,7 +208,7 @@ class PcProtocolTest {
             )
         )
 
-        assertEquals(PcProtocol.GRID_SWITCH_SET_COMMAND, json.getString("type"))
+        assertEquals(PcProtocol.LEGACY_GRID_SWITCH_SET_COMMAND, json.getString("type"))
         assertFalse(json.has("responseMode"))
         assertEquals(
             """{"switchId":8,"state":"down"}""",
@@ -219,7 +219,7 @@ class PcProtocolTest {
                 id = "grid-1",
                 deviceId = "device-1",
                 timestamp = 1000L,
-                type = PcProtocol.GRID_SWITCH_SET_COMMAND,
+                type = PcProtocol.LEGACY_GRID_SWITCH_SET_COMMAND,
                 payload = json.getJSONObject("payload"),
                 token = "shared-token"
             ),
@@ -236,16 +236,16 @@ class PcProtocolTest {
         ) as PcProtocolResponse.PointerProfile
 
         assertEquals(
-            setOf(PcProtocol.GRID_SWITCH_SET_COMMAND, PcProtocol.GRID_SWITCH_SYNC_COMMAND),
+            setOf(PcProtocol.LEGACY_GRID_SWITCH_SET_COMMAND, PcProtocol.LEGACY_GRID_SWITCH_SYNC_COMMAND),
             response.profile.capabilities.supportedCommands
         )
-        assertTrue(response.profile.capabilities.noAckCommands.contains(PcProtocol.GRID_SWITCH_SET_COMMAND))
+        assertTrue(response.profile.capabilities.noAckCommands.contains(PcProtocol.LEGACY_GRID_SWITCH_SET_COMMAND))
     }
 
     @Test
     fun buildsSequencedGridSwitchAndSynchronizationPayloads() {
         val edge = JSONObject(
-            PcProtocol.gridSwitchSet(
+            PcProtocol.legacyGridSwitchSet(
                 id = "grid-edge",
                 deviceId = "device-1",
                 token = "shared-token",
@@ -257,7 +257,7 @@ class PcProtocolTest {
             )
         )
         val sync = JSONObject(
-            PcProtocol.gridSwitchSync(
+            PcProtocol.legacyGridSwitchSync(
                 id = "grid-sync",
                 deviceId = "device-1",
                 token = "shared-token",
@@ -273,7 +273,7 @@ class PcProtocolTest {
         assertEquals("up", edgePayload.getString("state"))
         assertEquals("99a1dbcf-6be4-4c6c-8664-d33fd698e32b", edgePayload.getString("sessionId"))
         assertEquals(7L, edgePayload.getLong("sequence"))
-        assertEquals(PcProtocol.GRID_SWITCH_SYNC_COMMAND, sync.getString("type"))
+        assertEquals(PcProtocol.LEGACY_GRID_SWITCH_SYNC_COMMAND, sync.getString("type"))
         val syncPayload = sync.getJSONObject("payload")
         assertEquals("99a1dbcf-6be4-4c6c-8664-d33fd698e32b", syncPayload.getString("sessionId"))
         assertEquals(8L, syncPayload.getLong("sequence"))
@@ -288,7 +288,7 @@ class PcProtocolTest {
             .put("sessionId", "99a1dbcf-6be4-4c6c-8664-d33fd698e32b")
             .put("sequence", 7L)
         val json = JSONObject(
-            PcProtocol.gridSwitchSet(
+            PcProtocol.legacyGridSwitchSet(
                 id = "grid-edge",
                 deviceId = "device-1",
                 token = "shared-token",
@@ -307,7 +307,7 @@ class PcProtocolTest {
                 id = "grid-edge",
                 deviceId = "device-1",
                 timestamp = 1000L,
-                type = PcProtocol.GRID_SWITCH_SET_COMMAND,
+                type = PcProtocol.LEGACY_GRID_SWITCH_SET_COMMAND,
                 payload = payload,
                 token = "shared-token",
                 responseMode = PcCommandResponseMode.None

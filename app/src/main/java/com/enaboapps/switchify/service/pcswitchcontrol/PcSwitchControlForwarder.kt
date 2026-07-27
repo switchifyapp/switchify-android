@@ -1,4 +1,4 @@
-package com.enaboapps.switchify.service.grid3
+package com.enaboapps.switchify.service.pcswitchcontrol
 
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
@@ -35,7 +35,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.util.UUID
 
-data class Grid3SwitchMapping(
+data class PcSwitchControlMapping(
     val keyCode: String,
     val name: String,
     val switchId: Int,
@@ -43,27 +43,27 @@ data class Grid3SwitchMapping(
     val outputLabel: String? = null
 )
 
-enum class Grid3ConnectionStatus {
+enum class PcSwitchControlConnectionStatus {
     Connected,
     Reconnecting
 }
 
-data class Grid3ForwardingState(
+data class PcSwitchControlState(
     val active: Boolean = false,
-    val connectionStatus: Grid3ConnectionStatus = Grid3ConnectionStatus.Connected,
+    val connectionStatus: PcSwitchControlConnectionStatus = PcSwitchControlConnectionStatus.Connected,
     val pcName: String? = null,
     val profileName: String? = null,
-    val mappings: List<Grid3SwitchMapping> = emptyList(),
+    val mappings: List<PcSwitchControlMapping> = emptyList(),
     val overflowSwitches: List<String> = emptyList(),
-    val holdToStopDurationMs: Long = Grid3SwitchForwarder.DEFAULT_HOLD_TO_STOP_MS
+    val holdToStopDurationMs: Long = PcSwitchControlForwarder.DEFAULT_HOLD_TO_STOP_MS
 )
 
-sealed class Grid3StartResult {
-    data object Started : Grid3StartResult()
-    data object NoExternalSwitches : Grid3StartResult()
-    data object UnsupportedPc : Grid3StartResult()
-    data object ProfileChanged : Grid3StartResult()
-    data class Failed(val message: String) : Grid3StartResult()
+sealed class PcSwitchControlStartResult {
+    data object Started : PcSwitchControlStartResult()
+    data object NoExternalSwitches : PcSwitchControlStartResult()
+    data object UnsupportedPc : PcSwitchControlStartResult()
+    data object ProfileChanged : PcSwitchControlStartResult()
+    data class Failed(val message: String) : PcSwitchControlStartResult()
 }
 
 sealed class PcSwitchCatalogResult {
@@ -76,7 +76,7 @@ internal enum class PcSwitchControlExitReason {
     InactivityTimeout
 }
 
-internal interface Grid3ForwardingHost {
+internal interface PcSwitchControlHost {
     val connectionState: StateFlow<PcServiceConnectionState>
     fun currentPointerProfile(): PcPointerMovementProfile?
     fun currentPcName(): String?
@@ -93,7 +93,7 @@ internal interface Grid3ForwardingHost {
     suspend fun sendRealtime(command: PcControlCommand): PcCommandResult = send(command)
 }
 
-internal interface Grid3SwitchInputHandler {
+internal interface PcSwitchControlInputHandler {
     val forwardingActivation: Long
         get() = 0L
 
@@ -106,20 +106,20 @@ internal interface Grid3SwitchInputHandler {
     ): Boolean
 }
 
-private class AndroidGrid3ForwardingHost(
+private class AndroidPcSwitchControlHost(
     private val controller: PcServiceConnectionController,
     private val scanningManager: ScanningManager,
     private val switchEventProvider: SwitchEventProvider,
     private val preferenceManager: PreferenceManager
-) : Grid3ForwardingHost {
+) : PcSwitchControlHost {
     override val connectionState: StateFlow<PcServiceConnectionState> = controller.state
     override fun currentPointerProfile() = controller.currentPointerProfile()
     override fun currentPcName() = controller.currentControlDeviceName()
     override fun currentPcId() = controller.currentControlDesktopId()
     override fun configuredSwitches() = switchEventProvider.externalSwitches()
     override fun holdToStopDurationMs() = preferenceManager.getLongValue(
-        PreferenceManager.PREFERENCE_KEY_GRID3_HOLD_TO_STOP_DURATION,
-        Grid3SwitchForwarder.DEFAULT_HOLD_TO_STOP_MS
+        PreferenceManager.PREFERENCE_KEY_PC_SWITCH_CONTROL_HOLD_TO_STOP_DURATION,
+        PcSwitchControlForwarder.DEFAULT_HOLD_TO_STOP_MS
     )
     override fun suspendScanning() {
         scanningManager.stopMoveRepeat()
@@ -146,11 +146,11 @@ private class AndroidGrid3ForwardingHost(
         controller.sendRealtimeControlCommand(command)
 }
 
-class Grid3SwitchForwarder internal constructor(
-    private val host: Grid3ForwardingHost,
+class PcSwitchControlForwarder internal constructor(
+    private val host: PcSwitchControlHost,
     scope: CoroutineScope,
     private val inactivityTimeoutMs: Long = INACTIVITY_TIMEOUT_MS
-) : Grid3SwitchInputHandler {
+) : PcSwitchControlInputHandler {
     private enum class StopPolicy(
         val restoreScanning: Boolean,
         val releaseConnection: Boolean
@@ -168,7 +168,7 @@ class Grid3SwitchForwarder internal constructor(
         preferenceManager: PreferenceManager,
         scope: CoroutineScope
     ) : this(
-        AndroidGrid3ForwardingHost(
+        AndroidPcSwitchControlHost(
             controller,
             scanningManager,
             switchEventProvider,
@@ -184,15 +184,15 @@ class Grid3SwitchForwarder internal constructor(
             val keyCode: Int,
             val switchId: Int,
             val down: Boolean,
-            val delivery: Grid3Delivery?
+            val delivery: SequencedDelivery?
         ) : EdgeAction()
 
         data class RestartPress(
             val generation: Long,
             val keyCode: Int,
             val switchId: Int,
-            val releaseDelivery: Grid3Delivery?,
-            val pressDelivery: Grid3Delivery?
+            val releaseDelivery: SequencedDelivery?,
+            val pressDelivery: SequencedDelivery?
         ) : EdgeAction()
 
         data class Stop(
@@ -211,7 +211,7 @@ class Grid3SwitchForwarder internal constructor(
         val pressedSwitchIds: Set<Int>
     )
 
-    private data class Grid3Delivery(val sessionId: String, val sequence: Long)
+    private data class SequencedDelivery(val sessionId: String, val sequence: Long)
     private data class ActivePress(val downTimeMs: Long)
 
     private val forwardingJob = SupervisorJob()
@@ -222,23 +222,23 @@ class Grid3SwitchForwarder internal constructor(
     private val sessionLifecycleMutex = Mutex()
     private val edgeActions = Channel<EdgeAction>(Channel.BUFFERED)
     private val snapshotActions = Channel<SnapshotAction>(Channel.CONFLATED)
-    private val _state = MutableStateFlow(Grid3ForwardingState())
-    val state: StateFlow<Grid3ForwardingState> = _state
+    private val _state = MutableStateFlow(PcSwitchControlState())
+    val state: StateFlow<PcSwitchControlState> = _state
     private val _terminalExitEvents = MutableSharedFlow<PcSwitchControlExitReason>(
         extraBufferCapacity = 1
     )
     internal val terminalExitEvents: SharedFlow<PcSwitchControlExitReason> =
         _terminalExitEvents.asSharedFlow()
     private var generation = 0L
-    private var mappingByKeyCode = emptyMap<Int, Grid3SwitchMapping>()
+    private var mappingByKeyCode = emptyMap<Int, PcSwitchControlMapping>()
     private val activePresses = mutableMapOf<Int, ActivePress>()
     private val legacyHeldSwitchIds = mutableSetOf<Int>()
-    private var gridSessionId: String? = null
+    private var switchSessionId: String? = null
     private var genericProfile: PcSwitchProfileSummary? = null
     private var useGenericProtocol = false
     private var sessionReady = false
     private var awaitingReconnect = false
-    private var nextGridSequence = 0L
+    private var nextSequence = 0L
     private var snapshotJob: Job? = null
     private var inactivityTimeoutJob: Job? = null
     private var stoppingGeneration: Long? = null
@@ -279,15 +279,15 @@ class Grid3SwitchForwarder internal constructor(
         }
     }
 
-    fun start(): Grid3StartResult {
-        val gridProfile = PcSwitchProfileSummary(
+    fun startLegacyGridProfile(): PcSwitchControlStartResult {
+        val legacyGridProfile = PcSwitchProfileSummary(
             id = "builtin.grid3",
             version = 1,
             name = "Grid 3",
             kind = "grid3",
             bindings = (1..8).map { PcSwitchBindingSummary(it, "Grid switch $it", "stateful") }
         )
-        return startPrepared(gridProfile, generic = false)
+        return startPrepared(legacyGridProfile, usesGenericProtocol = false)
     }
 
     suspend fun loadProfileCatalog(): PcSwitchCatalogResult {
@@ -301,7 +301,7 @@ class Grid3SwitchForwarder internal constructor(
                 is PcProfileCatalogResult.AuthFailed -> PcSwitchCatalogResult.Failed(result.message)
             }
         }
-        if (PcProtocol.GRID_SWITCH_SET_COMMAND in commands) {
+        if (PcProtocol.LEGACY_GRID_SWITCH_SET_COMMAND in commands) {
             return PcSwitchCatalogResult.Loaded(
                 PcSwitchProfileCatalog(
                     catalogRevision = 0,
@@ -316,7 +316,7 @@ class Grid3SwitchForwarder internal constructor(
                             }
                         )
                     ),
-                    legacy = true
+                    usesLegacyGridProtocol = true
                 )
             )
         }
@@ -328,18 +328,21 @@ class Grid3SwitchForwarder internal constructor(
     fun configuredExternalSwitchCount(): Int =
         host.configuredSwitches().count { it.type == SWITCH_EVENT_TYPE_EXTERNAL }
 
-    suspend fun start(profile: PcSwitchProfileSummary, legacy: Boolean): Grid3StartResult {
+    suspend fun start(
+        profile: PcSwitchProfileSummary,
+        usesLegacyGridProtocol: Boolean
+    ): PcSwitchControlStartResult {
         return sessionLifecycleMutex.withLock {
             synchronized(stateLock) {
                 if (_state.value.active || stoppingGeneration != null) {
-                    return@withLock Grid3StartResult.Started
+                    return@withLock PcSwitchControlStartResult.Started
                 }
             }
-            if (legacy) return@withLock startPrepared(profile, generic = false)
+            if (usesLegacyGridProtocol) return@withLock startPrepared(profile, usesGenericProtocol = false)
             val externalSwitches = host.configuredSwitches()
                 .filter { it.type == SWITCH_EVENT_TYPE_EXTERNAL }
             if (externalSwitches.isEmpty()) {
-                return@withLock Grid3StartResult.NoExternalSwitches
+                return@withLock PcSwitchControlStartResult.NoExternalSwitches
             }
             val sessionId = UUID.randomUUID().toString()
             val startGeneration = synchronized(stateLock) {
@@ -365,9 +368,9 @@ class Grid3SwitchForwarder internal constructor(
                 return@withLock if (startResult is PcCommandResult.Failed &&
                     startResult.code == "profile_changed"
                 ) {
-                    Grid3StartResult.ProfileChanged
+                    PcSwitchControlStartResult.ProfileChanged
                 } else {
-                    Grid3StartResult.Failed(
+                    PcSwitchControlStartResult.Failed(
                         (startResult as? PcCommandResult.Failed)?.message
                             ?: "PC Switch Control could not start."
                     )
@@ -375,11 +378,11 @@ class Grid3SwitchForwarder internal constructor(
             }
             val prepared = startPrepared(
                 profile,
-                generic = true,
+                usesGenericProtocol = true,
                 existingSessionId = sessionId,
                 reservedGeneration = startGeneration
             )
-            if (prepared != Grid3StartResult.Started) {
+            if (prepared != PcSwitchControlStartResult.Started) {
                 synchronized(stateLock) {
                     if (startingGeneration == startGeneration) startingGeneration = null
                 }
@@ -394,34 +397,34 @@ class Grid3SwitchForwarder internal constructor(
 
     private fun startPrepared(
         selectedProfile: PcSwitchProfileSummary,
-        generic: Boolean,
+        usesGenericProtocol: Boolean,
         existingSessionId: String? = null,
         reservedGeneration: Long? = null
-    ): Grid3StartResult {
+    ): PcSwitchControlStartResult {
         synchronized(stateLock) {
-            if (_state.value.active || stoppingGeneration != null) return Grid3StartResult.Started
+            if (_state.value.active || stoppingGeneration != null) return PcSwitchControlStartResult.Started
         }
-        val profile = host.currentPointerProfile() ?: return Grid3StartResult.UnsupportedPc
-        if (!generic &&
-            profile.capabilities.supportedCommands.contains(PcProtocol.GRID_SWITCH_SET_COMMAND) != true
+        val profile = host.currentPointerProfile() ?: return PcSwitchControlStartResult.UnsupportedPc
+        if (!usesGenericProtocol &&
+            profile.capabilities.supportedCommands.contains(PcProtocol.LEGACY_GRID_SWITCH_SET_COMMAND) != true
         ) {
-            return Grid3StartResult.UnsupportedPc
+            return PcSwitchControlStartResult.UnsupportedPc
         }
         val externalSwitches = host.configuredSwitches()
             .filter { it.type == SWITCH_EVENT_TYPE_EXTERNAL }
         if (externalSwitches.isEmpty()) {
-            return Grid3StartResult.NoExternalSwitches
+            return PcSwitchControlStartResult.NoExternalSwitches
         }
 
         val sorted = sortConfiguredSwitches(externalSwitches)
         val forwarded = sorted.take(MAX_FORWARDED_SWITCHES)
         val holdToStopDurationMs = host.holdToStopDurationMs()
         val useSequencedDelivery =
-            generic ||
-                (profile.capabilities.supportedCommands.contains(PcProtocol.GRID_SWITCH_SYNC_COMMAND) &&
-                    profile.capabilities.noAckCommands.contains(PcProtocol.GRID_SWITCH_SET_COMMAND))
+            usesGenericProtocol ||
+                (profile.capabilities.supportedCommands.contains(PcProtocol.LEGACY_GRID_SWITCH_SYNC_COMMAND) &&
+                    profile.capabilities.noAckCommands.contains(PcProtocol.LEGACY_GRID_SWITCH_SET_COMMAND))
         val mappings = forwarded.mapIndexed { index, switchEvent ->
-            Grid3SwitchMapping(
+            PcSwitchControlMapping(
                 keyCode = switchEvent.code,
                 name = switchEvent.name,
                 switchId = index + 1,
@@ -444,14 +447,14 @@ class Grid3SwitchForwarder internal constructor(
             }.toMap()
             activePresses.clear()
             legacyHeldSwitchIds.clear()
-            gridSessionId = existingSessionId ?: if (useSequencedDelivery) UUID.randomUUID().toString() else null
+            switchSessionId = existingSessionId ?: if (useSequencedDelivery) UUID.randomUUID().toString() else null
             genericProfile = selectedProfile
-            useGenericProtocol = generic
+            useGenericProtocol = usesGenericProtocol
             sessionReady = true
             awaitingReconnect = false
-            nextGridSequence = 0L
+            nextSequence = 0L
             stoppingGeneration = null
-            _state.value = Grid3ForwardingState(
+            _state.value = PcSwitchControlState(
                 active = true,
                 pcName = host.currentPcName(),
                 profileName = selectedProfile.name,
@@ -467,7 +470,7 @@ class Grid3SwitchForwarder internal constructor(
             startSnapshotLoop()
         }
         resetInactivityTimeout()
-        return Grid3StartResult.Started
+        return PcSwitchControlStartResult.Started
     }
 
     override val forwardingActivation: Long
@@ -659,7 +662,7 @@ class Grid3SwitchForwarder internal constructor(
                 down = action.down
             )
         } else {
-            PcControlCommand.GridSwitchSet(
+            PcControlCommand.LegacyGridSwitchSet(
                 switchId = action.switchId,
                 down = action.down,
                 sessionId = action.delivery?.sessionId,
@@ -698,7 +701,7 @@ class Grid3SwitchForwarder internal constructor(
                     sessionId = action.sessionId,
                     sequence = action.sequence,
                     pressedSwitchIds = action.pressedSwitchIds
-                ) else PcControlCommand.GridSwitchSync(
+                ) else PcControlCommand.LegacyGridSwitchSync(
                     sessionId = action.sessionId,
                     sequence = action.sequence,
                     pressedSwitchIds = action.pressedSwitchIds
@@ -708,23 +711,23 @@ class Grid3SwitchForwarder internal constructor(
         }
     }
 
-    private fun nextDeliveryLocked(): Grid3Delivery? {
-        val sessionId = gridSessionId ?: return null
-        nextGridSequence++
-        return Grid3Delivery(sessionId, nextGridSequence)
+    private fun nextDeliveryLocked(): SequencedDelivery? {
+        val sessionId = switchSessionId ?: return null
+        nextSequence++
+        return SequencedDelivery(sessionId, nextSequence)
     }
 
     private fun createSnapshotActionLocked(): SnapshotAction? {
-        val sessionId = gridSessionId ?: return null
+        val sessionId = switchSessionId ?: return null
         if (!_state.value.active) return null
-        nextGridSequence++
+        nextSequence++
         val pressedSwitchIds = activePresses.keys.mapNotNull { keyCode ->
             mappingByKeyCode[keyCode]?.switchId
         }.toSet()
         return SnapshotAction(
             generation = generation,
             sessionId = sessionId,
-            sequence = nextGridSequence,
+            sequence = nextSequence,
             pressedSwitchIds = pressedSwitchIds
         )
     }
@@ -784,12 +787,12 @@ class Grid3SwitchForwarder internal constructor(
                 stoppingGeneration = expectedGeneration
                 _state.value = _state.value.copy(active = false)
                 activePresses.clear()
-                gridSessionId?.let { sessionId ->
-                    nextGridSequence++
+                switchSessionId?.let { sessionId ->
+                    nextSequence++
                     finalCommand = if (useGenericProtocol) {
-                        PcControlCommand.SwitchSessionStop(sessionId, nextGridSequence)
+                        PcControlCommand.SwitchSessionStop(sessionId, nextSequence)
                     } else {
-                        PcControlCommand.GridSwitchSync(sessionId, nextGridSequence, emptySet())
+                        PcControlCommand.LegacyGridSwitchSync(sessionId, nextSequence, emptySet())
                     }
                 } ?: run {
                     legacyHeld = legacyHeldSwitchIds.toList().sorted()
@@ -818,7 +821,7 @@ class Grid3SwitchForwarder internal constructor(
             } else {
                 legacyHeld.forEach { switchId ->
                     try {
-                        host.send(PcControlCommand.GridSwitchSet(switchId, down = false))
+                        host.send(PcControlCommand.LegacyGridSwitchSet(switchId, down = false))
                     } catch (_: Exception) {
                     }
                 }
@@ -828,14 +831,14 @@ class Grid3SwitchForwarder internal constructor(
                 if (generation == expectedGeneration) {
                     legacyHeldSwitchIds.clear()
                     mappingByKeyCode = emptyMap()
-                    gridSessionId = null
+                    switchSessionId = null
                     genericProfile = null
                     useGenericProtocol = false
                     sessionReady = false
                     awaitingReconnect = false
-                    nextGridSequence = 0L
+                    nextSequence = 0L
                     stoppingGeneration = null
-                    _state.value = Grid3ForwardingState()
+                    _state.value = PcSwitchControlState()
                 }
             }
             val shouldRestoreScanning = synchronized(stateLock) {
@@ -912,30 +915,30 @@ class Grid3SwitchForwarder internal constructor(
                 is PcServiceConnectionState.Connected -> {
                     if (useGenericProtocol && awaitingReconnect) {
                         restartedSessionId = UUID.randomUUID().toString()
-                        gridSessionId = restartedSessionId
-                        nextGridSequence = 0L
+                        switchSessionId = restartedSessionId
+                        nextSequence = 0L
                         sessionReady = false
                         awaitingReconnect = false
                         profileToRestart = genericProfile
                         restartedGeneration = generation
                         _state.value = _state.value.copy(
-                            connectionStatus = Grid3ConnectionStatus.Reconnecting,
+                            connectionStatus = PcSwitchControlConnectionStatus.Reconnecting,
                             pcName = connectionState.displayName
                         )
                     } else {
                         sessionReady = true
                         _state.value = _state.value.copy(
-                            connectionStatus = Grid3ConnectionStatus.Connected,
+                            connectionStatus = PcSwitchControlConnectionStatus.Connected,
                             pcName = connectionState.displayName
                         )
-                        shouldSynchronize = gridSessionId != null
+                        shouldSynchronize = switchSessionId != null
                     }
                 }
                 is PcServiceConnectionState.Reconnecting -> {
                     sessionReady = false
                     awaitingReconnect = true
                     _state.value = _state.value.copy(
-                        connectionStatus = Grid3ConnectionStatus.Reconnecting,
+                        connectionStatus = PcSwitchControlConnectionStatus.Reconnecting,
                         pcName = connectionState.displayName
                     )
                 }
@@ -959,7 +962,7 @@ class Grid3SwitchForwarder internal constructor(
                 val restartIsCurrent = synchronized(stateLock) {
                     _state.value.active &&
                         generation == restartedGeneration &&
-                        gridSessionId == restartedSessionId &&
+                        switchSessionId == restartedSessionId &&
                         genericProfile == profileToRestart &&
                         stoppingGeneration == null
                 }
@@ -977,12 +980,12 @@ class Grid3SwitchForwarder internal constructor(
                     if (
                         _state.value.active &&
                         generation == restartedGeneration &&
-                        gridSessionId == restartedSessionId &&
+                        switchSessionId == restartedSessionId &&
                         stoppingGeneration == null
                     ) {
                         sessionReady = true
                         _state.value = _state.value.copy(
-                            connectionStatus = Grid3ConnectionStatus.Connected
+                            connectionStatus = PcSwitchControlConnectionStatus.Connected
                         )
                         true
                     } else {

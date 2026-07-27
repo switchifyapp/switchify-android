@@ -6,9 +6,9 @@ import org.junit.Test
 
 class AdbTestingBridgeReceiverTest {
     @Test
-    fun controlGrid3AliasUsesStableSwitchAction() {
+    fun pcSwitchControlAliasesUseStableSwitchAction() {
         assertEquals(
-            SwitchAction.ACTION_CONTROL_GRID_3,
+            SwitchAction.ACTION_PC_SWITCH_CONTROL,
             AdbTestingBridgeReceiver.actionNameToId["control_grid_3"]
         )
         assertEquals(
