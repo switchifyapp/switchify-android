@@ -106,6 +106,39 @@ class ExternalSwitchGrid3DiversionTest {
         assertEquals(listOf("down:42:1000:1000"), handler.calls)
     }
 
+    @Test
+    fun resetSuppressesReleaseFromForwardedPress() {
+        val handler = FakeHandler(consume = true)
+        val diversion = ExternalSwitchGrid3Diversion { handler }
+        var normalCalls = 0
+        var suppressedReleases = 0
+
+        assertTrue(diversion.onPressed(42, 1_000L, 1_000L) {
+            normalCalls++
+            false
+        })
+        diversion.reset()
+        assertTrue(
+            diversion.onReleased(
+                42,
+                1_000L,
+                1_200L,
+                cancelled = false,
+                suppressedReleaseHandling = {
+                    suppressedReleases++
+                    true
+                }
+            ) {
+                normalCalls++
+                false
+            }
+        )
+
+        assertEquals(1, suppressedReleases)
+        assertEquals(0, normalCalls)
+        assertEquals(listOf("down:42:1000:1000"), handler.calls)
+    }
+
     private class FakeHandler(private val consume: Boolean) : Grid3SwitchInputHandler {
         val calls = mutableListOf<String>()
         var activation = 0L

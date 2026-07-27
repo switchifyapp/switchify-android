@@ -392,6 +392,7 @@ class ExternalSwitchListener(
         lastSwitchPressedCode = 0
         suppressedSwitchCodes.clear()
         pauseSwitchHoldTracker.reset()
+        grid3Diversion.reset()
         clearPressSession()
         ExternalSwitchLongPressHandler.cancel()
     }
@@ -443,6 +444,7 @@ internal class ExternalSwitchGrid3Diversion(
     private data class NormalPress(val downTimeMs: Long, val activation: Long)
 
     private val normallyHandledPresses = mutableMapOf<Int, NormalPress>()
+    private val forwardedPresses = mutableMapOf<Int, Long>()
     private val suppressedUntilRelease = mutableMapOf<Int, Long>()
 
     fun onPressed(
@@ -461,6 +463,7 @@ internal class ExternalSwitchGrid3Diversion(
             return true
         }
         return if (currentHandler?.onSwitchPressed(keyCode, downTimeMs, eventTimeMs) == true) {
+            forwardedPresses[keyCode] = downTimeMs
             true
         } else {
             normalHandling().also {
@@ -482,6 +485,7 @@ internal class ExternalSwitchGrid3Diversion(
     ): Boolean {
         if (suppressedUntilRelease[keyCode] == downTimeMs) {
             suppressedUntilRelease.remove(keyCode)
+            forwardedPresses.remove(keyCode)
             normallyHandledPresses.remove(keyCode)
             return suppressedReleaseHandling()
         }
@@ -496,6 +500,9 @@ internal class ExternalSwitchGrid3Diversion(
         if (normalPress?.downTimeMs == downTimeMs) {
             normallyHandledPresses.remove(keyCode)
         }
+        if (forwardedPresses[keyCode] == downTimeMs) {
+            forwardedPresses.remove(keyCode)
+        }
         return if (
             handler()?.onSwitchReleased(keyCode, downTimeMs, eventTimeMs, cancelled) == true
         ) {
@@ -503,6 +510,17 @@ internal class ExternalSwitchGrid3Diversion(
         } else {
             normalHandling()
         }
+    }
+
+    fun reset() {
+        normallyHandledPresses.forEach { (keyCode, press) ->
+            suppressedUntilRelease[keyCode] = press.downTimeMs
+        }
+        forwardedPresses.forEach { (keyCode, downTimeMs) ->
+            suppressedUntilRelease[keyCode] = downTimeMs
+        }
+        normallyHandledPresses.clear()
+        forwardedPresses.clear()
     }
 
 }

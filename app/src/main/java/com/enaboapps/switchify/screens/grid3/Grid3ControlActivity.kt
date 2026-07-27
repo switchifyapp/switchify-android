@@ -1,11 +1,14 @@
 package com.enaboapps.switchify.screens.grid3
 
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
+import androidx.core.content.ContextCompat
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
@@ -83,6 +86,7 @@ import com.enaboapps.switchify.service.grid3.Grid3SwitchForwarder
 import com.enaboapps.switchify.service.grid3.Grid3SwitchMapping
 import com.enaboapps.switchify.service.grid3.Grid3StartResult
 import com.enaboapps.switchify.service.grid3.PcSwitchCatalogResult
+import com.enaboapps.switchify.service.utils.DeviceLockObserver
 import com.enaboapps.switchify.pc.PcSwitchProfileCatalog
 import com.enaboapps.switchify.pc.PcSwitchProfileSummary
 import com.enaboapps.switchify.pc.PcSwitchProfilePreferenceStore
@@ -91,6 +95,16 @@ import com.enaboapps.switchify.theme.Dimens
 import kotlinx.coroutines.launch
 
 open class PcSwitchControlActivity : ComponentActivity() {
+    private var forwarder: Grid3SwitchForwarder? = null
+    private var screenOffReceiverRegistered = false
+    private val screenOffReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (intent?.action != Intent.ACTION_SCREEN_OFF) return
+            forwarder?.requestCloseForScreenSleep()
+            finishAndRemoveTask()
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val forwarder = ServiceCore.getPcSwitchControlForwarder()
@@ -98,6 +112,19 @@ open class PcSwitchControlActivity : ComponentActivity() {
             finish()
             return
         }
+        this.forwarder = forwarder
+        if (DeviceLockObserver.isKeyguardLocked(this)) {
+            forwarder.requestCloseForScreenSleep()
+            finishAndRemoveTask()
+            return
+        }
+        ContextCompat.registerReceiver(
+            this,
+            screenOffReceiver,
+            IntentFilter(Intent.ACTION_SCREEN_OFF),
+            ContextCompat.RECEIVER_NOT_EXPORTED
+        )
+        screenOffReceiverRegistered = true
         setContent {
             SwitchifyTheme {
                 val state by forwarder.state.collectAsState()
@@ -125,10 +152,10 @@ open class PcSwitchControlActivity : ComponentActivity() {
                     Grid3ControlScreen(
                         state = state,
                         onChangeProfile = {
-                            forwarder.requestStop()
+                            forwarder.requestChangeProfile()
                         },
                         onStop = {
-                            forwarder.requestStop()
+                            forwarder.requestClose()
                             finish()
                         }
                     )
@@ -151,10 +178,23 @@ open class PcSwitchControlActivity : ComponentActivity() {
         }
     }
 
-    override fun onDestroy() {
-        if (isFinishing) {
-            ServiceCore.getPcSwitchControlForwarder()?.requestStop()
+    override fun onResume() {
+        super.onResume()
+        if (DeviceLockObserver.isKeyguardLocked(this)) {
+            forwarder?.requestCloseForScreenSleep()
+            finishAndRemoveTask()
         }
+    }
+
+    override fun onDestroy() {
+        if (screenOffReceiverRegistered) {
+            unregisterReceiver(screenOffReceiver)
+            screenOffReceiverRegistered = false
+        }
+        if (isFinishing) {
+            forwarder?.requestClose()
+        }
+        forwarder = null
         super.onDestroy()
     }
 
