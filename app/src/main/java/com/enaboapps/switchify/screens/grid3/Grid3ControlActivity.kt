@@ -79,6 +79,7 @@ import com.enaboapps.switchify.components.Section
 import com.enaboapps.switchify.service.core.ServiceCore
 import com.enaboapps.switchify.service.grid3.Grid3ConnectionStatus
 import com.enaboapps.switchify.service.grid3.Grid3ForwardingState
+import com.enaboapps.switchify.service.grid3.Grid3SwitchForwarder
 import com.enaboapps.switchify.service.grid3.Grid3SwitchMapping
 import com.enaboapps.switchify.service.grid3.Grid3StartResult
 import com.enaboapps.switchify.service.grid3.PcSwitchCatalogResult
@@ -436,7 +437,7 @@ private fun PcSwitchProfileChooser(
                             severity = PcSwitchNoticeSeverity.Warning
                         )
                     }
-                    PcSwitchProfileRows(
+                    PcSwitchChooserProfileContent(
                         catalog = state.catalog,
                         selected = state.selected,
                         enabled = true,
@@ -450,7 +451,7 @@ private fun PcSwitchProfileChooser(
                 }
                 is PcSwitchChooserState.Starting -> {
                     PcSwitchChooserProgress(R.string.pc_switch_starting)
-                    PcSwitchProfileRows(
+                    PcSwitchChooserProfileContent(
                         catalog = state.catalog,
                         selected = state.selected,
                         enabled = false,
@@ -526,64 +527,273 @@ private fun PcSwitchChooserNotice(
 }
 
 @Composable
-private fun PcSwitchProfileRows(
+private fun PcSwitchChooserProfileContent(
     catalog: PcSwitchProfileCatalog,
     selected: PcSwitchProfileSummary,
     enabled: Boolean,
     onSelected: (PcSwitchProfileSummary) -> Unit
 ) {
-    catalog.profiles.forEach { profile ->
-        Surface(
-            modifier = Modifier
-                .fillMaxWidth()
-                .selectable(
-                    selected = selected.id == profile.id,
-                    onClick = { onSelected(profile) },
-                    enabled = enabled,
-                    role = Role.RadioButton
-                ),
-            shape = RoundedCornerShape(Dimens.spaceM),
-            color = if (selected.id == profile.id) {
-                MaterialTheme.colorScheme.primaryContainer
-            } else {
-                MaterialTheme.colorScheme.surfaceContainer
-            }
-        ) {
+    BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+        val useTwoPanes = maxWidth >= 720.dp
+        if (useTwoPanes) {
             Row(
-                modifier = Modifier.padding(Dimens.spaceM),
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(Dimens.spaceM),
                 verticalAlignment = Alignment.Top
             ) {
-                RadioButton(
-                    selected = selected.id == profile.id,
-                    onClick = null,
-                    enabled = enabled
+                PcSwitchProfileList(
+                    catalog = catalog,
+                    selected = selected,
+                    enabled = enabled,
+                    onSelected = onSelected,
+                    modifier = Modifier.weight(0.42f)
                 )
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(profile.name, fontWeight = FontWeight.SemiBold)
-                    Text(
-                        text = stringResource(
-                            if (profile.kind == "grid3") {
-                                R.string.pc_switch_provider_grid3
-                            } else {
-                                R.string.pc_switch_provider_windows
-                            }
-                        ),
-                        style = MaterialTheme.typography.bodySmall
+                PcSwitchMappingPreview(
+                    profile = selected,
+                    modifier = Modifier.weight(0.58f)
+                )
+            }
+        } else {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(Dimens.spaceM)
+            ) {
+                PcSwitchProfileList(
+                    catalog = catalog,
+                    selected = selected,
+                    enabled = enabled,
+                    onSelected = onSelected
+                )
+                PcSwitchMappingPreview(profile = selected)
+            }
+        }
+    }
+}
+
+@Composable
+private fun PcSwitchProfileList(
+    catalog: PcSwitchProfileCatalog,
+    selected: PcSwitchProfileSummary,
+    enabled: Boolean,
+    onSelected: (PcSwitchProfileSummary) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(Dimens.spaceS)
+    ) {
+        Text(
+            text = stringResource(R.string.pc_switch_profiles_heading),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold
+        )
+        catalog.profiles.forEach { profile ->
+            PcSwitchProfileRow(
+                profile = profile,
+                selected = selected.id == profile.id,
+                enabled = enabled,
+                onSelected = { onSelected(profile) }
+            )
+        }
+    }
+}
+
+@Composable
+private fun PcSwitchProfileRow(
+    profile: PcSwitchProfileSummary,
+    selected: Boolean,
+    enabled: Boolean,
+    onSelected: () -> Unit
+) {
+    val colors = MaterialTheme.colorScheme
+    val mappedSwitchCount = profile.bindings.count { it.behavior != "unassigned" }
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .selectable(
+                selected = selected,
+                onClick = onSelected,
+                enabled = enabled,
+                role = Role.RadioButton
+            ),
+        shape = RoundedCornerShape(Dimens.spaceM),
+        color = if (selected) {
+            colors.surfaceContainerHighest
+        } else {
+            colors.surfaceContainer
+        },
+        border = BorderStroke(
+            width = if (selected) 2.dp else 1.dp,
+            color = if (selected) colors.primary else colors.outlineVariant
+        )
+    ) {
+        Row(
+            modifier = Modifier.padding(Dimens.spaceM),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            RadioButton(
+                selected = selected,
+                onClick = null,
+                enabled = enabled
+            )
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                Text(
+                    text = profile.name,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = pcSwitchProviderLabel(profile.kind),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = colors.onSurfaceVariant
+                )
+                Text(
+                    text = pluralStringResource(
+                        R.plurals.pc_switch_profile_mapping_count,
+                        mappedSwitchCount,
+                        mappedSwitchCount
+                    ),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = colors.onSurfaceVariant
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun PcSwitchMappingPreview(
+    profile: PcSwitchProfileSummary,
+    modifier: Modifier = Modifier
+) {
+    val unassigned = stringResource(R.string.grid3_switch_unassigned)
+    val context = LocalContext.current
+    val mappings = (1..Grid3SwitchForwarder.MAX_FORWARDED_SWITCHES).map { switchId ->
+        switchId to (
+            profile.bindings
+                .firstOrNull { it.switchId == switchId && it.behavior != "unassigned" }
+                ?.label
+                ?: unassigned
+            )
+    }
+    val mappingDescription = mappings.joinToString(separator = ", ") { (switchId, label) ->
+        context.getString(R.string.pc_switch_binding, switchId, label)
+    }
+    Panel(
+        modifier = modifier
+            .fillMaxWidth()
+            .clearAndSetSemantics {
+                contentDescription = context.getString(
+                    R.string.pc_switch_mapping_preview_description,
+                    profile.name,
+                    mappingDescription
+                )
+            },
+        containerColor = MaterialTheme.colorScheme.surfaceContainer
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(Dimens.spaceM),
+            verticalArrangement = Arrangement.spacedBy(Dimens.spaceS)
+        ) {
+            Text(
+                text = stringResource(R.string.pc_switch_selected_mapping, profile.name),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+            PcSwitchMappingPreviewGrid(mappings = mappings)
+        }
+    }
+}
+
+@Composable
+private fun PcSwitchMappingPreviewGrid(mappings: List<Pair<Int, String>>) {
+    BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+        val fontScale = LocalDensity.current.fontScale.coerceIn(1f, 1.6f)
+        val gap = Dimens.spaceXs
+        val minimumTileWidth = 132.dp * fontScale
+        val columns = if (maxWidth >= minimumTileWidth * 2 + gap) 2 else 1
+        val tileWidth = (maxWidth - gap * (columns - 1)) / columns
+        Column(verticalArrangement = Arrangement.spacedBy(gap)) {
+            mappings.chunked(columns).forEach { rowMappings ->
+                EqualHeightGridRow(
+                    items = rowMappings,
+                    columns = columns,
+                    itemWidth = tileWidth,
+                    minItemHeight = 52.dp,
+                    horizontalGap = gap
+                ) { mapping, itemModifier ->
+                    PcSwitchMappingPreviewTile(
+                        switchId = mapping.first,
+                        label = mapping.second,
+                        modifier = itemModifier
                     )
-                    profile.bindings.forEach { binding ->
-                        Text(
-                            text = stringResource(
-                                R.string.pc_switch_binding,
-                                binding.switchId,
-                                binding.label
-                            ),
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                    }
                 }
             }
         }
     }
+}
+
+@Composable
+private fun PcSwitchMappingPreviewTile(
+    switchId: Int,
+    label: String,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier.heightIn(min = 52.dp),
+        shape = RoundedCornerShape(Dimens.spaceS),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(Dimens.spaceS),
+            horizontalArrangement = Arrangement.spacedBy(Dimens.spaceS),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Surface(
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.secondaryContainer
+            ) {
+                Box(
+                    modifier = Modifier.size(32.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = switchId.toString(),
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+                }
+            }
+            Text(
+                text = label,
+                modifier = Modifier.weight(1f),
+                style = MaterialTheme.typography.bodyMedium,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+    }
+}
+
+@Composable
+private fun pcSwitchProviderLabel(kind: String): String {
+    return stringResource(
+        if (kind == "grid3") {
+            R.string.pc_switch_provider_grid3
+        } else {
+            R.string.pc_switch_provider_windows
+        }
+    )
 }
 
 @Composable

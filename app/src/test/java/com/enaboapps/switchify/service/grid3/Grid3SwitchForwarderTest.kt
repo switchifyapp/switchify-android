@@ -880,7 +880,10 @@ class Grid3SwitchForwarderTest {
                             1,
                             "Generic keyboard",
                             "mapped",
-                            listOf(PcSwitchBindingSummary(1, "Space", "stateful"))
+                            listOf(
+                                PcSwitchBindingSummary(1, "Space", "stateful"),
+                                PcSwitchBindingSummary(2, "Unassigned", "unassigned")
+                            )
                         )
                     )
                 )

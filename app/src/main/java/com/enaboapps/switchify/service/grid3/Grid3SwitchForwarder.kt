@@ -380,7 +380,9 @@ class Grid3SwitchForwarder internal constructor(
                 name = switchEvent.name,
                 switchId = index + 1,
                 outputLabel = selectedProfile.bindings
-                    .firstOrNull { it.switchId == index + 1 }
+                    .firstOrNull {
+                        it.switchId == index + 1 && it.behavior != "unassigned"
+                    }
                     ?.label
             )
         }
