@@ -1,0 +1,6 @@
+package com.enaboapps.switchify.service.grid3
+
+typealias PcSwitchControlForwarder = Grid3SwitchForwarder
+typealias PcSwitchControlState = Grid3ForwardingState
+typealias PcSwitchControlMapping = Grid3SwitchMapping
+internal typealias PcSwitchControlLauncher = Grid3ControlLauncher

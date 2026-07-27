@@ -317,6 +317,73 @@ class PcProtocolTest {
     }
 
     @Test
+    fun buildsGenericSwitchCommandsWithAuthenticatedNoAckEdge() {
+        val sessionId = "99a1dbcf-6be4-4c6c-8664-d33fd698e32b"
+        val edge = JSONObject(
+            PcProtocol.switchEdge(
+                id = "edge-1",
+                deviceId = "device-1",
+                token = "shared-token",
+                timestamp = 1000L,
+                sessionId = sessionId,
+                sequence = 2,
+                switchId = 1,
+                down = false,
+                responseMode = PcCommandResponseMode.None
+            )
+        )
+        val payload = edge.getJSONObject("payload")
+
+        assertEquals(PcProtocol.SWITCH_EDGE_COMMAND, edge.getString("type"))
+        assertEquals("none", edge.getString("responseMode"))
+        assertEquals("up", payload.getString("state"))
+        assertEquals(
+            PcProtocol.authProof(
+                "edge-1",
+                "device-1",
+                1000L,
+                PcProtocol.SWITCH_EDGE_COMMAND,
+                payload,
+                "shared-token",
+                PcCommandResponseMode.None
+            ),
+            edge.getString("auth")
+        )
+    }
+
+    @Test
+    fun parsesBoundedSwitchProfileCatalog() {
+        val response = PcProtocol.parseResponse(
+            """
+            {"version":1,"id":"profiles-1","type":"switch.profile.list","ok":true,"payload":{"catalogRevision":4,"profiles":[{"id":"builtin.keyboard","version":1,"name":"Generic keyboard","kind":"mapped","bindings":[{"switchId":1,"label":"Space","behavior":"stateful"},{"switchId":2,"label":"Enter","behavior":"stateful"}]}]},"error":null}
+            """.trimIndent()
+        ) as PcProtocolResponse.SwitchProfileCatalog
+
+        assertEquals(4, response.catalog.catalogRevision)
+        assertEquals("Generic keyboard", response.catalog.profiles.single().name)
+        assertEquals("Space", response.catalog.profiles.single().bindings.first().label)
+    }
+
+    @Test
+    fun genericSwitchCapabilitiesAreRecognized() {
+        val commands = listOf(
+            PcProtocol.SWITCH_PROFILE_LIST_COMMAND,
+            PcProtocol.SWITCH_SESSION_START_COMMAND,
+            PcProtocol.SWITCH_EDGE_COMMAND,
+            PcProtocol.SWITCH_SYNC_COMMAND,
+            PcProtocol.SWITCH_SESSION_STOP_COMMAND
+        )
+        val response = PcProtocol.parseResponse(
+            validPointerProfileResponse(
+                capabilities = ""","capabilities":{"supportedCommands":${JSONArray(commands)},"noAckCommands":["switch.edge"]}"""
+            )
+        ) as PcProtocolResponse.PointerProfile
+
+        assertEquals(commands.toSet(), response.profile.capabilities.supportedCommands)
+        assertTrue(PcProtocol.SWITCH_EDGE_COMMAND in response.profile.capabilities.noAckCommands)
+    }
+
+    @Test
     fun parsesPointerProfileResponse() {
         val response = PcProtocol.parseResponse(validPointerProfileResponse()) as PcProtocolResponse.PointerProfile
 

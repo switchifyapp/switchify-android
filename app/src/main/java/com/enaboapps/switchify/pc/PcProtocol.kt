@@ -11,6 +11,7 @@ sealed class PcProtocolResponse {
     data class Ack(val id: String) : PcProtocolResponse()
     data class PairingComplete(val id: String, val desktopId: String, val deviceId: String, val token: String) : PcProtocolResponse()
     data class PointerProfile(val id: String, val profile: PcPointerMovementProfile) : PcProtocolResponse()
+    data class SwitchProfileCatalog(val id: String, val catalog: PcSwitchProfileCatalog) : PcProtocolResponse()
     data class Error(val id: String?, val code: String, val message: String) : PcProtocolResponse()
     data object Invalid : PcProtocolResponse()
 }
@@ -19,6 +20,26 @@ enum class PcCommandResponseMode(val protocolValue: String) {
     Ack("ack"),
     None("none")
 }
+
+data class PcSwitchBindingSummary(
+    val switchId: Int,
+    val label: String,
+    val behavior: String
+)
+
+data class PcSwitchProfileSummary(
+    val id: String,
+    val version: Int,
+    val name: String,
+    val kind: String,
+    val bindings: List<PcSwitchBindingSummary>
+)
+
+data class PcSwitchProfileCatalog(
+    val catalogRevision: Int,
+    val profiles: List<PcSwitchProfileSummary>,
+    val legacy: Boolean = false
+)
 
 /**
  * Switchify PC protocol message builder/parser.
@@ -176,6 +197,91 @@ object PcProtocol {
                 .put("pressedSwitchIds", JSONArray(pressedSwitchIds.sorted()))
         )
     }
+
+    fun switchProfileList(id: String, deviceId: String, token: String, timestamp: Long) =
+        authenticatedCommand(id, deviceId, token, timestamp, SWITCH_PROFILE_LIST_COMMAND, JSONObject())
+
+    fun switchSessionStart(
+        id: String,
+        deviceId: String,
+        token: String,
+        timestamp: Long,
+        sessionId: String,
+        profileId: String,
+        profileVersion: Int,
+        switchCount: Int
+    ) = authenticatedCommand(
+        id,
+        deviceId,
+        token,
+        timestamp,
+        SWITCH_SESSION_START_COMMAND,
+        JSONObject()
+            .put("sessionId", sessionId)
+            .put("profileId", profileId)
+            .put("profileVersion", profileVersion)
+            .put("switchCount", switchCount)
+    )
+
+    fun switchEdge(
+        id: String,
+        deviceId: String,
+        token: String,
+        timestamp: Long,
+        sessionId: String,
+        sequence: Long,
+        switchId: Int,
+        down: Boolean,
+        responseMode: PcCommandResponseMode
+    ) = authenticatedCommand(
+        id,
+        deviceId,
+        token,
+        timestamp,
+        SWITCH_EDGE_COMMAND,
+        JSONObject()
+            .put("sessionId", sessionId)
+            .put("sequence", sequence)
+            .put("switchId", switchId)
+            .put("state", if (down) "down" else "up"),
+        responseMode
+    )
+
+    fun switchSync(
+        id: String,
+        deviceId: String,
+        token: String,
+        timestamp: Long,
+        sessionId: String,
+        sequence: Long,
+        pressedSwitchIds: Set<Int>
+    ) = authenticatedCommand(
+        id,
+        deviceId,
+        token,
+        timestamp,
+        SWITCH_SYNC_COMMAND,
+        JSONObject()
+            .put("sessionId", sessionId)
+            .put("sequence", sequence)
+            .put("pressedSwitchIds", JSONArray(pressedSwitchIds.sorted()))
+    )
+
+    fun switchSessionStop(
+        id: String,
+        deviceId: String,
+        token: String,
+        timestamp: Long,
+        sessionId: String,
+        sequence: Long
+    ) = authenticatedCommand(
+        id,
+        deviceId,
+        token,
+        timestamp,
+        SWITCH_SESSION_STOP_COMMAND,
+        JSONObject().put("sessionId", sessionId).put("sequence", sequence)
+    )
 
     fun authenticatedCommand(
         id: String,
@@ -544,6 +650,7 @@ object PcProtocol {
                 }
                 "pairing.complete" -> parsePairingComplete(json)
                 "pointer.profile" -> parsePointerProfile(json)
+                SWITCH_PROFILE_LIST_COMMAND -> parseSwitchProfileCatalog(json)
                 "error" -> {
                     val error = json.optJSONObject("error") ?: return@runCatching PcProtocolResponse.Invalid
                     PcProtocolResponse.Error(
@@ -698,6 +805,45 @@ object PcProtocol {
         )
     }
 
+    private fun parseSwitchProfileCatalog(json: JSONObject): PcProtocolResponse {
+        if (!json.optBoolean("ok") || !json.isNull("error")) return PcProtocolResponse.Invalid
+        val id = json.optString("id").takeIf { it.isNotBlank() } ?: return PcProtocolResponse.Invalid
+        val payload = json.optJSONObject("payload") ?: return PcProtocolResponse.Invalid
+        val revision = payload.optInt("catalogRevision", -1)
+        val profilesJson = payload.optJSONArray("profiles") ?: return PcProtocolResponse.Invalid
+        if (revision < 0 || profilesJson.length() > 34) return PcProtocolResponse.Invalid
+        val profiles = buildList {
+            for (profileIndex in 0 until profilesJson.length()) {
+                val profile = profilesJson.optJSONObject(profileIndex) ?: return PcProtocolResponse.Invalid
+                val profileId = profile.optString("id").takeIf { it.isNotBlank() } ?: return PcProtocolResponse.Invalid
+                val version = profile.optInt("version", -1)
+                val name = profile.optString("name").takeIf { it.isNotBlank() } ?: return PcProtocolResponse.Invalid
+                val kind = profile.optString("kind")
+                val bindingsJson = profile.optJSONArray("bindings") ?: return PcProtocolResponse.Invalid
+                if (version < 1 || kind !in setOf("grid3", "mapped") || bindingsJson.length() > 8) {
+                    return PcProtocolResponse.Invalid
+                }
+                val bindings = buildList {
+                    for (bindingIndex in 0 until bindingsJson.length()) {
+                        val binding = bindingsJson.optJSONObject(bindingIndex) ?: return PcProtocolResponse.Invalid
+                        val switchId = binding.optInt("switchId", -1)
+                        val label = binding.optString("label").takeIf { it.isNotBlank() } ?: return PcProtocolResponse.Invalid
+                        val behavior = binding.optString("behavior")
+                        if (switchId !in 1..8 || behavior !in setOf("stateful", "pulse", "unassigned")) {
+                            return PcProtocolResponse.Invalid
+                        }
+                        add(PcSwitchBindingSummary(switchId, label, behavior))
+                    }
+                }
+                add(PcSwitchProfileSummary(profileId, version, name, kind, bindings))
+            }
+        }
+        return PcProtocolResponse.SwitchProfileCatalog(
+            id,
+            PcSwitchProfileCatalog(revision, profiles)
+        )
+    }
+
     private fun parseMouseRepeatCapabilities(capabilitiesJson: JSONObject?): PcMouseRepeatCapabilities? {
         val repeatJson = capabilitiesJson?.opt("mouseRepeat") ?: return PcMouseRepeatCapabilities()
         if (repeatJson !is JSONObject) return null
@@ -830,7 +976,8 @@ object PcProtocol {
         "keyboard.textStream.key",
         "media.control",
         "window.control",
-        GRID_SWITCH_SET_COMMAND
+        GRID_SWITCH_SET_COMMAND,
+        SWITCH_EDGE_COMMAND
     )
 
     private val CONTROL_COMMAND_TYPES = NO_ACK_CONTROL_COMMAND_TYPES + setOf(
@@ -845,9 +992,19 @@ object PcProtocol {
         "keyboard.textStream.chunk",
         "keyboard.textStream.close",
         GRID_SWITCH_SET_COMMAND,
-        GRID_SWITCH_SYNC_COMMAND
+        GRID_SWITCH_SYNC_COMMAND,
+        SWITCH_PROFILE_LIST_COMMAND,
+        SWITCH_SESSION_START_COMMAND,
+        SWITCH_EDGE_COMMAND,
+        SWITCH_SYNC_COMMAND,
+        SWITCH_SESSION_STOP_COMMAND
     )
 
     const val GRID_SWITCH_SET_COMMAND = "grid.switch.set"
     const val GRID_SWITCH_SYNC_COMMAND = "grid.switch.sync"
+    const val SWITCH_PROFILE_LIST_COMMAND = "switch.profile.list"
+    const val SWITCH_SESSION_START_COMMAND = "switch.session.start"
+    const val SWITCH_EDGE_COMMAND = "switch.edge"
+    const val SWITCH_SYNC_COMMAND = "switch.sync"
+    const val SWITCH_SESSION_STOP_COMMAND = "switch.session.stop"
 }

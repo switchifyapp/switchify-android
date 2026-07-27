@@ -31,6 +31,7 @@ class SwitchActionTest {
         val ids = SwitchAction.actions.map { it.id }
 
         assertTrue(ids.contains(SwitchAction.ACTION_CONTROL_GRID_3))
+        assertTrue(ids.contains(SwitchAction.ACTION_PC_SWITCH_CONTROL))
     }
 
     @Test
@@ -58,5 +59,6 @@ class SwitchActionTest {
     @Test
     fun controlGrid3UsesStableAppendedId() {
         assertTrue(SwitchAction.ACTION_CONTROL_GRID_3 == 18)
+        assertEquals(SwitchAction.ACTION_PC_SWITCH_CONTROL, SwitchAction.ACTION_CONTROL_GRID_3)
     }
 }

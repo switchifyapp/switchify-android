@@ -7,6 +7,10 @@ import com.enaboapps.switchify.pc.PcPointerCapabilities
 import com.enaboapps.switchify.pc.PcPointerDeltas
 import com.enaboapps.switchify.pc.PcPointerMovementProfile
 import com.enaboapps.switchify.pc.PcProtocol
+import com.enaboapps.switchify.pc.PcProfileCatalogResult
+import com.enaboapps.switchify.pc.PcSwitchBindingSummary
+import com.enaboapps.switchify.pc.PcSwitchProfileCatalog
+import com.enaboapps.switchify.pc.PcSwitchProfileSummary
 import com.enaboapps.switchify.pc.PcServiceConnectionState
 import com.enaboapps.switchify.switches.SWITCH_EVENT_TYPE_CAMERA
 import com.enaboapps.switchify.switches.SWITCH_EVENT_TYPE_EXTERNAL
@@ -30,6 +34,33 @@ import org.junit.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class Grid3SwitchForwarderTest {
+    @Test
+    fun genericProfileStartsBeforeDiversionAndUsesGenericEdges() = runTest {
+        val host = FakeHost(
+            mutableListOf(switchEvent("20", "Primary")),
+            genericSupported = true
+        )
+        val forwarder = Grid3SwitchForwarder(host, backgroundScope)
+        val loaded = forwarder.loadProfileCatalog() as PcSwitchCatalogResult.Loaded
+        val selected = loaded.catalog.profiles.single()
+
+        assertEquals(0, host.suspendCount)
+        assertEquals(Grid3StartResult.Started, forwarder.start(selected, legacy = false))
+        assertEquals(1, host.suspendCount)
+        assertTrue(host.commands.first() is PcControlCommand.SwitchSessionStart)
+
+        forwarder.onSwitchPressed(20)
+        forwarder.onSwitchReleased(20)
+        runCurrent()
+
+        assertEquals(
+            listOf(true, false),
+            host.realtimeCommands.filterIsInstance<PcControlCommand.SwitchEdge>().map { it.down }
+        )
+        forwarder.stop()
+        assertTrue(host.commands.last() is PcControlCommand.SwitchSessionStop)
+    }
+
     @Test
     fun mapsEightExternalSwitchesInNumericThenLexicalOrderAndFreezesSession() = runTest {
         val host = FakeHost(
@@ -681,6 +712,7 @@ class Grid3SwitchForwarderTest {
         val switches: MutableList<SwitchEvent>,
         supported: Boolean = true,
         private val sequencedSupported: Boolean = false,
+        private val genericSupported: Boolean = false,
         private val holdDurationMs: Long = Grid3SwitchForwarder.DEFAULT_HOLD_TO_STOP_MS,
         private val throwOnReleaseIds: Set<Int> = emptySet(),
         private val downStarted: CompletableDeferred<Unit>? = null,
@@ -714,6 +746,7 @@ class Grid3SwitchForwarderTest {
                     buildSet {
                         add(PcProtocol.GRID_SWITCH_SET_COMMAND)
                         if (sequencedSupported) add(PcProtocol.GRID_SWITCH_SYNC_COMMAND)
+                        if (genericSupported) addAll(Grid3SwitchForwarder.GENERIC_COMMANDS)
                     }
                 } else {
                     emptySet()
@@ -728,6 +761,22 @@ class Grid3SwitchForwarderTest {
 
         override fun currentPointerProfile() = profile
         override fun currentPcName() = "Office PC"
+        override suspend fun requestProfileCatalog(): PcProfileCatalogResult {
+            return PcProfileCatalogResult.Loaded(
+                PcSwitchProfileCatalog(
+                    1,
+                    listOf(
+                        PcSwitchProfileSummary(
+                            "builtin.keyboard",
+                            1,
+                            "Generic keyboard",
+                            "mapped",
+                            listOf(PcSwitchBindingSummary(1, "Space", "stateful"))
+                        )
+                    )
+                )
+            )
+        }
         override fun configuredSwitches() = switches.toList()
         override fun holdToStopDurationMs() = holdDurationMs
         override fun suspendScanning() {

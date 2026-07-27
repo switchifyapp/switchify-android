@@ -32,6 +32,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -39,6 +40,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -70,43 +75,67 @@ import com.enaboapps.switchify.service.core.ServiceCore
 import com.enaboapps.switchify.service.grid3.Grid3ConnectionStatus
 import com.enaboapps.switchify.service.grid3.Grid3ForwardingState
 import com.enaboapps.switchify.service.grid3.Grid3SwitchMapping
+import com.enaboapps.switchify.service.grid3.Grid3StartResult
+import com.enaboapps.switchify.service.grid3.PcSwitchCatalogResult
+import com.enaboapps.switchify.pc.PcSwitchProfileCatalog
+import com.enaboapps.switchify.pc.PcSwitchProfileSummary
+import com.enaboapps.switchify.pc.PcSwitchProfilePreferenceStore
+import com.enaboapps.switchify.pc.selectPcSwitchProfile
 import com.enaboapps.switchify.theme.Dimens
+import kotlinx.coroutines.launch
 
-class Grid3ControlActivity : ComponentActivity() {
+open class PcSwitchControlActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val forwarder = ServiceCore.getGrid3SwitchForwarder()
-        if (forwarder == null || !forwarder.state.value.active) {
+        val forwarder = ServiceCore.getPcSwitchControlForwarder()
+        if (forwarder == null) {
             finish()
             return
         }
         setContent {
             SwitchifyTheme {
                 val state by forwarder.state.collectAsState()
-                LaunchedEffect(state.active) {
-                    if (!state.active) finish()
-                }
-                Grid3ControlScreen(
-                    state = state,
-                    onStop = {
-                        forwarder.requestStop()
-                        finish()
+                var showChooser by remember { mutableStateOf(!state.active) }
+                var changingProfile by remember { mutableStateOf(false) }
+                LaunchedEffect(state.active, changingProfile) {
+                    if (changingProfile && !state.active) {
+                        changingProfile = false
+                        showChooser = true
                     }
-                )
+                }
+                if (state.active && !showChooser) {
+                    Grid3ControlScreen(
+                        state = state,
+                        onChangeProfile = {
+                            changingProfile = true
+                            forwarder.requestStop()
+                        },
+                        onStop = {
+                            forwarder.requestStop()
+                            finish()
+                        }
+                    )
+                } else {
+                    PcSwitchProfileChooser(
+                        forwarder = forwarder,
+                        onStarted = { showChooser = false },
+                        onClose = { finish() }
+                    )
+                }
             }
         }
     }
 
     override fun onDestroy() {
         if (isFinishing) {
-            ServiceCore.getGrid3SwitchForwarder()?.requestStop()
+            ServiceCore.getPcSwitchControlForwarder()?.requestStop()
         }
         super.onDestroy()
     }
 
     companion object {
         fun createIntent(context: Context): Intent {
-            return Intent(context, Grid3ControlActivity::class.java)
+            return Intent(context, PcSwitchControlActivity::class.java)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
         }
@@ -116,6 +145,7 @@ class Grid3ControlActivity : ComponentActivity() {
 @Composable
 private fun Grid3ControlScreen(
     state: Grid3ForwardingState,
+    onChangeProfile: () -> Unit,
     onStop: () -> Unit
 ) {
     BackHandler(onBack = onStop)
@@ -124,6 +154,7 @@ private fun Grid3ControlScreen(
         bottomBar = {
             Grid3BottomBar(
                 holdDuration = holdDuration,
+                onChangeProfile = onChangeProfile,
                 onStop = onStop
             )
         }
@@ -138,7 +169,8 @@ private fun Grid3ControlScreen(
         ) {
             Grid3StatusHero(
                 connectionStatus = state.connectionStatus,
-                pcName = state.pcName
+                pcName = state.pcName,
+                profileName = state.profileName
             )
             Section(titleResId = R.string.grid3_switch_mapping) {
                 BoxWithConstraints(
@@ -177,9 +209,168 @@ private fun Grid3ControlScreen(
 }
 
 @Composable
+private fun PcSwitchProfileChooser(
+    forwarder: com.enaboapps.switchify.service.grid3.Grid3SwitchForwarder,
+    onStarted: () -> Unit,
+    onClose: () -> Unit
+) {
+    var catalog by remember { mutableStateOf<PcSwitchProfileCatalog?>(null) }
+    var selected by remember { mutableStateOf<PcSwitchProfileSummary?>(null) }
+    var message by remember { mutableStateOf<String?>(null) }
+    var loading by remember { mutableStateOf(true) }
+    val scope = rememberCoroutineScope()
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val preferences = remember { PcSwitchProfilePreferenceStore(context) }
+
+    fun load() {
+        loading = true
+        message = null
+        scope.launch {
+            when (val result = forwarder.loadProfileCatalog()) {
+                is PcSwitchCatalogResult.Loaded -> {
+                    catalog = result.catalog
+                    val remembered = preferences.rememberedProfileId(forwarder.currentPcId())
+                    val selection = selectPcSwitchProfile(result.catalog.profiles, remembered)
+                    selected = selection.profile
+                    if (selection.rememberedProfileUnavailable) {
+                        message = context.getString(R.string.pc_switch_previous_profile_unavailable)
+                    }
+                }
+                is PcSwitchCatalogResult.Failed -> message = result.message
+                PcSwitchCatalogResult.Unsupported ->
+                    message = context.getString(R.string.grid3_pc_unsupported)
+            }
+            loading = false
+        }
+    }
+
+    LaunchedEffect(Unit) { load() }
+    BackHandler(onBack = onClose)
+    Scaffold(
+        bottomBar = {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .padding(Dimens.spaceM),
+                horizontalArrangement = Arrangement.spacedBy(Dimens.spaceS)
+            ) {
+                ActionButton(
+                    textResId = R.string.pc_switch_close,
+                    onClick = onClose,
+                    modifier = Modifier.weight(1f),
+                    type = ActionButtonType.SECONDARY
+                )
+                ActionButton(
+                    textResId = if (catalog == null) R.string.pc_switch_retry else R.string.pc_switch_start,
+                    onClick = {
+                        if (catalog == null) {
+                            load()
+                        } else {
+                            val profile = selected ?: return@ActionButton
+                            scope.launch {
+                                loading = true
+                                when (val result = forwarder.start(profile, catalog!!.legacy)) {
+                                    Grid3StartResult.Started -> {
+                                        preferences.rememberProfile(forwarder.currentPcId(), profile.id)
+                                        onStarted()
+                                    }
+                                    Grid3StartResult.NoExternalSwitches ->
+                                        message = context.getString(R.string.grid3_no_external_switches)
+                                    Grid3StartResult.UnsupportedPc ->
+                                        message = context.getString(R.string.grid3_pc_unsupported)
+                                    Grid3StartResult.ProfileChanged ->
+                                        message = context.getString(R.string.pc_switch_profile_changed)
+                                    is Grid3StartResult.Failed -> message = result.message
+                                }
+                                loading = false
+                            }
+                        }
+                    },
+                    modifier = Modifier.weight(1f),
+                    enabled = !loading && (catalog == null || selected != null) &&
+                        (catalog == null || forwarder.configuredExternalSwitchCount() > 0)
+                )
+            }
+        }
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .verticalScroll(rememberScrollState())
+                .padding(Dimens.spaceM),
+            verticalArrangement = Arrangement.spacedBy(Dimens.spaceM)
+        ) {
+            Text(
+                text = stringResource(R.string.pc_switch_control_title),
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = stringResource(R.string.pc_switch_choose_profile),
+                style = MaterialTheme.typography.bodyLarge
+            )
+            if (loading) CircularProgressIndicator()
+            message?.let {
+                Text(
+                    text = it,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.semantics { liveRegion = LiveRegionMode.Assertive }
+                )
+            }
+            if (forwarder.configuredExternalSwitchCount() == 0) {
+                Text(
+                    text = stringResource(R.string.grid3_no_external_switches),
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
+            catalog?.profiles?.forEach { profile ->
+                Surface(
+                    onClick = { selected = profile },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(Dimens.spaceM),
+                    color = if (selected?.id == profile.id) {
+                        MaterialTheme.colorScheme.primaryContainer
+                    } else {
+                        MaterialTheme.colorScheme.surfaceContainer
+                    }
+                ) {
+                    Row(
+                        modifier = Modifier.padding(Dimens.spaceM),
+                        verticalAlignment = Alignment.Top
+                    ) {
+                        RadioButton(
+                            selected = selected?.id == profile.id,
+                            onClick = { selected = profile }
+                        )
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(profile.name, fontWeight = FontWeight.SemiBold)
+                            Text(
+                                if (profile.kind == "grid3") "Native Grid 3" else "Windows input",
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                            profile.bindings.forEach { binding ->
+                                Text(
+                                    text = "${binding.switchId}. ${binding.label}",
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+class Grid3ControlActivity : PcSwitchControlActivity()
+
+@Composable
 private fun Grid3StatusHero(
     connectionStatus: Grid3ConnectionStatus,
-    pcName: String?
+    pcName: String?,
+    profileName: String?
 ) {
     val reconnecting = connectionStatus == Grid3ConnectionStatus.Reconnecting
     val displayName = pcName ?: stringResource(R.string.grid3_pc_fallback_name)
@@ -228,6 +419,13 @@ private fun Grid3StatusHero(
                 fontWeight = FontWeight.Bold,
                 color = colors.onSurface
             )
+            profileName?.let {
+                Text(
+                    text = stringResource(R.string.pc_switch_active_profile, it),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
             Column(verticalArrangement = Arrangement.spacedBy(Dimens.spaceXs)) {
                 Text(
                     text = statusText,
@@ -296,7 +494,7 @@ private fun Grid3SwitchTile(
         R.string.grid3_switch_tile_description,
         mapping.name,
         mapping.switchId,
-        mapping.keyCode
+        mapping.outputLabel
     )
     val pressedDescription = stringResource(
         if (mapping.pressed) {
@@ -358,7 +556,7 @@ private fun Grid3SwitchTile(
                     }
                 )
                 Text(
-                    text = stringResource(R.string.grid3_switch_key, mapping.keyCode),
+                    text = mapping.outputLabel,
                     style = MaterialTheme.typography.bodySmall,
                     color = if (mapping.pressed) {
                         colors.onPrimaryContainer
@@ -407,6 +605,7 @@ private fun Grid3OverflowPanel(names: List<String>) {
 @Composable
 private fun Grid3BottomBar(
     holdDuration: String,
+    onChangeProfile: () -> Unit,
     onStop: () -> Unit
 ) {
     Surface(
@@ -430,15 +629,25 @@ private fun Grid3BottomBar(
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth()
             )
-            ActionButton(
-                textResId = R.string.grid3_stop,
-                onClick = onStop,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 56.dp),
-                type = ActionButtonType.DESTRUCTIVE,
-                applyPadding = false
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(Dimens.spaceS)
+            ) {
+                ActionButton(
+                    textResId = R.string.pc_switch_change_profile,
+                    onClick = onChangeProfile,
+                    modifier = Modifier.weight(1f).heightIn(min = 56.dp),
+                    type = ActionButtonType.SECONDARY,
+                    applyPadding = false
+                )
+                ActionButton(
+                    textResId = R.string.grid3_stop,
+                    onClick = onStop,
+                    modifier = Modifier.weight(1f).heightIn(min = 56.dp),
+                    type = ActionButtonType.DESTRUCTIVE,
+                    applyPadding = false
+                )
+            }
         }
     }
 }
