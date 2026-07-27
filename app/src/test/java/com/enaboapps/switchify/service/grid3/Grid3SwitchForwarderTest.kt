@@ -89,6 +89,61 @@ class Grid3SwitchForwarderTest {
     }
 
     @Test
+    fun screenSleepStopsSessionWithoutRestoringScanning() = runTest {
+        val host = FakeHost(
+            mutableListOf(switchEvent("20", "Primary")),
+            genericSupported = true
+        )
+        val forwarder = Grid3SwitchForwarder(host, backgroundScope)
+        val profile = (forwarder.loadProfileCatalog() as PcSwitchCatalogResult.Loaded)
+            .catalog.profiles.single()
+        assertEquals(Grid3StartResult.Started, forwarder.start(profile, legacy = false))
+
+        forwarder.requestCloseForScreenSleep()
+        runCurrent()
+
+        assertFalse(forwarder.state.value.active)
+        assertEquals(0, host.restoreCount)
+        assertEquals(1, host.releaseCount)
+        assertTrue(host.commands.last() is PcControlCommand.SwitchSessionStop)
+    }
+
+    @Test
+    fun repeatedScreenSleepCloseReleasesChooserConnectionOnce() = runTest {
+        val host = FakeHost(
+            mutableListOf(switchEvent("20", "Primary")),
+            genericSupported = true
+        )
+        val forwarder = Grid3SwitchForwarder(host, backgroundScope)
+
+        forwarder.requestCloseForScreenSleep()
+        forwarder.requestCloseForScreenSleep()
+        runCurrent()
+
+        assertEquals(0, host.restoreCount)
+        assertEquals(1, host.releaseCount)
+    }
+
+    @Test
+    fun changeProfileStopsSessionWithoutReleasingConnection() = runTest {
+        val host = FakeHost(
+            mutableListOf(switchEvent("20", "Primary")),
+            genericSupported = true
+        )
+        val forwarder = Grid3SwitchForwarder(host, backgroundScope)
+        val profile = (forwarder.loadProfileCatalog() as PcSwitchCatalogResult.Loaded)
+            .catalog.profiles.single()
+        assertEquals(Grid3StartResult.Started, forwarder.start(profile, legacy = false))
+
+        forwarder.requestChangeProfile()
+        runCurrent()
+
+        assertFalse(forwarder.state.value.active)
+        assertEquals(1, host.restoreCount)
+        assertEquals(0, host.releaseCount)
+    }
+
+    @Test
     fun duplicateStopCannotStopALaterSession() = runTest {
         val stopStarted = CompletableDeferred<Unit>()
         val allowStop = CompletableDeferred<Unit>()

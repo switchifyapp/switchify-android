@@ -16,6 +16,7 @@ class ScreenWatcherManager(
     fun register(scanningManager: ScanningManager, externalSwitchListener: ExternalSwitchListener) {
         screenWatcher = ScreenWatcher(
             onScreenSleep = {
+                ServiceCore.getPcSwitchControlForwarder()?.requestCloseForScreenSleep()
                 val pauseManager = ServiceCore.getPauseManager()
                 if (pauseManager.isPaused) pauseManager.resume()
                 PcMouseRepeatManager.instance.clearServiceState()

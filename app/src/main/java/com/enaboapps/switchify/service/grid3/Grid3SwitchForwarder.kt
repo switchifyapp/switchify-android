@@ -131,6 +131,16 @@ class Grid3SwitchForwarder internal constructor(
     private val host: Grid3ForwardingHost,
     scope: CoroutineScope
 ) : Grid3SwitchInputHandler {
+    private enum class StopPolicy(
+        val restoreScanning: Boolean,
+        val releaseConnection: Boolean
+    ) {
+        Normal(restoreScanning = true, releaseConnection = true),
+        ChangeProfile(restoreScanning = true, releaseConnection = false),
+        ScreenSleep(restoreScanning = false, releaseConnection = true),
+        Destroy(restoreScanning = false, releaseConnection = true)
+    }
+
     constructor(
         controller: PcServiceConnectionController,
         scanningManager: ScanningManager,
@@ -166,6 +176,8 @@ class Grid3SwitchForwarder internal constructor(
 
         data class Stop(
             val generation: Long,
+            val policy: StopPolicy = StopPolicy.Normal,
+            val releaseWhenInactive: Boolean = false,
             val completion: CompletableDeferred<Unit>? = null
         ) : EdgeAction()
     }
@@ -203,6 +215,7 @@ class Grid3SwitchForwarder internal constructor(
     private var snapshotJob: Job? = null
     private var stoppingGeneration: Long? = null
     private var startingGeneration: Long? = null
+    private var connectionReleaseGeneration: Long? = null
     private var destroying = false
 
     init {
@@ -213,7 +226,11 @@ class Grid3SwitchForwarder internal constructor(
                     is EdgeAction.RestartPress -> processRestartPress(action)
                     is EdgeAction.Stop -> {
                         try {
-                            processStop(action.generation)
+                            processStop(
+                                action.generation,
+                                action.policy,
+                                action.releaseWhenInactive
+                            )
                         } finally {
                             action.completion?.complete(Unit)
                         }
@@ -508,24 +525,57 @@ class Grid3SwitchForwarder internal constructor(
     }
 
     suspend fun stop() {
+        stop(StopPolicy.Normal)
+    }
+
+    private suspend fun stop(policy: StopPolicy) {
         val targetGeneration = synchronized(stateLock) {
             startingGeneration ?: generation.takeIf { _state.value.active }
         } ?: return
         val completion = CompletableDeferred<Unit>()
-        edgeActions.send(EdgeAction.Stop(targetGeneration, completion))
+        edgeActions.send(
+            EdgeAction.Stop(
+                generation = targetGeneration,
+                policy = policy,
+                completion = completion
+            )
+        )
         completion.await()
     }
 
     fun requestStop() {
-        forwardingScope.launch(start = CoroutineStart.UNDISPATCHED) {
-            stop()
+        requestStop(StopPolicy.Normal, releaseWhenInactive = false)
+    }
+
+    fun requestChangeProfile() {
+        requestStop(StopPolicy.ChangeProfile, releaseWhenInactive = false)
+    }
+
+    fun requestClose() {
+        requestStop(StopPolicy.Normal, releaseWhenInactive = true)
+    }
+
+    fun requestCloseForScreenSleep() {
+        requestStop(StopPolicy.ScreenSleep, releaseWhenInactive = true)
+    }
+
+    private fun requestStop(policy: StopPolicy, releaseWhenInactive: Boolean) {
+        val targetGeneration = synchronized(stateLock) {
+            startingGeneration ?: generation.takeIf { _state.value.active } ?: generation
         }
+        enqueueEdge(
+            EdgeAction.Stop(
+                generation = targetGeneration,
+                policy = policy,
+                releaseWhenInactive = releaseWhenInactive
+            )
+        )
     }
 
     suspend fun destroy() {
         prepareForDestroy()
         try {
-            stop()
+            stop(StopPolicy.Destroy)
         } finally {
             edgeActions.close()
             snapshotActions.close()
@@ -666,7 +716,11 @@ class Grid3SwitchForwarder internal constructor(
         }
     }
 
-    private suspend fun processStop(expectedGeneration: Long) = sessionLifecycleMutex.withLock {
+    private suspend fun processStop(
+        expectedGeneration: Long,
+        policy: StopPolicy,
+        releaseWhenInactive: Boolean
+    ) = sessionLifecycleMutex.withLock {
         var finalCommand: PcControlCommand? = null
         var legacyHeld = emptyList<Int>()
         val shouldStop = synchronized(stateLock) {
@@ -692,7 +746,12 @@ class Grid3SwitchForwarder internal constructor(
                 true
             }
         }
-        if (!shouldStop) return@withLock
+        if (!shouldStop) {
+            if (releaseWhenInactive && policy.releaseConnection) {
+                releaseConnectionOnce(expectedGeneration)
+            }
+            return@withLock
+        }
         snapshotJob?.cancel()
         snapshotJob = null
         try {
@@ -724,16 +783,34 @@ class Grid3SwitchForwarder internal constructor(
                     _state.value = Grid3ForwardingState()
                 }
             }
-            val shouldRestoreScanning = synchronized(stateLock) { !destroying }
+            val shouldRestoreScanning = synchronized(stateLock) {
+                !destroying && policy.restoreScanning
+            }
             if (shouldRestoreScanning) {
                 try {
                     host.restoreScanning()
                 } finally {
-                    host.releaseConnection()
+                    if (policy.releaseConnection) {
+                        releaseConnectionOnce(expectedGeneration)
+                    }
                 }
-            } else {
-                host.releaseConnection()
+            } else if (policy.releaseConnection) {
+                releaseConnectionOnce(expectedGeneration)
             }
+        }
+    }
+
+    private fun releaseConnectionOnce(expectedGeneration: Long) {
+        val shouldRelease = synchronized(stateLock) {
+            if (connectionReleaseGeneration == expectedGeneration) {
+                false
+            } else {
+                connectionReleaseGeneration = expectedGeneration
+                true
+            }
+        }
+        if (shouldRelease) {
+            host.releaseConnection()
         }
     }
 
@@ -755,7 +832,12 @@ class Grid3SwitchForwarder internal constructor(
         snapshotJob = null
         forwardingScope.launch(start = CoroutineStart.UNDISPATCHED) {
             val completion = CompletableDeferred<Unit>()
-            edgeActions.send(EdgeAction.Stop(currentGeneration, completion))
+            edgeActions.send(
+                EdgeAction.Stop(
+                    generation = currentGeneration,
+                    completion = completion
+                )
+            )
             completion.await()
         }
     }
@@ -806,7 +888,12 @@ class Grid3SwitchForwarder internal constructor(
         }
         if (currentGeneration != null) {
             val completion = CompletableDeferred<Unit>()
-            edgeActions.send(EdgeAction.Stop(currentGeneration, completion))
+            edgeActions.send(
+                EdgeAction.Stop(
+                    generation = currentGeneration,
+                    completion = completion
+                )
+            )
             completion.await()
         } else if (profileToRestart != null && restartedSessionId != null) {
             val restartSucceeded = sessionLifecycleMutex.withLock {
@@ -848,7 +935,12 @@ class Grid3SwitchForwarder internal constructor(
                 enqueueSyncSnapshot()
             } else {
                 val completion = CompletableDeferred<Unit>()
-                edgeActions.send(EdgeAction.Stop(synchronized(stateLock) { generation }, completion))
+                edgeActions.send(
+                    EdgeAction.Stop(
+                        generation = synchronized(stateLock) { generation },
+                        completion = completion
+                    )
+                )
                 completion.await()
             }
         } else if (shouldSynchronize) {
