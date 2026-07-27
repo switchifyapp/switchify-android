@@ -24,6 +24,8 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.advanceTimeBy
@@ -868,6 +870,129 @@ class Grid3SwitchForwarderTest {
         assertEquals(0, unsupportedHost.suspendCount)
     }
 
+    @Test
+    fun inactivityTimeoutStopsSessionAndEmitsTerminalExit() = runTest {
+        val host = FakeHost(mutableListOf(switchEvent("1", "One")))
+        val forwarder = Grid3SwitchForwarder(
+            host = host,
+            scope = backgroundScope,
+            inactivityTimeoutMs = 1_000L
+        )
+        val exit = CompletableDeferred<PcSwitchControlExitReason>()
+        backgroundScope.launch(start = CoroutineStart.UNDISPATCHED) {
+            exit.complete(forwarder.terminalExitEvents.first())
+        }
+        assertEquals(Grid3StartResult.Started, forwarder.start())
+
+        advanceTimeBy(999L)
+        runCurrent()
+        assertTrue(forwarder.state.value.active)
+        advanceTimeBy(1L)
+        runCurrent()
+
+        assertFalse(forwarder.state.value.active)
+        assertEquals(PcSwitchControlExitReason.InactivityTimeout, exit.await())
+        assertEquals(1, host.inactivityTimeoutCount)
+        assertEquals(1, host.restoreCount)
+        assertEquals(1, host.releaseCount)
+    }
+
+    @Test
+    fun consumedOverflowAndCancelledEventsResetInactivityTimeout() = runTest {
+        val switches = (1..9).map { switchEvent(it.toString(), "Switch $it") }.toMutableList()
+        val host = FakeHost(switches)
+        val forwarder = Grid3SwitchForwarder(
+            host = host,
+            scope = backgroundScope,
+            inactivityTimeoutMs = 1_000L
+        )
+        assertEquals(Grid3StartResult.Started, forwarder.start())
+
+        advanceTimeBy(900L)
+        assertTrue(forwarder.onSwitchPressed(9, 9L, 900L))
+        runCurrent()
+        advanceTimeBy(900L)
+        assertTrue(forwarder.state.value.active)
+        assertTrue(forwarder.onSwitchReleased(9, 9L, 1_800L, cancelled = true))
+        runCurrent()
+        advanceTimeBy(999L)
+        runCurrent()
+        assertTrue(forwarder.state.value.active)
+        advanceTimeBy(1L)
+        runCurrent()
+
+        assertFalse(forwarder.state.value.active)
+        assertEquals(1, host.inactivityTimeoutCount)
+    }
+
+    @Test
+    fun normalStopCancelsInactivityTimeout() = runTest {
+        val host = FakeHost(mutableListOf(switchEvent("1", "One")))
+        val forwarder = Grid3SwitchForwarder(
+            host = host,
+            scope = backgroundScope,
+            inactivityTimeoutMs = 1_000L
+        )
+        assertEquals(Grid3StartResult.Started, forwarder.start())
+
+        forwarder.stop()
+        advanceTimeBy(2_000L)
+        runCurrent()
+
+        assertEquals(0, host.inactivityTimeoutCount)
+    }
+
+    @Test
+    fun staleTimeoutCannotStopReplacementSession() = runTest {
+        val host = FakeHost(mutableListOf(switchEvent("1", "One")))
+        val forwarder = Grid3SwitchForwarder(
+            host = host,
+            scope = backgroundScope,
+            inactivityTimeoutMs = 1_000L
+        )
+        assertEquals(Grid3StartResult.Started, forwarder.start())
+        advanceTimeBy(800L)
+        forwarder.requestChangeProfile()
+        runCurrent()
+        assertEquals(Grid3StartResult.Started, forwarder.start())
+
+        advanceTimeBy(201L)
+        runCurrent()
+        assertTrue(forwarder.state.value.active)
+        advanceTimeBy(799L)
+        runCurrent()
+
+        assertFalse(forwarder.state.value.active)
+        assertEquals(1, host.inactivityTimeoutCount)
+    }
+
+    @Test
+    fun inactivityTimeoutContinuesDuringReconnect() = runTest {
+        val host = FakeHost(mutableListOf(switchEvent("1", "One")))
+        val forwarder = Grid3SwitchForwarder(
+            host = host,
+            scope = backgroundScope,
+            inactivityTimeoutMs = 1_000L
+        )
+        assertEquals(Grid3StartResult.Started, forwarder.start())
+        advanceTimeBy(500L)
+        host.mutableConnectionState.value = PcServiceConnectionState.Reconnecting(
+            session = com.enaboapps.switchify.pc.PcAuthenticatedSession(
+                "desktop",
+                "device",
+                "endpoint"
+            ),
+            displayName = "Office PC"
+        )
+        runCurrent()
+
+        advanceTimeBy(500L)
+        runCurrent()
+
+        assertFalse(forwarder.state.value.active)
+        assertEquals(1, host.inactivityTimeoutCount)
+    }
+
     private class FakeHost(
         val switches: MutableList<SwitchEvent>,
         supported: Boolean = true,
@@ -899,6 +1024,7 @@ class Grid3SwitchForwarderTest {
         var restoreCount = 0
         var maintainCount = 0
         var releaseCount = 0
+        var inactivityTimeoutCount = 0
         private val profile = PcPointerMovementProfile(
             displayId = "display",
             scaleFactor = 1.0,
@@ -957,6 +1083,9 @@ class Grid3SwitchForwarderTest {
         }
         override fun releaseConnection() {
             releaseCount++
+        }
+        override fun showInactivityTimeout() {
+            inactivityTimeoutCount++
         }
         override suspend fun send(command: PcControlCommand): PcCommandResult {
             commands += command

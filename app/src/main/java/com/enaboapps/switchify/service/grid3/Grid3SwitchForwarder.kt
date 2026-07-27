@@ -1,5 +1,6 @@
 package com.enaboapps.switchify.service.grid3
 
+import com.enaboapps.switchify.R
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.pc.PcCommandResult
 import com.enaboapps.switchify.pc.PcControlCommand
@@ -13,6 +14,8 @@ import com.enaboapps.switchify.pc.PcServiceConnectionController
 import com.enaboapps.switchify.pc.PcServiceConnectionState
 import com.enaboapps.switchify.service.scanning.ScanningManager
 import com.enaboapps.switchify.service.switches.SwitchEventProvider
+import com.enaboapps.switchify.service.window.MessageSeverity
+import com.enaboapps.switchify.service.window.ServiceMessageHUD
 import com.enaboapps.switchify.switches.SWITCH_EVENT_TYPE_EXTERNAL
 import com.enaboapps.switchify.switches.SwitchEvent
 import kotlinx.coroutines.CoroutineScope
@@ -22,8 +25,11 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -66,6 +72,10 @@ sealed class PcSwitchCatalogResult {
     data object Unsupported : PcSwitchCatalogResult()
 }
 
+internal enum class PcSwitchControlExitReason {
+    InactivityTimeout
+}
+
 internal interface Grid3ForwardingHost {
     val connectionState: StateFlow<PcServiceConnectionState>
     fun currentPointerProfile(): PcPointerMovementProfile?
@@ -77,6 +87,7 @@ internal interface Grid3ForwardingHost {
     fun restoreScanning()
     fun maintainConnection()
     fun releaseConnection()
+    fun showInactivityTimeout() {}
     suspend fun send(command: PcControlCommand): PcCommandResult
     suspend fun requestProfileCatalog(): PcProfileCatalogResult = PcProfileCatalogResult.Failed()
     suspend fun sendRealtime(command: PcControlCommand): PcCommandResult = send(command)
@@ -121,6 +132,14 @@ private class AndroidGrid3ForwardingHost(
     }
     override fun maintainConnection() = controller.onPcUiResumed()
     override fun releaseConnection() = controller.onPcUiPaused()
+    override fun showInactivityTimeout() {
+        ServiceMessageHUD.instance.showMessage(
+            R.string.pc_switch_inactivity_timeout,
+            ServiceMessageHUD.MessageType.DISAPPEARING,
+            ServiceMessageHUD.Time.LONG,
+            severity = MessageSeverity.Info
+        )
+    }
     override suspend fun send(command: PcControlCommand) = controller.sendControlCommand(command)
     override suspend fun requestProfileCatalog() = controller.requestSwitchProfileCatalog()
     override suspend fun sendRealtime(command: PcControlCommand) =
@@ -129,7 +148,8 @@ private class AndroidGrid3ForwardingHost(
 
 class Grid3SwitchForwarder internal constructor(
     private val host: Grid3ForwardingHost,
-    scope: CoroutineScope
+    scope: CoroutineScope,
+    private val inactivityTimeoutMs: Long = INACTIVITY_TIMEOUT_MS
 ) : Grid3SwitchInputHandler {
     private enum class StopPolicy(
         val restoreScanning: Boolean,
@@ -154,7 +174,8 @@ class Grid3SwitchForwarder internal constructor(
             switchEventProvider,
             preferenceManager
         ),
-        scope
+        scope,
+        INACTIVITY_TIMEOUT_MS
     )
 
     private sealed class EdgeAction {
@@ -178,6 +199,7 @@ class Grid3SwitchForwarder internal constructor(
             val generation: Long,
             val policy: StopPolicy = StopPolicy.Normal,
             val releaseWhenInactive: Boolean = false,
+            val exitReason: PcSwitchControlExitReason? = null,
             val completion: CompletableDeferred<Unit>? = null
         ) : EdgeAction()
     }
@@ -202,6 +224,11 @@ class Grid3SwitchForwarder internal constructor(
     private val snapshotActions = Channel<SnapshotAction>(Channel.CONFLATED)
     private val _state = MutableStateFlow(Grid3ForwardingState())
     val state: StateFlow<Grid3ForwardingState> = _state
+    private val _terminalExitEvents = MutableSharedFlow<PcSwitchControlExitReason>(
+        extraBufferCapacity = 1
+    )
+    internal val terminalExitEvents: SharedFlow<PcSwitchControlExitReason> =
+        _terminalExitEvents.asSharedFlow()
     private var generation = 0L
     private var mappingByKeyCode = emptyMap<Int, Grid3SwitchMapping>()
     private val activePresses = mutableMapOf<Int, ActivePress>()
@@ -213,6 +240,7 @@ class Grid3SwitchForwarder internal constructor(
     private var awaitingReconnect = false
     private var nextGridSequence = 0L
     private var snapshotJob: Job? = null
+    private var inactivityTimeoutJob: Job? = null
     private var stoppingGeneration: Long? = null
     private var startingGeneration: Long? = null
     private var connectionReleaseGeneration: Long? = null
@@ -229,7 +257,8 @@ class Grid3SwitchForwarder internal constructor(
                             processStop(
                                 action.generation,
                                 action.policy,
-                                action.releaseWhenInactive
+                                action.releaseWhenInactive,
+                                action.exitReason
                             )
                         } finally {
                             action.completion?.complete(Unit)
@@ -437,6 +466,7 @@ class Grid3SwitchForwarder internal constructor(
             enqueueSyncSnapshot()
             startSnapshotLoop()
         }
+        resetInactivityTimeout()
         return Grid3StartResult.Started
     }
 
@@ -444,6 +474,7 @@ class Grid3SwitchForwarder internal constructor(
         get() = synchronized(stateLock) { generation }
 
     override fun onSwitchPressed(keyCode: Int, downTimeMs: Long, eventTimeMs: Long): Boolean {
+        resetInactivityTimeout()
         val action = synchronized(stateLock) {
             if (!_state.value.active) {
                 return false
@@ -486,6 +517,7 @@ class Grid3SwitchForwarder internal constructor(
         eventTimeMs: Long,
         cancelled: Boolean
     ): Boolean {
+        resetInactivityTimeout()
         val queued = synchronized(stateLock) {
             if (!_state.value.active) {
                 return false
@@ -716,10 +748,29 @@ class Grid3SwitchForwarder internal constructor(
         }
     }
 
+    private fun resetInactivityTimeout() {
+        synchronized(stateLock) {
+            if (!_state.value.active) return
+            val expectedGeneration = generation
+            inactivityTimeoutJob?.cancel()
+            inactivityTimeoutJob = forwardingScope.launch {
+                delay(inactivityTimeoutMs)
+                edgeActions.send(
+                    EdgeAction.Stop(
+                        generation = expectedGeneration,
+                        policy = StopPolicy.Normal,
+                        exitReason = PcSwitchControlExitReason.InactivityTimeout
+                    )
+                )
+            }
+        }
+    }
+
     private suspend fun processStop(
         expectedGeneration: Long,
         policy: StopPolicy,
-        releaseWhenInactive: Boolean
+        releaseWhenInactive: Boolean,
+        exitReason: PcSwitchControlExitReason?
     ) = sessionLifecycleMutex.withLock {
         var finalCommand: PcControlCommand? = null
         var legacyHeld = emptyList<Int>()
@@ -751,6 +802,10 @@ class Grid3SwitchForwarder internal constructor(
                 releaseConnectionOnce(expectedGeneration)
             }
             return@withLock
+        }
+        synchronized(stateLock) {
+            inactivityTimeoutJob?.cancel()
+            inactivityTimeoutJob = null
         }
         snapshotJob?.cancel()
         snapshotJob = null
@@ -796,6 +851,10 @@ class Grid3SwitchForwarder internal constructor(
                 }
             } else if (policy.releaseConnection) {
                 releaseConnectionOnce(expectedGeneration)
+            }
+            if (exitReason == PcSwitchControlExitReason.InactivityTimeout) {
+                host.showInactivityTimeout()
+                _terminalExitEvents.tryEmit(exitReason)
             }
         }
     }
@@ -960,6 +1019,7 @@ class Grid3SwitchForwarder internal constructor(
         const val MAX_FORWARDED_SWITCHES = 8
         const val DEFAULT_HOLD_TO_STOP_MS = 5_000L
         const val SNAPSHOT_INTERVAL_MS = 1_000L
+        const val INACTIVITY_TIMEOUT_MS = 60_000L
         val GENERIC_COMMANDS = setOf(
             PcProtocol.SWITCH_PROFILE_LIST_COMMAND,
             PcProtocol.SWITCH_SESSION_START_COMMAND,
