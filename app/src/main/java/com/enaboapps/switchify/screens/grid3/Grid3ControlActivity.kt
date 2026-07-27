@@ -16,6 +16,7 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -33,7 +34,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -627,41 +627,69 @@ private fun PcSwitchProfileRow(
             color = if (selected) colors.primary else colors.outlineVariant
         )
     ) {
-        Row(
+        Column(
             modifier = Modifier.padding(Dimens.spaceM),
-            verticalAlignment = Alignment.CenterVertically
+            verticalArrangement = Arrangement.spacedBy(2.dp)
         ) {
-            RadioButton(
-                selected = selected,
-                onClick = null,
-                enabled = enabled
-            )
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(2.dp)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Dimens.spaceS)
             ) {
                 Text(
                     text = profile.name,
+                    modifier = Modifier.weight(1f),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
-                Text(
-                    text = pcSwitchProviderLabel(profile.kind),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = colors.onSurfaceVariant
-                )
-                Text(
-                    text = pluralStringResource(
-                        R.plurals.pc_switch_profile_mapping_count,
-                        mappedSwitchCount,
-                        mappedSwitchCount
-                    ),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = colors.onSurfaceVariant
+                PcSwitchProfileSelectionIndicator(
+                    selected = selected,
+                    enabled = enabled
                 )
             }
+            Text(
+                text = pcSwitchProviderLabel(profile.kind),
+                style = MaterialTheme.typography.bodySmall,
+                color = colors.onSurfaceVariant
+            )
+            Text(
+                text = pluralStringResource(
+                    R.plurals.pc_switch_profile_mapping_count,
+                    mappedSwitchCount,
+                    mappedSwitchCount
+                ),
+                style = MaterialTheme.typography.bodySmall,
+                color = colors.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@Composable
+private fun PcSwitchProfileSelectionIndicator(
+    selected: Boolean,
+    enabled: Boolean
+) {
+    val colors = MaterialTheme.colorScheme
+    val indicatorColor = when {
+        !enabled -> colors.onSurface.copy(alpha = 0.38f)
+        selected -> colors.primary
+        else -> colors.onSurfaceVariant
+    }
+    Box(
+        modifier = Modifier
+            .size(24.dp)
+            .border(2.dp, indicatorColor, CircleShape)
+            .padding(5.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        if (selected) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(indicatorColor, CircleShape)
+            )
         }
     }
 }
