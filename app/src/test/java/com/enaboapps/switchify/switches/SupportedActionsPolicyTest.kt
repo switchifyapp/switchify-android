@@ -6,7 +6,7 @@ import org.junit.Test
 
 class SupportedActionsPolicyTest {
     @Test
-    fun controlGrid3IsSupportedInEveryScanMode() {
+    fun pcSwitchControlIsSupportedInEveryScanMode() {
         listOf(
             ScanMode.Modes.MODE_AUTO,
             ScanMode.Modes.MODE_MANUAL,
@@ -14,7 +14,7 @@ class SupportedActionsPolicyTest {
         ).forEach { mode ->
             assertTrue(
                 SupportedActionsPolicy.supportedActionIdsForMode(mode)
-                    .contains(SwitchAction.ACTION_CONTROL_GRID_3)
+                    .contains(SwitchAction.ACTION_PC_SWITCH_CONTROL)
             )
         }
     }

@@ -492,7 +492,7 @@ class SwitchifyPcBleClientTest {
         assertEquals(
             PcCommandResult.Ack,
             result.connection.sendRealtimeCommand(
-                PcControlCommand.GridSwitchSet(
+                PcControlCommand.LegacyGridSwitchSet(
                     switchId = 1,
                     down = false,
                     sessionId = "99a1dbcf-6be4-4c6c-8664-d33fd698e32b",

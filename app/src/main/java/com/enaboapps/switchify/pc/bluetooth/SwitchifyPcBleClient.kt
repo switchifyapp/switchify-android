@@ -321,7 +321,7 @@ class SwitchifyPcBleClient(
             is PcControlCommand.WindowControl -> PcProtocol.windowControl(id, deviceId, token, timestamp, action, responseMode)
             is PcControlCommand.SetPointerSpeed -> PcProtocol.pointerSpeedSet(id, deviceId, token, timestamp, scalePercent)
             is PcControlCommand.MoveToDisplay -> PcProtocol.pointerDisplayMove(id, deviceId, token, timestamp, direction)
-            is PcControlCommand.GridSwitchSet -> PcProtocol.gridSwitchSet(
+            is PcControlCommand.LegacyGridSwitchSet -> PcProtocol.legacyGridSwitchSet(
                 id,
                 deviceId,
                 token,
@@ -332,7 +332,7 @@ class SwitchifyPcBleClient(
                 sequence,
                 responseMode
             )
-            is PcControlCommand.GridSwitchSync -> PcProtocol.gridSwitchSync(
+            is PcControlCommand.LegacyGridSwitchSync -> PcProtocol.legacyGridSwitchSync(
                 id,
                 deviceId,
                 token,
@@ -515,8 +515,8 @@ private fun PcControlCommand.protocolType(): String {
         is PcControlCommand.WindowControl -> "window.control"
         is PcControlCommand.SetPointerSpeed -> "pointer.speed.set"
         is PcControlCommand.MoveToDisplay -> "pointer.display.move"
-        is PcControlCommand.GridSwitchSet -> PcProtocol.GRID_SWITCH_SET_COMMAND
-        is PcControlCommand.GridSwitchSync -> PcProtocol.GRID_SWITCH_SYNC_COMMAND
+        is PcControlCommand.LegacyGridSwitchSet -> PcProtocol.LEGACY_GRID_SWITCH_SET_COMMAND
+        is PcControlCommand.LegacyGridSwitchSync -> PcProtocol.LEGACY_GRID_SWITCH_SYNC_COMMAND
         PcControlCommand.SwitchProfileList -> PcProtocol.SWITCH_PROFILE_LIST_COMMAND
         is PcControlCommand.SwitchSessionStart -> PcProtocol.SWITCH_SESSION_START_COMMAND
         is PcControlCommand.SwitchEdge -> PcProtocol.SWITCH_EDGE_COMMAND

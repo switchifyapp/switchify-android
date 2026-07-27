@@ -38,7 +38,7 @@ data class PcSwitchProfileSummary(
 data class PcSwitchProfileCatalog(
     val catalogRevision: Int,
     val profiles: List<PcSwitchProfileSummary>,
-    val legacy: Boolean = false
+    val usesLegacyGridProtocol: Boolean = false
 )
 
 /**
@@ -146,7 +146,7 @@ object PcProtocol {
         )
     }
 
-    fun gridSwitchSet(
+    fun legacyGridSwitchSet(
         id: String,
         deviceId: String,
         token: String,
@@ -170,13 +170,13 @@ object PcProtocol {
             deviceId = deviceId,
             token = token,
             timestamp = timestamp,
-            type = GRID_SWITCH_SET_COMMAND,
+            type = LEGACY_GRID_SWITCH_SET_COMMAND,
             payload = payload,
             responseMode = responseMode
         )
     }
 
-    fun gridSwitchSync(
+    fun legacyGridSwitchSync(
         id: String,
         deviceId: String,
         token: String,
@@ -190,7 +190,7 @@ object PcProtocol {
             deviceId = deviceId,
             token = token,
             timestamp = timestamp,
-            type = GRID_SWITCH_SYNC_COMMAND,
+            type = LEGACY_GRID_SWITCH_SYNC_COMMAND,
             payload = JSONObject()
                 .put("sessionId", sessionId)
                 .put("sequence", sequence)
@@ -976,7 +976,7 @@ object PcProtocol {
         "keyboard.textStream.key",
         "media.control",
         "window.control",
-        GRID_SWITCH_SET_COMMAND,
+        LEGACY_GRID_SWITCH_SET_COMMAND,
         SWITCH_EDGE_COMMAND
     )
 
@@ -991,8 +991,8 @@ object PcProtocol {
         "keyboard.textStream.open",
         "keyboard.textStream.chunk",
         "keyboard.textStream.close",
-        GRID_SWITCH_SET_COMMAND,
-        GRID_SWITCH_SYNC_COMMAND,
+        LEGACY_GRID_SWITCH_SET_COMMAND,
+        LEGACY_GRID_SWITCH_SYNC_COMMAND,
         SWITCH_PROFILE_LIST_COMMAND,
         SWITCH_SESSION_START_COMMAND,
         SWITCH_EDGE_COMMAND,
@@ -1000,8 +1000,8 @@ object PcProtocol {
         SWITCH_SESSION_STOP_COMMAND
     )
 
-    const val GRID_SWITCH_SET_COMMAND = "grid.switch.set"
-    const val GRID_SWITCH_SYNC_COMMAND = "grid.switch.sync"
+    const val LEGACY_GRID_SWITCH_SET_COMMAND = "grid.switch.set"
+    const val LEGACY_GRID_SWITCH_SYNC_COMMAND = "grid.switch.sync"
     const val SWITCH_PROFILE_LIST_COMMAND = "switch.profile.list"
     const val SWITCH_SESSION_START_COMMAND = "switch.session.start"
     const val SWITCH_EDGE_COMMAND = "switch.edge"

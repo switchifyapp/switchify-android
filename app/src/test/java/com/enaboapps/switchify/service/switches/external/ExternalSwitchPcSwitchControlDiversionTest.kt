@@ -1,16 +1,16 @@
 package com.enaboapps.switchify.service.switches.external
 
-import com.enaboapps.switchify.service.grid3.Grid3SwitchInputHandler
+import com.enaboapps.switchify.service.pcswitchcontrol.PcSwitchControlInputHandler
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-class ExternalSwitchGrid3DiversionTest {
+class ExternalSwitchPcSwitchControlDiversionTest {
     @Test
     fun activeForwarderConsumesPressAndReleaseBeforeNormalHandling() {
         val handler = FakeHandler(consume = true)
-        val diversion = ExternalSwitchGrid3Diversion { handler }
+        val diversion = ExternalSwitchPcSwitchControlDiversion { handler }
         var normalCalls = 0
 
         assertTrue(diversion.onPressed(42, 1_000L, 1_000L) {
@@ -31,8 +31,8 @@ class ExternalSwitchGrid3DiversionTest {
 
     @Test
     fun inactiveOrMissingForwarderPreservesNormalHandling() {
-        val inactive = ExternalSwitchGrid3Diversion { FakeHandler(consume = false) }
-        val missing = ExternalSwitchGrid3Diversion { null }
+        val inactive = ExternalSwitchPcSwitchControlDiversion { FakeHandler(consume = false) }
+        val missing = ExternalSwitchPcSwitchControlDiversion { null }
 
         assertFalse(inactive.onPressed(1, 10L, 10L) { false })
         assertTrue(missing.onReleased(1, 10L, 20L, cancelled = false) { true })
@@ -41,7 +41,7 @@ class ExternalSwitchGrid3DiversionTest {
     @Test
     fun forwardsAndroidPressSequenceMetadata() {
         val handler = FakeHandler(consume = true)
-        val diversion = ExternalSwitchGrid3Diversion { handler }
+        val diversion = ExternalSwitchPcSwitchControlDiversion { handler }
 
         assertTrue(diversion.onPressed(42, 1_000L, 1_100L) { false })
         assertTrue(diversion.onReleased(42, 1_000L, 1_200L, cancelled = true) { false })
@@ -58,7 +58,7 @@ class ExternalSwitchGrid3DiversionTest {
     @Test
     fun activationPressIsSuppressedUntilItsMatchingRelease() {
         val handler = FakeHandler(consume = false)
-        val diversion = ExternalSwitchGrid3Diversion { handler }
+        val diversion = ExternalSwitchPcSwitchControlDiversion { handler }
         var suppressedReleases = 0
 
         assertTrue(diversion.onPressed(42, 1_000L, 1_000L) { true })
@@ -84,7 +84,7 @@ class ExternalSwitchGrid3DiversionTest {
     @Test
     fun activationReleaseRemainsSuppressedAfterForwardingStops() {
         val handler = FakeHandler(consume = false)
-        val diversion = ExternalSwitchGrid3Diversion { handler }
+        val diversion = ExternalSwitchPcSwitchControlDiversion { handler }
         var suppressedReleases = 0
 
         assertTrue(diversion.onPressed(42, 1_000L, 1_000L) { true })
@@ -109,7 +109,7 @@ class ExternalSwitchGrid3DiversionTest {
     @Test
     fun resetSuppressesReleaseFromForwardedPress() {
         val handler = FakeHandler(consume = true)
-        val diversion = ExternalSwitchGrid3Diversion { handler }
+        val diversion = ExternalSwitchPcSwitchControlDiversion { handler }
         var normalCalls = 0
         var suppressedReleases = 0
 
@@ -139,7 +139,7 @@ class ExternalSwitchGrid3DiversionTest {
         assertEquals(listOf("down:42:1000:1000"), handler.calls)
     }
 
-    private class FakeHandler(private val consume: Boolean) : Grid3SwitchInputHandler {
+    private class FakeHandler(private val consume: Boolean) : PcSwitchControlInputHandler {
         val calls = mutableListOf<String>()
         var activation = 0L
 

@@ -28,7 +28,7 @@ object MenuItemRegistry {
             MenuItemDefinition(MenuConstants.ItemIds.Main.SETTINGS, labelResource = R.string.menu_item_settings, descriptionResource = R.string.menu_item_settings_description, drawableId = R.drawable.ic_settings),
             MenuItemDefinition(MenuConstants.ItemIds.Main.MEDIA_CONTROL, labelResource = R.string.menu_title_media_control, descriptionResource = R.string.menu_item_media_control_description, drawableId = R.drawable.ic_media_control),
             MenuItemDefinition(MenuConstants.ItemIds.Main.CONTROL_PC, labelResource = R.string.menu_item_control_pc, descriptionResource = R.string.menu_item_control_pc_description, drawableId = R.drawable.ic_control_pc),
-            MenuItemDefinition(MenuConstants.ItemIds.Main.CONTROL_GRID_3, labelResource = R.string.menu_item_control_grid_3, descriptionResource = R.string.menu_item_control_grid_3_description, drawableId = R.drawable.ic_control_pc),
+            MenuItemDefinition(MenuConstants.ItemIds.Main.PC_SWITCH_CONTROL, labelResource = R.string.menu_item_pc_switch_control, descriptionResource = R.string.menu_item_pc_switch_control_description, drawableId = R.drawable.ic_control_pc),
             MenuItemDefinition(MenuConstants.ItemIds.Main.EDIT, labelResource = R.string.menu_title_edit, descriptionResource = R.string.menu_item_edit_description, drawableId = R.drawable.ic_edit),
             MenuItemDefinition(MenuConstants.ItemIds.Main.AI, labelResource = R.string.menu_title_ai, descriptionResource = R.string.menu_item_ai_description, drawableId = R.drawable.ic_ai),
             MenuItemDefinition(MenuConstants.ItemIds.Main.PAUSE, labelResource = R.string.menu_item_pause, descriptionResource = R.string.menu_item_pause_description, drawableId = R.drawable.ic_pause)

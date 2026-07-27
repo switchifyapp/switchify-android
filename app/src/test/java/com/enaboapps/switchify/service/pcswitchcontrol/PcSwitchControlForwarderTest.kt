@@ -1,4 +1,4 @@
-package com.enaboapps.switchify.service.grid3
+package com.enaboapps.switchify.service.pcswitchcontrol
 
 import com.enaboapps.switchify.pc.PcCommandResult
 import com.enaboapps.switchify.pc.PcControlCommand
@@ -36,7 +36,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
-class Grid3SwitchForwarderTest {
+class PcSwitchControlForwarderTest {
     @Test
     fun concurrentGenericStartsSendOneStartCommand() = runTest {
         val startStarted = CompletableDeferred<Unit>()
@@ -47,19 +47,19 @@ class Grid3SwitchForwarderTest {
             startStarted = startStarted,
             allowStartToComplete = allowStart
         )
-        val forwarder = Grid3SwitchForwarder(host, backgroundScope)
+        val forwarder = PcSwitchControlForwarder(host, backgroundScope)
         val profile = (forwarder.loadProfileCatalog() as PcSwitchCatalogResult.Loaded)
             .catalog.profiles.single()
 
-        val first = async { forwarder.start(profile, legacy = false) }
+        val first = async { forwarder.start(profile, usesLegacyGridProtocol = false) }
         startStarted.await()
-        val second = async { forwarder.start(profile, legacy = false) }
+        val second = async { forwarder.start(profile, usesLegacyGridProtocol = false) }
         runCurrent()
 
         assertEquals(1, host.commands.filterIsInstance<PcControlCommand.SwitchSessionStart>().size)
         allowStart.complete(Unit)
-        assertEquals(Grid3StartResult.Started, first.await())
-        assertEquals(Grid3StartResult.Started, second.await())
+        assertEquals(PcSwitchControlStartResult.Started, first.await())
+        assertEquals(PcSwitchControlStartResult.Started, second.await())
         assertEquals(1, host.commands.filterIsInstance<PcControlCommand.SwitchSessionStart>().size)
         forwarder.stop()
     }
@@ -74,17 +74,17 @@ class Grid3SwitchForwarderTest {
             startStarted = startStarted,
             allowStartToComplete = allowStart
         )
-        val forwarder = Grid3SwitchForwarder(host, backgroundScope)
+        val forwarder = PcSwitchControlForwarder(host, backgroundScope)
         val profile = (forwarder.loadProfileCatalog() as PcSwitchCatalogResult.Loaded)
             .catalog.profiles.single()
 
-        val start = async { forwarder.start(profile, legacy = false) }
+        val start = async { forwarder.start(profile, usesLegacyGridProtocol = false) }
         startStarted.await()
         val stop = async { forwarder.stop() }
         runCurrent()
         allowStart.complete(Unit)
 
-        assertEquals(Grid3StartResult.Started, start.await())
+        assertEquals(PcSwitchControlStartResult.Started, start.await())
         stop.await()
         assertFalse(forwarder.state.value.active)
         assertTrue(host.commands.last() is PcControlCommand.SwitchSessionStop)
@@ -96,10 +96,10 @@ class Grid3SwitchForwarderTest {
             mutableListOf(switchEvent("20", "Primary")),
             genericSupported = true
         )
-        val forwarder = Grid3SwitchForwarder(host, backgroundScope)
+        val forwarder = PcSwitchControlForwarder(host, backgroundScope)
         val profile = (forwarder.loadProfileCatalog() as PcSwitchCatalogResult.Loaded)
             .catalog.profiles.single()
-        assertEquals(Grid3StartResult.Started, forwarder.start(profile, legacy = false))
+        assertEquals(PcSwitchControlStartResult.Started, forwarder.start(profile, usesLegacyGridProtocol = false))
 
         forwarder.requestCloseForScreenSleep()
         runCurrent()
@@ -116,7 +116,7 @@ class Grid3SwitchForwarderTest {
             mutableListOf(switchEvent("20", "Primary")),
             genericSupported = true
         )
-        val forwarder = Grid3SwitchForwarder(host, backgroundScope)
+        val forwarder = PcSwitchControlForwarder(host, backgroundScope)
 
         forwarder.requestCloseForScreenSleep()
         forwarder.requestCloseForScreenSleep()
@@ -132,10 +132,10 @@ class Grid3SwitchForwarderTest {
             mutableListOf(switchEvent("20", "Primary")),
             genericSupported = true
         )
-        val forwarder = Grid3SwitchForwarder(host, backgroundScope)
+        val forwarder = PcSwitchControlForwarder(host, backgroundScope)
         val profile = (forwarder.loadProfileCatalog() as PcSwitchCatalogResult.Loaded)
             .catalog.profiles.single()
-        assertEquals(Grid3StartResult.Started, forwarder.start(profile, legacy = false))
+        assertEquals(PcSwitchControlStartResult.Started, forwarder.start(profile, usesLegacyGridProtocol = false))
 
         forwarder.requestChangeProfile()
         runCurrent()
@@ -155,21 +155,21 @@ class Grid3SwitchForwarderTest {
             stopStarted = stopStarted,
             allowStopToComplete = allowStop
         )
-        val forwarder = Grid3SwitchForwarder(host, backgroundScope)
+        val forwarder = PcSwitchControlForwarder(host, backgroundScope)
         val profile = (forwarder.loadProfileCatalog() as PcSwitchCatalogResult.Loaded)
             .catalog.profiles.single()
-        assertEquals(Grid3StartResult.Started, forwarder.start(profile, legacy = false))
+        assertEquals(PcSwitchControlStartResult.Started, forwarder.start(profile, usesLegacyGridProtocol = false))
 
         val firstStop = async(start = CoroutineStart.UNDISPATCHED) { forwarder.stop() }
         val duplicateStop = async(start = CoroutineStart.UNDISPATCHED) { forwarder.stop() }
         runCurrent()
         stopStarted.await()
-        val nextStart = async { forwarder.start(profile, legacy = false) }
+        val nextStart = async { forwarder.start(profile, usesLegacyGridProtocol = false) }
         allowStop.complete(Unit)
 
         firstStop.await()
         duplicateStop.await()
-        assertEquals(Grid3StartResult.Started, nextStart.await())
+        assertEquals(PcSwitchControlStartResult.Started, nextStart.await())
         assertTrue(forwarder.state.value.active)
         forwarder.stop()
     }
@@ -180,12 +180,12 @@ class Grid3SwitchForwarderTest {
             mutableListOf(switchEvent("20", "Primary")),
             genericSupported = true
         )
-        val forwarder = Grid3SwitchForwarder(host, backgroundScope)
+        val forwarder = PcSwitchControlForwarder(host, backgroundScope)
         val loaded = forwarder.loadProfileCatalog() as PcSwitchCatalogResult.Loaded
         val selected = loaded.catalog.profiles.single()
 
         assertEquals(0, host.suspendCount)
-        assertEquals(Grid3StartResult.Started, forwarder.start(selected, legacy = false))
+        assertEquals(PcSwitchControlStartResult.Started, forwarder.start(selected, usesLegacyGridProtocol = false))
         assertEquals(1, host.suspendCount)
         assertTrue(host.commands.first() is PcControlCommand.SwitchSessionStart)
 
@@ -210,11 +210,11 @@ class Grid3SwitchForwarderTest {
             ),
             genericSupported = true
         )
-        val forwarder = Grid3SwitchForwarder(host, backgroundScope)
+        val forwarder = PcSwitchControlForwarder(host, backgroundScope)
         val profile = (forwarder.loadProfileCatalog() as PcSwitchCatalogResult.Loaded)
             .catalog.profiles.single()
 
-        assertEquals(Grid3StartResult.Started, forwarder.start(profile, legacy = false))
+        assertEquals(PcSwitchControlStartResult.Started, forwarder.start(profile, usesLegacyGridProtocol = false))
         assertEquals(
             listOf("Space", null),
             forwarder.state.value.mappings.map { it.outputLabel }
@@ -240,9 +240,9 @@ class Grid3SwitchForwarderTest {
                 switchEvent("9", "Camera", SWITCH_EVENT_TYPE_CAMERA)
             )
         )
-        val forwarder = Grid3SwitchForwarder(host, backgroundScope)
+        val forwarder = PcSwitchControlForwarder(host, backgroundScope)
 
-        assertEquals(Grid3StartResult.Started, forwarder.start())
+        assertEquals(PcSwitchControlStartResult.Started, forwarder.startLegacyGridProfile())
         assertEquals(
             listOf("1", "2", "3", "4", "5", "6", "7", "8"),
             forwarder.state.value.mappings.map { it.keyCode }
@@ -255,15 +255,15 @@ class Grid3SwitchForwarderTest {
         assertTrue(forwarder.onSwitchPressed(1))
         runCurrent()
 
-        assertEquals(listOf(PcControlCommand.GridSwitchSet(1, true)), host.commands)
+        assertEquals(listOf(PcControlCommand.LegacyGridSwitchSet(1, true)), host.commands)
         forwarder.stop()
     }
 
     @Test
     fun forwardsOrderedDeduplicatedDownAndUpWithLiveFeedback() = runTest {
         val host = FakeHost(mutableListOf(switchEvent("20", "Primary")))
-        val forwarder = Grid3SwitchForwarder(host, backgroundScope)
-        forwarder.start()
+        val forwarder = PcSwitchControlForwarder(host, backgroundScope)
+        forwarder.startLegacyGridProfile()
 
         assertTrue(forwarder.onSwitchPressed(20))
         assertTrue(forwarder.state.value.mappings.single().pressed)
@@ -275,8 +275,8 @@ class Grid3SwitchForwarderTest {
 
         assertEquals(
             listOf(
-                PcControlCommand.GridSwitchSet(1, true),
-                PcControlCommand.GridSwitchSet(1, false)
+                PcControlCommand.LegacyGridSwitchSet(1, true),
+                PcControlCommand.LegacyGridSwitchSet(1, false)
             ),
             host.commands
         )
@@ -289,8 +289,8 @@ class Grid3SwitchForwarderTest {
             mutableListOf(switchEvent("20", "Primary")),
             sequencedSupported = true
         )
-        val forwarder = Grid3SwitchForwarder(host, backgroundScope)
-        forwarder.start()
+        val forwarder = PcSwitchControlForwarder(host, backgroundScope)
+        forwarder.startLegacyGridProfile()
         runCurrent()
         host.commands.clear()
         host.realtimeCommands.clear()
@@ -304,17 +304,17 @@ class Grid3SwitchForwarderTest {
         )
         runCurrent()
 
-        val edges = host.realtimeCommands.filterIsInstance<PcControlCommand.GridSwitchSet>()
+        val edges = host.realtimeCommands.filterIsInstance<PcControlCommand.LegacyGridSwitchSet>()
         assertEquals(2, edges.size)
         assertTrue(edges.first().down)
         assertFalse(edges.last().down)
         assertEquals(edges.first().sessionId, edges.last().sessionId)
         assertTrue(requireNotNull(edges.first().sequence) < requireNotNull(edges.last().sequence))
 
-        advanceTimeBy(Grid3SwitchForwarder.SNAPSHOT_INTERVAL_MS)
+        advanceTimeBy(PcSwitchControlForwarder.SNAPSHOT_INTERVAL_MS)
         runCurrent()
 
-        val sync = host.commands.filterIsInstance<PcControlCommand.GridSwitchSync>().last()
+        val sync = host.commands.filterIsInstance<PcControlCommand.LegacyGridSwitchSync>().last()
         assertTrue(sync.pressedSwitchIds.isEmpty())
         assertTrue(sync.sequence > requireNotNull(edges.last().sequence))
         forwarder.stop()
@@ -330,8 +330,8 @@ class Grid3SwitchForwarderTest {
             syncStarted = syncStarted,
             allowSyncToComplete = allowSyncToComplete
         )
-        val forwarder = Grid3SwitchForwarder(host, backgroundScope)
-        forwarder.start()
+        val forwarder = PcSwitchControlForwarder(host, backgroundScope)
+        forwarder.startLegacyGridProfile()
         runCurrent()
         syncStarted.await()
 
@@ -339,7 +339,7 @@ class Grid3SwitchForwarderTest {
         forwarder.onSwitchReleased(20, downTimeMs = 1_000L, eventTimeMs = 1_100L, cancelled = false)
         runCurrent()
 
-        val edges = host.realtimeCommands.filterIsInstance<PcControlCommand.GridSwitchSet>()
+        val edges = host.realtimeCommands.filterIsInstance<PcControlCommand.LegacyGridSwitchSet>()
         assertEquals(listOf(true, false), edges.map { it.down })
 
         allowSyncToComplete.complete(Unit)
@@ -362,8 +362,8 @@ class Grid3SwitchForwarderTest {
                 PcCommandResult.Failed("Final synchronization failed.")
             )
         )
-        val forwarder = Grid3SwitchForwarder(host, backgroundScope)
-        forwarder.start()
+        val forwarder = PcSwitchControlForwarder(host, backgroundScope)
+        forwarder.startLegacyGridProfile()
         runCurrent()
         syncStarted.await()
 
@@ -373,7 +373,7 @@ class Grid3SwitchForwarderTest {
         runCurrent()
         forwarder.stop()
 
-        val fallbackReleases = host.commands.filterIsInstance<PcControlCommand.GridSwitchSet>()
+        val fallbackReleases = host.commands.filterIsInstance<PcControlCommand.LegacyGridSwitchSet>()
             .filterNot { it.down }
         assertTrue(fallbackReleases.isEmpty())
     }
@@ -381,14 +381,14 @@ class Grid3SwitchForwarderTest {
     @Test
     fun legacyPcKeepsAcknowledgedUnsequencedEdges() = runTest {
         val host = FakeHost(mutableListOf(switchEvent("20", "Primary")))
-        val forwarder = Grid3SwitchForwarder(host, backgroundScope)
-        forwarder.start()
+        val forwarder = PcSwitchControlForwarder(host, backgroundScope)
+        forwarder.startLegacyGridProfile()
 
         forwarder.onSwitchPressed(20)
         forwarder.onSwitchReleased(20)
         runCurrent()
 
-        val edges = host.commands.filterIsInstance<PcControlCommand.GridSwitchSet>()
+        val edges = host.commands.filterIsInstance<PcControlCommand.LegacyGridSwitchSet>()
         assertEquals(2, edges.size)
         assertTrue(host.realtimeCommands.isEmpty())
         assertTrue(edges.all { it.sessionId == null && it.sequence == null })
@@ -398,9 +398,9 @@ class Grid3SwitchForwarderTest {
     @Test
     fun defaultHoldToStopDurationIsFiveSeconds() = runTest {
         val host = FakeHost(mutableListOf(switchEvent("20", "Primary")))
-        val forwarder = Grid3SwitchForwarder(host, backgroundScope)
+        val forwarder = PcSwitchControlForwarder(host, backgroundScope)
 
-        forwarder.start()
+        forwarder.startLegacyGridProfile()
 
         assertEquals(5_000L, forwarder.state.value.holdToStopDurationMs)
         forwarder.stop()
@@ -412,8 +412,8 @@ class Grid3SwitchForwarderTest {
             mutableListOf(switchEvent("20", "Primary")),
             holdDurationMs = 2_000L
         )
-        val forwarder = Grid3SwitchForwarder(host, backgroundScope)
-        forwarder.start()
+        val forwarder = PcSwitchControlForwarder(host, backgroundScope)
+        forwarder.startLegacyGridProfile()
 
         assertTrue(forwarder.onSwitchPressed(20, downTimeMs = 1_000L, eventTimeMs = 1_000L))
         assertTrue(forwarder.onSwitchPressed(20, downTimeMs = 1_000L, eventTimeMs = 2_000L))
@@ -429,8 +429,8 @@ class Grid3SwitchForwarderTest {
 
         assertEquals(
             listOf(
-                PcControlCommand.GridSwitchSet(1, true),
-                PcControlCommand.GridSwitchSet(1, false)
+                PcControlCommand.LegacyGridSwitchSet(1, true),
+                PcControlCommand.LegacyGridSwitchSet(1, false)
             ),
             host.commands
         )
@@ -443,8 +443,8 @@ class Grid3SwitchForwarderTest {
             mutableListOf(switchEvent("20", "Primary")),
             holdDurationMs = 2_000L
         )
-        val forwarder = Grid3SwitchForwarder(host, backgroundScope)
-        forwarder.start()
+        val forwarder = PcSwitchControlForwarder(host, backgroundScope)
+        forwarder.startLegacyGridProfile()
 
         forwarder.onSwitchPressed(20, downTimeMs = 1_000L, eventTimeMs = 1_000L)
         forwarder.onSwitchPressed(20, downTimeMs = 10_000L, eventTimeMs = 10_000L)
@@ -459,10 +459,10 @@ class Grid3SwitchForwarderTest {
 
         assertEquals(
             listOf(
-                PcControlCommand.GridSwitchSet(1, true),
-                PcControlCommand.GridSwitchSet(1, false),
-                PcControlCommand.GridSwitchSet(1, true),
-                PcControlCommand.GridSwitchSet(1, false)
+                PcControlCommand.LegacyGridSwitchSet(1, true),
+                PcControlCommand.LegacyGridSwitchSet(1, false),
+                PcControlCommand.LegacyGridSwitchSet(1, true),
+                PcControlCommand.LegacyGridSwitchSet(1, false)
             ),
             host.commands
         )
@@ -474,8 +474,8 @@ class Grid3SwitchForwarderTest {
     @Test
     fun staleReleaseDoesNotReleaseRecoveredCurrentSequence() = runTest {
         val host = FakeHost(mutableListOf(switchEvent("20", "Primary")))
-        val forwarder = Grid3SwitchForwarder(host, backgroundScope)
-        forwarder.start()
+        val forwarder = PcSwitchControlForwarder(host, backgroundScope)
+        forwarder.startLegacyGridProfile()
 
         forwarder.onSwitchPressed(20, downTimeMs = 1_000L, eventTimeMs = 1_000L)
         forwarder.onSwitchPressed(20, downTimeMs = 2_000L, eventTimeMs = 2_000L)
@@ -490,9 +490,9 @@ class Grid3SwitchForwarderTest {
         assertTrue(forwarder.state.value.mappings.single().pressed)
         assertEquals(
             listOf(
-                PcControlCommand.GridSwitchSet(1, true),
-                PcControlCommand.GridSwitchSet(1, false),
-                PcControlCommand.GridSwitchSet(1, true)
+                PcControlCommand.LegacyGridSwitchSet(1, true),
+                PcControlCommand.LegacyGridSwitchSet(1, false),
+                PcControlCommand.LegacyGridSwitchSet(1, true)
             ),
             host.commands
         )
@@ -514,8 +514,8 @@ class Grid3SwitchForwarderTest {
             mutableListOf(switchEvent("20", "Primary")),
             holdDurationMs = 2_000L
         )
-        val forwarder = Grid3SwitchForwarder(host, backgroundScope)
-        forwarder.start()
+        val forwarder = PcSwitchControlForwarder(host, backgroundScope)
+        forwarder.startLegacyGridProfile()
 
         forwarder.onSwitchPressed(20, downTimeMs = 1_000L, eventTimeMs = 1_000L)
         forwarder.onSwitchReleased(
@@ -528,8 +528,8 @@ class Grid3SwitchForwarderTest {
 
         assertEquals(
             listOf(
-                PcControlCommand.GridSwitchSet(1, true),
-                PcControlCommand.GridSwitchSet(1, false)
+                PcControlCommand.LegacyGridSwitchSet(1, true),
+                PcControlCommand.LegacyGridSwitchSet(1, false)
             ),
             host.commands
         )
@@ -540,8 +540,8 @@ class Grid3SwitchForwarderTest {
     @Test
     fun releaseWithoutForwardedPressDoesNotSendActivationGesture() = runTest {
         val host = FakeHost(mutableListOf(switchEvent("20", "Primary")))
-        val forwarder = Grid3SwitchForwarder(host, backgroundScope)
-        forwarder.start()
+        val forwarder = PcSwitchControlForwarder(host, backgroundScope)
+        forwarder.startLegacyGridProfile()
 
         assertTrue(forwarder.onSwitchReleased(20))
         runCurrent()
@@ -554,8 +554,8 @@ class Grid3SwitchForwarderTest {
     fun unknownAndOverflowSwitchesAreConsumedWithoutForwarding() = runTest {
         val switches = (1..9).map { switchEvent(it.toString(), "Switch $it") }.toMutableList()
         val host = FakeHost(switches)
-        val forwarder = Grid3SwitchForwarder(host, backgroundScope)
-        forwarder.start()
+        val forwarder = PcSwitchControlForwarder(host, backgroundScope)
+        forwarder.startLegacyGridProfile()
 
         assertTrue(forwarder.onSwitchPressed(9))
         assertTrue(forwarder.onSwitchReleased(9))
@@ -570,8 +570,8 @@ class Grid3SwitchForwarderTest {
     @Test
     fun holdAndReleaseSendsUpThenStopsAndRestoresScanning() = runTest {
         val host = FakeHost(mutableListOf(switchEvent("4", "Hold")), holdDurationMs = 2_000L)
-        val forwarder = Grid3SwitchForwarder(host, backgroundScope)
-        forwarder.start()
+        val forwarder = PcSwitchControlForwarder(host, backgroundScope)
+        forwarder.startLegacyGridProfile()
         forwarder.onSwitchPressed(4, downTimeMs = 1_000L, eventTimeMs = 1_000L)
         runCurrent()
 
@@ -585,8 +585,8 @@ class Grid3SwitchForwarderTest {
 
         assertEquals(
             listOf(
-                PcControlCommand.GridSwitchSet(1, true),
-                PcControlCommand.GridSwitchSet(1, false)
+                PcControlCommand.LegacyGridSwitchSet(1, true),
+                PcControlCommand.LegacyGridSwitchSet(1, false)
             ),
             host.commands
         )
@@ -604,8 +604,8 @@ class Grid3SwitchForwarderTest {
                 switchEvent("2", "Two")
             )
         )
-        val forwarder = Grid3SwitchForwarder(host, backgroundScope)
-        forwarder.start()
+        val forwarder = PcSwitchControlForwarder(host, backgroundScope)
+        forwarder.startLegacyGridProfile()
         forwarder.onSwitchPressed(1)
         forwarder.onSwitchPressed(2)
         runCurrent()
@@ -614,10 +614,10 @@ class Grid3SwitchForwarderTest {
 
         assertEquals(
             listOf(
-                PcControlCommand.GridSwitchSet(1, true),
-                PcControlCommand.GridSwitchSet(2, true),
-                PcControlCommand.GridSwitchSet(1, false),
-                PcControlCommand.GridSwitchSet(2, false)
+                PcControlCommand.LegacyGridSwitchSet(1, true),
+                PcControlCommand.LegacyGridSwitchSet(2, true),
+                PcControlCommand.LegacyGridSwitchSet(1, false),
+                PcControlCommand.LegacyGridSwitchSet(2, false)
             ),
             host.commands
         )
@@ -633,8 +633,8 @@ class Grid3SwitchForwarderTest {
             downStarted = downStarted,
             allowDownToComplete = allowDownToComplete
         )
-        val forwarder = Grid3SwitchForwarder(host, backgroundScope)
-        forwarder.start()
+        val forwarder = PcSwitchControlForwarder(host, backgroundScope)
+        forwarder.startLegacyGridProfile()
         forwarder.onSwitchPressed(1)
         downStarted.await()
 
@@ -645,8 +645,8 @@ class Grid3SwitchForwarderTest {
 
         assertEquals(
             listOf(
-                PcControlCommand.GridSwitchSet(1, true),
-                PcControlCommand.GridSwitchSet(1, false)
+                PcControlCommand.LegacyGridSwitchSet(1, true),
+                PcControlCommand.LegacyGridSwitchSet(1, false)
             ),
             host.commands
         )
@@ -657,8 +657,8 @@ class Grid3SwitchForwarderTest {
     @Test
     fun repeatedStopCompletesCleanupOnce() = runTest {
         val host = FakeHost(mutableListOf(switchEvent("1", "One")))
-        val forwarder = Grid3SwitchForwarder(host, backgroundScope)
-        forwarder.start()
+        val forwarder = PcSwitchControlForwarder(host, backgroundScope)
+        forwarder.startLegacyGridProfile()
         forwarder.onSwitchPressed(1)
         runCurrent()
 
@@ -681,8 +681,8 @@ class Grid3SwitchForwarderTest {
             downStarted = downStarted,
             allowDownToComplete = allowDownToComplete
         )
-        val forwarder = Grid3SwitchForwarder(host, backgroundScope)
-        forwarder.start()
+        val forwarder = PcSwitchControlForwarder(host, backgroundScope)
+        forwarder.startLegacyGridProfile()
         forwarder.onSwitchPressed(1)
         downStarted.await()
 
@@ -697,8 +697,8 @@ class Grid3SwitchForwarderTest {
 
         assertEquals(
             listOf(
-                PcControlCommand.GridSwitchSet(1, true),
-                PcControlCommand.GridSwitchSet(1, false)
+                PcControlCommand.LegacyGridSwitchSet(1, true),
+                PcControlCommand.LegacyGridSwitchSet(1, false)
             ),
             host.commands
         )
@@ -708,8 +708,8 @@ class Grid3SwitchForwarderTest {
     @Test
     fun destroyReleasesConnectionWithoutRestartingScanning() = runTest {
         val host = FakeHost(mutableListOf(switchEvent("1", "One")))
-        val forwarder = Grid3SwitchForwarder(host, backgroundScope)
-        forwarder.start()
+        val forwarder = PcSwitchControlForwarder(host, backgroundScope)
+        forwarder.startLegacyGridProfile()
 
         forwarder.destroy()
 
@@ -723,8 +723,8 @@ class Grid3SwitchForwarderTest {
         val parentJob = SupervisorJob()
         val parentScope = CoroutineScope(parentJob + StandardTestDispatcher(testScheduler))
         val host = FakeHost(mutableListOf(switchEvent("1", "One")))
-        val forwarder = Grid3SwitchForwarder(host, parentScope)
-        forwarder.start()
+        val forwarder = PcSwitchControlForwarder(host, parentScope)
+        forwarder.startLegacyGridProfile()
         forwarder.onSwitchPressed(1)
         runCurrent()
 
@@ -733,8 +733,8 @@ class Grid3SwitchForwarderTest {
 
         assertEquals(
             listOf(
-                PcControlCommand.GridSwitchSet(1, true),
-                PcControlCommand.GridSwitchSet(1, false)
+                PcControlCommand.LegacyGridSwitchSet(1, true),
+                PcControlCommand.LegacyGridSwitchSet(1, false)
             ),
             host.commands
         )
@@ -751,8 +751,8 @@ class Grid3SwitchForwarderTest {
             ),
             throwOnReleaseIds = setOf(1)
         )
-        val forwarder = Grid3SwitchForwarder(host, backgroundScope)
-        forwarder.start()
+        val forwarder = PcSwitchControlForwarder(host, backgroundScope)
+        forwarder.startLegacyGridProfile()
         forwarder.onSwitchPressed(1)
         forwarder.onSwitchPressed(2)
         runCurrent()
@@ -761,10 +761,10 @@ class Grid3SwitchForwarderTest {
 
         assertEquals(
             listOf(
-                PcControlCommand.GridSwitchSet(1, true),
-                PcControlCommand.GridSwitchSet(2, true),
-                PcControlCommand.GridSwitchSet(1, false),
-                PcControlCommand.GridSwitchSet(2, false)
+                PcControlCommand.LegacyGridSwitchSet(1, true),
+                PcControlCommand.LegacyGridSwitchSet(2, true),
+                PcControlCommand.LegacyGridSwitchSet(1, false),
+                PcControlCommand.LegacyGridSwitchSet(2, false)
             ),
             host.commands
         )
@@ -774,8 +774,8 @@ class Grid3SwitchForwarderTest {
     @Test
     fun legacyReconnectKeepsHeldStateForExplicitCleanup() = runTest {
         val host = FakeHost(mutableListOf(switchEvent("1", "One")))
-        val forwarder = Grid3SwitchForwarder(host, backgroundScope)
-        forwarder.start()
+        val forwarder = PcSwitchControlForwarder(host, backgroundScope)
+        forwarder.startLegacyGridProfile()
         forwarder.onSwitchPressed(1)
         runCurrent()
 
@@ -786,12 +786,12 @@ class Grid3SwitchForwarderTest {
         runCurrent()
 
         assertTrue(forwarder.state.value.active)
-        assertEquals(Grid3ConnectionStatus.Reconnecting, forwarder.state.value.connectionStatus)
+        assertEquals(PcSwitchControlConnectionStatus.Reconnecting, forwarder.state.value.connectionStatus)
         forwarder.stop()
         assertEquals(
             listOf(
-                PcControlCommand.GridSwitchSet(1, true),
-                PcControlCommand.GridSwitchSet(1, false)
+                PcControlCommand.LegacyGridSwitchSet(1, true),
+                PcControlCommand.LegacyGridSwitchSet(1, false)
             ),
             host.commands
         )
@@ -803,8 +803,8 @@ class Grid3SwitchForwarderTest {
             mutableListOf(switchEvent("1", "One")),
             sequencedSupported = true
         )
-        val forwarder = Grid3SwitchForwarder(host, backgroundScope)
-        forwarder.start()
+        val forwarder = PcSwitchControlForwarder(host, backgroundScope)
+        forwarder.startLegacyGridProfile()
         runCurrent()
         forwarder.onSwitchPressed(1)
         runCurrent()
@@ -822,7 +822,7 @@ class Grid3SwitchForwarderTest {
         )
         runCurrent()
 
-        val sync = host.commands.filterIsInstance<PcControlCommand.GridSwitchSync>().single()
+        val sync = host.commands.filterIsInstance<PcControlCommand.LegacyGridSwitchSync>().single()
         assertEquals(setOf(1), sync.pressedSwitchIds)
         assertTrue(forwarder.state.value.active)
         forwarder.stop()
@@ -831,8 +831,8 @@ class Grid3SwitchForwarderTest {
     @Test
     fun terminalFailureReleasesHeldSwitchAndRestoresScanning() = runTest {
         val host = FakeHost(mutableListOf(switchEvent("1", "One")))
-        val forwarder = Grid3SwitchForwarder(host, backgroundScope)
-        forwarder.start()
+        val forwarder = PcSwitchControlForwarder(host, backgroundScope)
+        forwarder.startLegacyGridProfile()
         forwarder.onSwitchPressed(1)
         runCurrent()
 
@@ -842,8 +842,8 @@ class Grid3SwitchForwarderTest {
         assertFalse(forwarder.state.value.active)
         assertEquals(
             listOf(
-                PcControlCommand.GridSwitchSet(1, true),
-                PcControlCommand.GridSwitchSet(1, false)
+                PcControlCommand.LegacyGridSwitchSet(1, true),
+                PcControlCommand.LegacyGridSwitchSet(1, false)
             ),
             host.commands
         )
@@ -859,12 +859,12 @@ class Grid3SwitchForwarderTest {
         )
 
         assertEquals(
-            Grid3StartResult.NoExternalSwitches,
-            Grid3SwitchForwarder(noSwitchHost, backgroundScope).start()
+            PcSwitchControlStartResult.NoExternalSwitches,
+            PcSwitchControlForwarder(noSwitchHost, backgroundScope).startLegacyGridProfile()
         )
         assertEquals(
-            Grid3StartResult.UnsupportedPc,
-            Grid3SwitchForwarder(unsupportedHost, backgroundScope).start()
+            PcSwitchControlStartResult.UnsupportedPc,
+            PcSwitchControlForwarder(unsupportedHost, backgroundScope).startLegacyGridProfile()
         )
         assertEquals(0, noSwitchHost.suspendCount)
         assertEquals(0, unsupportedHost.suspendCount)
@@ -873,7 +873,7 @@ class Grid3SwitchForwarderTest {
     @Test
     fun inactivityTimeoutStopsSessionAndEmitsTerminalExit() = runTest {
         val host = FakeHost(mutableListOf(switchEvent("1", "One")))
-        val forwarder = Grid3SwitchForwarder(
+        val forwarder = PcSwitchControlForwarder(
             host = host,
             scope = backgroundScope,
             inactivityTimeoutMs = 1_000L
@@ -882,7 +882,7 @@ class Grid3SwitchForwarderTest {
         backgroundScope.launch(start = CoroutineStart.UNDISPATCHED) {
             exit.complete(forwarder.terminalExitEvents.first())
         }
-        assertEquals(Grid3StartResult.Started, forwarder.start())
+        assertEquals(PcSwitchControlStartResult.Started, forwarder.startLegacyGridProfile())
 
         advanceTimeBy(999L)
         runCurrent()
@@ -901,12 +901,12 @@ class Grid3SwitchForwarderTest {
     fun consumedOverflowAndCancelledEventsResetInactivityTimeout() = runTest {
         val switches = (1..9).map { switchEvent(it.toString(), "Switch $it") }.toMutableList()
         val host = FakeHost(switches)
-        val forwarder = Grid3SwitchForwarder(
+        val forwarder = PcSwitchControlForwarder(
             host = host,
             scope = backgroundScope,
             inactivityTimeoutMs = 1_000L
         )
-        assertEquals(Grid3StartResult.Started, forwarder.start())
+        assertEquals(PcSwitchControlStartResult.Started, forwarder.startLegacyGridProfile())
 
         advanceTimeBy(900L)
         assertTrue(forwarder.onSwitchPressed(9, 9L, 900L))
@@ -928,12 +928,12 @@ class Grid3SwitchForwarderTest {
     @Test
     fun normalStopCancelsInactivityTimeout() = runTest {
         val host = FakeHost(mutableListOf(switchEvent("1", "One")))
-        val forwarder = Grid3SwitchForwarder(
+        val forwarder = PcSwitchControlForwarder(
             host = host,
             scope = backgroundScope,
             inactivityTimeoutMs = 1_000L
         )
-        assertEquals(Grid3StartResult.Started, forwarder.start())
+        assertEquals(PcSwitchControlStartResult.Started, forwarder.startLegacyGridProfile())
 
         forwarder.stop()
         advanceTimeBy(2_000L)
@@ -945,16 +945,16 @@ class Grid3SwitchForwarderTest {
     @Test
     fun staleTimeoutCannotStopReplacementSession() = runTest {
         val host = FakeHost(mutableListOf(switchEvent("1", "One")))
-        val forwarder = Grid3SwitchForwarder(
+        val forwarder = PcSwitchControlForwarder(
             host = host,
             scope = backgroundScope,
             inactivityTimeoutMs = 1_000L
         )
-        assertEquals(Grid3StartResult.Started, forwarder.start())
+        assertEquals(PcSwitchControlStartResult.Started, forwarder.startLegacyGridProfile())
         advanceTimeBy(800L)
         forwarder.requestChangeProfile()
         runCurrent()
-        assertEquals(Grid3StartResult.Started, forwarder.start())
+        assertEquals(PcSwitchControlStartResult.Started, forwarder.startLegacyGridProfile())
 
         advanceTimeBy(201L)
         runCurrent()
@@ -969,12 +969,12 @@ class Grid3SwitchForwarderTest {
     @Test
     fun inactivityTimeoutContinuesDuringReconnect() = runTest {
         val host = FakeHost(mutableListOf(switchEvent("1", "One")))
-        val forwarder = Grid3SwitchForwarder(
+        val forwarder = PcSwitchControlForwarder(
             host = host,
             scope = backgroundScope,
             inactivityTimeoutMs = 1_000L
         )
-        assertEquals(Grid3StartResult.Started, forwarder.start())
+        assertEquals(PcSwitchControlStartResult.Started, forwarder.startLegacyGridProfile())
         advanceTimeBy(500L)
         host.mutableConnectionState.value = PcServiceConnectionState.Reconnecting(
             session = com.enaboapps.switchify.pc.PcAuthenticatedSession(
@@ -998,7 +998,7 @@ class Grid3SwitchForwarderTest {
         supported: Boolean = true,
         private val sequencedSupported: Boolean = false,
         private val genericSupported: Boolean = false,
-        private val holdDurationMs: Long = Grid3SwitchForwarder.DEFAULT_HOLD_TO_STOP_MS,
+        private val holdDurationMs: Long = PcSwitchControlForwarder.DEFAULT_HOLD_TO_STOP_MS,
         private val throwOnReleaseIds: Set<Int> = emptySet(),
         private val downStarted: CompletableDeferred<Unit>? = null,
         private val allowDownToComplete: CompletableDeferred<Unit>? = null,
@@ -1009,7 +1009,7 @@ class Grid3SwitchForwarderTest {
         private val allowStartToComplete: CompletableDeferred<Unit>? = null,
         private val stopStarted: CompletableDeferred<Unit>? = null,
         private val allowStopToComplete: CompletableDeferred<Unit>? = null
-    ) : Grid3ForwardingHost {
+    ) : PcSwitchControlHost {
         val mutableConnectionState = MutableStateFlow<PcServiceConnectionState>(
             PcServiceConnectionState.Connected(
                 session = com.enaboapps.switchify.pc.PcAuthenticatedSession("desktop", "device", "endpoint"),
@@ -1034,15 +1034,15 @@ class Grid3SwitchForwarderTest {
             capabilities = PcPointerCapabilities(
                 supportedCommands = if (supported) {
                     buildSet {
-                        add(PcProtocol.GRID_SWITCH_SET_COMMAND)
-                        if (sequencedSupported) add(PcProtocol.GRID_SWITCH_SYNC_COMMAND)
-                        if (genericSupported) addAll(Grid3SwitchForwarder.GENERIC_COMMANDS)
+                        add(PcProtocol.LEGACY_GRID_SWITCH_SET_COMMAND)
+                        if (sequencedSupported) add(PcProtocol.LEGACY_GRID_SWITCH_SYNC_COMMAND)
+                        if (genericSupported) addAll(PcSwitchControlForwarder.GENERIC_COMMANDS)
                     }
                 } else {
                     emptySet()
                 },
                 noAckCommands = if (sequencedSupported) {
-                    setOf(PcProtocol.GRID_SWITCH_SET_COMMAND)
+                    setOf(PcProtocol.LEGACY_GRID_SWITCH_SET_COMMAND)
                 } else {
                     emptySet()
                 }
@@ -1097,18 +1097,18 @@ class Grid3SwitchForwarderTest {
                 stopStarted?.complete(Unit)
                 allowStopToComplete?.await()
             }
-            if (command is PcControlCommand.GridSwitchSync) {
+            if (command is PcControlCommand.LegacyGridSwitchSync) {
                 syncStarted?.complete(Unit)
                 allowSyncToComplete?.await()
                 if (syncResults.isNotEmpty()) {
                     return syncResults.removeAt(0)
                 }
             }
-            if (command is PcControlCommand.GridSwitchSet && command.down) {
+            if (command is PcControlCommand.LegacyGridSwitchSet && command.down) {
                 downStarted?.complete(Unit)
                 allowDownToComplete?.await()
             }
-            if (command is PcControlCommand.GridSwitchSet &&
+            if (command is PcControlCommand.LegacyGridSwitchSet &&
                 !command.down &&
                 command.switchId in throwOnReleaseIds
             ) {
@@ -1134,12 +1134,12 @@ class Grid3SwitchForwarderTest {
         holdActions = emptyList()
     )
 
-    private fun Grid3SwitchForwarder.onSwitchPressed(keyCode: Int): Boolean {
+    private fun PcSwitchControlForwarder.onSwitchPressed(keyCode: Int): Boolean {
         val time = keyCode.toLong()
         return onSwitchPressed(keyCode, downTimeMs = time, eventTimeMs = time)
     }
 
-    private fun Grid3SwitchForwarder.onSwitchReleased(keyCode: Int): Boolean {
+    private fun PcSwitchControlForwarder.onSwitchReleased(keyCode: Int): Boolean {
         val time = keyCode.toLong()
         return onSwitchReleased(
             keyCode,

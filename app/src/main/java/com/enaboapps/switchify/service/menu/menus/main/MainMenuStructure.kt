@@ -7,7 +7,7 @@ import com.enaboapps.switchify.service.actions.GlobalActionManager
 import com.enaboapps.switchify.service.core.ServiceCore
 import com.enaboapps.switchify.service.core.SwitchifyAccessibilityService
 import com.enaboapps.switchify.service.gestures.GesturePoint
-import com.enaboapps.switchify.service.grid3.PcSwitchControlLauncher
+import com.enaboapps.switchify.service.pcswitchcontrol.PcSwitchControlLauncher
 import com.enaboapps.switchify.service.keyboard.KeyboardManager
 import com.enaboapps.switchify.service.menu.MenuItem
 import com.enaboapps.switchify.service.menu.MenuManager
@@ -29,7 +29,7 @@ class MainMenuStructure(
     private val deviceLockObserver = DeviceLockObserver(accessibilityService)
     private val preferenceManager = PreferenceManager(accessibilityService)
     private val pcControlLauncher = PcControlLauncher(accessibilityService, coroutineScope)
-    private val grid3ControlLauncher = PcSwitchControlLauncher(accessibilityService, coroutineScope)
+    private val pcSwitchControlLauncher = PcSwitchControlLauncher(accessibilityService, coroutineScope)
     private val repository = MenuConfigurationRepository(accessibilityService)
 
     val deviceItem = MenuItem(
@@ -150,11 +150,13 @@ class MainMenuStructure(
             if (deviceLockObserver.isUserUnlocked() == true &&
                 !DeviceLockObserver.isKeyguardLocked(accessibilityService)
             ) {
-                MenuItemRegistry.getMainMenuDefinition("control_grid_3")?.let { def ->
+                MenuItemRegistry.getMainMenuDefinition(
+                    MenuConstants.ItemIds.Main.PC_SWITCH_CONTROL
+                )?.let { def ->
                     MenuItem(
                         definition = def,
                         isLinkToMenu = true,
-                        action = { grid3ControlLauncher.open() }
+                        action = { pcSwitchControlLauncher.open() }
                     )
                 }
             } else null,

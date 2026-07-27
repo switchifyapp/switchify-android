@@ -1,4 +1,4 @@
-package com.enaboapps.switchify.screens.grid3
+package com.enaboapps.switchify.screens.pcswitchcontrol
 
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -80,13 +80,13 @@ import com.enaboapps.switchify.components.EqualHeightGridRow
 import com.enaboapps.switchify.components.Panel
 import com.enaboapps.switchify.components.Section
 import com.enaboapps.switchify.service.core.ServiceCore
-import com.enaboapps.switchify.service.grid3.Grid3ConnectionStatus
-import com.enaboapps.switchify.service.grid3.Grid3ForwardingState
-import com.enaboapps.switchify.service.grid3.Grid3SwitchForwarder
-import com.enaboapps.switchify.service.grid3.Grid3SwitchMapping
-import com.enaboapps.switchify.service.grid3.Grid3StartResult
-import com.enaboapps.switchify.service.grid3.PcSwitchCatalogResult
-import com.enaboapps.switchify.service.grid3.PcSwitchControlExitReason
+import com.enaboapps.switchify.service.pcswitchcontrol.PcSwitchControlConnectionStatus
+import com.enaboapps.switchify.service.pcswitchcontrol.PcSwitchControlState
+import com.enaboapps.switchify.service.pcswitchcontrol.PcSwitchControlForwarder
+import com.enaboapps.switchify.service.pcswitchcontrol.PcSwitchControlMapping
+import com.enaboapps.switchify.service.pcswitchcontrol.PcSwitchControlStartResult
+import com.enaboapps.switchify.service.pcswitchcontrol.PcSwitchCatalogResult
+import com.enaboapps.switchify.service.pcswitchcontrol.PcSwitchControlExitReason
 import com.enaboapps.switchify.service.utils.DeviceLockObserver
 import com.enaboapps.switchify.pc.PcSwitchProfileCatalog
 import com.enaboapps.switchify.pc.PcSwitchProfileSummary
@@ -96,7 +96,7 @@ import com.enaboapps.switchify.theme.Dimens
 import kotlinx.coroutines.launch
 
 open class PcSwitchControlActivity : ComponentActivity() {
-    private var forwarder: Grid3SwitchForwarder? = null
+    private var forwarder: PcSwitchControlForwarder? = null
     private var screenOffReceiverRegistered = false
     private val screenOffReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -157,7 +157,7 @@ open class PcSwitchControlActivity : ComponentActivity() {
                     onAnnounced = { transitionAnnouncement = null }
                 )
                 if (state.active && !showChooser) {
-                    Grid3ControlScreen(
+                    PcSwitchControlScreen(
                         state = state,
                         onChangeProfile = {
                             forwarder.requestChangeProfile()
@@ -174,9 +174,9 @@ open class PcSwitchControlActivity : ComponentActivity() {
                             showChooser = false
                             transitionAnnouncement =
                                 context.getString(
-                                    R.string.grid3_connected,
+                                    R.string.pc_switch_control_connected,
                                     forwarder.state.value.pcName
-                                        ?: context.getString(R.string.grid3_pc_fallback_name)
+                                        ?: context.getString(R.string.pc_switch_control_pc_fallback_name)
                                 )
                         },
                         onClose = { finish() }
@@ -216,8 +216,8 @@ open class PcSwitchControlActivity : ComponentActivity() {
 }
 
 @Composable
-private fun Grid3ControlScreen(
-    state: Grid3ForwardingState,
+private fun PcSwitchControlScreen(
+    state: PcSwitchControlState,
     onChangeProfile: () -> Unit,
     onStop: () -> Unit
 ) {
@@ -225,7 +225,7 @@ private fun Grid3ControlScreen(
     val holdDuration = holdDurationLabel(state.holdToStopDurationMs)
     Scaffold(
         bottomBar = {
-            Grid3BottomBar(
+            PcSwitchBottomBar(
                 holdDuration = holdDuration,
                 onChangeProfile = onChangeProfile,
                 onStop = onStop
@@ -240,12 +240,12 @@ private fun Grid3ControlScreen(
                 .padding(Dimens.spaceM),
             verticalArrangement = Arrangement.spacedBy(Dimens.spaceM)
         ) {
-            Grid3StatusHero(
+            PcSwitchStatusHero(
                 connectionStatus = state.connectionStatus,
                 pcName = state.pcName,
                 profileName = state.profileName
             )
-            Section(titleResId = R.string.grid3_switch_mapping) {
+            Section(titleResId = R.string.pc_switch_control_switch_mapping) {
                 BoxWithConstraints(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -265,7 +265,7 @@ private fun Grid3ControlScreen(
                                 minItemHeight = 72.dp,
                                 horizontalGap = gap
                             ) { mapping, itemModifier ->
-                                Grid3SwitchTile(
+                                PcSwitchTile(
                                     mapping = mapping,
                                     modifier = itemModifier
                                 )
@@ -275,7 +275,7 @@ private fun Grid3ControlScreen(
                 }
             }
             if (state.overflowSwitches.isNotEmpty()) {
-                Grid3OverflowPanel(names = state.overflowSwitches)
+                PcSwitchOverflowPanel(names = state.overflowSwitches)
             }
         }
     }
@@ -313,7 +313,7 @@ private sealed interface PcSwitchChooserState {
 
 @Composable
 private fun PcSwitchProfileChooser(
-    forwarder: com.enaboapps.switchify.service.grid3.Grid3SwitchForwarder,
+    forwarder: com.enaboapps.switchify.service.pcswitchcontrol.PcSwitchControlForwarder,
     onStarted: () -> Unit,
     onClose: () -> Unit
 ) {
@@ -352,7 +352,7 @@ private fun PcSwitchProfileChooser(
                     PcSwitchChooserState.Error(result.message)
                 PcSwitchCatalogResult.Unsupported ->
                     PcSwitchChooserState.Error(
-                        context.getString(R.string.grid3_pc_unsupported)
+                        context.getString(R.string.pc_switch_control_pc_unsupported)
                     )
             }
         }
@@ -361,28 +361,33 @@ private fun PcSwitchProfileChooser(
     fun start(ready: PcSwitchChooserState.Ready) {
         chooserState = PcSwitchChooserState.Starting(ready.catalog, ready.selected)
         scope.launch {
-            when (val result = forwarder.start(ready.selected, ready.catalog.legacy)) {
-                Grid3StartResult.Started -> {
+            when (
+                val result = forwarder.start(
+                    ready.selected,
+                    ready.catalog.usesLegacyGridProtocol
+                )
+            ) {
+                PcSwitchControlStartResult.Started -> {
                     preferences.rememberProfile(forwarder.currentPcId(), ready.selected.id)
                     onStarted()
                 }
-                Grid3StartResult.NoExternalSwitches -> {
+                PcSwitchControlStartResult.NoExternalSwitches -> {
                     chooserState = ready.copy(notice = null)
                 }
-                Grid3StartResult.UnsupportedPc -> {
+                PcSwitchControlStartResult.UnsupportedPc -> {
                     chooserState = ready.copy(
                         notice = PcSwitchNotice(
-                            context.getString(R.string.grid3_pc_unsupported),
+                            context.getString(R.string.pc_switch_control_pc_unsupported),
                             PcSwitchNoticeSeverity.Error
                         )
                     )
                 }
-                Grid3StartResult.ProfileChanged -> {
+                PcSwitchControlStartResult.ProfileChanged -> {
                     chooserState = PcSwitchChooserState.Error(
                         context.getString(R.string.pc_switch_profile_changed)
                     )
                 }
-                is Grid3StartResult.Failed -> {
+                is PcSwitchControlStartResult.Failed -> {
                     chooserState = ready.copy(
                         notice = PcSwitchNotice(
                             result.message,
@@ -481,7 +486,7 @@ private fun PcSwitchProfileChooser(
                     }
                     if (configuredExternalSwitchCount == 0) {
                         PcSwitchChooserNotice(
-                            text = stringResource(R.string.grid3_no_external_switches),
+                            text = stringResource(R.string.pc_switch_control_no_external_switches),
                             severity = PcSwitchNoticeSeverity.Warning
                         )
                     }
@@ -747,9 +752,9 @@ private fun PcSwitchMappingPreview(
     profile: PcSwitchProfileSummary,
     modifier: Modifier = Modifier
 ) {
-    val unassigned = stringResource(R.string.grid3_switch_unassigned)
+    val unassigned = stringResource(R.string.pc_switch_control_switch_unassigned)
     val context = LocalContext.current
-    val mappings = (1..Grid3SwitchForwarder.MAX_FORWARDED_SWITCHES).map { switchId ->
+    val mappings = (1..PcSwitchControlForwarder.MAX_FORWARDED_SWITCHES).map { switchId ->
         switchId to (
             profile.bindings
                 .firstOrNull { it.switchId == switchId && it.behavior != "unassigned" }
@@ -886,18 +891,16 @@ private fun ModeTransitionAnnouncement(
     }
 }
 
-class Grid3ControlActivity : PcSwitchControlActivity()
-
 @Composable
-private fun Grid3StatusHero(
-    connectionStatus: Grid3ConnectionStatus,
+private fun PcSwitchStatusHero(
+    connectionStatus: PcSwitchControlConnectionStatus,
     pcName: String?,
     profileName: String?
 ) {
-    val reconnecting = connectionStatus == Grid3ConnectionStatus.Reconnecting
-    val displayName = pcName ?: stringResource(R.string.grid3_pc_fallback_name)
+    val reconnecting = connectionStatus == PcSwitchControlConnectionStatus.Reconnecting
+    val displayName = pcName ?: stringResource(R.string.pc_switch_control_pc_fallback_name)
     val statusText = stringResource(
-        if (reconnecting) R.string.grid3_reconnecting else R.string.grid3_connected,
+        if (reconnecting) R.string.pc_switch_control_reconnecting else R.string.pc_switch_control_connected,
         displayName
     )
     val colors = MaterialTheme.colorScheme
@@ -928,15 +931,15 @@ private fun Grid3StatusHero(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(Dimens.spaceXs)
             ) {
-                Grid3ConnectionIndicator(reconnecting = reconnecting)
+                PcSwitchConnectionIndicator(reconnecting = reconnecting)
                 Text(
-                    text = stringResource(R.string.grid3_active_eyebrow),
+                    text = stringResource(R.string.pc_switch_control_active_eyebrow),
                     style = MaterialTheme.typography.labelLarge,
                     color = colors.onSurfaceVariant
                 )
             }
             Text(
-                text = stringResource(R.string.grid3_title),
+                text = stringResource(R.string.pc_switch_control_title),
                 style = MaterialTheme.typography.headlineLarge,
                 fontWeight = FontWeight.Bold,
                 color = colors.onSurface
@@ -959,7 +962,7 @@ private fun Grid3StatusHero(
                     }
                 )
                 Text(
-                    text = stringResource(R.string.grid3_summary),
+                    text = stringResource(R.string.pc_switch_control_summary),
                     style = MaterialTheme.typography.bodyMedium,
                     color = colors.onSurfaceVariant
                 )
@@ -969,7 +972,7 @@ private fun Grid3StatusHero(
 }
 
 @Composable
-private fun Grid3ConnectionIndicator(reconnecting: Boolean) {
+private fun PcSwitchConnectionIndicator(reconnecting: Boolean) {
     if (reconnecting) {
         CircularProgressIndicator(
             modifier = Modifier.size(12.dp),
@@ -997,12 +1000,12 @@ private fun Grid3ConnectionIndicator(reconnecting: Boolean) {
 }
 
 @Composable
-private fun Grid3SwitchTile(
-    mapping: Grid3SwitchMapping,
+private fun PcSwitchTile(
+    mapping: PcSwitchControlMapping,
     modifier: Modifier = Modifier
 ) {
     val colors = MaterialTheme.colorScheme
-    val outputLabel = mapping.outputLabel ?: stringResource(R.string.grid3_switch_unassigned)
+    val outputLabel = mapping.outputLabel ?: stringResource(R.string.pc_switch_control_switch_unassigned)
     val shape = RoundedCornerShape(Dimens.spaceS)
     val containerColor by animateColorAsState(
         targetValue = if (mapping.pressed) {
@@ -1011,19 +1014,19 @@ private fun Grid3SwitchTile(
             colors.surfaceContainerHigh
         },
         animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
-        label = "grid3SwitchFill"
+        label = "pcSwitchControlFill"
     )
     val tileDescription = stringResource(
-        R.string.grid3_switch_tile_description,
+        R.string.pc_switch_control_switch_tile_description,
         mapping.name,
         mapping.switchId,
         outputLabel
     )
     val pressedDescription = stringResource(
         if (mapping.pressed) {
-            R.string.grid3_switch_state_pressed
+            R.string.pc_switch_control_switch_state_pressed
         } else {
-            R.string.grid3_switch_state_idle
+            R.string.pc_switch_control_switch_state_idle
         }
     )
     Surface(
@@ -1095,7 +1098,7 @@ private fun Grid3SwitchTile(
 }
 
 @Composable
-private fun Grid3OverflowPanel(names: List<String>) {
+private fun PcSwitchOverflowPanel(names: List<String>) {
     Panel(
         modifier = Modifier.fillMaxWidth(),
         containerColor = MaterialTheme.colorScheme.surfaceVariant
@@ -1105,13 +1108,13 @@ private fun Grid3OverflowPanel(names: List<String>) {
             verticalArrangement = Arrangement.spacedBy(Dimens.spaceXs)
         ) {
             Text(
-                text = stringResource(R.string.grid3_overflow_title),
+                text = stringResource(R.string.pc_switch_control_overflow_title),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
-                text = stringResource(R.string.grid3_overflow_description),
+                text = stringResource(R.string.pc_switch_control_overflow_description),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f)
             )
@@ -1126,7 +1129,7 @@ private fun Grid3OverflowPanel(names: List<String>) {
 }
 
 @Composable
-private fun Grid3BottomBar(
+private fun PcSwitchBottomBar(
     holdDuration: String,
     onChangeProfile: () -> Unit,
     onStop: () -> Unit
@@ -1146,7 +1149,7 @@ private fun Grid3BottomBar(
             verticalArrangement = Arrangement.spacedBy(Dimens.spaceXs)
         ) {
             Text(
-                text = stringResource(R.string.grid3_hold_to_stop_hint, holdDuration),
+                text = stringResource(R.string.pc_switch_control_hold_to_stop_hint, holdDuration),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
@@ -1164,7 +1167,7 @@ private fun Grid3BottomBar(
                     applyPadding = false
                 )
                 ActionButton(
-                    textResId = R.string.grid3_stop,
+                    textResId = R.string.pc_switch_control_stop,
                     onClick = onStop,
                     modifier = Modifier.weight(1f).heightIn(min = 56.dp),
                     type = ActionButtonType.DESTRUCTIVE,
@@ -1179,10 +1182,10 @@ private fun Grid3BottomBar(
 private fun holdDurationLabel(durationMs: Long): String {
     if (durationMs % 1_000L == 0L) {
         val seconds = (durationMs / 1_000L).toInt()
-        return pluralStringResource(R.plurals.grid3_hold_seconds, seconds, seconds)
+        return pluralStringResource(R.plurals.pc_switch_control_hold_seconds, seconds, seconds)
     }
     return stringResource(
-        R.string.grid3_hold_fractional_seconds,
+        R.string.pc_switch_control_hold_fractional_seconds,
         durationMs / 1_000.0
     )
 }
