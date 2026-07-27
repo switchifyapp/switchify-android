@@ -28,6 +28,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -55,6 +56,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
@@ -327,8 +329,13 @@ private fun PcSwitchProfileChooser(
             }
             catalog?.profiles?.forEach { profile ->
                 Surface(
-                    onClick = { selected = profile },
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .selectable(
+                            selected = selected?.id == profile.id,
+                            onClick = { selected = profile },
+                            role = Role.RadioButton
+                        ),
                     shape = RoundedCornerShape(Dimens.spaceM),
                     color = if (selected?.id == profile.id) {
                         MaterialTheme.colorScheme.primaryContainer
@@ -342,7 +349,7 @@ private fun PcSwitchProfileChooser(
                     ) {
                         RadioButton(
                             selected = selected?.id == profile.id,
-                            onClick = { selected = profile }
+                            onClick = null
                         )
                         Column(modifier = Modifier.weight(1f)) {
                             Text(profile.name, fontWeight = FontWeight.SemiBold)

@@ -128,9 +128,17 @@ class ExternalSwitchListener(
         eventTimeMs: Long,
         cancelled: Boolean
     ): Boolean {
-        return grid3Diversion.onReleased(keyCode, downTimeMs, eventTimeMs, cancelled) {
-            onSwitchReleasedNormally(keyCode)
-        }
+        return grid3Diversion.onReleased(
+            keyCode = keyCode,
+            downTimeMs = downTimeMs,
+            eventTimeMs = eventTimeMs,
+            cancelled = cancelled,
+            suppressedReleaseHandling = {
+                suppressCurrentSwitchInteraction(swallowRelease = false)
+                true
+            },
+            normalHandling = { onSwitchReleasedNormally(keyCode) }
+        )
     }
 
     private fun onSwitchReleasedNormally(keyCode: Int): Boolean {
@@ -432,16 +440,35 @@ class ExternalSwitchListener(
 internal class ExternalSwitchGrid3Diversion(
     private val handler: () -> Grid3SwitchInputHandler?
 ) {
+    private data class NormalPress(val downTimeMs: Long, val activation: Long)
+
+    private val normallyHandledPresses = mutableMapOf<Int, NormalPress>()
+    private val suppressedUntilRelease = mutableMapOf<Int, Long>()
+
     fun onPressed(
         keyCode: Int,
         downTimeMs: Long,
         eventTimeMs: Long,
         normalHandling: () -> Boolean
     ): Boolean {
-        return if (handler()?.onSwitchPressed(keyCode, downTimeMs, eventTimeMs) == true) {
+        val currentHandler = handler()
+        val normalPress = normallyHandledPresses[keyCode]
+        if (
+            normalPress?.downTimeMs == downTimeMs &&
+            (currentHandler?.forwardingActivation ?: normalPress.activation) != normalPress.activation
+        ) {
+            suppressedUntilRelease[keyCode] = downTimeMs
+            return true
+        }
+        return if (currentHandler?.onSwitchPressed(keyCode, downTimeMs, eventTimeMs) == true) {
             true
         } else {
-            normalHandling()
+            normalHandling().also {
+                normallyHandledPresses[keyCode] = NormalPress(
+                    downTimeMs,
+                    currentHandler?.forwardingActivation ?: 0L
+                )
+            }
         }
     }
 
@@ -450,8 +477,25 @@ internal class ExternalSwitchGrid3Diversion(
         downTimeMs: Long,
         eventTimeMs: Long,
         cancelled: Boolean,
+        suppressedReleaseHandling: () -> Boolean = { true },
         normalHandling: () -> Boolean
     ): Boolean {
+        if (suppressedUntilRelease[keyCode] == downTimeMs) {
+            suppressedUntilRelease.remove(keyCode)
+            normallyHandledPresses.remove(keyCode)
+            return suppressedReleaseHandling()
+        }
+        val normalPress = normallyHandledPresses[keyCode]
+        if (
+            normalPress?.downTimeMs == downTimeMs &&
+            (handler()?.forwardingActivation ?: normalPress.activation) != normalPress.activation
+        ) {
+            normallyHandledPresses.remove(keyCode)
+            return suppressedReleaseHandling()
+        }
+        if (normalPress?.downTimeMs == downTimeMs) {
+            normallyHandledPresses.remove(keyCode)
+        }
         return if (
             handler()?.onSwitchReleased(keyCode, downTimeMs, eventTimeMs, cancelled) == true
         ) {

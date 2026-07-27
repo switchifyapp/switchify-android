@@ -18,6 +18,7 @@ import com.enaboapps.switchify.switches.SwitchAction
 import com.enaboapps.switchify.switches.SwitchEvent
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
@@ -34,6 +35,88 @@ import org.junit.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class Grid3SwitchForwarderTest {
+    @Test
+    fun concurrentGenericStartsSendOneStartCommand() = runTest {
+        val startStarted = CompletableDeferred<Unit>()
+        val allowStart = CompletableDeferred<Unit>()
+        val host = FakeHost(
+            mutableListOf(switchEvent("20", "Primary")),
+            genericSupported = true,
+            startStarted = startStarted,
+            allowStartToComplete = allowStart
+        )
+        val forwarder = Grid3SwitchForwarder(host, backgroundScope)
+        val profile = (forwarder.loadProfileCatalog() as PcSwitchCatalogResult.Loaded)
+            .catalog.profiles.single()
+
+        val first = async { forwarder.start(profile, legacy = false) }
+        startStarted.await()
+        val second = async { forwarder.start(profile, legacy = false) }
+        runCurrent()
+
+        assertEquals(1, host.commands.filterIsInstance<PcControlCommand.SwitchSessionStart>().size)
+        allowStart.complete(Unit)
+        assertEquals(Grid3StartResult.Started, first.await())
+        assertEquals(Grid3StartResult.Started, second.await())
+        assertEquals(1, host.commands.filterIsInstance<PcControlCommand.SwitchSessionStart>().size)
+        forwarder.stop()
+    }
+
+    @Test
+    fun stopQueuedDuringGenericStartStopsTheStartedSession() = runTest {
+        val startStarted = CompletableDeferred<Unit>()
+        val allowStart = CompletableDeferred<Unit>()
+        val host = FakeHost(
+            mutableListOf(switchEvent("20", "Primary")),
+            genericSupported = true,
+            startStarted = startStarted,
+            allowStartToComplete = allowStart
+        )
+        val forwarder = Grid3SwitchForwarder(host, backgroundScope)
+        val profile = (forwarder.loadProfileCatalog() as PcSwitchCatalogResult.Loaded)
+            .catalog.profiles.single()
+
+        val start = async { forwarder.start(profile, legacy = false) }
+        startStarted.await()
+        val stop = async { forwarder.stop() }
+        runCurrent()
+        allowStart.complete(Unit)
+
+        assertEquals(Grid3StartResult.Started, start.await())
+        stop.await()
+        assertFalse(forwarder.state.value.active)
+        assertTrue(host.commands.last() is PcControlCommand.SwitchSessionStop)
+    }
+
+    @Test
+    fun duplicateStopCannotStopALaterSession() = runTest {
+        val stopStarted = CompletableDeferred<Unit>()
+        val allowStop = CompletableDeferred<Unit>()
+        val host = FakeHost(
+            mutableListOf(switchEvent("20", "Primary")),
+            genericSupported = true,
+            stopStarted = stopStarted,
+            allowStopToComplete = allowStop
+        )
+        val forwarder = Grid3SwitchForwarder(host, backgroundScope)
+        val profile = (forwarder.loadProfileCatalog() as PcSwitchCatalogResult.Loaded)
+            .catalog.profiles.single()
+        assertEquals(Grid3StartResult.Started, forwarder.start(profile, legacy = false))
+
+        val firstStop = async(start = CoroutineStart.UNDISPATCHED) { forwarder.stop() }
+        val duplicateStop = async(start = CoroutineStart.UNDISPATCHED) { forwarder.stop() }
+        runCurrent()
+        stopStarted.await()
+        val nextStart = async { forwarder.start(profile, legacy = false) }
+        allowStop.complete(Unit)
+
+        firstStop.await()
+        duplicateStop.await()
+        assertEquals(Grid3StartResult.Started, nextStart.await())
+        assertTrue(forwarder.state.value.active)
+        forwarder.stop()
+    }
+
     @Test
     fun genericProfileStartsBeforeDiversionAndUsesGenericEdges() = runTest {
         val host = FakeHost(
@@ -719,7 +802,11 @@ class Grid3SwitchForwarderTest {
         private val allowDownToComplete: CompletableDeferred<Unit>? = null,
         private val syncStarted: CompletableDeferred<Unit>? = null,
         private val allowSyncToComplete: CompletableDeferred<Unit>? = null,
-        private val syncResults: MutableList<PcCommandResult> = mutableListOf()
+        private val syncResults: MutableList<PcCommandResult> = mutableListOf(),
+        private val startStarted: CompletableDeferred<Unit>? = null,
+        private val allowStartToComplete: CompletableDeferred<Unit>? = null,
+        private val stopStarted: CompletableDeferred<Unit>? = null,
+        private val allowStopToComplete: CompletableDeferred<Unit>? = null
     ) : Grid3ForwardingHost {
         val mutableConnectionState = MutableStateFlow<PcServiceConnectionState>(
             PcServiceConnectionState.Connected(
@@ -793,6 +880,14 @@ class Grid3SwitchForwarderTest {
         }
         override suspend fun send(command: PcControlCommand): PcCommandResult {
             commands += command
+            if (command is PcControlCommand.SwitchSessionStart) {
+                startStarted?.complete(Unit)
+                allowStartToComplete?.await()
+            }
+            if (command is PcControlCommand.SwitchSessionStop) {
+                stopStarted?.complete(Unit)
+                allowStopToComplete?.await()
+            }
             if (command is PcControlCommand.GridSwitchSync) {
                 syncStarted?.complete(Unit)
                 allowSyncToComplete?.await()
