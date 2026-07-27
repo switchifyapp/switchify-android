@@ -1,5 +1,9 @@
 package com.enaboapps.switchify.pc.bluetooth
 
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.async
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
@@ -7,6 +11,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class BluetoothFrameCodecTest {
     @Test
     fun singleFrameRoundTrip() {
@@ -140,6 +145,39 @@ class BluetoothFrameCodecTest {
         assertFalse(completion.begin(queuedAfterFailure))
         assertFalse(queuedAfterFailure.await())
         assertFalse(completion.complete(success = true))
+    }
+
+    @Test
+    fun concurrentSendsKeepEveryMessageFrameContiguous() = runTest {
+        val firstFrameStarted = CompletableDeferred<Unit>()
+        val allowFirstFrame = CompletableDeferred<Unit>()
+        val frames = mutableListOf<BluetoothFrame>()
+        val writer = PcBleMessageWriter { value, _ ->
+            frames += requireNotNull(BluetoothFrameCodec.decode(value))
+            if (!firstFrameStarted.isCompleted) {
+                firstFrameStarted.complete(Unit)
+                allowFirstFrame.await()
+            }
+        }
+
+        val first = async {
+            writer.send("a".repeat(500), PcBleWriteMode.WithoutResponse)
+        }
+        firstFrameStarted.await()
+        val second = async {
+            writer.send("b".repeat(500), PcBleWriteMode.WithResponse)
+        }
+        runCurrent()
+        allowFirstFrame.complete(Unit)
+        first.await()
+        second.await()
+
+        val messageIds = frames.map { it.messageId }
+        val firstMessageId = messageIds.first()
+        val secondMessageStart = messageIds.indexOfFirst { it != firstMessageId }
+        assertTrue(secondMessageStart > 0)
+        assertTrue(messageIds.drop(secondMessageStart).none { it == firstMessageId })
+        assertEquals(2, messageIds.distinct().size)
     }
 
     private fun validFrame(): BluetoothFrame {

@@ -11,20 +11,14 @@ import android.bluetooth.BluetoothManager
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
-import android.os.SystemClock
 import android.util.Log
 import androidx.core.content.ContextCompat
-import com.enaboapps.switchify.BuildConfig
 import com.enaboapps.switchify.pc.PcBluetoothEndpoint
 import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.TimeoutCancellationException
-import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withTimeout
@@ -62,19 +56,20 @@ class PcBleGattTransportFactory(private val context: Context) : PcBleTransportFa
 private class PcBleGattConnection private constructor(
     override val endpoint: PcBluetoothEndpoint,
     private val gatt: BluetoothGatt,
-    private val rxCharacteristic: BluetoothGattCharacteristic,
-    private val writeRequests: Channel<GattWriteRequest>,
+    private val writer: PcBleGattWriter,
     private val responseRouter: PcBleResponseRouter,
     override val events: Flow<PcBleTransportEvent>,
     private val onClose: () -> Unit
 ) : PcBleTransportConnection {
-    private val writeMutex = Mutex()
     private var closed = false
     private var lowLatencyRequested = false
 
     override suspend fun send(message: String, writeMode: PcBleWriteMode) {
-        for (frame in BluetoothFrameCodec.createFrames(message)) {
-            writeFrame(frame, writeMode)
+        try {
+            writer.send(message, writeMode)
+        } catch (error: Throwable) {
+            close("write_failed")
+            throw error
         }
     }
 
@@ -114,41 +109,7 @@ private class PcBleGattConnection private constructor(
         runCatching { gatt.disconnect() }
         runCatching { gatt.close() }
         responseRouter.fail(IllegalStateException("Bluetooth connection closed."))
-        writeRequests.close()
-    }
-
-    private suspend fun writeFrame(frame: BluetoothFrame, writeMode: PcBleWriteMode) {
-        writeMutex.withLock {
-            val completion = CompletableDeferred<Boolean>()
-            logBleWrite(
-                "phase=start messageId=${frame.messageId} sequence=${frame.sequence} mode=$writeMode"
-            )
-            writeRequests.send(
-                GattWriteRequest(
-                    characteristic = rxCharacteristic,
-                    value = BluetoothFrameCodec.encode(frame),
-                    writeMode = resolveBleWriteMode(
-                        requested = writeMode,
-                        supportsWithoutResponse =
-                            rxCharacteristic.properties and BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE != 0
-                    ),
-                    completion = completion
-                )
-            )
-            val completed = try {
-                withTimeout(GATT_WRITE_TIMEOUT_MS) { completion.await() }
-            } catch (error: TimeoutCancellationException) {
-                close("write_timeout")
-                throw IllegalStateException("Bluetooth write timed out.", error)
-            }
-            if (!completed) {
-                close("write_failed")
-                throw IllegalStateException("Bluetooth write failed.")
-            }
-            logBleWrite(
-                "phase=complete messageId=${frame.messageId} sequence=${frame.sequence} mode=$writeMode"
-            )
-        }
+        writer.fail()
     }
 
     companion object {
@@ -175,11 +136,10 @@ private class PcBleGattConnection private constructor(
         private val connected = CompletableDeferred<Unit>()
         private val servicesDiscovered = CompletableDeferred<Unit>()
         private val notificationsEnabled = CompletableDeferred<Unit>()
-        private val writeRequests = Channel<GattWriteRequest>(Channel.UNLIMITED)
         private val responseRouter = PcBleResponseRouter()
         private val events = MutableSharedFlow<PcBleTransportEvent>(extraBufferCapacity = 8)
         private val reassembler = BluetoothFrameReassembler()
-        private val writeCompletion = PcBleWriteCompletion()
+        private lateinit var writer: PcBleGattWriter
         private var pendingDescriptorWrite: BluetoothGattDescriptor? = null
         private var setupComplete = false
         private var closedByClient = false
@@ -197,43 +157,20 @@ private class PcBleGattConnection private constructor(
                 ?: throw IllegalStateException("Switchify BLE RX characteristic missing.")
             val tx = service.getCharacteristic(PcBleConstants.txCharacteristicUuid)
                 ?: throw IllegalStateException("Switchify BLE TX characteristic missing.")
+            writer = PcBleGattWriter(gatt, rx)
             enableNotifications(tx)
             withTimeout(GATT_NOTIFY_TIMEOUT_MS) { notificationsEnabled.await() }
             setupComplete = true
 
-            CoroutineScope(Dispatchers.IO).launch {
-                for (request in writeRequests) {
-                    if (!writeCompletion.begin(request.completion)) continue
-                    val writeType = when (request.writeMode) {
-                        PcBleWriteMode.WithResponse -> BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT
-                        PcBleWriteMode.WithoutResponse -> BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE
-                    }
-                    @SuppressLint("MissingPermission")
-                    val started = if (Build.VERSION.SDK_INT >= 33) {
-                        gatt.writeCharacteristic(request.characteristic, request.value, writeType) == BluetoothGatt.GATT_SUCCESS
-                    } else {
-                        @Suppress("DEPRECATION")
-                        request.characteristic.value = request.value
-                        request.characteristic.writeType = writeType
-                        @Suppress("DEPRECATION")
-                        gatt.writeCharacteristic(request.characteristic)
-                    }
-                    if (!started) {
-                        writeCompletion.complete(success = false)
-                    }
-                }
-            }
-
             return PcBleGattConnection(
                 endpoint = endpoint,
                 gatt = gatt,
-                rxCharacteristic = rx,
-                writeRequests = writeRequests,
+                writer = writer,
                 responseRouter = responseRouter,
                 events = events.asSharedFlow(),
                 onClose = {
                     closedByClient = true
-                    failGattWrites()
+                    writer.fail()
                 }
             )
         }
@@ -248,7 +185,7 @@ private class PcBleGattConnection private constructor(
                     events.tryEmit(PcBleTransportEvent.Disconnected)
                 }
                 responseRouter.fail(IllegalStateException("Bluetooth disconnected."))
-                failGattWrites()
+                if (::writer.isInitialized) writer.fail()
             }
         }
 
@@ -275,7 +212,9 @@ private class PcBleGattConnection private constructor(
         }
 
         override fun onCharacteristicWrite(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic, status: Int) {
-            writeCompletion.complete(status == BluetoothGatt.GATT_SUCCESS)
+            if (::writer.isInitialized) {
+                writer.complete(status == BluetoothGatt.GATT_SUCCESS)
+            }
         }
 
         override fun onDescriptorWrite(gatt: BluetoothGatt, descriptor: BluetoothGattDescriptor, status: Int) {
@@ -316,23 +255,80 @@ private class PcBleGattConnection private constructor(
             }
         }
 
-        private fun failGattWrites() {
-            writeCompletion.fail()
-            while (true) {
-                val request = writeRequests.tryReceive().getOrNull() ?: break
-                request.completion.complete(false)
-            }
-            writeRequests.close()
-        }
     }
 }
 
-private data class GattWriteRequest(
-    val characteristic: BluetoothGattCharacteristic,
-    val value: ByteArray,
-    val writeMode: PcBleWriteMode,
-    val completion: CompletableDeferred<Boolean>
-)
+internal class PcBleGattWriter(
+    private val gatt: BluetoothGatt,
+    private val characteristic: BluetoothGattCharacteristic
+) {
+    private val writeCompletion = PcBleWriteCompletion()
+    private val messageWriter = PcBleMessageWriter(::writeFrame)
+
+    suspend fun send(message: String, requestedMode: PcBleWriteMode) {
+        val writeMode = resolveBleWriteMode(
+            requested = requestedMode,
+            supportsWithoutResponse =
+                characteristic.properties and BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE != 0
+        )
+        messageWriter.send(message, writeMode)
+    }
+
+    @SuppressLint("MissingPermission")
+    private suspend fun writeFrame(value: ByteArray, writeMode: PcBleWriteMode) {
+        val completion = CompletableDeferred<Boolean>()
+        if (!writeCompletion.begin(completion)) {
+            throw IllegalStateException("Bluetooth connection closed.")
+        }
+        val writeType = when (writeMode) {
+            PcBleWriteMode.WithResponse -> BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT
+            PcBleWriteMode.WithoutResponse -> BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE
+        }
+        val started = if (Build.VERSION.SDK_INT >= 33) {
+            gatt.writeCharacteristic(characteristic, value, writeType) == BluetoothGatt.GATT_SUCCESS
+        } else {
+            @Suppress("DEPRECATION")
+            characteristic.value = value
+            characteristic.writeType = writeType
+            @Suppress("DEPRECATION")
+            gatt.writeCharacteristic(characteristic)
+        }
+        if (!started) {
+            writeCompletion.complete(success = false)
+        }
+        val completed = try {
+            withTimeout(GATT_WRITE_TIMEOUT_MS) { completion.await() }
+        } catch (error: TimeoutCancellationException) {
+            fail()
+            throw IllegalStateException("Bluetooth write timed out.", error)
+        }
+        if (!completed) {
+            throw IllegalStateException("Bluetooth write failed.")
+        }
+    }
+
+    fun complete(success: Boolean) {
+        writeCompletion.complete(success)
+    }
+
+    fun fail() {
+        writeCompletion.fail()
+    }
+}
+
+internal class PcBleMessageWriter(
+    private val writeFrame: suspend (ByteArray, PcBleWriteMode) -> Unit
+) {
+    private val messageMutex = Mutex()
+
+    suspend fun send(message: String, writeMode: PcBleWriteMode) {
+        messageMutex.withLock {
+            BluetoothFrameCodec.createFrames(message).forEach { frame ->
+                writeFrame(BluetoothFrameCodec.encode(frame), writeMode)
+            }
+        }
+    }
+}
 
 internal class PcBleResponseRouter {
     private val pending = ConcurrentHashMap<String, CompletableDeferred<String>>()
@@ -404,13 +400,6 @@ internal fun resolveBleWriteMode(
         PcBleWriteMode.WithoutResponse
     } else {
         PcBleWriteMode.WithResponse
-    }
-}
-
-private fun logBleWrite(message: String) {
-    if (!BuildConfig.DEBUG) return
-    runCatching {
-        Log.d("Grid3SwitchTrace", "tNanos=${SystemClock.elapsedRealtimeNanos()} gatt $message")
     }
 }
 
