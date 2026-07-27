@@ -51,6 +51,28 @@ sealed class PcControlCommand {
         val sequence: Long,
         val pressedSwitchIds: Set<Int>
     ) : PcControlCommand()
+    data object SwitchProfileList : PcControlCommand()
+    data class SwitchSessionStart(
+        val sessionId: String,
+        val profileId: String,
+        val profileVersion: Int,
+        val switchCount: Int
+    ) : PcControlCommand()
+    data class SwitchEdge(
+        val sessionId: String,
+        val sequence: Long,
+        val switchId: Int,
+        val down: Boolean
+    ) : PcControlCommand()
+    data class SwitchSync(
+        val sessionId: String,
+        val sequence: Long,
+        val pressedSwitchIds: Set<Int>
+    ) : PcControlCommand()
+    data class SwitchSessionStop(
+        val sessionId: String,
+        val sequence: Long
+    ) : PcControlCommand()
     data object LeftClick : PcControlCommand()
     data object DoubleClick : PcControlCommand()
     data object RightClick : PcControlCommand()
@@ -59,7 +81,16 @@ sealed class PcControlCommand {
 sealed class PcCommandResult {
     data object Ack : PcCommandResult()
     data class AuthFailed(val message: String = "Connection expired. Connect to PC from Switchify first.") : PcCommandResult()
-    data class Failed(val message: String = "Could not send command to PC.") : PcCommandResult()
+    data class Failed(
+        val message: String = "Could not send command to PC.",
+        val code: String? = null
+    ) : PcCommandResult()
+}
+
+sealed class PcProfileCatalogResult {
+    data class Loaded(val catalog: PcSwitchProfileCatalog) : PcProfileCatalogResult()
+    data class AuthFailed(val message: String = "Connection expired. Connect to PC from Switchify first.") : PcProfileCatalogResult()
+    data class Failed(val message: String = "Could not load profiles from the PC.") : PcProfileCatalogResult()
 }
 
 enum class PcLiveControlFailureReason {
@@ -83,6 +114,7 @@ interface PcControlConnection {
     suspend fun checkHealth(): PcCommandResult
     suspend fun sendCommand(command: PcControlCommand): PcCommandResult
     suspend fun sendRealtimeCommand(command: PcControlCommand): PcCommandResult
+    suspend fun requestSwitchProfileCatalog(): PcProfileCatalogResult = PcProfileCatalogResult.Failed()
     fun close(reason: PcControlCloseReason = PcControlCloseReason.ExplicitStop)
 }
 
@@ -105,6 +137,7 @@ internal fun resolveExpectedResponse(response: PcProtocolResponse, requestId: St
         is PcProtocolResponse.Ack -> response.takeIf { it.id == requestId }
         is PcProtocolResponse.PairingComplete -> response.takeIf { it.id == requestId }
         is PcProtocolResponse.PointerProfile -> response.takeIf { it.id == requestId }
+        is PcProtocolResponse.SwitchProfileCatalog -> response.takeIf { it.id == requestId }
         is PcProtocolResponse.Error -> response.takeIf { it.id == requestId || it.id == null }
         PcProtocolResponse.Invalid -> null
     }

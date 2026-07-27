@@ -20,6 +20,7 @@ import com.enaboapps.switchify.pc.PcPairingResult
 import com.enaboapps.switchify.pc.PcPairingTokenStore
 import com.enaboapps.switchify.pc.PcPingResult
 import com.enaboapps.switchify.pc.PcPointerMovementProfile
+import com.enaboapps.switchify.pc.PcProfileCatalogResult
 import com.enaboapps.switchify.pc.PcProtocol
 import com.enaboapps.switchify.pc.PcProtocolResponse
 import com.enaboapps.switchify.pc.PcWindowControlAction
@@ -244,7 +245,10 @@ class SwitchifyPcBleClient(
             is PcProtocolResponse.Ack -> PcCommandResult.Ack
             is PcProtocolResponse.Error -> {
                 if (response.code == "invalid_auth") PcCommandResult.AuthFailed()
-                else PcCommandResult.Failed(response.message.ifBlank { "Could not send command to PC." })
+                else PcCommandResult.Failed(
+                    response.message.ifBlank { "Could not send command to PC." },
+                    response.code
+                )
             }
             else -> PcCommandResult.Failed()
         }
@@ -337,6 +341,46 @@ class SwitchifyPcBleClient(
                 sequence,
                 pressedSwitchIds
             )
+            PcControlCommand.SwitchProfileList ->
+                PcProtocol.switchProfileList(id, deviceId, token, timestamp)
+            is PcControlCommand.SwitchSessionStart -> PcProtocol.switchSessionStart(
+                id,
+                deviceId,
+                token,
+                timestamp,
+                sessionId,
+                profileId,
+                profileVersion,
+                switchCount
+            )
+            is PcControlCommand.SwitchEdge -> PcProtocol.switchEdge(
+                id,
+                deviceId,
+                token,
+                timestamp,
+                sessionId,
+                sequence,
+                switchId,
+                down,
+                responseMode
+            )
+            is PcControlCommand.SwitchSync -> PcProtocol.switchSync(
+                id,
+                deviceId,
+                token,
+                timestamp,
+                sessionId,
+                sequence,
+                pressedSwitchIds
+            )
+            is PcControlCommand.SwitchSessionStop -> PcProtocol.switchSessionStop(
+                id,
+                deviceId,
+                token,
+                timestamp,
+                sessionId,
+                sequence
+            )
         }
     }
 
@@ -375,6 +419,35 @@ class SwitchifyPcBleClient(
                 if (error is CancellationException) throw error
                 if (error is InvalidPcAuthException) PcCommandResult.AuthFailed()
                 else PcCommandResult.Failed()
+            }
+        }
+
+        override suspend fun requestSwitchProfileCatalog(): PcProfileCatalogResult {
+            return try {
+                val requestId = nextRequestId()
+                when (val response = sendExpected(
+                    connection = connection,
+                    message = PcProtocol.switchProfileList(
+                        requestId,
+                        authenticatedSession.deviceId,
+                        token,
+                        System.currentTimeMillis()
+                    ),
+                    requestId = requestId,
+                    timeoutMs = COMMAND_TIMEOUT_MS
+                )) {
+                    is PcProtocolResponse.SwitchProfileCatalog ->
+                        PcProfileCatalogResult.Loaded(response.catalog)
+                    is PcProtocolResponse.Error -> if (response.code == "invalid_auth") {
+                        PcProfileCatalogResult.AuthFailed()
+                    } else {
+                        PcProfileCatalogResult.Failed(response.message)
+                    }
+                    else -> PcProfileCatalogResult.Failed()
+                }
+            } catch (error: Throwable) {
+                if (error is CancellationException) throw error
+                PcProfileCatalogResult.Failed()
             }
         }
 
@@ -444,6 +517,11 @@ private fun PcControlCommand.protocolType(): String {
         is PcControlCommand.MoveToDisplay -> "pointer.display.move"
         is PcControlCommand.GridSwitchSet -> PcProtocol.GRID_SWITCH_SET_COMMAND
         is PcControlCommand.GridSwitchSync -> PcProtocol.GRID_SWITCH_SYNC_COMMAND
+        PcControlCommand.SwitchProfileList -> PcProtocol.SWITCH_PROFILE_LIST_COMMAND
+        is PcControlCommand.SwitchSessionStart -> PcProtocol.SWITCH_SESSION_START_COMMAND
+        is PcControlCommand.SwitchEdge -> PcProtocol.SWITCH_EDGE_COMMAND
+        is PcControlCommand.SwitchSync -> PcProtocol.SWITCH_SYNC_COMMAND
+        is PcControlCommand.SwitchSessionStop -> PcProtocol.SWITCH_SESSION_STOP_COMMAND
     }
 }
 

@@ -241,6 +241,23 @@ class PcServiceConnectionController(
         return result
     }
 
+    suspend fun requestSwitchProfileCatalog(): PcProfileCatalogResult {
+        val connection = liveConnection ?: return PcProfileCatalogResult.Failed(CONNECT_FIRST_MESSAGE)
+        return when (val result = connection.requestSwitchProfileCatalog()) {
+            is PcProfileCatalogResult.AuthFailed -> {
+                closeLiveConnection(PcControlCloseReason.AuthFailure)
+                _state.value = PcServiceConnectionState.Failed(result.message)
+                PcConnectionStateHolder.setDisconnected()
+                result
+            }
+            is PcProfileCatalogResult.Failed -> {
+                liveSession?.let { handleLiveConnectionFailed(it) }
+                result
+            }
+            is PcProfileCatalogResult.Loaded -> result
+        }
+    }
+
     suspend fun sendCommand(command: PcControlCommand): PcCommandResult = sendControlCommand(command)
 
     fun onPcUiResumed() {
@@ -320,6 +337,8 @@ class PcServiceConnectionController(
     fun currentPointerProfile(): PcPointerMovementProfile? = pointerProfile
 
     fun currentControlDeviceName(): String? = liveControlDeviceName
+
+    fun currentControlDesktopId(): String? = liveSession?.desktopId
 
     fun hasLiveControlSession(): Boolean = liveConnection != null && liveSession != null
 

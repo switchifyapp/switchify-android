@@ -7,6 +7,10 @@ import com.enaboapps.switchify.pc.PcPointerCapabilities
 import com.enaboapps.switchify.pc.PcPointerDeltas
 import com.enaboapps.switchify.pc.PcPointerMovementProfile
 import com.enaboapps.switchify.pc.PcProtocol
+import com.enaboapps.switchify.pc.PcProfileCatalogResult
+import com.enaboapps.switchify.pc.PcSwitchBindingSummary
+import com.enaboapps.switchify.pc.PcSwitchProfileCatalog
+import com.enaboapps.switchify.pc.PcSwitchProfileSummary
 import com.enaboapps.switchify.pc.PcServiceConnectionState
 import com.enaboapps.switchify.switches.SWITCH_EVENT_TYPE_CAMERA
 import com.enaboapps.switchify.switches.SWITCH_EVENT_TYPE_EXTERNAL
@@ -14,6 +18,7 @@ import com.enaboapps.switchify.switches.SwitchAction
 import com.enaboapps.switchify.switches.SwitchEvent
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
@@ -30,6 +35,137 @@ import org.junit.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class Grid3SwitchForwarderTest {
+    @Test
+    fun concurrentGenericStartsSendOneStartCommand() = runTest {
+        val startStarted = CompletableDeferred<Unit>()
+        val allowStart = CompletableDeferred<Unit>()
+        val host = FakeHost(
+            mutableListOf(switchEvent("20", "Primary")),
+            genericSupported = true,
+            startStarted = startStarted,
+            allowStartToComplete = allowStart
+        )
+        val forwarder = Grid3SwitchForwarder(host, backgroundScope)
+        val profile = (forwarder.loadProfileCatalog() as PcSwitchCatalogResult.Loaded)
+            .catalog.profiles.single()
+
+        val first = async { forwarder.start(profile, legacy = false) }
+        startStarted.await()
+        val second = async { forwarder.start(profile, legacy = false) }
+        runCurrent()
+
+        assertEquals(1, host.commands.filterIsInstance<PcControlCommand.SwitchSessionStart>().size)
+        allowStart.complete(Unit)
+        assertEquals(Grid3StartResult.Started, first.await())
+        assertEquals(Grid3StartResult.Started, second.await())
+        assertEquals(1, host.commands.filterIsInstance<PcControlCommand.SwitchSessionStart>().size)
+        forwarder.stop()
+    }
+
+    @Test
+    fun stopQueuedDuringGenericStartStopsTheStartedSession() = runTest {
+        val startStarted = CompletableDeferred<Unit>()
+        val allowStart = CompletableDeferred<Unit>()
+        val host = FakeHost(
+            mutableListOf(switchEvent("20", "Primary")),
+            genericSupported = true,
+            startStarted = startStarted,
+            allowStartToComplete = allowStart
+        )
+        val forwarder = Grid3SwitchForwarder(host, backgroundScope)
+        val profile = (forwarder.loadProfileCatalog() as PcSwitchCatalogResult.Loaded)
+            .catalog.profiles.single()
+
+        val start = async { forwarder.start(profile, legacy = false) }
+        startStarted.await()
+        val stop = async { forwarder.stop() }
+        runCurrent()
+        allowStart.complete(Unit)
+
+        assertEquals(Grid3StartResult.Started, start.await())
+        stop.await()
+        assertFalse(forwarder.state.value.active)
+        assertTrue(host.commands.last() is PcControlCommand.SwitchSessionStop)
+    }
+
+    @Test
+    fun duplicateStopCannotStopALaterSession() = runTest {
+        val stopStarted = CompletableDeferred<Unit>()
+        val allowStop = CompletableDeferred<Unit>()
+        val host = FakeHost(
+            mutableListOf(switchEvent("20", "Primary")),
+            genericSupported = true,
+            stopStarted = stopStarted,
+            allowStopToComplete = allowStop
+        )
+        val forwarder = Grid3SwitchForwarder(host, backgroundScope)
+        val profile = (forwarder.loadProfileCatalog() as PcSwitchCatalogResult.Loaded)
+            .catalog.profiles.single()
+        assertEquals(Grid3StartResult.Started, forwarder.start(profile, legacy = false))
+
+        val firstStop = async(start = CoroutineStart.UNDISPATCHED) { forwarder.stop() }
+        val duplicateStop = async(start = CoroutineStart.UNDISPATCHED) { forwarder.stop() }
+        runCurrent()
+        stopStarted.await()
+        val nextStart = async { forwarder.start(profile, legacy = false) }
+        allowStop.complete(Unit)
+
+        firstStop.await()
+        duplicateStop.await()
+        assertEquals(Grid3StartResult.Started, nextStart.await())
+        assertTrue(forwarder.state.value.active)
+        forwarder.stop()
+    }
+
+    @Test
+    fun genericProfileStartsBeforeDiversionAndUsesGenericEdges() = runTest {
+        val host = FakeHost(
+            mutableListOf(switchEvent("20", "Primary")),
+            genericSupported = true
+        )
+        val forwarder = Grid3SwitchForwarder(host, backgroundScope)
+        val loaded = forwarder.loadProfileCatalog() as PcSwitchCatalogResult.Loaded
+        val selected = loaded.catalog.profiles.single()
+
+        assertEquals(0, host.suspendCount)
+        assertEquals(Grid3StartResult.Started, forwarder.start(selected, legacy = false))
+        assertEquals(1, host.suspendCount)
+        assertTrue(host.commands.first() is PcControlCommand.SwitchSessionStart)
+
+        forwarder.onSwitchPressed(20)
+        forwarder.onSwitchReleased(20)
+        runCurrent()
+
+        assertEquals(
+            listOf(true, false),
+            host.realtimeCommands.filterIsInstance<PcControlCommand.SwitchEdge>().map { it.down }
+        )
+        forwarder.stop()
+        assertTrue(host.commands.last() is PcControlCommand.SwitchSessionStop)
+    }
+
+    @Test
+    fun keepsUnassignedOutputOutOfForwardingState() = runTest {
+        val host = FakeHost(
+            mutableListOf(
+                switchEvent("20", "Primary"),
+                switchEvent("21", "Secondary")
+            ),
+            genericSupported = true
+        )
+        val forwarder = Grid3SwitchForwarder(host, backgroundScope)
+        val profile = (forwarder.loadProfileCatalog() as PcSwitchCatalogResult.Loaded)
+            .catalog.profiles.single()
+
+        assertEquals(Grid3StartResult.Started, forwarder.start(profile, legacy = false))
+        assertEquals(
+            listOf("Space", null),
+            forwarder.state.value.mappings.map { it.outputLabel }
+        )
+
+        forwarder.stop()
+    }
+
     @Test
     fun mapsEightExternalSwitchesInNumericThenLexicalOrderAndFreezesSession() = runTest {
         val host = FakeHost(
@@ -681,13 +817,18 @@ class Grid3SwitchForwarderTest {
         val switches: MutableList<SwitchEvent>,
         supported: Boolean = true,
         private val sequencedSupported: Boolean = false,
+        private val genericSupported: Boolean = false,
         private val holdDurationMs: Long = Grid3SwitchForwarder.DEFAULT_HOLD_TO_STOP_MS,
         private val throwOnReleaseIds: Set<Int> = emptySet(),
         private val downStarted: CompletableDeferred<Unit>? = null,
         private val allowDownToComplete: CompletableDeferred<Unit>? = null,
         private val syncStarted: CompletableDeferred<Unit>? = null,
         private val allowSyncToComplete: CompletableDeferred<Unit>? = null,
-        private val syncResults: MutableList<PcCommandResult> = mutableListOf()
+        private val syncResults: MutableList<PcCommandResult> = mutableListOf(),
+        private val startStarted: CompletableDeferred<Unit>? = null,
+        private val allowStartToComplete: CompletableDeferred<Unit>? = null,
+        private val stopStarted: CompletableDeferred<Unit>? = null,
+        private val allowStopToComplete: CompletableDeferred<Unit>? = null
     ) : Grid3ForwardingHost {
         val mutableConnectionState = MutableStateFlow<PcServiceConnectionState>(
             PcServiceConnectionState.Connected(
@@ -714,6 +855,7 @@ class Grid3SwitchForwarderTest {
                     buildSet {
                         add(PcProtocol.GRID_SWITCH_SET_COMMAND)
                         if (sequencedSupported) add(PcProtocol.GRID_SWITCH_SYNC_COMMAND)
+                        if (genericSupported) addAll(Grid3SwitchForwarder.GENERIC_COMMANDS)
                     }
                 } else {
                     emptySet()
@@ -728,6 +870,25 @@ class Grid3SwitchForwarderTest {
 
         override fun currentPointerProfile() = profile
         override fun currentPcName() = "Office PC"
+        override suspend fun requestProfileCatalog(): PcProfileCatalogResult {
+            return PcProfileCatalogResult.Loaded(
+                PcSwitchProfileCatalog(
+                    1,
+                    listOf(
+                        PcSwitchProfileSummary(
+                            "builtin.keyboard",
+                            1,
+                            "Generic keyboard",
+                            "mapped",
+                            listOf(
+                                PcSwitchBindingSummary(1, "Space", "stateful"),
+                                PcSwitchBindingSummary(2, "Unassigned", "unassigned")
+                            )
+                        )
+                    )
+                )
+            )
+        }
         override fun configuredSwitches() = switches.toList()
         override fun holdToStopDurationMs() = holdDurationMs
         override fun suspendScanning() {
@@ -744,6 +905,14 @@ class Grid3SwitchForwarderTest {
         }
         override suspend fun send(command: PcControlCommand): PcCommandResult {
             commands += command
+            if (command is PcControlCommand.SwitchSessionStart) {
+                startStarted?.complete(Unit)
+                allowStartToComplete?.await()
+            }
+            if (command is PcControlCommand.SwitchSessionStop) {
+                stopStarted?.complete(Unit)
+                allowStopToComplete?.await()
+            }
             if (command is PcControlCommand.GridSwitchSync) {
                 syncStarted?.complete(Unit)
                 allowSyncToComplete?.await()

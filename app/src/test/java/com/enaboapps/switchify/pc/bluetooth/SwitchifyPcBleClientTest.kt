@@ -18,6 +18,7 @@ import com.enaboapps.switchify.pc.PcLiveControlResult
 import com.enaboapps.switchify.pc.PcPairingResult
 import com.enaboapps.switchify.pc.PcPairingTokenStore
 import com.enaboapps.switchify.pc.PcPingResult
+import com.enaboapps.switchify.pc.PcProtocol
 import com.enaboapps.switchify.pc.PcStoredPairing
 import com.enaboapps.switchify.pc.PcTransport
 import com.enaboapps.switchify.pc.PcWindowControlAction
@@ -287,7 +288,10 @@ class SwitchifyPcBleClientTest {
 
         val result = client.sendCommand(session, PcControlCommand.MoveToDisplay(PcDisplayDirection.Right))
 
-        assertEquals(PcCommandResult.Failed("No monitor to the right."), result)
+        assertEquals(
+            PcCommandResult.Failed("No monitor to the right.", "no_display_in_direction"),
+            result
+        )
     }
 
     @Test
@@ -507,6 +511,42 @@ class SwitchifyPcBleClientTest {
         result.connection.close(PcControlCloseReason.ExplicitStop)
 
         assertEquals(listOf(true, false), fakeConnection.lowLatencyRequests)
+    }
+
+    @Test
+    fun realtimeGenericSwitchEdgeUsesNoResponseGattWriteAndNoAckProtocolMode() = runTest {
+        val tokens = FakeTokenStore(mutableMapOf("desktop-1" to "token"), mutableMapOf("desktop-1" to "Switchify PC"))
+        lateinit var fakeConnection: FakeConnection
+        val transport = FakeTransportFactory { message ->
+            val json = JSONObject(message)
+            when (json.getString("type")) {
+                "connection.ping" -> ack(json.getString("id"))
+                "pointer.profile" -> pointerProfile(
+                    json.getString("id"),
+                    noAckCommands = listOf(PcProtocol.SWITCH_EDGE_COMMAND)
+                )
+                else -> ack(json.getString("id"))
+            }
+        }.also { factory -> factory.onConnection = { fakeConnection = it } }
+        val session = PcAuthenticatedSession("desktop-1", "device-1", "AA:BB:CC:DD:EE:FF", PcTransport.Bluetooth)
+        val result = client(tokens, transport).openControlSession(session) as PcLiveControlResult.Connected
+
+        assertEquals(
+            PcCommandResult.Ack,
+            result.connection.sendRealtimeCommand(
+                PcControlCommand.SwitchEdge(
+                    sessionId = "99a1dbcf-6be4-4c6c-8664-d33fd698e32b",
+                    sequence = 4,
+                    switchId = 1,
+                    down = false
+                )
+            )
+        )
+
+        val message = JSONObject(fakeConnection.sentMessages.single())
+        assertEquals(PcProtocol.SWITCH_EDGE_COMMAND, message.getString("type"))
+        assertEquals("none", message.getString("responseMode"))
+        assertEquals(listOf(PcBleWriteMode.WithoutResponse), fakeConnection.sentWriteModes)
     }
 
     @Test

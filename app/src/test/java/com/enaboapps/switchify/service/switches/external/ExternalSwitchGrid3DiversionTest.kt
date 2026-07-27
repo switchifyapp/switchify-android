@@ -55,8 +55,63 @@ class ExternalSwitchGrid3DiversionTest {
         )
     }
 
+    @Test
+    fun activationPressIsSuppressedUntilItsMatchingRelease() {
+        val handler = FakeHandler(consume = false)
+        val diversion = ExternalSwitchGrid3Diversion { handler }
+        var suppressedReleases = 0
+
+        assertTrue(diversion.onPressed(42, 1_000L, 1_000L) { true })
+        handler.activation++
+        assertTrue(diversion.onPressed(42, 1_000L, 1_100L) { false })
+        assertTrue(
+            diversion.onReleased(
+                42,
+                1_000L,
+                1_200L,
+                cancelled = false,
+                suppressedReleaseHandling = {
+                    suppressedReleases++
+                    true
+                }
+            ) { false }
+        )
+
+        assertEquals(listOf("down:42:1000:1000"), handler.calls)
+        assertEquals(1, suppressedReleases)
+    }
+
+    @Test
+    fun activationReleaseRemainsSuppressedAfterForwardingStops() {
+        val handler = FakeHandler(consume = false)
+        val diversion = ExternalSwitchGrid3Diversion { handler }
+        var suppressedReleases = 0
+
+        assertTrue(diversion.onPressed(42, 1_000L, 1_000L) { true })
+        handler.activation++
+        assertTrue(
+            diversion.onReleased(
+                42,
+                1_000L,
+                1_200L,
+                cancelled = false,
+                suppressedReleaseHandling = {
+                    suppressedReleases++
+                    true
+                }
+            ) { false }
+        )
+
+        assertEquals(1, suppressedReleases)
+        assertEquals(listOf("down:42:1000:1000"), handler.calls)
+    }
+
     private class FakeHandler(private val consume: Boolean) : Grid3SwitchInputHandler {
         val calls = mutableListOf<String>()
+        var activation = 0L
+
+        override val forwardingActivation: Long
+            get() = activation
 
         override fun onSwitchPressed(keyCode: Int, downTimeMs: Long, eventTimeMs: Long): Boolean {
             calls += "down:$keyCode:$downTimeMs:$eventTimeMs"

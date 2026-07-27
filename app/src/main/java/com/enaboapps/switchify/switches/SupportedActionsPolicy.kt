@@ -26,7 +26,7 @@ object SupportedActionsPolicy {
             SwitchAction.ACTION_SYS_LOCK_SCREEN,
             SwitchAction.ACTION_SYS_HEADSET_HOOK,
             SwitchAction.ACTION_CONTROL_PC,
-            SwitchAction.ACTION_CONTROL_GRID_3
+            SwitchAction.ACTION_PC_SWITCH_CONTROL
         )
 
         return when (mode) {

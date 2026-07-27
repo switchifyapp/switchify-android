@@ -7,7 +7,7 @@ import com.enaboapps.switchify.service.actions.GlobalActionManager
 import com.enaboapps.switchify.service.core.ServiceCore
 import com.enaboapps.switchify.service.core.SwitchifyAccessibilityService
 import com.enaboapps.switchify.service.gestures.GesturePoint
-import com.enaboapps.switchify.service.grid3.Grid3ControlLauncher
+import com.enaboapps.switchify.service.grid3.PcSwitchControlLauncher
 import com.enaboapps.switchify.service.keyboard.KeyboardManager
 import com.enaboapps.switchify.service.menu.MenuItem
 import com.enaboapps.switchify.service.menu.MenuManager
@@ -29,7 +29,7 @@ class MainMenuStructure(
     private val deviceLockObserver = DeviceLockObserver(accessibilityService)
     private val preferenceManager = PreferenceManager(accessibilityService)
     private val pcControlLauncher = PcControlLauncher(accessibilityService, coroutineScope)
-    private val grid3ControlLauncher = Grid3ControlLauncher(accessibilityService, coroutineScope)
+    private val grid3ControlLauncher = PcSwitchControlLauncher(accessibilityService, coroutineScope)
     private val repository = MenuConfigurationRepository(accessibilityService)
 
     val deviceItem = MenuItem(

@@ -83,3 +83,4 @@ sentry.properties
 
 # Local scratch data
 /tmp/
+.kotlin/

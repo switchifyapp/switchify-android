@@ -4,6 +4,7 @@ import com.enaboapps.switchify.service.camera.CameraManager
 import com.enaboapps.switchify.service.gestures.visuals.AndroidGestureTargetIndicatorRenderer
 import com.enaboapps.switchify.service.gestures.visuals.GestureTargetIndicatorController
 import com.enaboapps.switchify.service.grid3.Grid3SwitchForwarder
+import com.enaboapps.switchify.service.grid3.PcSwitchControlForwarder
 import com.enaboapps.switchify.pc.PcServiceConnectionController
 import com.enaboapps.switchify.service.pauseresume.PauseManager
 import com.enaboapps.switchify.service.scanning.ScanningManager
@@ -126,6 +127,8 @@ object ServiceCore {
     }
 
     fun getGrid3SwitchForwarder(): Grid3SwitchForwarder? = grid3SwitchForwarder
+
+    fun getPcSwitchControlForwarder(): PcSwitchControlForwarder? = grid3SwitchForwarder
 
     fun takeGrid3SwitchForwarder(): Grid3SwitchForwarder? {
         return grid3SwitchForwarder.also {

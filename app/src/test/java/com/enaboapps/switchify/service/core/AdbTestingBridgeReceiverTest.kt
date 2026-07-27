@@ -11,5 +11,9 @@ class AdbTestingBridgeReceiverTest {
             SwitchAction.ACTION_CONTROL_GRID_3,
             AdbTestingBridgeReceiver.actionNameToId["control_grid_3"]
         )
+        assertEquals(
+            SwitchAction.ACTION_PC_SWITCH_CONTROL,
+            AdbTestingBridgeReceiver.actionNameToId["pc_switch_control"]
+        )
     }
 }
