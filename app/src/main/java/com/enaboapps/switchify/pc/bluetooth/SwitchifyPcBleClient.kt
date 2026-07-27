@@ -29,8 +29,6 @@ import com.enaboapps.switchify.utils.Logger
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import org.json.JSONObject
 import java.util.UUID
 
@@ -348,8 +346,6 @@ class SwitchifyPcBleClient(
         private val token: String,
         override val pointerProfile: PcPointerMovementProfile?
     ) : PcControlConnection {
-        private val realtimeSendMutex = Mutex()
-
         override val connectionEvents: Flow<PcControlConnectionEvent> = connection.events.map { event ->
             when (event) {
                 PcBleTransportEvent.Disconnected -> PcControlConnectionEvent.Disconnected
@@ -387,24 +383,22 @@ class SwitchifyPcBleClient(
                 return sendCommand(command)
             }
 
-            return realtimeSendMutex.withLock {
-                try {
-                    val requestId = nextRequestId()
-                    connection.send(
-                        command.toMessage(
-                            id = requestId,
-                            deviceId = authenticatedSession.deviceId,
-                            token = token,
-                            timestamp = System.currentTimeMillis(),
-                            responseMode = PcCommandResponseMode.None
-                        ),
-                        PcBleWriteMode.WithoutResponse
-                    )
-                    PcCommandResult.Ack
-                } catch (error: Throwable) {
-                    if (error is CancellationException) throw error
-                    PcCommandResult.Failed()
-                }
+            return try {
+                val requestId = nextRequestId()
+                connection.send(
+                    command.toMessage(
+                        id = requestId,
+                        deviceId = authenticatedSession.deviceId,
+                        token = token,
+                        timestamp = System.currentTimeMillis(),
+                        responseMode = PcCommandResponseMode.None
+                    ),
+                    PcBleWriteMode.WithoutResponse
+                )
+                PcCommandResult.Ack
+            } catch (error: Throwable) {
+                if (error is CancellationException) throw error
+                PcCommandResult.Failed()
             }
         }
 

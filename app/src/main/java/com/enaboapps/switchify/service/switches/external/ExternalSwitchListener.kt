@@ -461,11 +461,4 @@ internal class ExternalSwitchGrid3Diversion(
         }
     }
 
-    fun onPressed(keyCode: Int, normalHandling: () -> Boolean): Boolean {
-        return if (handler()?.onSwitchPressed(keyCode) == true) true else normalHandling()
-    }
-
-    fun onReleased(keyCode: Int, normalHandling: () -> Boolean): Boolean {
-        return if (handler()?.onSwitchReleased(keyCode) == true) true else normalHandling()
-    }
 }

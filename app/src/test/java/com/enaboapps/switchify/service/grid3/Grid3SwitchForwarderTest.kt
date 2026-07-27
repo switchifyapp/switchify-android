@@ -13,13 +13,16 @@ import com.enaboapps.switchify.switches.SWITCH_EVENT_TYPE_EXTERNAL
 import com.enaboapps.switchify.switches.SwitchAction
 import com.enaboapps.switchify.switches.SwitchEvent
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.advanceTimeBy
+import kotlinx.coroutines.test.StandardTestDispatcher
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -152,7 +155,7 @@ class Grid3SwitchForwarderTest {
     }
 
     @Test
-    fun staleSnapshotCompletionDoesNotReplaceNewerRemoteEdgeState() = runTest {
+    fun failedFinalSnapshotDoesNotFallBackToLegacyEdges() = runTest {
         val syncStarted = CompletableDeferred<Unit>()
         val allowSyncToComplete = CompletableDeferred<Unit>()
         val host = FakeHost(
@@ -179,7 +182,7 @@ class Grid3SwitchForwarderTest {
 
         val fallbackReleases = host.commands.filterIsInstance<PcControlCommand.GridSwitchSet>()
             .filterNot { it.down }
-        assertEquals(listOf(1), fallbackReleases.map { it.switchId })
+        assertTrue(fallbackReleases.isEmpty())
     }
 
     @Test
@@ -373,15 +376,18 @@ class Grid3SwitchForwarderTest {
 
     @Test
     fun holdAndReleaseSendsUpThenStopsAndRestoresScanning() = runTest {
-        var now = 1_000L
         val host = FakeHost(mutableListOf(switchEvent("4", "Hold")), holdDurationMs = 2_000L)
-        val forwarder = Grid3SwitchForwarder(host, backgroundScope) { now }
+        val forwarder = Grid3SwitchForwarder(host, backgroundScope)
         forwarder.start()
-        forwarder.onSwitchPressed(4)
+        forwarder.onSwitchPressed(4, downTimeMs = 1_000L, eventTimeMs = 1_000L)
         runCurrent()
 
-        now = 3_000L
-        forwarder.onSwitchReleased(4)
+        forwarder.onSwitchReleased(
+            4,
+            downTimeMs = 1_000L,
+            eventTimeMs = 3_000L,
+            cancelled = false
+        )
         runCurrent()
 
         assertEquals(
@@ -456,6 +462,24 @@ class Grid3SwitchForwarderTest {
     }
 
     @Test
+    fun repeatedStopCompletesCleanupOnce() = runTest {
+        val host = FakeHost(mutableListOf(switchEvent("1", "One")))
+        val forwarder = Grid3SwitchForwarder(host, backgroundScope)
+        forwarder.start()
+        forwarder.onSwitchPressed(1)
+        runCurrent()
+
+        val first = async { forwarder.stop() }
+        val second = async { forwarder.stop() }
+        first.await()
+        second.await()
+
+        assertFalse(forwarder.state.value.active)
+        assertEquals(1, host.restoreCount)
+        assertEquals(1, host.releaseCount)
+    }
+
+    @Test
     fun slowTransportBurstStopsInsteadOfBuildingAnUnboundedBacklog() = runTest {
         val downStarted = CompletableDeferred<Unit>()
         val allowDownToComplete = CompletableDeferred<Unit>()
@@ -502,6 +526,30 @@ class Grid3SwitchForwarderTest {
     }
 
     @Test
+    fun destroySurvivesCancellationOfItsCreatingScope() = runTest {
+        val parentJob = SupervisorJob()
+        val parentScope = CoroutineScope(parentJob + StandardTestDispatcher(testScheduler))
+        val host = FakeHost(mutableListOf(switchEvent("1", "One")))
+        val forwarder = Grid3SwitchForwarder(host, parentScope)
+        forwarder.start()
+        forwarder.onSwitchPressed(1)
+        runCurrent()
+
+        parentJob.cancel()
+        forwarder.destroy()
+
+        assertEquals(
+            listOf(
+                PcControlCommand.GridSwitchSet(1, true),
+                PcControlCommand.GridSwitchSet(1, false)
+            ),
+            host.commands
+        )
+        assertFalse(forwarder.state.value.active)
+        assertEquals(1, host.releaseCount)
+    }
+
+    @Test
     fun cleanupContinuesAfterIndividualReleaseFailure() = runTest {
         val host = FakeHost(
             mutableListOf(
@@ -531,7 +579,7 @@ class Grid3SwitchForwarderTest {
     }
 
     @Test
-    fun reconnectClearsAssumedRemoteHoldsButKeepsModeActive() = runTest {
+    fun legacyReconnectKeepsHeldStateForExplicitCleanup() = runTest {
         val host = FakeHost(mutableListOf(switchEvent("1", "One")))
         val forwarder = Grid3SwitchForwarder(host, backgroundScope)
         forwarder.start()
@@ -547,7 +595,13 @@ class Grid3SwitchForwarderTest {
         assertTrue(forwarder.state.value.active)
         assertEquals(Grid3ConnectionStatus.Reconnecting, forwarder.state.value.connectionStatus)
         forwarder.stop()
-        assertEquals(listOf(PcControlCommand.GridSwitchSet(1, true)), host.commands)
+        assertEquals(
+            listOf(
+                PcControlCommand.GridSwitchSet(1, true),
+                PcControlCommand.GridSwitchSet(1, false)
+            ),
+            host.commands
+        )
     }
 
     @Test
@@ -726,4 +780,19 @@ class Grid3SwitchForwarderTest {
         pressAction = SwitchAction(0),
         holdActions = emptyList()
     )
+
+    private fun Grid3SwitchForwarder.onSwitchPressed(keyCode: Int): Boolean {
+        val time = keyCode.toLong()
+        return onSwitchPressed(keyCode, downTimeMs = time, eventTimeMs = time)
+    }
+
+    private fun Grid3SwitchForwarder.onSwitchReleased(keyCode: Int): Boolean {
+        val time = keyCode.toLong()
+        return onSwitchReleased(
+            keyCode,
+            downTimeMs = time,
+            eventTimeMs = time + 1L,
+            cancelled = false
+        )
+    }
 }

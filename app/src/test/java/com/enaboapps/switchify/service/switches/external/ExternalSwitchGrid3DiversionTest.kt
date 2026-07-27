@@ -13,16 +13,19 @@ class ExternalSwitchGrid3DiversionTest {
         val diversion = ExternalSwitchGrid3Diversion { handler }
         var normalCalls = 0
 
-        assertTrue(diversion.onPressed(42) {
+        assertTrue(diversion.onPressed(42, 1_000L, 1_000L) {
             normalCalls++
             false
         })
-        assertTrue(diversion.onReleased(42) {
+        assertTrue(diversion.onReleased(42, 1_000L, 1_100L, cancelled = false) {
             normalCalls++
             false
         })
 
-        assertEquals(listOf("down:42", "up:42"), handler.calls)
+        assertEquals(
+            listOf("down:42:1000:1000", "up:42:1000:1100:false"),
+            handler.calls
+        )
         assertEquals(0, normalCalls)
     }
 
@@ -31,8 +34,8 @@ class ExternalSwitchGrid3DiversionTest {
         val inactive = ExternalSwitchGrid3Diversion { FakeHandler(consume = false) }
         val missing = ExternalSwitchGrid3Diversion { null }
 
-        assertFalse(inactive.onPressed(1) { false })
-        assertTrue(missing.onReleased(1) { true })
+        assertFalse(inactive.onPressed(1, 10L, 10L) { false })
+        assertTrue(missing.onReleased(1, 10L, 20L, cancelled = false) { true })
     }
 
     @Test
@@ -54,16 +57,6 @@ class ExternalSwitchGrid3DiversionTest {
 
     private class FakeHandler(private val consume: Boolean) : Grid3SwitchInputHandler {
         val calls = mutableListOf<String>()
-
-        override fun onSwitchPressed(keyCode: Int): Boolean {
-            calls += "down:$keyCode"
-            return consume
-        }
-
-        override fun onSwitchReleased(keyCode: Int): Boolean {
-            calls += "up:$keyCode"
-            return consume
-        }
 
         override fun onSwitchPressed(keyCode: Int, downTimeMs: Long, eventTimeMs: Long): Boolean {
             calls += "down:$keyCode:$downTimeMs:$eventTimeMs"
