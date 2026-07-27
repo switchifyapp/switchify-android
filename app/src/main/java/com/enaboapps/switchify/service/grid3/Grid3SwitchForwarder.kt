@@ -34,7 +34,7 @@ data class Grid3SwitchMapping(
     val name: String,
     val switchId: Int,
     val pressed: Boolean = false,
-    val outputLabel: String = "Grid switch $switchId"
+    val outputLabel: String? = null
 )
 
 enum class Grid3ConnectionStatus {
@@ -382,7 +382,6 @@ class Grid3SwitchForwarder internal constructor(
                 outputLabel = selectedProfile.bindings
                     .firstOrNull { it.switchId == index + 1 }
                     ?.label
-                    ?: "Unassigned"
             )
         }
         synchronized(stateLock) {

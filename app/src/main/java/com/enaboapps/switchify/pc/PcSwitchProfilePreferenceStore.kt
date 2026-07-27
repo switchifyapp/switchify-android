@@ -21,7 +21,10 @@ class PcSwitchProfilePreferenceStore(context: Context) {
 data class PcSwitchProfileSelection(
     val profile: PcSwitchProfileSummary?,
     val rememberedProfileUnavailable: Boolean
-)
+) {
+    val fallbackProfileName: String?
+        get() = profile?.name?.takeIf { rememberedProfileUnavailable }
+}
 
 fun selectPcSwitchProfile(
     profiles: List<PcSwitchProfileSummary>,

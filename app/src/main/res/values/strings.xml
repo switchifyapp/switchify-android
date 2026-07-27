@@ -378,6 +378,7 @@
     <string name="grid3_switch_mapping">Switch mapping</string>
     <string name="grid3_switch_key">Key %1$s</string>
     <string name="grid3_switch_tile_description">%1$s, switch slot %2$d, mapped to %3$s</string>
+    <string name="grid3_switch_unassigned">Not assigned in this profile</string>
     <string name="grid3_switch_state_pressed">Pressed</string>
     <string name="grid3_switch_state_idle">Not pressed</string>
     <string name="grid3_pc_fallback_name">Switchify PC</string>
@@ -388,8 +389,15 @@
     <string name="grid3_pc_unsupported">Update Switchify PC before starting PC Switch Control.</string>
     <string name="pc_switch_control_title">PC Switch Control</string>
     <string name="pc_switch_choose_profile">Choose a profile, review its switch mappings, then select Start.</string>
-    <string name="pc_switch_previous_profile_unavailable">The previously selected profile is unavailable. Generic keyboard has been selected.</string>
-    <string name="pc_switch_profile_changed">That profile changed or was removed. Refresh the profile list and choose again.</string>
+    <string name="pc_switch_loading_profiles">Loading PC switch profiles…</string>
+    <string name="pc_switch_starting">Starting PC Switch Control…</string>
+    <string name="pc_switch_empty_catalog">No switch profiles are available. Create one in Switchify PC, then select Retry.</string>
+    <string name="pc_switch_previous_profile_unavailable">The previously selected profile is unavailable. %1$s has been selected.</string>
+    <string name="pc_switch_profile_changed">That profile changed or was removed. Select Retry to reload the profile list, then choose again.</string>
+    <string name="pc_switch_provider_grid3">Native Grid 3</string>
+    <string name="pc_switch_provider_windows">Windows input</string>
+    <string name="pc_switch_binding">%1$d. %2$s</string>
+    <string name="pc_switch_chooser_announcement">PC Switch Control stopped. Choose a profile.</string>
     <string name="pc_switch_start_failed">PC Switch Control could not start.</string>
     <string name="pc_switch_retry">Retry</string>
     <string name="pc_switch_start">Start</string>

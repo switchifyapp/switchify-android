@@ -145,6 +145,28 @@ class Grid3SwitchForwarderTest {
     }
 
     @Test
+    fun keepsUnassignedOutputOutOfForwardingState() = runTest {
+        val host = FakeHost(
+            mutableListOf(
+                switchEvent("20", "Primary"),
+                switchEvent("21", "Secondary")
+            ),
+            genericSupported = true
+        )
+        val forwarder = Grid3SwitchForwarder(host, backgroundScope)
+        val profile = (forwarder.loadProfileCatalog() as PcSwitchCatalogResult.Loaded)
+            .catalog.profiles.single()
+
+        assertEquals(Grid3StartResult.Started, forwarder.start(profile, legacy = false))
+        assertEquals(
+            listOf("Space", null),
+            forwarder.state.value.mappings.map { it.outputLabel }
+        )
+
+        forwarder.stop()
+    }
+
+    @Test
     fun mapsEightExternalSwitchesInNumericThenLexicalOrderAndFreezesSession() = runTest {
         val host = FakeHost(
             mutableListOf(

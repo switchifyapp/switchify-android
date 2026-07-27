@@ -18,6 +18,7 @@ class PcSwitchProfileSelectionTest {
 
         assertEquals("custom", selection.profile?.id)
         assertFalse(selection.rememberedProfileUnavailable)
+        assertEquals(null, selection.fallbackProfileName)
     }
 
     @Test
@@ -26,5 +27,23 @@ class PcSwitchProfileSelectionTest {
 
         assertEquals("builtin.keyboard", selection.profile?.id)
         assertTrue(selection.rememberedProfileUnavailable)
+        assertEquals("Generic keyboard", selection.fallbackProfileName)
+    }
+
+    @Test
+    fun missingRememberedProfileReportsActualFirstProfileFallback() {
+        val selection = selectPcSwitchProfile(listOf(profiles.last()), "removed")
+
+        assertEquals("custom", selection.profile?.id)
+        assertEquals("Writing", selection.fallbackProfileName)
+    }
+
+    @Test
+    fun emptyCatalogHasNoFallbackNotice() {
+        val selection = selectPcSwitchProfile(emptyList(), "removed")
+
+        assertEquals(null, selection.profile)
+        assertTrue(selection.rememberedProfileUnavailable)
+        assertEquals(null, selection.fallbackProfileName)
     }
 }
