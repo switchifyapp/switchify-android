@@ -29,7 +29,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -91,6 +90,10 @@ import com.enaboapps.switchify.service.pcswitchcontrol.PcSwitchControlExitReason
 import com.enaboapps.switchify.service.utils.DeviceLockObserver
 import com.enaboapps.switchify.pc.PcSwitchProfileCatalog
 import com.enaboapps.switchify.pc.PcSwitchProfileSummary
+import com.enaboapps.switchify.pc.PcSwitcherUiState
+import com.enaboapps.switchify.screens.pc.PcSwitcherApprovalDialog
+import com.enaboapps.switchify.screens.pc.PcSwitcherDialog
+import com.enaboapps.switchify.screens.pc.PcSwitcherStrip
 import com.enaboapps.switchify.theme.Dimens
 import java.util.UUID
 
@@ -143,6 +146,7 @@ class PcSwitchControlActivity : ComponentActivity() {
         setContent {
             SwitchifyTheme {
                 val state by forwarder.state.collectAsState()
+                val pcSwitcherState by chooserViewModel.pcSwitcherState.collectAsState()
                 val context = LocalContext.current
                 var showChooser by remember { mutableStateOf(!state.active) }
                 var hasShownActiveSession by remember {
@@ -185,9 +189,11 @@ class PcSwitchControlActivity : ComponentActivity() {
                 if (state.active && !showChooser) {
                     PcSwitchControlScreen(
                         state = state,
+                        pcSwitcherState = pcSwitcherState,
                         onChangeProfile = {
                             forwarder.requestChangeProfile()
                         },
+                        onSwitchPc = chooserViewModel::openPcSwitcher,
                         onStop = {
                             forwarder.requestClose(connectionEpisodeId)
                             finish()
@@ -196,12 +202,31 @@ class PcSwitchControlActivity : ComponentActivity() {
                 } else {
                     PcSwitchProfileChooser(
                         viewModel = chooserViewModel,
+                        pcSwitcherState = pcSwitcherState,
                         configuredExternalSwitchCount =
                             forwarder.configuredExternalSwitchCount(),
+                        onSwitchPc = chooserViewModel::openPcSwitcher,
                         onClose = {
                             forwarder.requestClose(connectionEpisodeId)
                             finish()
                         }
+                    )
+                }
+                if (pcSwitcherState.visible) {
+                    PcSwitcherDialog(
+                        rows = pcSwitcherState.rows,
+                        isDiscovering = pcSwitcherState.isDiscovering,
+                        switchingDesktopId = pcSwitcherState.switchingDesktopId,
+                        message = pcSwitcherState.message,
+                        onDismiss = chooserViewModel::dismissPcSwitcher,
+                        onRefresh = chooserViewModel::refreshPcSwitcher,
+                        onPcSelected = chooserViewModel::switchToPc
+                    )
+                }
+                pcSwitcherState.approvalCode?.let { approvalCode ->
+                    PcSwitcherApprovalDialog(
+                        approvalCode = approvalCode,
+                        onCancel = chooserViewModel::cancelPcSwitchPairing
                     )
                 }
             }
@@ -264,18 +289,31 @@ internal fun shouldCloseForStaleForwarder(
 @Composable
 private fun PcSwitchControlScreen(
     state: PcSwitchControlState,
+    pcSwitcherState: PcSwitcherUiState,
     onChangeProfile: () -> Unit,
+    onSwitchPc: () -> Unit,
     onStop: () -> Unit
 ) {
     BackHandler(onBack = onStop)
     val holdDuration = holdDurationLabel(state.holdToStopDurationMs)
     Scaffold(
         bottomBar = {
-            PcSwitchBottomBar(
-                holdDuration = holdDuration,
-                onChangeProfile = onChangeProfile,
-                onStop = onStop
-            )
+            Column {
+                PcSwitchBottomBar(
+                    holdDuration = holdDuration,
+                    onChangeProfile = onChangeProfile,
+                    onStop = onStop
+                )
+                PcSwitcherStrip(
+                    connectedDisplayName = pcSwitcherState.connectedDisplayName
+                        ?: state.pcName,
+                    enabled = true,
+                    isDiscovering = pcSwitcherState.isDiscovering,
+                    switching = pcSwitcherState.isPreparing ||
+                        pcSwitcherState.switchingDesktopId != null,
+                    onSwitchClick = onSwitchPc
+                )
+            }
         }
     ) { paddingValues ->
         Column(
@@ -330,7 +368,9 @@ private fun PcSwitchControlScreen(
 @Composable
 private fun PcSwitchProfileChooser(
     viewModel: PcSwitchControlChooserViewModel,
+    pcSwitcherState: PcSwitcherUiState,
     configuredExternalSwitchCount: Int,
+    onSwitchPc: () -> Unit,
     onClose: () -> Unit
 ) {
     val chooserState by viewModel.state.collectAsState()
@@ -349,32 +389,41 @@ private fun PcSwitchProfileChooser(
     }
     Scaffold(
         bottomBar = {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .navigationBarsPadding()
-                    .padding(Dimens.spaceM),
-                horizontalArrangement = Arrangement.spacedBy(Dimens.spaceS)
-            ) {
-                ActionButton(
-                    textResId = R.string.pc_switch_close,
-                    onClick = onClose,
-                    modifier = Modifier.weight(1f),
-                    type = ActionButtonType.SECONDARY
-                )
-                ActionButton(
-                    textResId = primaryActionResId,
-                    onClick = {
-                        when (val state = chooserState) {
-                            PcSwitchChooserState.Empty,
-                            is PcSwitchChooserState.Error -> viewModel.retry()
-                            is PcSwitchChooserState.Ready -> viewModel.start()
-                            PcSwitchChooserState.Loading,
-                            is PcSwitchChooserState.Starting -> Unit
-                        }
-                    },
-                    modifier = Modifier.weight(1f),
-                    enabled = primaryActionEnabled
+            Column {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(Dimens.spaceM),
+                    horizontalArrangement = Arrangement.spacedBy(Dimens.spaceS)
+                ) {
+                    ActionButton(
+                        textResId = R.string.pc_switch_close,
+                        onClick = onClose,
+                        modifier = Modifier.weight(1f),
+                        type = ActionButtonType.SECONDARY
+                    )
+                    ActionButton(
+                        textResId = primaryActionResId,
+                        onClick = {
+                            when (val state = chooserState) {
+                                PcSwitchChooserState.Empty,
+                                is PcSwitchChooserState.Error -> viewModel.retry()
+                                is PcSwitchChooserState.Ready -> viewModel.start()
+                                PcSwitchChooserState.Loading,
+                                is PcSwitchChooserState.Starting -> Unit
+                            }
+                        },
+                        modifier = Modifier.weight(1f),
+                        enabled = primaryActionEnabled
+                    )
+                }
+                PcSwitcherStrip(
+                    connectedDisplayName = pcSwitcherState.connectedDisplayName,
+                    enabled = true,
+                    isDiscovering = pcSwitcherState.isDiscovering,
+                    switching = pcSwitcherState.isPreparing ||
+                        pcSwitcherState.switchingDesktopId != null,
+                    onSwitchClick = onSwitchPc
                 )
             }
         }
@@ -1068,7 +1117,6 @@ private fun PcSwitchBottomBar(
     ) {
         Column(
             modifier = Modifier
-                .navigationBarsPadding()
                 .padding(
                     horizontal = Dimens.spaceM,
                     vertical = Dimens.spaceS

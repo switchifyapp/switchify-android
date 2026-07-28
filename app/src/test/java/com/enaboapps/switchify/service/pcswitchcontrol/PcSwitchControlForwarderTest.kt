@@ -178,6 +178,37 @@ class PcSwitchControlForwarderTest {
     }
 
     @Test
+    fun preparingForPcSwitcherAwaitsStopAndRetainsConnection() = runTest {
+        val stopStarted = CompletableDeferred<Unit>()
+        val allowStop = CompletableDeferred<Unit>()
+        val host = FakeHost(
+            mutableListOf(switchEvent("20", "Primary")),
+            genericSupported = true,
+            stopStarted = stopStarted,
+            allowStopToComplete = allowStop
+        )
+        val forwarder = PcSwitchControlForwarder(host, backgroundScope)
+        val profile = (forwarder.loadProfileCatalog() as PcSwitchCatalogResult.Loaded)
+            .catalog.profiles.single()
+        assertEquals(
+            PcSwitchControlStartResult.Started,
+            forwarder.start(profile, usesLegacyGridProtocol = false)
+        )
+
+        val preparation = async { forwarder.prepareForPcSwitcher() }
+        stopStarted.await()
+        assertFalse(preparation.isCompleted)
+
+        allowStop.complete(Unit)
+        preparation.await()
+
+        assertFalse(forwarder.state.value.active)
+        assertEquals(1, host.restoreCount)
+        assertEquals(0, host.releaseCount)
+        assertTrue(host.commands.last() is PcControlCommand.SwitchSessionStop)
+    }
+
+    @Test
     fun duplicateStopCannotStopALaterSession() = runTest {
         val stopStarted = CompletableDeferred<Unit>()
         val allowStop = CompletableDeferred<Unit>()

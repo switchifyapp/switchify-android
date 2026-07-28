@@ -108,6 +108,7 @@ internal interface PcSwitchControlChooserHost {
     suspend fun loadProfileCatalog(): PcSwitchCatalogResult
     fun currentPcId(): String
     fun configuredExternalSwitchCount(): Int
+    suspend fun prepareForPcSwitcher() {}
     suspend fun start(
         profile: PcSwitchProfileSummary,
         usesLegacyGridProtocol: Boolean
@@ -336,6 +337,10 @@ class PcSwitchControlForwarder internal constructor(
 
     override fun configuredExternalSwitchCount(): Int =
         host.configuredSwitches().count { it.type == SWITCH_EVENT_TYPE_EXTERNAL }
+
+    override suspend fun prepareForPcSwitcher() {
+        stop(StopPolicy.ChangeProfile)
+    }
 
     internal fun acquireConnectionForEpisode(episodeId: String) {
         val shouldMaintain = synchronized(stateLock) {

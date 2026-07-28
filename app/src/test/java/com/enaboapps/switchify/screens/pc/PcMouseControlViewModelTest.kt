@@ -146,7 +146,7 @@ class PcMouseControlViewModelTest {
         advanceUntilIdle()
 
         assertEquals("Oliver Laptop", viewModel.uiState.value.connectedDisplayName)
-        assertEquals("Oliver Laptop", viewModel.uiState.value.switcherConnectedDisplayName)
+        assertEquals("Oliver Laptop", viewModel.pcSwitcherState.value.connectedDisplayName)
     }
 
     @Test
@@ -364,10 +364,10 @@ class PcMouseControlViewModelTest {
         viewModel.openSwitchPcChooser()
         advanceUntilIdle()
 
-        assertTrue(viewModel.uiState.value.switchPcChooserVisible)
-        assertEquals(listOf("desktop-1", "desktop-2"), viewModel.uiState.value.switchPcRows.map { it.desktopId })
-        assertTrue(viewModel.uiState.value.switchPcRows.first { it.desktopId == "desktop-1" }.connected)
-        assertFalse(viewModel.uiState.value.switchPcRows.first { it.desktopId == "desktop-2" }.connected)
+        assertTrue(viewModel.pcSwitcherState.value.visible)
+        assertEquals(listOf("desktop-1", "desktop-2"), viewModel.pcSwitcherState.value.rows.map { it.desktopId })
+        assertTrue(viewModel.pcSwitcherState.value.rows.first { it.desktopId == "desktop-1" }.connected)
+        assertFalse(viewModel.pcSwitcherState.value.rows.first { it.desktopId == "desktop-2" }.connected)
     }
 
     @Test
@@ -386,7 +386,7 @@ class PcMouseControlViewModelTest {
         viewModel.openSwitchPcChooser()
         advanceUntilIdle()
 
-        assertEquals("Oliver Laptop", viewModel.uiState.value.switchPcRows.single().displayName)
+        assertEquals("Oliver Laptop", viewModel.pcSwitcherState.value.rows.single().displayName)
     }
 
     @Test
@@ -399,9 +399,9 @@ class PcMouseControlViewModelTest {
         viewModel.openSwitchPcChooser()
         advanceUntilIdle()
 
-        assertTrue(viewModel.uiState.value.switchPcChooserVisible)
-        assertTrue(viewModel.uiState.value.switchPcRows.isEmpty())
-        assertFalse(viewModel.uiState.value.isDiscoveringSwitchPcs)
+        assertTrue(viewModel.pcSwitcherState.value.visible)
+        assertTrue(viewModel.pcSwitcherState.value.rows.isEmpty())
+        assertFalse(viewModel.pcSwitcherState.value.isDiscovering)
     }
 
     @Test
@@ -419,8 +419,8 @@ class PcMouseControlViewModelTest {
         val state = PcConnectionStateHolder.connectionState.value as PcConnectionState.Connected
         assertEquals("desktop-2", state.session.desktopId)
         assertEquals("Office PC", viewModel.uiState.value.connectedDisplayName)
-        assertFalse(viewModel.uiState.value.switchPcChooserVisible)
-        assertNull(viewModel.uiState.value.switchingDesktopId)
+        assertFalse(viewModel.pcSwitcherState.value.visible)
+        assertNull(viewModel.pcSwitcherState.value.switchingDesktopId)
         assertEquals(2, connector.openControlSessionCalls)
     }
 
@@ -436,7 +436,7 @@ class PcMouseControlViewModelTest {
         viewModel.switchToPc("desktop-1")
         advanceUntilIdle()
 
-        assertFalse(viewModel.uiState.value.switchPcChooserVisible)
+        assertFalse(viewModel.pcSwitcherState.value.visible)
         assertEquals(1, connector.openControlSessionCalls)
     }
 
@@ -460,6 +460,7 @@ class PcMouseControlViewModelTest {
 
         assertFalse(mouseRepeatManager.isRepeating())
         assertFalse(viewModel.uiState.value.isDragging)
+        assertTrue(connector.realtimeCommands.any { it is PcControlCommand.DragEnd })
     }
 
     @Test
@@ -474,9 +475,9 @@ class PcMouseControlViewModelTest {
         viewModel.switchToPc("desktop-2")
         advanceUntilIdle()
 
-        assertTrue(viewModel.uiState.value.switchPcChooserVisible)
-        assertNull(viewModel.uiState.value.switchingDesktopId)
-        assertEquals("Could not connect.", viewModel.uiState.value.message)
+        assertTrue(viewModel.pcSwitcherState.value.visible)
+        assertNull(viewModel.pcSwitcherState.value.switchingDesktopId)
+        assertEquals("Could not connect.", viewModel.pcSwitcherState.value.message)
     }
 
     @Test
@@ -496,8 +497,8 @@ class PcMouseControlViewModelTest {
         viewModel.switchToPc("desktop-2")
         runCurrent()
 
-        assertEquals("Office PC", viewModel.uiState.value.switchPcApprovalCode?.pcName)
-        assertEquals("838981", viewModel.uiState.value.switchPcApprovalCode?.verificationCode)
+        assertEquals("Office PC", viewModel.pcSwitcherState.value.approvalCode?.pcName)
+        assertEquals("838981", viewModel.pcSwitcherState.value.approvalCode?.verificationCode)
 
         pairingDeferred.complete(PcPairingResult.Paired("desktop-2", "new-token", "11:22:33:44:55:66"))
         advanceUntilIdle()
@@ -522,11 +523,11 @@ class PcMouseControlViewModelTest {
         viewModel.cancelSwitchPcPairing()
         advanceUntilIdle()
 
-        assertNull(viewModel.uiState.value.switchPcApprovalCode)
-        assertNull(viewModel.uiState.value.switchingDesktopId)
-        assertTrue(viewModel.uiState.value.switchPcChooserVisible)
+        assertNull(viewModel.pcSwitcherState.value.approvalCode)
+        assertNull(viewModel.pcSwitcherState.value.switchingDesktopId)
+        assertTrue(viewModel.pcSwitcherState.value.visible)
         assertEquals("Switchify PC", viewModel.uiState.value.connectedDisplayName)
-        assertTrue(viewModel.uiState.value.switchPcRows.first { it.desktopId == "desktop-2" }.enabled)
+        assertTrue(viewModel.pcSwitcherState.value.rows.first { it.desktopId == "desktop-2" }.enabled)
     }
 
     @Test
@@ -547,9 +548,9 @@ class PcMouseControlViewModelTest {
         runCurrent()
         viewModel.dismissSwitchPcChooser()
 
-        assertFalse(viewModel.uiState.value.switchPcChooserVisible)
-        assertNull(viewModel.uiState.value.switchPcApprovalCode)
-        assertNull(viewModel.uiState.value.switchingDesktopId)
+        assertFalse(viewModel.pcSwitcherState.value.visible)
+        assertNull(viewModel.pcSwitcherState.value.approvalCode)
+        assertNull(viewModel.pcSwitcherState.value.switchingDesktopId)
 
         pairingDeferred.complete(PcPairingResult.Paired("desktop-2", "new-token", "11:22:33:44:55:66"))
         advanceUntilIdle()
@@ -576,8 +577,8 @@ class PcMouseControlViewModelTest {
         advanceUntilIdle()
 
         assertEquals("Switchify PC", viewModel.uiState.value.connectedDisplayName)
-        assertNull(viewModel.uiState.value.switchingDesktopId)
-        assertNull(viewModel.uiState.value.switchPcApprovalCode)
+        assertNull(viewModel.pcSwitcherState.value.switchingDesktopId)
+        assertNull(viewModel.pcSwitcherState.value.approvalCode)
     }
 
     @Test

@@ -7,11 +7,17 @@ import com.enaboapps.switchify.R
 import com.enaboapps.switchify.pc.PcSwitchProfileCatalog
 import com.enaboapps.switchify.pc.PcSwitchProfilePreferenceStore
 import com.enaboapps.switchify.pc.PcSwitchProfileSummary
+import com.enaboapps.switchify.pc.PcServiceSwitcherConnectionHost
+import com.enaboapps.switchify.pc.PcSwitcherCoordinator
+import com.enaboapps.switchify.pc.PcSwitcherConnectionHost
+import com.enaboapps.switchify.pc.PcSwitcherUiState
 import com.enaboapps.switchify.pc.selectPcSwitchProfile
+import com.enaboapps.switchify.service.core.ServiceCore
 import com.enaboapps.switchify.service.pcswitchcontrol.PcSwitchCatalogResult
 import com.enaboapps.switchify.service.pcswitchcontrol.PcSwitchControlChooserHost
 import com.enaboapps.switchify.service.pcswitchcontrol.PcSwitchControlStartResult
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -51,7 +57,9 @@ internal class PcSwitchControlChooserViewModel(
     private val host: PcSwitchControlChooserHost,
     private val rememberedProfileId: (String) -> String?,
     private val rememberProfile: (String, String) -> Unit,
-    private val message: (Int, List<Any>) -> String
+    private val message: (Int, List<Any>) -> String,
+    switcherConnectionHost: PcSwitcherConnectionHost =
+        PcServiceSwitcherConnectionHost { null }
 ) : ViewModel() {
     constructor(context: Context, host: PcSwitchControlChooserHost) : this(
         host = host,
@@ -59,6 +67,9 @@ internal class PcSwitchControlChooserViewModel(
         rememberProfile = PcSwitchProfilePreferenceStore(context)::rememberProfile,
         message = { resourceId, arguments ->
             context.getString(resourceId, *arguments.toTypedArray())
+        },
+        switcherConnectionHost = PcServiceSwitcherConnectionHost {
+            ServiceCore.getPcServiceConnectionController()
         }
     )
 
@@ -66,6 +77,13 @@ internal class PcSwitchControlChooserViewModel(
     val state: StateFlow<PcSwitchChooserState> = _state.asStateFlow()
     private var loadJob: Job? = null
     private var startJob: Job? = null
+    private val pcSwitcher = PcSwitcherCoordinator(
+        host = switcherConnectionHost,
+        scope = viewModelScope,
+        beforeOpen = ::prepareForPcSwitcher,
+        afterSwitch = ::load
+    )
+    val pcSwitcherState: StateFlow<PcSwitcherUiState> = pcSwitcher.state
 
     init {
         load()
@@ -73,6 +91,26 @@ internal class PcSwitchControlChooserViewModel(
 
     fun retry() {
         load()
+    }
+
+    fun openPcSwitcher() {
+        pcSwitcher.open()
+    }
+
+    fun dismissPcSwitcher() {
+        pcSwitcher.dismiss()
+    }
+
+    fun refreshPcSwitcher() {
+        pcSwitcher.refresh()
+    }
+
+    fun switchToPc(desktopId: String) {
+        pcSwitcher.switchTo(desktopId)
+    }
+
+    fun cancelPcSwitchPairing() {
+        pcSwitcher.cancelPairing()
     }
 
     fun select(profile: PcSwitchProfileSummary) {
@@ -173,5 +211,22 @@ internal class PcSwitchControlChooserViewModel(
                     )
             }
         }
+    }
+
+    private suspend fun prepareForPcSwitcher() {
+        val starting = _state.value as? PcSwitchChooserState.Starting
+        startJob?.cancelAndJoin()
+        startJob = null
+        if (starting != null) {
+            _state.value = PcSwitchChooserState.Ready(
+                catalog = starting.catalog,
+                selected = starting.selected
+            )
+        }
+        host.prepareForPcSwitcher()
+    }
+
+    override fun onCleared() {
+        pcSwitcher.dispose()
     }
 }
