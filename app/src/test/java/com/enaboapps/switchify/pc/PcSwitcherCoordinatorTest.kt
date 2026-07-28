@@ -98,6 +98,27 @@ class PcSwitcherCoordinatorTest {
     }
 
     @Test
+    fun switchingDuringPendingRefreshClearsDiscoveringState() = runTest {
+        val host = FakeHost(listOf(firstPc, secondPc), connectedPc = firstPc)
+        val coordinator = PcSwitcherCoordinator(host, backgroundScope)
+        coordinator.open()
+        runCurrent()
+        val pendingDiscovery = CompletableDeferred<List<DiscoveredPc>>()
+        host.deferredDiscovery = pendingDiscovery
+        coordinator.refresh()
+        runCurrent()
+        assertTrue(coordinator.state.value.isDiscovering)
+
+        coordinator.switchTo("second")
+        runCurrent()
+        pendingDiscovery.complete(listOf(firstPc, secondPc))
+        runCurrent()
+
+        assertFalse(coordinator.state.value.isDiscovering)
+        assertEquals("Second PC", coordinator.state.value.connectedDisplayName)
+    }
+
+    @Test
     fun cancellingPairingInvalidatesLateCompletion() = runTest {
         val connection = CompletableDeferred<PcServiceConnectResult>()
         val host = FakeHost(
@@ -131,6 +152,7 @@ class PcSwitcherCoordinatorTest {
         override val connectionState =
             MutableStateFlow<PcServiceConnectionState>(PcServiceConnectionState.Disconnected)
         private var connected = connectedPc
+        var deferredDiscovery: CompletableDeferred<List<DiscoveredPc>>? = null
         var connectCount = 0
         var cancelCount = 0
 
@@ -138,7 +160,8 @@ class PcSwitcherCoordinatorTest {
 
         override fun currentDisplayName(): String? = connected?.controlDeviceName
 
-        override suspend fun discoverPairedPcs(): List<DiscoveredPc> = pcs
+        override suspend fun discoverPairedPcs(): List<DiscoveredPc> =
+            deferredDiscovery?.await() ?: pcs
 
         override suspend fun connectTo(
             pc: DiscoveredPc,

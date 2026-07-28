@@ -190,6 +190,9 @@ internal class PcSwitcherCoordinator(
             dismiss()
             return
         }
+        discoveryJob?.cancel()
+        discoveryJob = null
+        _state.update { it.copy(isDiscovering = false) }
         connectionJob?.cancel()
         val expectedGeneration = ++operationGeneration
         connectionJob = scope.launch {
