@@ -24,8 +24,6 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.advanceTimeBy
@@ -117,12 +115,46 @@ class PcSwitchControlForwarderTest {
             genericSupported = true
         )
         val forwarder = PcSwitchControlForwarder(host, backgroundScope)
+        forwarder.acquireConnectionForEpisode("chooser")
 
         forwarder.requestCloseForScreenSleep()
         forwarder.requestCloseForScreenSleep()
         runCurrent()
 
         assertEquals(0, host.restoreCount)
+        assertEquals(1, host.releaseCount)
+    }
+
+    @Test
+    fun chooserEpisodesAcquireAndReleaseConnectionIndependently() = runTest {
+        val host = FakeHost(mutableListOf(switchEvent("20", "Primary")))
+        val forwarder = PcSwitchControlForwarder(host, backgroundScope)
+
+        forwarder.acquireConnectionForEpisode("first")
+        forwarder.acquireConnectionForEpisode("first")
+        forwarder.requestClose("first")
+        runCurrent()
+        forwarder.acquireConnectionForEpisode("second")
+        forwarder.requestClose("second")
+        runCurrent()
+
+        assertEquals(2, host.maintainCount)
+        assertEquals(2, host.releaseCount)
+    }
+
+    @Test
+    fun staleEpisodeCannotReleaseReplacementConnection() = runTest {
+        val host = FakeHost(mutableListOf(switchEvent("20", "Primary")))
+        val forwarder = PcSwitchControlForwarder(host, backgroundScope)
+
+        forwarder.acquireConnectionForEpisode("first")
+        forwarder.acquireConnectionForEpisode("second")
+        forwarder.requestClose("first")
+        runCurrent()
+
+        assertEquals(0, host.releaseCount)
+        forwarder.requestClose("second")
+        runCurrent()
         assertEquals(1, host.releaseCount)
     }
 
@@ -571,6 +603,7 @@ class PcSwitchControlForwarderTest {
     fun holdAndReleaseSendsUpThenStopsAndRestoresScanning() = runTest {
         val host = FakeHost(mutableListOf(switchEvent("4", "Hold")), holdDurationMs = 2_000L)
         val forwarder = PcSwitchControlForwarder(host, backgroundScope)
+        forwarder.acquireConnectionForEpisode("episode")
         forwarder.startLegacyGridProfile()
         forwarder.onSwitchPressed(4, downTimeMs = 1_000L, eventTimeMs = 1_000L)
         runCurrent()
@@ -593,6 +626,10 @@ class PcSwitchControlForwarderTest {
         assertFalse(forwarder.state.value.active)
         assertEquals(1, host.suspendCount)
         assertEquals(1, host.restoreCount)
+        assertEquals(0, host.releaseCount)
+
+        forwarder.requestClose("episode")
+        runCurrent()
         assertEquals(1, host.releaseCount)
     }
 
@@ -829,6 +866,54 @@ class PcSwitchControlForwarderTest {
     }
 
     @Test
+    fun genericReconnectStartExceptionStopsAndKeepsConnectionCollectorAlive() = runTest {
+        val host = FakeHost(
+            mutableListOf(switchEvent("1", "One")),
+            genericSupported = true,
+            throwOnStartCall = 2
+        )
+        val forwarder = PcSwitchControlForwarder(host, backgroundScope)
+        val profile = (forwarder.loadProfileCatalog() as PcSwitchCatalogResult.Loaded)
+            .catalog.profiles.single()
+        assertEquals(
+            PcSwitchControlStartResult.Started,
+            forwarder.start(profile, usesLegacyGridProtocol = false)
+        )
+
+        host.mutableConnectionState.value = PcServiceConnectionState.Reconnecting(
+            session = com.enaboapps.switchify.pc.PcAuthenticatedSession(
+                "desktop",
+                "device",
+                "endpoint"
+            ),
+            displayName = "Office PC"
+        )
+        runCurrent()
+        host.mutableConnectionState.value = PcServiceConnectionState.Connected(
+            session = com.enaboapps.switchify.pc.PcAuthenticatedSession(
+                "desktop",
+                "device",
+                "endpoint"
+            ),
+            displayName = "Office PC",
+            pointerProfile = null
+        )
+        runCurrent()
+
+        assertFalse(forwarder.state.value.active)
+        assertEquals(1, host.restoreCount)
+        assertEquals(
+            PcSwitchControlStartResult.Started,
+            forwarder.start(profile, usesLegacyGridProtocol = false)
+        )
+        host.mutableConnectionState.value = PcServiceConnectionState.Failed("Terminal")
+        runCurrent()
+
+        assertFalse(forwarder.state.value.active)
+        assertEquals(2, host.restoreCount)
+    }
+
+    @Test
     fun terminalFailureReleasesHeldSwitchAndRestoresScanning() = runTest {
         val host = FakeHost(mutableListOf(switchEvent("1", "One")))
         val forwarder = PcSwitchControlForwarder(host, backgroundScope)
@@ -871,17 +956,13 @@ class PcSwitchControlForwarderTest {
     }
 
     @Test
-    fun inactivityTimeoutStopsSessionAndEmitsTerminalExit() = runTest {
+    fun inactivityTimeoutPersistsUntilTerminalExitIsAcknowledged() = runTest {
         val host = FakeHost(mutableListOf(switchEvent("1", "One")))
         val forwarder = PcSwitchControlForwarder(
             host = host,
             scope = backgroundScope,
             inactivityTimeoutMs = 1_000L
         )
-        val exit = CompletableDeferred<PcSwitchControlExitReason>()
-        backgroundScope.launch(start = CoroutineStart.UNDISPATCHED) {
-            exit.complete(forwarder.terminalExitEvents.first())
-        }
         assertEquals(PcSwitchControlStartResult.Started, forwarder.startLegacyGridProfile())
 
         advanceTimeBy(999L)
@@ -891,7 +972,12 @@ class PcSwitchControlForwarderTest {
         runCurrent()
 
         assertFalse(forwarder.state.value.active)
-        assertEquals(PcSwitchControlExitReason.InactivityTimeout, exit.await())
+        assertEquals(
+            PcSwitchControlExitReason.InactivityTimeout,
+            forwarder.terminalExitReason.value
+        )
+        forwarder.acknowledgeTerminalExit(PcSwitchControlExitReason.InactivityTimeout)
+        assertEquals(null, forwarder.terminalExitReason.value)
         assertEquals(1, host.inactivityTimeoutCount)
         assertEquals(1, host.restoreCount)
         assertEquals(1, host.releaseCount)
@@ -1008,7 +1094,8 @@ class PcSwitchControlForwarderTest {
         private val startStarted: CompletableDeferred<Unit>? = null,
         private val allowStartToComplete: CompletableDeferred<Unit>? = null,
         private val stopStarted: CompletableDeferred<Unit>? = null,
-        private val allowStopToComplete: CompletableDeferred<Unit>? = null
+        private val allowStopToComplete: CompletableDeferred<Unit>? = null,
+        private val throwOnStartCall: Int? = null
     ) : PcSwitchControlHost {
         val mutableConnectionState = MutableStateFlow<PcServiceConnectionState>(
             PcServiceConnectionState.Connected(
@@ -1090,6 +1177,12 @@ class PcSwitchControlForwarderTest {
         override suspend fun send(command: PcControlCommand): PcCommandResult {
             commands += command
             if (command is PcControlCommand.SwitchSessionStart) {
+                if (
+                    commands.filterIsInstance<PcControlCommand.SwitchSessionStart>().size ==
+                    throwOnStartCall
+                ) {
+                    throw IllegalStateException("Start failed")
+                }
                 startStarted?.complete(Unit)
                 allowStartToComplete?.await()
             }

@@ -25,11 +25,9 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -199,6 +197,7 @@ class PcSwitchControlForwarder internal constructor(
             val generation: Long,
             val policy: StopPolicy = StopPolicy.Normal,
             val releaseWhenInactive: Boolean = false,
+            val connectionEpisodeId: String? = null,
             val exitReason: PcSwitchControlExitReason? = null,
             val completion: CompletableDeferred<Unit>? = null
         ) : EdgeAction()
@@ -224,11 +223,9 @@ class PcSwitchControlForwarder internal constructor(
     private val snapshotActions = Channel<SnapshotAction>(Channel.CONFLATED)
     private val _state = MutableStateFlow(PcSwitchControlState())
     val state: StateFlow<PcSwitchControlState> = _state
-    private val _terminalExitEvents = MutableSharedFlow<PcSwitchControlExitReason>(
-        extraBufferCapacity = 1
-    )
-    internal val terminalExitEvents: SharedFlow<PcSwitchControlExitReason> =
-        _terminalExitEvents.asSharedFlow()
+    private val _terminalExitReason = MutableStateFlow<PcSwitchControlExitReason?>(null)
+    internal val terminalExitReason: StateFlow<PcSwitchControlExitReason?> =
+        _terminalExitReason.asStateFlow()
     private var generation = 0L
     private var mappingByKeyCode = emptyMap<Int, PcSwitchControlMapping>()
     private val activePresses = mutableMapOf<Int, ActivePress>()
@@ -243,7 +240,7 @@ class PcSwitchControlForwarder internal constructor(
     private var inactivityTimeoutJob: Job? = null
     private var stoppingGeneration: Long? = null
     private var startingGeneration: Long? = null
-    private var connectionReleaseGeneration: Long? = null
+    private var connectionEpisodeId: String? = null
     private var destroying = false
 
     init {
@@ -258,6 +255,7 @@ class PcSwitchControlForwarder internal constructor(
                                 action.generation,
                                 action.policy,
                                 action.releaseWhenInactive,
+                                action.connectionEpisodeId,
                                 action.exitReason
                             )
                         } finally {
@@ -327,6 +325,25 @@ class PcSwitchControlForwarder internal constructor(
 
     fun configuredExternalSwitchCount(): Int =
         host.configuredSwitches().count { it.type == SWITCH_EVENT_TYPE_EXTERNAL }
+
+    internal fun acquireConnectionForEpisode(episodeId: String) {
+        val shouldMaintain = synchronized(stateLock) {
+            if (connectionEpisodeId == episodeId) {
+                false
+            } else {
+                connectionEpisodeId = episodeId
+                _terminalExitReason.value = null
+                true
+            }
+        }
+        if (shouldMaintain) {
+            host.maintainConnection()
+        }
+    }
+
+    internal fun acknowledgeTerminalExit(reason: PcSwitchControlExitReason) {
+        _terminalExitReason.compareAndSet(reason, null)
+    }
 
     suspend fun start(
         profile: PcSwitchProfileSummary,
@@ -464,13 +481,28 @@ class PcSwitchControlForwarder internal constructor(
             )
         }
         host.suspendScanning()
-        host.maintainConnection()
+        ensureConnectionOwned()
         if (useSequencedDelivery) {
             enqueueSyncSnapshot()
             startSnapshotLoop()
         }
         resetInactivityTimeout()
         return PcSwitchControlStartResult.Started
+    }
+
+    private fun ensureConnectionOwned() {
+        val shouldMaintain = synchronized(stateLock) {
+            if (connectionEpisodeId != null) {
+                false
+            } else {
+                connectionEpisodeId = UUID.randomUUID().toString()
+                _terminalExitReason.value = null
+                true
+            }
+        }
+        if (shouldMaintain) {
+            host.maintainConnection()
+        }
     }
 
     override val forwardingActivation: Long
@@ -554,7 +586,12 @@ class PcSwitchControlForwarder internal constructor(
         }
         enqueueEdge(queued.first)
         if (queued.second) {
-            enqueueEdge(EdgeAction.Stop(queued.third))
+            enqueueEdge(
+                EdgeAction.Stop(
+                    generation = queued.third,
+                    policy = StopPolicy.ChangeProfile
+                )
+            )
         }
         return true
     }
@@ -564,14 +601,17 @@ class PcSwitchControlForwarder internal constructor(
     }
 
     private suspend fun stop(policy: StopPolicy) {
-        val targetGeneration = synchronized(stateLock) {
-            startingGeneration ?: generation.takeIf { _state.value.active }
+        val stopTarget = synchronized(stateLock) {
+            val targetGeneration =
+                startingGeneration ?: generation.takeIf { _state.value.active }
+            targetGeneration?.let { it to connectionEpisodeId }
         } ?: return
         val completion = CompletableDeferred<Unit>()
         edgeActions.send(
             EdgeAction.Stop(
-                generation = targetGeneration,
+                generation = stopTarget.first,
                 policy = policy,
+                connectionEpisodeId = stopTarget.second,
                 completion = completion
             )
         )
@@ -586,23 +626,38 @@ class PcSwitchControlForwarder internal constructor(
         requestStop(StopPolicy.ChangeProfile, releaseWhenInactive = false)
     }
 
-    fun requestClose() {
-        requestStop(StopPolicy.Normal, releaseWhenInactive = true)
+    fun requestClose(episodeId: String? = null) {
+        requestStop(
+            StopPolicy.Normal,
+            releaseWhenInactive = true,
+            requestedEpisodeId = episodeId
+        )
     }
 
-    fun requestCloseForScreenSleep() {
-        requestStop(StopPolicy.ScreenSleep, releaseWhenInactive = true)
+    fun requestCloseForScreenSleep(episodeId: String? = null) {
+        requestStop(
+            StopPolicy.ScreenSleep,
+            releaseWhenInactive = true,
+            requestedEpisodeId = episodeId
+        )
     }
 
-    private fun requestStop(policy: StopPolicy, releaseWhenInactive: Boolean) {
-        val targetGeneration = synchronized(stateLock) {
-            startingGeneration ?: generation.takeIf { _state.value.active } ?: generation
+    private fun requestStop(
+        policy: StopPolicy,
+        releaseWhenInactive: Boolean,
+        requestedEpisodeId: String? = null
+    ) {
+        val stopTarget = synchronized(stateLock) {
+            val targetGeneration =
+                startingGeneration ?: generation.takeIf { _state.value.active } ?: generation
+            targetGeneration to (requestedEpisodeId ?: connectionEpisodeId)
         }
         enqueueEdge(
             EdgeAction.Stop(
-                generation = targetGeneration,
+                generation = stopTarget.first,
                 policy = policy,
-                releaseWhenInactive = releaseWhenInactive
+                releaseWhenInactive = releaseWhenInactive,
+                connectionEpisodeId = stopTarget.second
             )
         )
     }
@@ -755,6 +810,7 @@ class PcSwitchControlForwarder internal constructor(
         synchronized(stateLock) {
             if (!_state.value.active) return
             val expectedGeneration = generation
+            val expectedConnectionEpisodeId = connectionEpisodeId
             inactivityTimeoutJob?.cancel()
             inactivityTimeoutJob = forwardingScope.launch {
                 delay(inactivityTimeoutMs)
@@ -762,6 +818,7 @@ class PcSwitchControlForwarder internal constructor(
                     EdgeAction.Stop(
                         generation = expectedGeneration,
                         policy = StopPolicy.Normal,
+                        connectionEpisodeId = expectedConnectionEpisodeId,
                         exitReason = PcSwitchControlExitReason.InactivityTimeout
                     )
                 )
@@ -773,6 +830,7 @@ class PcSwitchControlForwarder internal constructor(
         expectedGeneration: Long,
         policy: StopPolicy,
         releaseWhenInactive: Boolean,
+        expectedConnectionEpisodeId: String?,
         exitReason: PcSwitchControlExitReason?
     ) = sessionLifecycleMutex.withLock {
         var finalCommand: PcControlCommand? = null
@@ -802,7 +860,7 @@ class PcSwitchControlForwarder internal constructor(
         }
         if (!shouldStop) {
             if (releaseWhenInactive && policy.releaseConnection) {
-                releaseConnectionOnce(expectedGeneration)
+                releaseConnection(expectedConnectionEpisodeId)
             }
             return@withLock
         }
@@ -849,25 +907,25 @@ class PcSwitchControlForwarder internal constructor(
                     host.restoreScanning()
                 } finally {
                     if (policy.releaseConnection) {
-                        releaseConnectionOnce(expectedGeneration)
+                        releaseConnection(expectedConnectionEpisodeId)
                     }
                 }
             } else if (policy.releaseConnection) {
-                releaseConnectionOnce(expectedGeneration)
+                releaseConnection(expectedConnectionEpisodeId)
             }
             if (exitReason == PcSwitchControlExitReason.InactivityTimeout) {
                 host.showInactivityTimeout()
-                _terminalExitEvents.tryEmit(exitReason)
+                _terminalExitReason.value = exitReason
             }
         }
     }
 
-    private fun releaseConnectionOnce(expectedGeneration: Long) {
+    private fun releaseConnection(expectedEpisodeId: String?) {
         val shouldRelease = synchronized(stateLock) {
-            if (connectionReleaseGeneration == expectedGeneration) {
+            if (expectedEpisodeId == null || connectionEpisodeId != expectedEpisodeId) {
                 false
             } else {
-                connectionReleaseGeneration = expectedGeneration
+                connectionEpisodeId = null
                 true
             }
         }
@@ -883,12 +941,12 @@ class PcSwitchControlForwarder internal constructor(
     }
 
     private fun stopAfterQueueOverflow() {
-        val currentGeneration = synchronized(stateLock) {
+        val stopTarget = synchronized(stateLock) {
             if (!_state.value.active || stoppingGeneration == generation) return
             stoppingGeneration = generation
             activePresses.clear()
             _state.value = _state.value.copy(active = false)
-            generation
+            generation to connectionEpisodeId
         }
         snapshotJob?.cancel()
         snapshotJob = null
@@ -896,7 +954,8 @@ class PcSwitchControlForwarder internal constructor(
             val completion = CompletableDeferred<Unit>()
             edgeActions.send(
                 EdgeAction.Stop(
-                    generation = currentGeneration,
+                    generation = stopTarget.first,
+                    connectionEpisodeId = stopTarget.second,
                     completion = completion
                 )
             )
@@ -909,6 +968,7 @@ class PcSwitchControlForwarder internal constructor(
         var profileToRestart: PcSwitchProfileSummary? = null
         var restartedSessionId: String? = null
         var restartedGeneration: Long? = null
+        var stopConnectionEpisodeId: String? = null
         val currentGeneration = synchronized(stateLock) {
             if (!_state.value.active) return
             when (connectionState) {
@@ -943,7 +1003,10 @@ class PcSwitchControlForwarder internal constructor(
                     )
                 }
                 is PcServiceConnectionState.Failed,
-                PcServiceConnectionState.Disconnected -> return@synchronized generation
+                PcServiceConnectionState.Disconnected -> {
+                    stopConnectionEpisodeId = connectionEpisodeId
+                    return@synchronized generation
+                }
                 else -> Unit
             }
             null
@@ -953,6 +1016,7 @@ class PcSwitchControlForwarder internal constructor(
             edgeActions.send(
                 EdgeAction.Stop(
                     generation = currentGeneration,
+                    connectionEpisodeId = stopConnectionEpisodeId,
                     completion = completion
                 )
             )
@@ -967,14 +1031,20 @@ class PcSwitchControlForwarder internal constructor(
                         stoppingGeneration == null
                 }
                 if (!restartIsCurrent) return@withLock true
-                val result = host.send(
-                    PcControlCommand.SwitchSessionStart(
-                        sessionId = restartedSessionId,
-                        profileId = profileToRestart.id,
-                        profileVersion = profileToRestart.version,
-                        switchCount = synchronized(stateLock) { mappingByKeyCode.size }
+                val result = try {
+                    host.send(
+                        PcControlCommand.SwitchSessionStart(
+                            sessionId = restartedSessionId,
+                            profileId = profileToRestart.id,
+                            profileVersion = profileToRestart.version,
+                            switchCount = synchronized(stateLock) { mappingByKeyCode.size }
+                        )
                     )
-                )
+                } catch (error: Exception) {
+                    PcCommandResult.Failed(
+                        error.message ?: "PC Switch Control could not reconnect."
+                    )
+                }
                 if (result != PcCommandResult.Ack) return@withLock false
                 synchronized(stateLock) {
                     if (
@@ -997,9 +1067,13 @@ class PcSwitchControlForwarder internal constructor(
                 enqueueSyncSnapshot()
             } else {
                 val completion = CompletableDeferred<Unit>()
+                val stopTarget = synchronized(stateLock) {
+                    generation to connectionEpisodeId
+                }
                 edgeActions.send(
                     EdgeAction.Stop(
-                        generation = synchronized(stateLock) { generation },
+                        generation = stopTarget.first,
+                        connectionEpisodeId = stopTarget.second,
                         completion = completion
                     )
                 )

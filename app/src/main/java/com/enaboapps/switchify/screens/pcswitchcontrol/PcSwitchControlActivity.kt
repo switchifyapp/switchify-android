@@ -94,28 +94,34 @@ import com.enaboapps.switchify.pc.PcSwitchProfilePreferenceStore
 import com.enaboapps.switchify.pc.selectPcSwitchProfile
 import com.enaboapps.switchify.theme.Dimens
 import kotlinx.coroutines.launch
+import java.util.UUID
 
 open class PcSwitchControlActivity : ComponentActivity() {
     private var forwarder: PcSwitchControlForwarder? = null
+    private lateinit var connectionEpisodeId: String
     private var screenOffReceiverRegistered = false
     private val screenOffReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             if (intent?.action != Intent.ACTION_SCREEN_OFF) return
-            forwarder?.requestCloseForScreenSleep()
+            forwarder?.requestCloseForScreenSleep(connectionEpisodeId)
             finishAndRemoveTask()
         }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        connectionEpisodeId =
+            savedInstanceState?.getString(STATE_CONNECTION_EPISODE_ID)
+                ?: UUID.randomUUID().toString()
         val forwarder = ServiceCore.getPcSwitchControlForwarder()
         if (forwarder == null) {
             finish()
             return
         }
         this.forwarder = forwarder
+        forwarder.acquireConnectionForEpisode(connectionEpisodeId)
         if (DeviceLockObserver.isKeyguardLocked(this)) {
-            forwarder.requestCloseForScreenSleep()
+            forwarder.requestCloseForScreenSleep(connectionEpisodeId)
             finishAndRemoveTask()
             return
         }
@@ -135,11 +141,12 @@ open class PcSwitchControlActivity : ComponentActivity() {
                     mutableStateOf(state.active)
                 }
                 var transitionAnnouncement by remember { mutableStateOf<String?>(null) }
-                LaunchedEffect(forwarder) {
-                    forwarder.terminalExitEvents.collect { reason ->
-                        if (reason == PcSwitchControlExitReason.InactivityTimeout) {
-                            finishAndRemoveTask()
-                        }
+                val terminalExitReason by forwarder.terminalExitReason.collectAsState()
+                LaunchedEffect(terminalExitReason) {
+                    val reason = terminalExitReason
+                    if (reason == PcSwitchControlExitReason.InactivityTimeout) {
+                        finishAndRemoveTask()
+                        forwarder.acknowledgeTerminalExit(reason)
                     }
                 }
                 LaunchedEffect(state.active, showChooser) {
@@ -163,7 +170,7 @@ open class PcSwitchControlActivity : ComponentActivity() {
                             forwarder.requestChangeProfile()
                         },
                         onStop = {
-                            forwarder.requestClose()
+                            forwarder.requestClose(connectionEpisodeId)
                             finish()
                         }
                     )
@@ -179,17 +186,25 @@ open class PcSwitchControlActivity : ComponentActivity() {
                                         ?: context.getString(R.string.pc_switch_control_pc_fallback_name)
                                 )
                         },
-                        onClose = { finish() }
+                        onClose = {
+                            forwarder.requestClose(connectionEpisodeId)
+                            finish()
+                        }
                     )
                 }
             }
         }
     }
 
+    override fun onSaveInstanceState(outState: Bundle) {
+        outState.putString(STATE_CONNECTION_EPISODE_ID, connectionEpisodeId)
+        super.onSaveInstanceState(outState)
+    }
+
     override fun onResume() {
         super.onResume()
         if (DeviceLockObserver.isKeyguardLocked(this)) {
-            forwarder?.requestCloseForScreenSleep()
+            forwarder?.requestCloseForScreenSleep(connectionEpisodeId)
             finishAndRemoveTask()
         }
     }
@@ -200,13 +215,15 @@ open class PcSwitchControlActivity : ComponentActivity() {
             screenOffReceiverRegistered = false
         }
         if (isFinishing) {
-            forwarder?.requestClose()
+            forwarder?.requestClose(connectionEpisodeId)
         }
         forwarder = null
         super.onDestroy()
     }
 
     companion object {
+        private const val STATE_CONNECTION_EPISODE_ID = "pc_switch_control_connection_episode_id"
+
         fun createIntent(context: Context): Intent {
             return Intent(context, PcSwitchControlActivity::class.java)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
