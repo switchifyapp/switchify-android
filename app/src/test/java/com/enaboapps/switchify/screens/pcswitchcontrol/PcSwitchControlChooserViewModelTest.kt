@@ -1,14 +1,23 @@
 package com.enaboapps.switchify.screens.pcswitchcontrol
 
 import com.enaboapps.switchify.R
+import com.enaboapps.switchify.pc.DiscoveredPc
+import com.enaboapps.switchify.pc.PcApprovalCodeState
+import com.enaboapps.switchify.pc.PcAuthenticatedSession
+import com.enaboapps.switchify.pc.PcBluetoothEndpoint
+import com.enaboapps.switchify.pc.PcErrorReason
+import com.enaboapps.switchify.pc.PcServiceConnectResult
+import com.enaboapps.switchify.pc.PcServiceConnectionState
 import com.enaboapps.switchify.pc.PcSwitchProfileCatalog
 import com.enaboapps.switchify.pc.PcSwitchProfileSummary
+import com.enaboapps.switchify.pc.PcSwitcherConnectionHost
 import com.enaboapps.switchify.service.pcswitchcontrol.PcSwitchCatalogResult
 import com.enaboapps.switchify.service.pcswitchcontrol.PcSwitchControlChooserHost
 import com.enaboapps.switchify.service.pcswitchcontrol.PcSwitchControlStartResult
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runCurrent
@@ -105,15 +114,115 @@ class PcSwitchControlChooserViewModelTest {
         assertEquals(2, host.loadCount)
     }
 
+    @Test
+    fun openingPcSwitcherCancelsStartAndPreparesForwarder() = runTest(dispatcher) {
+        val allowStart = CompletableDeferred<Unit>()
+        val host = FakeChooserHost(allowStart = allowStart)
+        val viewModel = viewModel(host)
+        runCurrent()
+        viewModel.start()
+        runCurrent()
+        assertTrue(viewModel.state.value is PcSwitchChooserState.Starting)
+
+        viewModel.openPcSwitcher()
+        runCurrent()
+
+        assertEquals(1, host.prepareCount)
+        assertTrue(viewModel.state.value is PcSwitchChooserState.Ready)
+        assertTrue(viewModel.pcSwitcherState.value.visible)
+    }
+
+    @Test
+    fun successfulPcSwitchReloadsProfileCatalog() = runTest(dispatcher) {
+        val host = FakeChooserHost()
+        val switcherHost = FakeSwitcherHost()
+        val viewModel = viewModel(host, switcherHost = switcherHost)
+        runCurrent()
+        assertEquals(1, host.loadCount)
+
+        viewModel.openPcSwitcher()
+        runCurrent()
+        viewModel.switchToPc("second")
+        runCurrent()
+
+        assertEquals(2, host.loadCount)
+        assertEquals("Second PC", viewModel.pcSwitcherState.value.connectedDisplayName)
+        assertTrue(viewModel.state.value is PcSwitchChooserState.Ready)
+    }
+
     private fun viewModel(
         host: FakeChooserHost,
-        rememberProfile: (String, String) -> Unit = { _, _ -> }
+        rememberProfile: (String, String) -> Unit = { _, _ -> },
+        switcherHost: PcSwitcherConnectionHost = EmptySwitcherHost
     ) = PcSwitchControlChooserViewModel(
         host = host,
         rememberedProfileId = { null },
         rememberProfile = rememberProfile,
-        message = { resourceId, _ -> "message-$resourceId" }
+        message = { resourceId, _ -> "message-$resourceId" },
+        switcherConnectionHost = switcherHost
     )
+
+    private object EmptySwitcherHost : PcSwitcherConnectionHost {
+        override val connectionState = null
+        override fun currentDesktopId(): String? = null
+        override fun currentDisplayName(): String? = null
+        override suspend fun discoverPairedPcs(): List<DiscoveredPc> = emptyList()
+        override suspend fun connectTo(
+            pc: DiscoveredPc,
+            onWaitingForApproval: (PcApprovalCodeState) -> Unit
+        ) = PcServiceConnectResult.Failed(PcErrorReason.Failed, "Unavailable")
+        override fun cancelConnectionAttempt() = Unit
+    }
+
+    private class FakeSwitcherHost : PcSwitcherConnectionHost {
+        private val first = pc("first", "First PC")
+        private val second = pc("second", "Second PC")
+        private var connected = first
+        override val connectionState =
+            MutableStateFlow<PcServiceConnectionState>(
+                PcServiceConnectionState.Connected(
+                    PcAuthenticatedSession("first", "android", "first"),
+                    "First PC",
+                    pointerProfile = null
+                )
+            )
+
+        override fun currentDesktopId(): String = connected.desktopId
+
+        override fun currentDisplayName(): String = connected.controlDeviceName
+
+        override suspend fun discoverPairedPcs(): List<DiscoveredPc> =
+            listOf(first, second)
+
+        override suspend fun connectTo(
+            pc: DiscoveredPc,
+            onWaitingForApproval: (PcApprovalCodeState) -> Unit
+        ): PcServiceConnectResult {
+            connected = pc
+            val session = PcAuthenticatedSession(pc.desktopId, "android", pc.desktopId)
+            connectionState.value = PcServiceConnectionState.Connected(
+                session,
+                pc.controlDeviceName,
+                pointerProfile = null
+            )
+            return PcServiceConnectResult.Connected(session, pc.controlDeviceName)
+        }
+
+        override fun cancelConnectionAttempt() = Unit
+
+        companion object {
+            private fun pc(desktopId: String, name: String) = DiscoveredPc(
+                serviceName = name,
+                desktopId = desktopId,
+                bluetoothEndpoint = PcBluetoothEndpoint(
+                    deviceAddress = desktopId,
+                    deviceName = name,
+                    desktopId = desktopId,
+                    displayName = name
+                )
+            )
+        }
+    }
 
     private class FakeChooserHost(
         var catalogResult: PcSwitchCatalogResult? = null,
@@ -142,6 +251,7 @@ class PcSwitchControlChooserViewModelTest {
             profiles = profiles
         )
         var loadCount = 0
+        var prepareCount = 0
 
         override suspend fun loadProfileCatalog(): PcSwitchCatalogResult {
             loadCount++
@@ -151,6 +261,10 @@ class PcSwitchControlChooserViewModelTest {
         override fun currentPcId(): String = "pc"
 
         override fun configuredExternalSwitchCount(): Int = 1
+
+        override suspend fun prepareForPcSwitcher() {
+            prepareCount++
+        }
 
         override suspend fun start(
             profile: PcSwitchProfileSummary,

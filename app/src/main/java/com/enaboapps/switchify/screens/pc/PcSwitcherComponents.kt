@@ -37,14 +37,18 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.enaboapps.switchify.R
+import com.enaboapps.switchify.pc.PcSwitcherRowState
 
 @Composable
-fun PcControlPcSwitchStrip(
+internal fun PcSwitcherStrip(
     connectedDisplayName: String?,
     enabled: Boolean,
     isDiscovering: Boolean,
@@ -132,10 +136,11 @@ fun PcControlPcSwitchStrip(
 }
 
 @Composable
-fun PcSwitchPcDialog(
-    rows: List<PcSwitchRowState>,
+internal fun PcSwitcherDialog(
+    rows: List<PcSwitcherRowState>,
     isDiscovering: Boolean,
     switchingDesktopId: String?,
+    message: String?,
     onDismiss: () -> Unit,
     onRefresh: () -> Unit,
     onPcSelected: (String) -> Unit
@@ -160,6 +165,16 @@ fun PcSwitchPcDialog(
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
+                message?.let {
+                    Text(
+                        text = it,
+                        modifier = Modifier.semantics {
+                            liveRegion = LiveRegionMode.Polite
+                        },
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
                 if (isDiscovering) {
                     LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
                     Text(
@@ -175,7 +190,7 @@ fun PcSwitchPcDialog(
                     )
                 } else {
                     rows.forEach { row ->
-                        PcSwitchPcRow(
+                        PcSwitcherRow(
                             row = row,
                             switching = switchingDesktopId == row.desktopId,
                             onPcSelected = onPcSelected
@@ -188,8 +203,8 @@ fun PcSwitchPcDialog(
 }
 
 @Composable
-private fun PcSwitchPcRow(
-    row: PcSwitchRowState,
+private fun PcSwitcherRow(
+    row: PcSwitcherRowState,
     switching: Boolean,
     onPcSelected: (String) -> Unit
 ) {
@@ -247,7 +262,7 @@ private fun PcSwitchPcRow(
 }
 
 @Composable
-fun PcSwitchPcApprovalDialog(
+internal fun PcSwitcherApprovalDialog(
     approvalCode: com.enaboapps.switchify.pc.PcApprovalCodeState,
     onCancel: () -> Unit
 ) {

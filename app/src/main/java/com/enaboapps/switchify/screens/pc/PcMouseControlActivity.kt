@@ -100,6 +100,7 @@ private fun PcMouseControlScreen(
     onClose: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val pcSwitcherState by viewModel.pcSwitcherState.collectAsState()
     val surfaceEnabled = uiState.connectedDisplayName != null && !uiState.isBusy
     var closeConfirmationVisible by rememberSaveable { mutableStateOf(false) }
     var quickInputVisible by rememberSaveable { mutableStateOf(false) }
@@ -140,11 +141,13 @@ private fun PcMouseControlScreen(
                         onClick = { quickInputVisible = true }
                     )
                 }
-                PcControlPcSwitchStrip(
-                    connectedDisplayName = uiState.switcherConnectedDisplayName ?: uiState.connectedDisplayName,
+                PcSwitcherStrip(
+                    connectedDisplayName = pcSwitcherState.connectedDisplayName
+                        ?: uiState.connectedDisplayName,
                     enabled = !uiState.isBusy,
-                    isDiscovering = uiState.isDiscoveringSwitchPcs,
-                    switching = uiState.switchingDesktopId != null,
+                    isDiscovering = pcSwitcherState.isDiscovering,
+                    switching = pcSwitcherState.isPreparing ||
+                        pcSwitcherState.switchingDesktopId != null,
                     onSwitchClick = viewModel::openSwitchPcChooser
                 )
             }
@@ -223,19 +226,20 @@ private fun PcMouseControlScreen(
         }
     }
 
-    if (uiState.switchPcChooserVisible) {
-        PcSwitchPcDialog(
-            rows = uiState.switchPcRows,
-            isDiscovering = uiState.isDiscoveringSwitchPcs,
-            switchingDesktopId = uiState.switchingDesktopId,
+    if (pcSwitcherState.visible) {
+        PcSwitcherDialog(
+            rows = pcSwitcherState.rows,
+            isDiscovering = pcSwitcherState.isDiscovering,
+            switchingDesktopId = pcSwitcherState.switchingDesktopId,
+            message = pcSwitcherState.message,
             onDismiss = viewModel::dismissSwitchPcChooser,
             onRefresh = viewModel::refreshSwitchPcChoices,
             onPcSelected = viewModel::switchToPc
         )
     }
 
-    uiState.switchPcApprovalCode?.let { approvalCode ->
-        PcSwitchPcApprovalDialog(
+    pcSwitcherState.approvalCode?.let { approvalCode ->
+        PcSwitcherApprovalDialog(
             approvalCode = approvalCode,
             onCancel = viewModel::cancelSwitchPcPairing
         )
