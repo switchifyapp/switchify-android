@@ -353,6 +353,31 @@ class PcSwitchControlForwarderTest {
     }
 
     @Test
+    fun replacementSessionRunsOnlyOneSnapshotLoop() = runTest {
+        val host = FakeHost(
+            mutableListOf(switchEvent("20", "Primary")),
+            sequencedSupported = true
+        )
+        val forwarder = PcSwitchControlForwarder(host, backgroundScope)
+        assertEquals(PcSwitchControlStartResult.Started, forwarder.startLegacyGridProfile())
+        runCurrent()
+        forwarder.requestChangeProfile()
+        runCurrent()
+        assertEquals(PcSwitchControlStartResult.Started, forwarder.startLegacyGridProfile())
+        runCurrent()
+        host.commands.clear()
+
+        advanceTimeBy(PcSwitchControlForwarder.SNAPSHOT_INTERVAL_MS)
+        runCurrent()
+
+        assertEquals(
+            1,
+            host.commands.filterIsInstance<PcControlCommand.LegacyGridSwitchSync>().size
+        )
+        forwarder.stop()
+    }
+
+    @Test
     fun acknowledgedSnapshotDoesNotBlockRealtimeRelease() = runTest {
         val syncStarted = CompletableDeferred<Unit>()
         val allowSyncToComplete = CompletableDeferred<Unit>()

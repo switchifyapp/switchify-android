@@ -466,12 +466,14 @@ internal class ExternalSwitchPcSwitchControlDiversion(
             forwardedPresses[keyCode] = downTimeMs
             true
         } else {
-            normalHandling().also {
+            val handled = normalHandling()
+            if (handled) {
                 normallyHandledPresses[keyCode] = NormalPress(
                     downTimeMs,
                     currentHandler?.forwardingActivation ?: 0L
                 )
             }
+            handled
         }
     }
 
