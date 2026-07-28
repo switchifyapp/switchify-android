@@ -104,6 +104,16 @@ internal interface PcSwitchControlInputHandler {
     ): Boolean
 }
 
+internal interface PcSwitchControlChooserHost {
+    suspend fun loadProfileCatalog(): PcSwitchCatalogResult
+    fun currentPcId(): String
+    fun configuredExternalSwitchCount(): Int
+    suspend fun start(
+        profile: PcSwitchProfileSummary,
+        usesLegacyGridProtocol: Boolean
+    ): PcSwitchControlStartResult
+}
+
 private class AndroidPcSwitchControlHost(
     private val controller: PcServiceConnectionController,
     private val scanningManager: ScanningManager,
@@ -148,7 +158,7 @@ class PcSwitchControlForwarder internal constructor(
     private val host: PcSwitchControlHost,
     scope: CoroutineScope,
     private val inactivityTimeoutMs: Long = INACTIVITY_TIMEOUT_MS
-) : PcSwitchControlInputHandler {
+) : PcSwitchControlInputHandler, PcSwitchControlChooserHost {
     private enum class StopPolicy(
         val restoreScanning: Boolean,
         val releaseConnection: Boolean
@@ -288,7 +298,7 @@ class PcSwitchControlForwarder internal constructor(
         return startPrepared(legacyGridProfile, usesGenericProtocol = false)
     }
 
-    suspend fun loadProfileCatalog(): PcSwitchCatalogResult {
+    override suspend fun loadProfileCatalog(): PcSwitchCatalogResult {
         val profile = host.currentPointerProfile() ?: return PcSwitchCatalogResult.Unsupported
         val commands = profile.capabilities.supportedCommands
         val genericSupported = GENERIC_COMMANDS.all(commands::contains)
@@ -321,9 +331,10 @@ class PcSwitchControlForwarder internal constructor(
         return PcSwitchCatalogResult.Unsupported
     }
 
-    fun currentPcId(): String = host.currentPcId() ?: host.currentPcName() ?: "default"
+    override fun currentPcId(): String =
+        host.currentPcId() ?: host.currentPcName() ?: "default"
 
-    fun configuredExternalSwitchCount(): Int =
+    override fun configuredExternalSwitchCount(): Int =
         host.configuredSwitches().count { it.type == SWITCH_EVENT_TYPE_EXTERNAL }
 
     internal fun acquireConnectionForEpisode(episodeId: String) {
@@ -345,7 +356,7 @@ class PcSwitchControlForwarder internal constructor(
         _terminalExitReason.compareAndSet(reason, null)
     }
 
-    suspend fun start(
+    override suspend fun start(
         profile: PcSwitchProfileSummary,
         usesLegacyGridProtocol: Boolean
     ): PcSwitchControlStartResult {
@@ -705,11 +716,14 @@ class PcSwitchControlForwarder internal constructor(
     }
 
     private suspend fun processSetStateOrdered(action: EdgeAction.SetState) {
-        val active = synchronized(stateLock) {
-            _state.value.active && generation == action.generation && sessionReady
+        val deliveryState = synchronized(stateLock) {
+            Pair(
+                _state.value.active && generation == action.generation && sessionReady,
+                useGenericProtocol
+            )
         }
-        if (!active) return
-        val command = if (useGenericProtocol && action.delivery != null) {
+        if (!deliveryState.first) return
+        val command = if (deliveryState.second && action.delivery != null) {
             PcControlCommand.SwitchEdge(
                 sessionId = action.delivery.sessionId,
                 sequence = action.delivery.sequence,
@@ -746,13 +760,16 @@ class PcSwitchControlForwarder internal constructor(
     }
 
     private suspend fun processSnapshot(action: SnapshotAction) {
-        val active = synchronized(stateLock) {
-            _state.value.active && generation == action.generation && sessionReady
+        val deliveryState = synchronized(stateLock) {
+            Pair(
+                _state.value.active && generation == action.generation && sessionReady,
+                useGenericProtocol
+            )
         }
-        if (!active) return
+        if (!deliveryState.first) return
         try {
             host.send(
-                if (useGenericProtocol) PcControlCommand.SwitchSync(
+                if (deliveryState.second) PcControlCommand.SwitchSync(
                     sessionId = action.sessionId,
                     sequence = action.sequence,
                     pressedSwitchIds = action.pressedSwitchIds
@@ -795,8 +812,7 @@ class PcSwitchControlForwarder internal constructor(
     }
 
     private fun startSnapshotLoop() {
-        snapshotJob?.cancel()
-        snapshotJob = forwardingScope.launch {
+        val newJob = forwardingScope.launch(start = CoroutineStart.LAZY) {
             while (true) {
                 delay(SNAPSHOT_INTERVAL_MS)
                 val active = synchronized(stateLock) { _state.value.active }
@@ -804,6 +820,18 @@ class PcSwitchControlForwarder internal constructor(
                 enqueueSyncSnapshot()
             }
         }
+        val previousJob = synchronized(stateLock) {
+            snapshotJob.also { snapshotJob = newJob }
+        }
+        previousJob?.cancel()
+        newJob.start()
+    }
+
+    private fun cancelSnapshotLoop() {
+        val job = synchronized(stateLock) {
+            snapshotJob.also { snapshotJob = null }
+        }
+        job?.cancel()
     }
 
     private fun resetInactivityTimeout() {
@@ -868,8 +896,7 @@ class PcSwitchControlForwarder internal constructor(
             inactivityTimeoutJob?.cancel()
             inactivityTimeoutJob = null
         }
-        snapshotJob?.cancel()
-        snapshotJob = null
+        cancelSnapshotLoop()
         try {
             if (finalCommand != null) {
                 try {
@@ -948,8 +975,7 @@ class PcSwitchControlForwarder internal constructor(
             _state.value = _state.value.copy(active = false)
             generation to connectionEpisodeId
         }
-        snapshotJob?.cancel()
-        snapshotJob = null
+        cancelSnapshotLoop()
         forwardingScope.launch(start = CoroutineStart.UNDISPATCHED) {
             val completion = CompletableDeferred<Unit>()
             edgeActions.send(

@@ -39,6 +39,35 @@ class ExternalSwitchPcSwitchControlDiversionTest {
     }
 
     @Test
+    fun unhandledNormalPressDoesNotSuppressReleaseAfterActivationChanges() {
+        val handler = FakeHandler(consume = false)
+        val diversion = ExternalSwitchPcSwitchControlDiversion { handler }
+        var suppressedReleases = 0
+        var normalReleases = 0
+
+        assertFalse(diversion.onPressed(42, 1_000L, 1_000L) { false })
+        handler.activation++
+        assertTrue(
+            diversion.onReleased(
+                42,
+                1_000L,
+                1_200L,
+                cancelled = false,
+                suppressedReleaseHandling = {
+                    suppressedReleases++
+                    true
+                }
+            ) {
+                normalReleases++
+                true
+            }
+        )
+
+        assertEquals(0, suppressedReleases)
+        assertEquals(1, normalReleases)
+    }
+
+    @Test
     fun forwardsAndroidPressSequenceMetadata() {
         val handler = FakeHandler(consume = true)
         val diversion = ExternalSwitchPcSwitchControlDiversion { handler }

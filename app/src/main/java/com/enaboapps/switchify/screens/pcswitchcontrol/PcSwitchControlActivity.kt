@@ -8,6 +8,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
+import androidx.activity.viewModels
 import androidx.core.content.ContextCompat
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.RepeatMode
@@ -33,6 +34,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -46,7 +48,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -72,6 +73,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.activities.ui.theme.SwitchifyTheme
 import com.enaboapps.switchify.components.ActionButton
@@ -84,20 +87,25 @@ import com.enaboapps.switchify.service.pcswitchcontrol.PcSwitchControlConnection
 import com.enaboapps.switchify.service.pcswitchcontrol.PcSwitchControlState
 import com.enaboapps.switchify.service.pcswitchcontrol.PcSwitchControlForwarder
 import com.enaboapps.switchify.service.pcswitchcontrol.PcSwitchControlMapping
-import com.enaboapps.switchify.service.pcswitchcontrol.PcSwitchControlStartResult
-import com.enaboapps.switchify.service.pcswitchcontrol.PcSwitchCatalogResult
 import com.enaboapps.switchify.service.pcswitchcontrol.PcSwitchControlExitReason
 import com.enaboapps.switchify.service.utils.DeviceLockObserver
 import com.enaboapps.switchify.pc.PcSwitchProfileCatalog
 import com.enaboapps.switchify.pc.PcSwitchProfileSummary
-import com.enaboapps.switchify.pc.PcSwitchProfilePreferenceStore
-import com.enaboapps.switchify.pc.selectPcSwitchProfile
 import com.enaboapps.switchify.theme.Dimens
-import kotlinx.coroutines.launch
 import java.util.UUID
 
-open class PcSwitchControlActivity : ComponentActivity() {
+class PcSwitchControlActivity : ComponentActivity() {
     private var forwarder: PcSwitchControlForwarder? = null
+    private val chooserViewModel: PcSwitchControlChooserViewModel by viewModels {
+        viewModelFactory {
+            initializer {
+                PcSwitchControlChooserViewModel(
+                    applicationContext,
+                    requireNotNull(forwarder)
+                )
+            }
+        }
+    }
     private lateinit var connectionEpisodeId: String
     private var screenOffReceiverRegistered = false
     private val screenOffReceiver = object : BroadcastReceiver() {
@@ -150,7 +158,18 @@ open class PcSwitchControlActivity : ComponentActivity() {
                     }
                 }
                 LaunchedEffect(state.active, showChooser) {
-                    if (state.active && !showChooser) {
+                    if (state.active) {
+                        if (showChooser) {
+                            showChooser = false
+                            transitionAnnouncement =
+                                context.getString(
+                                    R.string.pc_switch_control_connected,
+                                    state.pcName
+                                        ?: context.getString(
+                                            R.string.pc_switch_control_pc_fallback_name
+                                        )
+                                )
+                        }
                         hasShownActiveSession = true
                     } else if (!state.active && hasShownActiveSession) {
                         hasShownActiveSession = false
@@ -176,16 +195,9 @@ open class PcSwitchControlActivity : ComponentActivity() {
                     )
                 } else {
                     PcSwitchProfileChooser(
-                        forwarder = forwarder,
-                        onStarted = {
-                            showChooser = false
-                            transitionAnnouncement =
-                                context.getString(
-                                    R.string.pc_switch_control_connected,
-                                    forwarder.state.value.pcName
-                                        ?: context.getString(R.string.pc_switch_control_pc_fallback_name)
-                                )
-                        },
+                        viewModel = chooserViewModel,
+                        configuredExternalSwitchCount =
+                            forwarder.configuredExternalSwitchCount(),
                         onClose = {
                             forwarder.requestClose(connectionEpisodeId)
                             finish()
@@ -203,8 +215,20 @@ open class PcSwitchControlActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
+        val currentForwarder = forwarder ?: run {
+            finishAndRemoveTask()
+            return
+        }
+        if (shouldCloseForStaleForwarder(
+                currentForwarder,
+                ServiceCore.getPcSwitchControlForwarder()
+            )
+        ) {
+            finishAndRemoveTask()
+            return
+        }
         if (DeviceLockObserver.isKeyguardLocked(this)) {
-            forwarder?.requestCloseForScreenSleep(connectionEpisodeId)
+            currentForwarder.requestCloseForScreenSleep(connectionEpisodeId)
             finishAndRemoveTask()
         }
     }
@@ -231,6 +255,11 @@ open class PcSwitchControlActivity : ComponentActivity() {
         }
     }
 }
+
+internal fun shouldCloseForStaleForwarder(
+    activityForwarder: PcSwitchControlForwarder?,
+    serviceForwarder: PcSwitchControlForwarder?
+): Boolean = activityForwarder == null || serviceForwarder !== activityForwarder
 
 @Composable
 private fun PcSwitchControlScreen(
@@ -298,127 +327,14 @@ private fun PcSwitchControlScreen(
     }
 }
 
-private enum class PcSwitchNoticeSeverity {
-    Information,
-    Warning,
-    Error
-}
-
-private data class PcSwitchNotice(
-    val text: String,
-    val severity: PcSwitchNoticeSeverity
-)
-
-private sealed interface PcSwitchChooserState {
-    data object Loading : PcSwitchChooserState
-
-    data class Ready(
-        val catalog: PcSwitchProfileCatalog,
-        val selected: PcSwitchProfileSummary,
-        val notice: PcSwitchNotice? = null
-    ) : PcSwitchChooserState
-
-    data object Empty : PcSwitchChooserState
-
-    data class Error(val message: String) : PcSwitchChooserState
-
-    data class Starting(
-        val catalog: PcSwitchProfileCatalog,
-        val selected: PcSwitchProfileSummary
-    ) : PcSwitchChooserState
-}
-
 @Composable
 private fun PcSwitchProfileChooser(
-    forwarder: com.enaboapps.switchify.service.pcswitchcontrol.PcSwitchControlForwarder,
-    onStarted: () -> Unit,
+    viewModel: PcSwitchControlChooserViewModel,
+    configuredExternalSwitchCount: Int,
     onClose: () -> Unit
 ) {
-    var chooserState by remember { mutableStateOf<PcSwitchChooserState>(PcSwitchChooserState.Loading) }
-    val scope = rememberCoroutineScope()
-    val context = LocalContext.current
-    val preferences = remember { PcSwitchProfilePreferenceStore(context) }
-
-    fun load() {
-        chooserState = PcSwitchChooserState.Loading
-        scope.launch {
-            chooserState = when (val result = forwarder.loadProfileCatalog()) {
-                is PcSwitchCatalogResult.Loaded -> {
-                    val remembered = preferences.rememberedProfileId(forwarder.currentPcId())
-                    val selection = selectPcSwitchProfile(result.catalog.profiles, remembered)
-                    val selectedProfile = selection.profile
-                    if (selectedProfile == null) {
-                        PcSwitchChooserState.Empty
-                    } else {
-                        PcSwitchChooserState.Ready(
-                            catalog = result.catalog,
-                            selected = selectedProfile,
-                            notice = selection.fallbackProfileName?.let { fallbackName ->
-                                PcSwitchNotice(
-                                    text = context.getString(
-                                        R.string.pc_switch_previous_profile_unavailable,
-                                        fallbackName
-                                    ),
-                                    severity = PcSwitchNoticeSeverity.Warning
-                                )
-                            }
-                        )
-                    }
-                }
-                is PcSwitchCatalogResult.Failed ->
-                    PcSwitchChooserState.Error(result.message)
-                PcSwitchCatalogResult.Unsupported ->
-                    PcSwitchChooserState.Error(
-                        context.getString(R.string.pc_switch_control_pc_unsupported)
-                    )
-            }
-        }
-    }
-
-    fun start(ready: PcSwitchChooserState.Ready) {
-        chooserState = PcSwitchChooserState.Starting(ready.catalog, ready.selected)
-        scope.launch {
-            when (
-                val result = forwarder.start(
-                    ready.selected,
-                    ready.catalog.usesLegacyGridProtocol
-                )
-            ) {
-                PcSwitchControlStartResult.Started -> {
-                    preferences.rememberProfile(forwarder.currentPcId(), ready.selected.id)
-                    onStarted()
-                }
-                PcSwitchControlStartResult.NoExternalSwitches -> {
-                    chooserState = ready.copy(notice = null)
-                }
-                PcSwitchControlStartResult.UnsupportedPc -> {
-                    chooserState = ready.copy(
-                        notice = PcSwitchNotice(
-                            context.getString(R.string.pc_switch_control_pc_unsupported),
-                            PcSwitchNoticeSeverity.Error
-                        )
-                    )
-                }
-                PcSwitchControlStartResult.ProfileChanged -> {
-                    chooserState = PcSwitchChooserState.Error(
-                        context.getString(R.string.pc_switch_profile_changed)
-                    )
-                }
-                is PcSwitchControlStartResult.Failed -> {
-                    chooserState = ready.copy(
-                        notice = PcSwitchNotice(
-                            result.message,
-                            PcSwitchNoticeSeverity.Error
-                        )
-                    )
-                }
-            }
-        }
-    }
-
-    LaunchedEffect(Unit) { load() }
+    val chooserState by viewModel.state.collectAsState()
     BackHandler(onBack = onClose)
-    val configuredExternalSwitchCount = forwarder.configuredExternalSwitchCount()
     val primaryActionResId = when (chooserState) {
         PcSwitchChooserState.Empty,
         is PcSwitchChooserState.Error -> R.string.pc_switch_retry
@@ -451,8 +367,8 @@ private fun PcSwitchProfileChooser(
                     onClick = {
                         when (val state = chooserState) {
                             PcSwitchChooserState.Empty,
-                            is PcSwitchChooserState.Error -> load()
-                            is PcSwitchChooserState.Ready -> start(state)
+                            is PcSwitchChooserState.Error -> viewModel.retry()
+                            is PcSwitchChooserState.Ready -> viewModel.start()
                             PcSwitchChooserState.Loading,
                             is PcSwitchChooserState.Starting -> Unit
                         }
@@ -511,12 +427,7 @@ private fun PcSwitchProfileChooser(
                         catalog = state.catalog,
                         selected = state.selected,
                         enabled = true,
-                        onSelected = { profile ->
-                            chooserState = state.copy(
-                                selected = profile,
-                                notice = null
-                            )
-                        }
+                        onSelected = viewModel::select
                     )
                 }
                 is PcSwitchChooserState.Starting -> {
@@ -641,7 +552,7 @@ private fun PcSwitchChooserProfileContent(
 }
 
 @Composable
-private fun PcSwitchProfileList(
+internal fun PcSwitchProfileList(
     catalog: PcSwitchProfileCatalog,
     selected: PcSwitchProfileSummary,
     enabled: Boolean,
@@ -649,7 +560,7 @@ private fun PcSwitchProfileList(
     modifier: Modifier = Modifier
 ) {
     Column(
-        modifier = modifier,
+        modifier = modifier.selectableGroup(),
         verticalArrangement = Arrangement.spacedBy(Dimens.spaceS)
     ) {
         Text(
