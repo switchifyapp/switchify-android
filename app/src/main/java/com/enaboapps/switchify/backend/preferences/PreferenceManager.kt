@@ -27,6 +27,7 @@ class PreferenceManager(context: Context) {
         const val PREFERENCE_KEY_MOVE_REPEAT_DELAY = "move_repeat_delay"
         const val PREFERENCE_KEY_PC_CONTROL_SURFACE = "pc_control_surface"
         const val PREFERENCE_KEY_PC_TYPING_DRAFT = "pc_typing_draft"
+        const val PREFERENCE_KEY_PC_TYPING_MODE = "pc_typing_mode"
         const val PREFERENCE_KEY_PC_MOUSE_REPEAT = "pc_mouse_repeat"
         const val PREFERENCE_KEY_PC_MOUSE_REPEAT_INTERVAL = "pc_mouse_repeat_interval"
         const val PREFERENCE_KEY_PC_SWITCH_CONTROL_HOLD_TO_STOP_DURATION =

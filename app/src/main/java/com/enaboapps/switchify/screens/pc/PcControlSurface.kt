@@ -20,6 +20,17 @@ enum class PcControlSurface(
     }
 }
 
+enum class PcTypingMode(val preferenceValue: String) {
+    Live("live"),
+    Draft("draft");
+
+    companion object {
+        fun fromPreferenceValue(value: String?): PcTypingMode {
+            return entries.firstOrNull { it.preferenceValue == value } ?: Live
+        }
+    }
+}
+
 interface PcControlSurfaceStore {
     fun getSelectedSurface(): PcControlSurface
     fun setSelectedSurface(surface: PcControlSurface)
@@ -66,6 +77,28 @@ class PcTypingDraftPreferenceStore(context: Context) : PcTypingDraftStore {
         preferenceManager.setStringValue(
             PreferenceManager.PREFERENCE_KEY_PC_TYPING_DRAFT,
             ""
+        )
+    }
+}
+
+interface PcTypingModeStore {
+    fun getMode(): PcTypingMode
+    fun setMode(mode: PcTypingMode)
+}
+
+class PcTypingModePreferenceStore(context: Context) : PcTypingModeStore {
+    private val preferenceManager = PreferenceManager(context.applicationContext)
+
+    override fun getMode(): PcTypingMode {
+        return PcTypingMode.fromPreferenceValue(
+            preferenceManager.getStringValue(PreferenceManager.PREFERENCE_KEY_PC_TYPING_MODE)
+        )
+    }
+
+    override fun setMode(mode: PcTypingMode) {
+        preferenceManager.setStringValue(
+            PreferenceManager.PREFERENCE_KEY_PC_TYPING_MODE,
+            mode.preferenceValue
         )
     }
 }

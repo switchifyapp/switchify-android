@@ -1,5 +1,6 @@
 package com.enaboapps.switchify.screens.pc
 
+import android.content.res.ColorStateList
 import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
@@ -9,6 +10,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -21,21 +23,32 @@ import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.components.AdaptiveStack
 import com.enaboapps.switchify.components.SwitchifyTextField
 import com.enaboapps.switchify.pc.PcKeyboardKey
 import com.enaboapps.switchify.pc.isSafePcTypedText
+import java.util.concurrent.atomic.AtomicReference
+import kotlin.math.roundToInt
 
 data class PcTypingKeySpec(
     @param:StringRes val labelResId: Int,
@@ -56,11 +69,22 @@ enum class PcTypingTextAction {
 fun PcTypingControlScreen(
     typingText: String,
     typingMessage: String?,
+    typingMode: PcTypingMode,
+    liveTypingAvailable: Boolean,
+    liveTypingPaused: Boolean,
+    liveTypingMessage: String?,
+    liveTypingPendingText: String = "",
     enabled: Boolean,
+    onTypingModeSelected: (PcTypingMode) -> Unit,
     onTextChanged: (String) -> Unit,
     onSend: () -> Unit,
     onSendAndEnter: () -> Unit,
     onClear: () -> Unit,
+    onLiveTypingStarted: () -> Unit,
+    onLiveTypingStopped: (String) -> Unit,
+    onLiveTextCommitted: (String) -> Boolean,
+    onLiveKeyCommitted: (PcKeyboardKey) -> Unit,
+    onLiveTypingRetry: () -> Unit,
     onKeySelected: (PcKeyboardKey) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -68,13 +92,24 @@ fun PcTypingControlScreen(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        PcTypingComposer(
+        PcTypingInput(
             text = typingText,
             message = typingMessage,
+            typingMode = typingMode,
+            liveTypingAvailable = liveTypingAvailable,
+            liveTypingPaused = liveTypingPaused,
+            liveTypingMessage = liveTypingMessage,
+            liveTypingPendingText = liveTypingPendingText,
+            onTypingModeSelected = onTypingModeSelected,
             onTextChanged = onTextChanged,
             onSend = onSend,
             onSendAndEnter = onSendAndEnter,
             onClear = onClear,
+            onLiveTypingStarted = onLiveTypingStarted,
+            onLiveTypingStopped = onLiveTypingStopped,
+            onLiveTextCommitted = onLiveTextCommitted,
+            onLiveKeyCommitted = onLiveKeyCommitted,
+            onLiveTypingRetry = onLiveTypingRetry,
             enabled = enabled
         )
         PcTypingCompactCommandGrid(
@@ -85,6 +120,216 @@ fun PcTypingControlScreen(
             enabled = enabled,
             onKeySelected = onKeySelected
         )
+    }
+}
+
+@Composable
+internal fun PcTypingInput(
+    text: String,
+    message: String?,
+    typingMode: PcTypingMode,
+    liveTypingAvailable: Boolean,
+    liveTypingPaused: Boolean,
+    liveTypingMessage: String?,
+    liveTypingPendingText: String = "",
+    onTypingModeSelected: (PcTypingMode) -> Unit,
+    onTextChanged: (String) -> Unit,
+    onSend: () -> Unit,
+    onSendAndEnter: () -> Unit,
+    onClear: () -> Unit,
+    onLiveTypingStarted: () -> Unit,
+    onLiveTypingStopped: (String) -> Unit,
+    onLiveTextCommitted: (String) -> Boolean,
+    onLiveKeyCommitted: (PcKeyboardKey) -> Unit,
+    onLiveTypingRetry: () -> Unit,
+    enabled: Boolean,
+    modifier: Modifier = Modifier,
+    textFieldModifier: Modifier = Modifier,
+    textFieldMinLines: Int = 3,
+    textFieldMaxLines: Int = 5,
+    textFieldMinHeight: Dp = 96.dp
+) {
+    val effectiveMode = if (typingMode == PcTypingMode.Live && liveTypingAvailable) {
+        PcTypingMode.Live
+    } else {
+        PcTypingMode.Draft
+    }
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        PcTypingModeSelector(
+            selectedMode = effectiveMode,
+            liveAvailable = liveTypingAvailable,
+            enabled = enabled,
+            onModeSelected = onTypingModeSelected
+        )
+        if (!liveTypingAvailable) {
+            Text(
+                text = stringResource(R.string.pc_typing_live_unavailable),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        if (effectiveMode == PcTypingMode.Live) {
+            PcLiveTypingComposer(
+                enabled = enabled,
+                paused = liveTypingPaused,
+                message = liveTypingMessage,
+                pendingText = liveTypingPendingText,
+                onStarted = onLiveTypingStarted,
+                onStopped = onLiveTypingStopped,
+                onTextCommitted = onLiveTextCommitted,
+                onKeyCommitted = onLiveKeyCommitted,
+                onRetry = onLiveTypingRetry,
+                modifier = textFieldModifier,
+                minHeight = textFieldMinHeight
+            )
+        } else {
+            PcTypingComposer(
+                text = text,
+                message = message,
+                onTextChanged = onTextChanged,
+                onSend = onSend,
+                onSendAndEnter = onSendAndEnter,
+                onClear = onClear,
+                enabled = enabled,
+                textFieldModifier = textFieldModifier,
+                textFieldMinLines = textFieldMinLines,
+                textFieldMaxLines = textFieldMaxLines,
+                textFieldMinHeight = textFieldMinHeight
+            )
+        }
+    }
+}
+
+@Composable
+private fun PcTypingModeSelector(
+    selectedMode: PcTypingMode,
+    liveAvailable: Boolean,
+    enabled: Boolean,
+    onModeSelected: (PcTypingMode) -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        FilterChip(
+            selected = selectedMode == PcTypingMode.Live,
+            onClick = { onModeSelected(PcTypingMode.Live) },
+            enabled = enabled && liveAvailable,
+            label = { Text(stringResource(R.string.pc_typing_mode_live)) },
+            modifier = Modifier.weight(1f)
+        )
+        FilterChip(
+            selected = selectedMode == PcTypingMode.Draft,
+            onClick = { onModeSelected(PcTypingMode.Draft) },
+            enabled = enabled,
+            label = { Text(stringResource(R.string.pc_typing_mode_draft)) },
+            modifier = Modifier.weight(1f)
+        )
+    }
+}
+
+@Composable
+private fun PcLiveTypingComposer(
+    enabled: Boolean,
+    paused: Boolean,
+    message: String?,
+    pendingText: String,
+    onStarted: () -> Unit,
+    onStopped: (String) -> Unit,
+    onTextCommitted: (String) -> Boolean,
+    onKeyCommitted: (PcKeyboardKey) -> Unit,
+    onRetry: () -> Unit,
+    modifier: Modifier,
+    minHeight: Dp
+) {
+    val context = LocalContext.current
+    val textColor = MaterialTheme.colorScheme.onSurface.toArgb()
+    val hintColor = MaterialTheme.colorScheme.onSurfaceVariant.toArgb()
+    val focusedColor = MaterialTheme.colorScheme.primary.toArgb()
+    val unfocusedColor = MaterialTheme.colorScheme.outline.toArgb()
+    val hint = stringResource(R.string.pc_typing_live_hint)
+    val fieldLabel = stringResource(R.string.pc_typing_live_field_label)
+    val pausedDescription = stringResource(R.string.pc_typing_live_field_paused)
+    val liveEditText = remember { AtomicReference<PcLiveTypingEditText?>() }
+
+    DisposableEffect(Unit) {
+        onStarted()
+        onDispose {
+            val retainedText = liveEditText.get()?.finishAndTakePendingText().orEmpty()
+            liveEditText.set(null)
+            onStopped(retainedText)
+        }
+    }
+
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        AndroidView(
+            factory = {
+                PcLiveTypingEditText(context).apply {
+                    liveEditText.set(this)
+                    this.hint = hint
+                    val density = resources.displayMetrics.density
+                    setPadding(
+                        (16 * density).roundToInt(),
+                        (8 * density).roundToInt(),
+                        (16 * density).roundToInt(),
+                        (8 * density).roundToInt()
+                    )
+                }
+            },
+            update = { editText ->
+                editText.isEnabled = enabled && !paused
+                editText.onTextCommitted = onTextCommitted
+                editText.onKeyCommitted = onKeyCommitted
+                editText.setTextColor(textColor)
+                editText.setHintTextColor(hintColor)
+                editText.backgroundTintList = ColorStateList(
+                    arrayOf(
+                        intArrayOf(android.R.attr.state_focused),
+                        intArrayOf()
+                    ),
+                    intArrayOf(focusedColor, unfocusedColor)
+                )
+                editText.restorePendingText(pendingText)
+                editText.contentDescription = if (paused) {
+                    "$fieldLabel. $pausedDescription"
+                } else {
+                    fieldLabel
+                }
+            },
+            modifier = modifier
+                .fillMaxWidth()
+                .heightIn(min = minHeight)
+        )
+        Text(
+            text = stringResource(R.string.pc_typing_live_help),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        message?.let {
+            Text(
+                text = it,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.semantics {
+                    liveRegion = LiveRegionMode.Assertive
+                }
+            )
+            if (paused) {
+                FilledTonalButton(
+                    onClick = {
+                        onRetry()
+                        liveEditText.get()?.retryPendingText()
+                    },
+                    enabled = enabled,
+                    modifier = Modifier.heightIn(min = 48.dp)
+                ) {
+                    Text(stringResource(R.string.pc_typing_live_retry))
+                }
+            }
+        }
     }
 }
 
