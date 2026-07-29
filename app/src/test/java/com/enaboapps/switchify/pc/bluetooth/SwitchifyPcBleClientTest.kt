@@ -56,6 +56,8 @@ class SwitchifyPcBleClientTest {
                 pairingComplete(json.getString("id"))
             }
         )
+        lateinit var connection: FakeConnection
+        transport.onConnection = { connection = it }
         val client = client(tokens, transport)
 
         val result = client.requestApproval(pc, "nonce-1")
@@ -63,6 +65,7 @@ class SwitchifyPcBleClientTest {
         assertTrue(result is PcPairingResult.Paired)
         assertNull(tokens.getToken("desktop-1"))
         assertNull(tokens.getLastEndpointId("desktop-1"))
+        assertEquals(listOf(true, false), connection.priorityRequests)
     }
 
     @Test
@@ -96,9 +99,36 @@ class SwitchifyPcBleClientTest {
             assertEquals("connection.ping", json.getString("type"))
             ack(json.getString("id"))
         }
+        lateinit var connection: FakeConnection
+        transport.onConnection = { connection = it }
         val result = client(FakeTokenStore(), transport).authenticatedPing(pc, "token")
 
         assertEquals(PcPingResult.Connected("AA:BB:CC:DD:EE:FF"), result)
+        assertEquals(listOf(true, false), connection.priorityRequests)
+    }
+
+    @Test
+    fun oneShotCommandUsesHighPriorityForConnectionLifetime() = runTest {
+        val tokens = FakeTokenStore(
+            mutableMapOf("desktop-1" to "token"),
+            mutableMapOf("desktop-1" to "Switchify PC")
+        )
+        val transport = FakeTransportFactory { message ->
+            ack(JSONObject(message).getString("id"))
+        }
+        lateinit var connection: FakeConnection
+        transport.onConnection = { connection = it }
+        val session = PcAuthenticatedSession(
+            "desktop-1",
+            "device-1",
+            "AA:BB:CC:DD:EE:FF",
+            PcTransport.Bluetooth
+        )
+
+        val result = client(tokens, transport).sendCommand(session, PcControlCommand.LeftClick)
+
+        assertEquals(PcCommandResult.Ack, result)
+        assertEquals(listOf(true, false), connection.priorityRequests)
     }
 
     @Test
@@ -506,11 +536,11 @@ class SwitchifyPcBleClientTest {
         assertEquals("none", message.getString("responseMode"))
         assertEquals("up", message.getJSONObject("payload").getString("state"))
         assertEquals(listOf(PcBleWriteMode.WithoutResponse), fakeConnection.sentWriteModes)
-        assertEquals(listOf(true), fakeConnection.lowLatencyRequests)
+        assertEquals(listOf(true), fakeConnection.priorityRequests)
 
         result.connection.close(PcControlCloseReason.ExplicitStop)
 
-        assertEquals(listOf(true, false), fakeConnection.lowLatencyRequests)
+        assertEquals(listOf(true, false), fakeConnection.priorityRequests)
     }
 
     @Test
@@ -778,7 +808,7 @@ class SwitchifyPcBleClientTest {
         val sentMessages = mutableListOf<String>()
         val sentWriteModes = mutableListOf<PcBleWriteMode>()
         val receivedMessages = mutableListOf<String>()
-        val lowLatencyRequests = mutableListOf<Boolean>()
+        val priorityRequests = mutableListOf<Boolean>()
         var sendError: Throwable? = null
 
         override suspend fun send(message: String, writeMode: PcBleWriteMode) {
@@ -792,8 +822,8 @@ class SwitchifyPcBleClientTest {
             return responseProvider(message)
         }
 
-        override fun requestLowLatency(enabled: Boolean): Boolean {
-            lowLatencyRequests += enabled
+        override fun requestHighPriority(enabled: Boolean): Boolean {
+            priorityRequests += enabled
             return true
         }
 

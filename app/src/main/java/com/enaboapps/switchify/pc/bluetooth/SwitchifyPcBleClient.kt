@@ -24,7 +24,7 @@ import kotlinx.coroutines.CancellationException
 class SwitchifyPcBleClient(
     private val identityRepository: PcDeviceIdentity,
     private val tokenStore: PcPairingTokenStore,
-    private val transportFactory: PcBleTransportFactory
+    transportFactory: PcBleTransportFactory
 ) : PcConnector {
     constructor(
         context: Context,
@@ -33,6 +33,7 @@ class SwitchifyPcBleClient(
     ) : this(identityRepository, tokenStore, PcBleGattTransportFactory(context.applicationContext))
 
     private val openConnections = mutableSetOf<PcBleTransportConnection>()
+    private val transportFactory = HighPriorityPcBleTransportFactory(transportFactory)
     private val protocolMessenger = PcBleProtocolMessenger(identityRepository)
 
     override suspend fun requestApproval(pc: DiscoveredPc, requestNonce: String): PcPairingResult {
@@ -106,7 +107,6 @@ class SwitchifyPcBleClient(
             return liveControlFailure(it)
         }
         openConnections += connection
-        connection.requestLowLatency(true)
         return try {
             when (val response = protocolMessenger.authenticatedPing(connection, token)) {
                 is PcProtocolResponse.Ack -> PcLiveControlResult.Connected(
