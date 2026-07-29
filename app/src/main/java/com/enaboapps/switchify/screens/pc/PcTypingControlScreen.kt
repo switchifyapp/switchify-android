@@ -33,6 +33,8 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
@@ -97,7 +99,10 @@ fun PcTypingControlScreen(
     manageLiveSessionLifecycle: Boolean = true
 ) {
     var page by rememberSaveable { mutableStateOf(PcTypingPage.Editor) }
+    var restoreKeyboardOnEditorReturn by rememberSaveable { mutableStateOf(false) }
     val fieldFocusRequester = remember { FocusRequester() }
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
     val ownsLiveSession = typingMode == PcTypingMode.Live && liveTypingAvailable
     val latestLiveText by rememberUpdatedState(liveTypingText)
 
@@ -110,11 +115,21 @@ fun PcTypingControlScreen(
     LaunchedEffect(liveTypingPaused) {
         if (liveTypingPaused) page = PcTypingPage.Editor
     }
+    LaunchedEffect(page, restoreKeyboardOnEditorReturn, liveTypingPaused, enabled) {
+        if (page == PcTypingPage.Editor && restoreKeyboardOnEditorReturn) {
+            if (!liveTypingPaused && enabled) {
+                fieldFocusRequester.requestFocus()
+                keyboardController?.show()
+            }
+            restoreKeyboardOnEditorReturn = false
+        }
+    }
 
     if (page == PcTypingPage.Keys) {
         PcTypingKeysPage(
             enabled = enabled,
             onBackToTyping = {
+                restoreKeyboardOnEditorReturn = true
                 page = PcTypingPage.Editor
             },
             onKeySelected = onKeySelected,
@@ -148,7 +163,11 @@ fun PcTypingControlScreen(
             onMoveLiveToDraft = onMoveLiveToDraft,
             onLiveTypingAnnouncementShown = onLiveTypingAnnouncementShown,
             onLiveTypingNoticeShown = onLiveTypingNoticeShown,
-            onOpenKeys = { page = PcTypingPage.Keys },
+            onOpenKeys = {
+                focusManager.clearFocus(force = true)
+                keyboardController?.hide()
+                page = PcTypingPage.Keys
+            },
             fieldFocusRequester = fieldFocusRequester,
             modifier = modifier
         )

@@ -65,6 +65,38 @@ class PcWindowControlScreenTest {
     }
 
     @Test
+    fun keyboardDismissesOnlyWhenLeavingTheTypingSurface() {
+        assertEquals(
+            true,
+            shouldDismissPcTypingKeyboard(
+                currentSurface = PcControlSurface.Typing,
+                targetSurface = PcControlSurface.Mouse
+            )
+        )
+        assertEquals(
+            true,
+            shouldDismissPcTypingKeyboard(
+                currentSurface = PcControlSurface.Typing,
+                targetSurface = PcControlSurface.Window
+            )
+        )
+        assertEquals(
+            false,
+            shouldDismissPcTypingKeyboard(
+                currentSurface = PcControlSurface.Typing,
+                targetSurface = PcControlSurface.Typing
+            )
+        )
+        assertEquals(
+            false,
+            shouldDismissPcTypingKeyboard(
+                currentSurface = PcControlSurface.Mouse,
+                targetSurface = PcControlSurface.Window
+            )
+        )
+    }
+
+    @Test
     fun windowCommandsUseStableOrder() {
         val commands = pcWindowControlSpecs().map { it.command }
 
