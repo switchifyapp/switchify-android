@@ -1165,6 +1165,93 @@ class PcMouseControlViewModelTest {
     }
 
     @Test
+    fun clearingTheLiveFieldKeepsRemoteTextAndStartsFreshLocalContext() = runTest(dispatcher) {
+        val connector = FakeConnector()
+        val controller = connectedController(
+            connector = connector,
+            pointerProfile = textStreamPointerProfile()
+        )
+        val viewModel = viewModel(controller)
+        advanceUntilIdle()
+
+        viewModel.startLiveTyping()
+        assertTrue(viewModel.commitLiveTypingText("First"))
+        advanceUntilIdle()
+        viewModel.clearLiveTypingField()
+        assertTrue(viewModel.commitLiveTypingText("Second"))
+        viewModel.endLiveTypingSession()
+        advanceUntilIdle()
+
+        assertEquals("", viewModel.uiState.value.liveTypingText)
+        assertEquals(
+            listOf("First", "Second"),
+            connector.commands.filterIsInstance<PcControlCommand.TextStreamChunk>().map { it.text }
+        )
+        assertTrue(
+            connector.commands.filterIsInstance<PcControlCommand.TextStreamKey>()
+                .none { it.key == PcKeyboardKey.Backspace }
+        )
+    }
+
+    @Test
+    fun movingPausedLiveTextToDraftPreservesItForReview() = runTest(dispatcher) {
+        val connector = FakeConnector()
+        val controller = connectedController(
+            connector = connector,
+            pointerProfile = textStreamPointerProfile()
+        )
+        val draftStore = FakeTypingDraftStore("Old draft")
+        val modeStore = FakeTypingModeStore(PcTypingMode.Live)
+        val viewModel = viewModel(
+            controller = controller,
+            typingDraftStore = draftStore,
+            typingModeStore = modeStore
+        )
+        advanceUntilIdle()
+
+        viewModel.startLiveTyping()
+        viewModel.updateLiveTypingSessionText("Review this text")
+        viewModel.moveLiveTypingToDraft()
+        advanceUntilIdle()
+
+        assertEquals(PcTypingMode.Draft, viewModel.uiState.value.typingMode)
+        assertEquals("Review this text", viewModel.uiState.value.typingText)
+        assertEquals("Review this text", draftStore.getDraft())
+        assertEquals(PcTypingMode.Draft, modeStore.getMode())
+        assertTrue(viewModel.uiState.value.typingDraftReviewWarning)
+        assertEquals("", viewModel.uiState.value.liveTypingText)
+
+        viewModel.updateTypingText("Reviewed")
+
+        assertFalse(viewModel.uiState.value.typingDraftReviewWarning)
+    }
+
+    @Test
+    fun disconnectPreservesLiveTextForRecovery() = runTest(dispatcher) {
+        val connector = FakeConnector()
+        val controller = connectedController(
+            connector = connector,
+            pointerProfile = textStreamPointerProfile()
+        )
+        val viewModel = viewModel(controller)
+        advanceUntilIdle()
+
+        viewModel.startLiveTyping()
+        viewModel.updateLiveTypingSessionText("Keep this text")
+        controller.disconnect()
+        advanceUntilIdle()
+
+        assertEquals("Keep this text", viewModel.uiState.value.liveTypingText)
+        assertTrue(viewModel.uiState.value.liveTypingPaused)
+        assertTrue(viewModel.uiState.value.supportsTextStreamInput)
+
+        viewModel.moveLiveTypingToDraft()
+
+        assertEquals(PcTypingMode.Draft, viewModel.uiState.value.typingMode)
+        assertEquals("Keep this text", viewModel.uiState.value.typingText)
+    }
+
+    @Test
     fun editorRecreationRetainsLiveCompositionUntilTheEditorReturns() = runTest(dispatcher) {
         val connector = FakeConnector()
         val controller = connectedController(

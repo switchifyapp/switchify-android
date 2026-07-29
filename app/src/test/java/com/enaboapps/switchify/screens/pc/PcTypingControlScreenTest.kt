@@ -86,39 +86,6 @@ class PcTypingControlScreenTest {
     }
 
     @Test
-    fun compactCommandsUseStableScanOrder() {
-        val specs = pcTypingCompactCommandSpecs()
-        val keys = specs.mapNotNull { (it as? PcTypingCompactCommandSpec.Key)?.spec?.key }
-
-        assertEquals(
-            listOf(
-                PcKeyboardKey.Backspace,
-                PcKeyboardKey.Delete,
-                PcKeyboardKey.Space,
-                PcKeyboardKey.Tab,
-                PcKeyboardKey.Home,
-                PcKeyboardKey.End,
-                PcKeyboardKey.PageUp,
-                PcKeyboardKey.PageDown,
-                PcKeyboardKey.F1,
-                PcKeyboardKey.F2,
-                PcKeyboardKey.F3,
-                PcKeyboardKey.F4,
-                PcKeyboardKey.F5,
-                PcKeyboardKey.F6,
-                PcKeyboardKey.F7,
-                PcKeyboardKey.F8,
-                PcKeyboardKey.F9,
-                PcKeyboardKey.F10,
-                PcKeyboardKey.F11,
-                PcKeyboardKey.F12
-            ),
-            keys
-        )
-        assertEquals(keys.size, specs.size)
-    }
-
-    @Test
     fun typingTextActionsUseStableOrder() {
         assertEquals(
             listOf(
@@ -130,19 +97,4 @@ class PcTypingControlScreenTest {
         )
     }
 
-    @Test
-    fun typingTextActionsHiddenWhenTextIsEmpty() {
-        assertEquals(false, shouldShowPcTypingTextActions(""))
-    }
-
-    @Test
-    fun typingTextActionsShownWhenTextHasWhitespaceOnly() {
-        assertEquals(true, shouldShowPcTypingTextActions("   "))
-        assertEquals(true, shouldShowPcTypingTextActions("\n"))
-    }
-
-    @Test
-    fun typingTextActionsShownWhenTextHasVisibleCharacters() {
-        assertEquals(true, shouldShowPcTypingTextActions("Hello"))
-    }
 }

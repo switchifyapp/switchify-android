@@ -248,6 +248,7 @@ class PcLiveTypingCoordinatorTest {
     fun retriesTheSameSequenceAfterResume() = runTest {
         val commands = mutableListOf<PcControlCommand>()
         val failures = mutableListOf<String>()
+        var resumedCount = 0
         var failFirstChunk = true
         val coordinator = PcLiveTypingCoordinator(
             scope = this,
@@ -261,7 +262,8 @@ class PcLiveTypingCoordinatorTest {
                 }
             },
             streamIdProvider = { "stream-1" },
-            onFailure = failures::add
+            onFailure = failures::add,
+            onResumed = { resumedCount += 1 }
         )
 
         coordinator.start()
@@ -285,6 +287,70 @@ class PcLiveTypingCoordinatorTest {
         assertEquals(
             listOf(PcControlCommand.TextStreamClose("stream-1", 1)),
             commands.filterIsInstance<PcControlCommand.TextStreamClose>()
+        )
+        assertEquals(1, resumedCount)
+    }
+
+    @Test
+    fun retryIsNotReportedAsResumedUntilThePendingOperationIsAcknowledged() = runTest {
+        val pendingRetry = CompletableDeferred<PcCommandResult>()
+        val resumed = mutableListOf<Unit>()
+        var attempt = 0
+        val coordinator = PcLiveTypingCoordinator(
+            scope = this,
+            sendCommand = { command ->
+                when {
+                    command is PcControlCommand.TextStreamChunk && attempt++ == 0 ->
+                        PcCommandResult.Failed()
+                    command is PcControlCommand.TextStreamChunk -> pendingRetry.await()
+                    else -> PcCommandResult.Ack
+                }
+            },
+            streamIdProvider = { "stream-1" },
+            onResumed = { resumed += Unit }
+        )
+
+        coordinator.start()
+        coordinator.submitText("A")
+        advanceUntilIdle()
+        coordinator.resume()
+        runCurrent()
+
+        assertTrue(resumed.isEmpty())
+
+        pendingRetry.complete(PcCommandResult.Ack)
+        advanceUntilIdle()
+
+        assertEquals(1, resumed.size)
+    }
+
+    @Test
+    fun externalFailurePausesNewOperationsUntilResume() = runTest {
+        val commands = mutableListOf<PcControlCommand>()
+        val failures = mutableListOf<String>()
+        val coordinator = PcLiveTypingCoordinator(
+            scope = this,
+            sendCommand = {
+                commands += it
+                PcCommandResult.Ack
+            },
+            streamIdProvider = { "stream-1" },
+            onFailure = failures::add
+        )
+
+        coordinator.start()
+        coordinator.pauseForExternalFailure("Disconnected.")
+
+        assertFalse(coordinator.submitKey(PcKeyboardKey.Enter))
+        assertEquals(listOf("Disconnected."), failures)
+
+        coordinator.resume()
+        assertTrue(coordinator.submitKey(PcKeyboardKey.Enter))
+        advanceUntilIdle()
+
+        assertEquals(
+            listOf(PcControlCommand.TextStreamKey("stream-1", 0, PcKeyboardKey.Enter)),
+            commands.filterIsInstance<PcControlCommand.TextStreamKey>()
         )
     }
 

@@ -24,7 +24,8 @@ internal class PcLiveTypingCoordinator(
     private val scope: CoroutineScope,
     private val sendCommand: suspend (PcControlCommand) -> PcCommandResult,
     private val streamIdProvider: () -> String = { "android-${UUID.randomUUID()}" },
-    private val onFailure: (String) -> Unit = {}
+    private val onFailure: (String) -> Unit = {},
+    private val onResumed: () -> Unit = {}
 ) {
     private val lock = Any()
     private val operations = ArrayDeque<PcLiveTypingOperation>()
@@ -35,6 +36,7 @@ internal class PcLiveTypingCoordinator(
     private var nextSequence = 0
     private var reopenStreamOnResume = false
     private var retainFailuresWhenStopped = true
+    private var awaitingResumeAcknowledgement = false
 
     fun start() {
         synchronized(lock) {
@@ -94,7 +96,7 @@ internal class PcLiveTypingCoordinator(
     }
 
     fun resume() {
-        synchronized(lock) {
+        val resumeImmediately = synchronized(lock) {
             if (!paused) return
             if (reopenStreamOnResume) {
                 streamId = null
@@ -102,7 +104,28 @@ internal class PcLiveTypingCoordinator(
                 reopenStreamOnResume = false
             }
             paused = false
+            val hasPendingAcknowledgement = operations.isNotEmpty() || worker?.isActive == true
+            awaitingResumeAcknowledgement = hasPendingAcknowledgement
             scheduleLocked()
+            !hasPendingAcknowledgement
+        }
+        if (resumeImmediately) {
+            onResumed()
+        }
+    }
+
+    fun pauseForExternalFailure(message: String) {
+        val shouldNotify = synchronized(lock) {
+            if (!accepting || paused) {
+                false
+            } else {
+                paused = true
+                awaitingResumeAcknowledgement = false
+                true
+            }
+        }
+        if (shouldNotify) {
+            onFailure(message)
         }
     }
 
@@ -128,6 +151,7 @@ internal class PcLiveTypingCoordinator(
         synchronized(lock) {
             accepting = false
             retainFailuresWhenStopped = false
+            awaitingResumeAcknowledgement = false
             if (paused) {
                 operations.clear()
                 paused = false
@@ -183,6 +207,15 @@ internal class PcLiveTypingCoordinator(
             when (val result = sendCommand(command)) {
                 PcCommandResult.Ack -> {
                     nextSequence += 1
+                    val resumed = synchronized(lock) {
+                        if (awaitingResumeAcknowledgement) {
+                            awaitingResumeAcknowledgement = false
+                            true
+                        } else {
+                            false
+                        }
+                    }
+                    if (resumed) onResumed()
                 }
                 is PcCommandResult.AuthFailed -> {
                     requeueAndPause(operation, result.message)
@@ -241,6 +274,7 @@ internal class PcLiveTypingCoordinator(
                 streamId = null
                 nextSequence = 0
                 reopenStreamOnResume = false
+                awaitingResumeAcknowledgement = false
                 false
             } else {
                 operations.addFirst(operation)

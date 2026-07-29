@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
@@ -28,9 +29,14 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -38,11 +44,19 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.pc.PcKeyboardKey
-import kotlinx.coroutines.launch
+
+internal enum class PcQuickInputPage {
+    Type,
+    Keys
+}
 
 internal fun shouldShowPcQuickInputButton(surface: PcControlSurface): Boolean {
     return surface == PcControlSurface.Mouse || surface == PcControlSurface.Window
@@ -89,10 +103,12 @@ fun PcQuickInputButton(
 fun PcQuickInputSheet(
     typingText: String,
     typingMessage: String?,
+    typingDraftReviewWarning: Boolean = false,
     typingMode: PcTypingMode = PcTypingMode.Draft,
     liveTypingAvailable: Boolean = false,
     liveTypingPaused: Boolean = false,
     liveTypingMessage: String? = null,
+    liveTypingAnnouncement: String? = null,
     liveTypingText: String = "",
     connected: Boolean,
     enabled: Boolean,
@@ -101,13 +117,17 @@ fun PcQuickInputSheet(
     onSend: () -> Unit,
     onSendAndEnter: () -> Unit,
     onClear: () -> Unit,
+    onClearLiveField: () -> Unit = {},
     onLiveTypingStarted: () -> Unit = {},
     onLiveTypingStopped: (String) -> Unit = { _ -> },
     onLiveSessionTextChanged: (String) -> Unit = {},
     onLiveTextCommitted: (String) -> Boolean = { false },
     onLiveKeyCommitted: (PcKeyboardKey) -> Unit = {},
     onLiveTypingRetry: () -> Unit = {},
+    onMoveLiveToDraft: () -> Unit = {},
+    onLiveTypingAnnouncementShown: () -> Unit = {},
     onKeySelected: (PcKeyboardKey) -> Unit,
+    onOpenFullTypingControls: () -> Unit = {},
     onDismissRequest: () -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -126,10 +146,12 @@ fun PcQuickInputSheet(
         PcQuickInputContent(
             typingText = typingText,
             typingMessage = typingMessage,
+            typingDraftReviewWarning = typingDraftReviewWarning,
             typingMode = typingMode,
             liveTypingAvailable = liveTypingAvailable,
             liveTypingPaused = liveTypingPaused,
             liveTypingMessage = liveTypingMessage,
+            liveTypingAnnouncement = liveTypingAnnouncement,
             liveTypingText = liveTypingText,
             connected = connected,
             enabled = enabled,
@@ -138,13 +160,17 @@ fun PcQuickInputSheet(
             onSend = onSend,
             onSendAndEnter = onSendAndEnter,
             onClear = onClear,
+            onClearLiveField = onClearLiveField,
             onLiveTypingStarted = onLiveTypingStarted,
             onLiveTypingStopped = onLiveTypingStopped,
             onLiveSessionTextChanged = onLiveSessionTextChanged,
             onLiveTextCommitted = onLiveTextCommitted,
             onLiveKeyCommitted = onLiveKeyCommitted,
             onLiveTypingRetry = onLiveTypingRetry,
+            onMoveLiveToDraft = onMoveLiveToDraft,
+            onLiveTypingAnnouncementShown = onLiveTypingAnnouncementShown,
             onKeySelected = onKeySelected,
+            onOpenFullTypingControls = onOpenFullTypingControls,
             onClose = dismiss
         )
     }
@@ -154,10 +180,12 @@ fun PcQuickInputSheet(
 internal fun PcQuickInputContent(
     typingText: String,
     typingMessage: String?,
+    typingDraftReviewWarning: Boolean = false,
     typingMode: PcTypingMode = PcTypingMode.Draft,
     liveTypingAvailable: Boolean = false,
     liveTypingPaused: Boolean = false,
     liveTypingMessage: String? = null,
+    liveTypingAnnouncement: String? = null,
     liveTypingText: String = "",
     connected: Boolean,
     enabled: Boolean,
@@ -166,21 +194,46 @@ internal fun PcQuickInputContent(
     onSend: () -> Unit,
     onSendAndEnter: () -> Unit,
     onClear: () -> Unit,
+    onClearLiveField: () -> Unit = {},
     onLiveTypingStarted: () -> Unit = {},
     onLiveTypingStopped: (String) -> Unit = { _ -> },
     onLiveSessionTextChanged: (String) -> Unit = {},
     onLiveTextCommitted: (String) -> Boolean = { false },
     onLiveKeyCommitted: (PcKeyboardKey) -> Unit = {},
     onLiveTypingRetry: () -> Unit = {},
+    onMoveLiveToDraft: () -> Unit = {},
+    onLiveTypingAnnouncementShown: () -> Unit = {},
     onKeySelected: (PcKeyboardKey) -> Unit,
+    onOpenFullTypingControls: () -> Unit = {},
     onClose: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val focusRequester = remember { FocusRequester() }
+    val pageHeadingFocusRequester = remember { FocusRequester() }
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
-    val scrollState = rememberScrollState()
-    val coroutineScope = rememberCoroutineScope()
+    val typeScrollState = rememberScrollState()
+    val keysScrollState = rememberScrollState()
+    var page by rememberSaveable { mutableStateOf(PcQuickInputPage.Type) }
+    val ownsLiveSession = typingMode == PcTypingMode.Live && liveTypingAvailable
+    val latestLiveTypingText by rememberUpdatedState(liveTypingText)
+
+    DisposableEffect(ownsLiveSession) {
+        if (ownsLiveSession) {
+            onLiveTypingStarted()
+        }
+        onDispose {
+            if (ownsLiveSession) {
+                onLiveTypingStopped(latestLiveTypingText)
+            }
+        }
+    }
+
+    LaunchedEffect(liveTypingPaused) {
+        if (liveTypingPaused) {
+            page = PcQuickInputPage.Type
+        }
+    }
 
     Column(
         modifier = modifier
@@ -220,42 +273,90 @@ internal fun PcQuickInputContent(
                 )
             }
         }
+        Text(
+            text = stringResource(
+                if (page == PcQuickInputPage.Type) {
+                    R.string.pc_control_quick_input_type_page
+                } else {
+                    R.string.pc_control_quick_input_keys_page
+                }
+            ),
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier
+                .focusRequester(pageHeadingFocusRequester)
+                .focusable()
+                .semantics {
+                    heading()
+                    liveRegion = LiveRegionMode.Polite
+                }
+        )
         Column(
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth()
-                .verticalScroll(scrollState),
+                .verticalScroll(
+                    if (page == PcQuickInputPage.Type) {
+                        typeScrollState
+                    } else {
+                        keysScrollState
+                    }
+                ),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            PcTypingInput(
-                text = typingText,
-                message = typingMessage,
-                typingMode = typingMode,
-                liveTypingAvailable = liveTypingAvailable,
-                liveTypingPaused = liveTypingPaused,
-                liveTypingMessage = liveTypingMessage,
-                liveTypingText = liveTypingText,
-                onTypingModeSelected = onTypingModeSelected,
-                onTextChanged = onTextChanged,
-                onSend = onSend,
-                onSendAndEnter = onSendAndEnter,
-                onClear = onClear,
-                onLiveTypingStarted = onLiveTypingStarted,
-                onLiveTypingStopped = onLiveTypingStopped,
-                onLiveSessionTextChanged = onLiveSessionTextChanged,
-                onLiveTextCommitted = onLiveTextCommitted,
-                onLiveKeyCommitted = onLiveKeyCommitted,
-                onLiveTypingRetry = onLiveTypingRetry,
-                enabled = enabled,
-                textFieldModifier = Modifier.focusRequester(focusRequester),
-                textFieldMinLines = 2,
-                textFieldMaxLines = 3,
-                textFieldMinHeight = 72.dp
-            )
-            PcKeyboardNavigationCluster(
-                enabled = enabled,
-                onKeySelected = onKeySelected
-            )
+            if (page == PcQuickInputPage.Type) {
+                PcTypingInput(
+                    text = typingText,
+                    message = typingMessage,
+                    draftReviewWarning = typingDraftReviewWarning,
+                    typingMode = typingMode,
+                    liveTypingAvailable = liveTypingAvailable,
+                    liveTypingPaused = liveTypingPaused,
+                    liveTypingMessage = liveTypingMessage,
+                    liveTypingAnnouncement = liveTypingAnnouncement,
+                    liveTypingText = liveTypingText,
+                    onTypingModeSelected = onTypingModeSelected,
+                    onTextChanged = onTextChanged,
+                    onSend = onSend,
+                    onSendAndEnter = onSendAndEnter,
+                    onClear = onClear,
+                    onClearLiveField = onClearLiveField,
+                    onLiveTypingStarted = onLiveTypingStarted,
+                    onLiveTypingStopped = onLiveTypingStopped,
+                    onLiveSessionTextChanged = onLiveSessionTextChanged,
+                    onLiveTextCommitted = onLiveTextCommitted,
+                    onLiveKeyCommitted = onLiveKeyCommitted,
+                    onLiveTypingRetry = onLiveTypingRetry,
+                    onMoveLiveToDraft = onMoveLiveToDraft,
+                    onLiveTypingAnnouncementShown = onLiveTypingAnnouncementShown,
+                    enabled = enabled,
+                    textFieldModifier = Modifier.focusRequester(focusRequester),
+                    textFieldMinLines = 2,
+                    textFieldMaxLines = 3,
+                    textFieldMinHeight = 72.dp,
+                    manageLiveSessionLifecycle = false
+                )
+            } else {
+                PcTypingKeyGrid(
+                    specs = pcEditingKeySpecs() + pcSpacingKeySpecs(),
+                    enabled = enabled && !(typingMode == PcTypingMode.Live && liveTypingPaused),
+                    onKeySelected = onKeySelected,
+                    columns = 3
+                )
+                PcTypingKeyGrid(
+                    specs = pcCursorKeySpecs(),
+                    enabled = enabled && !(typingMode == PcTypingMode.Live && liveTypingPaused),
+                    onKeySelected = onKeySelected,
+                    columns = 4
+                )
+                OutlinedButton(
+                    onClick = onOpenFullTypingControls,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 48.dp)
+                ) {
+                    Text(stringResource(R.string.pc_control_quick_input_open_full))
+                }
+            }
         }
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -263,14 +364,12 @@ internal fun PcQuickInputContent(
         ) {
             OutlinedButton(
                 onClick = {
-                    coroutineScope.launch {
-                        scrollState.animateScrollTo(
-                            (scrollState.value - scrollState.viewportSize).coerceAtLeast(0)
-                        )
-                    }
+                    page = PcQuickInputPage.Type
                 },
-                enabled = scrollState.value > 0,
-                modifier = Modifier.weight(1f)
+                enabled = page == PcQuickInputPage.Keys,
+                modifier = Modifier
+                    .weight(1f)
+                    .heightIn(min = 48.dp)
             ) {
                 Icon(
                     imageVector = Icons.Default.KeyboardArrowUp,
@@ -280,15 +379,14 @@ internal fun PcQuickInputContent(
             }
             OutlinedButton(
                 onClick = {
-                    coroutineScope.launch {
-                        scrollState.animateScrollTo(
-                            (scrollState.value + scrollState.viewportSize)
-                                .coerceAtMost(scrollState.maxValue)
-                        )
-                    }
+                    focusManager.clearFocus(force = true)
+                    keyboardController?.hide()
+                    page = PcQuickInputPage.Keys
                 },
-                enabled = scrollState.value < scrollState.maxValue,
-                modifier = Modifier.weight(1f)
+                enabled = page == PcQuickInputPage.Type,
+                modifier = Modifier
+                    .weight(1f)
+                    .heightIn(min = 48.dp)
             ) {
                 Text(stringResource(R.string.pc_control_quick_input_next_controls))
                 Icon(
@@ -299,8 +397,10 @@ internal fun PcQuickInputContent(
         }
     }
 
-    LaunchedEffect(connected) {
-        if (connected) {
+    LaunchedEffect(connected, page, liveTypingPaused) {
+        if (page == PcQuickInputPage.Keys || liveTypingPaused) {
+            pageHeadingFocusRequester.requestFocus()
+        } else if (connected) {
             focusRequester.requestFocus()
             keyboardController?.show()
         }

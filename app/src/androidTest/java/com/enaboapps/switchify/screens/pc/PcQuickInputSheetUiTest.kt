@@ -120,6 +120,8 @@ class PcQuickInputSheetUiTest {
     fun navigationTilesSendOneMatchingKeyPerTap() {
         val selectedKeys = mutableListOf<PcKeyboardKey>()
         val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val expectedKeys =
+            (pcEditingKeySpecs() + pcSpacingKeySpecs() + pcCursorKeySpecs()).map { it.key }
 
         composeTestRule.setContent {
             SwitchifyTheme {
@@ -138,12 +140,16 @@ class PcQuickInputSheetUiTest {
             }
         }
 
-        pcKeyboardNavigationKeys().forEach { key ->
-            composeTestRule.onNodeWithText(context.getString(key.labelResId)).performClick()
+        composeTestRule
+            .onNodeWithText(context.getString(R.string.pc_control_quick_input_next_controls))
+            .performClick()
+
+        (pcEditingKeySpecs() + pcSpacingKeySpecs() + pcCursorKeySpecs()).forEach { spec ->
+            composeTestRule.onNodeWithText(context.getString(spec.labelResId)).performClick()
         }
 
         composeTestRule.runOnIdle {
-            assertEquals(pcKeyboardNavigationKeys(), selectedKeys)
+            assertEquals(expectedKeys, selectedKeys)
         }
     }
 
@@ -204,12 +210,95 @@ class PcQuickInputSheetUiTest {
         }
 
         composeTestRule
-            .onNodeWithText(context.getString(R.string.pc_typing_live_help))
+            .onNodeWithText(context.getString(R.string.pc_typing_live_support))
             .assertIsDisplayed()
         assertEquals(
             0,
             composeTestRule.onAllNodesWithText("Preserved draft").fetchSemanticsNodes().size
         )
+    }
+
+    @Test
+    fun fixedPageControlsSwitchBetweenTypeAndKeys() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+
+        composeTestRule.setContent {
+            SwitchifyTheme {
+                PcQuickInputContent(
+                    typingText = "",
+                    typingMessage = null,
+                    connected = true,
+                    enabled = true,
+                    onTextChanged = {},
+                    onSend = {},
+                    onSendAndEnter = {},
+                    onClear = {},
+                    onKeySelected = {},
+                    onClose = {}
+                )
+            }
+        }
+
+        composeTestRule
+            .onNodeWithText(context.getString(R.string.pc_control_quick_input_type_page))
+            .assertIsDisplayed()
+        composeTestRule
+            .onNodeWithText(context.getString(R.string.pc_control_quick_input_next_controls))
+            .performClick()
+        composeTestRule
+            .onNodeWithText(context.getString(R.string.pc_control_quick_input_keys_page))
+            .assertIsDisplayed()
+        composeTestRule
+            .onNodeWithText(context.getString(R.string.pc_control_quick_input_open_full))
+            .assertIsDisplayed()
+        composeTestRule
+            .onNodeWithText(context.getString(R.string.pc_control_quick_input_previous_controls))
+            .performClick()
+        composeTestRule
+            .onNodeWithText(context.getString(R.string.pc_control_quick_input_type_page))
+            .assertIsDisplayed()
+    }
+
+    @Test
+    fun keysPageKeepsLiveSessionActive() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        var startedCount = 0
+        var stoppedCount = 0
+        val selectedKeys = mutableListOf<PcKeyboardKey>()
+
+        composeTestRule.setContent {
+            SwitchifyTheme {
+                PcQuickInputContent(
+                    typingText = "",
+                    typingMessage = null,
+                    typingMode = PcTypingMode.Live,
+                    liveTypingAvailable = true,
+                    connected = true,
+                    enabled = true,
+                    onTextChanged = {},
+                    onSend = {},
+                    onSendAndEnter = {},
+                    onClear = {},
+                    onLiveTypingStarted = { startedCount += 1 },
+                    onLiveTypingStopped = { stoppedCount += 1 },
+                    onKeySelected = selectedKeys::add,
+                    onClose = {}
+                )
+            }
+        }
+
+        composeTestRule
+            .onNodeWithText(context.getString(R.string.pc_control_quick_input_next_controls))
+            .performClick()
+        composeTestRule
+            .onNodeWithText(context.getString(R.string.pc_key_enter))
+            .performClick()
+
+        composeTestRule.runOnIdle {
+            assertEquals(1, startedCount)
+            assertEquals(0, stoppedCount)
+            assertEquals(listOf(PcKeyboardKey.Enter), selectedKeys)
+        }
     }
 
     @Test

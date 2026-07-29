@@ -59,9 +59,11 @@ data class PcMouseControlUiState(
     val message: String? = null,
     val typingText: String = "",
     val typingMessage: String? = null,
+    val typingDraftReviewWarning: Boolean = false,
     val typingMode: PcTypingMode = PcTypingMode.Live,
     val liveTypingPaused: Boolean = false,
     val liveTypingMessage: String? = null,
+    val liveTypingAnnouncement: String? = null,
     val liveTypingText: String = "",
     val supportsTextStreamInput: Boolean = false,
     val supportsModifierToggles: Boolean = false,
@@ -109,6 +111,15 @@ class PcMouseControlViewModel(
                 it.copy(
                     liveTypingPaused = true,
                     liveTypingMessage = message
+                )
+            }
+        },
+        onResumed = {
+            _uiState.update {
+                it.copy(
+                    liveTypingPaused = false,
+                    liveTypingMessage = null,
+                    liveTypingAnnouncement = LIVE_TYPING_RESUMED_MESSAGE
                 )
             }
         }
@@ -436,7 +447,21 @@ class PcMouseControlViewModel(
             it.copy(
                 liveTypingText = "",
                 liveTypingPaused = false,
-                liveTypingMessage = null
+                liveTypingMessage = null,
+                liveTypingAnnouncement = null
+            )
+        }
+    }
+
+    private fun preserveLiveTypingForRecovery(message: String) {
+        if (!liveTypingSessionActive) return
+        liveTypingCoordinator.pauseForExternalFailure(message)
+        _uiState.update {
+            it.copy(
+                liveTypingPaused = true,
+                liveTypingMessage = message,
+                liveTypingAnnouncement = null,
+                supportsTextStreamInput = true
             )
         }
     }
@@ -465,6 +490,26 @@ class PcMouseControlViewModel(
         return accepted
     }
 
+    fun clearLiveTypingField() {
+        liveTypingQueuedText = ""
+        _uiState.update { it.copy(liveTypingText = "") }
+    }
+
+    fun moveLiveTypingToDraft() {
+        val sessionText = _uiState.value.liveTypingText
+        typingDraftStore.setDraft(sessionText)
+        typingModeStore.setMode(PcTypingMode.Draft)
+        endLiveTypingSession()
+        _uiState.update {
+            it.copy(
+                typingMode = PcTypingMode.Draft,
+                typingText = sessionText,
+                typingMessage = null,
+                typingDraftReviewWarning = sessionText.isNotEmpty()
+            )
+        }
+    }
+
     fun sendLiveTypingKey(key: PcKeyboardKey) {
         if (!liveTypingCoordinator.submitKey(key)) {
             _uiState.update {
@@ -486,13 +531,12 @@ class PcMouseControlViewModel(
     }
 
     fun retryLiveTyping() {
-        _uiState.update {
-            it.copy(
-                liveTypingPaused = false,
-                liveTypingMessage = null
-            )
-        }
+        _uiState.update { it.copy(liveTypingAnnouncement = null) }
         liveTypingCoordinator.resume()
+    }
+
+    fun clearLiveTypingAnnouncement() {
+        _uiState.update { it.copy(liveTypingAnnouncement = null) }
     }
 
     fun showTypingSurface() {
@@ -564,14 +608,21 @@ class PcMouseControlViewModel(
         _uiState.update {
             it.copy(
                 typingText = text,
-                typingMessage = validationMessageFor(text)
+                typingMessage = validationMessageFor(text),
+                typingDraftReviewWarning = false
             )
         }
     }
 
     fun clearTypingText() {
         typingDraftStore.clearDraft()
-        _uiState.update { it.copy(typingText = "", typingMessage = null) }
+        _uiState.update {
+            it.copy(
+                typingText = "",
+                typingMessage = null,
+                typingDraftReviewWarning = false
+            )
+        }
     }
 
     fun sendTypedText() {
@@ -793,6 +844,7 @@ class PcMouseControlViewModel(
                 busyCommand = null,
                 typingText = "",
                 typingMessage = null,
+                typingDraftReviewWarning = false,
                 message = null
             )
         }
@@ -806,6 +858,7 @@ class PcMouseControlViewModel(
                 busyCommand = null,
                 typingText = "",
                 typingMessage = null,
+                typingDraftReviewWarning = false,
                 message = null
             )
         }
@@ -842,6 +895,7 @@ class PcMouseControlViewModel(
                 isBusy = false,
                 busyCommand = null,
                 typingText = "",
+                typingDraftReviewWarning = false,
                 message = message ?: it.message,
                 typingMessage = typingMessage
             )
@@ -1006,7 +1060,7 @@ class PcMouseControlViewModel(
                 }
             }
             PcServiceConnectionState.Disconnected -> {
-                endLiveTypingSession()
+                preserveLiveTypingForRecovery(DISCONNECTED_MESSAGE)
                 mouseRepeatManager.clearServiceState()
                 movementStep = FALLBACK_MOVEMENT_STEP
                 _uiState.update {
@@ -1023,7 +1077,7 @@ class PcMouseControlViewModel(
                         activeModifiers = emptySet(),
                         isBusy = false,
                         busyCommand = null,
-                        supportsTextStreamInput = false,
+                        supportsTextStreamInput = liveTypingSessionActive,
                         supportsModifierToggles = false,
                         message = CONNECT_FIRST_MESSAGE,
                         connectionStatusText = null
@@ -1031,7 +1085,7 @@ class PcMouseControlViewModel(
                 }
             }
             is PcServiceConnectionState.Failed -> {
-                endLiveTypingSession()
+                preserveLiveTypingForRecovery(state.message)
                 mouseRepeatManager.clearServiceState()
                 movementStep = FALLBACK_MOVEMENT_STEP
                 _uiState.update {
@@ -1048,7 +1102,7 @@ class PcMouseControlViewModel(
                         activeModifiers = emptySet(),
                         isBusy = false,
                         busyCommand = null,
-                        supportsTextStreamInput = false,
+                        supportsTextStreamInput = liveTypingSessionActive,
                         supportsModifierToggles = false,
                         message = state.message,
                         connectionStatusText = state.message
@@ -1079,7 +1133,7 @@ class PcMouseControlViewModel(
                 }
             }
             is PcConnectionState.Failed -> {
-                endLiveTypingSession()
+                preserveLiveTypingForRecovery(state.message)
                 mouseRepeatManager.clearServiceState()
                 _uiState.update {
                     it.copy(
@@ -1090,7 +1144,7 @@ class PcMouseControlViewModel(
                         busyCommand = null,
                         displayNavigationSupported = false,
                         displayCount = 1,
-                        supportsTextStreamInput = false,
+                        supportsTextStreamInput = liveTypingSessionActive,
                         supportsModifierToggles = false,
                         message = state.message,
                         connectionStatusText = state.message
@@ -1170,6 +1224,7 @@ class PcMouseControlViewModel(
         const val KEY_FAILED_MESSAGE = "Could not send key to PC."
         const val TEXT_TOO_LONG_MESSAGE = "Text is too long."
         const val TEXT_UNSUPPORTED_MESSAGE = "Text includes unsupported characters."
+        const val LIVE_TYPING_RESUMED_MESSAGE = "Live typing resumed."
         const val SELECT_SHORTCUT_MODIFIER_MESSAGE = "Choose Ctrl, Alt, Shift, or Start first."
         const val TEXT_STREAM_RECONNECT_TIMEOUT_MS = 15_000L
         const val TEXT_STREAM_RECONNECT_RETRY_LIMIT = 3
