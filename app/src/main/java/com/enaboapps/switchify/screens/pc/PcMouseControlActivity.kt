@@ -33,6 +33,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -82,7 +83,10 @@ class PcMouseControlActivity : ComponentActivity() {
     override fun onPause() {
         scanModeSession?.close()
         scanModeSession = null
-        viewModel.onPcUiPaused(endTypingSession = !isChangingConfigurations)
+        viewModel.onPcUiPaused(
+            endTypingSession = !isChangingConfigurations &&
+                !viewModel.uiState.value.liveTypingPaused
+        )
         super.onPause()
     }
 
@@ -94,6 +98,15 @@ class PcMouseControlActivity : ComponentActivity() {
         }
     }
 }
+
+private sealed interface PcTypingExitIntent {
+    data object Close : PcTypingExitIntent
+    data object DismissQuickInput : PcTypingExitIntent
+    data object OpenPcSwitcher : PcTypingExitIntent
+    data class SelectSurface(val surface: PcControlSurface) : PcTypingExitIntent
+    data class SelectMode(val mode: PcTypingMode) : PcTypingExitIntent
+}
+
 @Composable
 private fun PcMouseControlScreen(
     viewModel: PcMouseControlViewModel,
@@ -104,7 +117,31 @@ private fun PcMouseControlScreen(
     val surfaceEnabled = uiState.connectedDisplayName != null && !uiState.isBusy
     var closeConfirmationVisible by rememberSaveable { mutableStateOf(false) }
     var quickInputVisible by rememberSaveable { mutableStateOf(false) }
-    val requestClose = { closeConfirmationVisible = true }
+    var pendingTypingExit by remember { mutableStateOf<PcTypingExitIntent?>(null) }
+    val performTypingExit: (PcTypingExitIntent) -> Unit = { intent ->
+        when (intent) {
+            PcTypingExitIntent.Close -> closeConfirmationVisible = true
+            PcTypingExitIntent.DismissQuickInput -> {
+                viewModel.endLiveTypingSession()
+                quickInputVisible = false
+            }
+            PcTypingExitIntent.OpenPcSwitcher -> viewModel.openSwitchPcChooser()
+            is PcTypingExitIntent.SelectSurface -> viewModel.selectControlSurface(intent.surface)
+            is PcTypingExitIntent.SelectMode -> viewModel.selectTypingMode(intent.mode)
+        }
+    }
+    val requestTypingExit: (PcTypingExitIntent) -> Unit = { intent ->
+        if (
+            uiState.liveTypingPaused &&
+            uiState.typingMode == PcTypingMode.Live &&
+            uiState.liveTypingText.isNotEmpty()
+        ) {
+            pendingTypingExit = intent
+        } else {
+            performTypingExit(intent)
+        }
+    }
+    val requestClose = { requestTypingExit(PcTypingExitIntent.Close) }
 
     BackHandler(onBack = requestClose)
 
@@ -121,7 +158,13 @@ private fun PcMouseControlScreen(
                     ) {
                         PcControlSurfaceSwitcher(
                             selectedSurface = uiState.activeSurface,
-                            onSurfaceSelected = viewModel::selectControlSurface,
+                            onSurfaceSelected = { surface ->
+                                if (surface == uiState.activeSurface) {
+                                    viewModel.selectControlSurface(surface)
+                                } else {
+                                    requestTypingExit(PcTypingExitIntent.SelectSurface(surface))
+                                }
+                            },
                             enabled = !uiState.isBusy,
                             onClose = requestClose,
                             modifier = Modifier.fillMaxWidth()
@@ -148,7 +191,9 @@ private fun PcMouseControlScreen(
                     isDiscovering = pcSwitcherState.isDiscovering,
                     switching = pcSwitcherState.isPreparing ||
                         pcSwitcherState.switchingDesktopId != null,
-                    onSwitchClick = viewModel::openSwitchPcChooser
+                    onSwitchClick = {
+                        requestTypingExit(PcTypingExitIntent.OpenPcSwitcher)
+                    }
                 )
             }
         }
@@ -201,23 +246,34 @@ private fun PcMouseControlScreen(
                         PcControlSurface.Typing -> PcTypingControlScreen(
                             typingText = uiState.typingText,
                             typingMessage = uiState.typingMessage,
+                            typingDraftReviewWarning = uiState.typingDraftReviewWarning,
                             typingMode = uiState.typingMode,
                             liveTypingAvailable = uiState.supportsTextStreamInput,
                             liveTypingPaused = uiState.liveTypingPaused,
                             liveTypingMessage = uiState.liveTypingMessage,
+                            liveTypingAnnouncement = uiState.liveTypingAnnouncement,
                             liveTypingText = uiState.liveTypingText,
                             enabled = surfaceEnabled,
-                            onTypingModeSelected = viewModel::selectTypingMode,
+                            onTypingModeSelected = { mode ->
+                                if (mode == PcTypingMode.Draft) {
+                                    requestTypingExit(PcTypingExitIntent.SelectMode(mode))
+                                } else {
+                                    viewModel.selectTypingMode(mode)
+                                }
+                            },
                             onTextChanged = viewModel::updateTypingText,
                             onSend = viewModel::sendTypedText,
                             onSendAndEnter = viewModel::sendTypedTextThenEnter,
                             onClear = viewModel::clearTypingText,
+                            onClearLiveField = viewModel::clearLiveTypingField,
                             onLiveTypingStarted = viewModel::startLiveTyping,
                             onLiveTypingStopped = viewModel::retainAndStopLiveTyping,
                             onLiveSessionTextChanged = viewModel::updateLiveTypingSessionText,
                             onLiveTextCommitted = viewModel::commitLiveTypingText,
                             onLiveKeyCommitted = viewModel::sendLiveTypingKey,
                             onLiveTypingRetry = viewModel::retryLiveTyping,
+                            onMoveLiveToDraft = viewModel::moveLiveTypingToDraft,
+                            onLiveTypingAnnouncementShown = viewModel::clearLiveTypingAnnouncement,
                             onKeySelected = viewModel::sendTypingKey
                         )
                         PcControlSurface.Window -> PcWindowControlScreen(
@@ -284,28 +340,82 @@ private fun PcMouseControlScreen(
         PcQuickInputSheet(
             typingText = uiState.typingText,
             typingMessage = uiState.typingMessage,
+            typingDraftReviewWarning = uiState.typingDraftReviewWarning,
             typingMode = uiState.typingMode,
             liveTypingAvailable = uiState.supportsTextStreamInput,
             liveTypingPaused = uiState.liveTypingPaused,
             liveTypingMessage = uiState.liveTypingMessage,
+            liveTypingAnnouncement = uiState.liveTypingAnnouncement,
             liveTypingText = uiState.liveTypingText,
             connected = uiState.connectedDisplayName != null,
             enabled = surfaceEnabled,
-            onTypingModeSelected = viewModel::selectTypingMode,
+            onTypingModeSelected = { mode ->
+                if (mode == PcTypingMode.Draft) {
+                    requestTypingExit(PcTypingExitIntent.SelectMode(mode))
+                } else {
+                    viewModel.selectTypingMode(mode)
+                }
+            },
             onTextChanged = viewModel::updateTypingText,
             onSend = viewModel::sendTypedText,
             onSendAndEnter = viewModel::sendTypedTextThenEnter,
             onClear = viewModel::clearTypingText,
+            onClearLiveField = viewModel::clearLiveTypingField,
             onLiveTypingStarted = viewModel::startLiveTyping,
             onLiveTypingStopped = viewModel::retainAndStopLiveTyping,
             onLiveSessionTextChanged = viewModel::updateLiveTypingSessionText,
             onLiveTextCommitted = viewModel::commitLiveTypingText,
             onLiveKeyCommitted = viewModel::sendLiveTypingKey,
             onLiveTypingRetry = viewModel::retryLiveTyping,
+            onMoveLiveToDraft = viewModel::moveLiveTypingToDraft,
+            onLiveTypingAnnouncementShown = viewModel::clearLiveTypingAnnouncement,
             onKeySelected = viewModel::sendTypingKey,
-            onDismissRequest = {
-                viewModel.endLiveTypingSession()
+            onOpenFullTypingControls = {
                 quickInputVisible = false
+                viewModel.selectControlSurface(PcControlSurface.Typing)
+            },
+            onDismissRequest = {
+                requestTypingExit(PcTypingExitIntent.DismissQuickInput)
+            }
+        )
+    }
+
+    pendingTypingExit?.let { exitIntent ->
+        AlertDialog(
+            onDismissRequest = { pendingTypingExit = null },
+            title = { Text(stringResource(R.string.pc_typing_exit_title)) },
+            text = { Text(stringResource(R.string.pc_typing_live_paused_body)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        pendingTypingExit = null
+                        viewModel.retryLiveTyping()
+                    }
+                ) {
+                    Text(stringResource(R.string.pc_typing_exit_retry))
+                }
+            },
+            dismissButton = {
+                Column {
+                    TextButton(
+                        onClick = {
+                            viewModel.moveLiveTypingToDraft()
+                            pendingTypingExit = null
+                            performTypingExit(exitIntent)
+                        }
+                    ) {
+                        Text(stringResource(R.string.pc_typing_live_move_to_draft))
+                    }
+                    TextButton(
+                        onClick = {
+                            viewModel.endLiveTypingSession()
+                            pendingTypingExit = null
+                            performTypingExit(exitIntent)
+                        }
+                    ) {
+                        Text(stringResource(R.string.pc_typing_exit_discard))
+                    }
+                }
             }
         )
     }
