@@ -472,6 +472,12 @@
     <string name="pc_typing_section_cursor">Move cursor</string>
     <string name="pc_typing_section_document">Document</string>
     <string name="pc_typing_text_label">Text</string>
+    <string name="pc_typing_mode_live">Live</string>
+    <string name="pc_typing_mode_draft">Draft</string>
+    <string name="pc_typing_live_hint">Type here to send directly to your PC</string>
+    <string name="pc_typing_live_help">Typing live on PC. Committed text is sent immediately and is not stored on this device.</string>
+    <string name="pc_typing_live_unavailable">Update Switchify PC to use live typing. Draft mode remains available.</string>
+    <string name="pc_typing_live_retry">Retry live typing</string>
     <string name="pc_typing_send">Send</string>
     <string name="pc_typing_send_enter">Send + Enter</string>
     <string name="pc_typing_clear">Clear</string>

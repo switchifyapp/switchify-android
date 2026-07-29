@@ -201,12 +201,22 @@ private fun PcMouseControlScreen(
                         PcControlSurface.Typing -> PcTypingControlScreen(
                             typingText = uiState.typingText,
                             typingMessage = uiState.typingMessage,
+                            typingMode = uiState.typingMode,
+                            liveTypingAvailable = uiState.supportsTextStreamInput,
+                            liveTypingPaused = uiState.liveTypingPaused,
+                            liveTypingMessage = uiState.liveTypingMessage,
                             enabled = surfaceEnabled,
+                            onTypingModeSelected = viewModel::selectTypingMode,
                             onTextChanged = viewModel::updateTypingText,
                             onSend = viewModel::sendTypedText,
                             onSendAndEnter = viewModel::sendTypedTextThenEnter,
                             onClear = viewModel::clearTypingText,
-                            onKeySelected = viewModel::sendKey
+                            onLiveTypingStarted = viewModel::startLiveTyping,
+                            onLiveTypingStopped = viewModel::stopLiveTyping,
+                            onLiveTextCommitted = viewModel::commitLiveTypingText,
+                            onLiveKeyCommitted = viewModel::sendLiveTypingKey,
+                            onLiveTypingRetry = viewModel::retryLiveTyping,
+                            onKeySelected = viewModel::sendTypingKey
                         )
                         PcControlSurface.Window -> PcWindowControlScreen(
                             enabled = surfaceEnabled,
@@ -272,13 +282,23 @@ private fun PcMouseControlScreen(
         PcQuickInputSheet(
             typingText = uiState.typingText,
             typingMessage = uiState.typingMessage,
+            typingMode = uiState.typingMode,
+            liveTypingAvailable = uiState.supportsTextStreamInput,
+            liveTypingPaused = uiState.liveTypingPaused,
+            liveTypingMessage = uiState.liveTypingMessage,
             connected = uiState.connectedDisplayName != null,
             enabled = surfaceEnabled,
+            onTypingModeSelected = viewModel::selectTypingMode,
             onTextChanged = viewModel::updateTypingText,
             onSend = viewModel::sendTypedText,
             onSendAndEnter = viewModel::sendTypedTextThenEnter,
             onClear = viewModel::clearTypingText,
-            onKeySelected = viewModel::sendKey,
+            onLiveTypingStarted = viewModel::startLiveTyping,
+            onLiveTypingStopped = viewModel::stopLiveTyping,
+            onLiveTextCommitted = viewModel::commitLiveTypingText,
+            onLiveKeyCommitted = viewModel::sendLiveTypingKey,
+            onLiveTypingRetry = viewModel::retryLiveTyping,
+            onKeySelected = viewModel::sendTypingKey,
             onDismissRequest = { quickInputVisible = false }
         )
     }

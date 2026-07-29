@@ -9,6 +9,7 @@ import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -177,5 +178,66 @@ class PcQuickInputSheetUiTest {
         composeTestRule.runOnIdle { enabled = true }
 
         composeTestRule.onNode(hasSetTextAction()).assertIsNotFocused()
+    }
+
+    @Test
+    fun liveModeShowsImmediateDeliveryHelp() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+
+        composeTestRule.setContent {
+            SwitchifyTheme {
+                PcQuickInputContent(
+                    typingText = "Preserved draft",
+                    typingMessage = null,
+                    typingMode = PcTypingMode.Live,
+                    liveTypingAvailable = true,
+                    connected = true,
+                    enabled = true,
+                    onTextChanged = {},
+                    onSend = {},
+                    onSendAndEnter = {},
+                    onClear = {},
+                    onKeySelected = {},
+                    onClose = {}
+                )
+            }
+        }
+
+        composeTestRule
+            .onNodeWithText(context.getString(R.string.pc_typing_live_help))
+            .assertIsDisplayed()
+        assertEquals(
+            0,
+            composeTestRule.onAllNodesWithText("Preserved draft").fetchSemanticsNodes().size
+        )
+    }
+
+    @Test
+    fun unavailableLiveModeFallsBackToDraftWithExplanation() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+
+        composeTestRule.setContent {
+            SwitchifyTheme {
+                PcQuickInputContent(
+                    typingText = "Preserved draft",
+                    typingMessage = null,
+                    typingMode = PcTypingMode.Live,
+                    liveTypingAvailable = false,
+                    connected = true,
+                    enabled = true,
+                    onTextChanged = {},
+                    onSend = {},
+                    onSendAndEnter = {},
+                    onClear = {},
+                    onKeySelected = {},
+                    onClose = {}
+                )
+            }
+        }
+
+        composeTestRule
+            .onNodeWithText(context.getString(R.string.pc_typing_live_unavailable))
+            .assertIsDisplayed()
+        composeTestRule.onNodeWithText("Preserved draft").assertIsDisplayed()
     }
 }

@@ -6,6 +6,18 @@ import org.junit.Test
 
 class PcTypingControlScreenTest {
     @Test
+    fun typingModeDefaultsToLiveForMissingPreference() {
+        assertEquals(PcTypingMode.Live, PcTypingMode.fromPreferenceValue(null))
+        assertEquals(PcTypingMode.Live, PcTypingMode.fromPreferenceValue(""))
+    }
+
+    @Test
+    fun typingModesUseStablePreferenceValues() {
+        assertEquals(PcTypingMode.Live, PcTypingMode.fromPreferenceValue("live"))
+        assertEquals(PcTypingMode.Draft, PcTypingMode.fromPreferenceValue("draft"))
+    }
+
+    @Test
     fun editingKeysUseStableOrder() {
         val keys = pcEditingKeySpecs().map { it.key }
 

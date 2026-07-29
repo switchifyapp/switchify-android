@@ -650,6 +650,36 @@ class PcMouseControlViewModelTest {
     }
 
     @Test
+    fun typingModeRestoresFromStore() = runTest(dispatcher) {
+        val viewModel = viewModel(
+            null,
+            typingModeStore = FakeTypingModeStore(PcTypingMode.Draft)
+        )
+
+        advanceUntilIdle()
+
+        assertEquals(PcTypingMode.Draft, viewModel.uiState.value.typingMode)
+    }
+
+    @Test
+    fun selectingDraftPersistsModeWithoutClearingDraft() = runTest(dispatcher) {
+        val draftStore = FakeTypingDraftStore("Keep me")
+        val modeStore = FakeTypingModeStore(PcTypingMode.Live)
+        val viewModel = viewModel(
+            null,
+            typingDraftStore = draftStore,
+            typingModeStore = modeStore
+        )
+
+        viewModel.selectTypingMode(PcTypingMode.Draft)
+        advanceUntilIdle()
+
+        assertEquals(PcTypingMode.Draft, modeStore.getMode())
+        assertEquals("Keep me", draftStore.getDraft())
+        assertEquals("Keep me", viewModel.uiState.value.typingText)
+    }
+
+    @Test
     fun typingTextChangesAreSavedToDraftStore() = runTest(dispatcher) {
         val draftStore = FakeTypingDraftStore()
         val viewModel = viewModel(null, typingDraftStore = draftStore)
@@ -1071,6 +1101,52 @@ class PcMouseControlViewModelTest {
         assertFalse(viewModel.uiState.value.isBusy)
         assertNull(viewModel.uiState.value.busyCommand)
         assertEquals("", viewModel.uiState.value.typingText)
+    }
+
+    @Test
+    fun liveTypingUsesOneOrderedAcknowledgedStream() = runTest(dispatcher) {
+        val connector = FakeConnector()
+        val controller = connectedController(
+            connector = connector,
+            pointerProfile = textStreamPointerProfile()
+        )
+        val viewModel = viewModel(controller)
+        advanceUntilIdle()
+
+        viewModel.startLiveTyping()
+        viewModel.commitLiveTypingText("Hello")
+        viewModel.sendLiveTypingKey(PcKeyboardKey.Enter)
+        viewModel.stopLiveTyping()
+        advanceUntilIdle()
+
+        val open = connector.commands.first() as PcControlCommand.TextStreamOpen
+        assertEquals(
+            listOf(
+                PcControlCommand.TextStreamOpen(open.streamId),
+                PcControlCommand.TextStreamChunk(open.streamId, 0, "Hello"),
+                PcControlCommand.TextStreamKey(open.streamId, 1, PcKeyboardKey.Enter),
+                PcControlCommand.TextStreamClose(open.streamId, 2)
+            ),
+            connector.commands
+        )
+        assertTrue(connector.realtimeCommands.isEmpty())
+    }
+
+    @Test
+    fun incompatiblePcKeepsDraftWhenLiveIsSelected() = runTest(dispatcher) {
+        val connector = FakeConnector()
+        val controller = connectedController(
+            connector = connector,
+            pointerProfile = pointerProfile()
+        )
+        val modeStore = FakeTypingModeStore(PcTypingMode.Draft)
+        val viewModel = viewModel(controller, typingModeStore = modeStore)
+        advanceUntilIdle()
+
+        viewModel.selectTypingMode(PcTypingMode.Live)
+
+        assertEquals(PcTypingMode.Draft, viewModel.uiState.value.typingMode)
+        assertEquals(PcTypingMode.Draft, modeStore.getMode())
     }
 
     @Test
@@ -2165,12 +2241,14 @@ class PcMouseControlViewModelTest {
     private fun viewModel(
         controller: PcServiceConnectionController?,
         controlSurfaceStore: FakeControlSurfaceStore = FakeControlSurfaceStore(),
-        typingDraftStore: FakeTypingDraftStore = FakeTypingDraftStore()
+        typingDraftStore: FakeTypingDraftStore = FakeTypingDraftStore(),
+        typingModeStore: FakeTypingModeStore = FakeTypingModeStore()
     ): PcMouseControlViewModel {
         return PcMouseControlViewModel(
             serviceControllerProvider = { controller },
             controlSurfaceStore = controlSurfaceStore,
-            typingDraftStore = typingDraftStore
+            typingDraftStore = typingDraftStore,
+            typingModeStore = typingModeStore
         )
     }
 
@@ -2410,6 +2488,16 @@ class PcMouseControlViewModelTest {
 
         override fun clearDraft() {
             draft = ""
+        }
+    }
+
+    private class FakeTypingModeStore(
+        private var mode: PcTypingMode = PcTypingMode.Live
+    ) : PcTypingModeStore {
+        override fun getMode(): PcTypingMode = mode
+
+        override fun setMode(mode: PcTypingMode) {
+            this.mode = mode
         }
     }
 
