@@ -111,9 +111,6 @@ class PcQuickInputSheetUiTest {
         composeTestRule
             .onNodeWithText(context.getString(R.string.pc_typing_send))
             .assertIsNotEnabled()
-        composeTestRule
-            .onNodeWithText(context.getString(R.string.pc_typing_send_enter))
-            .assertIsNotEnabled()
     }
 
     @Test
@@ -141,7 +138,7 @@ class PcQuickInputSheetUiTest {
         }
 
         composeTestRule
-            .onNodeWithText(context.getString(R.string.pc_control_quick_input_next_controls))
+            .onNodeWithText(context.getString(R.string.pc_typing_pc_keys))
             .performClick()
 
         (pcEditingKeySpecs() + pcSpacingKeySpecs() + pcCursorKeySpecs()).forEach { spec ->
@@ -187,7 +184,7 @@ class PcQuickInputSheetUiTest {
     }
 
     @Test
-    fun liveModeShowsImmediateDeliveryHelp() {
+    fun liveModeShowsCompactStatusLine() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
 
         composeTestRule.setContent {
@@ -210,7 +207,7 @@ class PcQuickInputSheetUiTest {
         }
 
         composeTestRule
-            .onNodeWithText(context.getString(R.string.pc_typing_live_support))
+            .onNodeWithText(context.getString(R.string.pc_typing_live_status_line))
             .assertIsDisplayed()
         assertEquals(
             0,
@@ -219,7 +216,7 @@ class PcQuickInputSheetUiTest {
     }
 
     @Test
-    fun fixedPageControlsSwitchBetweenTypeAndKeys() {
+    fun contextualActionsSwitchBetweenTypeAndKeys() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
 
         composeTestRule.setContent {
@@ -240,22 +237,22 @@ class PcQuickInputSheetUiTest {
         }
 
         composeTestRule
-            .onNodeWithText(context.getString(R.string.pc_control_quick_input_type_page))
+            .onNodeWithText(context.getString(R.string.pc_control_quick_type))
             .assertIsDisplayed()
         composeTestRule
-            .onNodeWithText(context.getString(R.string.pc_control_quick_input_next_controls))
+            .onNodeWithText(context.getString(R.string.pc_typing_pc_keys))
             .performClick()
         composeTestRule
-            .onNodeWithText(context.getString(R.string.pc_control_quick_input_keys_page))
+            .onNodeWithText(context.getString(R.string.pc_typing_back_to_typing))
             .assertIsDisplayed()
         composeTestRule
             .onNodeWithText(context.getString(R.string.pc_control_quick_input_open_full))
             .assertIsDisplayed()
         composeTestRule
-            .onNodeWithText(context.getString(R.string.pc_control_quick_input_previous_controls))
+            .onNodeWithText(context.getString(R.string.pc_typing_back_to_typing))
             .performClick()
         composeTestRule
-            .onNodeWithText(context.getString(R.string.pc_control_quick_input_type_page))
+            .onNodeWithText(context.getString(R.string.pc_typing_type_on_pc))
             .assertIsDisplayed()
     }
 
@@ -288,7 +285,7 @@ class PcQuickInputSheetUiTest {
         }
 
         composeTestRule
-            .onNodeWithText(context.getString(R.string.pc_control_quick_input_next_controls))
+            .onNodeWithText(context.getString(R.string.pc_typing_pc_keys))
             .performClick()
         composeTestRule
             .onNodeWithText(context.getString(R.string.pc_key_enter))

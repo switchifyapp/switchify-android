@@ -61,9 +61,11 @@ data class PcMouseControlUiState(
     val typingMessage: String? = null,
     val typingDraftReviewWarning: Boolean = false,
     val typingMode: PcTypingMode = PcTypingMode.Live,
+    val draftPressEnterAfterSending: Boolean = false,
     val liveTypingPaused: Boolean = false,
     val liveTypingMessage: String? = null,
     val liveTypingAnnouncement: String? = null,
+    val liveTypingNotice: String? = null,
     val liveTypingText: String = "",
     val supportsTextStreamInput: Boolean = false,
     val supportsModifierToggles: Boolean = false,
@@ -448,7 +450,8 @@ class PcMouseControlViewModel(
                 liveTypingText = "",
                 liveTypingPaused = false,
                 liveTypingMessage = null,
-                liveTypingAnnouncement = null
+                liveTypingAnnouncement = null,
+                liveTypingNotice = null
             )
         }
     }
@@ -492,7 +495,16 @@ class PcMouseControlViewModel(
 
     fun clearLiveTypingField() {
         liveTypingQueuedText = ""
-        _uiState.update { it.copy(liveTypingText = "") }
+        _uiState.update {
+            it.copy(
+                liveTypingText = "",
+                liveTypingNotice = LIVE_TYPING_FIELD_CLEARED_NOTICE
+            )
+        }
+    }
+
+    fun clearLiveTypingNotice() {
+        _uiState.update { it.copy(liveTypingNotice = null) }
     }
 
     fun moveLiveTypingToDraft() {
@@ -570,6 +582,7 @@ class PcMouseControlViewModel(
     private suspend fun prepareForPcSwitch() {
         val state = _uiState.value
         endLiveTypingSession()
+        resetDraftSendingOptions()
         mouseRepeatManager.clearServiceState()
         _uiState.update {
             it.copy(
@@ -614,6 +627,14 @@ class PcMouseControlViewModel(
         }
     }
 
+    fun setDraftPressEnterAfterSending(enabled: Boolean) {
+        _uiState.update { it.copy(draftPressEnterAfterSending = enabled) }
+    }
+
+    private fun resetDraftSendingOptions() {
+        _uiState.update { it.copy(draftPressEnterAfterSending = false) }
+    }
+
     fun clearTypingText() {
         typingDraftStore.clearDraft()
         _uiState.update {
@@ -631,6 +652,10 @@ class PcMouseControlViewModel(
 
     fun sendTypedTextThenEnter() {
         sendTypedTextInternal(sendEnterAfterText = true)
+    }
+
+    fun sendDraftText() {
+        sendTypedTextInternal(sendEnterAfterText = _uiState.value.draftPressEnterAfterSending)
     }
 
     private fun sendTypedTextInternal(sendEnterAfterText: Boolean) {
@@ -845,6 +870,7 @@ class PcMouseControlViewModel(
                 typingText = "",
                 typingMessage = null,
                 typingDraftReviewWarning = false,
+                draftPressEnterAfterSending = false,
                 message = null
             )
         }
@@ -859,6 +885,7 @@ class PcMouseControlViewModel(
                 typingText = "",
                 typingMessage = null,
                 typingDraftReviewWarning = false,
+                draftPressEnterAfterSending = false,
                 message = null
             )
         }
@@ -896,6 +923,7 @@ class PcMouseControlViewModel(
                 busyCommand = null,
                 typingText = "",
                 typingDraftReviewWarning = false,
+                draftPressEnterAfterSending = false,
                 message = message ?: it.message,
                 typingMessage = typingMessage
             )
@@ -924,6 +952,7 @@ class PcMouseControlViewModel(
     fun onPcUiPaused(endTypingSession: Boolean = true) {
         if (endTypingSession) {
             endLiveTypingSession()
+            resetDraftSendingOptions()
         } else {
             liveTypingCoordinator.finish()
         }
@@ -937,6 +966,7 @@ class PcMouseControlViewModel(
 
     override fun onCleared() {
         endLiveTypingSession()
+        resetDraftSendingOptions()
         releaseActiveModifiersIfPossible()
         pcSwitcher.dispose()
         mouseRepeatManager.clearServiceState()
@@ -1171,6 +1201,7 @@ class PcMouseControlViewModel(
 
     private fun showConnectFirst() {
         endLiveTypingSession()
+        resetDraftSendingOptions()
         movementStep = FALLBACK_MOVEMENT_STEP
         _uiState.update {
             it.copy(
@@ -1224,7 +1255,9 @@ class PcMouseControlViewModel(
         const val KEY_FAILED_MESSAGE = "Could not send key to PC."
         const val TEXT_TOO_LONG_MESSAGE = "Text is too long."
         const val TEXT_UNSUPPORTED_MESSAGE = "Text includes unsupported characters."
-        const val LIVE_TYPING_RESUMED_MESSAGE = "Live typing resumed."
+        const val LIVE_TYPING_RESUMED_MESSAGE = "Typing resumed"
+        const val LIVE_TYPING_FIELD_CLEARED_NOTICE =
+            "Field cleared. Text on the PC was not changed."
         const val SELECT_SHORTCUT_MODIFIER_MESSAGE = "Choose Ctrl, Alt, Shift, or Start first."
         const val TEXT_STREAM_RECONNECT_TIMEOUT_MS = 15_000L
         const val TEXT_STREAM_RECONNECT_RETRY_LIMIT = 3

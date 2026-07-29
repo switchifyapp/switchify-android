@@ -30,10 +30,12 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -118,6 +120,22 @@ private fun PcMouseControlScreen(
     var closeConfirmationVisible by rememberSaveable { mutableStateOf(false) }
     var quickInputVisible by rememberSaveable { mutableStateOf(false) }
     var pendingTypingExit by remember { mutableStateOf<PcTypingExitIntent?>(null) }
+    val liveTypingUiVisible =
+        uiState.typingMode == PcTypingMode.Live &&
+            uiState.supportsTextStreamInput &&
+            (
+                uiState.activeSurface == PcControlSurface.Typing ||
+                    (quickInputVisible && shouldShowPcQuickInputButton(uiState.activeSurface))
+                )
+    val latestLiveTypingText by rememberUpdatedState(uiState.liveTypingText)
+    DisposableEffect(liveTypingUiVisible) {
+        if (liveTypingUiVisible) viewModel.startLiveTyping()
+        onDispose {
+            if (liveTypingUiVisible) {
+                viewModel.retainAndStopLiveTyping(latestLiveTypingText)
+            }
+        }
+    }
     val performTypingExit: (PcTypingExitIntent) -> Unit = { intent ->
         when (intent) {
             PcTypingExitIntent.Close -> closeConfirmationVisible = true
@@ -244,10 +262,12 @@ private fun PcMouseControlScreen(
                             typingMessage = uiState.typingMessage,
                             typingDraftReviewWarning = uiState.typingDraftReviewWarning,
                             typingMode = uiState.typingMode,
+                            draftPressEnterAfterSending = uiState.draftPressEnterAfterSending,
                             liveTypingAvailable = uiState.supportsTextStreamInput,
                             liveTypingPaused = uiState.liveTypingPaused,
                             liveTypingMessage = uiState.liveTypingMessage,
                             liveTypingAnnouncement = uiState.liveTypingAnnouncement,
+                            liveTypingNotice = uiState.liveTypingNotice,
                             liveTypingText = uiState.liveTypingText,
                             enabled = surfaceEnabled,
                             onTypingModeSelected = { mode ->
@@ -257,9 +277,9 @@ private fun PcMouseControlScreen(
                                     viewModel.selectTypingMode(mode)
                                 }
                             },
+                            onDraftEnterChanged = viewModel::setDraftPressEnterAfterSending,
                             onTextChanged = viewModel::updateTypingText,
-                            onSend = viewModel::sendTypedText,
-                            onSendAndEnter = viewModel::sendTypedTextThenEnter,
+                            onSendDraft = viewModel::sendDraftText,
                             onClear = viewModel::clearTypingText,
                             onClearLiveField = viewModel::clearLiveTypingField,
                             onLiveTypingStarted = viewModel::startLiveTyping,
@@ -270,7 +290,9 @@ private fun PcMouseControlScreen(
                             onLiveTypingRetry = viewModel::retryLiveTyping,
                             onMoveLiveToDraft = viewModel::moveLiveTypingToDraft,
                             onLiveTypingAnnouncementShown = viewModel::clearLiveTypingAnnouncement,
-                            onKeySelected = viewModel::sendTypingKey
+                            onLiveTypingNoticeShown = viewModel::clearLiveTypingNotice,
+                            onKeySelected = viewModel::sendTypingKey,
+                            manageLiveSessionLifecycle = false
                         )
                         PcControlSurface.Window -> PcWindowControlScreen(
                             enabled = surfaceEnabled,
@@ -338,10 +360,12 @@ private fun PcMouseControlScreen(
             typingMessage = uiState.typingMessage,
             typingDraftReviewWarning = uiState.typingDraftReviewWarning,
             typingMode = uiState.typingMode,
+            draftPressEnterAfterSending = uiState.draftPressEnterAfterSending,
             liveTypingAvailable = uiState.supportsTextStreamInput,
             liveTypingPaused = uiState.liveTypingPaused,
             liveTypingMessage = uiState.liveTypingMessage,
             liveTypingAnnouncement = uiState.liveTypingAnnouncement,
+            liveTypingNotice = uiState.liveTypingNotice,
             liveTypingText = uiState.liveTypingText,
             connected = uiState.connectedDisplayName != null,
             enabled = surfaceEnabled,
@@ -352,9 +376,9 @@ private fun PcMouseControlScreen(
                     viewModel.selectTypingMode(mode)
                 }
             },
+            onDraftEnterChanged = viewModel::setDraftPressEnterAfterSending,
             onTextChanged = viewModel::updateTypingText,
-            onSend = viewModel::sendTypedText,
-            onSendAndEnter = viewModel::sendTypedTextThenEnter,
+            onSend = viewModel::sendDraftText,
             onClear = viewModel::clearTypingText,
             onClearLiveField = viewModel::clearLiveTypingField,
             onLiveTypingStarted = viewModel::startLiveTyping,
@@ -365,6 +389,7 @@ private fun PcMouseControlScreen(
             onLiveTypingRetry = viewModel::retryLiveTyping,
             onMoveLiveToDraft = viewModel::moveLiveTypingToDraft,
             onLiveTypingAnnouncementShown = viewModel::clearLiveTypingAnnouncement,
+            onLiveTypingNoticeShown = viewModel::clearLiveTypingNotice,
             onKeySelected = viewModel::sendTypingKey,
             onOpenFullTypingControls = {
                 quickInputVisible = false
@@ -372,7 +397,8 @@ private fun PcMouseControlScreen(
             },
             onDismissRequest = {
                 requestTypingExit(PcTypingExitIntent.DismissQuickInput)
-            }
+            },
+            manageLiveSessionLifecycle = false
         )
     }
 
@@ -380,28 +406,26 @@ private fun PcMouseControlScreen(
         AlertDialog(
             onDismissRequest = { pendingTypingExit = null },
             title = { Text(stringResource(R.string.pc_typing_exit_title)) },
-            text = { Text(stringResource(R.string.pc_typing_live_paused_body)) },
+            text = { Text(stringResource(R.string.pc_typing_text_safe)) },
             confirmButton = {
                 TextButton(
                     onClick = {
+                        viewModel.moveLiveTypingToDraft()
                         pendingTypingExit = null
-                        viewModel.retryLiveTyping()
+                        performTypingExit(exitIntent)
                     }
                 ) {
-                    Text(stringResource(R.string.pc_typing_exit_retry))
+                    Text(stringResource(R.string.pc_typing_save_as_draft))
                 }
             },
             dismissButton = {
                 Column {
                     TextButton(
                         onClick = {
-                            viewModel.moveLiveTypingToDraft()
                             pendingTypingExit = null
-                            performTypingExit(exitIntent)
-                        },
-                        enabled = uiState.liveTypingText.isNotEmpty()
+                        }
                     ) {
-                        Text(stringResource(R.string.pc_typing_live_move_to_draft))
+                        Text(stringResource(R.string.pc_typing_keep_typing))
                     }
                     TextButton(
                         onClick = {
