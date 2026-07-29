@@ -32,7 +32,6 @@ private class PcBleGattConnection private constructor(
     private val onClose: () -> Unit
 ) : PcBleTransportConnection {
     private var closed = false
-    private var lowLatencyRequested = false
 
     override suspend fun send(message: String, writeMode: PcBleWriteMode) {
         try {
@@ -54,25 +53,18 @@ private class PcBleGattConnection private constructor(
     }
 
     @SuppressLint("MissingPermission")
-    override fun requestLowLatency(enabled: Boolean): Boolean {
+    override fun requestHighPriority(enabled: Boolean): Boolean {
         if (closed) return false
         val priority = if (enabled) {
             BluetoothGatt.CONNECTION_PRIORITY_HIGH
         } else {
             BluetoothGatt.CONNECTION_PRIORITY_BALANCED
         }
-        val accepted = gatt.requestConnectionPriority(priority)
-        if (accepted) {
-            lowLatencyRequested = enabled
-        }
-        return accepted
+        return gatt.requestConnectionPriority(priority)
     }
 
     override fun close(reason: String) {
         if (closed) return
-        if (lowLatencyRequested) {
-            requestLowLatency(false)
-        }
         closed = true
         Log.d(TAG, "PC BLE GATT closing endpoint=${endpoint.deviceAddress} reason=$reason")
         onClose()

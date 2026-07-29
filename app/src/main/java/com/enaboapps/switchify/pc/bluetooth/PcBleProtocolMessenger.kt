@@ -209,7 +209,6 @@ internal class LiveBleControlConnection(
     }
 
     override fun close(reason: PcControlCloseReason) {
-        connection.requestLowLatency(false)
         connection.close(reason.logName)
         onClosed()
     }

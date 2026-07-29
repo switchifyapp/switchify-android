@@ -59,7 +59,7 @@ class PcBleProtocolMessengerTest {
             return """{"version":1,"id":"$requestId","type":"ack","ok":true,"error":null}"""
         }
 
-        override fun requestLowLatency(enabled: Boolean): Boolean = true
+        override fun requestHighPriority(enabled: Boolean): Boolean = true
         override fun close(reason: String) = Unit
     }
 }
