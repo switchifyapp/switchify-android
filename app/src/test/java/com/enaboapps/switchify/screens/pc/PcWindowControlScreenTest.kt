@@ -40,6 +40,31 @@ class PcWindowControlScreenTest {
     }
 
     @Test
+    fun everyPausedLiveSessionRequiresExitConfirmation() {
+        assertEquals(
+            true,
+            shouldConfirmPausedLiveTypingExit(
+                liveTypingPaused = true,
+                typingMode = PcTypingMode.Live
+            )
+        )
+        assertEquals(
+            false,
+            shouldConfirmPausedLiveTypingExit(
+                liveTypingPaused = false,
+                typingMode = PcTypingMode.Live
+            )
+        )
+        assertEquals(
+            false,
+            shouldConfirmPausedLiveTypingExit(
+                liveTypingPaused = true,
+                typingMode = PcTypingMode.Draft
+            )
+        )
+    }
+
+    @Test
     fun windowCommandsUseStableOrder() {
         val commands = pcWindowControlSpecs().map { it.command }
 

@@ -1227,6 +1227,31 @@ class PcMouseControlViewModelTest {
     }
 
     @Test
+    fun disconnectPreservesLiveTextForRecovery() = runTest(dispatcher) {
+        val connector = FakeConnector()
+        val controller = connectedController(
+            connector = connector,
+            pointerProfile = textStreamPointerProfile()
+        )
+        val viewModel = viewModel(controller)
+        advanceUntilIdle()
+
+        viewModel.startLiveTyping()
+        viewModel.updateLiveTypingSessionText("Keep this text")
+        controller.disconnect()
+        advanceUntilIdle()
+
+        assertEquals("Keep this text", viewModel.uiState.value.liveTypingText)
+        assertTrue(viewModel.uiState.value.liveTypingPaused)
+        assertTrue(viewModel.uiState.value.supportsTextStreamInput)
+
+        viewModel.moveLiveTypingToDraft()
+
+        assertEquals(PcTypingMode.Draft, viewModel.uiState.value.typingMode)
+        assertEquals("Keep this text", viewModel.uiState.value.typingText)
+    }
+
+    @Test
     fun editorRecreationRetainsLiveCompositionUntilTheEditorReturns() = runTest(dispatcher) {
         val connector = FakeConnector()
         val controller = connectedController(

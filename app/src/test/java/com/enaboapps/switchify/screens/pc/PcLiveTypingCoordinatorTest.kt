@@ -325,6 +325,36 @@ class PcLiveTypingCoordinatorTest {
     }
 
     @Test
+    fun externalFailurePausesNewOperationsUntilResume() = runTest {
+        val commands = mutableListOf<PcControlCommand>()
+        val failures = mutableListOf<String>()
+        val coordinator = PcLiveTypingCoordinator(
+            scope = this,
+            sendCommand = {
+                commands += it
+                PcCommandResult.Ack
+            },
+            streamIdProvider = { "stream-1" },
+            onFailure = failures::add
+        )
+
+        coordinator.start()
+        coordinator.pauseForExternalFailure("Disconnected.")
+
+        assertFalse(coordinator.submitKey(PcKeyboardKey.Enter))
+        assertEquals(listOf("Disconnected."), failures)
+
+        coordinator.resume()
+        assertTrue(coordinator.submitKey(PcKeyboardKey.Enter))
+        advanceUntilIdle()
+
+        assertEquals(
+            listOf(PcControlCommand.TextStreamKey("stream-1", 0, PcKeyboardKey.Enter)),
+            commands.filterIsInstance<PcControlCommand.TextStreamKey>()
+        )
+    }
+
+    @Test
     fun retryReopensAStreamThePcNoLongerHas() = runTest {
         val commands = mutableListOf<PcControlCommand>()
         var streamNumber = 0

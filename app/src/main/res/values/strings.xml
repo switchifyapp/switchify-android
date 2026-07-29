@@ -476,7 +476,7 @@
     <string name="pc_typing_mode_draft">Draft</string>
     <string name="pc_typing_mode_heading">How text is sent</string>
     <string name="pc_typing_mode_live_consequence">Sent to your PC as you type.</string>
-    <string name="pc_typing_mode_draft_consequence">Kept on this device until you choose Send.</string>
+    <string name="pc_typing_mode_draft_consequence">Text is kept on this device until you choose Send. Key buttons act immediately on the PC.</string>
     <string name="pc_typing_editor_title">Text for PC</string>
     <string name="pc_typing_status_live">Typing live</string>
     <string name="pc_typing_status_paused">Sending paused</string>

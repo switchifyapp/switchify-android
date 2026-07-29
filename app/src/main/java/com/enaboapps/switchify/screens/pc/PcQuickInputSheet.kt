@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
@@ -28,10 +29,12 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -42,6 +45,7 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
@@ -205,11 +209,31 @@ internal fun PcQuickInputContent(
     modifier: Modifier = Modifier
 ) {
     val focusRequester = remember { FocusRequester() }
+    val pageHeadingFocusRequester = remember { FocusRequester() }
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
     val typeScrollState = rememberScrollState()
     val keysScrollState = rememberScrollState()
     var page by rememberSaveable { mutableStateOf(PcQuickInputPage.Type) }
+    val ownsLiveSession = typingMode == PcTypingMode.Live && liveTypingAvailable
+    val latestLiveTypingText by rememberUpdatedState(liveTypingText)
+
+    DisposableEffect(ownsLiveSession) {
+        if (ownsLiveSession) {
+            onLiveTypingStarted()
+        }
+        onDispose {
+            if (ownsLiveSession) {
+                onLiveTypingStopped(latestLiveTypingText)
+            }
+        }
+    }
+
+    LaunchedEffect(liveTypingPaused) {
+        if (liveTypingPaused) {
+            page = PcQuickInputPage.Type
+        }
+    }
 
     Column(
         modifier = modifier
@@ -258,9 +282,13 @@ internal fun PcQuickInputContent(
                 }
             ),
             style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier.semantics {
-                liveRegion = LiveRegionMode.Polite
-            }
+            modifier = Modifier
+                .focusRequester(pageHeadingFocusRequester)
+                .focusable()
+                .semantics {
+                    heading()
+                    liveRegion = LiveRegionMode.Polite
+                }
         )
         Column(
             modifier = Modifier
@@ -304,18 +332,19 @@ internal fun PcQuickInputContent(
                     textFieldModifier = Modifier.focusRequester(focusRequester),
                     textFieldMinLines = 2,
                     textFieldMaxLines = 3,
-                    textFieldMinHeight = 72.dp
+                    textFieldMinHeight = 72.dp,
+                    manageLiveSessionLifecycle = false
                 )
             } else {
                 PcTypingKeyGrid(
                     specs = pcEditingKeySpecs() + pcSpacingKeySpecs(),
-                    enabled = enabled,
+                    enabled = enabled && !(typingMode == PcTypingMode.Live && liveTypingPaused),
                     onKeySelected = onKeySelected,
                     columns = 3
                 )
                 PcTypingKeyGrid(
                     specs = pcCursorKeySpecs(),
-                    enabled = enabled,
+                    enabled = enabled && !(typingMode == PcTypingMode.Live && liveTypingPaused),
                     onKeySelected = onKeySelected,
                     columns = 4
                 )
@@ -368,8 +397,10 @@ internal fun PcQuickInputContent(
         }
     }
 
-    LaunchedEffect(connected, page) {
-        if (connected && page == PcQuickInputPage.Type) {
+    LaunchedEffect(connected, page, liveTypingPaused) {
+        if (page == PcQuickInputPage.Keys || liveTypingPaused) {
+            pageHeadingFocusRequester.requestFocus()
+        } else if (connected) {
             focusRequester.requestFocus()
             keyboardController?.show()
         }

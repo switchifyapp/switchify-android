@@ -56,7 +56,6 @@ import com.enaboapps.switchify.pc.PcKeyboardKey
 import com.enaboapps.switchify.pc.isSafePcTypedText
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.math.roundToInt
-import kotlinx.coroutines.delay
 
 data class PcTypingKeySpec(
     @param:StringRes val labelResId: Int,
@@ -131,14 +130,14 @@ fun PcTypingControlScreen(
         PcTypingSectionTitle(R.string.pc_typing_section_keys)
         PcTypingKeyGrid(
             specs = pcEditingKeySpecs() + pcSpacingKeySpecs(),
-            enabled = enabled,
+            enabled = enabled && !(typingMode == PcTypingMode.Live && liveTypingPaused),
             onKeySelected = onKeySelected,
             columns = 3
         )
         PcTypingSectionTitle(R.string.pc_typing_section_cursor)
         PcTypingKeyGrid(
             specs = pcCursorKeySpecs(),
-            enabled = enabled,
+            enabled = enabled && !(typingMode == PcTypingMode.Live && liveTypingPaused),
             onKeySelected = onKeySelected,
             columns = 4
         )
@@ -161,16 +160,16 @@ fun PcTypingControlScreen(
         }
         if (moreKeysVisible) {
             PcTypingSectionTitle(R.string.pc_typing_section_document)
-            PcTypingKeyGrid(
-                specs = pcDocumentKeySpecs(),
-                enabled = enabled,
+                PcTypingKeyGrid(
+                    specs = pcDocumentKeySpecs(),
+                    enabled = enabled && !(typingMode == PcTypingMode.Live && liveTypingPaused),
                 onKeySelected = onKeySelected,
                 columns = 4
             )
             PcTypingSectionTitle(R.string.pc_typing_function_keys)
-            PcTypingKeyGrid(
-                specs = pcFunctionKeySpecs(),
-                enabled = enabled,
+                PcTypingKeyGrid(
+                    specs = pcFunctionKeySpecs(),
+                    enabled = enabled && !(typingMode == PcTypingMode.Live && liveTypingPaused),
                 onKeySelected = onKeySelected,
                 columns = 4
             )
@@ -208,7 +207,8 @@ internal fun PcTypingInput(
     textFieldModifier: Modifier = Modifier,
     textFieldMinLines: Int = 3,
     textFieldMaxLines: Int = 5,
-    textFieldMinHeight: Dp = 96.dp
+    textFieldMinHeight: Dp = 96.dp,
+    manageLiveSessionLifecycle: Boolean = true
 ) {
     val effectiveMode = if (typingMode == PcTypingMode.Live && liveTypingAvailable) {
         PcTypingMode.Live
@@ -251,9 +251,9 @@ internal fun PcTypingInput(
                 modifier = Modifier.padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                Row(
+                Column(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     Text(
                         text = stringResource(R.string.pc_typing_editor_title),
@@ -281,7 +281,8 @@ internal fun PcTypingInput(
                         onClearField = onClearLiveField,
                         onAnnouncementShown = onLiveTypingAnnouncementShown,
                         modifier = textFieldModifier,
-                        minHeight = textFieldMinHeight
+                        minHeight = textFieldMinHeight,
+                        manageSessionLifecycle = manageLiveSessionLifecycle
                     )
                 } else {
                     PcTypingComposer(
@@ -371,7 +372,8 @@ private fun PcLiveTypingComposer(
     onClearField: () -> Unit,
     onAnnouncementShown: () -> Unit,
     modifier: Modifier,
-    minHeight: Dp
+    minHeight: Dp,
+    manageSessionLifecycle: Boolean
 ) {
     val context = LocalContext.current
     val textColor = MaterialTheme.colorScheme.onSurface.toArgb()
@@ -384,19 +386,28 @@ private fun PcLiveTypingComposer(
     val liveDescription = stringResource(R.string.pc_typing_status_live)
     val liveEditText = remember { AtomicReference<PcLiveTypingEditText?>() }
 
-    DisposableEffect(Unit) {
-        onStarted()
+    DisposableEffect(manageSessionLifecycle) {
+        if (manageSessionLifecycle) {
+            onStarted()
+        }
         onDispose {
             val retainedText = liveEditText.get()
                 ?.finishCompositionAndTakeSessionText()
                 .orEmpty()
             liveEditText.set(null)
-            onStopped(retainedText)
+            if (manageSessionLifecycle) {
+                onStopped(retainedText)
+            } else {
+                onSessionTextChanged(retainedText)
+            }
         }
     }
     LaunchedEffect(announcement) {
         if (announcement != null) {
-            delay(1_000)
+            liveEditText.get()?.let { editText ->
+                editText.requestFocus()
+                editText.announceForAccessibility(announcement)
+            }
             onAnnouncementShown()
         }
     }
@@ -505,7 +516,7 @@ private fun PcLiveTypingComposer(
                         }
                         OutlinedButton(
                             onClick = onMoveToDraft,
-                            enabled = enabled,
+                            enabled = sessionText.isNotEmpty(),
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .heightIn(min = 48.dp)

@@ -96,7 +96,7 @@ internal class PcLiveTypingCoordinator(
     }
 
     fun resume() {
-        synchronized(lock) {
+        val resumeImmediately = synchronized(lock) {
             if (!paused) return
             if (reopenStreamOnResume) {
                 streamId = null
@@ -104,8 +104,28 @@ internal class PcLiveTypingCoordinator(
                 reopenStreamOnResume = false
             }
             paused = false
-            awaitingResumeAcknowledgement = true
+            val hasPendingAcknowledgement = operations.isNotEmpty() || worker?.isActive == true
+            awaitingResumeAcknowledgement = hasPendingAcknowledgement
             scheduleLocked()
+            !hasPendingAcknowledgement
+        }
+        if (resumeImmediately) {
+            onResumed()
+        }
+    }
+
+    fun pauseForExternalFailure(message: String) {
+        val shouldNotify = synchronized(lock) {
+            if (!accepting || paused) {
+                false
+            } else {
+                paused = true
+                awaitingResumeAcknowledgement = false
+                true
+            }
+        }
+        if (shouldNotify) {
+            onFailure(message)
         }
     }
 

@@ -131,11 +131,7 @@ private fun PcMouseControlScreen(
         }
     }
     val requestTypingExit: (PcTypingExitIntent) -> Unit = { intent ->
-        if (
-            uiState.liveTypingPaused &&
-            uiState.typingMode == PcTypingMode.Live &&
-            uiState.liveTypingText.isNotEmpty()
-        ) {
+        if (shouldConfirmPausedLiveTypingExit(uiState.liveTypingPaused, uiState.typingMode)) {
             pendingTypingExit = intent
         } else {
             performTypingExit(intent)
@@ -402,7 +398,8 @@ private fun PcMouseControlScreen(
                             viewModel.moveLiveTypingToDraft()
                             pendingTypingExit = null
                             performTypingExit(exitIntent)
-                        }
+                        },
+                        enabled = uiState.liveTypingText.isNotEmpty()
                     ) {
                         Text(stringResource(R.string.pc_typing_live_move_to_draft))
                     }
@@ -427,4 +424,11 @@ internal fun shouldShowPcDisplayNavigation(supported: Boolean, displayCount: Int
 
 internal fun pcDisplayNavigationControlsEnabled(surfaceEnabled: Boolean, isDragging: Boolean): Boolean {
     return surfaceEnabled && !isDragging
+}
+
+internal fun shouldConfirmPausedLiveTypingExit(
+    liveTypingPaused: Boolean,
+    typingMode: PcTypingMode
+): Boolean {
+    return liveTypingPaused && typingMode == PcTypingMode.Live
 }

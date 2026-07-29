@@ -260,6 +260,48 @@ class PcQuickInputSheetUiTest {
     }
 
     @Test
+    fun keysPageKeepsLiveSessionActive() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        var startedCount = 0
+        var stoppedCount = 0
+        val selectedKeys = mutableListOf<PcKeyboardKey>()
+
+        composeTestRule.setContent {
+            SwitchifyTheme {
+                PcQuickInputContent(
+                    typingText = "",
+                    typingMessage = null,
+                    typingMode = PcTypingMode.Live,
+                    liveTypingAvailable = true,
+                    connected = true,
+                    enabled = true,
+                    onTextChanged = {},
+                    onSend = {},
+                    onSendAndEnter = {},
+                    onClear = {},
+                    onLiveTypingStarted = { startedCount += 1 },
+                    onLiveTypingStopped = { stoppedCount += 1 },
+                    onKeySelected = selectedKeys::add,
+                    onClose = {}
+                )
+            }
+        }
+
+        composeTestRule
+            .onNodeWithText(context.getString(R.string.pc_control_quick_input_next_controls))
+            .performClick()
+        composeTestRule
+            .onNodeWithText(context.getString(R.string.pc_key_enter))
+            .performClick()
+
+        composeTestRule.runOnIdle {
+            assertEquals(1, startedCount)
+            assertEquals(0, stoppedCount)
+            assertEquals(listOf(PcKeyboardKey.Enter), selectedKeys)
+        }
+    }
+
+    @Test
     fun unavailableLiveModeFallsBackToDraftWithExplanation() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
 
