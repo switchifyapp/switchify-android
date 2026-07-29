@@ -62,6 +62,7 @@ data class PcMouseControlUiState(
     val typingMode: PcTypingMode = PcTypingMode.Live,
     val liveTypingPaused: Boolean = false,
     val liveTypingMessage: String? = null,
+    val liveTypingPendingText: String = "",
     val supportsTextStreamInput: Boolean = false,
     val supportsModifierToggles: Boolean = false,
     val activeModifiers: Set<PcKeyboardModifierKey> = emptySet(),
@@ -401,9 +402,7 @@ class PcMouseControlViewModel(
         }
         _uiState.update {
             it.copy(
-                typingMode = mode,
-                liveTypingPaused = false,
-                liveTypingMessage = null
+                typingMode = mode
             )
         }
     }
@@ -414,13 +413,23 @@ class PcMouseControlViewModel(
         liveTypingCoordinator.start()
     }
 
-    fun stopLiveTyping() {
+    fun stopLiveTyping(pendingText: String = "") {
+        if (pendingText.isNotEmpty()) {
+            _uiState.update { it.copy(liveTypingPendingText = pendingText) }
+        }
         liveTypingCoordinator.finish()
     }
 
     fun commitLiveTypingText(text: String): Boolean {
         val accepted = liveTypingCoordinator.submitText(text)
-        if (!accepted) {
+        if (accepted) {
+            _uiState.update {
+                it.copy(
+                    liveTypingPendingText = "",
+                    liveTypingMessage = if (it.liveTypingPaused) it.liveTypingMessage else null
+                )
+            }
+        } else {
             if (text.isNotEmpty() && !isSafePcTypedText(text)) {
                 _uiState.update {
                     it.copy(liveTypingMessage = TEXT_UNSUPPORTED_MESSAGE)
@@ -940,9 +949,7 @@ class PcMouseControlViewModel(
                         connectionStatusText = null
                     )
                 }
-                if (supportsTextStreamInput) {
-                    liveTypingCoordinator.resume()
-                } else {
+                if (!supportsTextStreamInput) {
                     stopLiveTyping()
                 }
                 mouseRepeatManager.resumeAfterReconnect(

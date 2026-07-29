@@ -31,11 +31,11 @@ internal class PcLiveTypingCoordinator(
     private var paused = false
     private var streamId: String? = null
     private var nextSequence = 0
+    private var reopenStreamOnResume = false
 
     fun start() {
         synchronized(lock) {
             accepting = true
-            paused = false
             scheduleLocked()
         }
     }
@@ -73,7 +73,6 @@ internal class PcLiveTypingCoordinator(
             if (operations.lastOrNull() != PcLiveTypingOperation.Finish) {
                 operations.addLast(PcLiveTypingOperation.Finish)
             }
-            paused = false
             scheduleLocked()
         }
     }
@@ -81,6 +80,11 @@ internal class PcLiveTypingCoordinator(
     fun resume() {
         synchronized(lock) {
             if (!paused) return
+            if (reopenStreamOnResume) {
+                streamId = null
+                nextSequence = 0
+                reopenStreamOnResume = false
+            }
             paused = false
             scheduleLocked()
         }
@@ -115,7 +119,7 @@ internal class PcLiveTypingCoordinator(
             }
 
             if (nextSequence >= MAX_STREAM_ITEMS && !closeCurrentStream()) {
-                requeueAndPause(operation)
+                requeueAndPause(operation, reopenStream = true)
                 break
             }
 
@@ -142,7 +146,10 @@ internal class PcLiveTypingCoordinator(
                     break
                 }
                 is PcCommandResult.Failed -> {
-                    requeueAndPause(operation)
+                    requeueAndPause(
+                        operation = operation,
+                        reopenStream = result.isMissingTextStream()
+                    )
                     break
                 }
             }
@@ -181,18 +188,25 @@ internal class PcLiveTypingCoordinator(
 
     private fun requeueAndPause(
         operation: PcLiveTypingOperation,
-        message: String = LIVE_TYPING_FAILED_MESSAGE
+        message: String = LIVE_TYPING_FAILED_MESSAGE,
+        reopenStream: Boolean = false
     ) {
         synchronized(lock) {
             operations.addFirst(operation)
             paused = true
+            reopenStreamOnResume = reopenStream
         }
         onFailure(message)
+    }
+
+    private fun PcCommandResult.Failed.isMissingTextStream(): Boolean {
+        return message.equals(TEXT_STREAM_NOT_OPEN_MESSAGE, ignoreCase = true)
     }
 
     companion object {
         const val MAX_STREAM_ITEMS = 2_000
         const val LIVE_TYPING_FAILED_MESSAGE =
             "Live typing paused. Some input may not have reached the PC."
+        private const val TEXT_STREAM_NOT_OPEN_MESSAGE = "Text stream is not open."
     }
 }

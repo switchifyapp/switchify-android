@@ -183,6 +183,87 @@ class PcLiveTypingCoordinatorTest {
     }
 
     @Test
+    fun retryReopensAStreamThePcNoLongerHas() = runTest {
+        val commands = mutableListOf<PcControlCommand>()
+        var streamNumber = 0
+        var missingStreamReported = false
+        val coordinator = PcLiveTypingCoordinator(
+            scope = this,
+            sendCommand = { command ->
+                commands += command
+                if (command is PcControlCommand.TextStreamChunk && !missingStreamReported) {
+                    missingStreamReported = true
+                    PcCommandResult.Failed(message = "Text stream is not open.")
+                } else {
+                    PcCommandResult.Ack
+                }
+            },
+            streamIdProvider = { "stream-${++streamNumber}" }
+        )
+
+        coordinator.start()
+        coordinator.submitText("A")
+        advanceUntilIdle()
+
+        coordinator.resume()
+        coordinator.finish()
+        advanceUntilIdle()
+
+        assertEquals(
+            listOf(
+                PcControlCommand.TextStreamOpen("stream-1"),
+                PcControlCommand.TextStreamOpen("stream-2")
+            ),
+            commands.filterIsInstance<PcControlCommand.TextStreamOpen>()
+        )
+        assertEquals(
+            listOf(
+                PcControlCommand.TextStreamChunk("stream-1", 0, "A"),
+                PcControlCommand.TextStreamChunk("stream-2", 0, "A")
+            ),
+            commands.filterIsInstance<PcControlCommand.TextStreamChunk>()
+        )
+    }
+
+    @Test
+    fun recreatingTheComposerDoesNotResumeAFailedOperation() = runTest {
+        val commands = mutableListOf<PcControlCommand>()
+        var failFirstChunk = true
+        val coordinator = PcLiveTypingCoordinator(
+            scope = this,
+            sendCommand = { command ->
+                commands += command
+                if (command is PcControlCommand.TextStreamChunk && failFirstChunk) {
+                    failFirstChunk = false
+                    PcCommandResult.Failed()
+                } else {
+                    PcCommandResult.Ack
+                }
+            },
+            streamIdProvider = { "stream-1" }
+        )
+
+        coordinator.start()
+        coordinator.submitText("A")
+        advanceUntilIdle()
+        coordinator.start()
+        advanceUntilIdle()
+
+        assertEquals(
+            1,
+            commands.filterIsInstance<PcControlCommand.TextStreamChunk>().size
+        )
+
+        coordinator.resume()
+        advanceUntilIdle()
+
+        assertEquals(
+            2,
+            commands.filterIsInstance<PcControlCommand.TextStreamChunk>().size
+        )
+    }
+
+    @Test
     fun repeatedFinishClosesAnOpenStreamOnlyOnce() = runTest {
         val commands = mutableListOf<PcControlCommand>()
         val coordinator = coordinator(commands)

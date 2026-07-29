@@ -124,6 +124,27 @@ internal class PcLiveTypingEditText @JvmOverloads constructor(
         return super.onTextContextMenuItem(id)
     }
 
+    override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
+        return handleKeyDown(keyCode, event) || super.onKeyDown(keyCode, event)
+    }
+
+    override fun onKeyUp(keyCode: Int, event: KeyEvent): Boolean {
+        return if (isHandledHardwareKey(keyCode, event)) true else super.onKeyUp(keyCode, event)
+    }
+
+    fun finishAndTakePendingText(): String {
+        clearComposingText()
+        submitPendingText()
+        return text?.toString().orEmpty()
+    }
+
+    fun restorePendingText(value: String) {
+        if (text.isNullOrEmpty() && value.isNotEmpty()) {
+            setText(value)
+            setSelection(length())
+        }
+    }
+
     private fun commitPendingText() {
         submitPendingText()
     }
@@ -149,6 +170,58 @@ internal class PcLiveTypingEditText @JvmOverloads constructor(
         repeat(count.coerceIn(0, MAX_KEYS_PER_EVENT)) {
             onKeyCommitted(key)
         }
+    }
+
+    private fun handleKeyDown(keyCode: Int, event: KeyEvent): Boolean {
+        if (event.isCtrlPressed || event.isAltPressed) return false
+        return when (keyCode) {
+            KeyEvent.KEYCODE_DEL -> {
+                if (length() > 0) {
+                    super.onKeyDown(keyCode, event)
+                } else {
+                    onKeyCommitted(PcKeyboardKey.Backspace)
+                }
+                true
+            }
+            KeyEvent.KEYCODE_FORWARD_DEL -> {
+                if (length() > 0) {
+                    super.onKeyDown(keyCode, event)
+                } else {
+                    onKeyCommitted(PcKeyboardKey.Delete)
+                }
+                true
+            }
+            KeyEvent.KEYCODE_ENTER,
+            KeyEvent.KEYCODE_NUMPAD_ENTER -> {
+                commitPendingText()
+                onKeyCommitted(PcKeyboardKey.Enter)
+                true
+            }
+            KeyEvent.KEYCODE_TAB -> {
+                commitPendingText()
+                onKeyCommitted(PcKeyboardKey.Tab)
+                true
+            }
+            else -> {
+                val codePoint = event.unicodeChar
+                if (codePoint > 0) {
+                    if (length() > 0 && !submitPendingText()) return false
+                    onTextCommitted(String(Character.toChars(codePoint)))
+                } else {
+                    false
+                }
+            }
+        }
+    }
+
+    private fun isHandledHardwareKey(keyCode: Int, event: KeyEvent): Boolean {
+        if (event.isCtrlPressed || event.isAltPressed) return false
+        return keyCode == KeyEvent.KEYCODE_DEL ||
+            keyCode == KeyEvent.KEYCODE_FORWARD_DEL ||
+            keyCode == KeyEvent.KEYCODE_ENTER ||
+            keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER ||
+            keyCode == KeyEvent.KEYCODE_TAB ||
+            event.unicodeChar > 0
     }
 
     companion object {

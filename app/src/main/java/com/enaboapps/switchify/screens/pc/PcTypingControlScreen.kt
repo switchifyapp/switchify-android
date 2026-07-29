@@ -34,6 +34,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -70,6 +73,7 @@ fun PcTypingControlScreen(
     liveTypingAvailable: Boolean,
     liveTypingPaused: Boolean,
     liveTypingMessage: String?,
+    liveTypingPendingText: String = "",
     enabled: Boolean,
     onTypingModeSelected: (PcTypingMode) -> Unit,
     onTextChanged: (String) -> Unit,
@@ -77,7 +81,7 @@ fun PcTypingControlScreen(
     onSendAndEnter: () -> Unit,
     onClear: () -> Unit,
     onLiveTypingStarted: () -> Unit,
-    onLiveTypingStopped: () -> Unit,
+    onLiveTypingStopped: (String) -> Unit,
     onLiveTextCommitted: (String) -> Boolean,
     onLiveKeyCommitted: (PcKeyboardKey) -> Unit,
     onLiveTypingRetry: () -> Unit,
@@ -95,6 +99,7 @@ fun PcTypingControlScreen(
             liveTypingAvailable = liveTypingAvailable,
             liveTypingPaused = liveTypingPaused,
             liveTypingMessage = liveTypingMessage,
+            liveTypingPendingText = liveTypingPendingText,
             onTypingModeSelected = onTypingModeSelected,
             onTextChanged = onTextChanged,
             onSend = onSend,
@@ -126,13 +131,14 @@ internal fun PcTypingInput(
     liveTypingAvailable: Boolean,
     liveTypingPaused: Boolean,
     liveTypingMessage: String?,
+    liveTypingPendingText: String = "",
     onTypingModeSelected: (PcTypingMode) -> Unit,
     onTextChanged: (String) -> Unit,
     onSend: () -> Unit,
     onSendAndEnter: () -> Unit,
     onClear: () -> Unit,
     onLiveTypingStarted: () -> Unit,
-    onLiveTypingStopped: () -> Unit,
+    onLiveTypingStopped: (String) -> Unit,
     onLiveTextCommitted: (String) -> Boolean,
     onLiveKeyCommitted: (PcKeyboardKey) -> Unit,
     onLiveTypingRetry: () -> Unit,
@@ -170,6 +176,7 @@ internal fun PcTypingInput(
                 enabled = enabled,
                 paused = liveTypingPaused,
                 message = liveTypingMessage,
+                pendingText = liveTypingPendingText,
                 onStarted = onLiveTypingStarted,
                 onStopped = onLiveTypingStopped,
                 onTextCommitted = onLiveTextCommitted,
@@ -229,8 +236,9 @@ private fun PcLiveTypingComposer(
     enabled: Boolean,
     paused: Boolean,
     message: String?,
+    pendingText: String,
     onStarted: () -> Unit,
-    onStopped: () -> Unit,
+    onStopped: (String) -> Unit,
     onTextCommitted: (String) -> Boolean,
     onKeyCommitted: (PcKeyboardKey) -> Unit,
     onRetry: () -> Unit,
@@ -243,13 +251,16 @@ private fun PcLiveTypingComposer(
     val focusedColor = MaterialTheme.colorScheme.primary.toArgb()
     val unfocusedColor = MaterialTheme.colorScheme.outline.toArgb()
     val hint = stringResource(R.string.pc_typing_live_hint)
+    val fieldLabel = stringResource(R.string.pc_typing_live_field_label)
+    val pausedDescription = stringResource(R.string.pc_typing_live_field_paused)
     val liveEditText = remember { AtomicReference<PcLiveTypingEditText?>() }
 
     DisposableEffect(Unit) {
         onStarted()
         onDispose {
+            val retainedText = liveEditText.get()?.finishAndTakePendingText().orEmpty()
             liveEditText.set(null)
-            onStopped()
+            onStopped(retainedText)
         }
     }
 
@@ -281,7 +292,12 @@ private fun PcLiveTypingComposer(
                     ),
                     intArrayOf(focusedColor, unfocusedColor)
                 )
-                editText.contentDescription = hint
+                editText.restorePendingText(pendingText)
+                editText.contentDescription = if (paused) {
+                    "$fieldLabel. $pausedDescription"
+                } else {
+                    fieldLabel
+                }
             },
             modifier = modifier
                 .fillMaxWidth()
@@ -296,7 +312,10 @@ private fun PcLiveTypingComposer(
             Text(
                 text = it,
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.error
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.semantics {
+                    liveRegion = LiveRegionMode.Assertive
+                }
             )
             if (paused) {
                 FilledTonalButton(

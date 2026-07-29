@@ -131,6 +131,49 @@ class PcLiveTypingEditTextTest {
     }
 
     @Test
+    fun dispatchedHardwareCharactersAreSentImmediately() {
+        val committedText = mutableListOf<String>()
+        setLiveInput(onTextCommitted = committedText::add)
+
+        onLiveTypingView { editText ->
+            editText.dispatchKeyEvent(
+                KeyEvent(
+                    0L,
+                    0L,
+                    KeyEvent.ACTION_DOWN,
+                    KeyEvent.KEYCODE_A,
+                    0
+                )
+            )
+            editText.dispatchKeyEvent(
+                KeyEvent(
+                    0L,
+                    0L,
+                    KeyEvent.ACTION_UP,
+                    KeyEvent.KEYCODE_A,
+                    0
+                )
+            )
+        }
+
+        composeTestRule.runOnIdle {
+            assertEquals(listOf("a"), committedText)
+        }
+    }
+
+    @Test
+    fun disposalFlushRetainsRejectedComposition() {
+        setLiveInput(onTextCommitted = { false })
+
+        onLiveTypingView { editText ->
+            val input = editText.onCreateInputConnection(EditorInfo())
+            input?.setComposingText("Keep me", 1)
+
+            assertEquals("Keep me", editText.finishAndTakePendingText())
+        }
+    }
+
+    @Test
     fun rejectedCommitRemainsVisibleUntilRetryIsAccepted() {
         val attempts = mutableListOf<String>()
         var accepting = false
