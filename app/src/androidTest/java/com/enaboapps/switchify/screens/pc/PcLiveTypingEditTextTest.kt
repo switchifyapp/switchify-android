@@ -10,11 +10,17 @@ import androidx.activity.ComponentActivity
 import androidx.compose.runtime.remember
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.UiController
 import androidx.test.espresso.ViewAction
+import androidx.test.espresso.assertion.ViewAssertions.matches
+import androidx.test.espresso.matcher.ViewMatchers.hasFocus
 import androidx.test.espresso.matcher.ViewMatchers.isAssignableFrom
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
+import com.enaboapps.switchify.R
 import com.enaboapps.switchify.activities.ui.theme.SwitchifyTheme
 import com.enaboapps.switchify.pc.PcKeyboardKey
 import org.hamcrest.Matcher
@@ -220,6 +226,55 @@ class PcLiveTypingEditTextTest {
         composeTestRule.runOnIdle {
             assertEquals(listOf("teh ", "the "), committedText)
         }
+    }
+
+    @Test
+    fun returningFromPcKeysRestoresLiveEditorFocus() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        composeTestRule.setContent {
+            SwitchifyTheme {
+                PcTypingControlScreen(
+                    typingText = "",
+                    typingMessage = null,
+                    typingDraftReviewWarning = false,
+                    typingMode = PcTypingMode.Live,
+                    draftPressEnterAfterSending = false,
+                    liveTypingAvailable = true,
+                    liveTypingPaused = false,
+                    liveTypingMessage = null,
+                    liveTypingAnnouncement = null,
+                    liveTypingNotice = null,
+                    liveTypingText = "",
+                    enabled = true,
+                    onTypingModeSelected = {},
+                    onDraftEnterChanged = {},
+                    onTextChanged = {},
+                    onSendDraft = {},
+                    onClear = {},
+                    onClearLiveField = {},
+                    onLiveTypingStarted = {},
+                    onLiveTypingStopped = {},
+                    onLiveSessionTextChanged = {},
+                    onLiveTextCommitted = { true },
+                    onLiveKeyCommitted = {},
+                    onLiveTypingRetry = {},
+                    onMoveLiveToDraft = {},
+                    onLiveTypingAnnouncementShown = {},
+                    onLiveTypingNoticeShown = {},
+                    onKeySelected = {}
+                )
+            }
+        }
+
+        composeTestRule
+            .onNodeWithText(context.getString(R.string.pc_typing_pc_keys))
+            .performClick()
+        composeTestRule
+            .onNodeWithText(context.getString(R.string.pc_typing_back_to_typing))
+            .performClick()
+
+        onView(isAssignableFrom(PcLiveTypingEditText::class.java))
+            .check(matches(hasFocus()))
     }
 
     private fun setLiveInput(

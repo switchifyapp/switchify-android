@@ -40,6 +40,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.initializer
@@ -120,6 +122,8 @@ private fun PcMouseControlScreen(
     var closeConfirmationVisible by rememberSaveable { mutableStateOf(false) }
     var quickInputVisible by rememberSaveable { mutableStateOf(false) }
     var pendingTypingExit by remember { mutableStateOf<PcTypingExitIntent?>(null) }
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
     val liveTypingUiVisible =
         uiState.typingMode == PcTypingMode.Live &&
             uiState.supportsTextStreamInput &&
@@ -144,7 +148,13 @@ private fun PcMouseControlScreen(
                 quickInputVisible = false
             }
             PcTypingExitIntent.OpenPcSwitcher -> viewModel.openSwitchPcChooser()
-            is PcTypingExitIntent.SelectSurface -> viewModel.selectControlSurface(intent.surface)
+            is PcTypingExitIntent.SelectSurface -> {
+                if (shouldDismissPcTypingKeyboard(uiState.activeSurface, intent.surface)) {
+                    focusManager.clearFocus(force = true)
+                    keyboardController?.hide()
+                }
+                viewModel.selectControlSurface(intent.surface)
+            }
             is PcTypingExitIntent.SelectMode -> viewModel.selectTypingMode(intent.mode)
         }
     }
@@ -448,6 +458,14 @@ internal fun shouldShowPcDisplayNavigation(supported: Boolean, displayCount: Int
 
 internal fun pcDisplayNavigationControlsEnabled(surfaceEnabled: Boolean, isDragging: Boolean): Boolean {
     return surfaceEnabled && !isDragging
+}
+
+internal fun shouldDismissPcTypingKeyboard(
+    currentSurface: PcControlSurface,
+    targetSurface: PcControlSurface
+): Boolean {
+    return currentSurface == PcControlSurface.Typing &&
+        targetSurface != PcControlSurface.Typing
 }
 
 internal fun shouldConfirmPausedLiveTypingExit(
