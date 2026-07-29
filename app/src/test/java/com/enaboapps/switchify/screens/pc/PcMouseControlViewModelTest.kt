@@ -1022,6 +1022,42 @@ class PcMouseControlViewModelTest {
     }
 
     @Test
+    fun draftEnterChoiceIsSharedForSendAndResetsAfterSuccess() = runTest(dispatcher) {
+        val connector = FakeConnector()
+        val controller = connectedController(connector = connector)
+        val viewModel = viewModel(controller)
+
+        assertFalse(viewModel.uiState.value.draftPressEnterAfterSending)
+        viewModel.setDraftPressEnterAfterSending(true)
+        viewModel.updateTypingText("Hello")
+        viewModel.sendDraftText()
+        advanceUntilIdle()
+
+        assertEquals(
+            listOf(
+                PcControlCommand.TypeText("Hello"),
+                PcControlCommand.PressKey(PcKeyboardKey.Enter)
+            ),
+            connector.commands
+        )
+        assertFalse(viewModel.uiState.value.draftPressEnterAfterSending)
+    }
+
+    @Test
+    fun draftEnterChoiceSurvivesModeChangesAndResetsOnSessionExit() = runTest(dispatcher) {
+        val viewModel = viewModel(connectedController())
+
+        viewModel.setDraftPressEnterAfterSending(true)
+        viewModel.selectTypingMode(PcTypingMode.Draft)
+
+        assertTrue(viewModel.uiState.value.draftPressEnterAfterSending)
+
+        viewModel.onPcUiPaused()
+
+        assertFalse(viewModel.uiState.value.draftPressEnterAfterSending)
+    }
+
+    @Test
     fun typedTextSetsBusyWhileBulkSendIsInFlight() = runTest(dispatcher) {
         val pendingText = CompletableDeferred<PcCommandResult>()
         val connector = FakeConnector(realtimeResults = mutableListOf(pendingText))
@@ -1178,6 +1214,12 @@ class PcMouseControlViewModelTest {
         assertTrue(viewModel.commitLiveTypingText("First"))
         advanceUntilIdle()
         viewModel.clearLiveTypingField()
+        assertEquals(
+            PcMouseControlViewModel.LIVE_TYPING_FIELD_CLEARED_NOTICE,
+            viewModel.uiState.value.liveTypingNotice
+        )
+        viewModel.clearLiveTypingNotice()
+        assertNull(viewModel.uiState.value.liveTypingNotice)
         assertTrue(viewModel.commitLiveTypingText("Second"))
         viewModel.endLiveTypingSession()
         advanceUntilIdle()

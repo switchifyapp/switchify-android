@@ -85,16 +85,4 @@ class PcTypingControlScreenTest {
         )
     }
 
-    @Test
-    fun typingTextActionsUseStableOrder() {
-        assertEquals(
-            listOf(
-                PcTypingTextAction.Send,
-                PcTypingTextAction.SendAndEnter,
-                PcTypingTextAction.Clear
-            ),
-            pcTypingTextActions()
-        )
-    }
-
 }

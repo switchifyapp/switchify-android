@@ -7,6 +7,8 @@ import android.view.KeyEvent
 import android.view.View
 import android.view.inputmethod.EditorInfo
 import androidx.activity.ComponentActivity
+import androidx.compose.runtime.remember
+import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.UiController
@@ -227,25 +229,35 @@ class PcLiveTypingEditTextTest {
     ) {
         composeTestRule.setContent {
             SwitchifyTheme {
-                PcTypingInput(
-                    text = "",
-                    message = null,
+                PcTypingEditor(
+                    headingResId = com.enaboapps.switchify.R.string.pc_typing_type_on_pc,
+                    typingText = "",
+                    typingMessage = null,
+                    typingDraftReviewWarning = false,
                     typingMode = PcTypingMode.Live,
+                    draftPressEnterAfterSending = false,
                     liveTypingAvailable = true,
                     liveTypingPaused = false,
                     liveTypingMessage = null,
+                    liveTypingAnnouncement = null,
+                    liveTypingNotice = null,
+                    liveTypingText = "",
+                    enabled = true,
                     onTypingModeSelected = {},
+                    onDraftEnterChanged = {},
                     onTextChanged = {},
-                    onSend = {},
-                    onSendAndEnter = {},
+                    onSendDraft = {},
                     onClear = {},
-                    onLiveTypingStarted = {},
-                    onLiveTypingStopped = {},
+                    onClearLiveField = {},
                     onLiveSessionTextChanged = onSessionTextChanged,
                     onLiveTextCommitted = onTextCommitted,
                     onLiveKeyCommitted = onKeyCommitted,
                     onLiveTypingRetry = {},
-                    enabled = true
+                    onMoveLiveToDraft = {},
+                    onLiveTypingAnnouncementShown = {},
+                    onLiveTypingNoticeShown = {},
+                    onOpenKeys = {},
+                    fieldFocusRequester = remember { FocusRequester() }
                 )
             }
         }
