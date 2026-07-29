@@ -51,18 +51,13 @@ class PcServiceConnectionController(
     val state: StateFlow<PcServiceConnectionState> = _state
     val discoveredPcs: StateFlow<List<DiscoveredPc>> get() = discovery.pcs
     val discoveryStatus: StateFlow<PcDiscoveryStatus> get() = discovery.status
-    private val discoveryLock = Any()
-    private var discoveryRequests = 0
-    private val attemptLock = Any()
-    private var activeAttemptJob: Job? = null
+    private val discoveryLease = PcDiscoveryLease(discovery)
+    private val connectionAttempts = PcConnectionAttemptCoordinator()
+    private val liveJobs = PcLiveConnectionJobs()
     private var liveConnection: PcControlConnection? = null
     private var liveSession: PcAuthenticatedSession? = null
     private var liveDisplayName: String? = null
     private var liveControlDeviceName: String? = null
-    private var liveConnectionEventsJob: Job? = null
-    private var liveHeartbeatJob: Job? = null
-    private var pendingUiPauseShutdownJob: Job? = null
-    private var reconnectJob: Job? = null
     private var pcUiActive = false
     private var pointerProfile: PcPointerMovementProfile? = null
 
@@ -75,28 +70,15 @@ class PcServiceConnectionController(
     }
 
     private fun acquireDiscovery() {
-        val shouldStart = synchronized(discoveryLock) {
-            discoveryRequests++
-            discoveryRequests == 1
-        }
-        if (shouldStart) {
-            discovery.startDiscovery()
-        }
+        discoveryLease.acquire()
     }
 
     private fun releaseDiscovery() {
-        val shouldStop = synchronized(discoveryLock) {
-            if (discoveryRequests == 0) return
-            discoveryRequests--
-            discoveryRequests == 0
-        }
-        if (shouldStop) {
-            discovery.stopDiscovery()
-        }
+        discoveryLease.release()
     }
 
     private fun hasDiscoveryRequests(): Boolean {
-        return synchronized(discoveryLock) { discoveryRequests > 0 }
+        return discoveryLease.isActive
     }
 
     suspend fun discoverPcs(): List<DiscoveredPc> {
@@ -262,14 +244,13 @@ class PcServiceConnectionController(
 
     fun onPcUiResumed() {
         pcUiActive = true
-        pendingUiPauseShutdownJob?.cancel()
-        pendingUiPauseShutdownJob = null
+        liveJobs.cancelUiPause()
         if (liveConnection != null) {
             startLiveHeartbeatIfNeeded()
         } else {
             val session = liveSession
             val displayName = liveDisplayName
-            if (session != null && displayName != null && reconnectJob?.isActive != true) {
+            if (session != null && displayName != null && !liveJobs.isReconnectActive) {
                 reconnectLiveSession(session, displayName)
             }
         }
@@ -277,10 +258,8 @@ class PcServiceConnectionController(
 
     fun onPcUiPaused() {
         pcUiActive = false
-        if (pendingUiPauseShutdownJob?.isActive == true) return
-        pendingUiPauseShutdownJob = scope.launch {
-            delay(PC_CONTROL_UI_PAUSE_SHUTDOWN_GRACE_MS)
-            if (hasActiveConnectionAttempt()) return@launch
+        liveJobs.scheduleUiPause(scope, PC_CONTROL_UI_PAUSE_SHUTDOWN_GRACE_MS) pause@ {
+            if (hasActiveConnectionAttempt()) return@pause
             cancelReconnect()
             closeLiveConnection(PcControlCloseReason.UiPauseGraceExpired)
             connector.close()
@@ -291,37 +270,15 @@ class PcServiceConnectionController(
     }
 
     fun cancelConnectionAttempt() {
-        val cancelled = synchronized(attemptLock) {
-            val job = activeAttemptJob
-            activeAttemptJob = null
-            job
-        }
-        if (cancelled == null) return
-        cancelled.cancel()
-        restoreStateAfterCancelledAttempt()
+        if (connectionAttempts.cancel()) restoreStateAfterCancelledAttempt()
     }
 
     private fun hasActiveConnectionAttempt(): Boolean {
-        return synchronized(attemptLock) { activeAttemptJob != null }
+        return connectionAttempts.isActive
     }
 
     private suspend fun runExclusiveAttempt(block: suspend () -> PcServiceConnectResult): PcServiceConnectResult {
-        val myJob = coroutineContext[Job]
-        val previous = synchronized(attemptLock) {
-            val job = activeAttemptJob
-            activeAttemptJob = myJob
-            job
-        }
-        if (previous != null && previous !== myJob) {
-            previous.cancel()
-        }
-        return try {
-            block()
-        } finally {
-            synchronized(attemptLock) {
-                if (activeAttemptJob === myJob) activeAttemptJob = null
-            }
-        }
+        return connectionAttempts.runExclusive(block)
     }
 
     private fun restoreStateAfterCancelledAttempt() {
@@ -348,8 +305,7 @@ class PcServiceConnectionController(
 
     fun disconnect() {
         cancelConnectionAttempt()
-        pendingUiPauseShutdownJob?.cancel()
-        pendingUiPauseShutdownJob = null
+        liveJobs.cancelUiPause()
         cancelReconnect()
         closeLiveConnection(PcControlCloseReason.ExplicitStop)
         if (!hasDiscoveryRequests()) {
@@ -471,8 +427,7 @@ class PcServiceConnectionController(
     }
 
     private fun observeLiveConnection(connection: PcControlConnection, session: PcAuthenticatedSession) {
-        liveConnectionEventsJob?.cancel()
-        liveConnectionEventsJob = scope.launch {
+        liveJobs.observe(scope) {
             connection.connectionEvents.collect {
                 handleLiveConnectionFailed(session)
             }
@@ -482,10 +437,9 @@ class PcServiceConnectionController(
     private fun startLiveHeartbeatIfNeeded() {
         val connection = liveConnection ?: return
         val session = liveSession ?: return
-        if (!pcUiActive && pendingUiPauseShutdownJob?.isActive != true) return
-        if (liveHeartbeatJob?.isActive == true) return
-        liveHeartbeatJob = scope.launch {
-            while (isActive && (pcUiActive || pendingUiPauseShutdownJob?.isActive == true)) {
+        if (!pcUiActive && !liveJobs.isUiPausePending) return
+        liveJobs.startHeartbeat(scope) heartbeat@ {
+            while (coroutineContext.isActive && (pcUiActive || liveJobs.isUiPausePending)) {
                 delay(LIVE_HEARTBEAT_INTERVAL_MS)
                 when (val result = connection.checkHealth()) {
                     PcCommandResult.Ack -> Unit
@@ -494,11 +448,11 @@ class PcServiceConnectionController(
                         clearLiveState()
                         PcConnectionStateHolder.setDisconnected()
                         _state.value = PcServiceConnectionState.Failed(result.message)
-                        return@launch
+                        return@heartbeat
                     }
                     is PcCommandResult.Failed -> {
                         handleLiveConnectionFailed(session)
-                        return@launch
+                        return@heartbeat
                     }
                 }
             }
@@ -514,30 +468,29 @@ class PcServiceConnectionController(
         closeLiveConnection(PcControlCloseReason.UnexpectedDisconnect)
         liveSession = session
         liveDisplayName = displayName
-        if (pcUiActive || pendingUiPauseShutdownJob?.isActive == true) {
+        if (pcUiActive || liveJobs.isUiPausePending) {
             reconnectLiveSession(session, displayName)
         }
     }
 
     private fun reconnectLiveSession(session: PcAuthenticatedSession, displayName: String) {
-        if (reconnectJob?.isActive == true) return
-        val job = scope.launch {
+        liveJobs.startReconnect(scope) reconnect@ {
             _state.value = PcServiceConnectionState.Reconnecting(session, displayName)
             PcConnectionStateHolder.setReconnecting(session, displayName)
             var failureCount = 0
-            while (isActive && shouldMaintainLiveConnection()) {
+            while (coroutineContext.isActive && shouldMaintainLiveConnection()) {
                 closeLiveConnection(PcControlCloseReason.Reconnect)
                 when (val result = connector.openControlSession(session)) {
                     is PcLiveControlResult.Connected -> {
                         storeLiveConnection(result.connection, session, displayName, liveControlDeviceName ?: displayName)
-                        return@launch
+                        return@reconnect
                     }
                     is PcLiveControlResult.AuthFailed -> {
                         closeLiveConnection(PcControlCloseReason.AuthFailure)
                         clearLiveState()
                         PcConnectionStateHolder.setDisconnected()
                         _state.value = PcServiceConnectionState.Failed(result.message)
-                        return@launch
+                        return@reconnect
                     }
                     is PcLiveControlResult.Failed -> {
                         if (result.reason != PcLiveControlFailureReason.Transient) {
@@ -545,36 +498,27 @@ class PcServiceConnectionController(
                             clearLiveState()
                             PcConnectionStateHolder.setFailed(result.message)
                             _state.value = PcServiceConnectionState.Failed(result.message)
-                            return@launch
+                            return@reconnect
                         }
                     }
                 }
-                val backoffMs = RECONNECT_BACKOFF_MS[failureCount.coerceAtMost(RECONNECT_BACKOFF_MS.lastIndex)]
+                val backoffMs = PcReconnectPolicy.delayForFailure(failureCount)
                 failureCount++
                 delay(backoffMs)
             }
         }
-        reconnectJob = job
-        job.invokeOnCompletion {
-            if (reconnectJob === job) reconnectJob = null
-        }
     }
 
     private fun shouldMaintainLiveConnection(): Boolean {
-        return pcUiActive || pendingUiPauseShutdownJob?.isActive == true
+        return pcUiActive || liveJobs.isUiPausePending
     }
 
     private fun cancelReconnect() {
-        reconnectJob?.cancel()
-        reconnectJob = null
+        liveJobs.cancelReconnect()
     }
 
     private fun closeLiveConnection(reason: PcControlCloseReason) {
-        liveConnectionEventsJob?.cancel()
-        liveConnectionEventsJob = null
-        liveHeartbeatJob?.cancel()
-        liveHeartbeatJob = null
-        liveConnection?.close(reason)
+        liveJobs.closeConnection(liveConnection, reason)
         liveConnection = null
     }
 
@@ -616,6 +560,5 @@ class PcServiceConnectionController(
         private const val PC_CONTROL_UI_PAUSE_SHUTDOWN_GRACE_MS = 8_000L
         private const val DISCOVERY_TIMEOUT_MS = 8_000L
         private const val SETTLE_WINDOW_MS = 1_500L
-        private val RECONNECT_BACKOFF_MS = listOf(500L, 1_000L, 2_000L, 4_000L, 8_000L, 15_000L, 30_000L)
     }
 }
