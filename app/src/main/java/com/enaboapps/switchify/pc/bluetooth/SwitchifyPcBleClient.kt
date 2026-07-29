@@ -278,12 +278,15 @@ class SwitchifyPcBleClient(
     }
 
     private fun liveControlFailure(error: Throwable): PcLiveControlResult.Failed {
-        return when (error.message) {
-            "Bluetooth permission missing." -> PcLiveControlResult.Failed(
+        val reason = (error as? PcBleTransportException)?.reason
+        return when {
+            reason == PcBleFailureReason.PermissionMissing ||
+                error.message == "Bluetooth permission missing." -> PcLiveControlResult.Failed(
                 message = "Bluetooth permission denied.",
                 reason = PcLiveControlFailureReason.PermissionDenied
             )
-            "Bluetooth is off." -> PcLiveControlResult.Failed(
+            reason == PcBleFailureReason.BluetoothDisabled ||
+                error.message == "Bluetooth is off." -> PcLiveControlResult.Failed(
                 message = "Bluetooth is off.",
                 reason = PcLiveControlFailureReason.BluetoothDisabled
             )

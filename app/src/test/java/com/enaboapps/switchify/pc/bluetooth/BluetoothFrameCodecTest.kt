@@ -14,6 +14,17 @@ import org.junit.Test
 @OptIn(ExperimentalCoroutinesApi::class)
 class BluetoothFrameCodecTest {
     @Test
+    fun transportFailureCarriesTypedReasonAndStableMessage() {
+        val error = PcBleTransportException(
+            PcBleFailureReason.BluetoothDisabled,
+            "Bluetooth is off."
+        )
+
+        assertEquals(PcBleFailureReason.BluetoothDisabled, error.reason)
+        assertEquals("Bluetooth is off.", error.message)
+    }
+
+    @Test
     fun singleFrameRoundTrip() {
         val frame = BluetoothFrameCodec.createFrames("""{"type":"connection.ping"}""", messageId = "message-1").single()
         val decoded = BluetoothFrameCodec.decode(BluetoothFrameCodec.encode(frame))
