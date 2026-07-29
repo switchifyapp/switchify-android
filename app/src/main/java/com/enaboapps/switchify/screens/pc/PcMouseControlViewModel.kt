@@ -418,14 +418,16 @@ class PcMouseControlViewModel(
         liveTypingCoordinator.finish()
     }
 
-    fun commitLiveTypingText(text: String) {
-        if (!liveTypingCoordinator.submitText(text)) {
+    fun commitLiveTypingText(text: String): Boolean {
+        val accepted = liveTypingCoordinator.submitText(text)
+        if (!accepted) {
             if (text.isNotEmpty() && !isSafePcTypedText(text)) {
                 _uiState.update {
                     it.copy(liveTypingMessage = TEXT_UNSUPPORTED_MESSAGE)
                 }
             }
         }
+        return accepted
     }
 
     fun sendLiveTypingKey(key: PcKeyboardKey) {

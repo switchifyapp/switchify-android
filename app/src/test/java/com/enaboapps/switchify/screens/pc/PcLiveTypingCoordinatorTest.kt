@@ -3,8 +3,10 @@ package com.enaboapps.switchify.screens.pc
 import com.enaboapps.switchify.pc.PcCommandResult
 import com.enaboapps.switchify.pc.PcControlCommand
 import com.enaboapps.switchify.pc.PcKeyboardKey
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -53,6 +55,46 @@ class PcLiveTypingCoordinatorTest {
 
         assertEquals(
             listOf(PcControlCommand.TextStreamChunk("stream-1", 0, "Hello 👋")),
+            commands.filterIsInstance<PcControlCommand.TextStreamChunk>()
+        )
+    }
+
+    @Test
+    fun preservesTextQueuedWhilePreviousChunkAwaitsAcknowledgement() = runTest {
+        val commands = mutableListOf<PcControlCommand>()
+        val firstChunkStarted = CompletableDeferred<Unit>()
+        val firstChunkResult = CompletableDeferred<PcCommandResult>()
+        var chunkCount = 0
+        val coordinator = PcLiveTypingCoordinator(
+            scope = this,
+            sendCommand = { command ->
+                commands += command
+                if (command is PcControlCommand.TextStreamChunk && chunkCount++ == 0) {
+                    firstChunkStarted.complete(Unit)
+                    firstChunkResult.await()
+                } else {
+                    PcCommandResult.Ack
+                }
+            },
+            streamIdProvider = { "stream-1" }
+        )
+
+        coordinator.start()
+        coordinator.submitText("A")
+        runCurrent()
+        firstChunkStarted.await()
+
+        coordinator.submitText("B")
+        coordinator.submitText("C")
+        firstChunkResult.complete(PcCommandResult.Ack)
+        coordinator.finish()
+        advanceUntilIdle()
+
+        assertEquals(
+            listOf(
+                PcControlCommand.TextStreamChunk("stream-1", 0, "A"),
+                PcControlCommand.TextStreamChunk("stream-1", 1, "BC")
+            ),
             commands.filterIsInstance<PcControlCommand.TextStreamChunk>()
         )
     }

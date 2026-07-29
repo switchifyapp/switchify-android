@@ -13,7 +13,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
 internal sealed class PcLiveTypingOperation {
-    data class Text(var value: String) : PcLiveTypingOperation()
+    data class Text(val value: String) : PcLiveTypingOperation()
     data class Key(val value: PcKeyboardKey) : PcLiveTypingOperation()
     data object Finish : PcLiveTypingOperation()
 }
@@ -89,7 +89,8 @@ internal class PcLiveTypingCoordinator(
     private fun appendTextLocked(text: String) {
         val tail = operations.lastOrNull() as? PcLiveTypingOperation.Text
         if (tail != null && tail.value.length + text.length <= PC_TEXT_STREAM_CHUNK_MAX_CHARS) {
-            tail.value += text
+            operations.removeLast()
+            operations.addLast(PcLiveTypingOperation.Text(tail.value + text))
         } else {
             operations.addLast(PcLiveTypingOperation.Text(text))
         }
@@ -103,29 +104,24 @@ internal class PcLiveTypingCoordinator(
     private suspend fun processOperations() {
         while (true) {
             val operation = synchronized(lock) {
-                if (paused) null else operations.firstOrNull()
+                if (paused || operations.isEmpty()) null else operations.removeFirst()
             } ?: break
 
             if (operation == PcLiveTypingOperation.Finish) {
                 closeCurrentStream()
                 streamId = null
                 nextSequence = 0
-                synchronized(lock) {
-                    if (operations.firstOrNull() == PcLiveTypingOperation.Finish) {
-                        operations.removeFirst()
-                    }
-                }
                 continue
             }
 
             if (nextSequence >= MAX_STREAM_ITEMS && !closeCurrentStream()) {
-                pauseWithFailure()
+                requeueAndPause(operation)
                 break
             }
 
             val activeStreamId = ensureStreamOpen()
             if (activeStreamId == null) {
-                pauseWithFailure()
+                requeueAndPause(operation)
                 break
             }
 
@@ -140,18 +136,13 @@ internal class PcLiveTypingCoordinator(
             when (val result = sendCommand(command)) {
                 PcCommandResult.Ack -> {
                     nextSequence += 1
-                    synchronized(lock) {
-                        if (operations.firstOrNull() === operation) {
-                            operations.removeFirst()
-                        }
-                    }
                 }
                 is PcCommandResult.AuthFailed -> {
-                    pauseWithFailure(result.message)
+                    requeueAndPause(operation, result.message)
                     break
                 }
                 is PcCommandResult.Failed -> {
-                    pauseWithFailure()
+                    requeueAndPause(operation)
                     break
                 }
             }
@@ -188,8 +179,12 @@ internal class PcLiveTypingCoordinator(
         return false
     }
 
-    private fun pauseWithFailure(message: String = LIVE_TYPING_FAILED_MESSAGE) {
+    private fun requeueAndPause(
+        operation: PcLiveTypingOperation,
+        message: String = LIVE_TYPING_FAILED_MESSAGE
+    ) {
         synchronized(lock) {
+            operations.addFirst(operation)
             paused = true
         }
         onFailure(message)

@@ -130,8 +130,34 @@ class PcLiveTypingEditTextTest {
         }
     }
 
+    @Test
+    fun rejectedCommitRemainsVisibleUntilRetryIsAccepted() {
+        val attempts = mutableListOf<String>()
+        var accepting = false
+        setLiveInput(
+            onTextCommitted = {
+                attempts += it
+                accepting
+            }
+        )
+
+        onLiveTypingView { editText ->
+            val input = editText.onCreateInputConnection(EditorInfo())
+            input?.commitText("Keep me", 1)
+            assertEquals("Keep me", editText.text.toString())
+
+            accepting = true
+            editText.retryPendingText()
+            assertEquals("", editText.text.toString())
+        }
+
+        composeTestRule.runOnIdle {
+            assertEquals(listOf("Keep me", "Keep me"), attempts)
+        }
+    }
+
     private fun setLiveInput(
-        onTextCommitted: (String) -> Unit = {},
+        onTextCommitted: (String) -> Boolean = { false },
         onKeyCommitted: (PcKeyboardKey) -> Unit = {}
     ) {
         composeTestRule.setContent {

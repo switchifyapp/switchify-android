@@ -29,6 +29,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
@@ -43,6 +44,7 @@ import com.enaboapps.switchify.components.AdaptiveStack
 import com.enaboapps.switchify.components.SwitchifyTextField
 import com.enaboapps.switchify.pc.PcKeyboardKey
 import com.enaboapps.switchify.pc.isSafePcTypedText
+import java.util.concurrent.atomic.AtomicReference
 import kotlin.math.roundToInt
 
 data class PcTypingKeySpec(
@@ -76,7 +78,7 @@ fun PcTypingControlScreen(
     onClear: () -> Unit,
     onLiveTypingStarted: () -> Unit,
     onLiveTypingStopped: () -> Unit,
-    onLiveTextCommitted: (String) -> Unit,
+    onLiveTextCommitted: (String) -> Boolean,
     onLiveKeyCommitted: (PcKeyboardKey) -> Unit,
     onLiveTypingRetry: () -> Unit,
     onKeySelected: (PcKeyboardKey) -> Unit,
@@ -131,7 +133,7 @@ internal fun PcTypingInput(
     onClear: () -> Unit,
     onLiveTypingStarted: () -> Unit,
     onLiveTypingStopped: () -> Unit,
-    onLiveTextCommitted: (String) -> Unit,
+    onLiveTextCommitted: (String) -> Boolean,
     onLiveKeyCommitted: (PcKeyboardKey) -> Unit,
     onLiveTypingRetry: () -> Unit,
     enabled: Boolean,
@@ -229,7 +231,7 @@ private fun PcLiveTypingComposer(
     message: String?,
     onStarted: () -> Unit,
     onStopped: () -> Unit,
-    onTextCommitted: (String) -> Unit,
+    onTextCommitted: (String) -> Boolean,
     onKeyCommitted: (PcKeyboardKey) -> Unit,
     onRetry: () -> Unit,
     modifier: Modifier,
@@ -241,16 +243,21 @@ private fun PcLiveTypingComposer(
     val focusedColor = MaterialTheme.colorScheme.primary.toArgb()
     val unfocusedColor = MaterialTheme.colorScheme.outline.toArgb()
     val hint = stringResource(R.string.pc_typing_live_hint)
+    val liveEditText = remember { AtomicReference<PcLiveTypingEditText?>() }
 
     DisposableEffect(Unit) {
         onStarted()
-        onDispose(onStopped)
+        onDispose {
+            liveEditText.set(null)
+            onStopped()
+        }
     }
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         AndroidView(
             factory = {
                 PcLiveTypingEditText(context).apply {
+                    liveEditText.set(this)
                     this.hint = hint
                     val density = resources.displayMetrics.density
                     setPadding(
@@ -293,7 +300,10 @@ private fun PcLiveTypingComposer(
             )
             if (paused) {
                 FilledTonalButton(
-                    onClick = onRetry,
+                    onClick = {
+                        onRetry()
+                        liveEditText.get()?.retryPendingText()
+                    },
                     enabled = enabled,
                     modifier = Modifier.heightIn(min = 48.dp)
                 ) {

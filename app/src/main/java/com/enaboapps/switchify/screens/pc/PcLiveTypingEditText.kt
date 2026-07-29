@@ -16,7 +16,7 @@ internal class PcLiveTypingEditText @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null
 ) : EditText(context, attrs) {
-    var onTextCommitted: (String) -> Unit = {}
+    var onTextCommitted: (String) -> Boolean = { false }
     var onKeyCommitted: (PcKeyboardKey) -> Unit = {}
 
     init {
@@ -34,8 +34,7 @@ internal class PcLiveTypingEditText @JvmOverloads constructor(
         return object : InputConnectionWrapper(target, true) {
             override fun commitText(text: CharSequence?, newCursorPosition: Int): Boolean {
                 val result = super.commitText(text, newCursorPosition)
-                text?.toString()?.takeIf { it.isNotEmpty() }?.let(onTextCommitted)
-                clearLocalText()
+                submitPendingText()
                 return result
             }
 
@@ -116,27 +115,30 @@ internal class PcLiveTypingEditText @JvmOverloads constructor(
 
     override fun onTextContextMenuItem(id: Int): Boolean {
         if (id == android.R.id.paste || id == android.R.id.pasteAsPlainText) {
-            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE)
-                as? android.content.ClipboardManager
-            val clip = clipboard?.primaryClip
-            if (clip != null && clip.description.hasMimeType("text/*")) {
-                val pastedText = clip.getItemAt(0).coerceToText(context).toString()
-                if (pastedText.isNotEmpty()) {
-                    onTextCommitted(pastedText)
-                    clearLocalText()
-                    return true
-                }
+            val result = super.onTextContextMenuItem(id)
+            if (result) {
+                submitPendingText()
             }
+            return result
         }
         return super.onTextContextMenuItem(id)
     }
 
     private fun commitPendingText() {
+        submitPendingText()
+    }
+
+    fun retryPendingText(): Boolean {
+        return submitPendingText()
+    }
+
+    private fun submitPendingText(): Boolean {
         val pendingText = text?.toString().orEmpty()
-        if (pendingText.isNotEmpty()) {
-            onTextCommitted(pendingText)
+        if (pendingText.isNotEmpty() && onTextCommitted(pendingText)) {
             clearLocalText()
+            return true
         }
+        return false
     }
 
     private fun clearLocalText() {
