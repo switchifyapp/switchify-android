@@ -477,7 +477,7 @@
     <string name="pc_typing_live_hint">Type here to send directly to your PC</string>
     <string name="pc_typing_live_field_label">Live PC typing field</string>
     <string name="pc_typing_live_field_paused">Sending is paused. Unsent text is retained. Use Retry live typing to continue.</string>
-    <string name="pc_typing_live_help">Typing live on PC. Committed text is sent immediately and is not stored on this device.</string>
+    <string name="pc_typing_live_help">Typing live on PC. Committed text stays here for predictions until you leave Live typing.</string>
     <string name="pc_typing_live_unavailable">Update Switchify PC to use live typing. Draft mode remains available.</string>
     <string name="pc_typing_live_retry">Retry live typing</string>
     <string name="pc_typing_send">Send</string>

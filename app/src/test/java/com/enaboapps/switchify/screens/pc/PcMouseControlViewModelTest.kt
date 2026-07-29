@@ -1116,7 +1116,7 @@ class PcMouseControlViewModelTest {
         viewModel.startLiveTyping()
         viewModel.commitLiveTypingText("Hello")
         viewModel.sendLiveTypingKey(PcKeyboardKey.Enter)
-        viewModel.stopLiveTyping()
+        viewModel.endLiveTypingSession()
         advanceUntilIdle()
 
         val open = connector.commands.first() as PcControlCommand.TextStreamOpen
@@ -1130,6 +1130,92 @@ class PcMouseControlViewModelTest {
             connector.commands
         )
         assertTrue(connector.realtimeCommands.isEmpty())
+    }
+
+    @Test
+    fun liveTypingKeepsCommittedSessionTextAndReconcilesPredictions() = runTest(dispatcher) {
+        val connector = FakeConnector()
+        val controller = connectedController(
+            connector = connector,
+            pointerProfile = textStreamPointerProfile()
+        )
+        val viewModel = viewModel(controller)
+        advanceUntilIdle()
+
+        viewModel.startLiveTyping()
+        assertTrue(viewModel.commitLiveTypingText("The cat"))
+        assertEquals("The cat", viewModel.uiState.value.liveTypingText)
+        assertTrue(viewModel.commitLiveTypingText("The car"))
+        assertEquals("The car", viewModel.uiState.value.liveTypingText)
+        viewModel.endLiveTypingSession()
+        advanceUntilIdle()
+
+        val open = connector.commands.first() as PcControlCommand.TextStreamOpen
+        assertEquals(
+            listOf(
+                PcControlCommand.TextStreamOpen(open.streamId),
+                PcControlCommand.TextStreamChunk(open.streamId, 0, "The cat"),
+                PcControlCommand.TextStreamKey(open.streamId, 1, PcKeyboardKey.Backspace),
+                PcControlCommand.TextStreamChunk(open.streamId, 2, "r"),
+                PcControlCommand.TextStreamClose(open.streamId, 3)
+            ),
+            connector.commands
+        )
+        assertEquals("", viewModel.uiState.value.liveTypingText)
+    }
+
+    @Test
+    fun editorRecreationRetainsLiveCompositionUntilTheEditorReturns() = runTest(dispatcher) {
+        val connector = FakeConnector()
+        val controller = connectedController(
+            connector = connector,
+            pointerProfile = textStreamPointerProfile()
+        )
+        val viewModel = viewModel(controller)
+        advanceUntilIdle()
+
+        viewModel.startLiveTyping()
+        viewModel.updateLiveTypingSessionText("predict")
+        viewModel.retainAndStopLiveTyping("prediction")
+
+        assertEquals("prediction", viewModel.uiState.value.liveTypingText)
+
+        viewModel.startLiveTyping()
+        assertTrue(viewModel.commitLiveTypingText("prediction"))
+        advanceUntilIdle()
+
+        assertEquals("prediction", viewModel.uiState.value.liveTypingText)
+        assertEquals(
+            listOf("prediction"),
+            connector.commands.filterIsInstance<PcControlCommand.TextStreamChunk>().map { it.text }
+        )
+        viewModel.endLiveTypingSession()
+        advanceUntilIdle()
+    }
+
+    @Test
+    fun leavingLiveModeClearsTheEphemeralSessionWithoutClearingDraft() = runTest(dispatcher) {
+        val connector = FakeConnector()
+        val controller = connectedController(
+            connector = connector,
+            pointerProfile = textStreamPointerProfile()
+        )
+        val draftStore = FakeTypingDraftStore("Saved draft")
+        val viewModel = viewModel(
+            controller = controller,
+            typingDraftStore = draftStore
+        )
+        advanceUntilIdle()
+
+        viewModel.startLiveTyping()
+        viewModel.updateLiveTypingSessionText("Live prediction context")
+        viewModel.selectTypingMode(PcTypingMode.Draft)
+        advanceUntilIdle()
+
+        assertEquals(PcTypingMode.Draft, viewModel.uiState.value.typingMode)
+        assertEquals("", viewModel.uiState.value.liveTypingText)
+        assertEquals("Saved draft", viewModel.uiState.value.typingText)
+        assertEquals("Saved draft", draftStore.getDraft())
     }
 
     @Test

@@ -82,7 +82,7 @@ class PcMouseControlActivity : ComponentActivity() {
     override fun onPause() {
         scanModeSession?.close()
         scanModeSession = null
-        viewModel.onPcUiPaused()
+        viewModel.onPcUiPaused(endTypingSession = !isChangingConfigurations)
         super.onPause()
     }
 
@@ -205,7 +205,7 @@ private fun PcMouseControlScreen(
                             liveTypingAvailable = uiState.supportsTextStreamInput,
                             liveTypingPaused = uiState.liveTypingPaused,
                             liveTypingMessage = uiState.liveTypingMessage,
-                            liveTypingPendingText = uiState.liveTypingPendingText,
+                            liveTypingText = uiState.liveTypingText,
                             enabled = surfaceEnabled,
                             onTypingModeSelected = viewModel::selectTypingMode,
                             onTextChanged = viewModel::updateTypingText,
@@ -213,7 +213,8 @@ private fun PcMouseControlScreen(
                             onSendAndEnter = viewModel::sendTypedTextThenEnter,
                             onClear = viewModel::clearTypingText,
                             onLiveTypingStarted = viewModel::startLiveTyping,
-                            onLiveTypingStopped = viewModel::stopLiveTyping,
+                            onLiveTypingStopped = viewModel::retainAndStopLiveTyping,
+                            onLiveSessionTextChanged = viewModel::updateLiveTypingSessionText,
                             onLiveTextCommitted = viewModel::commitLiveTypingText,
                             onLiveKeyCommitted = viewModel::sendLiveTypingKey,
                             onLiveTypingRetry = viewModel::retryLiveTyping,
@@ -287,7 +288,7 @@ private fun PcMouseControlScreen(
             liveTypingAvailable = uiState.supportsTextStreamInput,
             liveTypingPaused = uiState.liveTypingPaused,
             liveTypingMessage = uiState.liveTypingMessage,
-            liveTypingPendingText = uiState.liveTypingPendingText,
+            liveTypingText = uiState.liveTypingText,
             connected = uiState.connectedDisplayName != null,
             enabled = surfaceEnabled,
             onTypingModeSelected = viewModel::selectTypingMode,
@@ -296,12 +297,16 @@ private fun PcMouseControlScreen(
             onSendAndEnter = viewModel::sendTypedTextThenEnter,
             onClear = viewModel::clearTypingText,
             onLiveTypingStarted = viewModel::startLiveTyping,
-            onLiveTypingStopped = viewModel::stopLiveTyping,
+            onLiveTypingStopped = viewModel::retainAndStopLiveTyping,
+            onLiveSessionTextChanged = viewModel::updateLiveTypingSessionText,
             onLiveTextCommitted = viewModel::commitLiveTypingText,
             onLiveKeyCommitted = viewModel::sendLiveTypingKey,
             onLiveTypingRetry = viewModel::retryLiveTyping,
             onKeySelected = viewModel::sendTypingKey,
-            onDismissRequest = { quickInputVisible = false }
+            onDismissRequest = {
+                viewModel.endLiveTypingSession()
+                quickInputVisible = false
+            }
         )
     }
 }

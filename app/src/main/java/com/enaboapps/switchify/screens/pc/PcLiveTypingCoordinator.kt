@@ -7,6 +7,8 @@ import com.enaboapps.switchify.pc.PcKeyboardKey
 import com.enaboapps.switchify.pc.PcTextStreamItem
 import com.enaboapps.switchify.pc.isSafePcTypedText
 import com.enaboapps.switchify.pc.pcTextStreamItemsFor
+import java.text.BreakIterator
+import java.util.Locale
 import java.util.UUID
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -32,10 +34,12 @@ internal class PcLiveTypingCoordinator(
     private var streamId: String? = null
     private var nextSequence = 0
     private var reopenStreamOnResume = false
+    private var retainFailuresWhenStopped = true
 
     fun start() {
         synchronized(lock) {
             accepting = true
+            retainFailuresWhenStopped = true
             scheduleLocked()
         }
     }
@@ -65,11 +69,23 @@ internal class PcLiveTypingCoordinator(
         return true
     }
 
+    fun submitEditorChange(previousText: String, currentText: String): Boolean {
+        if (!isSafePcTypedText(currentText)) return false
+        val operationsToAppend = editorOperations(previousText, currentText)
+        synchronized(lock) {
+            if (!accepting || paused) return false
+            operationsToAppend.forEach(::appendOperationLocked)
+            scheduleLocked()
+        }
+        return true
+    }
+
     fun finish() {
         synchronized(lock) {
             if (!accepting && operations.isEmpty() && streamId == null) return
             if (!accepting && operations.lastOrNull() == PcLiveTypingOperation.Finish) return
             accepting = false
+            retainFailuresWhenStopped = true
             if (operations.lastOrNull() != PcLiveTypingOperation.Finish) {
                 operations.addLast(PcLiveTypingOperation.Finish)
             }
@@ -97,6 +113,33 @@ internal class PcLiveTypingCoordinator(
             operations.addLast(PcLiveTypingOperation.Text(tail.value + text))
         } else {
             operations.addLast(PcLiveTypingOperation.Text(text))
+        }
+    }
+
+    private fun appendOperationLocked(operation: PcLiveTypingOperation) {
+        when (operation) {
+            is PcLiveTypingOperation.Text -> appendTextLocked(operation.value)
+            is PcLiveTypingOperation.Key -> operations.addLast(operation)
+            PcLiveTypingOperation.Finish -> operations.addLast(operation)
+        }
+    }
+
+    fun endSession() {
+        synchronized(lock) {
+            accepting = false
+            retainFailuresWhenStopped = false
+            if (paused) {
+                operations.clear()
+                paused = false
+                streamId = null
+                nextSequence = 0
+                reopenStreamOnResume = false
+                return
+            }
+            if (operations.lastOrNull() != PcLiveTypingOperation.Finish) {
+                operations.addLast(PcLiveTypingOperation.Finish)
+            }
+            scheduleLocked()
         }
     }
 
@@ -191,16 +234,69 @@ internal class PcLiveTypingCoordinator(
         message: String = LIVE_TYPING_FAILED_MESSAGE,
         reopenStream: Boolean = false
     ) {
-        synchronized(lock) {
-            operations.addFirst(operation)
-            paused = true
-            reopenStreamOnResume = reopenStream
+        val shouldNotify = synchronized(lock) {
+            if (!accepting && !retainFailuresWhenStopped) {
+                operations.clear()
+                paused = false
+                streamId = null
+                nextSequence = 0
+                reopenStreamOnResume = false
+                false
+            } else {
+                operations.addFirst(operation)
+                paused = true
+                reopenStreamOnResume = reopenStream
+                true
+            }
         }
-        onFailure(message)
+        if (shouldNotify) {
+            onFailure(message)
+        }
     }
 
     private fun PcCommandResult.Failed.isMissingTextStream(): Boolean {
         return message.equals(TEXT_STREAM_NOT_OPEN_MESSAGE, ignoreCase = true)
+    }
+
+    private fun editorOperations(
+        previousText: String,
+        currentText: String
+    ): List<PcLiveTypingOperation> {
+        val previousGraphemes = previousText.graphemes()
+        val currentGraphemes = currentText.graphemes()
+        val commonPrefixLength = previousGraphemes
+            .zip(currentGraphemes)
+            .takeWhile { (previous, current) -> previous == current }
+            .size
+        val operations = mutableListOf<PcLiveTypingOperation>()
+        repeat(previousGraphemes.size - commonPrefixLength) {
+            operations += PcLiveTypingOperation.Key(PcKeyboardKey.Backspace)
+        }
+        val replacement = currentGraphemes
+            .drop(commonPrefixLength)
+            .joinToString(separator = "")
+        pcTextStreamItemsFor(replacement).forEach { item ->
+            operations += when (item) {
+                is PcTextStreamItem.Chunk -> PcLiveTypingOperation.Text(item.text)
+                is PcTextStreamItem.Key -> PcLiveTypingOperation.Key(item.key)
+            }
+        }
+        return operations
+    }
+
+    private fun String.graphemes(): List<String> {
+        if (isEmpty()) return emptyList()
+        val iterator = BreakIterator.getCharacterInstance(Locale.ROOT)
+        iterator.setText(this)
+        val graphemes = mutableListOf<String>()
+        var start = iterator.first()
+        var end = iterator.next()
+        while (end != BreakIterator.DONE) {
+            graphemes += substring(start, end)
+            start = end
+            end = iterator.next()
+        }
+        return graphemes
     }
 
     companion object {
