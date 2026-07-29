@@ -73,7 +73,7 @@ fun PcTypingControlScreen(
     liveTypingAvailable: Boolean,
     liveTypingPaused: Boolean,
     liveTypingMessage: String?,
-    liveTypingPendingText: String = "",
+    liveTypingText: String = "",
     enabled: Boolean,
     onTypingModeSelected: (PcTypingMode) -> Unit,
     onTextChanged: (String) -> Unit,
@@ -82,6 +82,7 @@ fun PcTypingControlScreen(
     onClear: () -> Unit,
     onLiveTypingStarted: () -> Unit,
     onLiveTypingStopped: (String) -> Unit,
+    onLiveSessionTextChanged: (String) -> Unit,
     onLiveTextCommitted: (String) -> Boolean,
     onLiveKeyCommitted: (PcKeyboardKey) -> Unit,
     onLiveTypingRetry: () -> Unit,
@@ -99,7 +100,7 @@ fun PcTypingControlScreen(
             liveTypingAvailable = liveTypingAvailable,
             liveTypingPaused = liveTypingPaused,
             liveTypingMessage = liveTypingMessage,
-            liveTypingPendingText = liveTypingPendingText,
+            liveTypingText = liveTypingText,
             onTypingModeSelected = onTypingModeSelected,
             onTextChanged = onTextChanged,
             onSend = onSend,
@@ -107,6 +108,7 @@ fun PcTypingControlScreen(
             onClear = onClear,
             onLiveTypingStarted = onLiveTypingStarted,
             onLiveTypingStopped = onLiveTypingStopped,
+            onLiveSessionTextChanged = onLiveSessionTextChanged,
             onLiveTextCommitted = onLiveTextCommitted,
             onLiveKeyCommitted = onLiveKeyCommitted,
             onLiveTypingRetry = onLiveTypingRetry,
@@ -131,7 +133,7 @@ internal fun PcTypingInput(
     liveTypingAvailable: Boolean,
     liveTypingPaused: Boolean,
     liveTypingMessage: String?,
-    liveTypingPendingText: String = "",
+    liveTypingText: String = "",
     onTypingModeSelected: (PcTypingMode) -> Unit,
     onTextChanged: (String) -> Unit,
     onSend: () -> Unit,
@@ -139,6 +141,7 @@ internal fun PcTypingInput(
     onClear: () -> Unit,
     onLiveTypingStarted: () -> Unit,
     onLiveTypingStopped: (String) -> Unit,
+    onLiveSessionTextChanged: (String) -> Unit = {},
     onLiveTextCommitted: (String) -> Boolean,
     onLiveKeyCommitted: (PcKeyboardKey) -> Unit,
     onLiveTypingRetry: () -> Unit,
@@ -176,9 +179,10 @@ internal fun PcTypingInput(
                 enabled = enabled,
                 paused = liveTypingPaused,
                 message = liveTypingMessage,
-                pendingText = liveTypingPendingText,
+                sessionText = liveTypingText,
                 onStarted = onLiveTypingStarted,
                 onStopped = onLiveTypingStopped,
+                onSessionTextChanged = onLiveSessionTextChanged,
                 onTextCommitted = onLiveTextCommitted,
                 onKeyCommitted = onLiveKeyCommitted,
                 onRetry = onLiveTypingRetry,
@@ -236,9 +240,10 @@ private fun PcLiveTypingComposer(
     enabled: Boolean,
     paused: Boolean,
     message: String?,
-    pendingText: String,
+    sessionText: String,
     onStarted: () -> Unit,
     onStopped: (String) -> Unit,
+    onSessionTextChanged: (String) -> Unit,
     onTextCommitted: (String) -> Boolean,
     onKeyCommitted: (PcKeyboardKey) -> Unit,
     onRetry: () -> Unit,
@@ -258,7 +263,9 @@ private fun PcLiveTypingComposer(
     DisposableEffect(Unit) {
         onStarted()
         onDispose {
-            val retainedText = liveEditText.get()?.finishAndTakePendingText().orEmpty()
+            val retainedText = liveEditText.get()
+                ?.finishCompositionAndTakeSessionText()
+                .orEmpty()
             liveEditText.set(null)
             onStopped(retainedText)
         }
@@ -282,6 +289,7 @@ private fun PcLiveTypingComposer(
             update = { editText ->
                 editText.isEnabled = enabled && !paused
                 editText.onTextCommitted = onTextCommitted
+                editText.onSessionTextChanged = onSessionTextChanged
                 editText.onKeyCommitted = onKeyCommitted
                 editText.setTextColor(textColor)
                 editText.setHintTextColor(hintColor)
@@ -292,7 +300,7 @@ private fun PcLiveTypingComposer(
                     ),
                     intArrayOf(focusedColor, unfocusedColor)
                 )
-                editText.restorePendingText(pendingText)
+                editText.restoreSessionText(sessionText)
                 editText.contentDescription = if (paused) {
                     "$fieldLabel. $pausedDescription"
                 } else {
@@ -321,7 +329,7 @@ private fun PcLiveTypingComposer(
                 FilledTonalButton(
                     onClick = {
                         onRetry()
-                        liveEditText.get()?.retryPendingText()
+                        liveEditText.get()?.retryCommittedText()
                     },
                     enabled = enabled,
                     modifier = Modifier.heightIn(min = 48.dp)

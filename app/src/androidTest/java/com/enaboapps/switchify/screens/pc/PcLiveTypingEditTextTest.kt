@@ -61,11 +61,8 @@ class PcLiveTypingEditTextTest {
 
     @Test
     fun editorActionCommitsPendingCompositionBeforeEnter() {
-        val events = mutableListOf<Any>()
-        setLiveInput(
-            onTextCommitted = events::add,
-            onKeyCommitted = events::add
-        )
+        val committedText = mutableListOf<String>()
+        setLiveInput(onTextCommitted = committedText::add)
 
         onLiveTypingView { editText ->
             val input = editText.onCreateInputConnection(EditorInfo())
@@ -74,7 +71,7 @@ class PcLiveTypingEditTextTest {
         }
 
         composeTestRule.runOnIdle {
-            assertEquals(listOf("Hi", PcKeyboardKey.Enter), events)
+            assertEquals(listOf("Hi\n"), committedText)
         }
     }
 
@@ -111,9 +108,13 @@ class PcLiveTypingEditTextTest {
     }
 
     @Test
-    fun hardwareDeleteAndTabMapToRemoteKeys() {
+    fun hardwareDeleteOutsideTheSessionUsesRemoteKeysAndTabStaysVisible() {
         val keys = mutableListOf<PcKeyboardKey>()
-        setLiveInput(onKeyCommitted = keys::add)
+        val committedText = mutableListOf<String>()
+        setLiveInput(
+            onTextCommitted = committedText::add,
+            onKeyCommitted = keys::add
+        )
 
         onLiveTypingView { editText ->
             val input = editText.onCreateInputConnection(EditorInfo())
@@ -124,9 +125,10 @@ class PcLiveTypingEditTextTest {
 
         composeTestRule.runOnIdle {
             assertEquals(
-                listOf(PcKeyboardKey.Backspace, PcKeyboardKey.Delete, PcKeyboardKey.Tab),
+                listOf(PcKeyboardKey.Backspace, PcKeyboardKey.Delete),
                 keys
             )
+            assertEquals(listOf("\t"), committedText)
         }
     }
 
@@ -169,7 +171,7 @@ class PcLiveTypingEditTextTest {
             val input = editText.onCreateInputConnection(EditorInfo())
             input?.setComposingText("Keep me", 1)
 
-            assertEquals("Keep me", editText.finishAndTakePendingText())
+            assertEquals("Keep me", editText.finishCompositionAndTakeSessionText())
         }
     }
 
@@ -190,8 +192,8 @@ class PcLiveTypingEditTextTest {
             assertEquals("Keep me", editText.text.toString())
 
             accepting = true
-            editText.retryPendingText()
-            assertEquals("", editText.text.toString())
+            editText.retryCommittedText()
+            assertEquals("Keep me", editText.text.toString())
         }
 
         composeTestRule.runOnIdle {
@@ -199,8 +201,28 @@ class PcLiveTypingEditTextTest {
         }
     }
 
+    @Test
+    fun committedTextStaysVisibleAndPredictionReplacementSendsANewSnapshot() {
+        val committedText = mutableListOf<String>()
+        setLiveInput(onTextCommitted = committedText::add)
+
+        onLiveTypingView { editText ->
+            val input = editText.onCreateInputConnection(EditorInfo())
+            input?.commitText("teh ", 1)
+            input?.setSelection(0, 3)
+            input?.commitText("the", 1)
+
+            assertEquals("the ", editText.text.toString())
+        }
+
+        composeTestRule.runOnIdle {
+            assertEquals(listOf("teh ", "the "), committedText)
+        }
+    }
+
     private fun setLiveInput(
         onTextCommitted: (String) -> Boolean = { false },
+        onSessionTextChanged: (String) -> Unit = {},
         onKeyCommitted: (PcKeyboardKey) -> Unit = {}
     ) {
         composeTestRule.setContent {
@@ -219,6 +241,7 @@ class PcLiveTypingEditTextTest {
                     onClear = {},
                     onLiveTypingStarted = {},
                     onLiveTypingStopped = {},
+                    onLiveSessionTextChanged = onSessionTextChanged,
                     onLiveTextCommitted = onTextCommitted,
                     onLiveKeyCommitted = onKeyCommitted,
                     onLiveTypingRetry = {},

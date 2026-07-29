@@ -62,7 +62,7 @@ data class PcMouseControlUiState(
     val typingMode: PcTypingMode = PcTypingMode.Live,
     val liveTypingPaused: Boolean = false,
     val liveTypingMessage: String? = null,
-    val liveTypingPendingText: String = "",
+    val liveTypingText: String = "",
     val supportsTextStreamInput: Boolean = false,
     val supportsModifierToggles: Boolean = false,
     val activeModifiers: Set<PcKeyboardModifierKey> = emptySet(),
@@ -115,6 +115,8 @@ class PcMouseControlViewModel(
     )
     internal val pcSwitcherState: StateFlow<PcSwitcherUiState> = pcSwitcher.state
     private var movementStep = FALLBACK_MOVEMENT_STEP
+    private var liveTypingQueuedText = ""
+    private var liveTypingSessionActive = false
 
     init {
         val selectedSurface = controlSurfaceStore.getSelectedSurface()
@@ -382,7 +384,7 @@ class PcMouseControlViewModel(
 
     fun selectControlSurface(surface: PcControlSurface) {
         if (_uiState.value.activeSurface == PcControlSurface.Typing && surface != PcControlSurface.Typing) {
-            stopLiveTyping()
+            endLiveTypingSession()
         }
         controlSurfaceStore.setSelectedSurface(surface)
         _uiState.update {
@@ -398,7 +400,7 @@ class PcMouseControlViewModel(
         if (mode == PcTypingMode.Live && !state.supportsTextStreamInput) return
         typingModeStore.setMode(mode)
         if (mode == PcTypingMode.Draft) {
-            stopLiveTyping()
+            endLiveTypingSession()
         }
         _uiState.update {
             it.copy(
@@ -410,26 +412,50 @@ class PcMouseControlViewModel(
     fun startLiveTyping() {
         val state = _uiState.value
         if (state.typingMode != PcTypingMode.Live || !state.supportsTextStreamInput) return
+        liveTypingSessionActive = true
         liveTypingCoordinator.start()
     }
 
-    fun stopLiveTyping(pendingText: String = "") {
-        if (pendingText.isNotEmpty()) {
-            _uiState.update { it.copy(liveTypingPendingText = pendingText) }
+    fun updateLiveTypingSessionText(text: String) {
+        if (!liveTypingSessionActive) return
+        _uiState.update { it.copy(liveTypingText = text) }
+    }
+
+    fun retainAndStopLiveTyping(sessionText: String) {
+        if (liveTypingSessionActive) {
+            _uiState.update { it.copy(liveTypingText = sessionText) }
         }
         liveTypingCoordinator.finish()
     }
 
+    fun endLiveTypingSession() {
+        liveTypingSessionActive = false
+        liveTypingCoordinator.endSession()
+        liveTypingQueuedText = ""
+        _uiState.update {
+            it.copy(
+                liveTypingText = "",
+                liveTypingPaused = false,
+                liveTypingMessage = null
+            )
+        }
+    }
+
     fun commitLiveTypingText(text: String): Boolean {
-        val accepted = liveTypingCoordinator.submitText(text)
+        val accepted = liveTypingCoordinator.submitEditorChange(
+            previousText = liveTypingQueuedText,
+            currentText = text
+        )
         if (accepted) {
+            liveTypingQueuedText = text
             _uiState.update {
                 it.copy(
-                    liveTypingPendingText = "",
+                    liveTypingText = text,
                     liveTypingMessage = if (it.liveTypingPaused) it.liveTypingMessage else null
                 )
             }
         } else {
+            _uiState.update { it.copy(liveTypingText = text) }
             if (text.isNotEmpty() && !isSafePcTypedText(text)) {
                 _uiState.update {
                     it.copy(liveTypingMessage = TEXT_UNSUPPORTED_MESSAGE)
@@ -499,7 +525,7 @@ class PcMouseControlViewModel(
 
     private suspend fun prepareForPcSwitch() {
         val state = _uiState.value
-        stopLiveTyping()
+        endLiveTypingSession()
         mouseRepeatManager.clearServiceState()
         _uiState.update {
             it.copy(
@@ -841,8 +867,12 @@ class PcMouseControlViewModel(
         serviceControllerProvider()?.onPcUiResumed()
     }
 
-    fun onPcUiPaused() {
-        stopLiveTyping()
+    fun onPcUiPaused(endTypingSession: Boolean = true) {
+        if (endTypingSession) {
+            endLiveTypingSession()
+        } else {
+            liveTypingCoordinator.finish()
+        }
         releaseActiveModifiersIfPossible()
         serviceControllerProvider()?.onPcUiPaused()
     }
@@ -852,7 +882,7 @@ class PcMouseControlViewModel(
     }
 
     override fun onCleared() {
-        stopLiveTyping()
+        endLiveTypingSession()
         releaseActiveModifiersIfPossible()
         pcSwitcher.dispose()
         mouseRepeatManager.clearServiceState()
@@ -950,7 +980,7 @@ class PcMouseControlViewModel(
                     )
                 }
                 if (!supportsTextStreamInput) {
-                    stopLiveTyping()
+                    endLiveTypingSession()
                 }
                 mouseRepeatManager.resumeAfterReconnect(
                     scope = viewModelScope,
@@ -976,7 +1006,7 @@ class PcMouseControlViewModel(
                 }
             }
             PcServiceConnectionState.Disconnected -> {
-                stopLiveTyping()
+                endLiveTypingSession()
                 mouseRepeatManager.clearServiceState()
                 movementStep = FALLBACK_MOVEMENT_STEP
                 _uiState.update {
@@ -1001,7 +1031,7 @@ class PcMouseControlViewModel(
                 }
             }
             is PcServiceConnectionState.Failed -> {
-                stopLiveTyping()
+                endLiveTypingSession()
                 mouseRepeatManager.clearServiceState()
                 movementStep = FALLBACK_MOVEMENT_STEP
                 _uiState.update {
@@ -1049,7 +1079,7 @@ class PcMouseControlViewModel(
                 }
             }
             is PcConnectionState.Failed -> {
-                stopLiveTyping()
+                endLiveTypingSession()
                 mouseRepeatManager.clearServiceState()
                 _uiState.update {
                     it.copy(
@@ -1086,7 +1116,7 @@ class PcMouseControlViewModel(
     }
 
     private fun showConnectFirst() {
-        stopLiveTyping()
+        endLiveTypingSession()
         movementStep = FALLBACK_MOVEMENT_STEP
         _uiState.update {
             it.copy(

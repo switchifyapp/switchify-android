@@ -100,6 +100,112 @@ class PcLiveTypingCoordinatorTest {
     }
 
     @Test
+    fun reconcilesPredictionReplacementWithoutResendingThePrefix() = runTest {
+        val commands = mutableListOf<PcControlCommand>()
+        val coordinator = coordinator(commands)
+
+        coordinator.start()
+        assertTrue(coordinator.submitEditorChange("", "The cat"))
+        assertTrue(coordinator.submitEditorChange("The cat", "The car"))
+        coordinator.finish()
+        advanceUntilIdle()
+
+        val streamId = "stream-1"
+        assertEquals(
+            listOf(
+                PcControlCommand.TextStreamOpen(streamId),
+                PcControlCommand.TextStreamChunk(streamId, 0, "The cat"),
+                PcControlCommand.TextStreamKey(streamId, 1, PcKeyboardKey.Backspace),
+                PcControlCommand.TextStreamChunk(streamId, 2, "r"),
+                PcControlCommand.TextStreamClose(streamId, 3)
+            ),
+            commands
+        )
+    }
+
+    @Test
+    fun reconcilesMiddleEditsByReplacingTheRemoteSuffix() = runTest {
+        val commands = mutableListOf<PcControlCommand>()
+        val coordinator = coordinator(commands)
+
+        coordinator.start()
+        coordinator.submitEditorChange("", "The cat sat")
+        coordinator.submitEditorChange("The cat sat", "The dog sat")
+        coordinator.finish()
+        advanceUntilIdle()
+
+        assertEquals(
+            7,
+            commands.filterIsInstance<PcControlCommand.TextStreamKey>()
+                .count { it.key == PcKeyboardKey.Backspace }
+        )
+        assertEquals(
+            listOf("The cat sat", "dog sat"),
+            commands.filterIsInstance<PcControlCommand.TextStreamChunk>().map { it.text }
+        )
+    }
+
+    @Test
+    fun treatsCombiningCharactersAsOneDeletion() = runTest {
+        val commands = mutableListOf<PcControlCommand>()
+        val coordinator = coordinator(commands)
+
+        coordinator.start()
+        coordinator.submitEditorChange("", "Ae\u0301")
+        coordinator.submitEditorChange("Ae\u0301", "Ao")
+        coordinator.finish()
+        advanceUntilIdle()
+
+        assertEquals(
+            1,
+            commands.filterIsInstance<PcControlCommand.TextStreamKey>()
+                .count { it.key == PcKeyboardKey.Backspace }
+        )
+    }
+
+    @Test
+    fun queuesPredictionChangesBehindAnInFlightAcknowledgement() = runTest {
+        val commands = mutableListOf<PcControlCommand>()
+        val firstChunkStarted = CompletableDeferred<Unit>()
+        val firstChunkResult = CompletableDeferred<PcCommandResult>()
+        var chunkCount = 0
+        val coordinator = PcLiveTypingCoordinator(
+            scope = this,
+            sendCommand = { command ->
+                commands += command
+                if (command is PcControlCommand.TextStreamChunk && chunkCount++ == 0) {
+                    firstChunkStarted.complete(Unit)
+                    firstChunkResult.await()
+                } else {
+                    PcCommandResult.Ack
+                }
+            },
+            streamIdProvider = { "stream-1" }
+        )
+
+        coordinator.start()
+        coordinator.submitEditorChange("", "cat")
+        runCurrent()
+        firstChunkStarted.await()
+        coordinator.submitEditorChange("cat", "car")
+        firstChunkResult.complete(PcCommandResult.Ack)
+        coordinator.finish()
+        advanceUntilIdle()
+
+        assertEquals(
+            listOf(
+                PcControlCommand.TextStreamChunk("stream-1", 0, "cat"),
+                PcControlCommand.TextStreamChunk("stream-1", 2, "r")
+            ),
+            commands.filterIsInstance<PcControlCommand.TextStreamChunk>()
+        )
+        assertEquals(
+            listOf(PcControlCommand.TextStreamKey("stream-1", 1, PcKeyboardKey.Backspace)),
+            commands.filterIsInstance<PcControlCommand.TextStreamKey>()
+        )
+    }
+
+    @Test
     fun rollsOverBeforeProtocolItemLimit() = runTest {
         val commands = mutableListOf<PcControlCommand>()
         var streamNumber = 0
@@ -260,6 +366,46 @@ class PcLiveTypingCoordinatorTest {
         assertEquals(
             2,
             commands.filterIsInstance<PcControlCommand.TextStreamChunk>().size
+        )
+    }
+
+    @Test
+    fun endingAFailedSessionStartsTheNextSessionCleanly() = runTest {
+        val commands = mutableListOf<PcControlCommand>()
+        var streamNumber = 0
+        var failFirstChunk = true
+        val coordinator = PcLiveTypingCoordinator(
+            scope = this,
+            sendCommand = { command ->
+                commands += command
+                if (command is PcControlCommand.TextStreamChunk && failFirstChunk) {
+                    failFirstChunk = false
+                    PcCommandResult.Failed()
+                } else {
+                    PcCommandResult.Ack
+                }
+            },
+            streamIdProvider = { "stream-${++streamNumber}" }
+        )
+
+        coordinator.start()
+        coordinator.submitEditorChange("", "A")
+        advanceUntilIdle()
+        coordinator.endSession()
+        coordinator.start()
+        assertTrue(coordinator.submitEditorChange("", "B"))
+        coordinator.endSession()
+        advanceUntilIdle()
+
+        assertEquals(
+            listOf(PcControlCommand.TextStreamChunk("stream-1", 0, "A")),
+            commands.filterIsInstance<PcControlCommand.TextStreamChunk>()
+                .filter { it.streamId == "stream-1" }
+        )
+        assertEquals(
+            listOf(PcControlCommand.TextStreamChunk("stream-2", 0, "B")),
+            commands.filterIsInstance<PcControlCommand.TextStreamChunk>()
+                .filter { it.streamId == "stream-2" }
         )
     }
 

@@ -2,9 +2,12 @@ package com.enaboapps.switchify.screens.pc
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.text.Editable
 import android.text.InputType
+import android.text.TextWatcher
 import android.util.AttributeSet
 import android.view.KeyEvent
+import android.view.inputmethod.BaseInputConnection
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputConnection
 import android.view.inputmethod.InputConnectionWrapper
@@ -17,7 +20,9 @@ internal class PcLiveTypingEditText @JvmOverloads constructor(
     attrs: AttributeSet? = null
 ) : EditText(context, attrs) {
     var onTextCommitted: (String) -> Boolean = { false }
+    var onSessionTextChanged: (String) -> Unit = {}
     var onKeyCommitted: (PcKeyboardKey) -> Unit = {}
+    private var restoringText = false
 
     init {
         inputType = InputType.TYPE_CLASS_TEXT or
@@ -26,6 +31,27 @@ internal class PcLiveTypingEditText @JvmOverloads constructor(
         minLines = 2
         maxLines = 4
         isSingleLine = false
+        addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(
+                text: CharSequence?,
+                start: Int,
+                count: Int,
+                after: Int
+            ) = Unit
+
+            override fun onTextChanged(
+                text: CharSequence?,
+                start: Int,
+                before: Int,
+                count: Int
+            ) = Unit
+
+            override fun afterTextChanged(text: Editable?) {
+                if (!restoringText) {
+                    onSessionTextChanged(text?.toString().orEmpty())
+                }
+            }
+        })
     }
 
     override fun onCreateInputConnection(outAttrs: EditorInfo): InputConnection? {
@@ -34,13 +60,13 @@ internal class PcLiveTypingEditText @JvmOverloads constructor(
         return object : InputConnectionWrapper(target, true) {
             override fun commitText(text: CharSequence?, newCursorPosition: Int): Boolean {
                 val result = super.commitText(text, newCursorPosition)
-                submitPendingText()
+                submitCommittedTextIfReady()
                 return result
             }
 
             override fun finishComposingText(): Boolean {
                 val result = super.finishComposingText()
-                commitPendingText()
+                submitCommittedText()
                 return result
             }
 
@@ -48,6 +74,7 @@ internal class PcLiveTypingEditText @JvmOverloads constructor(
                 val localBefore = selectionStart.coerceAtLeast(0)
                 val localAfter = (length() - selectionEnd.coerceAtLeast(0)).coerceAtLeast(0)
                 val result = super.deleteSurroundingText(beforeLength, afterLength)
+                submitCommittedTextIfReady()
                 sendRepeatedKey(PcKeyboardKey.Backspace, beforeLength - localBefore)
                 sendRepeatedKey(PcKeyboardKey.Delete, afterLength - localAfter)
                 return result
@@ -63,6 +90,7 @@ internal class PcLiveTypingEditText @JvmOverloads constructor(
                 val remaining = text?.substring(safeEnd).orEmpty()
                 val localAfter = remaining.codePointCount(0, remaining.length)
                 val result = super.deleteSurroundingTextInCodePoints(beforeLength, afterLength)
+                submitCommittedTextIfReady()
                 sendRepeatedKey(PcKeyboardKey.Backspace, beforeLength - localBefore)
                 sendRepeatedKey(PcKeyboardKey.Delete, afterLength - localAfter)
                 return result
@@ -84,19 +112,17 @@ internal class PcLiveTypingEditText @JvmOverloads constructor(
                     KeyEvent.KEYCODE_FORWARD_DEL -> deleteSurroundingText(0, 1)
                     KeyEvent.KEYCODE_ENTER,
                     KeyEvent.KEYCODE_NUMPAD_ENTER -> {
-                        commitPendingText()
-                        onKeyCommitted(PcKeyboardKey.Enter)
+                        insertCommittedText("\n")
                         true
                     }
                     KeyEvent.KEYCODE_TAB -> {
-                        commitPendingText()
-                        onKeyCommitted(PcKeyboardKey.Tab)
+                        insertCommittedText("\t")
                         true
                     }
                     else -> {
                         val codePoint = event.unicodeChar
                         if (codePoint > 0 && !event.isCtrlPressed && !event.isAltPressed) {
-                            onTextCommitted(String(Character.toChars(codePoint)))
+                            insertCommittedText(String(Character.toChars(codePoint)))
                             true
                         } else {
                             super.sendKeyEvent(event)
@@ -106,8 +132,7 @@ internal class PcLiveTypingEditText @JvmOverloads constructor(
             }
 
             override fun performEditorAction(editorAction: Int): Boolean {
-                commitPendingText()
-                onKeyCommitted(PcKeyboardKey.Enter)
+                insertCommittedText("\n")
                 return true
             }
         }
@@ -117,7 +142,7 @@ internal class PcLiveTypingEditText @JvmOverloads constructor(
         if (id == android.R.id.paste || id == android.R.id.pasteAsPlainText) {
             val result = super.onTextContextMenuItem(id)
             if (result) {
-                submitPendingText()
+                submitCommittedTextIfReady()
             }
             return result
         }
@@ -132,38 +157,47 @@ internal class PcLiveTypingEditText @JvmOverloads constructor(
         return if (isHandledHardwareKey(keyCode, event)) true else super.onKeyUp(keyCode, event)
     }
 
-    fun finishAndTakePendingText(): String {
+    fun finishCompositionAndTakeSessionText(): String {
         clearComposingText()
-        submitPendingText()
+        submitCommittedText()
         return text?.toString().orEmpty()
     }
 
-    fun restorePendingText(value: String) {
-        if (text.isNullOrEmpty() && value.isNotEmpty()) {
+    fun restoreSessionText(value: String) {
+        if (text?.toString() != value) {
+            restoringText = true
             setText(value)
             setSelection(length())
+            restoringText = false
         }
     }
 
-    private fun commitPendingText() {
-        submitPendingText()
+    fun retryCommittedText(): Boolean {
+        return submitCommittedText()
     }
 
-    fun retryPendingText(): Boolean {
-        return submitPendingText()
+    private fun submitCommittedTextIfReady(): Boolean {
+        return if (hasActiveComposition()) true else submitCommittedText()
     }
 
-    private fun submitPendingText(): Boolean {
-        val pendingText = text?.toString().orEmpty()
-        if (pendingText.isNotEmpty() && onTextCommitted(pendingText)) {
-            clearLocalText()
-            return true
-        }
-        return false
+    private fun submitCommittedText(): Boolean {
+        return onTextCommitted(text?.toString().orEmpty())
     }
 
-    private fun clearLocalText() {
-        text?.clear()
+    private fun hasActiveComposition(): Boolean {
+        val editable = text ?: return false
+        return BaseInputConnection.getComposingSpanStart(editable) >= 0 ||
+            BaseInputConnection.getComposingSpanEnd(editable) >= 0
+    }
+
+    private fun insertCommittedText(value: String) {
+        val editable = text ?: return
+        clearComposingText()
+        val start = selectionStart.coerceIn(0, editable.length)
+        val end = selectionEnd.coerceIn(start, editable.length)
+        editable.replace(start, end, value)
+        setSelection(start + value.length)
+        submitCommittedText()
     }
 
     private fun sendRepeatedKey(key: PcKeyboardKey, count: Int) {
@@ -176,16 +210,18 @@ internal class PcLiveTypingEditText @JvmOverloads constructor(
         if (event.isCtrlPressed || event.isAltPressed) return false
         return when (keyCode) {
             KeyEvent.KEYCODE_DEL -> {
-                if (length() > 0) {
+                if (selectionStart != selectionEnd || selectionStart > 0) {
                     super.onKeyDown(keyCode, event)
+                    submitCommittedTextIfReady()
                 } else {
                     onKeyCommitted(PcKeyboardKey.Backspace)
                 }
                 true
             }
             KeyEvent.KEYCODE_FORWARD_DEL -> {
-                if (length() > 0) {
+                if (selectionStart != selectionEnd || selectionEnd < length()) {
                     super.onKeyDown(keyCode, event)
+                    submitCommittedTextIfReady()
                 } else {
                     onKeyCommitted(PcKeyboardKey.Delete)
                 }
@@ -193,20 +229,18 @@ internal class PcLiveTypingEditText @JvmOverloads constructor(
             }
             KeyEvent.KEYCODE_ENTER,
             KeyEvent.KEYCODE_NUMPAD_ENTER -> {
-                commitPendingText()
-                onKeyCommitted(PcKeyboardKey.Enter)
+                insertCommittedText("\n")
                 true
             }
             KeyEvent.KEYCODE_TAB -> {
-                commitPendingText()
-                onKeyCommitted(PcKeyboardKey.Tab)
+                insertCommittedText("\t")
                 true
             }
             else -> {
                 val codePoint = event.unicodeChar
                 if (codePoint > 0) {
-                    if (length() > 0 && !submitPendingText()) return false
-                    onTextCommitted(String(Character.toChars(codePoint)))
+                    insertCommittedText(String(Character.toChars(codePoint)))
+                    true
                 } else {
                     false
                 }
