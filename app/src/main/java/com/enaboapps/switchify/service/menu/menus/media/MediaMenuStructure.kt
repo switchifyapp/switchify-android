@@ -35,12 +35,14 @@ class MediaMenuStructure(
             MenuItemRegistry.getDefinition(MenuConstants.MenuIds.MEDIA_CONTROL_MENU, MenuConstants.ItemIds.Media.PREVIOUS_TRACK)?.let { def ->
                 MenuItem(
                     definition = def,
+                    closeOnSelect = false,
                     action = { AudioActionManager.previousTrack() }
                 )
             },
             MenuItemRegistry.getDefinition(MenuConstants.MenuIds.MEDIA_CONTROL_MENU, MenuConstants.ItemIds.Media.NEXT_TRACK)?.let { def ->
                 MenuItem(
                     definition = def,
+                    closeOnSelect = false,
                     action = { AudioActionManager.nextTrack() }
                 )
             },
@@ -49,4 +51,4 @@ class MediaMenuStructure(
         context = accessibilityService,
         coroutineScope = coroutineScope
     )
-} 
+}
