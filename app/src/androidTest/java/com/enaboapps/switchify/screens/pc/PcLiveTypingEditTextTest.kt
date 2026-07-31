@@ -7,7 +7,10 @@ import android.view.KeyEvent
 import android.view.View
 import android.view.inputmethod.EditorInfo
 import androidx.activity.ComponentActivity
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
@@ -18,6 +21,7 @@ import androidx.test.espresso.ViewAction
 import androidx.test.espresso.assertion.ViewAssertions.matches
 import androidx.test.espresso.matcher.ViewMatchers.hasFocus
 import androidx.test.espresso.matcher.ViewMatchers.isAssignableFrom
+import androidx.test.espresso.matcher.ViewMatchers.withText
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.enaboapps.switchify.R
@@ -229,8 +233,10 @@ class PcLiveTypingEditTextTest {
     }
 
     @Test
-    fun returningFromPcKeysRestoresLiveEditorFocus() {
+    fun returningFromPcKeysClearsLiveTextAndRestoresEditorFocus() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
+        var clearCount = 0
+        var liveText by mutableStateOf("Clear me")
         composeTestRule.setContent {
             SwitchifyTheme {
                 PcTypingControlScreen(
@@ -244,17 +250,20 @@ class PcLiveTypingEditTextTest {
                     liveTypingMessage = null,
                     liveTypingAnnouncement = null,
                     liveTypingNotice = null,
-                    liveTypingText = "",
+                    liveTypingText = liveText,
                     enabled = true,
                     onTypingModeSelected = {},
                     onDraftEnterChanged = {},
                     onTextChanged = {},
                     onSendDraft = {},
                     onClear = {},
-                    onClearLiveField = {},
+                    onClearLiveField = {
+                        liveText = ""
+                        clearCount += 1
+                    },
                     onLiveTypingStarted = {},
                     onLiveTypingStopped = {},
-                    onLiveSessionTextChanged = {},
+                    onLiveSessionTextChanged = { liveText = it },
                     onLiveTextCommitted = { true },
                     onLiveKeyCommitted = {},
                     onLiveTypingRetry = {},
@@ -269,12 +278,17 @@ class PcLiveTypingEditTextTest {
         composeTestRule
             .onNodeWithText(context.getString(R.string.pc_typing_pc_keys))
             .performClick()
+        composeTestRule.runOnIdle {
+            assertEquals(1, clearCount)
+            assertEquals("", liveText)
+        }
         composeTestRule
             .onNodeWithText(context.getString(R.string.pc_typing_back_to_typing))
             .performClick()
 
         onView(isAssignableFrom(PcLiveTypingEditText::class.java))
             .check(matches(hasFocus()))
+            .check(matches(withText("")))
     }
 
     private fun setLiveInput(

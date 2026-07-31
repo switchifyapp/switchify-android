@@ -100,6 +100,7 @@ fun PcTypingControlScreen(
 ) {
     var page by rememberSaveable { mutableStateOf(PcTypingPage.Editor) }
     var restoreKeyboardOnEditorReturn by rememberSaveable { mutableStateOf(false) }
+    var clearLiveTextOnKeysEntry by remember { mutableStateOf(false) }
     val fieldFocusRequester = remember { FocusRequester() }
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -110,6 +111,12 @@ fun PcTypingControlScreen(
         if (ownsLiveSession && manageLiveSessionLifecycle) onLiveTypingStarted()
         onDispose {
             if (ownsLiveSession && manageLiveSessionLifecycle) onLiveTypingStopped(latestLiveText)
+        }
+    }
+    LaunchedEffect(page, clearLiveTextOnKeysEntry) {
+        if (page == PcTypingPage.Keys && clearLiveTextOnKeysEntry) {
+            onClearLiveField()
+            clearLiveTextOnKeysEntry = false
         }
     }
     LaunchedEffect(liveTypingPaused) {
@@ -166,6 +173,7 @@ fun PcTypingControlScreen(
             onOpenKeys = {
                 focusManager.clearFocus(force = true)
                 keyboardController?.hide()
+                clearLiveTextOnKeysEntry = ownsLiveSession
                 page = PcTypingPage.Keys
             },
             fieldFocusRequester = fieldFocusRequester,

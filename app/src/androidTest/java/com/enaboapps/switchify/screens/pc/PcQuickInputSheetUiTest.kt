@@ -261,6 +261,8 @@ class PcQuickInputSheetUiTest {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         var startedCount = 0
         var stoppedCount = 0
+        var clearCount = 0
+        var liveText by mutableStateOf("Clear me")
         val selectedKeys = mutableListOf<PcKeyboardKey>()
 
         composeTestRule.setContent {
@@ -270,6 +272,7 @@ class PcQuickInputSheetUiTest {
                     typingMessage = null,
                     typingMode = PcTypingMode.Live,
                     liveTypingAvailable = true,
+                    liveTypingText = liveText,
                     connected = true,
                     enabled = true,
                     onTextChanged = {},
@@ -278,6 +281,11 @@ class PcQuickInputSheetUiTest {
                     onClear = {},
                     onLiveTypingStarted = { startedCount += 1 },
                     onLiveTypingStopped = { stoppedCount += 1 },
+                    onLiveSessionTextChanged = { liveText = it },
+                    onClearLiveField = {
+                        liveText = ""
+                        clearCount += 1
+                    },
                     onKeySelected = selectedKeys::add,
                     onClose = {}
                 )
@@ -294,6 +302,8 @@ class PcQuickInputSheetUiTest {
         composeTestRule.runOnIdle {
             assertEquals(1, startedCount)
             assertEquals(0, stoppedCount)
+            assertEquals(1, clearCount)
+            assertEquals("", liveText)
             assertEquals(listOf(PcKeyboardKey.Enter), selectedKeys)
         }
     }
