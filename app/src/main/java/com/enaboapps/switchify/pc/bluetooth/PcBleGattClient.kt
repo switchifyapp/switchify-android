@@ -107,6 +107,7 @@ private class PcBleGattConnection private constructor(
         private val responseRouter = PcBleResponseRouter()
         private val events = MutableSharedFlow<PcBleTransportEvent>(extraBufferCapacity = 8)
         private val reassembler = BluetoothFrameReassembler()
+        private val setupCoordinator = PcBleGattSetupCoordinator()
         private lateinit var writer: PcBleGattWriter
         private var pendingDescriptorWrite: BluetoothGattDescriptor? = null
         private var setupComplete = false
@@ -117,7 +118,11 @@ private class PcBleGattConnection private constructor(
             deviceAddress = endpoint.deviceAddress
             withTimeout(GATT_CONNECT_TIMEOUT_MS) { connected.await() }
             @SuppressLint("MissingPermission")
-            if (!gatt.discoverServices()) {
+            val serviceDiscoveryStarted = setupCoordinator.startServiceDiscovery(
+                requestMtu = gatt::requestMtu,
+                discoverServices = gatt::discoverServices
+            )
+            if (!serviceDiscoveryStarted) {
                 throw PcBleTransportException(
                     PcBleFailureReason.ServiceDiscoveryFailed,
                     "Could not discover Bluetooth services."
@@ -184,6 +189,10 @@ private class PcBleGattConnection private constructor(
                     )
                 )
             }
+        }
+
+        override fun onMtuChanged(gatt: BluetoothGatt, mtu: Int, status: Int) {
+            setupCoordinator.onMtuChanged(status == BluetoothGatt.GATT_SUCCESS)
         }
 
         @Deprecated("Deprecated in Java")
