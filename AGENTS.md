@@ -42,8 +42,9 @@ Switchify is an Android accessibility service app that helps users with mobility
 5. **Testing**: Test compilation with `./gradlew compileDebugKotlin`
 6. **Commit & Push**: Commit with proper format and push branch
 7. **Pull Request**: Create PR with detailed description
-8. **User Approval**: Ask user if they want to merge (yes/no)
-9. **Proactive Communication**: Always ask yes/no for perceived next steps
+8. **Greptile Review**: Watch the PR until Greptile finishes its review, address all actionable feedback, and rerun required checks
+9. **User Approval**: Ask user if they want to merge (yes/no)
+10. **Proactive Communication**: Always ask yes/no for perceived next steps
 
 ### Branch & Issue Management
 - Create descriptive branch names: `feature/description-1234` or `fix/description-1234`
@@ -73,7 +74,8 @@ Brief descriptive title
 6. Commit with proper format
 7. Push branch and create PR with detailed description
 8. Include test plan in PR description
-9. Ask user if they want to merge (yes/no)
+9. Watch the PR until Greptile finishes its review, address all actionable feedback, and rerun required checks
+10. Ask user if they want to merge (yes/no)
 
 ### Testing Requirements
 - Always test compilation before committing
