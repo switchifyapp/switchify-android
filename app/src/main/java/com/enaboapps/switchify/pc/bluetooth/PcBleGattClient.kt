@@ -114,10 +114,10 @@ private class PcBleGattConnection private constructor(
         private var closedByClient = false
         private var deviceAddress = "unknown"
 
-        @SuppressLint("MissingPermission")
         suspend fun awaitConnected(context: Context, endpoint: PcBluetoothEndpoint): PcBleGattConnection {
             deviceAddress = endpoint.deviceAddress
             withTimeout(GATT_CONNECT_TIMEOUT_MS) { connected.await() }
+            @SuppressLint("MissingPermission")
             val serviceDiscoveryStarted = setupCoordinator.startServiceDiscovery(
                 requestMtu = gatt::requestMtu,
                 discoverServices = gatt::discoverServices

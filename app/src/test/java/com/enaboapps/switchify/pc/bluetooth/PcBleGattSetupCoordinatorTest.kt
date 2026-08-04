@@ -169,4 +169,25 @@ class PcBleGattSetupCoordinatorTest {
 
         assertFalse(started)
     }
+
+    @Test
+    fun failedServiceDiscoveryCanRetryWithoutRepeatingMtuRequest() = runTest {
+        var mtuRequests = 0
+        var discoveries = 0
+        val coordinator = PcBleGattSetupCoordinator()
+        val requestMtu: (Int) -> Boolean = {
+            mtuRequests += 1
+            false
+        }
+        val discoverServices: () -> Boolean = {
+            discoveries += 1
+            discoveries == 2
+        }
+
+        assertFalse(coordinator.startServiceDiscovery(requestMtu, discoverServices))
+        assertTrue(coordinator.startServiceDiscovery(requestMtu, discoverServices))
+
+        assertEquals(1, mtuRequests)
+        assertEquals(2, discoveries)
+    }
 }

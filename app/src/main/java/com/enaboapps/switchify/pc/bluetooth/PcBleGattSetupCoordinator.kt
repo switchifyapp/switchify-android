@@ -12,13 +12,13 @@ internal class PcBleGattSetupCoordinator(
     private val setupMutex = Mutex()
     private val mtuRequestAttempted = AtomicBoolean(false)
     private val mtuResult = CompletableDeferred<Boolean>()
-    private var serviceDiscoveryResult: Boolean? = null
+    private var serviceDiscoveryStarted = false
 
     suspend fun startServiceDiscovery(
         requestMtu: (Int) -> Boolean,
         discoverServices: () -> Boolean
     ): Boolean = setupMutex.withLock {
-        serviceDiscoveryResult?.let { return@withLock it }
+        if (serviceDiscoveryStarted) return@withLock true
 
         if (mtuRequestAttempted.compareAndSet(false, true)) {
             val requestStarted = runCatching { requestMtu(PC_BLE_TARGET_MTU) }.getOrDefault(false)
@@ -27,7 +27,7 @@ internal class PcBleGattSetupCoordinator(
             }
         }
 
-        discoverServices().also { serviceDiscoveryResult = it }
+        discoverServices().also { serviceDiscoveryStarted = it }
     }
 
     fun onMtuChanged(succeeded: Boolean) {
