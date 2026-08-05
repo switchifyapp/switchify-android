@@ -9,13 +9,20 @@ class SupportedActionsPolicyTest {
     fun pcSwitchControlIsSupportedInEveryScanMode() {
         listOf(
             ScanMode.Modes.MODE_AUTO,
-            ScanMode.Modes.MODE_MANUAL,
-            ScanMode.Modes.MODE_DIRECTIONAL
+            ScanMode.Modes.MODE_MANUAL
         ).forEach { mode ->
             assertTrue(
                 SupportedActionsPolicy.supportedActionIdsForMode(mode)
                     .contains(SwitchAction.ACTION_PC_SWITCH_CONTROL)
             )
         }
+    }
+
+    @Test
+    fun unknownModeUsesAutoScanActions() {
+        assertTrue(
+            SupportedActionsPolicy.supportedActionIdsForMode("unknown")
+                .contains(SwitchAction.ACTION_SELECT)
+        )
     }
 }

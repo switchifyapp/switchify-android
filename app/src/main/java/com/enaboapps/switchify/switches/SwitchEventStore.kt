@@ -271,12 +271,9 @@ class SwitchEventStore private constructor() {
      */
     fun isConfigInvalid(context: Context): String? {
         val preferenceManager = PreferenceManager(context)
-        var mode =
-            ScanMode(preferenceManager.getStringValue(PreferenceManager.PREFERENCE_KEY_SCAN_MODE))
-
-        if (mode.id.isEmpty()) {
-            mode = ScanMode(ScanMode.Modes.MODE_AUTO)
-        }
+        val mode = ScanMode.fromId(
+            preferenceManager.getStringValue(PreferenceManager.PREFERENCE_KEY_SCAN_MODE)
+        )
 
         val containsSelect = switchEvents.any { it.containsAction(SwitchAction.ACTION_SELECT) }
         val containsNext =

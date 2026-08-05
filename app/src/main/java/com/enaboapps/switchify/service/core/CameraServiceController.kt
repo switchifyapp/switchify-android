@@ -69,10 +69,7 @@ class CameraServiceController(
         serviceScope.launch {
             bindingMutex.withLock {
                 val provider = ServiceCore.getSwitchEventProvider()
-                // Head control is now independent - check if it's enabled and ready
-                val headControlService = ServiceCore.getHeadControlService()
-                val headActive = headControlService?.isReady() == true
-                val needsCamera = provider?.hasCameraSwitch == true || headActive
+                val needsCamera = provider?.hasCameraSwitch == true
 
                 if (needsCamera && !isBound && !isBinding && permissionManager.hasPermission()) {
                     try {
@@ -85,7 +82,7 @@ class CameraServiceController(
                             logd("Failed to bind to camera service")
                             isBinding = false
                         } else {
-                            logd("Binding to camera foreground service (camera switches: ${provider?.hasCameraSwitch}, head control: $headActive)")
+                            logd("Binding to camera foreground service")
                         }
                     } catch (e: Exception) {
                         Log.e(TAG, "Exception during service binding", e)
@@ -147,13 +144,10 @@ class CameraServiceController(
 
     fun startIfAvailable() {
         val provider = ServiceCore.getSwitchEventProvider()
-        // Head control is now independent - check if it's enabled and ready
-        val headControlService = ServiceCore.getHeadControlService()
-        val headActive = headControlService?.isReady() == true
-        val needsCamera = provider?.hasCameraSwitch == true || headActive
+        val needsCamera = provider?.hasCameraSwitch == true
         if (needsCamera && deviceLockObserver.isUserUnlocked() && permissionManager.hasPermission()) {
             service?.startCamera(lifecycleOwner)
-            logd("Started camera service (camera switches: ${provider?.hasCameraSwitch}, head control: $headActive)")
+            logd("Started camera service")
         } else if (needsCamera && !permissionManager.hasPermission()) {
             logd("Camera permission not granted, cannot start camera service")
         }

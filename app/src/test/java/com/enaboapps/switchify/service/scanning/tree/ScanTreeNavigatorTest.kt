@@ -115,20 +115,6 @@ class ScanTreeNavigatorTest {
     }
 
     @Test
-    fun spatialPositionResetsCycleProgress() {
-        val navigator = navigatorForRow("first", "last").apply {
-            currentCycle = 2
-        }
-
-        val positioned = navigator.setSpatialPosition(treeIndex = 0, nodeIndex = 1)
-
-        assertTrue(positioned)
-        assertEquals(0, navigator.currentCycle)
-        assertEquals(1, navigator.currentColumn)
-        assertTrue(navigator.isInTreeItem)
-    }
-
-    @Test
     fun ordinaryMovementWithinContextPreservesCycleProgress() {
         val navigator = navigatorForRow("first", "middle", "last").apply {
             isInTreeItem = true
@@ -300,7 +286,6 @@ class ScanTreeNavigatorTest {
         private val autoScan: Boolean = false
     ) : ScanTreeNavigatorSettings {
         override fun isRowColumnScanEnabled(): Boolean = true
-        override fun isDirectionalScanMode(): Boolean = false
         override fun isGroupScanEnabled(): Boolean = groupScan
         override fun getScanCycles(): Int = 3
         override fun isAutoScanMode(): Boolean = autoScan

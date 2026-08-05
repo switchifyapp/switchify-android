@@ -27,7 +27,6 @@ import com.enaboapps.switchify.screens.pc.PcConnectionScreen
 import com.enaboapps.switchify.screens.pc.PcSettingsScreen
 
 import com.enaboapps.switchify.screens.settings.CameraSettingsScreen
-import com.enaboapps.switchify.screens.settings.HeadControlSettingsScreen
 import com.enaboapps.switchify.screens.settings.SettingsScreen
 import com.enaboapps.switchify.screens.settings.aimodel.AiModelScreen
 import com.enaboapps.switchify.screens.settings.aimodel.GemmaTermsScreen
@@ -181,9 +180,6 @@ fun NavGraph(navController: NavHostController) {
         }
         composable(NavigationRoute.CameraSettings.name) {
             CameraSettingsScreen(navController)
-        }
-        composable(NavigationRoute.HeadControlSettings.name) {
-            HeadControlSettingsScreen(navController)
         }
         composable(NavigationRoute.PauseSettings.name) {
             PauseSettingsScreen(navController)

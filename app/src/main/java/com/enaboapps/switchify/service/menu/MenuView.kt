@@ -309,7 +309,7 @@ class MenuView(
     }
 
     /**
-     * Get selectable nodes for head control navigation
+     * Get selectable nodes in the menu
      * @return List of nodes that can be selected on the current page
      */
     fun getSelectableNodes(): List<ScanNodeInterface> {

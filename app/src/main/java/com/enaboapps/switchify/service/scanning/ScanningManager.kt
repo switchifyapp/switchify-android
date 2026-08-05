@@ -68,7 +68,7 @@ class ScanningManager(
         get() = activeScanMethod.currentAccessTechnique
 
     /**
-     * Provides access to the active scan method manager for head control integration
+     * Provides access to the active scan method manager
      */
     fun getActiveScanMethod(): ActiveAccessTechnique = activeScanMethod
 

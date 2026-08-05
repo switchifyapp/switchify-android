@@ -15,13 +15,12 @@ import com.enaboapps.switchify.service.camera.CameraPermissionManager
 import com.enaboapps.switchify.service.core.ServiceCore
 import com.enaboapps.switchify.service.core.Tasks
 import com.enaboapps.switchify.service.face.FaceProcessingService
+import com.enaboapps.switchify.service.face.FacialGestureRegistry
 import com.enaboapps.switchify.service.keyboard.KeyboardManager
 import com.enaboapps.switchify.service.pauseresume.PauseManager
 import com.enaboapps.switchify.service.scanning.ScanningManager
 import com.enaboapps.switchify.service.stats.StatsCollector
 import com.enaboapps.switchify.service.switches.SwitchEventProvider
-import com.enaboapps.switchify.service.techniques.headcontrol.HeadControlSettings
-import com.enaboapps.switchify.service.utils.GestureConflictDetector
 import com.enaboapps.switchify.switches.CameraSwitchFacialGesture
 import com.enaboapps.switchify.switches.SwitchEvent
 import com.enaboapps.switchify.switches.isScanMovementAction
@@ -48,7 +47,6 @@ class CameraSwitchManager(
 ) : CameraLifecycle {
     private val preferenceManager = PreferenceManager(context)
     private val permissionManager = CameraPermissionManager.getInstance(context)
-    private val gestureConflictDetector = GestureConflictDetector(context)
 
     // Lifecycle state management
     private val _lifecycleState = MutableStateFlow(CameraLifecycle.State.UNINITIALIZED)
@@ -60,21 +58,9 @@ class CameraSwitchManager(
         var startTime: Long = 0
     )
 
-    private val gestureStates = mutableMapOf(
-        CameraSwitchFacialGesture.SMILE to CameraSwitchState(false),
-        CameraSwitchFacialGesture.LEFT_WINK to CameraSwitchState(false),
-        CameraSwitchFacialGesture.RIGHT_WINK to CameraSwitchState(false),
-        CameraSwitchFacialGesture.BLINK to CameraSwitchState(false),
-        CameraSwitchFacialGesture.PUCKER to CameraSwitchState(false)
-        // Head turns handled directly without state tracking
-    )
-
-    // Track currently active gesture
-    private var activeGesture: String? = null
-
-    // Head turn rate limiting
-    private var lastHeadTurnTime = 0L
-    private val headTurnCooldown = 500L // 500ms minimum between head turn triggers
+    private val gestureStates = FacialGestureRegistry.switchAssignableIds()
+        .associateWith { CameraSwitchState(false) }
+        .toMutableMap()
 
     private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val mainHandler = Handler(Looper.getMainLooper())
@@ -170,8 +156,6 @@ class CameraSwitchManager(
     private fun onPauseStarted() {
         Log.d(TAG, "Pause started - resetting gesture states")
         gestureStates.values.forEach { it.isActive = false }
-        activeGesture = null
-        // Head control is now independent - gesture state managed separately
     }
 
     private fun onPauseEnded() {
@@ -192,150 +176,11 @@ class CameraSwitchManager(
             return
         }
 
-        // Update head control when enabled (independent of access technique)
-        val headControlService = ServiceCore.getHeadControlService()
-        if (headControlService?.isEnabled() == true) {
-            headControlService.updateHeadPosition(
-                result.faceState.headRotationX,
-                result.faceState.headRotationY
+        gestureStates.keys.forEach { gestureId ->
+            handleGestureStateChange(
+                CameraSwitchFacialGesture(gestureId),
+                gestureId in result.detectedGestures
             )
-
-            // Process gestures for head control selection
-            processHeadControlGestures(result, headControlService)
-        }
-
-        // Process detected gestures with priority logic
-        result.detectedGestures.forEach { gestureId ->
-            // Check if head control should take priority for this gesture
-            val shouldSkipSwitch = gestureConflictDetector.shouldPrioritizeHeadControl(
-                gestureId,
-                switchEventProvider
-            )
-
-            if (shouldSkipSwitch) {
-                Log.d(
-                    TAG,
-                    "Skipping switch processing for gesture $gestureId - head control priority"
-                )
-                return@forEach
-            }
-
-            when (gestureId) {
-                CameraSwitchFacialGesture.SMILE -> {
-                    handleGestureStateChange(
-                        CameraSwitchFacialGesture(CameraSwitchFacialGesture.SMILE),
-                        true
-                    )
-                }
-
-                CameraSwitchFacialGesture.LEFT_WINK -> {
-                    handleGestureStateChange(
-                        CameraSwitchFacialGesture(CameraSwitchFacialGesture.LEFT_WINK),
-                        true
-                    )
-                }
-
-                CameraSwitchFacialGesture.RIGHT_WINK -> {
-                    handleGestureStateChange(
-                        CameraSwitchFacialGesture(CameraSwitchFacialGesture.RIGHT_WINK),
-                        true
-                    )
-                }
-
-                CameraSwitchFacialGesture.BLINK -> {
-                    handleGestureStateChange(
-                        CameraSwitchFacialGesture(CameraSwitchFacialGesture.BLINK),
-                        true
-                    )
-                }
-
-                CameraSwitchFacialGesture.PUCKER -> {
-                    handleGestureStateChange(
-                        CameraSwitchFacialGesture(CameraSwitchFacialGesture.PUCKER),
-                        true
-                    )
-                }
-
-                CameraSwitchFacialGesture.HEAD_TURN_LEFT,
-                CameraSwitchFacialGesture.HEAD_TURN_RIGHT,
-                CameraSwitchFacialGesture.HEAD_TURN_UP,
-                CameraSwitchFacialGesture.HEAD_TURN_DOWN -> {
-                    triggerHeadTurnGesture(CameraSwitchFacialGesture(gestureId))
-                }
-            }
-        }
-
-        // Handle face state changes for gesture ending with priority logic
-        val faceState = result.faceState
-
-        // Check smile ending
-        if (!faceState.isSmiling) {
-            val shouldSkipSwitch = gestureConflictDetector.shouldPrioritizeHeadControl(
-                CameraSwitchFacialGesture.SMILE,
-                switchEventProvider
-            )
-            if (!shouldSkipSwitch) {
-                handleGestureStateChange(
-                    CameraSwitchFacialGesture(CameraSwitchFacialGesture.SMILE),
-                    false
-                )
-            }
-        }
-
-        // Check left wink ending
-        if (faceState.leftEyeOpen) {
-            val shouldSkipSwitch = gestureConflictDetector.shouldPrioritizeHeadControl(
-                CameraSwitchFacialGesture.LEFT_WINK,
-                switchEventProvider
-            )
-            if (!shouldSkipSwitch) {
-                handleGestureStateChange(
-                    CameraSwitchFacialGesture(CameraSwitchFacialGesture.LEFT_WINK),
-                    false
-                )
-            }
-        }
-
-        // Check right wink ending
-        if (faceState.rightEyeOpen) {
-            val shouldSkipSwitch = gestureConflictDetector.shouldPrioritizeHeadControl(
-                CameraSwitchFacialGesture.RIGHT_WINK,
-                switchEventProvider
-            )
-            if (!shouldSkipSwitch) {
-                handleGestureStateChange(
-                    CameraSwitchFacialGesture(CameraSwitchFacialGesture.RIGHT_WINK),
-                    false
-                )
-            }
-        }
-
-        // Check blink ending
-        if (faceState.leftEyeOpen && faceState.rightEyeOpen) {
-            val shouldSkipSwitch = gestureConflictDetector.shouldPrioritizeHeadControl(
-                CameraSwitchFacialGesture.BLINK,
-                switchEventProvider
-            )
-            if (!shouldSkipSwitch) {
-                handleGestureStateChange(
-                    CameraSwitchFacialGesture(CameraSwitchFacialGesture.BLINK),
-                    false
-                )
-            }
-        }
-
-        // Check if pucker gesture is no longer detected
-        if (!result.detectedGestures.contains(CameraSwitchFacialGesture.PUCKER)) {
-            val shouldSkipSwitch = gestureConflictDetector.shouldPrioritizeHeadControl(
-                CameraSwitchFacialGesture.PUCKER,
-                switchEventProvider
-            )
-            if (!shouldSkipSwitch) {
-                handleGestureStateChange(
-                    CameraSwitchFacialGesture(CameraSwitchFacialGesture.PUCKER),
-                    false
-                )
-            }
         }
     }
 
@@ -353,9 +198,12 @@ class CameraSwitchManager(
         val state = gestureStates[gesture.id] ?: return
         state.isActive = true
         state.startTime = System.currentTimeMillis()
-        activeGesture = gesture.id
 
         Log.d(TAG, "Gesture started: ${gesture.getName()}")
+
+        if (getRequiredHoldTime(gesture) == 0L) {
+            triggerSwitchAction(gesture)
+        }
     }
 
     private fun gestureCompleted(gesture: CameraSwitchFacialGesture) {
@@ -369,12 +217,8 @@ class CameraSwitchManager(
 
         // Check if this gesture meets the minimum hold time requirement
         val requiredHoldTime = getRequiredHoldTime(gesture)
-        if (duration >= requiredHoldTime) {
+        if (requiredHoldTime > 0L && duration >= requiredHoldTime) {
             triggerSwitchAction(gesture)
-        }
-
-        if (activeGesture == gesture.id) {
-            activeGesture = null
         }
     }
 
@@ -413,7 +257,7 @@ class CameraSwitchManager(
             CameraSwitchFacialGesture.HEAD_TURN_LEFT,
             CameraSwitchFacialGesture.HEAD_TURN_RIGHT,
             CameraSwitchFacialGesture.HEAD_TURN_UP,
-            CameraSwitchFacialGesture.HEAD_TURN_DOWN -> 0L // Instant trigger
+            CameraSwitchFacialGesture.HEAD_TURN_DOWN -> 0L
             else -> 1000L
         }
     }
@@ -436,29 +280,6 @@ class CameraSwitchManager(
 
     private fun findSwitchEventForGesture(gesture: CameraSwitchFacialGesture): SwitchEvent? =
         switchEventProvider.findCamera(gesture.id)
-
-    private fun triggerHeadTurnGesture(gesture: CameraSwitchFacialGesture) {
-        if (KeyboardManager.shouldSuppressSwitchInput()) return
-        val currentTime = System.currentTimeMillis()
-        if (currentTime - lastHeadTurnTime < headTurnCooldown) {
-            return // Rate limiting
-        }
-
-        lastHeadTurnTime = currentTime
-
-        val switchEvent = findSwitchEventForGesture(gesture)
-        if (switchEvent != null) {
-            coroutineScope.launch(Dispatchers.Main) {
-                if (KeyboardManager.shouldSuppressSwitchInput()) return@launch
-                Log.i(TAG, "Triggering head turn gesture: ${gesture.getName()}")
-                if (stopPcMouseRepeatForSwitchPress()) return@launch
-                if (!switchEvent.pressAction.isScanMovementAction() &&
-                    Tasks.getInstance().stopActiveStoppableTask()
-                ) return@launch
-                scanningManager.performAction(switchEvent.pressAction)
-            }
-        }
-    }
 
     private fun stopPcMouseRepeatForSwitchPress(): Boolean {
         return PcMouseRepeatManager.instance.stopForSwitchPress()
@@ -500,8 +321,6 @@ class CameraSwitchManager(
             }
 
             gestureStates.values.forEach { it.isActive = false }
-            activeGesture = null
-            // Head control is now independent - gesture state managed separately
 
             // Cancel coroutine scope
             coroutineScope.cancel()
@@ -517,81 +336,4 @@ class CameraSwitchManager(
     }
 
 
-    /**
-     * Processes gestures for head control selection
-     */
-    private fun processHeadControlGestures(
-        result: FaceProcessingService.FaceDetectionResult,
-        headControlService: com.enaboapps.switchify.service.techniques.headcontrol.HeadControlService
-    ) {
-        val priorityEnabled = HeadControlSettings(context).isHeadControlPriorityEnabled()
-        val headControlSettings = HeadControlSettings(context)
-        val selectedGesture = headControlSettings.selectGesture()
-        val switchAssigned = switchEventProvider.isFacialGestureAssigned(selectedGesture)
-
-        // Process detected gestures (gesture starting)
-        result.detectedGestures.forEach { gestureId ->
-            when (gestureId) {
-                CameraSwitchFacialGesture.SMILE,
-                CameraSwitchFacialGesture.LEFT_WINK,
-                CameraSwitchFacialGesture.RIGHT_WINK,
-                CameraSwitchFacialGesture.BLINK,
-                CameraSwitchFacialGesture.PUCKER -> {
-                    val isConflictGesture = gestureId == selectedGesture && switchAssigned
-                    if (!isConflictGesture || priorityEnabled) {
-                        headControlService.processGesture(gestureId, true)
-                    }
-                }
-                // Head turns are excluded from selection gestures
-            }
-        }
-
-        // Handle face state changes for gesture ending
-        val faceState = result.faceState
-
-        // Smile ending
-        if (!faceState.isSmiling) {
-            val isConflictGesture =
-                CameraSwitchFacialGesture.SMILE == selectedGesture && switchAssigned
-            if (!isConflictGesture || priorityEnabled) {
-                headControlService.processGesture(CameraSwitchFacialGesture.SMILE, false)
-            }
-        }
-
-        // Left wink ending
-        if (faceState.leftEyeOpen) {
-            val isConflictGesture =
-                CameraSwitchFacialGesture.LEFT_WINK == selectedGesture && switchAssigned
-            if (!isConflictGesture || priorityEnabled) {
-                headControlService.processGesture(CameraSwitchFacialGesture.LEFT_WINK, false)
-            }
-        }
-
-        // Right wink ending  
-        if (faceState.rightEyeOpen) {
-            val isConflictGesture =
-                CameraSwitchFacialGesture.RIGHT_WINK == selectedGesture && switchAssigned
-            if (!isConflictGesture || priorityEnabled) {
-                headControlService.processGesture(CameraSwitchFacialGesture.RIGHT_WINK, false)
-            }
-        }
-
-        // Blink ending
-        if (faceState.leftEyeOpen && faceState.rightEyeOpen) {
-            val isConflictGesture =
-                CameraSwitchFacialGesture.BLINK == selectedGesture && switchAssigned
-            if (!isConflictGesture || priorityEnabled) {
-                headControlService.processGesture(CameraSwitchFacialGesture.BLINK, false)
-            }
-        }
-
-        // Pucker ending
-        if (!result.detectedGestures.contains(CameraSwitchFacialGesture.PUCKER)) {
-            val isConflictGesture =
-                CameraSwitchFacialGesture.PUCKER == selectedGesture && switchAssigned
-            if (!isConflictGesture || priorityEnabled) {
-                headControlService.processGesture(CameraSwitchFacialGesture.PUCKER, false)
-            }
-        }
-    }
 }

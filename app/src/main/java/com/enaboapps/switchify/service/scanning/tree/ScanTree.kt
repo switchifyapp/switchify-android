@@ -105,12 +105,12 @@ class ScanTree(
     }
 
     /**
-     * Checks if the manual or directional scan setup is valid.
+     * Checks if the manual scan setup is valid.
      *
-     * @return True if the manual or directional scan setup is valid, false otherwise.
+     * @return True if the manual scan setup is valid, false otherwise.
      */
     private fun checkManualScanSetup(): Boolean {
-        if ((scanSettings.isManualScanMode() || scanSettings.isDirectionalScanMode()) && !isManualScanActive) {
+        if (scanSettings.isManualScanMode() && !isManualScanActive) {
             isManualScanActive = true
             highlighter.unhighlightAll()
             highlightCurrent()
@@ -391,39 +391,13 @@ class ScanTree(
         }
     }
 
-    /**
-     * Manually steps up in the scanning tree.
-     * This method is used for directional navigation through the tree.
-     */
-    override fun stepScanningUp() {
-        if (checkManualScanSetup()) {
-            return
-        }
+    override fun stepScanningUp() = Unit
 
-        if (!handlePreMovement()) {
-            val movementSuccessful = navigator.moveSelectionUp()
-            handlePostMovement(movementSuccessful)
-        }
-    }
-
-    /**
-     * Manually steps down in the scanning tree.
-     * This method is used for directional navigation through the tree.
-     */
-    override fun stepScanningDown() {
-        if (checkManualScanSetup()) {
-            return
-        }
-
-        if (!handlePreMovement()) {
-            val movementSuccessful = navigator.moveSelectionDown()
-            handlePostMovement(movementSuccessful)
-        }
-    }
+    override fun stepScanningDown() = Unit
 
     /**
      * Manually steps left in the scanning tree.
-     * This method is used for directional navigation through the tree.
+     * This method is used for manual navigation through the tree.
      */
     override fun stepScanningLeft() {
         if (checkManualScanSetup()) {
@@ -438,7 +412,7 @@ class ScanTree(
 
     /**
      * Manually steps right in the scanning tree.
-     * This method is used for directional navigation through the tree.
+     * This method is used for manual navigation through the tree.
      */
     override fun stepScanningRight() {
         if (checkManualScanSetup()) {
@@ -593,22 +567,6 @@ class ScanTree(
     fun clearTree() {
         resetForNextUse() // Reset the scanning state
         tree.clear() // Clear the tree
-    }
-
-    /**
-     * Get the tree items for external spatial navigation
-     */
-    fun getTree(): List<ScanTreeItem> = tree
-
-    /**
-     * Set the current scan position directly for spatial navigation
-     * @param treeIndex The tree item index to navigate to
-     * @param nodeIndex The node index within the tree item
-     */
-    fun setSpatialPosition(treeIndex: Int, nodeIndex: Int) {
-        if (navigator.setSpatialPosition(treeIndex, nodeIndex)) {
-            highlightCurrent()
-        }
     }
 
     override fun cleanup() {

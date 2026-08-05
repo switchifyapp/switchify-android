@@ -55,7 +55,6 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
     private lateinit var cameraManager: CameraManager
     private lateinit var screenWatcherManager: ScreenWatcherManager
     private lateinit var scanSettings: ScanSettings
-    private lateinit var techniqueEnforcer: TechniqueEnforcer
     private lateinit var deviceLockObserver: DeviceLockObserver
     private lateinit var trialManager: ServiceTrialManager
     private lateinit var trialOverlay: ServiceTrialOverlay
@@ -126,7 +125,6 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
         screenWatcherManager.register(scanningManager, externalSwitchListener)
 
         scanSettings = ScanSettings(this)
-        techniqueEnforcer = TechniqueEnforcer(scanSettings)
         nodeUpdateCoordinator = NodeUpdateCoordinator(this, scanSettings)
         cameraManager = CameraManager(
             context = this,
@@ -154,8 +152,6 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
                 }
             }
         }
-
-        techniqueEnforcer.enforceCompatibility()
 
         val gestureTargetIndicator = ServiceCore.getGestureTargetIndicator() ?: return
         GestureManager.instance.setup(this, gestureTargetIndicator)
@@ -479,36 +475,10 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
 
         try {
             when (command) {
-                ServiceBridge.ServiceCommand.EnforceTechniqueCompatibility -> {
-                    techniqueEnforcer.enforceCompatibility()
-                    ServiceBridge.emitEvent(ServiceBridge.ServiceEvent.ConfigurationUpdated)
-                }
-
                 ServiceBridge.ServiceCommand.ReloadSettings -> {
                     AccessTechnique.reloadFromPreferences()
-                    techniqueEnforcer.enforceCompatibility()
                     ServiceCore.getScanningManager()?.reset()
                     ServiceBridge.emitEvent(ServiceBridge.ServiceEvent.ConfigurationUpdated)
-                }
-
-                ServiceBridge.ServiceCommand.HeadControlToggled -> {
-                    // Re-evaluate camera state when head control is toggled
-                    cameraManager.evaluateAndUpdateCameraState()
-                    ServiceBridge.emitEvent(ServiceBridge.ServiceEvent.ConfigurationUpdated)
-                }
-
-                is ServiceBridge.ServiceCommand.SetHeadControlEnabled -> {
-                    val svc = ServiceCore.getHeadControlService()
-                    val desired = command.enabled
-                    val ok = svc?.setEnabled(desired) == true
-                    if (ok) {
-                        // Settings are handled by HeadControlService.setEnabled() - no duplicate needed
-                        cameraManager.evaluateAndUpdateCameraState()
-                        ServiceBridge.emitEvent(ServiceBridge.ServiceEvent.ConfigurationUpdated)
-                    } else {
-                        result = "skipped"
-                        reason = "head_control_not_ready"
-                    }
                 }
 
                 ServiceBridge.ServiceCommand.ClearCache -> {
@@ -539,16 +509,11 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
                     // Handle specific configuration updates
                     when (command.key) {
                         PreferenceManager.Keys.PREFERENCE_KEY_SCAN_MODE -> {
-                            // Scan mode changed - enforce technique compatibility
-                            techniqueEnforcer.enforceCompatibility()
                             ServiceBridge.emitEvent(ServiceBridge.ServiceEvent.ConfigurationUpdated)
                         }
 
                         PreferenceManager.Keys.PREFERENCE_KEY_ACCESS_TECHNIQUE -> {
-                            // Access technique changed - reload from preferences and enforce compatibility
                             AccessTechnique.reloadFromPreferences()
-                            techniqueEnforcer.enforceCompatibility()
-                            // Re-evaluate camera state when access technique changes
                             cameraManager.evaluateAndUpdateCameraState()
                             ServiceBridge.emitEvent(ServiceBridge.ServiceEvent.ConfigurationUpdated)
                         }
