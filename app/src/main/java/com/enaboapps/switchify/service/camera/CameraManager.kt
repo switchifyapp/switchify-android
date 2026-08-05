@@ -142,11 +142,10 @@ class CameraManager(
      * Cleans up camera switch manager.
      */
     private fun cleanupCameraSwitchManager() {
-        cameraSwitchManager?.let {
-            serviceScope.launch {
-                it.cleanup()
-                cameraSwitchManager = null
-            }
+        val manager = cameraSwitchManager ?: return
+        cameraSwitchManager = null
+        serviceScope.launch {
+            manager.cleanup()
         }
     }
 
