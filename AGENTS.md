@@ -37,19 +37,22 @@ Switchify is an Android accessibility service app that helps users with mobility
 
 1. **Milestone Creation**: Always create milestone `v*.*.*` format first
 2. **Issue Creation**: Create GitHub issue and assign to milestone (with user consent)
-3. **Branch Creation**: Create branch `feature/description-issue#` or `fix/description-issue#`
-4. **Development**: Make changes following code standards
-5. **Testing**: Test compilation with `./gradlew compileDebugKotlin`
-6. **Commit & Push**: Commit with proper format and push branch
-7. **Pull Request**: Create PR with detailed description
-8. **Greptile Review**: Watch the PR until Greptile finishes its review, address all actionable feedback, and rerun required checks
-9. **User Approval**: Ask user if they want to merge (yes/no)
-10. **Proactive Communication**: Always ask yes/no for perceived next steps
+3. **Base Branch Selection**: Derive the release branch `vX.Y.Z` from the issue milestone, removing prerelease suffixes such as `-alpha.*`, `-beta.*`, or `-rc.*`. If `origin/vX.Y.Z` exists, use it as the base; otherwise use `main`
+4. **Branch Creation**: Create branch `feature/description-issue#` or `fix/description-issue#` from the selected base branch
+5. **Development**: Make changes following code standards
+6. **Testing**: Test compilation with `./gradlew compileDebugKotlin`
+7. **Commit & Push**: Commit with proper format and push branch
+8. **Pull Request**: Create PR against the selected base branch with a detailed description
+9. **Greptile Review**: Watch the PR until Greptile finishes its review, address all actionable feedback, and rerun required checks
+10. **User Approval**: Ask user if they want to merge (yes/no)
+11. **Proactive Communication**: Always ask yes/no for perceived next steps
 
 ### Branch & Issue Management
 - Create descriptive branch names: `feature/description-1234` or `fix/description-1234`
 - Always create GitHub issues before starting work
 - Assign issues to appropriate milestones WITH USER CONSENT
+- Normalize the issue milestone version to `vX.Y.Z` when selecting a base branch; for example, `v3.0.0-beta.1` and `v3.0.0-alpha.2` both map to `v3.0.0`
+- Check for the normalized branch on `origin`; if it exists, create the work branch from it and target it in the pull request, otherwise use `main`
 - Use GitHub CLI (`gh`) for all GitHub operations
 - Always be proactive and ask yes/no for what you perceive to be the next step
 
@@ -68,12 +71,12 @@ Brief descriptive title
 ### Pull Request Process
 1. Create milestone v*.*.* format
 2. Create GitHub issue and assign to milestone (with user consent)
-3. Create feature branch from main
-4. Make changes following code standards
-5. Test compilation with `./gradlew compileDebugKotlin`
-6. Commit with proper format
-7. Push branch and create PR with detailed description
-8. Include test plan in PR description
+3. Normalize the issue milestone to `vX.Y.Z` by removing any prerelease suffix, then select `origin/vX.Y.Z` as the base when it exists or `main` otherwise
+4. Create the feature or fix branch from the selected base branch
+5. Make changes following code standards
+6. Test compilation with `./gradlew compileDebugKotlin`
+7. Commit with proper format
+8. Push the branch and create the PR against the selected base branch with a detailed description and test plan
 9. Watch the PR until Greptile finishes its review, address all actionable feedback, and rerun required checks
 10. Ask user if they want to merge (yes/no)
 
