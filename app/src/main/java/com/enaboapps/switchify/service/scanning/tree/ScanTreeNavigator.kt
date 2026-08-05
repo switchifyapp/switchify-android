@@ -7,7 +7,7 @@ import com.enaboapps.switchify.service.scanning.ScanSettings
 /**
  * This class is responsible for navigating through the ScanTree structure.
  * It manages the current position and provides methods for moving between items, groups, and nodes.
- * The class supports row-column scanning, sequential (non-row-column) scanning, and directional scanning modes.
+ * The class supports row-column and sequential scanning modes.
  *
  * @property tree The list of ScanTreeItems that make up the scanning tree.
  * @property scanSettings The settings for scanning behavior.
@@ -15,7 +15,6 @@ import com.enaboapps.switchify.service.scanning.ScanSettings
  */
 internal interface ScanTreeNavigatorSettings {
     fun isRowColumnScanEnabled(): Boolean
-    fun isDirectionalScanMode(): Boolean
     fun isGroupScanEnabled(): Boolean
     fun getScanCycles(): Int
     fun isAutoScanMode(): Boolean
@@ -25,7 +24,6 @@ private class ScanSettingsNavigatorAdapter(
     private val scanSettings: ScanSettings
 ) : ScanTreeNavigatorSettings {
     override fun isRowColumnScanEnabled(): Boolean = scanSettings.isRowColumnScanEnabled()
-    override fun isDirectionalScanMode(): Boolean = scanSettings.isDirectionalScanMode()
     override fun isGroupScanEnabled(): Boolean = scanSettings.isGroupScanEnabled()
     override fun getScanCycles(): Int = scanSettings.getScanCycles()
     override fun isAutoScanMode(): Boolean = scanSettings.isAutoScanMode()
@@ -123,9 +121,6 @@ class ScanTreeNavigator internal constructor(
     /** The current escape state */
     private var escapeState: EscapeState = EscapeState.None
 
-    /** Spatial navigator for directional mode */
-    private val spatialNavigator: SpatialNavigator by lazy { SpatialNavigator(tree) }
-
     /** Indicates whether row-column scanning is enabled based on scan settings. */
     private val isRowColumnScanEnabled: Boolean
         get() = scanSettings.isRowColumnScanEnabled()
@@ -154,42 +149,13 @@ class ScanTreeNavigator internal constructor(
     fun moveSelectionToNextOrPrevious(): Boolean {
         if (isInCycleBreak) return false
 
-        return if (scanSettings.isDirectionalScanMode()) {
-            handleDirectionalMovement()
-        } else if (!isRowColumnScanEnabled) {
+        return if (!isRowColumnScanEnabled) {
             handleSequentialMovement()
         } else {
             when (scanDirection) {
                 ScanDirection.DOWN, ScanDirection.RIGHT -> moveSelectionToNext()
                 ScanDirection.UP, ScanDirection.LEFT -> moveSelectionToPrevious()
             }
-        }
-    }
-
-    /**
-     * Handles movement in directional scanning mode
-     */
-    private fun handleDirectionalMovement(): Boolean {
-        val result = spatialNavigator.findClosestNodeInDirection(
-            currentTreeIndex = currentTreeItem,
-            currentNodeIndex = currentColumn,
-            direction = scanDirection
-        )
-
-        return if (result != null) {
-            val (newTreeIndex, newNodeIndex) = result
-            currentTreeItem = newTreeIndex
-            currentColumn = newNodeIndex
-            // Reset group navigation state for directional mode
-            currentGroup = 0
-            isInTreeItem = true
-            isInGroup = false
-            isScanningGroups = false
-            true
-        } else {
-            // No node found in this direction - stay in current position
-            // Return true to indicate the action was handled (even though no movement occurred)
-            true
         }
     }
 
@@ -212,10 +178,7 @@ class ScanTreeNavigator internal constructor(
     fun moveSelectionToNext(): Boolean {
         if (isInCycleBreak) return false
 
-        return if (scanSettings.isDirectionalScanMode()) {
-            scanDirection = ScanDirection.RIGHT
-            handleDirectionalMovement()
-        } else if (!isRowColumnScanEnabled) {
+        return if (!isRowColumnScanEnabled) {
             moveSequentialNext()
         } else {
             when {
@@ -233,10 +196,7 @@ class ScanTreeNavigator internal constructor(
     fun moveSelectionToPrevious(): Boolean {
         if (isInCycleBreak) return false
 
-        return if (scanSettings.isDirectionalScanMode()) {
-            scanDirection = ScanDirection.LEFT
-            handleDirectionalMovement()
-        } else if (!isRowColumnScanEnabled) {
+        return if (!isRowColumnScanEnabled) {
             moveSequentialPrevious()
         } else {
             when {
@@ -268,45 +228,12 @@ class ScanTreeNavigator internal constructor(
         return true
     }
 
-    /**
-     * Move selection up in directional mode
-     */
-    fun moveSelectionUp(): Boolean {
-        if (isInCycleBreak) return false
-
-        return if (scanSettings.isDirectionalScanMode()) {
-            scanDirection = ScanDirection.UP
-            handleDirectionalMovement()
-        } else {
-            false
-        }
-    }
-
-    /**
-     * Move selection down in directional mode
-     */
-    fun moveSelectionDown(): Boolean {
-        if (isInCycleBreak) return false
-
-        return if (scanSettings.isDirectionalScanMode()) {
-            scanDirection = ScanDirection.DOWN
-            handleDirectionalMovement()
-        } else {
-            false
-        }
-    }
-
     private fun moveSelectionToNextWithinGroup(): Boolean {
         val currentItem = getCurrentItem()
         return when {
             currentColumn < currentItem.getNodeCount(currentGroup) - 1 -> {
                 currentColumn++
                 true
-            }
-
-            scanSettings.isDirectionalScanMode() -> {
-                // In directional mode, don't set escape state, just return false
-                false
             }
 
             isCurrentItemSingleGroup() -> {
@@ -333,11 +260,6 @@ class ScanTreeNavigator internal constructor(
                 true
             }
 
-            scanSettings.isDirectionalScanMode() -> {
-                // In directional mode, don't set escape state, just return false
-                false
-            }
-
             isCurrentItemSingleGroup() -> {
                 escapeState = EscapeState.Item
                 false
@@ -362,11 +284,6 @@ class ScanTreeNavigator internal constructor(
                 true
             }
 
-            scanSettings.isDirectionalScanMode() -> {
-                // In directional mode, don't set escape state, just return false
-                false
-            }
-
             else -> {
                 escapeState = EscapeState.Item
                 false
@@ -379,11 +296,6 @@ class ScanTreeNavigator internal constructor(
             currentGroup > 0 -> {
                 currentGroup--
                 true
-            }
-
-            scanSettings.isDirectionalScanMode() -> {
-                // In directional mode, don't set escape state, just return false
-                false
             }
 
             else -> {
@@ -457,12 +369,10 @@ class ScanTreeNavigator internal constructor(
 
     /**
      * Handles the escape logic for items and groups.
-     * In directional mode, escape is disabled to allow free movement.
      * @return True if an escape was handled, false otherwise.
      */
     fun handleEscape(): Boolean = escapeState != EscapeState.None &&
-            !isInCycleBreak &&
-            !scanSettings.isDirectionalScanMode()
+            !isInCycleBreak
 
     /**
      * Checks if the auto scan cycle limit has been reached.
@@ -585,19 +495,6 @@ class ScanTreeNavigator internal constructor(
         }
     }
 
-    fun setSpatialPosition(treeIndex: Int, nodeIndex: Int): Boolean {
-        val item = tree.getOrNull(treeIndex) ?: return false
-        if (nodeIndex !in item.children.indices) return false
-
-        resetCycleProgress()
-        currentTreeItem = treeIndex
-        currentColumn = nodeIndex
-        isInTreeItem = true
-        isInGroup = false
-        isScanningGroups = false
-        return true
-    }
-
     /**
      * Resets the navigator to its initial state.
      */
@@ -615,21 +512,9 @@ class ScanTreeNavigator internal constructor(
         currentGroup = 0
         currentColumn = 0
 
-        if (scanSettings.isDirectionalScanMode()) {
-            // In directional mode, start positioned at the first node
-            val firstNode = spatialNavigator.getFirstNode()
-            if (firstNode != null) {
-                currentTreeItem = firstNode.first
-                currentColumn = firstNode.second
-            }
-            isInTreeItem = true
-            isInGroup = false
-            isScanningGroups = false
-        } else {
-            isInTreeItem = false
-            isInGroup = false
-            isScanningGroups = scanSettings.isGroupScanEnabled()
-        }
+        isInTreeItem = false
+        isInGroup = false
+        isScanningGroups = scanSettings.isGroupScanEnabled()
 
         escapeState = EscapeState.None
         isInCycleBreak = false

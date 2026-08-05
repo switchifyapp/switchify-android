@@ -86,11 +86,6 @@ object ServiceBridge {
      */
     sealed class ServiceCommand {
         /**
-         * Request service to enforce technique compatibility based on current scan mode.
-         */
-        object EnforceTechniqueCompatibility : ServiceCommand()
-
-        /**
          * Request service to reload all settings from preferences.
          */
         object ReloadSettings : ServiceCommand()
@@ -99,13 +94,6 @@ object ServiceBridge {
          * Request service to clear internal caches.
          */
         object ClearCache : ServiceCommand()
-
-        /**
-         * Request service to toggle head control.
-         */
-        object HeadControlToggled : ServiceCommand()
-
-        data class SetHeadControlEnabled(val enabled: Boolean) : ServiceCommand()
 
         /**
          * Request service to update switch configuration.

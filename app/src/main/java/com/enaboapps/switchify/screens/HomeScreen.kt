@@ -48,7 +48,9 @@ import com.enaboapps.switchify.components.home.HomeToggleRow
 import com.enaboapps.switchify.components.home.ProUpgradeCard
 import com.enaboapps.switchify.nav.NavigationRoute
 import com.enaboapps.switchify.service.camera.CameraPermissionManager
+import com.enaboapps.switchify.service.core.ServiceBridge
 import com.enaboapps.switchify.service.utils.ServiceUtils
+import com.enaboapps.switchify.switches.SWITCH_EVENT_TYPE_CAMERA
 import com.enaboapps.switchify.switches.SwitchConfigValidator
 import com.enaboapps.switchify.switches.SwitchEventStore
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
@@ -66,6 +68,7 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
     var isSwitchConfigValid by remember { mutableStateOf(true) }
     var scanModeName by remember { mutableStateOf<String?>(null) }
     var switchCount by remember { mutableStateOf(0) }
+    var hasCameraSwitch by remember { mutableStateOf(false) }
     val proReminderManager = remember { ProReminderManager(context) }
     var showProReminder by remember { mutableStateOf(false) }
     var isReady by remember { mutableStateOf(false) }
@@ -95,7 +98,21 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
         isSwitchConfigValid = switchConfigValidator.isConfigurationValid()
         scanModeName = switchConfigValidator.getCurrentScanModeName()
         switchCount = switchEventStore.getCount()
+        hasCameraSwitch = switchEventStore.getSwitchEvents().any {
+            it.type == SWITCH_EVENT_TYPE_CAMERA
+        }
         isReady = true
+    }
+
+    LaunchedEffect(Unit) {
+        ServiceBridge.serviceEvents.collect { event ->
+            if (event is ServiceBridge.ServiceEvent.SwitchEventsUpdated) {
+                hasCameraSwitch = switchEventStore.getSwitchEvents().any {
+                    it.type == SWITCH_EVENT_TYPE_CAMERA
+                }
+                switchCount = switchEventStore.getCount()
+            }
+        }
     }
 
     val reviewManager = remember { ReviewManagerFactory.create(context) }
@@ -104,8 +121,7 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
 
     val hasCameraPermission =
         remember { CameraPermissionManager.getInstance(context).hasPermission() }
-    val showHeadToggle = isAccessibilityServiceEnabled && hasCameraPermission
-    val showCameraAlert = isAccessibilityServiceEnabled && !hasCameraPermission
+    val showCameraAlert = isAccessibilityServiceEnabled && hasCameraSwitch && !hasCameraPermission
 
     BaseView(
         titleResId = R.string.screen_title_switchify,
@@ -136,7 +152,6 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
                             }
                         )
                         HomeToggleRow(
-                            showHeadToggle = showHeadToggle,
                             onSettingsClick = { navController.navigate(NavigationRoute.Settings.name) }
                         )
                         HomePcConnectionCard(navController)

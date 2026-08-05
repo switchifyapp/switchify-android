@@ -65,9 +65,6 @@ sealed class LogEvent(
     object SwitchReloadTriggered : LogEvent("switch_reload_triggered", dataset = "input", tags = listOf("switches", "config"))
     object CameraSwitchAvailabilityChanged : LogEvent("camera_switch_availability_changed", dataset = "input", tags = listOf("switches", "camera"))
 
-    object HeadControlEnableFailed : LogEvent("head_control_enable_failed", level = "error", dataset = "camera", tags = listOf("head_control", "failure"))
-    object HeadControlInitFailed : LogEvent("head_control_init_failed", level = "error", dataset = "camera", tags = listOf("head_control", "failure"))
-    object HeadControlCleanupFailed : LogEvent("head_control_cleanup_failed", level = "error", dataset = "camera", tags = listOf("head_control", "failure"))
 
     object GesturePatternExecutionStarted : LogEvent("gesture_pattern_execution_started", dataset = "input", tags = listOf("gesture", "pattern"))
     object GesturePatternExecutionCompleted : LogEvent("gesture_pattern_execution_completed", dataset = "input", tags = listOf("gesture", "pattern"))

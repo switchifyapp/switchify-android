@@ -37,7 +37,6 @@ class SwitchConfigValidator(private val context: Context) {
         return when {
             scanSettings.isAutoScanMode() -> isValidForAutoScan(configuredActions)
             scanSettings.isManualScanMode() -> isValidForManualScan(configuredActions)
-            scanSettings.isDirectionalScanMode() -> isValidForDirectionalScan(configuredActions)
             else -> false
         }
     }
@@ -62,14 +61,6 @@ class SwitchConfigValidator(private val context: Context) {
                 SwitchAction.ACTION_MOVE_TO_PREVIOUS_ITEM
             )
         )
-    }
-
-    /**
-     * Check if configuration is valid for directional scan mode.
-     * Directional scan now requires only SELECT; directional stepping is handled by Head Control.
-     */
-    private fun isValidForDirectionalScan(configuredActions: Set<Int>): Boolean {
-        return configuredActions.contains(SwitchAction.ACTION_SELECT)
     }
 
     /**
@@ -119,10 +110,8 @@ class SwitchConfigValidator(private val context: Context) {
      */
     fun getCurrentScanModeName(): String {
         return when {
-            scanSettings.isAutoScanMode() -> ScanMode(ScanMode.Modes.MODE_AUTO).getModeName()
-            scanSettings.isManualScanMode() -> ScanMode(ScanMode.Modes.MODE_MANUAL).getModeName()
-            scanSettings.isDirectionalScanMode() -> ScanMode(ScanMode.Modes.MODE_DIRECTIONAL).getModeName()
-            else -> "Unknown"
+            scanSettings.isManualScanMode() -> ScanMode.fromId(ScanMode.Modes.MODE_MANUAL).getModeName()
+            else -> ScanMode.fromId(ScanMode.Modes.MODE_AUTO).getModeName()
         }
     }
 }

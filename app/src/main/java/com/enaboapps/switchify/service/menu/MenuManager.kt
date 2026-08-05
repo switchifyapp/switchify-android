@@ -282,7 +282,7 @@ class MenuManager {
     }
 
     /**
-     * Get the current menu view for head control navigation
+     * Get the current menu view
      * @return The current menu view or null if no menu is open
      */
     fun getCurrentMenuView(): MenuView? {

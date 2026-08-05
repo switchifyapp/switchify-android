@@ -32,7 +32,6 @@ sealed class NavigationRoute(val name: String) {
     data object UserFeedback : NavigationRoute("UserFeedback")
     data object Stats : NavigationRoute("Stats")
     data object CameraSettings : NavigationRoute("CameraSettings")
-    data object HeadControlSettings : NavigationRoute("HeadControlSettings")
     data object PauseSettings : NavigationRoute("PauseSettings")
     data object MenuCustomization : NavigationRoute("MenuCustomization")
     data object MenuCustomizationEdit : NavigationRoute("MenuCustomizationEdit")

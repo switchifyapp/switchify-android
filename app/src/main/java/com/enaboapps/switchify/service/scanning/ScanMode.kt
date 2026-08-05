@@ -7,7 +7,7 @@ import com.enaboapps.switchify.utils.Resources
  * This class represents a scanning mode.
  * @property id The id of the scanning mode.
  */
-class ScanMode(val id: String) {
+class ScanMode private constructor(val id: String) {
 
     /**
      * This object represents the different modes available.
@@ -15,7 +15,6 @@ class ScanMode(val id: String) {
     object Modes {
         const val MODE_AUTO = "auto"
         const val MODE_MANUAL = "manual"
-        const val MODE_DIRECTIONAL = "directional"
     }
 
     companion object {
@@ -25,8 +24,7 @@ class ScanMode(val id: String) {
          */
         val modes = listOf(
             ScanMode(Modes.MODE_AUTO),
-            ScanMode(Modes.MODE_MANUAL),
-            ScanMode(Modes.MODE_DIRECTIONAL)
+            ScanMode(Modes.MODE_MANUAL)
         )
 
         /**
@@ -35,7 +33,10 @@ class ScanMode(val id: String) {
          * @return The scanning mode with the given id.
          */
         fun fromId(id: String): ScanMode {
-            return modes.firstOrNull { it.id == id } ?: modes[0]
+            return when (id) {
+                Modes.MODE_MANUAL -> modes[1]
+                else -> modes[0]
+            }
         }
     }
 
@@ -47,8 +48,7 @@ class ScanMode(val id: String) {
         return when (id) {
             Modes.MODE_AUTO -> Resources.getString(R.string.scanning_mode_auto)
             Modes.MODE_MANUAL -> Resources.getString(R.string.scanning_mode_manual)
-            Modes.MODE_DIRECTIONAL -> Resources.getString(R.string.scanning_mode_directional)
-            else -> Resources.getString(R.string.unknown)
+            else -> Resources.getString(R.string.scanning_mode_auto)
         }
     }
 
@@ -60,8 +60,7 @@ class ScanMode(val id: String) {
         return when (id) {
             Modes.MODE_AUTO -> Resources.getString(R.string.scanning_mode_auto_desc)
             Modes.MODE_MANUAL -> Resources.getString(R.string.scanning_mode_manual_desc)
-            Modes.MODE_DIRECTIONAL -> Resources.getString(R.string.scanning_mode_directional_desc)
-            else -> Resources.getString(R.string.unknown)
+            else -> Resources.getString(R.string.scanning_mode_auto_desc)
         }
     }
 

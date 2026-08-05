@@ -1,8 +1,6 @@
 package com.enaboapps.switchify.service.menu.menus.settings
 
 import com.enaboapps.switchify.R
-import com.enaboapps.switchify.service.camera.CameraPermissionManager
-import com.enaboapps.switchify.service.core.ServiceCore
 import com.enaboapps.switchify.service.core.SwitchifyAccessibilityService
 import com.enaboapps.switchify.service.gestures.GestureLockManager
 import com.enaboapps.switchify.service.gestures.GestureRepeatManager
@@ -14,7 +12,6 @@ import com.enaboapps.switchify.service.menu.structure.MenuStructure
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.service.scanning.ScanSettings
 import com.enaboapps.switchify.service.techniques.AccessTechnique
-import com.enaboapps.switchify.service.techniques.headcontrol.HeadControlSettings
 import kotlinx.coroutines.CoroutineScope
 
 class SettingsMenuStructure(
@@ -26,9 +23,7 @@ class SettingsMenuStructure(
     /**
      * Builds the Settings submenu structure based on current runtime state.
      *
-     * Surfaces technique-switch items only when the user is not already on that
-     * technique (and, for radar/point scan, not in directional scan mode). The
-     * head-control toggle appears only when camera permission has been granted.
+     * Surfaces technique-switch items only when the user is not already on that technique.
      */
     fun buildSettingsMenuObject(): MenuStructure {
         // While the menu is open the current technique is MENU, so resolve the
@@ -49,9 +44,7 @@ class SettingsMenuStructure(
                     )
                 }
             } else null,
-            if (storedTechnique != AccessTechnique.Technique.RADAR &&
-                !scanSettings.isDirectionalScanMode()
-            ) {
+            if (storedTechnique != AccessTechnique.Technique.RADAR) {
                 MenuItemRegistry.getDefinition(
                     MenuConstants.MenuIds.SETTINGS_MENU,
                     MenuConstants.ItemIds.Settings.SWITCH_TO_RADAR
@@ -62,9 +55,7 @@ class SettingsMenuStructure(
                     )
                 }
             } else null,
-            if (storedTechnique != AccessTechnique.Technique.POINT_SCAN &&
-                !scanSettings.isDirectionalScanMode()
-            ) {
+            if (storedTechnique != AccessTechnique.Technique.POINT_SCAN) {
                 MenuItemRegistry.getDefinition(
                     MenuConstants.MenuIds.SETTINGS_MENU,
                     MenuConstants.ItemIds.Settings.SWITCH_TO_POINT_SCAN
@@ -72,35 +63,6 @@ class SettingsMenuStructure(
                     MenuItem(
                         definition = def,
                         action = { MenuManager.getInstance().switchToPointScan() }
-                    )
-                }
-            } else null,
-            if (CameraPermissionManager.getInstance(accessibilityService).hasPermission()) {
-                MenuItemRegistry.getDefinition(
-                    MenuConstants.MenuIds.SETTINGS_MENU,
-                    MenuConstants.ItemIds.Settings.TOGGLE_HEAD_CONTROL
-                )?.let { def ->
-                    val settings = HeadControlSettings(accessibilityService)
-                    val currentlyEnabled = settings.isHeadControlEnabled()
-                    val stateLabel = accessibilityService.getString(
-                        if (currentlyEnabled) R.string.menu_item_disable_head_control
-                        else R.string.menu_item_enable_head_control
-                    )
-                    MenuItem(
-                        id = def.id,
-                        userProvidedText = stateLabel,
-                        descriptionResource = def.descriptionResource,
-                        drawableId = def.drawableId,
-                        action = {
-                            val headControlService = ServiceCore.getHeadControlService()
-
-                            val success = headControlService?.setEnabled(!currentlyEnabled) ?: false
-                            if (success) {
-                                settings.setHeadControlEnabled(!currentlyEnabled)
-                            }
-
-                            MenuManager.getInstance().closeMenuHierarchy()
-                        }
                     )
                 }
             } else null,

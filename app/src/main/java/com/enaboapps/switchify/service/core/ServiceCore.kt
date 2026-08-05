@@ -9,14 +9,12 @@ import com.enaboapps.switchify.service.pauseresume.PauseManager
 import com.enaboapps.switchify.service.scanning.ScanningManager
 import com.enaboapps.switchify.service.switches.SwitchEventProvider
 import com.enaboapps.switchify.service.switches.external.ExternalSwitchListener
-import com.enaboapps.switchify.service.techniques.headcontrol.HeadControlService
 import java.lang.ref.WeakReference
 
 object ServiceCore {
     private lateinit var scanningManagerRef: WeakReference<ScanningManager>
     private lateinit var externalSwitchListenerRef: WeakReference<ExternalSwitchListener>
     private lateinit var switchEventProviderRef: WeakReference<SwitchEventProvider>
-    private lateinit var headControlServiceRef: WeakReference<HeadControlService>
     private lateinit var cameraManagerRef: WeakReference<CameraManager>
     private var pcServiceConnectionController: PcServiceConnectionController? = null
     private var pcSwitchControlForwarder: PcSwitchControlForwarder? = null
@@ -37,14 +35,11 @@ object ServiceCore {
             ScanningManager(accessibilityService, requireNotNull(gestureTargetIndicator))
         )
         switchEventProviderRef = WeakReference(SwitchEventProvider(accessibilityService))
-        headControlServiceRef = WeakReference(HeadControlService.getInstance(accessibilityService))
 
         val scanningManager = scanningManagerRef.get() ?: return
         val switchEventProvider = switchEventProviderRef.get() ?: return
-        val headControlService = headControlServiceRef.get() ?: return
 
         scanningManager.setup()
-        headControlService.initialize()
         externalSwitchListenerRef =
             WeakReference(
                 ExternalSwitchListener(
@@ -87,14 +82,6 @@ object ServiceCore {
      */
     fun getPauseManager(): PauseManager {
         return PauseManager.getInstance()
-    }
-
-    /**
-     * Gets the head control service instance.
-     * @return The head control service instance or null if not initialized.
-     */
-    fun getHeadControlService(): HeadControlService? {
-        return if (::headControlServiceRef.isInitialized) headControlServiceRef.get() else null
     }
 
     /**
@@ -143,10 +130,6 @@ object ServiceCore {
         if (::scanningManagerRef.isInitialized) {
             scanningManagerRef.get()?.shutdown()
             scanningManagerRef = WeakReference(null)
-        }
-        if (::headControlServiceRef.isInitialized) {
-            headControlServiceRef.get()?.cleanup()
-            headControlServiceRef = WeakReference(null)
         }
         if (::switchEventProviderRef.isInitialized) {
             switchEventProviderRef = WeakReference(null)
