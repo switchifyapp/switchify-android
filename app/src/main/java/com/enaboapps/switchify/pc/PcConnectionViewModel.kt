@@ -391,13 +391,14 @@ class PcConnectionViewModel(
             hasToken -> "Connect"
             else -> "Request access"
         }
-        val summary = when {
+        val connectionSummary = when {
             connected -> "Connected"
             status == PcRowStatus.WaitingApproval -> "Waiting for approval on your PC..."
             status == PcRowStatus.Connecting -> "Connecting..."
             status == PcRowStatus.Failed -> "Try again"
             else -> pc.primaryAddress
         }
+        val summary = platformSummary(pc, connectionSummary)
         return PcRowState(
             pc = pc,
             title = pc.controlDeviceName,
@@ -495,13 +496,14 @@ class PcConnectionViewModel(
             hasToken -> "Connect"
             else -> "Request access"
         }
-        val summary = when {
+        val connectionSummary = when {
             connected -> "Connected"
             status == PcRowStatus.WaitingApproval -> "Waiting for approval on your PC..."
             status == PcRowStatus.Connecting -> "Connecting..."
             status == PcRowStatus.Failed -> "Try again"
             else -> pc.primaryAddress
         }
+        val summary = platformSummary(pc, connectionSummary)
         return PcConnectionRowState(
             desktopId = pc.desktopId,
             title = pc.controlDeviceName,
@@ -538,6 +540,12 @@ class PcConnectionViewModel(
             isDefault = pairing.desktopId == defaultDesktopId,
             discoveredPc = null
         )
+    }
+
+    private fun platformSummary(pc: DiscoveredPc, summary: String): String {
+        return pc.bluetoothEndpoint?.platform?.displayName?.let { platform ->
+            "$platform \u00B7 $summary"
+        } ?: summary
     }
 
     private fun savedPairingSummary(lastEndpoint: String?): String {

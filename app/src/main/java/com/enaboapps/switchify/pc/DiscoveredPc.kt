@@ -24,5 +24,11 @@ data class PcBluetoothEndpoint(
     val deviceAddress: String,
     val deviceName: String?,
     val desktopId: String,
-    val displayName: String
+    val displayName: String,
+    val platform: PcPlatform? = null
 )
+
+enum class PcPlatform(val wireValue: String, val displayName: String) {
+    Windows("windows", "Windows"),
+    MacOS("macos", "macOS")
+}
