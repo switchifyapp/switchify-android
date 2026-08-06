@@ -158,6 +158,35 @@ class PcConnectionViewModelTest {
     }
 
     @Test
+    fun nearbyPlatformPrefixesIdleAndConnectionSummaries() = runTest(dispatcher) {
+        val platformPc = pc.copy(
+            bluetoothEndpoint = pc.bluetoothEndpoint?.copy(platform = PcPlatform.Windows)
+        )
+        val pairingDeferred = CompletableDeferred<PcPairingResult>()
+        val connector = FakeConnector(
+            pairingDeferred = pairingDeferred,
+            pingResult = PcPingResult.Connected("AA:BB:CC:DD:EE:FF")
+        )
+        val viewModel = viewModel(FakeDiscovery(listOf(platformPc)), FakeTokenStore(), connector)
+        advanceUntilIdle()
+
+        assertEquals("Windows \u00B7 Switchify PC", viewModel.uiState.value.pcRows.single().summary)
+
+        viewModel.requestAccess(platformPc)
+        advanceUntilIdle()
+
+        assertEquals(
+            "Windows \u00B7 Waiting for approval on your PC...",
+            viewModel.uiState.value.pcRows.single().summary
+        )
+
+        pairingDeferred.complete(PcPairingResult.Paired("desktop-1", "token", "AA:BB:CC:DD:EE:FF"))
+        advanceUntilIdle()
+
+        assertEquals("Windows \u00B7 Connected", viewModel.uiState.value.pcRows.single().summary)
+    }
+
+    @Test
     fun startingSecondRequestAccessCancelsFirstAndClearsFirstRow() = runTest(dispatcher) {
         val firstPairing = CompletableDeferred<PcPairingResult>()
         val secondPairing = CompletableDeferred<PcPairingResult>()

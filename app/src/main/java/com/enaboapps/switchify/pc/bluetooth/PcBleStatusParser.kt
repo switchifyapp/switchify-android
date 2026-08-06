@@ -1,6 +1,7 @@
 package com.enaboapps.switchify.pc.bluetooth
 
 import com.enaboapps.switchify.pc.PcBluetoothEndpoint
+import com.enaboapps.switchify.pc.PcPlatform
 import org.json.JSONObject
 
 object PcBleStatusParser {
@@ -14,11 +15,14 @@ object PcBleStatusParser {
             val desktopId = json.optString("desktopId").trim()
             if (desktopId.isBlank()) return null
             val displayName = json.optString("displayName").trim().ifBlank { defaultDisplayName }
+            val platformValue = json.optString("platform").trim()
+            val platform = PcPlatform.entries.firstOrNull { it.wireValue == platformValue }
             PcBluetoothEndpoint(
                 deviceAddress = deviceAddress,
                 deviceName = deviceName,
                 desktopId = desktopId,
-                displayName = displayName
+                displayName = displayName,
+                platform = platform
             )
         }.getOrNull()
     }
