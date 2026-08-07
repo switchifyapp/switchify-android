@@ -32,7 +32,9 @@ import com.enaboapps.switchify.pc.PcDisplayDirection
 import com.enaboapps.switchify.pc.PcKeyboardKey
 import com.enaboapps.switchify.pc.PcKeyboardModifierKey
 import com.enaboapps.switchify.pc.PcKeyboardShortcutKey
+import com.enaboapps.switchify.pc.PcPlatform
 import com.enaboapps.switchify.pc.PcWindowControlAction
+import com.enaboapps.switchify.pc.labelResId
 
 data class PcWindowControlSpec(
     @param:StringRes val labelResId: Int,
@@ -44,6 +46,7 @@ data class PcWindowControlSpec(
 @Composable
 fun PcWindowControlScreen(
     enabled: Boolean,
+    platform: PcPlatform?,
     monitorNavigationVisible: Boolean,
     monitorNavigationEnabled: Boolean,
     activeModifiers: Set<PcKeyboardModifierKey>,
@@ -64,7 +67,7 @@ fun PcWindowControlScreen(
         PcCompactCommandGrid(
             columns = 4,
             minTileHeightDp = 52,
-            cells = pcWindowModifierSpecs().map { spec ->
+            cells = pcWindowModifierSpecs(platform).map { spec ->
                 PcCompactCommandCell(
                     labelResId = spec.labelResId,
                     enabled = enabled,
@@ -75,6 +78,7 @@ fun PcWindowControlScreen(
         )
         PcShortcutKeyAccordion(
             enabled = enabled,
+            platform = platform,
             activeModifiers = activeModifiers,
             onShortcutKeySelected = onShortcutKeySelected
         )
@@ -86,7 +90,7 @@ fun PcWindowControlScreen(
         PcCompactCommandGrid(
             columns = 3,
             minTileHeightDp = 52,
-            cells = pcWindowCompactControlSpecs().map { spec ->
+            cells = pcWindowCompactControlSpecs(platform).map { spec ->
                 spec?.let {
                     PcCompactCommandCell(
                         labelResId = it.labelResId,
@@ -161,15 +165,18 @@ fun pcDisplayNavigationSpecs(): List<PcWindowControlSpec?> {
 @Composable
 fun PcShortcutKeyAccordion(
     enabled: Boolean,
+    platform: PcPlatform?,
     activeModifiers: Set<PcKeyboardModifierKey>,
     onShortcutKeySelected: (PcKeyboardShortcutKey) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var expanded by rememberSaveable { mutableStateOf(false) }
     val orderedModifiers = orderedShortcutModifiers(activeModifiers)
-    val modifierLabels = orderedModifiers.map { stringResource(it.labelResId) }.joinToString(" + ")
+    val modifierLabels = orderedModifiers
+        .map { stringResource(it.labelResId(platform)) }
+        .joinToString(" + ")
     val subtitle = if (orderedModifiers.isEmpty()) {
-        stringResource(R.string.pc_window_shortcuts_no_modifier)
+        stringResource(pcShortcutPromptResId(platform))
     } else {
         stringResource(R.string.pc_window_shortcuts_with_modifiers, modifierLabels)
     }
@@ -200,13 +207,34 @@ data class PcWindowModifierSpec(
     val key: PcKeyboardModifierKey
 )
 
-fun pcWindowModifierSpecs(): List<PcWindowModifierSpec> {
+fun pcWindowModifierSpecs(platform: PcPlatform?): List<PcWindowModifierSpec> {
     return listOf(
-        PcWindowModifierSpec(R.string.pc_modifier_ctrl, PcKeyboardModifierKey.Ctrl),
-        PcWindowModifierSpec(R.string.pc_modifier_alt, PcKeyboardModifierKey.Alt),
-        PcWindowModifierSpec(R.string.pc_modifier_shift, PcKeyboardModifierKey.Shift),
-        PcWindowModifierSpec(R.string.pc_modifier_start, PcKeyboardModifierKey.Meta)
+        PcWindowModifierSpec(
+            PcKeyboardModifierKey.Ctrl.labelResId(platform),
+            PcKeyboardModifierKey.Ctrl
+        ),
+        PcWindowModifierSpec(
+            PcKeyboardModifierKey.Alt.labelResId(platform),
+            PcKeyboardModifierKey.Alt
+        ),
+        PcWindowModifierSpec(
+            PcKeyboardModifierKey.Shift.labelResId(platform),
+            PcKeyboardModifierKey.Shift
+        ),
+        PcWindowModifierSpec(
+            PcKeyboardModifierKey.Meta.labelResId(platform),
+            PcKeyboardModifierKey.Meta
+        )
     )
+}
+
+@StringRes
+fun pcShortcutPromptResId(platform: PcPlatform?): Int {
+    return when (platform) {
+        PcPlatform.Windows -> R.string.pc_window_shortcuts_no_modifier
+        PcPlatform.MacOS -> R.string.pc_window_shortcuts_no_modifier_macos
+        null -> R.string.pc_window_shortcuts_no_modifier_generic
+    }
 }
 
 fun orderedShortcutModifiers(activeModifiers: Set<PcKeyboardModifierKey>): List<PcKeyboardModifierKey> {
@@ -222,14 +250,14 @@ fun pcWindowShortcutKeySpecs(): List<PcKeyboardShortcutKey> {
     return PC_SHORTCUT_TARGET_KEYS
 }
 
-fun pcWindowCompactControlSpecs(): List<PcWindowControlSpec?> {
-    return pcWindowControlSpecs() + listOf(null)
+fun pcWindowCompactControlSpecs(platform: PcPlatform?): List<PcWindowControlSpec?> {
+    return pcWindowControlSpecs(platform) + listOf(null)
 }
 
-fun pcWindowControlSpecs(): List<PcWindowControlSpec> {
+fun pcWindowControlSpecs(platform: PcPlatform?): List<PcWindowControlSpec> {
     return listOf(
         PcWindowControlSpec(
-            R.string.pc_key_start,
+            PcKeyboardModifierKey.Meta.labelResId(platform),
             PcControlCommand.KeyboardShortcut(listOf(PcKeyboardShortcutKey.Meta)),
             Icons.Rounded.Computer
         ),

@@ -33,7 +33,8 @@ class PcServiceConnectionControllerTest {
             deviceAddress = "AA:BB:CC:DD:EE:FF",
             deviceName = "Switchify PC",
             desktopId = "desktop-1",
-            displayName = "Switchify PC"
+            displayName = "Switchify PC",
+            platform = PcPlatform.MacOS
         )
     )
     private val secondPc = DiscoveredPc(
@@ -43,7 +44,8 @@ class PcServiceConnectionControllerTest {
             deviceAddress = "11:22:33:44:55:66",
             deviceName = "Office PC",
             desktopId = "desktop-2",
-            displayName = "Office PC"
+            displayName = "Office PC",
+            platform = PcPlatform.Windows
         )
     )
 
@@ -71,8 +73,27 @@ class PcServiceConnectionControllerTest {
         assertEquals(1, connector.pingCalls)
         assertEquals(1, connector.openControlSessionCalls)
         assertEquals(0, connector.pairingCalls)
-        assertEquals("desktop-1", (PcConnectionStateHolder.connectionState.value as PcConnectionState.Connected).session.desktopId)
+        val session = (PcConnectionStateHolder.connectionState.value as PcConnectionState.Connected).session
+        assertEquals("desktop-1", session.desktopId)
+        assertEquals(PcPlatform.MacOS, session.platform)
         assertEquals("AA:BB:CC:DD:EE:FF", tokens.getLastEndpointId("desktop-1"))
+    }
+
+    @Test
+    fun legacyPcWithoutAdvertisedPlatformKeepsGenericSession() = runTest(dispatcher) {
+        val legacyPc = pc.copy(
+            bluetoothEndpoint = pc.bluetoothEndpoint?.copy(platform = null)
+        )
+        val controller = controller(
+            FakeTokenStore(mutableMapOf("desktop-1" to "token")),
+            FakeConnector(PcPingResult.Connected("AA:BB:CC:DD:EE:FF")),
+            FakeDiscovery(listOf(legacyPc))
+        )
+
+        controller.connectTo(legacyPc)
+
+        val session = (PcConnectionStateHolder.connectionState.value as PcConnectionState.Connected).session
+        assertNull(session.platform)
     }
 
     @Test
@@ -568,6 +589,7 @@ class PcServiceConnectionControllerTest {
         assertTrue(result is PcServiceConnectResult.Connected)
         val session = (PcConnectionStateHolder.connectionState.value as PcConnectionState.Connected).session
         assertEquals(PcTransport.Bluetooth, session.transport)
+        assertEquals(PcPlatform.MacOS, session.platform)
         assertEquals("AA:BB:CC:DD:EE:FF", session.endpointId)
         assertEquals("AA:BB:CC:DD:EE:FF", tokens.getLastEndpointId("desktop-1"))
     }
@@ -591,7 +613,8 @@ class PcServiceConnectionControllerTest {
         assertEquals(0, connector.pingCalls)
         assertEquals(1, connector.openControlSessionCalls)
         assertEquals("new-token", tokens.getToken("desktop-1"))
-        assertTrue(PcConnectionStateHolder.connectionState.value is PcConnectionState.Connected)
+        val session = (PcConnectionStateHolder.connectionState.value as PcConnectionState.Connected).session
+        assertEquals(PcPlatform.MacOS, session.platform)
     }
 
     @Test

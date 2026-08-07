@@ -341,7 +341,12 @@ class PcServiceConnectionController(
         return when (val result = connector.requestApproval(pc, requestNonce)) {
             is PcPairingResult.Paired -> {
                 tokenStore.saveToken(result.desktopId, result.token, result.endpointId, pc.controlDeviceName)
-                val session = PcAuthenticatedSession(result.desktopId, identityRepository.getDeviceId(), result.endpointId)
+                val session = PcAuthenticatedSession(
+                    desktopId = result.desktopId,
+                    deviceId = identityRepository.getDeviceId(),
+                    endpointId = result.endpointId,
+                    platform = pc.bluetoothEndpoint?.platform
+                )
                 openLiveControlSession(session, pc.controlDeviceName, pc.controlDeviceName)
             }
             is PcPairingResult.Failed -> PcServiceConnectResult.Failed(result.reason, result.message)
@@ -359,7 +364,12 @@ class PcServiceConnectionController(
         )) {
             is PcPingResult.Connected -> {
                 tokenStore.saveToken(pc.desktopId, token, result.endpointId, pc.controlDeviceName)
-                val session = PcAuthenticatedSession(pc.desktopId, identityRepository.getDeviceId(), result.endpointId)
+                val session = PcAuthenticatedSession(
+                    desktopId = pc.desktopId,
+                    deviceId = identityRepository.getDeviceId(),
+                    endpointId = result.endpointId,
+                    platform = pc.bluetoothEndpoint?.platform
+                )
                 openLiveControlSession(session, pc.controlDeviceName, pc.controlDeviceName)
             }
             is PcPingResult.AuthFailed -> {

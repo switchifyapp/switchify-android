@@ -6,6 +6,7 @@ import com.enaboapps.switchify.pc.PcDisplayDirection
 import com.enaboapps.switchify.pc.PcKeyboardKey
 import com.enaboapps.switchify.pc.PcKeyboardModifierKey
 import com.enaboapps.switchify.pc.PcKeyboardShortcutKey
+import com.enaboapps.switchify.pc.PcPlatform
 import com.enaboapps.switchify.pc.PcWindowControlAction
 import com.enaboapps.switchify.pc.toShortcutKey
 import org.junit.Assert.assertEquals
@@ -98,7 +99,7 @@ class PcWindowControlScreenTest {
 
     @Test
     fun windowCommandsUseStableOrder() {
-        val commands = pcWindowControlSpecs().map { it.command }
+        val commands = pcWindowControlSpecs(PcPlatform.Windows).map { it.command }
 
         assertEquals(
             listOf(
@@ -117,9 +118,9 @@ class PcWindowControlScreenTest {
 
     @Test
     fun windowCommandLabelsMatchActions() {
-        val specs = pcWindowControlSpecs()
+        val specs = pcWindowControlSpecs(PcPlatform.Windows)
 
-        assertEquals(R.string.pc_key_start, specs[0].labelResId)
+        assertEquals(R.string.pc_modifier_start, specs[0].labelResId)
         assertEquals(PcControlCommand.KeyboardShortcut(listOf(PcKeyboardShortcutKey.Meta)), specs[0].command)
         assertEquals(R.string.pc_window_switch_next, specs[1].labelResId)
         assertEquals(PcControlCommand.WindowControl(PcWindowControlAction.SwitchNext), specs[1].command)
@@ -139,12 +140,12 @@ class PcWindowControlScreenTest {
 
     @Test
     fun compactWindowCommandsKeepOrderAndPadFinalRow() {
-        val specs = pcWindowCompactControlSpecs()
+        val specs = pcWindowCompactControlSpecs(PcPlatform.Windows)
         val commands = specs.mapNotNull { it?.command }
 
         assertEquals(9, specs.size)
         assertEquals(8, specs.filterNotNull().size)
-        assertEquals(pcWindowControlSpecs().map { it.command }, commands)
+        assertEquals(pcWindowControlSpecs(PcPlatform.Windows).map { it.command }, commands)
         assertEquals(null, specs[8])
     }
 
@@ -158,7 +159,7 @@ class PcWindowControlScreenTest {
 
     @Test
     fun modifierSpecsUseStableOrder() {
-        val specs = pcWindowModifierSpecs()
+        val specs = pcWindowModifierSpecs(PcPlatform.Windows)
 
         assertEquals(
             listOf(
@@ -178,6 +179,63 @@ class PcWindowControlScreenTest {
             ),
             specs.map { it.labelResId }
         )
+    }
+
+    @Test
+    fun modifierLabelsMatchConnectedPlatform() {
+        assertEquals(
+            listOf(
+                R.string.pc_modifier_ctrl,
+                R.string.pc_modifier_alt,
+                R.string.pc_modifier_shift,
+                R.string.pc_modifier_start
+            ),
+            pcWindowModifierSpecs(PcPlatform.Windows).map { it.labelResId }
+        )
+        assertEquals(
+            listOf(
+                R.string.pc_modifier_control,
+                R.string.pc_modifier_option,
+                R.string.pc_modifier_shift,
+                R.string.pc_modifier_command
+            ),
+            pcWindowModifierSpecs(PcPlatform.MacOS).map { it.labelResId }
+        )
+        assertEquals(
+            listOf(
+                R.string.pc_modifier_ctrl,
+                R.string.pc_modifier_alt,
+                R.string.pc_modifier_shift,
+                R.string.pc_modifier_meta
+            ),
+            pcWindowModifierSpecs(null).map { it.labelResId }
+        )
+    }
+
+    @Test
+    fun shortcutGuidanceMatchesConnectedPlatform() {
+        assertEquals(
+            R.string.pc_window_shortcuts_no_modifier,
+            pcShortcutPromptResId(PcPlatform.Windows)
+        )
+        assertEquals(
+            R.string.pc_window_shortcuts_no_modifier_macos,
+            pcShortcutPromptResId(PcPlatform.MacOS)
+        )
+        assertEquals(R.string.pc_window_shortcuts_no_modifier_generic, pcShortcutPromptResId(null))
+    }
+
+    @Test
+    fun standaloneMetaKeyUsesPlatformLabelWithoutChangingCommand() {
+        val windows = pcWindowControlSpecs(PcPlatform.Windows).first()
+        val macos = pcWindowControlSpecs(PcPlatform.MacOS).first()
+        val generic = pcWindowControlSpecs(null).first()
+
+        assertEquals(R.string.pc_modifier_start, windows.labelResId)
+        assertEquals(R.string.pc_modifier_command, macos.labelResId)
+        assertEquals(R.string.pc_modifier_meta, generic.labelResId)
+        assertEquals(windows.command, macos.command)
+        assertEquals(windows.command, generic.command)
     }
 
     @Test
@@ -213,7 +271,7 @@ class PcWindowControlScreenTest {
 
     @Test
     fun closeWindowCommandUsesDestructiveTone() {
-        val specs = pcWindowControlSpecs()
+        val specs = pcWindowControlSpecs(PcPlatform.Windows)
 
         assertEquals(PcCommandTone.Destructive, specs[7].tone)
     }
