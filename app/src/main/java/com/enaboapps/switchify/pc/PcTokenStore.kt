@@ -5,11 +5,18 @@ import androidx.core.content.edit
 
 interface PcPairingTokenStore {
     fun getToken(desktopId: String): String?
-    fun saveToken(desktopId: String, token: String, lastEndpointId: String, serviceName: String? = null)
+    fun saveToken(
+        desktopId: String,
+        token: String,
+        lastEndpointId: String,
+        serviceName: String? = null,
+        platform: PcPlatform? = null
+    )
     fun clearToken(desktopId: String)
     fun listPairings(): List<PcStoredPairing>
     fun getLastEndpointId(desktopId: String): String?
     fun getServiceName(desktopId: String): String?
+    fun getPlatform(desktopId: String): PcPlatform?
     fun getDefaultPcPreference(): PcDefaultPcPreference {
         return getDefaultDesktopId()?.let { PcDefaultPcPreference.SpecificPc(it) }
             ?: PcDefaultPcPreference.LastConnection
@@ -35,7 +42,8 @@ sealed class PcDefaultPcPreference {
 data class PcStoredPairing(
     val desktopId: String,
     val serviceName: String?,
-    val lastEndpointId: String?
+    val lastEndpointId: String?,
+    val platform: PcPlatform? = null
 )
 
 /**
@@ -55,12 +63,19 @@ class PcTokenStore(context: Context) : PcPairingTokenStore {
         return preferences.getString(tokenKey(desktopId), null)?.takeIf { it.isNotBlank() }
     }
 
-    override fun saveToken(desktopId: String, token: String, lastEndpointId: String, serviceName: String?) {
+    override fun saveToken(
+        desktopId: String,
+        token: String,
+        lastEndpointId: String,
+        serviceName: String?,
+        platform: PcPlatform?
+    ) {
         preferences.edit {
             putStringSet(pairingIdsKey, pairingIds() + desktopId)
             putString(tokenKey(desktopId), token)
             putString(lastEndpointIdKey(desktopId), lastEndpointId)
             if (!serviceName.isNullOrBlank()) putString(serviceNameKey(desktopId), serviceName)
+            if (platform != null) putString(platformKey(desktopId), platform.wireValue)
         }
     }
 
@@ -70,6 +85,7 @@ class PcTokenStore(context: Context) : PcPairingTokenStore {
             remove(tokenKey(desktopId))
             remove(lastEndpointIdKey(desktopId))
             remove(serviceNameKey(desktopId))
+            remove(platformKey(desktopId))
             if (preferences.getString(defaultDesktopIdKey, null) == desktopId) {
                 remove(defaultDesktopIdKey)
                 putString(defaultPreferenceModeKey, defaultPreferenceModeLastConnection)
@@ -87,7 +103,8 @@ class PcTokenStore(context: Context) : PcPairingTokenStore {
                 PcStoredPairing(
                     desktopId = desktopId,
                     serviceName = getServiceName(desktopId),
-                    lastEndpointId = getLastEndpointId(desktopId)
+                    lastEndpointId = getLastEndpointId(desktopId),
+                    platform = getPlatform(desktopId)
                 )
             }
             .sortedBy { it.serviceName ?: it.desktopId }
@@ -99,6 +116,11 @@ class PcTokenStore(context: Context) : PcPairingTokenStore {
 
     override fun getServiceName(desktopId: String): String? {
         return preferences.getString(serviceNameKey(desktopId), null)?.takeIf { it.isNotBlank() }
+    }
+
+    override fun getPlatform(desktopId: String): PcPlatform? {
+        val value = preferences.getString(platformKey(desktopId), null) ?: return null
+        return PcPlatform.entries.firstOrNull { it.wireValue == value }
     }
 
     override fun getDefaultPcPreference(): PcDefaultPcPreference {
@@ -168,6 +190,7 @@ class PcTokenStore(context: Context) : PcPairingTokenStore {
     private fun tokenKey(desktopId: String) = "token:$desktopId"
     private fun lastEndpointIdKey(desktopId: String) = "last_endpoint_id:$desktopId"
     private fun serviceNameKey(desktopId: String) = "service_name:$desktopId"
+    private fun platformKey(desktopId: String) = "platform:$desktopId"
 
     private fun pairingIds(): Set<String> {
         val tokenIds = preferences.all.keys.mapNotNull { key ->

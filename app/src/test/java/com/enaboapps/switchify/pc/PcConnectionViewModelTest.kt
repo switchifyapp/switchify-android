@@ -600,7 +600,8 @@ class PcConnectionViewModelTest {
         val tokens = FakeTokenStore(
             initialTokens = mutableMapOf("desktop-1" to "token"),
             initialLastEndpointIds = mutableMapOf("desktop-1" to "AA:BB:CC:DD:EE:FF"),
-            initialServiceNames = mutableMapOf("desktop-1" to "Switchify PC")
+            initialServiceNames = mutableMapOf("desktop-1" to "Switchify PC"),
+            initialPlatforms = mutableMapOf("desktop-1" to PcPlatform.MacOS)
         )
         val connector = FakeConnector(pingResult = PcPingResult.Connected("AA:BB:CC:DD:EE:FF"))
         val viewModel = viewModel(discovery, tokens, connector)
@@ -616,6 +617,11 @@ class PcConnectionViewModelTest {
         assertEquals(1, connector.pingCalls)
         assertEquals(PcTransport.Bluetooth, (PcConnectionStateHolder.connectionState.value as PcConnectionState.Connected).session.transport)
         assertEquals("AA:BB:CC:DD:EE:FF", connector.pingPcs.single().bluetoothEndpoint?.deviceAddress)
+        assertEquals(PcPlatform.MacOS, connector.pingPcs.single().bluetoothEndpoint?.platform)
+        assertEquals(
+            PcPlatform.MacOS,
+            (PcConnectionStateHolder.connectionState.value as PcConnectionState.Connected).session.platform
+        )
     }
 
     @Test
@@ -1226,6 +1232,7 @@ class PcConnectionViewModelTest {
         private val initialTokens: MutableMap<String, String> = mutableMapOf(),
         private val initialLastEndpointIds: MutableMap<String, String> = mutableMapOf(),
         private val initialServiceNames: MutableMap<String, String> = mutableMapOf(),
+        private val initialPlatforms: MutableMap<String, PcPlatform> = mutableMapOf(),
         private var initialDefaultDesktopId: String? = null,
         private var initialLastConnectedDesktopId: String? = null
     ) : PcPairingTokenStore {
@@ -1234,16 +1241,24 @@ class PcConnectionViewModelTest {
 
         override fun getToken(desktopId: String): String? = initialTokens[desktopId]
 
-        override fun saveToken(desktopId: String, token: String, lastEndpointId: String, serviceName: String?) {
+        override fun saveToken(
+            desktopId: String,
+            token: String,
+            lastEndpointId: String,
+            serviceName: String?,
+            platform: PcPlatform?
+        ) {
             initialTokens[desktopId] = token
             lastEndpointIds[desktopId] = lastEndpointId
             if (!serviceName.isNullOrBlank()) serviceNames[desktopId] = serviceName
+            if (platform != null) initialPlatforms[desktopId] = platform
         }
 
         override fun clearToken(desktopId: String) {
             initialTokens.remove(desktopId)
             lastEndpointIds.remove(desktopId)
             serviceNames.remove(desktopId)
+            initialPlatforms.remove(desktopId)
             if (initialDefaultDesktopId == desktopId) initialDefaultDesktopId = null
             if (initialLastConnectedDesktopId == desktopId) initialLastConnectedDesktopId = null
         }
@@ -1253,13 +1268,15 @@ class PcConnectionViewModelTest {
                 PcStoredPairing(
                     desktopId = desktopId,
                     serviceName = serviceNames[desktopId],
-                    lastEndpointId = lastEndpointIds[desktopId]
+                    lastEndpointId = lastEndpointIds[desktopId],
+                    platform = initialPlatforms[desktopId]
                 )
             }
         }
 
         override fun getLastEndpointId(desktopId: String): String? = lastEndpointIds[desktopId]
         override fun getServiceName(desktopId: String): String? = serviceNames[desktopId]
+        override fun getPlatform(desktopId: String): PcPlatform? = initialPlatforms[desktopId]
         override fun getDefaultDesktopId(): String? {
             val desktopId = initialDefaultDesktopId ?: return null
             if (initialTokens.containsKey(desktopId)) return desktopId

@@ -340,12 +340,19 @@ class PcServiceConnectionController(
         onWaitingForApproval(PcApprovalCodeState(pc.controlDeviceName, verificationCode))
         return when (val result = connector.requestApproval(pc, requestNonce)) {
             is PcPairingResult.Paired -> {
-                tokenStore.saveToken(result.desktopId, result.token, result.endpointId, pc.controlDeviceName)
+                val platform = pc.bluetoothEndpoint?.platform
+                tokenStore.saveToken(
+                    result.desktopId,
+                    result.token,
+                    result.endpointId,
+                    pc.controlDeviceName,
+                    platform
+                )
                 val session = PcAuthenticatedSession(
                     desktopId = result.desktopId,
                     deviceId = identityRepository.getDeviceId(),
                     endpointId = result.endpointId,
-                    platform = pc.bluetoothEndpoint?.platform
+                    platform = platform
                 )
                 openLiveControlSession(session, pc.controlDeviceName, pc.controlDeviceName)
             }
@@ -363,12 +370,19 @@ class PcServiceConnectionController(
             isAuthFailure = { it is PcPingResult.AuthFailed }
         )) {
             is PcPingResult.Connected -> {
-                tokenStore.saveToken(pc.desktopId, token, result.endpointId, pc.controlDeviceName)
+                val platform = pc.bluetoothEndpoint?.platform ?: tokenStore.getPlatform(pc.desktopId)
+                tokenStore.saveToken(
+                    pc.desktopId,
+                    token,
+                    result.endpointId,
+                    pc.controlDeviceName,
+                    platform
+                )
                 val session = PcAuthenticatedSession(
                     desktopId = pc.desktopId,
                     deviceId = identityRepository.getDeviceId(),
                     endpointId = result.endpointId,
-                    platform = pc.bluetoothEndpoint?.platform
+                    platform = platform
                 )
                 openLiveControlSession(session, pc.controlDeviceName, pc.controlDeviceName)
             }

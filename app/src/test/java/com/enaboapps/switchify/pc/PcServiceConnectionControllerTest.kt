@@ -748,6 +748,25 @@ class PcServiceConnectionControllerTest {
     }
 
     @Test
+    fun connectToRestoresPlatformFromSavedPairing() = runTest(dispatcher) {
+        val tokens = FakeTokenStore()
+        tokens.saveToken(
+            desktopId = "desktop-1",
+            token = "token",
+            lastEndpointId = "AA:BB:CC:DD:EE:FF",
+            platform = PcPlatform.Windows
+        )
+        val connector = FakeConnector(PcPingResult.Connected("AA:BB:CC:DD:EE:FF"))
+        val controller = controller(tokens, connector)
+        val savedPc = pc.copy(bluetoothEndpoint = pc.bluetoothEndpoint?.copy(platform = null))
+
+        val result = controller.connectTo(savedPc)
+
+        val session = (result as PcServiceConnectResult.Connected).session
+        assertEquals(PcPlatform.Windows, session.platform)
+    }
+
+    @Test
     fun connectToWithSavedTokenRecordsLastConnectedPc() = runTest(dispatcher) {
         val tokens = FakeTokenStore(mutableMapOf("desktop-1" to "token"))
         val connector = FakeConnector(PcPingResult.Connected("AA:BB:CC:DD:EE:FF"))
@@ -1084,21 +1103,30 @@ class PcServiceConnectionControllerTest {
     ) : PcPairingTokenStore {
         private val lastEndpointIds = mutableMapOf<String, String>()
         private val serviceNames = mutableMapOf<String, String>()
+        private val platforms = mutableMapOf<String, PcPlatform>()
         private var defaultDesktopId: String? = null
         private var lastConnectedDesktopId: String? = null
 
         override fun getToken(desktopId: String): String? = tokens[desktopId]
 
-        override fun saveToken(desktopId: String, token: String, lastEndpointId: String, serviceName: String?) {
+        override fun saveToken(
+            desktopId: String,
+            token: String,
+            lastEndpointId: String,
+            serviceName: String?,
+            platform: PcPlatform?
+        ) {
             tokens[desktopId] = token
             lastEndpointIds[desktopId] = lastEndpointId
             if (!serviceName.isNullOrBlank()) serviceNames[desktopId] = serviceName
+            if (platform != null) platforms[desktopId] = platform
         }
 
         override fun clearToken(desktopId: String) {
             tokens.remove(desktopId)
             lastEndpointIds.remove(desktopId)
             serviceNames.remove(desktopId)
+            platforms.remove(desktopId)
             if (defaultDesktopId == desktopId) defaultDesktopId = null
             if (lastConnectedDesktopId == desktopId) lastConnectedDesktopId = null
         }
@@ -1108,13 +1136,15 @@ class PcServiceConnectionControllerTest {
                 PcStoredPairing(
                     desktopId = desktopId,
                     serviceName = serviceNames[desktopId],
-                    lastEndpointId = lastEndpointIds[desktopId]
+                    lastEndpointId = lastEndpointIds[desktopId],
+                    platform = platforms[desktopId]
                 )
             }
         }
 
         override fun getLastEndpointId(desktopId: String): String? = lastEndpointIds[desktopId]
         override fun getServiceName(desktopId: String): String? = serviceNames[desktopId]
+        override fun getPlatform(desktopId: String): PcPlatform? = platforms[desktopId]
         override fun getDefaultDesktopId(): String? {
             val desktopId = defaultDesktopId ?: return null
             if (tokens.containsKey(desktopId)) return desktopId

@@ -2500,7 +2500,13 @@ class PcMouseControlViewModelTest {
 
         override fun getToken(desktopId: String): String? = tokens[desktopId]
 
-        override fun saveToken(desktopId: String, token: String, lastEndpointId: String, serviceName: String?) {
+        override fun saveToken(
+            desktopId: String,
+            token: String,
+            lastEndpointId: String,
+            serviceName: String?,
+            platform: PcPlatform?
+        ) {
             tokens[desktopId] = token
             lastEndpointIds[desktopId] = lastEndpointId
         }
@@ -2523,6 +2529,7 @@ class PcMouseControlViewModelTest {
 
         override fun getLastEndpointId(desktopId: String): String? = lastEndpointIds[desktopId]
         override fun getServiceName(desktopId: String): String? = null
+        override fun getPlatform(desktopId: String): PcPlatform? = null
         override fun getDefaultDesktopId(): String? {
             val desktopId = defaultDesktopId ?: return null
             if (tokens.containsKey(desktopId)) return desktopId
