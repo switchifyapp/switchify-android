@@ -28,6 +28,7 @@ import com.enaboapps.switchify.pc.PcPingResult
 import com.enaboapps.switchify.pc.PcPointerBounds
 import com.enaboapps.switchify.pc.PcPointerCapabilities
 import com.enaboapps.switchify.pc.PcPointerDeltas
+import com.enaboapps.switchify.pc.PcPlatform
 import com.enaboapps.switchify.pc.PcPointerMovementProfile
 import com.enaboapps.switchify.pc.PcPointerSpeedCapabilities
 import com.enaboapps.switchify.pc.PcServiceConnectionController
@@ -65,7 +66,8 @@ class PcMouseControlViewModelTest {
             deviceAddress = "AA:BB:CC:DD:EE:FF",
             deviceName = "Switchify PC",
             desktopId = "desktop-1",
-            displayName = "Switchify PC"
+            displayName = "Switchify PC",
+            platform = PcPlatform.MacOS
         )
     )
     private val officePc = DiscoveredPc(
@@ -75,7 +77,8 @@ class PcMouseControlViewModelTest {
             deviceAddress = "11:22:33:44:55:66",
             deviceName = "Office PC",
             desktopId = "desktop-2",
-            displayName = "Office PC"
+            displayName = "Office PC",
+            platform = PcPlatform.Windows
         )
     )
 
@@ -128,6 +131,7 @@ class PcMouseControlViewModelTest {
         advanceUntilIdle()
 
         assertEquals("Switchify PC", viewModel.uiState.value.connectedDisplayName)
+        assertEquals(PcPlatform.MacOS, viewModel.uiState.value.connectedPlatform)
         assertNull(viewModel.uiState.value.message)
     }
 
@@ -419,6 +423,7 @@ class PcMouseControlViewModelTest {
         val state = PcConnectionStateHolder.connectionState.value as PcConnectionState.Connected
         assertEquals("desktop-2", state.session.desktopId)
         assertEquals("Office PC", viewModel.uiState.value.connectedDisplayName)
+        assertEquals(PcPlatform.Windows, viewModel.uiState.value.connectedPlatform)
         assertFalse(viewModel.pcSwitcherState.value.visible)
         assertNull(viewModel.pcSwitcherState.value.switchingDesktopId)
         assertEquals(2, connector.openControlSessionCalls)
@@ -986,6 +991,7 @@ class PcMouseControlViewModelTest {
         advanceUntilIdle()
 
         assertFalse(mouseRepeatManager.isRepeating())
+        assertNull(viewModel.uiState.value.connectedPlatform)
     }
 
     @Test
@@ -2365,7 +2371,12 @@ class PcMouseControlViewModelTest {
     fun reconnectResetsDraggingFalse() = runTest(dispatcher) {
         val controller = connectedController()
         val viewModel = viewModel(controller)
-        val session = PcAuthenticatedSession("desktop-1", "device-1", "AA:BB:CC:DD:EE:FF")
+        val session = PcAuthenticatedSession(
+            "desktop-1",
+            "device-1",
+            "AA:BB:CC:DD:EE:FF",
+            platform = PcPlatform.MacOS
+        )
 
         viewModel.send(PcControlCommand.DragStart())
         advanceUntilIdle()
@@ -2373,6 +2384,7 @@ class PcMouseControlViewModelTest {
         advanceUntilIdle()
 
         assertEquals(false, viewModel.uiState.value.isDragging)
+        assertEquals(PcPlatform.MacOS, viewModel.uiState.value.connectedPlatform)
     }
 
     @Test
@@ -2390,13 +2402,19 @@ class PcMouseControlViewModelTest {
 
     @Test
     fun reconnectingServiceStateShowsReconnecting() = runTest(dispatcher) {
-        val session = PcAuthenticatedSession("desktop-1", "device-1", "AA:BB:CC:DD:EE:FF")
+        val session = PcAuthenticatedSession(
+            "desktop-1",
+            "device-1",
+            "AA:BB:CC:DD:EE:FF",
+            platform = PcPlatform.Windows
+        )
         val viewModel = viewModel(null)
 
         PcConnectionStateHolder.setReconnecting(session, "Switchify PC")
         advanceUntilIdle()
 
         assertEquals(PcMouseControlViewModel.RECONNECTING_MESSAGE, viewModel.uiState.value.message)
+        assertEquals(PcPlatform.Windows, viewModel.uiState.value.connectedPlatform)
     }
 
     @Test
@@ -2482,7 +2500,13 @@ class PcMouseControlViewModelTest {
 
         override fun getToken(desktopId: String): String? = tokens[desktopId]
 
-        override fun saveToken(desktopId: String, token: String, lastEndpointId: String, serviceName: String?) {
+        override fun saveToken(
+            desktopId: String,
+            token: String,
+            lastEndpointId: String,
+            serviceName: String?,
+            platform: PcPlatform?
+        ) {
             tokens[desktopId] = token
             lastEndpointIds[desktopId] = lastEndpointId
         }
@@ -2505,6 +2529,7 @@ class PcMouseControlViewModelTest {
 
         override fun getLastEndpointId(desktopId: String): String? = lastEndpointIds[desktopId]
         override fun getServiceName(desktopId: String): String? = null
+        override fun getPlatform(desktopId: String): PcPlatform? = null
         override fun getDefaultDesktopId(): String? {
             val desktopId = defaultDesktopId ?: return null
             if (tokens.containsKey(desktopId)) return desktopId

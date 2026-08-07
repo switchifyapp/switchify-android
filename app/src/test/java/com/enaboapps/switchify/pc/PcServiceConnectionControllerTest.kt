@@ -33,7 +33,8 @@ class PcServiceConnectionControllerTest {
             deviceAddress = "AA:BB:CC:DD:EE:FF",
             deviceName = "Switchify PC",
             desktopId = "desktop-1",
-            displayName = "Switchify PC"
+            displayName = "Switchify PC",
+            platform = PcPlatform.MacOS
         )
     )
     private val secondPc = DiscoveredPc(
@@ -43,7 +44,8 @@ class PcServiceConnectionControllerTest {
             deviceAddress = "11:22:33:44:55:66",
             deviceName = "Office PC",
             desktopId = "desktop-2",
-            displayName = "Office PC"
+            displayName = "Office PC",
+            platform = PcPlatform.Windows
         )
     )
 
@@ -71,8 +73,27 @@ class PcServiceConnectionControllerTest {
         assertEquals(1, connector.pingCalls)
         assertEquals(1, connector.openControlSessionCalls)
         assertEquals(0, connector.pairingCalls)
-        assertEquals("desktop-1", (PcConnectionStateHolder.connectionState.value as PcConnectionState.Connected).session.desktopId)
+        val session = (PcConnectionStateHolder.connectionState.value as PcConnectionState.Connected).session
+        assertEquals("desktop-1", session.desktopId)
+        assertEquals(PcPlatform.MacOS, session.platform)
         assertEquals("AA:BB:CC:DD:EE:FF", tokens.getLastEndpointId("desktop-1"))
+    }
+
+    @Test
+    fun legacyPcWithoutAdvertisedPlatformKeepsGenericSession() = runTest(dispatcher) {
+        val legacyPc = pc.copy(
+            bluetoothEndpoint = pc.bluetoothEndpoint?.copy(platform = null)
+        )
+        val controller = controller(
+            FakeTokenStore(mutableMapOf("desktop-1" to "token")),
+            FakeConnector(PcPingResult.Connected("AA:BB:CC:DD:EE:FF")),
+            FakeDiscovery(listOf(legacyPc))
+        )
+
+        controller.connectTo(legacyPc)
+
+        val session = (PcConnectionStateHolder.connectionState.value as PcConnectionState.Connected).session
+        assertNull(session.platform)
     }
 
     @Test
@@ -568,6 +589,7 @@ class PcServiceConnectionControllerTest {
         assertTrue(result is PcServiceConnectResult.Connected)
         val session = (PcConnectionStateHolder.connectionState.value as PcConnectionState.Connected).session
         assertEquals(PcTransport.Bluetooth, session.transport)
+        assertEquals(PcPlatform.MacOS, session.platform)
         assertEquals("AA:BB:CC:DD:EE:FF", session.endpointId)
         assertEquals("AA:BB:CC:DD:EE:FF", tokens.getLastEndpointId("desktop-1"))
     }
@@ -591,7 +613,8 @@ class PcServiceConnectionControllerTest {
         assertEquals(0, connector.pingCalls)
         assertEquals(1, connector.openControlSessionCalls)
         assertEquals("new-token", tokens.getToken("desktop-1"))
-        assertTrue(PcConnectionStateHolder.connectionState.value is PcConnectionState.Connected)
+        val session = (PcConnectionStateHolder.connectionState.value as PcConnectionState.Connected).session
+        assertEquals(PcPlatform.MacOS, session.platform)
     }
 
     @Test
@@ -722,6 +745,25 @@ class PcServiceConnectionControllerTest {
         assertEquals(1, connector.pingCalls)
         assertEquals(0, connector.pairingCalls)
         assertEquals("desktop-1", (PcConnectionStateHolder.connectionState.value as PcConnectionState.Connected).session.desktopId)
+    }
+
+    @Test
+    fun connectToRestoresPlatformFromSavedPairing() = runTest(dispatcher) {
+        val tokens = FakeTokenStore()
+        tokens.saveToken(
+            desktopId = "desktop-1",
+            token = "token",
+            lastEndpointId = "AA:BB:CC:DD:EE:FF",
+            platform = PcPlatform.Windows
+        )
+        val connector = FakeConnector(PcPingResult.Connected("AA:BB:CC:DD:EE:FF"))
+        val controller = controller(tokens, connector)
+        val savedPc = pc.copy(bluetoothEndpoint = pc.bluetoothEndpoint?.copy(platform = null))
+
+        val result = controller.connectTo(savedPc)
+
+        val session = (result as PcServiceConnectResult.Connected).session
+        assertEquals(PcPlatform.Windows, session.platform)
     }
 
     @Test
@@ -1061,21 +1103,30 @@ class PcServiceConnectionControllerTest {
     ) : PcPairingTokenStore {
         private val lastEndpointIds = mutableMapOf<String, String>()
         private val serviceNames = mutableMapOf<String, String>()
+        private val platforms = mutableMapOf<String, PcPlatform>()
         private var defaultDesktopId: String? = null
         private var lastConnectedDesktopId: String? = null
 
         override fun getToken(desktopId: String): String? = tokens[desktopId]
 
-        override fun saveToken(desktopId: String, token: String, lastEndpointId: String, serviceName: String?) {
+        override fun saveToken(
+            desktopId: String,
+            token: String,
+            lastEndpointId: String,
+            serviceName: String?,
+            platform: PcPlatform?
+        ) {
             tokens[desktopId] = token
             lastEndpointIds[desktopId] = lastEndpointId
             if (!serviceName.isNullOrBlank()) serviceNames[desktopId] = serviceName
+            if (platform != null) platforms[desktopId] = platform
         }
 
         override fun clearToken(desktopId: String) {
             tokens.remove(desktopId)
             lastEndpointIds.remove(desktopId)
             serviceNames.remove(desktopId)
+            platforms.remove(desktopId)
             if (defaultDesktopId == desktopId) defaultDesktopId = null
             if (lastConnectedDesktopId == desktopId) lastConnectedDesktopId = null
         }
@@ -1085,13 +1136,15 @@ class PcServiceConnectionControllerTest {
                 PcStoredPairing(
                     desktopId = desktopId,
                     serviceName = serviceNames[desktopId],
-                    lastEndpointId = lastEndpointIds[desktopId]
+                    lastEndpointId = lastEndpointIds[desktopId],
+                    platform = platforms[desktopId]
                 )
             }
         }
 
         override fun getLastEndpointId(desktopId: String): String? = lastEndpointIds[desktopId]
         override fun getServiceName(desktopId: String): String? = serviceNames[desktopId]
+        override fun getPlatform(desktopId: String): PcPlatform? = platforms[desktopId]
         override fun getDefaultDesktopId(): String? {
             val desktopId = defaultDesktopId ?: return null
             if (tokens.containsKey(desktopId)) return desktopId

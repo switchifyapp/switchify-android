@@ -12,6 +12,7 @@ import com.enaboapps.switchify.pc.PcControlCommand
 import com.enaboapps.switchify.pc.PcKeyboardKey
 import com.enaboapps.switchify.pc.PcKeyboardModifierKey
 import com.enaboapps.switchify.pc.PcKeyboardShortcutKey
+import com.enaboapps.switchify.pc.PcPlatform
 import com.enaboapps.switchify.pc.PcPointerMovementProfile
 import com.enaboapps.switchify.pc.PcMouseRepeatManager
 import com.enaboapps.switchify.pc.PcServiceConnectionController
@@ -42,6 +43,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 
 data class PcMouseControlUiState(
     val connectedDisplayName: String? = null,
+    val connectedPlatform: PcPlatform? = null,
     val activeSurface: PcControlSurface = PcControlSurface.Mouse,
     val movementStep: Int = PcMouseControlViewModel.FALLBACK_MOVEMENT_STEP,
     val pointerSpeedSupported: Boolean = false,
@@ -1043,6 +1045,7 @@ class PcMouseControlViewModel(
                 _uiState.update {
                     it.copy(
                         connectedDisplayName = state.displayName,
+                        connectedPlatform = state.session.platform,
                         movementStep = movementStep,
                         pointerSpeedSupported = pointerProfile?.capabilities?.pointerSpeed?.supported == true,
                         pointerSpeedSetSupported = pointerProfile?.capabilities?.pointerSpeed?.setSupported == true,
@@ -1076,6 +1079,7 @@ class PcMouseControlViewModel(
                 _uiState.update {
                     it.copy(
                         connectedDisplayName = state.displayName,
+                        connectedPlatform = state.session.platform,
                         isDragging = false,
                         activeModifiers = emptySet(),
                         pointerSpeedSupported = false,
@@ -1096,6 +1100,7 @@ class PcMouseControlViewModel(
                 _uiState.update {
                     it.copy(
                         connectedDisplayName = null,
+                        connectedPlatform = null,
                         movementStep = movementStep,
                         pointerSpeedSupported = false,
                         pointerSpeedSetSupported = false,
@@ -1121,6 +1126,7 @@ class PcMouseControlViewModel(
                 _uiState.update {
                     it.copy(
                         connectedDisplayName = null,
+                        connectedPlatform = null,
                         movementStep = movementStep,
                         pointerSpeedSupported = false,
                         pointerSpeedSetSupported = false,
@@ -1152,6 +1158,7 @@ class PcMouseControlViewModel(
                 _uiState.update {
                     it.copy(
                         connectedDisplayName = state.displayName,
+                        connectedPlatform = state.session.platform,
                         isDragging = false,
                         activeModifiers = emptySet(),
                         displayNavigationSupported = false,
@@ -1168,6 +1175,7 @@ class PcMouseControlViewModel(
                 _uiState.update {
                     it.copy(
                         connectedDisplayName = null,
+                        connectedPlatform = null,
                         isDragging = false,
                         activeModifiers = emptySet(),
                         isBusy = false,
@@ -1206,6 +1214,7 @@ class PcMouseControlViewModel(
         _uiState.update {
             it.copy(
                 connectedDisplayName = null,
+                connectedPlatform = null,
                 movementStep = movementStep,
                 pointerSpeedSupported = false,
                 pointerSpeedSetSupported = false,
@@ -1258,7 +1267,7 @@ class PcMouseControlViewModel(
         const val LIVE_TYPING_RESUMED_MESSAGE = "Typing resumed"
         const val LIVE_TYPING_FIELD_CLEARED_NOTICE =
             "Field cleared. Text on the PC was not changed."
-        const val SELECT_SHORTCUT_MODIFIER_MESSAGE = "Choose Ctrl, Alt, Shift, or Start first."
+        const val SELECT_SHORTCUT_MODIFIER_MESSAGE = "Choose a modifier first."
         const val TEXT_STREAM_RECONNECT_TIMEOUT_MS = 15_000L
         const val TEXT_STREAM_RECONNECT_RETRY_LIMIT = 3
         const val RECONNECTING_MESSAGE = "Reconnecting..."

@@ -13,7 +13,8 @@ data class PcAuthenticatedSession(
     val desktopId: String,
     val deviceId: String,
     val endpointId: String,
-    val transport: PcTransport = PcTransport.Bluetooth
+    val transport: PcTransport = PcTransport.Bluetooth,
+    val platform: PcPlatform? = null
 )
 
 enum class PcTransport {

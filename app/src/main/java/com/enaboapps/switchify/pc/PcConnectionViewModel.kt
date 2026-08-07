@@ -227,7 +227,8 @@ class PcConnectionViewModel(
                     deviceAddress = endpoint,
                     deviceName = null,
                     desktopId = desktopId,
-                    displayName = displayName
+                    displayName = displayName,
+                    platform = tokenStore.getPlatform(desktopId)
                 )
             )
         )

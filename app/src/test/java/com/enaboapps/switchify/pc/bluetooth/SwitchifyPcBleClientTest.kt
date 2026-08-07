@@ -18,6 +18,7 @@ import com.enaboapps.switchify.pc.PcLiveControlResult
 import com.enaboapps.switchify.pc.PcPairingResult
 import com.enaboapps.switchify.pc.PcPairingTokenStore
 import com.enaboapps.switchify.pc.PcPingResult
+import com.enaboapps.switchify.pc.PcPlatform
 import com.enaboapps.switchify.pc.PcProtocol
 import com.enaboapps.switchify.pc.PcStoredPairing
 import com.enaboapps.switchify.pc.PcTransport
@@ -747,7 +748,13 @@ class SwitchifyPcBleClientTest {
 
         override fun getToken(desktopId: String): String? = tokens[desktopId]
 
-        override fun saveToken(desktopId: String, token: String, lastEndpointId: String, serviceName: String?) {
+        override fun saveToken(
+            desktopId: String,
+            token: String,
+            lastEndpointId: String,
+            serviceName: String?,
+            platform: PcPlatform?
+        ) {
             tokens[desktopId] = token
             lastEndpointIds[desktopId] = lastEndpointId
             if (!serviceName.isNullOrBlank()) serviceNames[desktopId] = serviceName
@@ -766,6 +773,7 @@ class SwitchifyPcBleClientTest {
 
         override fun getLastEndpointId(desktopId: String): String? = lastEndpointIds[desktopId]
         override fun getServiceName(desktopId: String): String? = serviceNames[desktopId]
+        override fun getPlatform(desktopId: String): PcPlatform? = null
         override fun getDefaultDesktopId(): String? {
             val desktopId = defaultDesktopId ?: return null
             if (tokens.containsKey(desktopId)) return desktopId

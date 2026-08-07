@@ -505,11 +505,17 @@
     <string name="pc_window_section_modifiers">Modifiers</string>
     <string name="pc_window_section_shortcuts">Shortcuts</string>
     <string name="pc_window_shortcuts_no_modifier">Choose Ctrl, Alt, Shift, or Start first.</string>
+    <string name="pc_window_shortcuts_no_modifier_macos">Choose Control, Option, Shift, or Command first.</string>
+    <string name="pc_window_shortcuts_no_modifier_generic">Choose Ctrl, Alt, Shift, or Meta first.</string>
     <string name="pc_window_shortcuts_with_modifiers">Send with %1$s.</string>
     <string name="pc_modifier_ctrl">Ctrl</string>
     <string name="pc_modifier_alt">Alt</string>
     <string name="pc_modifier_shift">Shift</string>
     <string name="pc_modifier_start">Start</string>
+    <string name="pc_modifier_control">Control</string>
+    <string name="pc_modifier_option">Option</string>
+    <string name="pc_modifier_command">Command</string>
+    <string name="pc_modifier_meta">Meta</string>
     <string name="pc_key_start">Start</string>
     <string name="pc_key_backspace">Backspace</string>
     <string name="pc_key_delete">Delete</string>

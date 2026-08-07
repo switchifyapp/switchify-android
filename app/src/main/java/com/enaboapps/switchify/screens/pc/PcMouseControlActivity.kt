@@ -306,6 +306,7 @@ private fun PcMouseControlScreen(
                         )
                         PcControlSurface.Window -> PcWindowControlScreen(
                             enabled = surfaceEnabled,
+                            platform = uiState.connectedPlatform,
                             monitorNavigationVisible = shouldShowPcDisplayNavigation(
                                 uiState.displayNavigationSupported,
                                 uiState.displayCount

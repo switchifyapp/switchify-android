@@ -82,13 +82,36 @@ enum class PcKeyboardShortcutKey(val protocolValue: String) {
 }
 
 enum class PcKeyboardModifierKey(
-    val protocolValue: String,
-    @param:StringRes val labelResId: Int
+    val protocolValue: String
 ) {
-    Ctrl("Ctrl", R.string.pc_modifier_ctrl),
-    Alt("Alt", R.string.pc_modifier_alt),
-    Shift("Shift", R.string.pc_modifier_shift),
-    Meta("Meta", R.string.pc_modifier_start)
+    Ctrl("Ctrl"),
+    Alt("Alt"),
+    Shift("Shift"),
+    Meta("Meta")
+}
+
+@StringRes
+fun PcKeyboardModifierKey.labelResId(platform: PcPlatform?): Int {
+    return when (platform) {
+        PcPlatform.Windows -> when (this) {
+            PcKeyboardModifierKey.Ctrl -> R.string.pc_modifier_ctrl
+            PcKeyboardModifierKey.Alt -> R.string.pc_modifier_alt
+            PcKeyboardModifierKey.Shift -> R.string.pc_modifier_shift
+            PcKeyboardModifierKey.Meta -> R.string.pc_modifier_start
+        }
+        PcPlatform.MacOS -> when (this) {
+            PcKeyboardModifierKey.Ctrl -> R.string.pc_modifier_control
+            PcKeyboardModifierKey.Alt -> R.string.pc_modifier_option
+            PcKeyboardModifierKey.Shift -> R.string.pc_modifier_shift
+            PcKeyboardModifierKey.Meta -> R.string.pc_modifier_command
+        }
+        null -> when (this) {
+            PcKeyboardModifierKey.Ctrl -> R.string.pc_modifier_ctrl
+            PcKeyboardModifierKey.Alt -> R.string.pc_modifier_alt
+            PcKeyboardModifierKey.Shift -> R.string.pc_modifier_shift
+            PcKeyboardModifierKey.Meta -> R.string.pc_modifier_meta
+        }
+    }
 }
 
 fun PcKeyboardModifierKey.toShortcutKey(): PcKeyboardShortcutKey {
