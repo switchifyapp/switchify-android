@@ -803,6 +803,24 @@ class PcConnectionViewModelTest {
     }
 
     @Test
+    fun macOSDiscoveredRowsUseStatusNameAndHideGenericGapName() = runTest(dispatcher) {
+        val mac = pc.copy(
+            serviceName = "Owen’s Mac Studio",
+            bluetoothEndpoint = pc.bluetoothEndpoint?.copy(
+                deviceName = "Mac",
+                displayName = "Owen’s Mac Studio",
+                platform = PcPlatform.MacOS
+            )
+        )
+        val viewModel = viewModel(FakeDiscovery(listOf(mac)), FakeTokenStore(), FakeConnector())
+        advanceUntilIdle()
+
+        val row = viewModel.uiState.value.pcRows.single()
+        assertEquals("Owen’s Mac Studio", row.title)
+        assertEquals("macOS · AA:BB:CC:DD:EE:FF", row.summary)
+    }
+
+    @Test
     fun defaultPreferenceDefaultsToLastConnection() = runTest(dispatcher) {
         val viewModel = viewModel(FakeDiscovery(emptyList()), FakeTokenStore(), FakeConnector())
         advanceUntilIdle()

@@ -806,7 +806,10 @@ class PcServiceConnectionControllerTest {
     fun connectToStoresControlDeviceName() = runTest(dispatcher) {
         val pcWithDeviceName = pc.copy(
             serviceName = "Switchify PC",
-            bluetoothEndpoint = pc.bluetoothEndpoint?.copy(deviceName = "Oliver Laptop")
+            bluetoothEndpoint = pc.bluetoothEndpoint?.copy(
+                deviceName = "Oliver Laptop",
+                platform = PcPlatform.Windows
+            )
         )
         val tokens = FakeTokenStore(mutableMapOf("desktop-1" to "token"))
         val connector = FakeConnector(PcPingResult.Connected("AA:BB:CC:DD:EE:FF"))
@@ -823,7 +826,10 @@ class PcServiceConnectionControllerTest {
     fun pairingUsesFriendlyControlDeviceName() = runTest(dispatcher) {
         val pcWithDeviceName = pc.copy(
             serviceName = "Switchify PC",
-            bluetoothEndpoint = pc.bluetoothEndpoint?.copy(deviceName = "Oliver Laptop")
+            bluetoothEndpoint = pc.bluetoothEndpoint?.copy(
+                deviceName = "Oliver Laptop",
+                platform = PcPlatform.Windows
+            )
         )
         val tokens = FakeTokenStore()
         val connector = FakeConnector(

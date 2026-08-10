@@ -2,13 +2,14 @@ package com.enaboapps.switchify.service.menu.menus.pc
 
 import com.enaboapps.switchify.pc.DiscoveredPc
 import com.enaboapps.switchify.pc.PcBluetoothEndpoint
+import com.enaboapps.switchify.pc.PcPlatform
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class ChoosePcMenuStructureTest {
     @Test
     fun usesBluetoothDeviceNameWhenAvailable() {
-        val pc = discoveredPc(deviceName = "Office Laptop")
+        val pc = discoveredPc(deviceName = "  Office Laptop  ")
 
         val item = ChoosePcMenuStructure().getMenuItems(listOf(pc)) {}.single()
 
@@ -33,15 +34,33 @@ class ChoosePcMenuStructureTest {
         assertEquals("Switchify PC", item.userProvidedText)
     }
 
-    private fun discoveredPc(deviceName: String?): DiscoveredPc {
+    @Test
+    fun usesStatusDisplayNameForMacOSInsteadOfGenericBluetoothName() {
+        val pc = discoveredPc(
+            deviceName = "Mac",
+            displayName = "Owen’s Mac Studio",
+            platform = PcPlatform.MacOS
+        )
+
+        val item = ChoosePcMenuStructure().getMenuItems(listOf(pc)) {}.single()
+
+        assertEquals("Owen’s Mac Studio", item.userProvidedText)
+    }
+
+    private fun discoveredPc(
+        deviceName: String?,
+        displayName: String = "Switchify PC",
+        platform: PcPlatform? = null
+    ): DiscoveredPc {
         return DiscoveredPc(
-            serviceName = "Switchify PC",
+            serviceName = displayName,
             desktopId = "desktop-1",
             bluetoothEndpoint = PcBluetoothEndpoint(
                 deviceAddress = "AA:BB:CC:DD:EE:FF",
                 deviceName = deviceName,
                 desktopId = "desktop-1",
-                displayName = "Switchify PC"
+                displayName = displayName,
+                platform = platform
             )
         )
     }

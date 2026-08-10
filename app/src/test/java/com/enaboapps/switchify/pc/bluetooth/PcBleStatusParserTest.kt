@@ -29,12 +29,14 @@ class PcBleStatusParserTest {
         )
         val macOS = PcBleStatusParser.parse(
             "BB",
-            null,
-            """{"protocolVersion":1,"desktopId":"desktop-2","platform":"macos"}"""
+            "Mac",
+            """{"protocolVersion":1,"displayName":"Owen’s Mac Studio","desktopId":"desktop-2","platform":"macos"}"""
         )
 
         assertEquals(PcPlatform.Windows, windows?.platform)
         assertEquals(PcPlatform.MacOS, macOS?.platform)
+        assertEquals("Owen’s Mac Studio", macOS?.displayName)
+        assertEquals("Mac", macOS?.deviceName)
     }
 
     @Test
