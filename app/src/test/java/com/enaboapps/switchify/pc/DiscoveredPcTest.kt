@@ -53,6 +53,19 @@ class DiscoveredPcTest {
     }
 
     @Test
+    fun resolvedNamesTrimSurroundingWhitespace() {
+        val pc = pc(
+            serviceName = " Switchify PC ",
+            deviceName = "  Oliver Laptop  ",
+            endpointDisplayName = " Office PC ",
+            platform = PcPlatform.Windows
+        )
+
+        assertEquals("Oliver Laptop", pc.controlDeviceName)
+        assertEquals("Oliver Laptop", pc.primaryAddress)
+    }
+
+    @Test
     fun controlDeviceNameFallsBackToEndpointDisplayName() {
         val pc = pc(
             serviceName = "Switchify PC",

@@ -9,7 +9,7 @@ import org.junit.Test
 class ChoosePcMenuStructureTest {
     @Test
     fun usesBluetoothDeviceNameWhenAvailable() {
-        val pc = discoveredPc(deviceName = "Office Laptop")
+        val pc = discoveredPc(deviceName = "  Office Laptop  ")
 
         val item = ChoosePcMenuStructure().getMenuItems(listOf(pc)) {}.single()
 

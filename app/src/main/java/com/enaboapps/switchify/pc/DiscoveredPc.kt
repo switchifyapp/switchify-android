@@ -12,13 +12,13 @@ data class DiscoveredPc(
         get() {
             val endpoint = bluetoothEndpoint
             return if (endpoint?.platform == PcPlatform.MacOS) {
-                endpoint.displayName.takeIf { it.isNotBlank() }
-                    ?: serviceName.takeIf { it.isNotBlank() }
+                endpoint.displayName.trim().takeIf { it.isNotEmpty() }
+                    ?: serviceName.trim().takeIf { it.isNotEmpty() }
                     ?: "Switchify PC"
             } else {
-                endpoint?.deviceName?.takeIf { it.isNotBlank() }
-                    ?: endpoint?.displayName?.takeIf { it.isNotBlank() }
-                    ?: serviceName.takeIf { it.isNotBlank() }
+                endpoint?.deviceName?.trim()?.takeIf { it.isNotEmpty() }
+                    ?: endpoint?.displayName?.trim()?.takeIf { it.isNotEmpty() }
+                    ?: serviceName.trim().takeIf { it.isNotEmpty() }
                     ?: "Switchify PC"
             }
         }
@@ -28,7 +28,7 @@ data class DiscoveredPc(
             if (endpoint.platform == PcPlatform.MacOS) {
                 endpoint.deviceAddress
             } else {
-                endpoint.deviceName?.takeIf { it.isNotBlank() } ?: endpoint.deviceAddress
+                endpoint.deviceName?.trim()?.takeIf { it.isNotEmpty() } ?: endpoint.deviceAddress
             }
         } ?: ""
 }
