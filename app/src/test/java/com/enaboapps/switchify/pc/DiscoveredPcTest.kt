@@ -30,6 +30,18 @@ class DiscoveredPcTest {
     }
 
     @Test
+    fun macOSControlDeviceNameFallsBackToProductName() {
+        val pc = pc(
+            serviceName = "",
+            deviceName = "Mac",
+            endpointDisplayName = "",
+            platform = PcPlatform.MacOS
+        )
+
+        assertEquals("Switchify PC", pc.controlDeviceName)
+    }
+
+    @Test
     fun missingPlatformPreservesBluetoothDeviceNamePreference() {
         val pc = pc(
             serviceName = "Owen’s Mac Studio",
