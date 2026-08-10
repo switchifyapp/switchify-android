@@ -817,7 +817,7 @@ class PcConnectionViewModelTest {
 
         val row = viewModel.uiState.value.pcRows.single()
         assertEquals("Owen’s Mac Studio", row.title)
-        assertEquals("AA:BB:CC:DD:EE:FF", row.summary)
+        assertEquals("macOS · AA:BB:CC:DD:EE:FF", row.summary)
     }
 
     @Test
