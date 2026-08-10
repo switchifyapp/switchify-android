@@ -25,7 +25,6 @@ class ChoosePcMenuStructure {
     }
 
     private fun pickerLabel(pc: DiscoveredPc): String {
-        return pc.bluetoothEndpoint?.deviceName?.trim()?.takeIf { it.isNotBlank() }
-            ?: pc.displayName
+        return pc.controlDeviceName
     }
 }

@@ -138,8 +138,11 @@ class PcMouseControlViewModelTest {
     @Test
     fun bottomStripStateUsesControlDeviceName() = runTest(dispatcher) {
         val devicePc = pc.copy(
-            serviceName = "Switchify PC",
-            bluetoothEndpoint = pc.bluetoothEndpoint?.copy(deviceName = "Oliver Laptop")
+            serviceName = "Owen’s Mac Studio",
+            bluetoothEndpoint = pc.bluetoothEndpoint?.copy(
+                deviceName = "Mac",
+                displayName = "Owen’s Mac Studio"
+            )
         )
         val connector = FakeConnector()
         val tokens = FakeTokenStore(mutableMapOf("desktop-1" to "token"))
@@ -149,8 +152,8 @@ class PcMouseControlViewModelTest {
 
         advanceUntilIdle()
 
-        assertEquals("Oliver Laptop", viewModel.uiState.value.connectedDisplayName)
-        assertEquals("Oliver Laptop", viewModel.pcSwitcherState.value.connectedDisplayName)
+        assertEquals("Owen’s Mac Studio", viewModel.uiState.value.connectedDisplayName)
+        assertEquals("Owen’s Mac Studio", viewModel.pcSwitcherState.value.connectedDisplayName)
     }
 
     @Test
@@ -378,7 +381,10 @@ class PcMouseControlViewModelTest {
     fun switchRowsUseActualBluetoothDeviceName() = runTest(dispatcher) {
         val devicePc = pc.copy(
             serviceName = "Switchify PC",
-            bluetoothEndpoint = pc.bluetoothEndpoint?.copy(deviceName = "Oliver Laptop")
+            bluetoothEndpoint = pc.bluetoothEndpoint?.copy(
+                deviceName = "Oliver Laptop",
+                platform = PcPlatform.Windows
+            )
         )
         val connector = FakeConnector()
         val tokens = FakeTokenStore(mutableMapOf("desktop-1" to "token"))

@@ -9,15 +9,28 @@ data class DiscoveredPc(
         get() = serviceName.ifBlank { "Switchify PC" }
 
     val controlDeviceName: String
-        get() = bluetoothEndpoint?.deviceName?.takeIf { it.isNotBlank() }
-            ?: bluetoothEndpoint?.displayName?.takeIf { it.isNotBlank() }
-            ?: serviceName.takeIf { it.isNotBlank() }
-            ?: "Switchify PC"
+        get() {
+            val endpoint = bluetoothEndpoint
+            return if (endpoint?.platform == PcPlatform.MacOS) {
+                endpoint.displayName.takeIf { it.isNotBlank() }
+                    ?: serviceName.takeIf { it.isNotBlank() }
+                    ?: "Switchify PC"
+            } else {
+                endpoint?.deviceName?.takeIf { it.isNotBlank() }
+                    ?: endpoint?.displayName?.takeIf { it.isNotBlank() }
+                    ?: serviceName.takeIf { it.isNotBlank() }
+                    ?: "Switchify PC"
+            }
+        }
 
     val primaryAddress: String
-        get() = bluetoothEndpoint?.deviceName
-            ?: bluetoothEndpoint?.deviceAddress
-            ?: ""
+        get() = bluetoothEndpoint?.let { endpoint ->
+            if (endpoint.platform == PcPlatform.MacOS) {
+                endpoint.deviceAddress
+            } else {
+                endpoint.deviceName?.takeIf { it.isNotBlank() } ?: endpoint.deviceAddress
+            }
+        } ?: ""
 }
 
 data class PcBluetoothEndpoint(
