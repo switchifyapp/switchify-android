@@ -21,6 +21,7 @@ internal class PcLiveTypingEditText @JvmOverloads constructor(
 ) : EditText(context, attrs) {
     var onTextCommitted: (String) -> Boolean = { false }
     var onSessionTextChanged: (String) -> Unit = {}
+    var onEnterCommitted: () -> Boolean = { false }
     var onKeyCommitted: (PcKeyboardKey) -> Unit = {}
     private var restoringText = false
 
@@ -59,6 +60,10 @@ internal class PcLiveTypingEditText @JvmOverloads constructor(
         outAttrs.imeOptions = EditorInfo.IME_ACTION_NONE or EditorInfo.IME_FLAG_NO_EXTRACT_UI
         return object : InputConnectionWrapper(target, true) {
             override fun commitText(text: CharSequence?, newCursorPosition: Int): Boolean {
+                if (text.isEnterCommit()) {
+                    commitEnter()
+                    return true
+                }
                 val result = super.commitText(text, newCursorPosition)
                 submitCommittedTextIfReady()
                 return result
@@ -112,7 +117,7 @@ internal class PcLiveTypingEditText @JvmOverloads constructor(
                     KeyEvent.KEYCODE_FORWARD_DEL -> deleteSurroundingText(0, 1)
                     KeyEvent.KEYCODE_ENTER,
                     KeyEvent.KEYCODE_NUMPAD_ENTER -> {
-                        insertCommittedText("\n")
+                        commitEnter()
                         true
                     }
                     KeyEvent.KEYCODE_TAB -> {
@@ -132,7 +137,7 @@ internal class PcLiveTypingEditText @JvmOverloads constructor(
             }
 
             override fun performEditorAction(editorAction: Int): Boolean {
-                insertCommittedText("\n")
+                commitEnter()
                 return true
             }
         }
@@ -184,6 +189,11 @@ internal class PcLiveTypingEditText @JvmOverloads constructor(
         return onTextCommitted(text?.toString().orEmpty())
     }
 
+    private fun commitEnter(): Boolean {
+        clearComposingText()
+        return submitCommittedText() && onEnterCommitted()
+    }
+
     private fun hasActiveComposition(): Boolean {
         val editable = text ?: return false
         return BaseInputConnection.getComposingSpanStart(editable) >= 0 ||
@@ -229,7 +239,7 @@ internal class PcLiveTypingEditText @JvmOverloads constructor(
             }
             KeyEvent.KEYCODE_ENTER,
             KeyEvent.KEYCODE_NUMPAD_ENTER -> {
-                insertCommittedText("\n")
+                commitEnter()
                 true
             }
             KeyEvent.KEYCODE_TAB -> {
@@ -260,5 +270,9 @@ internal class PcLiveTypingEditText @JvmOverloads constructor(
 
     companion object {
         private const val MAX_KEYS_PER_EVENT = 120
+
+        private fun CharSequence?.isEnterCommit(): Boolean {
+            return this == "\n" || this == "\r" || this == "\r\n"
+        }
     }
 }

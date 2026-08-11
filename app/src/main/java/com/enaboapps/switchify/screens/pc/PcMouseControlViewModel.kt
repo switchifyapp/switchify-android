@@ -496,11 +496,21 @@ class PcMouseControlViewModel(
     }
 
     fun clearLiveTypingField() {
+        resetLiveTypingField(LIVE_TYPING_FIELD_CLEARED_NOTICE)
+    }
+
+    fun commitLiveTypingEnter(): Boolean {
+        if (!submitLiveTypingKey(PcKeyboardKey.Enter)) return false
+        resetLiveTypingField(notice = null)
+        return true
+    }
+
+    private fun resetLiveTypingField(notice: String?) {
         liveTypingQueuedText = ""
         _uiState.update {
             it.copy(
                 liveTypingText = "",
-                liveTypingNotice = LIVE_TYPING_FIELD_CLEARED_NOTICE
+                liveTypingNotice = notice
             )
         }
     }
@@ -525,7 +535,12 @@ class PcMouseControlViewModel(
     }
 
     fun sendLiveTypingKey(key: PcKeyboardKey) {
-        if (!liveTypingCoordinator.submitKey(key)) {
+        submitLiveTypingKey(key)
+    }
+
+    private fun submitLiveTypingKey(key: PcKeyboardKey): Boolean {
+        val accepted = liveTypingCoordinator.submitKey(key)
+        if (!accepted) {
             _uiState.update {
                 it.copy(
                     liveTypingPaused = true,
@@ -533,6 +548,7 @@ class PcMouseControlViewModel(
                 )
             }
         }
+        return accepted
     }
 
     fun sendTypingKey(key: PcKeyboardKey) {

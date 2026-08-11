@@ -1248,6 +1248,71 @@ class PcMouseControlViewModelTest {
     }
 
     @Test
+    fun acceptedLiveTypingEnterClearsSilentlyAndStartsFreshLocalContext() = runTest(dispatcher) {
+        val connector = FakeConnector()
+        val controller = connectedController(
+            connector = connector,
+            pointerProfile = textStreamPointerProfile()
+        )
+        val viewModel = viewModel(controller)
+        advanceUntilIdle()
+
+        viewModel.startLiveTyping()
+        assertTrue(viewModel.commitLiveTypingText("First"))
+        assertTrue(viewModel.commitLiveTypingEnter())
+        assertEquals("", viewModel.uiState.value.liveTypingText)
+        assertNull(viewModel.uiState.value.liveTypingNotice)
+        assertTrue(viewModel.commitLiveTypingText("Second"))
+        viewModel.endLiveTypingSession()
+        advanceUntilIdle()
+
+        val open = connector.commands.first() as PcControlCommand.TextStreamOpen
+        assertEquals(
+            listOf(
+                PcControlCommand.TextStreamOpen(open.streamId),
+                PcControlCommand.TextStreamChunk(open.streamId, 0, "First"),
+                PcControlCommand.TextStreamKey(open.streamId, 1, PcKeyboardKey.Enter),
+                PcControlCommand.TextStreamChunk(open.streamId, 2, "Second"),
+                PcControlCommand.TextStreamClose(open.streamId, 3)
+            ),
+            connector.commands
+        )
+        assertTrue(
+            connector.commands.filterIsInstance<PcControlCommand.TextStreamKey>()
+                .none { it.key == PcKeyboardKey.Backspace }
+        )
+    }
+
+    @Test
+    fun rejectedLiveTypingEnterRetainsTheFieldAndFailureState() = runTest(dispatcher) {
+        val connector = FakeConnector(
+            commandResults = mutableListOf(PcCommandResult.Ack, PcCommandResult.Failed())
+        )
+        val controller = connectedController(
+            connector = connector,
+            pointerProfile = textStreamPointerProfile()
+        )
+        val viewModel = viewModel(controller)
+        advanceUntilIdle()
+
+        viewModel.startLiveTyping()
+        assertTrue(viewModel.commitLiveTypingText("Keep me"))
+        advanceUntilIdle()
+
+        assertFalse(viewModel.commitLiveTypingEnter())
+        assertEquals("Keep me", viewModel.uiState.value.liveTypingText)
+        assertTrue(viewModel.uiState.value.liveTypingPaused)
+        assertEquals(
+            PcLiveTypingCoordinator.LIVE_TYPING_FAILED_MESSAGE,
+            viewModel.uiState.value.liveTypingMessage
+        )
+        assertTrue(
+            connector.commands.filterIsInstance<PcControlCommand.TextStreamKey>()
+                .none { it.key == PcKeyboardKey.Enter }
+        )
+    }
+
+    @Test
     fun movingPausedLiveTextToDraftPreservesItForReview() = runTest(dispatcher) {
         val connector = FakeConnector()
         val controller = connectedController(
