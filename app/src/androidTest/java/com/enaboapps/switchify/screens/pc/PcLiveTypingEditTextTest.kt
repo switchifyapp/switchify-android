@@ -73,8 +73,17 @@ class PcLiveTypingEditTextTest {
 
     @Test
     fun editorActionCommitsPendingCompositionBeforeEnter() {
-        val committedText = mutableListOf<String>()
-        setLiveInput(onTextCommitted = committedText::add)
+        val events = mutableListOf<String>()
+        setLiveInput(
+            onTextCommitted = {
+                events += "text:$it"
+                true
+            },
+            onEnterCommitted = {
+                events += "enter"
+                true
+            }
+        )
 
         onLiveTypingView { editText ->
             val input = editText.onCreateInputConnection(EditorInfo())
@@ -83,8 +92,126 @@ class PcLiveTypingEditTextTest {
         }
 
         composeTestRule.runOnIdle {
-            assertEquals(listOf("Hi\n"), committedText)
+            assertEquals(listOf("text:Hi", "enter"), events)
         }
+    }
+
+    @Test
+    fun newlineOnlyImeCommitUsesEnterWithoutAppendingText() {
+        val committedText = mutableListOf<String>()
+        var enterCount = 0
+        setLiveInput(
+            onTextCommitted = committedText::add,
+            onEnterCommitted = {
+                enterCount += 1
+                true
+            }
+        )
+
+        onLiveTypingView { editText ->
+            val input = editText.onCreateInputConnection(EditorInfo())
+            input?.commitText("Hi", 1)
+            committedText.clear()
+            input?.commitText("\n", 1)
+
+            assertEquals("Hi", editText.text.toString())
+        }
+
+        composeTestRule.runOnIdle {
+            assertEquals(listOf("Hi"), committedText)
+            assertEquals(1, enterCount)
+        }
+    }
+
+    @Test
+    fun hardwareAndNumpadEnterUseTheEnterCallback() {
+        var enterCount = 0
+        setLiveInput(
+            onTextCommitted = { true },
+            onEnterCommitted = {
+                enterCount += 1
+                true
+            }
+        )
+
+        onLiveTypingView { editText ->
+            editText.dispatchKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER))
+            editText.dispatchKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ENTER))
+            editText.dispatchKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_NUMPAD_ENTER))
+            editText.dispatchKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_NUMPAD_ENTER))
+        }
+
+        composeTestRule.runOnIdle {
+            assertEquals(2, enterCount)
+        }
+    }
+
+    @Test
+    fun acceptedEnterClearsTheVisibleField() {
+        var liveText by mutableStateOf("Ready")
+        composeTestRule.setContent {
+            SwitchifyTheme {
+                PcTypingEditor(
+                    headingResId = R.string.pc_typing_type_on_pc,
+                    typingText = "",
+                    typingMessage = null,
+                    typingDraftReviewWarning = false,
+                    typingMode = PcTypingMode.Live,
+                    draftPressEnterAfterSending = false,
+                    liveTypingAvailable = true,
+                    liveTypingPaused = false,
+                    liveTypingMessage = null,
+                    liveTypingAnnouncement = null,
+                    liveTypingNotice = null,
+                    liveTypingText = liveText,
+                    enabled = true,
+                    onTypingModeSelected = {},
+                    onDraftEnterChanged = {},
+                    onTextChanged = {},
+                    onSendDraft = {},
+                    onClear = {},
+                    onClearLiveField = {},
+                    onLiveSessionTextChanged = { liveText = it },
+                    onLiveTextCommitted = { true },
+                    onLiveEnterCommitted = {
+                        liveText = ""
+                        true
+                    },
+                    onLiveKeyCommitted = {},
+                    onLiveTypingRetry = {},
+                    onMoveLiveToDraft = {},
+                    onLiveTypingAnnouncementShown = {},
+                    onLiveTypingNoticeShown = {},
+                    onOpenKeys = {},
+                    fieldFocusRequester = remember { FocusRequester() }
+                )
+            }
+        }
+
+        onLiveTypingView { editText ->
+            editText.onCreateInputConnection(EditorInfo())
+                ?.performEditorAction(EditorInfo.IME_ACTION_DONE)
+        }
+
+        onView(isAssignableFrom(PcLiveTypingEditText::class.java))
+            .check(matches(withText("")))
+    }
+
+    @Test
+    fun rejectedEnterRetainsTheVisibleField() {
+        setLiveInput(
+            onTextCommitted = { true },
+            onEnterCommitted = { false }
+        )
+
+        onLiveTypingView { editText ->
+            val input = editText.onCreateInputConnection(EditorInfo())
+            input?.commitText("Keep me", 1)
+            input?.performEditorAction(EditorInfo.IME_ACTION_DONE)
+        }
+
+        onView(isAssignableFrom(PcLiveTypingEditText::class.java))
+            .check(matches(withText("Keep me")))
     }
 
     @Test
@@ -265,6 +392,7 @@ class PcLiveTypingEditTextTest {
                     onLiveTypingStopped = {},
                     onLiveSessionTextChanged = { liveText = it },
                     onLiveTextCommitted = { true },
+                    onLiveEnterCommitted = { true },
                     onLiveKeyCommitted = {},
                     onLiveTypingRetry = {},
                     onMoveLiveToDraft = {},
@@ -294,6 +422,7 @@ class PcLiveTypingEditTextTest {
     private fun setLiveInput(
         onTextCommitted: (String) -> Boolean = { false },
         onSessionTextChanged: (String) -> Unit = {},
+        onEnterCommitted: () -> Boolean = { false },
         onKeyCommitted: (PcKeyboardKey) -> Unit = {}
     ) {
         composeTestRule.setContent {
@@ -320,6 +449,7 @@ class PcLiveTypingEditTextTest {
                     onClearLiveField = {},
                     onLiveSessionTextChanged = onSessionTextChanged,
                     onLiveTextCommitted = onTextCommitted,
+                    onLiveEnterCommitted = onEnterCommitted,
                     onLiveKeyCommitted = onKeyCommitted,
                     onLiveTypingRetry = {},
                     onMoveLiveToDraft = {},

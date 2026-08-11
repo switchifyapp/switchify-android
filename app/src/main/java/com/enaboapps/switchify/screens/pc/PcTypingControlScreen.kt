@@ -89,6 +89,7 @@ fun PcTypingControlScreen(
     onLiveTypingStopped: (String) -> Unit,
     onLiveSessionTextChanged: (String) -> Unit,
     onLiveTextCommitted: (String) -> Boolean,
+    onLiveEnterCommitted: () -> Boolean,
     onLiveKeyCommitted: (PcKeyboardKey) -> Unit,
     onLiveTypingRetry: () -> Unit,
     onMoveLiveToDraft: () -> Unit,
@@ -165,6 +166,7 @@ fun PcTypingControlScreen(
             onClearLiveField = onClearLiveField,
             onLiveSessionTextChanged = onLiveSessionTextChanged,
             onLiveTextCommitted = onLiveTextCommitted,
+            onLiveEnterCommitted = onLiveEnterCommitted,
             onLiveKeyCommitted = onLiveKeyCommitted,
             onLiveTypingRetry = onLiveTypingRetry,
             onMoveLiveToDraft = onMoveLiveToDraft,
@@ -205,6 +207,7 @@ internal fun PcTypingEditor(
     onClearLiveField: () -> Unit,
     onLiveSessionTextChanged: (String) -> Unit,
     onLiveTextCommitted: (String) -> Boolean,
+    onLiveEnterCommitted: () -> Boolean,
     onLiveKeyCommitted: (PcKeyboardKey) -> Unit,
     onLiveTypingRetry: () -> Unit,
     onMoveLiveToDraft: () -> Unit,
@@ -258,6 +261,7 @@ internal fun PcTypingEditor(
                     sessionText = liveTypingText,
                     onSessionTextChanged = onLiveSessionTextChanged,
                     onTextCommitted = onLiveTextCommitted,
+                    onEnterCommitted = onLiveEnterCommitted,
                     onKeyCommitted = onLiveKeyCommitted,
                     onRetry = onLiveTypingRetry,
                     onMoveToDraft = onMoveLiveToDraft,
@@ -319,6 +323,7 @@ private fun PcLiveTypingEditor(
     sessionText: String,
     onSessionTextChanged: (String) -> Unit,
     onTextCommitted: (String) -> Boolean,
+    onEnterCommitted: () -> Boolean,
     onKeyCommitted: (PcKeyboardKey) -> Unit,
     onRetry: () -> Unit,
     onMoveToDraft: () -> Unit,
@@ -375,6 +380,7 @@ private fun PcLiveTypingEditor(
                 editText.isEnabled = enabled && !paused
                 editText.onTextCommitted = onTextCommitted
                 editText.onSessionTextChanged = onSessionTextChanged
+                editText.onEnterCommitted = onEnterCommitted
                 editText.onKeyCommitted = onKeyCommitted
                 editText.setTextColor(textColor)
                 editText.setHintTextColor(hintColor)
