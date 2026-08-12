@@ -10,6 +10,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import com.enaboapps.switchify.BuildConfig
+import com.enaboapps.switchify.R
 import com.enaboapps.switchify.backend.data.FileManager
 import com.enaboapps.switchify.backend.iap.IAPHandler
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
@@ -20,8 +21,10 @@ import com.enaboapps.switchify.service.gestures.GestureLockManager
 import com.enaboapps.switchify.service.gestures.GestureManager
 import com.enaboapps.switchify.service.gestures.GestureRepeatManager
 import com.enaboapps.switchify.service.pcswitchcontrol.PcSwitchControlForwarder
+import com.enaboapps.switchify.pc.PcConnectedHudTracker
 import com.enaboapps.switchify.pc.PcMouseRepeatManager
 import com.enaboapps.switchify.pc.PcServiceConnectionController
+import com.enaboapps.switchify.pc.PcServiceConnectionState
 import com.enaboapps.switchify.service.scanning.ScanSettings
 import com.enaboapps.switchify.service.selection.SelectionHandler
 import com.enaboapps.switchify.service.stats.StatsCollector
@@ -30,6 +33,7 @@ import com.enaboapps.switchify.service.techniques.AccessTechnique
 import com.enaboapps.switchify.service.trial.ServiceTrialManager
 import com.enaboapps.switchify.service.trial.ServiceTrialOverlay
 import com.enaboapps.switchify.service.utils.DeviceLockObserver
+import com.enaboapps.switchify.service.window.ServiceMessageHUD
 import com.enaboapps.switchify.service.window.ServiceStartupSplash
 import com.enaboapps.switchify.service.window.SwitchifyAccessibilityWindow
 import com.enaboapps.switchify.switches.SwitchAction
@@ -38,6 +42,7 @@ import com.enaboapps.switchify.utils.LogEvent
 import com.enaboapps.switchify.utils.Logger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.flow.launchIn
@@ -63,6 +68,7 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val pcSwitchControlCleanupScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var protectedStorageMigrationAttempted = false
+    private var pcConnectionHudJob: Job? = null
     private val adbTestingBridgeReceiver = AdbTestingBridgeReceiver()
     private var adbTestingBridgeRegistered = false
 
@@ -240,6 +246,7 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
             ?: PcServiceConnectionController.getInstance(this).also {
                 ServiceCore.setPcServiceConnectionController(it)
             }
+        observePcConnectionHud(controller)
         if (ServiceCore.getPcSwitchControlForwarder() == null) {
             val scanningManager = ServiceCore.getScanningManager() ?: return
             val switchEventProvider = ServiceCore.getSwitchEventProvider() ?: return
@@ -252,6 +259,24 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
                     scope = serviceScope
                 )
             )
+        }
+    }
+
+    private fun observePcConnectionHud(controller: PcServiceConnectionController) {
+        if (pcConnectionHudJob?.isActive == true) return
+        pcConnectionHudJob = serviceScope.launch {
+            val tracker = PcConnectedHudTracker()
+            controller.state.collect { currentState ->
+                if (tracker.shouldShow(currentState)) {
+                    val connectedState = currentState as PcServiceConnectionState.Connected
+                    ServiceMessageHUD.instance.showMessage(
+                        R.string.pc_switch_control_connected,
+                        arrayOf(connectedState.displayName),
+                        ServiceMessageHUD.MessageType.DISAPPEARING,
+                        ServiceMessageHUD.Time.MEDIUM
+                    )
+                }
+            }
         }
     }
 

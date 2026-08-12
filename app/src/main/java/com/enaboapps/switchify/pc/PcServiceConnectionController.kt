@@ -590,3 +590,41 @@ class PcServiceConnectionController(
 internal fun PcServiceConnectionController?.isPcControlEntryAvailable(): Boolean {
     return this?.hasLiveControlSession() == true
 }
+
+internal class PcConnectedHudTracker {
+    private var initialized = false
+    private var connectionSeen = false
+    private var reconnecting = false
+
+    fun shouldShow(state: PcServiceConnectionState): Boolean {
+        if (!initialized) {
+            initialized = true
+            connectionSeen = state is PcServiceConnectionState.Connected ||
+                state is PcServiceConnectionState.Reconnecting
+            reconnecting = state is PcServiceConnectionState.Reconnecting
+            return false
+        }
+
+        return when (state) {
+            is PcServiceConnectionState.Connected -> {
+                val shouldShow = !connectionSeen && !reconnecting
+                connectionSeen = true
+                reconnecting = false
+                shouldShow
+            }
+            is PcServiceConnectionState.Reconnecting -> {
+                connectionSeen = true
+                reconnecting = true
+                false
+            }
+            PcServiceConnectionState.OpeningControlSession,
+            PcServiceConnectionState.Disconnected,
+            is PcServiceConnectionState.Failed -> {
+                connectionSeen = false
+                reconnecting = false
+                false
+            }
+            else -> false
+        }
+    }
+}
