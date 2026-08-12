@@ -285,6 +285,18 @@ class PcConnectionViewModel(
         _uiState.update { it.copy(message = message) }
     }
 
+    internal fun openPcControlsIfConnected(
+        unavailableMessage: String,
+        onOpen: () -> Unit
+    ): Boolean {
+        if (!controller.isPcControlEntryAvailable()) {
+            showMessage(unavailableMessage)
+            return false
+        }
+        onOpen()
+        return true
+    }
+
     fun requestUnpair(desktopId: String, displayName: String) {
         _uiState.update {
             it.copy(pendingUnpair = PcUnpairConfirmationState(desktopId, displayName))

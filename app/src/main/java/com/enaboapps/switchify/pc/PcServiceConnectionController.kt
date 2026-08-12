@@ -586,3 +586,7 @@ class PcServiceConnectionController(
         private const val SETTLE_WINDOW_MS = 1_500L
     }
 }
+
+internal fun PcServiceConnectionController?.isPcControlEntryAvailable(): Boolean {
+    return this?.hasLiveControlSession() == true
+}

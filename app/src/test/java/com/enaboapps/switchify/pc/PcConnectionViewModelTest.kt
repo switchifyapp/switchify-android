@@ -16,6 +16,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -75,6 +76,69 @@ class PcConnectionViewModelTest {
         assertEquals(0, connector.requestApprovalCalls)
         assertEquals(1, connector.pingCalls)
         assertEquals("desktop-1", viewModel.uiState.value.connectedDesktopId)
+    }
+
+    @Test
+    fun openPcControlsRejectsDisconnectedSessionAndShowsMessage() = runTest(dispatcher) {
+        val viewModel = viewModel(FakeDiscovery(emptyList()), FakeTokenStore(), FakeConnector())
+        var openCount = 0
+        advanceUntilIdle()
+
+        val opened = viewModel.openPcControlsIfConnected("Connect first") {
+            openCount += 1
+        }
+
+        assertFalse(opened)
+        assertEquals(0, openCount)
+        assertEquals("Connect first", viewModel.uiState.value.message)
+    }
+
+    @Test
+    fun openPcControlsAcceptsActiveLiveSessionOnce() = runTest(dispatcher) {
+        val viewModel = viewModel(
+            FakeDiscovery(listOf(pc)),
+            FakeTokenStore(initialTokens = mutableMapOf("desktop-1" to "token")),
+            FakeConnector(pingResult = PcPingResult.Connected("AA:BB:CC:DD:EE:FF"))
+        )
+        var openCount = 0
+        advanceUntilIdle()
+        viewModel.connectWithSavedToken(pc)
+        advanceUntilIdle()
+
+        val opened = viewModel.openPcControlsIfConnected("Connect first") {
+            openCount += 1
+        }
+
+        assertTrue(opened)
+        assertEquals(1, openCount)
+        assertNull(viewModel.uiState.value.message)
+    }
+
+    @Test
+    fun openPcControlsRejectsSessionLostBeforeLaunch() = runTest(dispatcher) {
+        val discovery = FakeDiscovery(listOf(pc))
+        val tokens = FakeTokenStore(initialTokens = mutableMapOf("desktop-1" to "token"))
+        val connector = FakeConnector(pingResult = PcPingResult.Connected("AA:BB:CC:DD:EE:FF"))
+        val controller = controller(discovery, tokens, connector)
+        val viewModel = PcConnectionViewModel(
+            context = null,
+            controller = controller,
+            tokenStore = tokens,
+            backgroundDispatcher = dispatcher
+        )
+        var openCount = 0
+        advanceUntilIdle()
+        viewModel.connectWithSavedToken(pc)
+        advanceUntilIdle()
+        controller.disconnect()
+
+        val opened = viewModel.openPcControlsIfConnected("Connect first") {
+            openCount += 1
+        }
+
+        assertFalse(opened)
+        assertEquals(0, openCount)
+        assertEquals("Connect first", viewModel.uiState.value.message)
     }
 
     @Test

@@ -90,7 +90,10 @@ class PcMouseControlViewModel(
     )
 
     constructor(context: Context) : this(
-        serviceControllerProvider = { ServiceCore.getPcServiceConnectionController() },
+        serviceControllerProvider = {
+            ServiceCore.getPcServiceConnectionController()
+                ?: PcServiceConnectionController.getInstance(context.applicationContext)
+        },
         controlSurfaceStore = PcControlSurfacePreferenceStore(context.applicationContext),
         typingDraftStore = PcTypingDraftPreferenceStore(context.applicationContext),
         typingModeStore = PcTypingModePreferenceStore(context.applicationContext),
