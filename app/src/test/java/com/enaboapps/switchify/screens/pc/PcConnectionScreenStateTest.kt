@@ -6,9 +6,31 @@ import com.enaboapps.switchify.pc.PcConnectionUiState
 import com.enaboapps.switchify.pc.PcDiscoveryStatus
 import com.enaboapps.switchify.pc.PcRowStatus
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class PcConnectionScreenStateTest {
+    @Test
+    fun initialPcControlEntryRejectsMissingSession() {
+        assertFalse(
+            shouldOpenPcControlActivity(
+                entryPreviouslyAccepted = false,
+                controller = null
+            )
+        )
+    }
+
+    @Test
+    fun acceptedPcControlEntrySurvivesLaterConnectionLoss() {
+        assertTrue(
+            shouldOpenPcControlActivity(
+                entryPreviouslyAccepted = true,
+                controller = null
+            )
+        )
+    }
+
     @Test
     fun permissionRequiredUsesPermissionOverview() {
         val mode = pcConnectionOverviewMode(

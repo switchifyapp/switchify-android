@@ -8,6 +8,7 @@ import com.enaboapps.switchify.pc.PcErrorReason
 import com.enaboapps.switchify.pc.PcServiceConnectResult
 import com.enaboapps.switchify.pc.PcServiceConnectionController
 import com.enaboapps.switchify.pc.PcTokenStore
+import com.enaboapps.switchify.pc.isPcControlEntryAvailable
 import com.enaboapps.switchify.screens.pc.PcMouseControlActivity
 import com.enaboapps.switchify.service.core.ServiceCore
 import com.enaboapps.switchify.service.core.SwitchifyAccessibilityService
@@ -30,7 +31,7 @@ class PcControlLauncher(
     fun open() {
         MenuManager.getInstance().closeMenuHierarchy()
         val controller = ServiceCore.getPcServiceConnectionController()
-        if (controller?.hasLiveControlSession() == true) {
+        if (controller.isPcControlEntryAvailable()) {
             launchControlActivity()
             return
         }
@@ -86,6 +87,10 @@ class PcControlLauncher(
 
     private fun launchControlActivity() {
         if (!beforeLaunch()) return
+        if (!ServiceCore.getPcServiceConnectionController().isPcControlEntryAvailable()) {
+            showMessage(R.string.pc_control_connect_first, MessageSeverity.Warning)
+            return
+        }
         MenuManager.getInstance().closeMenuHierarchy()
         accessibilityService.startActivity(intentFactory(accessibilityService))
     }

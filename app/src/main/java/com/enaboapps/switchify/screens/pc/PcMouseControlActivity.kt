@@ -3,6 +3,7 @@ package com.enaboapps.switchify.screens.pc
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
@@ -49,6 +50,8 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.activities.ui.theme.SwitchifyTheme
 import com.enaboapps.switchify.components.NavBar
+import com.enaboapps.switchify.pc.PcServiceConnectionController
+import com.enaboapps.switchify.pc.isPcControlEntryAvailable
 import com.enaboapps.switchify.service.core.ServiceCore
 import com.enaboapps.switchify.service.scanning.TemporaryScanModeSession
 import com.enaboapps.switchify.service.techniques.AccessTechnique
@@ -60,9 +63,22 @@ class PcMouseControlActivity : ComponentActivity() {
         }
     }
     private var scanModeSession: TemporaryScanModeSession? = null
+    private var entryAccepted = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val entryPreviouslyAccepted = savedInstanceState?.getBoolean(ENTRY_ACCEPTED_STATE) == true
+        if (!shouldOpenPcControlActivity(
+                entryPreviouslyAccepted = entryPreviouslyAccepted,
+                controller = ServiceCore.getPcServiceConnectionController()
+                    ?: PcServiceConnectionController.getInstance(applicationContext)
+            )
+        ) {
+            Toast.makeText(this, R.string.pc_control_connect_first, Toast.LENGTH_LONG).show()
+            finish()
+            return
+        }
+        entryAccepted = true
         setContent {
             SwitchifyTheme {
                 PcMouseControlScreen(
@@ -73,8 +89,14 @@ class PcMouseControlActivity : ComponentActivity() {
         }
     }
 
+    override fun onSaveInstanceState(outState: Bundle) {
+        outState.putBoolean(ENTRY_ACCEPTED_STATE, entryAccepted)
+        super.onSaveInstanceState(outState)
+    }
+
     override fun onResume() {
         super.onResume()
+        if (!entryAccepted) return
         viewModel.onPcUiResumed()
         ServiceCore.getScanningManager()?.let { manager ->
             scanModeSession = TemporaryScanModeSession(
@@ -85,22 +107,33 @@ class PcMouseControlActivity : ComponentActivity() {
     }
 
     override fun onPause() {
-        scanModeSession?.close()
-        scanModeSession = null
-        viewModel.onPcUiPaused(
-            endTypingSession = !isChangingConfigurations &&
-                !viewModel.uiState.value.liveTypingPaused
-        )
+        if (entryAccepted) {
+            scanModeSession?.close()
+            scanModeSession = null
+            viewModel.onPcUiPaused(
+                endTypingSession = !isChangingConfigurations &&
+                    !viewModel.uiState.value.liveTypingPaused
+            )
+        }
         super.onPause()
     }
 
     companion object {
+        private const val ENTRY_ACCEPTED_STATE = "pc_control_entry_accepted"
+
         fun createIntent(context: Context): Intent {
             return Intent(context, PcMouseControlActivity::class.java)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
         }
     }
+}
+
+internal fun shouldOpenPcControlActivity(
+    entryPreviouslyAccepted: Boolean,
+    controller: PcServiceConnectionController?
+): Boolean {
+    return entryPreviouslyAccepted || controller.isPcControlEntryAvailable()
 }
 
 private sealed interface PcTypingExitIntent {

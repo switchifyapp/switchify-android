@@ -93,6 +93,7 @@ fun PcConnectionScreen(navController: NavController) {
     val hasRuntimePermissions = permissionState.permissions.isNotEmpty()
     var hasRequestedPermission by rememberSaveable { mutableStateOf(false) }
     val linkErrorMessage = stringResource(R.string.error_no_app_to_open_link)
+    val connectFirstMessage = stringResource(R.string.pc_control_connect_first)
     val openDownloadPage = {
         try {
             context.startActivity(Intent(Intent.ACTION_VIEW, SwitchifyPcDownloadUrl.toUri()))
@@ -112,7 +113,10 @@ fun PcConnectionScreen(navController: NavController) {
         }
     }
     val openPcControls = {
-        context.startActivity(PcMouseControlActivity.createIntent(context))
+        viewModel.openPcControlsIfConnected(connectFirstMessage) {
+            context.startActivity(PcMouseControlActivity.createIntent(context))
+        }
+        Unit
     }
 
     LaunchedEffect(permissionGranted, hasRuntimePermissions) {
