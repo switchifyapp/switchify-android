@@ -62,6 +62,67 @@ class PcServiceConnectionControllerTest {
     }
 
     @Test
+    fun connectedHudShowsForInitialConnection() {
+        val tracker = PcConnectedHudTracker()
+
+        assertFalse(tracker.shouldShow(PcServiceConnectionState.Disconnected))
+        assertFalse(tracker.shouldShow(PcServiceConnectionState.OpeningControlSession))
+        assertTrue(tracker.shouldShow(connectedState()))
+    }
+
+    @Test
+    fun connectedHudShowsForNewConnectionAfterDisconnect() {
+        val tracker = PcConnectedHudTracker()
+
+        tracker.shouldShow(connectedState())
+        tracker.shouldShow(PcServiceConnectionState.Disconnected)
+        tracker.shouldShow(PcServiceConnectionState.OpeningControlSession)
+
+        assertTrue(tracker.shouldShow(connectedState()))
+    }
+
+    @Test
+    fun connectedHudDoesNotShowForDuplicateConnectedState() {
+        val tracker = PcConnectedHudTracker()
+        val connected = connectedState()
+
+        assertFalse(tracker.shouldShow(PcServiceConnectionState.Disconnected))
+        assertFalse(tracker.shouldShow(PcServiceConnectionState.OpeningControlSession))
+        assertTrue(tracker.shouldShow(connected))
+        assertFalse(tracker.shouldShow(PcServiceConnectionState.Discovering))
+        assertFalse(tracker.shouldShow(connected))
+    }
+
+    @Test
+    fun connectedHudDoesNotShowWhenObservationStartsConnected() {
+        val tracker = PcConnectedHudTracker()
+
+        assertFalse(tracker.shouldShow(connectedState()))
+    }
+
+    @Test
+    fun connectedHudDoesNotShowAfterReconnection() {
+        val tracker = PcConnectedHudTracker()
+        val session = PcAuthenticatedSession("desktop-1", "device-1", "AA:BB:CC:DD:EE:FF")
+
+        assertFalse(tracker.shouldShow(PcServiceConnectionState.Disconnected))
+        assertFalse(tracker.shouldShow(PcServiceConnectionState.OpeningControlSession))
+        assertTrue(tracker.shouldShow(connectedState(session)))
+        assertFalse(tracker.shouldShow(PcServiceConnectionState.Reconnecting(session, "Switchify PC")))
+        assertFalse(tracker.shouldShow(connectedState(session)))
+    }
+
+    private fun connectedState(
+        session: PcAuthenticatedSession = PcAuthenticatedSession(
+            "desktop-1",
+            "device-1",
+            "AA:BB:CC:DD:EE:FF"
+        )
+    ): PcServiceConnectionState.Connected {
+        return PcServiceConnectionState.Connected(session, "Switchify PC", null)
+    }
+
+    @Test
     fun savedTokenReconnectDiscoversPcAndPings() = runTest(dispatcher) {
         val tokens = FakeTokenStore(mutableMapOf("desktop-1" to "token"))
         val connector = FakeConnector(PcPingResult.Connected("AA:BB:CC:DD:EE:FF"))
