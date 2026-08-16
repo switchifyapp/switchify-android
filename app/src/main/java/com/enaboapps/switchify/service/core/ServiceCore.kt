@@ -3,7 +3,7 @@ package com.enaboapps.switchify.service.core
 import com.enaboapps.switchify.service.camera.CameraManager
 import com.enaboapps.switchify.service.gestures.visuals.AndroidGestureTargetIndicatorRenderer
 import com.enaboapps.switchify.service.gestures.visuals.GestureTargetIndicatorController
-import com.enaboapps.switchify.service.pcswitchcontrol.PcSwitchControlForwarder
+import com.enaboapps.switchify.service.pcswitchforwarding.PcSwitchForwardingController
 import com.enaboapps.switchify.pc.PcServiceConnectionController
 import com.enaboapps.switchify.service.pauseresume.PauseManager
 import com.enaboapps.switchify.service.scanning.ScanningManager
@@ -17,7 +17,7 @@ object ServiceCore {
     private lateinit var switchEventProviderRef: WeakReference<SwitchEventProvider>
     private lateinit var cameraManagerRef: WeakReference<CameraManager>
     private var pcServiceConnectionController: PcServiceConnectionController? = null
-    private var pcSwitchControlForwarder: PcSwitchControlForwarder? = null
+    private var pcSwitchForwardingController: PcSwitchForwardingController? = null
     private var gestureTargetIndicator: GestureTargetIndicatorController? = null
 
     /**
@@ -108,15 +108,15 @@ object ServiceCore {
         return pcServiceConnectionController
     }
 
-    fun setPcSwitchControlForwarder(forwarder: PcSwitchControlForwarder) {
-        pcSwitchControlForwarder = forwarder
+    fun setPcSwitchForwardingController(controller: PcSwitchForwardingController) {
+        pcSwitchForwardingController = controller
     }
 
-    fun getPcSwitchControlForwarder(): PcSwitchControlForwarder? = pcSwitchControlForwarder
+    fun getPcSwitchForwardingController(): PcSwitchForwardingController? = pcSwitchForwardingController
 
-    fun takePcSwitchControlForwarder(): PcSwitchControlForwarder? {
-        return pcSwitchControlForwarder.also {
-            pcSwitchControlForwarder = null
+    fun takePcSwitchForwardingController(): PcSwitchForwardingController? {
+        return pcSwitchForwardingController.also {
+            pcSwitchForwardingController = null
         }
     }
 
@@ -124,7 +124,7 @@ object ServiceCore {
      * Cleans up the service core.
      */
     fun cleanup() {
-        pcSwitchControlForwarder = null
+        pcSwitchForwardingController = null
         gestureTargetIndicator?.release()
         gestureTargetIndicator = null
         if (::scanningManagerRef.isInitialized) {

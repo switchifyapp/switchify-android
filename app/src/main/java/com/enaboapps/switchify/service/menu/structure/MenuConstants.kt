@@ -100,10 +100,7 @@ object MenuConstants {
             const val SETTINGS = "settings"
             const val MEDIA_CONTROL = "media_control"
             const val CONTROL_PC = "control_pc"
-            const val PC_SWITCH_CONTROL = "control_grid_3"
-
-            @Deprecated("Use PC_SWITCH_CONTROL")
-            const val CONTROL_GRID_3 = PC_SWITCH_CONTROL
+            const val PC_SWITCH_FORWARDING = "pc_switch_forwarding"
             const val EDIT = "edit"
             const val AI = "ai"
             const val PAUSE = "pause"

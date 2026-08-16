@@ -27,10 +27,10 @@ class SwitchActionTest {
     }
 
     @Test
-    fun actionsIncludesPcSwitchControl() {
+    fun actionsIncludesPcSwitchForwarding() {
         val ids = SwitchAction.actions.map { it.id }
 
-        assertTrue(ids.contains(SwitchAction.ACTION_PC_SWITCH_CONTROL))
+        assertTrue(ids.contains(SwitchAction.ACTION_PC_SWITCH_FORWARDING))
     }
 
     @Test
@@ -56,9 +56,7 @@ class SwitchActionTest {
     }
 
     @Test
-    @Suppress("DEPRECATION")
-    fun pcSwitchControlUsesStableAppendedIdAndLegacyAlias() {
-        assertTrue(SwitchAction.ACTION_PC_SWITCH_CONTROL == 18)
-        assertEquals(SwitchAction.ACTION_PC_SWITCH_CONTROL, SwitchAction.ACTION_CONTROL_GRID_3)
+    fun pcSwitchForwardingUsesStableAppendedId() {
+        assertTrue(SwitchAction.ACTION_PC_SWITCH_FORWARDING == 18)
     }
 }

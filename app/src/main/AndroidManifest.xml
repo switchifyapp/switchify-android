@@ -94,7 +94,7 @@
             android:theme="@style/Theme.Switchify" />
 
         <activity
-            android:name=".screens.pcswitchcontrol.PcSwitchControlActivity"
+            android:name=".screens.pcswitchforwarding.PcSwitchForwardingActivity"
             android:excludeFromRecents="true"
             android:exported="false"
             android:taskAffinity=""

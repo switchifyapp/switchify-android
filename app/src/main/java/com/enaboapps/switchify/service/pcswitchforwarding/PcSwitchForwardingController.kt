@@ -1,4 +1,4 @@
-package com.enaboapps.switchify.service.pcswitchcontrol
+package com.enaboapps.switchify.service.pcswitchforwarding
 
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
@@ -33,7 +33,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.util.UUID
 
-data class PcSwitchControlMapping(
+data class PcSwitchForwardingMapping(
     val keyCode: String,
     val name: String,
     val switchId: Int,
@@ -41,27 +41,27 @@ data class PcSwitchControlMapping(
     val outputLabel: String? = null
 )
 
-enum class PcSwitchControlConnectionStatus {
+enum class PcSwitchForwardingConnectionStatus {
     Connected,
     Reconnecting
 }
 
-data class PcSwitchControlState(
+data class PcSwitchForwardingState(
     val active: Boolean = false,
-    val connectionStatus: PcSwitchControlConnectionStatus = PcSwitchControlConnectionStatus.Connected,
+    val connectionStatus: PcSwitchForwardingConnectionStatus = PcSwitchForwardingConnectionStatus.Connected,
     val pcName: String? = null,
     val profileName: String? = null,
-    val mappings: List<PcSwitchControlMapping> = emptyList(),
+    val mappings: List<PcSwitchForwardingMapping> = emptyList(),
     val overflowSwitches: List<String> = emptyList(),
-    val holdToStopDurationMs: Long = PcSwitchControlForwarder.DEFAULT_HOLD_TO_STOP_MS
+    val holdToStopDurationMs: Long = PcSwitchForwardingController.DEFAULT_HOLD_TO_STOP_MS
 )
 
-sealed class PcSwitchControlStartResult {
-    data object Started : PcSwitchControlStartResult()
-    data object NoExternalSwitches : PcSwitchControlStartResult()
-    data object UnsupportedPc : PcSwitchControlStartResult()
-    data object ProfileChanged : PcSwitchControlStartResult()
-    data class Failed(val message: String) : PcSwitchControlStartResult()
+sealed class PcSwitchForwardingStartResult {
+    data object Started : PcSwitchForwardingStartResult()
+    data object NoExternalSwitches : PcSwitchForwardingStartResult()
+    data object UnsupportedPc : PcSwitchForwardingStartResult()
+    data object ProfileChanged : PcSwitchForwardingStartResult()
+    data class Failed(val message: String) : PcSwitchForwardingStartResult()
 }
 
 sealed class PcSwitchCatalogResult {
@@ -70,11 +70,11 @@ sealed class PcSwitchCatalogResult {
     data object Unsupported : PcSwitchCatalogResult()
 }
 
-internal enum class PcSwitchControlExitReason {
+internal enum class PcSwitchForwardingExitReason {
     InactivityTimeout
 }
 
-internal interface PcSwitchControlHost {
+internal interface PcSwitchForwardingHost {
     val connectionState: StateFlow<PcServiceConnectionState>
     fun currentPointerProfile(): PcPointerMovementProfile?
     fun currentPcName(): String?
@@ -91,7 +91,7 @@ internal interface PcSwitchControlHost {
     suspend fun sendRealtime(command: PcControlCommand): PcCommandResult = send(command)
 }
 
-internal interface PcSwitchControlInputHandler {
+internal interface PcSwitchForwardingInputHandler {
     val forwardingActivation: Long
         get() = 0L
 
@@ -104,7 +104,7 @@ internal interface PcSwitchControlInputHandler {
     ): Boolean
 }
 
-internal interface PcSwitchControlChooserHost {
+internal interface PcSwitchForwardingChooserHost {
     suspend fun loadProfileCatalog(): PcSwitchCatalogResult
     fun currentPcId(): String
     fun configuredExternalSwitchCount(): Int
@@ -112,23 +112,23 @@ internal interface PcSwitchControlChooserHost {
     suspend fun start(
         profile: PcSwitchProfileSummary,
         usesLegacyGridProtocol: Boolean
-    ): PcSwitchControlStartResult
+    ): PcSwitchForwardingStartResult
 }
 
-private class AndroidPcSwitchControlHost(
+private class AndroidPcSwitchForwardingHost(
     private val controller: PcServiceConnectionController,
     private val scanningManager: ScanningManager,
     private val switchEventProvider: SwitchEventProvider,
     private val preferenceManager: PreferenceManager
-) : PcSwitchControlHost {
+) : PcSwitchForwardingHost {
     override val connectionState: StateFlow<PcServiceConnectionState> = controller.state
     override fun currentPointerProfile() = controller.currentPointerProfile()
     override fun currentPcName() = controller.currentControlDeviceName()
     override fun currentPcId() = controller.currentControlDesktopId()
     override fun configuredSwitches() = switchEventProvider.externalSwitches()
     override fun holdToStopDurationMs() = preferenceManager.getLongValue(
-        PreferenceManager.PREFERENCE_KEY_PC_SWITCH_CONTROL_HOLD_TO_STOP_DURATION,
-        PcSwitchControlForwarder.DEFAULT_HOLD_TO_STOP_MS
+        PreferenceManager.PREFERENCE_KEY_PC_SWITCH_FORWARDING_HOLD_TO_STOP_DURATION,
+        PcSwitchForwardingController.DEFAULT_HOLD_TO_STOP_MS
     )
     override fun suspendScanning() {
         scanningManager.stopMoveRepeat()
@@ -155,11 +155,11 @@ private class AndroidPcSwitchControlHost(
         controller.sendRealtimeControlCommand(command)
 }
 
-class PcSwitchControlForwarder internal constructor(
-    private val host: PcSwitchControlHost,
+class PcSwitchForwardingController internal constructor(
+    private val host: PcSwitchForwardingHost,
     scope: CoroutineScope,
     private val inactivityTimeoutMs: Long = INACTIVITY_TIMEOUT_MS
-) : PcSwitchControlInputHandler, PcSwitchControlChooserHost {
+) : PcSwitchForwardingInputHandler, PcSwitchForwardingChooserHost {
     private enum class StopPolicy(
         val restoreScanning: Boolean,
         val releaseConnection: Boolean
@@ -177,7 +177,7 @@ class PcSwitchControlForwarder internal constructor(
         preferenceManager: PreferenceManager,
         scope: CoroutineScope
     ) : this(
-        AndroidPcSwitchControlHost(
+        AndroidPcSwitchForwardingHost(
             controller,
             scanningManager,
             switchEventProvider,
@@ -209,7 +209,7 @@ class PcSwitchControlForwarder internal constructor(
             val policy: StopPolicy = StopPolicy.Normal,
             val releaseWhenInactive: Boolean = false,
             val connectionEpisodeId: String? = null,
-            val exitReason: PcSwitchControlExitReason? = null,
+            val exitReason: PcSwitchForwardingExitReason? = null,
             val completion: CompletableDeferred<Unit>? = null
         ) : EdgeAction()
     }
@@ -232,13 +232,13 @@ class PcSwitchControlForwarder internal constructor(
     private val sessionLifecycleMutex = Mutex()
     private val edgeActions = Channel<EdgeAction>(Channel.BUFFERED)
     private val snapshotActions = Channel<SnapshotAction>(Channel.CONFLATED)
-    private val _state = MutableStateFlow(PcSwitchControlState())
-    val state: StateFlow<PcSwitchControlState> = _state
-    private val _terminalExitReason = MutableStateFlow<PcSwitchControlExitReason?>(null)
-    internal val terminalExitReason: StateFlow<PcSwitchControlExitReason?> =
+    private val _state = MutableStateFlow(PcSwitchForwardingState())
+    val state: StateFlow<PcSwitchForwardingState> = _state
+    private val _terminalExitReason = MutableStateFlow<PcSwitchForwardingExitReason?>(null)
+    internal val terminalExitReason: StateFlow<PcSwitchForwardingExitReason?> =
         _terminalExitReason.asStateFlow()
     private var generation = 0L
-    private var mappingByKeyCode = emptyMap<Int, PcSwitchControlMapping>()
+    private var mappingByKeyCode = emptyMap<Int, PcSwitchForwardingMapping>()
     private val activePresses = mutableMapOf<Int, ActivePress>()
     private val legacyHeldSwitchIds = mutableSetOf<Int>()
     private var switchSessionId: String? = null
@@ -288,7 +288,7 @@ class PcSwitchControlForwarder internal constructor(
         }
     }
 
-    fun startLegacyGridProfile(): PcSwitchControlStartResult {
+    fun startLegacyGridProfile(): PcSwitchForwardingStartResult {
         val legacyGridProfile = PcSwitchProfileSummary(
             id = "builtin.grid3",
             version = 1,
@@ -357,25 +357,25 @@ class PcSwitchControlForwarder internal constructor(
         }
     }
 
-    internal fun acknowledgeTerminalExit(reason: PcSwitchControlExitReason) {
+    internal fun acknowledgeTerminalExit(reason: PcSwitchForwardingExitReason) {
         _terminalExitReason.compareAndSet(reason, null)
     }
 
     override suspend fun start(
         profile: PcSwitchProfileSummary,
         usesLegacyGridProtocol: Boolean
-    ): PcSwitchControlStartResult {
+    ): PcSwitchForwardingStartResult {
         return sessionLifecycleMutex.withLock {
             synchronized(stateLock) {
                 if (_state.value.active || stoppingGeneration != null) {
-                    return@withLock PcSwitchControlStartResult.Started
+                    return@withLock PcSwitchForwardingStartResult.Started
                 }
             }
             if (usesLegacyGridProtocol) return@withLock startPrepared(profile, usesGenericProtocol = false)
             val externalSwitches = host.configuredSwitches()
                 .filter { it.type == SWITCH_EVENT_TYPE_EXTERNAL }
             if (externalSwitches.isEmpty()) {
-                return@withLock PcSwitchControlStartResult.NoExternalSwitches
+                return@withLock PcSwitchForwardingStartResult.NoExternalSwitches
             }
             val sessionId = UUID.randomUUID().toString()
             val startGeneration = synchronized(stateLock) {
@@ -392,7 +392,7 @@ class PcSwitchControlForwarder internal constructor(
                     )
                 )
             } catch (error: Exception) {
-                PcCommandResult.Failed(error.message ?: "PC Switch Control could not start.")
+                PcCommandResult.Failed(error.message ?: "PC Switch Forwarding could not start.")
             }
             if (startResult != PcCommandResult.Ack) {
                 synchronized(stateLock) {
@@ -401,11 +401,11 @@ class PcSwitchControlForwarder internal constructor(
                 return@withLock if (startResult is PcCommandResult.Failed &&
                     startResult.code == "profile_changed"
                 ) {
-                    PcSwitchControlStartResult.ProfileChanged
+                    PcSwitchForwardingStartResult.ProfileChanged
                 } else {
-                    PcSwitchControlStartResult.Failed(
+                    PcSwitchForwardingStartResult.Failed(
                         (startResult as? PcCommandResult.Failed)?.message
-                            ?: "PC Switch Control could not start."
+                            ?: "PC Switch Forwarding could not start."
                     )
                 }
             }
@@ -415,7 +415,7 @@ class PcSwitchControlForwarder internal constructor(
                 existingSessionId = sessionId,
                 reservedGeneration = startGeneration
             )
-            if (prepared != PcSwitchControlStartResult.Started) {
+            if (prepared != PcSwitchForwardingStartResult.Started) {
                 synchronized(stateLock) {
                     if (startingGeneration == startGeneration) startingGeneration = null
                 }
@@ -433,20 +433,20 @@ class PcSwitchControlForwarder internal constructor(
         usesGenericProtocol: Boolean,
         existingSessionId: String? = null,
         reservedGeneration: Long? = null
-    ): PcSwitchControlStartResult {
+    ): PcSwitchForwardingStartResult {
         synchronized(stateLock) {
-            if (_state.value.active || stoppingGeneration != null) return PcSwitchControlStartResult.Started
+            if (_state.value.active || stoppingGeneration != null) return PcSwitchForwardingStartResult.Started
         }
-        val profile = host.currentPointerProfile() ?: return PcSwitchControlStartResult.UnsupportedPc
+        val profile = host.currentPointerProfile() ?: return PcSwitchForwardingStartResult.UnsupportedPc
         if (!usesGenericProtocol &&
             profile.capabilities.supportedCommands.contains(PcProtocol.LEGACY_GRID_SWITCH_SET_COMMAND) != true
         ) {
-            return PcSwitchControlStartResult.UnsupportedPc
+            return PcSwitchForwardingStartResult.UnsupportedPc
         }
         val externalSwitches = host.configuredSwitches()
             .filter { it.type == SWITCH_EVENT_TYPE_EXTERNAL }
         if (externalSwitches.isEmpty()) {
-            return PcSwitchControlStartResult.NoExternalSwitches
+            return PcSwitchForwardingStartResult.NoExternalSwitches
         }
 
         val sorted = sortConfiguredSwitches(externalSwitches)
@@ -457,7 +457,7 @@ class PcSwitchControlForwarder internal constructor(
                 (profile.capabilities.supportedCommands.contains(PcProtocol.LEGACY_GRID_SWITCH_SYNC_COMMAND) &&
                     profile.capabilities.noAckCommands.contains(PcProtocol.LEGACY_GRID_SWITCH_SET_COMMAND))
         val mappings = forwarded.mapIndexed { index, switchEvent ->
-            PcSwitchControlMapping(
+            PcSwitchForwardingMapping(
                 keyCode = switchEvent.code,
                 name = switchEvent.name,
                 switchId = index + 1,
@@ -487,7 +487,7 @@ class PcSwitchControlForwarder internal constructor(
             awaitingReconnect = false
             nextSequence = 0L
             stoppingGeneration = null
-            _state.value = PcSwitchControlState(
+            _state.value = PcSwitchForwardingState(
                 active = true,
                 pcName = host.currentPcName(),
                 profileName = selectedProfile.name,
@@ -503,7 +503,7 @@ class PcSwitchControlForwarder internal constructor(
             startSnapshotLoop()
         }
         resetInactivityTimeout()
-        return PcSwitchControlStartResult.Started
+        return PcSwitchForwardingStartResult.Started
     }
 
     private fun ensureConnectionOwned() {
@@ -852,7 +852,7 @@ class PcSwitchControlForwarder internal constructor(
                         generation = expectedGeneration,
                         policy = StopPolicy.Normal,
                         connectionEpisodeId = expectedConnectionEpisodeId,
-                        exitReason = PcSwitchControlExitReason.InactivityTimeout
+                        exitReason = PcSwitchForwardingExitReason.InactivityTimeout
                     )
                 )
             }
@@ -864,7 +864,7 @@ class PcSwitchControlForwarder internal constructor(
         policy: StopPolicy,
         releaseWhenInactive: Boolean,
         expectedConnectionEpisodeId: String?,
-        exitReason: PcSwitchControlExitReason?
+        exitReason: PcSwitchForwardingExitReason?
     ) = sessionLifecycleMutex.withLock {
         var finalCommand: PcControlCommand? = null
         var legacyHeld = emptyList<Int>()
@@ -928,7 +928,7 @@ class PcSwitchControlForwarder internal constructor(
                     awaitingReconnect = false
                     nextSequence = 0L
                     stoppingGeneration = null
-                    _state.value = PcSwitchControlState()
+                    _state.value = PcSwitchForwardingState()
                 }
             }
             val shouldRestoreScanning = synchronized(stateLock) {
@@ -945,7 +945,7 @@ class PcSwitchControlForwarder internal constructor(
             } else if (policy.releaseConnection) {
                 releaseConnection(expectedConnectionEpisodeId)
             }
-            if (exitReason == PcSwitchControlExitReason.InactivityTimeout) {
+            if (exitReason == PcSwitchForwardingExitReason.InactivityTimeout) {
                 host.showInactivityTimeout()
                 _terminalExitReason.value = exitReason
             }
@@ -1013,13 +1013,13 @@ class PcSwitchControlForwarder internal constructor(
                         profileToRestart = genericProfile
                         restartedGeneration = generation
                         _state.value = _state.value.copy(
-                            connectionStatus = PcSwitchControlConnectionStatus.Reconnecting,
+                            connectionStatus = PcSwitchForwardingConnectionStatus.Reconnecting,
                             pcName = connectionState.displayName
                         )
                     } else {
                         sessionReady = true
                         _state.value = _state.value.copy(
-                            connectionStatus = PcSwitchControlConnectionStatus.Connected,
+                            connectionStatus = PcSwitchForwardingConnectionStatus.Connected,
                             pcName = connectionState.displayName
                         )
                         shouldSynchronize = switchSessionId != null
@@ -1029,7 +1029,7 @@ class PcSwitchControlForwarder internal constructor(
                     sessionReady = false
                     awaitingReconnect = true
                     _state.value = _state.value.copy(
-                        connectionStatus = PcSwitchControlConnectionStatus.Reconnecting,
+                        connectionStatus = PcSwitchForwardingConnectionStatus.Reconnecting,
                         pcName = connectionState.displayName
                     )
                 }
@@ -1073,7 +1073,7 @@ class PcSwitchControlForwarder internal constructor(
                     )
                 } catch (error: Exception) {
                     PcCommandResult.Failed(
-                        error.message ?: "PC Switch Control could not reconnect."
+                        error.message ?: "PC Switch Forwarding could not reconnect."
                     )
                 }
                 if (result != PcCommandResult.Ack) return@withLock false
@@ -1086,7 +1086,7 @@ class PcSwitchControlForwarder internal constructor(
                     ) {
                         sessionReady = true
                         _state.value = _state.value.copy(
-                            connectionStatus = PcSwitchControlConnectionStatus.Connected
+                            connectionStatus = PcSwitchForwardingConnectionStatus.Connected
                         )
                         true
                     } else {

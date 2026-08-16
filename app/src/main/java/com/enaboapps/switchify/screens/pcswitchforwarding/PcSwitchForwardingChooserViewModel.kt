@@ -1,21 +1,21 @@
-package com.enaboapps.switchify.screens.pcswitchcontrol
+package com.enaboapps.switchify.screens.pcswitchforwarding
 
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.pc.PcSwitchProfileCatalog
-import com.enaboapps.switchify.pc.PcSwitchProfilePreferenceStore
+import com.enaboapps.switchify.pc.PcSwitchForwardingProfileStore
 import com.enaboapps.switchify.pc.PcSwitchProfileSummary
 import com.enaboapps.switchify.pc.PcServiceSwitcherConnectionHost
 import com.enaboapps.switchify.pc.PcSwitcherCoordinator
 import com.enaboapps.switchify.pc.PcSwitcherConnectionHost
 import com.enaboapps.switchify.pc.PcSwitcherUiState
-import com.enaboapps.switchify.pc.selectPcSwitchProfile
+import com.enaboapps.switchify.pc.selectPcSwitchForwardingProfile
 import com.enaboapps.switchify.service.core.ServiceCore
-import com.enaboapps.switchify.service.pcswitchcontrol.PcSwitchCatalogResult
-import com.enaboapps.switchify.service.pcswitchcontrol.PcSwitchControlChooserHost
-import com.enaboapps.switchify.service.pcswitchcontrol.PcSwitchControlStartResult
+import com.enaboapps.switchify.service.pcswitchforwarding.PcSwitchCatalogResult
+import com.enaboapps.switchify.service.pcswitchforwarding.PcSwitchForwardingChooserHost
+import com.enaboapps.switchify.service.pcswitchforwarding.PcSwitchForwardingStartResult
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -53,18 +53,18 @@ internal sealed interface PcSwitchChooserState {
     ) : PcSwitchChooserState
 }
 
-internal class PcSwitchControlChooserViewModel(
-    private val host: PcSwitchControlChooserHost,
+internal class PcSwitchForwardingChooserViewModel(
+    private val host: PcSwitchForwardingChooserHost,
     private val rememberedProfileId: (String) -> String?,
     private val rememberProfile: (String, String) -> Unit,
     private val message: (Int, List<Any>) -> String,
     switcherConnectionHost: PcSwitcherConnectionHost =
         PcServiceSwitcherConnectionHost { null }
 ) : ViewModel() {
-    constructor(context: Context, host: PcSwitchControlChooserHost) : this(
+    constructor(context: Context, host: PcSwitchForwardingChooserHost) : this(
         host = host,
-        rememberedProfileId = PcSwitchProfilePreferenceStore(context)::rememberedProfileId,
-        rememberProfile = PcSwitchProfilePreferenceStore(context)::rememberProfile,
+        rememberedProfileId = PcSwitchForwardingProfileStore(context)::rememberedProfileId,
+        rememberProfile = PcSwitchForwardingProfileStore(context)::rememberProfile,
         message = { resourceId, arguments ->
             context.getString(resourceId, *arguments.toTypedArray())
         },
@@ -130,38 +130,38 @@ internal class PcSwitchControlChooserViewModel(
                     ready.catalog.usesLegacyGridProtocol
                 )
             ) {
-                PcSwitchControlStartResult.Started -> {
+                PcSwitchForwardingStartResult.Started -> {
                     rememberProfile(host.currentPcId(), ready.selected.id)
                     ready.copy(notice = null)
                 }
-                PcSwitchControlStartResult.NoExternalSwitches -> {
+                PcSwitchForwardingStartResult.NoExternalSwitches -> {
                     ready.copy(
                         notice = PcSwitchNotice(
                             text = message(
-                                R.string.pc_switch_control_no_external_switches,
+                                R.string.pc_switch_forwarding_no_external_switches,
                                 emptyList()
                             ),
                             severity = PcSwitchNoticeSeverity.Warning
                         )
                     )
                 }
-                PcSwitchControlStartResult.UnsupportedPc -> {
+                PcSwitchForwardingStartResult.UnsupportedPc -> {
                     ready.copy(
                         notice = PcSwitchNotice(
                             text = message(
-                                R.string.pc_switch_control_pc_unsupported,
+                                R.string.pc_switch_forwarding_pc_unsupported,
                                 emptyList()
                             ),
                             severity = PcSwitchNoticeSeverity.Error
                         )
                     )
                 }
-                PcSwitchControlStartResult.ProfileChanged -> {
+                PcSwitchForwardingStartResult.ProfileChanged -> {
                     PcSwitchChooserState.Error(
                         message(R.string.pc_switch_profile_changed, emptyList())
                     )
                 }
-                is PcSwitchControlStartResult.Failed -> {
+                is PcSwitchForwardingStartResult.Failed -> {
                     ready.copy(
                         notice = PcSwitchNotice(
                             result.message,
@@ -180,7 +180,7 @@ internal class PcSwitchControlChooserViewModel(
         loadJob = viewModelScope.launch {
             _state.value = when (val result = host.loadProfileCatalog()) {
                 is PcSwitchCatalogResult.Loaded -> {
-                    val selection = selectPcSwitchProfile(
+                    val selection = selectPcSwitchForwardingProfile(
                         result.catalog.profiles,
                         rememberedProfileId(host.currentPcId())
                     )
@@ -207,7 +207,7 @@ internal class PcSwitchControlChooserViewModel(
                     PcSwitchChooserState.Error(result.message)
                 PcSwitchCatalogResult.Unsupported ->
                     PcSwitchChooserState.Error(
-                        message(R.string.pc_switch_control_pc_unsupported, emptyList())
+                        message(R.string.pc_switch_forwarding_pc_unsupported, emptyList())
                     )
             }
         }

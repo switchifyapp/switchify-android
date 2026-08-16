@@ -197,6 +197,37 @@ dependencies {
     debugImplementation(libs.compose.ui.tooling)
     debugImplementation(libs.compose.ui.test.manifest)
 }
+
+val verifyPcSwitchForwardingNaming by tasks.registering {
+    val activeSources = fileTree("src") {
+        include("**/*.kt", "**/*.xml")
+    }
+    inputs.files(activeSources)
+
+    doLast {
+        val obsoleteIdentifiers = listOf(
+            "switch" + "control",
+            "switch_" + "control",
+            "pcswitch" + "control",
+            "control_" + "grid_3",
+            "grid3_" + "hold_to_stop_duration"
+        )
+        val violations = activeSources.files.flatMap { source ->
+            val path = source.relativeTo(projectDir).invariantSeparatorsPath.lowercase()
+            val content = source.readText().lowercase()
+            obsoleteIdentifiers.filter { identifier ->
+                identifier in path || identifier in content
+            }.map { identifier -> "$identifier in $path" }
+        }
+        check(violations.isEmpty()) {
+            "Obsolete PC Switch Forwarding identifiers remain:\n${violations.joinToString("\n")}"
+        }
+    }
+}
+
+tasks.named("check") {
+    dependsOn(verifyPcSwitchForwardingNaming)
+}
 java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(17)

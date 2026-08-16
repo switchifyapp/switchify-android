@@ -20,7 +20,7 @@ import com.enaboapps.switchify.service.camera.CameraManager
 import com.enaboapps.switchify.service.gestures.GestureLockManager
 import com.enaboapps.switchify.service.gestures.GestureManager
 import com.enaboapps.switchify.service.gestures.GestureRepeatManager
-import com.enaboapps.switchify.service.pcswitchcontrol.PcSwitchControlForwarder
+import com.enaboapps.switchify.service.pcswitchforwarding.PcSwitchForwardingController
 import com.enaboapps.switchify.pc.PcConnectedHudTracker
 import com.enaboapps.switchify.pc.PcMouseRepeatManager
 import com.enaboapps.switchify.pc.PcServiceConnectionController
@@ -66,7 +66,7 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
     private lateinit var startupOrchestrator: StartupOrchestrator
     private lateinit var nodeUpdateCoordinator: NodeUpdateCoordinator
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
-    private val pcSwitchControlCleanupScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val pcSwitchForwardingCleanupScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var protectedStorageMigrationAttempted = false
     private var pcConnectionHudJob: Job? = null
     private val adbTestingBridgeReceiver = AdbTestingBridgeReceiver()
@@ -85,7 +85,7 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
 
     companion object {
         private const val TAG = "SwitchifyAccessibilityService"
-        private const val PC_SWITCH_CONTROL_CLEANUP_TIMEOUT_MS = 1_500L
+        private const val PC_SWITCH_FORWARDING_CLEANUP_TIMEOUT_MS = 1_500L
     }
 
     override fun onCreate() {
@@ -247,11 +247,11 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
                 ServiceCore.setPcServiceConnectionController(it)
             }
         observePcConnectionHud(controller)
-        if (ServiceCore.getPcSwitchControlForwarder() == null) {
+        if (ServiceCore.getPcSwitchForwardingController() == null) {
             val scanningManager = ServiceCore.getScanningManager() ?: return
             val switchEventProvider = ServiceCore.getSwitchEventProvider() ?: return
-            ServiceCore.setPcSwitchControlForwarder(
-                PcSwitchControlForwarder(
+            ServiceCore.setPcSwitchForwardingController(
+                PcSwitchForwardingController(
                     controller = controller,
                     scanningManager = scanningManager,
                     switchEventProvider = switchEventProvider,
@@ -270,7 +270,7 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
                 if (tracker.shouldShow(currentState)) {
                     val connectedState = currentState as PcServiceConnectionState.Connected
                     ServiceMessageHUD.instance.showMessage(
-                        R.string.pc_switch_control_connected,
+                        R.string.pc_switch_forwarding_connected,
                         arrayOf(connectedState.displayName),
                         ServiceMessageHUD.MessageType.DISAPPEARING,
                         ServiceMessageHUD.Time.MEDIUM
@@ -359,7 +359,7 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
 
 
     override fun onUnbind(intent: Intent?): Boolean {
-        cleanupPcSwitchControlForwarder()
+        cleanupPcSwitchForwardingController()
         if (::cameraManager.isInitialized) {
             cameraManager.cleanup()
         }
@@ -386,7 +386,7 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
     }
 
     override fun onDestroy() {
-        cleanupPcSwitchControlForwarder()
+        cleanupPcSwitchForwardingController()
         // Hide and stop trial overlay updates
         if (::trialOverlay.isInitialized) {
             trialOverlay.hideOverlay()
@@ -428,12 +428,12 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
         super.onDestroy()
     }
 
-    private fun cleanupPcSwitchControlForwarder() {
-        val forwarder = ServiceCore.takePcSwitchControlForwarder() ?: return
-        forwarder.prepareForDestroy()
-        pcSwitchControlCleanupScope.launch {
-            withTimeoutOrNull(PC_SWITCH_CONTROL_CLEANUP_TIMEOUT_MS) {
-                forwarder.destroy()
+    private fun cleanupPcSwitchForwardingController() {
+        val controller = ServiceCore.takePcSwitchForwardingController() ?: return
+        controller.prepareForDestroy()
+        pcSwitchForwardingCleanupScope.launch {
+            withTimeoutOrNull(PC_SWITCH_FORWARDING_CLEANUP_TIMEOUT_MS) {
+                controller.destroy()
             }
         }
     }

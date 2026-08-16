@@ -6,14 +6,14 @@ import org.junit.Test
 
 class SupportedActionsPolicyTest {
     @Test
-    fun pcSwitchControlIsSupportedInEveryScanMode() {
+    fun pcSwitchForwardingIsSupportedInEveryScanMode() {
         listOf(
             ScanMode.Modes.MODE_AUTO,
             ScanMode.Modes.MODE_MANUAL
         ).forEach { mode ->
             assertTrue(
                 SupportedActionsPolicy.supportedActionIdsForMode(mode)
-                    .contains(SwitchAction.ACTION_PC_SWITCH_CONTROL)
+                    .contains(SwitchAction.ACTION_PC_SWITCH_FORWARDING)
             )
         }
     }
