@@ -1,4 +1,4 @@
-package com.enaboapps.switchify.screens.pcswitchcontrol
+package com.enaboapps.switchify.screens.pcswitchforwarding
 
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.semantics.SemanticsProperties
@@ -15,7 +15,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
-class PcSwitchControlChooserUiTest {
+class PcSwitchForwardingChooserUiTest {
     @get:Rule
     val composeTestRule = createAndroidComposeRule<ComponentActivity>()
 

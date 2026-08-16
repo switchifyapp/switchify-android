@@ -1,4 +1,4 @@
-package com.enaboapps.switchify.screens.pcswitchcontrol
+package com.enaboapps.switchify.screens.pcswitchforwarding
 
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.pc.DiscoveredPc
@@ -11,9 +11,9 @@ import com.enaboapps.switchify.pc.PcServiceConnectionState
 import com.enaboapps.switchify.pc.PcSwitchProfileCatalog
 import com.enaboapps.switchify.pc.PcSwitchProfileSummary
 import com.enaboapps.switchify.pc.PcSwitcherConnectionHost
-import com.enaboapps.switchify.service.pcswitchcontrol.PcSwitchCatalogResult
-import com.enaboapps.switchify.service.pcswitchcontrol.PcSwitchControlChooserHost
-import com.enaboapps.switchify.service.pcswitchcontrol.PcSwitchControlStartResult
+import com.enaboapps.switchify.service.pcswitchforwarding.PcSwitchCatalogResult
+import com.enaboapps.switchify.service.pcswitchforwarding.PcSwitchForwardingChooserHost
+import com.enaboapps.switchify.service.pcswitchforwarding.PcSwitchForwardingStartResult
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -30,7 +30,7 @@ import org.junit.Before
 import org.junit.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
-class PcSwitchControlChooserViewModelTest {
+class PcSwitchForwardingChooserViewModelTest {
     private val dispatcher = StandardTestDispatcher()
 
     @Before
@@ -81,7 +81,7 @@ class PcSwitchControlChooserViewModelTest {
     @Test
     fun noExternalSwitchRaceShowsExplicitWarning() = runTest(dispatcher) {
         val host = FakeChooserHost(
-            startResult = PcSwitchControlStartResult.NoExternalSwitches
+            startResult = PcSwitchForwardingStartResult.NoExternalSwitches
         )
         val viewModel = viewModel(host)
         runCurrent()
@@ -92,7 +92,7 @@ class PcSwitchControlChooserViewModelTest {
         val notice = (viewModel.state.value as PcSwitchChooserState.Ready).notice
         assertEquals(PcSwitchNoticeSeverity.Warning, notice?.severity)
         assertEquals(
-            "message-${R.string.pc_switch_control_no_external_switches}",
+            "message-${R.string.pc_switch_forwarding_no_external_switches}",
             notice?.text
         )
     }
@@ -115,7 +115,7 @@ class PcSwitchControlChooserViewModelTest {
     }
 
     @Test
-    fun openingPcSwitcherCancelsStartAndPreparesForwarder() = runTest(dispatcher) {
+    fun openingPcSwitcherCancelsStartAndPreparesController() = runTest(dispatcher) {
         val allowStart = CompletableDeferred<Unit>()
         val host = FakeChooserHost(allowStart = allowStart)
         val viewModel = viewModel(host)
@@ -154,7 +154,7 @@ class PcSwitchControlChooserViewModelTest {
         host: FakeChooserHost,
         rememberProfile: (String, String) -> Unit = { _, _ -> },
         switcherHost: PcSwitcherConnectionHost = EmptySwitcherHost
-    ) = PcSwitchControlChooserViewModel(
+    ) = PcSwitchForwardingChooserViewModel(
         host = host,
         rememberedProfileId = { null },
         rememberProfile = rememberProfile,
@@ -226,10 +226,10 @@ class PcSwitchControlChooserViewModelTest {
 
     private class FakeChooserHost(
         var catalogResult: PcSwitchCatalogResult? = null,
-        private val startResult: PcSwitchControlStartResult =
-            PcSwitchControlStartResult.Started,
+        private val startResult: PcSwitchForwardingStartResult =
+            PcSwitchForwardingStartResult.Started,
         private val allowStart: CompletableDeferred<Unit>? = null
-    ) : PcSwitchControlChooserHost {
+    ) : PcSwitchForwardingChooserHost {
         val profiles = listOf(
             PcSwitchProfileSummary(
                 id = "builtin.keyboard",
@@ -269,7 +269,7 @@ class PcSwitchControlChooserViewModelTest {
         override suspend fun start(
             profile: PcSwitchProfileSummary,
             usesLegacyGridProtocol: Boolean
-        ): PcSwitchControlStartResult {
+        ): PcSwitchForwardingStartResult {
             allowStart?.await()
             return startResult
         }

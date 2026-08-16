@@ -32,7 +32,7 @@ data class SwitchAction(
             ACTION_TOGGLE_GESTURE_LOCK_REARM,
             ACTION_TOGGLE_GESTURE_REPEAT,
             ACTION_CONTROL_PC,
-            ACTION_PC_SWITCH_CONTROL
+            ACTION_PC_SWITCH_FORWARDING
         ).map { SwitchAction(it) }
 
         const val ACTION_NONE = 0
@@ -53,10 +53,7 @@ data class SwitchAction(
         const val ACTION_TOGGLE_GESTURE_LOCK_REARM = 15
         const val ACTION_TOGGLE_GESTURE_REPEAT = 16
         const val ACTION_CONTROL_PC = 17
-        const val ACTION_PC_SWITCH_CONTROL = 18
-
-        @Deprecated("Use ACTION_PC_SWITCH_CONTROL")
-        const val ACTION_CONTROL_GRID_3 = ACTION_PC_SWITCH_CONTROL
+        const val ACTION_PC_SWITCH_FORWARDING = 18
     }
 
     fun toMap(): Map<String, Any?> = mapOf("id" to id)
@@ -80,7 +77,7 @@ data class SwitchAction(
         ACTION_TOGGLE_GESTURE_LOCK_REARM -> Resources.getString(R.string.system_gesture_lock_rearm)
         ACTION_TOGGLE_GESTURE_REPEAT -> Resources.getString(R.string.system_gesture_repeat)
         ACTION_CONTROL_PC -> Resources.getString(R.string.menu_item_control_pc)
-        ACTION_PC_SWITCH_CONTROL -> Resources.getString(R.string.menu_item_pc_switch_control)
+        ACTION_PC_SWITCH_FORWARDING -> Resources.getString(R.string.menu_item_pc_switch_forwarding)
         else -> Resources.getString(R.string.unknown)
     }
 
@@ -103,7 +100,7 @@ data class SwitchAction(
         ACTION_TOGGLE_GESTURE_LOCK_REARM -> Resources.getString(R.string.system_gesture_lock_rearm_desc)
         ACTION_TOGGLE_GESTURE_REPEAT -> Resources.getString(R.string.system_gesture_repeat_desc)
         ACTION_CONTROL_PC -> Resources.getString(R.string.menu_item_control_pc_description)
-        ACTION_PC_SWITCH_CONTROL -> Resources.getString(R.string.menu_item_pc_switch_control_description)
+        ACTION_PC_SWITCH_FORWARDING -> Resources.getString(R.string.menu_item_pc_switch_forwarding_description)
         else -> Resources.getString(R.string.unknown)
     }
 }

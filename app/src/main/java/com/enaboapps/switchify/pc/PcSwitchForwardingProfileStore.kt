@@ -2,9 +2,9 @@ package com.enaboapps.switchify.pc
 
 import android.content.Context
 
-class PcSwitchProfilePreferenceStore(context: Context) {
+class PcSwitchForwardingProfileStore(context: Context) {
     private val preferences = context.createDeviceProtectedStorageContext()
-        .getSharedPreferences(FILE_NAME, Context.MODE_PRIVATE)
+        .getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
 
     fun rememberedProfileId(desktopId: String): String? =
         preferences.getString(desktopId, null)
@@ -14,11 +14,11 @@ class PcSwitchProfilePreferenceStore(context: Context) {
     }
 
     companion object {
-        private const val FILE_NAME = "pc_switch_control_profiles"
+        internal const val PREFERENCES_NAME = "pc_switch_forwarding_profiles"
     }
 }
 
-data class PcSwitchProfileSelection(
+data class PcSwitchForwardingProfileSelection(
     val profile: PcSwitchProfileSummary?,
     val rememberedProfileUnavailable: Boolean
 ) {
@@ -26,12 +26,12 @@ data class PcSwitchProfileSelection(
         get() = profile?.name?.takeIf { rememberedProfileUnavailable }
 }
 
-fun selectPcSwitchProfile(
+fun selectPcSwitchForwardingProfile(
     profiles: List<PcSwitchProfileSummary>,
     rememberedProfileId: String?
-): PcSwitchProfileSelection {
+): PcSwitchForwardingProfileSelection {
     val remembered = profiles.firstOrNull { it.id == rememberedProfileId }
-    return PcSwitchProfileSelection(
+    return PcSwitchForwardingProfileSelection(
         profile = remembered
             ?: profiles.firstOrNull { it.id == "builtin.keyboard" }
             ?: profiles.firstOrNull(),

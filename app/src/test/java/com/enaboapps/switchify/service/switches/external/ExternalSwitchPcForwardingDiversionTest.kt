@@ -1,16 +1,16 @@
 package com.enaboapps.switchify.service.switches.external
 
-import com.enaboapps.switchify.service.pcswitchcontrol.PcSwitchControlInputHandler
+import com.enaboapps.switchify.service.pcswitchforwarding.PcSwitchForwardingInputHandler
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-class ExternalSwitchPcSwitchControlDiversionTest {
+class ExternalSwitchPcForwardingDiversionTest {
     @Test
-    fun activeForwarderConsumesPressAndReleaseBeforeNormalHandling() {
+    fun activeControllerConsumesPressAndReleaseBeforeNormalHandling() {
         val handler = FakeHandler(consume = true)
-        val diversion = ExternalSwitchPcSwitchControlDiversion { handler }
+        val diversion = ExternalSwitchPcForwardingDiversion { handler }
         var normalCalls = 0
 
         assertTrue(diversion.onPressed(42, 1_000L, 1_000L) {
@@ -30,9 +30,9 @@ class ExternalSwitchPcSwitchControlDiversionTest {
     }
 
     @Test
-    fun inactiveOrMissingForwarderPreservesNormalHandling() {
-        val inactive = ExternalSwitchPcSwitchControlDiversion { FakeHandler(consume = false) }
-        val missing = ExternalSwitchPcSwitchControlDiversion { null }
+    fun inactiveOrMissingControllerPreservesNormalHandling() {
+        val inactive = ExternalSwitchPcForwardingDiversion { FakeHandler(consume = false) }
+        val missing = ExternalSwitchPcForwardingDiversion { null }
 
         assertFalse(inactive.onPressed(1, 10L, 10L) { false })
         assertTrue(missing.onReleased(1, 10L, 20L, cancelled = false) { true })
@@ -41,7 +41,7 @@ class ExternalSwitchPcSwitchControlDiversionTest {
     @Test
     fun unhandledNormalPressDoesNotSuppressReleaseAfterActivationChanges() {
         val handler = FakeHandler(consume = false)
-        val diversion = ExternalSwitchPcSwitchControlDiversion { handler }
+        val diversion = ExternalSwitchPcForwardingDiversion { handler }
         var suppressedReleases = 0
         var normalReleases = 0
 
@@ -70,7 +70,7 @@ class ExternalSwitchPcSwitchControlDiversionTest {
     @Test
     fun forwardsAndroidPressSequenceMetadata() {
         val handler = FakeHandler(consume = true)
-        val diversion = ExternalSwitchPcSwitchControlDiversion { handler }
+        val diversion = ExternalSwitchPcForwardingDiversion { handler }
 
         assertTrue(diversion.onPressed(42, 1_000L, 1_100L) { false })
         assertTrue(diversion.onReleased(42, 1_000L, 1_200L, cancelled = true) { false })
@@ -87,7 +87,7 @@ class ExternalSwitchPcSwitchControlDiversionTest {
     @Test
     fun activationPressIsSuppressedUntilItsMatchingRelease() {
         val handler = FakeHandler(consume = false)
-        val diversion = ExternalSwitchPcSwitchControlDiversion { handler }
+        val diversion = ExternalSwitchPcForwardingDiversion { handler }
         var suppressedReleases = 0
 
         assertTrue(diversion.onPressed(42, 1_000L, 1_000L) { true })
@@ -113,7 +113,7 @@ class ExternalSwitchPcSwitchControlDiversionTest {
     @Test
     fun activationReleaseRemainsSuppressedAfterForwardingStops() {
         val handler = FakeHandler(consume = false)
-        val diversion = ExternalSwitchPcSwitchControlDiversion { handler }
+        val diversion = ExternalSwitchPcForwardingDiversion { handler }
         var suppressedReleases = 0
 
         assertTrue(diversion.onPressed(42, 1_000L, 1_000L) { true })
@@ -138,7 +138,7 @@ class ExternalSwitchPcSwitchControlDiversionTest {
     @Test
     fun resetSuppressesReleaseFromForwardedPress() {
         val handler = FakeHandler(consume = true)
-        val diversion = ExternalSwitchPcSwitchControlDiversion { handler }
+        val diversion = ExternalSwitchPcForwardingDiversion { handler }
         var normalCalls = 0
         var suppressedReleases = 0
 
@@ -168,7 +168,7 @@ class ExternalSwitchPcSwitchControlDiversionTest {
         assertEquals(listOf("down:42:1000:1000"), handler.calls)
     }
 
-    private class FakeHandler(private val consume: Boolean) : PcSwitchControlInputHandler {
+    private class FakeHandler(private val consume: Boolean) : PcSwitchForwardingInputHandler {
         val calls = mutableListOf<String>()
         var activation = 0L
 

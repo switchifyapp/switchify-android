@@ -1,4 +1,4 @@
-package com.enaboapps.switchify.screens.pcswitchcontrol
+package com.enaboapps.switchify.screens.pcswitchforwarding
 
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -82,11 +82,11 @@ import com.enaboapps.switchify.components.EqualHeightGridRow
 import com.enaboapps.switchify.components.Panel
 import com.enaboapps.switchify.components.Section
 import com.enaboapps.switchify.service.core.ServiceCore
-import com.enaboapps.switchify.service.pcswitchcontrol.PcSwitchControlConnectionStatus
-import com.enaboapps.switchify.service.pcswitchcontrol.PcSwitchControlState
-import com.enaboapps.switchify.service.pcswitchcontrol.PcSwitchControlForwarder
-import com.enaboapps.switchify.service.pcswitchcontrol.PcSwitchControlMapping
-import com.enaboapps.switchify.service.pcswitchcontrol.PcSwitchControlExitReason
+import com.enaboapps.switchify.service.pcswitchforwarding.PcSwitchForwardingConnectionStatus
+import com.enaboapps.switchify.service.pcswitchforwarding.PcSwitchForwardingState
+import com.enaboapps.switchify.service.pcswitchforwarding.PcSwitchForwardingController
+import com.enaboapps.switchify.service.pcswitchforwarding.PcSwitchForwardingMapping
+import com.enaboapps.switchify.service.pcswitchforwarding.PcSwitchForwardingExitReason
 import com.enaboapps.switchify.service.utils.DeviceLockObserver
 import com.enaboapps.switchify.pc.PcSwitchProfileCatalog
 import com.enaboapps.switchify.pc.PcSwitchProfileSummary
@@ -97,14 +97,14 @@ import com.enaboapps.switchify.screens.pc.PcSwitcherStrip
 import com.enaboapps.switchify.theme.Dimens
 import java.util.UUID
 
-class PcSwitchControlActivity : ComponentActivity() {
-    private var forwarder: PcSwitchControlForwarder? = null
-    private val chooserViewModel: PcSwitchControlChooserViewModel by viewModels {
+class PcSwitchForwardingActivity : ComponentActivity() {
+    private var controller: PcSwitchForwardingController? = null
+    private val chooserViewModel: PcSwitchForwardingChooserViewModel by viewModels {
         viewModelFactory {
             initializer {
-                PcSwitchControlChooserViewModel(
+                PcSwitchForwardingChooserViewModel(
                     applicationContext,
-                    requireNotNull(forwarder)
+                    requireNotNull(controller)
                 )
             }
         }
@@ -114,7 +114,7 @@ class PcSwitchControlActivity : ComponentActivity() {
     private val screenOffReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             if (intent?.action != Intent.ACTION_SCREEN_OFF) return
-            forwarder?.requestCloseForScreenSleep(connectionEpisodeId)
+            controller?.requestCloseForScreenSleep(connectionEpisodeId)
             finishAndRemoveTask()
         }
     }
@@ -124,15 +124,15 @@ class PcSwitchControlActivity : ComponentActivity() {
         connectionEpisodeId =
             savedInstanceState?.getString(STATE_CONNECTION_EPISODE_ID)
                 ?: UUID.randomUUID().toString()
-        val forwarder = ServiceCore.getPcSwitchControlForwarder()
-        if (forwarder == null) {
+        val controller = ServiceCore.getPcSwitchForwardingController()
+        if (controller == null) {
             finish()
             return
         }
-        this.forwarder = forwarder
-        forwarder.acquireConnectionForEpisode(connectionEpisodeId)
+        this.controller = controller
+        controller.acquireConnectionForEpisode(connectionEpisodeId)
         if (DeviceLockObserver.isKeyguardLocked(this)) {
-            forwarder.requestCloseForScreenSleep(connectionEpisodeId)
+            controller.requestCloseForScreenSleep(connectionEpisodeId)
             finishAndRemoveTask()
             return
         }
@@ -145,7 +145,7 @@ class PcSwitchControlActivity : ComponentActivity() {
         screenOffReceiverRegistered = true
         setContent {
             SwitchifyTheme {
-                val state by forwarder.state.collectAsState()
+                val state by controller.state.collectAsState()
                 val pcSwitcherState by chooserViewModel.pcSwitcherState.collectAsState()
                 val context = LocalContext.current
                 var showChooser by remember { mutableStateOf(!state.active) }
@@ -153,12 +153,12 @@ class PcSwitchControlActivity : ComponentActivity() {
                     mutableStateOf(state.active)
                 }
                 var transitionAnnouncement by remember { mutableStateOf<String?>(null) }
-                val terminalExitReason by forwarder.terminalExitReason.collectAsState()
+                val terminalExitReason by controller.terminalExitReason.collectAsState()
                 LaunchedEffect(terminalExitReason) {
                     val reason = terminalExitReason
-                    if (reason == PcSwitchControlExitReason.InactivityTimeout) {
+                    if (reason == PcSwitchForwardingExitReason.InactivityTimeout) {
                         finishAndRemoveTask()
-                        forwarder.acknowledgeTerminalExit(reason)
+                        controller.acknowledgeTerminalExit(reason)
                     }
                 }
                 LaunchedEffect(state.active, showChooser) {
@@ -167,10 +167,10 @@ class PcSwitchControlActivity : ComponentActivity() {
                             showChooser = false
                             transitionAnnouncement =
                                 context.getString(
-                                    R.string.pc_switch_control_connected,
+                                    R.string.pc_switch_forwarding_connected,
                                     state.pcName
                                         ?: context.getString(
-                                            R.string.pc_switch_control_pc_fallback_name
+                                            R.string.pc_switch_forwarding_pc_fallback_name
                                         )
                                 )
                         }
@@ -187,15 +187,15 @@ class PcSwitchControlActivity : ComponentActivity() {
                     onAnnounced = { transitionAnnouncement = null }
                 )
                 if (state.active && !showChooser) {
-                    PcSwitchControlScreen(
+                    PcSwitchForwardingScreen(
                         state = state,
                         pcSwitcherState = pcSwitcherState,
                         onChangeProfile = {
-                            forwarder.requestChangeProfile()
+                            controller.requestChangeProfile()
                         },
                         onSwitchPc = chooserViewModel::openPcSwitcher,
                         onStop = {
-                            forwarder.requestClose(connectionEpisodeId)
+                            controller.requestClose(connectionEpisodeId)
                             finish()
                         }
                     )
@@ -204,10 +204,10 @@ class PcSwitchControlActivity : ComponentActivity() {
                         viewModel = chooserViewModel,
                         pcSwitcherState = pcSwitcherState,
                         configuredExternalSwitchCount =
-                            forwarder.configuredExternalSwitchCount(),
+                            controller.configuredExternalSwitchCount(),
                         onSwitchPc = chooserViewModel::openPcSwitcher,
                         onClose = {
-                            forwarder.requestClose(connectionEpisodeId)
+                            controller.requestClose(connectionEpisodeId)
                             finish()
                         }
                     )
@@ -240,20 +240,20 @@ class PcSwitchControlActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-        val currentForwarder = forwarder ?: run {
+        val currentController = controller ?: run {
             finishAndRemoveTask()
             return
         }
-        if (shouldCloseForStaleForwarder(
-                currentForwarder,
-                ServiceCore.getPcSwitchControlForwarder()
+        if (shouldCloseForStaleController(
+                currentController,
+                ServiceCore.getPcSwitchForwardingController()
             )
         ) {
             finishAndRemoveTask()
             return
         }
         if (DeviceLockObserver.isKeyguardLocked(this)) {
-            currentForwarder.requestCloseForScreenSleep(connectionEpisodeId)
+            currentController.requestCloseForScreenSleep(connectionEpisodeId)
             finishAndRemoveTask()
         }
     }
@@ -264,31 +264,31 @@ class PcSwitchControlActivity : ComponentActivity() {
             screenOffReceiverRegistered = false
         }
         if (isFinishing) {
-            forwarder?.requestClose(connectionEpisodeId)
+            controller?.requestClose(connectionEpisodeId)
         }
-        forwarder = null
+        controller = null
         super.onDestroy()
     }
 
     companion object {
-        private const val STATE_CONNECTION_EPISODE_ID = "pc_switch_control_connection_episode_id"
+        private const val STATE_CONNECTION_EPISODE_ID = "pc_switch_forwarding_connection_episode_id"
 
         fun createIntent(context: Context): Intent {
-            return Intent(context, PcSwitchControlActivity::class.java)
+            return Intent(context, PcSwitchForwardingActivity::class.java)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
         }
     }
 }
 
-internal fun shouldCloseForStaleForwarder(
-    activityForwarder: PcSwitchControlForwarder?,
-    serviceForwarder: PcSwitchControlForwarder?
-): Boolean = activityForwarder == null || serviceForwarder !== activityForwarder
+internal fun shouldCloseForStaleController(
+    activityController: PcSwitchForwardingController?,
+    serviceController: PcSwitchForwardingController?
+): Boolean = activityController == null || serviceController !== activityController
 
 @Composable
-private fun PcSwitchControlScreen(
-    state: PcSwitchControlState,
+private fun PcSwitchForwardingScreen(
+    state: PcSwitchForwardingState,
     pcSwitcherState: PcSwitcherUiState,
     onChangeProfile: () -> Unit,
     onSwitchPc: () -> Unit,
@@ -329,7 +329,7 @@ private fun PcSwitchControlScreen(
                 pcName = state.pcName,
                 profileName = state.profileName
             )
-            Section(titleResId = R.string.pc_switch_control_switch_mapping) {
+            Section(titleResId = R.string.pc_switch_forwarding_switch_mapping) {
                 BoxWithConstraints(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -367,7 +367,7 @@ private fun PcSwitchControlScreen(
 
 @Composable
 private fun PcSwitchProfileChooser(
-    viewModel: PcSwitchControlChooserViewModel,
+    viewModel: PcSwitchForwardingChooserViewModel,
     pcSwitcherState: PcSwitcherUiState,
     configuredExternalSwitchCount: Int,
     onSwitchPc: () -> Unit,
@@ -437,7 +437,7 @@ private fun PcSwitchProfileChooser(
             verticalArrangement = Arrangement.spacedBy(Dimens.spaceM)
         ) {
             Text(
-                text = stringResource(R.string.pc_switch_control_title),
+                text = stringResource(R.string.pc_switch_forwarding_title),
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.semantics { heading() }
@@ -468,7 +468,7 @@ private fun PcSwitchProfileChooser(
                     }
                     if (configuredExternalSwitchCount == 0) {
                         PcSwitchChooserNotice(
-                            text = stringResource(R.string.pc_switch_control_no_external_switches),
+                            text = stringResource(R.string.pc_switch_forwarding_no_external_switches),
                             severity = PcSwitchNoticeSeverity.Warning
                         )
                     }
@@ -673,7 +673,7 @@ private fun PcSwitchProfileRow(
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
-                PcSwitchProfileSelectionIndicator(
+                PcSwitchForwardingProfileSelectionIndicator(
                     selected = selected,
                     enabled = enabled
                 )
@@ -697,7 +697,7 @@ private fun PcSwitchProfileRow(
 }
 
 @Composable
-private fun PcSwitchProfileSelectionIndicator(
+private fun PcSwitchForwardingProfileSelectionIndicator(
     selected: Boolean,
     enabled: Boolean
 ) {
@@ -729,9 +729,9 @@ private fun PcSwitchMappingPreview(
     profile: PcSwitchProfileSummary,
     modifier: Modifier = Modifier
 ) {
-    val unassigned = stringResource(R.string.pc_switch_control_switch_unassigned)
+    val unassigned = stringResource(R.string.pc_switch_forwarding_switch_unassigned)
     val context = LocalContext.current
-    val mappings = (1..PcSwitchControlForwarder.MAX_FORWARDED_SWITCHES).map { switchId ->
+    val mappings = (1..PcSwitchForwardingController.MAX_FORWARDED_SWITCHES).map { switchId ->
         switchId to (
             profile.bindings
                 .firstOrNull { it.switchId == switchId && it.behavior != "unassigned" }
@@ -870,14 +870,14 @@ private fun ModeTransitionAnnouncement(
 
 @Composable
 private fun PcSwitchStatusHero(
-    connectionStatus: PcSwitchControlConnectionStatus,
+    connectionStatus: PcSwitchForwardingConnectionStatus,
     pcName: String?,
     profileName: String?
 ) {
-    val reconnecting = connectionStatus == PcSwitchControlConnectionStatus.Reconnecting
-    val displayName = pcName ?: stringResource(R.string.pc_switch_control_pc_fallback_name)
+    val reconnecting = connectionStatus == PcSwitchForwardingConnectionStatus.Reconnecting
+    val displayName = pcName ?: stringResource(R.string.pc_switch_forwarding_pc_fallback_name)
     val statusText = stringResource(
-        if (reconnecting) R.string.pc_switch_control_reconnecting else R.string.pc_switch_control_connected,
+        if (reconnecting) R.string.pc_switch_forwarding_reconnecting else R.string.pc_switch_forwarding_connected,
         displayName
     )
     val colors = MaterialTheme.colorScheme
@@ -910,13 +910,13 @@ private fun PcSwitchStatusHero(
             ) {
                 PcSwitchConnectionIndicator(reconnecting = reconnecting)
                 Text(
-                    text = stringResource(R.string.pc_switch_control_active_eyebrow),
+                    text = stringResource(R.string.pc_switch_forwarding_active_eyebrow),
                     style = MaterialTheme.typography.labelLarge,
                     color = colors.onSurfaceVariant
                 )
             }
             Text(
-                text = stringResource(R.string.pc_switch_control_title),
+                text = stringResource(R.string.pc_switch_forwarding_title),
                 style = MaterialTheme.typography.headlineLarge,
                 fontWeight = FontWeight.Bold,
                 color = colors.onSurface
@@ -939,7 +939,7 @@ private fun PcSwitchStatusHero(
                     }
                 )
                 Text(
-                    text = stringResource(R.string.pc_switch_control_summary),
+                    text = stringResource(R.string.pc_switch_forwarding_summary),
                     style = MaterialTheme.typography.bodyMedium,
                     color = colors.onSurfaceVariant
                 )
@@ -978,11 +978,11 @@ private fun PcSwitchConnectionIndicator(reconnecting: Boolean) {
 
 @Composable
 private fun PcSwitchTile(
-    mapping: PcSwitchControlMapping,
+    mapping: PcSwitchForwardingMapping,
     modifier: Modifier = Modifier
 ) {
     val colors = MaterialTheme.colorScheme
-    val outputLabel = mapping.outputLabel ?: stringResource(R.string.pc_switch_control_switch_unassigned)
+    val outputLabel = mapping.outputLabel ?: stringResource(R.string.pc_switch_forwarding_switch_unassigned)
     val shape = RoundedCornerShape(Dimens.spaceS)
     val containerColor by animateColorAsState(
         targetValue = if (mapping.pressed) {
@@ -991,19 +991,19 @@ private fun PcSwitchTile(
             colors.surfaceContainerHigh
         },
         animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
-        label = "pcSwitchControlFill"
+        label = "pcSwitchForwardingFill"
     )
     val tileDescription = stringResource(
-        R.string.pc_switch_control_switch_tile_description,
+        R.string.pc_switch_forwarding_switch_tile_description,
         mapping.name,
         mapping.switchId,
         outputLabel
     )
     val pressedDescription = stringResource(
         if (mapping.pressed) {
-            R.string.pc_switch_control_switch_state_pressed
+            R.string.pc_switch_forwarding_switch_state_pressed
         } else {
-            R.string.pc_switch_control_switch_state_idle
+            R.string.pc_switch_forwarding_switch_state_idle
         }
     )
     Surface(
@@ -1085,13 +1085,13 @@ private fun PcSwitchOverflowPanel(names: List<String>) {
             verticalArrangement = Arrangement.spacedBy(Dimens.spaceXs)
         ) {
             Text(
-                text = stringResource(R.string.pc_switch_control_overflow_title),
+                text = stringResource(R.string.pc_switch_forwarding_overflow_title),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
-                text = stringResource(R.string.pc_switch_control_overflow_description),
+                text = stringResource(R.string.pc_switch_forwarding_overflow_description),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f)
             )
@@ -1125,7 +1125,7 @@ private fun PcSwitchBottomBar(
             verticalArrangement = Arrangement.spacedBy(Dimens.spaceXs)
         ) {
             Text(
-                text = stringResource(R.string.pc_switch_control_hold_to_stop_hint, holdDuration),
+                text = stringResource(R.string.pc_switch_forwarding_hold_to_stop_hint, holdDuration),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
@@ -1143,7 +1143,7 @@ private fun PcSwitchBottomBar(
                     applyPadding = false
                 )
                 ActionButton(
-                    textResId = R.string.pc_switch_control_stop,
+                    textResId = R.string.pc_switch_forwarding_stop,
                     onClick = onStop,
                     modifier = Modifier.weight(1f).heightIn(min = 56.dp),
                     type = ActionButtonType.DESTRUCTIVE,
@@ -1158,10 +1158,10 @@ private fun PcSwitchBottomBar(
 private fun holdDurationLabel(durationMs: Long): String {
     if (durationMs % 1_000L == 0L) {
         val seconds = (durationMs / 1_000L).toInt()
-        return pluralStringResource(R.plurals.pc_switch_control_hold_seconds, seconds, seconds)
+        return pluralStringResource(R.plurals.pc_switch_forwarding_hold_seconds, seconds, seconds)
     }
     return stringResource(
-        R.string.pc_switch_control_hold_fractional_seconds,
+        R.string.pc_switch_forwarding_hold_fractional_seconds,
         durationMs / 1_000.0
     )
 }

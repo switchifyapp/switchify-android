@@ -1,4 +1,4 @@
-package com.enaboapps.switchify.screens.pcswitchcontrol
+package com.enaboapps.switchify.screens.pcswitchforwarding
 
 import android.content.Context
 import android.os.SystemClock
@@ -18,8 +18,8 @@ import com.enaboapps.switchify.pc.PcSwitchBindingSummary
 import com.enaboapps.switchify.pc.PcSwitchProfileCatalog
 import com.enaboapps.switchify.pc.PcSwitchProfileSummary
 import com.enaboapps.switchify.service.core.ServiceCore
-import com.enaboapps.switchify.service.pcswitchcontrol.PcSwitchControlForwarder
-import com.enaboapps.switchify.service.pcswitchcontrol.PcSwitchControlHost
+import com.enaboapps.switchify.service.pcswitchforwarding.PcSwitchForwardingController
+import com.enaboapps.switchify.service.pcswitchforwarding.PcSwitchForwardingHost
 import com.enaboapps.switchify.switches.SWITCH_EVENT_TYPE_EXTERNAL
 import com.enaboapps.switchify.switches.SwitchAction
 import com.enaboapps.switchify.switches.SwitchEvent
@@ -37,7 +37,7 @@ import org.junit.rules.Timeout
 import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
-class PcSwitchControlActivityInstrumentedTest {
+class PcSwitchForwardingActivityInstrumentedTest {
     @get:Rule
     val timeout: Timeout = Timeout.seconds(20)
 
@@ -45,16 +45,16 @@ class PcSwitchControlActivityInstrumentedTest {
     fun tearDown() {
         wakeDevice()
         runBlocking {
-            ServiceCore.takePcSwitchControlForwarder()?.destroy()
+            ServiceCore.takePcSwitchForwardingController()?.destroy()
         }
     }
 
     @Test
     fun recreationRetainsChooserWithoutReloadingCatalog() {
         val host = FakeHost()
-        installForwarder(host)
+        installController(host)
 
-        ActivityScenario.launch<PcSwitchControlActivity>(intent()).use { scenario ->
+        ActivityScenario.launch<PcSwitchForwardingActivity>(intent()).use { scenario ->
             waitForIdle()
             assertEquals(1, host.catalogRequestCount)
 
@@ -68,42 +68,42 @@ class PcSwitchControlActivityInstrumentedTest {
     @Test
     fun inactivityTimeoutFinishesActivity() {
         val host = FakeHost()
-        val forwarder = installForwarder(host, inactivityTimeoutMs = 100L)
+        val controller = installController(host, inactivityTimeoutMs = 100L)
         runBlocking {
-            val catalog = forwarder.loadProfileCatalog() as
-                com.enaboapps.switchify.service.pcswitchcontrol.PcSwitchCatalogResult.Loaded
-            forwarder.start(catalog.catalog.profiles.single(), usesLegacyGridProtocol = false)
+            val catalog = controller.loadProfileCatalog() as
+                com.enaboapps.switchify.service.pcswitchforwarding.PcSwitchCatalogResult.Loaded
+            controller.start(catalog.catalog.profiles.single(), usesLegacyGridProtocol = false)
         }
 
-        ActivityScenario.launch<PcSwitchControlActivity>(intent()).use { scenario ->
+        ActivityScenario.launch<PcSwitchForwardingActivity>(intent()).use { scenario ->
             awaitDestroyed(scenario)
         }
     }
 
     @Test
     fun screenLockFinishesActivity() {
-        installForwarder(FakeHost())
+        installController(FakeHost())
 
-        ActivityScenario.launch<PcSwitchControlActivity>(intent()).use { scenario ->
+        ActivityScenario.launch<PcSwitchForwardingActivity>(intent()).use { scenario ->
             executeShellCommand("input keyevent 26")
             awaitDestroyed(scenario)
         }
     }
 
-    private fun installForwarder(
+    private fun installController(
         host: FakeHost,
-        inactivityTimeoutMs: Long = PcSwitchControlForwarder.INACTIVITY_TIMEOUT_MS
-    ): PcSwitchControlForwarder {
-        val forwarder = PcSwitchControlForwarder(
+        inactivityTimeoutMs: Long = PcSwitchForwardingController.INACTIVITY_TIMEOUT_MS
+    ): PcSwitchForwardingController {
+        val controller = PcSwitchForwardingController(
             host = host,
             scope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
             inactivityTimeoutMs = inactivityTimeoutMs
         )
-        ServiceCore.setPcSwitchControlForwarder(forwarder)
-        return forwarder
+        ServiceCore.setPcSwitchForwardingController(controller)
+        return controller
     }
 
-    private fun awaitDestroyed(scenario: ActivityScenario<PcSwitchControlActivity>) {
+    private fun awaitDestroyed(scenario: ActivityScenario<PcSwitchForwardingActivity>) {
         repeat(40) {
             waitForIdle()
             if (scenario.state == Lifecycle.State.DESTROYED) return
@@ -112,7 +112,7 @@ class PcSwitchControlActivityInstrumentedTest {
         assertEquals(Lifecycle.State.DESTROYED, scenario.state)
     }
 
-    private fun intent() = PcSwitchControlActivity.createIntent(targetContext())
+    private fun intent() = PcSwitchForwardingActivity.createIntent(targetContext())
 
     private fun waitForIdle() {
         InstrumentationRegistry.getInstrumentation().waitForIdleSync()
@@ -133,7 +133,7 @@ class PcSwitchControlActivityInstrumentedTest {
     private fun targetContext(): Context =
         InstrumentationRegistry.getInstrumentation().targetContext
 
-    private class FakeHost : PcSwitchControlHost {
+    private class FakeHost : PcSwitchForwardingHost {
         override val connectionState: StateFlow<PcServiceConnectionState> =
             MutableStateFlow(PcServiceConnectionState.Disconnected)
         var catalogRequestCount = 0
@@ -145,7 +145,7 @@ class PcSwitchControlActivityInstrumentedTest {
             maxDelta = 500,
             recommendedDeltas = PcPointerDeltas(50, 100, 200),
             capabilities = PcPointerCapabilities(
-                supportedCommands = PcSwitchControlForwarder.GENERIC_COMMANDS
+                supportedCommands = PcSwitchForwardingController.GENERIC_COMMANDS
             )
         )
 
@@ -162,7 +162,7 @@ class PcSwitchControlActivityInstrumentedTest {
         )
 
         override fun holdToStopDurationMs(): Long =
-            PcSwitchControlForwarder.DEFAULT_HOLD_TO_STOP_MS
+            PcSwitchForwardingController.DEFAULT_HOLD_TO_STOP_MS
 
         override fun suspendScanning() = Unit
 
