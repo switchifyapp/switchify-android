@@ -3,11 +3,10 @@ package com.enaboapps.switchify.service.switches.external
 import android.content.Context
 import android.util.Log
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
-import com.enaboapps.switchify.pc.PcMouseRepeatManager
 import com.enaboapps.switchify.service.core.ServiceCore
 import com.enaboapps.switchify.service.core.Tasks
 import com.enaboapps.switchify.service.gestures.GestureLockManager
-import com.enaboapps.switchify.service.pcswitchforwarding.PcSwitchForwardingInputHandler
+import com.enaboapps.switchify.service.remotebridge.SwitchifyRemoteBridgeCoordinator
 import com.enaboapps.switchify.service.keyboard.KeyboardManager
 import com.enaboapps.switchify.service.scanning.ScanningManager
 import com.enaboapps.switchify.service.selection.SelectionHandler
@@ -40,9 +39,7 @@ class ExternalSwitchListener(
     private val suppressedSwitchCodes = mutableSetOf<Int>()
     private var gestureLockHoldFired = false
     private val pauseSwitchHoldTracker = PauseSwitchHoldTracker()
-    private val pcForwardingDiversion = ExternalSwitchPcForwardingDiversion {
-        ServiceCore.getPcSwitchForwardingController()
-    }
+    private val pcForwardingDiversion = ExternalSwitchRemoteDiversion()
 
     /** Timestamp of the last switch press for handling repeat events */
     private var lastSwitchPressedTime: Long = 0
@@ -81,12 +78,6 @@ class ExternalSwitchListener(
             pauseSwitchHoldTracker.onPressed(keyCode, System.currentTimeMillis())
             pauseManager.handleSwitchDuringPause()
             return false
-        }
-
-        if (stopPcMouseRepeatForSwitchPress()) {
-            pressSession = ExternalSwitchPressSession.ReleaseSwallowed
-            ExternalSwitchLongPressHandler.cancel()
-            return true
         }
 
         if (!switchEvent.pressAction.isScanMovementAction() &&
@@ -351,10 +342,6 @@ class ExternalSwitchListener(
         scanningManager.performAction(action)
     }
 
-    private fun stopPcMouseRepeatForSwitchPress(): Boolean {
-        return PcMouseRepeatManager.instance.stopForSwitchPress()
-    }
-
     /**
      * Determines if a switch repeat should be ignored based on timing and settings.
      *
@@ -438,12 +425,7 @@ class ExternalSwitchListener(
     }
 }
 
-internal class ExternalSwitchPcForwardingDiversion(
-    private val handler: () -> PcSwitchForwardingInputHandler?
-) {
-    private data class NormalPress(val downTimeMs: Long, val activation: Long)
-
-    private val normallyHandledPresses = mutableMapOf<Int, NormalPress>()
+internal class ExternalSwitchRemoteDiversion {
     private val forwardedPresses = mutableMapOf<Int, Long>()
     private val suppressedUntilRelease = mutableMapOf<Int, Long>()
 
@@ -453,28 +435,14 @@ internal class ExternalSwitchPcForwardingDiversion(
         eventTimeMs: Long,
         normalHandling: () -> Boolean
     ): Boolean {
-        val currentHandler = handler()
-        val normalPress = normallyHandledPresses[keyCode]
-        if (
-            normalPress?.downTimeMs == downTimeMs &&
-            (currentHandler?.forwardingActivation ?: normalPress.activation) != normalPress.activation
-        ) {
+        if (SwitchifyRemoteBridgeCoordinator.stopRemoteRepeatForSwitch()) {
             suppressedUntilRelease[keyCode] = downTimeMs
             return true
         }
-        return if (currentHandler?.onSwitchPressed(keyCode, downTimeMs, eventTimeMs) == true) {
+        return if (SwitchifyRemoteBridgeCoordinator.forwardExternalEdge(keyCode, true, downTimeMs, eventTimeMs, false)) {
             forwardedPresses[keyCode] = downTimeMs
             true
-        } else {
-            val handled = normalHandling()
-            if (handled) {
-                normallyHandledPresses[keyCode] = NormalPress(
-                    downTimeMs,
-                    currentHandler?.forwardingActivation ?: 0L
-                )
-            }
-            handled
-        }
+        } else normalHandling()
     }
 
     fun onReleased(
@@ -488,40 +456,21 @@ internal class ExternalSwitchPcForwardingDiversion(
         if (suppressedUntilRelease[keyCode] == downTimeMs) {
             suppressedUntilRelease.remove(keyCode)
             forwardedPresses.remove(keyCode)
-            normallyHandledPresses.remove(keyCode)
             return suppressedReleaseHandling()
         }
-        val normalPress = normallyHandledPresses[keyCode]
-        if (
-            normalPress?.downTimeMs == downTimeMs &&
-            (handler()?.forwardingActivation ?: normalPress.activation) != normalPress.activation
-        ) {
-            normallyHandledPresses.remove(keyCode)
-            return suppressedReleaseHandling()
-        }
-        if (normalPress?.downTimeMs == downTimeMs) {
-            normallyHandledPresses.remove(keyCode)
-        }
-        if (forwardedPresses[keyCode] == downTimeMs) {
-            forwardedPresses.remove(keyCode)
-        }
-        return if (
-            handler()?.onSwitchReleased(keyCode, downTimeMs, eventTimeMs, cancelled) == true
-        ) {
+        return if (forwardedPresses.remove(keyCode) == downTimeMs) {
+            SwitchifyRemoteBridgeCoordinator.forwardExternalEdge(keyCode, false, downTimeMs, eventTimeMs, cancelled)
             true
-        } else {
-            normalHandling()
-        }
+        } else if (SwitchifyRemoteBridgeCoordinator.forwardExternalEdge(keyCode, false, downTimeMs, eventTimeMs, cancelled)) {
+            forwardedPresses.remove(keyCode)
+            true
+        } else normalHandling()
     }
 
     fun reset() {
-        normallyHandledPresses.forEach { (keyCode, press) ->
-            suppressedUntilRelease[keyCode] = press.downTimeMs
-        }
         forwardedPresses.forEach { (keyCode, downTimeMs) ->
             suppressedUntilRelease[keyCode] = downTimeMs
         }
-        normallyHandledPresses.clear()
         forwardedPresses.clear()
     }
 

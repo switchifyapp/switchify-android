@@ -3,8 +3,7 @@ package com.enaboapps.switchify.service.core
 import com.enaboapps.switchify.service.camera.CameraManager
 import com.enaboapps.switchify.service.gestures.visuals.AndroidGestureTargetIndicatorRenderer
 import com.enaboapps.switchify.service.gestures.visuals.GestureTargetIndicatorController
-import com.enaboapps.switchify.service.pcswitchforwarding.PcSwitchForwardingController
-import com.enaboapps.switchify.pc.PcServiceConnectionController
+import com.enaboapps.switchify.service.remotebridge.SwitchifyRemoteBridgeCoordinator
 import com.enaboapps.switchify.service.pauseresume.PauseManager
 import com.enaboapps.switchify.service.scanning.ScanningManager
 import com.enaboapps.switchify.service.switches.SwitchEventProvider
@@ -16,8 +15,6 @@ object ServiceCore {
     private lateinit var externalSwitchListenerRef: WeakReference<ExternalSwitchListener>
     private lateinit var switchEventProviderRef: WeakReference<SwitchEventProvider>
     private lateinit var cameraManagerRef: WeakReference<CameraManager>
-    private var pcServiceConnectionController: PcServiceConnectionController? = null
-    private var pcSwitchForwardingController: PcSwitchForwardingController? = null
     private var gestureTargetIndicator: GestureTargetIndicatorController? = null
 
     /**
@@ -38,6 +35,7 @@ object ServiceCore {
 
         val scanningManager = scanningManagerRef.get() ?: return
         val switchEventProvider = switchEventProviderRef.get() ?: return
+        SwitchifyRemoteBridgeCoordinator.attach(switchEventProvider)
 
         scanningManager.setup()
         externalSwitchListenerRef =
@@ -100,31 +98,11 @@ object ServiceCore {
         return if (::cameraManagerRef.isInitialized) cameraManagerRef.get() else null
     }
 
-    fun setPcServiceConnectionController(controller: PcServiceConnectionController) {
-        pcServiceConnectionController = controller
-    }
-
-    fun getPcServiceConnectionController(): PcServiceConnectionController? {
-        return pcServiceConnectionController
-    }
-
-    fun setPcSwitchForwardingController(controller: PcSwitchForwardingController) {
-        pcSwitchForwardingController = controller
-    }
-
-    fun getPcSwitchForwardingController(): PcSwitchForwardingController? = pcSwitchForwardingController
-
-    fun takePcSwitchForwardingController(): PcSwitchForwardingController? {
-        return pcSwitchForwardingController.also {
-            pcSwitchForwardingController = null
-        }
-    }
-
     /**
      * Cleans up the service core.
      */
     fun cleanup() {
-        pcSwitchForwardingController = null
+        SwitchifyRemoteBridgeCoordinator.detach()
         gestureTargetIndicator?.release()
         gestureTargetIndicator = null
         if (::scanningManagerRef.isInitialized) {
@@ -140,7 +118,5 @@ object ServiceCore {
         if (::cameraManagerRef.isInitialized) {
             cameraManagerRef = WeakReference(null)
         }
-        // The PC connection controller is an app-scoped singleton shared with the
-        // app UI; it manages its own session lifecycle and outlives the service.
     }
 }

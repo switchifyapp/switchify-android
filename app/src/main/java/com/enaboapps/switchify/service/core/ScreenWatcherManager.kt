@@ -1,7 +1,7 @@
 package com.enaboapps.switchify.service.core
 
 import android.content.Context
-import com.enaboapps.switchify.pc.PcMouseRepeatManager
+import com.enaboapps.switchify.service.remotebridge.SwitchifyRemoteBridgeCoordinator
 import com.enaboapps.switchify.service.gestures.GestureLockManager
 import com.enaboapps.switchify.service.gestures.GestureRepeatManager
 import com.enaboapps.switchify.service.scanning.ScanningManager
@@ -16,10 +16,9 @@ class ScreenWatcherManager(
     fun register(scanningManager: ScanningManager, externalSwitchListener: ExternalSwitchListener) {
         screenWatcher = ScreenWatcher(
             onScreenSleep = {
-                ServiceCore.getPcSwitchForwardingController()?.requestCloseForScreenSleep()
+                SwitchifyRemoteBridgeCoordinator.clearActive()
                 val pauseManager = ServiceCore.getPauseManager()
                 if (pauseManager.isPaused) pauseManager.resume()
-                PcMouseRepeatManager.instance.clearServiceState()
                 GestureRepeatManager.instance.clearServiceState()
                 GestureLockManager.instance.clearServiceState()
                 Tasks.getInstance().checkOngoingTasks()
@@ -27,7 +26,7 @@ class ScreenWatcherManager(
                 scanningManager.reset()
             },
             onOrientationChanged = {
-                PcMouseRepeatManager.instance.clearServiceState()
+                SwitchifyRemoteBridgeCoordinator.clearActive()
                 scanningManager.reset()
             }
         )
