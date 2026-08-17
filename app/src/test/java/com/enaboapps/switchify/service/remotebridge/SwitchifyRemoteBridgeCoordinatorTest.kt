@@ -59,10 +59,19 @@ class SwitchifyRemoteBridgeCoordinatorTest {
     }
 
     @Test fun configuredSwitchChangeStopsActiveForwarding() {
-        SwitchifyRemoteBridgeCoordinator.attach { listOf(30 to "USB switch") }
+        var configured = listOf(30 to "USB switch")
+        SwitchifyRemoteBridgeCoordinator.attach { configured }
         assertTrue(SwitchifyRemoteBridgeCoordinator.setForwardingActive(20, true))
+        configured = listOf(30 to "Renamed USB switch")
         SwitchifyRemoteBridgeCoordinator.configuredSwitchesChanged()
         assertFalse(SwitchifyRemoteBridgeCoordinator.forwardExternalEdge(30, true, 1, 1, false))
         assertFalse(SwitchifyRemoteBridgeCoordinator.setForwardingActive(20, true))
+    }
+
+    @Test fun identicalConfiguredSwitchReloadPreservesActiveForwarding() {
+        SwitchifyRemoteBridgeCoordinator.attach { listOf(30 to "USB switch") }
+        assertTrue(SwitchifyRemoteBridgeCoordinator.setForwardingActive(20, true))
+        SwitchifyRemoteBridgeCoordinator.configuredSwitchesChanged()
+        assertTrue(SwitchifyRemoteBridgeCoordinator.forwardExternalEdge(30, true, 1, 1, false))
     }
 }

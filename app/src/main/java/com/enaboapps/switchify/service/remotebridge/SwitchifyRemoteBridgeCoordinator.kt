@@ -19,6 +19,7 @@ object SwitchifyRemoteBridgeCoordinator {
     private var callbackCount = 0
     private val lock = Any()
     private var externalSwitches: (() -> List<Pair<Int, String>>)? = null
+    private var configuredSwitchFingerprint = emptyList<Pair<Int, String>>()
     private var repeatGeneration = 0L
     private var repeatGenerationHighWater = 0L
     private var forwardingGeneration = 0L
@@ -27,8 +28,12 @@ object SwitchifyRemoteBridgeCoordinator {
     private val activePresses = mutableMapOf<Int, Long>()
 
     fun attach(provider: SwitchEventProvider) = attach { provider.externalSwitches().mapNotNull { event -> event.code.toIntOrNull()?.let { it to event.name } } }
-    internal fun attach(provider: () -> List<Pair<Int, String>>) = synchronized(lock) { externalSwitches = provider; publishSnapshot() }
-    fun detach() = synchronized(lock) { externalSwitches = null; clearActiveLocked(); publishSnapshot() }
+    internal fun attach(provider: () -> List<Pair<Int, String>>) = synchronized(lock) {
+        externalSwitches = provider
+        configuredSwitchFingerprint = configuredSwitchesLocked()
+        publishSnapshot()
+    }
+    fun detach() = synchronized(lock) { externalSwitches = null; configuredSwitchFingerprint = emptyList(); clearActiveLocked(); publishSnapshot() }
     fun register(callback: ISwitchifyRemoteBridgeCallback) { synchronized(lock) { if (callbacks.register(callback)) callbackCount += 1 }; runCatching { callback.onSnapshot(snapshot()) } }
     fun unregister(callback: ISwitchifyRemoteBridgeCallback) { synchronized(lock) { if (callbacks.unregister(callback)) callbackCount = (callbackCount - 1).coerceAtLeast(0) }; clearIfUnbound() }
 
@@ -69,7 +74,10 @@ object SwitchifyRemoteBridgeCoordinator {
     }
 
     fun configuredSwitchesChanged() = synchronized(lock) {
-        if (forwardingGeneration != 0L) {
+        val nextFingerprint = configuredSwitchesLocked()
+        val changed = nextFingerprint != configuredSwitchFingerprint
+        configuredSwitchFingerprint = nextFingerprint
+        if (changed && forwardingGeneration != 0L) {
             forwardingGeneration = 0
             edgeSequence = 0
             activePresses.clear()
@@ -122,6 +130,7 @@ object SwitchifyRemoteBridgeCoordinator {
     private fun isConfiguredExternalSwitch(keyCode: Int) = synchronized(lock) {
         externalSwitches?.invoke()?.any { it.first == keyCode } == true
     }
+    private fun configuredSwitchesLocked() = externalSwitches?.invoke().orEmpty().sortedWith(compareBy<Pair<Int, String>> { it.first }.thenBy { it.second })
     private fun clearActiveLocked() { repeatGeneration = 0; forwardingGeneration = 0; edgeSequence = 0; activePresses.clear(); ServiceCore.getScanningManager()?.resumeScanning() }
     private fun clearIfUnbound() { if (callbackCount == 0) clearActive() }
     private fun publishSnapshot() { if (callbackCount == 0) return; val value = snapshot(); broadcast { it.onSnapshot(value) } }
