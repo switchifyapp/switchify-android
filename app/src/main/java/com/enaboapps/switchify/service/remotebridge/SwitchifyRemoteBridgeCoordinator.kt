@@ -30,7 +30,7 @@ object SwitchifyRemoteBridgeCoordinator {
     fun attach(provider: SwitchEventProvider) = attach { provider.externalSwitches().mapNotNull { event -> event.code.toIntOrNull()?.let { it to event.name } } }
     internal fun attach(provider: () -> List<Pair<Int, String>>) = synchronized(lock) {
         externalSwitches = provider
-        configuredSwitchFingerprint = configuredSwitchesLocked()
+        configuredSwitchFingerprint = configuredSwitchFingerprintLocked()
         publishSnapshot()
     }
     fun detach() = synchronized(lock) { externalSwitches = null; configuredSwitchFingerprint = emptyList(); clearActiveLocked(); publishSnapshot() }
@@ -74,7 +74,7 @@ object SwitchifyRemoteBridgeCoordinator {
     }
 
     fun configuredSwitchesChanged() = synchronized(lock) {
-        val nextFingerprint = configuredSwitchesLocked()
+        val nextFingerprint = configuredSwitchFingerprintLocked()
         val changed = nextFingerprint != configuredSwitchFingerprint
         configuredSwitchFingerprint = nextFingerprint
         if (changed && forwardingGeneration != 0L) {
@@ -130,7 +130,9 @@ object SwitchifyRemoteBridgeCoordinator {
     private fun isConfiguredExternalSwitch(keyCode: Int) = synchronized(lock) {
         externalSwitches?.invoke()?.any { it.first == keyCode } == true
     }
-    private fun configuredSwitchesLocked() = externalSwitches?.invoke().orEmpty().sortedWith(compareBy<Pair<Int, String>> { it.first }.thenBy { it.second })
+    private fun configuredSwitchFingerprintLocked() = externalSwitches?.invoke().orEmpty()
+        .sortedWith(compareBy<Pair<Int, String>> { it.first }.thenBy { it.second })
+        .take(8)
     private fun clearActiveLocked() { repeatGeneration = 0; forwardingGeneration = 0; edgeSequence = 0; activePresses.clear(); ServiceCore.getScanningManager()?.resumeScanning() }
     private fun clearIfUnbound() { if (callbackCount == 0) clearActive() }
     private fun publishSnapshot() { if (callbackCount == 0) return; val value = snapshot(); broadcast { it.onSnapshot(value) } }

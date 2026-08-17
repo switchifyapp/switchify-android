@@ -74,4 +74,13 @@ class SwitchifyRemoteBridgeCoordinatorTest {
         SwitchifyRemoteBridgeCoordinator.configuredSwitchesChanged()
         assertTrue(SwitchifyRemoteBridgeCoordinator.forwardExternalEdge(30, true, 1, 1, false))
     }
+
+    @Test fun overflowOnlySwitchChangePreservesActiveForwarding() {
+        var configured = (1..9).map { it to "Switch $it" }
+        SwitchifyRemoteBridgeCoordinator.attach { configured }
+        assertTrue(SwitchifyRemoteBridgeCoordinator.setForwardingActive(20, true))
+        configured = configured.dropLast(1) + (10 to "Replacement overflow switch")
+        SwitchifyRemoteBridgeCoordinator.configuredSwitchesChanged()
+        assertTrue(SwitchifyRemoteBridgeCoordinator.forwardExternalEdge(1, true, 1, 1, false))
+    }
 }
