@@ -68,6 +68,16 @@ object SwitchifyRemoteBridgeCoordinator {
         return stopRemoteRepeatForSwitch()
     }
 
+    fun configuredSwitchesChanged() = synchronized(lock) {
+        if (forwardingGeneration != 0L) {
+            forwardingGeneration = 0
+            edgeSequence = 0
+            activePresses.clear()
+            ServiceCore.getScanningManager()?.resumeScanning()
+        }
+        publishSnapshot()
+    }
+
     fun stopRemoteRepeatForSwitch(): Boolean {
         val generation = synchronized(lock) { repeatGeneration.also { repeatGeneration = 0 } }
         if (generation == 0L) return false
