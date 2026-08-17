@@ -7,7 +7,10 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class SwitchifyRemoteBridgeCoordinatorTest {
-    @After fun cleanup() { SwitchifyRemoteBridgeCoordinator.detach() }
+    @After fun cleanup() {
+        SwitchifyRemoteBridgeCoordinator.detach()
+        SwitchifyRemoteBridgeCoordinator.resetForTests()
+    }
 
     @Test fun repeatStopIsGenerationScopedAndConsumedOnce() {
         assertTrue(SwitchifyRemoteBridgeCoordinator.setRepeatActive(7, true))
@@ -31,5 +34,27 @@ class SwitchifyRemoteBridgeCoordinatorTest {
         SwitchifyRemoteBridgeCoordinator.setRepeatActive(3, true)
         SwitchifyRemoteBridgeCoordinator.clearActive()
         assertFalse(SwitchifyRemoteBridgeCoordinator.stopRemoteRepeatForSwitch())
+    }
+
+    @Test fun delayedRepeatActivationCannotResurrectConsumedGeneration() {
+        assertTrue(SwitchifyRemoteBridgeCoordinator.setRepeatActive(20, true))
+        assertTrue(SwitchifyRemoteBridgeCoordinator.stopRemoteRepeatForSwitch())
+        assertFalse(SwitchifyRemoteBridgeCoordinator.setRepeatActive(20, true))
+        assertFalse(SwitchifyRemoteBridgeCoordinator.stopRemoteRepeatForSwitch())
+    }
+
+    @Test fun delayedForwardingActivationCannotResurrectStoppedGeneration() {
+        SwitchifyRemoteBridgeCoordinator.attach { listOf(30 to "USB switch") }
+        assertTrue(SwitchifyRemoteBridgeCoordinator.setForwardingActive(20, true))
+        assertTrue(SwitchifyRemoteBridgeCoordinator.setForwardingActive(20, false))
+        assertFalse(SwitchifyRemoteBridgeCoordinator.setForwardingActive(20, true))
+        assertFalse(SwitchifyRemoteBridgeCoordinator.forwardExternalEdge(30, true, 1, 1, false))
+    }
+
+    @Test fun unconfiguredExternalSwitchDoesNotStopRemoteRepeat() {
+        SwitchifyRemoteBridgeCoordinator.attach { listOf(30 to "USB switch") }
+        assertTrue(SwitchifyRemoteBridgeCoordinator.setRepeatActive(20, true))
+        assertFalse(SwitchifyRemoteBridgeCoordinator.stopRemoteRepeatForExternalSwitch(31))
+        assertTrue(SwitchifyRemoteBridgeCoordinator.stopRemoteRepeatForExternalSwitch(30))
     }
 }

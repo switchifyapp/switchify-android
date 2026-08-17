@@ -26,7 +26,6 @@ class ScreenWatcherManager(
                 scanningManager.reset()
             },
             onOrientationChanged = {
-                SwitchifyRemoteBridgeCoordinator.clearActive()
                 scanningManager.reset()
             }
         )

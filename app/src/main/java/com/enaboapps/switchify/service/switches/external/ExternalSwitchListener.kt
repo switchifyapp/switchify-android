@@ -426,6 +426,9 @@ class ExternalSwitchListener(
 }
 
 internal class ExternalSwitchRemoteDiversion {
+    private data class NormalPress(val downTimeMs: Long, val activation: Long)
+
+    private val normallyHandledPresses = mutableMapOf<Int, NormalPress>()
     private val forwardedPresses = mutableMapOf<Int, Long>()
     private val suppressedUntilRelease = mutableMapOf<Int, Long>()
 
@@ -435,14 +438,27 @@ internal class ExternalSwitchRemoteDiversion {
         eventTimeMs: Long,
         normalHandling: () -> Boolean
     ): Boolean {
-        if (SwitchifyRemoteBridgeCoordinator.stopRemoteRepeatForSwitch()) {
+        val activation = SwitchifyRemoteBridgeCoordinator.activeForwardingGeneration()
+        val normalPress = normallyHandledPresses[keyCode]
+        if (
+            normalPress?.downTimeMs == downTimeMs &&
+            activation != normalPress.activation
+        ) {
+            suppressedUntilRelease[keyCode] = downTimeMs
+            return true
+        }
+        if (SwitchifyRemoteBridgeCoordinator.stopRemoteRepeatForExternalSwitch(keyCode)) {
             suppressedUntilRelease[keyCode] = downTimeMs
             return true
         }
         return if (SwitchifyRemoteBridgeCoordinator.forwardExternalEdge(keyCode, true, downTimeMs, eventTimeMs, false)) {
             forwardedPresses[keyCode] = downTimeMs
             true
-        } else normalHandling()
+        } else {
+            val handled = normalHandling()
+            if (handled) normallyHandledPresses[keyCode] = NormalPress(downTimeMs, activation)
+            handled
+        }
     }
 
     fun onReleased(
@@ -456,8 +472,18 @@ internal class ExternalSwitchRemoteDiversion {
         if (suppressedUntilRelease[keyCode] == downTimeMs) {
             suppressedUntilRelease.remove(keyCode)
             forwardedPresses.remove(keyCode)
+            normallyHandledPresses.remove(keyCode)
             return suppressedReleaseHandling()
         }
+        val normalPress = normallyHandledPresses[keyCode]
+        if (
+            normalPress?.downTimeMs == downTimeMs &&
+            SwitchifyRemoteBridgeCoordinator.activeForwardingGeneration() != normalPress.activation
+        ) {
+            normallyHandledPresses.remove(keyCode)
+            return suppressedReleaseHandling()
+        }
+        if (normalPress?.downTimeMs == downTimeMs) normallyHandledPresses.remove(keyCode)
         return if (forwardedPresses.remove(keyCode) == downTimeMs) {
             SwitchifyRemoteBridgeCoordinator.forwardExternalEdge(keyCode, false, downTimeMs, eventTimeMs, cancelled)
             true
@@ -468,9 +494,13 @@ internal class ExternalSwitchRemoteDiversion {
     }
 
     fun reset() {
+        normallyHandledPresses.forEach { (keyCode, press) ->
+            suppressedUntilRelease[keyCode] = press.downTimeMs
+        }
         forwardedPresses.forEach { (keyCode, downTimeMs) ->
             suppressedUntilRelease[keyCode] = downTimeMs
         }
+        normallyHandledPresses.clear()
         forwardedPresses.clear()
     }
 

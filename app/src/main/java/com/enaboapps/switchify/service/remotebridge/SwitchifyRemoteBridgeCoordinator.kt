@@ -20,7 +20,9 @@ object SwitchifyRemoteBridgeCoordinator {
     private val lock = Any()
     private var externalSwitches: (() -> List<Pair<Int, String>>)? = null
     private var repeatGeneration = 0L
+    private var repeatGenerationHighWater = 0L
     private var forwardingGeneration = 0L
+    private var forwardingGenerationHighWater = 0L
     private var edgeSequence = 0L
     private val activePresses = mutableMapOf<Int, Long>()
 
@@ -31,16 +33,39 @@ object SwitchifyRemoteBridgeCoordinator {
     fun unregister(callback: ISwitchifyRemoteBridgeCallback) { synchronized(lock) { if (callbacks.unregister(callback)) callbackCount = (callbackCount - 1).coerceAtLeast(0) }; clearIfUnbound() }
 
     fun setRepeatActive(generation: Long, active: Boolean): Boolean = synchronized(lock) {
-        if (generation <= 0 || (active && generation < repeatGeneration)) return false
-        if (active) repeatGeneration = generation else if (generation == repeatGeneration) repeatGeneration = 0
+        if (generation <= 0) return false
+        if (active) {
+            if (generation <= repeatGenerationHighWater) return false
+            repeatGenerationHighWater = generation
+            repeatGeneration = generation
+        } else {
+            if (generation != repeatGeneration) return false
+            repeatGeneration = 0
+        }
         true
     }
 
     fun setForwardingActive(generation: Long, active: Boolean): Boolean = synchronized(lock) {
-        if (externalSwitches == null || generation <= 0 || (active && generation < forwardingGeneration)) return false
-        if (active) { forwardingGeneration = generation; edgeSequence = 0; activePresses.clear(); ServiceCore.getScanningManager()?.pauseScanning() }
-        else if (generation == forwardingGeneration) { forwardingGeneration = 0; activePresses.clear(); ServiceCore.getScanningManager()?.resumeScanning() }
+        if (externalSwitches == null || generation <= 0) return false
+        if (active) {
+            if (generation <= forwardingGenerationHighWater) return false
+            forwardingGenerationHighWater = generation
+            forwardingGeneration = generation
+            edgeSequence = 0
+            activePresses.clear()
+            ServiceCore.getScanningManager()?.pauseScanning()
+        } else {
+            if (generation != forwardingGeneration) return false
+            forwardingGeneration = 0
+            activePresses.clear()
+            ServiceCore.getScanningManager()?.resumeScanning()
+        }
         true
+    }
+
+    fun stopRemoteRepeatForExternalSwitch(keyCode: Int): Boolean {
+        if (!isConfiguredExternalSwitch(keyCode)) return false
+        return stopRemoteRepeatForSwitch()
     }
 
     fun stopRemoteRepeatForSwitch(): Boolean {
@@ -77,7 +102,16 @@ object SwitchifyRemoteBridgeCoordinator {
     }
 
     fun clearActive() = synchronized(lock) { clearActiveLocked() }
+    internal fun activeForwardingGeneration() = synchronized(lock) { forwardingGeneration }
     internal fun currentEdgeSequence() = synchronized(lock) { edgeSequence }
+    internal fun resetForTests() = synchronized(lock) {
+        clearActiveLocked()
+        repeatGenerationHighWater = 0
+        forwardingGenerationHighWater = 0
+    }
+    private fun isConfiguredExternalSwitch(keyCode: Int) = synchronized(lock) {
+        externalSwitches?.invoke()?.any { it.first == keyCode } == true
+    }
     private fun clearActiveLocked() { repeatGeneration = 0; forwardingGeneration = 0; edgeSequence = 0; activePresses.clear(); ServiceCore.getScanningManager()?.resumeScanning() }
     private fun clearIfUnbound() { if (callbackCount == 0) clearActive() }
     private fun publishSnapshot() { if (callbackCount == 0) return; val value = snapshot(); broadcast { it.onSnapshot(value) } }
