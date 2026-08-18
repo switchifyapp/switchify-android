@@ -22,6 +22,8 @@ interface AccessTechniqueObserver {
 object AccessTechnique {
     @Volatile
     private var currentTechnique: String = Technique.ITEM_SCAN
+    @Volatile
+    private var temporaryTechniqueActive = false
     private var preferenceManager: PreferenceManager? = null
     var observer: AccessTechniqueObserver? = null
 
@@ -92,13 +94,30 @@ object AccessTechnique {
      * @param value The type of the access technique
      */
     fun setCurrentTechnique(value: String) {
-        if (currentTechnique == value) return
+        val changed = currentTechnique != value
+        temporaryTechniqueActive = false
         currentTechnique = value
-        observer?.onAccessTechniqueChanged(value)
-
-
+        if (changed) observer?.onAccessTechniqueChanged(value)
         saveCurrentTechnique()
     }
+
+    internal fun setTemporaryTechnique(value: String) {
+        if (currentTechnique == value && temporaryTechniqueActive) return
+        val changed = currentTechnique != value
+        currentTechnique = value
+        temporaryTechniqueActive = true
+        if (changed) observer?.onAccessTechniqueChanged(value)
+    }
+
+    internal fun restoreTemporaryTechnique(value: String) {
+        if (!temporaryTechniqueActive) return
+        val changed = currentTechnique != value
+        currentTechnique = value
+        temporaryTechniqueActive = false
+        if (changed) observer?.onAccessTechniqueChanged(value)
+    }
+
+    internal fun isTemporaryTechniqueActive(): Boolean = temporaryTechniqueActive
 
     /**
      * Get the technique stored in preferences (not the current in-memory one)
@@ -124,6 +143,7 @@ object AccessTechnique {
      * Loads the current technique from the preferences
      */
     internal fun loadCurrentTechnique() {
+        temporaryTechniqueActive = false
         preferenceManager?.let { preferenceManager ->
             var storedType = preferenceManager.getStringValue(
                 PreferenceManager.PREFERENCE_KEY_ACCESS_TECHNIQUE

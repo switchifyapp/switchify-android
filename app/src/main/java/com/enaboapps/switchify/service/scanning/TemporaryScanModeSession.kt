@@ -4,18 +4,28 @@ import com.enaboapps.switchify.service.techniques.AccessTechnique
 
 interface ScanModeController {
     fun currentTechnique(): String
-    fun setPointScanType()
-    fun setRadarType()
-    fun setItemScanType()
+    fun preferredTechnique(): String
+    fun isTemporaryTechniqueActive(): Boolean
+    fun setTemporaryTechnique(technique: String)
+    fun restoreTemporaryTechnique(technique: String)
 }
 
 class ScanningManagerScanModeController(
     private val scanningManager: ScanningManager
 ) : ScanModeController {
     override fun currentTechnique(): String = AccessTechnique.getCurrentTechnique()
-    override fun setPointScanType() = scanningManager.setPointScanType()
-    override fun setRadarType() = scanningManager.setRadarType()
-    override fun setItemScanType() = scanningManager.setItemScanType()
+    override fun preferredTechnique(): String =
+        if (currentTechnique() == AccessTechnique.Technique.MENU) {
+            AccessTechnique.getStoredTechnique() ?: AccessTechnique.Technique.ITEM_SCAN
+        } else {
+            currentTechnique()
+        }
+    override fun isTemporaryTechniqueActive(): Boolean =
+        AccessTechnique.isTemporaryTechniqueActive()
+    override fun setTemporaryTechnique(technique: String) =
+        scanningManager.setTemporaryScanType(technique)
+    override fun restoreTemporaryTechnique(technique: String) =
+        scanningManager.restoreTemporaryScanType(technique)
 }
 
 class TemporaryScanModeSession internal constructor(
@@ -29,14 +39,15 @@ class TemporaryScanModeSession internal constructor(
 
     private var previousTechnique: String? = null
     private var started = false
+    private var overrideApplied = false
 
     fun start() {
         if (started) return
         started = true
-        val current = controller.currentTechnique()
-        previousTechnique = current
-        if (current != targetTechnique) {
-            applyTechnique(targetTechnique)
+        previousTechnique = controller.preferredTechnique()
+        if (controller.currentTechnique() != targetTechnique) {
+            controller.setTemporaryTechnique(targetTechnique)
+            overrideApplied = true
         }
     }
 
@@ -45,15 +56,17 @@ class TemporaryScanModeSession internal constructor(
         started = false
         val previous = previousTechnique ?: return
         previousTechnique = null
-        if (controller.currentTechnique() != targetTechnique || previous == targetTechnique) return
-        applyTechnique(previous)
+        if (!overrideApplied) return
+        overrideApplied = false
+        if (!controller.isTemporaryTechniqueActive() || controller.currentTechnique() != targetTechnique) return
+        if (previous in supportedTechniques) controller.restoreTemporaryTechnique(previous)
     }
 
-    private fun applyTechnique(technique: String) {
-        when (technique) {
-            AccessTechnique.Technique.POINT_SCAN -> controller.setPointScanType()
-            AccessTechnique.Technique.RADAR -> controller.setRadarType()
-            AccessTechnique.Technique.ITEM_SCAN -> controller.setItemScanType()
-        }
+    private companion object {
+        val supportedTechniques = setOf(
+            AccessTechnique.Technique.POINT_SCAN,
+            AccessTechnique.Technique.RADAR,
+            AccessTechnique.Technique.ITEM_SCAN
+        )
     }
 }

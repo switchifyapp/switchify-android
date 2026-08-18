@@ -48,6 +48,11 @@ class ScanningManager(
 
     private val remoteLauncher = SwitchifyRemoteLauncher(accessibilityService)
 
+    private val appScanTechniqueOverrideCoordinator = AppScanTechniqueOverrideCoordinator(
+        ScanningManagerScanModeController(this),
+        DefaultAppScanTechniquePolicy
+    )
+
     private var moveRepeatManager: MoveRepeatManager? = MoveRepeatManager(accessibilityService)
 
     // Scan settings
@@ -101,23 +106,37 @@ class ScanningManager(
     }
 
     fun setPointScanType() {
-        setType(AccessTechnique.Technique.POINT_SCAN)
+        setType(AccessTechnique.Technique.POINT_SCAN, TechniqueChange.PERSISTENT)
     }
 
     /**
      * Sets the scanning method to radar type.
      */
     fun setRadarType() {
-        setType(AccessTechnique.Technique.RADAR)
+        setType(AccessTechnique.Technique.RADAR, TechniqueChange.PERSISTENT)
     }
 
     /**
      * Sets the scanning method to item scan type and starts the timeout to revert to point scan.
      */
     fun setItemScanType() {
-        setType(AccessTechnique.Technique.ITEM_SCAN)
-        SelectionHandler.setStartScanningAction { activeScanMethod.currentAccessTechnique.startAutoScanning() }
-        activeScanMethod.getNodeScanner().startTimeoutToRevertToCursor()
+        setType(AccessTechnique.Technique.ITEM_SCAN, TechniqueChange.PERSISTENT)
+    }
+
+    internal fun setTemporaryScanType(type: String) {
+        setType(type, TechniqueChange.TEMPORARY)
+    }
+
+    internal fun restoreTemporaryScanType(type: String) {
+        setType(type, TechniqueChange.RESTORE)
+    }
+
+    internal fun updateForegroundApplication(packageName: String?) {
+        appScanTechniqueOverrideCoordinator.onForegroundApplicationChanged(packageName)
+    }
+
+    internal fun clearAppScanTechniqueOverride() {
+        appScanTechniqueOverrideCoordinator.clear()
     }
 
 
@@ -125,7 +144,7 @@ class ScanningManager(
      * Sets the scanning method to menu type.
      */
     fun setMenuType() {
-        setType(AccessTechnique.Technique.MENU)
+        setType(AccessTechnique.Technique.MENU, TechniqueChange.PERSISTENT)
     }
 
     /**
@@ -133,12 +152,20 @@ class ScanningManager(
      *
      * @param type The AccessTechnique.Technique to set. Must be a valid type.
      */
-    private fun setType(type: String) {
+    private fun setType(type: String, change: TechniqueChange) {
         val previousType = AccessTechnique.getCurrentTechnique()
         startAcceptingActionsTimeout()
-        AccessTechnique.setCurrentTechnique(type)
+        when (change) {
+            TechniqueChange.PERSISTENT -> AccessTechnique.setCurrentTechnique(type)
+            TechniqueChange.TEMPORARY -> AccessTechnique.setTemporaryTechnique(type)
+            TechniqueChange.RESTORE -> AccessTechnique.restoreTemporaryTechnique(type)
+        }
         NodeScannerUI.instance.hideAll()
         activeScanMethod.resetNodeScanner()
+        if (type == AccessTechnique.Technique.ITEM_SCAN) {
+            SelectionHandler.setStartScanningAction { activeScanMethod.currentAccessTechnique.startAutoScanning() }
+            activeScanMethod.getNodeScanner().startTimeoutToRevertToCursor()
+        }
         if (previousType != type) {
             Logger.log(
                 LogEvent.ScanModeChanged,
@@ -324,8 +351,15 @@ class ScanningManager(
      * Shuts down the scanning manager, stopping all processes and cleaning up resources.
      */
     fun shutdown() {
+        clearAppScanTechniqueOverride()
         pauseScanning()
         activeScanMethod.destroy()
         moveRepeatManager = null
+    }
+
+    private enum class TechniqueChange {
+        PERSISTENT,
+        TEMPORARY,
+        RESTORE
     }
 }

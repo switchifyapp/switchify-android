@@ -141,7 +141,6 @@ class MainMenuStructure(
                 MenuItemRegistry.getMainMenuDefinition("control_pc")?.let { def ->
                     MenuItem(
                         definition = def,
-                        isLinkToMenu = true,
                         action = { remoteLauncher.openMouse() }
                     )
                 }
@@ -154,7 +153,6 @@ class MainMenuStructure(
                 )?.let { def ->
                     MenuItem(
                         definition = def,
-                        isLinkToMenu = true,
                         action = { remoteLauncher.openForwarding() }
                     )
                 }
