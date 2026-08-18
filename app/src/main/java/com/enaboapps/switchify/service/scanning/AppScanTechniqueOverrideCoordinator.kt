@@ -31,6 +31,16 @@ internal class AppScanTechniqueOverrideCoordinator(
         session = TemporaryScanModeSession(controller, targetTechnique).also { it.start() }
     }
 
+    fun refreshForegroundOverride() {
+        val packageName = foregroundPackage ?: return
+        val targetTechnique = policy.techniqueFor(packageName) ?: return
+        if (controller.isTemporaryTechniqueActive() &&
+            controller.currentTechnique() == targetTechnique
+        ) return
+        session?.close()
+        session = TemporaryScanModeSession(controller, targetTechnique).also { it.start() }
+    }
+
     fun clear() {
         session?.close()
         session = null

@@ -139,6 +139,9 @@ class ScanningManager(
         appScanTechniqueOverrideCoordinator.clear()
     }
 
+    internal fun refreshAppScanTechniqueOverride() {
+        appScanTechniqueOverrideCoordinator.refreshForegroundOverride()
+    }
 
     /**
      * Sets the scanning method to menu type.
