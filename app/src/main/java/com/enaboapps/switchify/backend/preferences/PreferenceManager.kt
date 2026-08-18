@@ -25,13 +25,6 @@ class PreferenceManager(context: Context) {
         const val PREFERENCE_KEY_PAUSE_TIMEOUT = "pause_timeout"
         const val PREFERENCE_KEY_MOVE_REPEAT = "move_repeat"
         const val PREFERENCE_KEY_MOVE_REPEAT_DELAY = "move_repeat_delay"
-        const val PREFERENCE_KEY_PC_CONTROL_SURFACE = "pc_control_surface"
-        const val PREFERENCE_KEY_PC_TYPING_DRAFT = "pc_typing_draft"
-        const val PREFERENCE_KEY_PC_TYPING_MODE = "pc_typing_mode"
-        const val PREFERENCE_KEY_PC_MOUSE_REPEAT = "pc_mouse_repeat"
-        const val PREFERENCE_KEY_PC_MOUSE_REPEAT_INTERVAL = "pc_mouse_repeat_interval"
-        const val PREFERENCE_KEY_PC_SWITCH_FORWARDING_HOLD_TO_STOP_DURATION =
-            "pc_switch_forwarding_hold_to_stop_duration"
         const val PREFERENCE_KEY_AUTOMATICALLY_START_SCAN_AFTER_SELECTION =
             "automatically_start_scan_after_selection"
         const val PREFERENCE_KEY_PAUSE_ON_FIRST_ITEM = "pause_on_first_item"

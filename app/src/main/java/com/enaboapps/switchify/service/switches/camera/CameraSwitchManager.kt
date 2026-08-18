@@ -9,7 +9,7 @@ import android.os.Looper
 import android.util.Log
 import androidx.core.content.ContextCompat
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
-import com.enaboapps.switchify.pc.PcMouseRepeatManager
+import com.enaboapps.switchify.service.remotebridge.SwitchifyRemoteBridgeCoordinator
 import com.enaboapps.switchify.service.camera.CameraLifecycle
 import com.enaboapps.switchify.service.camera.CameraPermissionManager
 import com.enaboapps.switchify.service.core.ServiceCore
@@ -269,7 +269,7 @@ class CameraSwitchManager(
             val switchEvent = findSwitchEventForGesture(gesture)
             if (switchEvent != null) {
                 Log.i(TAG, "Triggering switch action for gesture: ${gesture.getName()}")
-                if (stopPcMouseRepeatForSwitchPress()) return@launch
+                if (stopRemoteMouseRepeatForSwitchPress()) return@launch
                 if (!switchEvent.pressAction.isScanMovementAction() &&
                     Tasks.getInstance().stopActiveStoppableTask()
                 ) return@launch
@@ -281,8 +281,8 @@ class CameraSwitchManager(
     private fun findSwitchEventForGesture(gesture: CameraSwitchFacialGesture): SwitchEvent? =
         switchEventProvider.findCamera(gesture.id)
 
-    private fun stopPcMouseRepeatForSwitchPress(): Boolean {
-        return PcMouseRepeatManager.instance.stopForSwitchPress()
+    private fun stopRemoteMouseRepeatForSwitchPress(): Boolean {
+        return SwitchifyRemoteBridgeCoordinator.stopRemoteRepeatForSwitch()
     }
 
     /**

@@ -43,7 +43,6 @@ import com.enaboapps.switchify.components.Panel
 import com.enaboapps.switchify.components.ScrollableView
 import com.enaboapps.switchify.components.home.HomeHeroCard
 import com.enaboapps.switchify.components.PanelListRow
-import com.enaboapps.switchify.components.home.HomePcConnectionCard
 import com.enaboapps.switchify.components.home.HomeToggleRow
 import com.enaboapps.switchify.components.home.ProUpgradeCard
 import com.enaboapps.switchify.nav.NavigationRoute
@@ -154,8 +153,6 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
                         HomeToggleRow(
                             onSettingsClick = { navController.navigate(NavigationRoute.Settings.name) }
                         )
-                        HomePcConnectionCard(navController)
-
                         AnimatedVisibility(
                             visible = !isSwitchConfigValid,
                             enter = fadeIn(tween(220)) + expandVertically(tween(220)),

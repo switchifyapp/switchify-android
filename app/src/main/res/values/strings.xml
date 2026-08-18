@@ -357,7 +357,10 @@
     <string name="pc_pairing_code_waiting">Waiting for approval on your PC...</string>
     <string name="menu_item_control_pc">Control PC</string>
     <string name="menu_item_pc_switch_forwarding">PC Switch Forwarding</string>
-    <string name="menu_item_pc_switch_forwarding_description">Forward external switches through a profile on your connected PC</string>
+    <string name="switchify_remote_required_title">Install Switchify Remote?</string>
+    <string name="switchify_remote_required_message">Control PC and PC Switch Forwarding now open in Switchify Remote.</string>
+    <string name="install_switchify_remote">Install</string>
+    <string name="menu_item_pc_switch_forwarding_description">Open PC Switch Forwarding in Switchify Remote</string>
     <string name="pc_switch_forwarding_connected">Connected to %1$s.</string>
     <string name="pc_switch_forwarding_reconnecting">Reconnecting to %1$s...</string>
     <string name="pc_switch_forwarding_active_eyebrow">Active mode</string>
@@ -405,7 +408,7 @@
     <string name="pc_switch_close">Close</string>
     <string name="pc_switch_change_profile">Change profile</string>
     <string name="pc_switch_active_profile">Profile: %1$s</string>
-    <string name="menu_item_control_pc_description">Control your connected computer.</string>
+    <string name="menu_item_control_pc_description">Open mouse controls in Switchify Remote.</string>
     <string name="menu_title_control_pc">Control PC</string>
     <string name="menu_title_choose_pc">Choose PC</string>
     <string name="menu_item_choose_pc_description">Connect to this PC.</string>

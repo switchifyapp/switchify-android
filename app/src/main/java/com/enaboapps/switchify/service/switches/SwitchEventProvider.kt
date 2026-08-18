@@ -7,6 +7,7 @@ import android.content.IntentFilter
 import android.util.Log
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.service.core.ServiceBridge
+import com.enaboapps.switchify.service.remotebridge.SwitchifyRemoteBridgeCoordinator
 import com.enaboapps.switchify.service.window.MessageSeverity
 import com.enaboapps.switchify.service.window.ServiceMessageHUD
 import com.enaboapps.switchify.switches.SWITCH_EVENT_TYPE_CAMERA
@@ -96,6 +97,7 @@ class SwitchEventProvider(private val context: Context) {
                 )
             }
             // Notify service/app that switches are ready so it can validate configuration
+            SwitchifyRemoteBridgeCoordinator.configuredSwitchesChanged()
             ServiceBridge.emitEvent(ServiceBridge.ServiceEvent.SwitchEventsUpdated)
         }
     }
