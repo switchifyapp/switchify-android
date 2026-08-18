@@ -90,6 +90,61 @@ class AppScanTechniqueOverrideCoordinatorTest {
         assertEquals(AccessTechnique.Technique.RADAR, controller.currentTechnique())
     }
 
+    @Test
+    fun menuCloseRefreshesRemoteOverrideAndLeavingRestoresPointScan() {
+        val controller = CountingScanModeController(AccessTechnique.Technique.POINT_SCAN)
+        val coordinator = coordinator(controller)
+
+        coordinator.onForegroundApplicationChanged(SwitchifyRemoteLauncher.REMOTE_PACKAGE)
+        controller.setPersistentTechnique(AccessTechnique.Technique.POINT_SCAN)
+        coordinator.refreshForegroundOverride()
+
+        assertEquals(AccessTechnique.Technique.ITEM_SCAN, controller.currentTechnique())
+        assertEquals(2, controller.temporaryCalls)
+
+        coordinator.onForegroundApplicationChanged("com.example.launcher")
+        assertEquals(AccessTechnique.Technique.POINT_SCAN, controller.currentTechnique())
+    }
+
+    @Test
+    fun manualTechniqueChangeAfterRefreshIsPreservedOnExit() {
+        val controller = CountingScanModeController(AccessTechnique.Technique.POINT_SCAN)
+        val coordinator = coordinator(controller)
+
+        coordinator.onForegroundApplicationChanged(SwitchifyRemoteLauncher.REMOTE_PACKAGE)
+        controller.setPersistentTechnique(AccessTechnique.Technique.POINT_SCAN)
+        coordinator.refreshForegroundOverride()
+        controller.setPersistentTechnique(AccessTechnique.Technique.RADAR)
+        coordinator.onForegroundApplicationChanged("com.example.launcher")
+
+        assertEquals(AccessTechnique.Technique.RADAR, controller.currentTechnique())
+    }
+
+    @Test
+    fun refreshIsIdempotentWhileRemoteOverrideIsActive() {
+        val controller = CountingScanModeController(AccessTechnique.Technique.POINT_SCAN)
+        val coordinator = coordinator(controller)
+
+        coordinator.onForegroundApplicationChanged(SwitchifyRemoteLauncher.REMOTE_PACKAGE)
+        coordinator.refreshForegroundOverride()
+        coordinator.refreshForegroundOverride()
+
+        assertEquals(1, controller.temporaryCalls)
+    }
+
+    @Test
+    fun refreshDoesNothingWithoutConfiguredForegroundApplication() {
+        val controller = CountingScanModeController(AccessTechnique.Technique.RADAR)
+        val coordinator = coordinator(controller)
+
+        coordinator.refreshForegroundOverride()
+        coordinator.onForegroundApplicationChanged("com.example.other")
+        coordinator.refreshForegroundOverride()
+
+        assertEquals(0, controller.temporaryCalls)
+        assertEquals(AccessTechnique.Technique.RADAR, controller.currentTechnique())
+    }
+
     private fun coordinator(controller: ScanModeController) =
         AppScanTechniqueOverrideCoordinator(controller, DefaultAppScanTechniquePolicy)
 
@@ -113,6 +168,12 @@ class AppScanTechniqueOverrideCoordinatorTest {
         override fun restoreTemporaryTechnique(technique: String) {
             if (!temporary) return
             restoreCalls++
+            this.technique = technique
+            preferredTechnique = technique
+            temporary = false
+        }
+
+        fun setPersistentTechnique(technique: String) {
             this.technique = technique
             preferredTechnique = technique
             temporary = false

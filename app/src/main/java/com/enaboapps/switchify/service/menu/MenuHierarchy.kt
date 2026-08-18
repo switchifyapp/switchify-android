@@ -93,6 +93,7 @@ class MenuHierarchy(
         MenuManager.getInstance().notifyAllMenusClosed()
 
         AccessTechnique.loadCurrentTechnique() // reload the current technique
+        scanningManager.refreshAppScanTechniqueOverride()
     }
 
     fun getTopMenu(): MenuView? {
