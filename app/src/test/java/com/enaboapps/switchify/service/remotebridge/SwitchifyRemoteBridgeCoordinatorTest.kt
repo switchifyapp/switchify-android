@@ -5,6 +5,9 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
+import kotlin.concurrent.thread
 
 class SwitchifyRemoteBridgeCoordinatorTest {
     @After fun cleanup() {
@@ -82,5 +85,30 @@ class SwitchifyRemoteBridgeCoordinatorTest {
         configured = configured.dropLast(1) + (10 to "Replacement overflow switch")
         SwitchifyRemoteBridgeCoordinator.configuredSwitchesChanged()
         assertTrue(SwitchifyRemoteBridgeCoordinator.forwardExternalEdge(1, true, 1, 1, false))
+    }
+
+    @Test fun callbackDispatcherSerializesConcurrentDispatches() {
+        val dispatcher = SerializedCallbackDispatcher()
+        val firstEntered = CountDownLatch(1)
+        val releaseFirst = CountDownLatch(1)
+        val secondAttempted = CountDownLatch(1)
+        val secondEntered = CountDownLatch(1)
+        val first = thread {
+            dispatcher.dispatch {
+                firstEntered.countDown()
+                releaseFirst.await()
+            }
+        }
+        assertTrue(firstEntered.await(1, TimeUnit.SECONDS))
+        val second = thread {
+            secondAttempted.countDown()
+            dispatcher.dispatch { secondEntered.countDown() }
+        }
+        assertTrue(secondAttempted.await(1, TimeUnit.SECONDS))
+        assertFalse(secondEntered.await(100, TimeUnit.MILLISECONDS))
+        releaseFirst.countDown()
+        assertTrue(secondEntered.await(1, TimeUnit.SECONDS))
+        first.join()
+        second.join()
     }
 }

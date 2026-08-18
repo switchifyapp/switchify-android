@@ -8,6 +8,7 @@ import com.enaboapps.switchify.service.switches.SwitchEventProvider
 
 object SwitchifyRemoteBridgeCoordinator {
     const val VERSION = 1
+    private val callbackDispatcher = SerializedCallbackDispatcher()
     private val callbacks = object : RemoteCallbackList<ISwitchifyRemoteBridgeCallback>() {
         override fun onCallbackDied(callback: ISwitchifyRemoteBridgeCallback?) {
             synchronized(lock) {
@@ -28,14 +29,35 @@ object SwitchifyRemoteBridgeCoordinator {
     private val activePresses = mutableMapOf<Int, Long>()
 
     fun attach(provider: SwitchEventProvider) = attach { provider.externalSwitches().mapNotNull { event -> event.code.toIntOrNull()?.let { it to event.name } } }
-    internal fun attach(provider: () -> List<Pair<Int, String>>) = synchronized(lock) {
-        externalSwitches = provider
-        configuredSwitchFingerprint = configuredSwitchFingerprintLocked()
+    internal fun attach(provider: () -> List<Pair<Int, String>>) = callbackDispatcher.dispatch {
+        synchronized(lock) {
+            externalSwitches = provider
+            configuredSwitchFingerprint = configuredSwitchFingerprintLocked()
+        }
         publishSnapshot()
     }
-    fun detach() = synchronized(lock) { externalSwitches = null; configuredSwitchFingerprint = emptyList(); clearActiveLocked(); publishSnapshot() }
-    fun register(callback: ISwitchifyRemoteBridgeCallback) { synchronized(lock) { if (callbacks.register(callback)) callbackCount += 1 }; runCatching { callback.onSnapshot(snapshot()) } }
-    fun unregister(callback: ISwitchifyRemoteBridgeCallback) { synchronized(lock) { if (callbacks.unregister(callback)) callbackCount = (callbackCount - 1).coerceAtLeast(0) }; clearIfUnbound() }
+    fun detach() = callbackDispatcher.dispatch {
+        synchronized(lock) {
+            externalSwitches = null
+            configuredSwitchFingerprint = emptyList()
+            clearActiveLocked()
+        }
+        publishSnapshot()
+    }
+    fun register(callback: ISwitchifyRemoteBridgeCallback) = callbackDispatcher.dispatch {
+        val value = synchronized(lock) {
+            if (callbacks.register(callback)) callbackCount += 1
+            snapshotLocked()
+        }
+        runCatching { callback.onSnapshot(value) }
+        Unit
+    }
+    fun unregister(callback: ISwitchifyRemoteBridgeCallback) = callbackDispatcher.dispatch {
+        synchronized(lock) {
+            if (callbacks.unregister(callback)) callbackCount = (callbackCount - 1).coerceAtLeast(0)
+            if (callbackCount == 0) clearActiveLocked()
+        }
+    }
 
     fun setRepeatActive(generation: Long, active: Boolean): Boolean = synchronized(lock) {
         if (generation <= 0) return false
@@ -73,51 +95,54 @@ object SwitchifyRemoteBridgeCoordinator {
         return stopRemoteRepeatForSwitch()
     }
 
-    fun configuredSwitchesChanged() = synchronized(lock) {
-        val nextFingerprint = configuredSwitchFingerprintLocked()
-        val changed = nextFingerprint != configuredSwitchFingerprint
-        configuredSwitchFingerprint = nextFingerprint
-        if (changed && forwardingGeneration != 0L) {
-            forwardingGeneration = 0
-            edgeSequence = 0
-            activePresses.clear()
-            ServiceCore.getScanningManager()?.resumeScanning()
+    fun configuredSwitchesChanged() = callbackDispatcher.dispatch {
+        synchronized(lock) {
+            val nextFingerprint = configuredSwitchFingerprintLocked()
+            val changed = nextFingerprint != configuredSwitchFingerprint
+            configuredSwitchFingerprint = nextFingerprint
+            if (changed && forwardingGeneration != 0L) {
+                forwardingGeneration = 0
+                edgeSequence = 0
+                activePresses.clear()
+                ServiceCore.getScanningManager()?.resumeScanning()
+            }
         }
         publishSnapshot()
     }
 
-    fun stopRemoteRepeatForSwitch(): Boolean {
+    fun stopRemoteRepeatForSwitch(): Boolean = callbackDispatcher.dispatch {
         val generation = synchronized(lock) { repeatGeneration.also { repeatGeneration = 0 } }
-        if (generation == 0L) return false
+        if (generation == 0L) return@dispatch false
         broadcast { it.onRepeatStopRequested(generation) }
-        return true
+        true
     }
 
-    fun forwardExternalEdge(keyCode: Int, down: Boolean, downTimeMs: Long, eventTimeMs: Long, cancelled: Boolean): Boolean {
+    fun forwardExternalEdge(keyCode: Int, down: Boolean, downTimeMs: Long, eventTimeMs: Long, cancelled: Boolean): Boolean = callbackDispatcher.dispatch {
         val event = synchronized(lock) {
             val generation = forwardingGeneration
-            if (generation == 0L || externalSwitches?.invoke()?.none { it.first == keyCode } != false) return false
+            if (generation == 0L || externalSwitches?.invoke()?.none { it.first == keyCode } != false) return@dispatch false
             if (down) {
-                if (activePresses[keyCode] == downTimeMs) return true
+                if (activePresses[keyCode] == downTimeMs) return@dispatch true
                 activePresses[keyCode] = downTimeMs
             } else {
-                if (activePresses[keyCode] != downTimeMs) return true
+                if (activePresses[keyCode] != downTimeMs) return@dispatch true
                 activePresses.remove(keyCode)
             }
             edgeSequence += 1
             Edge(generation, edgeSequence, keyCode, down, downTimeMs, eventTimeMs, cancelled)
         }
         broadcast { it.onSwitchEdge(event.generation, event.sequence, event.keyCode, event.down, event.downTimeMs, event.eventTimeMs, event.cancelled) }
-        return true
+        true
     }
 
-    fun snapshot(): Bundle = synchronized(lock) {
+    fun snapshot(): Bundle = synchronized(lock) { snapshotLocked() }
+
+    private fun snapshotLocked() =
         Bundle().apply {
             putInt("version", VERSION)
             putBoolean("captureAvailable", externalSwitches != null)
             putParcelableArrayList("externalSwitches", ArrayList(externalSwitches?.invoke().orEmpty().map { event -> Bundle().apply { putInt("keyCode", event.first); putString("name", event.second) } }))
         }
-    }
 
     fun clearActive() = synchronized(lock) { clearActiveLocked() }
     internal fun activeForwardingGeneration() = synchronized(lock) { forwardingGeneration }
@@ -134,8 +159,21 @@ object SwitchifyRemoteBridgeCoordinator {
         .sortedWith(compareBy<Pair<Int, String>> { it.first }.thenBy { it.second })
         .take(8)
     private fun clearActiveLocked() { repeatGeneration = 0; forwardingGeneration = 0; edgeSequence = 0; activePresses.clear(); ServiceCore.getScanningManager()?.resumeScanning() }
-    private fun clearIfUnbound() { if (callbackCount == 0) clearActive() }
-    private fun publishSnapshot() { if (callbackCount == 0) return; val value = snapshot(); broadcast { it.onSnapshot(value) } }
-    private inline fun broadcast(block: (ISwitchifyRemoteBridgeCallback) -> Unit) { if (callbackCount == 0) return; val count = callbacks.beginBroadcast(); try { for (index in 0 until count) runCatching { block(callbacks.getBroadcastItem(index)) } } finally { callbacks.finishBroadcast() } }
+    private fun publishSnapshot() {
+        if (synchronized(lock) { callbackCount == 0 }) return
+        val value = snapshot()
+        broadcast { it.onSnapshot(value) }
+    }
+    private inline fun broadcast(crossinline block: (ISwitchifyRemoteBridgeCallback) -> Unit) = callbackDispatcher.dispatch {
+        if (synchronized(lock) { callbackCount == 0 }) return@dispatch
+        val count = callbacks.beginBroadcast()
+        try { for (index in 0 until count) runCatching { block(callbacks.getBroadcastItem(index)) } } finally { callbacks.finishBroadcast() }
+    }
     private data class Edge(val generation: Long, val sequence: Long, val keyCode: Int, val down: Boolean, val downTimeMs: Long, val eventTimeMs: Long, val cancelled: Boolean)
+}
+
+internal class SerializedCallbackDispatcher {
+    private val lock = Any()
+
+    fun <T> dispatch(block: () -> T): T = synchronized(lock) { block() }
 }
