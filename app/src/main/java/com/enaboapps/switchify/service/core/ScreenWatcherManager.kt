@@ -17,6 +17,7 @@ class ScreenWatcherManager(
         screenWatcher = ScreenWatcher(
             onScreenSleep = {
                 SwitchifyRemoteBridgeCoordinator.clearActive()
+                scanningManager.clearAppScanTechniqueOverride()
                 val pauseManager = ServiceCore.getPauseManager()
                 if (pauseManager.isPaused) pauseManager.resume()
                 GestureRepeatManager.instance.clearServiceState()

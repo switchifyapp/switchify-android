@@ -124,7 +124,7 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
         screenWatcherManager.register(scanningManager, externalSwitchListener)
 
         scanSettings = ScanSettings(this)
-        nodeUpdateCoordinator = NodeUpdateCoordinator(this, scanSettings)
+        nodeUpdateCoordinator = NodeUpdateCoordinator(this, scanSettings, scanningManager)
         cameraManager = CameraManager(
             context = this,
             lifecycleOwner = this,
