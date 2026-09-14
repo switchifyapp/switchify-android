@@ -5,6 +5,8 @@ import android.widget.RelativeLayout
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.enaboapps.switchify.service.window.overlay.OverlayTarget
+import com.enaboapps.switchify.service.scanning.ScanInterval
+import com.enaboapps.switchify.service.scanning.ScanIntervalEvent
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
@@ -13,6 +15,108 @@ import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class NodeScannerUiExclusivityTest {
+    @Test
+    fun backgroundResetPreservesDisplayedHighlightAndCountdown() {
+        runOnMainThread { context ->
+            val window = FakeNodeScannerOverlayWindow(context)
+            val ui = NodeScannerUI(window, NodeScannerUiDispatcher { it() })
+            for (owner in listOf("menu", "keyboard")) {
+                ui.withScanVisuals(owner) { ui.showItemBounds(20, 20, 80, 40) }
+                val view = window.singleHighlightView() as ScanHighlightView
+                val interval = ScanInterval(100, 1000)
+                ui.updateInterval(ScanIntervalEvent(owner, 1, interval))
+                assertEquals(interval, view.interval)
+
+                repeat(10) {
+                    ui.withScanVisuals("system") { ui.hideAll() }
+                    ui.updateInterval(ScanIntervalEvent("system", it.toLong(), null))
+                    assertSame(view, window.singleHighlightView())
+                    assertEquals(interval, view.interval)
+                    window.assertExclusive()
+                }
+                ui.withScanVisuals(owner) { ui.hideAll() }
+                window.assertExclusive(expectedCount = 0)
+            }
+        }
+    }
+
+    @Test
+    fun backgroundResetDoesNotInvalidateQueuedMenuRender() {
+        runOnMainThread { context ->
+            for (resetFirst in listOf(true, false)) {
+                val window = FakeNodeScannerOverlayWindow(context)
+                val pending = mutableListOf<() -> Unit>()
+                val ui = NodeScannerUI(window, NodeScannerUiDispatcher { pending += it })
+                val reset = { ui.withScanVisuals("system") { ui.hideAll() } }
+                if (resetFirst) reset()
+                ui.withScanVisuals("menu") { ui.showRowBounds(0, 0, 300, 100) }
+                if (!resetFirst) reset()
+                pending.forEach { it() }
+                window.assertExclusive()
+            }
+        }
+    }
+
+    @Test
+    fun nestedBackgroundResetPreservesPendingMenuHighlight() {
+        runOnMainThread { context ->
+            val window = FakeNodeScannerOverlayWindow(context)
+            val ui = NodeScannerUI(window, NodeScannerUiDispatcher { it() })
+            ui.withScanVisuals("menu") {
+                ui.showRowBounds(0, 0, 300, 100)
+                ui.withScanVisuals("system") { ui.hideAll() }
+            }
+            window.assertExclusive()
+        }
+    }
+
+    @Test
+    fun delayedRoleHidesCannotRemoveAnotherOwnersHighlight() {
+        runOnMainThread { context ->
+            val window = FakeNodeScannerOverlayWindow(context)
+            val pending = mutableListOf<() -> Unit>()
+            val ui = NodeScannerUI(window, NodeScannerUiDispatcher { pending += it })
+            val shows = listOf<() -> Unit>(
+                { ui.showItemBounds(0, 0, 100, 100) },
+                { ui.showRowBounds(0, 0, 100, 100) },
+                { ui.showEscapeBounds(0, 0, 100, 100) }
+            )
+            for (show in shows) {
+                ui.withScanVisuals("menu", show)
+                ui.withScanVisuals("system") {
+                    ui.hideItemBounds()
+                    ui.hideRowBounds()
+                }
+                pending.toList().also { pending.clear() }.forEach { it() }
+                window.assertExclusive()
+                ui.withScanVisuals("menu") {
+                    ui.hideItemBounds()
+                    ui.hideRowBounds()
+                }
+                pending.toList().also { pending.clear() }.forEach { it() }
+                window.assertExclusive(expectedCount = 0)
+            }
+        }
+    }
+
+    @Test
+    fun ownerResetAndReplacementRenderInOneBatch() {
+        runOnMainThread { context ->
+            val window = FakeNodeScannerOverlayWindow(context)
+            val ui = NodeScannerUI(window, NodeScannerUiDispatcher { it() })
+            ui.withScanVisuals("menu") { ui.showRowBounds(0, 0, 300, 100) }
+            val view = window.singleHighlightView()
+            ui.withScanVisuals("menu") {
+                ui.hideAll()
+                ui.showItemBounds(20, 20, 80, 40)
+            }
+            assertSame(view, window.singleHighlightView())
+            window.assertExclusive()
+            ui.hideAll()
+            assertTrue(window.roots.isEmpty())
+        }
+    }
+
     @Test
     fun rapidRoleTransitionsReuseOneHighlightView() {
         runOnMainThread { context ->
@@ -83,7 +187,7 @@ class NodeScannerUiExclusivityTest {
             val pending = mutableListOf<() -> Unit>()
             val ui = NodeScannerUI(window, NodeScannerUiDispatcher { pending += it })
 
-            ui.showItemBounds(0, 0, 100, 100)
+            ui.withScanVisuals("menu") { ui.showItemBounds(0, 0, 100, 100) }
             ui.hideAll()
             pending.forEach { it() }
 
@@ -108,6 +212,8 @@ class NodeScannerUiExclusivityTest {
         override fun getContext(): Context = context
 
         override fun getDisplaySize(target: OverlayTarget): Pair<Int, Int> = 1080 to 2400
+
+        override fun canAttach(target: OverlayTarget): Boolean = true
 
         override fun addView(
             target: OverlayTarget,

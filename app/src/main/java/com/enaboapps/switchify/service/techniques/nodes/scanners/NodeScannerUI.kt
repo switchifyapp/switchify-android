@@ -142,7 +142,7 @@ class NodeScannerUI internal constructor(
             synchronized(commandLock) {
                 dispatcher.post {
                     if (batch.epoch == rendererEpoch.get()) {
-                        batch.spec?.let(::render) ?: hideHighlight(batch.hideRoles)
+                        batch.spec?.let(::render) ?: hideHighlight(batch.hideRoles, batch.owner)
                     }
                 }
             }
@@ -250,9 +250,9 @@ class NodeScannerUI internal constructor(
     }
 
     fun hideAll() {
+        if (batchHide(NodeScannerHighlightRole.entries.toSet())) return
         synchronized(commandLock) {
             val epoch = rendererEpoch.incrementAndGet()
-            visualBatch.get()?.reset(epoch)
             dispatcher.post {
                 if (NodeScannerHighlightTransitions.isCurrentEpoch(epoch, rendererEpoch.get())) {
                     hideAllNow()
@@ -334,13 +334,13 @@ class NodeScannerUI internal constructor(
             val view = if (spec.owner != null) ScanHighlightView(context, OverlayTargets.displayFallback(effectiveTarget).displayId) {
                 if (activeHighlight?.view === it) hideAll()
             } else RelativeLayout(context)
-            activeHighlight = ActiveHighlight(NodeScannerHighlightState(spec.role, effectiveTarget), view, spec)
+            activeHighlight = ActiveHighlight(NodeScannerHighlightState(spec.role, effectiveTarget, spec.owner), view, spec)
             base.addView(view)
             applySpec(view, spec, prefs, spotlight, animate = false)
             if (spec.owner == null) HighlightAnimations.fadeIn(view)
             if (spotlight) MenuHighlightHud.instance.bringToFront()
         } else {
-            activeHighlight = ActiveHighlight(NodeScannerHighlightState(spec.role, effectiveTarget), active.view, spec)
+            activeHighlight = ActiveHighlight(NodeScannerHighlightState(spec.role, effectiveTarget, spec.owner), active.view, spec)
             applySpec(active.view, spec, prefs, spotlight,
                 animate = spec.animatesFrom(active.spec, prefs.movement, GestureVisualMotionPolicy.animationsEnabled()))
         }
@@ -429,11 +429,12 @@ class NodeScannerUI internal constructor(
         return baseLayout
     }
 
-    private fun hideHighlight(roles: Set<NodeScannerHighlightRole>) {
+    private fun hideHighlight(roles: Set<NodeScannerHighlightRole>, owner: String? = null) {
         if (
             NodeScannerHighlightTransitions.hide(
                 activeHighlight?.state,
-                roles
+                roles,
+                owner
             ) == NodeScannerHighlightTransition.REMOVE
         ) {
             removeActiveHighlightNow()

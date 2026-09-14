@@ -10,6 +10,21 @@ class NodeScannerHighlightStateTest {
     private val displayTarget = OverlayTarget.Display(displayId = 0)
 
     @Test
+    fun scopedHideRequiresMatchingOwnerAndRole() {
+        for (role in NodeScannerHighlightRole.entries) {
+            val current = NodeScannerHighlightState(role, displayTarget, "menu")
+            assertEquals(NodeScannerHighlightTransition.IGNORE,
+                NodeScannerHighlightTransitions.hide(current, setOf(role), "system"))
+            assertEquals(NodeScannerHighlightTransition.REMOVE,
+                NodeScannerHighlightTransitions.hide(current, setOf(role), "menu"))
+            assertEquals(NodeScannerHighlightTransition.REMOVE,
+                NodeScannerHighlightTransitions.hide(current, setOf(role)))
+            assertEquals(NodeScannerHighlightTransition.IGNORE,
+                NodeScannerHighlightTransitions.hide(current.copy(owner = null), setOf(role), "menu"))
+        }
+    }
+
+    @Test
     fun itemHideOnlyRemovesItem() {
         val itemRoles = setOf(NodeScannerHighlightRole.ITEM)
 
