@@ -39,14 +39,6 @@ class ScanHighlightVisualsTest {
         assertNull(batch.spec)
     }
 
-    @Test fun resetInvalidatesPendingMove() {
-        val batch = NodeScannerVisualBatch("keyboard", 4)
-        batch.show(spec(NodeScannerHighlightRole.ITEM))
-        batch.reset(5)
-        assertNull(batch.spec)
-        assertFalse(NodeScannerHighlightTransitions.isCurrentEpoch(4, batch.epoch))
-    }
-
     @Test fun windowAndDisplayChangesCannotAnimateAcrossCoordinates() {
         val window = OverlayTarget.Window(0, 12, 1)
         assertTrue(NodeScannerHighlightTransitions.sameCoordinateSpace(window, window.copy()))

@@ -50,7 +50,8 @@ internal data class NodeScannerHighlightSpec(
 
 internal data class NodeScannerHighlightState(
     val role: NodeScannerHighlightRole,
-    val target: OverlayTarget
+    val target: OverlayTarget,
+    val owner: String? = null
 )
 
 internal enum class NodeScannerHighlightTransition {
@@ -69,9 +70,10 @@ internal object NodeScannerHighlightTransitions {
 
     fun hide(
         current: NodeScannerHighlightState?,
-        roles: Set<NodeScannerHighlightRole>
+        roles: Set<NodeScannerHighlightRole>,
+        owner: String? = null
     ): NodeScannerHighlightTransition {
-        return if (current?.role in roles) {
+        return if (current?.role in roles && (owner == null || current?.owner == owner)) {
             NodeScannerHighlightTransition.REMOVE
         } else {
             NodeScannerHighlightTransition.IGNORE
@@ -83,7 +85,7 @@ internal object NodeScannerHighlightTransitions {
     }
 }
 
-internal class NodeScannerVisualBatch(val owner: String, var epoch: Long, private val intervalAfterSequence: Long = 0L) {
+internal class NodeScannerVisualBatch(val owner: String, val epoch: Long, private val intervalAfterSequence: Long = 0L) {
     var spec: NodeScannerHighlightSpec? = null
         private set
     val hideRoles = mutableSetOf<NodeScannerHighlightRole>()
@@ -95,9 +97,4 @@ internal class NodeScannerVisualBatch(val owner: String, var epoch: Long, privat
         if (spec?.role in roles) spec = null
     }
 
-    fun reset(nextEpoch: Long) {
-        spec = null
-        hideRoles.clear()
-        epoch = nextEpoch
-    }
 }
