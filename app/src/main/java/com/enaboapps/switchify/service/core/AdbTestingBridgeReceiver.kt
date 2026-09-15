@@ -114,7 +114,6 @@ class AdbTestingBridgeReceiver : BroadcastReceiver() {
             "pause" to SwitchAction.ACTION_PAUSE,
             "toggle_gesture_lock_rearm" to SwitchAction.ACTION_TOGGLE_GESTURE_LOCK_REARM,
             "toggle_gesture_repeat" to SwitchAction.ACTION_TOGGLE_GESTURE_REPEAT,
-            "pc_switch_forwarding" to SwitchAction.ACTION_PC_SWITCH_FORWARDING
         )
     }
 }

@@ -10,7 +10,6 @@ import com.enaboapps.switchify.service.menu.database.MenuConfigurationRepository
 import com.enaboapps.switchify.service.menu.structure.MenuConstants
 import com.enaboapps.switchify.service.menu.structure.MenuStructureHolder
 import com.enaboapps.switchify.service.menu.structure.MenuUserItemsHelper
-import com.enaboapps.switchify.service.remotebridge.SwitchifyRemoteVisibilityPolicy
 import com.enaboapps.switchify.service.utils.DeviceLockObserver
 
 /**
@@ -51,10 +50,7 @@ open class BaseMenu(
         }
 
         // Merge static items with user-added items
-        val allItems = filterRemoteItems(
-            items + userAddedItems,
-            SwitchifyRemoteVisibilityPolicy.shouldShowRemoteEntries(accessibilityService)
-        )
+        val allItems = items + userAddedItems
 
         // Order items based on saved configurations (if menuId is provided)
         val orderedItems = menuId?.let {
@@ -166,10 +162,4 @@ open class BaseMenu(
         return MenuView(accessibilityService, this)
     }
 
-    companion object {
-        internal fun filterRemoteItems(items: List<MenuItem>, showRemoteItems: Boolean): List<MenuItem> {
-            if (showRemoteItems) return items
-            return items.filterNot { it.id in SwitchifyRemoteVisibilityPolicy.REMOTE_ITEM_IDS }
-        }
-    }
 }
