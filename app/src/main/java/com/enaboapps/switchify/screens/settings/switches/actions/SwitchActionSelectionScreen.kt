@@ -55,6 +55,8 @@ import com.enaboapps.switchify.theme.Dimens
 /**
  * Navigation result key for the selected action ID.
  */
+const val SELECTED_ACTION_PACKAGE_KEY = "selected_action_package"
+
 const val SELECTED_ACTION_ID_KEY = "selected_action_id"
 
 /**
@@ -96,11 +98,29 @@ fun SwitchActionSelectionScreen(
             .map { SwitchAction(it) }
     }
 
+    var choosingApp by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
+
     fun selectAction(action: SwitchAction) {
+        if (action.id == SwitchAction.ACTION_LAUNCH_APP && action.packageName == null) {
+            choosingApp = true
+            return
+        }
+        navController.previousBackStackEntry?.savedStateHandle
+            ?.set(SELECTED_ACTION_PACKAGE_KEY, action.packageName)
         navController.previousBackStackEntry
             ?.savedStateHandle
             ?.set(SELECTED_ACTION_ID_KEY, action.id)
         navController.popBackStack()
+    }
+
+    if (choosingApp) {
+        com.enaboapps.switchify.components.LaunchableAppPicker(
+            onDismiss = { choosingApp = false },
+            onSelect = {
+                choosingApp = false
+                selectAction(SwitchAction(SwitchAction.ACTION_LAUNCH_APP, it))
+            }
+        )
     }
 
     BaseView(

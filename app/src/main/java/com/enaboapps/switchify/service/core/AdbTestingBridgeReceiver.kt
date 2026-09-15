@@ -15,6 +15,13 @@ class AdbTestingBridgeReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context?, intent: Intent?) {
         if (!BuildConfig.DEBUG || intent?.action != ACTION_PERFORM_SWITCH_ACTION) return
 
+        if (intent.hasExtra("switch_key_code")) {
+            ServiceBridge.sendCommand(ServiceBridge.ServiceCommand.PerformSwitchEdgeForTesting(
+                intent.getIntExtra("switch_key_code", -1), intent.getBooleanExtra("pressed", false)
+            ))
+            return
+        }
+
         val actionName = intent.getStringExtra(EXTRA_ACTION)?.lowercase()
         if (actionName == ACTION_RELOAD_SETTINGS) {
             Log.d(TAG, "Performing ADB testing command: $ACTION_RELOAD_SETTINGS")

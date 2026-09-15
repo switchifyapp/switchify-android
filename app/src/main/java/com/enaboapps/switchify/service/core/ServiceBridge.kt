@@ -121,6 +121,8 @@ object ServiceBridge {
             val actionId: Int,
             val source: String = "adb"
         ) : ServiceCommand()
+
+        data class PerformSwitchEdgeForTesting(val keyCode: Int, val pressed: Boolean) : ServiceCommand()
     }
 
     /**
