@@ -74,6 +74,7 @@ class PreferenceManager(context: Context) {
         const val PREFERENCE_KEY_PRO_REMINDER_COOLDOWN_DAYS = "pro_reminder_cooldown_days"
 
         // Favourite apps
+        const val PREFERENCE_KEY_APP_SCAN_TECHNIQUES = "app_scan_techniques"
         const val PREFERENCE_KEY_FAVOURITE_APPS = "favourite_apps"
 
         // Camera threshold preferences - time steppers for each gesture

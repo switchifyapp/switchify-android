@@ -1,6 +1,5 @@
 package com.enaboapps.switchify.service.scanning
 
-import com.enaboapps.switchify.service.remotebridge.SwitchifyRemoteLauncher
 import com.enaboapps.switchify.service.techniques.AccessTechnique
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
@@ -11,80 +10,87 @@ internal fun interface AppScanTechniquePolicy {
     fun techniqueFor(packageName: String): String?
 }
 
-internal object DefaultAppScanTechniquePolicy : AppScanTechniquePolicy {
-    override fun techniqueFor(packageName: String): String? =
-        when (packageName) {
-            SwitchifyRemoteLauncher.REMOTE_PACKAGE -> AccessTechnique.Technique.ITEM_SCAN
-            else -> null
-        }
-}
-
 internal class AppScanTechniqueOverrideCoordinator(
     private val controller: ScanModeController,
     private val policy: AppScanTechniquePolicy,
-    private val menuActions: AppScanTechniqueOverrideMenuActions =
-        AppScanTechniqueOverrideMenuActions(),
+    private val menuActions: AppScanTechniqueOverrideMenuActions = AppScanTechniqueOverrideMenuActions(),
     private val uiDispatcher: CoroutineDispatcher = Dispatchers.Main.immediate
 ) {
     private val requestedGeneration = AtomicLong()
     private var foregroundPackage: String? = null
-    private var session: TemporaryScanModeSession? = null
-    private var isClosingMenuForOverride = false
+    private var previousTechnique: String? = null
+    private var visitTechnique: String? = null
+    private var manualOverride = false
+    private var changingForeground = false
 
     suspend fun onForegroundApplicationChanged(packageName: String?) {
         if (packageName == null) return
         val generation = requestedGeneration.incrementAndGet()
         withContext(uiDispatcher) {
-            if (!isGenerationCurrent(generation) || packageName == foregroundPackage) {
-                return@withContext
-            }
-            session?.close()
-            session = null
-            foregroundPackage = packageName
-            val targetTechnique = policy.techniqueFor(packageName) ?: return@withContext
-            isClosingMenuForOverride = true
+            if (generation != requestedGeneration.get() || packageName == foregroundPackage) return@withContext
+            changingForeground = true
             try {
-                menuActions.closeIfOpen { isCurrent(generation, packageName) }
+                if (previousTechnique != null || policy.techniqueFor(packageName) != null) {
+                    menuActions.closeIfOpen { generation == requestedGeneration.get() }
+                }
+                if (generation != requestedGeneration.get()) return@withContext
+                restoreDefault()
+                foregroundPackage = packageName
+                manualOverride = false
             } finally {
-                isClosingMenuForOverride = false
+                changingForeground = false
             }
-            if (!isCurrent(generation, packageName)) return@withContext
-            startSession(targetTechnique)
+            refreshForegroundOverride()
         }
     }
 
+    fun selectForCurrentVisit(technique: String): Boolean {
+        val packageName = foregroundPackage ?: return false
+        if (policy.techniqueFor(packageName) == null) return false
+        if (previousTechnique == null) previousTechnique = controller.preferredTechnique()
+        manualOverride = true
+        visitTechnique = technique
+        applyTechnique(technique)
+        return true
+    }
+
     fun refreshForegroundOverride() {
-        if (isClosingMenuForOverride) return
+        if (changingForeground) return
         val packageName = foregroundPackage ?: return
-        val targetTechnique = policy.techniqueFor(packageName) ?: return
-        if (controller.isTemporaryTechniqueActive() &&
-            controller.currentTechnique() == targetTechnique
-        ) return
-        session?.close()
-        session = null
-        startSession(targetTechnique)
+        val rule = policy.techniqueFor(packageName)
+        if (rule == null) {
+            restoreDefault()
+            return
+        }
+        if (controller.currentTechnique() == AccessTechnique.Technique.MENU) return
+        if (previousTechnique == null) previousTechnique = controller.preferredTechnique()
+        if (!manualOverride) visitTechnique = rule
+        visitTechnique?.let(::applyTechnique)
     }
 
     fun clear() {
         requestedGeneration.incrementAndGet()
-        session?.close()
-        session = null
+        restoreDefault()
         foregroundPackage = null
-        isClosingMenuForOverride = false
+        previousTechnique = null
+        visitTechnique = null
+        manualOverride = false
+        changingForeground = false
     }
 
-    private fun startSession(targetTechnique: String) {
-        if (controller.currentTechnique() == AccessTechnique.Technique.MENU) return
-        TemporaryScanModeSession(controller, targetTechnique).also {
-            if (it.start()) session = it
+    private fun applyTechnique(technique: String) {
+        if (controller.currentTechnique() != technique || !controller.isTemporaryTechniqueActive()) {
+            controller.setTemporaryTechnique(technique)
         }
     }
 
-    private fun isGenerationCurrent(generation: Long): Boolean {
-        return requestedGeneration.get() == generation
-    }
-
-    private fun isCurrent(generation: Long, packageName: String): Boolean {
-        return requestedGeneration.get() == generation && foregroundPackage == packageName
+    private fun restoreDefault() {
+        val previous = previousTechnique ?: return
+        if (controller.currentTechnique() == AccessTechnique.Technique.MENU) return
+        if (!controller.isTemporaryTechniqueActive()) controller.setTemporaryTechnique(previous)
+        controller.restoreTemporaryTechnique(previous)
+        previousTechnique = null
+        visitTechnique = null
+        manualOverride = false
     }
 }

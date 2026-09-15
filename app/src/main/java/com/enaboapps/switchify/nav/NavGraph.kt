@@ -182,6 +182,9 @@ fun NavGraph(navController: NavHostController) {
         composable(NavigationRoute.AutoScanSettings.name) {
             AutoScanSettingsScreen(navController)
         }
+        composable(NavigationRoute.AppScanTechniques.name) {
+            com.enaboapps.switchify.screens.settings.scanning.AppScanTechniquesScreen(navController)
+        }
         composable(NavigationRoute.AccessTechniqueSettings.name) {
             AccessTechniqueSettingsScreen(navController)
         }

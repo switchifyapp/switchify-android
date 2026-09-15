@@ -11,6 +11,7 @@ class ScanPreferencePolicyTest {
     @Test
     fun coversEveryScanPreference() {
         val expected = setOf(
+            PreferenceManager.PREFERENCE_KEY_APP_SCAN_TECHNIQUES,
             PreferenceManager.PREFERENCE_KEY_ACCESS_TECHNIQUE,
             PreferenceManager.PREFERENCE_KEY_SCAN_MODE,
             PreferenceManager.PREFERENCE_KEY_ROW_COLUMN_SCAN,

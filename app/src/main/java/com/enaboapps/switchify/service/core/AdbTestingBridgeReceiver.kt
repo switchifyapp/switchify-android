@@ -23,6 +23,25 @@ class AdbTestingBridgeReceiver : BroadcastReceiver() {
         }
 
         val actionName = intent.getStringExtra(EXTRA_ACTION)?.lowercase()
+        if (actionName == "open_menu" || actionName == "close_menu") {
+            val menus = com.enaboapps.switchify.service.menu.MenuManager.getInstance()
+            if (actionName == "open_menu") menus.openMainMenu() else menus.closeMenuHierarchy()
+            return
+        }
+        if (actionName == "scan_state") {
+            val technique = com.enaboapps.switchify.service.techniques.AccessTechnique
+            Log.d(TAG, "Scan state: foreground=${ServiceCore.getScanningManager()?.currentForegroundPackage()} current=${technique.getCurrentTechnique()} default=${technique.getStoredTechnique()} temporary=${technique.isTemporaryTechniqueActive()}")
+            return
+        }
+        if (actionName == "scan_technique") {
+            val manager = ServiceCore.getScanningManager() ?: return
+            when (intent.getStringExtra("technique")) {
+                "item_scan" -> manager.setItemScanType()
+                "point_scan" -> manager.setPointScanType()
+                "radar" -> manager.setRadarType()
+            }
+            return
+        }
         if (actionName == ACTION_RELOAD_SETTINGS) {
             Log.d(TAG, "Performing ADB testing command: $ACTION_RELOAD_SETTINGS")
             ServiceBridge.sendCommand(ServiceBridge.ServiceCommand.ReloadSettings)

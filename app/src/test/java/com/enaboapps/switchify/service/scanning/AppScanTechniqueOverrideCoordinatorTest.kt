@@ -1,6 +1,5 @@
 package com.enaboapps.switchify.service.scanning
 
-import com.enaboapps.switchify.service.remotebridge.SwitchifyRemoteLauncher
 import com.enaboapps.switchify.service.techniques.AccessTechnique
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineStart
@@ -19,20 +18,18 @@ import org.junit.Test
 @OptIn(ExperimentalCoroutinesApi::class)
 class AppScanTechniqueOverrideCoordinatorTest {
     @Test
-    fun defaultPolicyMapsOnlySwitchifyRemoteToItemScan() {
-        assertEquals(
-            AccessTechnique.Technique.ITEM_SCAN,
-            DefaultAppScanTechniquePolicy.techniqueFor(SwitchifyRemoteLauncher.REMOTE_PACKAGE)
-        )
-        assertNull(DefaultAppScanTechniquePolicy.techniqueFor("com.example.other"))
+    fun emptyAndInvalidRulesDoNotOverrideAnyApp() {
+        assertTrue(AppScanTechniqueSettings.decode("{}").isEmpty())
+        assertTrue(AppScanTechniqueSettings.decode("invalid").isEmpty())
+        assertEquals(mapOf("app" to "radar"), AppScanTechniqueSettings.decode("{\"app\":\"radar\",\"bad\":\"menu\"}"))
     }
 
     @Test
-    fun enteringRemoteAppliesItemScanAndLeavingRestoresPointScan() = runTest {
+    fun enteringConfiguredAppAppliesItemScanAndLeavingRestoresPointScan() = runTest {
         val controller = CountingScanModeController(AccessTechnique.Technique.POINT_SCAN)
         val coordinator = coordinator(controller, UnconfinedTestDispatcher(testScheduler))
 
-        coordinator.onForegroundApplicationChanged(SwitchifyRemoteLauncher.REMOTE_PACKAGE)
+        coordinator.onForegroundApplicationChanged("com.example.configured")
         assertEquals(AccessTechnique.Technique.ITEM_SCAN, controller.currentTechnique())
 
         coordinator.onForegroundApplicationChanged("com.example.launcher")
@@ -40,7 +37,7 @@ class AppScanTechniqueOverrideCoordinatorTest {
     }
 
     @Test
-    fun enteringRemoteClosesExistingMenuBeforeApplyingOverrideOnce() = runTest {
+    fun enteringConfiguredAppClosesExistingMenuBeforeApplyingOverrideOnce() = runTest {
         val controller = CountingScanModeController(
             initialTechnique = AccessTechnique.Technique.MENU,
             preferredTechnique = AccessTechnique.Technique.RADAR
@@ -61,7 +58,7 @@ class AppScanTechniqueOverrideCoordinatorTest {
         )
         coordinator = coordinator(controller, dispatcher, menuActions)
 
-        coordinator.onForegroundApplicationChanged(SwitchifyRemoteLauncher.REMOTE_PACKAGE)
+        coordinator.onForegroundApplicationChanged("com.example.configured")
 
         assertEquals(1, closeCalls)
         assertEquals(1, controller.temporaryCalls)
@@ -72,7 +69,7 @@ class AppScanTechniqueOverrideCoordinatorTest {
     }
 
     @Test
-    fun repeatedRemoteEventsDoNotCloseMenuOpenedAfterOverrideStarted() = runTest {
+    fun repeatedConfiguredAppEventsDoNotCloseMenuOpenedAfterOverrideStarted() = runTest {
         val controller = CountingScanModeController(AccessTechnique.Technique.POINT_SCAN)
         var menuOpen = false
         var closeCalls = 0
@@ -84,10 +81,10 @@ class AppScanTechniqueOverrideCoordinatorTest {
         )
         val coordinator = coordinator(controller, dispatcher, menuActions)
 
-        coordinator.onForegroundApplicationChanged(SwitchifyRemoteLauncher.REMOTE_PACKAGE)
+        coordinator.onForegroundApplicationChanged("com.example.configured")
         controller.openMenu()
         menuOpen = true
-        coordinator.onForegroundApplicationChanged(SwitchifyRemoteLauncher.REMOTE_PACKAGE)
+        coordinator.onForegroundApplicationChanged("com.example.configured")
 
         assertEquals(0, closeCalls)
         assertEquals(AccessTechnique.Technique.MENU, controller.currentTechnique())
@@ -100,12 +97,12 @@ class AppScanTechniqueOverrideCoordinatorTest {
     }
 
     @Test
-    fun repeatedRemoteEventsAndActivityTransitionsKeepOneSession() = runTest {
+    fun repeatedConfiguredAppEventsAndActivityTransitionsKeepOneSession() = runTest {
         val controller = CountingScanModeController(AccessTechnique.Technique.RADAR)
         val coordinator = coordinator(controller, UnconfinedTestDispatcher(testScheduler))
 
-        coordinator.onForegroundApplicationChanged(SwitchifyRemoteLauncher.REMOTE_PACKAGE)
-        coordinator.onForegroundApplicationChanged(SwitchifyRemoteLauncher.REMOTE_PACKAGE)
+        coordinator.onForegroundApplicationChanged("com.example.configured")
+        coordinator.onForegroundApplicationChanged("com.example.configured")
 
         assertEquals(1, controller.temporaryCalls)
         coordinator.onForegroundApplicationChanged("com.example.launcher")
@@ -114,36 +111,40 @@ class AppScanTechniqueOverrideCoordinatorTest {
     }
 
     @Test
-    fun missingWindowDoesNotEndRemoteSession() = runTest {
+    fun missingWindowDoesNotEndConfiguredAppSession() = runTest {
         val controller = CountingScanModeController(AccessTechnique.Technique.POINT_SCAN)
         val coordinator = coordinator(controller, UnconfinedTestDispatcher(testScheduler))
 
-        coordinator.onForegroundApplicationChanged(SwitchifyRemoteLauncher.REMOTE_PACKAGE)
+        coordinator.onForegroundApplicationChanged("com.example.configured")
         coordinator.onForegroundApplicationChanged(null)
 
         assertEquals(AccessTechnique.Technique.ITEM_SCAN, controller.currentTechnique())
     }
 
     @Test
-    fun manualTechniqueChangeIsPreservedOnExit() = runTest {
+    fun manualTechniqueChangeIsTemporaryForTheVisit() = runTest {
         val controller = CountingScanModeController(AccessTechnique.Technique.POINT_SCAN)
         val coordinator = coordinator(controller, UnconfinedTestDispatcher(testScheduler))
 
-        coordinator.onForegroundApplicationChanged(SwitchifyRemoteLauncher.REMOTE_PACKAGE)
-        controller.setPersistentTechnique(AccessTechnique.Technique.RADAR)
+        coordinator.onForegroundApplicationChanged("com.example.configured")
+        assertTrue(coordinator.selectForCurrentVisit(AccessTechnique.Technique.RADAR))
+        coordinator.refreshForegroundOverride()
+        assertEquals(AccessTechnique.Technique.RADAR, controller.currentTechnique())
         coordinator.onForegroundApplicationChanged("com.example.launcher")
 
-        assertEquals(AccessTechnique.Technique.RADAR, controller.currentTechnique())
+        assertEquals(AccessTechnique.Technique.POINT_SCAN, controller.currentTechnique())
+        coordinator.onForegroundApplicationChanged("com.example.configured")
+        assertEquals(AccessTechnique.Technique.ITEM_SCAN, controller.currentTechnique())
     }
 
     @Test
-    fun clearRestoresTechniqueAndAllowsRemoteToStartAnotherSession() = runTest {
+    fun clearRestoresTechniqueAndAllowsConfiguredAppToStartAnotherSession() = runTest {
         val controller = CountingScanModeController(AccessTechnique.Technique.POINT_SCAN)
         val coordinator = coordinator(controller, UnconfinedTestDispatcher(testScheduler))
 
-        coordinator.onForegroundApplicationChanged(SwitchifyRemoteLauncher.REMOTE_PACKAGE)
+        coordinator.onForegroundApplicationChanged("com.example.configured")
         coordinator.clear()
-        coordinator.onForegroundApplicationChanged(SwitchifyRemoteLauncher.REMOTE_PACKAGE)
+        coordinator.onForegroundApplicationChanged("com.example.configured")
 
         assertEquals(2, controller.temporaryCalls)
         assertEquals(1, controller.restoreCalls)
@@ -170,11 +171,11 @@ class AppScanTechniqueOverrideCoordinatorTest {
     }
 
     @Test
-    fun menuCloseRefreshesRemoteOverrideAndLeavingRestoresPointScan() = runTest {
+    fun menuCloseRefreshesConfiguredAppOverrideAndLeavingRestoresPointScan() = runTest {
         val controller = CountingScanModeController(AccessTechnique.Technique.POINT_SCAN)
         val coordinator = coordinator(controller, UnconfinedTestDispatcher(testScheduler))
 
-        coordinator.onForegroundApplicationChanged(SwitchifyRemoteLauncher.REMOTE_PACKAGE)
+        coordinator.onForegroundApplicationChanged("com.example.configured")
         controller.setPersistentTechnique(AccessTechnique.Technique.POINT_SCAN)
         coordinator.refreshForegroundOverride()
 
@@ -186,11 +187,11 @@ class AppScanTechniqueOverrideCoordinatorTest {
     }
 
     @Test
-    fun refreshIsIdempotentWhileRemoteOverrideIsActive() = runTest {
+    fun refreshIsIdempotentWhileConfiguredAppOverrideIsActive() = runTest {
         val controller = CountingScanModeController(AccessTechnique.Technique.POINT_SCAN)
         val coordinator = coordinator(controller, UnconfinedTestDispatcher(testScheduler))
 
-        coordinator.onForegroundApplicationChanged(SwitchifyRemoteLauncher.REMOTE_PACKAGE)
+        coordinator.onForegroundApplicationChanged("com.example.configured")
         coordinator.refreshForegroundOverride()
         coordinator.refreshForegroundOverride()
 
@@ -198,13 +199,13 @@ class AppScanTechniqueOverrideCoordinatorTest {
     }
 
     @Test
-    fun newerForegroundTransitionSuppressesQueuedRemoteEntry() = runTest {
+    fun newerForegroundTransitionSuppressesQueuedConfiguredAppEntry() = runTest {
         val controller = CountingScanModeController(AccessTechnique.Technique.POINT_SCAN)
         val dispatcher = StandardTestDispatcher(testScheduler)
         val coordinator = coordinator(controller, dispatcher)
 
         launch(start = CoroutineStart.UNDISPATCHED) {
-            coordinator.onForegroundApplicationChanged(SwitchifyRemoteLauncher.REMOTE_PACKAGE)
+            coordinator.onForegroundApplicationChanged("com.example.configured")
         }
         launch(start = CoroutineStart.UNDISPATCHED) {
             coordinator.onForegroundApplicationChanged("com.example.launcher")
@@ -216,13 +217,13 @@ class AppScanTechniqueOverrideCoordinatorTest {
     }
 
     @Test
-    fun clearSuppressesQueuedRemoteEntry() = runTest {
+    fun clearSuppressesQueuedConfiguredAppEntry() = runTest {
         val controller = CountingScanModeController(AccessTechnique.Technique.POINT_SCAN)
         val dispatcher = StandardTestDispatcher(testScheduler)
         val coordinator = coordinator(controller, dispatcher)
 
         launch(start = CoroutineStart.UNDISPATCHED) {
-            coordinator.onForegroundApplicationChanged(SwitchifyRemoteLauncher.REMOTE_PACKAGE)
+            coordinator.onForegroundApplicationChanged("com.example.configured")
         }
         coordinator.clear()
         runCurrent()
@@ -238,7 +239,7 @@ class AppScanTechniqueOverrideCoordinatorTest {
         val coordinator = coordinator(controller, dispatcher)
 
         launch(start = CoroutineStart.UNDISPATCHED) {
-            coordinator.onForegroundApplicationChanged(SwitchifyRemoteLauncher.REMOTE_PACKAGE)
+            coordinator.onForegroundApplicationChanged("com.example.configured")
         }
 
         assertEquals(0, controller.temporaryCalls)
@@ -268,6 +269,43 @@ class AppScanTechniqueOverrideCoordinatorTest {
         assertEquals(false, result)
     }
 
+    @Test
+    fun ruleEditsRespectManualChoiceAndRemovalRestoresDefault() = runTest {
+        val controller = CountingScanModeController(AccessTechnique.Technique.POINT_SCAN)
+        var rule: String? = AccessTechnique.Technique.ITEM_SCAN
+        val dispatcher = UnconfinedTestDispatcher(testScheduler)
+        val coordinator = AppScanTechniqueOverrideCoordinator(controller, AppScanTechniquePolicy { rule },
+            AppScanTechniqueOverrideMenuActions(dispatcher, { false }, {}), dispatcher)
+        coordinator.onForegroundApplicationChanged("app")
+        rule = AccessTechnique.Technique.RADAR
+        coordinator.refreshForegroundOverride()
+        assertEquals(rule, controller.currentTechnique())
+        coordinator.selectForCurrentVisit(AccessTechnique.Technique.ITEM_SCAN)
+        rule = AccessTechnique.Technique.POINT_SCAN
+        coordinator.refreshForegroundOverride()
+        assertEquals(AccessTechnique.Technique.ITEM_SCAN, controller.currentTechnique())
+        rule = null
+        coordinator.refreshForegroundOverride()
+        assertEquals(AccessTechnique.Technique.POINT_SCAN, controller.currentTechnique())
+        assertFalse(controller.isTemporaryTechniqueActive())
+    }
+
+    @Test
+    fun menuClosePreservesManualChoiceAndSameTechniqueRuleStillOwnsVisit() = runTest {
+        val controller = CountingScanModeController(AccessTechnique.Technique.ITEM_SCAN)
+        val coordinator = coordinator(controller, UnconfinedTestDispatcher(testScheduler))
+        coordinator.onForegroundApplicationChanged("com.example.configured")
+        coordinator.selectForCurrentVisit(AccessTechnique.Technique.RADAR)
+        controller.openMenu()
+        coordinator.refreshForegroundOverride()
+        assertEquals(AccessTechnique.Technique.MENU, controller.currentTechnique())
+        controller.closeMenu()
+        coordinator.refreshForegroundOverride()
+        assertEquals(AccessTechnique.Technique.RADAR, controller.currentTechnique())
+        coordinator.onForegroundApplicationChanged("other")
+        assertEquals(AccessTechnique.Technique.ITEM_SCAN, controller.currentTechnique())
+    }
+
     private fun coordinator(
         controller: ScanModeController,
         dispatcher: CoroutineDispatcher,
@@ -278,7 +316,7 @@ class AppScanTechniqueOverrideCoordinatorTest {
         )
     ) = AppScanTechniqueOverrideCoordinator(
         controller = controller,
-        policy = DefaultAppScanTechniquePolicy,
+        policy = AppScanTechniquePolicy { if (it == "com.example.configured") AccessTechnique.Technique.ITEM_SCAN else null },
         menuActions = menuActions,
         uiDispatcher = dispatcher
     )
