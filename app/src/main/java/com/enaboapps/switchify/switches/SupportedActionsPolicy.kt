@@ -18,6 +18,7 @@ object SupportedActionsPolicy {
 
     internal fun supportedActionIdsForMode(mode: String): Set<Int> {
         val sys = setOf(
+            SwitchAction.ACTION_LAUNCH_APP,
             SwitchAction.ACTION_SYS_HOME,
             SwitchAction.ACTION_SYS_BACK,
             SwitchAction.ACTION_SYS_RECENTS,

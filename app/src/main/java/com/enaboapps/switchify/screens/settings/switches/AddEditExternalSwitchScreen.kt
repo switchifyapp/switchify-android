@@ -83,7 +83,7 @@ fun AddEditExternalSwitchScreen(
         return
     }
     val scope = rememberCoroutineScope()
-    val addEditExternalSwitchScreenModel = remember(code, targetProfileId) {
+    val addEditExternalSwitchScreenModel = androidx.lifecycle.viewmodel.compose.viewModel(key = "external:$code:$targetProfileId") {
         AddEditExternalSwitchScreenModel().apply {
             init(code, context, targetProfileId)
         }
@@ -326,6 +326,7 @@ fun SwitchActionSection(
     profileId: String
 ) {
     val allowLongPress = viewModel.allowLongPress.observeAsState()
+    val pressAction = viewModel.pressAction.observeAsState()
     val longPressActions = viewModel.longPressActions.observeAsState()
     val refreshingLongPressActions = viewModel.refreshingLongPressActions.observeAsState()
     val context = LocalContext.current
@@ -333,7 +334,7 @@ fun SwitchActionSection(
     SwitchActionField(
         navController = navController,
         titleResId = R.string.section_title_press_action,
-        switchAction = viewModel.pressAction.value!!,
+        switchAction = pressAction.value!!,
         profileId = profileId,
         onChange = {
             viewModel.setPressAction(it, context)

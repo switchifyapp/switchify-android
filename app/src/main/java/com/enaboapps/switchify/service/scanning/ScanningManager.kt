@@ -265,6 +265,11 @@ class ScanningManager(
 
         try {
             when (action.id) {
+                SwitchAction.ACTION_LAUNCH_APP -> {
+                    if (!com.enaboapps.switchify.service.utils.AppLauncher(accessibilityService).launch(action.packageName)) {
+                        android.widget.Toast.makeText(accessibilityService, com.enaboapps.switchify.R.string.app_launch_unavailable, android.widget.Toast.LENGTH_SHORT).show()
+                    }
+                }
                 SwitchAction.ACTION_SELECT -> select()
                 SwitchAction.ACTION_STOP_SCANNING -> currentScanMethod.stopScanningAndReset()
                 SwitchAction.ACTION_CHANGE_SCANNING_DIRECTION -> currentScanMethod.swapScanDirection()

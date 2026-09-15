@@ -18,6 +18,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -66,16 +67,20 @@ fun SwitchActionField(
 
     // Track if this field initiated the navigation - use rememberSaveable to persist across recompositions
     var waitingForResult by rememberSaveable { mutableStateOf(false) }
+    val requestId = "$profileId:$titleResId:${titleResIdArgs?.joinToString()}"
 
     // Observe the SavedStateHandle result using LaunchedEffect with the result as key
-    val savedStateHandle = navController.currentBackStackEntry?.savedStateHandle
-    val resultActionId = savedStateHandle?.get<Int>(SELECTED_ACTION_ID_KEY)
+    val entry = androidx.lifecycle.compose.LocalLifecycleOwner.current as androidx.navigation.NavBackStackEntry
+    val savedStateHandle = entry.savedStateHandle
+    val resultActionId by savedStateHandle.getStateFlow<Int?>(SELECTED_ACTION_ID_KEY, null).collectAsState()
 
     // When we have a result and we're waiting for it, consume it
     LaunchedEffect(resultActionId, waitingForResult) {
-        if (waitingForResult && resultActionId != null) {
-            onChange(SwitchAction(resultActionId))
-            savedStateHandle.remove<Int>(SELECTED_ACTION_ID_KEY)
+        val selectedId = resultActionId
+        if (selectedId != null && savedStateHandle.get<String>("action_request_id") == requestId) {
+            onChange(SwitchAction(selectedId, savedStateHandle.get<String>(SELECTED_ACTION_PACKAGE_KEY)))
+            savedStateHandle.remove<String>(SELECTED_ACTION_PACKAGE_KEY)
+            savedStateHandle.set<Int?>(SELECTED_ACTION_ID_KEY, null)
             waitingForResult = false
         }
     }
@@ -87,6 +92,7 @@ fun SwitchActionField(
         shape = MaterialTheme.shapes.medium,
         onClick = {
             waitingForResult = true
+            savedStateHandle?.set("action_request_id", requestId)
             navController.navigate(
                 SwitchProfileRoutes.actionSelection(profileId, switchAction.id)
             )
@@ -186,7 +192,11 @@ private fun SwitchActionText(
         )
         Spacer(modifier = Modifier.height(Dimens.spaceXs))
         Text(
-            text = switchAction.getActionName(),
+            text = if (switchAction.id == SwitchAction.ACTION_LAUNCH_APP && switchAction.packageName != null) {
+                val context = androidx.compose.ui.platform.LocalContext.current
+                val label = com.enaboapps.switchify.service.utils.AppLauncher(context).label(switchAction.packageName)
+                stringResource(R.string.action_launch_app_target, label)
+            } else switchAction.getActionName(),
             style = MaterialTheme.typography.bodySmall
         )
         Spacer(modifier = Modifier.height(Dimens.spaceXs))

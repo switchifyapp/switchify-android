@@ -561,6 +561,15 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
                         }
                     }
                 }
+
+                is ServiceBridge.ServiceCommand.PerformSwitchEdgeForTesting -> {
+                    if (BuildConfig.DEBUG) {
+                        val listener = ServiceCore.getExternalSwitchListener()
+                        val now = android.os.SystemClock.uptimeMillis()
+                        if (command.pressed) listener?.onSwitchPressed(command.keyCode, now, now)
+                        else listener?.onSwitchReleased(command.keyCode, now, now, false)
+                    }
+                }
             }
 
             Logger.log(

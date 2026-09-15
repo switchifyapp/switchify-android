@@ -5,12 +5,13 @@ import com.enaboapps.switchify.utils.Resources
 import com.google.gson.annotations.SerializedName
 
 data class SwitchAction(
-    @SerializedName("id") val id: Int
+    @SerializedName("id") val id: Int,
+    @SerializedName("package_name") val packageName: String? = null
 ) {
     companion object {
         fun fromMap(map: Map<String, Any>): SwitchAction {
-            val id = map["id"] as Int
-            return SwitchAction(id)
+            val id = (map["id"] as Number).toInt()
+            return SwitchAction(id, map["package_name"] as? String)
         }
 
         val actions: List<SwitchAction> = listOf(
@@ -32,9 +33,11 @@ data class SwitchAction(
             ACTION_TOGGLE_GESTURE_LOCK_REARM,
             ACTION_TOGGLE_GESTURE_REPEAT,
             ACTION_CONTROL_PC,
-            ACTION_PC_SWITCH_FORWARDING
+            ACTION_PC_SWITCH_FORWARDING,
+            ACTION_LAUNCH_APP
         ).map { SwitchAction(it) }
 
+        const val ACTION_LAUNCH_APP = 19
         const val ACTION_NONE = 0
         const val ACTION_SELECT = 1
         const val ACTION_STOP_SCANNING = 2
@@ -56,9 +59,10 @@ data class SwitchAction(
         const val ACTION_PC_SWITCH_FORWARDING = 18
     }
 
-    fun toMap(): Map<String, Any?> = mapOf("id" to id)
+    fun toMap(): Map<String, Any?> = mapOf("id" to id, "package_name" to packageName)
 
     fun getActionName(): String = when (id) {
+        ACTION_LAUNCH_APP -> Resources.getString(R.string.action_launch_app)
         ACTION_NONE -> Resources.getString(R.string.action_none)
         ACTION_SELECT -> Resources.getString(R.string.action_select)
         ACTION_STOP_SCANNING -> Resources.getString(R.string.action_stop_scan)
@@ -82,6 +86,7 @@ data class SwitchAction(
     }
 
     fun getActionDescription(): String = when (id) {
+        ACTION_LAUNCH_APP -> Resources.getString(R.string.action_launch_app_description)
         ACTION_NONE -> Resources.getString(R.string.action_none_desc)
         ACTION_SELECT -> Resources.getString(R.string.action_select_desc)
         ACTION_STOP_SCANNING -> Resources.getString(R.string.action_stop_scan_desc)

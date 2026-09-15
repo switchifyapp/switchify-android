@@ -1198,4 +1198,11 @@
     <string name="preference_title_scan_highlight_countdown">Show auto-scan countdown</string>
     <string name="preference_summary_scan_highlight_movement">Smoothly move between items in apps, keyboards, and menus.</string>
     <string name="preference_summary_scan_highlight_countdown">Show the time remaining before scanning advances in apps, keyboards, and menus.</string>
+    <string name="action_launch_app">Launch app</string>
+    <string name="action_launch_app_target">Launch %1$s</string>
+    <string name="action_launch_app_description">Open a chosen app.</string>
+    <string name="app_launch_unavailable">This app is unavailable. Choose another app in switch settings.</string>
+    <string name="choose_app">Choose app</string>
+    <string name="search_apps">Search apps</string>
+    <string name="no_matching_apps">No matching apps</string>
 </resources>
