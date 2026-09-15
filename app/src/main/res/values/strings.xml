@@ -1205,4 +1205,9 @@
     <string name="choose_app">Choose app</string>
     <string name="search_apps">Search apps</string>
     <string name="no_matching_apps">No matching apps</string>
+    <string name="app_scan_techniques_title">App-specific scanning</string>
+    <string name="app_scan_techniques_summary">Choose a temporary scanning technique for each app.</string>
+    <string name="app_scan_techniques_empty">Add an app to choose its scanning technique. Apps without a rule use your default technique.</string>
+    <string name="app_scan_techniques_add">Add app</string>
+    <string name="app_scan_techniques_default">Use default</string>
 </resources>

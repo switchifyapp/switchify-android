@@ -3,6 +3,7 @@ package com.enaboapps.switchify.service.scanning.preferences
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 
 internal enum class ScanPreferenceEffect {
+    REFRESH_APP_RULES,
     RELOAD_TECHNIQUE,
     RESET_SCAN_MODE,
     REFRESH_ITEM_STRUCTURE,
@@ -25,6 +26,7 @@ internal data class ScanPreferenceUpdatePlan(
 
 internal object ScanPreferencePolicy {
     private val effectsByKey = mapOf(
+        PreferenceManager.PREFERENCE_KEY_APP_SCAN_TECHNIQUES to ScanPreferenceEffect.REFRESH_APP_RULES,
         PreferenceManager.PREFERENCE_KEY_ACCESS_TECHNIQUE to ScanPreferenceEffect.RELOAD_TECHNIQUE,
         PreferenceManager.PREFERENCE_KEY_SCAN_MODE to ScanPreferenceEffect.RESET_SCAN_MODE,
         PreferenceManager.PREFERENCE_KEY_ROW_COLUMN_SCAN to ScanPreferenceEffect.REFRESH_ITEM_STRUCTURE,

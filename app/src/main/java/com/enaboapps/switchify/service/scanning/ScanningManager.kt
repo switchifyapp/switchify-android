@@ -52,7 +52,7 @@ class ScanningManager(
 
     private val appScanTechniqueOverrideCoordinator = AppScanTechniqueOverrideCoordinator(
         ScanningManagerScanModeController(this),
-        DefaultAppScanTechniquePolicy
+        AppScanTechniqueSettings(accessibilityService)
     )
 
     @Volatile
@@ -111,21 +111,27 @@ class ScanningManager(
     }
 
     fun setPointScanType() {
-        setType(AccessTechnique.Technique.POINT_SCAN, TechniqueChange.PERSISTENT)
+        if (!appScanTechniqueOverrideCoordinator.selectForCurrentVisit(AccessTechnique.Technique.POINT_SCAN)) {
+            setType(AccessTechnique.Technique.POINT_SCAN, TechniqueChange.PERSISTENT)
+        }
     }
 
     /**
      * Sets the scanning method to radar type.
      */
     fun setRadarType() {
-        setType(AccessTechnique.Technique.RADAR, TechniqueChange.PERSISTENT)
+        if (!appScanTechniqueOverrideCoordinator.selectForCurrentVisit(AccessTechnique.Technique.RADAR)) {
+            setType(AccessTechnique.Technique.RADAR, TechniqueChange.PERSISTENT)
+        }
     }
 
     /**
      * Sets the scanning method to item scan type and starts the timeout to revert to point scan.
      */
     fun setItemScanType() {
-        setType(AccessTechnique.Technique.ITEM_SCAN, TechniqueChange.PERSISTENT)
+        if (!appScanTechniqueOverrideCoordinator.selectForCurrentVisit(AccessTechnique.Technique.ITEM_SCAN)) {
+            setType(AccessTechnique.Technique.ITEM_SCAN, TechniqueChange.PERSISTENT)
+        }
     }
 
     internal fun setTemporaryScanType(type: String) {
@@ -153,6 +159,9 @@ class ScanningManager(
     }
 
     internal fun applyPreferenceUpdate(plan: ScanPreferenceUpdatePlan) {
+        if (plan.contains(ScanPreferenceEffect.REFRESH_APP_RULES)) {
+            appScanTechniqueOverrideCoordinator.refreshForegroundOverride()
+        }
         if (plan.contains(ScanPreferenceEffect.REFRESH_HIGHLIGHT)) {
             NodeScannerUI.instance.refreshPreferences()
         }

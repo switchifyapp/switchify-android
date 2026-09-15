@@ -142,7 +142,8 @@ abstract class BaseNodeScanner(
         coroutineScope.launch(Dispatchers.Main) {
             _scanTree?.stopScanningAndReset()
             if (AccessTechnique.getCurrentTechnique() == AccessTechnique.Technique.ITEM_SCAN) {
-                AccessTechnique.setCurrentTechnique(AccessTechnique.Technique.POINT_SCAN)
+                com.enaboapps.switchify.service.core.ServiceCore.getScanningManager()?.setPointScanType()
+                    ?: AccessTechnique.setCurrentTechnique(AccessTechnique.Technique.POINT_SCAN)
                 Log.d(TAG, "Switched to point scan mode due to $reason")
             }
         }

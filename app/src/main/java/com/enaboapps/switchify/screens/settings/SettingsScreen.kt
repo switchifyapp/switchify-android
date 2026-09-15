@@ -143,6 +143,12 @@ fun ScanningSettingsTab(navController: NavController) {
     ScrollableView {
         Section(titleResId = R.string.settings_section_access_techniques) {
             AccessTechniqueSelector()
+            NavRouteLink(
+                titleResId = R.string.app_scan_techniques_title,
+                summaryResId = R.string.app_scan_techniques_summary,
+                navController = navController,
+                route = NavigationRoute.AppScanTechniques.name
+            )
             Spacer(modifier = Modifier.padding(vertical = 8.dp))
             NavRouteLink(
                 titleResId = R.string.settings_title_access_technique,
