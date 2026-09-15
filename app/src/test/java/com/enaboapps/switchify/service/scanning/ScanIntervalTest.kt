@@ -142,4 +142,40 @@ class ScanIntervalTest {
         ScanningScheduler(scan, { 100L }, { 50L },
             CoroutineScope(SupervisorJob() + StandardTestDispatcher(testScheduler)),
             intervalOwner = "scanner", clock = { testScheduler.currentTime }, onInterval = events::add)
+
+    @Test fun replacementGetsOneFullIntervalWithoutFirstItemPause() = runTest {
+        val events = mutableListOf<ScanIntervalEvent>()
+        var scans = 0
+        val scheduler = scheduler(events) { scans++ }
+        scheduler.startScanning(100, 100)
+        runCurrent()
+        advanceTimeBy(40)
+        scheduler.restartCurrentInterval()
+        runCurrent()
+        assertEquals(ScanInterval(40, 100), events.last().interval)
+        advanceTimeBy(99)
+        runCurrent()
+        assertEquals(0, scans)
+        advanceTimeBy(1)
+        runCurrent()
+        assertEquals(1, scans)
+        scheduler.shutdown()
+    }
+
+    @Test fun emptySnapshotResumeUsesNormalIntervalAndPausedReplacementDoesNotStart() = runTest {
+        val events = mutableListOf<ScanIntervalEvent>()
+        val scheduler = scheduler(events) {}
+        scheduler.startScanning(100, 100)
+        runCurrent()
+        scheduler.pauseScanning()
+        scheduler.restartCurrentInterval()
+        advanceTimeBy(1000)
+        runCurrent()
+        assertTrue(scheduler.isPaused())
+        assertNull(events.last().interval)
+        scheduler.resumeAfterEmptySnapshot()
+        runCurrent()
+        assertEquals(ScanInterval(1000, 100), events.last().interval)
+        scheduler.shutdown()
+    }
 }

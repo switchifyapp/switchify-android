@@ -277,13 +277,13 @@ class ActiveAccessTechnique(private val context: Context) : AccessTechniqueObser
         KeyboardManager.removeKeyboardStateListener()
     }
 
-    fun updateActionableNodes(nodes: List<Node>) {
-        SystemNodeHolder.updateNodes(nodes)
+    fun updateActionableNodes(nodes: List<Node>, source: String? = null) {
+        SystemNodeHolder.updateNodes(nodes, source)
     }
 
-    fun updateKeyboardNodes(nodes: List<Node>) {
+    fun updateKeyboardNodes(nodes: List<Node>, source: String? = null) {
         ensureKeyboardScannerStarted()
-        keyboardScanner?.updateNodes(nodes)
+        keyboardScanner?.updateSnapshot(nodes, source)
     }
 
     override fun onKeyboardStateChanged(

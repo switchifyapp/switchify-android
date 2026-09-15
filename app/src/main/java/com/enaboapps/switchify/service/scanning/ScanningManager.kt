@@ -97,8 +97,8 @@ class ScanningManager(
      *
      * @param nodes List of Node instances representing the current screen layout.
      */
-    fun updateActionableNodes(nodes: List<Node>) {
-        activeScanMethod.updateActionableNodes(nodes)
+    fun updateActionableNodes(nodes: List<Node>, source: String? = null) {
+        activeScanMethod.updateActionableNodes(nodes, source)
     }
 
     /**
@@ -106,8 +106,8 @@ class ScanningManager(
      *
      * @param nodes List of Node instances representing the current screen layout.
      */
-    fun updateKeyboardNodes(nodes: List<Node>) {
-        activeScanMethod.updateKeyboardNodes(nodes)
+    fun updateKeyboardNodes(nodes: List<Node>, source: String? = null) {
+        activeScanMethod.updateKeyboardNodes(nodes, source)
     }
 
     fun setPointScanType() {

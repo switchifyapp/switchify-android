@@ -14,7 +14,6 @@ class KeyboardScanner(
 
     /**
      * Updates the keyboard scanner with the given nodes.
-     * Duplicate detection is handled by the parent class.
      *
      * @param nodes The list of nodes to update the keyboard scanner with.
      */

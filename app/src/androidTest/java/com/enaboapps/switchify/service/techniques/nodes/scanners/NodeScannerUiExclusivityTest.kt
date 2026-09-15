@@ -16,6 +16,29 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class NodeScannerUiExclusivityTest {
     @Test
+    fun refreshedBoundsKeepCountdownAndCannotReplaceAnotherScanner() {
+        runOnMainThread { context ->
+            val window = FakeNodeScannerOverlayWindow(context)
+            val ui = NodeScannerUI(window, NodeScannerUiDispatcher { it() })
+            ui.withScanVisuals("system") { ui.showItemBounds(0, 0, 100, 100) }
+            val interval = ScanInterval(100, 1000)
+            ui.updateInterval(ScanIntervalEvent("system", 1, interval))
+            repeat(20) {
+                ui.withScanVisuals("system", preserveInterval = true, refreshOnly = true) {
+                    ui.showItemBounds(it, it, 100, 100)
+                }
+                assertEquals(interval, (window.singleHighlightView() as ScanHighlightView).interval)
+            }
+            ui.withScanVisuals("menu") { ui.showRowBounds(0, 0, 300, 100) }
+            val menuView = window.singleHighlightView()
+            ui.withScanVisuals("system", preserveInterval = true, refreshOnly = true) {
+                ui.showItemBounds(20, 20, 100, 100)
+            }
+            assertSame(menuView, window.singleHighlightView())
+        }
+    }
+
+    @Test
     fun backgroundResetPreservesDisplayedHighlightAndCountdown() {
         runOnMainThread { context ->
             val window = FakeNodeScannerOverlayWindow(context)

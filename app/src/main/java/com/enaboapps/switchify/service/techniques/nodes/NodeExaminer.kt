@@ -19,22 +19,25 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withContext
 
+internal data class NodeScanSnapshot(val nodes: List<Node>, val source: String?, val revision: Long)
+
 object NodeExaminer {
     private val keyboardExtractor = KeyboardNodeExtractor()
     private var allNodes: List<Node> = emptyList()
     private var actionableNodes: List<Node> = emptyList()
-    private val actionableNodesFlow = MutableStateFlow<List<Node>>(emptyList())
+    private var snapshotRevision = 0L
+    private val actionableNodesFlow = MutableStateFlow(NodeScanSnapshot(emptyList(), null, snapshotRevision))
     private val _keyboardNodesState = MutableStateFlow(KeyboardNodesState())
     val keyboardNodesState: StateFlow<KeyboardNodesState> = _keyboardNodesState.asStateFlow()
     private val failures = NodeProcessingCooldown()
     private var applicationSource: String? = null
 
-    fun getActionableNodesFlow(): Flow<List<Node>> = actionableNodesFlow.asStateFlow()
+    internal fun getActionableNodesFlow(): Flow<NodeScanSnapshot> = actionableNodesFlow.asStateFlow()
 
     internal fun clear() {
         allNodes = emptyList()
         actionableNodes = emptyList()
-        actionableNodesFlow.value = emptyList()
+        actionableNodesFlow.value = NodeScanSnapshot(emptyList(), null, ++snapshotRevision)
         _keyboardNodesState.value = KeyboardNodesState()
         failures.reset()
         applicationSource = null
@@ -60,13 +63,14 @@ object NodeExaminer {
         } else {
             activeWindowRootNode
         }) ?: return
-        val source = root.windowId.toString() + ":" + root.packageName
+        val displayId = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) root.window?.displayId ?: 0 else 0
+        val source = "${root.packageName}:$displayId:${root.windowId}"
         withContext(Dispatchers.Main.immediate) {
             if (!isCurrent()) return@withContext
             if (!examineKeyboard && applicationSource != source) {
                 allNodes = emptyList()
                 actionableNodes = emptyList()
-                actionableNodesFlow.value = emptyList()
+                actionableNodesFlow.value = NodeScanSnapshot(emptyList(), source, ++snapshotRevision)
                 applicationSource = source
             }
             if (!keyboardState.isVisible) _keyboardNodesState.value = KeyboardNodesState()
@@ -99,10 +103,10 @@ object NodeExaminer {
                 if (!isCurrent()) return@withContext
                 allNodes = mapped
                 if (examineKeyboard) {
-                    _keyboardNodesState.value = KeyboardNodesState(selected, keyboardState.keyboardBounds)
+                    _keyboardNodesState.value = KeyboardNodesState(selected, keyboardState.keyboardBounds, source, ++snapshotRevision)
                 } else {
                     actionableNodes = selected
-                    actionableNodesFlow.value = selected
+                    actionableNodesFlow.value = NodeScanSnapshot(selected, source, ++snapshotRevision)
                 }
                 failures.success()
             }

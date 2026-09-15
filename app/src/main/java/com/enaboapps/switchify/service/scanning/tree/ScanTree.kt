@@ -71,6 +71,8 @@ class ScanTree(
 
     /** The flag to track if manual scanning is active. */
     private var isManualScanActive = false
+    private var resumeAfterEmptySnapshot = false
+    private var emptyAnchor: List<ScanTreeItem>? = null
 
     init {
         initializeComponents()
@@ -117,6 +119,71 @@ class ScanTree(
         initializeComponents() // Reinitialize components with the new tree
     }
 
+    internal fun reconcileNodes(nodes: List<ScanNodeInterface>, sourceChanged: Boolean = false) {
+        check(android.os.Looper.myLooper() == android.os.Looper.getMainLooper())
+        if (sourceChanged) {
+            val running = isAutoScanning() || resumeAfterEmptySnapshot
+            val paused = scanningScheduler?.isPaused() == true && !running
+            val manual = isManualScanActive
+            buildTree(nodes)
+            if (paused) scanningScheduler?.restorePausedState()
+            if (running && nodes.isNotEmpty()) startAutoScanning()
+            else if (manual && nodes.isNotEmpty()) withVisuals {
+                isManualScanActive = true
+                highlightCurrent()
+            }
+            else if (running) resumeAfterEmptySnapshot = true
+            if (manual && nodes.isEmpty()) isManualScanActive = true
+            if (paused && nodes.isNotEmpty()) NodeScannerUI.instance.withScanVisuals(visualOwner, false, refreshOnly = true) {
+                highlightCurrent(speak = false)
+            }
+            return
+        }
+        if (nodes.isEmpty()) {
+            if (tree.isNotEmpty()) {
+                emptyAnchor = tree.toList()
+                resumeAfterEmptySnapshot = isAutoScanning()
+                scanningScheduler?.pauseScanning()
+                withVisuals { highlighter.unhighlightAll() }
+                tree.clear()
+            }
+            return
+        }
+        val previous = emptyAnchor ?: tree.toList()
+        val oldNodes = previous.flatMap { it.children }
+        val matches = matchScanNodes(oldNodes, nodes)
+        val geometryUnchanged = oldNodes.size == nodes.size && matches.size == oldNodes.size && oldNodes.all { old ->
+            val fresh = matches.getValue(old)
+            old.getLeft() == fresh.getLeft() && old.getTop() == fresh.getTop() &&
+                old.getWidth() == fresh.getWidth() && old.getHeight() == fresh.getHeight() &&
+                (old as? CollectionRowHintProvider)?.getCollectionRowHint() ==
+                (fresh as? CollectionRowHintProvider)?.getCollectionRowHint()
+        }
+        val replacement = if (geometryUnchanged) previous.map { row ->
+            ScanTreeItem(row.children.map { matches.getValue(it) }, row.y,
+                scanSettings.isRowColumnScanEnabled() && scanSettings.isGroupScanEnabled())
+        } else builder.buildTree(nodes)
+        if (emptyAnchor != null) tree.addAll(previous)
+        val retained = navigator.reconcile(replacement, matches)
+        tree.clear()
+        tree.addAll(replacement)
+        selector = ScanTreeSelector(tree, navigator, scanSettings, stopScanningOnSelect)
+        highlighter = ScanTreeHighlighter(tree, scanSettings)
+        val wasEmpty = emptyAnchor != null
+        emptyAnchor = null
+        val shouldResume = resumeAfterEmptySnapshot
+        if (isManualScanActive || isAutoScanning() || scanningScheduler?.isPaused() == true || shouldResume) {
+            NodeScannerUI.instance.withScanVisuals(visualOwner, retained && !wasEmpty, refreshOnly = true) {
+                if (navigator.handleEscape()) highlightEscape()
+                else highlightCurrent(speak = false)
+            }
+        }
+        if (resumeAfterEmptySnapshot) {
+            scanningScheduler?.resumeAfterEmptySnapshot()
+            resumeAfterEmptySnapshot = false
+        } else if (!retained && !wasEmpty) scanningScheduler?.restartCurrentInterval()
+    }
+
     internal fun buildMenuRows(rows: List<List<ScanNodeInterface>>) {
         clearTree()
         tree.addAll(ExplicitScanRows.build(rows,
@@ -130,6 +197,7 @@ class ScanTree(
      * @return True if the manual scan setup is valid, false otherwise.
      */
     private fun checkManualScanSetup(): Boolean {
+        if (tree.isEmpty()) return true
         if (scanSettings.isManualScanMode() && !isManualScanActive) {
             isManualScanActive = true
             highlighter.unhighlightAll()
@@ -146,6 +214,7 @@ class ScanTree(
     override fun performSelectionAction() = withVisuals { performSelectionActionNow() }
 
     private fun performSelectionActionNow() {
+        if (tree.isEmpty()) return
         try {
             if (checkManualScanSetup()) {
                 return
@@ -353,6 +422,7 @@ class ScanTree(
      * @return True if the movement was successful, false otherwise.
      */
     private fun handlePreMovement(): Boolean {
+        if (tree.isEmpty()) return true
         unhighlightCurrent()
 
         if (handleAutoScanCycleLimit()) {
@@ -494,7 +564,7 @@ class ScanTree(
     /**
      * Highlights the current item, group, or node based on the current state.
      */
-    private fun highlightCurrent() {
+    private fun highlightCurrent(speak: Boolean = true) {
         Log.d(
             TAG,
             "Highlighting current: treeItem=${navigator.currentTreeItem}, group=${navigator.currentGroup}, column=${navigator.currentColumn}, isInTreeItem=${navigator.isInTreeItem}, isScanningGroups=${navigator.isScanningGroups}"
@@ -512,7 +582,7 @@ class ScanTree(
             navigator.isScanningGroups
         )
 
-        speakDuringScan()
+        if (speak) speakDuringScan()
     }
 
     /**
@@ -556,6 +626,7 @@ class ScanTree(
      * Pauses the scanning process.
      */
     override fun pauseAutoScanning() {
+        resumeAfterEmptySnapshot = false
         scanningScheduler?.pauseScanning()
     }
 
@@ -592,6 +663,8 @@ class ScanTree(
     override fun resetForNextUse() = withVisuals { resetForNextUseNow() }
 
     private fun resetForNextUseNow() {
+        resumeAfterEmptySnapshot = false
+        emptyAnchor = null
         scanningScheduler?.stopScanning()
         callback?.onScanTreeStopped()
         callback?.onScanTreeCycleBreakSkipped()

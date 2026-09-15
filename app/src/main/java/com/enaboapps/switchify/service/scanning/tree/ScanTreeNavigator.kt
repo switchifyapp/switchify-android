@@ -129,8 +129,79 @@ class ScanTreeNavigator internal constructor(
      * A flattened list of all nodes in the tree, used when row-column scanning is disabled.
      * Computed lazily to avoid unnecessary processing when row-column scanning is enabled.
      */
-    private val flattenedNodes: List<ScanNodeInterface> by lazy {
-        tree.flatMap { it.children }
+    private var flattenedNodes: List<ScanNodeInterface> = tree.flatMap { it.children }
+
+    internal fun reconcile(
+        replacement: List<ScanTreeItem>,
+        matches: Map<ScanNodeInterface, ScanNodeInterface>
+    ): Boolean {
+        val reverse = scanDirection == ScanDirection.UP || scanDirection == ScanDirection.LEFT
+        val rowLevel = isRowColumnScanEnabled && (!isInTreeItem || escapeState == EscapeState.Item)
+        val groupLevel = isRowColumnScanEnabled && !rowLevel &&
+            (escapeState == EscapeState.Group || (isScanningGroups && tree.getOrNull(currentTreeItem)?.isGrouped() == true))
+        data class Target(val row: Int, val group: Int, val column: Int, val members: List<ScanNodeInterface>)
+        fun targets(items: List<ScanTreeItem>): List<Target> {
+            var flatIndex = 0
+            return items.flatMapIndexed { row, item ->
+                when {
+                    rowLevel -> listOf(Target(row, 0, 0, item.children))
+                    groupLevel -> (0 until item.getGroupCount()).map { group ->
+                        Target(row, group, 0, (0 until item.getNodeCount(group)).mapNotNull { item.getNode(group, it) })
+                    }
+                    else -> (0 until item.getGroupCount()).flatMap { group ->
+                        (0 until item.getNodeCount(group)).mapNotNull { column ->
+                            item.getNode(group, column)?.let { node ->
+                                Target(row, group, if (isRowColumnScanEnabled) column else flatIndex++, listOf(node))
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        val oldTargets = targets(tree)
+        val nextTargets = targets(replacement)
+        if (nextTargets.isEmpty()) return false
+        val oldIndex = oldTargets.indexOfFirst {
+            if (!isRowColumnScanEnabled) it.column == currentColumn
+            else it.row == currentTreeItem && (rowLevel || it.group == currentGroup && (groupLevel || it.column == currentColumn))
+        }
+        val targetByNode = java.util.IdentityHashMap<ScanNodeInterface, Int>()
+        nextTargets.forEachIndexed { index, target -> target.members.forEach { targetByNode[it] = index } }
+        fun corresponding(target: Target): Int? {
+            val counts = mutableMapOf<Int, Int>()
+            val order = if (reverse) target.members.asReversed() else target.members
+            val ranks = mutableMapOf<Int, Int>()
+            order.forEachIndexed { rank, old ->
+                matches[old]?.let { targetByNode[it] }?.let { index ->
+                    counts[index] = (counts[index] ?: 0) + 1
+                    ranks.putIfAbsent(index, rank)
+                }
+            }
+            return counts.keys.minWithOrNull(compareByDescending<Int> { counts[it] }.thenBy { ranks[it] })
+        }
+        val currentMatch = oldTargets.getOrNull(oldIndex)?.let(::corresponding)
+        var selected = currentMatch
+        if (selected == null && oldIndex >= 0) {
+            for (offset in 1 until oldTargets.size) {
+                val index = Math.floorMod(oldIndex + if (reverse) -offset else offset, oldTargets.size)
+                selected = corresponding(oldTargets[index])
+                if (selected != null) break
+            }
+        }
+        val target = nextTargets[selected ?: if (reverse) nextTargets.lastIndex else 0]
+        currentTreeItem = target.row
+        currentGroup = target.group
+        currentColumn = target.column
+        flattenedNodes = replacement.flatMap { it.children }
+        if (currentMatch == null) {
+            escapeState = EscapeState.None
+            if (rowLevel) {
+                isInTreeItem = false
+                isInGroup = false
+            }
+            resetCycleProgress()
+        }
+        return currentMatch != null
     }
 
     /**

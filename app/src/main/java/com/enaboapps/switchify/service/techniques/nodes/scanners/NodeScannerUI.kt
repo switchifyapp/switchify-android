@@ -127,7 +127,9 @@ class NodeScannerUI internal constructor(
     private val drawables =
         EnumMap<NodeScannerHighlightRole, ScanHighlightDrawable>(NodeScannerHighlightRole::class.java)
 
-    internal fun withScanVisuals(owner: String?, block: () -> Unit) {
+    internal fun withScanVisuals(owner: String?, block: () -> Unit) = withScanVisuals(owner, false, block = block)
+
+    internal fun withScanVisuals(owner: String?, preserveInterval: Boolean, refreshOnly: Boolean = false, block: () -> Unit) {
         if (owner == null || visualBatch.get()?.owner == owner) {
             block()
             return
@@ -142,7 +144,13 @@ class NodeScannerUI internal constructor(
             synchronized(commandLock) {
                 dispatcher.post {
                     if (batch.epoch == rendererEpoch.get()) {
-                        batch.spec?.let(::render) ?: hideHighlight(batch.hideRoles, batch.owner)
+                        if (refreshOnly && activeHighlight != null && activeHighlight?.spec?.owner != owner) return@post
+                        batch.spec?.let { spec ->
+                            val active = activeHighlight?.spec
+                            render(if (preserveInterval && active?.owner == owner) {
+                                spec.copy(intervalAfterSequence = active.intervalAfterSequence)
+                            } else spec)
+                        } ?: hideHighlight(batch.hideRoles, batch.owner)
                     }
                 }
             }
