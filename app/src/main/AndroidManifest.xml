@@ -3,7 +3,6 @@
     xmlns:android="http://schemas.android.com/apk/res/android">
 
     <queries>
-        <package android:name="com.enaboapps.switchify.remote" />
         <!-- Query for all apps with launcher activities -->
         <intent>
             <action android:name="android.intent.action.MAIN" />
@@ -56,13 +55,6 @@
 
         <activity
             android:name=".screens.screenhighlights.ScreenHighlightsActivity"
-            android:excludeFromRecents="true"
-            android:exported="false"
-            android:taskAffinity=""
-            android:theme="@style/Theme.Switchify" />
-
-        <activity
-            android:name=".service.remotebridge.SwitchifyRemoteInstallActivity"
             android:excludeFromRecents="true"
             android:exported="false"
             android:taskAffinity=""

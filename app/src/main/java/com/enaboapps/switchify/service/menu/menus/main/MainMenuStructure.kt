@@ -10,7 +10,6 @@ import com.enaboapps.switchify.service.actions.MediaPlaybackState
 import com.enaboapps.switchify.service.core.ServiceCore
 import com.enaboapps.switchify.service.core.SwitchifyAccessibilityService
 import com.enaboapps.switchify.service.gestures.GesturePoint
-import com.enaboapps.switchify.service.remotebridge.SwitchifyRemoteLauncher
 import com.enaboapps.switchify.service.keyboard.KeyboardManager
 import com.enaboapps.switchify.service.menu.MenuItem
 import com.enaboapps.switchify.service.menu.MenuManager
@@ -31,7 +30,6 @@ class MainMenuStructure(
     private val gestureMenuStructure = GestureMenuStructure(accessibilityService, coroutineScope)
     private val deviceLockObserver = DeviceLockObserver(accessibilityService)
     private val preferenceManager = PreferenceManager(accessibilityService)
-    private val remoteLauncher = SwitchifyRemoteLauncher(accessibilityService)
     private val repository = MenuConfigurationRepository(accessibilityService)
 
     val deviceItem = MenuItem(
@@ -165,28 +163,6 @@ class MainMenuStructure(
                 )
             },
             mediaPlayPauseItem(),
-            if (deviceLockObserver.isUserUnlocked() == true &&
-                !DeviceLockObserver.isKeyguardLocked(accessibilityService)
-            ) {
-                MenuItemRegistry.getMainMenuDefinition("control_pc")?.let { def ->
-                    MenuItem(
-                        definition = def,
-                        action = { remoteLauncher.openMouse() }
-                    )
-                }
-            } else null,
-            if (deviceLockObserver.isUserUnlocked() == true &&
-                !DeviceLockObserver.isKeyguardLocked(accessibilityService)
-            ) {
-                MenuItemRegistry.getMainMenuDefinition(
-                    MenuConstants.ItemIds.Main.PC_SWITCH_FORWARDING
-                )?.let { def ->
-                    MenuItem(
-                        definition = def,
-                        action = { remoteLauncher.openForwarding() }
-                    )
-                }
-            } else null,
             if (NodeExaminer.canPerformEditActions(GesturePoint.getPoint())) {
                 MenuItemRegistry.getMainMenuDefinition("edit")?.let { def ->
                     MenuItem(

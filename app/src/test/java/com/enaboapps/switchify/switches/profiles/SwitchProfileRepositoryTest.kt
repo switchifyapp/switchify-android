@@ -11,6 +11,40 @@ import org.junit.Test
 
 class SwitchProfileRepositoryTest {
     @Test
+    fun retiredBindingsMigrateAcrossAllProfilesAndImportedEvents() = runBlocking {
+        val old = event("remote").copy(pressAction = SwitchAction(17), holdActions = listOf(SwitchAction(18)))
+        val document = SwitchProfileDocument(activeProfileId = "one", profiles = listOf(
+            SwitchProfile("one", "One", listOf(old)), SwitchProfile("two", "Two", listOf(old))))
+        val persistence = FakePersistence(stored = document)
+        val repository = repository(persistence)
+        repository.initialize()
+        val expected = SwitchAction(19, "com.enaboapps.switchify.remote")
+        repository.profiles().forEach { profile ->
+            assertEquals(expected, profile.switches.single().pressAction)
+            assertEquals(listOf(expected), profile.switches.single().holdActions)
+        }
+        assertEquals(repository.document.value, persistence.stored)
+        val writes = persistence.writeCount
+        repository.refresh()
+        assertEquals(writes, persistence.writeCount)
+        repository.replaceEvents("one", listOf(old))
+        assertEquals(expected, repository.events("one").single().pressAction)
+    }
+
+    @Test
+    fun legacyRemoteEventsMigrateAndFailedWritesPreserveTheSource() = runBlocking {
+        val old = event("remote").copy(pressAction = SwitchAction(18))
+        val persistence = FakePersistence(legacy = listOf(old))
+        val repository = repository(persistence)
+        repository.initialize()
+        assertEquals(SwitchAction(19, "com.enaboapps.switchify.remote"), repository.events().single().pressAction)
+        val document = SwitchProfileDocument(activeProfileId = "one", profiles = listOf(SwitchProfile("one", "One", listOf(old))))
+        val failing = FakePersistence(stored = document, failWrites = true)
+        repository(failing).initialize()
+        assertEquals(document, failing.stored)
+    }
+
+    @Test
     fun migratesLegacyMappingsBeforeDeletingLegacyFile() = runBlocking {
         val legacy = listOf(event("1"))
         val persistence = FakePersistence(legacy = legacy)

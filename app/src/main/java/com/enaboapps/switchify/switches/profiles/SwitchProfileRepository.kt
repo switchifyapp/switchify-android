@@ -44,7 +44,7 @@ internal class SwitchProfileRepository internal constructor(
         _document.value.profiles.firstOrNull { it.id == profileId }
 
     fun events(profileId: String = _document.value.activeProfileId): List<SwitchEvent> =
-        profile(profileId)?.switches.orEmpty().map { it.copy(holdActions = it.holdActions.toList()) }
+        profile(profileId)?.switches.orEmpty().map { it.copy(pressAction = it.pressAction.normalized(), holdActions = it.holdActions.map { action -> action.normalized() }) }
 
     suspend fun createEmpty(name: String): SwitchProfileMutationResult =
         create(name, emptyList())
@@ -87,7 +87,7 @@ internal class SwitchProfileRepository internal constructor(
         val current = profile(profileId) ?: return@withLock false
         if (events.map { it.code }.distinct().size != events.size) return@withLock false
         val updatedProfile = current.copy(
-            switches = events.map { it.copy(holdActions = it.holdActions.toList()) }
+            switches = events.map { it.copy(pressAction = it.pressAction.normalized(), holdActions = it.holdActions.map { action -> action.normalized() }) }
         )
         persist(
             _document.value.copy(
@@ -129,7 +129,7 @@ internal class SwitchProfileRepository internal constructor(
         val created = SwitchProfile(
             id = idFactory(),
             name = name.trim(),
-            switches = switches.map { it.copy(holdActions = it.holdActions.toList()) }
+            switches = switches.map { it.copy(pressAction = it.pressAction.normalized(), holdActions = it.holdActions.map { action -> action.normalized() }) }
         )
         val updated = _document.value.copy(profiles = _document.value.profiles + created)
         if (!persist(updated)) return@withLock SwitchProfileMutationResult.StorageFailure
@@ -159,7 +159,9 @@ internal class SwitchProfileRepository internal constructor(
         val stored = storedResult.getOrNull()
         if (stored != null) {
             if (!isValidDocument(stored)) return false
-            _document.value = stored
+            val normalized = normalize(stored)
+            if (normalized != stored && persistence.writeProfiles(normalized).isFailure) return false
+            _document.value = normalized
             initialized = true
             adoptLateLegacyLocked()
             return true
@@ -181,7 +183,7 @@ internal class SwitchProfileRepository internal constructor(
         if (legacyResult.isFailure) return
         val legacyEvents = legacyResult.getOrNull() ?: return
         val migratedProfile = current.profiles.single().copy(
-            switches = legacyEvents.map { it.copy(holdActions = it.holdActions.toList()) }
+            switches = legacyEvents.map { it.copy(pressAction = it.pressAction.normalized(), holdActions = it.holdActions.map { action -> action.normalized() }) }
         )
         val migrated = current.copy(profiles = listOf(migratedProfile))
         if (persistence.writeProfiles(migrated).isFailure) return
@@ -197,10 +199,19 @@ internal class SwitchProfileRepository internal constructor(
     }
 
     private suspend fun persist(document: SwitchProfileDocument): Boolean {
-        if (persistence.writeProfiles(document).isFailure) return false
-        _document.value = document
+        val normalized = normalize(document)
+        if (persistence.writeProfiles(normalized).isFailure) return false
+        _document.value = normalized
         return true
     }
+
+    private fun normalize(document: SwitchProfileDocument): SwitchProfileDocument = document.copy(
+        profiles = document.profiles.map { profile ->
+            profile.copy(switches = profile.switches.map { event ->
+                event.copy(pressAction = event.pressAction.normalized(), holdActions = event.holdActions.map { it.normalized() })
+            })
+        }
+    )
 
     private fun isValidDocument(document: SwitchProfileDocument): Boolean {
         if (document.version != SwitchProfileDocument.CURRENT_VERSION) return false
@@ -216,7 +227,7 @@ internal class SwitchProfileRepository internal constructor(
         val defaultProfile = SwitchProfile(
             id = idFactory(),
             name = "Default",
-            switches = events.map { it.copy(holdActions = it.holdActions.toList()) }
+            switches = events.map { it.copy(pressAction = it.pressAction.normalized(), holdActions = it.holdActions.map { action -> action.normalized() }) }
         )
         return SwitchProfileDocument(
             activeProfileId = defaultProfile.id,

@@ -105,8 +105,6 @@ object MenuConstants {
             const val DEVICE = "device"
             const val SETTINGS = "settings"
             const val MEDIA_CONTROL = "media_control"
-            const val CONTROL_PC = "control_pc"
-            const val PC_SWITCH_FORWARDING = "pc_switch_forwarding"
             const val EDIT = "edit"
             const val AI = "ai"
             const val PAUSE = "pause"

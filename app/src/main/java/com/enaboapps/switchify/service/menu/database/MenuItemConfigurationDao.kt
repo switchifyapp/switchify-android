@@ -42,7 +42,11 @@ interface MenuItemConfigurationDao {
      * @param configuration The configuration to insert.
      */
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertConfiguration(configuration: MenuItemConfiguration)
+    suspend fun insertConfigurationRaw(configuration: MenuItemConfiguration)
+
+    suspend fun insertConfiguration(configuration: MenuItemConfiguration) {
+        if (configuration.itemId !in retiredItemIds) insertConfigurationRaw(configuration)
+    }
 
     /**
      * Inserts multiple menu item configurations into the database, replacing any existing entries with the same primary keys.
@@ -50,7 +54,11 @@ interface MenuItemConfigurationDao {
      * @param configurations the configurations to insert; entries with matching primary keys will be replaced
      */
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertConfigurations(configurations: List<MenuItemConfiguration>)
+    suspend fun insertConfigurationsRaw(configurations: List<MenuItemConfiguration>)
+
+    suspend fun insertConfigurations(configurations: List<MenuItemConfiguration>) {
+        insertConfigurationsRaw(configurations.filterNot { it.itemId in retiredItemIds })
+    }
 
     /**
      * Update an existing configuration.
@@ -120,4 +128,8 @@ interface MenuItemConfigurationDao {
      */
     @Query("SELECT COUNT(*) > 0 FROM menu_item_configurations WHERE menu_id = :menuId")
     suspend fun hasConfigurationsForMenu(menuId: String): Boolean
+
+    companion object {
+        val retiredItemIds = setOf("control_pc", "pc_switch_forwarding")
+    }
 }

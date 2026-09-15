@@ -12,7 +12,6 @@ import com.enaboapps.switchify.service.gestures.GestureManager
 import com.enaboapps.switchify.service.gestures.GestureRepeatManager
 import com.enaboapps.switchify.service.gestures.visuals.GestureTargetIndicatorController
 import com.enaboapps.switchify.service.menu.MenuManager
-import com.enaboapps.switchify.service.remotebridge.SwitchifyRemoteLauncher
 import com.enaboapps.switchify.service.selection.SelectionHandler
 import com.enaboapps.switchify.service.scanning.preferences.ScanPreferenceEffect
 import com.enaboapps.switchify.service.scanning.preferences.ScanPreferenceUpdatePlan
@@ -48,7 +47,6 @@ class ScanningManager(
     // Active scan method manager
     private val activeScanMethod = ActiveAccessTechnique(accessibilityService)
 
-    private val remoteLauncher = SwitchifyRemoteLauncher(accessibilityService)
 
     private val appScanTechniqueOverrideCoordinator = AppScanTechniqueOverrideCoordinator(
         ScanningManagerScanModeController(this),
@@ -306,8 +304,6 @@ class ScanningManager(
                 SwitchAction.ACTION_SYS_NOTIFICATIONS -> GlobalActionManager.openNotifications()
                 SwitchAction.ACTION_SYS_LOCK_SCREEN -> GlobalActionManager.lockScreen()
                 SwitchAction.ACTION_SYS_HEADSET_HOOK -> GlobalActionManager.toggleMediaPlayback()
-                SwitchAction.ACTION_CONTROL_PC -> remoteLauncher.openMouse()
-                SwitchAction.ACTION_PC_SWITCH_FORWARDING -> remoteLauncher.openForwarding()
                 SwitchAction.ACTION_PAUSE -> {
                     Log.d(TAG, "ACTION_PAUSE triggered")
                     val pauseManager = ServiceCore.getPauseManager()

@@ -295,13 +295,6 @@
     <string name="screen_title_advanced_gestures">Advanced Gestures</string>
     <string name="settings_summary_advanced_gestures">Advanced timing options</string>
     <string name="settings_section_advanced_gestures">Advanced Gestures</string>
-    <string name="menu_item_control_pc">Control PC</string>
-    <string name="menu_item_pc_switch_forwarding">PC Switch Forwarding</string>
-    <string name="switchify_remote_required_title">Install Switchify Remote?</string>
-    <string name="switchify_remote_required_message">Control PC and PC Switch Forwarding now open in Switchify Remote.</string>
-    <string name="install_switchify_remote">Install</string>
-    <string name="menu_item_pc_switch_forwarding_description">Open PC Switch Forwarding in Switchify Remote</string>
-    <string name="menu_item_control_pc_description">Open mouse controls in Switchify Remote.</string>
     <string name="screen_title_accessibility_service">Accessibility Service ♿</string>
     <string name="screen_title_upgrade_pro">Unlock Pro Magic! ✨</string>
     <string name="screen_title_debug">Debug Settings</string>
