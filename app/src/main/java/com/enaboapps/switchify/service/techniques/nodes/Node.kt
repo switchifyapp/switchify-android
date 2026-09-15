@@ -15,6 +15,7 @@ import com.enaboapps.switchify.service.menu.MenuSelectionSource
 import com.enaboapps.switchify.service.scanning.ScanNodeInterface
 import com.enaboapps.switchify.service.scanning.tree.CollectionRowHint
 import com.enaboapps.switchify.service.scanning.tree.CollectionRowHintProvider
+import com.enaboapps.switchify.service.scanning.tree.ScanNodeIdentity
 import com.enaboapps.switchify.service.selection.SelectionHandler
 import com.enaboapps.switchify.service.techniques.nodes.scanners.NodeScannerUI
 import com.enaboapps.switchify.service.techniques.nodes.scanners.ScanHighlightBounds
@@ -40,6 +41,8 @@ data class NodeScanSignature(
 class Node(
     private var onSelect: (() -> Unit?)? = null
 ) : ScanNodeInterface, CollectionRowHintProvider {
+    internal var scanIdentity: ScanNodeIdentity? = null
+        private set
     private var nodeInfo: AccessibilityNodeInfo? = null
     private var childPath: List<Int> = emptyList()
     private var x: Int = 0
@@ -93,6 +96,15 @@ class Node(
             }
             val overlayBounds = overlayBoundsFor(nodeInfo, rect, boundsInWindow)
             node.nodeInfo = nodeInfo
+            val displayId = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) nodeInfo.window?.displayId ?: 0 else 0
+            fun identityText(value: CharSequence?): String? = value?.takeIf { it.length <= 4096 }?.toString()
+            node.scanIdentity = ScanNodeIdentity(
+                "${nodeInfo.packageName}:$displayId:${nodeInfo.windowId}",
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) identityText(nodeInfo.uniqueId) else null,
+                identityText(nodeInfo.viewIdResourceName),
+                identityText(nodeInfo.className),
+                childPath.toList()
+            )
             node.childPath = childPath
             node.x = rect.left
             node.y = rect.top

@@ -42,7 +42,7 @@ class StartupOrchestrator(
         ServiceCore.getScanningManager()?.let { scanningManager ->
             serviceScope.launch(Dispatchers.Main.immediate) {
                 NodeExaminer.getActionableNodesFlow().collect { nodes ->
-                    scanningManager.updateActionableNodes(nodes)
+                    scanningManager.updateActionableNodes(nodes.nodes, nodes.source)
                 }
             }
             serviceScope.launch(Dispatchers.Main.immediate) {
@@ -57,8 +57,8 @@ class StartupOrchestrator(
                     .filter { (state, nodes) ->
                         !keyboardNodesPolicy.shouldDropAsStale(nodes, state)
                     }
-                    .map { (_, nodes) -> nodes.nodes }
-                    .collect { scanningManager.updateKeyboardNodes(it) }
+                    .map { (_, nodes) -> nodes }
+                    .collect { scanningManager.updateKeyboardNodes(it.nodes, it.source) }
             }
             serviceScope.launch {
                 // Re-examine the accessibility tree shortly after the keyboard

@@ -2,6 +2,9 @@ package com.enaboapps.switchify.service.techniques.nodes.scanners
 
 import com.enaboapps.switchify.service.scanning.tree.ScanTreeItem
 import com.enaboapps.switchify.service.techniques.nodes.Node
+import com.enaboapps.switchify.service.techniques.nodes.NodeScanSnapshot
+import kotlinx.coroutines.flow.MutableStateFlow
+import org.junit.Assert.assertSame
 import com.enaboapps.switchify.service.techniques.pointscan.blocks.PointScanBlock
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -10,27 +13,14 @@ import org.junit.Test
 
 class BaseNodeScannerTest {
     @Test
-    fun sameNodeSignaturesAreDuplicate() {
+    fun equalVisualSnapshotsStillPublishFreshReferences() {
         val previous = listOf(testNode("Mouse"))
         val next = listOf(testNode("Mouse"))
 
-        assertTrue(areDuplicateScanNodes(previous, next))
-    }
-
-    @Test
-    fun changedContentWithSameBoundsIsNotDuplicate() {
-        val previous = listOf(testNode("Mouse"))
-        val next = listOf(testNode("Typing"))
-
-        assertFalse(areDuplicateScanNodes(previous, next))
-    }
-
-    @Test
-    fun differentNodeCountsAreNotDuplicate() {
-        val previous = listOf(testNode("Mouse"))
-        val next = listOf(testNode("Mouse"), testNode("Typing"))
-
-        assertFalse(areDuplicateScanNodes(previous, next))
+        assertEquals(previous, next)
+        val snapshots = MutableStateFlow(NodeScanSnapshot(previous, "window", 1))
+        snapshots.value = NodeScanSnapshot(next, "window", 2)
+        assertSame(next.first(), snapshots.value.nodes.first())
     }
 
     @Test

@@ -121,6 +121,21 @@ class ScanningScheduler internal constructor(
         }
     }
 
+    internal fun restartCurrentInterval() {
+        if (isScanning()) launchScanningJob(period)
+    }
+
+    internal fun resumeAfterEmptySnapshot() {
+        if (!isScanning()) {
+            scanState.set(ScanState.SCANNING)
+            launchScanningJob(period)
+        }
+    }
+
+    internal fun restorePausedState() {
+        scanState.compareAndSet(ScanState.STOPPED, ScanState.PAUSED)
+    }
+
     private fun launchScanningJob(delayMillis: Long) {
         val generation = intervalGeneration.incrementAndGet()
         scanningJob?.cancel()
