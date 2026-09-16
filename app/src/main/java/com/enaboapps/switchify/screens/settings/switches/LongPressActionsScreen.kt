@@ -71,9 +71,7 @@ fun LongPressActionsScreen(
 
     // Save helper that updates store and refreshes UI
     fun saveAndRefresh(newActions: List<SwitchAction>) {
-        val event = store.find(code, resolvedProfileId) ?: return
-        val updatedEvent = event.copy(holdActions = newActions)
-        store.update(updatedEvent, context, resolvedProfileId) { success ->
+        store.updateHoldActions(code, newActions, context, resolvedProfileId) { success ->
             if (success) {
                 refreshKey++
             }

@@ -12,6 +12,7 @@ import com.enaboapps.switchify.utils.Logger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.Collections
 
 /**
@@ -209,6 +210,31 @@ class SwitchEventStore private constructor() {
         context: Context,
         profileId: String? = null,
         completion: ((Boolean) -> Unit)
+    ) = updateEvent(switchEvent.code, context, profileId, completion) { switchEvent }
+
+    fun updateDetails(
+        switchEvent: SwitchEvent,
+        context: Context,
+        profileId: String? = null,
+        completion: (Boolean) -> Unit
+    ) = updateEvent(switchEvent.code, context, profileId, completion) {
+        it.copy(name = switchEvent.name, pressAction = switchEvent.pressAction)
+    }
+
+    fun updateHoldActions(
+        code: String,
+        actions: List<SwitchAction>,
+        context: Context,
+        profileId: String,
+        completion: (Boolean) -> Unit
+    ) = updateEvent(code, context, profileId, completion) { it.copy(holdActions = actions) }
+
+    private fun updateEvent(
+        code: String,
+        context: Context,
+        profileId: String?,
+        completion: (Boolean) -> Unit,
+        transform: (SwitchEvent) -> SwitchEvent
     ) {
         coroutineScope.launch {
             val repository = profileRepository ?: SwitchProfileRepository.getInstance(context).also {
@@ -216,41 +242,22 @@ class SwitchEventStore private constructor() {
                 it.initialize()
             }
             val targetProfileId = profileId ?: repository.document.value.activeProfileId
-            val events = repository.events(targetProfileId).toMutableList()
-            val index = events.indexOfFirst { it.code == switchEvent.code }
-            val updated = index >= 0
-            if (updated) events[index] = switchEvent
-
-            if (updated) {
-                if (repository.replaceEvents(targetProfileId, events)) {
-                    refreshActiveCache(repository)
-                    completion(true)
-                    broadcastReloadEvent(context, targetProfileId == repository.document.value.activeProfileId)
-                    Logger.log(LogEvent.SwitchUpdated)
-                } else {
-                    Logger.log(
-                        LogEvent.SwitchSaveFailed,
-                        data = mapOf(
-                            "result" to "failure",
-                            "reason" to "update_save_failed",
-                            "switch_type" to switchEvent.type,
-                            "switch_code" to switchEvent.code
-                        )
-                    )
-                    completion(false)
-                }
+            val success = repository.updateEvent(targetProfileId, code, transform)
+            if (success) {
+                refreshActiveCache(repository)
+                broadcastReloadEvent(context, targetProfileId == repository.document.value.activeProfileId)
+                Logger.log(LogEvent.SwitchUpdated)
             } else {
                 Logger.log(
                     LogEvent.SwitchSaveFailed,
                     data = mapOf(
                         "result" to "failure",
-                        "reason" to "update_not_found_or_add_failed",
-                        "switch_type" to switchEvent.type,
-                        "switch_code" to switchEvent.code
+                        "reason" to "update_save_failed",
+                        "switch_code" to code
                     )
                 )
-                completion(false)
             }
+            withContext(Dispatchers.Main) { completion(success) }
         }
     }
 

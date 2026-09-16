@@ -21,6 +21,9 @@ import com.enaboapps.switchify.switches.SwitchAction.Companion.ACTION_MOVE_TO_PR
 import com.enaboapps.switchify.switches.SwitchEvent
 import com.enaboapps.switchify.switches.SwitchEventStore
 import com.enaboapps.switchify.switches.SwitchHoldPolicy
+import com.enaboapps.switchify.switches.profiles.SwitchProfileRepository
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 class AddEditExternalSwitchScreenModel : ViewModel() {
@@ -33,6 +36,7 @@ class AddEditExternalSwitchScreenModel : ViewModel() {
     private var code: String? = null
     private var profileId: String? = null
     private var isInitialized = false
+    private var editing = false
 
     var name = ""
 
@@ -52,9 +56,23 @@ class AddEditExternalSwitchScreenModel : ViewModel() {
     fun init(code: String?, context: Context, profileId: String? = null) {
         this.code = code
         this.profileId = profileId
+        editing = code != null
 
         if (code != null) {
             reload(context)
+            viewModelScope.launch {
+                val repository = SwitchProfileRepository.getInstance(context)
+                repository.initialize()
+                val targetProfileId = profileId ?: repository.document.value.activeProfileId
+                this@AddEditExternalSwitchScreenModel.profileId = targetProfileId
+                repository.document.map { document ->
+                    document.profiles.firstOrNull { it.id == targetProfileId }
+                        ?.switches?.firstOrNull { it.code == code }?.holdActions.orEmpty()
+                }.distinctUntilChanged().collect { actions ->
+                    longPressActions.value = actions
+                    validateIfInitialized()
+                }
+            }
         } else {
             name = ""
             pressAction.value = SwitchAction(SwitchAction.ACTION_SELECT)
@@ -152,20 +170,6 @@ class AddEditExternalSwitchScreenModel : ViewModel() {
         }, 300)
     }
 
-    /**
-     * Reloads long press actions from the store.
-     * Call this when returning from the LongPressActionsScreen to sync state.
-     */
-    fun reloadLongPressActionsFromStore(context: Context) {
-        if (code != null) {
-            val event = store.find(code ?: "", profileId)
-            val allowed = SupportedActionsPolicy.supportedActionIds(context)
-            longPressActions.value = (event?.holdActions ?: emptyList()).map { a ->
-                if (allowed.contains(a.id)) a else SwitchAction(SwitchAction.ACTION_SELECT)
-            }
-        }
-    }
-
     fun updateLongPressAction(oldAction: SwitchAction, newAction: SwitchAction) {
         val currentActions = longPressActions.value?.toMutableList() ?: mutableListOf()
         val index = currentActions.indexOf(oldAction)
@@ -218,24 +222,16 @@ class AddEditExternalSwitchScreenModel : ViewModel() {
     fun save(context: Context, completion: ((Boolean) -> Unit)) {
         if (shouldSave.value == true) {
             val event = buildSwitchEvent()
-            if (store.find(event.code, profileId) == null) {
-                store.add(event, context, profileId) { success ->
-                    if (success) {
-                        completion(true)
-                    } else {
-                        completion(false)
-                    }
+            shouldSave.value = false
+            val onComplete: (Boolean) -> Unit = { success ->
+                viewModelScope.launch {
+                    shouldSave.value = !success
+                    if (success) hasUnsavedChanges.value = false
+                    completion(success)
                 }
-            } else {
-                store.update(event, context, profileId) { success ->
-                    if (success) {
-                        completion(true)
-                    } else {
-                        completion(false)
-                    }
-                }
-                shouldSave.value = false
             }
+            if (editing) store.updateDetails(event, context, profileId, onComplete)
+            else store.add(event, context, profileId, onComplete)
         }
     }
 

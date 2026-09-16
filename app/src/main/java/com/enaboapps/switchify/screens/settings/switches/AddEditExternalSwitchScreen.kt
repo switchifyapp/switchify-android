@@ -23,9 +23,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.key
 import androidx.compose.runtime.livedata.observeAsState
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -55,8 +53,6 @@ import com.enaboapps.switchify.components.Panel
 import com.enaboapps.switchify.components.TextArea
 import com.enaboapps.switchify.screens.settings.switches.actions.SwitchActionField
 import com.enaboapps.switchify.screens.settings.switches.models.AddEditExternalSwitchScreenModel
-import com.enaboapps.switchify.service.core.ServiceBridge
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 
 @Composable
@@ -113,23 +109,6 @@ fun AddEditExternalSwitchScreen(
             })
         }
     } else {
-        var refresh by remember { mutableIntStateOf(0) }
-        LaunchedEffect(Unit) {
-            try {
-                ServiceBridge.serviceEvents.collect { event ->
-                    if (event is ServiceBridge.ServiceEvent.ConfigurationUpdated) {
-                        // Reload long press actions when configuration changes (e.g., from LongPressActionsScreen)
-                        if (code != null) {
-                            addEditExternalSwitchScreenModel.reloadLongPressActionsFromStore(context)
-                        }
-                        refresh++
-                    }
-                }
-            } catch (_: CancellationException) {
-                // Expected when leaving composition
-            }
-        }
-
         BaseView(
             titleResId = screenTitle,
             navController = navController,
@@ -183,25 +162,23 @@ fun AddEditExternalSwitchScreen(
                 }
             }
         ) {
-            key(refresh) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    SwitchName(
-                        name = addEditExternalSwitchScreenModel.name,
-                        onNameChange = { addEditExternalSwitchScreenModel.updateName(it) }
-                    )
-                    Spacer(modifier = Modifier.padding(8.dp))
-                    SwitchActionSection(
-                        navController,
-                        addEditExternalSwitchScreenModel,
-                        code,
-                        targetProfileId
-                    )
-                    Spacer(modifier = Modifier.padding(12.dp))
-                }
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                SwitchName(
+                    name = addEditExternalSwitchScreenModel.name,
+                    onNameChange = { addEditExternalSwitchScreenModel.updateName(it) }
+                )
+                Spacer(modifier = Modifier.padding(8.dp))
+                SwitchActionSection(
+                    navController,
+                    addEditExternalSwitchScreenModel,
+                    code,
+                    targetProfileId
+                )
+                Spacer(modifier = Modifier.padding(12.dp))
             }
 
             if (showDeleteConfirmation.value) {

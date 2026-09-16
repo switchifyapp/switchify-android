@@ -3,6 +3,9 @@ package com.enaboapps.switchify.switches.profiles
 import com.enaboapps.switchify.switches.SwitchAction
 import com.enaboapps.switchify.switches.SwitchEvent
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.async
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
@@ -10,6 +13,76 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class SwitchProfileRepositoryTest {
+    @Test
+    fun eventUpdatesPreserveLatestHoldsAndOtherProfiles() = runBlocking {
+        val original = event("62")
+        val other = event("66")
+        val persistence = FakePersistence(stored = SwitchProfileDocument(
+            activeProfileId = "one",
+            profiles = listOf(SwitchProfile("one", "One", listOf(original, other)),
+                SwitchProfile("two", "Two", listOf(original)))
+        ))
+        val repository = repository(persistence)
+        repository.initialize()
+        val chrome = SwitchAction(19, "com.android.chrome")
+        val settings = SwitchAction(19, "com.android.settings")
+        val holdEdits = listOf(listOf(chrome), listOf(chrome, settings),
+            listOf(settings, chrome), listOf(settings, SwitchAction(1)), listOf(settings), emptyList())
+        for (holds in holdEdits) {
+            assertTrue(repository.updateEvent("one", "62") { it.copy(holdActions = holds) })
+            assertTrue(repository.updateEvent("one", "62") {
+                it.copy(name = "Renamed", pressAction = chrome)
+            })
+            assertEquals(original.copy(name = "Renamed", pressAction = chrome, holdActions = holds),
+                repository.events("one").first())
+            assertEquals(other, repository.events("one")[1])
+            assertEquals(listOf(original), repository.events("two"))
+            assertEquals(repository.document.value, persistence.stored)
+        }
+    }
+
+    @Test(timeout = 5000)
+    fun eventUpdateReadsLatestStateAfterWaitingForPersistence() = runBlocking {
+        val persistence = FakePersistence(legacy = listOf(event("62")))
+        val repository = repository(persistence)
+        repository.initialize()
+        val profileId = repository.activeProfile().id
+        val enteredWrite = CompletableDeferred<Unit>()
+        val finishWrite = CompletableDeferred<Unit>()
+        persistence.beforeWrite = { enteredWrite.complete(Unit); finishWrite.await() }
+        val holds = listOf(SwitchAction(19, "com.android.settings"))
+        val holding = async { repository.updateEvent(profileId, "62") { it.copy(holdActions = holds) } }
+        enteredWrite.await()
+        val editing = async(start = CoroutineStart.UNDISPATCHED) {
+            repository.updateEvent(profileId, "62") { it.copy(name = "Edited") }
+        }
+        finishWrite.complete(Unit)
+        assertTrue(holding.await())
+        assertTrue(editing.await())
+        assertEquals(event("62").copy(name = "Edited", holdActions = holds), repository.events().single())
+    }
+
+    @Test
+    fun failedEventUpdatesPreserveStateAndCanBeRetried() = runBlocking {
+        val original = event("62").copy(holdActions = listOf(SwitchAction(19, "com.android.chrome")))
+        val persistence = FakePersistence(legacy = listOf(original))
+        val repository = repository(persistence)
+        repository.initialize()
+        val profileId = repository.activeProfile().id
+        val before = repository.document.value
+        persistence.failWrites = true
+        assertFalse(repository.updateEvent(profileId, "62") { it.copy(name = "Edited") })
+        assertEquals(before, repository.document.value)
+        assertEquals(before, persistence.stored)
+        persistence.failWrites = false
+        assertTrue(repository.updateEvent(profileId, "62") { it.copy(name = "Edited") })
+        assertEquals(original.copy(name = "Edited"), repository.events().single())
+        val writes = persistence.writeCount
+        assertFalse(repository.updateEvent("missing", "62") { it.copy(name = "Lost") })
+        assertFalse(repository.updateEvent(profileId, "missing") { it.copy(name = "Lost") })
+        assertEquals(writes, persistence.writeCount)
+    }
+
     @Test
     fun retiredBindingsMigrateAcrossAllProfilesAndImportedEvents() = runBlocking {
         val old = event("remote").copy(pressAction = SwitchAction(17), holdActions = listOf(SwitchAction(18)))
@@ -275,6 +348,7 @@ class SwitchProfileRepositoryTest {
     ) : SwitchProfilePersistence {
         var legacyDeleted = false
         var writeCount = 0
+        var beforeWrite: suspend () -> Unit = {}
 
         override suspend fun readProfiles(): Result<SwitchProfileDocument?> {
             if (failProfileReads) return Result.failure(IllegalStateException("read failed"))
@@ -282,6 +356,7 @@ class SwitchProfileRepositoryTest {
         }
 
         override suspend fun writeProfiles(document: SwitchProfileDocument): Result<Unit> {
+            beforeWrite()
             if (failWrites) return Result.failure(IllegalStateException("write failed"))
             writeCount += 1
             stored = document
