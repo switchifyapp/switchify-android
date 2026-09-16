@@ -4,10 +4,7 @@ import android.content.Context
 import android.content.Intent
 
 class AppLauncher(private val context: Context) {
-    fun label(packageName: String): String = runCatching {
-        val info = context.packageManager.getApplicationInfo(packageName, 0)
-        context.packageManager.getApplicationLabel(info).toString()
-    }.getOrDefault(packageName)
+    fun label(packageName: String): String = AppLabelResolver(context).label(packageName)
 
     fun launch(packageName: String?): Boolean {
         if (packageName.isNullOrBlank()) return false

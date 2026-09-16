@@ -149,7 +149,7 @@ private fun SwitchEventItem(
         com.enaboapps.switchify.switches.CameraSwitchFacialGesture(switchEvent.code).getName()
     val primaryAction = SwitchAction(
         trigger = gestureName,
-        actionName = switchEvent.pressAction.getActionName()
+        actionName = switchEvent.pressAction.getDisplayName(LocalContext.current)
     )
 
     SwitchListItem(

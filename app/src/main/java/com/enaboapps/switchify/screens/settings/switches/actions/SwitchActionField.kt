@@ -192,11 +192,7 @@ private fun SwitchActionText(
         )
         Spacer(modifier = Modifier.height(Dimens.spaceXs))
         Text(
-            text = if (switchAction.id == SwitchAction.ACTION_LAUNCH_APP && switchAction.packageName != null) {
-                val context = androidx.compose.ui.platform.LocalContext.current
-                val label = com.enaboapps.switchify.service.utils.AppLauncher(context).label(switchAction.packageName)
-                stringResource(R.string.action_launch_app_target, label)
-            } else switchAction.getActionName(),
+            text = switchAction.getDisplayName(androidx.compose.ui.platform.LocalContext.current),
             style = MaterialTheme.typography.bodySmall
         )
         Spacer(modifier = Modifier.height(Dimens.spaceXs))
