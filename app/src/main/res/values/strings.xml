@@ -1196,6 +1196,8 @@
     <string name="action_launch_app_description">Open a chosen app.</string>
     <string name="app_launch_unavailable">This app is unavailable. Choose another app in switch settings.</string>
     <string name="choose_app">Choose app</string>
+    <string name="unavailable_app">Unavailable app</string>
+    <string name="unnamed_app">Unnamed app</string>
     <string name="search_apps">Search apps</string>
     <string name="no_matching_apps">No matching apps</string>
     <string name="app_scan_techniques_title">App-specific scanning</string>

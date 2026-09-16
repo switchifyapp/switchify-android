@@ -141,7 +141,7 @@ private fun SwitchEventItem(
 ) {
     val primaryAction = SwitchAction(
         trigger = "Press",
-        actionName = switchEvent.pressAction.getActionName()
+        actionName = switchEvent.pressAction.getDisplayName(LocalContext.current)
     )
 
     val secondaryActions = SwitchHoldPolicy.effectiveHoldActions(
@@ -150,7 +150,7 @@ private fun SwitchEventItem(
     ).map { holdAction ->
         SwitchAction(
             trigger = "Hold",
-            actionName = holdAction.getActionName()
+            actionName = holdAction.getDisplayName(LocalContext.current)
         )
     }
 

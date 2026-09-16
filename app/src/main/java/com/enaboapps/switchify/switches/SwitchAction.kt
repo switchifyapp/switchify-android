@@ -1,6 +1,8 @@
 package com.enaboapps.switchify.switches
 
+import android.content.Context
 import com.enaboapps.switchify.R
+import com.enaboapps.switchify.service.utils.AppLabelResolver
 import com.enaboapps.switchify.utils.Resources
 import com.google.gson.annotations.SerializedName
 
@@ -61,6 +63,11 @@ data class SwitchAction(
     }
 
     fun toMap(): Map<String, Any?> = mapOf("id" to id, "package_name" to packageName)
+
+    fun getDisplayName(context: Context): String =
+        if (id == ACTION_LAUNCH_APP && !packageName.isNullOrBlank()) {
+            context.getString(R.string.action_launch_app_target, AppLabelResolver(context).label(packageName))
+        } else getActionName()
 
     fun getActionName(): String = when (id) {
         ACTION_LAUNCH_APP -> Resources.getString(R.string.action_launch_app)
