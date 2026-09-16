@@ -98,6 +98,24 @@ internal class SwitchProfileRepository internal constructor(
         )
     }
 
+    suspend fun updateEvent(
+        profileId: String,
+        code: String,
+        transform: (SwitchEvent) -> SwitchEvent
+    ): Boolean = mutex.withLock {
+        if (!ensureInitializedLocked()) return@withLock false
+        val current = profile(profileId) ?: return@withLock false
+        val event = current.switches.firstOrNull { it.code == code } ?: return@withLock false
+        val updatedEvent = transform(event)
+        if (updatedEvent.code != code) return@withLock false
+        val updatedProfile = current.copy(
+            switches = current.switches.map { if (it.code == code) updatedEvent else it }
+        )
+        persist(_document.value.copy(
+            profiles = _document.value.profiles.map { if (it.id == profileId) updatedProfile else it }
+        ))
+    }
+
     suspend fun commitActiveProfile(profileId: String): Boolean = mutex.withLock {
         if (!ensureInitializedLocked()) return@withLock false
         if (profile(profileId) == null) return@withLock false
