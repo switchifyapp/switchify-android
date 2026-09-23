@@ -166,6 +166,63 @@ class ScanTreeNavigatorTest {
     }
 
     @Test
+    fun forwardWrapEntersCycleBreakBeforeFirstRow() {
+        val navigator = navigatorForRows(
+            row("first"),
+            row("last"),
+            settings = TestNavigatorSettings(),
+            hasCycleBreak = { true }
+        ).apply {
+            currentTreeItem = 1
+        }
+
+        navigator.moveSelectionToNextOrPrevious()
+
+        assertTrue(navigator.isInCycleBreak)
+        assertEquals(0, navigator.currentTreeItem)
+        assertTrue(navigator.hasCompletedCycle())
+        assertEquals(1, navigator.currentCycle)
+    }
+
+    @Test
+    fun reverseWrapSkipsCycleBreakButCountsCycle() {
+        val navigator = navigatorForRows(
+            row("first"),
+            row("last"),
+            settings = TestNavigatorSettings(),
+            hasCycleBreak = { true }
+        ).apply {
+            scanDirection = ScanDirection.UP
+        }
+
+        navigator.moveSelectionToNextOrPrevious()
+
+        assertFalse(navigator.isInCycleBreak)
+        assertEquals(1, navigator.currentTreeItem)
+        assertTrue(navigator.hasCompletedCycle())
+        assertEquals(1, navigator.currentCycle)
+    }
+
+    @Test
+    fun reverseEscapeDenialSkipsCycleBreak() {
+        val navigator = navigatorForRows(
+            row("first", "last"),
+            settings = TestNavigatorSettings(),
+            hasCycleBreak = { true }
+        ).apply {
+            isInTreeItem = true
+            scanDirection = ScanDirection.LEFT
+        }
+
+        navigator.moveSelectionToPrevious()
+        navigator.denyEscape()
+
+        assertFalse(navigator.isInCycleBreak)
+        assertEquals(1, navigator.currentColumn)
+        assertEquals(1, navigator.currentCycle)
+    }
+
+    @Test
     fun resetCancelsActiveCycleBreakExactlyOnce() {
         var cancellationCount = 0
         val navigator = navigatorForRows(
