@@ -1,6 +1,8 @@
 package com.enaboapps.switchify.service.remotebridge
 
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.os.RemoteCallbackList
 import com.enaboapps.switchify.remotebridge.ISwitchifyRemoteBridgeCallback
 import com.enaboapps.switchify.service.core.ServiceCore
@@ -27,6 +29,7 @@ object SwitchifyRemoteBridgeCoordinator {
     private var forwardingGenerationHighWater = 0L
     private var edgeSequence = 0L
     private val activePresses = mutableMapOf<Int, Long>()
+    internal var setScanningPaused: (Boolean) -> Unit = ::postScanningPaused
 
     fun attach(provider: SwitchEventProvider) = attach { provider.externalSwitches().mapNotNull { event -> event.code.toIntOrNull()?.let { it to event.name } } }
     internal fun attach(provider: () -> List<Pair<Int, String>>) = callbackDispatcher.dispatch {
@@ -80,12 +83,12 @@ object SwitchifyRemoteBridgeCoordinator {
             forwardingGeneration = generation
             edgeSequence = 0
             activePresses.clear()
-            ServiceCore.getScanningManager()?.pauseScanning()
+            setScanningPaused(true)
         } else {
             if (generation != forwardingGeneration) return false
             forwardingGeneration = 0
             activePresses.clear()
-            ServiceCore.getScanningManager()?.resumeScanning()
+            setScanningPaused(false)
         }
         true
     }
@@ -104,7 +107,7 @@ object SwitchifyRemoteBridgeCoordinator {
                 forwardingGeneration = 0
                 edgeSequence = 0
                 activePresses.clear()
-                ServiceCore.getScanningManager()?.resumeScanning()
+                setScanningPaused(false)
             }
         }
         publishSnapshot()
@@ -158,7 +161,17 @@ object SwitchifyRemoteBridgeCoordinator {
     private fun configuredSwitchFingerprintLocked() = externalSwitches?.invoke().orEmpty()
         .sortedWith(compareBy<Pair<Int, String>> { it.first }.thenBy { it.second })
         .take(8)
-    private fun clearActiveLocked() { repeatGeneration = 0; forwardingGeneration = 0; edgeSequence = 0; activePresses.clear(); ServiceCore.getScanningManager()?.resumeScanning() }
+    private fun clearActiveLocked() {
+        val wasForwarding = forwardingGeneration != 0L
+        repeatGeneration = 0; forwardingGeneration = 0; edgeSequence = 0; activePresses.clear()
+        if (wasForwarding) setScanningPaused(false)
+    }
+    private fun postScanningPaused(paused: Boolean) {
+        Handler(Looper.getMainLooper()).post {
+            val scanningManager = ServiceCore.getScanningManager() ?: return@post
+            if (paused) scanningManager.pauseScanning() else scanningManager.resumeScanning()
+        }
+    }
     private fun publishSnapshot() {
         if (synchronized(lock) { callbackCount == 0 }) return
         val value = snapshot()
