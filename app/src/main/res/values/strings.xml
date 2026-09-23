@@ -991,6 +991,7 @@
     <string name="menu_item_recent_apps_description">Show the recent apps switcher</string>
     <string name="menu_item_notifications_description">Pull down the notification shade</string>
     <string name="menu_item_open_assistant_description">Open the device voice assistant</string>
+    <string name="hud_assistant_unavailable">No voice assistant is available on this device</string>
     <string name="menu_item_quick_settings_description">Open the quick settings panel</string>
     <string name="menu_item_lock_screen_description">Lock the screen now</string>
     <string name="menu_item_power_dialog_description">Open the power options dialog</string>
