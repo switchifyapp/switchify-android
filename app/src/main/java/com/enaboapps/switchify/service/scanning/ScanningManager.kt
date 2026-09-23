@@ -11,10 +11,10 @@ import com.enaboapps.switchify.service.gestures.GestureLockManager
 import com.enaboapps.switchify.service.gestures.GestureManager
 import com.enaboapps.switchify.service.gestures.GestureRepeatManager
 import com.enaboapps.switchify.service.gestures.visuals.GestureTargetIndicatorController
-import com.enaboapps.switchify.service.pcswitchcontrol.PcSwitchControlLauncher
 import com.enaboapps.switchify.service.menu.MenuManager
-import com.enaboapps.switchify.service.menu.menus.main.PcControlLauncher
 import com.enaboapps.switchify.service.selection.SelectionHandler
+import com.enaboapps.switchify.service.scanning.preferences.ScanPreferenceEffect
+import com.enaboapps.switchify.service.scanning.preferences.ScanPreferenceUpdatePlan
 import com.enaboapps.switchify.service.techniques.AccessTechnique
 import com.enaboapps.switchify.service.techniques.AccessTechniqueInterface
 import com.enaboapps.switchify.service.techniques.ActiveAccessTechnique
@@ -47,14 +47,14 @@ class ScanningManager(
     // Active scan method manager
     private val activeScanMethod = ActiveAccessTechnique(accessibilityService)
 
-    private val pcControlLauncher = PcControlLauncher(
-        accessibilityService,
-        accessibilityService.getServiceScope()
+
+    private val appScanTechniqueOverrideCoordinator = AppScanTechniqueOverrideCoordinator(
+        ScanningManagerScanModeController(this),
+        AppScanTechniqueSettings(accessibilityService)
     )
-    private val pcSwitchControlLauncher = PcSwitchControlLauncher(
-        accessibilityService,
-        accessibilityService.getServiceScope()
-    )
+
+    @Volatile
+    private var foregroundPackageName: String? = null
 
     private var moveRepeatManager: MoveRepeatManager? = MoveRepeatManager(accessibilityService)
 
@@ -68,7 +68,7 @@ class ScanningManager(
         get() = activeScanMethod.currentAccessTechnique
 
     /**
-     * Provides access to the active scan method manager for head control integration
+     * Provides access to the active scan method manager
      */
     fun getActiveScanMethod(): ActiveAccessTechnique = activeScanMethod
 
@@ -95,8 +95,8 @@ class ScanningManager(
      *
      * @param nodes List of Node instances representing the current screen layout.
      */
-    fun updateActionableNodes(nodes: List<Node>) {
-        activeScanMethod.updateActionableNodes(nodes)
+    fun updateActionableNodes(nodes: List<Node>, source: String? = null) {
+        activeScanMethod.updateActionableNodes(nodes, source)
     }
 
     /**
@@ -104,36 +104,89 @@ class ScanningManager(
      *
      * @param nodes List of Node instances representing the current screen layout.
      */
-    fun updateKeyboardNodes(nodes: List<Node>) {
-        activeScanMethod.updateKeyboardNodes(nodes)
+    fun updateKeyboardNodes(nodes: List<Node>, source: String? = null) {
+        activeScanMethod.updateKeyboardNodes(nodes, source)
     }
 
     fun setPointScanType() {
-        setType(AccessTechnique.Technique.POINT_SCAN)
+        if (!appScanTechniqueOverrideCoordinator.selectForCurrentVisit(AccessTechnique.Technique.POINT_SCAN)) {
+            setType(AccessTechnique.Technique.POINT_SCAN, TechniqueChange.PERSISTENT)
+        }
     }
 
     /**
      * Sets the scanning method to radar type.
      */
     fun setRadarType() {
-        setType(AccessTechnique.Technique.RADAR)
+        if (!appScanTechniqueOverrideCoordinator.selectForCurrentVisit(AccessTechnique.Technique.RADAR)) {
+            setType(AccessTechnique.Technique.RADAR, TechniqueChange.PERSISTENT)
+        }
     }
 
     /**
      * Sets the scanning method to item scan type and starts the timeout to revert to point scan.
      */
     fun setItemScanType() {
-        setType(AccessTechnique.Technique.ITEM_SCAN)
-        SelectionHandler.setStartScanningAction { activeScanMethod.currentAccessTechnique.startAutoScanning() }
-        activeScanMethod.getNodeScanner().startTimeoutToRevertToCursor()
+        if (!appScanTechniqueOverrideCoordinator.selectForCurrentVisit(AccessTechnique.Technique.ITEM_SCAN)) {
+            setType(AccessTechnique.Technique.ITEM_SCAN, TechniqueChange.PERSISTENT)
+        }
     }
 
+    internal fun setTemporaryScanType(type: String) {
+        setType(type, TechniqueChange.TEMPORARY)
+    }
+
+    internal fun restoreTemporaryScanType(type: String) {
+        setType(type, TechniqueChange.RESTORE)
+    }
+
+    internal suspend fun updateForegroundApplication(packageName: String?) {
+        foregroundPackageName = packageName
+        appScanTechniqueOverrideCoordinator.onForegroundApplicationChanged(packageName)
+    }
+
+    fun currentForegroundPackage(): String? = foregroundPackageName
+
+    internal fun clearAppScanTechniqueOverride() {
+        foregroundPackageName = null
+        appScanTechniqueOverrideCoordinator.clear()
+    }
+
+    internal fun refreshAppScanTechniqueOverride() {
+        appScanTechniqueOverrideCoordinator.refreshForegroundOverride()
+    }
+
+    internal fun applyPreferenceUpdate(plan: ScanPreferenceUpdatePlan) {
+        if (plan.contains(ScanPreferenceEffect.REFRESH_APP_RULES)) {
+            appScanTechniqueOverrideCoordinator.refreshForegroundOverride()
+        }
+        if (plan.contains(ScanPreferenceEffect.REFRESH_HIGHLIGHT)) {
+            NodeScannerUI.instance.refreshPreferences()
+        }
+        if (plan.contains(ScanPreferenceEffect.RESET_SCAN_MODE)) {
+            activeScanMethod.resetForScanModeChange()
+            return
+        }
+        if (plan.contains(ScanPreferenceEffect.REFRESH_ITEM_STRUCTURE)) {
+            activeScanMethod.refreshItemScanConfiguration()
+        } else if (plan.contains(ScanPreferenceEffect.REFRESH_ITEM_TIMING)) {
+            activeScanMethod.refreshItemScanTiming()
+        }
+        if (plan.contains(ScanPreferenceEffect.REFRESH_POINT_STRUCTURE)) {
+            activeScanMethod.refreshPointScanStructure()
+        } else if (plan.contains(ScanPreferenceEffect.REFRESH_POINT_TIMING)) {
+            activeScanMethod.refreshPointScanTiming()
+        }
+        if (plan.contains(ScanPreferenceEffect.RESET_RADAR_ORIGIN)) {
+            activeScanMethod.refreshRadarOrigin()
+        }
+    }
 
     /**
      * Sets the scanning method to menu type.
      */
     fun setMenuType() {
-        setType(AccessTechnique.Technique.MENU)
+        setType(AccessTechnique.Technique.MENU, TechniqueChange.PERSISTENT)
     }
 
     /**
@@ -141,12 +194,20 @@ class ScanningManager(
      *
      * @param type The AccessTechnique.Technique to set. Must be a valid type.
      */
-    private fun setType(type: String) {
+    private fun setType(type: String, change: TechniqueChange) {
         val previousType = AccessTechnique.getCurrentTechnique()
         startAcceptingActionsTimeout()
-        AccessTechnique.setCurrentTechnique(type)
+        when (change) {
+            TechniqueChange.PERSISTENT -> AccessTechnique.setCurrentTechnique(type)
+            TechniqueChange.TEMPORARY -> AccessTechnique.setTemporaryTechnique(type)
+            TechniqueChange.RESTORE -> AccessTechnique.restoreTemporaryTechnique(type)
+        }
         NodeScannerUI.instance.hideAll()
         activeScanMethod.resetNodeScanner()
+        if (type == AccessTechnique.Technique.ITEM_SCAN) {
+            SelectionHandler.setStartScanningAction { activeScanMethod.currentAccessTechnique.startAutoScanning() }
+            activeScanMethod.getNodeScanner().startTimeoutToRevertToCursor()
+        }
         if (previousType != type) {
             Logger.log(
                 LogEvent.ScanModeChanged,
@@ -205,10 +266,17 @@ class ScanningManager(
     fun performAction(action: SwitchAction) {
         if (!isAcceptingActions) return
 
+        if (ServiceCore.getSwitchProfileActivationCoordinator()?.intercept(action) == true) return
+
         if (GestureManager.instance.performGestureLockAction()) return
 
         try {
             when (action.id) {
+                SwitchAction.ACTION_LAUNCH_APP -> {
+                    if (!com.enaboapps.switchify.service.utils.AppLauncher(accessibilityService).launch(action.packageName)) {
+                        android.widget.Toast.makeText(accessibilityService, com.enaboapps.switchify.R.string.app_launch_unavailable, android.widget.Toast.LENGTH_SHORT).show()
+                    }
+                }
                 SwitchAction.ACTION_SELECT -> select()
                 SwitchAction.ACTION_STOP_SCANNING -> currentScanMethod.stopScanningAndReset()
                 SwitchAction.ACTION_CHANGE_SCANNING_DIRECTION -> currentScanMethod.swapScanDirection()
@@ -236,8 +304,6 @@ class ScanningManager(
                 SwitchAction.ACTION_SYS_NOTIFICATIONS -> GlobalActionManager.openNotifications()
                 SwitchAction.ACTION_SYS_LOCK_SCREEN -> GlobalActionManager.lockScreen()
                 SwitchAction.ACTION_SYS_HEADSET_HOOK -> GlobalActionManager.toggleMediaPlayback()
-                SwitchAction.ACTION_CONTROL_PC -> pcControlLauncher.open()
-                SwitchAction.ACTION_PC_SWITCH_CONTROL -> pcSwitchControlLauncher.open()
                 SwitchAction.ACTION_PAUSE -> {
                     Log.d(TAG, "ACTION_PAUSE triggered")
                     val pauseManager = ServiceCore.getPauseManager()
@@ -332,8 +398,15 @@ class ScanningManager(
      * Shuts down the scanning manager, stopping all processes and cleaning up resources.
      */
     fun shutdown() {
+        clearAppScanTechniqueOverride()
         pauseScanning()
         activeScanMethod.destroy()
         moveRepeatManager = null
+    }
+
+    private enum class TechniqueChange {
+        PERSISTENT,
+        TEMPORARY,
+        RESTORE
     }
 }

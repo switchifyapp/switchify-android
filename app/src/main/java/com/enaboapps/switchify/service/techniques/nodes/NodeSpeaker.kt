@@ -151,6 +151,30 @@ object NodeSpeaker {
     }
 
     /**
+     * Speaks plain text, such as a service message, with the same voice
+     * settings as node announcements.
+     *
+     * @param text The text to speak.
+     * @param queueMode The queue mode to use (QUEUE_FLUSH or QUEUE_ADD).
+     * @return The utterance ID if speaking was initiated, null otherwise.
+     */
+    fun speakText(
+        text: String,
+        queueMode: Int = TextToSpeech.QUEUE_FLUSH
+    ): String? {
+        if (!isInitialized || text.isBlank()) {
+            return null
+        }
+
+        val utteranceId = UUID.randomUUID().toString()
+        val params = Bundle().apply {
+            putFloat(TextToSpeech.Engine.KEY_PARAM_VOLUME, 1.0f)
+        }
+        tts?.speak(text, queueMode, params, utteranceId)
+        return utteranceId
+    }
+
+    /**
      * Stops speaking immediately.
      */
     fun stopSpeaking() {

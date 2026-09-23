@@ -57,6 +57,12 @@ abstract fun menuItemConfigurationDao(): MenuItemConfigurationDao
                     DATABASE_NAME
                 )
                     .addMigrations(MIGRATION_1_2)
+                    .addCallback(object : Callback() {
+                        override fun onOpen(db: SupportSQLiteDatabase) {
+                            super.onOpen(db)
+                            db.execSQL("DELETE FROM menu_item_configurations WHERE item_id IN ('control_pc', 'pc_switch_forwarding')")
+                        }
+                    })
                     .build()
                 INSTANCE = instance
                 instance

@@ -607,6 +607,20 @@ class SwitchifyAccessibilityWindow private constructor() : LifecycleOwner, Saved
             surfaceControlBackend?.canAttach(target) == true
     }
 
+    /**
+     * Synchronous answer to whether a subsequent [addView] for [target] would
+     * attach, mirroring the branches [addView] takes. Root-backed targets
+     * always attach (they wait for the root like every other overlay);
+     * surface-backed targets need a root token, a free surface slot, and a
+     * backend that knows the display. Main thread only.
+     */
+    fun canAttachOverlay(target: OverlayTarget): Boolean {
+        if (!shouldUseSurfaceBackend(target)) return true
+        return baseLayout?.windowToken != null &&
+            SurfaceOverlayLimit.canAddSurfaceOverlay(surfaceOverlayHandles.size) &&
+            surfaceControlBackend?.canAttach(target) == true
+    }
+
     private fun postIfCurrentGeneration(block: () -> Unit) {
         val generation = windowGeneration
         mainHandler.post {

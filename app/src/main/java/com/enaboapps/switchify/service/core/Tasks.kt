@@ -3,7 +3,7 @@ package com.enaboapps.switchify.service.core
 import com.enaboapps.switchify.service.gestures.AutoScrollManager
 import com.enaboapps.switchify.service.gestures.GestureRepeatManager
 import com.enaboapps.switchify.service.gestures.patterns.GesturePatternManager
-import com.enaboapps.switchify.pc.PcMouseRepeatManager
+import com.enaboapps.switchify.service.remotebridge.SwitchifyRemoteBridgeCoordinator
 
 class Tasks private constructor() {
     companion object {
@@ -17,14 +17,13 @@ class Tasks private constructor() {
     }
 
     fun hasActiveStoppableTask(): Boolean {
-        return PcMouseRepeatManager.instance.isRepeating() ||
-                GestureRepeatManager.instance.isRepeatSessionActive() ||
+        return GestureRepeatManager.instance.isRepeatSessionActive() ||
                 AutoScrollManager.getInstance().isAutoScrolling() ||
                 GesturePatternManager.isGesturePatternActive()
     }
 
     fun stopActiveStoppableTask(): Boolean {
-        if (PcMouseRepeatManager.instance.stopForSwitchPress()) return true
+        if (SwitchifyRemoteBridgeCoordinator.stopRemoteRepeatForSwitch()) return true
         if (GestureRepeatManager.instance.stopRepeatForSwitchPress()) return true
         if (AutoScrollManager.getInstance().stopAutoScroll()) return true
         if (GesturePatternManager.advanceToNextStep()) return true

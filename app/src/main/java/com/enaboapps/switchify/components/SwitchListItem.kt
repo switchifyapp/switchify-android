@@ -29,6 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -193,8 +194,9 @@ fun SwitchListItem(
                             horizontalArrangement = Arrangement.Center
                         ) {
                             Text(
-                                text = stringResource(
-                                    R.string.switch_more_actions,
+                                text = pluralStringResource(
+                                    R.plurals.switch_more_actions,
+                                    secondaryActions.size - 2,
                                     secondaryActions.size - 2
                                 ),
                                 style = MaterialTheme.typography.bodySmall,

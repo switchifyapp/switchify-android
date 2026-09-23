@@ -1,6 +1,7 @@
 package com.enaboapps.switchify.service.gestures
 
 import android.accessibilityservice.AccessibilityService
+import android.annotation.SuppressLint
 import android.graphics.PointF
 import android.util.Log
 import com.enaboapps.switchify.service.core.SwitchifyAccessibilityService
@@ -17,7 +18,13 @@ object PinchGesturePerformer {
     private const val TAG = "PinchGesturePerformer"
     private const val PINCH_AMOUNT_DP = 300 // Pinch amount in density-independent pixels (dp)
 
+    @SuppressLint("StaticFieldLeak")
     private var pinchVisual: PinchVisual? = null
+
+    fun cleanup() {
+        pinchVisual?.stop()
+        pinchVisual = null
+    }
 
     /**
      * Perform a pinch action using the unified gesture execution pipeline.

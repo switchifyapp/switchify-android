@@ -23,14 +23,14 @@ object MenuItemRegistry {
             MenuItemDefinition(MenuConstants.ItemIds.Main.GESTURES, labelResource = R.string.menu_title_gestures, descriptionResource = R.string.menu_item_gestures_description, drawableId = R.drawable.ic_gestures),
             MenuItemDefinition(MenuConstants.ItemIds.Main.SCROLL, labelResource = R.string.menu_title_scroll, descriptionResource = R.string.menu_item_scroll_description, drawableId = R.drawable.ic_scroll),
             MenuItemDefinition(MenuConstants.ItemIds.Main.FAVOURITE_APPS, labelResource = R.string.menu_title_favourite_apps, descriptionResource = R.string.menu_item_favourite_apps_description, drawableId = R.drawable.ic_favourite_apps),
+            MenuItemDefinition(MenuConstants.ItemIds.Main.SWITCH_PROFILE, labelResource = R.string.menu_item_switch_profile, descriptionResource = R.string.menu_item_switch_profile_description, drawableId = R.drawable.ic_hand_switch_press),
             MenuItemDefinition(MenuConstants.ItemIds.Main.GESTURE_PATTERNS, labelResource = R.string.gesture_patterns_title, descriptionResource = R.string.menu_item_gesture_patterns_description, drawableId = R.drawable.ic_gesture_patterns),
             MenuItemDefinition(MenuConstants.ItemIds.Main.DEVICE, labelResource = R.string.menu_title_device, descriptionResource = R.string.menu_item_device_description, drawableId = R.drawable.ic_device),
             MenuItemDefinition(MenuConstants.ItemIds.Main.SETTINGS, labelResource = R.string.menu_item_settings, descriptionResource = R.string.menu_item_settings_description, drawableId = R.drawable.ic_settings),
             MenuItemDefinition(MenuConstants.ItemIds.Main.MEDIA_CONTROL, labelResource = R.string.menu_title_media_control, descriptionResource = R.string.menu_item_media_control_description, drawableId = R.drawable.ic_media_control),
-            MenuItemDefinition(MenuConstants.ItemIds.Main.CONTROL_PC, labelResource = R.string.menu_item_control_pc, descriptionResource = R.string.menu_item_control_pc_description, drawableId = R.drawable.ic_control_pc),
-            MenuItemDefinition(MenuConstants.ItemIds.Main.PC_SWITCH_CONTROL, labelResource = R.string.menu_item_pc_switch_control, descriptionResource = R.string.menu_item_pc_switch_control_description, drawableId = R.drawable.ic_control_pc),
             MenuItemDefinition(MenuConstants.ItemIds.Main.EDIT, labelResource = R.string.menu_title_edit, descriptionResource = R.string.menu_item_edit_description, drawableId = R.drawable.ic_edit),
             MenuItemDefinition(MenuConstants.ItemIds.Main.AI, labelResource = R.string.menu_title_ai, descriptionResource = R.string.menu_item_ai_description, drawableId = R.drawable.ic_ai),
+            MenuItemDefinition(MenuConstants.ItemIds.Main.MEDIA_PLAY_PAUSE, labelResource = R.string.menu_item_media_play_pause, descriptionResource = R.string.menu_item_media_play_pause_description, drawableId = R.drawable.ic_play_pause),
             MenuItemDefinition(MenuConstants.ItemIds.Main.PAUSE, labelResource = R.string.menu_item_pause, descriptionResource = R.string.menu_item_pause_description, drawableId = R.drawable.ic_pause)
         )
     }
@@ -38,14 +38,13 @@ object MenuItemRegistry {
     /**
      * Provides menu item definitions for the Settings submenu.
      *
-     * @return A list of MenuItemDefinition for the technique switches and head-control toggle.
+     * @return A list of MenuItemDefinition for the settings menu.
      */
     fun getSettingsMenuDefinitions(): List<MenuItemDefinition> {
         return listOf(
             MenuItemDefinition(MenuConstants.ItemIds.Settings.SWITCH_TO_ITEM_SCAN, labelResource = R.string.access_technique_item_scan, descriptionResource = R.string.menu_item_switch_to_item_scan_description, drawableId = R.drawable.ic_item_scan),
             MenuItemDefinition(MenuConstants.ItemIds.Settings.SWITCH_TO_RADAR, labelResource = R.string.access_technique_radar, descriptionResource = R.string.menu_item_switch_to_radar_description, drawableId = R.drawable.ic_radar),
             MenuItemDefinition(MenuConstants.ItemIds.Settings.SWITCH_TO_POINT_SCAN, labelResource = R.string.access_technique_point_scan, descriptionResource = R.string.menu_item_switch_to_point_scan_description, drawableId = R.drawable.ic_point_scan),
-            MenuItemDefinition(MenuConstants.ItemIds.Settings.TOGGLE_HEAD_CONTROL, labelResource = R.string.menu_item_enable_head_control, descriptionResource = R.string.menu_item_toggle_head_control_description, drawableId = R.drawable.ic_head_control_pointer),
             MenuItemDefinition(MenuConstants.ItemIds.Settings.TOGGLE_GROUP_SCAN, labelResource = R.string.menu_item_group_scan, descriptionResource = R.string.menu_item_group_scan_description, drawableId = R.drawable.ic_toggle_group_scan),
             MenuItemDefinition(MenuConstants.ItemIds.Settings.TOGGLE_GESTURE_LOCK_REARM, labelResource = R.string.preference_title_gesture_lock_auto_reenable, descriptionResource = R.string.menu_item_gesture_lock_rearm_description, drawableId = R.drawable.ic_toggle_gesture_lock),
             MenuItemDefinition(MenuConstants.ItemIds.Settings.TOGGLE_GESTURE_REPEAT, labelResource = R.string.preference_title_gesture_repeat, descriptionResource = R.string.menu_item_gesture_repeat_description, drawableId = R.drawable.ic_toggle_gesture_lock)

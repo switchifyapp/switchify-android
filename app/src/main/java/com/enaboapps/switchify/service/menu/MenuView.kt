@@ -1,6 +1,9 @@
 package com.enaboapps.switchify.service.menu
 
+import android.content.ComponentCallbacks
 import android.content.Context
+import android.content.SharedPreferences
+import android.content.res.Configuration
 import android.view.ViewGroup
 import android.view.ViewGroup.LayoutParams.WRAP_CONTENT
 import android.view.ViewTreeObserver
@@ -12,328 +15,246 @@ import com.enaboapps.switchify.service.menu.structure.MenuConstants
 import com.enaboapps.switchify.service.scanning.ScanNodeInterface
 import com.enaboapps.switchify.service.scanning.ScanningManager
 import com.enaboapps.switchify.service.scanning.tree.ScanTree
+import com.enaboapps.switchify.service.utils.ScreenUtils
 import com.enaboapps.switchify.service.window.MenuHighlightHud
 import com.enaboapps.switchify.utils.LogEvent
 import com.enaboapps.switchify.utils.Logger
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.yield
 
-/**
- * Interface for listening to menu view closure events.
- */
 interface MenuViewListener {
-    /**
-     * Called when the menu view is closed.
-     */
     fun onMenuViewClosed()
 }
 
-/**
- * MenuView class responsible for managing and displaying the menu interface.
- * This class handles the creation, display, and navigation of menu pages,
- * as well as the dynamic resizing of the menu when pages change.
- *
- * @property context The application context.
- * @property menu The base menu to be displayed.
- */
-class MenuView(
-    val context: Context,
-    private val menu: BaseMenu
-) {
-    /** Getter for menu ID (used for stats tracking) */
-    val menuId: String?
-        get() = menu.menuId
-
-    /** Listener for menu view events */
+class MenuView(val context: Context, private val menu: BaseMenu) {
+    val menuId: String? get() = menu.menuId
     var menuViewListener: MenuViewListener? = null
-
-    /** Base layout for the menu */
-    private var baseLayout = LinearLayout(context)
-
-    /** Current page index */
-    private var currentPage = 0
-
-    /** Total number of pages */
-    private var numOfPages = 0
-
-    /** List of menu pages */
-    private val menuPages = mutableListOf<MenuPage>()
-
-    /** Scan tree for managing menu item selection */
-    val scanTree = ScanTree(context)
-
-    /** Preference manager */
+    val scanTree = ScanTree(context, visualEffectsEnabled = true)
     private val preferenceManager = PreferenceManager(context)
+    private var baseLayout = LinearLayout(context)
+    private var currentPage = 0
+    private var retainedItems: List<MenuItem>? = null
+    private var menuPages = emptyList<MenuPage>()
+    private var scope: CoroutineScope? = null
+    private val renderGeneration = MenuRenderGeneration()
+    private var preDrawListener: ViewTreeObserver.OnPreDrawListener? = null
+    private var pendingTree = false
+    private var lastPositionedSize: Pair<Int, Int>? = null
+    private var reflowPending = false
 
-    /** Flag to track if setup has been completed */
-    private var isSetupComplete = false
+    private val preferenceListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+        if (key == null || key == PreferenceManager.PREFERENCE_KEY_MENU_SIZE_SCALE ||
+            key == PreferenceManager.PREFERENCE_KEY_MENU_TRANSPARENCY ||
+            key == PreferenceManager.PREFERENCE_KEY_ROW_COLUMN_SCAN ||
+            key == PreferenceManager.PREFERENCE_KEY_GROUP_SCAN) requestReflow()
+    }
 
-    /**
-     * Sets up the menu by retrieving menu items and creating menu pages.
-     * This is now called when the menu is opened, not during initialization.
-     */
-    private fun setup(onComplete: () -> Unit) {
-        CoroutineScope(Dispatchers.Main).launch {
+    private val configurationListener = object : ComponentCallbacks {
+        override fun onConfigurationChanged(newConfig: Configuration) {
+            requestReflow()
+        }
+        @Deprecated("No menu-specific low-memory work")
+        override fun onLowMemory() = Unit
+    }
+
+    private fun setup() {
+        val generation = renderGeneration.current
+        scope?.launch {
             val staticItems = menu.getMenuItems()
-
-            // Check if we need to load dynamic items
-            try {
-                val dynamicItems = menu.getDynamicMenuItems()
-                if (dynamicItems != null) {
-                    // We have dynamic items to load
-                    val allItems = staticItems + dynamicItems
-                    createMenuPages(allItems)
-                } else {
-                    // No dynamic loading needed, just use static items
-                    createMenuPages(staticItems)
-                }
-            } catch (e: Exception) {
-                // If dynamic loading fails, fall back to static items
-                Logger.log(
-                    LogEvent.MenuDynamicItemsLoadFailed,
-                    data = mapOf(
-                        "result" to "failure",
-                        "reason" to "dynamic_items_exception",
-                        "menu_id" to menuId,
-                        "static_items_count" to staticItems.size
-                    ),
-                    throwable = e
-                )
-                if (staticItems.isNotEmpty()) {
-                    createMenuPages(staticItems)
-                }
+            val items = try {
+                staticItems + menu.getDynamicMenuItems().orEmpty()
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (failure: Exception) {
+                Logger.log(LogEvent.MenuDynamicItemsLoadFailed,
+                    data = mapOf("result" to "failure", "reason" to "dynamic_items_exception",
+                        "menu_id" to menuId, "static_items_count" to staticItems.size),
+                    throwable = failure)
+                staticItems
             }
-
-            isSetupComplete = true
-            onComplete()
-        }
-    }
-
-    /**
-     * Creates menu pages from the provided flat list of menu items. Items are
-     * paginated to the row-count [MenuSurfaceBudget.rowsPerPage] reports as
-     * fitting on one page; each page also gets the menu's close manipulator
-     * in its nav row when the menu opts into it.
-     *
-     * @param menuItems List of MenuItem objects to be displayed in the menu.
-     */
-    private fun createMenuPages(menuItems: List<MenuItem>) {
-        val itemSize = MenuSizeManager.getItemSize(context)
-        val smallItemSize = MenuSizeManager.getSmallItemSize(context)
-        val titleResId = MenuConstants.getTitleResource(menu.menuId)
-        // The same chrome shows on every page of a menu by design, so the
-        // pagination budget is identical across pages. We don't yet know
-        // whether pagination will actually kick in here (chicken/egg), so we
-        // assume the nav row will be present — that's a slight over-budget
-        // which only makes pagination a hair more conservative.
-        val rowBudget = MenuSurfaceBudget.rowsPerPage(
-            context = context,
-            itemSize = itemSize,
-            smallItemSize = smallItemSize,
-            hasTitle = titleResId != null,
-            willShowNavRow = true
-        )
-        val perPage = rowBudget
-        numOfPages = ((menuItems.size + perPage - 1) / perPage).coerceAtLeast(1)
-        for (i in 0 until numOfPages) {
-            val start = i * perPage
-            val end = ((i + 1) * perPage).coerceAtMost(menuItems.size)
-            val pageItems = menuItems.subList(start, end)
-            val closeItem = if (menu.shouldShowNavMenuItems()) menu.buildCloseItem() else null
-
-            menuPages.add(
-                MenuPage(
-                    context = context,
-                    contentItems = pageItems,
-                    closeItem = closeItem,
-                    titleResId = titleResId,
-                    pageIndex = i,
-                    maxPageIndex = numOfPages - 1,
-                    onMenuPageChanged = ::onMenuPageChanged
-                )
-            )
-        }
-    }
-
-    /**
-     * Callback function triggered when a menu page is changed.
-     * Updates the current page index and inflates the new menu page.
-     *
-     * @param pageIndex The index of the new page.
-     */
-    private fun onMenuPageChanged(pageIndex: Int) {
-        currentPage = pageIndex
-        inflateMenu()
-    }
-
-    /**
-     * Inflates the current menu page and sets up the scan tree.
-     * This method is responsible for adding the current page's layout to the base layout
-     * and setting up a ViewTreeObserver to handle layout changes.
-     */
-    private fun inflateMenu() {
-        scanTree.clearTree()
-        baseLayout.removeAllViews()
-
-        val pageExists = currentPage < menuPages.size
-        if (pageExists) {
-            val isTransparent = preferenceManager.getBooleanValue(
-                PreferenceManager.PREFERENCE_KEY_MENU_TRANSPARENCY
-            )
-            val pageLayout = menuPages[currentPage].getMenuLayout(isTransparent)
-            baseLayout.addView(
-                pageLayout,
-                ViewGroup.LayoutParams(
-                    WRAP_CONTENT,
-                    WRAP_CONTENT
-                )
-            )
-
-            pageLayout.viewTreeObserver.addOnGlobalLayoutListener(object :
-                ViewTreeObserver.OnGlobalLayoutListener {
-                override fun onGlobalLayout() {
-                    pageLayout.viewTreeObserver.removeOnGlobalLayoutListener(this)
-                    resizeAndRepositionMenu()
-                }
-            })
-        }
-
-        // Use coroutine for delayed tree building after layout completion. The delay
-        // gives each MenuItem's composeView time to report real on-screen
-        // coordinates via getLocationOnScreen() before the spatial scan tree is
-        // built from them.
-        CoroutineScope(Dispatchers.Main).launch {
-            delay(500)
-            if (pageExists) {
-                scanTree.buildTree(menuPages[currentPage].translateMenuItemsToNodes(), 0)
-
-                // Notify observers that menu nodes changed
-                MenuManager.getInstance().notifyMenuNodesChanged(this@MenuView)
-            } else {
-                MenuManager.getInstance().closeMenuHierarchy()
-            }
-        }
-    }
-
-    /**
-     * Creates the base LinearLayout for the menu.
-     * Sets the layout parameters to WRAP_CONTENT for both width and height to allow dynamic resizing.
-     */
-    private fun createLinearLayout() {
-        baseLayout = LinearLayout(context).apply {
-            orientation = LinearLayout.VERTICAL
-            layoutParams = ViewGroup.LayoutParams(
-                WRAP_CONTENT,
-                WRAP_CONTENT
-            )
-        }
-    }
-
-    /**
-     * Resizes and repositions the menu on the screen.
-     * This method ensures the menu is properly sized,
-     * handling both larger and smaller page transitions.
-     * It also ensures the menu is positioned correctly on the screen.
-     */
-    private fun resizeAndRepositionMenu() {
-        baseLayout.post {
-            val screenWidth = context.resources.displayMetrics.widthPixels
-            val screenHeight = context.resources.displayMetrics.heightPixels
-            val menuWidth = baseLayout.width
-            val menuHeight = baseLayout.height
-
-            // The MenuHighlightHud occupies the top of the screen; keep the
-            // menu surface below its footprint so the two never overlap.
-            val topReserved = MenuHighlightHud.reservedTopPx(context)
-
-            val offset = 50
-            val gesturePoint = GesturePoint.getPoint()
-            val preferredX = if (gesturePoint.x + menuWidth + offset > screenWidth) {
-                screenWidth - menuWidth.toFloat() - offset
-            } else {
-                gesturePoint.x + offset
-            }
-            val x = MenuHorizontalPositionCalculator.clamp(
-                preferredX = preferredX.toInt(),
-                menuWidth = menuWidth,
-                screenWidth = screenWidth
-            )
-            var y = if (gesturePoint.y + menuHeight + offset > screenHeight) {
-                GesturePoint.y - menuHeight.toFloat() - offset
-            } else {
-                gesturePoint.y + offset
-            }
-
-            // Clamp to the HUD-reserved top zone instead of 0, then to the
-            // bottom of the screen.
-            if (y < topReserved) {
-                y = topReserved.toFloat()
-            } else if (y + menuHeight > screenHeight) {
-                y = (screenHeight - menuHeight).toFloat()
-            }
-
-            MenuViewHandler.instance.updateView(
-                baseLayout,
-                x,
-                y.toInt(),
-                WRAP_CONTENT,
-                WRAP_CONTENT
-            )
-        }
-    }
-
-    /**
-     * Opens the menu.
-     * This method initializes the menu, adds it to the window, and inflates the first page.
-     *
-     * @param scanningManager The ScanningManager instance to set the menu type.
-     */
-    fun open(scanningManager: ScanningManager) {
-        scanningManager.setMenuType()
-        createLinearLayout()
-        MenuViewHandler.instance.setup(context)
-        MenuViewHandler.instance.addViewOffScreen(baseLayout)
-
-        if (!isSetupComplete) {
-            // Setup hasn't been done yet, do it now
-            setup {
-                // Setup complete, now inflate the menu
-                inflateMenu()
-            }
-        } else {
-            // Setup already complete, just inflate
+            if (!renderGeneration.isCurrent(generation)) return@launch
+            retainedItems = items
+            createMenuPages(items)
             inflateMenu()
         }
     }
 
-    /**
-     * Get selectable nodes for head control navigation
-     * @return List of nodes that can be selected on the current page
-     */
-    fun getSelectableNodes(): List<ScanNodeInterface> {
-        android.util.Log.d(
-            "MenuView",
-            "getSelectableNodes called - currentPage: $currentPage, menuPages.size: ${menuPages.size}"
-        )
-        return if (currentPage < menuPages.size) {
-            val nodes = menuPages[currentPage].translateMenuItemsToNodes()
-            android.util.Log.d("MenuView", "translateMenuItemsToNodes returned ${nodes.size} nodes")
-            nodes
-        } else {
-            android.util.Log.d("MenuView", "currentPage >= menuPages.size, returning empty list")
-            emptyList()
+    private fun createMenuPages(items: List<MenuItem>) {
+        val contextualIds = menu.contextualItemIds()
+        val contextual = items.filter { it.id in contextualIds }
+        val back = items.firstOrNull { it.id == "previous_menu_first" }
+        val content = items.filterNot { it.id in contextualIds || it === back }
+        val close = if (menu.shouldShowNavMenuItems()) menu.buildCloseItem() else null
+        val title = MenuConstants.getTitleResource(menu.menuId)
+            ?.takeIf { MenuGridMeasurer.showsTitle(context, menu.menuId) }
+        var metrics = MenuGridMeasurer.measure(context, content, contextual.size,
+            title != null, close != null || back != null)
+        if (metrics.grid.pages(content).size > 1 && close == null && back == null) {
+            metrics = MenuGridMeasurer.measure(context, content, contextual.size, title != null, true)
+        }
+        val pages = metrics.grid.pages(content)
+        currentPage = metrics.grid.clampPage(currentPage, content.size)
+        menuPages = pages.mapIndexed { index, page ->
+            MenuPage(context, page, contextual, close, back, metrics, title,
+                index, pages.lastIndex, ::onMenuPageChanged)
         }
     }
 
-    /**
-     * Closes the menu and performs necessary cleanup.
-     * This method removes the menu from the window, shuts down the scan tree,
-     * notifies the listener, and resets the max dimensions.
-     */
-    fun close() {
+    private fun requestReflow() {
+        if (reflowPending || !renderGeneration.isOpen) return
+        reflowPending = true
+        val generation = renderGeneration.current
+        scope?.launch {
+            yield()
+            reflowPending = false
+            if (!renderGeneration.isCurrent(generation)) return@launch
+            retainedItems?.let {
+                menuPages.forEach(MenuPage::releaseViews)
+                createMenuPages(it)
+                inflateMenu()
+            }
+        }
+    }
+
+    private fun onMenuPageChanged(page: Int) {
+        if (!renderGeneration.isOpen || page !in menuPages.indices || page == currentPage) return
+        currentPage = page
+        inflateMenu()
+    }
+
+    private fun inflateMenu() {
+        renderGeneration.next()
+        scanTree.clearTree()
         baseLayout.removeAllViews()
+        menuPages.forEach(MenuPage::releaseViews)
+        lastPositionedSize = null
+        pendingTree = true
+        val page = menuPages.getOrNull(currentPage) ?: return
+        val transparent = preferenceManager.getBooleanValue(PreferenceManager.PREFERENCE_KEY_MENU_TRANSPARENCY)
+        baseLayout.addView(page.getMenuLayout(transparent), ViewGroup.LayoutParams(WRAP_CONTENT, WRAP_CONTENT))
+    }
+
+    private fun observeLayout() {
+        val observedLayout = baseLayout
+        val listener = ViewTreeObserver.OnPreDrawListener {
+            if (renderGeneration.isOpen && observedLayout === baseLayout) {
+                if (!reflowPending) {
+                    val size = baseLayout.width to baseLayout.height
+                    if (size != lastPositionedSize && size.first > 0 && size.second > 0) {
+                        lastPositionedSize = size
+                        pendingTree = true
+                        scanTree.clearTree()
+                        resizeAndRepositionMenu()
+                        baseLayout.postInvalidateOnAnimation()
+                    } else if (pendingTree && !baseLayout.isLayoutRequested) {
+                        val page = menuPages.getOrNull(currentPage)
+                        if (page != null && page.isMeasured()) {
+                            pendingTree = false
+                            scanTree.buildMenuRows(page.translateMenuRowsToNodes())
+                            MenuManager.getInstance().notifyMenuNodesChanged(this)
+                        }
+                    }
+                }
+            }
+            true
+        }
+        preDrawListener = listener
+        baseLayout.viewTreeObserver.addOnPreDrawListener(listener)
+    }
+
+    private fun resizeAndRepositionMenu() {
+        // Clamp within the area the overlay window can draw into, which
+        // excludes the navigation bar.
+        val screenWidth = MenuSurfaceBudget.usableWidthPx(context)
+        val screenHeight = MenuSurfaceBudget.usableHeightPx(context)
+        val menuWidth = baseLayout.width
+        val menuHeight = baseLayout.height
+
+        // The MenuHighlightHud occupies the top of the screen; keep the
+        // menu surface below its footprint so the two never overlap.
+        val topReserved = MenuHighlightHud.reservedTopPx(context)
+
+        val offset = 50
+        val gesturePoint = GesturePoint.getPoint()
+        val preferredX = if (gesturePoint.x + menuWidth + offset > screenWidth) {
+            screenWidth - menuWidth.toFloat() - offset
+        } else {
+            gesturePoint.x + offset
+        }
+        val x = MenuHorizontalPositionCalculator.clamp(
+            preferredX = preferredX.toInt(),
+            menuWidth = menuWidth,
+            screenWidth = screenWidth
+        )
+        val preferredY = if (gesturePoint.y + menuHeight + offset > screenHeight) {
+            gesturePoint.y - menuHeight - offset
+        } else {
+            gesturePoint.y + offset
+        }
+        val y = MenuVerticalPositionCalculator.clamp(
+            preferredY = preferredY.toInt(),
+            menuHeight = menuHeight,
+            screenHeight = screenHeight,
+            topReserved = topReserved
+        )
+
+        MenuViewHandler.instance.updateView(
+            baseLayout,
+            x,
+            y,
+            WRAP_CONTENT,
+            WRAP_CONTENT
+        )
+    }
+
+    fun open(scanningManager: ScanningManager) {
+        if (renderGeneration.isOpen) return
+        renderGeneration.open()
+        scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+        scanningManager.setMenuType()
+        baseLayout = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutParams = ViewGroup.LayoutParams(WRAP_CONTENT, WRAP_CONTENT)
+        }
+        context.registerComponentCallbacks(configurationListener)
+        preferenceManager.registerChangeListener(preferenceListener)
+        MenuViewHandler.instance.setup(context)
+        MenuViewHandler.instance.addViewOffScreen(baseLayout)
+        observeLayout()
+        val items = retainedItems
+        if (items == null) setup() else {
+            createMenuPages(items)
+            inflateMenu()
+        }
+    }
+
+    fun getSelectableNodes(): List<ScanNodeInterface> =
+        if (renderGeneration.isOpen && !pendingTree) {
+            menuPages.getOrNull(currentPage)?.translateMenuItemsToNodes().orEmpty()
+        } else emptyList()
+
+    fun close() {
+        if (!renderGeneration.isOpen) return
+        renderGeneration.close()
+        scope?.cancel()
+        scope = null
+        reflowPending = false
+        pendingTree = false
+        context.unregisterComponentCallbacks(configurationListener)
+        preferenceManager.unregisterChangeListener(preferenceListener)
+        preDrawListener?.let {
+            if (baseLayout.viewTreeObserver.isAlive) baseLayout.viewTreeObserver.removeOnPreDrawListener(it)
+        }
+        preDrawListener = null
+        lastPositionedSize = null
+        baseLayout.removeAllViews()
+        menuPages.forEach(MenuPage::releaseViews)
+        menuPages = emptyList()
         MenuViewHandler.instance.kill()
         MenuHighlightHud.instance.hide()
         scanTree.cleanup()

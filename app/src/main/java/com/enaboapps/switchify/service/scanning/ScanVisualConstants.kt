@@ -39,8 +39,16 @@ object ScanVisualConstants {
     /** Outward offset of the contrast halo from the main highlight stroke. */
     const val HALO_OFFSET_DP = 2
 
-    /** Padding between adjacent point-scan grid blocks so strokes overlap cleanly. */
-    const val GRID_OVERLAP_PADDING_DP = 2
+    // ---- Point-scan grid ----
+
+    /** Hairline for point-scan grid lines and outline. */
+    const val GRID_LINE_DP = 1
+
+    /** Contrast halo on each side of a grid line so it reads over dark apps. */
+    const val GRID_LINE_HALO_DP = 1
+
+    /** Grid alpha while the crosshair scans inside a chosen block. */
+    const val GRID_DIMMED_ALPHA = 0.35f
 
     // ---- Alphas (0-255) ----
 
@@ -52,6 +60,17 @@ object ScanVisualConstants {
 
     /** Alpha for structural overlays — grid, screen outline (~63%). */
     const val STRUCTURAL_ALPHA = 160
+
+    // ---- Countdown ring (dp) ----
+
+    /** Gap between the highlight stroke (plus halo) and the countdown ring. */
+    const val COUNTDOWN_INSET_DP = 5
+
+    /** Coloured countdown ring stroke. */
+    const val COUNTDOWN_STROKE_DP = 2
+
+    /** Contrast outline drawn under the countdown ring. */
+    const val COUNTDOWN_HALO_STROKE_DP = 4
 
     // ---- Alphas (0-1) ----
 
@@ -65,6 +84,8 @@ object ScanVisualConstants {
     val STRUCTURAL_COLOR: Int = Color.argb(STRUCTURAL_ALPHA, 0, 0, 0)
 
     // ---- Animation ----
+
+    const val SPOTLIGHT_ALPHA = 89
 
     const val SHOW_DURATION_MS = 120L
     const val HIDE_DURATION_MS = 80L

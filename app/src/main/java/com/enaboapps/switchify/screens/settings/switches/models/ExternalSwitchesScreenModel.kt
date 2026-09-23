@@ -9,7 +9,7 @@ import com.enaboapps.switchify.switches.SwitchEvent
 import com.enaboapps.switchify.switches.SwitchEventStore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
@@ -21,8 +21,8 @@ class ExternalSwitchesScreenModel : ViewModel() {
 
     private val numberOfSwitchesLimit = 3
 
-    fun setup(context: Context) {
-        observeExternalSwitches(context)
+    fun setup(context: Context, profileId: String? = null) {
+        observeExternalSwitches(context, profileId)
     }
 
 
@@ -30,20 +30,25 @@ class ExternalSwitchesScreenModel : ViewModel() {
         return true
     }
 
-    private fun observeExternalSwitches(context: Context) {
-        // Initial load
-        val initialExternalSwitches = store.getSwitchEvents()
-            .filter { it.type == SWITCH_EVENT_TYPE_EXTERNAL }
-        _uiState.value = _uiState.value.copy(
-            externalSwitches = initialExternalSwitches,
-            isLoading = false
-        )
+    private fun observeExternalSwitches(context: Context, profileId: String?) {
+        viewModelScope.launch {
+            store.initializeAsync(context)
+            val initialExternalSwitches = store.getSwitchEvents(profileId)
+                .filter { it.type == SWITCH_EVENT_TYPE_EXTERNAL }
+            _uiState.value = _uiState.value.copy(
+                externalSwitches = initialExternalSwitches,
+                isLoading = false
+            )
+        }
 
         // Listen for updates via ServiceBridge
         ServiceBridge.serviceEvents
-            .filterIsInstance<ServiceBridge.ServiceEvent.SwitchEventsUpdated>()
+            .filter {
+                it is ServiceBridge.ServiceEvent.SwitchEventsUpdated ||
+                    it is ServiceBridge.ServiceEvent.SwitchProfilesUpdated
+            }
             .onEach {
-                val externalSwitches = store.getSwitchEvents()
+                val externalSwitches = store.getSwitchEvents(profileId)
                     .filter { it.type == SWITCH_EVENT_TYPE_EXTERNAL }
                 _uiState.value = _uiState.value.copy(
                     externalSwitches = externalSwitches

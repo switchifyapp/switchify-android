@@ -44,14 +44,12 @@ import com.enaboapps.switchify.R
 import com.enaboapps.switchify.components.AnimatedTabContent
 import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.CameraPermissionHandler
-import com.enaboapps.switchify.components.NavigationHintCard
 import com.enaboapps.switchify.components.Panel
 import com.enaboapps.switchify.components.PillTab
 import com.enaboapps.switchify.components.PillTabRow
 import com.enaboapps.switchify.components.PreferenceTimeStepper
 import com.enaboapps.switchify.components.ScrollableView
 import com.enaboapps.switchify.components.Section
-import com.enaboapps.switchify.nav.NavigationRoute
 import com.enaboapps.switchify.screens.settings.models.CameraSettingsScreenModel
 import com.enaboapps.switchify.service.face.FacialGestureRegistry
 import com.enaboapps.switchify.switches.CameraSwitchFacialGesture
@@ -77,8 +75,7 @@ fun CameraSettingsScreen(navController: NavController) {
             onPermissionGranted = {
                 CameraSettingsContent(
                     viewModel = viewModel,
-                    lifecycleOwner = lifecycleOwner,
-                    navController = navController
+                    lifecycleOwner = lifecycleOwner
                 )
             },
             onNavigateBack = { navController.popBackStack() }
@@ -89,8 +86,7 @@ fun CameraSettingsScreen(navController: NavController) {
 @Composable
 private fun CameraSettingsContent(
     viewModel: CameraSettingsScreenModel,
-    lifecycleOwner: LifecycleOwner,
-    navController: NavController
+    lifecycleOwner: LifecycleOwner
 ) {
     val detectedExpressions by viewModel.detectedExpressions.collectAsState()
     val isFaceDetected by viewModel.isFaceDetected.collectAsState()
@@ -124,16 +120,6 @@ private fun CameraSettingsContent(
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column {
-            // Navigation hint to Head Control Settings
-            NavigationHintCard(
-                titleResId = R.string.camera_settings_navigation_hint_title,
-                descriptionResId = R.string.camera_settings_navigation_hint_description,
-                onNavigate = {
-                    navController.navigate(NavigationRoute.HeadControlSettings.name)
-                },
-                modifier = Modifier.padding(vertical = 8.dp)
-            )
-
             PillTabRow(
                 tabs = tabTitles.map { PillTab(it) },
                 selectedIndex = selectedTabIndex,
@@ -306,7 +292,7 @@ private fun GestureQuickCheckGrid(
         }
 
         Text(
-            text = stringResource(R.string.onboarding_head_control_requirements),
+            text = stringResource(R.string.camera_switch_requirements),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(top = 4.dp)

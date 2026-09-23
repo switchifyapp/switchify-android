@@ -17,6 +17,7 @@ fun PreferenceSwitch(
     summaryResId: Int,
     explanationResId: Int? = null,
     checked: Boolean,
+    enabled: Boolean = true,
     onCheckedChange: (Boolean) -> Unit
 ) {
     var isChecked by remember(checked) { mutableStateOf(checked) }
@@ -25,14 +26,19 @@ fun PreferenceSwitch(
         titleResId = titleResId,
         summaryResId = summaryResId,
         explanationResId = explanationResId,
-        onClick = {
-            val next = !isChecked
-            isChecked = next
-            onCheckedChange(next)
+        onClick = if (enabled) {
+            {
+                val next = !isChecked
+                isChecked = next
+                onCheckedChange(next)
+            }
+        } else {
+            null
         },
         trailing = {
             Switch(
                 checked = isChecked,
+                enabled = enabled,
                 onCheckedChange = {
                     isChecked = it
                     onCheckedChange(it)

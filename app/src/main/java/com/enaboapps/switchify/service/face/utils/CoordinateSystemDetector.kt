@@ -3,6 +3,7 @@ package com.enaboapps.switchify.service.face.utils
 import android.content.Context
 import android.content.SharedPreferences
 import android.os.Build
+import androidx.core.content.edit
 
 /**
  * Detects the correct coordinate system for head pose on different devices.
@@ -78,13 +79,12 @@ class CoordinateSystemDetector(private val context: Context) {
      * Save detected coordinate system to preferences
      */
     fun saveCoordinateSystem(coordinateSystem: CoordinateSystem) {
-        preferences.edit().apply {
+        preferences.edit {
             putString(PREF_DEVICE_KEY, coordinateSystem.deviceKey)
             putBoolean(PREF_PITCH_INVERTED, coordinateSystem.pitchInverted)
             putBoolean(PREF_YAW_INVERTED, coordinateSystem.yawInverted)
             putFloat(PREF_DETECTION_CONFIDENCE, coordinateSystem.confidence)
             putInt(PREF_LAST_DETECTION_VERSION, DETECTION_VERSION)
-            apply()
         }
 
         // Coordinate system saved to preferences
@@ -118,7 +118,7 @@ class CoordinateSystemDetector(private val context: Context) {
      * Clear cached coordinate system (for testing or after major device changes)
      */
     fun clearCache() {
-        preferences.edit().clear().apply()
+        preferences.edit { clear() }
         // Coordinate system cache cleared
     }
 

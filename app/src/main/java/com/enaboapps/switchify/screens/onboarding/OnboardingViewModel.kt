@@ -8,6 +8,7 @@ import com.enaboapps.switchify.service.utils.ServiceUtils
 import com.enaboapps.switchify.switches.SwitchEventStore
 import com.enaboapps.switchify.utils.LogEvent
 import com.enaboapps.switchify.utils.Logger
+import com.enaboapps.switchify.utils.SentryReporter
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
@@ -27,7 +28,6 @@ enum class OnboardingStep {
     TELEMETRY_CONSENT,
     USER_TYPE,
     SCAN_MODE_EXPLANATION,
-    HEAD_CONTROL_EXPLANATION,
     SWITCH_SETUP,
     ACCESSIBILITY_SERVICE,
     PRO_BENEFITS,
@@ -40,6 +40,9 @@ enum class UserType {
     CARER_FAMILY,
     OTHER
 }
+
+internal fun resolveOnboardingStep(value: String): OnboardingStep =
+    OnboardingStep.entries.firstOrNull { it.name == value } ?: OnboardingStep.SWITCH_SETUP
 
 class OnboardingViewModel(context: Context) : ViewModel() {
     private val _uiState = MutableStateFlow(OnboardingUiState())
@@ -55,7 +58,6 @@ class OnboardingViewModel(context: Context) : ViewModel() {
         OnboardingStep.TELEMETRY_CONSENT,
         OnboardingStep.USER_TYPE,
         OnboardingStep.SCAN_MODE_EXPLANATION,
-        OnboardingStep.HEAD_CONTROL_EXPLANATION,
         OnboardingStep.SWITCH_SETUP,
         OnboardingStep.ACCESSIBILITY_SERVICE,
         OnboardingStep.PRO_BENEFITS,
@@ -77,21 +79,18 @@ class OnboardingViewModel(context: Context) : ViewModel() {
             false
         )
 
-        try {
-            val step = OnboardingStep.valueOf(savedStep)
-            val userType = if (savedUserType.isNotEmpty()) UserType.valueOf(savedUserType) else null
+        val step = resolveOnboardingStep(savedStep)
+        val userType = savedUserType.takeIf { it.isNotEmpty() }?.let {
+            UserType.entries.firstOrNull { userType -> userType.name == it }
+        }
 
-            _uiState.update {
-                it.copy(
-                    currentStep = step,
-                    userType = userType,
-                    isNewUser = if (savedIsNewUser) true else null,
-                    progress = calculateProgress(step)
-                )
-            }
-        } catch (e: IllegalArgumentException) {
-            // If saved step is invalid, start from beginning
-            _uiState.update { it.copy(currentStep = OnboardingStep.WELCOME) }
+        _uiState.update {
+            it.copy(
+                currentStep = step,
+                userType = userType,
+                isNewUser = if (savedIsNewUser) true else null,
+                progress = calculateProgress(step)
+            )
         }
 
         checkSwitches()
@@ -118,6 +117,7 @@ class OnboardingViewModel(context: Context) : ViewModel() {
      */
     fun setTelemetryConsent(enabled: Boolean) {
         preferenceManager.setTelemetryEnabled(enabled)
+        SentryReporter.setEnabled(enabled)
     }
 
     fun setUserType(userType: UserType) {

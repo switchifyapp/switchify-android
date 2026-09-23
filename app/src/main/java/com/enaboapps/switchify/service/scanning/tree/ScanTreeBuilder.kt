@@ -6,6 +6,13 @@ import com.enaboapps.switchify.service.scanning.ScanSettings
 import com.enaboapps.switchify.service.utils.ScreenUtils
 import kotlin.math.abs
 
+internal object ExplicitScanRows {
+    fun build(rows: List<List<ScanNodeInterface>>, groupScan: Boolean): List<ScanTreeItem> =
+        rows.filter { it.isNotEmpty() }.map { row ->
+            ScanTreeItem(row, row.minOf { it.getTop() }, groupScan)
+        }
+}
+
 /**
  * This class is responsible for building the ScanTree structure.
  * It organizes ScanNodeInterface objects into ScanTreeItems based on their positions and scan settings.

@@ -19,19 +19,7 @@ class SwitchActionTest {
         assertTrue(ids.contains(SwitchAction.ACTION_TOGGLE_GESTURE_REPEAT))
     }
 
-    @Test
-    fun actionsIncludesControlPc() {
-        val ids = SwitchAction.actions.map { it.id }
 
-        assertTrue(ids.contains(SwitchAction.ACTION_CONTROL_PC))
-    }
-
-    @Test
-    fun actionsIncludesPcSwitchControl() {
-        val ids = SwitchAction.actions.map { it.id }
-
-        assertTrue(ids.contains(SwitchAction.ACTION_PC_SWITCH_CONTROL))
-    }
 
     @Test
     fun actionIdsAreUnique() {
@@ -50,15 +38,5 @@ class SwitchActionTest {
         assertTrue(SwitchAction.ACTION_TOGGLE_GESTURE_REPEAT == 16)
     }
 
-    @Test
-    fun controlPcUsesStableAppendedId() {
-        assertTrue(SwitchAction.ACTION_CONTROL_PC == 17)
-    }
 
-    @Test
-    @Suppress("DEPRECATION")
-    fun pcSwitchControlUsesStableAppendedIdAndLegacyAlias() {
-        assertTrue(SwitchAction.ACTION_PC_SWITCH_CONTROL == 18)
-        assertEquals(SwitchAction.ACTION_PC_SWITCH_CONTROL, SwitchAction.ACTION_CONTROL_GRID_3)
-    }
 }

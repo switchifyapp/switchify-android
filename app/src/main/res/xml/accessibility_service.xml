@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:accessibilityEventTypes="typeAllMask"
     android:accessibilityFeedbackType="feedbackAllMask"
     android:accessibilityFlags="flagRequestFilterKeyEvents|flagRetrieveInteractiveWindows|flagReportViewIds"
@@ -10,4 +11,5 @@
     android:description="@string/accessibility_service_description"
     android:isAccessibilityTool="true"
     android:notificationTimeout="50"
-    android:settingsActivity="com.enaboapps.switchify/.activities.MainActivity" />
+    android:settingsActivity="com.enaboapps.switchify/.activities.MainActivity"
+    tools:targetApi="s" />

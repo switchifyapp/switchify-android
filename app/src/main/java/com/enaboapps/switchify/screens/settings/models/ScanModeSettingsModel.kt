@@ -48,12 +48,6 @@ class ScanModeSettingsModel(context: Context) : ViewModel() {
     fun selectMode(mode: ScanMode) {
         preferenceManager.setStringValue(PreferenceManager.Keys.PREFERENCE_KEY_SCAN_MODE, mode.id)
         _uiState.value = _uiState.value.copy(currentMode = mode)
-        ServiceBridge.sendCommand(
-            ServiceBridge.ServiceCommand.UpdateConfiguration(
-                PreferenceManager.Keys.PREFERENCE_KEY_SCAN_MODE,
-                mode.id
-            )
-        )
     }
 }
 

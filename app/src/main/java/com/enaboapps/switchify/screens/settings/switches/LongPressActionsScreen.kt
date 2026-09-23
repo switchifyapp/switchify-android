@@ -12,8 +12,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -24,12 +25,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.height
 import androidx.navigation.NavController
 import com.enaboapps.switchify.R
+import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.ReorderMode
 import com.enaboapps.switchify.components.ReorderableList
 import com.enaboapps.switchify.screens.settings.switches.actions.SwitchActionField
 import com.enaboapps.switchify.switches.SwitchAction
 import com.enaboapps.switchify.switches.SwitchEventStore
+import com.enaboapps.switchify.switches.SwitchHoldPolicy
 
 /**
  * A dedicated screen for managing long press actions for an external switch.
@@ -39,21 +42,36 @@ import com.enaboapps.switchify.switches.SwitchEventStore
  * @param code The switch code to load/save long press actions for.
  */
 @Composable
-fun LongPressActionsScreen(navController: NavController, code: String) {
+fun LongPressActionsScreen(
+    navController: NavController,
+    code: String,
+    profileId: String? = null
+) {
     val context = LocalContext.current
+    val profileContext = rememberSwitchProfileContext(profileId)
+    val targetProfileId = profileContext.targetProfileId
+    HandleMissingSwitchProfile(profileContext, navController)
+    val switchHoldEnabled = remember {
+        SwitchHoldPolicy.isEnabled(PreferenceManager(context))
+    }
+    if (!switchHoldEnabled) {
+        LaunchedEffect(Unit) {
+            navController.popBackStack()
+        }
+        return
+    }
+    val resolvedProfileId = targetProfileId ?: return
     val store = remember { SwitchEventStore.getInstance() }
 
     // Load actions from store - refresh key triggers reload
-    var refreshKey by remember { mutableStateOf(0) }
-    val actions = remember(refreshKey) {
-        store.find(code)?.holdActions ?: emptyList()
+    var refreshKey by remember { mutableIntStateOf(0) }
+    val actions = remember(refreshKey, resolvedProfileId) {
+        store.find(code, resolvedProfileId)?.holdActions ?: emptyList()
     }
 
     // Save helper that updates store and refreshes UI
     fun saveAndRefresh(newActions: List<SwitchAction>) {
-        val event = store.find(code) ?: return
-        val updatedEvent = event.copy(holdActions = newActions)
-        store.update(updatedEvent, context) { success ->
+        store.updateHoldActions(code, newActions, context, resolvedProfileId) { success ->
             if (success) {
                 refreshKey++
             }
@@ -63,6 +81,9 @@ fun LongPressActionsScreen(navController: NavController, code: String) {
     BaseView(
         titleResId = R.string.screen_title_long_press_actions,
         navController = navController,
+        navBarTrailingContent = {
+            SwitchProfileIndicator(profileContext, navController)
+        },
         enableScroll = false,
         floatingActionButton = {
             FloatingActionButton(
@@ -110,6 +131,7 @@ fun LongPressActionsScreen(navController: NavController, code: String) {
                         titleResId = R.string.section_title_long_press_action,
                         titleResIdArgs = arrayOf(index + 1),
                         switchAction = action,
+                        profileId = resolvedProfileId,
                         onChange = { newAction ->
                             val mutableList = actions.toMutableList()
                             mutableList[index] = newAction

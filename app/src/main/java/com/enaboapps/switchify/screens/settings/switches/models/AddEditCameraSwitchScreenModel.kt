@@ -22,17 +22,20 @@ class AddEditCameraSwitchScreenModel : ViewModel() {
     )
     val action = mutableStateOf(SwitchAction(SwitchAction.ACTION_SELECT))
     val isValid = mutableStateOf(false)
+    val hasUnsavedChanges = mutableStateOf(false)
     val showDeleteConfirmation = mutableStateOf(false)
 
     private lateinit var store: SwitchEventStore
     private var code: String? = null
+    private var profileId: String? = null
 
-    fun init(code: String?, context: Context) {
+    fun init(code: String?, context: Context, profileId: String? = null) {
         store = SwitchEventStore.getInstance()
         this.code = code
+        this.profileId = profileId
 
         if (code != null) {
-            val event = store.find(code)
+            val event = store.find(code, profileId)
             event?.let {
                 name = it.name
                 selectedGesture.value = CameraSwitchFacialGesture(it.code)
@@ -50,17 +53,20 @@ class AddEditCameraSwitchScreenModel : ViewModel() {
 
     fun updateName(newName: String) {
         name = newName
+        hasUnsavedChanges.value = true
         validate()
     }
 
     fun setGesture(gesture: CameraSwitchFacialGesture) {
         selectedGesture.value = gesture
+        hasUnsavedChanges.value = true
         validate()
 
     }
 
     fun setAction(newAction: SwitchAction) {
         action.value = newAction
+        hasUnsavedChanges.value = true
         validate()
     }
 
@@ -80,8 +86,8 @@ class AddEditCameraSwitchScreenModel : ViewModel() {
             holdActions = emptyList()
         )
 
-        if (store.find(event.code) == null) {
-            store.add(event, context) { success ->
+        if (store.find(event.code, profileId) == null) {
+            store.add(event, context, profileId) { success ->
                 if (success) {
                     completion(true)
                 } else {
@@ -89,7 +95,7 @@ class AddEditCameraSwitchScreenModel : ViewModel() {
                 }
             }
         } else {
-            store.update(event, context) { success ->
+            store.update(event, context, profileId) { success ->
                 if (success) {
                     completion(true)
                 } else {
@@ -100,9 +106,9 @@ class AddEditCameraSwitchScreenModel : ViewModel() {
     }
 
     fun delete(context: Context, completion: (Boolean) -> Unit) {
-        val event = store.find(code ?: "")
+        val event = store.find(code ?: "", profileId)
         event?.let {
-            store.remove(it, context) { success ->
+            store.remove(it, context, profileId) { success ->
                 if (success) {
                     completion(true)
                 } else {

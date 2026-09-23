@@ -43,7 +43,7 @@ object ExternalSwitchLongPressHandler {
             holdActions?.let { actionsList ->
                 for (action in actionsList) {
                     actionToPerform = action
-                    val actionName = action.getActionName()
+                    val actionName = action.getDisplayName(context)
                     ServiceMessageHUD.instance.showMessage(
                         R.string.hud_release_to_perform,
                         arrayOf(switchName, actionName),

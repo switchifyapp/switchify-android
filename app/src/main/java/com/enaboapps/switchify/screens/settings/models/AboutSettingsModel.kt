@@ -6,6 +6,7 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
+import com.enaboapps.switchify.utils.SentryReporter
 import kotlinx.coroutines.launch
 
 class AboutSettingsModel(context: Context) : ViewModel() {
@@ -19,6 +20,7 @@ class AboutSettingsModel(context: Context) : ViewModel() {
     fun setTelemetryEnabled(value: Boolean) {
         viewModelScope.launch {
             preferenceManager.setTelemetryEnabled(value)
+            SentryReporter.setEnabled(value)
             _telemetryEnabled.postValue(value)
         }
     }

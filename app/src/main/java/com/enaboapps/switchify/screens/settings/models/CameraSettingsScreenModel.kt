@@ -399,7 +399,6 @@ class CameraSettingsScreenModel(application: Application) : AndroidViewModel(app
     }
 
     override fun onCleared() {
-        super.onCleared()
         cleanup()
     }
 

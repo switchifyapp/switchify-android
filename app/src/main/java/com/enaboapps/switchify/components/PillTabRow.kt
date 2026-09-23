@@ -32,6 +32,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
@@ -87,7 +88,7 @@ fun PillTabRow(
 
             Box(
                 modifier = Modifier
-                    .offset(x = indicatorOffset)
+                    .offset { IntOffset(indicatorOffset.roundToPx(), 0) }
                     .width(tabWidth)
                     .fillMaxHeight()
                     .padding(IndicatorPadding)

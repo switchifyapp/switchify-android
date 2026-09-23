@@ -30,6 +30,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.enaboapps.switchify.R
@@ -39,10 +40,10 @@ import com.enaboapps.switchify.theme.Dimens
 @Composable
 fun HomeHeroCard(
     isAccessibilityServiceEnabled: Boolean,
-    scanModeName: String?,
-    switchCount: Int,
+    activeProfileName: String,
     isConfigValid: Boolean,
-    onPrimaryAction: () -> Unit,
+    onEnableService: () -> Unit,
+    onOpenProfiles: () -> Unit,
     modifier: Modifier = Modifier,
     shape: Shape = MaterialTheme.shapes.large
 ) {
@@ -71,19 +72,13 @@ fun HomeHeroCard(
     val interactionSource = remember { MutableInteractionSource() }
     val cardModifier = modifier
         .fillMaxWidth()
-        .let {
-            if (!isAccessibilityServiceEnabled) {
-                it
-                    .springPressScale(interactionSource)
-                    .clickable(
-                        interactionSource = interactionSource,
-                        indication = null,
-                        onClick = onPrimaryAction
-                    )
-            } else {
-                it
-            }
-        }
+        .springPressScale(interactionSource)
+        .clickable(
+            interactionSource = interactionSource,
+            indication = null,
+            role = Role.Button,
+            onClick = if (isAccessibilityServiceEnabled) onOpenProfiles else onEnableService
+        )
         .semantics(mergeDescendants = true) {}
 
     Card(
@@ -136,13 +131,15 @@ fun HomeHeroCard(
                             color = if (enabled) scheme.onSurface else scheme.error
                         )
                         Text(
-                            text = supportingLine(enabled, isConfigValid, scanModeName, switchCount),
+                            text = supportingLine(
+                                resolveHomeHeroStatus(enabled, isConfigValid, activeProfileName)
+                            ),
                             style = MaterialTheme.typography.bodyMedium,
                             color = scheme.onSurfaceVariant
                         )
                         if (!enabled) {
                             Box(modifier = Modifier.padding(top = Dimens.spaceM)) {
-                                Button(onClick = onPrimaryAction) {
+                                Button(onClick = onEnableService) {
                                     Text(stringResource(R.string.home_hero_action_open_settings))
                                 }
                             }
@@ -156,22 +153,37 @@ fun HomeHeroCard(
 
 @Composable
 private fun supportingLine(
-    enabled: Boolean,
-    isConfigValid: Boolean,
-    scanModeName: String?,
-    switchCount: Int
+    status: HomeHeroStatus
 ): String {
-    if (!enabled) {
-        return stringResource(R.string.home_hero_disabled_summary)
+    return when (status) {
+        HomeHeroStatus.Disabled -> stringResource(R.string.home_hero_disabled_summary)
+        is HomeHeroStatus.Active -> stringResource(
+            R.string.home_hero_active_profile,
+            status.profileName
+        )
+        is HomeHeroStatus.ActiveNeedsAttention -> stringResource(
+            R.string.home_hero_active_profile_needs_attention,
+            status.profileName
+        )
     }
-    if (!isConfigValid) {
-        return stringResource(R.string.home_hero_config_attention_summary)
-    }
-    val mode = scanModeName ?: return stringResource(R.string.home_hero_disabled_summary)
-    return if (switchCount > 0) {
-        stringResource(R.string.home_hero_running_summary, mode, switchCount)
+}
+
+internal sealed interface HomeHeroStatus {
+    data object Disabled : HomeHeroStatus
+    data class Active(val profileName: String) : HomeHeroStatus
+    data class ActiveNeedsAttention(val profileName: String) : HomeHeroStatus
+}
+
+internal fun resolveHomeHeroStatus(
+    isAccessibilityServiceEnabled: Boolean,
+    isConfigValid: Boolean,
+    activeProfileName: String
+): HomeHeroStatus {
+    if (!isAccessibilityServiceEnabled) return HomeHeroStatus.Disabled
+    return if (isConfigValid) {
+        HomeHeroStatus.Active(activeProfileName)
     } else {
-        stringResource(R.string.home_hero_running_summary_no_switches, mode)
+        HomeHeroStatus.ActiveNeedsAttention(activeProfileName)
     }
 }
 

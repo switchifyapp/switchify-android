@@ -1,13 +1,15 @@
 package com.enaboapps.switchify.service.menu.menus.main
 
 import com.enaboapps.switchify.R
+import com.enaboapps.switchify.service.window.ServiceMessageHUD
 import com.enaboapps.switchify.backend.iap.IAPHandler
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
+import com.enaboapps.switchify.service.actions.AudioActionManager
 import com.enaboapps.switchify.service.actions.GlobalActionManager
+import com.enaboapps.switchify.service.actions.MediaPlaybackState
 import com.enaboapps.switchify.service.core.ServiceCore
 import com.enaboapps.switchify.service.core.SwitchifyAccessibilityService
 import com.enaboapps.switchify.service.gestures.GesturePoint
-import com.enaboapps.switchify.service.pcswitchcontrol.PcSwitchControlLauncher
 import com.enaboapps.switchify.service.keyboard.KeyboardManager
 import com.enaboapps.switchify.service.menu.MenuItem
 import com.enaboapps.switchify.service.menu.MenuManager
@@ -28,8 +30,6 @@ class MainMenuStructure(
     private val gestureMenuStructure = GestureMenuStructure(accessibilityService, coroutineScope)
     private val deviceLockObserver = DeviceLockObserver(accessibilityService)
     private val preferenceManager = PreferenceManager(accessibilityService)
-    private val pcControlLauncher = PcControlLauncher(accessibilityService, coroutineScope)
-    private val pcSwitchControlLauncher = PcSwitchControlLauncher(accessibilityService, coroutineScope)
     private val repository = MenuConfigurationRepository(accessibilityService)
 
     val deviceItem = MenuItem(
@@ -58,6 +58,25 @@ class MainMenuStructure(
         context = accessibilityService,
         coroutineScope = coroutineScope
     )
+
+    /**
+     * Contextual media control: pause while audio is playing, play for a
+     * while after it stops, absent otherwise.
+     */
+    private fun mediaPlayPauseItem(): MenuItem? {
+        val state = AudioActionManager.playbackState()
+        if (state == MediaPlaybackState.NONE) return null
+        val definition = MenuItemRegistry.getMainMenuDefinition(MenuConstants.ItemIds.Main.MEDIA_PLAY_PAUSE)
+            ?: return null
+        val active = state == MediaPlaybackState.ACTIVE
+        return MenuItem(
+            id = definition.id,
+            labelResource = if (active) R.string.menu_item_media_pause else R.string.menu_item_media_play,
+            descriptionResource = if (active) R.string.menu_item_media_pause_description else R.string.menu_item_media_play_description,
+            drawableId = if (active) R.drawable.ic_pause else R.drawable.ic_play,
+            action = { AudioActionManager.togglePlayback() }
+        )
+    }
 
     /**
      * Builds the default menu items for the main menu.
@@ -122,6 +141,13 @@ class MainMenuStructure(
                 }
             } else null,
             deviceItem,
+            MenuItemRegistry.getMainMenuDefinition(MenuConstants.ItemIds.Main.SWITCH_PROFILE)?.let { def ->
+                MenuItem(
+                    definition = def,
+                    isLinkToMenu = true,
+                    action = { MenuManager.getInstance().openSwitchProfilesMenu() }
+                )
+            },
             MenuItemRegistry.getMainMenuDefinition("settings")?.let { def ->
                 MenuItem(
                     definition = def,
@@ -136,30 +162,7 @@ class MainMenuStructure(
                     action = { MenuManager.getInstance().openMediaControlMenu() }
                 )
             },
-            if (deviceLockObserver.isUserUnlocked() == true &&
-                !DeviceLockObserver.isKeyguardLocked(accessibilityService)
-            ) {
-                MenuItemRegistry.getMainMenuDefinition("control_pc")?.let { def ->
-                    MenuItem(
-                        definition = def,
-                        isLinkToMenu = true,
-                        action = { pcControlLauncher.open() }
-                    )
-                }
-            } else null,
-            if (deviceLockObserver.isUserUnlocked() == true &&
-                !DeviceLockObserver.isKeyguardLocked(accessibilityService)
-            ) {
-                MenuItemRegistry.getMainMenuDefinition(
-                    MenuConstants.ItemIds.Main.PC_SWITCH_CONTROL
-                )?.let { def ->
-                    MenuItem(
-                        definition = def,
-                        isLinkToMenu = true,
-                        action = { pcSwitchControlLauncher.open() }
-                    )
-                }
-            } else null,
+            mediaPlayPauseItem(),
             if (NodeExaminer.canPerformEditActions(GesturePoint.getPoint())) {
                 MenuItemRegistry.getMainMenuDefinition("edit")?.let { def ->
                     MenuItem(
@@ -184,7 +187,25 @@ class MainMenuStructure(
             }
     )
 
-    val menuManipulatorItems = listOfNotNull(
+    /**
+     * Fixed navigation shown on every page. Rebuilt on each access so the
+     * dismiss entry tracks whether a HUD status message is on screen.
+     */
+    val menuManipulatorItems: List<MenuItem>
+        get() = listOfNotNull(
+        if (ServiceMessageHUD.instance.hasStatus()) {
+            MenuItem(
+                id = MenuConstants.ItemIds.Navigation.DISMISS_MESSAGE,
+                drawableId = R.drawable.ic_cancel,
+                labelResource = R.string.menu_item_dismiss_message,
+                descriptionResource = R.string.menu_item_dismiss_message_description,
+                isMenuHierarchyManipulator = true,
+                action = {
+                    ServiceMessageHUD.instance.dismissStatus()
+                    MenuManager.getInstance().closeMenuHierarchy()
+                }
+            )
+        } else null,
         MenuItem(
             id = MenuConstants.ItemIds.Navigation.CLOSE_MENU,
             drawableId = R.drawable.ic_close_menu,

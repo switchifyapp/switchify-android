@@ -1,6 +1,5 @@
 package com.enaboapps.switchify.screens.settings
 
-import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
@@ -37,12 +36,6 @@ import com.enaboapps.switchify.screens.settings.sections.MenuSection
 import com.enaboapps.switchify.screens.settings.sections.SelectionSection
 import com.enaboapps.switchify.screens.settings.shared.ScanModeSelectionSection
 import com.enaboapps.switchify.screens.settings.techniques.AccessTechniqueSelector
-
-data class SettingsRouteLinkSpec(
-    @param:StringRes val titleResId: Int,
-    @param:StringRes val summaryResId: Int,
-    val route: String
-)
 
 @Composable
 fun SettingsScreen(navController: NavController) {
@@ -114,6 +107,7 @@ fun GeneralSettingsTab(menuSettingsModel: MenuSettingsModel, navController: NavC
     val isSignedIn = authRepository.isUserSignedIn()
 
     ScrollableView {
+        InputSection(navController)
         Section(titleResId = R.string.settings_section_account) {
             NavRouteLink(
                 titleResId = if (isSignedIn) R.string.settings_title_account else R.string.settings_title_sign_in,
@@ -138,28 +132,10 @@ fun GeneralSettingsTab(menuSettingsModel: MenuSettingsModel, navController: NavC
                 route = NavigationRoute.AiModel.name
             )
         }
-        val pcSettingsLink = pcSettingsRouteLinkSpec()
-        Section(titleResId = R.string.pc_settings_title) {
-            NavRouteLink(
-                titleResId = pcSettingsLink.titleResId,
-                summaryResId = pcSettingsLink.summaryResId,
-                navController = navController,
-                route = pcSettingsLink.route
-            )
-        }
-        InputSection(navController)
         BehaviourSection(navController)
         GesturesSettingsSection(navController)
         MenuSection(menuSettingsModel, navController)
     }
-}
-
-fun pcSettingsRouteLinkSpec(): SettingsRouteLinkSpec {
-    return SettingsRouteLinkSpec(
-        titleResId = R.string.pc_settings_title,
-        summaryResId = R.string.pc_settings_link_summary,
-        route = NavigationRoute.PcSettings.name
-    )
 }
 
 @Composable
@@ -167,6 +143,12 @@ fun ScanningSettingsTab(navController: NavController) {
     ScrollableView {
         Section(titleResId = R.string.settings_section_access_techniques) {
             AccessTechniqueSelector()
+            NavRouteLink(
+                titleResId = R.string.app_scan_techniques_title,
+                summaryResId = R.string.app_scan_techniques_summary,
+                navController = navController,
+                route = NavigationRoute.AppScanTechniques.name
+            )
             Spacer(modifier = Modifier.padding(vertical = 8.dp))
             NavRouteLink(
                 titleResId = R.string.settings_title_access_technique,

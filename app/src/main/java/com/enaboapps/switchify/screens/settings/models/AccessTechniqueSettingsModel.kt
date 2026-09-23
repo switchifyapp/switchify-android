@@ -53,12 +53,6 @@ class AccessTechniqueSettingsModel(context: Context) : ViewModel() {
             value
         )
         _uiState.value = _uiState.value.copy(currentTechnique = value)
-        ServiceBridge.sendCommand(
-            ServiceBridge.ServiceCommand.UpdateConfiguration(
-                PreferenceManager.Keys.PREFERENCE_KEY_ACCESS_TECHNIQUE,
-                value
-            )
-        )
     }
 
     private fun computeAvailable(): List<String> {

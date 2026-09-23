@@ -32,7 +32,7 @@ fun PointScanSettingsView() {
     var currentMode by remember { mutableStateOf(PointScanSettings.getMode()) }
 
     val setCursorMode = { mode: String ->
-        PointScanSettings.setMode(mode, context)
+        PointScanSettings.setMode(mode)
         currentMode = mode
     }
     Section(titleResId = R.string.section_title_point_scan_mode) {
@@ -97,7 +97,7 @@ private fun BlockSettingsView() {
             items = blockCounts,
             onItemSelected = { item ->
                 currentBlockCount = item.toInt()
-                PointScanSettings.setCursorBlockCount(item.toInt(), context)
+                PointScanSettings.setCursorBlockCount(item.toInt())
             },
             itemToString = { it },
             itemDescription = { value ->

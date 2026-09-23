@@ -1,7 +1,7 @@
 package com.enaboapps.switchify.screens.settings.gestures
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavController
@@ -17,7 +17,7 @@ fun AdvancedGestureSettingsScreen(navController: NavController) {
     val context = LocalContext.current
     val preferenceManager = PreferenceManager(context)
     val gestureRepeatInitialDelayState = remember {
-        mutableStateOf(
+        mutableLongStateOf(
             preferenceManager.getLongValue(
                 PreferenceManager.PREFERENCE_KEY_GESTURE_REPEAT_INITIAL_DELAY,
                 GestureRepeatManager.DEFAULT_INITIAL_REPEAT_DELAY
@@ -25,7 +25,7 @@ fun AdvancedGestureSettingsScreen(navController: NavController) {
         )
     }
     val gestureRepeatDelayState = remember {
-        mutableStateOf(
+        mutableLongStateOf(
             preferenceManager.getLongValue(
                 PreferenceManager.PREFERENCE_KEY_GESTURE_REPEAT_DELAY,
                 GestureRepeatManager.DEFAULT_REPEAT_DELAY
@@ -39,7 +39,7 @@ fun AdvancedGestureSettingsScreen(navController: NavController) {
     ) {
         Section(titleResId = R.string.settings_section_advanced_gestures) {
             PreferenceTimeStepper(
-                value = gestureRepeatInitialDelayState.value,
+                value = gestureRepeatInitialDelayState.longValue,
                 titleResId = R.string.preference_title_gesture_repeat_initial_delay,
                 summaryResId = R.string.preference_summary_gesture_repeat_initial_delay,
                 min = GestureRepeatManager.MIN_INITIAL_REPEAT_DELAY,
@@ -50,11 +50,11 @@ fun AdvancedGestureSettingsScreen(navController: NavController) {
                         PreferenceManager.PREFERENCE_KEY_GESTURE_REPEAT_INITIAL_DELAY,
                         it
                     )
-                    gestureRepeatInitialDelayState.value = it
+                    gestureRepeatInitialDelayState.longValue = it
                 }
             )
             PreferenceTimeStepper(
-                value = gestureRepeatDelayState.value,
+                value = gestureRepeatDelayState.longValue,
                 titleResId = R.string.preference_title_gesture_repeat_delay,
                 summaryResId = R.string.preference_summary_gesture_repeat_delay,
                 min = GestureRepeatManager.MIN_REPEAT_DELAY,
@@ -65,7 +65,7 @@ fun AdvancedGestureSettingsScreen(navController: NavController) {
                         PreferenceManager.PREFERENCE_KEY_GESTURE_REPEAT_DELAY,
                         it
                     )
-                    gestureRepeatDelayState.value = it
+                    gestureRepeatDelayState.longValue = it
                 }
             )
         }

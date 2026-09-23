@@ -30,7 +30,7 @@ fun RadarSettingsView() {
             summaryResId = R.string.preference_summary_radar_slow_down_then_select,
             checked = RadarSettings.isSlowDownThenSelectEnabled(),
             onCheckedChange = {
-                RadarSettings.setSlowDownThenSelectEnabled(it, context)
+                RadarSettings.setSlowDownThenSelectEnabled(it)
             }
         )
 
@@ -63,7 +63,7 @@ fun RadarSettingsView() {
                     1 -> RadarSettings.StartingPosition.BOTTOM
                     else -> RadarSettings.StartingPosition.TOP
                 }
-                RadarSettings.setStartingPosition(position, context)
+                RadarSettings.setStartingPosition(position)
             }
         )
     }

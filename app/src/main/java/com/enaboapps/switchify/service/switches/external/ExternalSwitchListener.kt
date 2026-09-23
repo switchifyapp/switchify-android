@@ -1,13 +1,13 @@
 package com.enaboapps.switchify.service.switches.external
 
 import android.content.Context
+import android.content.SharedPreferences
 import android.util.Log
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
-import com.enaboapps.switchify.pc.PcMouseRepeatManager
 import com.enaboapps.switchify.service.core.ServiceCore
 import com.enaboapps.switchify.service.core.Tasks
 import com.enaboapps.switchify.service.gestures.GestureLockManager
-import com.enaboapps.switchify.service.pcswitchcontrol.PcSwitchControlInputHandler
+import com.enaboapps.switchify.service.remotebridge.SwitchifyRemoteBridgeCoordinator
 import com.enaboapps.switchify.service.keyboard.KeyboardManager
 import com.enaboapps.switchify.service.scanning.ScanningManager
 import com.enaboapps.switchify.service.selection.SelectionHandler
@@ -15,6 +15,7 @@ import com.enaboapps.switchify.service.stats.StatsCollector
 import com.enaboapps.switchify.service.switches.SwitchEventProvider
 import com.enaboapps.switchify.switches.SwitchAction
 import com.enaboapps.switchify.switches.SwitchEvent
+import com.enaboapps.switchify.switches.SwitchHoldPolicy
 import com.enaboapps.switchify.switches.isScanMovementAction
 
 /**
@@ -35,13 +36,23 @@ class ExternalSwitchListener(
     }
 
     private val preferenceManager = PreferenceManager(context)
+    private val switchHoldPreferenceListener =
+        SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == PreferenceManager.PREFERENCE_KEY_SWITCH_HOLD_ENABLED &&
+                !SwitchHoldPolicy.isEnabled(preferenceManager)
+            ) {
+                disableCurrentHoldPicker()
+            }
+        }
 
     private var pressSession: ExternalSwitchPressSession = ExternalSwitchPressSession.None
     private val suppressedSwitchCodes = mutableSetOf<Int>()
     private var gestureLockHoldFired = false
     private val pauseSwitchHoldTracker = PauseSwitchHoldTracker()
-    private val pcSwitchControlDiversion = ExternalSwitchPcSwitchControlDiversion {
-        ServiceCore.getPcSwitchControlForwarder()
+    private val pcForwardingDiversion = ExternalSwitchRemoteDiversion()
+
+    init {
+        preferenceManager.registerChangeListener(switchHoldPreferenceListener)
     }
 
     /** Timestamp of the last switch press for handling repeat events */
@@ -58,7 +69,7 @@ class ExternalSwitchListener(
      * @return true if the event was handled and should be consumed, false otherwise
      */
     fun onSwitchPressed(keyCode: Int, downTimeMs: Long, eventTimeMs: Long): Boolean {
-        return pcSwitchControlDiversion.onPressed(keyCode, downTimeMs, eventTimeMs) {
+        return pcForwardingDiversion.onPressed(keyCode, downTimeMs, eventTimeMs) {
             onSwitchPressedNormally(keyCode)
         }
     }
@@ -81,12 +92,6 @@ class ExternalSwitchListener(
             pauseSwitchHoldTracker.onPressed(keyCode, System.currentTimeMillis())
             pauseManager.handleSwitchDuringPause()
             return false
-        }
-
-        if (stopPcMouseRepeatForSwitchPress()) {
-            pressSession = ExternalSwitchPressSession.ReleaseSwallowed
-            ExternalSwitchLongPressHandler.cancel()
-            return true
         }
 
         if (!switchEvent.pressAction.isScanMovementAction() &&
@@ -128,7 +133,7 @@ class ExternalSwitchListener(
         eventTimeMs: Long,
         cancelled: Boolean
     ): Boolean {
-        return pcSwitchControlDiversion.onReleased(
+        return pcForwardingDiversion.onReleased(
             keyCode = keyCode,
             downTimeMs = downTimeMs,
             eventTimeMs = eventTimeMs,
@@ -179,7 +184,7 @@ class ExternalSwitchListener(
 
         if (SelectionHandler.isAutoSelectInProgress()) {
             cancelCurrentPressInteraction()
-            SelectionHandler.performSelectionAction()
+            performAutoSelectionAction()
             return true
         }
 
@@ -204,6 +209,11 @@ class ExternalSwitchListener(
             }
 
             is ExternalSwitchPressSession.HoldPicker -> {
+                if (!SwitchHoldPolicy.isEnabled(preferenceManager)) {
+                    ExternalSwitchLongPressHandler.cancel()
+                    processSwitchReleasedActions(session.switchEvent, session.pressTime)
+                    return true
+                }
                 val performedLongPressAction =
                     ExternalSwitchLongPressHandler.stopAndPerformPending(scanningManager)
                 if (performedLongPressAction) {
@@ -276,7 +286,11 @@ class ExternalSwitchListener(
      */
     private fun handleLongPressAction(switchEvent: SwitchEvent) {
         val pressTime = System.currentTimeMillis()
-        if (switchEvent.holdActions.isEmpty()) {
+        val holdActions = SwitchHoldPolicy.effectiveHoldActions(
+            switchEvent,
+            SwitchHoldPolicy.isEnabled(preferenceManager)
+        )
+        if (holdActions.isEmpty()) {
             pressSession = ExternalSwitchPressSession.ShortPressCandidate(switchEvent, pressTime)
             ExternalSwitchLongPressHandler.cancel()
         } else {
@@ -284,7 +298,7 @@ class ExternalSwitchListener(
             ExternalSwitchLongPressHandler.startHoldPicker(
                 context,
                 switchEvent.name,
-                switchEvent.holdActions
+                holdActions
             )
         }
         scanningManager.pauseScanning()
@@ -311,15 +325,19 @@ class ExternalSwitchListener(
 
         val switchHoldTime =
             preferenceManager.getLongValue(PreferenceManager.PREFERENCE_KEY_SWITCH_HOLD_TIME)
+        val holdActions = SwitchHoldPolicy.effectiveHoldActions(
+            switchEvent,
+            SwitchHoldPolicy.isEnabled(preferenceManager)
+        )
 
         var performedPressAction = false
 
         when {
             SelectionHandler.isAutoSelectInProgress() &&
-                    switchEvent.holdActions.isNotEmpty() ->
-                SelectionHandler.performSelectionAction()
+                    holdActions.isNotEmpty() ->
+                performAutoSelectionAction()
 
-            switchEvent.holdActions.isEmpty() -> {
+            holdActions.isEmpty() -> {
                 performReleasePressAction(switchEvent.pressAction)
                 performedPressAction = true
             }
@@ -351,8 +369,11 @@ class ExternalSwitchListener(
         scanningManager.performAction(action)
     }
 
-    private fun stopPcMouseRepeatForSwitchPress(): Boolean {
-        return PcMouseRepeatManager.instance.stopForSwitchPress()
+    private fun performAutoSelectionAction() {
+        val selectAction = SwitchAction(SwitchAction.ACTION_SELECT)
+        if (ServiceCore.getSwitchProfileActivationCoordinator()?.intercept(selectAction) != true) {
+            SelectionHandler.performSelectionAction()
+        }
     }
 
     /**
@@ -392,9 +413,14 @@ class ExternalSwitchListener(
         lastSwitchPressedCode = 0
         suppressedSwitchCodes.clear()
         pauseSwitchHoldTracker.reset()
-        pcSwitchControlDiversion.reset()
+        pcForwardingDiversion.reset()
         clearPressSession()
         ExternalSwitchLongPressHandler.cancel()
+    }
+
+    fun shutdown() {
+        preferenceManager.unregisterChangeListener(switchHoldPreferenceListener)
+        reset()
     }
 
     private fun ExternalSwitchPressSession.matches(switchEvent: SwitchEvent): Boolean {
@@ -415,6 +441,15 @@ class ExternalSwitchListener(
     private fun cancelCurrentPressInteraction() {
         ExternalSwitchLongPressHandler.cancel()
         clearPressSession()
+    }
+
+    private fun disableCurrentHoldPicker() {
+        val session = pressSession as? ExternalSwitchPressSession.HoldPicker ?: return
+        ExternalSwitchLongPressHandler.cancel()
+        pressSession = ExternalSwitchPressSession.ShortPressCandidate(
+            session.switchEvent,
+            session.pressTime
+        )
     }
 
     private fun suppressCurrentSwitchInteraction(swallowRelease: Boolean) {
@@ -438,9 +473,7 @@ class ExternalSwitchListener(
     }
 }
 
-internal class ExternalSwitchPcSwitchControlDiversion(
-    private val handler: () -> PcSwitchControlInputHandler?
-) {
+internal class ExternalSwitchRemoteDiversion {
     private data class NormalPress(val downTimeMs: Long, val activation: Long)
 
     private val normallyHandledPresses = mutableMapOf<Int, NormalPress>()
@@ -453,26 +486,25 @@ internal class ExternalSwitchPcSwitchControlDiversion(
         eventTimeMs: Long,
         normalHandling: () -> Boolean
     ): Boolean {
-        val currentHandler = handler()
+        val activation = SwitchifyRemoteBridgeCoordinator.activeForwardingGeneration()
         val normalPress = normallyHandledPresses[keyCode]
         if (
             normalPress?.downTimeMs == downTimeMs &&
-            (currentHandler?.forwardingActivation ?: normalPress.activation) != normalPress.activation
+            activation != normalPress.activation
         ) {
             suppressedUntilRelease[keyCode] = downTimeMs
             return true
         }
-        return if (currentHandler?.onSwitchPressed(keyCode, downTimeMs, eventTimeMs) == true) {
+        if (SwitchifyRemoteBridgeCoordinator.stopRemoteRepeatForExternalSwitch(keyCode)) {
+            suppressedUntilRelease[keyCode] = downTimeMs
+            return true
+        }
+        return if (SwitchifyRemoteBridgeCoordinator.forwardExternalEdge(keyCode, true, downTimeMs, eventTimeMs, false)) {
             forwardedPresses[keyCode] = downTimeMs
             true
         } else {
             val handled = normalHandling()
-            if (handled) {
-                normallyHandledPresses[keyCode] = NormalPress(
-                    downTimeMs,
-                    currentHandler?.forwardingActivation ?: 0L
-                )
-            }
+            if (handled) normallyHandledPresses[keyCode] = NormalPress(downTimeMs, activation)
             handled
         }
     }
@@ -494,24 +526,19 @@ internal class ExternalSwitchPcSwitchControlDiversion(
         val normalPress = normallyHandledPresses[keyCode]
         if (
             normalPress?.downTimeMs == downTimeMs &&
-            (handler()?.forwardingActivation ?: normalPress.activation) != normalPress.activation
+            SwitchifyRemoteBridgeCoordinator.activeForwardingGeneration() != normalPress.activation
         ) {
             normallyHandledPresses.remove(keyCode)
             return suppressedReleaseHandling()
         }
-        if (normalPress?.downTimeMs == downTimeMs) {
-            normallyHandledPresses.remove(keyCode)
-        }
-        if (forwardedPresses[keyCode] == downTimeMs) {
-            forwardedPresses.remove(keyCode)
-        }
-        return if (
-            handler()?.onSwitchReleased(keyCode, downTimeMs, eventTimeMs, cancelled) == true
-        ) {
+        if (normalPress?.downTimeMs == downTimeMs) normallyHandledPresses.remove(keyCode)
+        return if (forwardedPresses.remove(keyCode) == downTimeMs) {
+            SwitchifyRemoteBridgeCoordinator.forwardExternalEdge(keyCode, false, downTimeMs, eventTimeMs, cancelled)
             true
-        } else {
-            normalHandling()
-        }
+        } else if (SwitchifyRemoteBridgeCoordinator.forwardExternalEdge(keyCode, false, downTimeMs, eventTimeMs, cancelled)) {
+            forwardedPresses.remove(keyCode)
+            true
+        } else normalHandling()
     }
 
     fun reset() {

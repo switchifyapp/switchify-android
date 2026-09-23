@@ -47,7 +47,7 @@ fun DebugScreen(navController: NavController) {
     ) {
         Section(titleResId = R.string.debug_section_crash_reporting) {
             Text(
-                text = "Force a crash to verify that CrashReporter captures it and uploads the report on next launch.",
+                text = "Force a crash to verify that Sentry captures it and reports it on next launch.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)

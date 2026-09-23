@@ -19,6 +19,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.enaboapps.switchify.R
+import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.LoadingIndicator
 import com.enaboapps.switchify.components.ScrollableView
@@ -26,37 +27,50 @@ import com.enaboapps.switchify.components.Section
 import com.enaboapps.switchify.components.SwitchAction
 import com.enaboapps.switchify.components.SwitchListItem
 import com.enaboapps.switchify.components.SwitchType
-import com.enaboapps.switchify.nav.NavigationRoute
 import com.enaboapps.switchify.screens.settings.switches.models.ExternalSwitchesScreenModel
 import com.enaboapps.switchify.switches.SwitchEvent
+import com.enaboapps.switchify.switches.SwitchHoldPolicy
 
 @Composable
-fun ExternalSwitchesScreen(navController: NavController) {
+fun ExternalSwitchesScreen(navController: NavController, profileId: String? = null) {
     val context = LocalContext.current
+    val profileContext = rememberSwitchProfileContext(profileId)
+    val targetProfileId = profileContext.targetProfileId
+    HandleMissingSwitchProfile(profileContext, navController)
+    val switchHoldEnabled = remember {
+        SwitchHoldPolicy.isEnabled(PreferenceManager(context))
+    }
     val externalSwitchesScreenModel = remember {
         ExternalSwitchesScreenModel()
     }
     val uiState by externalSwitchesScreenModel.uiState.collectAsState()
 
-    LaunchedEffect(Unit) {
-        externalSwitchesScreenModel.setup(context)
+    LaunchedEffect(targetProfileId) {
+        targetProfileId?.let { externalSwitchesScreenModel.setup(context, it) }
     }
 
     BaseView(
         titleResId = R.string.screen_title_external_switches,
         navController = navController,
+        navBarTrailingContent = {
+            SwitchProfileIndicator(profileContext, navController)
+        },
         padding = 0.dp,
         enableScroll = false,
         floatingActionButton = {
-            FloatingActionButton(
-                onClick = {
-                    navController.navigate(NavigationRoute.AddNewExternalSwitch.name)
+            targetProfileId?.let { resolvedProfileId ->
+                FloatingActionButton(
+                    onClick = {
+                        navController.navigate(
+                            SwitchProfileRoutes.addExternalSwitch(resolvedProfileId)
+                        )
+                    }
+                ) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_baseline_add_24),
+                        contentDescription = "Add"
+                    )
                 }
-            ) {
-                Icon(
-                    painter = painterResource(id = R.drawable.ic_baseline_add_24),
-                    contentDescription = "Add"
-                )
             }
         }
     ) {
@@ -70,10 +84,12 @@ fun ExternalSwitchesScreen(navController: NavController) {
                 }
             }
 
-            else -> {
+            targetProfileId != null -> {
                 ExternalSwitchesContent(
                     externalSwitches = uiState.externalSwitches,
-                    navController = navController
+                    navController = navController,
+                    profileId = targetProfileId,
+                    switchHoldEnabled = switchHoldEnabled
                 )
             }
         }
@@ -84,7 +100,9 @@ fun ExternalSwitchesScreen(navController: NavController) {
 @Composable
 private fun ExternalSwitchesContent(
     externalSwitches: List<SwitchEvent>,
-    navController: NavController
+    navController: NavController,
+    profileId: String,
+    switchHoldEnabled: Boolean
 ) {
     if (externalSwitches.isEmpty()) {
         Box(
@@ -104,7 +122,9 @@ private fun ExternalSwitchesContent(
                 externalSwitches.forEach { event ->
                     SwitchEventItem(
                         navController = navController,
-                        switchEvent = event
+                        switchEvent = event,
+                        profileId = profileId,
+                        switchHoldEnabled = switchHoldEnabled
                     )
                 }
             }
@@ -115,17 +135,22 @@ private fun ExternalSwitchesContent(
 @Composable
 private fun SwitchEventItem(
     navController: NavController,
-    switchEvent: SwitchEvent
+    switchEvent: SwitchEvent,
+    profileId: String,
+    switchHoldEnabled: Boolean
 ) {
     val primaryAction = SwitchAction(
         trigger = "Press",
-        actionName = switchEvent.pressAction.getActionName()
+        actionName = switchEvent.pressAction.getDisplayName(LocalContext.current)
     )
 
-    val secondaryActions = switchEvent.holdActions.map { holdAction ->
+    val secondaryActions = SwitchHoldPolicy.effectiveHoldActions(
+        switchEvent,
+        switchHoldEnabled
+    ).map { holdAction ->
         SwitchAction(
             trigger = "Hold",
-            actionName = holdAction.getActionName()
+            actionName = holdAction.getDisplayName(LocalContext.current)
         )
     }
 
@@ -136,6 +161,10 @@ private fun SwitchEventItem(
         secondaryActions = secondaryActions,
         isEnabled = true,
         hasConfigurationIssues = false,
-        onClick = { navController.navigate("${NavigationRoute.EditExternalSwitch.name}/${switchEvent.code}") }
+        onClick = {
+            navController.navigate(
+                SwitchProfileRoutes.editExternalSwitch(profileId, switchEvent.code)
+            )
+        }
     )
 }

@@ -166,13 +166,14 @@ open class AccessTechniqueUIBase {
      * Hides the window and clears all child views.
      */
     fun hide() {
-        handler.post {
-            view?.let {
-                window.removeView(overlayTarget, it)
-                view = null
-            }
-            childViews.clear()
-        }
+        handler.post { hideDirectly() }
+    }
+
+    protected fun hideDirectly() {
+        val previous = view
+        view = null
+        childViews.clear()
+        previous?.let { window.removeView(overlayTarget, it) }
     }
 
 

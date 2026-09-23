@@ -24,7 +24,7 @@ fun RadarSpeedStepper() {
         buttonLabelFormatter = { speedLevel -> RadarSettings.getSpeedLevelDescription(speedLevel) },
         displayFormatter = { speedLevel -> RadarSettings.getSpeedLevelDescription(speedLevel) },
         onValueChanged = { newSpeedLevel ->
-            RadarSettings.setSpeedLevel(newSpeedLevel, context)
+            RadarSettings.setSpeedLevel(newSpeedLevel)
         }
     )
 } 

@@ -45,6 +45,7 @@ class LineUI(private val context: Context) : AccessTechniqueUIBase() {
                 blockOutline = RelativeLayout(context).apply {
                     background = GradientDrawable().apply {
                         setColor(Color.TRANSPARENT)
+                        cornerRadius = ScreenUtils.dpToPxFloat(context, ScanVisualConstants.CORNER_RADIUS_DP)
                         setStroke(
                             cursorLinePx,
                             ScanColorManager.getScanColorSetFromPreferences(context).primaryColor.toColorInt()

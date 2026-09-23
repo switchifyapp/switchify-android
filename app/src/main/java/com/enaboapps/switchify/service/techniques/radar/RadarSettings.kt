@@ -1,7 +1,6 @@
 package com.enaboapps.switchify.service.techniques.radar
 
 import android.content.Context
-import android.content.Intent
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.service.utils.ContinuousLineSpeedUtils
 
@@ -13,8 +12,6 @@ object RadarSettings {
 
     private var preferenceManager: PreferenceManager? = null
 
-    const val RADAR_SETTINGS_CHANGED_ACTION = "com.enaboapps.switchify.RADAR_SETTINGS_CHANGED"
-
     object StartingPosition {
         const val TOP = "top"
         const val BOTTOM = "bottom"
@@ -22,12 +19,6 @@ object RadarSettings {
 
     fun init(context: Context) {
         preferenceManager = PreferenceManager(context)
-    }
-
-    private fun broadcastChanged(context: Context) {
-        context.sendBroadcast(
-            Intent(RADAR_SETTINGS_CHANGED_ACTION).setPackage(context.packageName)
-        )
     }
 
     fun getSpeedLevel(): Int {
@@ -38,13 +29,12 @@ object RadarSettings {
         return ContinuousLineSpeedUtils.getRepresentativeLevel(storedLevel)
     }
 
-    fun setSpeedLevel(speedLevel: Int, context: Context) {
+    fun setSpeedLevel(speedLevel: Int) {
         val representativeLevel = ContinuousLineSpeedUtils.getRepresentativeLevel(speedLevel)
         preferenceManager?.setIntegerValue(
             PreferenceManager.Keys.PREFERENCE_KEY_RADAR_SPEED_LEVEL,
             representativeLevel
         )
-        broadcastChanged(context)
     }
 
     fun getLinearSpeedPxPerSecond(context: Context, slowDownFactor: Float = 1f): Float {
@@ -71,14 +61,12 @@ object RadarSettings {
     /**
      * Set radar slow down then select mode
      * @param enabled Whether to enable slow down then select
-     * @param context Context for broadcasting changes
      */
-    fun setSlowDownThenSelectEnabled(enabled: Boolean, context: Context) {
+    fun setSlowDownThenSelectEnabled(enabled: Boolean) {
         preferenceManager?.setBooleanValue(
             PreferenceManager.Keys.PREFERENCE_KEY_RADAR_SLOW_DOWN_THEN_SELECT,
             enabled
         )
-        broadcastChanged(context)
     }
 
     /**
@@ -95,14 +83,12 @@ object RadarSettings {
     /**
      * Set the radar starting position
      * @param position The starting position (top or bottom)
-     * @param context Context for broadcasting changes
      */
-    fun setStartingPosition(position: String, context: Context) {
+    fun setStartingPosition(position: String) {
         preferenceManager?.setStringValue(
             PreferenceManager.Keys.PREFERENCE_KEY_RADAR_STARTING_POSITION,
             position
         )
-        broadcastChanged(context)
     }
 
     /**

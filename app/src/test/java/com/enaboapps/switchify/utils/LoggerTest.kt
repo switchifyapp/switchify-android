@@ -10,7 +10,6 @@ class LoggerTest {
     @After
     fun tearDown() {
         Logger.resetForTesting()
-        CrashReporter.resetForTesting()
     }
 
     @Test

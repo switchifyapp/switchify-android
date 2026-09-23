@@ -1,5 +1,6 @@
 package com.enaboapps.switchify.service.stats
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.util.Log
 import com.enaboapps.switchify.service.stats.database.StatsEntity
@@ -38,6 +39,7 @@ class StatsCollector private constructor() : AutoCloseable {
         private const val MAX_QUEUE_SIZE = 1000
         private const val MAX_RETRY_COUNT = 3  // Drop events after 3 failed attempts
 
+        @SuppressLint("StaticFieldLeak")
         @Volatile
         private var instance: StatsCollector? = null
 

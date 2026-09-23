@@ -86,11 +86,6 @@ object ServiceBridge {
      */
     sealed class ServiceCommand {
         /**
-         * Request service to enforce technique compatibility based on current scan mode.
-         */
-        object EnforceTechniqueCompatibility : ServiceCommand()
-
-        /**
          * Request service to reload all settings from preferences.
          */
         object ReloadSettings : ServiceCommand()
@@ -99,13 +94,6 @@ object ServiceBridge {
          * Request service to clear internal caches.
          */
         object ClearCache : ServiceCommand()
-
-        /**
-         * Request service to toggle head control.
-         */
-        object HeadControlToggled : ServiceCommand()
-
-        data class SetHeadControlEnabled(val enabled: Boolean) : ServiceCommand()
 
         /**
          * Request service to update switch configuration.
@@ -118,6 +106,10 @@ object ServiceBridge {
          */
         data class AccessTechniqueChanged(val technique: String) : ServiceCommand()
 
+        data class BeginSwitchProfileActivation(val profileId: String) : ServiceCommand()
+
+        data object CancelSwitchProfileActivation : ServiceCommand()
+
         /**
          * Request service to validate and update configuration.
          * @param key The preference key that changed
@@ -129,6 +121,8 @@ object ServiceBridge {
             val actionId: Int,
             val source: String = "adb"
         ) : ServiceCommand()
+
+        data class PerformSwitchEdgeForTesting(val keyCode: Int, val pressed: Boolean) : ServiceCommand()
     }
 
     /**
@@ -151,6 +145,29 @@ object ServiceBridge {
          * Replaces SwitchEventBus.switchEventsUpdated.
          */
         object SwitchEventsUpdated : ServiceEvent()
+
+        object SwitchProfilesUpdated : ServiceEvent()
+
+        data class SwitchProfileVerificationStarted(
+            val profileId: String,
+            val profileName: String,
+            val expiresAtMillis: Long,
+            val usesConfirmationMenu: Boolean
+        ) : ServiceEvent()
+
+        data class SwitchProfileActivationFailed(
+            val profileId: String,
+            val reason: String,
+            val missingActionIds: Set<Int> = emptySet(),
+            val unsupportedActionIds: Set<Int> = emptySet()
+        ) : ServiceEvent()
+
+        data class SwitchProfileActivated(
+            val profileId: String,
+            val profileName: String
+        ) : ServiceEvent()
+
+        data object SwitchProfileActivationCancelled : ServiceEvent()
 
         /**
          * Service is ready and fully initialized.

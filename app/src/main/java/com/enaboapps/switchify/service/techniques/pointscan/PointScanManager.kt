@@ -1,9 +1,6 @@
 package com.enaboapps.switchify.service.techniques.pointscan
 
-import android.content.BroadcastReceiver
 import android.content.Context
-import android.content.Intent
-import android.content.IntentFilter
 import com.enaboapps.switchify.service.gestures.GestureManager
 import com.enaboapps.switchify.service.gestures.GesturePoint
 import com.enaboapps.switchify.service.scanning.ScanDirection
@@ -24,31 +21,24 @@ class PointScanManager(private val context: Context) : AccessTechniqueInterface 
         handleFinalSelectionPoint(it.x.toInt(), it.y.toInt())
     })
 
-    private val settingsChangedReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context?, intent: Intent?) {
-            onSettingsChanged()
-        }
-    }
-
     init {
         PointScanSettings.init(context)
         blockManager.initializeBlocks()
-        androidx.core.content.ContextCompat.registerReceiver(
-            context,
-            settingsChangedReceiver,
-            IntentFilter(PointScanSettings.CURSOR_SETTINGS_CHANGED_ACTION),
-            androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED
-        )
     }
 
-    /**
-     * Called when the settings have changed.
-     */
-    private fun onSettingsChanged() {
-        resetUI()
+    internal fun refreshStructure() {
+        val shouldResume = blockManager.getScanTree().isAutoScanning() || lineManager.isAutoScanning()
+        blockManager.resetForNextUse()
+        lineManager.resetForNextUse()
         blockManager.initializeBlocks()
+        if (shouldResume) {
+            startAutoScanning()
+        }
     }
 
+    internal fun refreshBlockTiming() {
+        blockManager.getScanTree().setSpeed(PointScanSettings.getCursorBlockScanRate())
+    }
 
     /**
      * Sets the block based on the position.
@@ -57,7 +47,7 @@ class PointScanManager(private val context: Context) : AccessTechniqueInterface 
      */
     private fun setBlock(position: Int) {
         val block = blockManager.getBlock(position)
-        blockManager.resetForNextUse()
+        blockManager.enterLinePhase()
         lineManager.setBlock(block)
         lineManager.startAutoScanning()
     }
@@ -183,11 +173,6 @@ class PointScanManager(private val context: Context) : AccessTechniqueInterface 
      */
     override fun cleanup() {
         super.cleanup()
-        try {
-            context.unregisterReceiver(settingsChangedReceiver)
-        } catch (e: IllegalArgumentException) {
-            // Receiver was not registered or already unregistered
-        }
         blockManager.cleanup()
         lineManager.cleanup()
     }

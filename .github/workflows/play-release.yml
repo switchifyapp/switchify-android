@@ -76,6 +76,8 @@ jobs:
           UPLOAD_KEY_PASSWORD:      ${{ secrets.UPLOAD_KEY_PASSWORD }}
           REVENUECAT_PUBLIC_KEY:    ${{ secrets.REVENUECAT_PUBLIC_KEY }}
           TIMBERLOGS_API_KEY:       ${{ secrets.TIMBERLOGS_API_KEY }}
+          SENTRY_DSN:               ${{ secrets.SENTRY_DSN }}
+          SENTRY_AUTH_TOKEN:        ${{ secrets.SENTRY_AUTH_TOKEN }}
           SUPABASE_URL:             ${{ secrets.SUPABASE_URL }}
           SUPABASE_ANON_KEY:        ${{ secrets.SUPABASE_ANON_KEY }}
           GOOGLE_WEB_CLIENT_ID:     ${{ secrets.GOOGLE_WEB_CLIENT_ID }}

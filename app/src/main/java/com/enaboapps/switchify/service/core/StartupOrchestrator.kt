@@ -5,6 +5,7 @@ import com.enaboapps.switchify.service.keyboard.KeyboardManager
 import com.enaboapps.switchify.service.keyboard.KeyboardNodesPolicy
 import com.enaboapps.switchify.service.techniques.nodes.NodeExaminer
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -39,12 +40,12 @@ class StartupOrchestrator(
 
         // Update the SystemNodeScanner and KeyboardScanner with the current layout info
         ServiceCore.getScanningManager()?.let { scanningManager ->
-            serviceScope.launch {
+            serviceScope.launch(Dispatchers.Main.immediate) {
                 NodeExaminer.getActionableNodesFlow().collect { nodes ->
-                    scanningManager.updateActionableNodes(nodes)
+                    scanningManager.updateActionableNodes(nodes.nodes, nodes.source)
                 }
             }
-            serviceScope.launch {
+            serviceScope.launch(Dispatchers.Main.immediate) {
                 // Combine keyboard state with the node batches so the scanner
                 // only sees nodes whose captured bounds match the current IME.
                 // Drops the initial empty batch and any leftover from a
@@ -56,8 +57,8 @@ class StartupOrchestrator(
                     .filter { (state, nodes) ->
                         !keyboardNodesPolicy.shouldDropAsStale(nodes, state)
                     }
-                    .map { (_, nodes) -> nodes.nodes }
-                    .collect { scanningManager.updateKeyboardNodes(it) }
+                    .map { (_, nodes) -> nodes }
+                    .collect { scanningManager.updateKeyboardNodes(it.nodes, it.source) }
             }
             serviceScope.launch {
                 // Re-examine the accessibility tree shortly after the keyboard

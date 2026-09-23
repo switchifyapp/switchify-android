@@ -10,6 +10,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import com.enaboapps.switchify.BuildConfig
+import com.enaboapps.switchify.R
 import com.enaboapps.switchify.backend.data.FileManager
 import com.enaboapps.switchify.backend.iap.IAPHandler
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
@@ -19,10 +20,11 @@ import com.enaboapps.switchify.service.camera.CameraManager
 import com.enaboapps.switchify.service.gestures.GestureLockManager
 import com.enaboapps.switchify.service.gestures.GestureManager
 import com.enaboapps.switchify.service.gestures.GestureRepeatManager
-import com.enaboapps.switchify.service.pcswitchcontrol.PcSwitchControlForwarder
-import com.enaboapps.switchify.pc.PcMouseRepeatManager
-import com.enaboapps.switchify.pc.PcServiceConnectionController
+import com.enaboapps.switchify.service.remotebridge.SwitchifyRemoteBridgeCoordinator
 import com.enaboapps.switchify.service.scanning.ScanSettings
+import com.enaboapps.switchify.service.scanning.preferences.PreferenceManagerScanPreferenceChangeSource
+import com.enaboapps.switchify.service.scanning.preferences.ScanPreferenceChangeCoordinator
+import com.enaboapps.switchify.service.scanning.preferences.ScanPreferenceEffect
 import com.enaboapps.switchify.service.selection.SelectionHandler
 import com.enaboapps.switchify.service.stats.StatsCollector
 import com.enaboapps.switchify.service.switches.SwitchEventProvider
@@ -30,14 +32,16 @@ import com.enaboapps.switchify.service.techniques.AccessTechnique
 import com.enaboapps.switchify.service.trial.ServiceTrialManager
 import com.enaboapps.switchify.service.trial.ServiceTrialOverlay
 import com.enaboapps.switchify.service.utils.DeviceLockObserver
+import com.enaboapps.switchify.service.window.ServiceMessageHUD
 import com.enaboapps.switchify.service.window.ServiceStartupSplash
 import com.enaboapps.switchify.service.window.SwitchifyAccessibilityWindow
 import com.enaboapps.switchify.switches.SwitchAction
-import com.enaboapps.switchify.utils.CrashReporter
 import com.enaboapps.switchify.utils.LogEvent
 import com.enaboapps.switchify.utils.Logger
+import com.enaboapps.switchify.utils.SentryReporter
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.flow.launchIn
@@ -55,14 +59,13 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
     private lateinit var cameraManager: CameraManager
     private lateinit var screenWatcherManager: ScreenWatcherManager
     private lateinit var scanSettings: ScanSettings
-    private lateinit var techniqueEnforcer: TechniqueEnforcer
     private lateinit var deviceLockObserver: DeviceLockObserver
     private lateinit var trialManager: ServiceTrialManager
     private lateinit var trialOverlay: ServiceTrialOverlay
     private lateinit var startupOrchestrator: StartupOrchestrator
     private lateinit var nodeUpdateCoordinator: NodeUpdateCoordinator
+    private lateinit var scanPreferenceChangeCoordinator: ScanPreferenceChangeCoordinator
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
-    private val pcSwitchControlCleanupScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var protectedStorageMigrationAttempted = false
     private val adbTestingBridgeReceiver = AdbTestingBridgeReceiver()
     private var adbTestingBridgeRegistered = false
@@ -80,7 +83,6 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
 
     companion object {
         private const val TAG = "SwitchifyAccessibilityService"
-        private const val PC_SWITCH_CONTROL_CLEANUP_TIMEOUT_MS = 1_500L
     }
 
     override fun onCreate() {
@@ -126,8 +128,7 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
         screenWatcherManager.register(scanningManager, externalSwitchListener)
 
         scanSettings = ScanSettings(this)
-        techniqueEnforcer = TechniqueEnforcer(scanSettings)
-        nodeUpdateCoordinator = NodeUpdateCoordinator(this, scanSettings)
+        nodeUpdateCoordinator = NodeUpdateCoordinator(this, scanSettings, scanningManager)
         cameraManager = CameraManager(
             context = this,
             lifecycleOwner = this,
@@ -137,9 +138,45 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
         )
 
         ServiceCore.setCameraManager(cameraManager)
+        scanPreferenceChangeCoordinator = ScanPreferenceChangeCoordinator(
+            source = PreferenceManagerScanPreferenceChangeSource(PreferenceManager(this)),
+            scope = serviceScope,
+            uiDispatcher = Dispatchers.Main.immediate,
+            applyPlan = { plan ->
+                if (plan.contains(ScanPreferenceEffect.RELOAD_TECHNIQUE)) {
+                    AccessTechnique.reloadFromPreferences()
+                    cameraManager.evaluateAndUpdateCameraState()
+                }
+                scanningManager.applyPreferenceUpdate(plan)
+            },
+            onApplied = {
+                ServiceBridge.emitEvent(ServiceBridge.ServiceEvent.ConfigurationUpdated)
+            },
+            onApplyFailed = { error ->
+                Logger.log(
+                    LogEvent.ServiceCommandFailed,
+                    data = mapOf(
+                        "result" to "failure",
+                        "reason" to "exception",
+                        "command" to "ScanPreferenceChange",
+                        "key" to null
+                    ),
+                    throwable = error
+                )
+                logd("Failed to apply scan preference update")
+                ServiceBridge.emitEvent(
+                    ServiceBridge.ServiceEvent.ServiceError("Configuration update failed")
+                )
+            }
+        )
+        scanPreferenceChangeCoordinator.start()
         switchEventProvider.addCameraSwitchListener(this)
         eventPipeline =
-            AccessibilityEventPipeline(serviceScope) { nodeUpdateCoordinator.processAccessibilityUpdate() }
+            AccessibilityEventPipeline(
+                serviceScope,
+                minimumRefreshIntervalMs = 50L,
+                onError = { error -> Logger.log(LogEvent.NodeExaminerFailed, throwable = error) }
+            ) { isCurrent -> nodeUpdateCoordinator.processAccessibilityUpdate(isCurrent) }
         eventPipeline.start()
 
         setupServiceBridge()
@@ -154,8 +191,6 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
                 }
             }
         }
-
-        techniqueEnforcer.enforceCompatibility()
 
         val gestureTargetIndicator = ServiceCore.getGestureTargetIndicator() ?: return
         GestureManager.instance.setup(this, gestureTargetIndicator)
@@ -180,11 +215,10 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
         if (deviceLockObserver.isUserUnlocked()) {
             logd("Device unlocked, initializing protected components")
             migrateToProtectedStorageIfUnlocked()
-            CrashReporter.enqueueUpload(this)
+            SentryReporter.onDeviceUnlocked(this)
             IAPHandler.connect(context = this)
             startTrialOverlayIfNeeded()
             cameraManager.evaluateAndUpdateCameraState()
-            initPcServiceConnectionControllerIfNeeded()
             val statsCollector = StatsCollector.getInstance()
             statsCollector.ensureInitialized()
             serviceScope.launch {
@@ -239,26 +273,6 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
         }
     }
 
-    private fun initPcServiceConnectionControllerIfNeeded() {
-        val controller = ServiceCore.getPcServiceConnectionController()
-            ?: PcServiceConnectionController.getInstance(this).also {
-                ServiceCore.setPcServiceConnectionController(it)
-            }
-        if (ServiceCore.getPcSwitchControlForwarder() == null) {
-            val scanningManager = ServiceCore.getScanningManager() ?: return
-            val switchEventProvider = ServiceCore.getSwitchEventProvider() ?: return
-            ServiceCore.setPcSwitchControlForwarder(
-                PcSwitchControlForwarder(
-                    controller = controller,
-                    scanningManager = scanningManager,
-                    switchEventProvider = switchEventProvider,
-                    preferenceManager = PreferenceManager(this),
-                    scope = serviceScope
-                )
-            )
-        }
-    }
-
 
     /**
      * Setup callbacks for the camera service
@@ -302,9 +316,21 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
     }
 
     fun refreshAccessibilityNodes() {
-        serviceScope.launch {
-            nodeUpdateCoordinator.processAccessibilityUpdate()
+        if (::eventPipeline.isInitialized) eventPipeline.requestRefresh()
+    }
+
+    private fun clearAccessibilityNodeSnapshots(removeCallback: Boolean = true) {
+        com.enaboapps.switchify.service.techniques.nodes.NodeExaminer.clear()
+        if (removeCallback) {
+            com.enaboapps.switchify.service.techniques.nodes.scanners.system.SystemNodeHolder.clear()
+        } else {
+            com.enaboapps.switchify.service.techniques.nodes.scanners.system.SystemNodeHolder.updateNodes(emptyList())
         }
+    }
+
+    internal fun setNodeProcessingSuspended(suspended: Boolean) {
+        if (::eventPipeline.isInitialized) eventPipeline.setSuspended(suspended)
+        if (suspended) clearAccessibilityNodeSnapshots(removeCallback = false)
     }
 
 
@@ -332,26 +358,29 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
 
         // Stagger initialization to prevent overwhelming main thread
         serviceScope.launch {
-            startupOrchestrator.executeStartupTasks { nodeUpdateCoordinator.processAccessibilityUpdate() }
+            startupOrchestrator.executeStartupTasks { refreshAccessibilityNodes() }
         }
     }
 
 
     override fun onUnbind(intent: Intent?): Boolean {
-        cleanupPcSwitchControlForwarder()
+        SwitchifyRemoteBridgeCoordinator.clearActive()
         if (::cameraManager.isInitialized) {
             cameraManager.cleanup()
         }
         deviceLockObserver.stopObserving()
         screenWatcherManager.unregister()
         unregisterAdbTestingBridgeIfNeeded()
+        if (::scanPreferenceChangeCoordinator.isInitialized) {
+            scanPreferenceChangeCoordinator.stop()
+        }
         serviceScope.coroutineContext.cancelChildren()
         if (::eventPipeline.isInitialized) {
             eventPipeline.stop()
         }
         ServiceCore.cleanup()
+        clearAccessibilityNodeSnapshots()
         SwitchifyAccessibilityWindow.instance.onServiceDestroy()
-        PcMouseRepeatManager.instance.clearServiceState()
         GestureRepeatManager.instance.clearServiceState()
         GestureLockManager.instance.clearServiceState()
         GlobalActionManager.cleanup()
@@ -365,7 +394,7 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
     }
 
     override fun onDestroy() {
-        cleanupPcSwitchControlForwarder()
+        SwitchifyRemoteBridgeCoordinator.clearActive()
         // Hide and stop trial overlay updates
         if (::trialOverlay.isInitialized) {
             trialOverlay.hideOverlay()
@@ -380,13 +409,17 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
         // Unregister ScreenWatcher to prevent receiver leak
         screenWatcherManager.unregister()
         unregisterAdbTestingBridgeIfNeeded()
+        if (::scanPreferenceChangeCoordinator.isInitialized) {
+            scanPreferenceChangeCoordinator.stop()
+        }
         serviceScope.coroutineContext.cancelChildren()
         if (::eventPipeline.isInitialized) {
             eventPipeline.stop()
         }
 
+        ServiceCore.cleanup()
+        clearAccessibilityNodeSnapshots()
         SwitchifyAccessibilityWindow.instance.onServiceDestroy()
-        PcMouseRepeatManager.instance.clearServiceState()
         GestureRepeatManager.instance.clearServiceState()
         GestureLockManager.instance.clearServiceState()
         SwitchifyLifecycleOwner.getInstance().handleLifecycleEvent(Lifecycle.Event.ON_DESTROY)
@@ -405,16 +438,6 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
 
         Logger.log(LogEvent.ServiceDestroyed)
         super.onDestroy()
-    }
-
-    private fun cleanupPcSwitchControlForwarder() {
-        val forwarder = ServiceCore.takePcSwitchControlForwarder() ?: return
-        forwarder.prepareForDestroy()
-        pcSwitchControlCleanupScope.launch {
-            withTimeoutOrNull(PC_SWITCH_CONTROL_CLEANUP_TIMEOUT_MS) {
-                forwarder.destroy()
-            }
-        }
     }
 
     override fun onKeyEvent(event: KeyEvent?): Boolean {
@@ -479,43 +502,15 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
 
         try {
             when (command) {
-                ServiceBridge.ServiceCommand.EnforceTechniqueCompatibility -> {
-                    techniqueEnforcer.enforceCompatibility()
-                    ServiceBridge.emitEvent(ServiceBridge.ServiceEvent.ConfigurationUpdated)
-                }
-
                 ServiceBridge.ServiceCommand.ReloadSettings -> {
                     AccessTechnique.reloadFromPreferences()
-                    techniqueEnforcer.enforceCompatibility()
                     ServiceCore.getScanningManager()?.reset()
                     ServiceBridge.emitEvent(ServiceBridge.ServiceEvent.ConfigurationUpdated)
                 }
 
-                ServiceBridge.ServiceCommand.HeadControlToggled -> {
-                    // Re-evaluate camera state when head control is toggled
-                    cameraManager.evaluateAndUpdateCameraState()
-                    ServiceBridge.emitEvent(ServiceBridge.ServiceEvent.ConfigurationUpdated)
-                }
-
-                is ServiceBridge.ServiceCommand.SetHeadControlEnabled -> {
-                    val svc = ServiceCore.getHeadControlService()
-                    val desired = command.enabled
-                    val ok = svc?.setEnabled(desired) == true
-                    if (ok) {
-                        // Settings are handled by HeadControlService.setEnabled() - no duplicate needed
-                        cameraManager.evaluateAndUpdateCameraState()
-                        ServiceBridge.emitEvent(ServiceBridge.ServiceEvent.ConfigurationUpdated)
-                    } else {
-                        result = "skipped"
-                        reason = "head_control_not_ready"
-                    }
-                }
-
                 ServiceBridge.ServiceCommand.ClearCache -> {
                     // Clear any relevant caches
-                    serviceScope.launch {
-                        nodeUpdateCoordinator.processAccessibilityUpdate()
-                    }
+                    refreshAccessibilityNodes()
                     ServiceBridge.emitEvent(ServiceBridge.ServiceEvent.ConfigurationUpdated)
                 }
 
@@ -531,42 +526,24 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
                     // Handle access technique changes and camera state evaluation
                     logd("Access technique changed to: ${command.technique}")
                     cameraManager.evaluateAndUpdateCameraState()
-                    ServiceBridge.emitEvent(ServiceBridge.ServiceEvent.ConfigurationUpdated)
+                }
+
+                is ServiceBridge.ServiceCommand.BeginSwitchProfileActivation -> {
+                    commandKey = command.profileId
+                    ServiceCore.getSwitchProfileActivationCoordinator()?.begin(command.profileId)
+                        ?: run {
+                            result = "skipped"
+                            reason = "service_not_ready"
+                        }
+                }
+
+                ServiceBridge.ServiceCommand.CancelSwitchProfileActivation -> {
+                    ServiceCore.getSwitchProfileActivationCoordinator()?.cancel()
                 }
 
                 is ServiceBridge.ServiceCommand.UpdateConfiguration -> {
                     commandKey = command.key
-                    // Handle specific configuration updates
-                    when (command.key) {
-                        PreferenceManager.Keys.PREFERENCE_KEY_SCAN_MODE -> {
-                            // Scan mode changed - enforce technique compatibility
-                            techniqueEnforcer.enforceCompatibility()
-                            ServiceBridge.emitEvent(ServiceBridge.ServiceEvent.ConfigurationUpdated)
-                        }
-
-                        PreferenceManager.Keys.PREFERENCE_KEY_ACCESS_TECHNIQUE -> {
-                            // Access technique changed - reload from preferences and enforce compatibility
-                            AccessTechnique.reloadFromPreferences()
-                            techniqueEnforcer.enforceCompatibility()
-                            // Re-evaluate camera state when access technique changes
-                            cameraManager.evaluateAndUpdateCameraState()
-                            ServiceBridge.emitEvent(ServiceBridge.ServiceEvent.ConfigurationUpdated)
-                        }
-
-                        PreferenceManager.Keys.PREFERENCE_KEY_CURSOR_BLOCK_SCAN_RATE,
-                        PreferenceManager.Keys.PREFERENCE_KEY_POINT_SCAN_LINE_SPEED_LEVEL,
-                        PreferenceManager.Keys.PREFERENCE_KEY_RADAR_SPEED_LEVEL,
-                        PreferenceManager.Keys.PREFERENCE_KEY_SCAN_RATE -> {
-                            // Scan rate settings changed - service will pick up new values automatically
-                            ServiceCore.getScanningManager()?.reset()
-                            ServiceBridge.emitEvent(ServiceBridge.ServiceEvent.ConfigurationUpdated)
-                        }
-
-                        else -> {
-                            logd("Configuration updated: ${command.key}")
-                            ServiceBridge.emitEvent(ServiceBridge.ServiceEvent.ConfigurationUpdated)
-                        }
-                    }
+                    scanPreferenceChangeCoordinator.enqueue(command.key)
                 }
 
                 is ServiceBridge.ServiceCommand.PerformSwitchActionForTesting -> {
@@ -582,6 +559,15 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
                         } else {
                             scanningManager.performAction(SwitchAction(command.actionId))
                         }
+                    }
+                }
+
+                is ServiceBridge.ServiceCommand.PerformSwitchEdgeForTesting -> {
+                    if (BuildConfig.DEBUG) {
+                        val listener = ServiceCore.getExternalSwitchListener()
+                        val now = android.os.SystemClock.uptimeMillis()
+                        if (command.pressed) listener?.onSwitchPressed(command.keyCode, now, now)
+                        else listener?.onSwitchReleased(command.keyCode, now, now, false)
                     }
                 }
             }

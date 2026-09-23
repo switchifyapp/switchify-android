@@ -8,61 +8,20 @@ import org.junit.Test
 
 class NodeScannerHighlightStateTest {
     private val displayTarget = OverlayTarget.Display(displayId = 0)
-    private val windowTarget = OverlayTarget.Window(
-        displayId = 0,
-        accessibilityWindowId = 12,
-        windowType = 1
-    )
 
     @Test
-    fun firstHighlightAttaches() {
-        assertEquals(
-            NodeScannerHighlightTransition.ATTACH,
-            NodeScannerHighlightTransitions.show(null, spec(NodeScannerHighlightRole.ROW))
-        )
-    }
-
-    @Test
-    fun roleChangesOnSameTargetUpdateSingleHighlight() {
-        val roles = listOf(
-            NodeScannerHighlightRole.ROW to NodeScannerHighlightRole.ITEM,
-            NodeScannerHighlightRole.ITEM to NodeScannerHighlightRole.ROW,
-            NodeScannerHighlightRole.ESCAPE to NodeScannerHighlightRole.ITEM,
-            NodeScannerHighlightRole.ITEM to NodeScannerHighlightRole.ESCAPE,
-            NodeScannerHighlightRole.ROW to NodeScannerHighlightRole.ESCAPE
-        )
-
-        roles.forEach { (currentRole, nextRole) ->
-            assertEquals(
-                NodeScannerHighlightTransition.UPDATE,
-                NodeScannerHighlightTransitions.show(
-                    state(currentRole),
-                    spec(nextRole)
-                )
-            )
+    fun scopedHideRequiresMatchingOwnerAndRole() {
+        for (role in NodeScannerHighlightRole.entries) {
+            val current = NodeScannerHighlightState(role, displayTarget, "menu")
+            assertEquals(NodeScannerHighlightTransition.IGNORE,
+                NodeScannerHighlightTransitions.hide(current, setOf(role), "system"))
+            assertEquals(NodeScannerHighlightTransition.REMOVE,
+                NodeScannerHighlightTransitions.hide(current, setOf(role), "menu"))
+            assertEquals(NodeScannerHighlightTransition.REMOVE,
+                NodeScannerHighlightTransitions.hide(current, setOf(role)))
+            assertEquals(NodeScannerHighlightTransition.IGNORE,
+                NodeScannerHighlightTransitions.hide(current.copy(owner = null), setOf(role), "menu"))
         }
-    }
-
-    @Test
-    fun repeatedRoleOnSameTargetUpdatesSingleHighlight() {
-        assertEquals(
-            NodeScannerHighlightTransition.UPDATE,
-            NodeScannerHighlightTransitions.show(
-                state(NodeScannerHighlightRole.ITEM),
-                spec(NodeScannerHighlightRole.ITEM)
-            )
-        )
-    }
-
-    @Test
-    fun targetChangeReplacesHighlight() {
-        assertEquals(
-            NodeScannerHighlightTransition.REPLACE_TARGET,
-            NodeScannerHighlightTransitions.show(
-                state(NodeScannerHighlightRole.ITEM),
-                spec(NodeScannerHighlightRole.ROW, windowTarget)
-            )
-        )
     }
 
     @Test
@@ -137,12 +96,5 @@ class NodeScannerHighlightStateTest {
         target: OverlayTarget = displayTarget
     ): NodeScannerHighlightState {
         return NodeScannerHighlightState(role, target)
-    }
-
-    private fun spec(
-        role: NodeScannerHighlightRole,
-        target: OverlayTarget = displayTarget
-    ): NodeScannerHighlightSpec {
-        return NodeScannerHighlightSpec(role, 10, 20, 100, 50, target)
     }
 }

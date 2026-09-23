@@ -105,27 +105,13 @@ class ScanTreeNavigatorTest {
         assertTrue(navigator.isInGroup)
 
         navigator.currentCycle = 2
-        navigator.currentColumn = 1
+        navigator.currentColumn = 2
         navigator.moveSelectionToNext()
         navigator.confirmEscape()
 
         assertEquals(0, navigator.currentCycle)
         assertFalse(navigator.isInGroup)
         assertTrue(navigator.isScanningGroups)
-    }
-
-    @Test
-    fun spatialPositionResetsCycleProgress() {
-        val navigator = navigatorForRow("first", "last").apply {
-            currentCycle = 2
-        }
-
-        val positioned = navigator.setSpatialPosition(treeIndex = 0, nodeIndex = 1)
-
-        assertTrue(positioned)
-        assertEquals(0, navigator.currentCycle)
-        assertEquals(1, navigator.currentColumn)
-        assertTrue(navigator.isInTreeItem)
     }
 
     @Test
@@ -177,6 +163,63 @@ class ScanTreeNavigatorTest {
         assertFalse(navigator.isInCycleBreak)
         assertEquals(0, navigator.currentCycle)
         assertEquals(1, cancellationCount)
+    }
+
+    @Test
+    fun forwardWrapEntersCycleBreakBeforeFirstRow() {
+        val navigator = navigatorForRows(
+            row("first"),
+            row("last"),
+            settings = TestNavigatorSettings(),
+            hasCycleBreak = { true }
+        ).apply {
+            currentTreeItem = 1
+        }
+
+        navigator.moveSelectionToNextOrPrevious()
+
+        assertTrue(navigator.isInCycleBreak)
+        assertEquals(0, navigator.currentTreeItem)
+        assertTrue(navigator.hasCompletedCycle())
+        assertEquals(1, navigator.currentCycle)
+    }
+
+    @Test
+    fun reverseWrapSkipsCycleBreakButCountsCycle() {
+        val navigator = navigatorForRows(
+            row("first"),
+            row("last"),
+            settings = TestNavigatorSettings(),
+            hasCycleBreak = { true }
+        ).apply {
+            scanDirection = ScanDirection.UP
+        }
+
+        navigator.moveSelectionToNextOrPrevious()
+
+        assertFalse(navigator.isInCycleBreak)
+        assertEquals(1, navigator.currentTreeItem)
+        assertTrue(navigator.hasCompletedCycle())
+        assertEquals(1, navigator.currentCycle)
+    }
+
+    @Test
+    fun reverseEscapeDenialSkipsCycleBreak() {
+        val navigator = navigatorForRows(
+            row("first", "last"),
+            settings = TestNavigatorSettings(),
+            hasCycleBreak = { true }
+        ).apply {
+            isInTreeItem = true
+            scanDirection = ScanDirection.LEFT
+        }
+
+        navigator.moveSelectionToPrevious()
+        navigator.denyEscape()
+
+        assertFalse(navigator.isInCycleBreak)
+        assertEquals(1, navigator.currentColumn)
+        assertEquals(1, navigator.currentCycle)
     }
 
     @Test
@@ -242,7 +285,11 @@ class ScanTreeNavigatorTest {
     @Test
     fun newlyEnteredGroupReceivesFullAutomaticCycleAllowance() {
         val navigator = navigatorForRows(
-            row("first", "second", "third", "fourth", groupScan = true),
+            row(
+                "first", "second", "third", "fourth",
+                "fifth", "sixth", "seventh", "eighth",
+                groupScan = true
+            ),
             settings = TestNavigatorSettings(groupScan = true, autoScan = true)
         ).apply {
             isInTreeItem = true
@@ -253,11 +300,23 @@ class ScanTreeNavigatorTest {
 
         assertFalse(navigator.isAutoScanCycleLimitReached())
         repeat(3) {
-            navigator.currentColumn = 1
+            navigator.currentColumn = 2
             navigator.moveSelectionToNext()
             navigator.denyEscape()
         }
         assertTrue(navigator.isAutoScanCycleLimitReached())
+    }
+
+    @Test
+    fun currentNodeUsesTheSelectedGroup() {
+        val navigator = navigatorForGroupedRow().apply {
+            isInTreeItem = true
+            currentGroup = 1
+        }
+
+        navigator.selectGroup()
+
+        assertEquals("fourth", navigator.getCurrentNode()?.getContentDescription())
     }
 
     private fun navigatorForRow(
@@ -266,7 +325,11 @@ class ScanTreeNavigatorTest {
     ): ScanTreeNavigator = navigatorForRows(row(*ids), settings = settings)
 
     private fun navigatorForGroupedRow(): ScanTreeNavigator = navigatorForRows(
-        row("first", "second", "third", "fourth", groupScan = true),
+        row(
+            "first", "second", "third", "fourth",
+            "fifth", "sixth", "seventh", "eighth",
+            groupScan = true
+        ),
         settings = TestNavigatorSettings(groupScan = true),
     )
 
@@ -300,7 +363,6 @@ class ScanTreeNavigatorTest {
         private val autoScan: Boolean = false
     ) : ScanTreeNavigatorSettings {
         override fun isRowColumnScanEnabled(): Boolean = true
-        override fun isDirectionalScanMode(): Boolean = false
         override fun isGroupScanEnabled(): Boolean = groupScan
         override fun getScanCycles(): Int = 3
         override fun isAutoScanMode(): Boolean = autoScan

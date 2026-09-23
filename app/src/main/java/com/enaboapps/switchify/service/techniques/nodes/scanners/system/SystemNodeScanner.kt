@@ -10,7 +10,6 @@ import com.enaboapps.switchify.service.techniques.nodes.scanners.BaseNodeScanner
 /**
  * SystemNodeScanner is a class that handles the scanning of nodes.
  * It manages the scanning process using a ScanTree instance and handles updates from NodeExaminer.
- * Duplicate updates are prevented by the parent BaseNodeScanner class.
  */
 class SystemNodeScanner(
     cycleBreakListener: CycleBreakListener? = null
@@ -26,13 +25,13 @@ class SystemNodeScanner(
             handleNodeUpdate(nodes)
         }
         // Build initial tree from current nodes
-        buildFromNodes(SystemNodeHolder.getNodes())
+        updateSnapshot(SystemNodeHolder.getNodes(), SystemNodeHolder.source)
         NodeSpeaker.init(context)
     }
 
     private fun handleNodeUpdate(nodes: List<Node>) {
         Log.d(TAG, "Received node update with ${nodes.size} nodes")
-        updateNodes(nodes)
+        updateSnapshot(nodes, SystemNodeHolder.source)
     }
 
     override fun cleanup() {

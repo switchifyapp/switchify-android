@@ -2,6 +2,7 @@ package com.enaboapps.switchify.switches
 
 import android.content.Context
 import android.util.Log
+import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.service.scanning.ScanMode
 import com.enaboapps.switchify.service.scanning.ScanSettings
 
@@ -12,6 +13,7 @@ class SwitchConfigValidator(private val context: Context) {
 
     private val scanSettings = ScanSettings(context)
     private val switchEventStore = SwitchEventStore.getInstance()
+    private val preferenceManager = PreferenceManager(context)
 
     /**
      * Check if the current switch configuration is valid for the selected scan mode
@@ -37,7 +39,6 @@ class SwitchConfigValidator(private val context: Context) {
         return when {
             scanSettings.isAutoScanMode() -> isValidForAutoScan(configuredActions)
             scanSettings.isManualScanMode() -> isValidForManualScan(configuredActions)
-            scanSettings.isDirectionalScanMode() -> isValidForDirectionalScan(configuredActions)
             else -> false
         }
     }
@@ -65,33 +66,14 @@ class SwitchConfigValidator(private val context: Context) {
     }
 
     /**
-     * Check if configuration is valid for directional scan mode.
-     * Directional scan now requires only SELECT; directional stepping is handled by Head Control.
-     */
-    private fun isValidForDirectionalScan(configuredActions: Set<Int>): Boolean {
-        return configuredActions.contains(SwitchAction.ACTION_SELECT)
-    }
-
-    /**
      * Get all switch actions that are currently configured
      * @return Set of action IDs that are configured
      */
     private fun getConfiguredActions(): Set<Int> {
-        val configuredActions = mutableSetOf<Int>()
-
-        // Get all switches and their actions
-        val switchEvents = switchEventStore.getSwitchEvents()
-        for (switchEvent in switchEvents) {
-            // Add press action
-            configuredActions.add(switchEvent.pressAction.id)
-
-            // Add hold actions
-            switchEvent.holdActions.forEach { holdAction ->
-                configuredActions.add(holdAction.id)
-            }
-        }
-
-        return configuredActions
+        return SwitchHoldPolicy.configuredActionIds(
+            switchEventStore.getSwitchEvents(),
+            SwitchHoldPolicy.isEnabled(preferenceManager)
+        )
     }
 
     /**
@@ -119,10 +101,8 @@ class SwitchConfigValidator(private val context: Context) {
      */
     fun getCurrentScanModeName(): String {
         return when {
-            scanSettings.isAutoScanMode() -> ScanMode(ScanMode.Modes.MODE_AUTO).getModeName()
-            scanSettings.isManualScanMode() -> ScanMode(ScanMode.Modes.MODE_MANUAL).getModeName()
-            scanSettings.isDirectionalScanMode() -> ScanMode(ScanMode.Modes.MODE_DIRECTIONAL).getModeName()
-            else -> "Unknown"
+            scanSettings.isManualScanMode() -> ScanMode.fromId(ScanMode.Modes.MODE_MANUAL).getModeName()
+            else -> ScanMode.fromId(ScanMode.Modes.MODE_AUTO).getModeName()
         }
     }
 }

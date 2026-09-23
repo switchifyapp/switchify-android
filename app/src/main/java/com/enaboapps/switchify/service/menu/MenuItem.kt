@@ -1,24 +1,16 @@
 package com.enaboapps.switchify.service.menu
 
 import android.view.ViewGroup
-import android.widget.LinearLayout
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -28,20 +20,21 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.enaboapps.switchify.service.components.AccessibilityComposeView
 import com.enaboapps.switchify.service.menu.structure.MenuConstants
 import com.enaboapps.switchify.service.menu.structure.MenuItemDefinition
-import com.enaboapps.switchify.service.utils.ScreenUtils
 import com.enaboapps.switchify.utils.Resources
 
 internal enum class MenuItemVisualRole {
@@ -62,6 +55,11 @@ internal enum class MenuItemVisualRole {
             else -> REGULAR
         }
     }
+}
+
+internal enum class MenuSelectionSource {
+    TOUCH,
+    SCANNING
 }
 
 /**
@@ -93,6 +91,8 @@ class MenuItem(
     private val drawableId: Int = 0,
     private val circleText: String? = null,
     val closeOnSelect: Boolean = true,
+    private val requiresScanningSelection: Boolean = false,
+    private val onRejectedTouchSelection: (() -> Unit)? = null,
     var isLinkToMenu: Boolean = false,
     var isMenuHierarchyManipulator: Boolean = false,
     val isBackButton: Boolean = false,
@@ -100,9 +100,6 @@ class MenuItem(
 ) {
     internal fun displayText(): String =
         resolveMenuItemLabel(labelResource, userProvidedText).orEmpty()
-
-    internal val showsForwardChevron: Boolean
-        get() = isLinkToMenu && !isBackButton
 
     /**
      * Convenience constructor that accepts a MenuItemDefinition.
@@ -129,60 +126,47 @@ class MenuItem(
 
     private var composeView: AccessibilityComposeView? = null
 
-    /**
-     * Inflate the menu item into [parent] using [menuSize] for its dimensions.
-     *
-     * Nav-row items ([isMenuHierarchyManipulator] = true) keep their fixed
-     * cell size from the profile. Content items fill the parent row width
-     * and use the profile's [MenuItemSize.rowHeightDp] for their height.
-     */
-    fun inflate(
+    internal fun inflateGrid(
         parent: ViewGroup,
         menuSize: MenuItemSize,
-        navigationWidthPx: Int? = null,
+        widthPx: Int,
+        heightPx: Int,
+        navigation: Boolean = false,
         isTransparent: Boolean = false
     ) {
-        val context = parent.context
-        composeView = AccessibilityComposeView(context) {
-            MenuItemContent(
-                labelResource = labelResource,
-                userProvidedText = userProvidedText,
+        composeView = AccessibilityComposeView(parent.context) {
+            MenuGridTile(
+                text = labelResource?.let { stringResource(it) } ?: userProvidedText.orEmpty(),
                 drawableId = drawableId,
                 circleText = circleText,
-                isMenuHierarchyManipulator = isMenuHierarchyManipulator,
-                isLinkToMenu = isLinkToMenu,
-                visualRole = MenuItemVisualRole.resolve(
-                    id = id,
-                    isBackButton = isBackButton,
-                    isMenuHierarchyManipulator = isMenuHierarchyManipulator
-                ),
+                visualRole = MenuItemVisualRole.resolve(id, isBackButton, isMenuHierarchyManipulator),
                 menuSize = menuSize,
+                navigation = navigation,
                 isTransparent = isTransparent,
                 onClick = { select() }
             )
-        }
-
-        composeView?.let { view ->
-            view.layoutParams = if (isMenuHierarchyManipulator) {
-                val widthPx = navigationWidthPx
-                    ?: ScreenUtils.dpToPx(context, menuSize.width.value.toInt())
-                val heightPx = ScreenUtils.dpToPx(context, menuSize.height.value.toInt())
-                ViewGroup.LayoutParams(widthPx, heightPx)
-            } else {
-                val rowHeightPx = ScreenUtils.dpToPx(context, menuSize.rowHeightDp)
-                LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.MATCH_PARENT,
-                    rowHeightPx
-                )
-            }
+        }.also { view ->
+            view.layoutParams = ViewGroup.LayoutParams(widthPx, heightPx)
             parent.addView(view)
         }
+    }
+
+    internal fun releaseView() {
+        composeView = null
     }
 
     /**
      * Select the menu item
      */
     fun select() {
+        select(MenuSelectionSource.TOUCH)
+    }
+
+    internal fun select(source: MenuSelectionSource) {
+        if (requiresScanningSelection && source != MenuSelectionSource.SCANNING) {
+            onRejectedTouchSelection?.invoke()
+            return
+        }
         if (!isLinkToMenu && !isMenuHierarchyManipulator && closeOnSelect) {
             MenuManager.getInstance().closeMenuHierarchy()
         }
@@ -229,281 +213,68 @@ class MenuItem(
 }
 
 @Composable
-private fun MenuItemContent(
-    labelResource: Int?,
-    userProvidedText: String?,
+private fun MenuGridTile(
+    text: String,
     drawableId: Int,
     circleText: String?,
-    isMenuHierarchyManipulator: Boolean,
-    isLinkToMenu: Boolean,
     visualRole: MenuItemVisualRole,
     menuSize: MenuItemSize,
-    isTransparent: Boolean,
-    onClick: () -> Unit
-) {
-    val text = resolveMenuItemLabel(labelResource, userProvidedText)
-
-    Box(modifier = Modifier.fillMaxSize()) {
-        if (isMenuHierarchyManipulator) {
-            NavigationMenuItem(
-                drawableId = drawableId,
-                labelResource = labelResource,
-                visualRole = visualRole,
-                menuSize = menuSize,
-                isTransparent = isTransparent,
-                onClick = onClick
-            )
-        } else {
-            RegularMenuItem(
-                text = text,
-                drawableId = drawableId,
-                circleText = circleText,
-                labelResource = labelResource,
-                menuSize = menuSize,
-                isLinkToMenu = isLinkToMenu,
-                visualRole = visualRole,
-                onClick = onClick
-            )
-        }
-    }
-}
-
-@Composable
-private fun NavigationMenuItem(
-    drawableId: Int,
-    labelResource: Int?,
-    visualRole: MenuItemVisualRole,
-    menuSize: MenuItemSize,
+    navigation: Boolean,
     isTransparent: Boolean,
     onClick: () -> Unit
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
-    val containerAlpha = if (isTransparent) 0.72f else 1f
-    val baseContainerColor = when (visualRole) {
+    val baseColor = when (visualRole) {
         MenuItemVisualRole.CLOSE -> MaterialTheme.colorScheme.errorContainer
+        MenuItemVisualRole.BACK -> MaterialTheme.colorScheme.secondaryContainer
         else -> MaterialTheme.colorScheme.surfaceContainerHighest
-    }.copy(alpha = containerAlpha)
-    val containerColor = pressedContainerColor(baseContainerColor, isPressed)
-    val iconColor = when (visualRole) {
-        MenuItemVisualRole.CLOSE -> MaterialTheme.colorScheme.onErrorContainer
-        else -> MaterialTheme.colorScheme.onSurfaceVariant
-    }
-
-    // Maintain full menu item size with centered circular icon
+    }.copy(alpha = if (isTransparent) 0.84f else 1f)
+    val color = if (isPressed) {
+        MaterialTheme.colorScheme.primary.copy(alpha = 0.12f).compositeOver(baseColor)
+    } else baseColor
+    val foreground = if (visualRole == MenuItemVisualRole.CLOSE) {
+        MaterialTheme.colorScheme.onErrorContainer
+    } else MaterialTheme.colorScheme.onSurface
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .clickable(
-                interactionSource = interactionSource,
-                indication = null,
-                onClick = onClick
-            )
-            .padding(menuSize.padding),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        // Navigation button with circular background
-        Box(
-            modifier = Modifier
-                .size(menuSize.navigationCircleSize)
-                .clip(CircleShape)
-                .background(containerColor),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                painter = painterResource(id = drawableId),
-                contentDescription = labelResource?.let { Resources.getString(it) },
-                modifier = Modifier.size(menuSize.navigationIconSize),
-                tint = iconColor
-            )
-        }
-    }
-}
-
-@Composable
-private fun RegularMenuItem(
-    text: String?,
-    drawableId: Int,
-    circleText: String?,
-    labelResource: Int?,
-    menuSize: MenuItemSize,
-    isLinkToMenu: Boolean,
-    visualRole: MenuItemVisualRole,
-    onClick: () -> Unit
-) {
-    // List row: coloured circle on the left, full label text on the right,
-    // sitting on a rounded tonal background so each row reads as a
-    // tappable tile. Outer vertical padding creates a visible gap between
-    // adjacent row backgrounds; the clip ensures the ripple respects the
-    // rounded shape.
-    //
-    // Link-to-submenu items get a trailing chevron at the row's right edge.
-    // The back-button item carries `isLinkToMenu = true` too (it links to
-    // the previous menu), but a forward-pointing chevron next to its
-    // back-arrow icon would point the wrong way — its secondaryContainer
-    // circle and back-arrow icon already communicate the action.
-    val circleColor = if (visualRole == MenuItemVisualRole.BACK) {
-        MaterialTheme.colorScheme.secondaryContainer
-    } else {
-        MaterialTheme.colorScheme.primaryContainer
-    }
-    val iconTint = if (visualRole == MenuItemVisualRole.BACK) {
-        MaterialTheme.colorScheme.onSecondaryContainer
-    } else {
-        MaterialTheme.colorScheme.onPrimaryContainer
-    }
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-    val rowColor = pressedContainerColor(
-        baseColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-        isPressed = isPressed
-    )
-
-    Row(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(vertical = 4.dp)
-            .clip(RoundedCornerShape(20.dp))
-            .background(rowColor)
-            .clickable(
-                interactionSource = interactionSource,
-                indication = null,
-                onClick = onClick
-            )
-            .padding(horizontal = 12.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(
-            modifier = Modifier
-                .size(menuSize.containerCircleSize)
-                .clip(CircleShape)
-                .background(circleColor),
-            contentAlignment = Alignment.Center
-        ) {
-            // `circleText` overrides the icon: callers set it on items whose
-            // value is best read as text inside the circle (e.g. the
-            // tap-and-hold durations "0.5s", "1s", "2s"…). We size it
-            // proportionally to its length so it fits the circle on every
-            // size profile.
-            if (circleText != null) {
-                val fontScale = LocalConfiguration.current.fontScale.coerceAtLeast(0.5f)
-                val effectiveFontSize = computeCircleTextFontSize(
-                    text = circleText,
-                    circleSizeDp = menuSize.containerCircleSize.value,
-                    fontScale = fontScale,
-                    fallback = menuSize.primaryTextSize
-                )
-                Text(
-                    text = circleText,
-                    color = iconTint,
-                    fontSize = effectiveFontSize,
-                    textAlign = TextAlign.Center,
-                    maxLines = 1
-                )
-            } else if (drawableId != 0) {
-                Icon(
-                    painter = painterResource(id = drawableId),
-                    contentDescription = labelResource?.let { Resources.getString(it) },
-                    modifier = Modifier.size(menuSize.iconSize),
-                    tint = iconTint
-                )
-            } else if (text != null) {
-                // Cap the in-circle letter so the user's system font scale
-                // (Settings → Display → Font size) does not push it past the
-                // circle's edge when combined with Menu Size > 100 %. Clamp
-                // the Sp value so the glyph stays within ~45 % of the
-                // circle's diameter.
-                val fontScale = LocalConfiguration.current.fontScale.coerceAtLeast(0.5f)
-                val maxLetterSp = menuSize.containerCircleSize.value * 0.45f / fontScale
-                val effectiveFontSize = if (menuSize.primaryTextSize.value > maxLetterSp) {
-                    maxLetterSp.sp
-                } else {
-                    menuSize.primaryTextSize
-                }
-                Text(
-                    text = circleInitials(text),
-                    color = iconTint,
-                    fontSize = effectiveFontSize,
-                    textAlign = TextAlign.Center,
-                    maxLines = 1
-                )
+            .padding(2.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(color)
+            .clickable(interactionSource = interactionSource, indication = null, onClick = onClick)
+            .clearAndSetSemantics {
+                contentDescription = text
+                role = Role.Button
+                onClick { onClick(); true }
             }
-        }
-        Spacer(modifier = Modifier.width(12.dp))
-        Text(
-            text = text.orEmpty(),
-            color = MaterialTheme.colorScheme.onSurface,
-            fontSize = menuSize.labelTextSize,
-            fontWeight = FontWeight.Medium,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f)
-        )
-        if (isLinkToMenu && visualRole != MenuItemVisualRole.BACK) {
+            .padding(horizontal = 6.dp, vertical = 4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterVertically)
+    ) {
+        if (circleText != null) {
+            Text(text = circleText, color = foreground, fontSize = menuSize.labelTextSize,
+                maxLines = 1, overflow = TextOverflow.Ellipsis)
+        } else if (drawableId != 0) {
             Icon(
-                imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
+                painter = painterResource(drawableId),
                 contentDescription = null,
-                modifier = Modifier.size(24.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                tint = foreground,
+                modifier = Modifier.size(if (navigation) 24.dp else menuSize.iconSize)
             )
         }
+        Text(
+            text = text,
+            color = foreground,
+            fontSize = menuSize.labelTextSize,
+            lineHeight = menuSize.labelTextSize * 1.3f,
+            fontWeight = FontWeight.Medium,
+            textAlign = TextAlign.Center,
+            maxLines = if (navigation) 2 else 3,
+            overflow = TextOverflow.Ellipsis
+        )
     }
 }
 
-@Composable
-private fun pressedContainerColor(baseColor: Color, isPressed: Boolean): Color =
-    if (isPressed) {
-        MaterialTheme.colorScheme.primary.copy(alpha = 0.12f).compositeOver(baseColor)
-    } else {
-        baseColor
-    }
-
-/**
- * Pick a font size that lets [text] fit inside a circle of [circleSizeDp]
- * without overflowing, regardless of the user's system font scale or the
- * Menu Size setting.
- *
- * The character cap is ~45 % of the circle diameter for 1-char strings (matches
- * the legacy initials path) and shrinks proportionally for longer strings so
- * 3-4 character durations like "0.5s" and "10s" still fit. We never grow the
- * font past [fallback] (the profile's primaryTextSize); we only clamp it down.
- */
-private fun computeCircleTextFontSize(
-    text: String,
-    circleSizeDp: Float,
-    fontScale: Float,
-    fallback: TextUnit
-): TextUnit {
-    val length = text.length.coerceAtLeast(1)
-    // 0.45 fits one capital letter; for longer strings, allocate ~85 % of the
-    // diameter across the characters and divide.
-    val ratio = if (length <= 1) 0.45f else (0.85f / length).coerceAtMost(0.45f)
-    val maxSp = circleSizeDp * ratio / fontScale
-    return if (fallback.value > maxSp) maxSp.sp else fallback
-}
-
-/**
- * Single source of truth for a menu item's visible label — used both by the
- * rendered row and by the width measurement in MenuPage, so the two can
- * never resolve different text.
- */
 private fun resolveMenuItemLabel(labelResource: Int?, userProvidedText: String?): String? =
     if (labelResource != null) Resources.getString(labelResource) else userProvidedText
-
-private val WHITESPACE_REGEX = Regex("\\s+")
-
-/**
- * Produce a short in-circle stand-in for items that have no icon. Takes the first
- * letter of up to the first two whitespace-separated words so "Gmail" → "G" and
- * "Slack HQ" → "SH".
- */
-private fun circleInitials(source: String): String {
-    val tokens = source.trim().split(WHITESPACE_REGEX)
-    return when {
-        tokens.isEmpty() || tokens[0].isEmpty() -> ""
-        tokens.size == 1 -> tokens[0].first().uppercaseChar().toString()
-        else -> (tokens[0].first().uppercaseChar().toString() +
-            tokens[1].first().uppercaseChar().toString())
-    }
-}

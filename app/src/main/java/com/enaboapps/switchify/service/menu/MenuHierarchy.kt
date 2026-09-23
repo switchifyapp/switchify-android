@@ -15,6 +15,7 @@ class MenuHierarchy(
     private val TAG = "SwitchifyMenuHierarchy"
 
     private var tree: List<MenuView> = mutableListOf()
+    private var openGeneration = 0L
 
     private fun addMenu(menu: MenuView) {
         tree += menu
@@ -48,13 +49,7 @@ class MenuHierarchy(
             // Notify observers of menu closure
             closedMenu?.let { MenuManager.getInstance().notifyMenuClosed(it) }
 
-            Handler(Looper.getMainLooper()).postDelayed(100) {
-                tree.lastOrNull()?.let {
-                    it.menuViewListener = this
-                    it.open(scanningManager)
-                    // MenuView will handle nodes change notification after inflating
-                }
-            }
+            tree.lastOrNull()?.let { openReplacement(it, notifyOpened = false) }
         }
     }
 
@@ -70,33 +65,66 @@ class MenuHierarchy(
             StatsCollector.getInstance().recordMenuOpen(menuId)
         }
 
+        openReplacement(menu)
+    }
+
+    fun replaceTopMenu(menu: MenuView) {
+        val depthBefore = tree.size
+        val closedMenu = tree.lastOrNull()
+        closedMenu?.close()
+        if (tree.isNotEmpty()) tree = tree.dropLast(1)
+        addMenu(menu)
+        logStackChange("replace_top", depthBefore, tree.size, menu.menuId)
+        closedMenu?.let { MenuManager.getInstance().notifyMenuClosed(it) }
+        openReplacement(menu)
+    }
+
+    fun replaceAllMenus(menu: MenuView) {
+        val depthBefore = tree.size
+        val closedMenu = tree.lastOrNull()
+        closedMenu?.close()
+        tree = listOf(menu)
+        logStackChange("replace_all", depthBefore, tree.size, menu.menuId)
+        closedMenu?.let { MenuManager.getInstance().notifyMenuClosed(it) }
+        openReplacement(menu)
+    }
+
+    private fun openReplacement(menu: MenuView, notifyOpened: Boolean = true) {
+        val generation = ++openGeneration
         menu.menuViewListener = this
         Handler(Looper.getMainLooper()).postDelayed(100) {
+            if (generation != openGeneration || getTopMenu() !== menu) return@postDelayed
             menu.open(scanningManager)
-            // Notify observers that menu was opened
-            MenuManager.getInstance().notifyMenuOpened(menu)
-            // MenuView will handle nodes change notification after inflating
+            if (notifyOpened) MenuManager.getInstance().notifyMenuOpened(menu)
         }
     }
 
     fun removeAllMenus() {
         val depthBefore = tree.size
-        // close the top menu
-        getTopMenu()?.close()
-        tree = mutableListOf()
+        dispose()
         logStackChange("clear", depthBefore, tree.size)
-
-        // remove the menu view
-        MenuViewHandler.instance.kill()
 
         // Notify observers that all menus were closed
         MenuManager.getInstance().notifyAllMenusClosed()
 
         AccessTechnique.loadCurrentTechnique() // reload the current technique
+        scanningManager.refreshAppScanTechniqueOverride()
     }
 
     fun getTopMenu(): MenuView? {
         return tree.lastOrNull()
+    }
+
+    /**
+     * Invalidates pending opens, closes the top menu, clears the stack, and
+     * releases the menu container. Does not notify observers or reload the
+     * access technique; [removeAllMenus] layers those on top for normal closes.
+     */
+    fun dispose() {
+        openGeneration++
+        getTopMenu()?.close()
+        tree = emptyList()
+        MenuViewHandler.instance.kill()
     }
 
     fun isAtFirstMenu(): Boolean {

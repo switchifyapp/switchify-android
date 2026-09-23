@@ -6,15 +6,19 @@ import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.view.accessibility.AccessibilityNodeInfo
+import android.view.accessibility.AccessibilityWindowInfo
 import com.enaboapps.switchify.service.gestures.GestureManager
 import com.enaboapps.switchify.service.gestures.GesturePoint
 import com.enaboapps.switchify.service.gestures.placement.FingerMode
 import com.enaboapps.switchify.service.menu.MenuItem
+import com.enaboapps.switchify.service.menu.MenuSelectionSource
 import com.enaboapps.switchify.service.scanning.ScanNodeInterface
 import com.enaboapps.switchify.service.scanning.tree.CollectionRowHint
 import com.enaboapps.switchify.service.scanning.tree.CollectionRowHintProvider
+import com.enaboapps.switchify.service.scanning.tree.ScanNodeIdentity
 import com.enaboapps.switchify.service.selection.SelectionHandler
 import com.enaboapps.switchify.service.techniques.nodes.scanners.NodeScannerUI
+import com.enaboapps.switchify.service.techniques.nodes.scanners.ScanHighlightBounds
 import com.enaboapps.switchify.service.techniques.pointscan.blocks.PointScanBlock
 import com.enaboapps.switchify.service.window.SwitchifyAccessibilityWindow
 import com.enaboapps.switchify.service.window.overlay.OverlayTarget
@@ -37,7 +41,10 @@ data class NodeScanSignature(
 class Node(
     private var onSelect: (() -> Unit?)? = null
 ) : ScanNodeInterface, CollectionRowHintProvider {
+    internal var scanIdentity: ScanNodeIdentity? = null
+        private set
     private var nodeInfo: AccessibilityNodeInfo? = null
+    private var childPath: List<Int> = emptyList()
     private var x: Int = 0
     private var y: Int = 0
     private var centerX: Int = 0
@@ -74,7 +81,11 @@ class Node(
          * @param nodeInfo The AccessibilityNodeInfo
          * @return The node
          */
-        fun fromAccessibilityNodeInfo(nodeInfo: AccessibilityNodeInfo): Node {
+        fun fromAccessibilityNodeInfo(
+            nodeInfo: AccessibilityNodeInfo,
+            childPath: List<Int> = emptyList(),
+            contentDescription: String? = null
+        ): Node {
             val node = Node()
             val rect = Rect()
             nodeInfo.getBoundsInScreen(rect)
@@ -85,15 +96,28 @@ class Node(
             }
             val overlayBounds = overlayBoundsFor(nodeInfo, rect, boundsInWindow)
             node.nodeInfo = nodeInfo
+            val displayId = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) nodeInfo.window?.displayId ?: 0 else 0
+            fun identityText(value: CharSequence?): String? = value?.takeIf { it.length <= 4096 }?.toString()
+            node.scanIdentity = ScanNodeIdentity(
+                "${nodeInfo.packageName}:$displayId:${nodeInfo.windowId}",
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) identityText(nodeInfo.uniqueId) else null,
+                identityText(nodeInfo.viewIdResourceName),
+                identityText(nodeInfo.className),
+                childPath.toList()
+            )
+            node.childPath = childPath
             node.x = rect.left
             node.y = rect.top
-            node.contentDescription = nodeInfo.contentDescription?.toString() ?: ""
+            node.contentDescription = contentDescription ?: nodeInfo.contentDescription?.toString().orEmpty()
             node.centerX = rect.centerX()
             node.centerY = rect.centerY()
             node.width = rect.width()
             node.height = rect.height()
             node.overlayNodeBounds = overlayBounds
-            node.capabilities = NodeCapabilityClassifier.classify(nodeInfo, rect, boundsInWindow)
+            node.capabilities = NodeCapabilityClassifier.classify(
+                nodeInfo, rect, boundsInWindow,
+                overlayBounds.windowType == AccessibilityWindowInfo.TYPE_INPUT_METHOD
+            )
             return node
         }
 
@@ -103,7 +127,7 @@ class Node(
          * @return The node
          */
         fun fromMenuItem(menuItem: MenuItem): Node {
-            val node = Node { menuItem.select() }
+            val node = Node { menuItem.select(MenuSelectionSource.SCANNING) }
             node.x = menuItem.x
             node.y = menuItem.y
             node.centerX = menuItem.x + menuItem.width / 2
@@ -198,6 +222,21 @@ class Node(
      */
     fun performAction(action: Int) {
         nodeInfo?.performAction(action)
+    }
+
+    internal fun reportedActions(): List<ReportedNodeAction> =
+        nodeInfo?.actionList.orEmpty().map { action ->
+            ReportedNodeAction(action.id, action.label?.toString())
+        }
+
+    internal fun actionLocator(point: PointF): NodeActionLocator? {
+        val info = nodeInfo ?: return null
+        return NodeActionLocator(
+            identity = identity(info, childPath),
+            selectionX = point.x,
+            selectionY = point.y,
+            reportedActionIds = info.actionList.map { it.id }.toSet()
+        )
     }
 
     /**
@@ -296,10 +335,15 @@ class Node(
                 bounds.top,
                 bounds.width(),
                 bounds.height(),
-                target
+                target,
+                ScanHighlightBounds(
+                    overlayBounds.boundsInScreen.left.toFloat(), overlayBounds.boundsInScreen.top.toFloat(),
+                    overlayBounds.boundsInScreen.width().toFloat(), overlayBounds.boundsInScreen.height().toFloat())
             )
         } else {
-            NodeScannerUI.Companion.instance.showItemBounds(x, y, width, height)
+            NodeScannerUI.Companion.instance.showItemBounds(x, y, width, height,
+                screenBounds = ScanHighlightBounds(
+                    x.toFloat(), y.toFloat(), width.toFloat(), height.toFloat()))
         }
         highlighted = true
         onHighlight?.invoke(this)

@@ -9,7 +9,7 @@ import com.enaboapps.switchify.switches.SwitchEvent
 import com.enaboapps.switchify.switches.SwitchEventStore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
@@ -21,8 +21,8 @@ class CameraSwitchesScreenModel : ViewModel() {
 
     private val numberOfSwitchesLimit = 3
 
-    fun setup(context: Context) {
-        observeCameraSwitches(context)
+    fun setup(context: Context, profileId: String? = null) {
+        observeCameraSwitches(context, profileId)
     }
 
 
@@ -30,20 +30,25 @@ class CameraSwitchesScreenModel : ViewModel() {
         return true
     }
 
-    private fun observeCameraSwitches(context: Context) {
-        // Initial load
-        val initialCameraSwitches = store.getSwitchEvents()
-            .filter { it.type == SWITCH_EVENT_TYPE_CAMERA }
-        _uiState.value = _uiState.value.copy(
-            cameraSwitches = initialCameraSwitches,
-            isLoading = false
-        )
+    private fun observeCameraSwitches(context: Context, profileId: String?) {
+        viewModelScope.launch {
+            store.initializeAsync(context)
+            val initialCameraSwitches = store.getSwitchEvents(profileId)
+                .filter { it.type == SWITCH_EVENT_TYPE_CAMERA }
+            _uiState.value = _uiState.value.copy(
+                cameraSwitches = initialCameraSwitches,
+                isLoading = false
+            )
+        }
 
         // Listen for updates via ServiceBridge
         ServiceBridge.serviceEvents
-            .filterIsInstance<ServiceBridge.ServiceEvent.SwitchEventsUpdated>()
+            .filter {
+                it is ServiceBridge.ServiceEvent.SwitchEventsUpdated ||
+                    it is ServiceBridge.ServiceEvent.SwitchProfilesUpdated
+            }
             .onEach {
-                val cameraSwitches = store.getSwitchEvents()
+                val cameraSwitches = store.getSwitchEvents(profileId)
                     .filter { it.type == SWITCH_EVENT_TYPE_CAMERA }
                 _uiState.value = _uiState.value.copy(
                     cameraSwitches = cameraSwitches

@@ -43,15 +43,18 @@ object MenuConstants {
         const val EDIT_MENU = "edit_menu"
         const val SETTINGS_MENU = "settings_menu"
         const val FAVOURITE_APPS_MENU = "favourite_apps_menu"
+        const val SWITCH_PROFILES_MENU = "switch_profiles_menu"
+        const val SWITCH_PROFILE_CONFIRMATION_MENU = "switch_profile_confirmation_menu"
         const val GESTURE_PATTERNS_MENU = "gesture_patterns_menu"
         const val FINGER_MODE_MENU = "finger_mode_menu"
         const val AI_MENU = "ai_menu"
-        const val CHOOSE_PC_MENU = "choose_pc_menu"
+        const val ACCESSIBILITY_ACTIONS_MENU = "accessibility_actions_menu"
     }
 
     fun getTitleResource(menuId: String?): Int? = when (menuId) {
         MenuIds.MAIN_MENU -> R.string.menu_title_main
         MenuIds.AI_MENU -> R.string.menu_title_ai
+        MenuIds.ACCESSIBILITY_ACTIONS_MENU -> R.string.menu_title_accessibility_actions
         MenuIds.DEVICE_MENU -> R.string.menu_title_device
         MenuIds.VOLUME_CONTROL_MENU -> R.string.menu_title_volume_control
         MenuIds.GESTURES_MENU -> R.string.menu_title_gestures
@@ -64,9 +67,10 @@ object MenuConstants {
         MenuIds.EDIT_MENU -> R.string.menu_title_edit
         MenuIds.SETTINGS_MENU -> R.string.menu_title_settings
         MenuIds.FAVOURITE_APPS_MENU -> R.string.menu_title_favourite_apps
+        MenuIds.SWITCH_PROFILES_MENU -> R.string.screen_title_switch_profiles
+        MenuIds.SWITCH_PROFILE_CONFIRMATION_MENU -> R.string.switch_profile_confirmation_title
         MenuIds.GESTURE_PATTERNS_MENU -> R.string.gesture_patterns_title
         MenuIds.FINGER_MODE_MENU -> R.string.menu_item_finger_mode
-        MenuIds.CHOOSE_PC_MENU -> R.string.menu_title_choose_pc
         else -> null
     }
 
@@ -80,6 +84,7 @@ object MenuConstants {
          */
         object Navigation {
             const val CLOSE_MENU = "close_menu"
+            const val DISMISS_MESSAGE = "dismiss_message"
             const val PREV_PAGE = "prevPage"
             const val NEXT_PAGE = "nextPage"
         }
@@ -95,18 +100,16 @@ object MenuConstants {
             const val GESTURES = "gestures"
             const val SCROLL = "scroll"
             const val FAVOURITE_APPS = "favourite_apps"
+            const val SWITCH_PROFILE = "switch_profile"
             const val GESTURE_PATTERNS = "gesture_patterns"
             const val DEVICE = "device"
             const val SETTINGS = "settings"
             const val MEDIA_CONTROL = "media_control"
-            const val CONTROL_PC = "control_pc"
-            const val PC_SWITCH_CONTROL = "control_grid_3"
-
-            @Deprecated("Use PC_SWITCH_CONTROL")
-            const val CONTROL_GRID_3 = PC_SWITCH_CONTROL
             const val EDIT = "edit"
             const val AI = "ai"
             const val PAUSE = "pause"
+            const val MEDIA_PLAY_PAUSE = "media_play_pause"
+            const val ACCESSIBILITY_ACTIONS = "accessibility_actions"
         }
 
         /**
@@ -124,7 +127,6 @@ object MenuConstants {
             const val SWITCH_TO_ITEM_SCAN = "switch_to_item_scan"
             const val SWITCH_TO_RADAR = "switch_to_radar"
             const val SWITCH_TO_POINT_SCAN = "switch_to_point_scan"
-            const val TOGGLE_HEAD_CONTROL = "toggle_head_control"
             const val TOGGLE_GROUP_SCAN = "toggle_group_scan"
             const val TOGGLE_GESTURE_LOCK_REARM = "toggle_gesture_lock_rearm"
             const val TOGGLE_GESTURE_REPEAT = "toggle_gesture_repeat"

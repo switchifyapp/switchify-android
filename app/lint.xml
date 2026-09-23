@@ -25,6 +25,22 @@
     <issue id="ComposableNaming" severity="ignore" />
     <issue id="UnusedMaterial3ScaffoldPaddingParameter" severity="ignore" />
 
+    <issue id="AndroidGradlePluginVersion">
+        <ignore path="../gradle/libs.versions.toml" />
+    </issue>
+    <issue id="GradleDependency">
+        <ignore path="../gradle/libs.versions.toml" />
+    </issue>
+    <issue id="NewerVersionAvailable">
+        <ignore path="../gradle/libs.versions.toml" />
+    </issue>
+    <issue id="OldTargetApi">
+        <ignore path="build.gradle.kts" />
+    </issue>
+    <issue id="NotShrinkingResources">
+        <ignore path="build.gradle.kts" />
+    </issue>
+
     <!-- Camera/ML Kit related suppressions for false positives -->
     <issue id="MissingPermission" severity="warning">
         <ignore path="**/camera/**" />

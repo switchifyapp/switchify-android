@@ -16,13 +16,14 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -232,7 +233,7 @@ private fun OtpVerificationSection(
     errorMessage: String?,
     onClearError: () -> Unit
 ) {
-    var timeLeft by remember { mutableStateOf(60) }
+    var timeLeft by remember { mutableIntStateOf(60) }
     val isResendEnabled by remember { derivedStateOf { timeLeft == 0 } }
 
     LaunchedEffect(key1 = timeLeft) {
@@ -295,7 +296,7 @@ private fun OtpVerificationSection(
             text = if (isResendEnabled) {
                 stringResource(R.string.button_resend_otp)
             } else {
-                stringResource(R.string.resend_in_seconds, timeLeft)
+                pluralStringResource(R.plurals.resend_in_seconds, timeLeft, timeLeft)
             }
         )
     }

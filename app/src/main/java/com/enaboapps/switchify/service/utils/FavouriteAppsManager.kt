@@ -28,12 +28,11 @@ class FavouriteAppsManager(private val context: Context) {
         val packageManager = context.packageManager
         return packageNames.mapNotNull { packageName ->
             try {
-                val appInfo = packageManager.getApplicationInfo(packageName, 0)
                 // Only include if the app is still launchable
                 if (packageManager.getLaunchIntentForPackage(packageName) != null) {
                     FavouriteApp(
                         packageName = packageName,
-                        appName = packageManager.getApplicationLabel(appInfo).toString()
+                        appName = AppLabelResolver(context).label(packageName)
                     )
                 } else null
             } catch (e: PackageManager.NameNotFoundException) {
@@ -105,7 +104,7 @@ class FavouriteAppsManager(private val context: Context) {
             .map { resolveInfo ->
                 FavouriteApp(
                     packageName = resolveInfo.activityInfo.packageName,
-                    appName = resolveInfo.loadLabel(packageManager).toString()
+                    appName = AppLabelResolver(context).label(resolveInfo.activityInfo.packageName)
                 )
             }
             .distinctBy { it.packageName }

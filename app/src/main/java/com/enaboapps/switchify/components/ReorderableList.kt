@@ -88,9 +88,9 @@ fun <T> ReorderableList(
     items: List<T>,
     onMove: (fromIndex: Int, toIndex: Int) -> Unit,
     key: (T) -> Any,
+    modifier: Modifier = Modifier,
     defaultMode: ReorderMode = ReorderMode.DRAG,
     selectModeState: SelectModeState<T>? = null,
-    modifier: Modifier = Modifier,
     itemContent: @Composable (item: T, isDragging: Boolean, reorderControls: @Composable () -> Unit) -> Unit
 ) {
     var currentMode by remember { mutableStateOf(defaultMode) }

@@ -1,6 +1,7 @@
 package com.enaboapps.switchify.components
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
@@ -32,6 +33,7 @@ fun BaseView(
     titleResId: Int,
     navController: androidx.navigation.NavController,
     navBarActions: List<NavBarAction> = emptyList(),
+    navBarTrailingContent: @Composable RowScope.() -> Unit = {},
     floatingActionButton: @Composable () -> Unit = {},
     enableScroll: Boolean = true,
     padding: Dp = 16.dp,
@@ -48,6 +50,7 @@ fun BaseView(
                 title = title,
                 navController = navController,
                 actions = navBarActions,
+                trailingContent = navBarTrailingContent,
                 showBackButton = showBackButton,
                 onBackPressed = onBackPressed
             )

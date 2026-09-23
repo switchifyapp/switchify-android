@@ -6,11 +6,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.enaboapps.switchify.components.HeadControlToggleCard
 
 @Composable
 fun HomeToggleRow(
-    showHeadToggle: Boolean,
     onSettingsClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -19,8 +17,5 @@ fun HomeToggleRow(
         verticalArrangement = Arrangement.spacedBy(0.dp)
     ) {
         SettingsToggleCard(onClick = onSettingsClick)
-        if (showHeadToggle) {
-            HeadControlToggleCard()
-        }
     }
 }

@@ -249,4 +249,5 @@ class PointScanLineManager(
     fun getCurrentPosition(): Pair<Int, Int> = Pair(currentX.toInt(), currentY.toInt())
     fun getCurrentDirection(): ScanDirection = currentDirection
     fun getCurrentBlock(): PointScanBlock? = currentBlock
+    internal fun isAutoScanning(): Boolean = scanningScheduler.isScanning()
 }

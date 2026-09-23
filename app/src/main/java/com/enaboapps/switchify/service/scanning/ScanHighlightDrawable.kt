@@ -31,15 +31,25 @@ class ScanHighlightDrawable(
         // Pick a halo tone that contrasts with the main color so the highlight
         // remains visible when it overlaps a same-colored background.
         private fun haloColor(mainColor: Int): Int {
-            val r = Color.red(mainColor)
-            val g = Color.green(mainColor)
-            val b = Color.blue(mainColor)
+            val tone = contrastTone(mainColor)
+            return Color.argb(
+                ScanVisualConstants.HALO_ALPHA,
+                Color.red(tone),
+                Color.green(tone),
+                Color.blue(tone)
+            )
+        }
+
+        /**
+         * Opaque black or white, whichever contrasts with [color]. Shared by
+         * the halo and the countdown ring so both pick the same tone.
+         */
+        fun contrastTone(color: Int): Int {
+            val r = Color.red(color)
+            val g = Color.green(color)
+            val b = Color.blue(color)
             val luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255.0
-            return if (luminance > 0.5) {
-                Color.argb(ScanVisualConstants.HALO_ALPHA, 0, 0, 0)
-            } else {
-                Color.argb(ScanVisualConstants.HALO_ALPHA, 255, 255, 255)
-            }
+            return if (luminance > 0.5) Color.BLACK else Color.WHITE
         }
 
         private fun createLayers(

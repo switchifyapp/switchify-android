@@ -15,7 +15,33 @@ class AdbTestingBridgeReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context?, intent: Intent?) {
         if (!BuildConfig.DEBUG || intent?.action != ACTION_PERFORM_SWITCH_ACTION) return
 
+        if (intent.hasExtra("switch_key_code")) {
+            ServiceBridge.sendCommand(ServiceBridge.ServiceCommand.PerformSwitchEdgeForTesting(
+                intent.getIntExtra("switch_key_code", -1), intent.getBooleanExtra("pressed", false)
+            ))
+            return
+        }
+
         val actionName = intent.getStringExtra(EXTRA_ACTION)?.lowercase()
+        if (actionName == "open_menu" || actionName == "close_menu") {
+            val menus = com.enaboapps.switchify.service.menu.MenuManager.getInstance()
+            if (actionName == "open_menu") menus.openMainMenu() else menus.closeMenuHierarchy()
+            return
+        }
+        if (actionName == "scan_state") {
+            val technique = com.enaboapps.switchify.service.techniques.AccessTechnique
+            Log.d(TAG, "Scan state: foreground=${ServiceCore.getScanningManager()?.currentForegroundPackage()} current=${technique.getCurrentTechnique()} default=${technique.getStoredTechnique()} temporary=${technique.isTemporaryTechniqueActive()}")
+            return
+        }
+        if (actionName == "scan_technique") {
+            val manager = ServiceCore.getScanningManager() ?: return
+            when (intent.getStringExtra("technique")) {
+                "item_scan" -> manager.setItemScanType()
+                "point_scan" -> manager.setPointScanType()
+                "radar" -> manager.setRadarType()
+            }
+            return
+        }
         if (actionName == ACTION_RELOAD_SETTINGS) {
             Log.d(TAG, "Performing ADB testing command: $ACTION_RELOAD_SETTINGS")
             ServiceBridge.sendCommand(ServiceBridge.ServiceCommand.ReloadSettings)
@@ -88,8 +114,6 @@ class AdbTestingBridgeReceiver : BroadcastReceiver() {
             "pause" to SwitchAction.ACTION_PAUSE,
             "toggle_gesture_lock_rearm" to SwitchAction.ACTION_TOGGLE_GESTURE_LOCK_REARM,
             "toggle_gesture_repeat" to SwitchAction.ACTION_TOGGLE_GESTURE_REPEAT,
-            "control_grid_3" to SwitchAction.ACTION_PC_SWITCH_CONTROL,
-            "pc_switch_control" to SwitchAction.ACTION_PC_SWITCH_CONTROL
         )
     }
 }

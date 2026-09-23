@@ -2,9 +2,17 @@ package com.enaboapps.switchify.service.actions
 
 import android.content.Context
 import android.media.AudioManager
+import android.os.Build
+import android.os.SystemClock
 import android.util.Log
 import android.view.KeyEvent
+import com.enaboapps.switchify.R
 import com.enaboapps.switchify.service.core.SwitchifyAccessibilityService
+import com.enaboapps.switchify.service.window.MessageSeverity
+import com.enaboapps.switchify.service.window.ServiceMessageHUD
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 
 /**
  * Centralized manager for performing audio-related actions.
@@ -14,6 +22,8 @@ object AudioActionManager {
     private const val TAG = "AudioActionManager"
     private var accessibilityService: SwitchifyAccessibilityService? = null
     private var audioManager: AudioManager? = null
+    private val playbackPolicy = MediaPlaybackPolicy()
+    private var playbackToggleJob: Job? = null
 
     /**
      * Initialize the AudioActionManager with the accessibility service.
@@ -24,6 +34,36 @@ object AudioActionManager {
         accessibilityService = service
         audioManager = service.getSystemService(Context.AUDIO_SERVICE) as AudioManager
         Log.d(TAG, "AudioActionManager initialized")
+    }
+
+    fun isMusicActive(): Boolean = audioManager?.isMusicActive == true
+
+    /** Whether media controls belong in the main menu right now. */
+    fun playbackState(): MediaPlaybackState {
+        if (audioManager == null) return MediaPlaybackState.NONE
+        return playbackPolicy.observe(
+            isMusicActive = isMusicActive(),
+            supported = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S,
+            now = SystemClock.uptimeMillis()
+        )
+    }
+
+    fun togglePlayback() {
+        val service = accessibilityService ?: return
+        playbackToggleJob?.cancel()
+        playbackToggleJob = service.getServiceScope().launch(Dispatchers.Main.immediate) {
+            val active = MediaPlaybackToggle(
+                isMusicActive = ::isMusicActive,
+                dispatchToggle = GlobalActionManager::toggleMediaPlayback
+            ).toggle() ?: return@launch
+            playbackPolicy.noteToggled(SystemClock.uptimeMillis())
+            ServiceMessageHUD.instance.showMessage(
+                if (active) R.string.hud_media_playing else R.string.hud_media_paused,
+                ServiceMessageHUD.MessageType.DISAPPEARING,
+                ServiceMessageHUD.Time.SHORT,
+                severity = MessageSeverity.Info
+            )
+        }
     }
 
     /**
@@ -144,6 +184,8 @@ object AudioActionManager {
      * Clear the references when the service is destroyed.
      */
     fun cleanup() {
+        playbackToggleJob?.cancel()
+        playbackToggleJob = null
         accessibilityService = null
         audioManager = null
         Log.d(TAG, "AudioActionManager cleaned up")

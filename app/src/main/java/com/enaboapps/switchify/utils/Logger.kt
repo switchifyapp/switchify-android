@@ -92,10 +92,9 @@ object Logger {
             logSuppressed(event)
             return
         }
-        CrashReporter.recordBreadcrumb(event)
 
         scope.launch {
-            logNow(event, data, throwable, flowId, stepIndex, breadcrumbAlreadyRecorded = true)
+            logNow(event, data, throwable, flowId, stepIndex)
         }
     }
 
@@ -106,28 +105,15 @@ object Logger {
         flowId: String? = null,
         stepIndex: Int? = null
     ): Boolean {
-        return logNow(event, data, throwable, flowId, stepIndex, breadcrumbAlreadyRecorded = false)
-    }
-
-    private fun logNow(
-        event: LogEvent,
-        data: Map<String, Any?>,
-        throwable: Throwable?,
-        flowId: String?,
-        stepIndex: Int?,
-        breadcrumbAlreadyRecorded: Boolean
-    ): Boolean {
         val prefs = preferenceManager
         if (!isTelemetryEnabled(prefs)) {
             logSuppressed(event)
             return false
         }
 
-        if (!breadcrumbAlreadyRecorded) {
-            CrashReporter.recordBreadcrumb(event)
-        }
-
         val sanitizedData = data.filterValues { it != null }.mapValues { it.value as Any }
+
+        SentryReporter.report(event, sanitizedData, throwable, flowId, stepIndex)
 
         if (BuildConfig.DEBUG) {
             safeLogD("Event logged: ${event.eventName}")
@@ -147,7 +133,7 @@ object Logger {
                 tags = event.tags.ifEmpty { null },
                 flowId = flowId,
                 stepIndex = stepIndex,
-                userId = userIdOverride?.invoke() ?: AuthRepository.instance.getCurrentUser()?.email ?: deviceUserId(prefs)
+                userId = currentUserId(prefs)
             )
             val payload = LogPayload(logs = listOf(entry))
             val responseCode = sender.send(gson.toJson(payload))
@@ -175,6 +161,12 @@ object Logger {
         if (BuildConfig.DEBUG) {
             safeLogD("Suppressed (telemetry off): ${event.eventName}")
         }
+    }
+
+    internal fun currentUserId(prefs: PreferenceManager? = preferenceManager): String {
+        return userIdOverride?.invoke()
+            ?: runCatching { AuthRepository.instance.getCurrentUser()?.email }.getOrNull()
+            ?: deviceUserId(prefs)
     }
 
     private fun deviceUserId(prefs: PreferenceManager?): String {

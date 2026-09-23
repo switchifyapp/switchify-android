@@ -2,6 +2,8 @@ package com.enaboapps.switchify.service.scanning.tree
 
 import android.content.Context
 import android.util.Log
+import java.util.UUID
+import com.enaboapps.switchify.service.techniques.nodes.scanners.NodeScannerUI
 import com.enaboapps.switchify.service.scanning.ScanNodeInterface
 import com.enaboapps.switchify.service.scanning.ScanSettings
 import com.enaboapps.switchify.service.scanning.ScanningScheduler
@@ -30,8 +32,14 @@ class ScanTree(
     private val context: Context,
     private var stopScanningOnSelect: Boolean = false,
     private val hasCycleBreak: () -> Boolean = { false },
-    private var callback: ScanTreeCallback? = null
+    private var callback: ScanTreeCallback? = null,
+    visualEffectsEnabled: Boolean = false
 ) : AccessTechniqueInterface {
+
+    private val visualOwner = if (visualEffectsEnabled) UUID.randomUUID().toString() else null
+
+    /** Batches the highlight changes made by [block] into one render; a no-op wrapper when this tree has no visuals. */
+    private fun withVisuals(block: () -> Unit) = NodeScannerUI.instance.withScanVisuals(visualOwner, block)
 
     companion object {
         private const val TAG = "ScanTree"
@@ -63,6 +71,8 @@ class ScanTree(
 
     /** The flag to track if manual scanning is active. */
     private var isManualScanActive = false
+    private var resumeAfterEmptySnapshot = false
+    private var emptyAnchor: List<ScanTreeItem>? = null
 
     init {
         initializeComponents()
@@ -90,6 +100,11 @@ class ScanTree(
      */
     fun setSpeed(scanningSpeed: Long) {
         this.scanningSpeed = scanningSpeed
+        scanningScheduler?.updateTiming(scanningSpeed, scanningSpeed)
+    }
+
+    internal fun reloadSpeed() {
+        setSpeed(scanSettings.getScanRate())
     }
 
     /**
@@ -104,13 +119,86 @@ class ScanTree(
         initializeComponents() // Reinitialize components with the new tree
     }
 
+    internal fun reconcileNodes(nodes: List<ScanNodeInterface>, sourceChanged: Boolean = false) {
+        check(android.os.Looper.myLooper() == android.os.Looper.getMainLooper())
+        if (sourceChanged) {
+            val running = isAutoScanning() || resumeAfterEmptySnapshot
+            val paused = scanningScheduler?.isPaused() == true && !running
+            val manual = isManualScanActive
+            buildTree(nodes)
+            if (paused) scanningScheduler?.restorePausedState()
+            if (running && nodes.isNotEmpty()) startAutoScanning()
+            else if (manual && nodes.isNotEmpty()) withVisuals {
+                isManualScanActive = true
+                highlightCurrent()
+            }
+            else if (running) resumeAfterEmptySnapshot = true
+            if (manual && nodes.isEmpty()) isManualScanActive = true
+            if (paused && nodes.isNotEmpty()) NodeScannerUI.instance.withScanVisuals(visualOwner, false, refreshOnly = true) {
+                highlightCurrent(speak = false)
+            }
+            return
+        }
+        if (nodes.isEmpty()) {
+            if (tree.isNotEmpty()) {
+                emptyAnchor = tree.toList()
+                resumeAfterEmptySnapshot = isAutoScanning()
+                scanningScheduler?.pauseScanning()
+                withVisuals { highlighter.unhighlightAll() }
+                tree.clear()
+            }
+            return
+        }
+        val previous = emptyAnchor ?: tree.toList()
+        val oldNodes = previous.flatMap { it.children }
+        val matches = matchScanNodes(oldNodes, nodes)
+        val geometryUnchanged = oldNodes.size == nodes.size && matches.size == oldNodes.size && oldNodes.all { old ->
+            val fresh = matches.getValue(old)
+            old.getLeft() == fresh.getLeft() && old.getTop() == fresh.getTop() &&
+                old.getWidth() == fresh.getWidth() && old.getHeight() == fresh.getHeight() &&
+                (old as? CollectionRowHintProvider)?.getCollectionRowHint() ==
+                (fresh as? CollectionRowHintProvider)?.getCollectionRowHint()
+        }
+        val replacement = if (geometryUnchanged) previous.map { row ->
+            ScanTreeItem(row.children.map { matches.getValue(it) }, row.y,
+                scanSettings.isRowColumnScanEnabled() && scanSettings.isGroupScanEnabled())
+        } else builder.buildTree(nodes)
+        if (emptyAnchor != null) tree.addAll(previous)
+        val retained = navigator.reconcile(replacement, matches)
+        tree.clear()
+        tree.addAll(replacement)
+        selector = ScanTreeSelector(tree, navigator, scanSettings, stopScanningOnSelect)
+        highlighter = ScanTreeHighlighter(tree, scanSettings)
+        val wasEmpty = emptyAnchor != null
+        emptyAnchor = null
+        val shouldResume = resumeAfterEmptySnapshot
+        if (isManualScanActive || isAutoScanning() || scanningScheduler?.isPaused() == true || shouldResume) {
+            NodeScannerUI.instance.withScanVisuals(visualOwner, retained && !wasEmpty, refreshOnly = true) {
+                if (navigator.handleEscape()) highlightEscape()
+                else highlightCurrent(speak = false)
+            }
+        }
+        if (resumeAfterEmptySnapshot) {
+            scanningScheduler?.resumeAfterEmptySnapshot()
+            resumeAfterEmptySnapshot = false
+        } else if (!retained && !wasEmpty) scanningScheduler?.restartCurrentInterval()
+    }
+
+    internal fun buildMenuRows(rows: List<List<ScanNodeInterface>>) {
+        clearTree()
+        tree.addAll(ExplicitScanRows.build(rows,
+            scanSettings.isRowColumnScanEnabled() && scanSettings.isGroupScanEnabled()))
+        initializeComponents()
+    }
+
     /**
-     * Checks if the manual or directional scan setup is valid.
+     * Checks if the manual scan setup is valid.
      *
-     * @return True if the manual or directional scan setup is valid, false otherwise.
+     * @return True if the manual scan setup is valid, false otherwise.
      */
     private fun checkManualScanSetup(): Boolean {
-        if ((scanSettings.isManualScanMode() || scanSettings.isDirectionalScanMode()) && !isManualScanActive) {
+        if (tree.isEmpty()) return true
+        if (scanSettings.isManualScanMode() && !isManualScanActive) {
             isManualScanActive = true
             highlighter.unhighlightAll()
             highlightCurrent()
@@ -123,7 +211,10 @@ class ScanTree(
      * Performs the selection action based on the current scanning state.
      * This method handles the main logic flow of the scanning process.
      */
-    override fun performSelectionAction() {
+    override fun performSelectionAction() = withVisuals { performSelectionActionNow() }
+
+    private fun performSelectionActionNow() {
+        if (tree.isEmpty()) return
         try {
             if (checkManualScanSetup()) {
                 return
@@ -269,11 +360,6 @@ class ScanTree(
                     currentItem.speakNodes(false)
                 }
 
-                // Speak the row if group scan is enabled but the item is not grouped
-                groupsEnabled && !currentItem.isGrouped() && inItem -> {
-                    currentItem.speakNodes(false)
-                }
-
                 // Speak the group
                 !inGroup && groupsEnabled -> {
                     currentItem.speakGroup(navigator.currentGroup)
@@ -321,7 +407,9 @@ class ScanTree(
      * Steps through the scanning tree automatically.
      * This method is called by the scanning scheduler during automatic scanning.
      */
-    private fun stepAutoScanning() {
+    private fun stepAutoScanning() = withVisuals { stepAutoScanningNow() }
+
+    private fun stepAutoScanningNow() {
         if (!handlePreMovement()) {
             val movementSuccessful = navigator.moveSelectionToNextOrPrevious()
             handlePostMovement(movementSuccessful)
@@ -334,6 +422,7 @@ class ScanTree(
      * @return True if the movement was successful, false otherwise.
      */
     private fun handlePreMovement(): Boolean {
+        if (tree.isEmpty()) return true
         unhighlightCurrent()
 
         if (handleAutoScanCycleLimit()) {
@@ -365,7 +454,9 @@ class ScanTree(
      * Manually steps forward in the scanning tree.
      * This method is used for manual navigation through the tree.
      */
-    override fun stepScanningForward() {
+    override fun stepScanningForward() = withVisuals { stepScanningForwardNow() }
+
+    private fun stepScanningForwardNow() {
         if (checkManualScanSetup()) {
             return
         }
@@ -380,7 +471,9 @@ class ScanTree(
      * Manually steps backward in the scanning tree.
      * This method is used for manual navigation through the tree.
      */
-    override fun stepScanningBackward() {
+    override fun stepScanningBackward() = withVisuals { stepScanningBackwardNow() }
+
+    private fun stepScanningBackwardNow() {
         if (checkManualScanSetup()) {
             return
         }
@@ -391,41 +484,17 @@ class ScanTree(
         }
     }
 
-    /**
-     * Manually steps up in the scanning tree.
-     * This method is used for directional navigation through the tree.
-     */
-    override fun stepScanningUp() {
-        if (checkManualScanSetup()) {
-            return
-        }
+    override fun stepScanningUp() = Unit
 
-        if (!handlePreMovement()) {
-            val movementSuccessful = navigator.moveSelectionUp()
-            handlePostMovement(movementSuccessful)
-        }
-    }
-
-    /**
-     * Manually steps down in the scanning tree.
-     * This method is used for directional navigation through the tree.
-     */
-    override fun stepScanningDown() {
-        if (checkManualScanSetup()) {
-            return
-        }
-
-        if (!handlePreMovement()) {
-            val movementSuccessful = navigator.moveSelectionDown()
-            handlePostMovement(movementSuccessful)
-        }
-    }
+    override fun stepScanningDown() = Unit
 
     /**
      * Manually steps left in the scanning tree.
-     * This method is used for directional navigation through the tree.
+     * This method is used for manual navigation through the tree.
      */
-    override fun stepScanningLeft() {
+    override fun stepScanningLeft() = withVisuals { stepScanningLeftNow() }
+
+    private fun stepScanningLeftNow() {
         if (checkManualScanSetup()) {
             return
         }
@@ -438,9 +507,11 @@ class ScanTree(
 
     /**
      * Manually steps right in the scanning tree.
-     * This method is used for directional navigation through the tree.
+     * This method is used for manual navigation through the tree.
      */
-    override fun stepScanningRight() {
+    override fun stepScanningRight() = withVisuals { stepScanningRightNow() }
+
+    private fun stepScanningRightNow() {
         if (checkManualScanSetup()) {
             return
         }
@@ -455,7 +526,9 @@ class ScanTree(
      * Swaps the scanning direction between vertical and horizontal.
      * This method is called when the user wants to change the scanning direction.
      */
-    override fun swapScanDirection() {
+    override fun swapScanDirection() = withVisuals { swapScanDirectionNow() }
+
+    private fun swapScanDirectionNow() {
         navigator.swapScanDirection()
         if (scanSettings.isAutoScanMode()) {
             resumeAutoScanning()
@@ -479,7 +552,10 @@ class ScanTree(
             highlighter.unhighlightAll()
             navigator.reset()
             isManualScanActive = false
-            scanningScheduler = ScanningScheduler(context) {
+            scanningScheduler = ScanningScheduler(context,
+                intervalOwner = visualOwner ?: UUID.randomUUID().toString(),
+                onInterval = { event -> if (visualOwner != null) NodeScannerUI.instance.updateInterval(event) }
+            ) {
                 stepAutoScanning()
             }
         }
@@ -488,7 +564,7 @@ class ScanTree(
     /**
      * Highlights the current item, group, or node based on the current state.
      */
-    private fun highlightCurrent() {
+    private fun highlightCurrent(speak: Boolean = true) {
         Log.d(
             TAG,
             "Highlighting current: treeItem=${navigator.currentTreeItem}, group=${navigator.currentGroup}, column=${navigator.currentColumn}, isInTreeItem=${navigator.isInTreeItem}, isScanningGroups=${navigator.isScanningGroups}"
@@ -506,7 +582,7 @@ class ScanTree(
             navigator.isScanningGroups
         )
 
-        speakDuringScan()
+        if (speak) speakDuringScan()
     }
 
     /**
@@ -525,7 +601,9 @@ class ScanTree(
     /**
      * Starts the scanning process.
      */
-    override fun startAutoScanning() {
+    override fun startAutoScanning() = withVisuals { startAutoScanningNow() }
+
+    private fun startAutoScanningNow() {
         setup()
         if (tree.isNotEmpty()) {
             scanningScheduler?.stopScanning()
@@ -548,6 +626,7 @@ class ScanTree(
      * Pauses the scanning process.
      */
     override fun pauseAutoScanning() {
+        resumeAfterEmptySnapshot = false
         scanningScheduler?.pauseScanning()
     }
 
@@ -558,10 +637,14 @@ class ScanTree(
         scanningScheduler?.resumeScanning()
     }
 
+    internal fun isAutoScanning(): Boolean = scanningScheduler?.isScanning() == true
+
     /**
      * Resets the UI to its initial state.
      */
-    override fun resetUI() {
+    override fun resetUI() = withVisuals { resetUINow() }
+
+    private fun resetUINow() {
         highlighter.unhighlightAll()
     }
 
@@ -577,7 +660,11 @@ class ScanTree(
     /**
      * Resets the scanning tree to its initial state.
      */
-    override fun resetForNextUse() {
+    override fun resetForNextUse() = withVisuals { resetForNextUseNow() }
+
+    private fun resetForNextUseNow() {
+        resumeAfterEmptySnapshot = false
+        emptyAnchor = null
         scanningScheduler?.stopScanning()
         callback?.onScanTreeStopped()
         callback?.onScanTreeCycleBreakSkipped()
@@ -595,22 +682,6 @@ class ScanTree(
         tree.clear() // Clear the tree
     }
 
-    /**
-     * Get the tree items for external spatial navigation
-     */
-    fun getTree(): List<ScanTreeItem> = tree
-
-    /**
-     * Set the current scan position directly for spatial navigation
-     * @param treeIndex The tree item index to navigate to
-     * @param nodeIndex The node index within the tree item
-     */
-    fun setSpatialPosition(treeIndex: Int, nodeIndex: Int) {
-        if (navigator.setSpatialPosition(treeIndex, nodeIndex)) {
-            highlightCurrent()
-        }
-    }
-
     override fun cleanup() {
         // Clear callback before cleanup to prevent race condition with handler-posted UI updates
         // during quick technique switches (e.g., keyboard dismiss -> rapid scan start)
@@ -618,5 +689,6 @@ class ScanTree(
         super.cleanup()
         scanningScheduler?.shutdown()
         scanningScheduler = null
+        tree.clear()
     }
 }

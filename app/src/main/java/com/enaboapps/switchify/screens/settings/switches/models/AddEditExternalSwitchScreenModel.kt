@@ -12,6 +12,7 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.enaboapps.switchify.service.scanning.ScanSettings
+import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.switches.SWITCH_EVENT_TYPE_EXTERNAL
 import com.enaboapps.switchify.switches.SupportedActionsPolicy
 import com.enaboapps.switchify.switches.SwitchAction
@@ -19,6 +20,10 @@ import com.enaboapps.switchify.switches.SwitchAction.Companion.ACTION_MOVE_TO_NE
 import com.enaboapps.switchify.switches.SwitchAction.Companion.ACTION_MOVE_TO_PREVIOUS_ITEM
 import com.enaboapps.switchify.switches.SwitchEvent
 import com.enaboapps.switchify.switches.SwitchEventStore
+import com.enaboapps.switchify.switches.SwitchHoldPolicy
+import com.enaboapps.switchify.switches.profiles.SwitchProfileRepository
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 class AddEditExternalSwitchScreenModel : ViewModel() {
@@ -29,13 +34,16 @@ class AddEditExternalSwitchScreenModel : ViewModel() {
 
     private val store = SwitchEventStore.getInstance()
     private var code: String? = null
+    private var profileId: String? = null
     private var isInitialized = false
+    private var editing = false
 
     var name = ""
 
     val switchCaptured = MutableLiveData(false)
     val shouldSave = MutableLiveData(false)
     val isValid = MutableLiveData(false)
+    val hasUnsavedChanges = MutableLiveData(false)
     val allowLongPress = MutableLiveData(true)
     val refreshingLongPressActions = MutableLiveData(false)
 
@@ -45,11 +53,26 @@ class AddEditExternalSwitchScreenModel : ViewModel() {
     }
     val longPressActions = MutableLiveData<List<SwitchAction>>(emptyList())
 
-    fun init(code: String?, context: Context) {
+    fun init(code: String?, context: Context, profileId: String? = null) {
         this.code = code
+        this.profileId = profileId
+        editing = code != null
 
         if (code != null) {
             reload(context)
+            viewModelScope.launch {
+                val repository = SwitchProfileRepository.getInstance(context)
+                repository.initialize()
+                val targetProfileId = profileId ?: repository.document.value.activeProfileId
+                this@AddEditExternalSwitchScreenModel.profileId = targetProfileId
+                repository.document.map { document ->
+                    document.profiles.firstOrNull { it.id == targetProfileId }
+                        ?.switches?.firstOrNull { it.code == code }?.holdActions.orEmpty()
+                }.distinctUntilChanged().collect { actions ->
+                    longPressActions.value = actions
+                    validateIfInitialized()
+                }
+            }
         } else {
             name = ""
             pressAction.value = SwitchAction(SwitchAction.ACTION_SELECT)
@@ -63,7 +86,7 @@ class AddEditExternalSwitchScreenModel : ViewModel() {
     private fun reload(context: Context) {
         viewModelScope.launch {
             if (code != null) {
-                val event = store.find(code ?: "")
+                val event = store.find(code ?: "", profileId)
                 name = event?.name ?: ""
                 val initialPress = event?.pressAction ?: SwitchAction(SwitchAction.ACTION_SELECT)
                 val allowed = SupportedActionsPolicy.supportedActionIds(context)
@@ -98,13 +121,14 @@ class AddEditExternalSwitchScreenModel : ViewModel() {
         Log.d(TAG, "processKeyCode: ${key.nativeKeyCode}")
 
         // If switch already exists, don't save and show toast
-        if (store.find(key.nativeKeyCode.toString()) != null) {
+        if (store.find(key.nativeKeyCode.toString(), profileId) != null) {
             shouldSave.value = false
             Toast.makeText(context, "Switch already exists", Toast.LENGTH_SHORT).show()
             return
         }
 
         code = key.nativeKeyCode.toString()
+        hasUnsavedChanges.value = true
         validateIfInitialized()
         shouldSave.value = true
         switchCaptured.value = true
@@ -115,6 +139,7 @@ class AddEditExternalSwitchScreenModel : ViewModel() {
         val currentActions = longPressActions.value?.toMutableList() ?: mutableListOf()
         currentActions.add(action)
         longPressActions.value = currentActions
+        hasUnsavedChanges.value = true
         validateIfInitialized()
     }
 
@@ -122,6 +147,7 @@ class AddEditExternalSwitchScreenModel : ViewModel() {
         val currentActions = longPressActions.value?.toMutableList() ?: mutableListOf()
         currentActions.removeAt(index)
         longPressActions.value = currentActions
+        hasUnsavedChanges.value = true
         validateIfInitialized()
         refreshLongPressActions()
     }
@@ -132,6 +158,7 @@ class AddEditExternalSwitchScreenModel : ViewModel() {
             val action = currentActions.removeAt(fromIndex)
             currentActions.add(toIndex, action)
             longPressActions.value = currentActions
+            hasUnsavedChanges.value = true
             validateIfInitialized()
         }
     }
@@ -143,38 +170,27 @@ class AddEditExternalSwitchScreenModel : ViewModel() {
         }, 300)
     }
 
-    /**
-     * Reloads long press actions from the store.
-     * Call this when returning from the LongPressActionsScreen to sync state.
-     */
-    fun reloadLongPressActionsFromStore(context: Context) {
-        if (code != null) {
-            val event = store.find(code ?: "")
-            val allowed = SupportedActionsPolicy.supportedActionIds(context)
-            longPressActions.value = (event?.holdActions ?: emptyList()).map { a ->
-                if (allowed.contains(a.id)) a else SwitchAction(SwitchAction.ACTION_SELECT)
-            }
-        }
-    }
-
     fun updateLongPressAction(oldAction: SwitchAction, newAction: SwitchAction) {
         val currentActions = longPressActions.value?.toMutableList() ?: mutableListOf()
         val index = currentActions.indexOf(oldAction)
         if (index != -1) {
             currentActions[index] = newAction
             longPressActions.value = currentActions
+            hasUnsavedChanges.value = true
         }
         validateIfInitialized()
     }
 
     fun setPressAction(action: SwitchAction, context: Context) {
         pressAction.value = action
+        hasUnsavedChanges.value = true
         updateAllowLongPress(context)
         validateIfInitialized()
     }
 
     fun updateName(name: String) {
         this.name = name
+        hasUnsavedChanges.value = true
         validateIfInitialized()
     }
 
@@ -185,8 +201,8 @@ class AddEditExternalSwitchScreenModel : ViewModel() {
         var pressAction = pressAction.value
         val isMoveRepeat = settings.isMoveRepeatEnabled()
         val isMoveAction = pressAction?.id == next || pressAction?.id == previous
-        allowLongPress.value = !(isMoveRepeat && isMoveAction)
-        println("Allow long press: ${allowLongPress.value}, isMoveRepeat: $isMoveRepeat, isMoveAction: $isMoveAction")
+        val holdEnabled = SwitchHoldPolicy.isEnabled(PreferenceManager(context))
+        allowLongPress.value = holdEnabled && !(isMoveRepeat && isMoveAction)
     }
 
     private fun validate() {
@@ -206,31 +222,23 @@ class AddEditExternalSwitchScreenModel : ViewModel() {
     fun save(context: Context, completion: ((Boolean) -> Unit)) {
         if (shouldSave.value == true) {
             val event = buildSwitchEvent()
-            if (store.find(event.code) == null) {
-                store.add(event, context) { success ->
-                    if (success) {
-                        completion(true)
-                    } else {
-                        completion(false)
-                    }
+            shouldSave.value = false
+            val onComplete: (Boolean) -> Unit = { success ->
+                viewModelScope.launch {
+                    shouldSave.value = !success
+                    if (success) hasUnsavedChanges.value = false
+                    completion(success)
                 }
-            } else {
-                store.update(event, context) { success ->
-                    if (success) {
-                        completion(true)
-                    } else {
-                        completion(false)
-                    }
-                }
-                shouldSave.value = false
             }
+            if (editing) store.updateDetails(event, context, profileId, onComplete)
+            else store.add(event, context, profileId, onComplete)
         }
     }
 
     fun delete(context: Context, completion: (Boolean) -> Unit) {
-        val event = store.find(code ?: "")
+        val event = store.find(code ?: "", profileId)
         event?.let {
-            store.remove(it, context) { success ->
+            store.remove(it, context, profileId) { success ->
                 completion(success)
             }
         }

@@ -4,6 +4,7 @@ import com.enaboapps.switchify.R
 import com.enaboapps.switchify.service.core.SwitchifyAccessibilityService
 import com.enaboapps.switchify.service.menu.MenuItem
 import com.enaboapps.switchify.service.menu.MenuManager
+import com.enaboapps.switchify.service.menu.MenuItemOrdering
 import com.enaboapps.switchify.service.menu.MenuView
 import com.enaboapps.switchify.service.menu.database.MenuConfigurationRepository
 import com.enaboapps.switchify.service.menu.structure.MenuConstants
@@ -24,10 +25,13 @@ open class BaseMenu(
     private val items: List<MenuItem>,
     val menuId: String? = null,
     private val dynamicLoad: (suspend () -> List<MenuItem>)? = null,
-    private val showNavMenuItems: Boolean = true
+    private val showNavMenuItems: Boolean = true,
+    private val leadingItems: List<MenuItem> = emptyList()
 ) {
     // Lazy-initialized repository to avoid repeated instantiation
     private val configRepository by lazy { MenuConfigurationRepository(accessibilityService) }
+
+    internal fun contextualItemIds(): Set<String> = leadingItems.map { it.id }.toSet()
     /**
      * Get the menu items with automatic previous menu button when applicable.
      * Loads user-added items and merges them with static items in the correct order
@@ -63,9 +67,9 @@ open class BaseMenu(
                 isBackButton = true,
                 action = { MenuManager.getInstance().menuHierarchy?.popMenu() }
             )
-            listOf(previousMenuItem) + orderedItems
+            listOf(previousMenuItem) + MenuItemOrdering.withLeadingItems(leadingItems, orderedItems)
         } else {
-            orderedItems
+            MenuItemOrdering.withLeadingItems(leadingItems, orderedItems)
         }
     }
 
@@ -157,4 +161,5 @@ open class BaseMenu(
     fun build(): MenuView {
         return MenuView(accessibilityService, this)
     }
+
 }

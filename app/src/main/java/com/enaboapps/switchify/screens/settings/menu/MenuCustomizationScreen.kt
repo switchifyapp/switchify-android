@@ -18,6 +18,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -33,8 +34,7 @@ import com.enaboapps.switchify.components.switchifyTextFieldColors
 import com.enaboapps.switchify.screens.settings.menu.models.MenuCustomizationScreenModel
 import com.enaboapps.switchify.screens.settings.menu.models.PaletteItem
 import com.enaboapps.switchify.service.menu.MenuItem
-import com.enaboapps.switchify.service.menu.MenuSizeManager
-import com.enaboapps.switchify.service.menu.MenuSurfaceBudget
+import com.enaboapps.switchify.service.menu.MenuGridMeasurer
 import com.enaboapps.switchify.service.menu.structure.MenuConstants
 
 /**
@@ -90,6 +90,7 @@ fun MenuCustomizationScreen(navController: NavController, menuId: String) {
 @Composable
 fun MenuCustomizationContent(screenModel: MenuCustomizationScreenModel, menuId: String) {
     val context = LocalContext.current
+    val resources = LocalResources.current
     val menuItems by screenModel.menuItems.collectAsState()
     val visibilityMap by screenModel.visibilityMap.collectAsState()
     val paletteDialogVisible by screenModel.paletteDialogVisible.collectAsState()
@@ -101,9 +102,9 @@ fun MenuCustomizationContent(screenModel: MenuCustomizationScreenModel, menuId: 
     // Resolves a MenuItem to its display label using the same fallback chain as
     // MenuItemRow. Captured here so the SelectModeState callbacks can pass labels
     // into accessibility content descriptions from non-Composable scope.
-    val itemLabelOf: (MenuItem) -> String = remember(context) {
+    val itemLabelOf: (MenuItem) -> String = remember(resources) {
         { item ->
-            item.labelResource?.let { context.getString(it) }
+            item.labelResource?.let { resources.getString(it) }
                 ?: item.userProvidedText
                 ?: item.id
         }
@@ -164,15 +165,13 @@ fun MenuCustomizationContent(screenModel: MenuCustomizationScreenModel, menuId: 
                 // budget the runtime uses so the headers match what the user
                 // will actually see. Hidden items are skipped when numbering
                 // pages.
-                val itemSize = MenuSizeManager.getItemSize(context)
-                val smallItemSize = MenuSizeManager.getSmallItemSize(context)
-                val pageSize = MenuSurfaceBudget.rowsPerPage(
+                val pageSize = MenuGridMeasurer.measure(
                     context = context,
-                    itemSize = itemSize,
-                    smallItemSize = smallItemSize,
-                    hasTitle = MenuConstants.getTitleResource(menuId) != null,
-                    willShowNavRow = true
-                )
+                    items = menuItems.filter { visibilityMap[it.id] ?: true },
+                    contextualCount = 0,
+                    hasTitle = MenuGridMeasurer.showsTitle(context, menuId),
+                    hasNavigation = true
+                ).grid.pageCapacity
                 val visibleIndexById = remember(menuItems, visibilityMap) {
                     var idx = 0
                     buildMap {

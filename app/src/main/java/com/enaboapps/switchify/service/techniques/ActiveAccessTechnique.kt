@@ -155,6 +155,35 @@ class ActiveAccessTechnique(private val context: Context) : AccessTechniqueObser
         getNodeScanner().scanTree.stopScanningAndReset()
     }
 
+    internal fun refreshItemScanConfiguration() {
+        systemNodeScanner?.refreshConfiguration()
+        keyboardScanner?.refreshConfiguration()
+    }
+
+    internal fun refreshItemScanTiming() {
+        systemNodeScanner?.refreshTiming()
+        keyboardScanner?.refreshTiming()
+    }
+
+    internal fun refreshPointScanStructure() {
+        pointScanManager?.refreshStructure()
+    }
+
+    internal fun refreshPointScanTiming() {
+        pointScanManager?.refreshBlockTiming()
+    }
+
+    internal fun refreshRadarOrigin() {
+        radarManager?.refreshOrigin()
+    }
+
+    internal fun resetForScanModeChange() {
+        pointScanManager?.stopScanningAndReset()
+        radarManager?.stopScanningAndReset()
+        systemNodeScanner?.scanTree?.stopScanningAndReset()
+        keyboardScanner?.scanTree?.stopScanningAndReset()
+    }
+
     fun cleanup(currentTechnique: String) {
         NodeScannerUI.instance.hideAll()
 
@@ -248,13 +277,13 @@ class ActiveAccessTechnique(private val context: Context) : AccessTechniqueObser
         KeyboardManager.removeKeyboardStateListener()
     }
 
-    fun updateActionableNodes(nodes: List<Node>) {
-        SystemNodeHolder.updateNodes(nodes)
+    fun updateActionableNodes(nodes: List<Node>, source: String? = null) {
+        SystemNodeHolder.updateNodes(nodes, source)
     }
 
-    fun updateKeyboardNodes(nodes: List<Node>) {
+    fun updateKeyboardNodes(nodes: List<Node>, source: String? = null) {
         ensureKeyboardScannerStarted()
-        keyboardScanner?.updateNodes(nodes)
+        keyboardScanner?.updateSnapshot(nodes, source)
     }
 
     override fun onKeyboardStateChanged(

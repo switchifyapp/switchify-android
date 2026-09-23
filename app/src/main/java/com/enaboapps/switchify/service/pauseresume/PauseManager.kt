@@ -2,11 +2,15 @@ package com.enaboapps.switchify.service.pauseresume
 
 import android.content.Context
 import android.content.Intent
+import android.os.SystemClock
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.service.core.ServiceCore
+import com.enaboapps.switchify.service.scanning.ScanInterval
 import com.enaboapps.switchify.service.window.MessageSeverity
+import com.enaboapps.switchify.service.window.ServiceHudMessage
 import com.enaboapps.switchify.service.window.ServiceMessageHUD
+import com.enaboapps.switchify.utils.Resources
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -24,6 +28,9 @@ class PauseManager private constructor() {
 
     companion object {
         private const val DEFAULT_PAUSE_TIMEOUT_MS = 30000L // 30 seconds
+
+        /** HUD status key so the pause banner replaces itself and only pause can dismiss it. */
+        private const val PAUSE_HUD_KEY = "pause"
 
         // Broadcast actions
         const val ACTION_PAUSE_STARTED = "com.enaboapps.switchify.PAUSE_STARTED"
@@ -48,6 +55,9 @@ class PauseManager private constructor() {
     /** Timestamp of when the pause was initiated or last switch event during pause */
     private var pauseTimestamp: Long = 0
 
+    /** Configured timeout for the current pause, read when the pause starts */
+    private var pauseTimeoutMs: Long = DEFAULT_PAUSE_TIMEOUT_MS
+
     /** Coroutine job that manages the pause timeout */
     private var pauseJob: Job? = null
 
@@ -70,33 +80,16 @@ class PauseManager private constructor() {
         if (pauseJob != null) return
 
         // Get the configured pause timeout
-        val pauseTimeoutMs = contextRef?.get()?.let { context ->
+        pauseTimeoutMs = contextRef?.get()?.let { context ->
             PreferenceManager(context).getLongValue(
                 PreferenceManager.Keys.PREFERENCE_KEY_PAUSE_TIMEOUT,
                 DEFAULT_PAUSE_TIMEOUT_MS
             )
         } ?: DEFAULT_PAUSE_TIMEOUT_MS
 
-        // Format timeout for display
-        val timeoutDisplay = when (pauseTimeoutMs) {
-            30000L -> "30 seconds"
-            60000L -> "1 minute"
-            120000L -> "2 minutes"
-            180000L -> "3 minutes"
-            240000L -> "4 minutes"
-            300000L -> "5 minutes"
-            else -> "${pauseTimeoutMs / 1000} seconds"
-        }
-
-        ServiceMessageHUD.instance.showMessage(
-            R.string.hud_pause,
-            arrayOf(timeoutDisplay),
-            ServiceMessageHUD.MessageType.DISAPPEARING,
-            severity = MessageSeverity.Warning
-        )
-
         isPaused = true
         pauseTimestamp = System.currentTimeMillis()
+        showPauseStatus(speak = true)
 
         // Send broadcast that pause has started
         contextRef?.get()?.let { context ->
@@ -126,9 +119,37 @@ class PauseManager private constructor() {
     fun handleSwitchDuringPause(): Boolean {
         if (isPaused) {
             pauseTimestamp = System.currentTimeMillis()
+            // Restart the on-screen countdown without re-reading the message aloud.
+            showPauseStatus(speak = false)
             return true
         }
         return false
+    }
+
+    /**
+     * Shows or refreshes the pause banner with a countdown to automatic resume.
+     */
+    private fun showPauseStatus(speak: Boolean) {
+        ServiceMessageHUD.instance.show(
+            ServiceHudMessage(
+                text = Resources.getString(R.string.hud_pause, timeoutDisplay(pauseTimeoutMs)),
+                severity = MessageSeverity.Warning,
+                durationMillis = null,
+                key = PAUSE_HUD_KEY,
+                countdown = ScanInterval(SystemClock.uptimeMillis(), pauseTimeoutMs),
+                speak = speak
+            )
+        )
+    }
+
+    private fun timeoutDisplay(timeoutMs: Long): String = when (timeoutMs) {
+        30000L -> "30 seconds"
+        60000L -> "1 minute"
+        120000L -> "2 minutes"
+        180000L -> "3 minutes"
+        240000L -> "4 minutes"
+        300000L -> "5 minutes"
+        else -> "${timeoutMs / 1000} seconds"
     }
 
     /**
@@ -159,6 +180,7 @@ class PauseManager private constructor() {
         pauseJob?.cancel()
         pauseJob = null
 
+        ServiceMessageHUD.instance.dismissStatus(PAUSE_HUD_KEY)
         ServiceMessageHUD.instance.showMessage(
             R.string.hud_pause_resume,
             ServiceMessageHUD.MessageType.DISAPPEARING,

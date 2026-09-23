@@ -7,17 +7,17 @@ import com.enaboapps.switchify.service.scanning.ScanSettings
 object SupportedActionsPolicy {
     fun supportedActionIds(context: Context): Set<Int> {
         val settings = ScanSettings(context)
-        val mode = when {
-            settings.isAutoScanMode() -> ScanMode.Modes.MODE_AUTO
-            settings.isManualScanMode() -> ScanMode.Modes.MODE_MANUAL
-            settings.isDirectionalScanMode() -> ScanMode.Modes.MODE_DIRECTIONAL
-            else -> return emptySet()
+        val mode = if (settings.isManualScanMode()) {
+            ScanMode.Modes.MODE_MANUAL
+        } else {
+            ScanMode.Modes.MODE_AUTO
         }
         return supportedActionIdsForMode(mode)
     }
 
     internal fun supportedActionIdsForMode(mode: String): Set<Int> {
         val sys = setOf(
+            SwitchAction.ACTION_LAUNCH_APP,
             SwitchAction.ACTION_SYS_HOME,
             SwitchAction.ACTION_SYS_BACK,
             SwitchAction.ACTION_SYS_RECENTS,
@@ -25,8 +25,6 @@ object SupportedActionsPolicy {
             SwitchAction.ACTION_SYS_NOTIFICATIONS,
             SwitchAction.ACTION_SYS_LOCK_SCREEN,
             SwitchAction.ACTION_SYS_HEADSET_HOOK,
-            SwitchAction.ACTION_CONTROL_PC,
-            SwitchAction.ACTION_PC_SWITCH_CONTROL
         )
 
         return when (mode) {
@@ -55,18 +53,7 @@ object SupportedActionsPolicy {
                 ) + sys
             }
 
-            ScanMode.Modes.MODE_DIRECTIONAL -> {
-                setOf(
-                    SwitchAction.ACTION_SELECT,
-                    SwitchAction.ACTION_STOP_SCANNING,
-                    SwitchAction.ACTION_TOGGLE_GESTURE_LOCK,
-                    SwitchAction.ACTION_TOGGLE_GESTURE_LOCK_REARM,
-                    SwitchAction.ACTION_TOGGLE_GESTURE_REPEAT,
-                    SwitchAction.ACTION_PAUSE
-                ) + sys
-            }
-
-            else -> emptySet()
+            else -> supportedActionIdsForMode(ScanMode.Modes.MODE_AUTO)
         }
     }
 
@@ -74,5 +61,6 @@ object SupportedActionsPolicy {
         val allowed = supportedActionIds(context)
         return SwitchAction.actions.filter { allowed.contains(it.id) }
     }
-}
 
+    fun selectableActions(context: Context): List<SwitchAction> = supportedActions(context)
+}

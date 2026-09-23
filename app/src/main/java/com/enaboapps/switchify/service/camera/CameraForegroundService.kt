@@ -11,7 +11,6 @@ import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.hardware.camera2.CameraManager
 import android.os.Binder
-import android.os.Build
 import android.os.IBinder
 import android.os.PowerManager
 import android.util.Log
@@ -30,6 +29,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.Observer
 import com.enaboapps.switchify.R
+import com.enaboapps.switchify.service.core.ServiceCore
 import com.enaboapps.switchify.service.face.FaceProcessingService
 import com.enaboapps.switchify.service.window.MessageSeverity
 import com.enaboapps.switchify.service.window.ServiceMessageHUD
@@ -481,6 +481,10 @@ class CameraForegroundService : Service(), CameraLifecycle {
 
     private fun onCameraInUse() {
         if (!isPausedForConflict) {
+            ServiceCore.getSwitchProfileActivationCoordinator()?.cancel(
+                reason = "camera_initialization_failure",
+                showMessage = false
+            )
             ServiceMessageHUD.instance.showMessage(
                 R.string.hud_camera_unavailable_external_app,
                 ServiceMessageHUD.MessageType.DISAPPEARING,
@@ -492,6 +496,10 @@ class CameraForegroundService : Service(), CameraLifecycle {
     }
 
     private fun onCameraFatal() {
+        ServiceCore.getSwitchProfileActivationCoordinator()?.cancel(
+            reason = "camera_initialization_failure",
+            showMessage = false
+        )
         ServiceMessageHUD.instance.showMessage(
             R.string.hud_camera_access_error,
             ServiceMessageHUD.MessageType.DISAPPEARING,
@@ -671,20 +679,18 @@ class CameraForegroundService : Service(), CameraLifecycle {
      * Create notification channel for foreground service
      */
     private fun createNotificationChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                CHANNEL_ID,
-                CHANNEL_NAME,
-                NotificationManager.IMPORTANCE_LOW
-            ).apply {
-                description = "Camera processing for accessibility features"
-                setShowBadge(false)
-            }
-
-            val notificationManager =
-                getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-            notificationManager.createNotificationChannel(channel)
+        val channel = NotificationChannel(
+            CHANNEL_ID,
+            CHANNEL_NAME,
+            NotificationManager.IMPORTANCE_LOW
+        ).apply {
+            description = "Camera processing for accessibility features"
+            setShowBadge(false)
         }
+
+        val notificationManager =
+            getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+        notificationManager.createNotificationChannel(channel)
     }
 
     /**

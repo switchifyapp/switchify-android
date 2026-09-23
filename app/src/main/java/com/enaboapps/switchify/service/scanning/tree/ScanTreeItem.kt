@@ -5,6 +5,7 @@ import com.enaboapps.switchify.service.scanning.ScanNodeInterface
 import com.enaboapps.switchify.service.techniques.nodes.Node
 import com.enaboapps.switchify.service.techniques.nodes.NodeSpeaker
 import com.enaboapps.switchify.service.techniques.nodes.scanners.NodeScannerUI
+import com.enaboapps.switchify.service.techniques.nodes.scanners.ScanHighlightBounds
 import com.enaboapps.switchify.service.window.overlay.OverlayTarget
 import com.enaboapps.switchify.service.window.overlay.OverlayTargets
 
@@ -78,13 +79,17 @@ class ScanTreeItem(
     private fun showRowBoundsFor(nodes: List<ScanNodeInterface>, isEscape: Boolean) {
         val target = commonOverlayTarget(nodes)
         val bounds = aggregateBounds(nodes, target)
+        val screenRect = aggregateBounds(nodes, OverlayTargets.displayFallback(target))
+        val screenBounds = ScanHighlightBounds(screenRect.left.toFloat(), screenRect.top.toFloat(),
+            screenRect.width().toFloat(), screenRect.height().toFloat())
         if (isEscape) {
             boundsUi.showEscapeBounds(
                 bounds.left,
                 bounds.top,
                 bounds.width(),
                 bounds.height(),
-                target
+                target,
+                screenBounds
             )
         } else {
             boundsUi.showRowBounds(
@@ -92,7 +97,8 @@ class ScanTreeItem(
                 bounds.top,
                 bounds.width(),
                 bounds.height(),
-                target
+                target,
+                screenBounds
             )
         }
     }
@@ -208,7 +214,7 @@ class ScanTreeItem(
 
     private fun unhighlightAggregate(nodes: List<ScanNodeInterface>) {
         nodes.forEach { it.unhighlight() }
-        boundsUi.hideAll()
+        boundsUi.hideRowBounds()
     }
 
     /**
@@ -247,13 +253,12 @@ class ScanTreeItem(
      * @param nodeIndex The index of the node to speak
      */
     fun speakNode(groupIndex: Int?, nodeIndex: Int) {
-        val node = children.getOrNull(nodeIndex) ?: return
-        if (groupIndex != null) {
-            val nodeInGroup = groups.getOrNull(groupIndex)?.getOrNull(nodeIndex) ?: return
-            NodeSpeaker.speakNode(nodeInGroup)
+        val node = if (groupIndex != null) {
+            getNode(groupIndex, nodeIndex)
         } else {
-            NodeSpeaker.speakNode(node)
-        } ?: println("Node not found")
+            children.getOrNull(nodeIndex)
+        } ?: return
+        NodeSpeaker.speakNode(node)
     }
 
     fun getX(): Int = children.minOf { it.getLeft() }
@@ -262,6 +267,8 @@ class ScanTreeItem(
 
     fun getGroupCount(): Int = groups.size
     fun getNodeCount(groupIndex: Int): Int = groups.getOrNull(groupIndex)?.size ?: 0
+    internal fun getNode(groupIndex: Int, nodeIndex: Int): ScanNodeInterface? =
+        groups.getOrNull(groupIndex)?.getOrNull(nodeIndex)
 
     fun selectNode(groupIndex: Int, nodeIndex: Int) {
         groups.getOrNull(groupIndex)?.getOrNull(nodeIndex)?.select()
@@ -279,24 +286,9 @@ class ScanTreeItem(
 
     fun isGrouped(): Boolean = groups.size > 1
 
-    /**
-     * This function splits the children into groups
-     * If group scanning is enabled and there are 4 or more nodes, it splits the row in half
-     * Otherwise, it creates a single group with all nodes
-     * @param nodes The list of nodes to split into groups
-     * @return A list of groups, where each group is a list of nodes
-     */
     private fun splitIntoGroups(nodes: List<ScanNodeInterface>): List<List<ScanNodeInterface>> {
         val sortedNodes = nodes.sortedBy { it.getLeft() }
-        return if (isGroupScanEnabled && sortedNodes.size >= 4) {
-            val midpoint = sortedNodes.size / 2
-            listOf(
-                sortedNodes.subList(0, midpoint),
-                sortedNodes.subList(midpoint, sortedNodes.size)
-            )
-        } else {
-            listOf(sortedNodes)
-        }
+        return RowGroupingPolicy.split(sortedNodes, isGroupScanEnabled)
     }
 }
 
@@ -306,7 +298,8 @@ interface ScanTreeBoundsUi {
         y: Int,
         width: Int,
         height: Int,
-        target: OverlayTarget
+        target: OverlayTarget,
+        screenBounds: ScanHighlightBounds
     )
 
     fun showEscapeBounds(
@@ -314,9 +307,14 @@ interface ScanTreeBoundsUi {
         y: Int,
         width: Int,
         height: Int,
-        target: OverlayTarget
+        target: OverlayTarget,
+        screenBounds: ScanHighlightBounds
     )
 
+    /** Removes the row or escape highlight; a node's own item highlight is left alone. */
+    fun hideRowBounds()
+
+    /** Removes every highlight; used when the tree's indices no longer match its nodes. */
     fun hideAll()
 }
 
@@ -326,9 +324,10 @@ private object NodeScannerBoundsUi : ScanTreeBoundsUi {
         y: Int,
         width: Int,
         height: Int,
-        target: OverlayTarget
+        target: OverlayTarget,
+        screenBounds: ScanHighlightBounds
     ) {
-        NodeScannerUI.instance.showRowBounds(x, y, width, height, target)
+        NodeScannerUI.instance.showRowBounds(x, y, width, height, target, screenBounds)
     }
 
     override fun showEscapeBounds(
@@ -336,9 +335,14 @@ private object NodeScannerBoundsUi : ScanTreeBoundsUi {
         y: Int,
         width: Int,
         height: Int,
-        target: OverlayTarget
+        target: OverlayTarget,
+        screenBounds: ScanHighlightBounds
     ) {
-        NodeScannerUI.instance.showEscapeBounds(x, y, width, height, target)
+        NodeScannerUI.instance.showEscapeBounds(x, y, width, height, target, screenBounds)
+    }
+
+    override fun hideRowBounds() {
+        NodeScannerUI.instance.hideRowBounds()
     }
 
     override fun hideAll() {

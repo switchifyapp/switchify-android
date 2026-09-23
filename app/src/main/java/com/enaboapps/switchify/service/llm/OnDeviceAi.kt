@@ -2,6 +2,7 @@ package com.enaboapps.switchify.service.llm
 
 import android.content.Context
 import android.graphics.Bitmap
+import androidx.core.graphics.scale
 import com.enaboapps.switchify.utils.LogEvent
 import com.enaboapps.switchify.utils.Logger
 import kotlinx.coroutines.Dispatchers
@@ -67,6 +68,6 @@ object OnDeviceAi {
         val scale = MAX_IMAGE_DIMENSION.toFloat() / longestEdge
         val width = (bitmap.width * scale).toInt().coerceAtLeast(1)
         val height = (bitmap.height * scale).toInt().coerceAtLeast(1)
-        return Bitmap.createScaledBitmap(bitmap, width, height, true)
+        return bitmap.scale(width, height)
     }
 }

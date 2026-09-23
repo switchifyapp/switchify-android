@@ -3,6 +3,7 @@ package com.enaboapps.switchify.service.menu.structure
 import com.enaboapps.switchify.service.core.SwitchifyAccessibilityService
 import com.enaboapps.switchify.service.menu.menus.edit.EditMenuStructure
 import com.enaboapps.switchify.service.menu.menus.gestures.GestureMenuStructure
+import com.enaboapps.switchify.service.menu.menus.main.MainMenuStructure
 import com.enaboapps.switchify.service.menu.menus.media.MediaMenuStructure
 import com.enaboapps.switchify.service.menu.menus.scroll.ScrollMenuStructure
 import com.enaboapps.switchify.service.menu.menus.settings.SettingsMenuStructure
@@ -34,6 +35,14 @@ object MenuActionResolver {
     ): () -> Unit {
         try {
             return when (sourceMenuId) {
+                MenuConstants.MenuIds.MAIN_MENU -> {
+                    if (accessibilityService == null) return {}
+                    val menu = MainMenuStructure(accessibilityService, coroutineScope)
+                        .buildMainMenuObject()
+                    val item = menu.getMenuItems().find { it.id == itemId }
+                    item?.let { { it.select() } } ?: {}
+                }
+
                 MenuConstants.MenuIds.DEVICE_MENU -> {
                     if (accessibilityService == null) return {}
                     val menu = SystemMenuStructure(accessibilityService, coroutineScope)
@@ -61,6 +70,13 @@ object MenuActionResolver {
                     if (accessibilityService == null) return {}
                     val gestureStructure = GestureMenuStructure(accessibilityService, coroutineScope)
                     val item = gestureStructure.tapGesturesMenuObject.getMenuItems().find { it.id == itemId }
+                    item?.let { { it.select() } } ?: {}
+                }
+
+                MenuConstants.MenuIds.TAP_AND_HOLD_MENU -> {
+                    if (accessibilityService == null) return {}
+                    val gestureStructure = GestureMenuStructure(accessibilityService, coroutineScope)
+                    val item = gestureStructure.tapAndHoldGesturesMenuObject.getMenuItems().find { it.id == itemId }
                     item?.let { { it.select() } } ?: {}
                 }
 
@@ -112,7 +128,16 @@ object MenuActionResolver {
 
                 else -> {
                     // Unknown source menu
-                    {}
+                    Logger.log(
+                        LogEvent.MenuActionResolveFailed,
+                        data = mapOf(
+                            "result" to "failure",
+                            "reason" to "unsupported_source_menu",
+                            "item_id" to itemId,
+                            "source_menu_id" to sourceMenuId
+                        )
+                    )
+                    return {}
                 }
             }
         } catch (e: Exception) {

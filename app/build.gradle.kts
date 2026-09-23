@@ -1,14 +1,13 @@
 import java.util.Properties
+import com.android.build.api.variant.BuildConfigField
 
 plugins {
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.android.application)
     alias(libs.plugins.ksp)
     alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.sentry.android)
 
-}
-
-composeCompiler {
 }
 
 android {
@@ -20,7 +19,7 @@ android {
         minSdk = 29
         targetSdk = 36
         versionCode = gitVersionCode()
-        versionName = "2.49.4"
+        versionName = "3.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -116,6 +115,7 @@ android {
         targetCompatibility = JavaVersion.VERSION_11
     }
     buildFeatures {
+        aidl = true
         compose = true
         buildConfig = true
     }
@@ -123,6 +123,24 @@ android {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
+    }
+}
+
+val sentryLocalConfig = Properties()
+val sentryLocalConfigFile = rootProject.file("local.properties")
+if (sentryLocalConfigFile.exists()) sentryLocalConfigFile.inputStream().use(sentryLocalConfig::load)
+val sentryDsn = providers.environmentVariable("SENTRY_DSN")
+    .orElse(sentryLocalConfig.getProperty("sentry.dsn", ""))
+
+androidComponents {
+    onVariants(selector().all()) { variant ->
+        val requiresSentryDsn = variant.buildType == "release"
+        checkNotNull(variant.buildConfigFields).put("SENTRY_DSN", sentryDsn.map { dsn ->
+            check(!requiresSentryDsn || dsn.isNotBlank()) {
+                "Missing config: set SENTRY_DSN env var or 'sentry.dsn' in local.properties for release builds"
+            }
+            BuildConfigField("String", "\"$dsn\"", null)
+        })
     }
 }
 
@@ -164,10 +182,8 @@ dependencies {
     implementation(libs.supabase.realtime)
     implementation(libs.ktor.client.android)
     implementation(libs.gson)
-    implementation(libs.androidx.material3.android)
     implementation(libs.app.update)
     implementation(libs.play.services.reviews)
-    implementation(libs.play.services.reviews.ktx)
     implementation(libs.revenuecat)
     implementation(libs.revenuecat.ui)
     implementation(libs.androidx.camera.camera2)
@@ -186,16 +202,71 @@ dependencies {
     implementation(libs.credentials)
     implementation(libs.credentials.play.services.auth)
     implementation(libs.googleid)
-    implementation(libs.work.runtime.ktx)
+    implementation(libs.sentry.android)
     testImplementation(libs.junit)
     testImplementation(libs.coroutines.test)
     testImplementation(libs.json)
     androidTestImplementation(libs.androidx.test.ext.junit)
-    androidTestImplementation(libs.espresso.core)
-    androidTestImplementation(platform(libs.compose.bom))
-    androidTestImplementation(libs.compose.ui.test.junit4)
+    androidTestImplementation(libs.androidx.test.runner)
     debugImplementation(libs.compose.ui.tooling)
-    debugImplementation(libs.compose.ui.test.manifest)
+}
+
+val verifyPcSwitchForwardingNaming by tasks.registering {
+    val activeSources = fileTree("src") {
+        include("**/*.kt", "**/*.xml")
+    }
+    inputs.files(activeSources)
+
+    doLast {
+        val obsoleteIdentifiers = listOf(
+            "switch" + "control",
+            "switch_" + "control",
+            "pcswitch" + "control",
+            "control_" + "grid_3",
+            "grid3_" + "hold_to_stop_duration"
+        )
+        val violations = activeSources.files.flatMap { source ->
+            val path = source.relativeTo(projectDir).invariantSeparatorsPath.lowercase()
+            val content = source.readText().lowercase()
+            obsoleteIdentifiers.filter { identifier ->
+                identifier in path || identifier in content
+            }.map { identifier -> "$identifier in $path" }
+        }
+        check(violations.isEmpty()) {
+            "Obsolete PC Switch Forwarding identifiers remain:\n${violations.joinToString("\n")}"
+        }
+    }
+}
+
+val verifyPcRemoteOwnership by tasks.registering {
+    val activeSources = fileTree("src/main") { include("**/*.kt", "**/*.java", "**/*.xml", "**/*.aidl") }
+    inputs.files(activeSources)
+    doLast {
+        val forbidden = listOf(
+            "android.bluetooth",
+            "bluetooth_gatt",
+            "bluetooth_scan",
+            "bluetooth_connect",
+            "hardware.bluetooth_le",
+            "switchifypcble",
+            "pcprotocol",
+            "pctokenstore",
+            "screens/pc/",
+            "screens/pcswitchforwarding/",
+            "service/pcswitchforwarding/"
+        )
+        val violations = activeSources.files.flatMap { source ->
+            val path = source.relativeTo(projectDir).invariantSeparatorsPath.lowercase()
+            val content = source.readText().lowercase()
+            forbidden.filter { value -> value in path || value in content }.map { value -> "$value in $path" }
+        }
+        check(violations.isEmpty()) { "Switchify Android still owns PC/BLE implementation:\n${violations.joinToString("\n")}" }
+    }
+}
+
+tasks.named("check") {
+    dependsOn(verifyPcSwitchForwardingNaming)
+    dependsOn(verifyPcRemoteOwnership)
 }
 java {
     toolchain {
@@ -203,3 +274,19 @@ java {
     }
 }
 
+
+sentry {
+    org.set("switchify")
+    projectName.set("android")
+
+    val isCI = System.getenv("CI") != null
+    includeSourceContext.set(isCI)
+    autoUploadProguardMapping.set(isCI)
+
+    tracingInstrumentation {
+        enabled.set(false)
+    }
+    autoInstallation {
+        enabled.set(false)
+    }
+}

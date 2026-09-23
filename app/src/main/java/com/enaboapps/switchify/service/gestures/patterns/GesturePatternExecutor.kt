@@ -25,6 +25,9 @@ class GesturePatternExecutor(
 ) {
     companion object {
         private const val TAG = "GesturePatternExecutor"
+
+        /** Every pattern message shares this key so updates replace each other instead of queueing. */
+        private const val HUD_KEY = "gesture_pattern"
     }
 
     // Own a cancellable scope with SupervisorJob to prevent child failures from affecting parent
@@ -87,7 +90,8 @@ class GesturePatternExecutor(
         ServiceMessageHUD.instance.showMessage(
             R.string.hud_gesture_pattern_manual_mode_started,
             ServiceMessageHUD.MessageType.DISAPPEARING,
-            severity = MessageSeverity.Info
+            severity = MessageSeverity.Info,
+            key = HUD_KEY
         )
 
         // Execute first step immediately
@@ -121,11 +125,18 @@ class GesturePatternExecutor(
                 // Show progress message or finish if this was the last step
                 val remaining = gesturePattern.gestures.size - stepIndex - 1
                 if (remaining > 0) {
-                    ServiceMessageHUD.instance.showMessage(
-                        R.string.hud_gesture_pattern_step_completed,
-                        arrayOf(stepIndex + 1, gesturePattern.gestures.size, remaining),
+                    val message = context.resources.getQuantityString(
+                        R.plurals.hud_gesture_pattern_step_completed,
+                        remaining,
+                        stepIndex + 1,
+                        gesturePattern.gestures.size,
+                        remaining
+                    )
+                    ServiceMessageHUD.instance.showMessageText(
+                        message,
                         ServiceMessageHUD.MessageType.PERMANENT,
-                        severity = MessageSeverity.Success
+                        severity = MessageSeverity.Success,
+                        key = HUD_KEY
                     )
                 } else {
                     // Last step completed, finish the pattern
@@ -149,7 +160,8 @@ class GesturePatternExecutor(
                 ServiceMessageHUD.instance.showMessage(
                     R.string.hud_gesture_pattern_error,
                     ServiceMessageHUD.MessageType.DISAPPEARING,
-                    severity = MessageSeverity.Error
+                    severity = MessageSeverity.Error,
+                    key = HUD_KEY
                 )
 
                 cleanup()
@@ -188,7 +200,8 @@ class GesturePatternExecutor(
         ServiceMessageHUD.instance.showMessage(
             R.string.hud_gesture_pattern_completed,
             ServiceMessageHUD.MessageType.DISAPPEARING,
-            severity = MessageSeverity.Success
+            severity = MessageSeverity.Success,
+            key = HUD_KEY
         )
         cleanup()
     }
@@ -201,7 +214,8 @@ class GesturePatternExecutor(
             ServiceMessageHUD.instance.showMessage(
                 R.string.hud_gesture_pattern_stopped,
                 ServiceMessageHUD.MessageType.DISAPPEARING,
-                severity = MessageSeverity.Warning
+                severity = MessageSeverity.Warning,
+                key = HUD_KEY
             )
             cleanup()
             return true
@@ -212,7 +226,8 @@ class GesturePatternExecutor(
             ServiceMessageHUD.instance.showMessage(
                 R.string.hud_gesture_pattern_stopped,
                 ServiceMessageHUD.MessageType.DISAPPEARING,
-                severity = MessageSeverity.Warning
+                severity = MessageSeverity.Warning,
+                key = HUD_KEY
             )
             cleanup()
             return true
@@ -224,6 +239,9 @@ class GesturePatternExecutor(
     private fun cleanup() {
         if (isCleanedUp) return
         isCleanedUp = true
+
+        // Drop any step-progress status; completion and error toasts stay.
+        ServiceMessageHUD.instance.dismissStatus(HUD_KEY)
 
         executionJob = null
         GesturePatternManager.unregisterExecutor(this)

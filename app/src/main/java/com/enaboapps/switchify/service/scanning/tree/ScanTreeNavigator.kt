@@ -7,7 +7,7 @@ import com.enaboapps.switchify.service.scanning.ScanSettings
 /**
  * This class is responsible for navigating through the ScanTree structure.
  * It manages the current position and provides methods for moving between items, groups, and nodes.
- * The class supports row-column scanning, sequential (non-row-column) scanning, and directional scanning modes.
+ * The class supports row-column and sequential scanning modes.
  *
  * @property tree The list of ScanTreeItems that make up the scanning tree.
  * @property scanSettings The settings for scanning behavior.
@@ -15,7 +15,6 @@ import com.enaboapps.switchify.service.scanning.ScanSettings
  */
 internal interface ScanTreeNavigatorSettings {
     fun isRowColumnScanEnabled(): Boolean
-    fun isDirectionalScanMode(): Boolean
     fun isGroupScanEnabled(): Boolean
     fun getScanCycles(): Int
     fun isAutoScanMode(): Boolean
@@ -25,7 +24,6 @@ private class ScanSettingsNavigatorAdapter(
     private val scanSettings: ScanSettings
 ) : ScanTreeNavigatorSettings {
     override fun isRowColumnScanEnabled(): Boolean = scanSettings.isRowColumnScanEnabled()
-    override fun isDirectionalScanMode(): Boolean = scanSettings.isDirectionalScanMode()
     override fun isGroupScanEnabled(): Boolean = scanSettings.isGroupScanEnabled()
     override fun getScanCycles(): Int = scanSettings.getScanCycles()
     override fun isAutoScanMode(): Boolean = scanSettings.isAutoScanMode()
@@ -123,9 +121,6 @@ class ScanTreeNavigator internal constructor(
     /** The current escape state */
     private var escapeState: EscapeState = EscapeState.None
 
-    /** Spatial navigator for directional mode */
-    private val spatialNavigator: SpatialNavigator by lazy { SpatialNavigator(tree) }
-
     /** Indicates whether row-column scanning is enabled based on scan settings. */
     private val isRowColumnScanEnabled: Boolean
         get() = scanSettings.isRowColumnScanEnabled()
@@ -134,8 +129,79 @@ class ScanTreeNavigator internal constructor(
      * A flattened list of all nodes in the tree, used when row-column scanning is disabled.
      * Computed lazily to avoid unnecessary processing when row-column scanning is enabled.
      */
-    private val flattenedNodes: List<ScanNodeInterface> by lazy {
-        tree.flatMap { it.children }
+    private var flattenedNodes: List<ScanNodeInterface> = tree.flatMap { it.children }
+
+    internal fun reconcile(
+        replacement: List<ScanTreeItem>,
+        matches: Map<ScanNodeInterface, ScanNodeInterface>
+    ): Boolean {
+        val reverse = scanDirection == ScanDirection.UP || scanDirection == ScanDirection.LEFT
+        val rowLevel = isRowColumnScanEnabled && (!isInTreeItem || escapeState == EscapeState.Item)
+        val groupLevel = isRowColumnScanEnabled && !rowLevel &&
+            (escapeState == EscapeState.Group || (isScanningGroups && tree.getOrNull(currentTreeItem)?.isGrouped() == true))
+        data class Target(val row: Int, val group: Int, val column: Int, val members: List<ScanNodeInterface>)
+        fun targets(items: List<ScanTreeItem>): List<Target> {
+            var flatIndex = 0
+            return items.flatMapIndexed { row, item ->
+                when {
+                    rowLevel -> listOf(Target(row, 0, 0, item.children))
+                    groupLevel -> (0 until item.getGroupCount()).map { group ->
+                        Target(row, group, 0, (0 until item.getNodeCount(group)).mapNotNull { item.getNode(group, it) })
+                    }
+                    else -> (0 until item.getGroupCount()).flatMap { group ->
+                        (0 until item.getNodeCount(group)).mapNotNull { column ->
+                            item.getNode(group, column)?.let { node ->
+                                Target(row, group, if (isRowColumnScanEnabled) column else flatIndex++, listOf(node))
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        val oldTargets = targets(tree)
+        val nextTargets = targets(replacement)
+        if (nextTargets.isEmpty()) return false
+        val oldIndex = oldTargets.indexOfFirst {
+            if (!isRowColumnScanEnabled) it.column == currentColumn
+            else it.row == currentTreeItem && (rowLevel || it.group == currentGroup && (groupLevel || it.column == currentColumn))
+        }
+        val targetByNode = java.util.IdentityHashMap<ScanNodeInterface, Int>()
+        nextTargets.forEachIndexed { index, target -> target.members.forEach { targetByNode[it] = index } }
+        fun corresponding(target: Target): Int? {
+            val counts = mutableMapOf<Int, Int>()
+            val order = if (reverse) target.members.asReversed() else target.members
+            val ranks = mutableMapOf<Int, Int>()
+            order.forEachIndexed { rank, old ->
+                matches[old]?.let { targetByNode[it] }?.let { index ->
+                    counts[index] = (counts[index] ?: 0) + 1
+                    ranks.putIfAbsent(index, rank)
+                }
+            }
+            return counts.keys.minWithOrNull(compareByDescending<Int> { counts[it] }.thenBy { ranks[it] })
+        }
+        val currentMatch = oldTargets.getOrNull(oldIndex)?.let(::corresponding)
+        var selected = currentMatch
+        if (selected == null && oldIndex >= 0) {
+            for (offset in 1 until oldTargets.size) {
+                val index = Math.floorMod(oldIndex + if (reverse) -offset else offset, oldTargets.size)
+                selected = corresponding(oldTargets[index])
+                if (selected != null) break
+            }
+        }
+        val target = nextTargets[selected ?: if (reverse) nextTargets.lastIndex else 0]
+        currentTreeItem = target.row
+        currentGroup = target.group
+        currentColumn = target.column
+        flattenedNodes = replacement.flatMap { it.children }
+        if (currentMatch == null) {
+            escapeState = EscapeState.None
+            if (rowLevel) {
+                isInTreeItem = false
+                isInGroup = false
+            }
+            resetCycleProgress()
+        }
+        return currentMatch != null
     }
 
     /**
@@ -154,42 +220,13 @@ class ScanTreeNavigator internal constructor(
     fun moveSelectionToNextOrPrevious(): Boolean {
         if (isInCycleBreak) return false
 
-        return if (scanSettings.isDirectionalScanMode()) {
-            handleDirectionalMovement()
-        } else if (!isRowColumnScanEnabled) {
+        return if (!isRowColumnScanEnabled) {
             handleSequentialMovement()
         } else {
             when (scanDirection) {
                 ScanDirection.DOWN, ScanDirection.RIGHT -> moveSelectionToNext()
                 ScanDirection.UP, ScanDirection.LEFT -> moveSelectionToPrevious()
             }
-        }
-    }
-
-    /**
-     * Handles movement in directional scanning mode
-     */
-    private fun handleDirectionalMovement(): Boolean {
-        val result = spatialNavigator.findClosestNodeInDirection(
-            currentTreeIndex = currentTreeItem,
-            currentNodeIndex = currentColumn,
-            direction = scanDirection
-        )
-
-        return if (result != null) {
-            val (newTreeIndex, newNodeIndex) = result
-            currentTreeItem = newTreeIndex
-            currentColumn = newNodeIndex
-            // Reset group navigation state for directional mode
-            currentGroup = 0
-            isInTreeItem = true
-            isInGroup = false
-            isScanningGroups = false
-            true
-        } else {
-            // No node found in this direction - stay in current position
-            // Return true to indicate the action was handled (even though no movement occurred)
-            true
         }
     }
 
@@ -212,10 +249,7 @@ class ScanTreeNavigator internal constructor(
     fun moveSelectionToNext(): Boolean {
         if (isInCycleBreak) return false
 
-        return if (scanSettings.isDirectionalScanMode()) {
-            scanDirection = ScanDirection.RIGHT
-            handleDirectionalMovement()
-        } else if (!isRowColumnScanEnabled) {
+        return if (!isRowColumnScanEnabled) {
             moveSequentialNext()
         } else {
             when {
@@ -233,10 +267,7 @@ class ScanTreeNavigator internal constructor(
     fun moveSelectionToPrevious(): Boolean {
         if (isInCycleBreak) return false
 
-        return if (scanSettings.isDirectionalScanMode()) {
-            scanDirection = ScanDirection.LEFT
-            handleDirectionalMovement()
-        } else if (!isRowColumnScanEnabled) {
+        return if (!isRowColumnScanEnabled) {
             moveSequentialPrevious()
         } else {
             when {
@@ -253,7 +284,7 @@ class ScanTreeNavigator internal constructor(
             currentColumn++
         } else {
             currentColumn = 0
-            handleCycleCompletion()
+            handleCycleCompletion(forward = true)
         }
         return true
     }
@@ -263,37 +294,9 @@ class ScanTreeNavigator internal constructor(
             currentColumn--
         } else {
             currentColumn = flattenedNodes.size - 1
-            handleCycleCompletion()
+            handleCycleCompletion(forward = false)
         }
         return true
-    }
-
-    /**
-     * Move selection up in directional mode
-     */
-    fun moveSelectionUp(): Boolean {
-        if (isInCycleBreak) return false
-
-        return if (scanSettings.isDirectionalScanMode()) {
-            scanDirection = ScanDirection.UP
-            handleDirectionalMovement()
-        } else {
-            false
-        }
-    }
-
-    /**
-     * Move selection down in directional mode
-     */
-    fun moveSelectionDown(): Boolean {
-        if (isInCycleBreak) return false
-
-        return if (scanSettings.isDirectionalScanMode()) {
-            scanDirection = ScanDirection.DOWN
-            handleDirectionalMovement()
-        } else {
-            false
-        }
     }
 
     private fun moveSelectionToNextWithinGroup(): Boolean {
@@ -302,11 +305,6 @@ class ScanTreeNavigator internal constructor(
             currentColumn < currentItem.getNodeCount(currentGroup) - 1 -> {
                 currentColumn++
                 true
-            }
-
-            scanSettings.isDirectionalScanMode() -> {
-                // In directional mode, don't set escape state, just return false
-                false
             }
 
             isCurrentItemSingleGroup() -> {
@@ -333,11 +331,6 @@ class ScanTreeNavigator internal constructor(
                 true
             }
 
-            scanSettings.isDirectionalScanMode() -> {
-                // In directional mode, don't set escape state, just return false
-                false
-            }
-
             isCurrentItemSingleGroup() -> {
                 escapeState = EscapeState.Item
                 false
@@ -362,11 +355,6 @@ class ScanTreeNavigator internal constructor(
                 true
             }
 
-            scanSettings.isDirectionalScanMode() -> {
-                // In directional mode, don't set escape state, just return false
-                false
-            }
-
             else -> {
                 escapeState = EscapeState.Item
                 false
@@ -381,11 +369,6 @@ class ScanTreeNavigator internal constructor(
                 true
             }
 
-            scanSettings.isDirectionalScanMode() -> {
-                // In directional mode, don't set escape state, just return false
-                false
-            }
-
             else -> {
                 escapeState = EscapeState.Item
                 false
@@ -398,7 +381,7 @@ class ScanTreeNavigator internal constructor(
             currentTreeItem++
         } else {
             currentTreeItem = 0
-            handleCycleCompletion()
+            handleCycleCompletion(forward = true)
         }
         resetGroupAndColumn()
         return true
@@ -409,7 +392,7 @@ class ScanTreeNavigator internal constructor(
             currentTreeItem--
         } else {
             currentTreeItem = tree.size - 1
-            handleCycleCompletion()
+            handleCycleCompletion(forward = false)
         }
         resetGroupAndColumn()
         return true
@@ -418,10 +401,10 @@ class ScanTreeNavigator internal constructor(
     /**
      * Handles cycle completion and break logic
      */
-    private fun handleCycleCompletion() {
+    private fun handleCycleCompletion(forward: Boolean) {
         if (isInCycleBreak) {
             isInCycleBreak = false
-        } else if (hasCycleBreak()) {
+        } else if (forward && hasCycleBreak()) {
             isInCycleBreak = true
         }
         justCompletedCycle = true
@@ -457,12 +440,10 @@ class ScanTreeNavigator internal constructor(
 
     /**
      * Handles the escape logic for items and groups.
-     * In directional mode, escape is disabled to allow free movement.
      * @return True if an escape was handled, false otherwise.
      */
     fun handleEscape(): Boolean = escapeState != EscapeState.None &&
-            !isInCycleBreak &&
-            !scanSettings.isDirectionalScanMode()
+            !isInCycleBreak
 
     /**
      * Checks if the auto scan cycle limit has been reached.
@@ -542,7 +523,7 @@ class ScanTreeNavigator internal constructor(
             currentGroup =
                 if (scanDirection == ScanDirection.RIGHT) 0 else getCurrentItem().getGroupCount() - 1
         }
-        handleCycleCompletion()
+        handleCycleCompletion(forward = scanDirection == ScanDirection.RIGHT)
     }
 
     private fun handleGroupEscapeDenial() {
@@ -551,7 +532,7 @@ class ScanTreeNavigator internal constructor(
             if (isRowColumnScanEnabled) getCurrentItem().getNodeCount(currentGroup) - 1
             else flattenedNodes.size - 1
         }
-        handleCycleCompletion()
+        handleCycleCompletion(forward = scanDirection == ScanDirection.RIGHT)
     }
 
     /**
@@ -585,19 +566,6 @@ class ScanTreeNavigator internal constructor(
         }
     }
 
-    fun setSpatialPosition(treeIndex: Int, nodeIndex: Int): Boolean {
-        val item = tree.getOrNull(treeIndex) ?: return false
-        if (nodeIndex !in item.children.indices) return false
-
-        resetCycleProgress()
-        currentTreeItem = treeIndex
-        currentColumn = nodeIndex
-        isInTreeItem = true
-        isInGroup = false
-        isScanningGroups = false
-        return true
-    }
-
     /**
      * Resets the navigator to its initial state.
      */
@@ -615,21 +583,9 @@ class ScanTreeNavigator internal constructor(
         currentGroup = 0
         currentColumn = 0
 
-        if (scanSettings.isDirectionalScanMode()) {
-            // In directional mode, start positioned at the first node
-            val firstNode = spatialNavigator.getFirstNode()
-            if (firstNode != null) {
-                currentTreeItem = firstNode.first
-                currentColumn = firstNode.second
-            }
-            isInTreeItem = true
-            isInGroup = false
-            isScanningGroups = false
-        } else {
-            isInTreeItem = false
-            isInGroup = false
-            isScanningGroups = scanSettings.isGroupScanEnabled()
-        }
+        isInTreeItem = false
+        isInGroup = false
+        isScanningGroups = scanSettings.isGroupScanEnabled()
 
         escapeState = EscapeState.None
         isInCycleBreak = false
@@ -643,7 +599,11 @@ class ScanTreeNavigator internal constructor(
      */
     fun getCurrentNode(): ScanNodeInterface? {
         return if (isRowColumnScanEnabled) {
-            getCurrentItem().children.getOrNull(currentColumn)
+            if (isInGroup) {
+                getCurrentItem().getNode(currentGroup, currentColumn)
+            } else {
+                getCurrentItem().children.getOrNull(currentColumn)
+            }
         } else {
             flattenedNodes.getOrNull(currentColumn)
         }

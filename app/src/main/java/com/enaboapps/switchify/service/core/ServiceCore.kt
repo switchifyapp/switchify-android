@@ -1,25 +1,26 @@
 package com.enaboapps.switchify.service.core
 
+import android.annotation.SuppressLint
 import com.enaboapps.switchify.service.camera.CameraManager
+import com.enaboapps.switchify.service.gestures.PinchGesturePerformer
 import com.enaboapps.switchify.service.gestures.visuals.AndroidGestureTargetIndicatorRenderer
 import com.enaboapps.switchify.service.gestures.visuals.GestureTargetIndicatorController
-import com.enaboapps.switchify.service.pcswitchcontrol.PcSwitchControlForwarder
-import com.enaboapps.switchify.pc.PcServiceConnectionController
+import com.enaboapps.switchify.service.remotebridge.SwitchifyRemoteBridgeCoordinator
 import com.enaboapps.switchify.service.pauseresume.PauseManager
+import com.enaboapps.switchify.service.menu.MenuManager
 import com.enaboapps.switchify.service.scanning.ScanningManager
 import com.enaboapps.switchify.service.switches.SwitchEventProvider
+import com.enaboapps.switchify.service.switches.SwitchProfileActivationCoordinator
 import com.enaboapps.switchify.service.switches.external.ExternalSwitchListener
-import com.enaboapps.switchify.service.techniques.headcontrol.HeadControlService
 import java.lang.ref.WeakReference
 
 object ServiceCore {
     private lateinit var scanningManagerRef: WeakReference<ScanningManager>
     private lateinit var externalSwitchListenerRef: WeakReference<ExternalSwitchListener>
     private lateinit var switchEventProviderRef: WeakReference<SwitchEventProvider>
-    private lateinit var headControlServiceRef: WeakReference<HeadControlService>
     private lateinit var cameraManagerRef: WeakReference<CameraManager>
-    private var pcServiceConnectionController: PcServiceConnectionController? = null
-    private var pcSwitchControlForwarder: PcSwitchControlForwarder? = null
+    @SuppressLint("StaticFieldLeak")
+    private var switchProfileActivationCoordinator: SwitchProfileActivationCoordinator? = null
     private var gestureTargetIndicator: GestureTargetIndicatorController? = null
 
     /**
@@ -37,14 +38,17 @@ object ServiceCore {
             ScanningManager(accessibilityService, requireNotNull(gestureTargetIndicator))
         )
         switchEventProviderRef = WeakReference(SwitchEventProvider(accessibilityService))
-        headControlServiceRef = WeakReference(HeadControlService.getInstance(accessibilityService))
 
         val scanningManager = scanningManagerRef.get() ?: return
         val switchEventProvider = switchEventProviderRef.get() ?: return
-        val headControlService = headControlServiceRef.get() ?: return
+        switchProfileActivationCoordinator = SwitchProfileActivationCoordinator(
+            accessibilityService,
+            switchEventProvider,
+            accessibilityService.getServiceScope()
+        )
+        SwitchifyRemoteBridgeCoordinator.attach(switchEventProvider)
 
         scanningManager.setup()
-        headControlService.initialize()
         externalSwitchListenerRef =
             WeakReference(
                 ExternalSwitchListener(
@@ -81,20 +85,16 @@ object ServiceCore {
         return if (::switchEventProviderRef.isInitialized) switchEventProviderRef.get() else null
     }
 
+    internal fun getSwitchProfileActivationCoordinator(): SwitchProfileActivationCoordinator? {
+        return switchProfileActivationCoordinator
+    }
+
     /**
      * Gets the pause manager instance.
      * @return The pause manager instance (singleton)
      */
     fun getPauseManager(): PauseManager {
         return PauseManager.getInstance()
-    }
-
-    /**
-     * Gets the head control service instance.
-     * @return The head control service instance or null if not initialized.
-     */
-    fun getHeadControlService(): HeadControlService? {
-        return if (::headControlServiceRef.isInitialized) headControlServiceRef.get() else null
     }
 
     /**
@@ -113,51 +113,30 @@ object ServiceCore {
         return if (::cameraManagerRef.isInitialized) cameraManagerRef.get() else null
     }
 
-    fun setPcServiceConnectionController(controller: PcServiceConnectionController) {
-        pcServiceConnectionController = controller
-    }
-
-    fun getPcServiceConnectionController(): PcServiceConnectionController? {
-        return pcServiceConnectionController
-    }
-
-    fun setPcSwitchControlForwarder(forwarder: PcSwitchControlForwarder) {
-        pcSwitchControlForwarder = forwarder
-    }
-
-    fun getPcSwitchControlForwarder(): PcSwitchControlForwarder? = pcSwitchControlForwarder
-
-    fun takePcSwitchControlForwarder(): PcSwitchControlForwarder? {
-        return pcSwitchControlForwarder.also {
-            pcSwitchControlForwarder = null
-        }
-    }
-
     /**
      * Cleans up the service core.
      */
     fun cleanup() {
-        pcSwitchControlForwarder = null
+        MenuManager.getInstance().cleanup()
+        getSwitchProfileActivationCoordinator()?.cancel(showMessage = false)
+        SwitchifyRemoteBridgeCoordinator.detach()
         gestureTargetIndicator?.release()
         gestureTargetIndicator = null
+        PinchGesturePerformer.cleanup()
         if (::scanningManagerRef.isInitialized) {
             scanningManagerRef.get()?.shutdown()
             scanningManagerRef = WeakReference(null)
-        }
-        if (::headControlServiceRef.isInitialized) {
-            headControlServiceRef.get()?.cleanup()
-            headControlServiceRef = WeakReference(null)
         }
         if (::switchEventProviderRef.isInitialized) {
             switchEventProviderRef = WeakReference(null)
         }
         if (::externalSwitchListenerRef.isInitialized) {
+            externalSwitchListenerRef.get()?.shutdown()
             externalSwitchListenerRef = WeakReference(null)
         }
         if (::cameraManagerRef.isInitialized) {
             cameraManagerRef = WeakReference(null)
         }
-        // The PC connection controller is an app-scoped singleton shared with the
-        // app UI; it manages its own session lifecycle and outlives the service.
+        switchProfileActivationCoordinator = null
     }
 }

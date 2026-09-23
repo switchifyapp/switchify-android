@@ -1,5 +1,6 @@
 package com.enaboapps.switchify.service.gestures.visuals
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Color
@@ -11,6 +12,7 @@ import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.sin
 
+@SuppressLint("ViewConstructor")
 internal class GesturePathOverlayView(
     context: Context,
     private val start: PointF,

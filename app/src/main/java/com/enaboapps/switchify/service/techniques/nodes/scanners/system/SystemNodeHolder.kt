@@ -7,6 +7,8 @@ import com.enaboapps.switchify.service.techniques.nodes.Node
  * It acts as a central store for nodes that can be accessed by different components.
  */
 object SystemNodeHolder {
+    internal var source: String? = null
+        private set
     private var currentNodes: List<Node> = emptyList()
     private var onNodesUpdatedCallback: ((List<Node>) -> Unit)? = null
 
@@ -15,7 +17,8 @@ object SystemNodeHolder {
      *
      * @param nodes The new list of nodes to store
      */
-    fun updateNodes(nodes: List<Node>) {
+    fun updateNodes(nodes: List<Node>, source: String? = null) {
+        this.source = source
         currentNodes = nodes
         onNodesUpdatedCallback?.invoke(nodes)
     }
@@ -47,7 +50,8 @@ object SystemNodeHolder {
      * Clears the current list of nodes.
      */
     fun clear() {
+        source = null
         currentNodes = emptyList()
         onNodesUpdatedCallback = null
     }
-} 
+}

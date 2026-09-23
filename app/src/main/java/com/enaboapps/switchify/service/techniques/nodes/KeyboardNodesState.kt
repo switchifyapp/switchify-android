@@ -15,7 +15,9 @@ import android.graphics.Rect
  */
 data class KeyboardNodesState(
     val nodes: List<Node> = emptyList(),
-    val keyboardBounds: Rect? = null
+    val keyboardBounds: Rect? = null,
+    val source: String? = null,
+    val revision: Long = 0
 ) {
     /**
      * True when this batch's captured bounds differ from [currentBounds],

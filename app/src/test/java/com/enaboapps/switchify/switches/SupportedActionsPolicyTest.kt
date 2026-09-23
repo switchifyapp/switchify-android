@@ -1,21 +1,17 @@
 package com.enaboapps.switchify.switches
 
-import com.enaboapps.switchify.service.scanning.ScanMode
-import org.junit.Assert.assertTrue
+import org.junit.Assert.*
 import org.junit.Test
 
 class SupportedActionsPolicyTest {
-    @Test
-    fun pcSwitchControlIsSupportedInEveryScanMode() {
-        listOf(
-            ScanMode.Modes.MODE_AUTO,
-            ScanMode.Modes.MODE_MANUAL,
-            ScanMode.Modes.MODE_DIRECTIONAL
-        ).forEach { mode ->
-            assertTrue(
-                SupportedActionsPolicy.supportedActionIdsForMode(mode)
-                    .contains(SwitchAction.ACTION_PC_SWITCH_CONTROL)
-            )
+    @Test fun launchReplacesRetiredActionsInEveryMode() {
+        listOf("auto", "manual", "unknown").forEach { mode ->
+            val supported = SupportedActionsPolicy.supportedActionIdsForMode(mode)
+            assertTrue(19 in supported)
+            assertTrue(1 in supported)
+            assertFalse(17 in supported)
+            assertFalse(18 in supported)
         }
+        assertFalse(SwitchAction.actions.any { it.id == 17 || it.id == 18 })
     }
 }

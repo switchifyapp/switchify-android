@@ -18,8 +18,8 @@ object FacialGestureRegistry {
     private val entries: Map<String, Meta> = listOf(
         Meta(
             id = CameraSwitchFacialGesture.SMILE,
-            nameResId = R.string.head_control_gesture_smile,
-            descriptionResId = R.string.head_control_gesture_smile_description,
+            nameResId = R.string.camera_switch_gesture_smile,
+            descriptionResId = R.string.camera_switch_gesture_smile_description,
             fallbackName = "Smile",
             fallbackDescription = "Smile",
             isHeadTurn = false,
@@ -27,8 +27,8 @@ object FacialGestureRegistry {
         ),
         Meta(
             id = CameraSwitchFacialGesture.LEFT_WINK,
-            nameResId = R.string.head_control_gesture_left_wink,
-            descriptionResId = R.string.head_control_gesture_left_wink_description,
+            nameResId = R.string.camera_switch_gesture_left_wink,
+            descriptionResId = R.string.camera_switch_gesture_left_wink_description,
             fallbackName = "Left Wink",
             fallbackDescription = "Wink with your left eye",
             isHeadTurn = false,
@@ -36,8 +36,8 @@ object FacialGestureRegistry {
         ),
         Meta(
             id = CameraSwitchFacialGesture.RIGHT_WINK,
-            nameResId = R.string.head_control_gesture_right_wink,
-            descriptionResId = R.string.head_control_gesture_right_wink_description,
+            nameResId = R.string.camera_switch_gesture_right_wink,
+            descriptionResId = R.string.camera_switch_gesture_right_wink_description,
             fallbackName = "Right Wink",
             fallbackDescription = "Wink with your right eye",
             isHeadTurn = false,
@@ -45,8 +45,8 @@ object FacialGestureRegistry {
         ),
         Meta(
             id = CameraSwitchFacialGesture.BLINK,
-            nameResId = R.string.head_control_gesture_blink,
-            descriptionResId = R.string.head_control_gesture_blink_description,
+            nameResId = R.string.camera_switch_gesture_blink,
+            descriptionResId = R.string.camera_switch_gesture_blink_description,
             fallbackName = "Blink",
             fallbackDescription = "Blink with your eyes",
             isHeadTurn = false,
@@ -54,8 +54,8 @@ object FacialGestureRegistry {
         ),
         Meta(
             id = CameraSwitchFacialGesture.PUCKER,
-            nameResId = R.string.head_control_gesture_pucker,
-            descriptionResId = R.string.head_control_gesture_pucker_description,
+            nameResId = R.string.camera_switch_gesture_pucker,
+            descriptionResId = R.string.camera_switch_gesture_pucker_description,
             fallbackName = "Pucker",
             fallbackDescription = "Pucker your lips",
             isHeadTurn = false,
@@ -68,7 +68,7 @@ object FacialGestureRegistry {
             fallbackName = "Head Turn Left",
             fallbackDescription = "Turn your head to the left",
             isHeadTurn = true,
-            assignableAsSwitch = false
+            assignableAsSwitch = true
         ),
         Meta(
             id = CameraSwitchFacialGesture.HEAD_TURN_RIGHT,
@@ -77,7 +77,7 @@ object FacialGestureRegistry {
             fallbackName = "Head Turn Right",
             fallbackDescription = "Turn your head to the right",
             isHeadTurn = true,
-            assignableAsSwitch = false
+            assignableAsSwitch = true
         ),
         Meta(
             id = CameraSwitchFacialGesture.HEAD_TURN_UP,
@@ -86,7 +86,7 @@ object FacialGestureRegistry {
             fallbackName = "Head Turn Up",
             fallbackDescription = "Turn your head up",
             isHeadTurn = true,
-            assignableAsSwitch = false
+            assignableAsSwitch = true
         ),
         Meta(
             id = CameraSwitchFacialGesture.HEAD_TURN_DOWN,
@@ -95,7 +95,7 @@ object FacialGestureRegistry {
             fallbackName = "Head Turn Down",
             fallbackDescription = "Turn your head down",
             isHeadTurn = true,
-            assignableAsSwitch = false
+            assignableAsSwitch = true
         )
     ).associateBy { it.id }
 

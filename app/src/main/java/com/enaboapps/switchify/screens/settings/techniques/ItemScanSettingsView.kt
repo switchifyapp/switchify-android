@@ -16,6 +16,14 @@ import com.enaboapps.switchify.utils.Resources
 @Composable
 fun ItemScanSettingsView() {
     val preferenceManager = PreferenceManager(LocalContext.current)
+    val rowColumnScanEnabled = remember {
+        mutableStateOf(
+            preferenceManager.getBooleanValue(
+                PreferenceManager.PREFERENCE_KEY_ROW_COLUMN_SCAN,
+                false
+            )
+        )
+    }
     var currentScanCycles = remember {
         mutableStateOf(
             preferenceManager.getStringValue(
@@ -47,17 +55,38 @@ fun ItemScanSettingsView() {
             itemToString = { scanHighlightStyle.getName(it) },
             itemDescription = { scanHighlightStyle.getDescription(it) }
         )
+
+        val movementEnabled = remember { mutableStateOf(scanHighlightStyle.isMovementEnabled()) }
+        PreferenceSwitch(
+            titleResId = R.string.preference_title_scan_highlight_movement,
+            summaryResId = R.string.preference_summary_scan_highlight_movement,
+            checked = movementEnabled.value,
+            onCheckedChange = {
+                movementEnabled.value = it
+                preferenceManager.setBooleanValue(PreferenceManager.PREFERENCE_KEY_SCAN_HIGHLIGHT_MOVEMENT, it)
+            }
+        )
+
+        val countdownEnabled = remember { mutableStateOf(scanHighlightStyle.isCountdownEnabled()) }
+        PreferenceSwitch(
+            titleResId = R.string.preference_title_scan_highlight_countdown,
+            summaryResId = R.string.preference_summary_scan_highlight_countdown,
+            checked = countdownEnabled.value,
+            onCheckedChange = {
+                countdownEnabled.value = it
+                preferenceManager.setBooleanValue(PreferenceManager.PREFERENCE_KEY_SCAN_HIGHLIGHT_COUNTDOWN, it)
+            }
+        )
+
     }
 
     Section(titleResId = R.string.section_title_scan_pattern) {
         PreferenceSwitch(
             titleResId = R.string.preference_title_row_column_scan,
             summaryResId = R.string.preference_summary_row_column_scan,
-            checked = preferenceManager.getBooleanValue(
-                PreferenceManager.PREFERENCE_KEY_ROW_COLUMN_SCAN,
-                false
-            ),
+            checked = rowColumnScanEnabled.value,
             onCheckedChange = {
+                rowColumnScanEnabled.value = it
                 preferenceManager.setBooleanValue(
                     PreferenceManager.PREFERENCE_KEY_ROW_COLUMN_SCAN,
                     it
@@ -72,6 +101,7 @@ fun ItemScanSettingsView() {
                 PreferenceManager.PREFERENCE_KEY_GROUP_SCAN,
                 false
             ),
+            enabled = rowColumnScanEnabled.value,
             onCheckedChange = {
                 preferenceManager.setBooleanValue(
                     PreferenceManager.PREFERENCE_KEY_GROUP_SCAN,

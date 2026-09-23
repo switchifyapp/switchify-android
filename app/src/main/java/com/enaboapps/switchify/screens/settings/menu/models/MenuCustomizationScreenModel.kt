@@ -64,6 +64,7 @@ class MenuCustomizationScreenModel(
         MenuConstants.ItemIds.Main.GESTURES,
         MenuConstants.ItemIds.Main.SCROLL,
         MenuConstants.ItemIds.Main.FAVOURITE_APPS,
+        MenuConstants.ItemIds.Main.SWITCH_PROFILE,
         MenuConstants.ItemIds.Main.GESTURE_PATTERNS,
         MenuConstants.ItemIds.Main.DEVICE,
         MenuConstants.ItemIds.Main.MEDIA_CONTROL,

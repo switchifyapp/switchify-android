@@ -24,6 +24,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -51,7 +52,7 @@ fun PreferenceValueSelector(
         "Either min/max or values array must be provided"
     }
 
-    var currentValue by remember(value) { mutableStateOf(value) }
+    var currentValue by remember(value) { mutableIntStateOf(value) }
     var showDialog by remember { mutableStateOf(false) }
 
     PreferenceComponentBase(

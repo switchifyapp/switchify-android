@@ -1,7 +1,6 @@
 package com.enaboapps.switchify.service.techniques.pointscan
 
 import android.content.Context
-import android.content.Intent
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.service.utils.ContinuousLineSpeedUtils
@@ -11,8 +10,6 @@ object PointScanSettings {
 
     private var preferenceManager: PreferenceManager? = null
 
-    const val CURSOR_SETTINGS_CHANGED_ACTION = "com.enaboapps.switchify.CURSOR_SETTINGS_CHANGED"
-
     object Modes {
         const val MODE_SINGLE = "single"
         const val MODE_BLOCK = "block"
@@ -20,12 +17,6 @@ object PointScanSettings {
 
     fun init(context: Context) {
         preferenceManager = PreferenceManager(context)
-    }
-
-    private fun broadcastChanged(context: Context) {
-        context.sendBroadcast(
-            Intent(CURSOR_SETTINGS_CHANGED_ACTION).setPackage(context.packageName)
-        )
     }
 
     fun getMode(): String {
@@ -42,12 +33,11 @@ object PointScanSettings {
         return Modes.MODE_SINGLE
     }
 
-    fun setMode(mode: String, context: Context) {
+    fun setMode(mode: String) {
         preferenceManager?.setStringValue(
             PreferenceManager.PREFERENCE_KEY_CURSOR_MODE,
             mode
         )
-        broadcastChanged(context)
     }
 
     fun isSingleMode(): Boolean {
@@ -103,13 +93,12 @@ object PointScanSettings {
         return ContinuousLineSpeedUtils.getRepresentativeLevel(storedLevel)
     }
 
-    fun setLineSpeedLevel(speedLevel: Int, context: Context) {
+    fun setLineSpeedLevel(speedLevel: Int) {
         val representativeLevel = ContinuousLineSpeedUtils.getRepresentativeLevel(speedLevel)
         preferenceManager?.setIntegerValue(
             PreferenceManager.Keys.PREFERENCE_KEY_POINT_SCAN_LINE_SPEED_LEVEL,
             representativeLevel
         )
-        broadcastChanged(context)
     }
 
     fun getLineSpeedPxPerSecond(context: Context): Float {
@@ -124,31 +113,29 @@ object PointScanSettings {
      * Set the point scan block count
      * @param count The block count
      */
-    fun setCursorBlockCount(count: Int, context: Context) {
+    fun setCursorBlockCount(count: Int) {
         preferenceManager?.setStringValue(
             PreferenceManager.Keys.PREFERENCE_KEY_CURSOR_BLOCK_COUNT,
             count.toString()
         )
-        broadcastChanged(context)
     }
 
     /**
      * Set the point scan block scan rate
      * @param rate The block scan rate
      */
-    fun setCursorBlockScanRate(rate: Long, context: Context) {
+    fun setCursorBlockScanRate(rate: Long) {
         preferenceManager?.setLongValue(
             PreferenceManager.Keys.PREFERENCE_KEY_CURSOR_BLOCK_SCAN_RATE,
             rate
         )
-        broadcastChanged(context)
     }
 
     /**
      * Set the fine point scan rate using speed level
      * @param speedLevel The speed level (1-25)
      */
-    fun setFineCursorScanRate(speedLevel: Int, context: Context) {
-        setLineSpeedLevel(speedLevel, context)
+    fun setFineCursorScanRate(speedLevel: Int) {
+        setLineSpeedLevel(speedLevel)
     }
 }

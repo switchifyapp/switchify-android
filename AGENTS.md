@@ -23,7 +23,7 @@ Switchify is an Android accessibility service app that helps users with mobility
 - Never introduce code that exposes or logs secrets/keys
 - Never commit secrets or keys to repository
 - Follow defensive security practices only
-- Remove unnecessary telemetry and external data collection
+- Keep telemetry behind the existing opt-in gate; never collect data without consent
 
 ### Build Properties
 - Leave properties files alone. Do not create or modify `local.properties`, `gradle.properties`, or any other properties files.
@@ -193,6 +193,6 @@ For critical issues like ANRs:
 
 ## External Integrations
 - Minimize external dependencies where possible
-- Remove unnecessary telemetry (like Sentry) for privacy
+- Crash and error reporting goes to Sentry; product analytics goes to Timberlogs. Both are gated on the telemetry opt-in
 - Use standard Android APIs over third-party when feasible
 - Document any required external service configurations

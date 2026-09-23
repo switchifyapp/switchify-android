@@ -4,8 +4,16 @@ import android.content.Context
 import android.content.res.Configuration
 import android.os.Build
 import android.util.DisplayMetrics
+import android.view.WindowInsets
 import android.view.WindowManager
 import android.view.WindowMetrics
+
+/** Pixel insets of a system bar on each window edge. */
+data class SystemBarInsets(val left: Int, val top: Int, val right: Int, val bottom: Int) {
+    companion object {
+        val NONE = SystemBarInsets(0, 0, 0, 0)
+    }
+}
 
 /**
  * This class provides utility functions to get screen dimensions.
@@ -38,6 +46,25 @@ class ScreenUtils {
                 getWindowMetrics(context).bounds.height()
             } else {
                 getDisplayMetrics(context).heightPixels
+            }
+        }
+
+        /**
+         * Pixels the navigation bar occupies on each edge of the current window.
+         *
+         * Overlay windows added without FLAG_LAYOUT_NO_LIMITS are inset by the
+         * system bars, so anything budgeted from [getWidth] / [getHeight] (which
+         * report full window bounds on API 30+) must subtract these to stay
+         * visible. Below API 30 the display metrics already exclude the bar.
+         */
+        fun getNavigationBarInsets(context: Context): SystemBarInsets {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) return SystemBarInsets.NONE
+            return try {
+                val insets = getWindowMetrics(context).windowInsets
+                    .getInsets(WindowInsets.Type.navigationBars())
+                SystemBarInsets(insets.left, insets.top, insets.right, insets.bottom)
+            } catch (e: Exception) {
+                SystemBarInsets.NONE
             }
         }
 

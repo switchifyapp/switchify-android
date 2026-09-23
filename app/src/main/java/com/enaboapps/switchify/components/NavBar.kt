@@ -3,6 +3,7 @@ package com.enaboapps.switchify.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -45,6 +46,7 @@ fun NavBar(
     titleContent: (@Composable () -> Unit)? = null,
     navController: NavController? = null,
     actions: List<NavBarAction> = emptyList(),
+    trailingContent: @Composable RowScope.() -> Unit = {},
     showBackButton: Boolean? = null,
     onBackPressed: (() -> Unit)? = null
 ) {
@@ -124,6 +126,7 @@ fun NavBar(
                         }
                     }
                 }
+                trailingContent()
             }
         }
     }

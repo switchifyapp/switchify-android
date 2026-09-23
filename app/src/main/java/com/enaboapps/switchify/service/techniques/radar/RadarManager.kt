@@ -365,6 +365,14 @@ class RadarManager(private val context: Context) : AccessTechniqueInterface {
         scanningScheduler?.resumeScanning()
     }
 
+    internal fun refreshOrigin() {
+        val shouldResume = scanningScheduler?.isScanning() == true
+        stopScanningAndReset()
+        if (shouldResume) {
+            startAutoScanning()
+        }
+    }
+
     override fun performSelectionAction() {
         setup()
         if (isSetupRequired()) return // Failsafe in case setup was not successful

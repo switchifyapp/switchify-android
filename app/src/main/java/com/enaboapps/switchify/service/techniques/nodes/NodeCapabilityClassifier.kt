@@ -52,15 +52,16 @@ internal object NodeCapabilityClassifier {
     fun classify(
         nodeInfo: AccessibilityNodeInfo,
         boundsInScreen: Rect,
-        boundsInWindow: Rect?
+        boundsInWindow: Rect?,
+        isKeyboardNode: Boolean = runCatching {
+            nodeInfo.window?.type == AccessibilityWindowInfo.TYPE_INPUT_METHOD
+        }.getOrDefault(false)
     ): NodeCapabilities {
         val collectionInfo = runCatching { nodeInfo.collectionInfo }.getOrNull()
         val collectionItemInfo = runCatching { nodeInfo.collectionItemInfo }.getOrNull()
         return classifyFacts(
             RawNodeCapabilityFacts(
-                isKeyboardNode = runCatching {
-                    nodeInfo.window?.type == AccessibilityWindowInfo.TYPE_INPUT_METHOD
-                }.getOrDefault(false),
+                isKeyboardNode = isKeyboardNode,
                 isClickable = nodeInfo.isClickable,
                 isLongClickable = nodeInfo.isLongClickable,
                 isFocusable = nodeInfo.isFocusable,

@@ -1,6 +1,12 @@
 package com.enaboapps.switchify.service.scanning
 
 import android.content.Context
+import android.os.SystemClock
+import java.util.UUID
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicLong
+import java.util.concurrent.atomic.AtomicReference
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -9,9 +15,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import java.util.UUID
-import java.util.concurrent.atomic.AtomicBoolean
-import java.util.concurrent.atomic.AtomicReference
+import kotlinx.coroutines.withContext
 
 /**
  * ScanningScheduler is a class that manages the scheduling of scanning tasks.
@@ -21,10 +25,34 @@ import java.util.concurrent.atomic.AtomicReference
  * @property context The application context.
  * @property onScan A suspend function that gets executed during each scan.
  */
-class ScanningScheduler(
-    private val context: Context,
-    private val onScan: suspend () -> Unit
+class ScanningScheduler internal constructor(
+    private val onScan: suspend () -> Unit,
+    private val scanRateProvider: () -> Long,
+    private val firstItemPauseProvider: () -> Long,
+    private val coroutineScope: CoroutineScope,
+    private val intervalOwner: String = UUID.randomUUID().toString(),
+    private val clock: () -> Long = { System.nanoTime() / 1_000_000L },
+    private val onInterval: (ScanIntervalEvent) -> Unit = {}
 ) {
+
+    constructor(context: Context, onScan: suspend () -> Unit) : this(
+        context, UUID.randomUUID().toString(), {}, onScan
+    )
+
+    constructor(
+        context: Context,
+        intervalOwner: String = UUID.randomUUID().toString(),
+        onInterval: (ScanIntervalEvent) -> Unit = {},
+        onScan: suspend () -> Unit
+    ) : this(
+        onScan = { withContext(Dispatchers.Main.immediate) { onScan() } },
+        scanRateProvider = ScanSettings(context)::getScanRate,
+        firstItemPauseProvider = ScanSettings(context)::getPauseOnFirstItemDelay,
+        coroutineScope = CoroutineScope(Dispatchers.IO + CoroutineName(UUID.randomUUID().toString())),
+        intervalOwner = intervalOwner,
+        clock = SystemClock::uptimeMillis,
+        onInterval = onInterval
+    )
 
     /**
      * The unique identifier of the scanner.
@@ -34,12 +62,11 @@ class ScanningScheduler(
     /**
      * The CoroutineScope in which the scanning tasks are launched.
      */
-    private val coroutineScope = CoroutineScope(Dispatchers.IO + CoroutineName(uniqueId))
-
     /**
      * The Job representing the currently running scanning task.
      */
     private var scanningJob: Job? = null
+    private val intervalGeneration = AtomicLong()
 
     /**
      * A flag indicating whether a scanning task is currently executing.
@@ -62,19 +89,14 @@ class ScanningScheduler(
     private var scanState = AtomicReference(ScanState.STOPPED)
 
     /**
-     * The settings for the scanning tasks.
-     */
-    private val scanSettings = ScanSettings(context)
-
-    /**
      * Starts the scanning tasks.
      *
      * @param initialDelay The initial delay before the first scanning task is launched.
      * @param period The period between successive scanning tasks.
      */
     fun startScanning(
-        initialDelay: Long = scanSettings.getScanRate(),
-        period: Long = scanSettings.getScanRate()
+        initialDelay: Long = scanRateProvider(),
+        period: Long = scanRateProvider()
     ) {
         if (scanState.get() == ScanState.SCANNING) {
             println("[$uniqueId] Already scanning")
@@ -83,30 +105,85 @@ class ScanningScheduler(
 
         scanState.set(ScanState.SCANNING)
 
-        val initialDelayPlusPause = initialDelay + scanSettings.getPauseOnFirstItemDelay()
+        val initialDelayPlusPause = initialDelay + firstItemPauseProvider()
 
         this.initialDelay = initialDelay
         this.period = period
 
-        scanningJob?.cancel()
+        launchScanningJob(initialDelayPlusPause)
+    }
 
+    internal fun updateTiming(initialDelay: Long, period: Long) {
+        this.initialDelay = initialDelay
+        this.period = period
+        if (scanState.get() == ScanState.SCANNING) {
+            launchScanningJob(initialDelay)
+        }
+    }
+
+    internal fun restartCurrentInterval() {
+        if (isScanning()) launchScanningJob(period)
+    }
+
+    internal fun resumeAfterEmptySnapshot() {
+        if (!isScanning()) {
+            scanState.set(ScanState.SCANNING)
+            launchScanningJob(period)
+        }
+    }
+
+    internal fun restorePausedState() {
+        scanState.compareAndSet(ScanState.STOPPED, ScanState.PAUSED)
+    }
+
+    private fun launchScanningJob(delayMillis: Long) {
+        val generation = intervalGeneration.incrementAndGet()
+        scanningJob?.cancel()
         scanningJob = coroutineScope.launch {
-            println("[$uniqueId] Starting scanning job")
-            delay(initialDelayPlusPause)
-            while (isActive) {
-                if (isExecuting.compareAndSet(false, true)) {
-                    try {
-                        onScan()
-                    } catch (e: Exception) {
-                        println("[$uniqueId] Error during scan: ${e.message}")
-                        e.printStackTrace()
-                    } finally {
-                        isExecuting.set(false)
+            try {
+                println("[$uniqueId] Starting scanning job")
+                publishInterval(generation, delayMillis)
+                delay(delayMillis)
+                while (isActive) {
+                    if (isExecuting.compareAndSet(false, true)) {
+                        try {
+                            onScan()
+                        } catch (cancelled: CancellationException) {
+                            // Only our own cancellation ends the loop. A foreign
+                            // cancellation (e.g. a timeout inside a step) is an
+                            // ordinary step failure; ending the loop here would
+                            // leave scanState at SCANNING with no job behind it.
+                            if (!isActive) throw cancelled
+                            println("[$uniqueId] Scan step cancelled: ${cancelled.message}")
+                        } catch (e: Exception) {
+                            println("[$uniqueId] Error during scan: ${e.message}")
+                            e.printStackTrace()
+                        } finally {
+                            isExecuting.set(false)
+                        }
                     }
+                    if (isActive && generation == intervalGeneration.get()) {
+                        publishInterval(generation, period)
+                    }
+                    delay(period)
                 }
-                delay(period)
+            } finally {
+                if (intervalGeneration.compareAndSet(generation, generation + 1)) {
+                    onInterval(ScanIntervalEvent(intervalOwner, generation + 1, null))
+                }
             }
         }
+    }
+
+    private fun publishInterval(generation: Long, durationMillis: Long) {
+        if (generation == intervalGeneration.get()) {
+            onInterval(ScanIntervalEvent(intervalOwner, generation,
+                ScanInterval(clock(), durationMillis.coerceAtLeast(0L))))
+        }
+    }
+
+    private fun clearInterval() {
+        onInterval(ScanIntervalEvent(intervalOwner, intervalGeneration.incrementAndGet(), null))
     }
 
     /**
@@ -138,6 +215,7 @@ class ScanningScheduler(
         try {
             if (scanState.get() == ScanState.SCANNING || scanState.get() == ScanState.PAUSED) {
                 scanState.set(ScanState.STOPPED)
+                clearInterval()
                 scanningJob?.cancel()
             }
         } catch (e: Exception) {
@@ -153,6 +231,7 @@ class ScanningScheduler(
         println("[$uniqueId] Attempting to pause scanning... $scanState")
         try {
             if (scanState.compareAndSet(ScanState.SCANNING, ScanState.PAUSED)) {
+                clearInterval()
                 scanningJob?.cancel()
             }
         } catch (e: Exception) {
@@ -182,6 +261,8 @@ class ScanningScheduler(
     fun shutdown() {
         println("[$uniqueId] Shutting down scope")
         try {
+            scanState.set(ScanState.STOPPED)
+            clearInterval()
             coroutineScope.cancel() // Cancel all coroutines started by this scope
         } catch (e: Exception) {
             println("[$uniqueId] Error while shutting down: ${e.message}")

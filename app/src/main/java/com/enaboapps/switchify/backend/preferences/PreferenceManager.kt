@@ -20,22 +20,12 @@ class PreferenceManager(context: Context) {
         const val PREFERENCE_KEY_RADAR_SPEED_LEVEL = "radar_speed_level"
         const val PREFERENCE_KEY_RADAR_SLOW_DOWN_THEN_SELECT = "radar_slow_down_then_select"
         const val PREFERENCE_KEY_RADAR_STARTING_POSITION = "radar_starting_position"
+        const val PREFERENCE_KEY_SWITCH_HOLD_ENABLED = "switch_hold_enabled"
         const val PREFERENCE_KEY_SWITCH_HOLD_TIME = "switch_hold_time"
         const val PREFERENCE_KEY_HOLD_TO_UNPAUSE_DURATION = "hold_to_unpause_duration"
         const val PREFERENCE_KEY_PAUSE_TIMEOUT = "pause_timeout"
         const val PREFERENCE_KEY_MOVE_REPEAT = "move_repeat"
         const val PREFERENCE_KEY_MOVE_REPEAT_DELAY = "move_repeat_delay"
-        const val PREFERENCE_KEY_PC_CONTROL_SURFACE = "pc_control_surface"
-        const val PREFERENCE_KEY_PC_TYPING_DRAFT = "pc_typing_draft"
-        const val PREFERENCE_KEY_PC_TYPING_MODE = "pc_typing_mode"
-        const val PREFERENCE_KEY_PC_MOUSE_REPEAT = "pc_mouse_repeat"
-        const val PREFERENCE_KEY_PC_MOUSE_REPEAT_INTERVAL = "pc_mouse_repeat_interval"
-        const val PREFERENCE_KEY_PC_SWITCH_CONTROL_HOLD_TO_STOP_DURATION =
-            "grid3_hold_to_stop_duration"
-
-        @Deprecated("Use PREFERENCE_KEY_PC_SWITCH_CONTROL_HOLD_TO_STOP_DURATION")
-        const val PREFERENCE_KEY_GRID3_HOLD_TO_STOP_DURATION =
-            PREFERENCE_KEY_PC_SWITCH_CONTROL_HOLD_TO_STOP_DURATION
         const val PREFERENCE_KEY_AUTOMATICALLY_START_SCAN_AFTER_SELECTION =
             "automatically_start_scan_after_selection"
         const val PREFERENCE_KEY_PAUSE_ON_FIRST_ITEM = "pause_on_first_item"
@@ -60,13 +50,15 @@ class PreferenceManager(context: Context) {
         const val PREFERENCE_KEY_GESTURE_REPEAT_INITIAL_DELAY = "gesture_repeat_initial_delay"
         const val PREFERENCE_KEY_GESTURE_REPEAT_DELAY = "gesture_repeat_delay"
         const val PREFERENCE_KEY_SCAN_COLOR_SET = "scan_color_set"
+        const val PREFERENCE_KEY_SCAN_HIGHLIGHT_LEGACY_TYPE = "scan_highlight_legacy_type"
+        const val PREFERENCE_KEY_SCAN_HIGHLIGHT_MOVEMENT = "scan_highlight_movement"
+        const val PREFERENCE_KEY_SCAN_HIGHLIGHT_COUNTDOWN = "scan_highlight_countdown"
         const val PREFERENCE_KEY_SCAN_HIGHLIGHT_TYPE = "scan_highlight_type"
         const val PREFERENCE_KEY_MENU_TRANSPARENCY = "menu_transparency"
         const val PREFERENCE_KEY_MENU_SIZE_SCALE = "menu_size_scale"
         const val PREFERENCE_KEY_SETTINGS_TAB = "settings_tab"
         const val PREFERENCE_KEY_TELEMETRY_ENABLED = "telemetry_enabled"
         const val PREFERENCE_KEY_DEVICE_ID = "device_id"
-        const val PREFERENCE_KEY_LAST_PROCESS_EXIT_TIMESTAMP = "last_process_exit_timestamp"
         const val PREFERENCE_KEY_OVERLAY_SERVICE_EPOCH = "overlay_service_epoch"
         const val PREFERENCE_KEY_ONBOARDING_CURRENT_STEP = "onboarding_current_step"
         const val PREFERENCE_KEY_ONBOARDING_USER_TYPE = "onboarding_user_type"
@@ -82,6 +74,7 @@ class PreferenceManager(context: Context) {
         const val PREFERENCE_KEY_PRO_REMINDER_COOLDOWN_DAYS = "pro_reminder_cooldown_days"
 
         // Favourite apps
+        const val PREFERENCE_KEY_APP_SCAN_TECHNIQUES = "app_scan_techniques"
         const val PREFERENCE_KEY_FAVOURITE_APPS = "favourite_apps"
 
         // Camera threshold preferences - time steppers for each gesture
@@ -114,7 +107,6 @@ class PreferenceManager(context: Context) {
             PREFERENCE_KEY_REVIEW_LAST_SHOWN,
             PREFERENCE_KEY_TELEMETRY_ENABLED,
             PREFERENCE_KEY_DEVICE_ID,
-            PREFERENCE_KEY_LAST_PROCESS_EXIT_TIMESTAMP,
             PREFERENCE_KEY_OVERLAY_SERVICE_EPOCH,
             PREFERENCE_KEY_GEMMA_TERMS_ACCEPTED
         )
@@ -124,6 +116,14 @@ class PreferenceManager(context: Context) {
     private val defaultContext = context
     private val sharedPreferences: SharedPreferences =
         appContext.getSharedPreferences(PREFERENCE_FILE_NAME, Context.MODE_PRIVATE)
+
+    internal fun registerChangeListener(listener: SharedPreferences.OnSharedPreferenceChangeListener) {
+        sharedPreferences.registerOnSharedPreferenceChangeListener(listener)
+    }
+
+    internal fun unregisterChangeListener(listener: SharedPreferences.OnSharedPreferenceChangeListener) {
+        sharedPreferences.unregisterOnSharedPreferenceChangeListener(listener)
+    }
 
     fun migrateToProtectedStorage() {
         val defaultPrefs =
@@ -179,7 +179,7 @@ class PreferenceManager(context: Context) {
 
     /**
      * Sets whether the user has opted in to sending telemetry (analytics events and
-     * crash reports) to the Timberlogs ingest worker. Device-local; not synced.
+     * crash reports) to Timberlogs and Sentry. Device-local; not synced.
      */
     fun setTelemetryEnabled(enabled: Boolean) {
         setBooleanValue(PREFERENCE_KEY_TELEMETRY_ENABLED, enabled)

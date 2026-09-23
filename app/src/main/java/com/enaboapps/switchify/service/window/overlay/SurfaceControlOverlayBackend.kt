@@ -262,7 +262,9 @@ internal class SurfaceControlOverlayBackend(
                 SwitchifyOverlayDebugRegistry.recordSurfaceReleaseFailed(id, e)
                 Log.e(TAG, "Failed to release SurfaceControl overlay id=$id surface=$surfaceControl", e)
             } finally {
-                viewHost.release()
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    viewHost.release()
+                }
             }
         }
     }

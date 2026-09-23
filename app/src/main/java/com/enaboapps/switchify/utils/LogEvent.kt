@@ -65,9 +65,6 @@ sealed class LogEvent(
     object SwitchReloadTriggered : LogEvent("switch_reload_triggered", dataset = "input", tags = listOf("switches", "config"))
     object CameraSwitchAvailabilityChanged : LogEvent("camera_switch_availability_changed", dataset = "input", tags = listOf("switches", "camera"))
 
-    object HeadControlEnableFailed : LogEvent("head_control_enable_failed", level = "error", dataset = "camera", tags = listOf("head_control", "failure"))
-    object HeadControlInitFailed : LogEvent("head_control_init_failed", level = "error", dataset = "camera", tags = listOf("head_control", "failure"))
-    object HeadControlCleanupFailed : LogEvent("head_control_cleanup_failed", level = "error", dataset = "camera", tags = listOf("head_control", "failure"))
 
     object GesturePatternExecutionStarted : LogEvent("gesture_pattern_execution_started", dataset = "input", tags = listOf("gesture", "pattern"))
     object GesturePatternExecutionCompleted : LogEvent("gesture_pattern_execution_completed", dataset = "input", tags = listOf("gesture", "pattern"))
@@ -113,13 +110,6 @@ sealed class LogEvent(
     object UserFeedbackSubmitted : LogEvent("user_feedback_submitted", dataset = "feedback", tags = listOf("feedback"))
     object UserFeedbackSubmissionError : LogEvent("user_feedback_submission_error", level = "error", dataset = "feedback", tags = listOf("feedback", "failure"))
 
-    object UnhandledCrash : LogEvent("unhandled_crash", level = "error", dataset = "app", tags = listOf("crash", "uncaught_exception"))
-    object ProcessExitDetected : LogEvent("process_exit_detected", level = "warn", dataset = "app", tags = listOf("crash", "process_exit"))
-
     object OnDeviceAiFailed : LogEvent("on_device_ai_failed", level = "error", dataset = "ai", tags = listOf("ai", "failure"))
 
-    object PcConnectFailed : LogEvent("pc_connect_failed", level = "error", dataset = "pc", tags = listOf("pc", "connection", "failure"))
-    object PcConnectionLost : LogEvent("pc_connection_lost", level = "warn", dataset = "pc", tags = listOf("pc", "connection"))
-    object PcReconnectFailed : LogEvent("pc_reconnect_failed", level = "error", dataset = "pc", tags = listOf("pc", "connection", "failure"))
-    object PcBleTransportError : LogEvent("pc_ble_transport_error", level = "error", dataset = "pc", tags = listOf("pc", "bluetooth", "failure"))
 }

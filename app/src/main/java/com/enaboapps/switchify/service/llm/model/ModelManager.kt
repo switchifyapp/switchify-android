@@ -1,5 +1,6 @@
 package com.enaboapps.switchify.service.llm.model
 
+import android.annotation.SuppressLint
 import android.content.Context
 import java.io.File
 
@@ -32,6 +33,7 @@ class ModelManager(context: Context) {
         getPartFile().delete()
     }
 
+    @SuppressLint("UsableSpace")
     fun hasEnoughFreeSpace(): Boolean {
         val required = AiModelConfig.EXPECTED_SIZE_BYTES
         if (required <= 0L) return true

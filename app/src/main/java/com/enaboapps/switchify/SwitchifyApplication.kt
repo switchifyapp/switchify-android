@@ -5,18 +5,16 @@ import android.util.Log
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
-import androidx.work.Configuration
 import com.enaboapps.switchify.service.stats.StatsCollector
-import com.enaboapps.switchify.utils.CrashReporter
 import com.enaboapps.switchify.utils.Logger
-import com.enaboapps.switchify.utils.ProcessExitReporter
 import com.enaboapps.switchify.utils.Resources
+import com.enaboapps.switchify.utils.SentryReporter
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 
-class SwitchifyApplication : Application(), Configuration.Provider {
+class SwitchifyApplication : Application() {
 
     companion object {
         private const val TAG = "SwitchifyApplication"
@@ -24,22 +22,17 @@ class SwitchifyApplication : Application(), Configuration.Provider {
 
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
-    override val workManagerConfiguration: Configuration
-        get() = Configuration.Builder().build()
-
     override fun onCreate() {
         super.onCreate()
 
         Resources.init(this)
 
         // Wire Logger to PreferenceManager before any Logger.log(..) call so the
-        // telemetry opt-in gate is active (including for the pending-crash upload
-        // kicked off immediately below).
+        // telemetry opt-in gate is active (including for the Sentry init below,
+        // which stays disabled until the user has opted in).
         Logger.init(this)
 
-        ProcessExitReporter.reportRecentExits(this)
-        CrashReporter.enqueueUpload(this)
-        CrashReporter.install(this)
+        SentryReporter.init(this)
 
         // Initialize stats collector
         StatsCollector.getInstance().initialize(this)

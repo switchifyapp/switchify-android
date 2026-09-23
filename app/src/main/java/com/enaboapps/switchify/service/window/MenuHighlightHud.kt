@@ -87,6 +87,7 @@ class MenuHighlightHud private constructor() {
          * normally.
          */
         private const val SHORT_SCREEN_THRESHOLD_DP = 480
+        private const val DEFAULT_STATUS_BAR_HEIGHT_DP = 24
 
         /**
          * Vertical space the menu surface must keep clear at the top of the
@@ -133,15 +134,14 @@ class MenuHighlightHud private constructor() {
                     0
                 }
             }
-            // API 29 fallback: use the system status_bar_height dimen. This
-            // misses any extra cutout overhang on the rare API 29 notched
-            // device, but the worst case is a tiny ~8 dp shortfall.
-            val resId = context.resources.getIdentifier(
-                "status_bar_height", "dimen", "android"
-            )
-            return if (resId > 0) {
-                context.resources.getDimensionPixelSize(resId)
-            } else 0
+            val windowManager = context.getSystemService(Context.WINDOW_SERVICE)
+                as? android.view.WindowManager ?: return 0
+            @Suppress("DEPRECATION")
+            val cutoutInset = windowManager.defaultDisplay.cutout?.safeInsetTop ?: 0
+            val statusBarInset = (
+                DEFAULT_STATUS_BAR_HEIGHT_DP * context.resources.displayMetrics.density
+                ).toInt()
+            return maxOf(statusBarInset, cutoutInset)
         }
     }
 
@@ -181,6 +181,10 @@ class MenuHighlightHud private constructor() {
             descriptionState.value = description?.takeIf { it.isNotBlank() }
             visibleState.value = true
         }
+    }
+
+    fun bringToFront() {
+        handler.post { composeView?.bringToFront() }
     }
 
     fun hide() {

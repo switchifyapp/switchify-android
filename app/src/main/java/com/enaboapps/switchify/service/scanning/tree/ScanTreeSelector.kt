@@ -4,6 +4,18 @@ import com.enaboapps.switchify.service.scanning.ScanDirection
 import com.enaboapps.switchify.service.scanning.ScanNodeInterface
 import com.enaboapps.switchify.service.scanning.ScanSettings
 
+internal interface ScanTreeSelectorSettings {
+    fun isRowColumnScanEnabled(): Boolean
+    fun isGroupScanEnabled(): Boolean
+}
+
+private class ScanSettingsSelectorAdapter(
+    private val scanSettings: ScanSettings
+) : ScanTreeSelectorSettings {
+    override fun isRowColumnScanEnabled(): Boolean = scanSettings.isRowColumnScanEnabled()
+    override fun isGroupScanEnabled(): Boolean = scanSettings.isGroupScanEnabled()
+}
+
 /**
  * This class is responsible for handling the selection logic in the ScanTree structure.
  * It works in conjunction with ScanTreeNavigator to perform selections based on the current state.
@@ -14,12 +26,24 @@ import com.enaboapps.switchify.service.scanning.ScanSettings
  * @property scanSettings The settings for scanning behavior.
  * @property stopScanningOnSelect Whether to stop scanning after a selection is made.
  */
-class ScanTreeSelector(
+class ScanTreeSelector internal constructor(
     private val tree: List<ScanTreeItem>,
     private val navigator: ScanTreeNavigator,
-    private val scanSettings: ScanSettings,
+    private val scanSettings: ScanTreeSelectorSettings,
     private val stopScanningOnSelect: Boolean
 ) {
+    constructor(
+        tree: List<ScanTreeItem>,
+        navigator: ScanTreeNavigator,
+        scanSettings: ScanSettings,
+        stopScanningOnSelect: Boolean
+    ) : this(
+        tree,
+        navigator,
+        ScanSettingsSelectorAdapter(scanSettings),
+        stopScanningOnSelect
+    )
+
     private val isRowColumnScanEnabled: Boolean
         get() = scanSettings.isRowColumnScanEnabled()
 

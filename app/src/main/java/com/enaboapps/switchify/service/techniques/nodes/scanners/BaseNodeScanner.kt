@@ -16,22 +16,25 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
-internal fun areDuplicateScanNodes(previous: List<Node>?, next: List<Node>): Boolean {
-    val lastNodes = previous ?: return false
-    if (lastNodes.size != next.size) return false
-
-    for (index in lastNodes.indices) {
-        if (lastNodes[index] != next[index]) return false
+internal fun <T> refreshScannerConfiguration(
+    nodes: List<T>?,
+    isAutoScanning: () -> Boolean,
+    rebuild: (List<T>) -> Unit,
+    resumeAutoScanning: () -> Unit
+): Boolean {
+    val currentNodes = nodes ?: return false
+    val shouldResume = isAutoScanning()
+    rebuild(currentNodes)
+    if (shouldResume) {
+        resumeAutoScanning()
     }
     return true
 }
 
 /**
  * Base class for node scanners that provides common functionality for both system and keyboard scanners.
- * Implements improved handling of rapid updates using multiple detection windows.
  *
  * @param cycleBreakListener Optional listener to be notified when cycle break is selected.
  *                           This decouples the scanner from keyboard management logic.
@@ -50,6 +53,7 @@ abstract class BaseNodeScanner(
                 context = context,
                 stopScanningOnSelect = true,
                 hasCycleBreak = { KeyboardManager.shouldEnableCycleBreak() },
+                visualEffectsEnabled = true,
                 callback = this
             )
             _scanTree = created
@@ -58,153 +62,61 @@ abstract class BaseNodeScanner(
     private val coroutineScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
     private var revertToCursorJob: Job? = null
 
-    // Multi-window update detection
-    private val shortWindowUpdates = ArrayDeque<Long>(SHORT_WINDOW_SIZE)
-    private val longWindowUpdates = ArrayDeque<Long>(LONG_WINDOW_SIZE)
-    private var rapidUpdateCheckJob: Job? = null
-    private var warningCount = 0
-    private var lastWarningTime = 0L
+    private var source: String? = null
 
-    // Duplicate update detection
     private var lastUpdateNodes: List<Node>? = null
 
     companion object {
         private const val TAG = "BaseNodeScanner"
         private const val EMPTY_NODES_TIMEOUT_MS = 5000L
-
-        // Short window for burst detection
-        private const val SHORT_WINDOW_MS = 5000L
-        private const val SHORT_WINDOW_SIZE = 200
-        private const val SHORT_WINDOW_THRESHOLD = 100
-
-        // Long window for sustained update detection
-        private const val LONG_WINDOW_MS = 30000L
-        private const val LONG_WINDOW_SIZE = 2000
-        private const val LONG_WINDOW_THRESHOLD = 1000
-
-        // Warning system
-        private const val WARNING_THRESHOLD = 3
-        private const val WARNING_RESET_MS = 60000L // 1 minute
-        private const val UPDATE_CHECK_INTERVAL_MS = 1000L
     }
 
     open fun start(context: Context) {
         this.context = context
         startTimeoutToRevertToCursor()
         scanTree
-        startRapidUpdateCheck()
     }
 
     open fun updateNodes(nodes: List<Node>) {
-        if (isDuplicateUpdate(nodes)) {
-            Log.d(TAG, "Skipping duplicate update")
-            return
-        }
+        updateSnapshot(nodes, nodes.firstOrNull()?.scanIdentity?.source ?: source)
+    }
 
-        buildFromNodes(nodes)
-        recordUpdateTimestamp()
+    internal fun updateSnapshot(nodes: List<Node>, nextSource: String?) {
+        val resolvedSource = nextSource ?: nodes.firstOrNull()?.scanIdentity?.source ?: source
+        val sourceChanged = source != null && resolvedSource != null && source != resolvedSource
+        source = resolvedSource
+        _scanTree?.reconcileNodes(nodes, sourceChanged)
         lastUpdateNodes = nodes
-
         if (nodes.isEmpty()) {
-            startTimeoutToRevertToCursor()
-        } else {
-            stopTimeoutToRevertToCursor()
-        }
+            if (revertToCursorJob?.isActive != true) startTimeoutToRevertToCursor()
+        } else stopTimeoutToRevertToCursor()
     }
 
-    private fun isDuplicateUpdate(nodes: List<Node>): Boolean {
-        return areDuplicateScanNodes(lastUpdateNodes, nodes)
+    protected fun buildInitialNodes(nodes: List<Node>) {
+        source = nodes.firstOrNull()?.scanIdentity?.source
+        buildFromNodes(nodes)
+        lastUpdateNodes = nodes
     }
 
+    internal fun refreshConfiguration(): Boolean = refreshScannerConfiguration(
+        nodes = lastUpdateNodes,
+        isAutoScanning = scanTree::isAutoScanning,
+        rebuild = {
+            scanTree.reloadSpeed()
+            buildFromNodes(it)
+        },
+        resumeAutoScanning = scanTree::startAutoScanning
+    )
+
+    internal fun refreshTiming() {
+        scanTree.reloadSpeed()
+    }
     open fun cleanup() {
         revertToCursorJob?.cancel()
-        rapidUpdateCheckJob?.cancel()
-        shortWindowUpdates.clear()
-        longWindowUpdates.clear()
-        warningCount = 0
+        source = null
         _scanTree?.cleanup()
-    }
-
-    private fun recordUpdateTimestamp() {
-        val currentTime = System.currentTimeMillis()
-
-        // Record in both windows
-        shortWindowUpdates.addLast(currentTime)
-        longWindowUpdates.addLast(currentTime)
-
-        // Maintain window sizes
-        while (shortWindowUpdates.size > SHORT_WINDOW_SIZE) {
-            shortWindowUpdates.removeFirst()
-        }
-        while (longWindowUpdates.size > LONG_WINDOW_SIZE) {
-            longWindowUpdates.removeFirst()
-        }
-    }
-
-    private fun startRapidUpdateCheck() {
-        rapidUpdateCheckJob?.cancel()
-        rapidUpdateCheckJob = coroutineScope.launch {
-            while (isActive) {
-                checkForRapidUpdates()
-                delay(UPDATE_CHECK_INTERVAL_MS)
-            }
-        }
-    }
-
-    private fun checkForRapidUpdates() {
-        val currentTime = System.currentTimeMillis()
-
-        // Reset warning count if enough time has passed
-        if (currentTime - lastWarningTime > WARNING_RESET_MS) {
-            warningCount = 0
-        }
-
-        // Clean up old timestamps
-        cleanupWindows(currentTime)
-
-        // Check both windows for violations
-        val shortWindowViolation = shortWindowUpdates.size >= SHORT_WINDOW_THRESHOLD
-        val longWindowViolation = longWindowUpdates.size >= LONG_WINDOW_THRESHOLD
-
-        if (shortWindowViolation || longWindowViolation) {
-            handleUpdateViolation()
-        }
-    }
-
-    private fun cleanupWindows(currentTime: Long) {
-        // Clean short window
-        while (shortWindowUpdates.isNotEmpty()) {
-            val first = shortWindowUpdates.firstOrNull()
-            if (first != null && first < currentTime - SHORT_WINDOW_MS) {
-                shortWindowUpdates.removeFirst()
-            } else {
-                break
-            }
-        }
-
-        // Clean long window
-        while (longWindowUpdates.isNotEmpty()) {
-            val first = longWindowUpdates.firstOrNull()
-            if (first != null && first < currentTime - LONG_WINDOW_MS) {
-                longWindowUpdates.removeFirst()
-            } else {
-                break
-            }
-        }
-    }
-
-    private fun handleUpdateViolation() {
-        warningCount++
-        lastWarningTime = System.currentTimeMillis()
-
-        if (warningCount >= WARNING_THRESHOLD) {
-            switchToCursorMode("persistent rapid updates")
-            warningCount = 0
-            shortWindowUpdates.clear()
-            longWindowUpdates.clear()
-        } else {
-            Log.d(TAG, "Rapid update warning $warningCount/$WARNING_THRESHOLD")
-        }
+        _scanTree = null
+        lastUpdateNodes = null
     }
 
     open fun startTimeoutToRevertToCursor() {
@@ -230,7 +142,8 @@ abstract class BaseNodeScanner(
         coroutineScope.launch(Dispatchers.Main) {
             _scanTree?.stopScanningAndReset()
             if (AccessTechnique.getCurrentTechnique() == AccessTechnique.Technique.ITEM_SCAN) {
-                AccessTechnique.setCurrentTechnique(AccessTechnique.Technique.POINT_SCAN)
+                com.enaboapps.switchify.service.core.ServiceCore.getScanningManager()?.setPointScanType()
+                    ?: AccessTechnique.setCurrentTechnique(AccessTechnique.Technique.POINT_SCAN)
                 Log.d(TAG, "Switched to point scan mode due to $reason")
             }
         }

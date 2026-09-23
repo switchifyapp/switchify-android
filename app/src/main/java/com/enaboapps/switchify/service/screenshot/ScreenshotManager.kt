@@ -166,14 +166,11 @@ object ScreenshotManager {
                 put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
                 put(MediaStore.Images.Media.DATE_TAKEN, timestamp)
 
-                // Use scoped storage for API 29+
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    put(
-                        MediaStore.Images.Media.RELATIVE_PATH,
-                        "${android.os.Environment.DIRECTORY_PICTURES}/Switchify"
-                    )
-                    put(MediaStore.Images.Media.IS_PENDING, true)
-                }
+                put(
+                    MediaStore.Images.Media.RELATIVE_PATH,
+                    "${android.os.Environment.DIRECTORY_PICTURES}/Switchify"
+                )
+                put(MediaStore.Images.Media.IS_PENDING, true)
             }
 
             val uri = resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
@@ -184,11 +181,8 @@ object ScreenshotManager {
                         bitmap.compress(Bitmap.CompressFormat.JPEG, DEFAULT_QUALITY, outputStream)
                     }
 
-                    // Mark as complete for API 29+
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                        values.put(MediaStore.Images.Media.IS_PENDING, false)
-                        resolver.update(uri, values, null, null)
-                    }
+                    values.put(MediaStore.Images.Media.IS_PENDING, false)
+                    resolver.update(uri, values, null, null)
 
                     Log.d(TAG, "Screenshot saved to gallery: $uri")
                     callback?.onScreenshotSaved(uri)

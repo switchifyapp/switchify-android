@@ -5,6 +5,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.ReadOnlyComposable
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 
 // Primary Colors - Improved for accessibility
@@ -87,6 +91,37 @@ private val LightColorScheme = lightColorScheme(
     onErrorContainer = Color(0xFF410002)
 )
 
+/**
+ * Semantic colours Material 3 has no slot for. Used as accents (icons, edges)
+ * on surface containers, never as full backgrounds, so they only need to
+ * contrast with the surface.
+ */
+@Immutable
+data class SwitchifySemanticColors(
+    val success: Color,
+    val warning: Color
+)
+
+private val LightSemanticColors = SwitchifySemanticColors(
+    success = Color(0xFF2E7D32),
+    warning = Color(0xFFB26A00)
+)
+
+private val DarkSemanticColors = SwitchifySemanticColors(
+    success = Color(0xFF81C784),
+    warning = Color(0xFFFFB74D)
+)
+
+val LocalSwitchifySemanticColors = staticCompositionLocalOf { LightSemanticColors }
+
+/** Accessors for theme values outside [MaterialTheme], mirroring how MaterialTheme exposes its own. */
+object SwitchifyTheme {
+    val semanticColors: SwitchifySemanticColors
+        @Composable
+        @ReadOnlyComposable
+        get() = LocalSwitchifySemanticColors.current
+}
+
 @Composable
 fun SwitchifyTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
@@ -97,11 +132,14 @@ fun SwitchifyTheme(
     } else {
         LightColorScheme
     }
+    val semanticColors = if (darkTheme) DarkSemanticColors else LightSemanticColors
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = Typography,
-        shapes = Shapes,
-        content = content
-    )
+    CompositionLocalProvider(LocalSwitchifySemanticColors provides semanticColors) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            typography = Typography,
+            shapes = Shapes,
+            content = content
+        )
+    }
 }

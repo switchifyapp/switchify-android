@@ -21,13 +21,6 @@ class SwitchStabilityScreenModel(context: Context) : ViewModel() {
     }
     val switchIgnoreRepeatDelay: LiveData<Long> = _switchIgnoreRepeatDelay
 
-    private val _switchHoldTime = MutableLiveData<Long>().apply {
-        value =
-            preferenceManager.getLongValue(PreferenceManager.Keys.PREFERENCE_KEY_SWITCH_HOLD_TIME)
-    }
-    val switchHoldTime: LiveData<Long> = _switchHoldTime
-
-
     fun setSwitchIgnoreRepeat(value: Boolean) {
         preferenceManager.setBooleanValue(
             PreferenceManager.Keys.PREFERENCE_KEY_SWITCH_IGNORE_REPEAT,
@@ -44,11 +37,4 @@ class SwitchStabilityScreenModel(context: Context) : ViewModel() {
         _switchIgnoreRepeatDelay.postValue(value)
     }
 
-    fun setSwitchHoldTime(value: Long) {
-        preferenceManager.setLongValue(
-            PreferenceManager.Keys.PREFERENCE_KEY_SWITCH_HOLD_TIME,
-            value
-        )
-        _switchHoldTime.postValue(value)
-    }
 }

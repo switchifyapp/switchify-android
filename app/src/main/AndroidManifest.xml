@@ -13,9 +13,7 @@
     <uses-feature
         android:name="android.hardware.camera"
         android:required="false" /> <!-- Required for camera switches -->
-    <uses-feature
-        android:name="android.hardware.bluetooth_le"
-        android:required="false" />
+    <permission android:name="com.enaboapps.switchify.permission.REMOTE_BRIDGE" android:protectionLevel="signature" />
     <uses-permission android:name="android.permission.CAMERA" /> <!-- Required for camera switches -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" /> <!-- Required for foreground service -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CAMERA" /> <!-- Required for camera foreground service -->
@@ -25,19 +23,6 @@
     <uses-permission android:name="com.google.android.gms.permission.AD_ID" /> <!-- Required for advertising identifier access -->
     <uses-permission android:name="android.permission.WAKE_LOCK" /> <!-- Required for camera service wake lock -->
     <uses-permission android:name="android.permission.INTERNET" /> <!-- Required for downloading the Reply Drafter model -->
-    <uses-permission
-        android:name="android.permission.BLUETOOTH"
-        android:maxSdkVersion="30" />
-    <uses-permission
-        android:name="android.permission.BLUETOOTH_ADMIN"
-        android:maxSdkVersion="30" />
-    <uses-permission
-        android:name="android.permission.ACCESS_FINE_LOCATION"
-        android:maxSdkVersion="30" />
-    <uses-permission
-        android:name="android.permission.BLUETOOTH_SCAN"
-        android:usesPermissionFlags="neverForLocation" />
-    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
 
     <application
         android:name=".SwitchifyApplication"
@@ -50,17 +35,6 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.Switchify">
-        <provider
-            android:name="androidx.startup.InitializationProvider"
-            android:authorities="${applicationId}.androidx-startup"
-            android:exported="false"
-            tools:node="merge">
-            <meta-data
-                android:name="androidx.work.WorkManagerInitializer"
-                android:value="androidx.startup"
-                tools:node="remove" />
-        </provider>
-
         <activity
             android:name=".activities.MainActivity"
             android:exported="true"
@@ -86,19 +60,12 @@
             android:taskAffinity=""
             android:theme="@style/Theme.Switchify" />
 
-        <activity
-            android:name=".screens.pc.PcMouseControlActivity"
-            android:excludeFromRecents="true"
-            android:exported="false"
-            android:taskAffinity=""
-            android:theme="@style/Theme.Switchify" />
-
-        <activity
-            android:name=".screens.pcswitchcontrol.PcSwitchControlActivity"
-            android:excludeFromRecents="true"
-            android:exported="false"
-            android:taskAffinity=""
-            android:theme="@style/Theme.Switchify" />
+        <service
+            android:name=".service.remotebridge.SwitchifyRemoteBridgeService"
+            android:exported="true"
+            android:permission="com.enaboapps.switchify.permission.REMOTE_BRIDGE">
+            <intent-filter><action android:name="com.enaboapps.switchify.remote.BIND_BRIDGE" /></intent-filter>
+        </service>
 
         <service
             android:name=".service.core.SwitchifyAccessibilityService"
@@ -120,6 +87,23 @@
             android:exported="false"
             android:foregroundServiceType="camera"></service>
 
+
+        <meta-data
+            android:name="io.sentry.auto-init"
+            android:value="false" />
+
+        <meta-data
+            android:name="io.sentry.traces.user-interaction.enable"
+            android:value="false" />
+        <meta-data
+            android:name="io.sentry.attach-screenshot"
+            android:value="false" />
+        <meta-data
+            android:name="io.sentry.attach-view-hierarchy"
+            android:value="false" />
+        <meta-data
+            android:name="io.sentry.traces.sample-rate"
+            android:value="0.0" />
     </application>
 
 </manifest>

@@ -2,6 +2,7 @@ package com.enaboapps.switchify.service.stats
 
 import android.content.Context
 import android.content.SharedPreferences
+import androidx.core.content.edit
 import com.enaboapps.switchify.service.stats.database.StatsDatabase
 import com.enaboapps.switchify.service.stats.database.StatsEntity
 import com.enaboapps.switchify.service.stats.models.DailyActivity
@@ -172,14 +173,14 @@ class StatsRepository(context: Context) {
             // Check for 100 presses milestone
             if (totalPresses >= 100 && !preferences.getBoolean(MILESTONE_100_REACHED, false)) {
                 Logger.log(LogEvent.Milestone100SwitchPresses)
-                preferences.edit().putBoolean(MILESTONE_100_REACHED, true).apply()
+                preferences.edit { putBoolean(MILESTONE_100_REACHED, true) }
                 android.util.Log.i("StatsRepository", "Milestone reached: 100 switch presses")
             }
 
             // Check for 1000 presses milestone
             if (totalPresses >= 1000 && !preferences.getBoolean(MILESTONE_1000_REACHED, false)) {
                 Logger.log(LogEvent.Milestone1000SwitchPresses)
-                preferences.edit().putBoolean(MILESTONE_1000_REACHED, true).apply()
+                preferences.edit { putBoolean(MILESTONE_1000_REACHED, true) }
                 android.util.Log.i("StatsRepository", "Milestone reached: 1000 switch presses")
             }
         } catch (e: Exception) {
@@ -219,10 +220,10 @@ class StatsRepository(context: Context) {
             val eventsDeleted = dao.deleteAllEvents()
 
             // Reset milestone tracking
-            preferences.edit()
-                .putBoolean(MILESTONE_100_REACHED, false)
-                .putBoolean(MILESTONE_1000_REACHED, false)
-                .apply()
+            preferences.edit {
+                putBoolean(MILESTONE_100_REACHED, false)
+                putBoolean(MILESTONE_1000_REACHED, false)
+            }
 
             android.util.Log.i(
                 "StatsRepository",

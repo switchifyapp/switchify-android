@@ -19,11 +19,12 @@ class PointScanBlockManager(
     private val scanTree = ScanTree(
         context,
         stopScanningOnSelect = true,
-        callback = this
+        callback = this,
+        visualEffectsEnabled = true
     )
 
     override fun onScanTreeReset() {
-        cursorBlockGridUI.reset()
+        cursorBlockGridUI.hideGrid()
     }
 
     override fun onScanTreeStarted() {
@@ -38,23 +39,7 @@ class PointScanBlockManager(
         val screenWidth = ScreenUtils.getWidth(context)
         val screenHeight = ScreenUtils.getHeight(context)
 
-        val gridSize = PointScanSettings.getCursorBlockCount()
-        val totalBlocks = gridSize * gridSize
-
-        val blockWidth = screenWidth / gridSize
-        val blockHeight = screenHeight / gridSize
-
-        blocks = List(totalBlocks) { index ->
-            val row = index / gridSize
-            val column = index % gridSize
-
-            val left = column * blockWidth
-            val top = row * blockHeight
-            val right = left + blockWidth
-            val bottom = top + blockHeight
-
-            PointScanBlock(index, row, column, left, top, right, bottom)
-        }
+        blocks = PointScanGridGeometry.blocks(screenWidth, screenHeight, PointScanSettings.getCursorBlockCount())
 
         val nodes = blocks.map { Node.fromPointScanBlock(it) }.toList()
         nodes.forEachIndexed { index, node -> node.setOnSelect { onBlockSelected(index) } }
@@ -67,6 +52,15 @@ class PointScanBlockManager(
         blocks = emptyList()
         scanTree.cleanup()
         cursorBlockGridUI.reset()
+    }
+
+    /**
+     * Stops block scanning but keeps the grid on screen, dimmed, while the
+     * crosshair scans inside the chosen block.
+     */
+    fun enterLinePhase() {
+        cursorBlockGridUI.holdForLinePhase()
+        scanTree.stopScanningAndReset()
     }
 
     fun resetForNextUse() {

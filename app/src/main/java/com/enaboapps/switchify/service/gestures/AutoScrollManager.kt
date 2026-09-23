@@ -11,6 +11,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.runBlocking
 
 /**
  * Manages auto-scrolling functionality.
@@ -155,9 +157,9 @@ class AutoScrollManager private constructor() {
     }
 
     internal fun resetForTesting() {
-        scrollJob?.cancel()
-        scrollJob = null
         isAutoScrolling = false
+        runBlocking { scrollJob?.cancelAndJoin() }
+        scrollJob = null
         autoScrollEnabledProviderForTesting = null
         autoScrollDelayProviderForTesting = null
         autoScrollPerformerForTesting = null

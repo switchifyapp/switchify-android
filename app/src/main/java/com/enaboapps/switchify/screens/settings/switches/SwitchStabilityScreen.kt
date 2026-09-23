@@ -40,14 +40,5 @@ fun SwitchStabilityScreen(navController: NavController) {
                 switchStabilityScreenModel.setSwitchIgnoreRepeatDelay(it)
             }
         }
-        PreferenceTimeStepper(
-            titleResId = R.string.preference_title_switch_hold_time,
-            summaryResId = R.string.preference_summary_switch_hold_time,
-            min = 100,
-            max = 10000,
-            value = switchStabilityScreenModel.switchHoldTime.observeAsState().value ?: 0
-        ) {
-            switchStabilityScreenModel.setSwitchHoldTime(it)
-        }
     }
 }
