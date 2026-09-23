@@ -284,7 +284,7 @@ class ScanTreeNavigator internal constructor(
             currentColumn++
         } else {
             currentColumn = 0
-            handleCycleCompletion()
+            handleCycleCompletion(forward = true)
         }
         return true
     }
@@ -294,7 +294,7 @@ class ScanTreeNavigator internal constructor(
             currentColumn--
         } else {
             currentColumn = flattenedNodes.size - 1
-            handleCycleCompletion()
+            handleCycleCompletion(forward = false)
         }
         return true
     }
@@ -381,7 +381,7 @@ class ScanTreeNavigator internal constructor(
             currentTreeItem++
         } else {
             currentTreeItem = 0
-            handleCycleCompletion()
+            handleCycleCompletion(forward = true)
         }
         resetGroupAndColumn()
         return true
@@ -392,7 +392,7 @@ class ScanTreeNavigator internal constructor(
             currentTreeItem--
         } else {
             currentTreeItem = tree.size - 1
-            handleCycleCompletion()
+            handleCycleCompletion(forward = false)
         }
         resetGroupAndColumn()
         return true
@@ -401,10 +401,10 @@ class ScanTreeNavigator internal constructor(
     /**
      * Handles cycle completion and break logic
      */
-    private fun handleCycleCompletion() {
+    private fun handleCycleCompletion(forward: Boolean) {
         if (isInCycleBreak) {
             isInCycleBreak = false
-        } else if (hasCycleBreak()) {
+        } else if (forward && hasCycleBreak()) {
             isInCycleBreak = true
         }
         justCompletedCycle = true
@@ -523,7 +523,7 @@ class ScanTreeNavigator internal constructor(
             currentGroup =
                 if (scanDirection == ScanDirection.RIGHT) 0 else getCurrentItem().getGroupCount() - 1
         }
-        handleCycleCompletion()
+        handleCycleCompletion(forward = scanDirection == ScanDirection.RIGHT)
     }
 
     private fun handleGroupEscapeDenial() {
@@ -532,7 +532,7 @@ class ScanTreeNavigator internal constructor(
             if (isRowColumnScanEnabled) getCurrentItem().getNodeCount(currentGroup) - 1
             else flattenedNodes.size - 1
         }
-        handleCycleCompletion()
+        handleCycleCompletion(forward = scanDirection == ScanDirection.RIGHT)
     }
 
     /**
