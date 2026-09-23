@@ -173,24 +173,40 @@ internal class SwitchProfileRepository internal constructor(
 
     private suspend fun initializeLocked(): Boolean {
         val storedResult = persistence.readProfiles()
-        if (storedResult.isFailure) return false
-        val stored = storedResult.getOrNull()
+        val stored = when {
+            storedResult.isSuccess -> storedResult.getOrNull()
+            storedResult.exceptionOrNull() is CorruptSwitchDataException -> {
+                if (persistence.backUpCorruptProfiles().isFailure) return false
+                null
+            }
+            else -> return false
+        }
         if (stored != null) {
-            if (!isValidDocument(stored)) return false
-            val normalized = normalize(stored)
-            if (normalized != stored && persistence.writeProfiles(normalized).isFailure) return false
-            _document.value = normalized
-            initialized = true
-            adoptLateLegacyLocked()
-            return true
+            if (isValidDocument(stored)) {
+                val normalized = normalize(stored)
+                if (normalized != stored && persistence.writeProfiles(normalized).isFailure) return false
+                _document.value = normalized
+                initialized = true
+                adoptLateLegacyLocked()
+                return true
+            }
+            if (stored.version > SwitchProfileDocument.CURRENT_VERSION) return false
+            if (persistence.backUpCorruptProfiles().isFailure) return false
         }
         val legacyResult = persistence.readLegacyEvents()
-        if (legacyResult.isFailure) return false
-        val resolved = newDocument(legacyResult.getOrNull().orEmpty())
+        val legacyEvents = when {
+            legacyResult.isSuccess -> legacyResult.getOrNull()
+            legacyResult.exceptionOrNull() is CorruptSwitchDataException -> {
+                if (persistence.backUpCorruptLegacyEvents().isFailure) return false
+                null
+            }
+            else -> return false
+        }
+        val resolved = newDocument(legacyEvents.orEmpty())
         if (persistence.writeProfiles(resolved).isFailure) return false
         _document.value = resolved
         initialized = true
-        if (legacyResult.getOrNull() != null) persistence.deleteLegacyEvents()
+        if (legacyEvents != null) persistence.deleteLegacyEvents()
         return true
     }
 
@@ -231,7 +247,11 @@ internal class SwitchProfileRepository internal constructor(
         }
     )
 
-    private fun isValidDocument(document: SwitchProfileDocument): Boolean {
+    private fun isValidDocument(document: SwitchProfileDocument): Boolean = runCatching {
+        hasValidStructure(document)
+    }.getOrDefault(false)
+
+    private fun hasValidStructure(document: SwitchProfileDocument): Boolean {
         if (document.version != SwitchProfileDocument.CURRENT_VERSION) return false
         if (document.profiles.isEmpty()) return false
         if (document.profiles.none { it.id == document.activeProfileId }) return false
