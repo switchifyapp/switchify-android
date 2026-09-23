@@ -34,10 +34,12 @@ class ScanMode private constructor(val id: String) {
          */
         fun fromId(id: String): ScanMode {
             return when (id) {
-                Modes.MODE_MANUAL -> modes[1]
+                Modes.MODE_MANUAL, LEGACY_MODE_DIRECTIONAL -> modes[1]
                 else -> modes[0]
             }
         }
+
+        private const val LEGACY_MODE_DIRECTIONAL = "directional"
     }
 
     /**

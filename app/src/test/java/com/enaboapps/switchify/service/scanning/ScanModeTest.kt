@@ -13,6 +13,11 @@ class ScanModeTest {
     }
 
     @Test
+    fun removedDirectionalModeMigratesToManual() {
+        assertEquals(ScanMode.Modes.MODE_MANUAL, ScanMode.fromId("directional").id)
+    }
+
+    @Test
     fun unknownModeDefaultsToAuto() {
         assertEquals(ScanMode.Modes.MODE_AUTO, ScanMode.fromId("unknown").id)
     }
