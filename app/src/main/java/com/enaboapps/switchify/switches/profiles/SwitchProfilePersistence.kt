@@ -5,6 +5,7 @@ import android.util.AtomicFile
 import com.enaboapps.switchify.switches.SwitchEvent
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
+import com.google.gson.JsonParseException
 import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -16,7 +17,11 @@ internal interface SwitchProfilePersistence {
     suspend fun writeProfiles(document: SwitchProfileDocument): Result<Unit>
     suspend fun readLegacyEvents(): Result<List<SwitchEvent>?>
     suspend fun deleteLegacyEvents(): Result<Unit>
+    suspend fun backUpCorruptProfiles(): Result<Unit>
+    suspend fun backUpCorruptLegacyEvents(): Result<Unit>
 }
+
+internal class CorruptSwitchDataException(cause: Throwable) : Exception(cause)
 
 internal class SwitchProfileLocalPersistence(context: Context) : SwitchProfilePersistence {
     private val applicationContext = context.applicationContext
@@ -31,8 +36,10 @@ internal class SwitchProfileLocalPersistence(context: Context) : SwitchProfilePe
     override suspend fun readProfiles(): Result<SwitchProfileDocument?> = withContext(Dispatchers.IO) {
         runCatching {
             if (!profileFile.baseFile.exists()) return@runCatching null
-            profileFile.openRead().bufferedReader().use { reader ->
-                checkNotNull(gson.fromJson(reader, SwitchProfileDocument::class.java))
+            parseOrCorrupt {
+                profileFile.openRead().bufferedReader().use { reader ->
+                    checkNotNull(gson.fromJson(reader, SwitchProfileDocument::class.java))
+                }
             }
         }
     }
@@ -62,9 +69,11 @@ internal class SwitchProfileLocalPersistence(context: Context) : SwitchProfilePe
         runCatching {
             val legacyFile = legacyFiles.firstOrNull { it.exists() } ?: return@runCatching null
             val type = object : TypeToken<Set<SwitchEvent>>() {}.type
-            legacyFile.bufferedReader().use { reader ->
-                val events: Set<SwitchEvent> = checkNotNull(gson.fromJson(reader, type))
-                events.toList()
+            parseOrCorrupt {
+                legacyFile.bufferedReader().use { reader ->
+                    val events: Set<SwitchEvent> = checkNotNull(gson.fromJson(reader, type))
+                    events.toList()
+                }
             }
         }
     }
@@ -77,8 +86,31 @@ internal class SwitchProfileLocalPersistence(context: Context) : SwitchProfilePe
         }
     }
 
+    override suspend fun backUpCorruptProfiles(): Result<Unit> = withContext(Dispatchers.IO) {
+        runCatching { backUp(profileFile.baseFile) }
+    }
+
+    override suspend fun backUpCorruptLegacyEvents(): Result<Unit> = withContext(Dispatchers.IO) {
+        runCatching { legacyFiles.filter { it.exists() }.forEach(::backUp) }
+    }
+
+    private fun backUp(file: File) {
+        val backup = File(file.parentFile, "${file.name}$CORRUPT_SUFFIX")
+        if (backup.exists()) check(backup.delete())
+        check(file.renameTo(backup))
+    }
+
+    private inline fun <T> parseOrCorrupt(block: () -> T): T = try {
+        block()
+    } catch (error: JsonParseException) {
+        throw CorruptSwitchDataException(error)
+    } catch (error: IllegalStateException) {
+        throw CorruptSwitchDataException(error)
+    }
+
     private companion object {
         const val PROFILE_FILE_NAME = "switch_profiles.json"
         const val LEGACY_FILE_NAME = "switch_events.json"
+        const val CORRUPT_SUFFIX = ".corrupt"
     }
 }

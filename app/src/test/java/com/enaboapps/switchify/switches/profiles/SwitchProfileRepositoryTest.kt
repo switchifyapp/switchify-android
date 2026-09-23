@@ -143,17 +143,72 @@ class SwitchProfileRepositoryTest {
     }
 
     @Test
-    fun malformedDocumentIsNotOverwritten() = runBlocking {
+    fun malformedDocumentIsBackedUpBeforeWritingDefault() = runBlocking {
         val malformed = SwitchProfileDocument(activeProfileId = "missing", profiles = emptyList())
-        val persistence = FakePersistence(stored = malformed)
+        val persistence = FakePersistence(stored = malformed, legacy = listOf(event("legacy")))
         val repository = repository(persistence)
 
         repository.initialize()
 
+        assertEquals(listOf(malformed), persistence.profileBackups)
         assertEquals("Default", repository.activeProfile().name)
-        assertEquals(1, repository.profiles().size)
-        assertEquals(malformed, persistence.stored)
+        assertEquals(listOf(event("legacy")), repository.events())
+        assertEquals(repository.document.value, persistence.stored)
+        assertTrue(persistence.legacyDeleted)
+    }
+
+    @Test
+    fun newerDocumentVersionIsNotOverwritten() = runBlocking {
+        val newer = SwitchProfileDocument(
+            version = SwitchProfileDocument.CURRENT_VERSION + 1,
+            activeProfileId = "missing",
+            profiles = emptyList()
+        )
+        val persistence = FakePersistence(stored = newer)
+        val repository = repository(persistence)
+
+        repository.initialize()
+
+        assertEquals(newer, persistence.stored)
         assertEquals(0, persistence.writeCount)
+        assertTrue(persistence.profileBackups.isEmpty())
+    }
+
+    @Test
+    fun corruptProfileFileIsBackedUpAndLegacyMappingsAreAdopted() = runBlocking {
+        val persistence = FakePersistence(legacy = listOf(event("legacy")), corruptProfiles = true)
+        val repository = repository(persistence)
+
+        repository.initialize()
+
+        assertEquals(1, persistence.profileBackups.size)
+        assertEquals(listOf(event("legacy")), repository.events())
+        assertEquals(repository.document.value, persistence.stored)
+    }
+
+    @Test
+    fun corruptLegacyFileIsBackedUpAndDefaultIsWritten() = runBlocking {
+        val persistence = FakePersistence(corruptLegacy = true)
+        val repository = repository(persistence)
+
+        repository.initialize()
+
+        assertTrue(persistence.legacyBackedUp)
+        assertFalse(persistence.legacyDeleted)
+        assertEquals("Default", repository.activeProfile().name)
+        assertEquals(repository.document.value, persistence.stored)
+        assertTrue(repository.createEmpty("Second") is SwitchProfileMutationResult.Success)
+    }
+
+    @Test
+    fun failedBackupDoesNotWriteDefault() = runBlocking {
+        val persistence = FakePersistence(corruptProfiles = true, failBackups = true)
+        val repository = repository(persistence)
+
+        repository.initialize()
+
+        assertEquals(0, persistence.writeCount)
+        assertEquals(null, persistence.stored)
     }
 
     @Test
@@ -344,14 +399,20 @@ class SwitchProfileRepositoryTest {
         var legacy: List<SwitchEvent>? = null,
         var failWrites: Boolean = false,
         private val failProfileReads: Boolean = false,
-        private val failLegacyReads: Boolean = false
+        private val failLegacyReads: Boolean = false,
+        private var corruptProfiles: Boolean = false,
+        private var corruptLegacy: Boolean = false,
+        private val failBackups: Boolean = false
     ) : SwitchProfilePersistence {
         var legacyDeleted = false
+        var legacyBackedUp = false
+        val profileBackups = mutableListOf<SwitchProfileDocument?>()
         var writeCount = 0
         var beforeWrite: suspend () -> Unit = {}
 
         override suspend fun readProfiles(): Result<SwitchProfileDocument?> {
             if (failProfileReads) return Result.failure(IllegalStateException("read failed"))
+            if (corruptProfiles) return Result.failure(CorruptSwitchDataException(IllegalStateException("bad json")))
             return Result.success(stored)
         }
 
@@ -365,11 +426,28 @@ class SwitchProfileRepositoryTest {
 
         override suspend fun readLegacyEvents(): Result<List<SwitchEvent>?> {
             if (failLegacyReads) return Result.failure(IllegalStateException("read failed"))
+            if (corruptLegacy) return Result.failure(CorruptSwitchDataException(IllegalStateException("bad json")))
             return Result.success(legacy)
         }
 
         override suspend fun deleteLegacyEvents(): Result<Unit> {
             legacyDeleted = true
+            return Result.success(Unit)
+        }
+
+        override suspend fun backUpCorruptProfiles(): Result<Unit> {
+            if (failBackups) return Result.failure(IllegalStateException("backup failed"))
+            profileBackups += stored
+            stored = null
+            corruptProfiles = false
+            return Result.success(Unit)
+        }
+
+        override suspend fun backUpCorruptLegacyEvents(): Result<Unit> {
+            if (failBackups) return Result.failure(IllegalStateException("backup failed"))
+            legacyBackedUp = true
+            legacy = null
+            corruptLegacy = false
             return Result.success(Unit)
         }
     }
