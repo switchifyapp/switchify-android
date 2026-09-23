@@ -1,6 +1,7 @@
 package com.enaboapps.switchify.service.remotebridge
 
 import org.junit.After
+import org.junit.Before
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -10,6 +11,12 @@ import java.util.concurrent.TimeUnit
 import kotlin.concurrent.thread
 
 class SwitchifyRemoteBridgeCoordinatorTest {
+    private val scanningPauses = mutableListOf<Boolean>()
+
+    @Before fun setUp() {
+        SwitchifyRemoteBridgeCoordinator.setScanningPaused = { scanningPauses += it }
+    }
+
     @After fun cleanup() {
         SwitchifyRemoteBridgeCoordinator.detach()
         SwitchifyRemoteBridgeCoordinator.resetForTests()
@@ -85,6 +92,30 @@ class SwitchifyRemoteBridgeCoordinatorTest {
         configured = configured.dropLast(1) + (10 to "Replacement overflow switch")
         SwitchifyRemoteBridgeCoordinator.configuredSwitchesChanged()
         assertTrue(SwitchifyRemoteBridgeCoordinator.forwardExternalEdge(1, true, 1, 1, false))
+    }
+
+    @Test fun clearingWithoutForwardingLeavesScanningAlone() {
+        SwitchifyRemoteBridgeCoordinator.attach { listOf(30 to "USB switch") }
+        SwitchifyRemoteBridgeCoordinator.setRepeatActive(3, true)
+        SwitchifyRemoteBridgeCoordinator.clearActive()
+        SwitchifyRemoteBridgeCoordinator.detach()
+        assertEquals(emptyList<Boolean>(), scanningPauses)
+    }
+
+    @Test fun forwardingPausesScanningAndResumesItOnceWhenCleared() {
+        SwitchifyRemoteBridgeCoordinator.attach { listOf(30 to "USB switch") }
+        assertTrue(SwitchifyRemoteBridgeCoordinator.setForwardingActive(12, true))
+        SwitchifyRemoteBridgeCoordinator.clearActive()
+        SwitchifyRemoteBridgeCoordinator.clearActive()
+        assertEquals(listOf(true, false), scanningPauses)
+    }
+
+    @Test fun stoppingForwardingResumesScanning() {
+        SwitchifyRemoteBridgeCoordinator.attach { listOf(30 to "USB switch") }
+        assertTrue(SwitchifyRemoteBridgeCoordinator.setForwardingActive(13, true))
+        assertTrue(SwitchifyRemoteBridgeCoordinator.setForwardingActive(13, false))
+        SwitchifyRemoteBridgeCoordinator.detach()
+        assertEquals(listOf(true, false), scanningPauses)
     }
 
     @Test fun callbackDispatcherSerializesConcurrentDispatches() {
