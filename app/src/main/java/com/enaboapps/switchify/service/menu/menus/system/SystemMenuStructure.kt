@@ -1,6 +1,8 @@
 package com.enaboapps.switchify.service.menu.menus.system
 
+import android.content.ActivityNotFoundException
 import android.content.Intent
+import com.enaboapps.switchify.R
 import com.enaboapps.switchify.service.actions.AudioActionManager
 import com.enaboapps.switchify.service.actions.GlobalActionManager
 import com.enaboapps.switchify.service.core.SwitchifyAccessibilityService
@@ -10,6 +12,8 @@ import com.enaboapps.switchify.service.menu.structure.MenuConstants
 import com.enaboapps.switchify.service.menu.structure.MenuItemRegistry
 import com.enaboapps.switchify.service.menu.structure.MenuStructure
 import com.enaboapps.switchify.service.screenshot.ScreenshotManager
+import com.enaboapps.switchify.service.window.MessageSeverity
+import com.enaboapps.switchify.service.window.ServiceMessageHUD
 import kotlinx.coroutines.CoroutineScope
 
 class SystemMenuStructure(
@@ -59,7 +63,13 @@ class SystemMenuStructure(
                         action = {
                             val intent = Intent(Intent.ACTION_VOICE_COMMAND)
                             intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                            accessibilityService?.startActivity(intent)
+                            try {
+                                accessibilityService?.startActivity(intent)
+                            } catch (_: ActivityNotFoundException) {
+                                showAssistantUnavailable()
+                            } catch (_: SecurityException) {
+                                showAssistantUnavailable()
+                            }
                         }
                     )
                 },
@@ -152,4 +162,12 @@ class SystemMenuStructure(
             coroutineScope = coroutineScope
         )
     }
-} 
+
+    private fun showAssistantUnavailable() {
+        ServiceMessageHUD.instance.showMessage(
+            R.string.hud_assistant_unavailable,
+            ServiceMessageHUD.MessageType.DISAPPEARING,
+            severity = MessageSeverity.Warning
+        )
+    }
+}
