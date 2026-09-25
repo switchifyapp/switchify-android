@@ -18,6 +18,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
@@ -82,7 +85,12 @@ fun TextArea(
             visualTransformation = if (isSecure && !passwordVisible) PasswordVisualTransformation() else VisualTransformation.None,
             placeholder = placeholder?.let { { Text(it) } },
             supportingText = if (isError && supportingTextResId != null) {
-                { Text(stringResource(supportingTextResId)) }
+                {
+                    Text(
+                        text = stringResource(supportingTextResId),
+                        modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }
+                    )
+                }
             } else null,
             trailingIcon = {
                 if (isSecure) {

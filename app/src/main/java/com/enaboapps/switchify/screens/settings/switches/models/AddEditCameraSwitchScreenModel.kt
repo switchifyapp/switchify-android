@@ -1,8 +1,10 @@
 package com.enaboapps.switchify.screens.settings.switches.models
 
 import android.content.Context
+import androidx.annotation.StringRes
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
+import com.enaboapps.switchify.R
 import com.enaboapps.switchify.switches.CameraSwitchFacialGesture
 import com.enaboapps.switchify.switches.SWITCH_EVENT_TYPE_CAMERA
 import com.enaboapps.switchify.switches.SupportedActionsPolicy
@@ -24,6 +26,7 @@ class AddEditCameraSwitchScreenModel : ViewModel() {
     val isValid = mutableStateOf(false)
     val hasUnsavedChanges = mutableStateOf(false)
     val showDeleteConfirmation = mutableStateOf(false)
+    val showNameError = mutableStateOf(false)
 
     private lateinit var store: SwitchEventStore
     private var code: String? = null
@@ -77,7 +80,24 @@ class AddEditCameraSwitchScreenModel : ViewModel() {
                 action.value != SwitchAction(SwitchAction.ACTION_NONE)
     }
 
+    private fun gestureAlreadyAssigned(): Boolean {
+        val gestureId = selectedGesture.value?.id ?: return false
+        return code == null && store.find(gestureId, profileId) != null
+    }
+
+    @StringRes
+    fun saveBlockReason(): Int? = when {
+        name.isBlank() -> R.string.error_switch_name_required
+        action.value == SwitchAction(SwitchAction.ACTION_NONE) -> R.string.toast_switch_action_required
+        gestureAlreadyAssigned() -> R.string.toast_camera_gesture_already_assigned
+        else -> null
+    }
+
     fun save(context: Context, completion: ((Boolean) -> Unit)) {
+        if (gestureAlreadyAssigned()) {
+            completion(false)
+            return
+        }
         val event = SwitchEvent(
             type = SWITCH_EVENT_TYPE_CAMERA,
             name = name.trim(),
@@ -107,13 +127,15 @@ class AddEditCameraSwitchScreenModel : ViewModel() {
 
     fun delete(context: Context, completion: (Boolean) -> Unit) {
         val event = store.find(code ?: "", profileId)
-        event?.let {
-            store.remove(it, context, profileId) { success ->
-                if (success) {
-                    completion(true)
-                } else {
-                    completion(false)
-                }
+        if (event == null) {
+            completion(false)
+            return
+        }
+        store.remove(event, context, profileId) { success ->
+            if (success) {
+                completion(true)
+            } else {
+                completion(false)
             }
         }
     }
