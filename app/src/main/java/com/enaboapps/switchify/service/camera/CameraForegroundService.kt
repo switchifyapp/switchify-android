@@ -8,6 +8,7 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.content.res.Configuration
 import android.graphics.Bitmap
 import android.hardware.camera2.CameraManager
 import android.os.Binder
@@ -79,8 +80,11 @@ class CameraForegroundService : Service(), CameraLifecycle {
     private var isProcessing = false
     private val processingMutex = Mutex()
     private var currentLifecycleOwner: LifecycleOwner? = null
+    @Volatile
     private var isPausedForConflict = false
+    @Volatile
     private var retryAttempt = 0
+    private val resultDispatcher = Dispatchers.Default.limitedParallelism(1)
 
     // Callbacks
     private var frameProcessingCallback: ((Bitmap) -> Unit)? = null
@@ -97,9 +101,8 @@ class CameraForegroundService : Service(), CameraLifecycle {
 
     // Performance optimization
     private var lastProcessingStartTime = 0L
+    @Volatile
     private var lastFrameProcessedTime = 0L
-    private var isMediaPipeProcessing = false
-    private val mediaPipeMutex = Mutex()
     private var averageProcessingTime = 0L
     private var processedFramesForAverage = 0
     private var watchdogJob: kotlinx.coroutines.Job? = null
@@ -201,6 +204,11 @@ class CameraForegroundService : Service(), CameraLifecycle {
             }
         }
         super.onDestroy()
+    }
+
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        configureCameraOrientation()
     }
 
     /**
@@ -341,9 +349,9 @@ class CameraForegroundService : Service(), CameraLifecycle {
                     cameraProvider = null
                     imageAnalysis = null
                     currentLifecycleOwner = null
-                    boundCamera?.cameraInfo?.cameraState?.removeObserver(
-                        cameraStateObserver ?: return@launch
-                    )
+                    cameraStateObserver?.let { observer ->
+                        boundCamera?.cameraInfo?.cameraState?.removeObserver(observer)
+                    }
                     boundCamera = null
                     cameraStateObserver = null
                     retryJob?.cancel()
@@ -425,6 +433,7 @@ class CameraForegroundService : Service(), CameraLifecycle {
         try {
             cameraProvider?.unbindAll()
 
+            val wasPausedForConflict = isPausedForConflict
             boundCamera = cameraProvider?.bindToLifecycle(
                 lifecycleOwner,
                 cameraSelector,
@@ -434,14 +443,16 @@ class CameraForegroundService : Service(), CameraLifecycle {
             Log.d(TAG, "Camera use cases bound successfully")
             observeCameraState(lifecycleOwner)
             isPausedForConflict = false
-            retryAttempt = 0
+            lastFrameProcessedTime = System.currentTimeMillis()
             retryJob?.cancel()
             retryJob = null
-            ServiceMessageHUD.instance.showMessage(
-                R.string.hud_camera_recovered,
-                ServiceMessageHUD.MessageType.DISAPPEARING,
-                severity = MessageSeverity.Success
-            )
+            if (wasPausedForConflict) {
+                ServiceMessageHUD.instance.showMessage(
+                    R.string.hud_camera_recovered,
+                    ServiceMessageHUD.MessageType.DISAPPEARING,
+                    severity = MessageSeverity.Success
+                )
+            }
 
         } catch (e: Exception) {
             Log.e(TAG, "Failed to bind camera use cases", e)
@@ -490,6 +501,7 @@ class CameraForegroundService : Service(), CameraLifecycle {
                 ServiceMessageHUD.MessageType.DISAPPEARING,
                 severity = MessageSeverity.Warning
             )
+            retryAttempt++
             pauseProcessing()
             scheduleRetry()
         }
@@ -598,6 +610,7 @@ class CameraForegroundService : Service(), CameraLifecycle {
         }
 
         lastFrameProcessedTime = currentTime
+        retryAttempt = 0
 
         serviceScope.launch {
             try {
@@ -610,53 +623,44 @@ class CameraForegroundService : Service(), CameraLifecycle {
                     processedFrameCount++
 
                     // Skip processing if MediaPipe is still busy (prevent queue buildup)
-                    val canProcessMediaPipe = mediaPipeMutex.tryLock()
-                    if (!canProcessMediaPipe) {
+                    val faceService = faceProcessingService
+                    if (faceService == null) {
+                        Log.w(TAG, "FaceProcessingService not available, skipping frame")
+                        return@launch
+                    }
+                    if (faceService.isBusy()) {
                         Log.d(TAG, "Skipping MediaPipe processing - still busy with previous frame")
                         return@launch
                     }
 
-                    try {
-                        lastProcessingStartTime = System.currentTimeMillis()
+                    val frameStartTime = System.currentTimeMillis()
+                    lastProcessingStartTime = frameStartTime
 
-                        // Only convert YUV to RGB when MediaPipe is actually ready to process
-                        // This avoids expensive conversion operations when they would be wasted
-                        faceProcessingService?.let { faceService ->
-                            // Convert YUV to RGB bitmap only when MediaPipe can process it
-                            val bitmap = yuvToRgbConverter?.convertYuvToBitmap(mediaImage)
+                    // Only convert YUV to RGB when MediaPipe is actually ready to process
+                    val bitmap = yuvToRgbConverter?.convertYuvToBitmap(mediaImage)
+                    if (bitmap == null) {
+                        Log.w(TAG, "YUV to RGB conversion failed, skipping frame")
+                        return@launch
+                    }
 
-                            if (bitmap != null) {
-                                // Notify frame callback (optional - can disable for performance)
-                                // frameProcessingCallback?.invoke(bitmap)
-
-                                // Process with MediaPipe asynchronously
-                                faceService.processFace(
-                                    bitmap = bitmap,
-                                    timestampMs = imageProxy.imageInfo.timestamp / 1_000_000L
-                                ) { result ->
-                                    // Process result on background thread to avoid blocking
-                                    serviceScope.launch(Dispatchers.Default) {
-                                        try {
-                                            // Track processing performance
-                                            val endTime = System.currentTimeMillis()
-                                            val processingTime = endTime - lastProcessingStartTime
-                                            updateProcessingTimeStats(processingTime)
-
-                                            // Pass result to AccessibilityService
-                                            faceResultCallback?.invoke(result)
-                                        } catch (e: Exception) {
-                                            Log.e(TAG, "Error in gesture callback processing", e)
-                                        }
-                                    }
-                                }
-                            } else {
-                                Log.w(TAG, "YUV to RGB conversion failed, skipping frame")
+                    // processFace returns false when a frame is already queued, so at most one
+                    // frame is ever waiting on the MediaPipe thread
+                    val accepted = faceService.processFace(
+                        bitmap = bitmap,
+                        timestampMs = imageProxy.imageInfo.timestamp / 1_000_000L
+                    ) { result ->
+                        // Deliver results sequentially so gesture state is never mutated concurrently
+                        serviceScope.launch(resultDispatcher) {
+                            try {
+                                updateProcessingTimeStats(System.currentTimeMillis() - frameStartTime)
+                                faceResultCallback?.invoke(result)
+                            } catch (e: Exception) {
+                                Log.e(TAG, "Error in gesture callback processing", e)
                             }
-                        } ?: run {
-                            Log.w(TAG, "FaceProcessingService not available, skipping frame")
                         }
-                    } finally {
-                        mediaPipeMutex.unlock()
+                    }
+                    if (!accepted) {
+                        Log.d(TAG, "Skipping MediaPipe processing - frame not accepted")
                     }
 
                 } catch (e: Exception) {
@@ -807,9 +811,9 @@ class CameraForegroundService : Service(), CameraLifecycle {
                 cameraProvider?.unbindAll()
             }.join()
 
-            // Clean up processing components  
-            faceProcessingService =
-                null  // FaceProcessingService cleans up automatically in background thread
+            // Clean up processing components
+            faceProcessingService?.close()
+            faceProcessingService = null
             yuvToRgbConverter?.cleanup()
 
             // Shut down executor
