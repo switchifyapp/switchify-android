@@ -9,8 +9,10 @@ import com.enaboapps.switchify.service.scanning.ScanMode
 import com.enaboapps.switchify.switches.profiles.SwitchProfileRepository
 import com.enaboapps.switchify.utils.LogEvent
 import com.enaboapps.switchify.utils.Logger
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.Collections
@@ -31,7 +33,11 @@ class SwitchEventStore private constructor() {
     private var isInitialized = false
 
     private val tag = "SwitchEventStore"
-    private val coroutineScope = CoroutineScope(Dispatchers.IO)
+    private val exceptionHandler = CoroutineExceptionHandler { _, throwable ->
+        Log.e(tag, "Unhandled error in switch event store", throwable)
+        isInitializing = false
+    }
+    private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO + exceptionHandler)
     private val localStorage = SwitchEventLocalStorage()
     private var profileRepository: SwitchProfileRepository? = null
 
@@ -60,11 +66,14 @@ class SwitchEventStore private constructor() {
         profileRepository = SwitchProfileRepository.getInstance(context)
 
         coroutineScope.launch {
-            val loadedEvents = localStorage.loadFromFile(context)
-            switchEvents.clear()
-            switchEvents.addAll(loadedEvents)
-            isInitialized = true
-            isInitializing = false
+            try {
+                val loadedEvents = localStorage.loadFromFile(context)
+                switchEvents.clear()
+                switchEvents.addAll(loadedEvents)
+                isInitialized = true
+            } finally {
+                isInitializing = false
+            }
         }
     }
 

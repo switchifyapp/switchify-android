@@ -40,8 +40,24 @@ internal class SwitchProfileLocalPersistence(context: Context) : SwitchProfilePe
                 profileFile.openRead().bufferedReader().use { reader ->
                     checkNotNull(gson.fromJson(reader, SwitchProfileDocument::class.java))
                 }
-            }
+            }.sanitized()
         }
+    }
+
+    private fun SwitchProfileDocument.sanitized(): SwitchProfileDocument {
+        val safeProfiles: List<SwitchProfile>? = profiles
+        val safeActiveProfileId: String? = activeProfileId
+        val cleanedProfiles = safeProfiles.orEmpty().filterNotNull().map { profile ->
+            val safeSwitches: List<SwitchEvent>? = profile.switches
+            profile.copy(
+                switches = safeSwitches.orEmpty().filterNotNull().mapNotNull { it.sanitized() }
+            )
+        }
+        check(cleanedProfiles.isNotEmpty())
+        return copy(
+            activeProfileId = safeActiveProfileId ?: cleanedProfiles.first().id,
+            profiles = cleanedProfiles
+        )
     }
 
     override suspend fun writeProfiles(document: SwitchProfileDocument): Result<Unit> =
@@ -68,11 +84,13 @@ internal class SwitchProfileLocalPersistence(context: Context) : SwitchProfilePe
     override suspend fun readLegacyEvents(): Result<List<SwitchEvent>?> = withContext(Dispatchers.IO) {
         runCatching {
             val legacyFile = legacyFiles.firstOrNull { it.exists() } ?: return@runCatching null
-            val type = object : TypeToken<Set<SwitchEvent>>() {}.type
+            // Parse as a List: a Set would hash each event during parsing, which throws
+            // when a legacy entry is missing fields that the data class treats as non-null.
+            val type = object : TypeToken<List<SwitchEvent>>() {}.type
             parseOrCorrupt {
                 legacyFile.bufferedReader().use { reader ->
-                    val events: Set<SwitchEvent> = checkNotNull(gson.fromJson(reader, type))
-                    events.toList()
+                    val events: List<SwitchEvent?> = checkNotNull(gson.fromJson(reader, type))
+                    events.filterNotNull().mapNotNull { it.sanitized() }.distinct()
                 }
             }
         }

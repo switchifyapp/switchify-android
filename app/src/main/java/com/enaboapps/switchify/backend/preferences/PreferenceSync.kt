@@ -6,6 +6,7 @@ import androidx.core.content.edit
 import com.enaboapps.switchify.backend.supabase.SupabaseClient
 import com.enaboapps.switchify.backend.supabase.SupabaseManager
 import io.github.jan.supabase.auth.auth
+import io.github.jan.supabase.auth.status.SessionSource
 import io.github.jan.supabase.auth.status.SessionStatus
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -59,10 +60,12 @@ class PreferenceSync private constructor() {
 
                     when (sessionStatus) {
                         is SessionStatus.Authenticated -> {
-                            Log.i(
-                                TAG,
-                                "🟢 User authenticated - userId: ${sessionStatus.session.user?.id}"
-                            )
+                            val source = sessionStatus.source
+                            Log.i(TAG, "🟢 User authenticated - source: ${source.javaClass.simpleName}")
+                            if (!shouldSmartSync(source)) {
+                                Log.d(TAG, "Skipping smart sync for session source $source")
+                                return@collect
+                            }
                             Log.i(
                                 TAG,
                                 "⏳ Pausing SyncQueue and starting smart sync with 3s delay..."
@@ -96,6 +99,18 @@ class PreferenceSync private constructor() {
                 Log.e(TAG, "Error in auth state observer", e)
             }
         }
+    }
+
+    /**
+     * Only a fresh sign-in or a session restored from storage should trigger a full
+     * pull; access-token refreshes also emit Authenticated and must not pause the queue.
+     */
+    private fun shouldSmartSync(source: SessionSource): Boolean = when (source) {
+        is SessionSource.Refresh,
+        is SessionSource.UserChanged,
+        is SessionSource.UserIdentitiesChanged -> false
+
+        else -> true
     }
 
     /**
@@ -134,9 +149,7 @@ class PreferenceSync private constructor() {
                 onFailure = { e ->
                     Log.e(TAG, "Step 2: Failed to retrieve preferences during smart sync", e)
                     Log.w(TAG, "Error type: ${e.javaClass.simpleName}, message: ${e.message}")
-                    // Fallback: still try to push local preferences for new users
-                    Log.i(TAG, "Step 3: FALLBACK - Attempting to push local preferences")
-                    pushLocalPreferences()
+                    Log.i(TAG, "Step 3: Leaving remote preferences untouched until the next successful pull")
                 }
             )
         } catch (e: Exception) {

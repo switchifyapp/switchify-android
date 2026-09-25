@@ -3,6 +3,7 @@ package com.enaboapps.switchify.service.trial
 import android.content.Context
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import android.util.Log
 import com.enaboapps.switchify.BuildConfig
 import com.enaboapps.switchify.R
@@ -137,7 +138,7 @@ class ServiceTrialManager(
 
         Log.d(TAG, "Device is unlocked - proceeding with trial activation")
 
-        trialStartTime = System.currentTimeMillis()
+        trialStartTime = SystemClock.elapsedRealtime()
         isTrialActive = true
 
         val durationText = if (BuildConfig.DEBUG) "30-second debug" else "1-hour"
@@ -186,10 +187,29 @@ class ServiceTrialManager(
     fun getRemainingTime(): Long {
         if (!isTrialActive) return 0
 
-        val elapsed = System.currentTimeMillis() - trialStartTime
+        val elapsed = SystemClock.elapsedRealtime() - trialStartTime
         val duration = if (BuildConfig.DEBUG) DEBUG_TRIAL_DURATION_MS else TRIAL_DURATION_MS
         val remaining = duration - elapsed
         return maxOf(0, remaining)
+    }
+
+    /**
+     * Ends an active trial without restrictions once pro entitlement is confirmed,
+     * for example when RevenueCat delivers CustomerInfo after the trial already started.
+     */
+    fun stopTrialForPro(): Boolean {
+        if (!isTrialActive) return false
+        isTrialActive = false
+        cancelTimers()
+        Log.d(TAG, "Trial stopped - pro entitlement confirmed")
+        Logger.log(
+            LogEvent.TrialStopped,
+            data = mapOf(
+                "result" to "success",
+                "reason" to "pro_confirmed"
+            )
+        )
+        return true
     }
 
     /**
@@ -245,6 +265,10 @@ class ServiceTrialManager(
         warningHandler = Handler(Looper.getMainLooper())
         val warningTime = if (BuildConfig.DEBUG) DEBUG_WARNING_TIME_MS else WARNING_TIME_MS
         warningHandler?.postDelayed({
+            if (isTrialActive && IAPHandler.isPro()) {
+                stopTrialForPro()
+                return@postDelayed
+            }
             if (isTrialActive) {
                 ServiceMessageHUD.instance.showMessage(
                     R.string.trial_warning_message,
@@ -272,6 +296,10 @@ class ServiceTrialManager(
         expiryHandler = Handler(Looper.getMainLooper())
         val duration = if (BuildConfig.DEBUG) DEBUG_TRIAL_DURATION_MS else TRIAL_DURATION_MS
         expiryHandler?.postDelayed({
+            if (isTrialActive && IAPHandler.isPro()) {
+                stopTrialForPro()
+                return@postDelayed
+            }
             if (isTrialActive) {
                 Log.d(TAG, "Trial expired - shutting down service")
                 Logger.log(

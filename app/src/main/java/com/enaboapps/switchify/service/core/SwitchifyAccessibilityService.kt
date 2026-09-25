@@ -187,9 +187,14 @@ class SwitchifyAccessibilityService : AccessibilityService(), LifecycleOwner,
         // Observe Pro status changes to hide overlay when user upgrades
         serviceScope.launch {
             IAPHandler.customerInfo.collect { customerInfo ->
-                if (IAPHandler.isPro() && ::trialOverlay.isInitialized) {
-                    trialOverlay.hideOverlay()
-                    trialOverlay.stopUpdates()
+                if (IAPHandler.isPro()) {
+                    if (::trialManager.isInitialized) {
+                        trialManager.stopTrialForPro()
+                    }
+                    if (::trialOverlay.isInitialized) {
+                        trialOverlay.hideOverlay()
+                        trialOverlay.stopUpdates()
+                    }
                 }
             }
         }
