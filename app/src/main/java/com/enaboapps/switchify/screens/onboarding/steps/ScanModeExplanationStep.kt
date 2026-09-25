@@ -37,63 +37,68 @@ fun ScanModeExplanationStep(
 ) {
     val scrollState = rememberScrollState()
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(scrollState)
-            .padding(Dimens.spaceL),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(
-            text = stringResource(R.string.onboarding_scan_modes_title),
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.padding(bottom = Dimens.spaceXs)
-        )
-
-        Text(
-            text = stringResource(R.string.onboarding_scan_modes_subtitle),
-            style = MaterialTheme.typography.bodyLarge,
-            textAlign = TextAlign.Center,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(bottom = Dimens.spaceL + Dimens.spaceS)
-        )
-
-        // Scan Mode Selection  
-        ScanModeSelectionSection(navController = navController)
-
-        Spacer(modifier = Modifier.height(Dimens.spaceL + Dimens.spaceS))
-
-        // Info card
-        Panel(
-            modifier = Modifier.fillMaxWidth(),
-            containerColor = MaterialTheme.colorScheme.primaryContainer
+    Column(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth()
+                .verticalScroll(scrollState)
+                .padding(Dimens.spaceL),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Row(
-                modifier = Modifier.padding(Dimens.spaceM),
-                verticalAlignment = Alignment.CenterVertically
+            Text(
+                text = stringResource(R.string.onboarding_scan_modes_title),
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(bottom = Dimens.spaceXs)
+            )
+
+            Text(
+                text = stringResource(R.string.onboarding_scan_modes_subtitle),
+                style = MaterialTheme.typography.bodyLarge,
+                textAlign = TextAlign.Center,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(bottom = Dimens.spaceL + Dimens.spaceS)
+            )
+
+            // Scan Mode Selection
+            ScanModeSelectionSection(navController = navController)
+
+            Spacer(modifier = Modifier.height(Dimens.spaceL + Dimens.spaceS))
+
+            // Info card
+            Panel(
+                modifier = Modifier.fillMaxWidth(),
+                containerColor = MaterialTheme.colorScheme.primaryContainer
             ) {
-                Icon(
-                    imageVector = Icons.Default.Info,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(24.dp)
-                )
-                Spacer(modifier = Modifier.width(Dimens.spaceS))
-                Text(
-                    text = stringResource(R.string.onboarding_scan_modes_tip),
-                    style = MaterialTheme.typography.bodyMedium
-                )
+                Row(
+                    modifier = Modifier.padding(Dimens.spaceM),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Info,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(Dimens.spaceS))
+                    Text(
+                        text = stringResource(R.string.onboarding_scan_modes_tip),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
             }
         }
-
-        Spacer(modifier = Modifier.height(Dimens.spaceL + Dimens.spaceS))
 
         // Continue button
         ActionButton(
             textResId = R.string.onboarding_continue,
-            onClick = onContinue
+            onClick = onContinue,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = Dimens.spaceL, vertical = Dimens.spaceM),
+            applyPadding = false
         )
     }
 }

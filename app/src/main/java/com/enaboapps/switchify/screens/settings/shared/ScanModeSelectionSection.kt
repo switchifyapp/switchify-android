@@ -25,6 +25,7 @@ import com.enaboapps.switchify.components.Section
 import com.enaboapps.switchify.nav.NavigationRoute
 import com.enaboapps.switchify.screens.settings.models.ScanModeSettingsModel
 import com.enaboapps.switchify.service.scanning.ScanMode
+import com.enaboapps.switchify.theme.Dimens
 
 @Composable
 fun ScanModeSelectionSection(
@@ -56,8 +57,8 @@ fun ScanModeSelectionSection(
             enter = fadeIn(),
             exit = fadeOut()
         ) {
-            Panel(modifier = Modifier.padding(top = 24.dp, start = 32.dp, end = 32.dp)) {
-                Column(modifier = Modifier.padding(horizontal = 32.dp, vertical = 24.dp)) {
+            Panel(modifier = Modifier.padding(top = Dimens.spaceL)) {
+                Column(modifier = Modifier.padding(Dimens.spaceM)) {
                     val userScanDelay = 1000L
                     AutoScanDemo(
                         color = MaterialTheme.colorScheme.primary,
@@ -72,8 +73,8 @@ fun ScanModeSelectionSection(
             enter = fadeIn(),
             exit = fadeOut()
         ) {
-            Panel(modifier = Modifier.padding(top = 24.dp, start = 32.dp, end = 32.dp)) {
-                Column(modifier = Modifier.padding(horizontal = 32.dp, vertical = 24.dp)) {
+            Panel(modifier = Modifier.padding(top = Dimens.spaceL)) {
+                Column(modifier = Modifier.padding(Dimens.spaceM)) {
                     ManualScanDemo(
                         color = MaterialTheme.colorScheme.secondary
                     )

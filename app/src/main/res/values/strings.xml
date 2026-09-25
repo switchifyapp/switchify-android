@@ -274,6 +274,8 @@
     <!-- Miscellaneous -->
     <string name="unknown">Unknown</string>
     <string name="demo">Demo</string>
+    <string name="scan_demo_item">Item %1$d</string>
+    <string name="manual_scan_demo_hint">Previous and Next move the highlight. Select picks the highlighted item.</string>
 
     <!-- Scan Color Sets -->
     <string name="scan_color_set_default">Default</string>

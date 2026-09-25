@@ -70,7 +70,7 @@ fun AutoScanDemo(
                 ScanDemoItem(
                     isHighlighted = currentItem == index,
                     color = color,
-                    label = "Item ${index + 1}"
+                    label = stringResource(R.string.scan_demo_item, index + 1)
                 )
             }
         }
