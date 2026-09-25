@@ -19,19 +19,24 @@ import com.enaboapps.switchify.utils.LogEvent
 import com.enaboapps.switchify.utils.Logger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.util.Collections
+import java.util.concurrent.CopyOnWriteArraySet
 
 class SwitchEventProvider(private val context: Context) {
     private val switchEvents = Collections.synchronizedSet(mutableSetOf<SwitchEvent>())
     @Volatile
     private var stagedSwitchEvents: List<SwitchEvent>? = null
     private val localStorage = SwitchEventLocalStorage()
-    private val cameraSwitchListeners = mutableSetOf<CameraSwitchListener>()
+    private val cameraSwitchListeners = CopyOnWriteArraySet<CameraSwitchListener>()
     private val mutex = Mutex()
-    private val coroutineScope = CoroutineScope(Dispatchers.IO)
+    private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    @Volatile
+    private var isShutdown = false
     private var runtimeGeneration = 0L
     var hasCameraSwitch = false
         private set
@@ -62,12 +67,26 @@ class SwitchEventProvider(private val context: Context) {
         Log.d(TAG, "Initialized SwitchEventProvider")
     }
 
+    fun shutdown() {
+        if (isShutdown) return
+        isShutdown = true
+        try {
+            context.applicationContext.unregisterReceiver(receiver)
+        } catch (e: IllegalArgumentException) {
+            Log.w(TAG, "Receiver already unregistered", e)
+        }
+        coroutineScope.cancel()
+        cameraSwitchListeners.clear()
+        Log.d(TAG, "Shut down SwitchEventProvider")
+    }
+
     private suspend fun loadInitialEvents() {
         mutex.withLock {
+            if (isShutdown) return@withLock
             val loadGeneration = synchronized(switchEvents) { runtimeGeneration }
             val loadedEvents = localStorage.loadFromFile(context)
             val applied = synchronized(switchEvents) {
-                if (loadGeneration != runtimeGeneration) return@synchronized false
+                if (isShutdown || loadGeneration != runtimeGeneration) return@synchronized false
                 switchEvents.clear()
                 switchEvents.addAll(loadedEvents)
                 true
@@ -170,6 +189,7 @@ class SwitchEventProvider(private val context: Context) {
     }
 
     fun reload(source: String = "unknown") {
+        if (isShutdown) return
         Logger.log(
             LogEvent.SwitchReloadTriggered,
             data = mapOf(

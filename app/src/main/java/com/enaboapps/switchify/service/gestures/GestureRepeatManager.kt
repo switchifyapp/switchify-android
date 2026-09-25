@@ -6,16 +6,19 @@ import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.service.gestures.data.GestureData
 import com.enaboapps.switchify.service.window.MessageSeverity
 import com.enaboapps.switchify.service.window.ServiceMessageHUD
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
 class GestureRepeatManager private constructor() {
     private var context: Context? = null
-    private val scope = CoroutineScope(Dispatchers.IO)
+    private val scope = CoroutineScope(SupervisorJob())
+    private var loopDispatcher: CoroutineDispatcher = Dispatchers.Main
     private var repeatJob: Job? = null
     private var repeatedGestureData: GestureData? = null
     private var repeatSessionActive = false
@@ -142,7 +145,7 @@ class GestureRepeatManager private constructor() {
         repeatSessionActive = true
         repeatedGestureData = gestureData
         showMessage(R.string.gesture_repeat_started, MessageSeverity.Success)
-        repeatJob = scope.launch {
+        repeatJob = scope.launch(loopDispatcher) {
             delay(getInitialRepeatDelay())
             while (isActive) {
                 executeRepeatedGesture()
@@ -253,6 +256,7 @@ class GestureRepeatManager private constructor() {
     internal fun resetForTesting() {
         repeatJob?.cancel()
         repeatJob = null
+        loopDispatcher = Dispatchers.Unconfined
         repeatedGestureData = null
         repeatSessionActive = false
         context = null

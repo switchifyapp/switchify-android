@@ -6,9 +6,11 @@ import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.service.gestures.data.GestureData
 import com.enaboapps.switchify.service.window.MessageSeverity
 import com.enaboapps.switchify.service.window.ServiceMessageHUD
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.cancelAndJoin
@@ -20,7 +22,8 @@ import kotlinx.coroutines.runBlocking
 class AutoScrollManager private constructor() {
     private var isAutoScrolling = false
     private lateinit var preferenceManager: PreferenceManager
-    private val scope = CoroutineScope(Dispatchers.IO)
+    private val scope = CoroutineScope(SupervisorJob())
+    private var loopDispatcher: CoroutineDispatcher = Dispatchers.Main
     private var scrollJob: Job? = null
     private var autoScrollEnabledProviderForTesting: (() -> Boolean)? = null
     private var autoScrollDelayProviderForTesting: (() -> Long)? = null
@@ -86,7 +89,7 @@ class AutoScrollManager private constructor() {
         }
         showMessage(R.string.hud_auto_scroll_started, MessageSeverity.Success)
         isAutoScrolling = true
-        scrollJob = scope.launch {
+        scrollJob = scope.launch(loopDispatcher) {
             while (isAutoScrolling) {
                 performAutoScroll(gestureData)
                 if (isAutoScrolling) delay(getAutoScrollDelay())
@@ -100,17 +103,25 @@ class AutoScrollManager private constructor() {
      * @return True if auto-scrolling was stopped, false otherwise.
      */
     fun stopAutoScroll(): Boolean {
-        if (!isAutoScrollEnabledInPreferences()) return false
+        if (!cancelScrollJob()) return false
+        showMessage(R.string.hud_auto_scroll_stopped, MessageSeverity.Info)
+        return true
+    }
 
-        if (scrollJob != null && isAutoScrolling) {
-            scrollJob?.cancel()
-            scrollJob = null
-            isAutoScrolling = false
-            showMessage(R.string.hud_auto_scroll_stopped, MessageSeverity.Info)
-            return true
-        }
+    /**
+     * Stops any running auto-scroll silently. Called on service teardown.
+     */
+    fun clearServiceState() {
+        cancelScrollJob()
+    }
 
-        return false
+    private fun cancelScrollJob(): Boolean {
+        val job = scrollJob
+        if (job == null && !isAutoScrolling) return false
+        job?.cancel()
+        scrollJob = null
+        isAutoScrolling = false
+        return true
     }
 
     /**
@@ -160,6 +171,7 @@ class AutoScrollManager private constructor() {
         isAutoScrolling = false
         runBlocking { scrollJob?.cancelAndJoin() }
         scrollJob = null
+        loopDispatcher = Dispatchers.Unconfined
         autoScrollEnabledProviderForTesting = null
         autoScrollDelayProviderForTesting = null
         autoScrollPerformerForTesting = null
