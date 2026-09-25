@@ -58,136 +58,140 @@ fun SwitchSetupStep(
             }
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(scrollState)
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Icon(
-            imageVector = Icons.Default.TouchApp,
-            contentDescription = null,
+    Column(modifier = Modifier.fillMaxSize()) {
+        Column(
             modifier = Modifier
-                .size(80.dp)
-                .padding(bottom = 16.dp),
-            tint = MaterialTheme.colorScheme.primary
-        )
-
-        Text(
-            text = stringResource(R.string.onboarding_switches_title),
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.padding(bottom = 8.dp)
-        )
-
-        Text(
-            text = stringResource(R.string.onboarding_switches_subtitle),
-            style = MaterialTheme.typography.bodyLarge,
-            textAlign = TextAlign.Center,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(bottom = 32.dp)
-        )
-
-        // Switch options
-        Panel(modifier = Modifier.fillMaxWidth()) {
-            Column(
-                modifier = Modifier.padding(20.dp)
-            ) {
-                Text(
-                    text = stringResource(R.string.onboarding_switch_options),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(bottom = 16.dp)
-                )
-
-                SwitchOption(
-                    icon = Icons.Default.Keyboard,
-                    title = stringResource(R.string.onboarding_switch_keyboard),
-                    description = stringResource(R.string.onboarding_switch_keyboard_desc)
-                )
-
-                HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
-
-                SwitchOption(
-                    icon = Icons.Default.Bluetooth,
-                    title = stringResource(R.string.onboarding_switch_bluetooth),
-                    description = stringResource(R.string.onboarding_switch_bluetooth_desc)
-                )
-
-                HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
-
-                SwitchOption(
-                    icon = Icons.Default.CameraAlt,
-                    title = stringResource(R.string.onboarding_switch_camera),
-                    description = stringResource(R.string.onboarding_switch_camera_desc)
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // Status and action
-        AnimatedVisibility(
-            visible = !switchesValid,
-            enter = fadeIn(),
-            exit = fadeOut()
+                .weight(1f)
+                .fillMaxWidth()
+                .verticalScroll(scrollState)
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                SwitchConfigInvalidBanner()
+            Icon(
+                imageVector = Icons.Default.TouchApp,
+                contentDescription = null,
+                modifier = Modifier
+                    .size(80.dp)
+                    .padding(bottom = 16.dp),
+                tint = MaterialTheme.colorScheme.primary
+            )
 
-                Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = stringResource(R.string.onboarding_switches_title),
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
 
-                ActionButton(
-                    textResId = R.string.onboarding_configure_switches,
-                    onClick = {
-                        navController.navigate(NavigationRoute.Switches.name)
-                    }
-                )
-            }
-        }
+            Text(
+                text = stringResource(R.string.onboarding_switches_subtitle),
+                style = MaterialTheme.typography.bodyLarge,
+                textAlign = TextAlign.Center,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(bottom = 32.dp)
+            )
 
-        AnimatedVisibility(
-            visible = switchesValid,
-            enter = fadeIn(),
-            exit = fadeOut()
-        ) {
-            Panel(
-                modifier = Modifier.fillMaxWidth(),
-                containerColor = MaterialTheme.colorScheme.primaryContainer
-            ) {
-                Row(
-                    modifier = Modifier.padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
+            // Switch options
+            Panel(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    modifier = Modifier.padding(20.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.CheckCircle,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(24.dp)
-                    )
-                    Spacer(modifier = Modifier.width(12.dp))
                     Text(
-                        text = stringResource(R.string.onboarding_switches_configured),
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Medium
+                        text = stringResource(R.string.onboarding_switch_options),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(bottom = 16.dp)
+                    )
+
+                    SwitchOption(
+                        icon = Icons.Default.Keyboard,
+                        title = stringResource(R.string.onboarding_switch_keyboard),
+                        description = stringResource(R.string.onboarding_switch_keyboard_desc)
+                    )
+
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+
+                    SwitchOption(
+                        icon = Icons.Default.Bluetooth,
+                        title = stringResource(R.string.onboarding_switch_bluetooth),
+                        description = stringResource(R.string.onboarding_switch_bluetooth_desc)
+                    )
+
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+
+                    SwitchOption(
+                        icon = Icons.Default.CameraAlt,
+                        title = stringResource(R.string.onboarding_switch_camera),
+                        description = stringResource(R.string.onboarding_switch_camera_desc)
                     )
                 }
             }
-        }
 
-        Spacer(modifier = Modifier.weight(1f))
-        Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Status and action
+            AnimatedVisibility(
+                visible = !switchesValid,
+                enter = fadeIn(),
+                exit = fadeOut()
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    SwitchConfigInvalidBanner()
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    ActionButton(
+                        textResId = R.string.onboarding_configure_switches,
+                        onClick = {
+                            navController.navigate(NavigationRoute.Switches.name)
+                        }
+                    )
+                }
+            }
+
+            AnimatedVisibility(
+                visible = switchesValid,
+                enter = fadeIn(),
+                exit = fadeOut()
+            ) {
+                Panel(
+                    modifier = Modifier.fillMaxWidth(),
+                    containerColor = MaterialTheme.colorScheme.primaryContainer
+                ) {
+                    Row(
+                        modifier = Modifier.padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.CheckCircle,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = stringResource(R.string.onboarding_switches_configured),
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+            }
+        }
 
         // Continue button
         ActionButton(
             textResId = R.string.onboarding_continue,
             onClick = onContinue,
-            enabled = switchesValid
+            enabled = switchesValid,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp, vertical = 16.dp),
+            applyPadding = false
         )
     }
 }

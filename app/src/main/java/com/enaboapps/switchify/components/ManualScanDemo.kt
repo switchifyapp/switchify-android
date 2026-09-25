@@ -86,12 +86,20 @@ fun ManualScanDemo(
                     isHighlighted = highlightedItem == index,
                     isSelected = selectedItem == index,
                     color = color,
-                    label = "Item ${index + 1}"
+                    label = stringResource(R.string.scan_demo_item, index + 1)
                 )
             }
         }
 
         Spacer(modifier = Modifier.height(Dimens.spaceM))
+
+        Text(
+            text = stringResource(R.string.manual_scan_demo_hint),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(bottom = Dimens.spaceS)
+        )
 
         // Manual scan controls
         Row(
@@ -101,22 +109,27 @@ fun ManualScanDemo(
             ActionButton(
                 textResId = R.string.action_previous,
                 onClick = movePrevious,
+                type = ActionButtonType.SECONDARY,
                 modifier = Modifier.weight(1f),
                 applyPadding = false
             )
             ActionButton(
                 textResId = R.string.action_next,
                 onClick = moveNext,
-                modifier = Modifier.weight(1f),
-                applyPadding = false
-            )
-            ActionButton(
-                textResId = R.string.action_select,
-                onClick = selectItem,
+                type = ActionButtonType.SECONDARY,
                 modifier = Modifier.weight(1f),
                 applyPadding = false
             )
         }
+
+        Spacer(modifier = Modifier.height(Dimens.spaceXs))
+
+        ActionButton(
+            textResId = R.string.action_select,
+            onClick = selectItem,
+            modifier = Modifier.fillMaxWidth(),
+            applyPadding = false
+        )
     }
 }
 
