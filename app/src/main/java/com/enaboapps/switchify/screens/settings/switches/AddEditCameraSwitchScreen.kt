@@ -58,7 +58,7 @@ fun AddEditCameraSwitchScreen(
         }
         return
     }
-    val viewModel = remember(code, targetProfileId) {
+    val viewModel = androidx.lifecycle.viewmodel.compose.viewModel(key = "camera:$code:$targetProfileId") {
         AddEditCameraSwitchScreenModel().apply { init(code, context, targetProfileId) }
     }
 
