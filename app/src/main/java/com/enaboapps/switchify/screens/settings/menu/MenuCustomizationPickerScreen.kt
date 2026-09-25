@@ -13,6 +13,7 @@ import com.enaboapps.switchify.R
 import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.PanelListRow
 import com.enaboapps.switchify.nav.NavigationRoute
+import com.enaboapps.switchify.nav.navigateIfResumed
 import com.enaboapps.switchify.service.menu.structure.MenuConstants
 import com.enaboapps.switchify.theme.Dimens
 
@@ -41,7 +42,7 @@ fun MenuCustomizationPickerScreen(navController: NavController) {
                 PanelListRow(
                     titleResId = nameResId,
                     onClick = {
-                        navController.navigate(
+                        navController.navigateIfResumed(
                             "${NavigationRoute.MenuCustomizationEdit.name}/$menuId"
                         )
                     }

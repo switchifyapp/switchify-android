@@ -118,7 +118,7 @@ fun InAppUpdateBar(
     ) { result ->
         when (result.resultCode) {
             Activity.RESULT_OK -> {}
-            Activity.RESULT_CANCELED -> onError("Update cancelled")
+            Activity.RESULT_CANCELED -> Log.d("InAppUpdateBar", "Update prompt dismissed by user")
             else -> onError("Update failed to start")
         }
     }
@@ -235,6 +235,8 @@ fun InAppUpdateBar(
     }
 }
 
+private var promptedUpdateVersionCode: Int? = null
+
 private fun tryResumeOrCheck(
     context: Context,
     appUpdateManager: AppUpdateManager,
@@ -257,7 +259,13 @@ private fun tryResumeOrCheck(
                 }
 
                 if (info.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE) {
+                    val versionCode = info.availableVersionCode()
+                    if (promptedUpdateVersionCode == versionCode) {
+                        Log.d("InAppUpdateBar", "Already prompted for update $versionCode")
+                        return@addOnSuccessListener
+                    }
                     if (info.isUpdateTypeAllowed(AppUpdateType.FLEXIBLE)) {
+                        promptedUpdateVersionCode = versionCode
                         startUpdate(
                             context,
                             appUpdateManager,
@@ -269,9 +277,11 @@ private fun tryResumeOrCheck(
                     }
                 }
             }
-            .addOnFailureListener { e -> onError("Failed to check updates: ${e.localizedMessage}") }
+            .addOnFailureListener { e ->
+                Log.w("InAppUpdateBar", "Failed to check updates: ${e.localizedMessage}")
+            }
     } catch (e: Exception) {
-        onError("Exception checking updates: ${e.localizedMessage}")
+        Log.w("InAppUpdateBar", "Exception checking updates", e)
     }
 }
 

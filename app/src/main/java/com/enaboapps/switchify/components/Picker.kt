@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -32,6 +34,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.enaboapps.switchify.R
@@ -74,6 +77,7 @@ fun <T> Picker(
                 enabled = enabled,
                 interactionSource = interactionSource,
                 indication = null,
+                role = Role.Button,
                 onClick = { expanded = true }
             )
             .alpha(if (enabled) 1f else 0.55f)
@@ -112,7 +116,9 @@ fun <T> Picker(
             },
             text = {
                 Column(
-                    modifier = Modifier.verticalScroll(rememberScrollState()),
+                    modifier = Modifier
+                        .verticalScroll(rememberScrollState())
+                        .selectableGroup(),
                     verticalArrangement = Arrangement.spacedBy(Dimens.spaceXs)
                 ) {
                     items.forEach { item ->
@@ -132,9 +138,11 @@ fun <T> Picker(
                         Surface(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable(
+                                .selectable(
+                                    selected = selected,
                                     interactionSource = optionInteraction,
                                     indication = null,
+                                    role = Role.RadioButton,
                                     onClick = {
                                         onItemSelected(item)
                                         expanded = false

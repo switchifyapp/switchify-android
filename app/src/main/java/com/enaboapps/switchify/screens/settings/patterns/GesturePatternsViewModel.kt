@@ -111,6 +111,7 @@ class GesturePatternsViewModel : ViewModel() {
         if (fromIndex in currentList.indices && toIndex in currentList.indices) {
             val item = currentList.removeAt(fromIndex)
             currentList.add(toIndex, item)
+            _patterns.value = currentList.toList()
             reorderPatterns(currentList)
         }
     }

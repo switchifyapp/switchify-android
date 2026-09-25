@@ -49,6 +49,7 @@ import com.enaboapps.switchify.components.NavRouteLink
 import com.enaboapps.switchify.components.Panel
 import com.enaboapps.switchify.components.Section
 import com.enaboapps.switchify.nav.NavigationRoute
+import com.enaboapps.switchify.nav.navigateIfResumed
 import com.enaboapps.switchify.service.core.ServiceBridge
 import com.enaboapps.switchify.service.utils.ServiceUtils
 import com.enaboapps.switchify.switches.SWITCH_EVENT_TYPE_CAMERA
@@ -117,7 +118,7 @@ fun SwitchProfilesScreen(navController: NavController) {
                         profile = profile,
                         active = active,
                         onEdit = {
-                            navController.navigate(
+                            navController.navigateIfResumed(
                                 "${NavigationRoute.SwitchProfileDetail.name}/${profile.id}"
                             )
                         },

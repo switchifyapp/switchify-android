@@ -24,6 +24,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.SemanticsPropertyReceiver
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.enaboapps.switchify.theme.Dimens
@@ -37,6 +39,7 @@ fun PreferenceRowScaffold(
     onClick: (() -> Unit)? = null,
     leadingContent: (@Composable () -> Unit)? = null,
     belowContent: (@Composable () -> Unit)? = null,
+    rowSemantics: (SemanticsPropertyReceiver.() -> Unit)? = null,
     trailing: @Composable RowScope.() -> Unit
 ) {
     val scheme = MaterialTheme.colorScheme
@@ -54,6 +57,13 @@ fun PreferenceRowScaffold(
         .fillMaxWidth()
         .heightIn(min = 56.dp)
         .background(backgroundColor)
+        .let {
+            if (rowSemantics != null) {
+                it.semantics(mergeDescendants = true, properties = rowSemantics)
+            } else {
+                it
+            }
+        }
         .let {
             if (onClick != null) {
                 it.clickable(

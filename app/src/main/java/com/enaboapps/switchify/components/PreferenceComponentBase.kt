@@ -15,6 +15,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.SemanticsPropertyReceiver
 import com.enaboapps.switchify.R
 
 @Composable
@@ -27,7 +28,8 @@ fun PreferenceComponentBase(
     leadingIcon: ImageVector? = null,
     onClick: (() -> Unit)? = null,
     trailing: @Composable () -> Unit = {},
-    belowContent: (@Composable () -> Unit)? = null
+    belowContent: (@Composable () -> Unit)? = null,
+    rowSemantics: (SemanticsPropertyReceiver.() -> Unit)? = null
 ) {
     val title = runtimeTitle ?: titleResId?.let { stringResource(it) }.orEmpty()
     val summary = runtimeSummary ?: summaryResId?.let { stringResource(it) }.orEmpty()
@@ -36,6 +38,7 @@ fun PreferenceComponentBase(
         title = title,
         summary = summary,
         onClick = onClick,
+        rowSemantics = rowSemantics,
         leadingContent = leadingIcon?.let {
             {
                 PreferenceRowLeadingIcon(imageVector = it)

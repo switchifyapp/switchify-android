@@ -16,6 +16,11 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -35,18 +40,28 @@ fun CameraPermissionHandler(
     onPermissionGranted: @Composable () -> Unit,
     onNavigateBack: () -> Unit
 ) {
+    var hasRequestedPermission by rememberSaveable { mutableStateOf(false) }
+    val status = permissionState.status
+
+    LaunchedEffect(status.isGranted, status.shouldShowRationale) {
+        if (!status.isGranted && !status.shouldShowRationale && !hasRequestedPermission) {
+            hasRequestedPermission = true
+            permissionState.launchPermissionRequest()
+        }
+    }
+
     when {
-        permissionState.status.isGranted -> {
+        status.isGranted -> {
             onPermissionGranted()
         }
 
-        permissionState.status.shouldShowRationale -> {
+        status.shouldShowRationale -> {
             RationaleContent(
                 onRequestPermission = { permissionState.launchPermissionRequest() }
             )
         }
 
-        else -> {
+        hasRequestedPermission -> {
             PermissionDeniedContent(onNavigateBack = onNavigateBack)
         }
     }

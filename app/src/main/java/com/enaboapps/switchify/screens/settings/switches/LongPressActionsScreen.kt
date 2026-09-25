@@ -15,6 +15,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -65,8 +66,8 @@ fun LongPressActionsScreen(
 
     // Load actions from store - refresh key triggers reload
     var refreshKey by remember { mutableIntStateOf(0) }
-    val actions = remember(refreshKey, resolvedProfileId) {
-        store.find(code, resolvedProfileId)?.holdActions ?: emptyList()
+    var actions by remember(refreshKey, resolvedProfileId) {
+        mutableStateOf(store.find(code, resolvedProfileId)?.holdActions ?: emptyList())
     }
 
     // Save helper that updates store and refreshes UI
@@ -119,9 +120,10 @@ fun LongPressActionsScreen(
                     val mutableList = actions.toMutableList()
                     val item = mutableList.removeAt(from)
                     mutableList.add(to, item)
-                    saveAndRefresh(mutableList)
+                    actions = mutableList
+                    store.updateHoldActions(code, mutableList, context, resolvedProfileId) {}
                 },
-                key = { action -> "${actions.indexOfFirst { it === action }}-${action.id}" },
+                key = { action -> System.identityHashCode(action) },
                 defaultMode = ReorderMode.DRAG
             ) { action, _, reorderControls ->
                 val index = actions.indexOfFirst { it === action }
