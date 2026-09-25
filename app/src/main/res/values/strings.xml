@@ -596,8 +596,15 @@
     <string name="switch_listener_each_switch_can_have_multiple_actions_for_long_press">Actions execute in sequence based on hold duration</string>
 
     <!-- Add/Edit External Switch Screen -->
-    <string name="label_switch_name">Switch Name</string>
-    <string name="error_switch_name_required">Switch name is required</string>
+    <string name="label_switch_name">Switch name (required)</string>
+    <string name="placeholder_switch_name">e.g. Left switch</string>
+    <string name="error_switch_name_required">Enter a name for this switch</string>
+    <string name="toast_switch_saved">Switch saved</string>
+    <string name="toast_switch_save_error">Error saving switch</string>
+    <string name="toast_switch_delete_error">Error deleting switch</string>
+    <string name="toast_switch_already_exists">Switch already exists</string>
+    <string name="toast_camera_gesture_already_assigned">A switch already uses this gesture</string>
+    <string name="toast_switch_action_required">Choose an action for this switch</string>
     <string name="long_press_actions_empty">No long press actions configured. Add an action to get started.</string>
     <string name="long_press_actions_save_first">Save the switch first to configure long press actions.</string>
     <string name="section_title_long_press_actions">Long Press Actions</string>

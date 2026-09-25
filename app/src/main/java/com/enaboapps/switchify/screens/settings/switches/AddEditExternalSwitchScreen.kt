@@ -27,6 +27,7 @@ import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -89,6 +90,7 @@ fun AddEditExternalSwitchScreen(
     val hasUnsavedChanges by addEditExternalSwitchScreenModel.hasUnsavedChanges.observeAsState(false)
     val captured by addEditExternalSwitchScreenModel.switchCaptured.observeAsState()
     val showDeleteConfirmation = remember { mutableStateOf(false) }
+    var showNameError by rememberSaveable { mutableStateOf(false) }
 
     if (!captured!!) {
         BaseView(
@@ -130,19 +132,30 @@ fun AddEditExternalSwitchScreen(
                 ) {
                     ActionButton(
                         textResId = R.string.button_save,
-                        enabled = (shouldSave == true) && (isValid == true),
+                        enabled = shouldSave == true,
                         onClick = {
-                            addEditExternalSwitchScreenModel.save(context) { success ->
+                            if (isValid != true) {
+                                showNameError = true
+                                Toast.makeText(
+                                    context,
+                                    R.string.error_switch_name_required,
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            } else addEditExternalSwitchScreenModel.save(context) { success ->
                                 scope.launch {
                                     if (success) {
+                                        Toast.makeText(
+                                            context,
+                                            R.string.toast_switch_saved,
+                                            Toast.LENGTH_SHORT
+                                        ).show()
                                         navController.popBackStack()
                                     } else {
-                                        android.widget.Toast.makeText(
+                                        Toast.makeText(
                                             context,
-                                            "Error saving switch",
-                                            android.widget.Toast.LENGTH_SHORT
-                                        )
-                                            .show()
+                                            R.string.toast_switch_save_error,
+                                            Toast.LENGTH_SHORT
+                                        ).show()
                                     }
                                 }
                             }
@@ -169,6 +182,7 @@ fun AddEditExternalSwitchScreen(
             ) {
                 SwitchName(
                     name = addEditExternalSwitchScreenModel.name,
+                    showError = showNameError,
                     onNameChange = { addEditExternalSwitchScreenModel.updateName(it) }
                 )
                 Spacer(modifier = Modifier.padding(8.dp))
@@ -197,7 +211,7 @@ fun AddEditExternalSwitchScreen(
                                         } else {
                                             Toast.makeText(
                                                 context,
-                                                "Error deleting switch",
+                                                R.string.toast_switch_delete_error,
                                                 Toast.LENGTH_SHORT
                                             ).show()
                                         }
@@ -275,9 +289,11 @@ fun SwitchListener(navController: NavController, onKeyEvent: (KeyEvent) -> Unit)
 @Composable
 fun SwitchName(
     name: String = "",
+    showError: Boolean = false,
     onNameChange: (String) -> Unit
 ) {
     var localName by remember { mutableStateOf(name) }
+    var edited by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(name) {
         localName = name
@@ -287,10 +303,12 @@ fun SwitchName(
         value = localName,
         onValueChange = {
             localName = it
+            edited = true
             onNameChange(it)
         },
         labelResId = R.string.label_switch_name,
-        isError = localName.isBlank(),
+        placeholder = stringResource(R.string.placeholder_switch_name),
+        isError = (showError || edited) && localName.isBlank(),
         supportingTextResId = R.string.error_switch_name_required
     )
 }

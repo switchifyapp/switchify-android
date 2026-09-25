@@ -83,19 +83,26 @@ fun AddEditCameraSwitchScreen(
             ) {
                 ActionButton(
                     textResId = R.string.button_save,
-                    enabled = viewModel.isValid.value,
                     onClick = {
-                        viewModel.save(context) { success ->
+                        val blockReason = viewModel.saveBlockReason()
+                        if (blockReason != null) {
+                            viewModel.showNameError.value = true
+                            Toast.makeText(context, blockReason, Toast.LENGTH_SHORT).show()
+                        } else viewModel.save(context) { success ->
                             scope.launch {
                                 if (success) {
+                                    Toast.makeText(
+                                        context,
+                                        R.string.toast_switch_saved,
+                                        Toast.LENGTH_SHORT
+                                    ).show()
                                     navController.popBackStack()
                                 } else {
-                                    android.widget.Toast.makeText(
+                                    Toast.makeText(
                                         context,
-                                        "Error saving switch",
-                                        android.widget.Toast.LENGTH_SHORT
-                                    )
-                                        .show()
+                                        R.string.toast_switch_save_error,
+                                        Toast.LENGTH_SHORT
+                                    ).show()
                                 }
                             }
                         }
@@ -149,6 +156,7 @@ private fun MainContent(
         // Switch Name
         SwitchName(
             name = viewModel.name,
+            showError = viewModel.showNameError.value,
             onNameChange = { viewModel.updateName(it) }
         )
 
@@ -209,7 +217,7 @@ private fun MainContent(
                                 } else {
                                     Toast.makeText(
                                         context,
-                                        "Error deleting switch",
+                                        R.string.toast_switch_delete_error,
                                         Toast.LENGTH_SHORT
                                     )
                                         .show()

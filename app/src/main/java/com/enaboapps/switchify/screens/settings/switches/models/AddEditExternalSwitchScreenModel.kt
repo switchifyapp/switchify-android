@@ -11,6 +11,7 @@ import androidx.compose.ui.input.key.nativeKeyCode
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.enaboapps.switchify.R
 import com.enaboapps.switchify.service.scanning.ScanSettings
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
 import com.enaboapps.switchify.switches.SWITCH_EVENT_TYPE_EXTERNAL
@@ -123,7 +124,7 @@ class AddEditExternalSwitchScreenModel : ViewModel() {
         // If switch already exists, don't save and show toast
         if (store.find(key.nativeKeyCode.toString(), profileId) != null) {
             shouldSave.value = false
-            Toast.makeText(context, "Switch already exists", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, R.string.toast_switch_already_exists, Toast.LENGTH_SHORT).show()
             return
         }
 
@@ -237,10 +238,12 @@ class AddEditExternalSwitchScreenModel : ViewModel() {
 
     fun delete(context: Context, completion: (Boolean) -> Unit) {
         val event = store.find(code ?: "", profileId)
-        event?.let {
-            store.remove(it, context, profileId) { success ->
-                completion(success)
-            }
+        if (event == null) {
+            completion(false)
+            return
+        }
+        store.remove(event, context, profileId) { success ->
+            completion(success)
         }
     }
 
