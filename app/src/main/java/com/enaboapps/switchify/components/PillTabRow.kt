@@ -114,14 +114,14 @@ fun PillTabRow(
                         modifier = Modifier
                             .width(tabWidth)
                             .fillMaxHeight()
-                            .padding(IndicatorPadding)
-                            .clip(IndicatorShape)
                             .selectable(
                                 selected = selected,
                                 enabled = enabled,
                                 role = Role.Tab,
                                 onClick = { onTabSelected(index) }
                             )
+                            .padding(IndicatorPadding)
+                            .clip(IndicatorShape)
                             .semantics { contentDescription = tab.label },
                         horizontalArrangement = Arrangement.spacedBy(
                             6.dp,

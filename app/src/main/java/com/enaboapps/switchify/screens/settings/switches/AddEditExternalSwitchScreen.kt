@@ -34,9 +34,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEvent
+import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
@@ -243,8 +246,14 @@ fun SwitchListener(navController: NavController, onKeyEvent: (KeyEvent) -> Unit)
             .background(MaterialTheme.colorScheme.background)
             .padding(16.dp)
             .onKeyEvent { keyEvent ->
-                onKeyEvent(keyEvent)
-                true
+                when {
+                    keyEvent.key == Key.Back -> false
+                    keyEvent.type == KeyEventType.KeyDown -> {
+                        onKeyEvent(keyEvent)
+                        true
+                    }
+                    else -> true
+                }
             }
             .fillMaxWidth()
             .focusRequester(requester)

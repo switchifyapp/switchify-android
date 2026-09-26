@@ -56,6 +56,26 @@ fun AccountScreen(navController: NavController) {
 
     val proStatus = remember { mutableStateOf("") }
     val isLoading = remember { mutableStateOf(true) }
+    val signOutFailedMessage = stringResource(R.string.account_sign_out_failed)
+
+    val signOut: (clearPreferences: Boolean) -> Unit = { clearPreferences ->
+        scope.launch {
+            authRepository.signOut().fold(
+                onSuccess = {
+                    if (clearPreferences) {
+                        preferenceManager.clearWhitelistedPreferences()
+                    }
+                    navController.popBackStack(
+                        navController.graph.startDestinationId,
+                        false
+                    )
+                },
+                onFailure = {
+                    Toast.makeText(context, signOutFailedMessage, Toast.LENGTH_SHORT).show()
+                }
+            )
+        }
+    }
 
     LaunchedEffect(Unit) {
         IAPHandler.initIfNeeded(context) {
@@ -143,14 +163,7 @@ fun AccountScreen(navController: NavController) {
                     TextButton(
                         onClick = {
                             showSignOutDialog.value = false
-                            scope.launch {
-                                preferenceManager.clearWhitelistedPreferences()
-                                authRepository.signOut()
-                                navController.popBackStack(
-                                    navController.graph.startDestinationId,
-                                    false
-                                )
-                            }
+                            signOut(true)
                         }
                     ) {
                         Text(stringResource(R.string.button_clear_and_sign_out))
@@ -160,13 +173,7 @@ fun AccountScreen(navController: NavController) {
                     TextButton(
                         onClick = {
                             showSignOutDialog.value = false
-                            scope.launch {
-                                authRepository.signOut()
-                                navController.popBackStack(
-                                    navController.graph.startDestinationId,
-                                    false
-                                )
-                            }
+                            signOut(false)
                         }
                     ) {
                         Text(stringResource(R.string.button_keep_and_sign_out))

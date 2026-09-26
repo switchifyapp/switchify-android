@@ -25,13 +25,14 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.navigation.NavController
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.components.ActionButton
@@ -48,14 +49,8 @@ fun SwitchSetupStep(
 ) {
     val scrollState = rememberScrollState()
 
-    LaunchedEffect(navController) {
-        // Check switch status when returning from switch configuration
-        navController.currentBackStackEntry?.savedStateHandle?.getLiveData<Boolean>("switches_configured")
-            ?.observeForever { configured ->
-                if (configured == true) {
-                    onSwitchesConfigured()
-                }
-            }
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+        onSwitchesConfigured()
     }
 
     Column(modifier = Modifier.fillMaxSize()) {

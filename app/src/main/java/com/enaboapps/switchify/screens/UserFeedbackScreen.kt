@@ -52,6 +52,8 @@ fun UserFeedbackScreen(navController: NavController) {
     val focusManager = LocalFocusManager.current
 
     val feedbackErrorEmpty = stringResource(R.string.feedback_error_empty)
+    val feedbackErrorTelemetryDisabled =
+        stringResource(R.string.feedback_error_telemetry_disabled)
 
     // Auto-fill email if user is signed in
     LaunchedEffect(Unit) {
@@ -183,6 +185,11 @@ fun UserFeedbackScreen(navController: NavController) {
                             return@ActionButton
                         }
 
+                        if (!Logger.isTelemetryEnabled()) {
+                            errorMessage = feedbackErrorTelemetryDisabled
+                            return@ActionButton
+                        }
+
                         isSubmitting = true
                         submitFeedback(
                             feedbackText = feedbackText.trim(),
@@ -191,6 +198,10 @@ fun UserFeedbackScreen(navController: NavController) {
                             onSuccess = {
                                 isSubmitting = false
                                 showSuccessMessage = true
+                            },
+                            onFailure = {
+                                isSubmitting = false
+                                errorMessage = feedbackErrorTelemetryDisabled
                             }
                         )
                     },
@@ -208,8 +219,13 @@ private fun submitFeedback(
     feedbackText: String,
     contactEmail: String,
     feedbackType: FeedbackType,
-    onSuccess: () -> Unit
+    onSuccess: () -> Unit,
+    onFailure: () -> Unit
 ) {
+    if (!Logger.isTelemetryEnabled()) {
+        onFailure()
+        return
+    }
     Logger.log(
         event = LogEvent.UserFeedbackSubmitted,
         data = buildMap {

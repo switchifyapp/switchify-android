@@ -807,6 +807,8 @@
     
     <!-- Error Messages -->
     <string name="feedback_error_empty">Please provide feedback details</string>
+    <string name="feedback_error_telemetry_disabled">Feedback can\'t be sent while diagnostic data sharing is off. Turn on \"Share diagnostic data\" in Settings and try again.</string>
+    <string name="account_sign_out_failed">Sign out failed. Check your connection and try again.</string>
     <string name="error_no_app_to_open_link">No app available to open this link</string>
     
     <!-- Home Screen Feedback Card -->

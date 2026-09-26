@@ -11,18 +11,20 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import android.app.Activity
+import androidx.activity.compose.BackHandler
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.components.BaseView
@@ -41,11 +43,17 @@ import com.enaboapps.switchify.service.utils.ServiceUtils
 @Composable
 fun OnboardingScreen(navController: NavController) {
     val context = LocalContext.current
-    val viewModel = remember { OnboardingViewModel(context) }
+    val viewModel: OnboardingViewModel = viewModel {
+        OnboardingViewModel(context.applicationContext).also { it.init() }
+    }
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    LaunchedEffect(Unit) {
-        viewModel.init()
+    BackHandler {
+        if (uiState.currentStep != OnboardingStep.WELCOME) {
+            viewModel.previousStep()
+        } else {
+            (context as? Activity)?.finish()
+        }
     }
 
     // Determine skip actions based on current step

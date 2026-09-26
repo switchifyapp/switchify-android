@@ -2,6 +2,7 @@ package com.enaboapps.switchify.components
 
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavController
+import com.enaboapps.switchify.nav.navigateIfResumed
 
 @Composable
 fun NavRouteLink(
@@ -15,6 +16,6 @@ fun NavRouteLink(
         titleResId = titleResId,
         runtimeTitle = runtimeTitle,
         summaryResId = summaryResId,
-        onClick = { navController.navigate(route) }
+        onClick = { navController.navigateIfResumed(route) }
     )
 }

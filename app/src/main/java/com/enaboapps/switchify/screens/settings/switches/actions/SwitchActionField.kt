@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Delete
@@ -118,10 +117,7 @@ fun SwitchActionField(
                         }
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             if (onDelete != null) {
-                                IconButton(
-                                    onClick = onDelete,
-                                    modifier = Modifier.size(40.dp)
-                                ) {
+                                IconButton(onClick = onDelete) {
                                     Icon(
                                         imageVector = Icons.Default.Delete,
                                         contentDescription = stringResource(R.string.button_delete),

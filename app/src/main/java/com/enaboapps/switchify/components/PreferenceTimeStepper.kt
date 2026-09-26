@@ -157,8 +157,7 @@ private fun TimeStepperControls(
                 contentColor = MaterialTheme.colorScheme.onPrimary,
                 disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
                 disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
-            ),
-            modifier = Modifier.size(40.dp)
+            )
         ) {
             Icon(
                 imageVector = Icons.Default.Remove,
@@ -183,8 +182,7 @@ private fun TimeStepperControls(
                 contentColor = MaterialTheme.colorScheme.onPrimary,
                 disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
                 disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
-            ),
-            modifier = Modifier.size(40.dp)
+            )
         ) {
             Icon(
                 imageVector = Icons.Default.Add,

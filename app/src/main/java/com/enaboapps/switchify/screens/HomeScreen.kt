@@ -28,6 +28,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.navigation.NavController
 import com.enaboapps.switchify.BuildConfig
 import com.enaboapps.switchify.R
@@ -60,9 +62,19 @@ import com.google.android.play.core.review.ReviewManagerFactory
 @Composable
 fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = ServiceUtils()) {
     val context = LocalContext.current
-    val isAccessibilityServiceEnabled = serviceUtils.isAccessibilityServiceEnabled(context)
-    val isSetupComplete = PreferenceManager(context).isSetupComplete()
+    val preferenceManager = remember { PreferenceManager(context) }
+    val cameraPermissionManager = remember { CameraPermissionManager.getInstance(context) }
+    var isAccessibilityServiceEnabled by remember {
+        mutableStateOf(serviceUtils.isAccessibilityServiceEnabled(context))
+    }
+    var hasCameraPermission by remember { mutableStateOf(cameraPermissionManager.hasPermission()) }
+    val isSetupComplete = preferenceManager.isSetupComplete()
     var isPro by remember { mutableStateOf(false) }
+
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+        isAccessibilityServiceEnabled = serviceUtils.isAccessibilityServiceEnabled(context)
+        hasCameraPermission = cameraPermissionManager.hasPermission()
+    }
     val switchEventStore = remember { SwitchEventStore.getInstance() }
     val switchConfigValidator = remember { SwitchConfigValidator(context) }
     val switchProfileRepository = remember { SwitchProfileRepository.getInstance(context) }
@@ -116,8 +128,6 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
 
     LaunchedEffect(Unit) { ReviewPrompter.requestIfDue(context, reviewManager) }
 
-    val hasCameraPermission =
-        remember { CameraPermissionManager.getInstance(context).hasPermission() }
     val showCameraAlert = isAccessibilityServiceEnabled && hasCameraSwitch && !hasCameraPermission
     val activeProfileName = switchProfileDocument.profiles
         .firstOrNull { it.id == switchProfileDocument.activeProfileId }

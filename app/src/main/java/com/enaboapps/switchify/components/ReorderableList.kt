@@ -316,8 +316,7 @@ private fun ArrowControls(
     ) {
         IconButton(
             onClick = onMoveUp,
-            enabled = canMoveUp,
-            modifier = Modifier.size(40.dp)
+            enabled = canMoveUp
         ) {
             Icon(
                 imageVector = Icons.Default.KeyboardArrowUp,
@@ -332,8 +331,7 @@ private fun ArrowControls(
         Spacer(modifier = Modifier.width(4.dp))
         IconButton(
             onClick = onMoveDown,
-            enabled = canMoveDown,
-            modifier = Modifier.size(40.dp)
+            enabled = canMoveDown
         ) {
             Icon(
                 imageVector = Icons.Default.KeyboardArrowDown,
@@ -350,7 +348,7 @@ private fun ArrowControls(
 
 @Composable
 private fun SelectControlMove(itemLabel: String, onClick: () -> Unit) {
-    IconButton(onClick = onClick, modifier = Modifier.size(40.dp)) {
+    IconButton(onClick = onClick) {
         Icon(
             imageVector = Icons.Default.OpenWith,
             contentDescription = stringResource(
@@ -364,7 +362,7 @@ private fun SelectControlMove(itemLabel: String, onClick: () -> Unit) {
 
 @Composable
 private fun SelectControlCancel(itemLabel: String, onClick: () -> Unit) {
-    IconButton(onClick = onClick, modifier = Modifier.size(40.dp)) {
+    IconButton(onClick = onClick) {
         Icon(
             imageVector = Icons.Default.Close,
             contentDescription = stringResource(
@@ -382,7 +380,7 @@ private fun SelectControlInsertAbove(
     targetLabel: String,
     onClick: () -> Unit
 ) {
-    IconButton(onClick = onClick, modifier = Modifier.size(40.dp)) {
+    IconButton(onClick = onClick) {
         Icon(
             imageVector = Icons.Default.ArrowUpward,
             contentDescription = stringResource(

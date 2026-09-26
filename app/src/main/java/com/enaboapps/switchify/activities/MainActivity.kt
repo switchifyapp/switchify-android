@@ -1,10 +1,9 @@
 package com.enaboapps.switchify.activities
 
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.compose.rememberNavController
 import com.enaboapps.switchify.activities.ui.theme.SwitchifyTheme
 import com.enaboapps.switchify.backend.data.FileManager
@@ -16,15 +15,13 @@ import com.enaboapps.switchify.utils.LogEvent
 import com.enaboapps.switchify.utils.Logger
 import com.revenuecat.purchases.Purchases
 import com.revenuecat.purchases.interfaces.UpdatedCustomerInfoListener
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     private lateinit var preferenceManager: PreferenceManager
     private lateinit var fileManager: FileManager
-
-    private val scope = CoroutineScope(Dispatchers.IO)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -74,9 +71,11 @@ class MainActivity : ComponentActivity() {
             )
         }
 
-        Handler(Looper.getMainLooper()).postDelayed({
-            SwitchEventStore.getInstance().initialize(this)
-        }, 1000)
+        val appContext = applicationContext
+        lifecycleScope.launch {
+            delay(1000)
+            SwitchEventStore.getInstance().initialize(appContext)
+        }
 
 
         // Migrate files from regular storage to device protected storage
@@ -106,9 +105,10 @@ class MainActivity : ComponentActivity() {
      * Migrates files from regular storage to device protected storage.
      */
     private fun migrateFromRegularStorage() {
-        scope.launch {
+        val appContext = applicationContext
+        lifecycleScope.launch(Dispatchers.IO) {
             try {
-                fileManager.migrateFromRegularStorage(this@MainActivity)
+                fileManager.migrateFromRegularStorage(appContext)
             } catch (e: Exception) {
                 Logger.log(
                     LogEvent.AppSetupStageFailed,
