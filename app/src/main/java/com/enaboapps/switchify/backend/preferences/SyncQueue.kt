@@ -44,6 +44,7 @@ class SyncQueue internal constructor(
     private var nextRevision = 0L
 
     private var isPaused = false
+    private var queuedWhilePaused = false
 
     private constructor() : this(
         coroutineScope = CoroutineScope(Dispatchers.IO + SupervisorJob()),
@@ -72,20 +73,21 @@ class SyncQueue internal constructor(
 
     /** Queues a preference change for sync after the debounce delay. */
     fun queueChange(key: String, value: Any) {
-        val wasQueued = synchronized(queueLock) {
+        val deferred = synchronized(queueLock) {
+            logger.debug("Queueing change for key: $key")
+            val revision = ++nextRevision
+            pendingChanges[key] = PendingChange(value, queueEpoch, revision)
             if (isPaused) {
-                false
+                queuedWhilePaused = true
+                true
             } else {
-                logger.debug("Queueing change for key: $key")
-                val revision = ++nextRevision
-                pendingChanges[key] = PendingChange(value, queueEpoch, revision)
                 val signal = SyncSignal(syncGeneration.incrementAndGet(), queueEpoch)
                 syncSignals.trySend(signal)
-                true
+                false
             }
         }
-        if (!wasQueued) {
-            logger.debug("SyncQueue is paused, ignoring change for key: $key")
+        if (deferred) {
+            logger.debug("SyncQueue is paused, deferring change for key: $key until resume")
         }
     }
 
@@ -180,6 +182,7 @@ class SyncQueue internal constructor(
             syncGeneration.incrementAndGet()
             queueEpoch++
             pendingChanges.clear()
+            queuedWhilePaused = false
         }
     }
 
@@ -201,6 +204,11 @@ class SyncQueue internal constructor(
         logger.debug("Resuming sync queue")
         synchronized(queueLock) {
             isPaused = false
+            if (queuedWhilePaused) {
+                queuedWhilePaused = false
+                val signal = SyncSignal(syncGeneration.incrementAndGet(), queueEpoch)
+                syncSignals.trySend(signal)
+            }
         }
     }
 

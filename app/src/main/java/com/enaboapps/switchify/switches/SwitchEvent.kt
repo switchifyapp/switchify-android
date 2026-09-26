@@ -33,4 +33,25 @@ data class SwitchEvent(
     fun containsAction(actionId: Int): Boolean {
         return pressAction.id == actionId || holdActions.any { it.id == actionId }
     }
+
+    /**
+     * Fills in fields that Gson leaves null when they are missing from older JSON
+     * (for example switch files written before hold_actions or type existed).
+     * Returns null when the event has no usable press action.
+     */
+    fun sanitized(): SwitchEvent? {
+        val safeType: String? = type
+        val safeName: String? = name
+        val safeCode: String? = code
+        val safePressAction: SwitchAction? = pressAction
+        val safeHoldActions: List<SwitchAction>? = holdActions
+        if (safePressAction == null || safeCode == null) return null
+        return SwitchEvent(
+            type = safeType?.takeIf { it.isNotEmpty() } ?: SWITCH_EVENT_TYPE_EXTERNAL,
+            name = safeName ?: safeCode,
+            code = safeCode,
+            pressAction = safePressAction,
+            holdActions = safeHoldActions?.filterNotNull() ?: emptyList()
+        )
+    }
 }

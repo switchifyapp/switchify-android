@@ -230,11 +230,19 @@ class PreferenceManager(context: Context) {
     }
 
     fun getFloatValue(key: String, defaultValue: Float = 0f): Float {
-        return sharedPreferences.getFloat(key, defaultValue)
+        return try {
+            sharedPreferences.getFloat(key, defaultValue)
+        } catch (e: ClassCastException) {
+            defaultValue
+        }
     }
 
     fun getBooleanValue(key: String, defaultValue: Boolean = false): Boolean {
-        return sharedPreferences.getBoolean(key, defaultValue)
+        return try {
+            sharedPreferences.getBoolean(key, defaultValue)
+        } catch (e: ClassCastException) {
+            defaultValue
+        }
     }
 
     fun getIntegerValue(key: String, defaultValue: Int = 1000): Int {

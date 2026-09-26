@@ -181,6 +181,30 @@ class SyncQueueTest {
     }
 
     @Test
+    fun changesQueuedWhilePausedAreKeptAndSyncedAfterResume() = runTest {
+        val uploads = mutableListOf<Map<String, Any>>()
+        val queue = createQueue { changes ->
+            uploads += changes
+            Result.success(Unit)
+        }
+
+        queue.pause()
+        queue.queueChange("scan_rate", 800L)
+        advanceTimeBy(3000L)
+        runCurrent()
+
+        assertTrue(uploads.isEmpty())
+        assertEquals(1, queue.getPendingCount())
+
+        queue.resume()
+        advanceTimeBy(3000L)
+        runCurrent()
+
+        assertEquals(listOf(mapOf<String, Any>("scan_rate" to 800L)), uploads)
+        assertEquals(0, queue.getPendingCount())
+    }
+
+    @Test
     fun clearInvalidatesScheduledSyncAndRemovesPendingChanges() = runTest {
         val uploads = mutableListOf<Map<String, Any>>()
         val queue = createQueue { changes ->

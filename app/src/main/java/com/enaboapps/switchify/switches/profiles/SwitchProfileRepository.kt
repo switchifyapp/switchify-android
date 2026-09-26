@@ -1,6 +1,7 @@
 package com.enaboapps.switchify.switches.profiles
 
 import android.content.Context
+import android.util.Log
 import com.enaboapps.switchify.switches.SwitchEvent
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -176,38 +177,46 @@ internal class SwitchProfileRepository internal constructor(
         val stored = when {
             storedResult.isSuccess -> storedResult.getOrNull()
             storedResult.exceptionOrNull() is CorruptSwitchDataException -> {
-                if (persistence.backUpCorruptProfiles().isFailure) return false
+                if (persistence.backUpCorruptProfiles().isFailure) return failed("backup corrupt profiles")
                 null
             }
-            else -> return false
+            else -> return failed("read profiles", storedResult.exceptionOrNull())
         }
         if (stored != null) {
             if (isValidDocument(stored)) {
                 val normalized = normalize(stored)
-                if (normalized != stored && persistence.writeProfiles(normalized).isFailure) return false
+                if (normalized != stored && persistence.writeProfiles(normalized).isFailure) {
+                    return failed("write normalized profiles")
+                }
                 _document.value = normalized
                 initialized = true
                 adoptLateLegacyLocked()
                 return true
             }
-            if (stored.version > SwitchProfileDocument.CURRENT_VERSION) return false
-            if (persistence.backUpCorruptProfiles().isFailure) return false
+            if (stored.version > SwitchProfileDocument.CURRENT_VERSION) return failed("newer schema version")
+            if (persistence.backUpCorruptProfiles().isFailure) return failed("backup invalid profiles")
         }
         val legacyResult = persistence.readLegacyEvents()
         val legacyEvents = when {
             legacyResult.isSuccess -> legacyResult.getOrNull()
             legacyResult.exceptionOrNull() is CorruptSwitchDataException -> {
-                if (persistence.backUpCorruptLegacyEvents().isFailure) return false
+                if (persistence.backUpCorruptLegacyEvents().isFailure) return failed("backup corrupt legacy events")
                 null
             }
-            else -> return false
+            else -> return failed("read legacy events", legacyResult.exceptionOrNull())
         }
         val resolved = newDocument(legacyEvents.orEmpty())
-        if (persistence.writeProfiles(resolved).isFailure) return false
+        val writeResult = persistence.writeProfiles(resolved)
+        if (writeResult.isFailure) return failed("write migrated profiles", writeResult.exceptionOrNull())
         _document.value = resolved
         initialized = true
         if (legacyEvents != null) persistence.deleteLegacyEvents()
         return true
+    }
+
+    private fun failed(stage: String, error: Throwable? = null): Boolean {
+        runCatching { Log.w(TAG, "Switch profile initialization failed at: $stage", error) }
+        return false
     }
 
     private suspend fun adoptLateLegacyLocked() {
@@ -274,6 +283,8 @@ internal class SwitchProfileRepository internal constructor(
     }
 
     companion object {
+        private const val TAG = "SwitchProfileRepository"
+
         @Volatile
         private var instance: SwitchProfileRepository? = null
 
