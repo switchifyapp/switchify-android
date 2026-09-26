@@ -153,6 +153,7 @@ class CameraSwitchManager(
         return true
     }
 
+    @Synchronized
     private fun onPauseStarted() {
         Log.d(TAG, "Pause started - resetting gesture states")
         gestureStates.values.forEach { it.isActive = false }
@@ -166,6 +167,7 @@ class CameraSwitchManager(
      * Processes face detection results from CameraForegroundService.
      * This is the main entry point for gesture processing.
      */
+    @Synchronized
     fun processFaceResult(result: FaceProcessingService.FaceDetectionResult) {
         if (!checkInitialization()) {
             return

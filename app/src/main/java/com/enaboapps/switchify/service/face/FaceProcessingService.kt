@@ -13,6 +13,7 @@ import com.enaboapps.switchify.service.face.processing.MediaPipeManager
 import com.enaboapps.switchify.service.face.state.FaceStateManager
 import com.enaboapps.switchify.service.face.utils.HeadPoseCalculator
 import com.enaboapps.switchify.switches.CameraSwitchFacialGesture
+import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * Modular face processing service using class-based architecture.
@@ -25,6 +26,7 @@ class FaceProcessingService(context: Context) {
     // Background processing
     private val processingThread = HandlerThread("FaceProcessing").apply { start() }
     private val processingHandler = Handler(processingThread.looper)
+    private val isBusy = AtomicBoolean(false)
 
     @Volatile
     private var isCleanedUp = false
@@ -163,34 +165,47 @@ class FaceProcessingService(context: Context) {
         bitmap: Bitmap,
         timestampMs: Long = System.currentTimeMillis(),
         callback: (FaceDetectionResult?) -> Unit
-    ) {
+    ): Boolean {
         if (isCleanedUp) {
             callback(null)
-            return
+            return false
+        }
+        if (!isBusy.compareAndSet(false, true)) {
+            return false
         }
 
-        processingHandler.post {
-            if (isCleanedUp) {
-                callback(null)
-                return@post
-            }
-
-            // Ensure MediaPipe is initialized
-            if (!mediaPipeManager.ensureFaceLandmarker(appContext)) {
-                callback(null)
-                return@post
-            }
-
+        val posted = processingHandler.post {
             try {
-                val result = mediaPipeManager.detectForVideo(bitmap, timestampMs)
-                val detectionResult = processLandmarkerResult(result, timestampMs)
-                callback(detectionResult)
-            } catch (e: Exception) {
-                Log.e(TAG, "Error processing face", e)
-                callback(null)
+                if (isCleanedUp) {
+                    callback(null)
+                    return@post
+                }
+
+                // Ensure MediaPipe is initialized
+                if (!mediaPipeManager.ensureFaceLandmarker(appContext)) {
+                    callback(null)
+                    return@post
+                }
+
+                try {
+                    val result = mediaPipeManager.detectForVideo(bitmap, timestampMs)
+                    val detectionResult = processLandmarkerResult(result, timestampMs)
+                    callback(detectionResult)
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error processing face", e)
+                    callback(null)
+                }
+            } finally {
+                isBusy.set(false)
             }
         }
+        if (!posted) {
+            isBusy.set(false)
+        }
+        return posted
     }
+
+    fun isBusy(): Boolean = isBusy.get()
 
     private fun processLandmarkerResult(
         result: com.google.mediapipe.tasks.vision.facelandmarker.FaceLandmarkerResult?,
@@ -202,12 +217,15 @@ class FaceProcessingService(context: Context) {
 
         val gestureConfidence = mutableMapOf<String, Float>()
 
-        // Process blendshapes using the modular processor
-        val blendshapeScores =
+        // Process blendshapes once per frame using the modular processor
+        val processedScores =
             if (result.faceBlendshapes().isPresent && result.faceBlendshapes().get().isNotEmpty()) {
-                val processedScores =
-                    blendshapeProcessor.processBlendshapes(result.faceBlendshapes().get()[0])
-
+                blendshapeProcessor.processBlendshapes(result.faceBlendshapes().get()[0])
+            } else {
+                null
+            }
+        val blendshapeScores =
+            if (processedScores != null) {
                 // Convert to original format for compatibility
                 BlendshapeScores(
                     smileScore = processedScores.smileScore,
@@ -265,9 +283,7 @@ class FaceProcessingService(context: Context) {
 
         // Detect gestures using the gesture detector
         val detectedGestures = gestureDetector.detectGestures(
-            blendshapeScores = blendshapeProcessor.processBlendshapes(
-                result.faceBlendshapes().get()[0]
-            ),
+            blendshapeScores = processedScores ?: BlendshapeProcessor.BlendshapeScores(),
             faceState = faceState,
             winkResults = winkResults,
             timestampMs = timestampMs

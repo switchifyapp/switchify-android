@@ -40,7 +40,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 class CameraSettingsScreenModel(application: Application) : AndroidViewModel(application) {
 
     private val preferenceManager = PreferenceManager(application)
-    private val faceProcessingService = FaceProcessingService(application)
+    private var faceProcessingService = FaceProcessingService(application)
 
     private val _detectedExpressions = MutableStateFlow<Set<String>>(emptySet())
     val detectedExpressions: StateFlow<Set<String>> = _detectedExpressions.asStateFlow()
@@ -155,6 +155,11 @@ class CameraSettingsScreenModel(application: Application) : AndroidViewModel(app
     }
 
     fun startCamera(lifecycleOwner: LifecycleOwner, previewView: PreviewView) {
+        if (isCleanedUp) {
+            faceProcessingService = FaceProcessingService(getApplication())
+            isProcessing.set(false)
+            isCleanedUp = false
+        }
         cameraProviderFuture = ProcessCameraProvider.getInstance(getApplication()).also { future ->
             future.addListener({
                 try {

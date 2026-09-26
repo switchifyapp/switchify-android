@@ -34,9 +34,6 @@ class FaceStateManager {
 
         // Baseline calibration parameters
         const val BASELINE_SAMPLE_FRAMES = 30
-        const val WINK_MIN_DURATION = 150L
-        const val WINK_MAX_DURATION = 1000L
-        const val WINK_RELEASE_DURATION = 100L
     }
 
     /**
@@ -155,7 +152,8 @@ class FaceStateManager {
     }
 
     /**
-     * Process wink detection with timing constraints
+     * Reports whether a left/right wink is currently held (one eye closed, the other open).
+     * Hold-time validation is applied by the consumer, matching the camera settings test screen.
      */
     fun processWinkDetection(
         leftEyeClose: Float,
@@ -181,12 +179,9 @@ class FaceStateManager {
         } else if (leftWinkActive && (!leftClosed || !rightOpen)) {
             leftWinkReleaseCandidateStart = currentTime
             leftWinkActive = false
-
-            val duration = currentTime - leftWinkCandidateStart
-            return duration >= WINK_MIN_DURATION && duration <= WINK_MAX_DURATION
         }
 
-        return false
+        return leftWinkActive
     }
 
     private fun processRightWink(
@@ -203,12 +198,9 @@ class FaceStateManager {
         } else if (rightWinkActive && (!rightClosed || !leftOpen)) {
             rightWinkReleaseCandidateStart = currentTime
             rightWinkActive = false
-
-            val duration = currentTime - rightWinkCandidateStart
-            return duration >= WINK_MIN_DURATION && duration <= WINK_MAX_DURATION
         }
 
-        return false
+        return rightWinkActive
     }
 
     fun reset() {
