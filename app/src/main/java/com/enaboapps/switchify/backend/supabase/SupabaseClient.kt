@@ -5,7 +5,6 @@ import com.enaboapps.switchify.BuildConfig
 import io.github.jan.supabase.auth.Auth
 import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.postgrest.Postgrest
-import io.github.jan.supabase.realtime.Realtime
 import io.github.jan.supabase.SupabaseClient as SupabaseClientInstance
 
 object SupabaseClient {
@@ -35,7 +34,6 @@ object SupabaseClient {
         ) {
             install(Auth)
             install(Postgrest)
-            install(Realtime)
         }
     }
 

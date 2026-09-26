@@ -78,7 +78,7 @@ class FileManager private constructor(context: Context) {
 
                 file.bufferedReader().use { reader ->
                     val content = reader.readText()
-                    Log.d(tag, "Successfully read file with content: $content")
+                    Log.d(tag, "Successfully read file $fileName (${content.length} chars)")
                     Result.success(content)
                 }
             } catch (e: Exception) {
@@ -143,7 +143,7 @@ class FileManager private constructor(context: Context) {
     ): Result<Unit> = withContext(Dispatchers.IO) {
         try {
             val json = gson.toJson(data)
-            Log.d(tag, "Writing JSON to file: $json")
+            Log.d(tag, "Writing JSON to file $fileName (${json.length} chars)")
             writeFile(fileName, json, subDirectory)
         } catch (e: Exception) {
             Log.e(tag, "Error writing JSON to file: $fileName", e)

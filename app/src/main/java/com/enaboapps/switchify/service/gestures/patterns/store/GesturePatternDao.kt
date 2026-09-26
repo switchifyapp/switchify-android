@@ -36,6 +36,9 @@ interface GesturePatternDao {
     @Query("UPDATE gesture_patterns SET `order` = :order WHERE id = :id")
     suspend fun updatePatternOrder(id: String, order: Int)
 
+    @Query("UPDATE gesture_patterns SET name = :name WHERE id = :id")
+    suspend fun updatePatternName(id: String, name: String): Int
+
     @Query("SELECT MAX(`order`) FROM gesture_patterns")
     suspend fun getMaxOrder(): Int?
 } 

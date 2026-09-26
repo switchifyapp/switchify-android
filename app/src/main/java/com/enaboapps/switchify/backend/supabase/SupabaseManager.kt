@@ -4,12 +4,7 @@ import android.util.Log
 import com.enaboapps.switchify.backend.supabase.models.PreferenceTypeConverter
 import com.enaboapps.switchify.backend.supabase.models.TypedUserPreferences
 import io.github.jan.supabase.postgrest.from
-import io.github.jan.supabase.realtime.PostgresAction
-import io.github.jan.supabase.realtime.channel
-import io.github.jan.supabase.realtime.postgresChangeFlow
-import io.github.jan.supabase.realtime.realtime
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
 
 /**
@@ -152,26 +147,5 @@ class SupabaseManager {
             Log.e(TAG, "Error deleting user preferences", e)
             Result.failure(e)
         }
-    }
-
-    /**
-     * Sets up a real-time listener for changes to user preferences.
-     * Note: Real-time subscriptions need proper setup in Supabase project
-     */
-    fun listenToUserPreferences(): Flow<PostgresAction>? {
-        return if (auth.isUserSignedIn()) {
-            val userId = auth.getUserId()
-            if (userId != null) {
-                try {
-                    supabase.realtime.channel("user_preferences")
-                        .postgresChangeFlow<PostgresAction>(
-                            schema = "public"
-                        )
-                } catch (e: Exception) {
-                    Log.e(TAG, "Error setting up real-time listener", e)
-                    null
-                }
-            } else null
-        } else null
     }
 }

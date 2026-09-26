@@ -24,10 +24,13 @@ object Logger {
 
     private val scope = CoroutineScope(Dispatchers.IO)
     private val gson = Gson()
-    private var sender: TimberlogsSender = TimberlogsSender { json ->
+    private const val HTTP_TIMEOUT_MS = 15_000
+    private fun defaultSender() = TimberlogsSender { json ->
         val url = URL(TIMBERLOGS_URL)
         val connection = url.openConnection() as HttpURLConnection
         try {
+            connection.connectTimeout = HTTP_TIMEOUT_MS
+            connection.readTimeout = HTTP_TIMEOUT_MS
             connection.requestMethod = "POST"
             connection.setRequestProperty("Content-Type", "application/json")
             connection.setRequestProperty("Authorization", "Bearer ${BuildConfig.TIMBERLOGS_API_KEY}")
@@ -42,6 +45,7 @@ object Logger {
             connection.disconnect()
         }
     }
+    private var sender: TimberlogsSender = defaultSender()
 
     /**
      * Holds the PreferenceManager used to read the telemetry opt-in flag. Set by
@@ -186,22 +190,7 @@ object Logger {
     }
 
     internal fun resetForTesting() {
-        sender = TimberlogsSender { json ->
-            val url = URL(TIMBERLOGS_URL)
-            val connection = url.openConnection() as HttpURLConnection
-            try {
-                connection.requestMethod = "POST"
-                connection.setRequestProperty("Content-Type", "application/json")
-                connection.setRequestProperty("Authorization", "Bearer ${BuildConfig.TIMBERLOGS_API_KEY}")
-                connection.doOutput = true
-                connection.outputStream.use { os ->
-                    os.write(json.toByteArray())
-                }
-                connection.responseCode
-            } finally {
-                connection.disconnect()
-            }
-        }
+        sender = defaultSender()
         telemetryEnabledOverride = null
         userIdOverride = null
     }
