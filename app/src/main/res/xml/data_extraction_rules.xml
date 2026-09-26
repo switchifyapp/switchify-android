@@ -1,19 +1,33 @@
-<?xml version="1.0" encoding="utf-8"?><!--
-   Sample data extraction rules file; uncomment and customize as necessary.
-   See https://developer.android.com/about/versions/12/backup-restore#xml-changes
-   for details.
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+   Backup and device-transfer rules for API 31+.
+   The Supabase session (access + refresh tokens) lives in the default shared
+   preferences file and must never leave the device. RevenueCat caches are
+   rebuilt from the network and are excluded to keep the backup small.
 -->
 <data-extraction-rules>
     <cloud-backup>
-        <!-- TODO: Use <include> and <exclude> to control what is backed up.
-        <include .../>
-        <exclude .../>
-        -->
+        <exclude domain="sharedpref" path="com.enaboapps.switchify_preferences.xml" />
+        <exclude domain="device_sharedpref" path="com.enaboapps.switchify_preferences.xml" />
+        <exclude domain="sharedpref" path="com_revenuecat_purchases_preferences.xml" />
+        <exclude domain="device_sharedpref" path="com_revenuecat_purchases_preferences.xml" />
+        <exclude domain="sharedpref" path="com_revenuecat_purchases_com.enaboapps.switchify_preferences_diagnostics.xml" />
+        <exclude domain="device_sharedpref" path="com_revenuecat_purchases_com.enaboapps.switchify_preferences_diagnostics.xml" />
+        <exclude domain="sharedpref" path="com.enaboapps.switchify_preferences_etags_v2.xml" />
+        <exclude domain="device_sharedpref" path="com.enaboapps.switchify_preferences_etags_v2.xml" />
+        <exclude domain="file" path="RevenueCat" />
+        <exclude domain="device_file" path="RevenueCat" />
     </cloud-backup>
-    <!--
     <device-transfer>
-        <include .../>
-        <exclude .../>
+        <exclude domain="sharedpref" path="com.enaboapps.switchify_preferences.xml" />
+        <exclude domain="device_sharedpref" path="com.enaboapps.switchify_preferences.xml" />
+        <exclude domain="sharedpref" path="com_revenuecat_purchases_preferences.xml" />
+        <exclude domain="device_sharedpref" path="com_revenuecat_purchases_preferences.xml" />
+        <exclude domain="sharedpref" path="com_revenuecat_purchases_com.enaboapps.switchify_preferences_diagnostics.xml" />
+        <exclude domain="device_sharedpref" path="com_revenuecat_purchases_com.enaboapps.switchify_preferences_diagnostics.xml" />
+        <exclude domain="sharedpref" path="com.enaboapps.switchify_preferences_etags_v2.xml" />
+        <exclude domain="device_sharedpref" path="com.enaboapps.switchify_preferences_etags_v2.xml" />
+        <exclude domain="file" path="RevenueCat" />
+        <exclude domain="device_file" path="RevenueCat" />
     </device-transfer>
-    -->
 </data-extraction-rules>

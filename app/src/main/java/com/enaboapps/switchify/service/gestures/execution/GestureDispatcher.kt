@@ -184,21 +184,21 @@ class GestureDispatcher(
         )
 
         try {
-            // Handle gesture pattern recording and gesture lock
-            gestureData?.let { data ->
-                GestureCaptureRouter.onGesturePerformed(data)
-                GesturePatternRecorder.addGesture(data, accessibilityService)
-            }
-
             // Notify state manager of dispatch attempt
             GestureStateManager.notifyGestureDispatchStarted(gestureType)
 
-            accessibilityService.dispatchGesture(
+            val accepted = accessibilityService.dispatchGesture(
                 gestureDescription,
                 object : AccessibilityService.GestureResultCallback() {
                     override fun onCompleted(gestureDescription: GestureDescription?) {
                         super.onCompleted(gestureDescription)
                         try {
+                            // Record for gesture lock and pattern capture only once the
+                            // system confirms the gesture actually ran
+                            gestureData?.let { data ->
+                                GestureCaptureRouter.onGesturePerformed(data)
+                                GesturePatternRecorder.addGesture(data, accessibilityService)
+                            }
                             handler.onGestureCompleted(gestureType)
                         } catch (e: Exception) {
                             Logger.log(
@@ -240,6 +240,18 @@ class GestureDispatcher(
                 },
                 null
             )
+            if (!accepted) {
+                val error = IllegalStateException("dispatchGesture rejected the gesture")
+                Logger.log(
+                    LogEvent.GestureDispatchFailed,
+                    data = baseData + mapOf(
+                        "result" to "failure",
+                        "reason" to "dispatch_rejected"
+                    ),
+                    throwable = error
+                )
+                handler.onGestureError(gestureType, error)
+            }
         } catch (e: Exception) {
             Logger.log(
                 LogEvent.GestureDispatchFailed,

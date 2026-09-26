@@ -191,7 +191,11 @@ class AuthViewModel : ViewModel() {
                     _uiState.value = AuthUiState.Loading
                     _errorMessage.value = null
 
-                    authRepository.signInWithGoogle(result.idToken, result.accessToken).fold(
+                    authRepository.signInWithGoogle(
+                        result.idToken,
+                        result.accessToken,
+                        result.rawNonce
+                    ).fold(
                         onSuccess = {
                             _uiState.value = AuthUiState.Success
                         },

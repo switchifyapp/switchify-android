@@ -27,15 +27,17 @@ class GoogleSignInManager(private val context: Context) {
      */
     suspend fun signIn(filterByAuthorizedAccounts: Boolean = false): GoogleSignInResult {
         return try {
-            // Generate a secure nonce for the request
-            val nonce = generateNonce()
+            // Google receives the hashed nonce; Supabase receives the raw nonce and
+            // verifies that its hash matches the one embedded in the ID token.
+            val rawNonce = UUID.randomUUID().toString()
+            val hashedNonce = sha256Hex(rawNonce)
 
             // Create Google ID option
             val googleIdOption = GetGoogleIdOption.Builder()
                 .setFilterByAuthorizedAccounts(filterByAuthorizedAccounts)
                 .setServerClientId(BuildConfig.GOOGLE_WEB_CLIENT_ID)
                 .setAutoSelectEnabled(true)
-                .setNonce(nonce)
+                .setNonce(hashedNonce)
                 .build()
 
             // Create credential request
@@ -49,7 +51,7 @@ class GoogleSignInManager(private val context: Context) {
                 request = request
             )
 
-            handleCredentialResponse(result)
+            handleCredentialResponse(result, rawNonce)
         } catch (e: NoCredentialException) {
             // No credentials available - user needs to sign in manually
             GoogleSignInResult.Error("No Google credentials available. Please sign in manually.")
@@ -74,7 +76,10 @@ class GoogleSignInManager(private val context: Context) {
         return signIn(filterByAuthorizedAccounts = true)
     }
 
-    private fun handleCredentialResponse(result: GetCredentialResponse): GoogleSignInResult {
+    private fun handleCredentialResponse(
+        result: GetCredentialResponse,
+        rawNonce: String
+    ): GoogleSignInResult {
         val credential = result.credential
 
         return when (credential.type) {
@@ -85,7 +90,8 @@ class GoogleSignInManager(private val context: Context) {
                         idToken = googleIdCredential.idToken,
                         accessToken = null, // Access token not available in Credential Manager flow
                         email = googleIdCredential.id,
-                        displayName = googleIdCredential.displayName
+                        displayName = googleIdCredential.displayName,
+                        rawNonce = rawNonce
                     )
                 } catch (e: Exception) {
                     GoogleSignInResult.Error("Failed to parse Google credential: ${e.message}")
@@ -98,15 +104,9 @@ class GoogleSignInManager(private val context: Context) {
         }
     }
 
-    /**
-     * Generate a cryptographically secure nonce for the Google ID token request
-     * This helps prevent replay attacks
-     */
-    private fun generateNonce(): String {
-        val bytes = UUID.randomUUID().toString().toByteArray()
-        val md = MessageDigest.getInstance("SHA-256")
-        val digest = md.digest(bytes)
-        return digest.fold("") { str, it -> str + "%02x".format(it) }
+    private fun sha256Hex(value: String): String {
+        val digest = MessageDigest.getInstance("SHA-256").digest(value.toByteArray())
+        return digest.joinToString("") { "%02x".format(it) }
     }
 }
 
@@ -119,7 +119,8 @@ sealed class GoogleSignInResult {
         val idToken: String,
         val accessToken: String?, // Note: May be null with Credential Manager
         val email: String?,
-        val displayName: String?
+        val displayName: String?,
+        val rawNonce: String
     ) : GoogleSignInResult()
 
     data class Error(val message: String) : GoogleSignInResult()

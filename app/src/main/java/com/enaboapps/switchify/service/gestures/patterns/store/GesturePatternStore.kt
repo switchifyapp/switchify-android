@@ -6,6 +6,7 @@ import com.enaboapps.switchify.service.gestures.data.GestureData
 import com.enaboapps.switchify.service.gestures.patterns.model.GesturePattern
 import com.enaboapps.switchify.utils.LogEvent
 import com.enaboapps.switchify.utils.Logger
+import androidx.room.withTransaction
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
@@ -17,7 +18,8 @@ import kotlinx.coroutines.withContext
  */
 class GesturePatternStore(context: Context) {
     private val context: Context = context.applicationContext
-    private val dao = GesturePatternDatabase.getDatabase(this.context).gesturePatternDao()
+    private val database = GesturePatternDatabase.getDatabase(this.context)
+    private val dao = database.gesturePatternDao()
 
     companion object {
         private const val TAG = "GesturePatternStore"
@@ -98,11 +100,16 @@ class GesturePatternStore(context: Context) {
         try {
             val updatedPattern = GesturePattern(id = id, gestures = gestures, name = name)
             withContext(Dispatchers.IO) {
-                dao.insertPattern(GesturePatternEntity.fromGesturePattern(updatedPattern))
-                dao.deleteGesturesForPattern(id)
-                dao.insertGestures(gestures.map {
-                    GestureDataEntity.fromGestureData(id, it)
-                })
+                database.withTransaction {
+                    if (dao.updatePatternName(id, name) == 0) {
+                        val order = (dao.getMaxOrder() ?: -1) + 1
+                        dao.insertPattern(GesturePatternEntity.fromGesturePattern(updatedPattern, order))
+                    }
+                    dao.deleteGesturesForPattern(id)
+                    dao.insertGestures(gestures.map {
+                        GestureDataEntity.fromGestureData(id, it)
+                    })
+                }
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error updating pattern: ${e.message}")

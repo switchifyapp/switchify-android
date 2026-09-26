@@ -81,12 +81,17 @@ class AuthRepository private constructor() {
     /**
      * Sign in with Google using ID token obtained from Google Play Services
      */
-    suspend fun signInWithGoogle(idToken: String, accessToken: String?): Result<Unit> {
+    suspend fun signInWithGoogle(
+        idToken: String,
+        accessToken: String?,
+        rawNonce: String? = null
+    ): Result<Unit> {
         return try {
             supabaseClient.auth.signInWith(IDToken) {
                 this.idToken = idToken
                 this.accessToken = accessToken
                 this.provider = Google
+                this.nonce = rawNonce
             }
             Result.success(Unit)
         } catch (e: Exception) {

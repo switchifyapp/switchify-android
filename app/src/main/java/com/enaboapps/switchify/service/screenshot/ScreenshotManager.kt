@@ -16,6 +16,8 @@ import com.enaboapps.switchify.R
 import com.enaboapps.switchify.service.core.SwitchifyAccessibilityService
 import com.enaboapps.switchify.service.window.MessageSeverity
 import com.enaboapps.switchify.service.window.ServiceMessageHUD
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import java.io.IOException
 
 /**
@@ -34,6 +36,30 @@ object ScreenshotManager {
         fun onScreenshotSaved(uri: Uri?)
         fun onScreenshotFailed(error: String)
         fun onCountdownTick(remainingSeconds: Int) {}
+    }
+
+    /**
+     * Delivers save results back on the main thread after background encoding.
+     */
+    private class MainThreadScreenshotCallback(
+        private val delegate: ScreenshotCallback,
+        private val handler: Handler
+    ) : ScreenshotCallback {
+        override fun onScreenshotTaken(bitmap: Bitmap, timestamp: Long) {
+            handler.post { delegate.onScreenshotTaken(bitmap, timestamp) }
+        }
+
+        override fun onScreenshotSaved(uri: Uri?) {
+            handler.post { delegate.onScreenshotSaved(uri) }
+        }
+
+        override fun onScreenshotFailed(error: String) {
+            handler.post { delegate.onScreenshotFailed(error) }
+        }
+
+        override fun onCountdownTick(remainingSeconds: Int) {
+            handler.post { delegate.onCountdownTick(remainingSeconds) }
+        }
     }
 
 
@@ -121,9 +147,15 @@ object ScreenshotManager {
                             // Notify callback first
                             callback?.onScreenshotTaken(bitmap, timestamp)
 
-                            // Save to gallery if requested
+                            // JPEG encoding and MediaStore I/O must not block the
+                            // accessibility service main thread
                             if (saveToGallery) {
-                                saveToGallery(context, bitmap, timestamp, callback)
+                                val mainHandler = Handler(Looper.getMainLooper())
+                                accessibilityService.getServiceScope().launch(Dispatchers.IO) {
+                                    saveToGallery(context, bitmap, timestamp, callback?.let {
+                                        MainThreadScreenshotCallback(it, mainHandler)
+                                    })
+                                }
                             }
                         } else {
                             Log.e(TAG, "Failed to create bitmap from HardwareBuffer")
