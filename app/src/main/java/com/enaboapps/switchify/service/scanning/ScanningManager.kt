@@ -53,6 +53,8 @@ class ScanningManager(
         AppScanTechniqueSettings(accessibilityService)
     )
 
+    private val emptyNodesFallback = EmptyNodesFallback(ScanningManagerScanModeController(this))
+
     @Volatile
     private var foregroundPackageName: String? = null
 
@@ -96,8 +98,18 @@ class ScanningManager(
      * @param nodes List of Node instances representing the current screen layout.
      */
     fun updateActionableNodes(nodes: List<Node>, source: String? = null) {
+        if (nodes.isNotEmpty() && emptyNodesFallback.isActive) {
+            Log.d(TAG, "Actionable nodes available again - restoring item scan")
+            emptyNodesFallback.onNodesAvailable()
+        }
         activeScanMethod.updateActionableNodes(nodes, source)
     }
+
+    /**
+     * Called by the node scanner when the screen has had nothing scannable for a while.
+     * Falls back to point scan without changing the saved technique.
+     */
+    internal fun enterEmptyNodesFallback(): Boolean = emptyNodesFallback.enter()
 
     /**
      * Updates the nodes in the KeyboardScanner with the current layout information.
@@ -197,6 +209,7 @@ class ScanningManager(
     private fun setType(type: String, change: TechniqueChange) {
         val previousType = AccessTechnique.getCurrentTechnique()
         startAcceptingActionsTimeout()
+        if (change == TechniqueChange.PERSISTENT) emptyNodesFallback.drop()
         when (change) {
             TechniqueChange.PERSISTENT -> AccessTechnique.setCurrentTechnique(type)
             TechniqueChange.TEMPORARY -> AccessTechnique.setTemporaryTechnique(type)
@@ -400,6 +413,7 @@ class ScanningManager(
     fun shutdown() {
         moveRepeatManager?.stop()
         moveRepeatManager = null
+        emptyNodesFallback.drop()
         clearAppScanTechniqueOverride()
         pauseScanning()
         activeScanMethod.destroy()

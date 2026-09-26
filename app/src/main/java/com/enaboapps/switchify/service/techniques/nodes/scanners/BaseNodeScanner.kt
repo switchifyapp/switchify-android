@@ -142,9 +142,12 @@ abstract class BaseNodeScanner(
         coroutineScope.launch(Dispatchers.Main) {
             _scanTree?.stopScanningAndReset()
             if (AccessTechnique.getCurrentTechnique() == AccessTechnique.Technique.ITEM_SCAN) {
-                com.enaboapps.switchify.service.core.ServiceCore.getScanningManager()?.setPointScanType()
-                    ?: AccessTechnique.setCurrentTechnique(AccessTechnique.Technique.POINT_SCAN)
-                Log.d(TAG, "Switched to point scan mode due to $reason")
+                val manager = com.enaboapps.switchify.service.core.ServiceCore.getScanningManager()
+                val switched = manager?.enterEmptyNodesFallback() ?: run {
+                    AccessTechnique.setTemporaryTechnique(AccessTechnique.Technique.POINT_SCAN)
+                    true
+                }
+                if (switched) Log.d(TAG, "Temporarily switched to point scan due to $reason")
             }
         }
     }
