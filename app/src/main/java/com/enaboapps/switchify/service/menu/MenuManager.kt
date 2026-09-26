@@ -23,6 +23,7 @@ import com.enaboapps.switchify.service.menu.menus.favouriteapps.FavouriteAppsMen
 import com.enaboapps.switchify.service.menu.menus.switchprofiles.SwitchProfilesMenu
 import com.enaboapps.switchify.service.menu.menus.switchprofiles.SwitchProfileConfirmationMenu
 import com.enaboapps.switchify.service.menu.structure.MenuConstants
+import com.enaboapps.switchify.service.menu.structure.MenuUserItemsHelper
 import com.enaboapps.switchify.service.menu.menus.scroll.ScrollMenu
 import com.enaboapps.switchify.service.menu.menus.settings.SettingsMenu
 import com.enaboapps.switchify.service.menu.menus.system.DeviceMenu
@@ -175,6 +176,7 @@ class MenuManager {
 
     internal fun cleanup() {
         cleanupAccessibilityActions()
+        MenuUserItemsHelper.clearCache()
         menuHierarchy?.dispose()
         menuHierarchy = null
         scanningManager = null

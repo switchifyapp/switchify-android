@@ -12,14 +12,13 @@ import com.enaboapps.switchify.service.scanning.ScanningManager
 import com.enaboapps.switchify.service.switches.SwitchEventProvider
 import com.enaboapps.switchify.service.switches.SwitchProfileActivationCoordinator
 import com.enaboapps.switchify.service.switches.external.ExternalSwitchListener
-import java.lang.ref.WeakReference
 
+@SuppressLint("StaticFieldLeak")
 object ServiceCore {
-    private lateinit var scanningManagerRef: WeakReference<ScanningManager>
-    private lateinit var externalSwitchListenerRef: WeakReference<ExternalSwitchListener>
-    private lateinit var switchEventProviderRef: WeakReference<SwitchEventProvider>
-    private lateinit var cameraManagerRef: WeakReference<CameraManager>
-    @SuppressLint("StaticFieldLeak")
+    private var scanningManager: ScanningManager? = null
+    private var externalSwitchListener: ExternalSwitchListener? = null
+    private var switchEventProvider: SwitchEventProvider? = null
+    private var cameraManager: CameraManager? = null
     private var switchProfileActivationCoordinator: SwitchProfileActivationCoordinator? = null
     private var gestureTargetIndicator: GestureTargetIndicatorController? = null
 
@@ -34,13 +33,14 @@ object ServiceCore {
         gestureTargetIndicator = GestureTargetIndicatorController(
             AndroidGestureTargetIndicatorRenderer(accessibilityService)
         )
-        scanningManagerRef = WeakReference(
-            ScanningManager(accessibilityService, requireNotNull(gestureTargetIndicator))
+        val scanningManager = ScanningManager(
+            accessibilityService,
+            requireNotNull(gestureTargetIndicator)
         )
-        switchEventProviderRef = WeakReference(SwitchEventProvider(accessibilityService))
+        val switchEventProvider = SwitchEventProvider(accessibilityService)
+        this.scanningManager = scanningManager
+        this.switchEventProvider = switchEventProvider
 
-        val scanningManager = scanningManagerRef.get() ?: return
-        val switchEventProvider = switchEventProviderRef.get() ?: return
         switchProfileActivationCoordinator = SwitchProfileActivationCoordinator(
             accessibilityService,
             switchEventProvider,
@@ -49,23 +49,18 @@ object ServiceCore {
         SwitchifyRemoteBridgeCoordinator.attach(switchEventProvider)
 
         scanningManager.setup()
-        externalSwitchListenerRef =
-            WeakReference(
-                ExternalSwitchListener(
-                    accessibilityService,
-                    scanningManager,
-                    switchEventProvider
-                )
-            )
+        externalSwitchListener = ExternalSwitchListener(
+            accessibilityService,
+            scanningManager,
+            switchEventProvider
+        )
     }
 
     /**
      * Gets the scanning manager instance.
      * @return The scanning manager instance or null if not initialized.
      */
-    fun getScanningManager(): ScanningManager? {
-        return if (::scanningManagerRef.isInitialized) scanningManagerRef.get() else null
-    }
+    fun getScanningManager(): ScanningManager? = scanningManager
 
     fun getGestureTargetIndicator(): GestureTargetIndicatorController? = gestureTargetIndicator
 
@@ -73,17 +68,13 @@ object ServiceCore {
      * Gets the external switch listener instance.
      * @return The external switch listener instance or null if not initialized.
      */
-    fun getExternalSwitchListener(): ExternalSwitchListener? {
-        return if (::externalSwitchListenerRef.isInitialized) externalSwitchListenerRef.get() else null
-    }
+    fun getExternalSwitchListener(): ExternalSwitchListener? = externalSwitchListener
 
     /**
      * Gets the switch event provider instance.
      * @return The switch event provider instance or null if not initialized.
      */
-    fun getSwitchEventProvider(): SwitchEventProvider? {
-        return if (::switchEventProviderRef.isInitialized) switchEventProviderRef.get() else null
-    }
+    fun getSwitchEventProvider(): SwitchEventProvider? = switchEventProvider
 
     internal fun getSwitchProfileActivationCoordinator(): SwitchProfileActivationCoordinator? {
         return switchProfileActivationCoordinator
@@ -102,16 +93,14 @@ object ServiceCore {
      * @param cameraManager The camera manager instance to set.
      */
     fun setCameraManager(cameraManager: CameraManager) {
-        cameraManagerRef = WeakReference(cameraManager)
+        this.cameraManager = cameraManager
     }
 
     /**
      * Gets the camera manager instance.
      * @return The camera manager instance or null if not initialized.
      */
-    fun getCameraManager(): CameraManager? {
-        return if (::cameraManagerRef.isInitialized) cameraManagerRef.get() else null
-    }
+    fun getCameraManager(): CameraManager? = cameraManager
 
     /**
      * Cleans up the service core.
@@ -123,20 +112,13 @@ object ServiceCore {
         gestureTargetIndicator?.release()
         gestureTargetIndicator = null
         PinchGesturePerformer.cleanup()
-        if (::scanningManagerRef.isInitialized) {
-            scanningManagerRef.get()?.shutdown()
-            scanningManagerRef = WeakReference(null)
-        }
-        if (::switchEventProviderRef.isInitialized) {
-            switchEventProviderRef = WeakReference(null)
-        }
-        if (::externalSwitchListenerRef.isInitialized) {
-            externalSwitchListenerRef.get()?.shutdown()
-            externalSwitchListenerRef = WeakReference(null)
-        }
-        if (::cameraManagerRef.isInitialized) {
-            cameraManagerRef = WeakReference(null)
-        }
+        externalSwitchListener?.shutdown()
+        externalSwitchListener = null
+        scanningManager?.shutdown()
+        scanningManager = null
+        switchEventProvider?.shutdown()
+        switchEventProvider = null
+        cameraManager = null
         switchProfileActivationCoordinator = null
     }
 }

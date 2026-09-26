@@ -179,6 +179,7 @@ class ExternalSwitchListener(
         if (handleSwitchPressedRepeat(keyCode)) {
             ExternalSwitchLongPressHandler.cancel()
             clearPressSession()
+            resumeScanningIfNeeded()
             return true
         }
 

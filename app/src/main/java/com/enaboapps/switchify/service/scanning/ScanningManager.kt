@@ -388,20 +388,21 @@ class ScanningManager(
      * Resets the scanning manager, stopping all scanning processes and cleaning up resources.
      */
     fun reset() {
+        moveRepeatManager?.stop()
         pauseScanning()
         activeScanMethod.cleanupAll()
         MenuManager.getInstance().closeMenuHierarchy()
-        moveRepeatManager = null
     }
 
     /**
      * Shuts down the scanning manager, stopping all processes and cleaning up resources.
      */
     fun shutdown() {
+        moveRepeatManager?.stop()
+        moveRepeatManager = null
         clearAppScanTechniqueOverride()
         pauseScanning()
         activeScanMethod.destroy()
-        moveRepeatManager = null
     }
 
     private enum class TechniqueChange {
