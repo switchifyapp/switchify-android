@@ -33,6 +33,13 @@ class ModelManager(context: Context) {
         getPartFile().delete()
     }
 
+    fun deleteStaleFiles() {
+        val keep = setOf(getModelFile().name, getPartFile().name)
+        getModelDir().listFiles()
+            ?.filter { it.isFile && it.name !in keep }
+            ?.forEach { it.delete() }
+    }
+
     @SuppressLint("UsableSpace")
     fun hasEnoughFreeSpace(): Boolean {
         val required = AiModelConfig.EXPECTED_SIZE_BYTES

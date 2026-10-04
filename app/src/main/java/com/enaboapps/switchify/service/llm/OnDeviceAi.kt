@@ -18,7 +18,7 @@ object OnDeviceAi {
     private const val MAX_IMAGE_DIMENSION = 1024
 
     // Ordered by preference; the first backend that is READY runs the task.
-    private val backends: List<AiBackend> = listOf(AiCoreBackend, MediaPipeBackend)
+    private val backends: List<AiBackend> = listOf(AiCoreBackend, LiteRtLmBackend)
 
     /** The best availability across all backends. */
     suspend fun availability(context: Context): AiAvailability {

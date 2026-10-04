@@ -18,7 +18,7 @@ import androidx.savedstate.SavedStateRegistryOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import com.enaboapps.switchify.service.core.SwitchifyLifecycleOwner
 import com.enaboapps.switchify.backend.preferences.PreferenceManager
-import com.enaboapps.switchify.service.llm.MediaPipeBackend
+import com.enaboapps.switchify.service.llm.LiteRtLmBackend
 import com.enaboapps.switchify.service.menu.MenuViewHandler
 import com.enaboapps.switchify.service.utils.ScreenWatcher
 import com.enaboapps.switchify.service.window.overlay.OverlayPlacement
@@ -298,7 +298,7 @@ class SwitchifyAccessibilityWindow private constructor() : LifecycleOwner, Saved
         ServiceMessageHUD.instance.dispose()
         MenuHighlightHud.instance.dispose()
         ServiceStartupSplash.instance.dispose()
-        MediaPipeBackend.close()
+        LiteRtLmBackend.close()
         if (!cleanupOnMainBlocking()) {
             Log.w(TAG, "Timed out waiting for service window cleanup")
         }
