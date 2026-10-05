@@ -19,7 +19,7 @@ object AiModelConfig {
 
     // Lowercase-hex SHA-256 of the hosted artifact, verified after download.
     // Integrity check is skipped while it is blank.
-    const val EXPECTED_SHA256 = ""
+    const val EXPECTED_SHA256 = "2ed7bc3a0026c93d5b8a4544b352d9d00cd66ff0bac3ef6a20ac3d2cba4010d6"
 
     // Google's official Gemma legal documents, shown on the terms screen.
     const val GEMMA_TERMS_URL = "https://ai.google.dev/gemma/terms"
