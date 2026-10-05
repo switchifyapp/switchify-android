@@ -191,7 +191,7 @@ dependencies {
     implementation(libs.androidx.camera.view)
     implementation(libs.accompanist.permissions)
     implementation(libs.mediapipe.tasks.vision)
-    implementation(libs.mediapipe.tasks.genai)
+    implementation(libs.litertlm.android)
     implementation(libs.mlkit.genai.prompt)
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)
