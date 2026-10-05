@@ -358,11 +358,16 @@ class RadarManager(private val context: Context) : AccessTechniqueInterface {
     }
 
     override fun pauseAutoScanning() {
-        scanningScheduler?.pauseScanning()
+        if (scanSettings.isAutoScanMode()) {
+            scanningScheduler?.pauseScanning()
+        }
     }
 
     override fun resumeAutoScanning() {
-        scanningScheduler?.resumeScanning()
+        if (scanSettings.isAutoScanMode()) {
+            resetElapsedTime()
+            scanningScheduler?.resumeScanning()
+        }
     }
 
     internal fun refreshOrigin() {
