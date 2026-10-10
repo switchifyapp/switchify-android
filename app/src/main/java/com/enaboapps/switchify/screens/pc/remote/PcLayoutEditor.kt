@@ -1,8 +1,8 @@
 package com.enaboapps.switchify.screens.pc.remote
 
-import androidx.compose.foundation.focusable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -55,6 +55,7 @@ import com.enaboapps.switchify.pc.remote.layouts.PcLayoutSections
 import com.enaboapps.switchify.pc.remote.layouts.PcLayoutSelection
 import com.enaboapps.switchify.pc.remote.layouts.PcLayoutSelectionKind
 import com.enaboapps.switchify.theme.Dimens
+import kotlinx.coroutines.delay
 
 @Composable
 fun PcLayoutEditorDialog(session: PcLayoutEditorSession, viewModel: PcRemoteViewModel) {
@@ -76,12 +77,19 @@ fun PcLayoutEditorDialog(session: PcLayoutEditorSession, viewModel: PcRemoteView
     }
     val title = stringResource(session.titleRes)
     var status by rememberSaveable { mutableStateOf("") }
+    val firstTargets = remember { PcLayoutSelectionKind.entries.associateWith { FocusRequester() } }
+    suspend fun announce(message: String) {
+        status = ""
+        delay(ANNOUNCEMENT_RESET_MS)
+        status = message
+    }
     LaunchedEffect(state.announcementCount) {
-        if (state.announcementCount > 0) status = announcementText(resources, state.announcement, byId)
+        if (state.announcementCount > 0) announce(announcementText(resources, state.announcement, byId))
     }
     LaunchedEffect(session.failureCount) {
-        if (session.failureCount > 0) status = resources.getString(R.string.pc_layout_save_failed)
+        if (session.failureCount > 0) announce(resources.getString(R.string.pc_layout_save_failed))
     }
+    val movingKind = state.selected?.kind?.takeIf { state.moving }
 
     fun resize(axis: PcLayoutAxis, index: Int, insert: Boolean) {
         if (!insert && state.isTrackOccupied(axis, index)) {
@@ -96,107 +104,122 @@ fun PcLayoutEditorDialog(session: PcLayoutEditorSession, viewModel: PcRemoteView
         properties = DialogProperties(usePlatformDefaultWidth = false, dismissOnClickOutside = false)
     ) {
         Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-            val pickerCell = state.pickerCell
-            if (pickerCell != null) {
-                PcActionPicker(
-                    row = state.rowOf(pickerCell) + 1,
-                    column = state.columnOf(pickerCell) + 1,
-                    options = state.pickerOptions(options),
-                    onSelect = { id -> viewModel.editLayout { it.assign(id, byId.keys) } },
-                    onClose = { viewModel.editLayout { it.closePicker() } }
+            Column(modifier = Modifier.fillMaxSize()) {
+                Text(
+                    text = status,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier
+                        .padding(horizontal = Dimens.spaceM)
+                        .semantics { liveRegion = LiveRegionMode.Polite }
                 )
-            } else {
-                Column(modifier = Modifier.fillMaxSize().imePadding()) {
-                    Column(
-                        modifier = Modifier.padding(Dimens.spaceM),
-                        verticalArrangement = Arrangement.spacedBy(Dimens.spaceXs)
-                    ) {
-                        Text(
-                            text = stringResource(R.string.pc_layout_editor_title, title),
-                            style = MaterialTheme.typography.titleLarge,
-                            modifier = Modifier.semantics { heading() }
+                Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
+                    val pickerCell = state.pickerCell
+                    if (pickerCell != null) {
+                        PcActionPicker(
+                            row = state.rowOf(pickerCell) + 1,
+                            column = state.columnOf(pickerCell) + 1,
+                            options = state.pickerOptions(options),
+                            onSelect = { id -> viewModel.editLayout { it.assign(id, byId.keys) } },
+                            onClose = { viewModel.editLayout { it.closePicker() } }
                         )
-                        Row(horizontalArrangement = Arrangement.spacedBy(Dimens.spaceXs)) {
-                            ActionButton(
-                                textResId = if (saving) R.string.pc_layout_saving else R.string.pc_layout_save,
-                                onClick = viewModel::saveLayoutEditor,
-                                enabled = !saving,
-                                applyPadding = false,
-                                modifier = Modifier.weight(1f)
-                            )
-                            ActionButton(
-                                textResId = R.string.pc_layout_cancel,
-                                onClick = viewModel::dismissLayoutEditor,
-                                type = ActionButtonType.SECONDARY,
-                                enabled = !saving,
-                                applyPadding = false,
-                                modifier = Modifier.weight(1f)
-                            )
+                    } else {
+                        Column(modifier = Modifier.fillMaxSize().imePadding()) {
+                            Column(
+                                modifier = Modifier.padding(Dimens.spaceM),
+                                verticalArrangement = Arrangement.spacedBy(Dimens.spaceXs)
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.pc_layout_editor_title, title),
+                                    style = MaterialTheme.typography.titleLarge,
+                                    modifier = Modifier.semantics { heading() }
+                                )
+                                Row(horizontalArrangement = Arrangement.spacedBy(Dimens.spaceXs)) {
+                                    ActionButton(
+                                        textResId = if (saving) R.string.pc_layout_saving else R.string.pc_layout_save,
+                                        onClick = viewModel::saveLayoutEditor,
+                                        enabled = !saving,
+                                        applyPadding = false,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    ActionButton(
+                                        textResId = R.string.pc_layout_cancel,
+                                        onClick = viewModel::dismissLayoutEditor,
+                                        type = ActionButtonType.SECONDARY,
+                                        enabled = !saving,
+                                        applyPadding = false,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                }
+                                if (session.failed) {
+                                    Text(
+                                        text = stringResource(R.string.pc_layout_save_failed),
+                                        color = MaterialTheme.colorScheme.error
+                                    )
+                                }
+                            }
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .weight(1f)
+                                    .verticalScroll(scroll)
+                                    .padding(Dimens.spaceM),
+                                verticalArrangement = Arrangement.spacedBy(Dimens.spaceM)
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.pc_layout_help),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                state.selected?.let { selected ->
+                                    SelectionActions(
+                                        state = state,
+                                        selected = selected,
+                                        enabled = !saving,
+                                        onUpdate = viewModel::editLayout,
+                                        onResize = ::resize
+                                    )
+                                }
+                                EditorGrid(
+                                    state = state,
+                                    controls = byId,
+                                    enabled = !saving,
+                                    firstTargets = firstTargets,
+                                    onSelect = { selection -> viewModel.editLayout { it.select(selection) } }
+                                )
+                                PcControlButton(
+                                    label = stringResource(R.string.pc_layout_add_row),
+                                    onClick = { resize(PcLayoutAxis.Row, state.rows, true) },
+                                    enabled = !saving && state.canInsert(PcLayoutAxis.Row),
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                                PcControlButton(
+                                    label = stringResource(R.string.pc_layout_add_column),
+                                    onClick = { resize(PcLayoutAxis.Column, state.draft.columns, true) },
+                                    enabled = !saving && state.canInsert(PcLayoutAxis.Column),
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                                PcControlButton(
+                                    label = stringResource(R.string.pc_layout_reset),
+                                    onClick = { viewModel.requestLayoutConfirmation(PcLayoutConfirmation.Reset) },
+                                    enabled = !saving,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
                         }
-                        if (session.failed) {
-                            Text(
-                                text = stringResource(R.string.pc_layout_save_failed),
-                                color = MaterialTheme.colorScheme.error
-                            )
-                        }
-                        Text(
-                            text = status,
-                            style = MaterialTheme.typography.bodySmall,
-                            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }
-                        )
-                    }
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f)
-                            .verticalScroll(scroll)
-                            .padding(Dimens.spaceM),
-                        verticalArrangement = Arrangement.spacedBy(Dimens.spaceM)
-                    ) {
-                        Text(
-                            text = stringResource(R.string.pc_layout_help),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        state.selected?.let { selected ->
-                            SelectionActions(
-                                state = state,
-                                selected = selected,
-                                enabled = !saving,
-                                onUpdate = viewModel::editLayout,
-                                onResize = ::resize
-                            )
-                        }
-                        EditorGrid(
-                            state = state,
-                            controls = byId,
-                            enabled = !saving,
-                            onSelect = { selection -> viewModel.editLayout { it.select(selection) } }
-                        )
-                        PcControlButton(
-                            label = stringResource(R.string.pc_layout_add_row),
-                            onClick = { resize(PcLayoutAxis.Row, state.rows, true) },
-                            enabled = !saving && state.canInsert(PcLayoutAxis.Row),
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        PcControlButton(
-                            label = stringResource(R.string.pc_layout_add_column),
-                            onClick = { resize(PcLayoutAxis.Column, state.draft.columns, true) },
-                            enabled = !saving && state.canInsert(PcLayoutAxis.Column),
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        PcControlButton(
-                            label = stringResource(R.string.pc_layout_reset),
-                            onClick = { viewModel.requestLayoutConfirmation(PcLayoutConfirmation.Reset) },
-                            enabled = !saving,
-                            modifier = Modifier.fillMaxWidth()
-                        )
                     }
                 }
             }
         }
         LaunchedEffect(state.selected) {
             if (state.selected != null && !state.moving) scroll.animateScrollTo(0)
+        }
+        LaunchedEffect(movingKind) {
+            val kind = movingKind ?: return@LaunchedEffect
+            try {
+                firstTargets.getValue(kind).requestFocus()
+            } catch (_: IllegalStateException) {
+            }
+            announce(resources.getString(moveInstruction(kind)))
         }
         session.confirmation?.let { current ->
             Confirmation(
@@ -261,21 +284,7 @@ private fun SelectionActions(
             modifier = Modifier.semantics { heading() }
         )
         if (state.moving) {
-            val instruction = remember { FocusRequester() }
-            LaunchedEffect(selected) { instruction.requestFocus() }
-            Text(
-                text = stringResource(
-                    when (selected.kind) {
-                        PcLayoutSelectionKind.Cell -> R.string.pc_layout_move_cell_instruction
-                        PcLayoutSelectionKind.Row -> R.string.pc_layout_move_row_instruction
-                        PcLayoutSelectionKind.Column -> R.string.pc_layout_move_column_instruction
-                    }
-                ),
-                modifier = Modifier
-                    .focusRequester(instruction)
-                    .focusable()
-                    .semantics { liveRegion = LiveRegionMode.Polite }
-            )
+            Text(text = stringResource(moveInstruction(selected.kind)))
         } else {
             if (state.canStartMove()) {
                 EditorAction(
@@ -343,6 +352,7 @@ private fun EditorGrid(
     state: PcLayoutEditorState,
     controls: Map<String, PcResolvedAction>,
     enabled: Boolean,
+    firstTargets: Map<PcLayoutSelectionKind, FocusRequester>,
     onSelect: (PcLayoutSelection) -> Unit
 ) {
     val draft = state.draft
@@ -367,7 +377,7 @@ private fun EditorGrid(
                         selected = selectedOrNull(selected, PcLayoutSelectionKind.Column, column),
                         enabled = enabled,
                         onClick = { onSelect(PcLayoutSelection(PcLayoutSelectionKind.Column, column)) },
-                        modifier = Modifier.width(metrics.cellWidth.dp)
+                        modifier = Modifier.width(metrics.cellWidth.dp).firstTarget(column, firstTargets, PcLayoutSelectionKind.Column)
                     )
                 }
             }
@@ -381,7 +391,7 @@ private fun EditorGrid(
                         selected = selectedOrNull(selected, PcLayoutSelectionKind.Row, row),
                         enabled = enabled,
                         onClick = { onSelect(PcLayoutSelection(PcLayoutSelectionKind.Row, row)) },
-                        modifier = Modifier.width(TRACK_WIDTH.dp)
+                        modifier = Modifier.width(TRACK_WIDTH.dp).firstTarget(row, firstTargets, PcLayoutSelectionKind.Row)
                     )
                     draft.row(row).forEachIndexed { column, id ->
                         val index = row * draft.columns + column
@@ -395,7 +405,7 @@ private fun EditorGrid(
                             selected = selectedOrNull(selected, PcLayoutSelectionKind.Cell, index),
                             enabled = enabled,
                             onClick = { onSelect(PcLayoutSelection(PcLayoutSelectionKind.Cell, index)) },
-                            modifier = Modifier.width(metrics.cellWidth.dp)
+                            modifier = Modifier.width(metrics.cellWidth.dp).firstTarget(index, firstTargets, PcLayoutSelectionKind.Cell)
                         )
                     }
                 }
@@ -440,3 +450,17 @@ private fun Confirmation(confirmation: PcLayoutConfirmation, onConfirm: () -> Un
 
 private const val GRID_GAP = 8
 private const val TRACK_WIDTH = 48
+
+private fun moveInstruction(kind: PcLayoutSelectionKind) = when (kind) {
+    PcLayoutSelectionKind.Cell -> R.string.pc_layout_move_cell_instruction
+    PcLayoutSelectionKind.Row -> R.string.pc_layout_move_row_instruction
+    PcLayoutSelectionKind.Column -> R.string.pc_layout_move_column_instruction
+}
+
+private const val ANNOUNCEMENT_RESET_MS = 100L
+
+private fun Modifier.firstTarget(
+    index: Int,
+    targets: Map<PcLayoutSelectionKind, FocusRequester>,
+    kind: PcLayoutSelectionKind
+): Modifier = if (index == 0) focusRequester(targets.getValue(kind)) else this

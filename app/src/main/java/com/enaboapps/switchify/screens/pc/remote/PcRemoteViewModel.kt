@@ -14,6 +14,7 @@ import com.enaboapps.switchify.pc.remote.actions.PcActionContext
 import com.enaboapps.switchify.pc.remote.actions.PcActionDefinition
 import com.enaboapps.switchify.pc.remote.actions.PcActionRuntime
 import com.enaboapps.switchify.pc.remote.actions.PcResolvedAction
+import com.enaboapps.switchify.pc.remote.layouts.PcLayoutEditBlocking
 import com.enaboapps.switchify.pc.remote.layouts.PcLayoutEditorState
 import com.enaboapps.switchify.pc.remote.layouts.PcLayoutSaveRequest
 import com.enaboapps.switchify.pc.remote.layouts.PcLayoutSections
@@ -106,9 +107,11 @@ class PcRemoteViewModel(
 
     fun layoutEditingBlocked(): Boolean {
         val holder = _holder.value ?: return false
-        val state = holder.session.state.value
-        return state.repeat != null || state.dragging || state.modifiers.isNotEmpty() ||
-            (preferences.surface.value == PcRemoteSurface.Typing && holder.liveTyping.submitting.value)
+        return PcLayoutEditBlocking.block(
+            holder.session.state.value,
+            preferences.surface.value,
+            holder.liveTyping.submitting.value
+        ) != null
     }
 
     fun openLayoutEditor(

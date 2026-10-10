@@ -52,6 +52,8 @@ import com.enaboapps.switchify.pc.remote.PcRemoteGraph
 import com.enaboapps.switchify.pc.remote.PcRemotePresentation
 import com.enaboapps.switchify.pc.remote.PcRemoteSurface
 import com.enaboapps.switchify.pc.remote.asRemoteConnection
+import com.enaboapps.switchify.pc.remote.layouts.PcLayoutEditBlock
+import com.enaboapps.switchify.pc.remote.layouts.PcLayoutEditBlocking
 import com.enaboapps.switchify.theme.Dimens
 
 @Composable
@@ -119,13 +121,13 @@ fun PcRemoteScreen(navController: NavController) {
                     val state by activeHolder.session.state.collectAsState()
                     val submittingEnter by activeHolder.liveTyping.submitting.collectAsState()
                     LaunchedEffect(state.repeat) { viewModel.refreshPhysicalSwitchStop() }
-                    val blocked = when {
-                        surface == PcRemoteSurface.Typing && submittingEnter -> stringResource(R.string.pc_layout_blocked_enter)
-                        state.repeat != null || state.dragging || state.modifiers.isNotEmpty() -> stringResource(
+                    val blocked = when (PcLayoutEditBlocking.block(state, surface, submittingEnter)) {
+                        PcLayoutEditBlock.SendingEnter -> stringResource(R.string.pc_layout_blocked_enter)
+                        PcLayoutEditBlock.HeldInput -> stringResource(
                             R.string.pc_layout_blocked_input,
                             stringResource(PcRemotePresentation.repeatStopLabel(state.repeat))
                         )
-                        else -> null
+                        null -> null
                     }
                     val editing = remember(editingLayout, blocked, viewModel) {
                         PcLayoutEditing(

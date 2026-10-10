@@ -28,7 +28,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
-import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
@@ -118,6 +118,7 @@ fun PcActionPicker(
 private fun OptionRow(option: PcActionOption, onClick: () -> Unit) {
     val assign = stringResource(R.string.pc_picker_assign)
     val unavailable = option.explanation?.let { stringResource(R.string.pc_picker_unavailable_hint, it) }
+    val spoken = listOfNotNull(option.name, unavailable).joinToString(", ")
     Surface(
         shape = MaterialTheme.shapes.medium,
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
@@ -130,13 +131,11 @@ private fun OptionRow(option: PcActionOption, onClick: () -> Unit) {
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable(onClickLabel = assign, role = Role.Button, onClick = onClick)
-                .semantics(mergeDescendants = true) {
-                    if (unavailable != null) stateDescription = unavailable
-                }
+                .semantics(mergeDescendants = true) { contentDescription = spoken }
                 .padding(Dimens.spaceM),
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            Text(text = option.name, style = MaterialTheme.typography.labelLarge)
+            Text(text = option.name, style = MaterialTheme.typography.labelLarge, modifier = Modifier.clearAndSetSemantics {})
             option.explanation?.let {
                 Text(
                     text = it,
