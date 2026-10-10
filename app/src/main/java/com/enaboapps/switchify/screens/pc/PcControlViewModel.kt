@@ -1,7 +1,10 @@
 package com.enaboapps.switchify.screens.pc
 
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.enaboapps.switchify.pc.connection.PcConnectionState
 import com.enaboapps.switchify.pc.connection.PcPermissionRequester
 import com.enaboapps.switchify.pc.control.PcAutoConnectPolicy
 import com.enaboapps.switchify.pc.control.PcControlConnection
@@ -37,6 +40,16 @@ class PcControlViewModel(
     val startTab: StateFlow<PcControlTab?> = _startTab.asStateFlow()
 
     private val autoConnect = PcAutoConnectPolicy()
+    private var foreground: Lifecycle? = null
+    private var changingConfigurations: () -> Boolean = { false }
+    private val foregroundObserver = LifecycleEventObserver { _, event ->
+        when (event) {
+            Lifecycle.Event.ON_START -> onStart()
+            Lifecycle.Event.ON_STOP -> onStop(changingConfigurations())
+            Lifecycle.Event.ON_DESTROY -> releaseActivity()
+            else -> Unit
+        }
+    }
 
     init {
         permissions.attachHost()
@@ -54,6 +67,20 @@ class PcControlViewModel(
         return true
     }
 
+    fun observeActivity(lifecycle: Lifecycle, isChangingConfigurations: () -> Boolean) {
+        if (foreground === lifecycle) return
+        releaseActivity()
+        foreground = lifecycle
+        changingConfigurations = isChangingConfigurations
+        lifecycle.addObserver(foregroundObserver)
+    }
+
+    private fun releaseActivity() {
+        foreground?.removeObserver(foregroundObserver)
+        foreground = null
+        changingConfigurations = { false }
+    }
+
     fun onStart() {
         if (!autoConnect.onStart(setup.isComplete)) return
         val state = connection.state.value
@@ -68,7 +95,10 @@ class PcControlViewModel(
 
     fun onStop(changingConfigurations: Boolean) {
         autoConnect.onStop(changingConfigurations)
-        if (!changingConfigurations) connection.stopScan()
+        if (changingConfigurations || permissions.requested.value) return
+        val state = connection.state.value
+        if (state.activeDesktop == null && state !is PcConnectionState.Scanning) return
+        launchSafely { connection.disconnect() }
     }
 
     fun onResume() {
@@ -120,6 +150,7 @@ class PcControlViewModel(
     }
 
     override fun onCleared() {
+        releaseActivity()
         permissions.detachHost()
         cleanupScope.launch {
             try {

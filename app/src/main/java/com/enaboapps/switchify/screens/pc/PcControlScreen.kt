@@ -16,7 +16,6 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -31,7 +30,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -86,17 +84,9 @@ fun PcControlScreen(navController: NavController) {
     }
 
     val activity = context.findActivity()
-    DisposableEffect(activity, viewModel) {
-        val owner = activity as? LifecycleOwner
-        val observer = LifecycleEventObserver { _, event ->
-            when (event) {
-                Lifecycle.Event.ON_START -> viewModel.onStart()
-                Lifecycle.Event.ON_STOP -> viewModel.onStop(changingConfigurations = activity?.isChangingConfigurations == true)
-                else -> Unit
-            }
-        }
-        owner?.lifecycle?.addObserver(observer)
-        onDispose { owner?.lifecycle?.removeObserver(observer) }
+    LaunchedEffect(activity, viewModel) {
+        val owner = activity as? LifecycleOwner ?: return@LaunchedEffect
+        viewModel.observeActivity(owner.lifecycle) { activity?.isChangingConfigurations == true }
     }
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.onResume() }
 

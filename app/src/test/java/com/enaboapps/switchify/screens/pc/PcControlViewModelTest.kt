@@ -1,5 +1,9 @@
 package com.enaboapps.switchify.screens.pc
 
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.LifecycleRegistry
+import com.enaboapps.switchify.pc.connection.PcConnectionFailure
 import com.enaboapps.switchify.pc.connection.PcConnectionState
 import com.enaboapps.switchify.pc.connection.PcList.toDesktop
 import com.enaboapps.switchify.pc.connection.PcPermissionRequester
@@ -16,6 +20,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
@@ -32,6 +37,13 @@ import org.junit.Test
 @OptIn(ExperimentalCoroutinesApi::class)
 class PcControlViewModelTest {
     private val office = PcSavedPc("pc-1", "Office", PcPlatform.Windows, "ble-1", 1)
+    private val connected = PcConnectionState.Connected(office.toDesktop(), null, PcProfileStatus.Unavailable)
+
+    private class TestActivity : LifecycleOwner {
+        val registry = LifecycleRegistry.createUnsafe(this)
+        var changing = false
+        override val lifecycle: Lifecycle get() = registry
+    }
 
     private class Fixture(test: TestScope, saved: List<PcSavedPc>, setupComplete: Boolean) {
         val storage = InMemoryPcPreferenceStorage()
@@ -40,7 +52,8 @@ class PcControlViewModelTest {
         val preferences = InMemoryPcRemotePreferences()
         val cleanupScope = CoroutineScope(SupervisorJob() + StandardTestDispatcher(test.testScheduler))
         var granted = true
-        val viewModel = PcControlViewModel(connection, setup, PcPermissionRequester { granted }, preferences, cleanupScope)
+        val permissions = PcPermissionRequester { granted }
+        val viewModel = PcControlViewModel(connection, setup, permissions, preferences, cleanupScope)
     }
 
     private fun viewModelTest(
@@ -73,12 +86,14 @@ class PcControlViewModelTest {
     }
 
     @Test
-    fun reconnectsOnReturningToTheForegroundWithoutDisconnectingInTheBackground() = viewModelTest(saved = listOf(office)) { f ->
+    fun disconnectsInTheBackgroundAndReconnectsOnReturningToTheForeground() = viewModelTest(saved = listOf(office)) { f ->
         f.viewModel.onStart()
         advanceUntilIdle()
+        f.connection.state.value = PcConnectionState.Connected(office.toDesktop(), null, PcProfileStatus.Unavailable)
         f.viewModel.onStop(changingConfigurations = false)
         advanceUntilIdle()
-        assertEquals(0, f.connection.disconnectCalls)
+        assertEquals(1, f.connection.disconnectCalls)
+        assertEquals(PcConnectionState.Idle(listOf(office)), f.connection.state.value)
         assertEquals(1, f.connection.connectCalls)
 
         f.viewModel.onStart()
@@ -88,22 +103,41 @@ class PcControlViewModelTest {
         f.viewModel.onStop(changingConfigurations = true)
         f.viewModel.onStart()
         advanceUntilIdle()
+        assertEquals(1, f.connection.disconnectCalls)
         assertEquals(2, f.connection.connectCalls)
     }
 
     @Test
-    fun leavingPcControlDisconnectsButBackgroundAndRotationDoNot() = viewModelTest(saved = listOf(office)) { f ->
+    fun rotationKeepsTheConnectionButBackgroundAndLeavingDisconnect() = viewModelTest(saved = listOf(office)) { f ->
         f.connection.state.value = PcConnectionState.Connected(office.toDesktop(), null, PcProfileStatus.Unavailable)
         f.viewModel.onStart()
-        f.viewModel.onStop(changingConfigurations = false)
-        f.viewModel.onStart()
         f.viewModel.onStop(changingConfigurations = true)
+        f.viewModel.onStart()
         advanceUntilIdle()
         assertEquals(0, f.connection.disconnectCalls)
 
-        f.viewModel.clearForTest()
+        f.viewModel.onStop(changingConfigurations = false)
         advanceUntilIdle()
         assertEquals(1, f.connection.disconnectCalls)
+
+        f.viewModel.clearForTest()
+        advanceUntilIdle()
+        assertEquals(2, f.connection.disconnectCalls)
+    }
+
+    @Test
+    fun backgroundDisconnectKeepsTheSelectedSurfaceAndTab() = viewModelTest(saved = listOf(office)) { f ->
+        f.viewModel.chooseOpeningSurface(PcRemoteSurface.Forwarding)
+        f.viewModel.onStart()
+        advanceUntilIdle()
+        f.viewModel.selectTab(PcControlTab.Settings)
+        f.connection.state.value = PcConnectionState.Connected(office.toDesktop(), null, PcProfileStatus.Unavailable)
+        f.viewModel.onStop(changingConfigurations = false)
+        f.viewModel.onStart()
+        advanceUntilIdle()
+        assertEquals(PcRemoteSurface.Forwarding, f.viewModel.surface.value)
+        assertEquals(PcControlTab.Settings, f.viewModel.tab.value)
+        assertEquals(2, f.connection.connectCalls)
     }
 
     @Test
@@ -122,6 +156,7 @@ class PcControlViewModelTest {
 
         assertEquals(1, f.connection.connectCalls)
         assertEquals(listOf(studio), f.connection.connectedSaved)
+        assertEquals(0, f.connection.disconnectCalls)
     }
 
     @Test
@@ -142,6 +177,7 @@ class PcControlViewModelTest {
         f.viewModel.onStart()
         advanceUntilIdle()
         assertEquals(listOf(office), f.connection.connectedSaved)
+        assertEquals(0, f.connection.disconnectCalls)
     }
 
     @Test
@@ -162,6 +198,7 @@ class PcControlViewModelTest {
         assertEquals(1, f.connection.connectCalls)
         assertEquals(1, f.connection.scanCalls)
         assertEquals(emptyList<PcSavedPc>(), f.connection.connectedSaved)
+        assertEquals(0, f.connection.disconnectCalls)
     }
 
     @Test
@@ -180,6 +217,7 @@ class PcControlViewModelTest {
 
         assertEquals(2, f.connection.connectCalls)
         assertEquals(0, f.connection.scanCalls)
+        assertEquals(0, f.connection.disconnectCalls)
     }
 
     @Test
@@ -201,12 +239,93 @@ class PcControlViewModelTest {
     }
 
     @Test
-    fun goingToTheBackgroundStopsAnyScanButRotationDoesNot() = viewModelTest { f ->
+    fun followsTheActivityAcrossRecreationUntilCleared() = viewModelTest(saved = listOf(office)) { f ->
+        val first = TestActivity()
+        first.registry.currentState = Lifecycle.State.STARTED
+        f.viewModel.observeActivity(first.lifecycle, first::changing)
+        f.viewModel.observeActivity(first.lifecycle, first::changing)
+        advanceUntilIdle()
+        assertEquals(1, f.connection.connectCalls)
+
+        f.connection.state.value = connected
+        first.registry.currentState = Lifecycle.State.CREATED
+        advanceUntilIdle()
+        assertEquals(1, f.connection.disconnectCalls)
+
+        first.registry.currentState = Lifecycle.State.STARTED
+        advanceUntilIdle()
+        assertEquals(2, f.connection.connectCalls)
+
+        f.connection.state.value = connected
+        first.changing = true
+        first.registry.currentState = Lifecycle.State.DESTROYED
+        advanceUntilIdle()
+        assertEquals(1, f.connection.disconnectCalls)
+        assertEquals(0, first.registry.observerCount)
+
+        val second = TestActivity()
+        second.registry.currentState = Lifecycle.State.STARTED
+        f.viewModel.observeActivity(second.lifecycle, second::changing)
+        advanceUntilIdle()
+        assertEquals(2, f.connection.connectCalls)
+
+        second.registry.currentState = Lifecycle.State.CREATED
+        advanceUntilIdle()
+        assertEquals(2, f.connection.disconnectCalls)
+
+        f.viewModel.clearForTest()
+        advanceUntilIdle()
+        assertEquals(0, second.registry.observerCount)
+    }
+
+    @Test
+    fun backgroundWithoutALinkOrScanKeepsTheStateAndRecordsNoDisconnect() = viewModelTest(saved = listOf(office)) { f ->
         f.viewModel.onStart()
-        f.viewModel.onStop(changingConfigurations = true)
-        assertEquals(0, f.connection.stopScanCalls)
+        advanceUntilIdle()
+        val failed = PcConnectionState.Failed(PcConnectionFailure.CouldNotConnect, listOf(office))
+        f.connection.state.value = failed
         f.viewModel.onStop(changingConfigurations = false)
-        assertEquals(1, f.connection.stopScanCalls)
+        advanceUntilIdle()
+        f.connection.state.value = PcConnectionState.Idle(listOf(office))
+        f.viewModel.onStop(changingConfigurations = false)
+        advanceUntilIdle()
+        assertEquals(0, f.connection.disconnectCalls)
+
+        f.connection.state.value = failed
+        f.viewModel.onStop(changingConfigurations = false)
+        advanceUntilIdle()
+        assertEquals(failed, f.connection.state.value)
+    }
+
+    @Test
+    fun aPermissionPromptThatStopsTheActivityDoesNotDisconnect() = viewModelTest(saved = listOf(office)) { f ->
+        f.viewModel.onStart()
+        advanceUntilIdle()
+        f.granted = false
+        val request = async { f.permissions.request() }
+        advanceUntilIdle()
+        assertTrue(f.viewModel.permissionRequested.value)
+        f.viewModel.onStop(changingConfigurations = false)
+        advanceUntilIdle()
+        assertEquals(0, f.connection.disconnectCalls)
+
+        f.granted = true
+        f.viewModel.onPermissionResult(true)
+        assertTrue(request.await())
+    }
+
+    @Test
+    fun goingToTheBackgroundEndsAnyScanButRotationDoesNot() = viewModelTest { f ->
+        f.viewModel.onStart()
+        advanceUntilIdle()
+        f.connection.state.value = PcConnectionState.Scanning(emptyList(), emptyList())
+        f.viewModel.onStop(changingConfigurations = true)
+        advanceUntilIdle()
+        assertEquals(0, f.connection.disconnectCalls)
+        f.viewModel.onStop(changingConfigurations = false)
+        advanceUntilIdle()
+        assertEquals(1, f.connection.disconnectCalls)
+        assertEquals(PcConnectionState.Idle(emptyList()), f.connection.state.value)
     }
 
     @Test
@@ -222,6 +341,7 @@ class PcControlViewModelTest {
         advanceUntilIdle()
         assertEquals(1, f.connection.connectCalls)
         assertEquals(0, f.connection.scanCalls)
+        assertEquals(0, f.connection.disconnectCalls)
     }
 
     @Test

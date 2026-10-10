@@ -29,6 +29,7 @@ class FakePcControlConnection(var saved: List<PcSavedPc> = emptyList()) : PcCont
 
     override suspend fun disconnect() {
         disconnectCalls += 1
+        state.value = PcConnectionState.Idle(saved)
     }
 
     override suspend fun connectSaved(pc: PcSavedPc) {

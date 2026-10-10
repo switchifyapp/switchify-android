@@ -82,14 +82,16 @@ fun PcForwardingSurface(onOpenPcs: () -> Unit) {
     DisposableEffect(lifecycleOwner, viewModel, context) {
         val activity = context.findActivity()
         val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_STOP) {
-                viewModel.stopForBackground(changingConfigurations = activity?.isChangingConfigurations == true)
+            when (event) {
+                Lifecycle.Event.ON_START -> viewModel.attach()
+                Lifecycle.Event.ON_STOP -> viewModel.detach(changingConfigurations = activity?.isChangingConfigurations == true)
+                else -> Unit
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
-            viewModel.stopForBackground(changingConfigurations = activity?.isChangingConfigurations == true)
+            viewModel.detach(changingConfigurations = activity?.isChangingConfigurations == true)
         }
     }
     LaunchedEffect(viewModel) { viewModel.refreshHoldToStop() }

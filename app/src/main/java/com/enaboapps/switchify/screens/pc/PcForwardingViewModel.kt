@@ -54,7 +54,9 @@ class PcForwardingViewModel(
 
     fun refreshHoldToStop() = session.refreshHoldToStop()
 
-    fun stopForBackground(changingConfigurations: Boolean) = session.stopForBackground(changingConfigurations)
+    fun attach() = session.attach()
+
+    fun detach(changingConfigurations: Boolean) = session.detach(changingConfigurations)
 
     override fun onCleared() {
         val closing = session.close()
