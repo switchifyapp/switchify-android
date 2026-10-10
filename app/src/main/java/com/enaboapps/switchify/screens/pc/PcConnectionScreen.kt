@@ -2,8 +2,6 @@ package com.enaboapps.switchify.screens.pc
 
 import android.content.Intent
 import android.provider.Settings
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
@@ -25,7 +23,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -63,42 +61,24 @@ import com.enaboapps.switchify.pc.connection.PcConnectionState
 import com.enaboapps.switchify.pc.connection.PcListAction
 import com.enaboapps.switchify.pc.connection.PcListItem
 import com.enaboapps.switchify.pc.protocol.PcPlatform
-import com.enaboapps.switchify.pc.transport.PcBluetoothPermissions
 import com.enaboapps.switchify.theme.Dimens
 
 @Composable
-fun PcConnectionScreen(navController: NavController) {
+fun PcConnectionScreen(navController: NavController, tabBar: @Composable () -> Unit) {
     val context = LocalContext.current
     val graph = remember { PcConnectionGraph.getInstance(context) }
     val viewModel: PcConnectionViewModel = viewModel { PcConnectionViewModel(graph.manager, graph.permissions) }
     val state by viewModel.state.collectAsStateWithLifecycle()
     val pcs by viewModel.pcs.collectAsStateWithLifecycle()
     val defaultDesktopId by viewModel.defaultDesktopId.collectAsStateWithLifecycle()
-    val permissionRequested by viewModel.permissionRequested.collectAsStateWithLifecycle()
     val operationFailed by viewModel.operationFailed.collectAsStateWithLifecycle()
     var unpairTarget by rememberSaveable { mutableStateOf<String?>(null) }
-    var permissionPromptShown by rememberSaveable { mutableStateOf(false) }
 
-    val permissionLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestMultiplePermissions()
-    ) { results ->
-        permissionPromptShown = false
-        viewModel.onPermissionResult(PcBluetoothPermissions.allGranted(results))
-    }
-
-    LaunchedEffect(permissionRequested) {
-        if (permissionRequested && !permissionPromptShown) {
-            permissionPromptShown = true
-            permissionLauncher.launch(PcBluetoothPermissions.required().toTypedArray())
-        } else if (!permissionRequested) {
-            permissionPromptShown = false
-        }
-    }
-
+    DisposableEffect(viewModel) { onDispose { viewModel.stopScan() } }
     LifecycleEventEffect(Lifecycle.Event.ON_STOP) { viewModel.stopScan() }
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.onResume() }
 
-    BaseView(titleResId = R.string.screen_title_pcs, navController = navController) {
+    BaseView(titleResId = R.string.screen_title_pcs, navController = navController, bottomBar = tabBar) {
         Column(
             modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(Dimens.spaceM)

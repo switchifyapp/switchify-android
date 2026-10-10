@@ -72,13 +72,11 @@ class PcRemoteViewModel(
         }
     }
 
-    fun onStart() {
+    fun onVisible() {
         refreshPhysicalSwitchStop()
-        viewModelScope.launch { manager.connectPreferred() }
     }
 
-    fun onStop(changingConfigurations: Boolean) {
-        viewModelScope.launch { manager.cancelPreferredConnection() }
+    fun onHidden(changingConfigurations: Boolean) {
         if (changingConfigurations) return
         val session = _holder.value?.session ?: return
         sessionScope.launch(start = CoroutineStart.UNDISPATCHED) { session.cleanup() }

@@ -1,8 +1,5 @@
 package com.enaboapps.switchify.screens.pc
 
-import android.app.Activity
-import android.content.Context
-import android.content.ContextWrapper
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -21,6 +18,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -41,14 +39,11 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.NavController
 import com.enaboapps.switchify.R
 import com.enaboapps.switchify.components.ActionButton
 import com.enaboapps.switchify.components.ActionButtonType
-import com.enaboapps.switchify.components.BaseView
 import com.enaboapps.switchify.components.Panel
 import com.enaboapps.switchify.components.PreferenceValueSelector
-import com.enaboapps.switchify.nav.NavigationRoute
 import com.enaboapps.switchify.pc.connection.PcConnectionGraph
 import com.enaboapps.switchify.pc.connection.PcConnectionState
 import com.enaboapps.switchify.pc.connection.PcProfileStatus
@@ -64,7 +59,7 @@ import com.enaboapps.switchify.pc.protocol.PcSwitchProfileKind
 import com.enaboapps.switchify.theme.Dimens
 
 @Composable
-fun PcForwardingScreen(navController: NavController) {
+fun PcForwardingSurface(onOpenPcs: () -> Unit) {
     val context = LocalContext.current
     val graph = remember { PcConnectionGraph.getInstance(context) }
     val viewModel: PcForwardingViewModel = viewModel {
@@ -91,8 +86,12 @@ fun PcForwardingScreen(navController: NavController) {
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            viewModel.stopForBackground(changingConfigurations = activity?.isChangingConfigurations == true)
+        }
     }
+    LaunchedEffect(viewModel) { viewModel.refreshHoldToStop() }
 
     val view = LocalView.current
     val forwardingActive = forwarding.phase == PcForwardingPhase.Active
@@ -101,65 +100,63 @@ fun PcForwardingScreen(navController: NavController) {
         onDispose { view.keepScreenOn = false }
     }
 
-    BaseView(titleResId = R.string.screen_title_pc_forwarding, navController = navController) {
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(Dimens.spaceM)
-        ) {
-            Text(
-                text = stringResource(R.string.pc_forwarding_description),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(Dimens.spaceM)
+    ) {
+        Text(
+            text = stringResource(R.string.pc_forwarding_description),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
 
-            when (val current = connection) {
-                is PcConnectionState.Connected -> if (current.profile == null) {
-                    InfoPanel(
-                        title = stringResource(
-                            if (current.profileStatus == PcProfileStatus.Recovering) R.string.pc_forwarding_profile_recovering_title
-                            else R.string.pc_forwarding_profile_unavailable_title
-                        ),
-                        body = stringResource(R.string.pc_forwarding_profile_unavailable_body)
-                    )
-                } else {
-                    ForwardingBody(
-                        pcName = current.desktop.displayName,
-                        state = forwarding,
-                        holdToStopMs = holdToStopMs,
-                        onSelect = viewModel::selectProfile,
-                        onToggle = viewModel::toggle
-                    )
-                }
-                else -> InfoPanel(
-                    title = stringResource(R.string.pc_forwarding_not_connected_title),
-                    body = stringResource(R.string.pc_forwarding_not_connected_body)
-                ) {
-                    ActionButton(
-                        textResId = R.string.pc_forwarding_open_pcs,
-                        type = ActionButtonType.SECONDARY,
-                        leadingIcon = Icons.Rounded.Computer,
-                        onClick = { navController.navigate(NavigationRoute.PcConnection.name) },
-                        applyPadding = false
-                    )
-                }
-            }
-
-            Text(
-                text = stringResource(R.string.pc_forwarding_settings_title),
-                style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.semantics { heading() }
-            )
-            Panel(modifier = Modifier.fillMaxWidth()) {
-                PreferenceValueSelector(
-                    value = holdToStopMs.toInt(),
-                    titleResId = R.string.pc_forwarding_hold_to_stop_title,
-                    summaryResId = R.string.pc_forwarding_hold_to_stop_summary,
-                    values = PcForwardingPreferences.HOLD_TO_STOP_OPTIONS_MS.map { it.toInt() }.toIntArray(),
-                    buttonLabelFormatter = { holdToStopLabels.getValue(it) },
-                    displayFormatter = { holdToStopLabels.getValue(it) },
-                    onValueChanged = { viewModel.setHoldToStopMs(it.toLong()) }
+        when (val current = connection) {
+            is PcConnectionState.Connected -> if (current.profile == null) {
+                InfoPanel(
+                    title = stringResource(
+                        if (current.profileStatus == PcProfileStatus.Recovering) R.string.pc_forwarding_profile_recovering_title
+                        else R.string.pc_forwarding_profile_unavailable_title
+                    ),
+                    body = stringResource(R.string.pc_forwarding_profile_unavailable_body)
+                )
+            } else {
+                ForwardingBody(
+                    pcName = current.desktop.displayName,
+                    state = forwarding,
+                    holdToStopMs = holdToStopMs,
+                    onSelect = viewModel::selectProfile,
+                    onToggle = viewModel::toggle
                 )
             }
+            else -> InfoPanel(
+                title = stringResource(R.string.pc_forwarding_not_connected_title),
+                body = stringResource(R.string.pc_forwarding_not_connected_body)
+            ) {
+                ActionButton(
+                    textResId = R.string.pc_forwarding_open_pcs,
+                    type = ActionButtonType.SECONDARY,
+                    leadingIcon = Icons.Rounded.Computer,
+                    onClick = onOpenPcs,
+                    applyPadding = false
+                )
+            }
+        }
+
+        Text(
+            text = stringResource(R.string.pc_forwarding_settings_title),
+            style = MaterialTheme.typography.titleLarge,
+            modifier = Modifier.semantics { heading() }
+        )
+        Panel(modifier = Modifier.fillMaxWidth()) {
+            PreferenceValueSelector(
+                value = holdToStopMs.toInt(),
+                titleResId = R.string.pc_forwarding_hold_to_stop_title,
+                summaryResId = R.string.pc_forwarding_hold_to_stop_summary,
+                values = PcForwardingPreferences.HOLD_TO_STOP_OPTIONS_MS.map { it.toInt() }.toIntArray(),
+                buttonLabelFormatter = { holdToStopLabels.getValue(it) },
+                displayFormatter = { holdToStopLabels.getValue(it) },
+                onValueChanged = { viewModel.setHoldToStopMs(it.toLong()) }
+            )
         }
     }
 }
@@ -364,10 +361,4 @@ private fun messageText(message: PcForwardingMessage): Int = when (message) {
     PcForwardingMessage.SelectionSaveFailed -> R.string.pc_forwarding_message_selection_save_failed
     PcForwardingMessage.Revoked -> R.string.pc_forwarding_message_revoked
     PcForwardingMessage.LeftScreen -> R.string.pc_forwarding_message_left_screen
-}
-
-private tailrec fun Context.findActivity(): Activity? = when (this) {
-    is Activity -> this
-    is ContextWrapper -> baseContext.findActivity()
-    else -> null
 }

@@ -55,8 +55,6 @@ private class LayoutTestConnection : PcRemoteConnection {
 
     override suspend fun connectPreferred() = Unit
 
-    override suspend fun cancelPreferredConnection() = Unit
-
     override suspend fun listSaved(): List<PcSavedPc> = emptyList()
 
     override suspend fun switchSaved(pc: PcSavedPc) = Unit

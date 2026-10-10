@@ -104,7 +104,7 @@ class PcSecretStoreTest {
     }
 
     @Test
-    fun aMissingAliasOnReadIsUnavailableAndOnlyAWriteClearsStaleSecrets() = runTest {
+    fun aMissingAliasIsUnavailableOnReadAndAWriteOnlyCreatesANewKey() = runTest {
         secrets.put("token.a", "fixture-secret")
         secrets.put("device", "device-1")
         val stored = backing.values.toMap()
@@ -119,8 +119,11 @@ class PcSecretStoreTest {
 
         keys.key = null
         secrets.put("token.a", "new-secret")
-        assertEquals(setOf("token.a"), backing.values.keys)
+        assertEquals(setOf("token.a", "device"), backing.values.keys)
+        assertEquals(stored.getValue("device"), backing.values.getValue("device"))
         assertEquals("new-secret", secrets.get("token.a"))
+        assertNull(secrets.get("device"))
+        assertEquals(2, keys.created)
         assertEquals(0, keys.deleted)
     }
 

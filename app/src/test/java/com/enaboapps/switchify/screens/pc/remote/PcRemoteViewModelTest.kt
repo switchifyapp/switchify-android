@@ -37,7 +37,6 @@ private class FakeRemoteConnection : PcRemoteConnection {
     val sender = FakeRemoteSender()
     val cleanups = mutableListOf<suspend () -> Unit>()
     var connectCalls = 0
-    var cancelCalls = 0
 
     override val state = MutableStateFlow<PcConnectionState>(PcConnectionState.Idle(emptyList()))
 
@@ -50,10 +49,6 @@ private class FakeRemoteConnection : PcRemoteConnection {
 
     override suspend fun connectPreferred() {
         connectCalls += 1
-    }
-
-    override suspend fun cancelPreferredConnection() {
-        cancelCalls += 1
     }
 
     override suspend fun listSaved(): List<PcSavedPc> = emptyList()
@@ -98,12 +93,12 @@ class PcRemoteViewModelTest {
     }
 
     @Test
-    fun backgroundingReleasesHeldInputAndStaysConnected() = viewModelTest { connection, viewModel, switchStop ->
+    fun hidingReleasesHeldInputWithoutTouchingTheConnection() = viewModelTest { connection, viewModel, switchStop ->
         holdEverything(viewModel)
         assertNotNull(switchStop.armed)
         connection.sender.calls.clear()
 
-        viewModel.onStop(changingConfigurations = false)
+        viewModel.onHidden(changingConfigurations = false)
         advanceUntilIdle()
 
         assertEquals(
@@ -116,7 +111,7 @@ class PcRemoteViewModelTest {
         assertEquals(emptyList<String>(), state.modifiers)
         assertFalse(state.streamOpen)
         assertNull(switchStop.armed)
-        assertEquals(1, connection.cancelCalls)
+        assertEquals(0, connection.connectCalls)
         assertNotNull(viewModel.holder.value)
     }
 
@@ -125,7 +120,7 @@ class PcRemoteViewModelTest {
         holdEverything(viewModel)
         connection.sender.calls.clear()
 
-        viewModel.onStop(changingConfigurations = true)
+        viewModel.onHidden(changingConfigurations = true)
         advanceUntilIdle()
 
         assertEquals(emptyList<String>(), connection.sender.types)
@@ -133,14 +128,14 @@ class PcRemoteViewModelTest {
     }
 
     @Test
-    fun sessionUsableAgainAfterReturningToForeground() = viewModelTest { connection, viewModel, _ ->
-        viewModel.onStop(changingConfigurations = false)
+    fun sessionUsableAgainAfterBecomingVisible() = viewModelTest { connection, viewModel, _ ->
+        viewModel.onHidden(changingConfigurations = false)
         advanceUntilIdle()
-        viewModel.onStart()
+        viewModel.onVisible()
         advanceUntilIdle()
         viewModel.holder.value!!.session.toggleDrag()
         assertEquals("mouse.dragStart", connection.sender.types.last())
-        assertEquals(1, connection.connectCalls)
+        assertEquals(0, connection.connectCalls)
     }
 
     @Test

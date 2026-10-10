@@ -1292,10 +1292,6 @@
     <string name="pc_operation_failed_title">Something went wrong</string>
     <string name="pc_operation_failed_body">That action could not be completed. Try again.</string>
     <string name="pc_dismiss">Dismiss</string>
-    <string name="debug_section_pc_control">PC Control</string>
-    <string name="debug_open_pcs">Open PCs</string>
-    <string name="debug_open_pc_forwarding">Open PC Switch Forwarding</string>
-    <string name="screen_title_pc_forwarding">PC Switch Forwarding</string>
     <string name="pc_forwarding_description">Forward your configured external switches from Switchify to the connected PC.</string>
     <string name="pc_forwarding_not_connected_title">No PC connected</string>
     <string name="pc_forwarding_not_connected_body">Connect to a paired PC to forward your switches.</string>

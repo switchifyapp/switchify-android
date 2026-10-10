@@ -4,6 +4,7 @@ import android.content.Context
 import android.location.LocationManager
 import android.os.Build
 import androidx.core.location.LocationManagerCompat
+import com.enaboapps.switchify.pc.control.SharedPreferencesPcStorage
 import com.enaboapps.switchify.pc.storage.DeviceProtectedPcKeyValueStore
 import com.enaboapps.switchify.pc.storage.PcPairingStore
 import com.enaboapps.switchify.pc.storage.keystorePcSecretStore
@@ -18,6 +19,8 @@ class PcConnectionGraph private constructor(context: Context) {
 
     val diagnostics = PcDiagnosticLog()
 
+    val remoteNames = PcRemoteNameStore(SharedPreferencesPcStorage(appContext, PcRemoteNameStore.FILE_NAME), Build.MODEL)
+
     val permissions = PcPermissionRequester { PcBluetoothPermissions.hasAll(appContext) }
 
     val manager = PcConnectionManager(
@@ -28,7 +31,7 @@ class PcConnectionGraph private constructor(context: Context) {
         ),
         diagnostics = diagnostics,
         requestPermission = permissions::request,
-        remoteName = { PcRemoteName.deviceModelName(Build.MODEL) },
+        remoteName = { remoteNames.resolvedName() },
         locationServicesOff = ::locationServicesOff,
         onUnexpectedError = { error ->
             Logger.log(LogEvent.PcConnectionUnexpectedError, throwable = PcSanitizedError.from(error))

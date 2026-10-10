@@ -52,6 +52,8 @@ class PcForwardingViewModel(
 
     fun setHoldToStopMs(value: Long) = session.setHoldToStopMs(value)
 
+    fun refreshHoldToStop() = session.refreshHoldToStop()
+
     fun stopForBackground(changingConfigurations: Boolean) = session.stopForBackground(changingConfigurations)
 
     override fun onCleared() {

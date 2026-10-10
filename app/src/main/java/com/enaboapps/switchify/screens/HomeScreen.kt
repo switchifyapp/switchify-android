@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.BugReport
 import androidx.compose.material.icons.rounded.CameraAlt
+import androidx.compose.material.icons.rounded.Computer
 import androidx.compose.material.icons.rounded.Feedback
 import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.runtime.Composable
@@ -201,6 +202,13 @@ fun HomeScreen(navController: NavController, serviceUtils: ServiceUtils = Servic
                                 }
                             )
                         }
+
+                        PanelListRow(
+                            titleResId = R.string.home_pc_control_title,
+                            summaryResId = R.string.home_pc_control_summary,
+                            leadingIcon = Icons.Rounded.Computer,
+                            onClick = { navController.navigate(NavigationRoute.PcControl.name) }
+                        )
 
                         PanelListRow(
                             titleResId = R.string.home_feedback_title,

@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="screen_title_pc_remote">PC remote</string>
-    <string name="debug_open_pc_remote">Open PC remote</string>
 
     <string name="pc_surface_mouse">Mouse</string>
     <string name="pc_surface_typing">Typing</string>

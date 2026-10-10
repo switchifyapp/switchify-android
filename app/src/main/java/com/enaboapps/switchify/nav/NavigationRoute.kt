@@ -42,8 +42,6 @@ sealed class NavigationRoute(val name: String) {
     data object FavouriteApps : NavigationRoute("FavouriteApps")
     data object AiModel : NavigationRoute("AiModel")
     data object GemmaTerms : NavigationRoute("GemmaTerms")
-    data object PcConnection : NavigationRoute("PcConnection")
+    data object PcControl : NavigationRoute("PcControl")
     data object PcDiagnostics : NavigationRoute("PcDiagnostics")
-    data object PcRemote : NavigationRoute("PcRemote")
-    data object PcForwarding : NavigationRoute("PcForwarding")
 }

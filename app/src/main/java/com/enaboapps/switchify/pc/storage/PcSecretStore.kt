@@ -115,10 +115,7 @@ class EncryptedPcKeyValueStore(
     }
 
     override suspend fun put(key: String, value: String) {
-        val sealed = guarded {
-            if (cipher.keyStatus() == PcSecretKeyStatus.Missing) backing.clear()
-            cipher.encrypt(key, value)
-        }
+        val sealed = guarded { cipher.encrypt(key, value) }
         backing.put(key, sealed)
     }
 
